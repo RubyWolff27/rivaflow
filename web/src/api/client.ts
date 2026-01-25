@@ -1,5 +1,5 @@
 import axios from 'axios';
-import type { Session, Readiness, Report, Suggestion, Technique, Video, Profile, Grading, Movement } from '../types';
+import type { Session, Readiness, Report, Suggestion, Technique, Video, Profile, Grading, Movement, Contact, SessionRoll } from '../types';
 
 const API_BASE = 'http://localhost:8000/api';
 
@@ -84,4 +84,16 @@ export const glossaryApi = {
   create: (data: { name: string; category: string; subcategory?: string; points?: number; description?: string; aliases?: string[]; gi_applicable?: boolean; nogi_applicable?: boolean }) =>
     api.post<Movement>('/glossary/', data),
   delete: (id: number) => api.delete(`/glossary/${id}`),
+};
+
+export const contactsApi = {
+  list: (params?: { search?: string; contact_type?: string }) =>
+    api.get<Contact[]>('/contacts/', { params }),
+  listInstructors: () => api.get<Contact[]>('/contacts/instructors'),
+  listPartners: () => api.get<Contact[]>('/contacts/partners'),
+  getById: (id: number) => api.get<Contact>(`/contacts/${id}`),
+  create: (data: { name: string; contact_type?: string; belt_rank?: string; belt_stripes?: number; instructor_certification?: string; phone?: string; email?: string; notes?: string }) =>
+    api.post<Contact>('/contacts/', data),
+  update: (id: number, data: Partial<Contact>) => api.put<Contact>(`/contacts/${id}`, data),
+  delete: (id: number) => api.delete(`/contacts/${id}`),
 };

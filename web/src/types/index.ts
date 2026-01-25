@@ -12,6 +12,9 @@ export interface Session {
   partners?: string[];
   techniques?: string[];
   notes?: string;
+  instructor_id?: number;
+  instructor_name?: string;
+  detailed_rolls?: SessionRoll[];  // Populated when fetched with /with-rolls endpoint
   created_at: string;
 }
 
@@ -123,5 +126,32 @@ export interface Movement {
   ibjjf_legal_brown: boolean;
   ibjjf_legal_black: boolean;
   custom: boolean;
+  created_at?: string;
+}
+
+export interface Contact {
+  id: number;
+  name: string;
+  contact_type: 'instructor' | 'training-partner' | 'both';
+  belt_rank?: 'white' | 'blue' | 'purple' | 'brown' | 'black';
+  belt_stripes?: number;
+  instructor_certification?: string;
+  phone?: string;
+  email?: string;
+  notes?: string;
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface SessionRoll {
+  id: number;
+  session_id: number;
+  partner_id?: number;
+  partner_name?: string;
+  roll_number: number;
+  duration_mins?: number;
+  submissions_for?: number[];  // Movement IDs from glossary
+  submissions_against?: number[];  // Movement IDs from glossary
+  notes?: string;
   created_at?: string;
 }
