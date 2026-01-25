@@ -3,29 +3,144 @@
 @tailwind utilities;
 
 @layer base {
+  /* RivaFlow Design Tokens v1.0 - "Vault-to-Kinetic" Identity */
+  :root {
+    /* Surface Colors */
+    --color-bg-primary: #F4F7F5;      /* Surface Base - Main app background */
+    --color-bg-secondary: #FFFFFF;    /* Surface Card - Cards, modals, sidebars */
+
+    /* Text Colors */
+    --color-text-primary: #0A0C10;    /* High Contrast - Headings, primary body */
+    --color-text-secondary: #64748B;  /* Low Contrast - Captions, disabled text */
+
+    /* Brand Colors */
+    --color-brand-accent: #00F5D4;    /* Kinetic Teal - Buttons, progress, "Flow" */
+
+    /* Border Colors */
+    --color-border: #E2E8F0;          /* Subtle Stroke - Card borders, dividers */
+  }
+
+  .dark {
+    /* Surface Colors - Dark Mode */
+    --color-bg-primary: #0A0C10;      /* Vault darkness */
+    --color-bg-secondary: #1A1E26;    /* Elevated surfaces */
+
+    /* Text Colors - Dark Mode */
+    --color-text-primary: #F4F7F5;    /* High contrast on dark */
+    --color-text-secondary: #94A3B8;  /* Muted text on dark */
+
+    /* Brand Colors - Consistent across modes */
+    --color-brand-accent: #00F5D4;    /* Kinetic Teal - unchanged */
+
+    /* Border Colors - Dark Mode */
+    --color-border: #2D343E;          /* Subtle strokes in dark */
+  }
+
+  /* Apply design tokens to body */
   body {
-    @apply bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100;
+    background-color: var(--color-bg-primary);
+    color: var(--color-text-primary);
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+      'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+      sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  /* Secondary text styling */
+  .text-secondary {
+    color: var(--color-text-secondary);
   }
 }
 
 @layer components {
+  /* Primary Button - Kinetic Teal with 8px border radius */
   .btn-primary {
-    @apply px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors font-medium;
+    @apply px-4 py-2 text-white rounded-lg hover:opacity-90 transition-all font-medium;
+    background-color: var(--color-brand-accent);
+    border-radius: 8px;
+    /* Ensure 3:1 contrast ratio for UI components */
+    color: #0A0C10;  /* Dark text on Kinetic Teal for accessibility */
   }
 
+  .btn-primary:disabled {
+    @apply opacity-50 cursor-not-allowed;
+  }
+
+  /* Secondary Button - 8px border radius */
   .btn-secondary {
-    @apply px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors font-medium;
+    @apply px-4 py-2 rounded-lg hover:opacity-80 transition-all font-medium;
+    background-color: var(--color-bg-secondary);
+    color: var(--color-text-primary);
+    border: 1px solid var(--color-border);
+    border-radius: 8px;
   }
 
+  /* Card Component - 12px border radius */
   .card {
-    @apply bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6 border border-gray-200 dark:border-gray-700;
+    background-color: var(--color-bg-secondary);
+    border: 1px solid var(--color-border);
+    border-radius: 12px;
+    padding: 1.5rem;
+    box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
   }
 
+  /* Input Fields - 8px border radius */
   .input {
-    @apply w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100;
+    @apply w-full px-3 py-2 rounded-lg focus:ring-2 focus:border-transparent transition-colors;
+    background-color: var(--color-bg-secondary);
+    color: var(--color-text-primary);
+    border: 1px solid var(--color-border);
+    border-radius: 8px;
+    /* Focus ring uses Kinetic Teal */
+    --tw-ring-color: var(--color-brand-accent);
   }
 
+  .input:focus {
+    outline: none;
+    box-shadow: 0 0 0 2px var(--color-brand-accent);
+  }
+
+  .input::placeholder {
+    color: var(--color-text-secondary);
+  }
+
+  /* Label Styling */
   .label {
-    @apply block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1;
+    @apply block text-sm font-medium mb-1;
+    color: var(--color-text-primary);
+  }
+
+  /* Kinetic Accent Utilities */
+  .text-kinetic {
+    color: var(--color-brand-accent);
+  }
+
+  .bg-kinetic {
+    background-color: var(--color-brand-accent);
+  }
+
+  .border-kinetic {
+    border-color: var(--color-brand-accent);
+  }
+
+  /* Progress Bar - Kinetic Teal with 0.1 opacity fill for "glow" effect */
+  .progress-bar-kinetic {
+    background: linear-gradient(
+      90deg,
+      var(--color-brand-accent) 0%,
+      rgba(0, 245, 212, 0.1) 100%
+    );
+  }
+}
+
+@layer utilities {
+  /* Border Radius Standards */
+  .rounded-button {
+    border-radius: 8px;
+  }
+
+  .rounded-card {
+    border-radius: 12px;
   }
 }
