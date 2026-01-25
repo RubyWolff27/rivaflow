@@ -4,6 +4,7 @@ from datetime import date
 from typing import Optional
 
 from rivaflow.core.services.session_service import SessionService
+from rivaflow.core.services.privacy_service import PrivacyService
 from rivaflow.core.models import SessionCreate, SessionUpdate
 
 router = APIRouter()
@@ -95,24 +96,68 @@ async def update_session(session_id: int, session: SessionUpdate):
 
 
 @router.get("/{session_id}")
-async def get_session(session_id: int):
-    """Get a session by ID."""
+async def get_session(session_id: int, apply_privacy: bool = False):
+    """Get a session by ID.
+
+    Args:
+        session_id: Session ID
+        apply_privacy: If True, apply privacy redaction based on session's visibility_level.
+                      Default False for owner access (current single-user mode).
+                      Future: Will be True when viewer_id != owner_id.
+    """
     session = service.get_session(session_id)
     if not session:
         raise HTTPException(status_code=404, detail="Session not found")
+
+    # Apply privacy redaction if requested (for future social features)
+    if apply_privacy:
+        visibility = session.get("visibility_level", "private")
+        session = PrivacyService.redact_session(session, visibility=visibility)
+        if session is None:
+            raise HTTPException(status_code=403, detail="Session is private")
+
     return session
 
 
 @router.get("/")
-async def list_sessions(limit: int = 10):
-    """List recent sessions."""
-    return service.get_recent_sessions(limit)
+async def list_sessions(limit: int = 10, apply_privacy: bool = False):
+    """List recent sessions.
+
+    Args:
+        limit: Maximum number of sessions to return
+        apply_privacy: If True, apply privacy redaction to each session.
+                      Default False for owner access (current single-user mode).
+    """
+    sessions = service.get_recent_sessions(limit)
+
+    if apply_privacy:
+        sessions = PrivacyService.redact_sessions_list(
+            sessions,
+            default_visibility="private"
+        )
+
+    return sessions
 
 
 @router.get("/range/{start_date}/{end_date}")
-async def get_sessions_by_range(start_date: date, end_date: date):
-    """Get sessions within a date range."""
-    return service.get_sessions_by_date_range(start_date, end_date)
+async def get_sessions_by_range(start_date: date, end_date: date, apply_privacy: bool = False):
+    """Get sessions within a date range.
+
+    Args:
+        start_date: Range start date
+        end_date: Range end date
+        apply_privacy: If True, apply privacy redaction to each session.
+                      Default False for owner access (current single-user mode).
+    """
+    sessions = service.get_sessions_by_date_range(start_date, end_date)
+
+    if apply_privacy:
+        sessions = PrivacyService.redact_sessions_list(
+            sessions,
+            default_visibility="private"
+        )
+
+    return sessions
 
 
 @router.get("/autocomplete/data")
@@ -122,11 +167,26 @@ async def get_autocomplete_data():
 
 
 @router.get("/{session_id}/with-rolls")
-async def get_session_with_rolls(session_id: int):
-    """Get a session with detailed roll records."""
+async def get_session_with_rolls(session_id: int, apply_privacy: bool = False):
+    """Get a session with detailed roll records.
+
+    Args:
+        session_id: Session ID
+        apply_privacy: If True, apply privacy redaction.
+                      Note: detailed_rolls is a SENSITIVE_FIELD and will be
+                      excluded unless visibility is "full".
+                      Default False for owner access (current single-user mode).
+    """
     session = service.get_session_with_rolls(session_id)
     if not session:
         raise HTTPException(status_code=404, detail="Session not found")
+
+    if apply_privacy:
+        visibility = session.get("visibility_level", "private")
+        session = PrivacyService.redact_session(session, visibility=visibility)
+        if session is None:
+            raise HTTPException(status_code=403, detail="Session is private")
+
     return session
 
 

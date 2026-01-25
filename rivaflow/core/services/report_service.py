@@ -6,6 +6,7 @@ import csv
 from pathlib import Path
 
 from rivaflow.db.repositories import SessionRepository, ReadinessRepository
+from rivaflow.core.services.privacy_service import PrivacyService
 
 
 class ReportService:
@@ -202,43 +203,75 @@ class ReportService:
     def export_to_csv(
         self, sessions: list[dict], output_path: str
     ) -> None:
-        """Export sessions to CSV file."""
+        """Export sessions to CSV file with privacy redaction applied.
+
+        Sessions are redacted based on their visibility_level setting:
+        - private: Excluded from export
+        - attendance: Only gym/date/class_type/location
+        - summary: attendance + duration/intensity/rolls
+        - full: All fields
+        """
         if not sessions:
             return
 
-        # Define CSV columns
+        # Apply privacy redaction to all sessions
+        redacted_sessions = PrivacyService.redact_sessions_list(
+            sessions,
+            default_visibility="private"
+        )
+
+        if not redacted_sessions:
+            return
+
+        # Determine which fields are present across all sessions
+        # Start with mandatory attendance fields
         fieldnames = [
             "date",
             "class_type",
             "gym_name",
             "location",
-            "duration_mins",
-            "intensity",
-            "rolls",
-            "submissions_for",
-            "submissions_against",
-            "partners",
-            "techniques",
-            "notes",
         ]
 
+        # Add summary fields if any session has them
+        summary_fields = ["duration_mins", "intensity", "rolls"]
+        if any(field in session for session in redacted_sessions for field in summary_fields):
+            fieldnames.extend(summary_fields)
+
+        # Add full detail fields if any session has them
+        full_fields = ["submissions_for", "submissions_against", "partners", "techniques", "notes"]
+        if any(field in session for session in redacted_sessions for field in full_fields):
+            fieldnames.extend(full_fields)
+
         with open(output_path, "w", newline="", encoding="utf-8") as csvfile:
-            writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
+            writer = csv.DictWriter(csvfile, fieldnames=fieldnames, extrasaction='ignore')
             writer.writeheader()
 
-            for session in sessions:
+            for session in redacted_sessions:
                 row = {
-                    "date": session["session_date"],
-                    "class_type": session["class_type"],
-                    "gym_name": session["gym_name"],
+                    "date": session.get("session_date", ""),
+                    "class_type": session.get("class_type", ""),
+                    "gym_name": session.get("gym_name", ""),
                     "location": session.get("location", ""),
-                    "duration_mins": session["duration_mins"],
-                    "intensity": session["intensity"],
-                    "rolls": session["rolls"],
-                    "submissions_for": session["submissions_for"],
-                    "submissions_against": session["submissions_against"],
-                    "partners": ", ".join(session["partners"]) if session.get("partners") else "",
-                    "techniques": ", ".join(session["techniques"]) if session.get("techniques") else "",
-                    "notes": session.get("notes", ""),
                 }
+
+                # Add summary fields if present
+                if "duration_mins" in session:
+                    row["duration_mins"] = session["duration_mins"]
+                if "intensity" in session:
+                    row["intensity"] = session["intensity"]
+                if "rolls" in session:
+                    row["rolls"] = session["rolls"]
+
+                # Add full detail fields if present
+                if "submissions_for" in session:
+                    row["submissions_for"] = session["submissions_for"]
+                if "submissions_against" in session:
+                    row["submissions_against"] = session["submissions_against"]
+                if "partners" in session:
+                    row["partners"] = ", ".join(session["partners"]) if session.get("partners") else ""
+                if "techniques" in session:
+                    row["techniques"] = ", ".join(session["techniques"]) if session.get("techniques") else ""
+                if "notes" in session:
+                    row["notes"] = session.get("notes", "")
+
                 writer.writerow(row)
