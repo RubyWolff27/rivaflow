@@ -21,7 +21,7 @@ export default {
           800: '#005C50',
           900: '#002924',
         },
-        // Primary remains for backward compatibility, maps to Kinetic Teal
+        // Primary maps to Kinetic Teal (backward compatibility)
         primary: {
           50: '#CCFFF7',
           100: '#B3FFF3',
@@ -29,7 +29,7 @@ export default {
           300: '#4DFFE3',
           400: '#1AFFDB',
           500: '#00F5D4',
-          600: '#00C2A8',
+          600: '#00C2A8',  // This is what text-primary-600 will use
           700: '#008F7C',
           800: '#005C50',
           900: '#002924',
@@ -46,6 +46,19 @@ export default {
           700: '#1E293B',
           800: '#1A1E26',
           900: '#0A0C10',
+        },
+        // Override default grays to use Vault colors
+        gray: {
+          50: '#F4F7F5',   // Vault-50 (light mode surface)
+          100: '#E2E8F0',
+          200: '#CBD5E1',
+          300: '#94A3B8',
+          400: '#64748B',
+          500: '#475569',
+          600: '#334155',
+          700: '#1E293B',
+          800: '#1A1E26',  // Vault-800 (dark mode card)
+          900: '#0A0C10',  // Vault-900 (dark mode bg)
         },
       },
       borderRadius: {
