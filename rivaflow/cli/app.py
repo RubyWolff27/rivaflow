@@ -2,11 +2,16 @@
 import typer
 from typing import Optional
 
+from rivaflow.cli.commands import log
+
 app = typer.Typer(
     name="rivaflow",
     help="Training OS for the mat — Train with intent. Flow to mastery.",
     add_completion=False,
 )
+
+# Register subcommands
+app.add_typer(log.app, name="log")
 
 
 @app.callback()
