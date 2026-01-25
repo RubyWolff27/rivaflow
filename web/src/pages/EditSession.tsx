@@ -33,6 +33,10 @@ export default function EditSession() {
     partners: '',
     techniques: '',
     notes: '',
+    whoop_strain: '',
+    whoop_calories: '',
+    whoop_avg_hr: '',
+    whoop_max_hr: '',
   });
 
   useEffect(() => {
@@ -68,6 +72,10 @@ export default function EditSession() {
         partners: sessionData.partners?.join(', ') || '',
         techniques: sessionData.techniques?.join(', ') || '',
         notes: sessionData.notes || '',
+        whoop_strain: sessionData.whoop_strain?.toString() || '',
+        whoop_calories: sessionData.whoop_calories?.toString() || '',
+        whoop_avg_hr: sessionData.whoop_avg_hr?.toString() || '',
+        whoop_max_hr: sessionData.whoop_max_hr?.toString() || '',
       });
     } catch (error) {
       console.error('Error loading session:', error);
@@ -97,6 +105,10 @@ export default function EditSession() {
         partners: formData.partners ? formData.partners.split(',').map(p => p.trim()) : undefined,
         techniques: formData.techniques ? formData.techniques.split(',').map(t => t.trim()) : undefined,
         notes: formData.notes || undefined,
+        whoop_strain: formData.whoop_strain ? parseFloat(formData.whoop_strain) : undefined,
+        whoop_calories: formData.whoop_calories ? parseInt(formData.whoop_calories) : undefined,
+        whoop_avg_hr: formData.whoop_avg_hr ? parseInt(formData.whoop_avg_hr) : undefined,
+        whoop_max_hr: formData.whoop_max_hr ? parseInt(formData.whoop_max_hr) : undefined,
       };
 
       await sessionsApi.update(parseInt(id!), payload);
@@ -320,6 +332,61 @@ export default function EditSession() {
             onChange={(e) => setFormData({ ...formData, partners: e.target.value })}
             placeholder="e.g., John, Sarah"
           />
+        </div>
+
+        {/* Whoop Stats (Optional) */}
+        <div className="border-t pt-4">
+          <h3 className="text-lg font-semibold mb-3">Whoop Stats (optional)</h3>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="label">Activity Strain</label>
+              <input
+                type="number"
+                className="input"
+                value={formData.whoop_strain}
+                onChange={(e) => setFormData({ ...formData, whoop_strain: e.target.value })}
+                placeholder="0-21"
+                min="0"
+                max="21"
+                step="0.1"
+              />
+            </div>
+            <div>
+              <label className="label">Calories</label>
+              <input
+                type="number"
+                className="input"
+                value={formData.whoop_calories}
+                onChange={(e) => setFormData({ ...formData, whoop_calories: e.target.value })}
+                placeholder="e.g., 500"
+                min="0"
+              />
+            </div>
+            <div>
+              <label className="label">Avg HR (bpm)</label>
+              <input
+                type="number"
+                className="input"
+                value={formData.whoop_avg_hr}
+                onChange={(e) => setFormData({ ...formData, whoop_avg_hr: e.target.value })}
+                placeholder="e.g., 140"
+                min="0"
+                max="250"
+              />
+            </div>
+            <div>
+              <label className="label">Max HR (bpm)</label>
+              <input
+                type="number"
+                className="input"
+                value={formData.whoop_max_hr}
+                onChange={(e) => setFormData({ ...formData, whoop_max_hr: e.target.value })}
+                placeholder="e.g., 185"
+                min="0"
+                max="250"
+              />
+            </div>
+          </div>
         </div>
 
         {/* Notes */}

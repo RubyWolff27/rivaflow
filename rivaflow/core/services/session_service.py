@@ -32,6 +32,10 @@ class SessionService:
         instructor_id: Optional[int] = None,
         instructor_name: Optional[str] = None,
         session_rolls: Optional[List[dict]] = None,
+        whoop_strain: Optional[float] = None,
+        whoop_calories: Optional[int] = None,
+        whoop_avg_hr: Optional[int] = None,
+        whoop_max_hr: Optional[int] = None,
     ) -> int:
         """
         Create a new training session and update technique tracking.
@@ -55,6 +59,10 @@ class SessionService:
             visibility_level=visibility_level,
             instructor_id=instructor_id,
             instructor_name=instructor_name,
+            whoop_strain=whoop_strain,
+            whoop_calories=whoop_calories,
+            whoop_avg_hr=whoop_avg_hr,
+            whoop_max_hr=whoop_max_hr,
         )
 
         # Create detailed roll records if provided
@@ -101,6 +109,10 @@ class SessionService:
         visibility_level: Optional[str] = None,
         instructor_id: Optional[int] = None,
         instructor_name: Optional[str] = None,
+        whoop_strain: Optional[float] = None,
+        whoop_calories: Optional[int] = None,
+        whoop_avg_hr: Optional[int] = None,
+        whoop_max_hr: Optional[int] = None,
     ) -> Optional[dict]:
         """
         Update a training session and refresh technique tracking.
@@ -129,6 +141,10 @@ class SessionService:
             visibility_level=visibility_level,
             instructor_id=instructor_id,
             instructor_name=instructor_name,
+            whoop_strain=whoop_strain,
+            whoop_calories=whoop_calories,
+            whoop_avg_hr=whoop_avg_hr,
+            whoop_max_hr=whoop_max_hr,
         )
 
         if not updated:

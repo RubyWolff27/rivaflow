@@ -15,6 +15,10 @@ export interface Session {
   instructor_id?: number;
   instructor_name?: string;
   detailed_rolls?: SessionRoll[];  // Populated when fetched with /with-rolls endpoint
+  whoop_strain?: number;
+  whoop_calories?: number;
+  whoop_avg_hr?: number;
+  whoop_max_hr?: number;
   created_at: string;
 }
 

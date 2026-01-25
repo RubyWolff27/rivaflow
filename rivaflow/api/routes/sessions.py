@@ -36,6 +36,10 @@ async def create_session(session: SessionCreate):
             instructor_id=session.instructor_id,
             instructor_name=session.instructor_name,
             session_rolls=session_rolls_dict,
+            whoop_strain=session.whoop_strain,
+            whoop_calories=session.whoop_calories,
+            whoop_avg_hr=session.whoop_avg_hr,
+            whoop_max_hr=session.whoop_max_hr,
         )
         created_session = service.get_session(session_id)
         return created_session
@@ -64,6 +68,10 @@ async def update_session(session_id: int, session: SessionUpdate):
             visibility_level=session.visibility_level.value if session.visibility_level else None,
             instructor_id=session.instructor_id,
             instructor_name=session.instructor_name,
+            whoop_strain=session.whoop_strain,
+            whoop_calories=session.whoop_calories,
+            whoop_avg_hr=session.whoop_avg_hr,
+            whoop_max_hr=session.whoop_max_hr,
         )
         if not updated:
             raise HTTPException(status_code=404, detail="Session not found")

@@ -27,6 +27,10 @@ class SessionRepository:
         visibility_level: str = "private",
         instructor_id: Optional[int] = None,
         instructor_name: Optional[str] = None,
+        whoop_strain: Optional[float] = None,
+        whoop_calories: Optional[int] = None,
+        whoop_avg_hr: Optional[int] = None,
+        whoop_max_hr: Optional[int] = None,
     ) -> int:
         """Create a new session and return its ID."""
         with get_connection() as conn:
@@ -38,8 +42,9 @@ class SessionRepository:
                     duration_mins, intensity, rolls,
                     submissions_for, submissions_against,
                     partners, techniques, notes, visibility_level,
-                    instructor_id, instructor_name
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    instructor_id, instructor_name,
+                    whoop_strain, whoop_calories, whoop_avg_hr, whoop_max_hr
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
                     session_date.isoformat(),
@@ -57,6 +62,10 @@ class SessionRepository:
                     visibility_level,
                     instructor_id,
                     instructor_name,
+                    whoop_strain,
+                    whoop_calories,
+                    whoop_avg_hr,
+                    whoop_max_hr,
                 ),
             )
             return cursor.lastrowid
@@ -90,6 +99,10 @@ class SessionRepository:
         visibility_level: Optional[str] = None,
         instructor_id: Optional[int] = None,
         instructor_name: Optional[str] = None,
+        whoop_strain: Optional[float] = None,
+        whoop_calories: Optional[int] = None,
+        whoop_avg_hr: Optional[int] = None,
+        whoop_max_hr: Optional[int] = None,
     ) -> Optional[dict]:
         """Update a session by ID. Returns updated session or None if not found."""
         with get_connection() as conn:
@@ -144,6 +157,18 @@ class SessionRepository:
             if instructor_name is not None:
                 updates.append("instructor_name = ?")
                 params.append(instructor_name)
+            if whoop_strain is not None:
+                updates.append("whoop_strain = ?")
+                params.append(whoop_strain)
+            if whoop_calories is not None:
+                updates.append("whoop_calories = ?")
+                params.append(whoop_calories)
+            if whoop_avg_hr is not None:
+                updates.append("whoop_avg_hr = ?")
+                params.append(whoop_avg_hr)
+            if whoop_max_hr is not None:
+                updates.append("whoop_max_hr = ?")
+                params.append(whoop_max_hr)
 
             if not updates:
                 # Nothing to update, return current session

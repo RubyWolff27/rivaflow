@@ -64,6 +64,10 @@ export default function LogSession() {
     partners: '',
     techniques: '',
     notes: '',
+    whoop_strain: '',
+    whoop_calories: '',
+    whoop_avg_hr: '',
+    whoop_max_hr: '',
   });
 
   useEffect(() => {
@@ -187,6 +191,10 @@ export default function LogSession() {
         partners: sessionData.partners ? sessionData.partners.split(',').map(p => p.trim()) : undefined,
         techniques: sessionData.techniques ? sessionData.techniques.split(',').map(t => t.trim()) : undefined,
         visibility_level: 'private',
+        whoop_strain: sessionData.whoop_strain ? parseFloat(sessionData.whoop_strain as string) : undefined,
+        whoop_calories: sessionData.whoop_calories ? parseInt(sessionData.whoop_calories as string) : undefined,
+        whoop_avg_hr: sessionData.whoop_avg_hr ? parseInt(sessionData.whoop_avg_hr as string) : undefined,
+        whoop_max_hr: sessionData.whoop_max_hr ? parseInt(sessionData.whoop_max_hr as string) : undefined,
       };
 
       // Add instructor
@@ -698,6 +706,61 @@ export default function LogSession() {
               />
             </div>
           )}
+
+          {/* Whoop Stats (Optional) */}
+          <div className="border-t pt-4">
+            <h3 className="text-lg font-semibold mb-3">Whoop Stats (optional)</h3>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="label">Activity Strain</label>
+                <input
+                  type="number"
+                  className="input"
+                  value={sessionData.whoop_strain}
+                  onChange={(e) => setSessionData({ ...sessionData, whoop_strain: e.target.value })}
+                  placeholder="0-21"
+                  min="0"
+                  max="21"
+                  step="0.1"
+                />
+              </div>
+              <div>
+                <label className="label">Calories</label>
+                <input
+                  type="number"
+                  className="input"
+                  value={sessionData.whoop_calories}
+                  onChange={(e) => setSessionData({ ...sessionData, whoop_calories: e.target.value })}
+                  placeholder="e.g., 500"
+                  min="0"
+                />
+              </div>
+              <div>
+                <label className="label">Avg HR (bpm)</label>
+                <input
+                  type="number"
+                  className="input"
+                  value={sessionData.whoop_avg_hr}
+                  onChange={(e) => setSessionData({ ...sessionData, whoop_avg_hr: e.target.value })}
+                  placeholder="e.g., 140"
+                  min="0"
+                  max="250"
+                />
+              </div>
+              <div>
+                <label className="label">Max HR (bpm)</label>
+                <input
+                  type="number"
+                  className="input"
+                  value={sessionData.whoop_max_hr}
+                  onChange={(e) => setSessionData({ ...sessionData, whoop_max_hr: e.target.value })}
+                  placeholder="e.g., 185"
+                  min="0"
+                  max="250"
+                />
+              </div>
+            </div>
+          </div>
 
           {/* Notes */}
           <div>

@@ -61,6 +61,10 @@ class SessionCreate(BaseModel):
     instructor_id: Optional[int] = None
     instructor_name: Optional[str] = None
     session_rolls: Optional[list[SessionRollData]] = None
+    whoop_strain: Optional[float] = Field(default=None, ge=0, le=21)
+    whoop_calories: Optional[int] = Field(default=None, ge=0)
+    whoop_avg_hr: Optional[int] = Field(default=None, ge=0, le=250)
+    whoop_max_hr: Optional[int] = Field(default=None, ge=0, le=250)
 
 
 class SessionUpdate(BaseModel):
@@ -81,6 +85,10 @@ class SessionUpdate(BaseModel):
     visibility_level: Optional[VisibilityLevel] = None
     instructor_id: Optional[int] = None
     instructor_name: Optional[str] = None
+    whoop_strain: Optional[float] = Field(default=None, ge=0, le=21)
+    whoop_calories: Optional[int] = Field(default=None, ge=0)
+    whoop_avg_hr: Optional[int] = Field(default=None, ge=0, le=250)
+    whoop_max_hr: Optional[int] = Field(default=None, ge=0, le=250)
 
 
 class Session(SessionCreate):
