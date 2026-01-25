@@ -3,18 +3,25 @@
 @tailwind utilities;
 
 @layer base {
-  /* RivaFlow Design Tokens v1.0 - "Vault-to-Kinetic" Identity */
+  /* RivaFlow Design Tokens v2.0 - "Blood & Gi" Performance Identity */
   :root {
     /* Surface Colors */
     --color-bg-primary: #F4F7F5;      /* Surface Base - Main app background */
     --color-bg-secondary: #FFFFFF;    /* Surface Card - Cards, modals, sidebars */
 
     /* Text Colors */
-    --color-text-primary: #0A0C10;    /* High Contrast - Headings, primary body */
+    --color-text-primary: #0A0A0A;    /* High Contrast - Headings, primary body */
     --color-text-secondary: #64748B;  /* Low Contrast - Captions, disabled text */
 
-    /* Brand Colors */
-    --color-brand-accent: #00F5D4;    /* Kinetic Teal - Buttons, progress, "Flow" */
+    /* Brand Colors - Performance */
+    --color-brand-primary: #E63946;   /* Combat Red - Sessions, submissions, primary actions */
+    --color-brand-accent: #FF6B35;    /* Energy Orange - Streaks, achievements, highlights */
+    --color-brand-recovery: #00F5D4;  /* Recovery Teal - Readiness, rest metrics */
+
+    /* Semantic Colors */
+    --color-success: #06D6A0;         /* Victory Green - Goals completed, success states */
+    --color-warning: #FFA726;         /* Caution Orange - Warnings, moderation */
+    --color-danger: #E63946;          /* Alert Red - Errors, taps, injuries */
 
     /* Border Colors */
     --color-border: #E2E8F0;          /* Subtle Stroke - Card borders, dividers */
@@ -22,15 +29,22 @@
 
   .dark {
     /* Surface Colors - Dark Mode */
-    --color-bg-primary: #0A0C10;      /* Vault darkness */
-    --color-bg-secondary: #1A1E26;    /* Elevated surfaces */
+    --color-bg-primary: #0A0A0A;      /* Mat Black - Deep performance background */
+    --color-bg-secondary: #1A1A1A;    /* Elevated Black - Cards, elevated surfaces */
 
     /* Text Colors - Dark Mode */
     --color-text-primary: #F4F7F5;    /* High contrast on dark */
     --color-text-secondary: #94A3B8;  /* Muted text on dark */
 
     /* Brand Colors - Consistent across modes */
-    --color-brand-accent: #00F5D4;    /* Kinetic Teal - unchanged */
+    --color-brand-primary: #E63946;   /* Combat Red - unchanged */
+    --color-brand-accent: #FF6B35;    /* Energy Orange - unchanged */
+    --color-brand-recovery: #00F5D4;  /* Recovery Teal - unchanged */
+
+    /* Semantic Colors - Consistent */
+    --color-success: #06D6A0;         /* Victory Green */
+    --color-warning: #FFA726;         /* Caution Orange */
+    --color-danger: #E63946;          /* Alert Red */
 
     /* Border Colors - Dark Mode */
     --color-border: #2D343E;          /* Subtle strokes in dark */
@@ -54,13 +68,12 @@
 }
 
 @layer components {
-  /* Primary Button - Kinetic Teal with 8px border radius */
+  /* Primary Button - Combat Red with 8px border radius */
   .btn-primary {
     @apply px-4 py-2 text-white rounded-lg hover:opacity-90 transition-all font-medium;
-    background-color: var(--color-brand-accent);
+    background-color: var(--color-brand-primary);
     border-radius: 8px;
-    /* Ensure 3:1 contrast ratio for UI components */
-    color: #0A0C10;  /* Dark text on Kinetic Teal for accessibility */
+    color: #FFFFFF;  /* White text on Combat Red for high contrast */
   }
 
   .btn-primary:disabled {
@@ -92,13 +105,13 @@
     color: var(--color-text-primary);
     border: 1px solid var(--color-border);
     border-radius: 8px;
-    /* Focus ring uses Kinetic Teal */
-    --tw-ring-color: var(--color-brand-accent);
+    /* Focus ring uses Combat Red */
+    --tw-ring-color: var(--color-brand-primary);
   }
 
   .input:focus {
     outline: none;
-    box-shadow: 0 0 0 2px var(--color-brand-accent);
+    box-shadow: 0 0 0 2px var(--color-brand-primary);
   }
 
   .input::placeholder {
@@ -111,24 +124,56 @@
     color: var(--color-text-primary);
   }
 
-  /* Kinetic Accent Utilities */
-  .text-kinetic {
+  /* Brand Utilities - Combat Performance */
+  .text-combat {
+    color: var(--color-brand-primary);
+  }
+
+  .bg-combat {
+    background-color: var(--color-brand-primary);
+  }
+
+  .border-combat {
+    border-color: var(--color-brand-primary);
+  }
+
+  .text-energy {
     color: var(--color-brand-accent);
   }
 
-  .bg-kinetic {
+  .bg-energy {
     background-color: var(--color-brand-accent);
   }
 
-  .border-kinetic {
-    border-color: var(--color-brand-accent);
+  .text-recovery {
+    color: var(--color-brand-recovery);
   }
 
-  /* Progress Bar - Kinetic Teal with 0.1 opacity fill for "glow" effect */
-  .progress-bar-kinetic {
+  .bg-recovery {
+    background-color: var(--color-brand-recovery);
+  }
+
+  .text-success {
+    color: var(--color-success);
+  }
+
+  .bg-success {
+    background-color: var(--color-success);
+  }
+
+  /* Progress Bar - Combat Red with gradient for intensity */
+  .progress-bar-combat {
     background: linear-gradient(
       90deg,
-      var(--color-brand-accent) 0%,
+      var(--color-brand-primary) 0%,
+      rgba(230, 57, 70, 0.3) 100%
+    );
+  }
+
+  .progress-bar-recovery {
+    background: linear-gradient(
+      90deg,
+      var(--color-brand-recovery) 0%,
       rgba(0, 245, 212, 0.1) 100%
     );
   }
