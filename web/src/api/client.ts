@@ -1,5 +1,5 @@
 import axios from 'axios';
-import type { Session, Readiness, Report, Suggestion, Technique, Video } from '../types';
+import type { Session, Readiness, Report, Suggestion, Technique, Video, Profile } from '../types';
 
 const API_BASE = 'http://localhost:8000/api';
 
@@ -59,4 +59,9 @@ export const videosApi = {
   search: (query: string) => api.get<Video[]>(`/videos/search?q=${query}`),
   delete: (id: number) => api.delete(`/videos/${id}`),
   getById: (id: number) => api.get<Video>(`/videos/${id}`),
+};
+
+export const profileApi = {
+  get: () => api.get<Profile>('/profile/'),
+  update: (data: Partial<Profile>) => api.put<Profile>('/profile/', data),
 };

@@ -81,3 +81,13 @@ export interface Suggestion {
     stale_techniques: Technique[];
   };
 }
+
+export interface Profile {
+  id: number;
+  age?: number;
+  sex?: 'male' | 'female' | 'other' | 'prefer_not_to_say';
+  default_gym?: string;
+  current_grade?: string;
+  created_at?: string;
+  updated_at?: string;
+}

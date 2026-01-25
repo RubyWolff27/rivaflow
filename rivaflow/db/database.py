@@ -12,14 +12,21 @@ def init_db() -> None:
     # Ensure app directory exists
     APP_DIR.mkdir(parents=True, exist_ok=True)
 
-    # Read and execute initial schema
-    schema_path = Path(__file__).parent / "migrations" / "001_initial_schema.sql"
-    with open(schema_path) as f:
-        schema_sql = f.read()
-
     conn = sqlite3.connect(DB_PATH)
     try:
-        conn.executescript(schema_sql)
+        # Run migrations in order
+        migrations = [
+            "001_initial_schema.sql",
+            "002_add_profile.sql",
+        ]
+
+        migrations_dir = Path(__file__).parent / "migrations"
+        for migration in migrations:
+            migration_path = migrations_dir / migration
+            if migration_path.exists():
+                with open(migration_path) as f:
+                    conn.executescript(f.read())
+
         conn.commit()
     finally:
         conn.close()

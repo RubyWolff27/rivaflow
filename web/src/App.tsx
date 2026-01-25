@@ -6,6 +6,7 @@ import Reports from './pages/Reports';
 import Readiness from './pages/Readiness';
 import Techniques from './pages/Techniques';
 import Videos from './pages/Videos';
+import Profile from './pages/Profile';
 
 function App() {
   return (
@@ -18,6 +19,7 @@ function App() {
           <Route path="/readiness" element={<Readiness />} />
           <Route path="/techniques" element={<Techniques />} />
           <Route path="/videos" element={<Videos />} />
+          <Route path="/profile" element={<Profile />} />
         </Routes>
       </Layout>
     </Router>

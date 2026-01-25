@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Home, Plus, BarChart3, Activity, Book, Video, Menu, X } from 'lucide-react';
+import { Home, Plus, BarChart3, Activity, Book, Video, User, Menu, X } from 'lucide-react';
 
 export default function Layout({ children }: { children: React.ReactNode }) {
   const location = useLocation();
@@ -13,6 +13,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
     { name: 'Readiness', href: '/readiness', icon: Activity },
     { name: 'Techniques', href: '/techniques', icon: Book },
     { name: 'Videos', href: '/videos', icon: Video },
+    { name: 'Profile', href: '/profile', icon: User },
   ];
 
   return (
