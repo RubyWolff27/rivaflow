@@ -1,8 +1,8 @@
 """Service layer for training session operations."""
 from datetime import date, datetime
-from typing import Optional
+from typing import Optional, List
 
-from rivaflow.db.repositories import SessionRepository, TechniqueRepository
+from rivaflow.db.repositories import SessionRepository, TechniqueRepository, SessionRollRepository
 from rivaflow.config import SPARRING_CLASS_TYPES
 
 
@@ -12,6 +12,7 @@ class SessionService:
     def __init__(self):
         self.session_repo = SessionRepository()
         self.technique_repo = TechniqueRepository()
+        self.roll_repo = SessionRollRepository()
 
     def create_session(
         self,
@@ -28,9 +29,13 @@ class SessionService:
         techniques: Optional[list[str]] = None,
         notes: Optional[str] = None,
         visibility_level: str = "private",
+        instructor_id: Optional[int] = None,
+        instructor_name: Optional[str] = None,
+        session_rolls: Optional[List[dict]] = None,
     ) -> int:
         """
         Create a new training session and update technique tracking.
+        Supports both simple mode (aggregate counts) and detailed mode (individual rolls).
         Returns session ID.
         """
         # Create session
@@ -48,7 +53,23 @@ class SessionService:
             techniques=techniques,
             notes=notes,
             visibility_level=visibility_level,
+            instructor_id=instructor_id,
+            instructor_name=instructor_name,
         )
+
+        # Create detailed roll records if provided
+        if session_rolls:
+            for roll_data in session_rolls:
+                self.roll_repo.create(
+                    session_id=session_id,
+                    roll_number=roll_data.get("roll_number", 1),
+                    partner_id=roll_data.get("partner_id"),
+                    partner_name=roll_data.get("partner_name"),
+                    duration_mins=roll_data.get("duration_mins"),
+                    submissions_for=roll_data.get("submissions_for"),
+                    submissions_against=roll_data.get("submissions_against"),
+                    notes=roll_data.get("notes"),
+                )
 
         # Update technique last_trained_date
         if techniques:
@@ -78,6 +99,8 @@ class SessionService:
         techniques: Optional[list[str]] = None,
         notes: Optional[str] = None,
         visibility_level: Optional[str] = None,
+        instructor_id: Optional[int] = None,
+        instructor_name: Optional[str] = None,
     ) -> Optional[dict]:
         """
         Update a training session and refresh technique tracking.
@@ -104,6 +127,8 @@ class SessionService:
             techniques=techniques,
             notes=notes,
             visibility_level=visibility_level,
+            instructor_id=instructor_id,
+            instructor_name=instructor_name,
         )
 
         if not updated:
@@ -194,3 +219,19 @@ class SessionService:
             lines.append(f"  Notes: {session['notes']}")
 
         return "\n".join(lines)
+
+    def get_session_with_rolls(self, session_id: int) -> Optional[dict]:
+        """Get a session with detailed roll records included."""
+        session = self.session_repo.get_by_id(session_id)
+        if not session:
+            return None
+
+        # Fetch detailed rolls
+        rolls = self.roll_repo.get_by_session_id(session_id)
+        session["detailed_rolls"] = rolls
+
+        return session
+
+    def get_partner_stats(self, partner_id: int) -> dict:
+        """Get analytics for a specific training partner."""
+        return self.roll_repo.get_partner_stats(partner_id)

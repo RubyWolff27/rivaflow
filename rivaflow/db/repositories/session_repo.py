@@ -25,6 +25,8 @@ class SessionRepository:
         techniques: Optional[list[str]] = None,
         notes: Optional[str] = None,
         visibility_level: str = "private",
+        instructor_id: Optional[int] = None,
+        instructor_name: Optional[str] = None,
     ) -> int:
         """Create a new session and return its ID."""
         with get_connection() as conn:
@@ -35,8 +37,9 @@ class SessionRepository:
                     session_date, class_type, gym_name, location,
                     duration_mins, intensity, rolls,
                     submissions_for, submissions_against,
-                    partners, techniques, notes, visibility_level
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    partners, techniques, notes, visibility_level,
+                    instructor_id, instructor_name
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
                     session_date.isoformat(),
@@ -52,6 +55,8 @@ class SessionRepository:
                     json.dumps(techniques) if techniques else None,
                     notes,
                     visibility_level,
+                    instructor_id,
+                    instructor_name,
                 ),
             )
             return cursor.lastrowid
@@ -83,6 +88,8 @@ class SessionRepository:
         techniques: Optional[list[str]] = None,
         notes: Optional[str] = None,
         visibility_level: Optional[str] = None,
+        instructor_id: Optional[int] = None,
+        instructor_name: Optional[str] = None,
     ) -> Optional[dict]:
         """Update a session by ID. Returns updated session or None if not found."""
         with get_connection() as conn:
@@ -131,6 +138,12 @@ class SessionRepository:
             if visibility_level is not None:
                 updates.append("visibility_level = ?")
                 params.append(visibility_level)
+            if instructor_id is not None:
+                updates.append("instructor_id = ?")
+                params.append(instructor_id)
+            if instructor_name is not None:
+                updates.append("instructor_name = ?")
+                params.append(instructor_name)
 
             if not updates:
                 # Nothing to update, return current session

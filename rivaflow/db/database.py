@@ -37,6 +37,9 @@ def init_db() -> None:
             "005_add_name_and_location.sql",
             "006_rename_suburb_to_state.sql",
             "007_create_movements_glossary.sql",
+            "008_create_contacts.sql",
+            "009_create_session_rolls.sql",
+            "010_add_instructor_to_sessions.sql",
         ]
 
         migrations_dir = Path(__file__).parent / "migrations"

@@ -30,6 +30,18 @@ class VisibilityLevel(str, Enum):
     FULL = "full"
 
 
+class SessionRollData(BaseModel):
+    """Individual roll data for detailed tracking."""
+
+    roll_number: int = 1
+    partner_id: Optional[int] = None
+    partner_name: Optional[str] = None
+    duration_mins: Optional[int] = None
+    submissions_for: Optional[list[int]] = None  # Movement IDs from glossary
+    submissions_against: Optional[list[int]] = None  # Movement IDs from glossary
+    notes: Optional[str] = None
+
+
 class SessionCreate(BaseModel):
     """Input model for creating a session."""
 
@@ -46,6 +58,9 @@ class SessionCreate(BaseModel):
     techniques: Optional[list[str]] = None
     notes: Optional[str] = None
     visibility_level: VisibilityLevel = VisibilityLevel.PRIVATE
+    instructor_id: Optional[int] = None
+    instructor_name: Optional[str] = None
+    session_rolls: Optional[list[SessionRollData]] = None
 
 
 class SessionUpdate(BaseModel):
@@ -64,6 +79,8 @@ class SessionUpdate(BaseModel):
     techniques: Optional[list[str]] = None
     notes: Optional[str] = None
     visibility_level: Optional[VisibilityLevel] = None
+    instructor_id: Optional[int] = None
+    instructor_name: Optional[str] = None
 
 
 class Session(SessionCreate):
