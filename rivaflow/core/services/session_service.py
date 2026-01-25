@@ -62,6 +62,62 @@ class SessionService:
         """Get a session by ID."""
         return self.session_repo.get_by_id(session_id)
 
+    def update_session(
+        self,
+        session_id: int,
+        session_date: Optional[date] = None,
+        class_type: Optional[str] = None,
+        gym_name: Optional[str] = None,
+        location: Optional[str] = None,
+        duration_mins: Optional[int] = None,
+        intensity: Optional[int] = None,
+        rolls: Optional[int] = None,
+        submissions_for: Optional[int] = None,
+        submissions_against: Optional[int] = None,
+        partners: Optional[list[str]] = None,
+        techniques: Optional[list[str]] = None,
+        notes: Optional[str] = None,
+        visibility_level: Optional[str] = None,
+    ) -> Optional[dict]:
+        """
+        Update a training session and refresh technique tracking.
+        Returns updated session or None if not found.
+        """
+        # Get original session to compare techniques
+        original = self.session_repo.get_by_id(session_id)
+        if not original:
+            return None
+
+        # Update session
+        updated = self.session_repo.update(
+            session_id=session_id,
+            session_date=session_date,
+            class_type=class_type,
+            gym_name=gym_name,
+            location=location,
+            duration_mins=duration_mins,
+            intensity=intensity,
+            rolls=rolls,
+            submissions_for=submissions_for,
+            submissions_against=submissions_against,
+            partners=partners,
+            techniques=techniques,
+            notes=notes,
+            visibility_level=visibility_level,
+        )
+
+        if not updated:
+            return None
+
+        # Update technique last_trained_date if techniques changed
+        if techniques is not None:
+            updated_date = session_date if session_date else original["session_date"]
+            for tech_name in techniques:
+                tech = self.technique_repo.get_or_create(tech_name)
+                self.technique_repo.update_last_trained(tech["id"], updated_date)
+
+        return updated
+
     def get_sessions_by_date_range(self, start_date: date, end_date: date) -> list[dict]:
         """Get sessions within a date range."""
         return self.session_repo.get_by_date_range(start_date, end_date)

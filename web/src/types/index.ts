@@ -89,6 +89,7 @@ export interface Profile {
   sex?: 'male' | 'female' | 'other' | 'prefer_not_to_say';
   default_gym?: string;
   current_grade?: string;
+  current_professor?: string;
   created_at?: string;
   updated_at?: string;
 }
@@ -97,6 +98,7 @@ export interface Grading {
   id: number;
   grade: string;
   date_graded: string;
+  professor?: string;
   notes?: string;
   created_at?: string;
 }

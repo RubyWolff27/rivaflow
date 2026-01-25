@@ -15,6 +15,7 @@ class ProfileUpdate(BaseModel):
     sex: Optional[str] = None
     default_gym: Optional[str] = None
     current_grade: Optional[str] = None
+    current_professor: Optional[str] = None
 
 
 @router.get("/")
@@ -30,6 +31,7 @@ async def get_profile():
             "sex": None,
             "default_gym": None,
             "current_grade": None,
+            "current_professor": None,
         }
     return profile
 
@@ -43,6 +45,7 @@ async def update_profile(profile: ProfileUpdate):
             sex=profile.sex,
             default_gym=profile.default_gym,
             current_grade=profile.current_grade,
+            current_professor=profile.current_professor,
         )
         return updated
     except Exception as e:

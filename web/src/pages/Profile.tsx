@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { profileApi, gradingsApi } from '../api/client';
 import type { Profile as ProfileType, Grading } from '../types';
-import { User, CheckCircle, Award, Plus, Trash2 } from 'lucide-react';
+import { User, CheckCircle, Award, Plus, Trash2, Edit2 } from 'lucide-react';
 
 const BELT_GRADES = [
   'White',
@@ -39,16 +39,19 @@ export default function Profile() {
   const [saving, setSaving] = useState(false);
   const [success, setSuccess] = useState(false);
   const [showAddGrading, setShowAddGrading] = useState(false);
+  const [editingGrading, setEditingGrading] = useState<Grading | null>(null);
 
   const [formData, setFormData] = useState({
     date_of_birth: '',
     sex: '',
     default_gym: '',
+    current_professor: '',
   });
 
   const [gradingForm, setGradingForm] = useState({
     grade: '',
     date_graded: new Date().toISOString().split('T')[0],
+    professor: '',
     notes: '',
   });
 
@@ -69,6 +72,7 @@ export default function Profile() {
         date_of_birth: profileRes.data.date_of_birth || '',
         sex: profileRes.data.sex || '',
         default_gym: profileRes.data.default_gym || '',
+        current_professor: profileRes.data.current_professor || '',
       });
     } catch (error) {
       console.error('Error loading data:', error);
@@ -87,6 +91,7 @@ export default function Profile() {
         date_of_birth: formData.date_of_birth || undefined,
         sex: formData.sex || undefined,
         default_gym: formData.default_gym || undefined,
+        current_professor: formData.current_professor || undefined,
       });
       setSuccess(true);
       await loadData();
@@ -97,6 +102,17 @@ export default function Profile() {
     } finally {
       setSaving(false);
     }
+  };
+
+  const handleOpenAddGrading = () => {
+    setGradingForm({
+      grade: '',
+      date_graded: new Date().toISOString().split('T')[0],
+      professor: profile?.current_professor || '',
+      notes: '',
+    });
+    setShowAddGrading(true);
+    setEditingGrading(null);
   };
 
   const handleAddGrading = async (e: React.FormEvent) => {
@@ -110,11 +126,13 @@ export default function Profile() {
       await gradingsApi.create({
         grade: gradingForm.grade,
         date_graded: gradingForm.date_graded,
+        professor: gradingForm.professor || undefined,
         notes: gradingForm.notes || undefined,
       });
       setGradingForm({
         grade: '',
         date_graded: new Date().toISOString().split('T')[0],
+        professor: '',
         notes: '',
       });
       setShowAddGrading(false);
@@ -123,6 +141,57 @@ export default function Profile() {
       console.error('Error adding grading:', error);
       alert('Failed to add grading. Please try again.');
     }
+  };
+
+  const handleEditGrading = (grading: Grading) => {
+    setEditingGrading(grading);
+    setGradingForm({
+      grade: grading.grade,
+      date_graded: grading.date_graded,
+      professor: grading.professor || '',
+      notes: grading.notes || '',
+    });
+    setShowAddGrading(false);
+  };
+
+  const handleUpdateGrading = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingGrading) return;
+
+    if (!gradingForm.grade || !gradingForm.date_graded) {
+      alert('Please select a grade and date.');
+      return;
+    }
+
+    try {
+      await gradingsApi.update(editingGrading.id, {
+        grade: gradingForm.grade,
+        date_graded: gradingForm.date_graded,
+        professor: gradingForm.professor || undefined,
+        notes: gradingForm.notes || undefined,
+      });
+      setGradingForm({
+        grade: '',
+        date_graded: new Date().toISOString().split('T')[0],
+        professor: '',
+        notes: '',
+      });
+      setEditingGrading(null);
+      await loadData();
+    } catch (error) {
+      console.error('Error updating grading:', error);
+      alert('Failed to update grading. Please try again.');
+    }
+  };
+
+  const handleCancelEdit = () => {
+    setEditingGrading(null);
+    setGradingForm({
+      grade: '',
+      date_graded: new Date().toISOString().split('T')[0],
+      professor: '',
+      notes: '',
+    });
   };
 
   const handleDeleteGrading = async (gradingId: number) => {
@@ -214,6 +283,21 @@ export default function Profile() {
             </p>
           </div>
 
+          {/* Current Professor */}
+          <div>
+            <label className="label">Current Professor / Instructor</label>
+            <input
+              type="text"
+              className="input"
+              value={formData.current_professor}
+              onChange={(e) => setFormData({ ...formData, current_professor: e.target.value })}
+              placeholder="e.g., Professor John Smith"
+            />
+            <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+              This will auto-populate when adding gradings
+            </p>
+          </div>
+
           <button
             type="submit"
             disabled={saving}
@@ -232,7 +316,7 @@ export default function Profile() {
             <h2 className="text-xl font-semibold">Belt Progression</h2>
           </div>
           <button
-            onClick={() => setShowAddGrading(!showAddGrading)}
+            onClick={handleOpenAddGrading}
             className="btn-primary flex items-center gap-2"
           >
             <Plus className="w-4 h-4" />
@@ -248,9 +332,11 @@ export default function Profile() {
           </div>
         )}
 
-        {/* Add Grading Form */}
-        {showAddGrading && (
-          <form onSubmit={handleAddGrading} className="mb-6 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg space-y-4">
+        {/* Add/Edit Grading Form */}
+        {(showAddGrading || editingGrading) && (
+          <form onSubmit={editingGrading ? handleUpdateGrading : handleAddGrading} className="mb-6 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg space-y-4">
+            <h3 className="font-semibold text-lg">{editingGrading ? 'Edit Grading' : 'Add New Grading'}</h3>
+
             <div>
               <label className="label">Belt / Grade</label>
               <select
@@ -281,23 +367,34 @@ export default function Profile() {
             </div>
 
             <div>
+              <label className="label">Professor / Instructor (optional)</label>
+              <input
+                type="text"
+                className="input"
+                value={gradingForm.professor}
+                onChange={(e) => setGradingForm({ ...gradingForm, professor: e.target.value })}
+                placeholder="e.g., Professor John Smith"
+              />
+            </div>
+
+            <div>
               <label className="label">Notes (optional)</label>
               <textarea
                 className="input"
                 value={gradingForm.notes}
                 onChange={(e) => setGradingForm({ ...gradingForm, notes: e.target.value })}
                 rows={2}
-                placeholder="e.g., Graded by Professor John, focused on passing game"
+                placeholder="e.g., Focused on passing game, competition preparation"
               />
             </div>
 
             <div className="flex gap-2">
               <button type="submit" className="btn-primary">
-                Save Grading
+                {editingGrading ? 'Update Grading' : 'Save Grading'}
               </button>
               <button
                 type="button"
-                onClick={() => setShowAddGrading(false)}
+                onClick={editingGrading ? handleCancelEdit : () => setShowAddGrading(false)}
                 className="btn-secondary"
               >
                 Cancel
@@ -320,19 +417,33 @@ export default function Profile() {
                   <p className="text-sm text-gray-600 dark:text-gray-400">
                     {formatDate(grading.date_graded)}
                   </p>
+                  {grading.professor && (
+                    <p className="text-sm text-gray-600 dark:text-gray-400">
+                      Professor: {grading.professor}
+                    </p>
+                  )}
                   {grading.notes && (
                     <p className="text-sm text-gray-500 dark:text-gray-500 mt-1 italic">
                       {grading.notes}
                     </p>
                   )}
                 </div>
-                <button
-                  onClick={() => handleDeleteGrading(grading.id)}
-                  className="text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300"
-                  title="Delete grading"
-                >
-                  <Trash2 className="w-4 h-4" />
-                </button>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => handleEditGrading(grading)}
+                    className="text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
+                    title="Edit grading"
+                  >
+                    <Edit2 className="w-4 h-4" />
+                  </button>
+                  <button
+                    onClick={() => handleDeleteGrading(grading.id)}
+                    className="text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300"
+                    title="Delete grading"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                </div>
               </div>
             ))}
           </div>

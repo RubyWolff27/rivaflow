@@ -26,6 +26,7 @@ class ProfileRepository:
         sex: Optional[str] = None,
         default_gym: Optional[str] = None,
         current_grade: Optional[str] = None,
+        current_professor: Optional[str] = None,
     ) -> dict:
         """Update the user profile. Returns updated profile."""
         with get_connection() as conn:
@@ -47,6 +48,9 @@ class ProfileRepository:
             if current_grade is not None:
                 updates.append("current_grade = ?")
                 params.append(current_grade)
+            if current_professor is not None:
+                updates.append("current_professor = ?")
+                params.append(current_professor)
 
             if updates:
                 updates.append("updated_at = datetime('now')")

@@ -68,6 +68,86 @@ class SessionRepository:
             return None
 
     @staticmethod
+    def update(
+        session_id: int,
+        session_date: Optional[date] = None,
+        class_type: Optional[str] = None,
+        gym_name: Optional[str] = None,
+        location: Optional[str] = None,
+        duration_mins: Optional[int] = None,
+        intensity: Optional[int] = None,
+        rolls: Optional[int] = None,
+        submissions_for: Optional[int] = None,
+        submissions_against: Optional[int] = None,
+        partners: Optional[list[str]] = None,
+        techniques: Optional[list[str]] = None,
+        notes: Optional[str] = None,
+        visibility_level: Optional[str] = None,
+    ) -> Optional[dict]:
+        """Update a session by ID. Returns updated session or None if not found."""
+        with get_connection() as conn:
+            cursor = conn.cursor()
+
+            # Build dynamic update query
+            updates = []
+            params = []
+
+            if session_date is not None:
+                updates.append("session_date = ?")
+                params.append(session_date.isoformat())
+            if class_type is not None:
+                updates.append("class_type = ?")
+                params.append(class_type)
+            if gym_name is not None:
+                updates.append("gym_name = ?")
+                params.append(gym_name)
+            if location is not None:
+                updates.append("location = ?")
+                params.append(location)
+            if duration_mins is not None:
+                updates.append("duration_mins = ?")
+                params.append(duration_mins)
+            if intensity is not None:
+                updates.append("intensity = ?")
+                params.append(intensity)
+            if rolls is not None:
+                updates.append("rolls = ?")
+                params.append(rolls)
+            if submissions_for is not None:
+                updates.append("submissions_for = ?")
+                params.append(submissions_for)
+            if submissions_against is not None:
+                updates.append("submissions_against = ?")
+                params.append(submissions_against)
+            if partners is not None:
+                updates.append("partners = ?")
+                params.append(json.dumps(partners) if partners else None)
+            if techniques is not None:
+                updates.append("techniques = ?")
+                params.append(json.dumps(techniques) if techniques else None)
+            if notes is not None:
+                updates.append("notes = ?")
+                params.append(notes)
+            if visibility_level is not None:
+                updates.append("visibility_level = ?")
+                params.append(visibility_level)
+
+            if not updates:
+                # Nothing to update, return current session
+                return SessionRepository.get_by_id(session_id)
+
+            updates.append("updated_at = datetime('now')")
+            params.append(session_id)
+            query = f"UPDATE sessions SET {', '.join(updates)} WHERE id = ?"
+            cursor.execute(query, params)
+
+            if cursor.rowcount == 0:
+                return None
+
+            # Return updated session
+            return SessionRepository.get_by_id(session_id)
+
+    @staticmethod
     def get_by_date_range(start_date: date, end_date: date) -> list[dict]:
         """Get all sessions within a date range (inclusive)."""
         with get_connection() as conn:

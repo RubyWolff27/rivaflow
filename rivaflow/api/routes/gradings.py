@@ -13,6 +13,15 @@ class GradingCreate(BaseModel):
     """Grading creation model."""
     grade: str
     date_graded: str
+    professor: Optional[str] = None
+    notes: Optional[str] = None
+
+
+class GradingUpdate(BaseModel):
+    """Grading update model."""
+    grade: Optional[str] = None
+    date_graded: Optional[str] = None
+    professor: Optional[str] = None
     notes: Optional[str] = None
 
 
@@ -30,6 +39,7 @@ async def create_grading(grading: GradingCreate):
         created = service.create_grading(
             grade=grading.grade,
             date_graded=grading.date_graded,
+            professor=grading.professor,
             notes=grading.notes,
         )
         return created
@@ -44,6 +54,26 @@ async def get_latest_grading():
     if not grading:
         return None
     return grading
+
+
+@router.put("/{grading_id}")
+async def update_grading(grading_id: int, grading: GradingUpdate):
+    """Update a grading by ID."""
+    try:
+        updated = service.update_grading(
+            grading_id=grading_id,
+            grade=grading.grade,
+            date_graded=grading.date_graded,
+            professor=grading.professor,
+            notes=grading.notes,
+        )
+        if not updated:
+            raise HTTPException(status_code=404, detail="Grading not found")
+        return updated
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 @router.delete("/{grading_id}")

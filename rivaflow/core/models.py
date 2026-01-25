@@ -48,6 +48,24 @@ class SessionCreate(BaseModel):
     visibility_level: VisibilityLevel = VisibilityLevel.PRIVATE
 
 
+class SessionUpdate(BaseModel):
+    """Input model for updating a session. All fields optional."""
+
+    session_date: Optional[date] = None
+    class_type: Optional[ClassType] = None
+    gym_name: Optional[str] = Field(default=None, min_length=1, max_length=100)
+    location: Optional[str] = Field(default=None, max_length=200)
+    duration_mins: Optional[int] = Field(default=None, ge=1, le=480)
+    intensity: Optional[int] = Field(default=None, ge=1, le=5)
+    rolls: Optional[int] = Field(default=None, ge=0)
+    submissions_for: Optional[int] = Field(default=None, ge=0)
+    submissions_against: Optional[int] = Field(default=None, ge=0)
+    partners: Optional[list[str]] = None
+    techniques: Optional[list[str]] = None
+    notes: Optional[str] = None
+    visibility_level: Optional[VisibilityLevel] = None
+
+
 class Session(SessionCreate):
     """Full session model with database fields."""
 

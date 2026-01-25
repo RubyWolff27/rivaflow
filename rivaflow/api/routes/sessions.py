@@ -4,7 +4,7 @@ from datetime import date
 from typing import Optional
 
 from rivaflow.core.services.session_service import SessionService
-from rivaflow.core.models import SessionCreate
+from rivaflow.core.models import SessionCreate, SessionUpdate
 
 router = APIRouter()
 service = SessionService()
@@ -31,6 +31,35 @@ async def create_session(session: SessionCreate):
         )
         created_session = service.get_session(session_id)
         return created_session
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.put("/{session_id}")
+async def update_session(session_id: int, session: SessionUpdate):
+    """Update an existing training session."""
+    try:
+        updated = service.update_session(
+            session_id=session_id,
+            session_date=session.session_date,
+            class_type=session.class_type.value if session.class_type else None,
+            gym_name=session.gym_name,
+            location=session.location,
+            duration_mins=session.duration_mins,
+            intensity=session.intensity,
+            rolls=session.rolls,
+            submissions_for=session.submissions_for,
+            submissions_against=session.submissions_against,
+            partners=session.partners,
+            techniques=session.techniques,
+            notes=session.notes,
+            visibility_level=session.visibility_level.value if session.visibility_level else None,
+        )
+        if not updated:
+            raise HTTPException(status_code=404, detail="Session not found")
+        return updated
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 

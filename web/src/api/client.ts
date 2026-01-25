@@ -14,6 +14,7 @@ export const sessionsApi = {
   create: (data: any) => api.post<Session>('/sessions/', data),
   list: (limit = 10) => api.get<Session[]>(`/sessions/?limit=${limit}`),
   getById: (id: number) => api.get<Session>(`/sessions/${id}`),
+  update: (id: number, data: any) => api.put<Session>(`/sessions/${id}`, data),
   getByRange: (startDate: string, endDate: string) =>
     api.get<Session[]>(`/sessions/range/${startDate}/${endDate}`),
   getAutocomplete: () => api.get<{ gyms: string[]; locations: string[]; partners: string[]; techniques: string[] }>('/sessions/autocomplete/data'),
@@ -67,9 +68,10 @@ export const profileApi = {
 };
 
 export const gradingsApi = {
-  create: (data: { grade: string; date_graded: string; notes?: string }) =>
+  create: (data: { grade: string; date_graded: string; professor?: string; notes?: string }) =>
     api.post<Grading>('/gradings/', data),
   list: () => api.get<Grading[]>('/gradings/'),
   getLatest: () => api.get<Grading | null>('/gradings/latest'),
+  update: (id: number, data: Partial<Grading>) => api.put<Grading>(`/gradings/${id}`, data),
   delete: (id: number) => api.delete(`/gradings/${id}`),
 };
