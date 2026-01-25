@@ -36,6 +36,7 @@ def init_db() -> None:
             "004_add_professor_fields.sql",
             "005_add_name_and_location.sql",
             "006_rename_suburb_to_state.sql",
+            "007_create_movements_glossary.sql",
         ]
 
         migrations_dir = Path(__file__).parent / "migrations"

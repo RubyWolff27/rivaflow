@@ -5,6 +5,7 @@ from rivaflow.db.repositories.technique_repo import TechniqueRepository
 from rivaflow.db.repositories.video_repo import VideoRepository
 from rivaflow.db.repositories.profile_repo import ProfileRepository
 from rivaflow.db.repositories.grading_repo import GradingRepository
+from rivaflow.db.repositories.glossary_repo import GlossaryRepository
 
 __all__ = [
     "SessionRepository",
@@ -13,4 +14,5 @@ __all__ = [
     "VideoRepository",
     "ProfileRepository",
     "GradingRepository",
+    "GlossaryRepository",
 ]
