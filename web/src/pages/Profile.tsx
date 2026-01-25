@@ -42,8 +42,12 @@ export default function Profile() {
   const [editingGrading, setEditingGrading] = useState<Grading | null>(null);
 
   const [formData, setFormData] = useState({
+    first_name: '',
+    last_name: '',
     date_of_birth: '',
     sex: '',
+    city: '',
+    state: '',
     default_gym: '',
     current_professor: '',
   });
@@ -69,8 +73,12 @@ export default function Profile() {
       setProfile(profileRes.data);
       setGradings(gradingsRes.data);
       setFormData({
+        first_name: profileRes.data.first_name || '',
+        last_name: profileRes.data.last_name || '',
         date_of_birth: profileRes.data.date_of_birth || '',
         sex: profileRes.data.sex || '',
+        city: profileRes.data.city || '',
+        state: profileRes.data.state || '',
         default_gym: profileRes.data.default_gym || '',
         current_professor: profileRes.data.current_professor || '',
       });
@@ -88,8 +96,12 @@ export default function Profile() {
 
     try {
       await profileApi.update({
+        first_name: formData.first_name || undefined,
+        last_name: formData.last_name || undefined,
         date_of_birth: formData.date_of_birth || undefined,
         sex: formData.sex || undefined,
+        city: formData.city || undefined,
+        state: formData.state || undefined,
         default_gym: formData.default_gym || undefined,
         current_professor: formData.current_professor || undefined,
       });
@@ -235,6 +247,32 @@ export default function Profile() {
         )}
 
         <div className="space-y-6">
+          {/* Name */}
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="label">First Name</label>
+              <input
+                type="text"
+                className="input"
+                value={formData.first_name}
+                onChange={(e) => setFormData({ ...formData, first_name: e.target.value })}
+                placeholder="Your first name"
+                required
+              />
+            </div>
+            <div>
+              <label className="label">Last Name</label>
+              <input
+                type="text"
+                className="input"
+                value={formData.last_name}
+                onChange={(e) => setFormData({ ...formData, last_name: e.target.value })}
+                placeholder="Your last name"
+                required
+              />
+            </div>
+          </div>
+
           {/* Date of Birth */}
           <div>
             <label className="label">Date of Birth</label>
@@ -266,6 +304,32 @@ export default function Profile() {
               <option value="other">Other</option>
               <option value="prefer_not_to_say">Prefer not to say</option>
             </select>
+          </div>
+
+          {/* Location */}
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="label">City</label>
+              <input
+                type="text"
+                className="input"
+                value={formData.city}
+                onChange={(e) => setFormData({ ...formData, city: e.target.value })}
+                placeholder="e.g., Sydney"
+                required
+              />
+            </div>
+            <div>
+              <label className="label">State</label>
+              <input
+                type="text"
+                className="input"
+                value={formData.state}
+                onChange={(e) => setFormData({ ...formData, state: e.target.value })}
+                placeholder="e.g., NSW"
+                required
+              />
+            </div>
           </div>
 
           {/* Default Gym */}

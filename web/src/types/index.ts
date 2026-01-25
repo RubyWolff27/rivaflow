@@ -84,9 +84,13 @@ export interface Suggestion {
 
 export interface Profile {
   id: number;
+  first_name?: string;
+  last_name?: string;
   date_of_birth?: string;
   age?: number; // Calculated from date_of_birth
   sex?: 'male' | 'female' | 'other' | 'prefer_not_to_say';
+  city?: string;
+  state?: string;
   default_gym?: string;
   current_grade?: string;
   current_professor?: string;

@@ -22,8 +22,12 @@ class ProfileRepository:
 
     @staticmethod
     def update(
+        first_name: Optional[str] = None,
+        last_name: Optional[str] = None,
         date_of_birth: Optional[str] = None,
         sex: Optional[str] = None,
+        city: Optional[str] = None,
+        state: Optional[str] = None,
         default_gym: Optional[str] = None,
         current_grade: Optional[str] = None,
         current_professor: Optional[str] = None,
@@ -36,12 +40,24 @@ class ProfileRepository:
             updates = []
             params = []
 
+            if first_name is not None:
+                updates.append("first_name = ?")
+                params.append(first_name)
+            if last_name is not None:
+                updates.append("last_name = ?")
+                params.append(last_name)
             if date_of_birth is not None:
                 updates.append("date_of_birth = ?")
                 params.append(date_of_birth)
             if sex is not None:
                 updates.append("sex = ?")
                 params.append(sex)
+            if city is not None:
+                updates.append("city = ?")
+                params.append(city)
+            if state is not None:
+                updates.append("state = ?")
+                params.append(state)
             if default_gym is not None:
                 updates.append("default_gym = ?")
                 params.append(default_gym)
