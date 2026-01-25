@@ -86,6 +86,11 @@ class SessionRollRepository:
             return [SessionRollRepository._row_to_dict(row) for row in rows]
 
     @staticmethod
+    def get_by_partner_id(partner_id: int) -> List[dict]:
+        """Alias for list_by_partner. Get all rolls with a specific partner."""
+        return SessionRollRepository.list_by_partner(partner_id)
+
+    @staticmethod
     def get_partner_stats(partner_id: int) -> dict:
         """Get analytics for a specific partner."""
         with get_connection() as conn:

@@ -1,6 +1,6 @@
 """Repository for grading/belt progression data access."""
 import sqlite3
-from datetime import datetime
+from datetime import datetime, date
 from typing import List, Optional
 
 from rivaflow.db.database import get_connection
@@ -107,6 +107,9 @@ class GradingRepository:
     def _row_to_dict(row: sqlite3.Row) -> dict:
         """Convert a database row to a dictionary."""
         data = dict(row)
+        # Parse date fields
+        if data.get("date_graded"):
+            data["date_graded"] = date.fromisoformat(data["date_graded"])
         # Parse datetime fields
         if data.get("created_at"):
             data["created_at"] = datetime.fromisoformat(data["created_at"])
