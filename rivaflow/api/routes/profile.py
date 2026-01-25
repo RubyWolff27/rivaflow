@@ -20,6 +20,11 @@ class ProfileUpdate(BaseModel):
     default_gym: Optional[str] = None
     current_grade: Optional[str] = None
     current_professor: Optional[str] = None
+    weekly_sessions_target: Optional[int] = None
+    weekly_hours_target: Optional[float] = None
+    weekly_rolls_target: Optional[int] = None
+    show_streak_on_dashboard: Optional[bool] = None
+    show_weekly_goals: Optional[bool] = None
 
 
 @router.get("/")
@@ -58,6 +63,11 @@ async def update_profile(profile: ProfileUpdate):
             default_gym=profile.default_gym,
             current_grade=profile.current_grade,
             current_professor=profile.current_professor,
+            weekly_sessions_target=profile.weekly_sessions_target,
+            weekly_hours_target=profile.weekly_hours_target,
+            weekly_rolls_target=profile.weekly_rolls_target,
+            show_streak_on_dashboard=profile.show_streak_on_dashboard,
+            show_weekly_goals=profile.show_weekly_goals,
         )
         return updated
     except Exception as e:

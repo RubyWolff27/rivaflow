@@ -45,6 +45,7 @@ def init_db() -> None:
             "013_add_weight_to_readiness.sql",
             "014_add_video_urls_to_glossary.sql",
             "015_create_movement_videos.sql",
+            "016_add_weekly_goals.sql",
         ]
 
         migrations_dir = Path(__file__).parent / "migrations"

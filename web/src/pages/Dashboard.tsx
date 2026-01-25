@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { sessionsApi, suggestionsApi, readinessApi, profileApi } from '../api/client';
-import type { Session, Suggestion, Readiness, Profile } from '../types';
-import { TrendingUp, Calendar, Users, Target, Edit2, Scale, Check, Zap } from 'lucide-react';
+import { sessionsApi, suggestionsApi, readinessApi, profileApi, goalsApi } from '../api/client';
+import type { Session, Suggestion, Readiness, Profile, WeeklyGoalProgress, TrainingStreaks } from '../types';
+import { TrendingUp, Calendar, Users, Target, Edit2, Scale, Check, Zap, Trophy, Flame } from 'lucide-react';
 
 export default function Dashboard() {
   const navigate = useNavigate();
@@ -24,22 +24,30 @@ export default function Dashboard() {
   });
   const [quickLogLoading, setQuickLogLoading] = useState(false);
 
+  // Goals and streaks state
+  const [weeklyGoals, setWeeklyGoals] = useState<WeeklyGoalProgress | null>(null);
+  const [trainingStreaks, setTrainingStreaks] = useState<TrainingStreaks | null>(null);
+
   useEffect(() => {
     loadData();
   }, []);
 
   const loadData = async () => {
     try {
-      const [sessionsRes, suggestionRes, readinessRes, profileRes] = await Promise.all([
+      const [sessionsRes, suggestionRes, readinessRes, profileRes, goalsRes, streaksRes] = await Promise.all([
         sessionsApi.list(5),
         suggestionsApi.getToday(),
         readinessApi.getLatest(),
         profileApi.get(),
+        goalsApi.getCurrentWeek(),
+        goalsApi.getTrainingStreaks(),
       ]);
       setRecentSessions(sessionsRes.data);
       setSuggestion(suggestionRes.data);
       setLatestReadiness(readinessRes.data);
       setProfile(profileRes.data);
+      setWeeklyGoals(goalsRes.data);
+      setTrainingStreaks(streaksRes.data);
 
       // Pre-fill quick log with default gym
       if (profileRes.data?.default_gym) {
@@ -99,9 +107,13 @@ export default function Dashboard() {
         submissions_against: 0,
       });
 
-      // Reload recent sessions
-      const sessionsRes = await sessionsApi.list(5);
+      // Reload recent sessions and goals
+      const [sessionsRes, goalsRes] = await Promise.all([
+        sessionsApi.list(5),
+        goalsApi.getCurrentWeek(),
+      ]);
       setRecentSessions(sessionsRes.data);
+      setWeeklyGoals(goalsRes.data);
 
       // Close quick log
       setQuickLogOpen(false);
@@ -163,6 +175,136 @@ export default function Dashboard() {
           </div>
         </div>
       </div>
+
+      {/* Weekly Goals Progress */}
+      {weeklyGoals && profile?.show_weekly_goals && (
+        <div className="card bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 border-green-200 dark:border-green-800">
+          <div className="flex items-start gap-4">
+            <Trophy className="w-6 h-6 text-green-600 mt-1" />
+            <div className="flex-1">
+              <h3 className="font-semibold text-lg mb-2 flex items-center gap-2">
+                Weekly Goals
+                {weeklyGoals.completed && (
+                  <span className="text-xs font-normal px-2 py-0.5 bg-green-100 dark:bg-green-800 text-green-700 dark:text-green-300 rounded">
+                    Completed!
+                  </span>
+                )}
+              </h3>
+              <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">
+                {new Date(weeklyGoals.week_start).toLocaleDateString()} - {new Date(weeklyGoals.week_end).toLocaleDateString()} • {weeklyGoals.days_remaining} days left
+              </p>
+
+              <div className="space-y-3">
+                {/* Sessions Progress */}
+                <div>
+                  <div className="flex justify-between text-sm mb-1">
+                    <span className="font-medium">Sessions</span>
+                    <span className="text-gray-600 dark:text-gray-400">
+                      {weeklyGoals.actual.sessions} / {weeklyGoals.targets.sessions}
+                    </span>
+                  </div>
+                  <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+                    <div
+                      className={`h-2 rounded-full transition-all ${
+                        weeklyGoals.progress.sessions_pct >= 100
+                          ? 'bg-green-500'
+                          : weeklyGoals.progress.sessions_pct >= 70
+                          ? 'bg-yellow-500'
+                          : 'bg-primary-500'
+                      }`}
+                      style={{ width: `${Math.min(weeklyGoals.progress.sessions_pct, 100)}%` }}
+                    />
+                  </div>
+                </div>
+
+                {/* Hours Progress */}
+                <div>
+                  <div className="flex justify-between text-sm mb-1">
+                    <span className="font-medium">Hours</span>
+                    <span className="text-gray-600 dark:text-gray-400">
+                      {weeklyGoals.actual.hours} / {weeklyGoals.targets.hours}
+                    </span>
+                  </div>
+                  <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+                    <div
+                      className={`h-2 rounded-full transition-all ${
+                        weeklyGoals.progress.hours_pct >= 100
+                          ? 'bg-green-500'
+                          : weeklyGoals.progress.hours_pct >= 70
+                          ? 'bg-yellow-500'
+                          : 'bg-primary-500'
+                      }`}
+                      style={{ width: `${Math.min(weeklyGoals.progress.hours_pct, 100)}%` }}
+                    />
+                  </div>
+                </div>
+
+                {/* Rolls Progress */}
+                <div>
+                  <div className="flex justify-between text-sm mb-1">
+                    <span className="font-medium">Rolls</span>
+                    <span className="text-gray-600 dark:text-gray-400">
+                      {weeklyGoals.actual.rolls} / {weeklyGoals.targets.rolls}
+                    </span>
+                  </div>
+                  <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+                    <div
+                      className={`h-2 rounded-full transition-all ${
+                        weeklyGoals.progress.rolls_pct >= 100
+                          ? 'bg-green-500'
+                          : weeklyGoals.progress.rolls_pct >= 70
+                          ? 'bg-yellow-500'
+                          : 'bg-primary-500'
+                      }`}
+                      style={{ width: `${Math.min(weeklyGoals.progress.rolls_pct, 100)}%` }}
+                    />
+                  </div>
+                </div>
+
+                {/* Overall Progress */}
+                <div className="pt-2 border-t border-green-200 dark:border-green-800">
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm font-semibold">Overall Progress</span>
+                    <span className={`text-lg font-bold ${
+                      weeklyGoals.progress.overall_pct >= 100
+                        ? 'text-green-600'
+                        : weeklyGoals.progress.overall_pct >= 70
+                        ? 'text-yellow-600'
+                        : 'text-primary-600'
+                    }`}>
+                      {weeklyGoals.progress.overall_pct}%
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Training Streaks */}
+      {trainingStreaks && profile?.show_streak_on_dashboard && (
+        <div className="card bg-gradient-to-r from-orange-50 to-red-50 dark:from-orange-900/20 dark:to-red-900/20 border-orange-200 dark:border-orange-800">
+          <div className="flex items-start gap-4">
+            <Flame className="w-6 h-6 text-orange-600 mt-1" />
+            <div className="flex-1">
+              <h3 className="font-semibold text-lg mb-3">Training Streaks</h3>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="text-center p-4 bg-white dark:bg-gray-700 rounded-lg">
+                  <p className="text-3xl font-bold text-orange-600">{trainingStreaks.current_streak}</p>
+                  <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">Current Streak</p>
+                  <p className="text-xs text-gray-500 dark:text-gray-500 mt-1">consecutive days</p>
+                </div>
+                <div className="text-center p-4 bg-white dark:bg-gray-700 rounded-lg">
+                  <p className="text-3xl font-bold text-gray-700 dark:text-gray-300">{trainingStreaks.longest_streak}</p>
+                  <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">Longest Streak</p>
+                  <p className="text-xs text-gray-500 dark:text-gray-500 mt-1">all-time record</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Quick Log Session */}
       <div className="card bg-gradient-to-r from-primary-50 to-indigo-50 dark:from-primary-900/20 dark:to-indigo-900/20 border-primary-200 dark:border-primary-800">

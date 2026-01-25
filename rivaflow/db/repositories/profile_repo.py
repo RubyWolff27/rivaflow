@@ -31,6 +31,11 @@ class ProfileRepository:
         default_gym: Optional[str] = None,
         current_grade: Optional[str] = None,
         current_professor: Optional[str] = None,
+        weekly_sessions_target: Optional[int] = None,
+        weekly_hours_target: Optional[float] = None,
+        weekly_rolls_target: Optional[int] = None,
+        show_streak_on_dashboard: Optional[bool] = None,
+        show_weekly_goals: Optional[bool] = None,
     ) -> dict:
         """Update the user profile. Returns updated profile."""
         with get_connection() as conn:
@@ -67,6 +72,21 @@ class ProfileRepository:
             if current_professor is not None:
                 updates.append("current_professor = ?")
                 params.append(current_professor)
+            if weekly_sessions_target is not None:
+                updates.append("weekly_sessions_target = ?")
+                params.append(weekly_sessions_target)
+            if weekly_hours_target is not None:
+                updates.append("weekly_hours_target = ?")
+                params.append(weekly_hours_target)
+            if weekly_rolls_target is not None:
+                updates.append("weekly_rolls_target = ?")
+                params.append(weekly_rolls_target)
+            if show_streak_on_dashboard is not None:
+                updates.append("show_streak_on_dashboard = ?")
+                params.append(show_streak_on_dashboard)
+            if show_weekly_goals is not None:
+                updates.append("show_weekly_goals = ?")
+                params.append(show_weekly_goals)
 
             if updates:
                 updates.append("updated_at = datetime('now')")

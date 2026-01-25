@@ -8,6 +8,7 @@ from rivaflow.db.repositories.grading_repo import GradingRepository
 from rivaflow.db.repositories.glossary_repo import GlossaryRepository
 from rivaflow.db.repositories.contact_repo import ContactRepository
 from rivaflow.db.repositories.session_roll_repo import SessionRollRepository
+from rivaflow.db.repositories.goal_progress_repo import GoalProgressRepository
 
 __all__ = [
     "SessionRepository",
@@ -19,4 +20,5 @@ __all__ = [
     "GlossaryRepository",
     "ContactRepository",
     "SessionRollRepository",
+    "GoalProgressRepository",
 ]

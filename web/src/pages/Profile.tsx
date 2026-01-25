@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
-import { profileApi, gradingsApi } from '../api/client';
+import { profileApi, gradingsApi, goalsApi } from '../api/client';
 import type { Profile as ProfileType, Grading } from '../types';
-import { User, CheckCircle, Award, Plus, Trash2, Edit2 } from 'lucide-react';
+import { User, CheckCircle, Award, Plus, Trash2, Edit2, Target } from 'lucide-react';
 
 const BELT_GRADES = [
   'White',
@@ -50,6 +50,11 @@ export default function Profile() {
     state: '',
     default_gym: '',
     current_professor: '',
+    weekly_sessions_target: 3,
+    weekly_hours_target: 4.5,
+    weekly_rolls_target: 15,
+    show_streak_on_dashboard: true,
+    show_weekly_goals: true,
   });
 
   const [gradingForm, setGradingForm] = useState({
@@ -81,6 +86,11 @@ export default function Profile() {
         state: profileRes.data.state || '',
         default_gym: profileRes.data.default_gym || '',
         current_professor: profileRes.data.current_professor || '',
+        weekly_sessions_target: profileRes.data.weekly_sessions_target || 3,
+        weekly_hours_target: profileRes.data.weekly_hours_target || 4.5,
+        weekly_rolls_target: profileRes.data.weekly_rolls_target || 15,
+        show_streak_on_dashboard: profileRes.data.show_streak_on_dashboard ?? true,
+        show_weekly_goals: profileRes.data.show_weekly_goals ?? true,
       });
     } catch (error) {
       console.error('Error loading data:', error);
@@ -111,6 +121,30 @@ export default function Profile() {
     } catch (error) {
       console.error('Error updating profile:', error);
       alert('Failed to update profile. Please try again.');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleGoalsSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSaving(true);
+    setSuccess(false);
+
+    try {
+      await profileApi.update({
+        weekly_sessions_target: formData.weekly_sessions_target,
+        weekly_hours_target: formData.weekly_hours_target,
+        weekly_rolls_target: formData.weekly_rolls_target,
+        show_streak_on_dashboard: formData.show_streak_on_dashboard,
+        show_weekly_goals: formData.show_weekly_goals,
+      });
+      setSuccess(true);
+      await loadData();
+      setTimeout(() => setSuccess(false), 3000);
+    } catch (error) {
+      console.error('Error updating goals:', error);
+      alert('Failed to update goals. Please try again.');
     } finally {
       setSaving(false);
     }
@@ -368,6 +402,92 @@ export default function Profile() {
             className="btn-primary w-full"
           >
             {saving ? 'Saving...' : 'Save Profile'}
+          </button>
+        </div>
+      </form>
+
+      {/* Weekly Goals Section */}
+      <form onSubmit={handleGoalsSubmit} className="card">
+        <div className="flex items-center gap-3 mb-4">
+          <Target className="w-6 h-6 text-green-600" />
+          <h2 className="text-xl font-semibold">Weekly Goals</h2>
+        </div>
+
+        <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+          Set your weekly training targets. These will be tracked on your dashboard.
+        </p>
+
+        <div className="space-y-4">
+          <div className="grid grid-cols-3 gap-4">
+            <div>
+              <label className="label">Sessions / Week</label>
+              <input
+                type="number"
+                className="input"
+                value={formData.weekly_sessions_target}
+                onChange={(e) => setFormData({ ...formData, weekly_sessions_target: parseInt(e.target.value) || 0 })}
+                min="0"
+                max="20"
+              />
+              <p className="text-xs text-gray-500 dark:text-gray-500 mt-1">Recommended: 3-5</p>
+            </div>
+
+            <div>
+              <label className="label">Hours / Week</label>
+              <input
+                type="number"
+                className="input"
+                value={formData.weekly_hours_target}
+                onChange={(e) => setFormData({ ...formData, weekly_hours_target: parseFloat(e.target.value) || 0 })}
+                min="0"
+                max="40"
+                step="0.5"
+              />
+              <p className="text-xs text-gray-500 dark:text-gray-500 mt-1">Recommended: 4-6</p>
+            </div>
+
+            <div>
+              <label className="label">Rolls / Week</label>
+              <input
+                type="number"
+                className="input"
+                value={formData.weekly_rolls_target}
+                onChange={(e) => setFormData({ ...formData, weekly_rolls_target: parseInt(e.target.value) || 0 })}
+                min="0"
+                max="100"
+              />
+              <p className="text-xs text-gray-500 dark:text-gray-500 mt-1">Recommended: 15-25</p>
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={formData.show_weekly_goals}
+                onChange={(e) => setFormData({ ...formData, show_weekly_goals: e.target.checked })}
+                className="rounded"
+              />
+              <span className="text-sm">Show weekly goals on dashboard</span>
+            </label>
+
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={formData.show_streak_on_dashboard}
+                onChange={(e) => setFormData({ ...formData, show_streak_on_dashboard: e.target.checked })}
+                className="rounded"
+              />
+              <span className="text-sm">Show training streaks on dashboard</span>
+            </label>
+          </div>
+
+          <button
+            type="submit"
+            disabled={saving}
+            className="btn-primary w-full"
+          >
+            {saving ? 'Saving...' : 'Save Goals'}
           </button>
         </div>
       </form>

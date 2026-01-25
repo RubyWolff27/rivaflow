@@ -114,6 +114,11 @@ export interface Profile {
   default_gym?: string;
   current_grade?: string;
   current_professor?: string;
+  weekly_sessions_target?: number;
+  weekly_hours_target?: number;
+  weekly_rolls_target?: number;
+  show_streak_on_dashboard?: boolean;
+  show_weekly_goals?: boolean;
   created_at?: string;
   updated_at?: string;
 }
@@ -209,4 +214,51 @@ export interface CustomVideo {
   url: string;
   video_type: 'gi' | 'nogi' | 'general';
   created_at: string;
+}
+export interface WeeklyGoalProgress {
+  week_start: string;
+  week_end: string;
+  targets: {
+    sessions: number;
+    hours: number;
+    rolls: number;
+  };
+  actual: {
+    sessions: number;
+    hours: number;
+    rolls: number;
+  };
+  progress: {
+    sessions_pct: number;
+    hours_pct: number;
+    rolls_pct: number;
+    overall_pct: number;
+  };
+  completed: boolean;
+  days_remaining: number;
+}
+
+export interface TrainingStreaks {
+  current_streak: number;
+  longest_streak: number;
+  last_updated: string;
+}
+
+export interface GoalCompletionStreak {
+  current_streak: number;
+  longest_streak: number;
+}
+
+export interface GoalsSummary {
+  current_week: WeeklyGoalProgress;
+  training_streaks: TrainingStreaks;
+  goal_streaks: GoalCompletionStreak;
+  recent_trend: {
+    week_start: string;
+    week_end: string;
+    completion_pct: number;
+    completed: boolean;
+    targets: { sessions: number; hours: number; rolls: number };
+    actual: { sessions: number; hours: number; rolls: number };
+  }[];
 }

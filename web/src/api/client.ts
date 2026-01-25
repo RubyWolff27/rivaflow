@@ -1,5 +1,5 @@
 import axios from 'axios';
-import type { Session, Readiness, Report, Suggestion, Technique, Video, Profile, Grading, Movement, Contact, CustomVideo } from '../types';
+import type { Session, Readiness, Report, Suggestion, Technique, Video, Profile, Grading, Movement, Contact, CustomVideo, WeeklyGoalProgress, GoalsSummary, TrainingStreaks, GoalCompletionStreak } from '../types';
 
 const API_BASE = 'http://localhost:8000/api';
 
@@ -122,4 +122,17 @@ export const analyticsApi = {
   milestones: () => api.get('/analytics/milestones'),
   instructorInsights: (params?: { start_date?: string; end_date?: string }) =>
     api.get('/analytics/instructors/insights', { params }),
+};
+
+export const goalsApi = {
+  getCurrentWeek: () => api.get<WeeklyGoalProgress>('/goals/current-week'),
+  getSummary: () => api.get<GoalsSummary>('/goals/summary'),
+  getTrainingStreaks: () => api.get<TrainingStreaks>('/goals/streaks/training'),
+  getGoalStreaks: () => api.get<GoalCompletionStreak>('/goals/streaks/goals'),
+  getTrend: (weeks = 12) => api.get('/goals/trend', { params: { weeks } }),
+  updateTargets: (data: { 
+    weekly_sessions_target?: number; 
+    weekly_hours_target?: number; 
+    weekly_rolls_target?: number;
+  }) => api.put<Profile>('/goals/targets', data),
 };
