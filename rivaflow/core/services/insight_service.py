@@ -1,0 +1,253 @@
+"""Daily insight generation."""
+import random
+from datetime import date, timedelta
+from typing import Optional
+
+from rivaflow.db.database import get_connection
+from rivaflow.db.repositories.streak_repo import StreakRepository
+from rivaflow.core.services.milestone_service import MilestoneService
+
+
+class InsightService:
+    """Business logic for generating contextual daily insights."""
+
+    def __init__(self):
+        self.streak_repo = StreakRepository()
+        self.milestone_service = MilestoneService()
+
+    def generate_insight(self) -> dict:
+        """
+        Generate a contextual insight based on user's data.
+
+        Returns dict with:
+        - type: 'stat', 'technique', 'partner', 'trend', 'encouragement', 'recovery'
+        - title: short title
+        - message: the insight text
+        - action: optional action suggestion
+        - icon: emoji icon
+        """
+        insights = []
+
+        # Collect all possible insights
+        insights.extend(self._get_stat_insights())
+        insights.extend(self._get_streak_insights())
+        insights.extend(self._get_milestone_insights())
+        insights.extend(self._get_recovery_insights())
+        insights.extend(self._get_trend_insights())
+
+        # Select one insight (weighted by relevance)
+        if insights:
+            # Weight insights by type priority
+            weighted_insights = []
+            for insight in insights:
+                weight = {
+                    "milestone": 10,  # Highest priority
+                    "streak": 8,
+                    "recovery": 6,
+                    "trend": 5,
+                    "stat": 4,
+                    "encouragement": 2,
+                }.get(insight["type"], 1)
+                weighted_insights.extend([insight] * weight)
+
+            return random.choice(weighted_insights)
+
+        return self._get_default_insight()
+
+    def _get_stat_insights(self) -> list[dict]:
+        """Generate insights comparing current week to average."""
+        insights = []
+
+        with get_connection() as conn:
+            cursor = conn.cursor()
+
+            # Get this week's hours
+            today = date.today()
+            week_start = today - timedelta(days=today.weekday())
+
+            cursor.execute("""
+                SELECT SUM(duration_mins) FROM sessions
+                WHERE session_date >= ?
+            """, (week_start.isoformat(),))
+            week_mins = cursor.fetchone()[0] or 0
+            week_hours = round(week_mins / 60, 1)
+
+            # Get 4-week average
+            four_weeks_ago = today - timedelta(days=28)
+            cursor.execute("""
+                SELECT AVG(weekly_mins) FROM (
+                    SELECT SUM(duration_mins) as weekly_mins
+                    FROM sessions
+                    WHERE session_date >= ? AND session_date < ?
+                    GROUP BY strftime('%Y-%W', session_date)
+                )
+            """, (four_weeks_ago.isoformat(), week_start.isoformat()))
+            avg_mins = cursor.fetchone()[0] or 0
+            avg_hours = round(avg_mins / 60, 1)
+
+            if avg_hours > 0 and week_hours > 0:
+                percent_diff = round(((week_hours - avg_hours) / avg_hours) * 100)
+
+                if percent_diff > 15:
+                    insights.append({
+                        "type": "stat",
+                        "title": "Training volume up",
+                        "message": f"You've trained {week_hours} hours this week — {percent_diff}% more than your 4-week average.",
+                        "action": None,
+                        "icon": "📈"
+                    })
+                elif percent_diff < -15:
+                    insights.append({
+                        "type": "stat",
+                        "title": "Recovery week",
+                        "message": f"You've trained {week_hours} hours this week — {abs(percent_diff)}% less than average. Recovery matters.",
+                        "action": None,
+                        "icon": "📉"
+                    })
+
+        return insights
+
+    def _get_streak_insights(self) -> list[dict]:
+        """Generate insights about streaks."""
+        insights = []
+
+        checkin_streak = self.streak_repo.get_streak("checkin")
+        current = checkin_streak["current_streak"]
+
+        # Milestone streak achievements
+        if current >= 30:
+            insights.append({
+                "type": "streak",
+                "title": "Consistency wins",
+                "message": f"You've checked in {current} days in a row. This is who you are now.",
+                "action": None,
+                "icon": "🔥"
+            })
+        elif current >= 14:
+            insights.append({
+                "type": "streak",
+                "title": "Habit forming",
+                "message": f"{current}-day check-in streak. Two weeks of consistency builds champions.",
+                "action": None,
+                "icon": "🔥"
+            })
+        elif current >= 7:
+            insights.append({
+                "type": "streak",
+                "title": "One week down",
+                "message": f"{current}-day streak. Keep the momentum going.",
+                "action": None,
+                "icon": "🔥"
+            })
+
+        return insights
+
+    def _get_milestone_insights(self) -> list[dict]:
+        """Generate insights about upcoming milestones."""
+        insights = []
+
+        closest = self.milestone_service.get_closest_milestone()
+        if closest and closest["percentage"] >= 80:
+            insights.append({
+                "type": "milestone",
+                "title": "Almost there",
+                "message": f"{closest['remaining']} more {closest['type']} to hit {closest['next_label']}.",
+                "action": "You're so close!",
+                "icon": "🎯"
+            })
+
+        return insights
+
+    def _get_recovery_insights(self) -> list[dict]:
+        """Generate insights about rest and recovery."""
+        insights = []
+
+        with get_connection() as conn:
+            cursor = conn.cursor()
+
+            # Check consecutive training days
+            cursor.execute("""
+                SELECT COUNT(*) FROM sessions
+                WHERE session_date >= date('now', '-6 days')
+            """)
+            recent_days = cursor.fetchone()[0] or 0
+
+            if recent_days >= 6:
+                insights.append({
+                    "type": "recovery",
+                    "title": "Rest is training",
+                    "message": f"You've trained {recent_days} of the last 7 days. Consider a recovery day.",
+                    "action": "Your body needs time to adapt",
+                    "icon": "😴"
+                })
+
+        return insights
+
+    def _get_trend_insights(self) -> list[dict]:
+        """Generate insights about performance trends."""
+        insights = []
+
+        with get_connection() as conn:
+            cursor = conn.cursor()
+
+            # Check submission rate trend
+            cursor.execute("""
+                SELECT
+                    SUM(submissions_for) as subs,
+                    COUNT(*) as sessions
+                FROM sessions
+                WHERE session_date >= date('now', '-30 days')
+            """)
+            recent = cursor.fetchone()
+            recent_rate = (recent[0] / recent[1]) if recent and recent[1] > 0 else 0
+
+            cursor.execute("""
+                SELECT
+                    SUM(submissions_for) as subs,
+                    COUNT(*) as sessions
+                FROM sessions
+                WHERE session_date >= date('now', '-60 days')
+                  AND session_date < date('now', '-30 days')
+            """)
+            previous = cursor.fetchone()
+            previous_rate = (previous[0] / previous[1]) if previous and previous[1] > 0 else 0
+
+            if previous_rate > 0 and recent_rate > previous_rate * 1.15:
+                percent_up = round(((recent_rate - previous_rate) / previous_rate) * 100)
+                insights.append({
+                    "type": "trend",
+                    "title": "Submissions trending up",
+                    "message": f"Your submission rate is up {percent_up}% this month. The work is paying off.",
+                    "action": None,
+                    "icon": "📊"
+                })
+
+        return insights
+
+    def _get_default_insight(self) -> dict:
+        """Fallback insight when no data-driven insight available."""
+        default_insights = [
+            {
+                "type": "encouragement",
+                "title": "Keep showing up",
+                "message": "Consistency beats intensity. You're building something.",
+                "action": None,
+                "icon": "💪"
+            },
+            {
+                "type": "encouragement",
+                "title": "Trust the process",
+                "message": "Every session is an investment in your future self.",
+                "action": None,
+                "icon": "🥋"
+            },
+            {
+                "type": "encouragement",
+                "title": "Small wins compound",
+                "message": "You don't need to be great today. Just better than yesterday.",
+                "action": None,
+                "icon": "📈"
+            },
+        ]
+
+        return random.choice(default_insights)
