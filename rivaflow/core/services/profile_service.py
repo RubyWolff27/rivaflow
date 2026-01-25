@@ -16,14 +16,14 @@ class ProfileService:
 
     def update_profile(
         self,
-        age: Optional[int] = None,
+        date_of_birth: Optional[str] = None,
         sex: Optional[str] = None,
         default_gym: Optional[str] = None,
         current_grade: Optional[str] = None,
     ) -> dict:
         """Update the user profile. Returns updated profile."""
         return self.repo.update(
-            age=age,
+            date_of_birth=date_of_birth,
             sex=sex,
             default_gym=default_gym,
             current_grade=current_grade,

@@ -18,6 +18,7 @@ def init_db() -> None:
         migrations = [
             "001_initial_schema.sql",
             "002_add_profile.sql",
+            "003_profile_dob_and_gradings.sql",
         ]
 
         migrations_dir = Path(__file__).parent / "migrations"

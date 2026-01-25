@@ -84,10 +84,19 @@ export interface Suggestion {
 
 export interface Profile {
   id: number;
-  age?: number;
+  date_of_birth?: string;
+  age?: number; // Calculated from date_of_birth
   sex?: 'male' | 'female' | 'other' | 'prefer_not_to_say';
   default_gym?: string;
   current_grade?: string;
   created_at?: string;
   updated_at?: string;
+}
+
+export interface Grading {
+  id: number;
+  grade: string;
+  date_graded: string;
+  notes?: string;
+  created_at?: string;
 }

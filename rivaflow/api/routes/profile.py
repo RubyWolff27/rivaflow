@@ -11,7 +11,7 @@ service = ProfileService()
 
 class ProfileUpdate(BaseModel):
     """Profile update model."""
-    age: Optional[int] = None
+    date_of_birth: Optional[str] = None
     sex: Optional[str] = None
     default_gym: Optional[str] = None
     current_grade: Optional[str] = None
@@ -25,6 +25,7 @@ async def get_profile():
         # Return empty profile if none exists
         return {
             "id": 1,
+            "date_of_birth": None,
             "age": None,
             "sex": None,
             "default_gym": None,
@@ -38,7 +39,7 @@ async def update_profile(profile: ProfileUpdate):
     """Update the user profile."""
     try:
         updated = service.update_profile(
-            age=profile.age,
+            date_of_birth=profile.date_of_birth,
             sex=profile.sex,
             default_gym=profile.default_gym,
             current_grade=profile.current_grade,

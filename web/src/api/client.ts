@@ -1,5 +1,5 @@
 import axios from 'axios';
-import type { Session, Readiness, Report, Suggestion, Technique, Video, Profile } from '../types';
+import type { Session, Readiness, Report, Suggestion, Technique, Video, Profile, Grading } from '../types';
 
 const API_BASE = 'http://localhost:8000/api';
 
@@ -64,4 +64,12 @@ export const videosApi = {
 export const profileApi = {
   get: () => api.get<Profile>('/profile/'),
   update: (data: Partial<Profile>) => api.put<Profile>('/profile/', data),
+};
+
+export const gradingsApi = {
+  create: (data: { grade: string; date_graded: string; notes?: string }) =>
+    api.post<Grading>('/gradings/', data),
+  list: () => api.get<Grading[]>('/gradings/'),
+  getLatest: () => api.get<Grading | null>('/gradings/latest'),
+  delete: (id: number) => api.delete(`/gradings/${id}`),
 };
