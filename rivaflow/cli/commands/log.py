@@ -1,12 +1,18 @@
 """Session logging commands."""
 import typer
+import json
+import random
 from datetime import date
 from typing import Optional
+from rich.prompt import Prompt
 
 from rivaflow.cli import prompts
 from rivaflow.core.services.session_service import SessionService
-from rivaflow.db.repositories import VideoRepository
-from rivaflow.config import ALL_CLASS_TYPES, DEFAULT_DURATION, DEFAULT_INTENSITY
+from rivaflow.core.services.streak_service import StreakService
+from rivaflow.core.services.milestone_service import MilestoneService
+from rivaflow.core.services.insight_service import InsightService
+from rivaflow.db.repositories import VideoRepository, CheckinRepository
+from rivaflow.config import ALL_CLASS_TYPES, DEFAULT_DURATION, DEFAULT_INTENSITY, TOMORROW_INTENTIONS, MILESTONE_QUOTES
 
 app = typer.Typer(help="Log training sessions")
 
@@ -62,6 +68,9 @@ def _quick_log(service: SessionService, autocomplete: dict):
     prompts.console.print()
     prompts.print_success("Session logged!")
     prompts.console.print(service.format_session_summary(session))
+
+    # Engagement features (v0.2)
+    _add_engagement_features(session_id)
 
 
 def _full_log(service: SessionService, video_repo: VideoRepository, autocomplete: dict):
@@ -170,3 +179,119 @@ def _full_log(service: SessionService, video_repo: VideoRepository, autocomplete
     prompts.print_success("Session logged!")
     prompts.console.print()
     prompts.console.print(service.format_session_summary(session))
+
+    # Engagement features (v0.2)
+    _add_engagement_features(session_id)
+
+def _add_engagement_features(session_id: int):
+    """Add engagement features after session logging (v0.2)."""
+    checkin_repo = CheckinRepository()
+    streak_service = StreakService()
+    milestone_service = MilestoneService()
+    insight_service = InsightService()
+
+    today = date.today()
+
+    # 1. Create check-in record
+    insight = insight_service.generate_insight()
+    insight_json = json.dumps(insight)
+
+    checkin_id = checkin_repo.upsert_checkin(
+        check_date=today,
+        checkin_type="session",
+        session_id=session_id,
+        insight_shown=insight_json
+    )
+
+    # 2. Update streaks
+    streak_info = streak_service.record_checkin("session", today)
+
+    # 3. Check for new milestones
+    new_milestones = milestone_service.check_all_milestones()
+
+    # Display streak update
+    prompts.console.print()
+    checkin_streak = streak_info["checkin_streak"]
+    streak_text = f"  🔥 [bold yellow]Streak: {checkin_streak['current_streak']} days"
+
+    if streak_info["streak_extended"]:
+        streak_text += " (+1)"
+
+    if streak_info["grace_day_used"]:
+        streak_text += " [dim](used grace day)[/dim]"
+
+    if streak_info["longest_beaten"]:
+        streak_text += " [green]🎉 New personal best![/green]"
+
+    streak_text += "[/bold yellow]"
+    prompts.console.print(streak_text)
+    prompts.console.print()
+
+    # Display insight
+    prompts.console.print(f"  [bold]{insight.get('icon', '💡')} {insight.get('title', 'INSIGHT').upper()}:[/bold]")
+    prompts.console.print(f"  [dim]{insight.get('message', '')}[/dim]")
+    if insight.get('action'):
+        prompts.console.print(f"  [dim italic]{insight['action']}[/dim italic]")
+    prompts.console.print()
+
+    # Celebrate milestones
+    if new_milestones:
+        from rich.panel import Panel
+
+        for milestone in new_milestones:
+            quote, author = random.choice(MILESTONE_QUOTES)
+            bar = "█" * 30
+
+            celebration = f"""
+  [bold yellow]{bar}[/bold yellow]  [bold white]{milestone['milestone_label'].upper()}[/bold white]
+
+  [italic]"{quote}"[/italic]
+                                        [dim]— {author}[/dim]
+
+  [bold green]🏆 Achievement unlocked:[/bold green] {milestone['achieved_at'][:10]}
+"""
+
+            # Get next milestone
+            totals = milestone_service.get_current_totals()
+            current = totals.get(milestone['milestone_type'], 0)
+            next_ms = milestone_service.milestone_repo.get_next_milestone(milestone['milestone_type'], current)
+
+            if next_ms:
+                celebration += f"\n  Next milestone: {next_ms['milestone_label']} ({next_ms['remaining']} to go)"
+
+            panel = Panel(
+                celebration,
+                title="[bold yellow]🎉 MILESTONE UNLOCKED![/bold yellow]",
+                border_style="yellow",
+                padding=(1, 2),
+            )
+            prompts.console.print(panel)
+            prompts.console.print()
+
+            # Mark as celebrated
+            milestone_service.mark_celebrated(milestone["id"])
+
+    # Tomorrow's intention prompt
+    prompts.console.print("  [bold]What's the plan for tomorrow?[/bold]")
+    prompts.console.print()
+    prompts.console.print("  [cyan]1[/cyan] 🥋 Gi   [cyan]2[/cyan] 🩳 No-Gi   [cyan]3[/cyan] 😴 Rest   [cyan]4[/cyan] 🤷 Not sure")
+    prompts.console.print()
+
+    choice = Prompt.ask("  Select", choices=["1", "2", "3", "4"], default="4", show_default=False)
+
+    intention_map = {
+        "1": "train_gi",
+        "2": "train_nogi",
+        "3": "rest",
+        "4": "unsure",
+    }
+
+    intention = intention_map.get(choice, "unsure")
+
+    # Update check-in with tomorrow's intention
+    checkin_repo.update_tomorrow_intention(today, intention)
+
+    intention_label = TOMORROW_INTENTIONS.get(intention, intention)
+    prompts.console.print()
+    prompts.console.print(f"  [green]✅ Tomorrow:[/green] {intention_label}")
+    prompts.console.print()
