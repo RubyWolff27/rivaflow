@@ -1,6 +1,7 @@
 """Main CLI application using Typer."""
 import typer
 from typing import Optional
+from datetime import date, datetime
 
 from rivaflow.cli.commands import log, readiness, report, suggest, video, technique
 
@@ -37,13 +38,92 @@ def init():
 @app.command()
 def stats():
     """Show quick lifetime statistics."""
-    typer.echo("Stats command - coming soon!")
+    from rich.console import Console
+    from rich.table import Table
+    from rivaflow.db.repositories import SessionRepository, ReadinessRepository, TechniqueRepository, VideoRepository
+
+    console = Console()
+
+    session_repo = SessionRepository()
+    readiness_repo = ReadinessRepository()
+    technique_repo = TechniqueRepository()
+    video_repo = VideoRepository()
+
+    # Get all sessions
+    all_sessions = session_repo.get_recent(limit=99999)  # Get all
+
+    # Calculate stats
+    total_classes = len(all_sessions)
+    total_rolls = sum(s["rolls"] for s in all_sessions)
+    total_mins = sum(s["duration_mins"] for s in all_sessions)
+    total_hours = round(total_mins / 60, 1)
+
+    # Get counts
+    readiness_count = len(readiness_repo.get_by_date_range(
+        date(2000, 1, 1), date.today()
+    ))
+    technique_count = len(technique_repo.list_all())
+    video_count = len(video_repo.list_all())
+
+    # Display
+    console.print("[bold]RivaFlow Lifetime Stats[/bold]\n")
+
+    table = Table(show_header=False, box=None, padding=(0, 2))
+    table.add_column("Metric", style="cyan")
+    table.add_column("Value", style="white")
+
+    table.add_row("Total Sessions", str(total_classes))
+    table.add_row("Total Hours", str(total_hours))
+    table.add_row("Total Rolls", str(total_rolls))
+    table.add_row("Readiness Entries", str(readiness_count))
+    table.add_row("Techniques Tracked", str(technique_count))
+    table.add_row("Videos Saved", str(video_count))
+
+    console.print(table)
 
 
 @app.command()
 def export():
     """Export all data as JSON."""
-    typer.echo("Export command - coming soon!")
+    import json
+    from pathlib import Path
+    from rich.console import Console
+    from rivaflow.db.repositories import SessionRepository, ReadinessRepository, TechniqueRepository, VideoRepository
+    from rivaflow.config import DB_PATH
+
+    console = Console()
+
+    session_repo = SessionRepository()
+    readiness_repo = ReadinessRepository()
+    technique_repo = TechniqueRepository()
+    video_repo = VideoRepository()
+
+    # Collect all data
+    data = {
+        "exported_at": datetime.now().isoformat(),
+        "database_path": str(DB_PATH),
+        "sessions": session_repo.get_recent(limit=99999),  # All sessions
+        "readiness": readiness_repo.get_by_date_range(date(2000, 1, 1), date.today()),
+        "techniques": technique_repo.list_all(),
+        "videos": video_repo.list_all(),
+    }
+
+    # Convert dates to strings for JSON serialization
+    def default_serializer(obj):
+        if isinstance(obj, (date, datetime)):
+            return obj.isoformat()
+        raise TypeError(f"Type {type(obj)} not serializable")
+
+    # Write to file
+    output_file = Path("rivaflow_export.json")
+    with open(output_file, "w", encoding="utf-8") as f:
+        json.dump(data, f, indent=2, default=default_serializer)
+
+    console.print(f"[green]✓[/green] Data exported to {output_file}")
+    console.print(f"  Sessions: {len(data['sessions'])}")
+    console.print(f"  Readiness: {len(data['readiness'])}")
+    console.print(f"  Techniques: {len(data['techniques'])}")
+    console.print(f"  Videos: {len(data['videos'])}")
 
 
 if __name__ == "__main__":
