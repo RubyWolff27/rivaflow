@@ -1,0 +1,40 @@
+"""Main CLI application using Typer."""
+import typer
+from typing import Optional
+
+app = typer.Typer(
+    name="rivaflow",
+    help="Training OS for the mat — Train with intent. Flow to mastery.",
+    add_completion=False,
+)
+
+
+@app.callback()
+def callback():
+    """RivaFlow: Local-first training tracker for BJJ and grappling."""
+    pass
+
+
+@app.command()
+def init():
+    """Initialize the RivaFlow database."""
+    from rivaflow.db.database import init_db
+
+    init_db()
+    typer.echo("✓ Database initialized at ~/.rivaflow/rivaflow.db")
+
+
+@app.command()
+def stats():
+    """Show quick lifetime statistics."""
+    typer.echo("Stats command - coming soon!")
+
+
+@app.command()
+def export():
+    """Export all data as JSON."""
+    typer.echo("Export command - coming soon!")
+
+
+if __name__ == "__main__":
+    app()
