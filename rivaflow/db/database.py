@@ -14,7 +14,21 @@ def init_db() -> None:
 
     conn = sqlite3.connect(DB_PATH)
     try:
-        # Run migrations in order
+        # Create migrations tracking table if it doesn't exist
+        conn.execute("""
+            CREATE TABLE IF NOT EXISTS schema_migrations (
+                migration_name TEXT PRIMARY KEY,
+                applied_at TEXT NOT NULL DEFAULT (datetime('now'))
+            )
+        """)
+        conn.commit()
+
+        # Get list of already applied migrations
+        cursor = conn.cursor()
+        cursor.execute("SELECT migration_name FROM schema_migrations")
+        applied_migrations = {row[0] for row in cursor.fetchall()}
+
+        # Define migrations in order
         migrations = [
             "001_initial_schema.sql",
             "002_add_profile.sql",
@@ -23,13 +37,29 @@ def init_db() -> None:
         ]
 
         migrations_dir = Path(__file__).parent / "migrations"
+
+        # Run only new migrations
         for migration in migrations:
+            if migration in applied_migrations:
+                print(f"[DB] Skipping already applied migration: {migration}")
+                continue
+
             migration_path = migrations_dir / migration
             if migration_path.exists():
+                print(f"[DB] Applying migration: {migration}")
                 with open(migration_path) as f:
                     conn.executescript(f.read())
 
-        conn.commit()
+                # Record this migration as applied
+                conn.execute(
+                    "INSERT INTO schema_migrations (migration_name) VALUES (?)",
+                    (migration,)
+                )
+                conn.commit()
+                print(f"[DB] Successfully applied migration: {migration}")
+            else:
+                print(f"[DB] Warning: Migration file not found: {migration}")
+
     finally:
         conn.close()
 
