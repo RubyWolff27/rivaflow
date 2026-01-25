@@ -2,7 +2,7 @@
 import typer
 from typing import Optional
 
-from rivaflow.cli.commands import log, readiness
+from rivaflow.cli.commands import log, readiness, report
 
 app = typer.Typer(
     name="rivaflow",
@@ -13,6 +13,7 @@ app = typer.Typer(
 # Register subcommands
 app.add_typer(log.app, name="log")
 app.add_typer(readiness.app, name="readiness")
+app.add_typer(report.app, name="report")
 
 
 @app.callback()
