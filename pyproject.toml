@@ -39,7 +39,6 @@ dev = [
 
 [project.scripts]
 rivaflow = "rivaflow.cli.app:app"
-rivaflow-api = "uvicorn rivaflow.api.main:app"
 
 [project.urls]
 Homepage = "https://github.com/yourusername/rivaflow"
