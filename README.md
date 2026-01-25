@@ -7,7 +7,11 @@ A local-first training tracker for BJJ/grappling with both **CLI** and **Web App
 ## Features
 
 - ⚡ **Fast logging** — Full session in <60 seconds, quick mode in <20
-- 📊 **Analytics** — Weekly/monthly reports with submission rates, intensity trends
+- 👥 **Contacts management** — Track instructors and training partners with belt ranks and certifications
+- 📚 **BJJ Glossary** — 82 pre-loaded techniques across 8 categories (positions, submissions, sweeps, passes, takedowns, escapes, movements, concepts)
+- 🎯 **Detailed roll tracking** — Log individual rolls with partner, submissions from glossary, duration, and notes
+- 🔄 **Flexible entry modes** — Simple mode (quick totals) or Detailed mode (roll-by-roll analytics)
+- 📊 **Analytics** — Weekly/monthly reports with submission rates, intensity trends, partner-specific stats
 - 🧠 **Smart suggestions** — Rules-based recommendations (not AI fluff)
 - 📹 **Video recall** — Link instructionals to techniques, surface during logging
 - 🔒 **Privacy-first** — All data stays on your machine
@@ -16,7 +20,7 @@ A local-first training tracker for BJJ/grappling with both **CLI** and **Web App
 
 ```bash
 # Clone the repository
-git clone https://github.com/yourusername/rivaflow
+git clone https://github.com/RubyWolff27/rivaflow
 cd rivaflow
 
 # Install Python dependencies
@@ -36,6 +40,16 @@ cd web && npm install && cd ..
 
 # Then open http://localhost:5173 in your browser
 ```
+
+### Web App Features
+
+- **Dashboard** — Quick overview of recent sessions, readiness trends, and statistics
+- **Session Logging** — 2-step wizard with readiness check-in and comprehensive session details
+- **Contacts** — Manage instructors and training partners with belt ranks, stripes, and certifications
+- **Glossary** — Browse, search, and filter 82 BJJ techniques by category and gi/no-gi applicability
+- **Detailed Roll Tracking** — Log individual rolls with partner selection and submission tracking from glossary
+- **Reports** — Weekly/monthly analytics with breakdown by class type and gym
+- **Profile** — Manage your information, default gym, and belt progression history
 
 See [WEB_README.md](WEB_README.md) for full web app documentation.
 
@@ -183,7 +197,7 @@ Built for future expansion:
 ## Development
 
 ```bash
-git clone https://github.com/yourusername/rivaflow
+git clone https://github.com/RubyWolff27/rivaflow
 cd rivaflow
 pip install -e ".[dev]"
 
@@ -209,13 +223,22 @@ RivaFlow is built on these principles:
 
 ## Roadmap
 
-Current version: **v0.1.0 (MVP)**
+Current version: **v0.2.0**
 
-Future phases:
-- Web dashboard (FastAPI + React)
+**Completed:**
+- ✅ CLI tool with session logging, readiness tracking, and reports
+- ✅ Web dashboard (FastAPI + React)
+- ✅ Contacts management with belt rank tracking
+- ✅ BJJ glossary with 82 techniques
+- ✅ Detailed roll tracking with partner-specific analytics
+- ✅ Profile management with belt progression history
+
+**Upcoming:**
+- Partner analytics dashboard (submission rates, roll stats by partner)
+- Technique heatmaps and progression tracking
 - Team/gym sharing features
 - Mobile companion app
-- Advanced analytics and visualizations
+- Advanced visualizations and trend analysis
 
 ## License
 
@@ -223,7 +246,7 @@ MIT — See LICENSE file for details
 
 ## Contributing
 
-Issues and PRs welcome at https://github.com/yourusername/rivaflow
+Issues and PRs welcome at https://github.com/RubyWolff27/rivaflow
 
 ---
 
