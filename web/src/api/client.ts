@@ -97,3 +97,23 @@ export const contactsApi = {
   update: (id: number, data: Partial<Contact>) => api.put<Contact>(`/contacts/${id}`, data),
   delete: (id: number) => api.delete(`/contacts/${id}`),
 };
+
+export const analyticsApi = {
+  performanceOverview: (params?: { start_date?: string; end_date?: string }) =>
+    api.get('/analytics/performance-overview', { params }),
+  partnerStats: (params?: { start_date?: string; end_date?: string }) =>
+    api.get('/analytics/partners/stats', { params }),
+  headToHead: (partner1_id: number, partner2_id: number) =>
+    api.get('/analytics/partners/head-to-head', { params: { partner1_id, partner2_id } }),
+  readinessTrends: (params?: { start_date?: string; end_date?: string }) =>
+    api.get('/analytics/readiness/trends', { params }),
+  whoopAnalytics: (params?: { start_date?: string; end_date?: string }) =>
+    api.get('/analytics/whoop/analytics', { params }),
+  techniqueBreakdown: (params?: { start_date?: string; end_date?: string }) =>
+    api.get('/analytics/techniques/breakdown', { params }),
+  consistencyMetrics: (params?: { start_date?: string; end_date?: string }) =>
+    api.get('/analytics/consistency/metrics', { params }),
+  milestones: () => api.get('/analytics/milestones'),
+  instructorInsights: (params?: { start_date?: string; end_date?: string }) =>
+    api.get('/analytics/instructors/insights', { params }),
+};
