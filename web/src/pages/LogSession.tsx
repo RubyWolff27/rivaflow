@@ -1,10 +1,21 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { sessionsApi, readinessApi, profileApi } from '../api/client';
-import { CheckCircle, ArrowRight, ArrowLeft } from 'lucide-react';
+import { sessionsApi, readinessApi, profileApi, contactsApi, glossaryApi } from '../api/client';
+import type { Contact, Movement } from '../types';
+import { CheckCircle, ArrowRight, ArrowLeft, Plus, X, ToggleLeft, ToggleRight } from 'lucide-react';
 
 const CLASS_TYPES = ['gi', 'no-gi', 'wrestling', 'judo', 'open-mat', 's&c', 'mobility', 'yoga', 'rehab', 'physio', 'drilling'];
 const SPARRING_TYPES = ['gi', 'no-gi', 'wrestling', 'judo', 'open-mat'];
+
+interface RollEntry {
+  roll_number: number;
+  partner_id: number | null;
+  partner_name: string;
+  duration_mins: number;
+  submissions_for: number[];
+  submissions_against: number[];
+  notes: string;
+}
 
 export default function LogSession() {
   const navigate = useNavigate();
@@ -13,6 +24,15 @@ export default function LogSession() {
   const [success, setSuccess] = useState(false);
   const [autocomplete, setAutocomplete] = useState<any>({});
   const [defaultGym, setDefaultGym] = useState('');
+
+  // New: Contacts and glossary data
+  const [instructors, setInstructors] = useState<Contact[]>([]);
+  const [partners, setPartners] = useState<Contact[]>([]);
+  const [movements, setMovements] = useState<Movement[]>([]);
+
+  // New: Roll tracking mode
+  const [detailedMode, setDetailedMode] = useState(false);
+  const [rolls, setRolls] = useState<RollEntry[]>([]);
 
   // Readiness data (Step 1)
   const [readinessData, setReadinessData] = useState({
@@ -32,6 +52,8 @@ export default function LogSession() {
     location: '',
     duration_mins: 60,
     intensity: 4,
+    instructor_id: null as number | null,
+    instructor_name: '',
     rolls: 0,
     submissions_for: 0,
     submissions_against: 0,
@@ -46,11 +68,18 @@ export default function LogSession() {
 
   const loadData = async () => {
     try {
-      const [autocompleteRes, profileRes] = await Promise.all([
+      const [autocompleteRes, profileRes, instructorsRes, partnersRes, movementsRes] = await Promise.all([
         sessionsApi.getAutocomplete(),
         profileApi.get(),
+        contactsApi.listInstructors(),
+        contactsApi.listPartners(),
+        glossaryApi.list(),
       ]);
+
       setAutocomplete(autocompleteRes.data);
+      setInstructors(instructorsRes.data);
+      setPartners(partnersRes.data);
+      setMovements(movementsRes.data);
 
       if (profileRes.data.default_gym) {
         setDefaultGym(profileRes.data.default_gym);
@@ -62,7 +91,6 @@ export default function LogSession() {
   };
 
   const handleNextStep = () => {
-    // Validate step 1
     if (step === 1) {
       setStep(2);
     }
@@ -70,6 +98,50 @@ export default function LogSession() {
 
   const handleBackStep = () => {
     setStep(1);
+  };
+
+  const handleAddRoll = () => {
+    setRolls([
+      ...rolls,
+      {
+        roll_number: rolls.length + 1,
+        partner_id: null,
+        partner_name: '',
+        duration_mins: 5,
+        submissions_for: [],
+        submissions_against: [],
+        notes: '',
+      },
+    ]);
+  };
+
+  const handleRemoveRoll = (index: number) => {
+    const updated = rolls.filter((_, i) => i !== index);
+    // Renumber rolls
+    updated.forEach((roll, i) => {
+      roll.roll_number = i + 1;
+    });
+    setRolls(updated);
+  };
+
+  const handleRollChange = (index: number, field: keyof RollEntry, value: any) => {
+    const updated = [...rolls];
+    updated[index] = { ...updated[index], [field]: value };
+    setRolls(updated);
+  };
+
+  const handleToggleSubmission = (rollIndex: number, movementId: number, type: 'for' | 'against') => {
+    const updated = [...rolls];
+    const field = type === 'for' ? 'submissions_for' : 'submissions_against';
+    const current = updated[rollIndex][field];
+
+    if (current.includes(movementId)) {
+      updated[rollIndex][field] = current.filter(id => id !== movementId);
+    } else {
+      updated[rollIndex][field] = [...current, movementId];
+    }
+
+    setRolls(updated);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -80,13 +152,42 @@ export default function LogSession() {
       // Save readiness first
       await readinessApi.create(readinessData);
 
-      // Then save session
-      const payload = {
+      // Build session payload
+      const payload: any = {
         ...sessionData,
         partners: sessionData.partners ? sessionData.partners.split(',').map(p => p.trim()) : undefined,
         techniques: sessionData.techniques ? sessionData.techniques.split(',').map(t => t.trim()) : undefined,
         visibility_level: 'private',
       };
+
+      // Add instructor
+      if (sessionData.instructor_id) {
+        payload.instructor_id = sessionData.instructor_id;
+        const instructor = instructors.find(i => i.id === sessionData.instructor_id);
+        if (instructor) {
+          payload.instructor_name = instructor.name;
+        }
+      } else if (sessionData.instructor_name) {
+        payload.instructor_name = sessionData.instructor_name;
+      }
+
+      // Add detailed rolls if in detailed mode
+      if (detailedMode && rolls.length > 0) {
+        payload.session_rolls = rolls.map(roll => ({
+          roll_number: roll.roll_number,
+          partner_id: roll.partner_id || undefined,
+          partner_name: roll.partner_name || undefined,
+          duration_mins: roll.duration_mins || undefined,
+          submissions_for: roll.submissions_for.length > 0 ? roll.submissions_for : undefined,
+          submissions_against: roll.submissions_against.length > 0 ? roll.submissions_against : undefined,
+          notes: roll.notes || undefined,
+        }));
+
+        // Calculate aggregates from detailed rolls
+        payload.rolls = rolls.length;
+        payload.submissions_for = rolls.reduce((sum, roll) => sum + roll.submissions_for.length, 0);
+        payload.submissions_against = rolls.reduce((sum, roll) => sum + roll.submissions_against.length, 0);
+      }
 
       await sessionsApi.create(payload);
       setSuccess(true);
@@ -219,6 +320,31 @@ export default function LogSession() {
             </select>
           </div>
 
+          {/* Instructor */}
+          <div>
+            <label className="label">Instructor (optional)</label>
+            <select
+              className="input"
+              value={sessionData.instructor_id || ''}
+              onChange={(e) => setSessionData({
+                ...sessionData,
+                instructor_id: e.target.value ? parseInt(e.target.value) : null
+              })}
+            >
+              <option value="">Select instructor...</option>
+              {instructors.map(instructor => (
+                <option key={instructor.id} value={instructor.id}>
+                  {instructor.name}
+                  {instructor.belt_rank && ` (${instructor.belt_rank} belt)`}
+                  {instructor.instructor_certification && ` - ${instructor.instructor_certification}`}
+                </option>
+              ))}
+            </select>
+            <p className="text-xs text-gray-500 mt-1">
+              Don't see your instructor? <a href="/contacts" className="text-primary-600 hover:underline">Add them in Contacts</a>
+            </p>
+          </div>
+
           {/* Gym Name */}
           <div>
             <label className="label">Gym Name</label>
@@ -289,41 +415,181 @@ export default function LogSession() {
 
           {/* Sparring Details */}
           {isSparringType && (
-            <>
-              <div>
-                <label className="label">Rolls</label>
-                <input
-                  type="number"
-                  className="input"
-                  value={sessionData.rolls}
-                  onChange={(e) => setSessionData({ ...sessionData, rolls: parseInt(e.target.value) })}
-                  min="0"
-                />
+            <div className="space-y-4 border-t border-gray-200 dark:border-gray-700 pt-4">
+              <div className="flex items-center justify-between">
+                <h3 className="font-semibold text-lg">Roll Tracking</h3>
+                <button
+                  type="button"
+                  onClick={() => setDetailedMode(!detailedMode)}
+                  className="flex items-center gap-2 text-sm text-primary-600 hover:text-primary-700"
+                >
+                  {detailedMode ? (
+                    <>
+                      <ToggleRight className="w-5 h-5" />
+                      Detailed Mode
+                    </>
+                  ) : (
+                    <>
+                      <ToggleLeft className="w-5 h-5" />
+                      Simple Mode
+                    </>
+                  )}
+                </button>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="label">Submissions For</label>
-                  <input
-                    type="number"
-                    className="input"
-                    value={sessionData.submissions_for}
-                    onChange={(e) => setSessionData({ ...sessionData, submissions_for: parseInt(e.target.value) })}
-                    min="0"
-                  />
+              {!detailedMode ? (
+                // Simple Mode: Aggregate counts
+                <>
+                  <div>
+                    <label className="label">Rolls</label>
+                    <input
+                      type="number"
+                      className="input"
+                      value={sessionData.rolls}
+                      onChange={(e) => setSessionData({ ...sessionData, rolls: parseInt(e.target.value) })}
+                      min="0"
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="label">Submissions For</label>
+                      <input
+                        type="number"
+                        className="input"
+                        value={sessionData.submissions_for}
+                        onChange={(e) => setSessionData({ ...sessionData, submissions_for: parseInt(e.target.value) })}
+                        min="0"
+                      />
+                    </div>
+                    <div>
+                      <label className="label">Submissions Against</label>
+                      <input
+                        type="number"
+                        className="input"
+                        value={sessionData.submissions_against}
+                        onChange={(e) => setSessionData({ ...sessionData, submissions_against: parseInt(e.target.value) })}
+                        min="0"
+                      />
+                    </div>
+                  </div>
+                </>
+              ) : (
+                // Detailed Mode: Individual rolls
+                <div className="space-y-4">
+                  <p className="text-sm text-gray-600 dark:text-gray-400">
+                    Track each roll with partner and submissions from glossary
+                  </p>
+
+                  {rolls.map((roll, index) => (
+                    <div key={index} className="border border-gray-300 dark:border-gray-600 rounded-lg p-4 space-y-3">
+                      <div className="flex items-center justify-between">
+                        <h4 className="font-semibold">Roll #{roll.roll_number}</h4>
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveRoll(index)}
+                          className="text-red-600 hover:text-red-700"
+                        >
+                          <X className="w-4 h-4" />
+                        </button>
+                      </div>
+
+                      {/* Partner Selection */}
+                      <div>
+                        <label className="label text-sm">Partner</label>
+                        <select
+                          className="input"
+                          value={roll.partner_id || ''}
+                          onChange={(e) => {
+                            const partnerId = e.target.value ? parseInt(e.target.value) : null;
+                            const partner = partners.find(p => p.id === partnerId);
+                            handleRollChange(index, 'partner_id', partnerId);
+                            handleRollChange(index, 'partner_name', partner ? partner.name : '');
+                          }}
+                        >
+                          <option value="">Select partner...</option>
+                          {partners.map(partner => (
+                            <option key={partner.id} value={partner.id}>
+                              {partner.name}
+                              {partner.belt_rank && ` (${partner.belt_rank} belt)`}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+
+                      {/* Duration */}
+                      <div>
+                        <label className="label text-sm">Duration (mins)</label>
+                        <input
+                          type="number"
+                          className="input"
+                          value={roll.duration_mins}
+                          onChange={(e) => handleRollChange(index, 'duration_mins', parseInt(e.target.value))}
+                          min="1"
+                        />
+                      </div>
+
+                      {/* Submissions For */}
+                      <div>
+                        <label className="label text-sm">Submissions You Got</label>
+                        <div className="max-h-32 overflow-y-auto border border-gray-300 dark:border-gray-600 rounded p-2 space-y-1">
+                          {movements.filter(m => m.category === 'submission').map(movement => (
+                            <label key={movement.id} className="flex items-center gap-2 text-sm cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 p-1 rounded">
+                              <input
+                                type="checkbox"
+                                checked={roll.submissions_for.includes(movement.id)}
+                                onChange={() => handleToggleSubmission(index, movement.id, 'for')}
+                                className="w-4 h-4"
+                              />
+                              <span>{movement.name}</span>
+                            </label>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Submissions Against */}
+                      <div>
+                        <label className="label text-sm">Submissions They Got</label>
+                        <div className="max-h-32 overflow-y-auto border border-gray-300 dark:border-gray-600 rounded p-2 space-y-1">
+                          {movements.filter(m => m.category === 'submission').map(movement => (
+                            <label key={movement.id} className="flex items-center gap-2 text-sm cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 p-1 rounded">
+                              <input
+                                type="checkbox"
+                                checked={roll.submissions_against.includes(movement.id)}
+                                onChange={() => handleToggleSubmission(index, movement.id, 'against')}
+                                className="w-4 h-4"
+                              />
+                              <span>{movement.name}</span>
+                            </label>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Roll Notes */}
+                      <div>
+                        <label className="label text-sm">Notes (optional)</label>
+                        <input
+                          type="text"
+                          className="input"
+                          value={roll.notes}
+                          onChange={(e) => handleRollChange(index, 'notes', e.target.value)}
+                          placeholder="How did this roll go?"
+                        />
+                      </div>
+                    </div>
+                  ))}
+
+                  <button
+                    type="button"
+                    onClick={handleAddRoll}
+                    className="btn-secondary w-full flex items-center justify-center gap-2"
+                  >
+                    <Plus className="w-4 h-4" />
+                    Add Roll
+                  </button>
                 </div>
-                <div>
-                  <label className="label">Submissions Against</label>
-                  <input
-                    type="number"
-                    className="input"
-                    value={sessionData.submissions_against}
-                    onChange={(e) => setSessionData({ ...sessionData, submissions_against: parseInt(e.target.value) })}
-                    min="0"
-                  />
-                </div>
-              </div>
-            </>
+              )}
+            </div>
           )}
 
           {/* Techniques */}
@@ -338,17 +604,19 @@ export default function LogSession() {
             />
           </div>
 
-          {/* Partners */}
-          <div>
-            <label className="label">Partners (comma-separated)</label>
-            <input
-              type="text"
-              className="input"
-              value={sessionData.partners}
-              onChange={(e) => setSessionData({ ...sessionData, partners: e.target.value })}
-              placeholder="e.g., John, Sarah"
-            />
-          </div>
+          {/* Partners (Simple mode or non-sparring) */}
+          {!detailedMode && (
+            <div>
+              <label className="label">Partners (comma-separated)</label>
+              <input
+                type="text"
+                className="input"
+                value={sessionData.partners}
+                onChange={(e) => setSessionData({ ...sessionData, partners: e.target.value })}
+                placeholder="e.g., John, Sarah"
+              />
+            </div>
+          )}
 
           {/* Notes */}
           <div>
