@@ -109,7 +109,7 @@ class ReportService:
 
         # Calculate rates
         subs_per_class = round(
-            (submissions_for + submissions_against) / total_classes, 2
+            submissions_for / total_classes, 2
         ) if total_classes > 0 else 0.0
 
         subs_per_roll = round(
