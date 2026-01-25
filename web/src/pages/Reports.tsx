@@ -565,7 +565,7 @@ export default function Reports() {
                             outerRadius={100}
                             label
                           >
-                            {techniqueData.category_breakdown.map((entry: any, index: number) => (
+                            {techniqueData.category_breakdown.map((_: any, index: number) => (
                               <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                             ))}
                           </Pie>
@@ -688,7 +688,7 @@ export default function Reports() {
                         outerRadius={100}
                         label
                       >
-                        {consistencyData.class_type_distribution.map((entry: any, index: number) => (
+                        {consistencyData.class_type_distribution.map((_: any, index: number) => (
                           <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                         ))}
                       </Pie>

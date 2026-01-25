@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { sessionsApi, contactsApi, glossaryApi } from '../api/client';
-import type { Contact, Movement, Session } from '../types';
+import { sessionsApi, contactsApi } from '../api/client';
+import type { Contact } from '../types';
 import { CheckCircle, ArrowLeft, Save, Loader } from 'lucide-react';
 
 const CLASS_TYPES = ['gi', 'no-gi', 'wrestling', 'judo', 'open-mat', 's&c', 'mobility', 'yoga', 'rehab', 'physio', 'drilling'];
@@ -13,7 +13,6 @@ export default function EditSession() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [success, setSuccess] = useState(false);
-  const [session, setSession] = useState<Session | null>(null);
 
   const [instructors, setInstructors] = useState<Contact[]>([]);
   const [autocomplete, setAutocomplete] = useState<any>({});
@@ -53,7 +52,6 @@ export default function EditSession() {
       ]);
 
       const sessionData = sessionRes.data;
-      setSession(sessionData);
       setInstructors(instructorsRes.data);
       setAutocomplete(autocompleteRes.data);
 

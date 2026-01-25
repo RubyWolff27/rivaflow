@@ -1,5 +1,5 @@
 import axios from 'axios';
-import type { Session, Readiness, Report, Suggestion, Technique, Video, Profile, Grading, Movement, Contact, SessionRoll } from '../types';
+import type { Session, Readiness, Report, Suggestion, Technique, Video, Profile, Grading, Movement, Contact } from '../types';
 
 const API_BASE = 'http://localhost:8000/api';
 

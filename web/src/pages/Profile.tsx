@@ -99,7 +99,7 @@ export default function Profile() {
         first_name: formData.first_name || undefined,
         last_name: formData.last_name || undefined,
         date_of_birth: formData.date_of_birth || undefined,
-        sex: formData.sex || undefined,
+        sex: (formData.sex || undefined) as 'male' | 'female' | 'other' | 'prefer_not_to_say' | undefined,
         city: formData.city || undefined,
         state: formData.state || undefined,
         default_gym: formData.default_gym || undefined,

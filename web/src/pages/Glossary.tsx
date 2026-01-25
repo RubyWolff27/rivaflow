@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { glossaryApi } from '../api/client';
 import type { Movement } from '../types';
-import { Book, Search, Filter, Plus, Trash2, Award } from 'lucide-react';
+import { Book, Search, Plus, Trash2, Award } from 'lucide-react';
 
 const CATEGORY_LABELS: Record<string, string> = {
   position: 'Positions',
