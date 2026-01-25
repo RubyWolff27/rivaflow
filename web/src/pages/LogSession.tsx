@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { sessionsApi, readinessApi, profileApi, contactsApi, glossaryApi } from '../api/client';
 import type { Contact, Movement } from '../types';
-import { CheckCircle, ArrowRight, ArrowLeft, Plus, X, ToggleLeft, ToggleRight } from 'lucide-react';
+import { CheckCircle, ArrowRight, ArrowLeft, Plus, X, ToggleLeft, ToggleRight, Search } from 'lucide-react';
 
 const CLASS_TYPES = ['gi', 'no-gi', 'wrestling', 'judo', 'open-mat', 's&c', 'mobility', 'yoga', 'rehab', 'physio', 'drilling'];
 const SPARRING_TYPES = ['gi', 'no-gi', 'wrestling', 'judo', 'open-mat'];
@@ -33,6 +33,10 @@ export default function LogSession() {
   // New: Roll tracking mode
   const [detailedMode, setDetailedMode] = useState(false);
   const [rolls, setRolls] = useState<RollEntry[]>([]);
+
+  // Search state for submissions
+  const [submissionSearchFor, setSubmissionSearchFor] = useState<{[rollIndex: number]: string}>({});
+  const [submissionSearchAgainst, setSubmissionSearchAgainst] = useState<{[rollIndex: number]: string}>({});
 
   // Readiness data (Step 1)
   const [readinessData, setReadinessData] = useState({
@@ -122,6 +126,31 @@ export default function LogSession() {
       roll.roll_number = i + 1;
     });
     setRolls(updated);
+
+    // Clean up search state for removed roll and reindex remaining
+    const newSearchFor: {[key: number]: string} = {};
+    const newSearchAgainst: {[key: number]: string} = {};
+
+    Object.keys(submissionSearchFor).forEach(key => {
+      const idx = parseInt(key);
+      if (idx < index) {
+        newSearchFor[idx] = submissionSearchFor[idx];
+      } else if (idx > index) {
+        newSearchFor[idx - 1] = submissionSearchFor[idx];
+      }
+    });
+
+    Object.keys(submissionSearchAgainst).forEach(key => {
+      const idx = parseInt(key);
+      if (idx < index) {
+        newSearchAgainst[idx] = submissionSearchAgainst[idx];
+      } else if (idx > index) {
+        newSearchAgainst[idx - 1] = submissionSearchAgainst[idx];
+      }
+    });
+
+    setSubmissionSearchFor(newSearchFor);
+    setSubmissionSearchAgainst(newSearchAgainst);
   };
 
   const handleRollChange = (index: number, field: keyof RollEntry, value: any) => {
@@ -532,36 +561,88 @@ export default function LogSession() {
                       {/* Submissions For */}
                       <div>
                         <label className="label text-sm">Submissions You Got</label>
+                        <div className="relative mb-2">
+                          <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+                          <input
+                            type="text"
+                            className="input pl-8 text-sm"
+                            placeholder="Search submissions..."
+                            value={submissionSearchFor[index] || ''}
+                            onChange={(e) => setSubmissionSearchFor({ ...submissionSearchFor, [index]: e.target.value })}
+                          />
+                        </div>
                         <div className="max-h-32 overflow-y-auto border border-gray-300 dark:border-gray-600 rounded p-2 space-y-1">
-                          {movements.filter(m => m.category === 'submission').map(movement => (
-                            <label key={movement.id} className="flex items-center gap-2 text-sm cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 p-1 rounded">
-                              <input
-                                type="checkbox"
-                                checked={roll.submissions_for.includes(movement.id)}
-                                onChange={() => handleToggleSubmission(index, movement.id, 'for')}
-                                className="w-4 h-4"
-                              />
-                              <span>{movement.name}</span>
-                            </label>
-                          ))}
+                          {movements
+                            .filter(m => m.category === 'submission')
+                            .filter(m => {
+                              const search = submissionSearchFor[index]?.toLowerCase() || '';
+                              return m.name.toLowerCase().includes(search) ||
+                                     m.subcategory?.toLowerCase().includes(search) ||
+                                     m.aliases.some(alias => alias.toLowerCase().includes(search));
+                            })
+                            .map(movement => (
+                              <label key={movement.id} className="flex items-center gap-2 text-sm cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 p-1 rounded">
+                                <input
+                                  type="checkbox"
+                                  checked={roll.submissions_for.includes(movement.id)}
+                                  onChange={() => handleToggleSubmission(index, movement.id, 'for')}
+                                  className="w-4 h-4"
+                                />
+                                <span>{movement.name}</span>
+                              </label>
+                            ))}
+                          {movements.filter(m => m.category === 'submission').filter(m => {
+                            const search = submissionSearchFor[index]?.toLowerCase() || '';
+                            return m.name.toLowerCase().includes(search) ||
+                                   m.subcategory?.toLowerCase().includes(search) ||
+                                   m.aliases.some(alias => alias.toLowerCase().includes(search));
+                          }).length === 0 && (
+                            <p className="text-xs text-gray-500 text-center py-2">No submissions found</p>
+                          )}
                         </div>
                       </div>
 
                       {/* Submissions Against */}
                       <div>
                         <label className="label text-sm">Submissions They Got</label>
+                        <div className="relative mb-2">
+                          <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+                          <input
+                            type="text"
+                            className="input pl-8 text-sm"
+                            placeholder="Search submissions..."
+                            value={submissionSearchAgainst[index] || ''}
+                            onChange={(e) => setSubmissionSearchAgainst({ ...submissionSearchAgainst, [index]: e.target.value })}
+                          />
+                        </div>
                         <div className="max-h-32 overflow-y-auto border border-gray-300 dark:border-gray-600 rounded p-2 space-y-1">
-                          {movements.filter(m => m.category === 'submission').map(movement => (
-                            <label key={movement.id} className="flex items-center gap-2 text-sm cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 p-1 rounded">
-                              <input
-                                type="checkbox"
-                                checked={roll.submissions_against.includes(movement.id)}
-                                onChange={() => handleToggleSubmission(index, movement.id, 'against')}
-                                className="w-4 h-4"
-                              />
-                              <span>{movement.name}</span>
-                            </label>
-                          ))}
+                          {movements
+                            .filter(m => m.category === 'submission')
+                            .filter(m => {
+                              const search = submissionSearchAgainst[index]?.toLowerCase() || '';
+                              return m.name.toLowerCase().includes(search) ||
+                                     m.subcategory?.toLowerCase().includes(search) ||
+                                     m.aliases.some(alias => alias.toLowerCase().includes(search));
+                            })
+                            .map(movement => (
+                              <label key={movement.id} className="flex items-center gap-2 text-sm cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 p-1 rounded">
+                                <input
+                                  type="checkbox"
+                                  checked={roll.submissions_against.includes(movement.id)}
+                                  onChange={() => handleToggleSubmission(index, movement.id, 'against')}
+                                  className="w-4 h-4"
+                                />
+                                <span>{movement.name}</span>
+                              </label>
+                            ))}
+                          {movements.filter(m => m.category === 'submission').filter(m => {
+                            const search = submissionSearchAgainst[index]?.toLowerCase() || '';
+                            return m.name.toLowerCase().includes(search) ||
+                                   m.subcategory?.toLowerCase().includes(search) ||
+                                   m.aliases.some(alias => alias.toLowerCase().includes(search));
+                          }).length === 0 && (
+                            <p className="text-xs text-gray-500 text-center py-2">No submissions found</p>
+                          )}
                         </div>
                       </div>
 
