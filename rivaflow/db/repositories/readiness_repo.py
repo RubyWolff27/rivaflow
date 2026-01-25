@@ -1,0 +1,112 @@
+"""Repository for readiness check-in data access."""
+import sqlite3
+from datetime import date, datetime
+from typing import Optional
+
+from rivaflow.db.database import get_connection
+
+
+class ReadinessRepository:
+    """Data access layer for daily readiness check-ins."""
+
+    @staticmethod
+    def upsert(
+        check_date: date,
+        sleep: int,
+        stress: int,
+        soreness: int,
+        energy: int,
+        hotspot_note: Optional[str] = None,
+    ) -> int:
+        """Create or update readiness entry for a date. Returns ID."""
+        with get_connection() as conn:
+            cursor = conn.cursor()
+            # Try to get existing entry
+            cursor.execute(
+                "SELECT id FROM readiness WHERE check_date = ?",
+                (check_date.isoformat(),),
+            )
+            existing = cursor.fetchone()
+
+            if existing:
+                # Update existing
+                cursor.execute(
+                    """
+                    UPDATE readiness
+                    SET sleep = ?, stress = ?, soreness = ?, energy = ?,
+                        hotspot_note = ?, updated_at = datetime('now')
+                    WHERE check_date = ?
+                    """,
+                    (sleep, stress, soreness, energy, hotspot_note, check_date.isoformat()),
+                )
+                return existing["id"]
+            else:
+                # Insert new
+                cursor.execute(
+                    """
+                    INSERT INTO readiness (
+                        check_date, sleep, stress, soreness, energy, hotspot_note
+                    ) VALUES (?, ?, ?, ?, ?, ?)
+                    """,
+                    (check_date.isoformat(), sleep, stress, soreness, energy, hotspot_note),
+                )
+                return cursor.lastrowid
+
+    @staticmethod
+    def get_by_date(check_date: date) -> Optional[dict]:
+        """Get readiness entry for a specific date."""
+        with get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                "SELECT * FROM readiness WHERE check_date = ?",
+                (check_date.isoformat(),),
+            )
+            row = cursor.fetchone()
+            if row:
+                return ReadinessRepository._row_to_dict(row)
+            return None
+
+    @staticmethod
+    def get_latest() -> Optional[dict]:
+        """Get the most recent readiness entry."""
+        with get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                "SELECT * FROM readiness ORDER BY check_date DESC LIMIT 1"
+            )
+            row = cursor.fetchone()
+            if row:
+                return ReadinessRepository._row_to_dict(row)
+            return None
+
+    @staticmethod
+    def get_by_date_range(start_date: date, end_date: date) -> list[dict]:
+        """Get readiness entries within a date range (inclusive)."""
+        with get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                """
+                SELECT * FROM readiness
+                WHERE check_date BETWEEN ? AND ?
+                ORDER BY check_date DESC
+                """,
+                (start_date.isoformat(), end_date.isoformat()),
+            )
+            return [ReadinessRepository._row_to_dict(row) for row in cursor.fetchall()]
+
+    @staticmethod
+    def _row_to_dict(row: sqlite3.Row) -> dict:
+        """Convert a database row to a dictionary."""
+        data = dict(row)
+        # Parse dates
+        if data.get("check_date"):
+            data["check_date"] = date.fromisoformat(data["check_date"])
+        if data.get("created_at"):
+            data["created_at"] = datetime.fromisoformat(data["created_at"])
+        if data.get("updated_at"):
+            data["updated_at"] = datetime.fromisoformat(data["updated_at"])
+        # Calculate composite score
+        data["composite_score"] = (
+            data["sleep"] + (6 - data["stress"]) + (6 - data["soreness"]) + data["energy"]
+        )
+        return data
