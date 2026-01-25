@@ -1,5 +1,5 @@
 import axios from 'axios';
-import type { Session, Readiness, Report, Suggestion, Technique, Video, Profile, Grading } from '../types';
+import type { Session, Readiness, Report, Suggestion, Technique, Video, Profile, Grading, Movement } from '../types';
 
 const API_BASE = 'http://localhost:8000/api';
 
@@ -74,4 +74,14 @@ export const gradingsApi = {
   getLatest: () => api.get<Grading | null>('/gradings/latest'),
   update: (id: number, data: Partial<Grading>) => api.put<Grading>(`/gradings/${id}`, data),
   delete: (id: number) => api.delete(`/gradings/${id}`),
+};
+
+export const glossaryApi = {
+  list: (params?: { category?: string; search?: string; gi_only?: boolean; nogi_only?: boolean }) =>
+    api.get<Movement[]>('/glossary/', { params }),
+  getCategories: () => api.get<{ categories: string[] }>('/glossary/categories'),
+  getById: (id: number) => api.get<Movement>(`/glossary/${id}`),
+  create: (data: { name: string; category: string; subcategory?: string; points?: number; description?: string; aliases?: string[]; gi_applicable?: boolean; nogi_applicable?: boolean }) =>
+    api.post<Movement>('/glossary/', data),
+  delete: (id: number) => api.delete(`/glossary/${id}`),
 };

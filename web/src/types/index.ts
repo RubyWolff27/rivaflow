@@ -106,3 +106,22 @@ export interface Grading {
   notes?: string;
   created_at?: string;
 }
+
+export interface Movement {
+  id: number;
+  name: string;
+  category: 'position' | 'submission' | 'sweep' | 'pass' | 'takedown' | 'escape' | 'movement' | 'concept' | 'defense';
+  subcategory?: string;
+  points: number;
+  description?: string;
+  aliases: string[];
+  gi_applicable: boolean;
+  nogi_applicable: boolean;
+  ibjjf_legal_white: boolean;
+  ibjjf_legal_blue: boolean;
+  ibjjf_legal_purple: boolean;
+  ibjjf_legal_brown: boolean;
+  ibjjf_legal_black: boolean;
+  custom: boolean;
+  created_at?: string;
+}
