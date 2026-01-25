@@ -1,0 +1,79 @@
+"""Service layer for video management."""
+from typing import Optional
+import json
+
+from rivaflow.db.repositories import VideoRepository, TechniqueRepository
+
+
+class VideoService:
+    """Business logic for training video management."""
+
+    def __init__(self):
+        self.video_repo = VideoRepository()
+        self.technique_repo = TechniqueRepository()
+
+    def add_video(
+        self,
+        url: str,
+        title: Optional[str] = None,
+        timestamps: Optional[list[dict]] = None,
+        technique_name: Optional[str] = None,
+    ) -> int:
+        """
+        Add a new video to the library.
+        Returns video ID.
+        """
+        technique_id = None
+        if technique_name:
+            technique = self.technique_repo.get_or_create(technique_name)
+            technique_id = technique["id"]
+
+        return self.video_repo.create(
+            url=url, title=title, timestamps=timestamps, technique_id=technique_id
+        )
+
+    def get_video(self, video_id: int) -> Optional[dict]:
+        """Get a video by ID."""
+        return self.video_repo.get_by_id(video_id)
+
+    def list_all_videos(self) -> list[dict]:
+        """Get all videos."""
+        return self.video_repo.list_all()
+
+    def list_videos_by_technique(self, technique_name: str) -> list[dict]:
+        """Get all videos for a specific technique."""
+        technique = self.technique_repo.get_by_name(technique_name)
+        if not technique:
+            return []
+
+        return self.video_repo.get_by_technique(technique["id"])
+
+    def search_videos(self, query: str) -> list[dict]:
+        """Search videos by title or URL."""
+        return self.video_repo.search(query)
+
+    def delete_video(self, video_id: int) -> None:
+        """Delete a video by ID."""
+        self.video_repo.delete(video_id)
+
+    def format_video_summary(self, video: dict) -> str:
+        """Format a video as a human-readable summary."""
+        lines = [f"Video ID: {video['id']}"]
+
+        if video.get("title"):
+            lines.append(f"  Title: {video['title']}")
+
+        lines.append(f"  URL: {video['url']}")
+
+        if video.get("technique_id"):
+            # Get technique name
+            technique = self.technique_repo.get_by_id(video["technique_id"])
+            if technique:
+                lines.append(f"  Technique: {technique['name']}")
+
+        if video.get("timestamps"):
+            lines.append(f"  Timestamps:")
+            for ts in video["timestamps"]:
+                lines.append(f"    → {ts['time']} - {ts['label']}")
+
+        return "\n".join(lines)

@@ -2,7 +2,7 @@
 import typer
 from typing import Optional
 
-from rivaflow.cli.commands import log, readiness, report, suggest
+from rivaflow.cli.commands import log, readiness, report, suggest, video
 
 app = typer.Typer(
     name="rivaflow",
@@ -15,6 +15,7 @@ app.add_typer(log.app, name="log")
 app.add_typer(readiness.app, name="readiness")
 app.add_typer(report.app, name="report")
 app.add_typer(suggest.app, name="suggest")
+app.add_typer(video.app, name="video")
 
 
 @app.callback()
