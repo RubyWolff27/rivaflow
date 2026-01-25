@@ -2,7 +2,7 @@
 
 **Training OS for the mat — Train with intent. Flow to mastery.**
 
-A local-first CLI for logging BJJ/grappling training, tracking readiness, and getting data-driven training suggestions.
+A local-first training tracker for BJJ/grappling with both **CLI** and **Web App** interfaces.
 
 ## Features
 
@@ -15,12 +15,31 @@ A local-first CLI for logging BJJ/grappling training, tracking readiness, and ge
 ## Install
 
 ```bash
-# Recommended: Install with pipx (isolated environment)
-pipx install rivaflow
+# Clone the repository
+git clone https://github.com/yourusername/rivaflow
+cd rivaflow
 
-# Alternative: Install with pip
-pip install rivaflow
+# Install Python dependencies
+pip install -e .
+
+# For web app, also install Node.js dependencies
+cd web && npm install && cd ..
 ```
+
+## 🌐 Web App (NEW!)
+
+**Modern web interface that works on computer and mobile:**
+
+```bash
+# Start both backend and frontend
+./start-web.sh
+
+# Then open http://localhost:5173 in your browser
+```
+
+See [WEB_README.md](WEB_README.md) for full web app documentation.
+
+## 💻 CLI Usage
 
 ## Quick Start
 
