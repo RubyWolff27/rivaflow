@@ -5,6 +5,7 @@ from datetime import date, datetime
 from typing import Optional
 
 from rivaflow.db.database import get_connection
+from rivaflow.db.repositories.session_technique_repo import SessionTechniqueRepository
 
 
 class SessionRepository:
@@ -72,14 +73,32 @@ class SessionRepository:
 
     @staticmethod
     def get_by_id(session_id: int) -> Optional[dict]:
-        """Get a session by ID."""
+        """Get a session by ID with detailed techniques."""
         with get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute("SELECT * FROM sessions WHERE id = ?", (session_id,))
             row = cursor.fetchone()
-            if row:
-                return SessionRepository._row_to_dict(row)
-            return None
+            if not row:
+                return None
+
+            session = SessionRepository._row_to_dict(row)
+
+            # Fetch detailed technique records
+            techniques = SessionTechniqueRepository.get_by_session_id(session_id)
+
+            # Enrich with movement names from glossary
+            for technique in techniques:
+                cursor.execute(
+                    "SELECT name FROM movements_glossary WHERE id = ?",
+                    (technique["movement_id"],)
+                )
+                movement_row = cursor.fetchone()
+                if movement_row:
+                    technique["movement_name"] = movement_row["name"]
+
+            session["session_techniques"] = techniques
+
+            return session
 
     @staticmethod
     def update(

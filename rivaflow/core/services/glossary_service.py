@@ -25,9 +25,9 @@ class GlossaryService:
             nogi_only=nogi_only,
         )
 
-    def get_movement(self, movement_id: int) -> Optional[dict]:
-        """Get a specific movement by ID."""
-        return self.repo.get_by_id(movement_id)
+    def get_movement(self, movement_id: int, include_custom_videos: bool = False) -> Optional[dict]:
+        """Get a specific movement by ID, optionally with custom video links."""
+        return self.repo.get_by_id(movement_id, include_custom_videos=include_custom_videos)
 
     def get_movement_by_name(self, name: str) -> Optional[dict]:
         """Get a movement by exact name."""
@@ -63,3 +63,22 @@ class GlossaryService:
     def delete_custom_movement(self, movement_id: int) -> bool:
         """Delete a custom movement. Can only delete custom movements."""
         return self.repo.delete_custom(movement_id)
+
+    def add_custom_video(
+        self,
+        movement_id: int,
+        url: str,
+        title: Optional[str] = None,
+        video_type: str = "general",
+    ) -> dict:
+        """Add a custom video link to a movement."""
+        return self.repo.add_custom_video(
+            movement_id=movement_id,
+            url=url,
+            title=title,
+            video_type=video_type,
+        )
+
+    def delete_custom_video(self, video_id: int) -> bool:
+        """Delete a custom video link."""
+        return self.repo.delete_custom_video(video_id)

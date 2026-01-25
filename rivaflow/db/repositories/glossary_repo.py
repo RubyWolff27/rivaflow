@@ -46,13 +46,30 @@ class GlossaryRepository:
             return [GlossaryRepository._row_to_dict(row) for row in rows]
 
     @staticmethod
-    def get_by_id(movement_id: int) -> Optional[dict]:
-        """Get a movement by ID."""
+    def get_by_id(movement_id: int, include_custom_videos: bool = False) -> Optional[dict]:
+        """Get a movement by ID, optionally including custom video links."""
         with get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute("SELECT * FROM movements_glossary WHERE id = ?", (movement_id,))
             row = cursor.fetchone()
-            return GlossaryRepository._row_to_dict(row) if row else None
+
+            if not row:
+                return None
+
+            movement = GlossaryRepository._row_to_dict(row)
+
+            if include_custom_videos:
+                # Fetch custom videos for this movement
+                cursor.execute("""
+                    SELECT id, title, url, video_type, created_at
+                    FROM movement_videos
+                    WHERE movement_id = ?
+                    ORDER BY created_at DESC
+                """, (movement_id,))
+                videos = cursor.fetchall()
+                movement["custom_videos"] = [dict(v) for v in videos]
+
+            return movement
 
     @staticmethod
     def get_by_name(name: str) -> Optional[dict]:
@@ -110,6 +127,47 @@ class GlossaryRepository:
             cursor = conn.cursor()
             cursor.execute("DELETE FROM movements_glossary WHERE id = ? AND custom = 1", (movement_id,))
             return cursor.rowcount > 0
+
+    @staticmethod
+    def add_custom_video(
+        movement_id: int,
+        url: str,
+        title: Optional[str] = None,
+        video_type: str = "general",
+    ) -> dict:
+        """Add a custom video link for a movement."""
+        with get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("""
+                INSERT INTO movement_videos (movement_id, title, url, video_type)
+                VALUES (?, ?, ?, ?)
+            """, (movement_id, title, url, video_type))
+
+            video_id = cursor.lastrowid
+            cursor.execute("SELECT * FROM movement_videos WHERE id = ?", (video_id,))
+            row = cursor.fetchone()
+            return dict(row)
+
+    @staticmethod
+    def delete_custom_video(video_id: int) -> bool:
+        """Delete a custom video link."""
+        with get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("DELETE FROM movement_videos WHERE id = ?", (video_id,))
+            return cursor.rowcount > 0
+
+    @staticmethod
+    def get_custom_videos(movement_id: int) -> List[dict]:
+        """Get all custom videos for a movement."""
+        with get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("""
+                SELECT id, title, url, video_type, created_at
+                FROM movement_videos
+                WHERE movement_id = ?
+                ORDER BY created_at DESC
+            """, (movement_id,))
+            return [dict(row) for row in cursor.fetchall()]
 
     @staticmethod
     def _row_to_dict(row: sqlite3.Row) -> dict:

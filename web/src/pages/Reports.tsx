@@ -416,6 +416,51 @@ export default function Reports() {
                       </div>
                     </div>
                   )}
+
+                  {/* Weight Tracking */}
+                  {readinessData.weight_stats?.has_data && (
+                    <>
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                        <div className="card">
+                          <p className="text-sm text-gray-600 dark:text-gray-400">Start Weight</p>
+                          <p className="text-2xl font-bold mt-1">{readinessData.weight_stats.start_weight} kg</p>
+                        </div>
+                        <div className="card">
+                          <p className="text-sm text-gray-600 dark:text-gray-400">Current Weight</p>
+                          <p className="text-2xl font-bold mt-1">{readinessData.weight_stats.end_weight} kg</p>
+                        </div>
+                        <div className="card">
+                          <p className="text-sm text-gray-600 dark:text-gray-400">Change</p>
+                          <p className={`text-2xl font-bold mt-1 ${readinessData.weight_stats.weight_change > 0 ? 'text-red-600' : readinessData.weight_stats.weight_change < 0 ? 'text-green-600' : ''}`}>
+                            {readinessData.weight_stats.weight_change > 0 ? '+' : ''}{readinessData.weight_stats.weight_change} kg
+                          </p>
+                        </div>
+                        <div className="card">
+                          <p className="text-sm text-gray-600 dark:text-gray-400">Average</p>
+                          <p className="text-2xl font-bold mt-1">{readinessData.weight_stats.avg_weight} kg</p>
+                        </div>
+                      </div>
+
+                      <div className="card">
+                        <h3 className="text-lg font-semibold mb-4">Weight Trend</h3>
+                        <ResponsiveContainer width="100%" height={300}>
+                          <LineChart data={readinessData.weight_over_time}>
+                            <CartesianGrid strokeDasharray="3 3" />
+                            <XAxis dataKey="date" />
+                            <YAxis
+                              domain={[
+                                (dataMin: number) => Math.floor(dataMin - 1),
+                                (dataMax: number) => Math.ceil(dataMax + 1)
+                              ]}
+                            />
+                            <Tooltip />
+                            <Legend />
+                            <Line type="monotone" dataKey="weight_kg" stroke="#F59E0B" strokeWidth={2} name="Weight (kg)" />
+                          </LineChart>
+                        </ResponsiveContainer>
+                      </div>
+                    </>
+                  )}
                 </>
               ) : (
                 <div className="card text-center py-12">

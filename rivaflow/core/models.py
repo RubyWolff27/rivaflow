@@ -19,6 +19,7 @@ class ClassType(str, Enum):
     REHAB = "rehab"
     PHYSIO = "physio"
     DRILLING = "drilling"
+    CARDIO = "cardio"
 
 
 class VisibilityLevel(str, Enum):
@@ -42,6 +43,23 @@ class SessionRollData(BaseModel):
     notes: Optional[str] = None
 
 
+class MediaUrl(BaseModel):
+    """Media URL attachment for technique tracking."""
+
+    type: str  # "video" or "image"
+    url: str
+    title: Optional[str] = None
+
+
+class SessionTechniqueCreate(BaseModel):
+    """Individual technique data for detailed tracking."""
+
+    movement_id: int
+    technique_number: int = 1
+    notes: Optional[str] = None
+    media_urls: Optional[list[MediaUrl]] = None
+
+
 class SessionCreate(BaseModel):
     """Input model for creating a session."""
 
@@ -61,6 +79,7 @@ class SessionCreate(BaseModel):
     instructor_id: Optional[int] = None
     instructor_name: Optional[str] = None
     session_rolls: Optional[list[SessionRollData]] = None
+    session_techniques: Optional[list[SessionTechniqueCreate]] = None
     whoop_strain: Optional[float] = Field(default=None, ge=0, le=21)
     whoop_calories: Optional[int] = Field(default=None, ge=0)
     whoop_avg_hr: Optional[int] = Field(default=None, ge=0, le=250)
@@ -85,6 +104,7 @@ class SessionUpdate(BaseModel):
     visibility_level: Optional[VisibilityLevel] = None
     instructor_id: Optional[int] = None
     instructor_name: Optional[str] = None
+    session_techniques: Optional[list[SessionTechniqueCreate]] = None
     whoop_strain: Optional[float] = Field(default=None, ge=0, le=21)
     whoop_calories: Optional[int] = Field(default=None, ge=0)
     whoop_avg_hr: Optional[int] = Field(default=None, ge=0, le=250)
@@ -108,6 +128,7 @@ class ReadinessCreate(BaseModel):
     soreness: int = Field(ge=1, le=5)
     energy: int = Field(ge=1, le=5)
     hotspot_note: Optional[str] = None
+    weight_kg: Optional[float] = Field(default=None, ge=30, le=300)
 
     @property
     def composite_score(self) -> int:

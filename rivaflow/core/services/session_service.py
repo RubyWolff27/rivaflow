@@ -3,6 +3,7 @@ from datetime import date, datetime
 from typing import Optional, List
 
 from rivaflow.db.repositories import SessionRepository, TechniqueRepository, SessionRollRepository
+from rivaflow.db.repositories.session_technique_repo import SessionTechniqueRepository
 from rivaflow.config import SPARRING_CLASS_TYPES
 
 
@@ -13,6 +14,7 @@ class SessionService:
         self.session_repo = SessionRepository()
         self.technique_repo = TechniqueRepository()
         self.roll_repo = SessionRollRepository()
+        self.technique_detail_repo = SessionTechniqueRepository()
 
     def create_session(
         self,
@@ -32,6 +34,7 @@ class SessionService:
         instructor_id: Optional[int] = None,
         instructor_name: Optional[str] = None,
         session_rolls: Optional[List[dict]] = None,
+        session_techniques: Optional[List[dict]] = None,
         whoop_strain: Optional[float] = None,
         whoop_calories: Optional[int] = None,
         whoop_avg_hr: Optional[int] = None,
@@ -79,6 +82,17 @@ class SessionService:
                     notes=roll_data.get("notes"),
                 )
 
+        # Create detailed technique records if provided
+        if session_techniques:
+            for tech_data in session_techniques:
+                self.technique_detail_repo.create(
+                    session_id=session_id,
+                    movement_id=tech_data.get("movement_id"),
+                    technique_number=tech_data.get("technique_number", 1),
+                    notes=tech_data.get("notes"),
+                    media_urls=tech_data.get("media_urls"),
+                )
+
         # Update technique last_trained_date
         if techniques:
             for tech_name in techniques:
@@ -109,6 +123,7 @@ class SessionService:
         visibility_level: Optional[str] = None,
         instructor_id: Optional[int] = None,
         instructor_name: Optional[str] = None,
+        session_techniques: Optional[List[dict]] = None,
         whoop_strain: Optional[float] = None,
         whoop_calories: Optional[int] = None,
         whoop_avg_hr: Optional[int] = None,
@@ -149,6 +164,20 @@ class SessionService:
 
         if not updated:
             return None
+
+        # Update detailed technique records if provided
+        if session_techniques is not None:
+            # Delete existing technique records
+            self.technique_detail_repo.delete_by_session(session_id)
+            # Create new technique records
+            for tech_data in session_techniques:
+                self.technique_detail_repo.create(
+                    session_id=session_id,
+                    movement_id=tech_data.get("movement_id"),
+                    technique_number=tech_data.get("technique_number", 1),
+                    notes=tech_data.get("notes"),
+                    media_urls=tech_data.get("media_urls"),
+                )
 
         # Update technique last_trained_date if techniques changed
         if techniques is not None:

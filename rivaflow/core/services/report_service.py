@@ -5,7 +5,7 @@ from collections import defaultdict
 import csv
 from pathlib import Path
 
-from rivaflow.db.repositories import SessionRepository
+from rivaflow.db.repositories import SessionRepository, ReadinessRepository
 
 
 class ReportService:
@@ -13,6 +13,7 @@ class ReportService:
 
     def __init__(self):
         self.session_repo = SessionRepository()
+        self.readiness_repo = ReadinessRepository()
 
     def get_week_dates(self, target_date: Optional[date] = None) -> tuple[date, date]:
         """Get Monday-Sunday date range for the week containing target_date."""
@@ -46,24 +47,29 @@ class ReportService:
     def generate_report(self, start_date: date, end_date: date) -> dict:
         """Generate comprehensive report for date range."""
         sessions = self.session_repo.get_by_date_range(start_date, end_date)
+        readiness_entries = self.readiness_repo.get_by_date_range(start_date, end_date)
 
         if not sessions:
             return {
                 "start_date": start_date,
                 "end_date": end_date,
                 "sessions": [],
+                "readiness": readiness_entries,
                 "summary": self._empty_summary(),
                 "breakdown_by_type": {},
                 "breakdown_by_gym": {},
+                "weight_tracking": self._calculate_weight_stats(readiness_entries),
             }
 
         return {
             "start_date": start_date,
             "end_date": end_date,
             "sessions": sessions,
+            "readiness": readiness_entries,
             "summary": self._calculate_summary(sessions),
             "breakdown_by_type": self._breakdown_by_type(sessions),
             "breakdown_by_gym": self._breakdown_by_gym(sessions),
+            "weight_tracking": self._calculate_weight_stats(readiness_entries),
         }
 
     def _empty_summary(self) -> dict:
@@ -152,6 +158,46 @@ class ReportService:
             by_gym[session["gym_name"]] += 1
 
         return dict(by_gym)
+
+    def _calculate_weight_stats(self, readiness_entries: list[dict]) -> dict:
+        """Calculate weight tracking statistics from readiness data."""
+        # Filter entries with weight data
+        weight_entries = [
+            {"date": r["check_date"], "weight_kg": r["weight_kg"]}
+            for r in readiness_entries
+            if r.get("weight_kg") is not None
+        ]
+
+        if not weight_entries:
+            return {
+                "has_data": False,
+                "start_weight": None,
+                "end_weight": None,
+                "weight_change": None,
+                "min_weight": None,
+                "max_weight": None,
+                "avg_weight": None,
+                "entries": [],
+            }
+
+        # Sort by date (oldest to newest)
+        weight_entries.sort(key=lambda x: x["date"])
+
+        weights = [e["weight_kg"] for e in weight_entries]
+        start_weight = weights[0]
+        end_weight = weights[-1]
+        weight_change = round(end_weight - start_weight, 2)
+
+        return {
+            "has_data": True,
+            "start_weight": round(start_weight, 1),
+            "end_weight": round(end_weight, 1),
+            "weight_change": weight_change,
+            "min_weight": round(min(weights), 1),
+            "max_weight": round(max(weights), 1),
+            "avg_weight": round(sum(weights) / len(weights), 1),
+            "entries": weight_entries,
+        }
 
     def export_to_csv(
         self, sessions: list[dict], output_path: str

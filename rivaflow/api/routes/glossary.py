@@ -21,6 +21,13 @@ class MovementCreate(BaseModel):
     nogi_applicable: bool = True
 
 
+class CustomVideoCreate(BaseModel):
+    """Custom video link creation model."""
+    url: str
+    title: Optional[str] = None
+    video_type: str = "general"  # gi, nogi, or general
+
+
 @router.get("/")
 async def list_movements(
     category: Optional[str] = Query(None, description="Filter by category"),
@@ -46,9 +53,9 @@ async def get_categories():
 
 
 @router.get("/{movement_id}")
-async def get_movement(movement_id: int):
-    """Get a specific movement by ID."""
-    movement = service.get_movement(movement_id)
+async def get_movement(movement_id: int, include_videos: bool = Query(True, description="Include custom video links")):
+    """Get a specific movement by ID with optional video links."""
+    movement = service.get_movement(movement_id, include_custom_videos=include_videos)
     if not movement:
         raise HTTPException(status_code=404, detail="Movement not found")
     return movement
@@ -83,3 +90,27 @@ async def delete_custom_movement(movement_id: int):
             detail="Movement not found or cannot delete seeded movements"
         )
     return {"message": "Movement deleted successfully"}
+
+
+@router.post("/{movement_id}/videos")
+async def add_custom_video(movement_id: int, video: CustomVideoCreate):
+    """Add a custom video link to a movement."""
+    try:
+        created = service.add_custom_video(
+            movement_id=movement_id,
+            url=video.url,
+            title=video.title,
+            video_type=video.video_type,
+        )
+        return created
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.delete("/{movement_id}/videos/{video_id}")
+async def delete_custom_video(movement_id: int, video_id: int):
+    """Delete a custom video link."""
+    deleted = service.delete_custom_video(video_id)
+    if not deleted:
+        raise HTTPException(status_code=404, detail="Video not found")
+    return {"message": "Video deleted successfully"}

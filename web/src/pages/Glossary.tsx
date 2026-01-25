@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { glossaryApi } from '../api/client';
 import type { Movement } from '../types';
 import { Book, Search, Plus, Trash2, Award } from 'lucide-react';
@@ -28,6 +29,7 @@ const CATEGORY_COLORS: Record<string, string> = {
 };
 
 export default function Glossary() {
+  const navigate = useNavigate();
   const [movements, setMovements] = useState<Movement[]>([]);
   const [filteredMovements, setFilteredMovements] = useState<Movement[]>([]);
   const [categories, setCategories] = useState<string[]>([]);
@@ -346,7 +348,8 @@ export default function Glossary() {
         {filteredMovements.map(movement => (
           <div
             key={movement.id}
-            className="card hover:shadow-lg transition-shadow"
+            className="card hover:shadow-lg transition-shadow cursor-pointer"
+            onClick={() => navigate(`/glossary/${movement.id}`)}
           >
             <div className="flex items-start justify-between mb-2">
               <div className="flex-1">
@@ -361,7 +364,10 @@ export default function Glossary() {
               </div>
               {movement.custom && (
                 <button
-                  onClick={() => handleDeleteCustom(movement.id)}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleDeleteCustom(movement.id);
+                  }}
                   className="text-red-600 hover:text-red-700 dark:text-red-400"
                   title="Delete custom technique"
                 >

@@ -19,6 +19,7 @@ class ReadinessService:
         soreness: int,
         energy: int,
         hotspot_note: Optional[str] = None,
+        weight_kg: Optional[float] = None,
     ) -> int:
         """
         Log daily readiness check-in (upsert if exists for date).
@@ -31,6 +32,7 @@ class ReadinessService:
             soreness=soreness,
             energy=energy,
             hotspot_note=hotspot_note,
+            weight_kg=weight_kg,
         )
 
     def get_readiness(self, check_date: date) -> Optional[dict]:
@@ -44,6 +46,38 @@ class ReadinessService:
     def get_readiness_range(self, start_date: date, end_date: date) -> list[dict]:
         """Get readiness entries within a date range."""
         return self.repo.get_by_date_range(start_date, end_date)
+
+    def log_weight_only(self, check_date: date, weight_kg: float) -> int:
+        """
+        Log weight only for a date. If readiness exists, updates weight.
+        If not, creates entry with default middle values (3) for readiness scores.
+        Returns readiness ID.
+        """
+        # Check if entry exists for this date
+        existing = self.repo.get_by_date(check_date)
+
+        if existing:
+            # Update existing entry with new weight
+            return self.repo.upsert(
+                check_date=check_date,
+                sleep=existing["sleep"],
+                stress=existing["stress"],
+                soreness=existing["soreness"],
+                energy=existing["energy"],
+                hotspot_note=existing.get("hotspot_note"),
+                weight_kg=weight_kg,
+            )
+        else:
+            # Create new entry with default middle values (3) for scores
+            return self.repo.upsert(
+                check_date=check_date,
+                sleep=3,
+                stress=3,
+                soreness=3,
+                energy=3,
+                hotspot_note=None,
+                weight_kg=weight_kg,
+            )
 
     def calculate_composite_score(self, readiness: dict) -> int:
         """Calculate composite readiness score (4-20 range, higher is better)."""

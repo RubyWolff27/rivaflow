@@ -1,5 +1,5 @@
 import axios from 'axios';
-import type { Session, Readiness, Report, Suggestion, Technique, Video, Profile, Grading, Movement, Contact } from '../types';
+import type { Session, Readiness, Report, Suggestion, Technique, Video, Profile, Grading, Movement, Contact, CustomVideo } from '../types';
 
 const API_BASE = 'http://localhost:8000/api';
 
@@ -26,6 +26,8 @@ export const readinessApi = {
   getByDate: (date: string) => api.get<Readiness>(`/readiness/${date}`),
   getByRange: (startDate: string, endDate: string) =>
     api.get<Readiness[]>(`/readiness/range/${startDate}/${endDate}`),
+  logWeightOnly: (data: { check_date: string; weight_kg: number }) =>
+    api.post<Readiness>('/readiness/weight', data),
 };
 
 export const reportsApi = {
@@ -80,10 +82,14 @@ export const glossaryApi = {
   list: (params?: { category?: string; search?: string; gi_only?: boolean; nogi_only?: boolean }) =>
     api.get<Movement[]>('/glossary/', { params }),
   getCategories: () => api.get<{ categories: string[] }>('/glossary/categories'),
-  getById: (id: number) => api.get<Movement>(`/glossary/${id}`),
+  getById: (id: number, includeVideos = true) => api.get<Movement>(`/glossary/${id}?include_videos=${includeVideos}`),
   create: (data: { name: string; category: string; subcategory?: string; points?: number; description?: string; aliases?: string[]; gi_applicable?: boolean; nogi_applicable?: boolean }) =>
     api.post<Movement>('/glossary/', data),
   delete: (id: number) => api.delete(`/glossary/${id}`),
+  addCustomVideo: (movementId: number, data: { url: string; title?: string; video_type?: string }) =>
+    api.post<CustomVideo>(`/glossary/${movementId}/videos`, data),
+  deleteCustomVideo: (movementId: number, videoId: number) =>
+    api.delete(`/glossary/${movementId}/videos/${videoId}`),
 };
 
 export const contactsApi = {

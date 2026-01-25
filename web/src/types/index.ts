@@ -15,6 +15,7 @@ export interface Session {
   instructor_id?: number;
   instructor_name?: string;
   detailed_rolls?: SessionRoll[];  // Populated when fetched with /with-rolls endpoint
+  session_techniques?: SessionTechnique[];  // Detailed technique tracking
   whoop_strain?: number;
   whoop_calories?: number;
   whoop_avg_hr?: number;
@@ -30,6 +31,7 @@ export interface Readiness {
   soreness: number;
   energy: number;
   hotspot_note?: string;
+  weight_kg?: number;
   composite_score: number;
   created_at: string;
 }
@@ -55,6 +57,7 @@ export interface Report {
   start_date: string;
   end_date: string;
   sessions: Session[];
+  readiness: Readiness[];
   summary: {
     total_classes: number;
     total_hours: number;
@@ -70,6 +73,16 @@ export interface Report {
   };
   breakdown_by_type: Record<string, { classes: number; hours: number; rolls: number }>;
   breakdown_by_gym: Record<string, number>;
+  weight_tracking: {
+    has_data: boolean;
+    start_weight: number | null;
+    end_weight: number | null;
+    weight_change: number | null;
+    min_weight: number | null;
+    max_weight: number | null;
+    avg_weight: number | null;
+    entries: { date: string; weight_kg: number }[];
+  };
 }
 
 export interface Suggestion {
@@ -130,7 +143,19 @@ export interface Movement {
   ibjjf_legal_brown: boolean;
   ibjjf_legal_black: boolean;
   custom: boolean;
+  gi_video_url?: string;
+  nogi_video_url?: string;
+  custom_videos?: CustomVideo[];
   created_at?: string;
+}
+
+export interface CustomVideo {
+  id: number;
+  movement_id: number;
+  title?: string;
+  url: string;
+  video_type: 'gi' | 'nogi' | 'general';
+  created_at: string;
 }
 
 export interface Contact {
@@ -158,4 +183,30 @@ export interface SessionRoll {
   submissions_against?: number[];  // Movement IDs from glossary
   notes?: string;
   created_at?: string;
+}
+
+export interface MediaUrl {
+  type: 'video' | 'image';
+  url: string;
+  title?: string;
+}
+
+export interface SessionTechnique {
+  id?: number;
+  session_id?: number;
+  movement_id: number;
+  movement_name?: string;  // Populated from glossary
+  technique_number: number;
+  notes?: string;
+  media_urls?: MediaUrl[];
+  created_at?: string;
+}
+
+export interface CustomVideo {
+  id: number;
+  movement_id: number;
+  title?: string;
+  url: string;
+  video_type: 'gi' | 'nogi' | 'general';
+  created_at: string;
 }

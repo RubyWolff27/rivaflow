@@ -17,6 +17,7 @@ class ReadinessRepository:
         soreness: int,
         energy: int,
         hotspot_note: Optional[str] = None,
+        weight_kg: Optional[float] = None,
     ) -> int:
         """Create or update readiness entry for a date. Returns ID."""
         with get_connection() as conn:
@@ -34,10 +35,10 @@ class ReadinessRepository:
                     """
                     UPDATE readiness
                     SET sleep = ?, stress = ?, soreness = ?, energy = ?,
-                        hotspot_note = ?, updated_at = datetime('now')
+                        hotspot_note = ?, weight_kg = ?, updated_at = datetime('now')
                     WHERE check_date = ?
                     """,
-                    (sleep, stress, soreness, energy, hotspot_note, check_date.isoformat()),
+                    (sleep, stress, soreness, energy, hotspot_note, weight_kg, check_date.isoformat()),
                 )
                 return existing["id"]
             else:
@@ -45,10 +46,10 @@ class ReadinessRepository:
                 cursor.execute(
                     """
                     INSERT INTO readiness (
-                        check_date, sleep, stress, soreness, energy, hotspot_note
-                    ) VALUES (?, ?, ?, ?, ?, ?)
+                        check_date, sleep, stress, soreness, energy, hotspot_note, weight_kg
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?)
                     """,
-                    (check_date.isoformat(), sleep, stress, soreness, energy, hotspot_note),
+                    (check_date.isoformat(), sleep, stress, soreness, energy, hotspot_note, weight_kg),
                 )
                 return cursor.lastrowid
 

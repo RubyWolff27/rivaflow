@@ -1,13 +1,17 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { sessionsApi, suggestionsApi } from '../api/client';
-import type { Session, Suggestion } from '../types';
-import { TrendingUp, Calendar, Users, Target, Edit2 } from 'lucide-react';
+import { sessionsApi, suggestionsApi, readinessApi } from '../api/client';
+import type { Session, Suggestion, Readiness } from '../types';
+import { TrendingUp, Calendar, Users, Target, Edit2, Scale, Check } from 'lucide-react';
 
 export default function Dashboard() {
   const [recentSessions, setRecentSessions] = useState<Session[]>([]);
   const [suggestion, setSuggestion] = useState<Suggestion | null>(null);
   const [loading, setLoading] = useState(true);
+  const [latestReadiness, setLatestReadiness] = useState<Readiness | null>(null);
+  const [weightInput, setWeightInput] = useState('');
+  const [weightLoading, setWeightLoading] = useState(false);
+  const [weightSuccess, setWeightSuccess] = useState(false);
 
   useEffect(() => {
     loadData();
@@ -15,16 +19,45 @@ export default function Dashboard() {
 
   const loadData = async () => {
     try {
-      const [sessionsRes, suggestionRes] = await Promise.all([
+      const [sessionsRes, suggestionRes, readinessRes] = await Promise.all([
         sessionsApi.list(5),
         suggestionsApi.getToday(),
+        readinessApi.getLatest(),
       ]);
       setRecentSessions(sessionsRes.data);
       setSuggestion(suggestionRes.data);
+      setLatestReadiness(readinessRes.data);
     } catch (error) {
       console.error('Error loading dashboard:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleLogWeight = async () => {
+    const weight = parseFloat(weightInput);
+    if (isNaN(weight) || weight < 30 || weight > 300) {
+      alert('Please enter a valid weight between 30 and 300 kg');
+      return;
+    }
+
+    setWeightLoading(true);
+    setWeightSuccess(false);
+
+    try {
+      const response = await readinessApi.logWeightOnly({
+        check_date: new Date().toISOString().split('T')[0],
+        weight_kg: weight,
+      });
+      setLatestReadiness(response.data);
+      setWeightInput('');
+      setWeightSuccess(true);
+      setTimeout(() => setWeightSuccess(false), 2000);
+    } catch (error) {
+      console.error('Error logging weight:', error);
+      alert('Failed to log weight. Please try again.');
+    } finally {
+      setWeightLoading(false);
     }
   };
 
@@ -72,6 +105,55 @@ export default function Dashboard() {
               <p className="text-2xl font-bold mt-1">{avgIntensity}/5</p>
             </div>
             <TrendingUp className="w-8 h-8 text-primary-600" />
+          </div>
+        </div>
+      </div>
+
+      {/* Quick Weight Logger */}
+      <div className="card bg-gradient-to-r from-orange-50 to-amber-50 dark:from-orange-900/20 dark:to-amber-900/20 border-orange-200 dark:border-orange-800">
+        <div className="flex items-start gap-4">
+          <Scale className="w-6 h-6 text-orange-600 mt-1" />
+          <div className="flex-1">
+            <h3 className="font-semibold text-lg mb-2">Quick Weight Log</h3>
+            {latestReadiness?.weight_kg && (
+              <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">
+                Last logged: <span className="font-semibold">{latestReadiness.weight_kg} kg</span> on {new Date(latestReadiness.check_date).toLocaleDateString()}
+              </p>
+            )}
+            <div className="flex gap-2">
+              <input
+                type="number"
+                className="input flex-1"
+                placeholder="Enter weight (kg)"
+                value={weightInput}
+                onChange={(e) => setWeightInput(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    handleLogWeight();
+                  }
+                }}
+                step="0.1"
+                min="30"
+                max="300"
+                disabled={weightLoading}
+              />
+              <button
+                onClick={handleLogWeight}
+                disabled={weightLoading || !weightInput}
+                className="btn-primary px-6 flex items-center gap-2"
+              >
+                {weightSuccess ? (
+                  <>
+                    <Check className="w-4 h-4" />
+                    Logged
+                  </>
+                ) : weightLoading ? (
+                  'Logging...'
+                ) : (
+                  'Log Weight'
+                )}
+              </button>
+            </div>
           </div>
         </div>
       </div>

@@ -19,6 +19,11 @@ async def create_session(session: SessionCreate):
         if session.session_rolls:
             session_rolls_dict = [roll.model_dump() for roll in session.session_rolls]
 
+        # Convert SessionTechniqueCreate models to dicts if present
+        session_techniques_dict = None
+        if session.session_techniques:
+            session_techniques_dict = [tech.model_dump() for tech in session.session_techniques]
+
         session_id = service.create_session(
             session_date=session.session_date,
             class_type=session.class_type.value,
@@ -36,6 +41,7 @@ async def create_session(session: SessionCreate):
             instructor_id=session.instructor_id,
             instructor_name=session.instructor_name,
             session_rolls=session_rolls_dict,
+            session_techniques=session_techniques_dict,
             whoop_strain=session.whoop_strain,
             whoop_calories=session.whoop_calories,
             whoop_avg_hr=session.whoop_avg_hr,
@@ -51,6 +57,11 @@ async def create_session(session: SessionCreate):
 async def update_session(session_id: int, session: SessionUpdate):
     """Update an existing training session."""
     try:
+        # Convert SessionTechniqueCreate models to dicts if present
+        session_techniques_dict = None
+        if session.session_techniques is not None:
+            session_techniques_dict = [tech.model_dump() for tech in session.session_techniques]
+
         updated = service.update_session(
             session_id=session_id,
             session_date=session.session_date,
@@ -68,6 +79,7 @@ async def update_session(session_id: int, session: SessionUpdate):
             visibility_level=session.visibility_level.value if session.visibility_level else None,
             instructor_id=session.instructor_id,
             instructor_name=session.instructor_name,
+            session_techniques=session_techniques_dict,
             whoop_strain=session.whoop_strain,
             whoop_calories=session.whoop_calories,
             whoop_avg_hr=session.whoop_avg_hr,

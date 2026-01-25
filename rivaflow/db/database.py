@@ -41,6 +41,10 @@ def init_db() -> None:
             "009_create_session_rolls.sql",
             "010_add_instructor_to_sessions.sql",
             "011_add_whoop_stats.sql",
+            "012_create_session_techniques.sql",
+            "013_add_weight_to_readiness.sql",
+            "014_add_video_urls_to_glossary.sql",
+            "015_create_movement_videos.sql",
         ]
 
         migrations_dir = Path(__file__).parent / "migrations"

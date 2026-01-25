@@ -351,11 +351,46 @@ class AnalyticsService:
             if r.get("hotspot_note")
         ]
 
+        # Weight tracking
+        weight_records = [r for r in readiness_records if r.get("weight_kg") is not None]
+        weight_over_time = []
+        for record in weight_records:
+            weight_over_time.append({
+                "date": record["check_date"].isoformat(),
+                "weight_kg": round(record["weight_kg"], 1),
+            })
+
+        # Calculate weight stats
+        weight_stats = {}
+        if weight_records:
+            weights = [r["weight_kg"] for r in weight_records]
+            weight_stats = {
+                "has_data": True,
+                "start_weight": round(weights[0], 1),
+                "end_weight": round(weights[-1], 1),
+                "weight_change": round(weights[-1] - weights[0], 2),
+                "min_weight": round(min(weights), 1),
+                "max_weight": round(max(weights), 1),
+                "avg_weight": round(statistics.mean(weights), 1),
+            }
+        else:
+            weight_stats = {
+                "has_data": False,
+                "start_weight": None,
+                "end_weight": None,
+                "weight_change": None,
+                "min_weight": None,
+                "max_weight": None,
+                "avg_weight": None,
+            }
+
         return {
             "readiness_over_time": readiness_over_time,
             "training_load_vs_readiness": load_vs_readiness,
             "recovery_patterns": recovery_patterns,
             "injury_timeline": injury_timeline,
+            "weight_over_time": weight_over_time,
+            "weight_stats": weight_stats,
         }
 
     # ============================================================================
