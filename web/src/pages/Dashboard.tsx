@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { sessionsApi, suggestionsApi } from '../api/client';
 import type { Session, Suggestion } from '../types';
-import { TrendingUp, Calendar, Users, Target } from 'lucide-react';
+import { TrendingUp, Calendar, Users, Target, Edit2 } from 'lucide-react';
 
 export default function Dashboard() {
   const [recentSessions, setRecentSessions] = useState<Session[]>([]);
@@ -114,10 +114,10 @@ export default function Dashboard() {
             {recentSessions.map((session) => (
               <div
                 key={session.id}
-                className="p-4 bg-gray-50 dark:bg-gray-700 rounded-lg"
+                className="p-4 bg-gray-50 dark:bg-gray-700 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors"
               >
                 <div className="flex justify-between items-start mb-2">
-                  <div>
+                  <div className="flex-1">
                     <h3 className="font-semibold text-gray-900 dark:text-white">
                       {session.gym_name}
                     </h3>
@@ -125,9 +125,18 @@ export default function Dashboard() {
                       {new Date(session.session_date).toLocaleDateString()} • {session.class_type}
                     </p>
                   </div>
-                  <span className="text-xs px-2 py-1 bg-primary-100 dark:bg-primary-900 text-primary-700 dark:text-primary-300 rounded">
-                    {session.duration_mins} mins
-                  </span>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs px-2 py-1 bg-primary-100 dark:bg-primary-900 text-primary-700 dark:text-primary-300 rounded">
+                      {session.duration_mins} mins
+                    </span>
+                    <Link
+                      to={`/session/edit/${session.id}`}
+                      className="text-blue-600 hover:text-blue-700 dark:text-blue-400 p-2 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded transition-colors"
+                      title="Edit session"
+                    >
+                      <Edit2 className="w-4 h-4" />
+                    </Link>
+                  </div>
                 </div>
                 <div className="flex gap-4 text-sm text-gray-600 dark:text-gray-400">
                   <span>Rolls: {session.rolls}</span>

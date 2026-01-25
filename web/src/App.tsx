@@ -9,6 +9,7 @@ import Videos from './pages/Videos';
 import Profile from './pages/Profile';
 import Glossary from './pages/Glossary';
 import Contacts from './pages/Contacts';
+import EditSession from './pages/EditSession';
 
 function App() {
   return (
@@ -17,6 +18,7 @@ function App() {
         <Routes>
           <Route path="/" element={<Dashboard />} />
           <Route path="/log" element={<LogSession />} />
+          <Route path="/session/edit/:id" element={<EditSession />} />
           <Route path="/reports" element={<Reports />} />
           <Route path="/readiness" element={<Readiness />} />
           <Route path="/techniques" element={<Techniques />} />
