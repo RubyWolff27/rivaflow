@@ -3,12 +3,25 @@ import typer
 from typing import Optional
 from datetime import date, datetime
 
-from rivaflow.cli.commands import log, readiness, report, suggest, video, technique
+from rivaflow.cli.commands import (
+    log,
+    readiness,
+    report,
+    suggest,
+    video,
+    technique,
+    dashboard,
+    rest,
+    streak,
+    tomorrow,
+    progress,
+)
 
 app = typer.Typer(
     name="rivaflow",
     help="Training OS for the mat — Train with intent. Flow to mastery.",
     add_completion=False,
+    invoke_without_command=True,  # Allow default command
 )
 
 # Register subcommands
@@ -19,11 +32,24 @@ app.add_typer(suggest.app, name="suggest")
 app.add_typer(video.app, name="video")
 app.add_typer(technique.app, name="technique")
 
+# Engagement commands (v0.2)
+app.add_typer(dashboard.app, name="dashboard")
+app.add_typer(rest.app, name="rest")
+app.add_typer(streak.app, name="streak")
+app.add_typer(tomorrow.app, name="tomorrow")
+app.add_typer(progress.app, name="progress")
 
-@app.callback()
-def callback():
-    """RivaFlow: Local-first training tracker for BJJ and grappling."""
-    pass
+
+@app.callback(invoke_without_command=True)
+def callback(ctx: typer.Context):
+    """
+    RivaFlow: Local-first training tracker for BJJ and grappling.
+
+    Run without arguments to see today's dashboard.
+    """
+    if ctx.invoked_subcommand is None:
+        # No subcommand = show dashboard
+        dashboard.dashboard()
 
 
 @app.command()
