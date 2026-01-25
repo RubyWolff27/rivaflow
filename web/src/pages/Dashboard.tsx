@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
-import { sessionsApi, suggestionsApi, readinessApi } from '../api/client';
-import type { Session, Suggestion, Readiness } from '../types';
-import { TrendingUp, Calendar, Users, Target, Edit2, Scale, Check } from 'lucide-react';
+import { Link, useNavigate } from 'react-router-dom';
+import { sessionsApi, suggestionsApi, readinessApi, profileApi } from '../api/client';
+import type { Session, Suggestion, Readiness, Profile } from '../types';
+import { TrendingUp, Calendar, Users, Target, Edit2, Scale, Check, Zap } from 'lucide-react';
 
 export default function Dashboard() {
+  const navigate = useNavigate();
   const [recentSessions, setRecentSessions] = useState<Session[]>([]);
   const [suggestion, setSuggestion] = useState<Suggestion | null>(null);
   const [loading, setLoading] = useState(true);
@@ -13,20 +14,37 @@ export default function Dashboard() {
   const [weightLoading, setWeightLoading] = useState(false);
   const [weightSuccess, setWeightSuccess] = useState(false);
 
+  // Quick log state
+  const [profile, setProfile] = useState<Profile | null>(null);
+  const [quickLogOpen, setQuickLogOpen] = useState(false);
+  const [quickLogData, setQuickLogData] = useState({
+    gym_name: '',
+    class_type: 'gi',
+    rolls: 0,
+  });
+  const [quickLogLoading, setQuickLogLoading] = useState(false);
+
   useEffect(() => {
     loadData();
   }, []);
 
   const loadData = async () => {
     try {
-      const [sessionsRes, suggestionRes, readinessRes] = await Promise.all([
+      const [sessionsRes, suggestionRes, readinessRes, profileRes] = await Promise.all([
         sessionsApi.list(5),
         suggestionsApi.getToday(),
         readinessApi.getLatest(),
+        profileApi.get(),
       ]);
       setRecentSessions(sessionsRes.data);
       setSuggestion(suggestionRes.data);
       setLatestReadiness(readinessRes.data);
+      setProfile(profileRes.data);
+
+      // Pre-fill quick log with default gym
+      if (profileRes.data?.default_gym) {
+        setQuickLogData(prev => ({ ...prev, gym_name: profileRes.data.default_gym || '' }));
+      }
     } catch (error) {
       console.error('Error loading dashboard:', error);
     } finally {
@@ -58,6 +76,43 @@ export default function Dashboard() {
       alert('Failed to log weight. Please try again.');
     } finally {
       setWeightLoading(false);
+    }
+  };
+
+  const handleQuickLog = async () => {
+    if (!quickLogData.gym_name.trim()) {
+      alert('Please enter a gym name');
+      return;
+    }
+
+    setQuickLogLoading(true);
+
+    try {
+      await sessionsApi.create({
+        session_date: new Date().toISOString().split('T')[0],
+        class_type: quickLogData.class_type,
+        gym_name: quickLogData.gym_name,
+        duration_mins: 60, // Default
+        intensity: 4, // Default
+        rolls: quickLogData.rolls,
+        submissions_for: 0,
+        submissions_against: 0,
+      });
+
+      // Reload recent sessions
+      const sessionsRes = await sessionsApi.list(5);
+      setRecentSessions(sessionsRes.data);
+
+      // Close quick log
+      setQuickLogOpen(false);
+
+      // Show success message
+      alert('Session logged successfully! 🥋');
+    } catch (error) {
+      console.error('Error logging session:', error);
+      alert('Failed to log session. Please try again.');
+    } finally {
+      setQuickLogLoading(false);
     }
   };
 
@@ -105,6 +160,113 @@ export default function Dashboard() {
               <p className="text-2xl font-bold mt-1">{avgIntensity}/5</p>
             </div>
             <TrendingUp className="w-8 h-8 text-primary-600" />
+          </div>
+        </div>
+      </div>
+
+      {/* Quick Log Session */}
+      <div className="card bg-gradient-to-r from-primary-50 to-indigo-50 dark:from-primary-900/20 dark:to-indigo-900/20 border-primary-200 dark:border-primary-800">
+        <div className="flex items-start gap-4">
+          <Zap className="w-6 h-6 text-primary-600 mt-1" />
+          <div className="flex-1">
+            <h3 className="font-semibold text-lg mb-2 flex items-center gap-2">
+              Quick Log Session
+              <span className="text-xs font-normal px-2 py-0.5 bg-primary-100 dark:bg-primary-800 text-primary-700 dark:text-primary-300 rounded">
+                60s • 4/5 intensity
+              </span>
+            </h3>
+            <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">
+              Log today's class with defaults — skip the full form
+            </p>
+
+            {!quickLogOpen ? (
+              <button
+                onClick={() => setQuickLogOpen(true)}
+                className="btn-primary flex items-center gap-2"
+              >
+                <Zap className="w-4 h-4" />
+                Log Today's Class
+              </button>
+            ) : (
+              <div className="space-y-3">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-sm font-medium mb-1">Gym</label>
+                    <input
+                      type="text"
+                      className="input"
+                      placeholder="Gym name"
+                      value={quickLogData.gym_name}
+                      onChange={(e) => setQuickLogData({ ...quickLogData, gym_name: e.target.value })}
+                      disabled={quickLogLoading}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-1">Class Type</label>
+                    <select
+                      className="input"
+                      value={quickLogData.class_type}
+                      onChange={(e) => setQuickLogData({ ...quickLogData, class_type: e.target.value })}
+                      disabled={quickLogLoading}
+                    >
+                      <option value="gi">Gi</option>
+                      <option value="no-gi">No-Gi</option>
+                      <option value="wrestling">Wrestling</option>
+                      <option value="judo">Judo</option>
+                      <option value="open-mat">Open Mat</option>
+                      <option value="s&c">S&C</option>
+                      <option value="mobility">Mobility</option>
+                      <option value="yoga">Yoga</option>
+                      <option value="drilling">Drilling</option>
+                      <option value="cardio">Cardio</option>
+                    </select>
+                  </div>
+                </div>
+
+                {['gi', 'no-gi', 'wrestling', 'judo', 'open-mat'].includes(quickLogData.class_type) && (
+                  <div>
+                    <label className="block text-sm font-medium mb-1">Rolls</label>
+                    <input
+                      type="number"
+                      className="input"
+                      placeholder="Number of rolls"
+                      value={quickLogData.rolls}
+                      onChange={(e) => setQuickLogData({ ...quickLogData, rolls: parseInt(e.target.value) || 0 })}
+                      min="0"
+                      max="50"
+                      disabled={quickLogLoading}
+                    />
+                  </div>
+                )}
+
+                <div className="flex gap-2">
+                  <button
+                    onClick={handleQuickLog}
+                    disabled={quickLogLoading || !quickLogData.gym_name}
+                    className="btn-primary flex items-center gap-2"
+                  >
+                    {quickLogLoading ? (
+                      'Logging...'
+                    ) : (
+                      <>
+                        <Check className="w-4 h-4" />
+                        Log Session
+                      </>
+                    )}
+                  </button>
+                  <button
+                    onClick={() => setQuickLogOpen(false)}
+                    disabled={quickLogLoading}
+                    className="btn-secondary"
+                  >
+                    Cancel
+                  </button>
+                  <Link to="/log" className="btn-secondary">
+                    Full Form
+                  </Link>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </div>
