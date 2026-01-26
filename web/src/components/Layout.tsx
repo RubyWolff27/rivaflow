@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { Home, Plus, BarChart3, Activity, Book, BookOpen, Video, User, Users, Menu, X, LogOut } from 'lucide-react';
+import { Home, Plus, BarChart3, Activity, Book, BookOpen, Video, User, Users, Menu, X, LogOut, ListOrdered, MessageCircle } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 
 export default function Layout({ children }: { children: React.ReactNode }) {
@@ -17,6 +17,8 @@ export default function Layout({ children }: { children: React.ReactNode }) {
   const navigation = [
     { name: 'Dashboard', href: '/', icon: Home },
     { name: 'Log Session', href: '/log', icon: Plus },
+    { name: 'Feed', href: '/feed', icon: ListOrdered },
+    { name: 'Chat', href: '/chat', icon: MessageCircle },
     { name: 'Reports', href: '/reports', icon: BarChart3 },
     { name: 'Readiness', href: '/readiness', icon: Activity },
     { name: 'Techniques', href: '/techniques', icon: Book },

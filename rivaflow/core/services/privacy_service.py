@@ -212,6 +212,73 @@ class PrivacyService:
         return [f for f in share_fields if f in safe_extensions]
 
     @staticmethod
+    def redact_for_llm(
+        session: Dict[str, Any],
+        include_notes: bool = False,
+    ) -> Dict[str, Any]:
+        """Redact session for LLM tool consumption.
+
+        Returns session data formatted for LLM function calling with:
+        - Summary-level visibility (date, gym, duration, intensity, rolls count)
+        - Technique names only (no detailed instructions)
+        - Partner first names only (no identifiable info)
+        - Optional notes if explicitly requested
+
+        Args:
+            session: Full session dictionary
+            include_notes: Whether to include training notes (default False)
+
+        Returns:
+            LLM-friendly session dictionary
+
+        Example:
+            >>> session = {
+            ...     "session_date": "2024-01-15",
+            ...     "gym_name": "Alliance",
+            ...     "duration_mins": 90,
+            ...     "intensity": 8,
+            ...     "rolls": 5,
+            ...     "techniques": ["armbar", "triangle"],
+            ...     "notes": "Focused on guard passing",
+            ... }
+            >>> PrivacyService.redact_for_llm(session)
+            {
+                "date": "2024-01-15",
+                "gym": "Alliance",
+                "duration_mins": 90,
+                "intensity": 8,
+                "rolls_count": 5,
+                "techniques": ["armbar", "triangle"],
+            }
+        """
+        redacted = {}
+
+        # Core training data (summary level)
+        field_mapping = {
+            "session_date": "date",
+            "gym_name": "gym",
+            "class_type": "class_type",
+            "location": "location",
+            "duration_mins": "duration_mins",
+            "intensity": "intensity",
+            "rolls": "rolls_count",
+        }
+
+        for src_field, dest_field in field_mapping.items():
+            if src_field in session:
+                redacted[dest_field] = session[src_field]
+
+        # Technique names only (no detailed instructions)
+        if "techniques" in session and session["techniques"]:
+            redacted["techniques"] = session["techniques"]
+
+        # Optional: Include notes if explicitly requested
+        if include_notes and "notes" in session and session["notes"]:
+            redacted["notes"] = session["notes"]
+
+        return redacted
+
+    @staticmethod
     def get_privacy_recommendation(
         session: Dict[str, Any],
     ) -> Dict[str, str]:
