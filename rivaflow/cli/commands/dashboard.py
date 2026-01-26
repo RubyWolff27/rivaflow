@@ -13,7 +13,10 @@ from rivaflow.core.services.milestone_service import MilestoneService
 from rivaflow.db.database import get_connection
 from rivaflow.config import TOMORROW_INTENTIONS
 
-app = typer.Typer(help="Dashboard and status overview")
+app = typer.Typer(
+    help="Dashboard and status overview",
+    invoke_without_command=True,
+)
 console = Console()
 
 
@@ -75,12 +78,15 @@ def get_week_summary() -> dict:
     }
 
 
-@app.command()
-def dashboard():
+@app.callback(invoke_without_command=True)
+def dashboard(ctx: typer.Context = None):
     """
     Display today's dashboard with quick actions.
     This is the DEFAULT command when user types just 'rivaflow'.
     """
+    if ctx and ctx.invoked_subcommand is not None:
+        return
+
     today = date.today()
     day_name = today.strftime("%a %d %b")
 

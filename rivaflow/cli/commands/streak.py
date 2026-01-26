@@ -6,7 +6,10 @@ from rich.text import Text
 
 from rivaflow.core.services.streak_service import StreakService
 
-app = typer.Typer(help="Streak tracking and display")
+app = typer.Typer(
+    help="Streak tracking and display",
+    invoke_without_command=True,
+)
 console = Console()
 
 
@@ -63,8 +66,8 @@ def render_milestone_markers(current: int, milestones: list[int]) -> str:
     return "   ".join(markers)
 
 
-@app.command()
-def streak():
+@app.callback(invoke_without_command=True)
+def streak(ctx: typer.Context):
     """
     Display current streaks and personal bests.
 
@@ -75,6 +78,9 @@ def streak():
     - Milestone markers (7, 30, 90, 365 days)
     - Personal best records
     """
+    if ctx.invoked_subcommand is not None:
+        return
+
     streak_service = StreakService()
     streaks = streak_service.get_streak_status()
 

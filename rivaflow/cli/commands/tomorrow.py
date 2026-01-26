@@ -10,7 +10,10 @@ from rivaflow.db.repositories.checkin_repo import CheckinRepository
 from rivaflow.db.database import get_connection
 from rivaflow.config import TOMORROW_INTENTIONS
 
-app = typer.Typer(help="Set tomorrow's training intention")
+app = typer.Typer(
+    help="Set tomorrow's training intention",
+    invoke_without_command=True,
+)
 console = Console()
 
 
@@ -50,8 +53,9 @@ def get_tip_based_on_recent_sessions() -> Optional[str]:
     return None
 
 
-@app.command()
+@app.callback(invoke_without_command=True)
 def tomorrow(
+    ctx: typer.Context,
     intention: Optional[str] = typer.Argument(None, help="Intention: train_gi, train_nogi, rest, unsure")
 ):
     """
@@ -64,6 +68,9 @@ def tomorrow(
 
     Helps with planning and accountability.
     """
+    if ctx.invoked_subcommand is not None:
+        return
+
     checkin_repo = CheckinRepository()
     today = date.today()
     tomorrow_date = today + timedelta(days=1)

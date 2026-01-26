@@ -7,7 +7,10 @@ from rich.panel import Panel
 from rivaflow.core.services.milestone_service import MilestoneService
 from rivaflow.db.database import get_connection
 
-app = typer.Typer(help="Lifetime stats and milestone progress")
+app = typer.Typer(
+    help="Lifetime stats and milestone progress",
+    invoke_without_command=True,
+)
 console = Console()
 
 
@@ -67,8 +70,8 @@ def get_lifetime_stats() -> dict:
     }
 
 
-@app.command()
-def progress():
+@app.callback(invoke_without_command=True)
+def progress(ctx: typer.Context):
     """
     Display lifetime stats and milestone progress.
 
@@ -79,6 +82,9 @@ def progress():
     - Progress toward next milestones
     - Closest upcoming milestone
     """
+    if ctx.invoked_subcommand is not None:
+        return
+
     milestone_service = MilestoneService()
 
     # Header

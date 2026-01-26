@@ -135,3 +135,6 @@ def _add_engagement_features_readiness(readiness_id: int):
         prompts.console.print(f"  [bold]TODAY'S RECOMMENDATION:[/bold]")
         prompts.console.print(f"  [cyan]{result['suggestion']}[/cyan]")
         prompts.console.print()
+    except Exception:
+        # Suggestion engine might fail if no data - skip silently
+        pass

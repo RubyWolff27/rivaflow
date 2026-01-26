@@ -11,7 +11,10 @@ from rivaflow.core.services.milestone_service import MilestoneService
 from rivaflow.config import REST_TYPES, TOMORROW_INTENTIONS, MILESTONE_QUOTES
 import random
 
-app = typer.Typer(help="Rest day logging")
+app = typer.Typer(
+    help="Rest day logging",
+    invoke_without_command=True,
+)
 console = Console()
 
 
@@ -50,8 +53,9 @@ def show_milestone_celebration(milestone: dict):
     console.print()
 
 
-@app.command()
+@app.callback(invoke_without_command=True)
 def rest(
+    ctx: typer.Context,
     rest_type: str = typer.Option("recovery", "--type", "-t", help="Type: recovery, life, injury, travel"),
     note: Optional[str] = typer.Option(None, "--note", "-n", help="Optional note"),
     tomorrow: Optional[str] = typer.Option(None, "--tomorrow", help="Tomorrow's intention")
@@ -64,6 +68,9 @@ def rest(
         rivaflow rest --type injury            # Injury rest
         rivaflow rest -t travel -n "In Sydney"
     """
+    if ctx.invoked_subcommand is not None:
+        return
+
     # Validate rest_type
     if rest_type not in REST_TYPES:
         console.print(f"[red]Error:[/red] Invalid rest type '{rest_type}'")
