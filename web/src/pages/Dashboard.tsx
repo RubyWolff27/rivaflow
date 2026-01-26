@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { sessionsApi, suggestionsApi, readinessApi, profileApi, goalsApi } from '../api/client';
 import type { Session, Suggestion, Readiness, Profile, WeeklyGoalProgress, TrainingStreaks } from '../types';
 import { TrendingUp, Calendar, Users, Target, Edit2, Scale, Check, Zap, Trophy, Flame } from 'lucide-react';
+import EngagementBanner from '../components/EngagementBanner';
 
 export default function Dashboard() {
   const navigate = useNavigate();
@@ -142,6 +143,9 @@ export default function Dashboard() {
   return (
     <div className="space-y-6">
       <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Dashboard</h1>
+
+      {/* Engagement Banner */}
+      <EngagementBanner />
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">

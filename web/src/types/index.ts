@@ -262,3 +262,58 @@ export interface GoalsSummary {
     actual: { sessions: number; hours: number; rolls: number };
   }[];
 }
+
+// Engagement features (v0.2)
+export interface DailyCheckin {
+  id: number;
+  check_date: string;
+  checkin_type: 'session' | 'rest' | 'readiness_only';
+  rest_type?: string;
+  rest_note?: string;
+  session_id?: number;
+  readiness_id?: number;
+  tomorrow_intention?: string;
+  insight_shown?: string; // JSON string
+  created_at: string;
+}
+
+export interface Streak {
+  current_streak: number;
+  longest_streak: number;
+  streak_started_date?: string;
+  last_checkin_date?: string;
+  grace_days_used?: number;
+}
+
+export interface StreakStatus {
+  checkin: Streak;
+  training: Streak;
+  readiness: Streak;
+  any_at_risk: boolean;
+}
+
+export interface Milestone {
+  id: number;
+  milestone_type: 'hours' | 'sessions' | 'rolls' | 'partners' | 'techniques' | 'streak';
+  milestone_value: number;
+  milestone_label: string;
+  achieved_at: string;
+  celebrated: boolean;
+}
+
+export interface MilestoneProgress {
+  type: string;
+  current: number;
+  next_value: number;
+  next_label: string;
+  percentage: number;
+  remaining: number;
+}
+
+export interface Insight {
+  type: 'stat' | 'streak' | 'milestone' | 'recovery' | 'trend' | 'encouragement';
+  title: string;
+  message: string;
+  action?: string;
+  icon?: string;
+}

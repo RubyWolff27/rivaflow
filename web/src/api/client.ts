@@ -1,5 +1,5 @@
 import axios from 'axios';
-import type { Session, Readiness, Report, Suggestion, Technique, Video, Profile, Grading, Movement, Contact, CustomVideo, WeeklyGoalProgress, GoalsSummary, TrainingStreaks, GoalCompletionStreak } from '../types';
+import type { Session, Readiness, Report, Suggestion, Technique, Video, Profile, Grading, Movement, Contact, CustomVideo, WeeklyGoalProgress, GoalsSummary, TrainingStreaks, GoalCompletionStreak, DailyCheckin, StreakStatus, Streak, Milestone, MilestoneProgress } from '../types';
 
 const API_BASE = 'http://localhost:8000/api';
 
@@ -130,9 +130,28 @@ export const goalsApi = {
   getTrainingStreaks: () => api.get<TrainingStreaks>('/goals/streaks/training'),
   getGoalStreaks: () => api.get<GoalCompletionStreak>('/goals/streaks/goals'),
   getTrend: (weeks = 12) => api.get('/goals/trend', { params: { weeks } }),
-  updateTargets: (data: { 
-    weekly_sessions_target?: number; 
-    weekly_hours_target?: number; 
+  updateTargets: (data: {
+    weekly_sessions_target?: number;
+    weekly_hours_target?: number;
     weekly_rolls_target?: number;
   }) => api.put<Profile>('/goals/targets', data),
+};
+
+// Engagement features (v0.2)
+export const checkinsApi = {
+  getToday: () => api.get<DailyCheckin & { checked_in: boolean }>('/checkins/today'),
+  getWeek: () => api.get<{ week_start: string; checkins: any[] }>('/checkins/week'),
+  updateTomorrow: (data: { tomorrow_intention: string }) => api.put('/checkins/today/tomorrow', data),
+};
+
+export const streaksApi = {
+  getStatus: () => api.get<StreakStatus>('/streaks/status'),
+  getByType: (type: 'checkin' | 'training' | 'readiness') => api.get<Streak>(`/streaks/${type}`),
+};
+
+export const milestonesApi = {
+  getAchieved: () => api.get<{ milestones: Milestone[]; count: number }>('/milestones/achieved'),
+  getProgress: () => api.get<{ progress: MilestoneProgress[] }>('/milestones/progress'),
+  getClosest: () => api.get<{ has_milestone: boolean } & MilestoneProgress>('/milestones/closest'),
+  getTotals: () => api.get<{ hours: number; sessions: number; rolls: number; partners: number; techniques: number; streak: number }>('/milestones/totals'),
 };
