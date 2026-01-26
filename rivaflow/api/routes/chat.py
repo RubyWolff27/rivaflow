@@ -13,7 +13,7 @@ from rivaflow.core.services.privacy_service import PrivacyService
 router = APIRouter(prefix="/chat", tags=["chat"])
 
 OLLAMA_URL = "http://localhost:11434/api/chat"
-MODEL_NAME = "llama3.1:8b"
+MODEL_NAME = "llama3.2:3b"  # Lighter model for 4GB RAM VPS
 TIMEOUT = 60.0
 
 
@@ -40,18 +40,28 @@ def build_user_context(user_id: int) -> str:
     if not user:
         return "User profile not found."
 
-    # Get recent sessions
-    thirty_days_ago = (datetime.now() - timedelta(days=30)).date()
-    sessions = session_repo.get_recent(user_id, limit=50)
+    # Get ALL sessions (limit to 200 most recent to avoid context overflow)
+    sessions = session_repo.get_recent(user_id, limit=200)
 
-    # Filter to last 30 days and redact for LLM
-    recent_sessions = []
+    # Redact all sessions for LLM
+    all_sessions = []
     for session in sessions:
-        # session_date is a date object from _row_to_dict
-        session_date = session["session_date"]
-        if session_date >= thirty_days_ago:
-            redacted = PrivacyService.redact_for_llm(session, include_notes=True)
-            recent_sessions.append(redacted)
+        redacted = PrivacyService.redact_for_llm(session, include_notes=True)
+        all_sessions.append(redacted)
+
+    # Calculate summary stats
+    total_sessions = len(all_sessions)
+    if total_sessions > 0:
+        total_duration = sum(s.get("duration_mins", 0) for s in all_sessions)
+        total_rolls = sum(s.get("rolls_count", 0) for s in all_sessions)
+        avg_intensity = sum(s.get("intensity", 0) for s in all_sessions) / total_sessions
+
+        # Get unique gyms and techniques
+        gyms = set(s.get("gym", "") for s in all_sessions if s.get("gym"))
+        all_techniques = set()
+        for s in all_sessions:
+            if s.get("techniques"):
+                all_techniques.update(s["techniques"])
 
     # Build context string
     context_parts = [
@@ -59,14 +69,22 @@ def build_user_context(user_id: int) -> str:
         f"Name: {user['first_name']} {user['last_name']}",
         f"Email: {user['email']}",
         f"",
-        f"RECENT TRAINING (Last 30 days): {len(recent_sessions)} sessions",
+        f"TRAINING HISTORY: {total_sessions} total sessions",
     ]
 
-    if recent_sessions:
+    if total_sessions > 0:
+        context_parts.append(f"Total training time: {total_duration} minutes")
+        context_parts.append(f"Total rolls: {total_rolls}")
+        context_parts.append(f"Average intensity: {avg_intensity:.1f}/10")
+        context_parts.append(f"Gyms trained at: {', '.join(sorted(gyms))}")
+        context_parts.append(f"Techniques practiced: {len(all_techniques)} unique techniques")
         context_parts.append("")
-        for session in recent_sessions[-10:]:  # Show last 10 sessions
+        context_parts.append("RECENT SESSIONS (most recent 20):")
+        context_parts.append("")
+
+        # Show last 20 sessions in detail
+        for session in all_sessions[:20]:
             date_val = session.get("date", "Unknown")
-            # Convert date object to string if needed
             date_str = str(date_val) if date_val != "Unknown" else "Unknown"
             gym = session.get("gym", "Unknown")
             duration = session.get("duration_mins", 0)
@@ -79,13 +97,13 @@ def build_user_context(user_id: int) -> str:
             if rolls > 0:
                 session_summary += f", {rolls} rolls"
             if techniques:
-                session_summary += f", techniques: {', '.join(techniques[:3])}"
+                session_summary += f", techniques: {', '.join(techniques[:5])}"
             if notes:
-                session_summary += f" | Notes: {notes[:100]}"
+                session_summary += f" | Notes: {notes[:150]}"
 
             context_parts.append(session_summary)
     else:
-        context_parts.append("No recent training sessions logged.")
+        context_parts.append("No training sessions logged yet.")
 
     return "\n".join(context_parts)
 
