@@ -147,6 +147,22 @@ class UserRepository:
             return None
 
     @staticmethod
+    def list_all() -> list[dict]:
+        """
+        Get all active users.
+
+        Returns:
+            List of all active users (without hashed passwords)
+        """
+        with get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                "SELECT id, email, first_name, last_name, is_active, created_at, updated_at FROM users WHERE is_active = 1"
+            )
+            rows = cursor.fetchall()
+            return [dict(row) for row in rows]
+
+    @staticmethod
     def delete(user_id: int) -> bool:
         """
         Delete a user (soft delete by setting is_active to False).

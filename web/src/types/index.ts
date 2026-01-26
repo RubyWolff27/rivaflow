@@ -11,6 +11,7 @@ export interface User {
 export interface Session {
   id: number;
   session_date: string;
+  class_time?: string;
   class_type: string;
   gym_name: string;
   location?: string;
@@ -124,6 +125,9 @@ export interface Profile {
   default_gym?: string;
   current_grade?: string;
   current_professor?: string;
+  current_instructor_id?: number;
+  height_cm?: number;
+  target_weight_kg?: number;
   weekly_sessions_target?: number;
   weekly_hours_target?: number;
   weekly_rolls_target?: number;
@@ -326,4 +330,59 @@ export interface Insight {
   message: string;
   action?: string;
   icon?: string;
+}
+
+// Social features
+export interface UserBasic {
+  id: number;
+  first_name: string;
+  last_name: string;
+  email?: string;
+}
+
+export interface ActivityLike {
+  id: number;
+  user_id: number;
+  activity_type: 'session' | 'readiness' | 'rest';
+  activity_id: number;
+  created_at: string;
+  first_name?: string;
+  last_name?: string;
+  email?: string;
+}
+
+export interface ActivityComment {
+  id: number;
+  user_id: number;
+  activity_type: 'session' | 'readiness' | 'rest';
+  activity_id: number;
+  comment_text: string;
+  parent_comment_id?: number;
+  edited_at?: string;
+  created_at: string;
+  first_name?: string;
+  last_name?: string;
+  email?: string;
+}
+
+export interface FeedItem {
+  type: 'session' | 'readiness' | 'rest';
+  date: string;
+  id: number;
+  data: any;
+  summary: string;
+  like_count?: number;
+  comment_count?: number;
+  has_liked?: boolean;
+  owner_user_id?: number;
+}
+
+export interface UserRelationship {
+  relationship_id: number;
+  follower_user_id?: number;
+  following_user_id?: number;
+  followed_at: string;
+  first_name: string;
+  last_name: string;
+  email: string;
 }

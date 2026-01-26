@@ -2,7 +2,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from rivaflow.api.routes import sessions, readiness, reports, suggestions, techniques, videos, profile, gradings, glossary, contacts, analytics, goals, checkins, streaks, milestones, auth
+from rivaflow.api.routes import sessions, readiness, reports, suggestions, techniques, videos, profile, gradings, glossary, contacts, analytics, goals, checkins, streaks, milestones, auth, rest, feed, photos, social
 
 app = FastAPI(
     title="RivaFlow API",
@@ -13,7 +13,13 @@ app = FastAPI(
 # Enable CORS for local development
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173", "http://localhost:3000"],  # Vite default port
+    allow_origins=[
+        "http://localhost:5173",
+        "http://localhost:5174",
+        "http://localhost:5175",
+        "http://localhost:5176",
+        "http://localhost:3000"
+    ],  # Vite ports
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -23,6 +29,8 @@ app.add_middleware(
 app.include_router(auth.router, prefix="/api/auth", tags=["auth"])
 app.include_router(sessions.router, prefix="/api/sessions", tags=["sessions"])
 app.include_router(readiness.router, prefix="/api/readiness", tags=["readiness"])
+app.include_router(rest.router, prefix="/api")
+app.include_router(feed.router, prefix="/api")
 app.include_router(reports.router, prefix="/api/reports", tags=["reports"])
 app.include_router(suggestions.router, prefix="/api/suggestions", tags=["suggestions"])
 app.include_router(techniques.router, prefix="/api/techniques", tags=["techniques"])
@@ -36,6 +44,8 @@ app.include_router(goals.router, prefix="/api/goals", tags=["goals"])
 app.include_router(checkins.router, prefix="/api")
 app.include_router(streaks.router, prefix="/api")
 app.include_router(milestones.router, prefix="/api")
+app.include_router(photos.router, prefix="/api")
+app.include_router(social.router, prefix="/api")
 
 
 @app.get("/")

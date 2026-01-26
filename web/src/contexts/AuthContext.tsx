@@ -33,11 +33,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         try {
           const response = await authApi.getCurrentUser();
           setUser(response.data);
+          localStorage.setItem('user', JSON.stringify(response.data));
         } catch (error) {
           console.error('Failed to load user:', error);
           // Clear invalid tokens
           localStorage.removeItem('access_token');
           localStorage.removeItem('refresh_token');
+          localStorage.removeItem('user');
         }
       }
       setIsLoading(false);
@@ -51,6 +53,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const response = await authApi.login({ email, password });
       localStorage.setItem('access_token', response.data.access_token);
       localStorage.setItem('refresh_token', response.data.refresh_token);
+      localStorage.setItem('user', JSON.stringify(response.data.user));
       setUser(response.data.user);
     } catch (error: any) {
       throw new Error(error.response?.data?.detail || 'Login failed');
@@ -72,6 +75,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       });
       localStorage.setItem('access_token', response.data.access_token);
       localStorage.setItem('refresh_token', response.data.refresh_token);
+      localStorage.setItem('user', JSON.stringify(response.data.user));
       setUser(response.data.user);
     } catch (error: any) {
       throw new Error(error.response?.data?.detail || 'Registration failed');
@@ -90,6 +94,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     localStorage.removeItem('access_token');
     localStorage.removeItem('refresh_token');
+    localStorage.removeItem('user');
     setUser(null);
   };
 

@@ -83,6 +83,17 @@ class ReadinessRepository:
             return None
 
     @staticmethod
+    def get_by_id_any_user(readiness_id: int) -> Optional[dict]:
+        """Get a readiness entry by ID without user scope (for validation/privacy checks)."""
+        with get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("SELECT * FROM readiness WHERE id = ?", (readiness_id,))
+            row = cursor.fetchone()
+            if row:
+                return ReadinessRepository._row_to_dict(row)
+            return None
+
+    @staticmethod
     def get_by_date_range(user_id: int, start_date: date, end_date: date) -> list[dict]:
         """Get readiness entries within a date range (inclusive)."""
         with get_connection() as conn:

@@ -68,6 +68,7 @@ export const sessionsApi = {
   list: (limit = 10) => api.get<Session[]>(`/sessions/?limit=${limit}`),
   getById: (id: number) => api.get<Session>(`/sessions/${id}`),
   update: (id: number, data: any) => api.put<Session>(`/sessions/${id}`, data),
+  delete: (id: number) => api.delete(`/sessions/${id}`),
   getByRange: (startDate: string, endDate: string) =>
     api.get<Session[]>(`/sessions/range/${startDate}/${endDate}`),
   getAutocomplete: () => api.get<{ gyms: string[]; locations: string[]; partners: string[]; techniques: string[] }>('/sessions/autocomplete/data'),
@@ -207,4 +208,74 @@ export const milestonesApi = {
   getProgress: () => api.get<{ progress: MilestoneProgress[] }>('/milestones/progress'),
   getClosest: () => api.get<{ has_milestone: boolean } & MilestoneProgress>('/milestones/closest'),
   getTotals: () => api.get<{ hours: number; sessions: number; rolls: number; partners: number; techniques: number; streak: number }>('/milestones/totals'),
+};
+
+export const restApi = {
+  logRestDay: (data: { rest_type: string; note?: string; tomorrow_intention?: string; rest_date?: string }) =>
+    api.post('/rest/', data),
+  getRecent: (days = 30) => api.get('/rest/recent', { params: { days } }),
+};
+
+export const feedApi = {
+  getActivity: (params?: { limit?: number; offset?: number; days_back?: number; enrich_social?: boolean }) =>
+    api.get('/feed/activity', { params }),
+  getContacts: (params?: { limit?: number; offset?: number; days_back?: number }) =>
+    api.get('/feed/contacts', { params }),
+};
+
+export const socialApi = {
+  // User search
+  searchUsers: (query: string) => api.get('/social/users/search', { params: { q: query } }),
+
+  // Relationships
+  follow: (userId: number) => api.post(`/social/follow/${userId}`),
+  unfollow: (userId: number) => api.delete(`/social/follow/${userId}`),
+  getFollowers: () => api.get('/social/followers'),
+  getFollowing: () => api.get('/social/following'),
+  isFollowing: (userId: number) => api.get(`/social/following/${userId}`),
+
+  // Likes
+  like: (activityType: string, activityId: number) =>
+    api.post('/social/like', { activity_type: activityType, activity_id: activityId }),
+  unlike: (activityType: string, activityId: number) =>
+    api.delete('/social/like', { data: { activity_type: activityType, activity_id: activityId } }),
+  getLikes: (activityType: string, activityId: number) =>
+    api.get(`/social/likes/${activityType}/${activityId}`),
+
+  // Comments
+  addComment: (activityType: string, activityId: number, commentText: string, parentCommentId?: number) =>
+    api.post('/social/comment', {
+      activity_type: activityType,
+      activity_id: activityId,
+      comment_text: commentText,
+      parent_comment_id: parentCommentId,
+    }),
+  updateComment: (commentId: number, commentText: string) =>
+    api.put(`/social/comment/${commentId}`, { comment_text: commentText }),
+  deleteComment: (commentId: number) => api.delete(`/social/comment/${commentId}`),
+  getComments: (activityType: string, activityId: number) =>
+    api.get(`/social/comments/${activityType}/${activityId}`),
+};
+
+export const photosApi = {
+  upload: (formData: FormData) => {
+    return api.post('/photos/upload', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+  },
+  getByActivity: (activityType: string, activityId: number) =>
+    api.get(`/photos/activity/${activityType}/${activityId}`),
+  getById: (photoId: number) => api.get(`/photos/${photoId}`),
+  delete: (photoId: number) => api.delete(`/photos/${photoId}`),
+  updateCaption: (photoId: number, caption: string) => {
+    const formData = new FormData();
+    formData.append('caption', caption);
+    return api.put(`/photos/${photoId}/caption`, formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+  },
 };

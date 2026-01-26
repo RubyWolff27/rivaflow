@@ -12,6 +12,9 @@ from rivaflow.db.repositories.goal_progress_repo import GoalProgressRepository
 from rivaflow.db.repositories.checkin_repo import CheckinRepository
 from rivaflow.db.repositories.streak_repo import StreakRepository
 from rivaflow.db.repositories.milestone_repo import MilestoneRepository
+from rivaflow.db.repositories.relationship_repo import UserRelationshipRepository
+from rivaflow.db.repositories.activity_like_repo import ActivityLikeRepository
+from rivaflow.db.repositories.activity_comment_repo import ActivityCommentRepository
 
 __all__ = [
     "SessionRepository",
@@ -27,4 +30,7 @@ __all__ = [
     "CheckinRepository",
     "StreakRepository",
     "MilestoneRepository",
+    "UserRelationshipRepository",
+    "ActivityLikeRepository",
+    "ActivityCommentRepository",
 ]

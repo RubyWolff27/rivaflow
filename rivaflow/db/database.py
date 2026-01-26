@@ -49,6 +49,13 @@ def init_db() -> None:
             "017_engagement_features.sql",
             "018_add_users_table.sql",
             "019_add_user_id_to_tables.sql",
+            "020_fix_daily_checkins_unique_constraint.sql",
+            "021_add_class_time_to_sessions.sql",
+            "022_add_height_and_target_weight_to_profile.sql",
+            "023_add_missing_current_professor_column.sql",
+            "024_add_activity_photos.sql",
+            "025_add_instructor_id_to_profile.sql",
+            "026_social_features.sql",
         ]
 
         migrations_dir = Path(__file__).parent / "migrations"
@@ -101,3 +108,9 @@ def get_connection():
 def get_cursor(conn: sqlite3.Connection) -> sqlite3.Cursor:
     """Get a cursor from a connection."""
     return conn.cursor()
+
+
+if __name__ == "__main__":
+    print("Running database migrations...")
+    init_db()
+    print("Database migrations complete!")

@@ -18,6 +18,7 @@ class SessionRepository:
         class_type: str,
         gym_name: str,
         location: Optional[str] = None,
+        class_time: Optional[str] = None,
         duration_mins: int = 60,
         intensity: int = 4,
         rolls: int = 0,
@@ -40,17 +41,18 @@ class SessionRepository:
             cursor.execute(
                 """
                 INSERT INTO sessions (
-                    user_id, session_date, class_type, gym_name, location,
+                    user_id, session_date, class_time, class_type, gym_name, location,
                     duration_mins, intensity, rolls,
                     submissions_for, submissions_against,
                     partners, techniques, notes, visibility_level,
                     instructor_id, instructor_name,
                     whoop_strain, whoop_calories, whoop_avg_hr, whoop_max_hr
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
                     user_id,
                     session_date.isoformat(),
+                    class_time,
                     class_type,
                     gym_name,
                     location,
@@ -86,7 +88,7 @@ class SessionRepository:
             session = SessionRepository._row_to_dict(row)
 
             # Fetch detailed technique records
-            techniques = SessionTechniqueRepository.get_by_session_id(session_id)
+            techniques = SessionTechniqueRepository.get_by_session_id(user_id, session_id)
 
             # Enrich with movement names from glossary
             for technique in techniques:
@@ -103,10 +105,22 @@ class SessionRepository:
             return session
 
     @staticmethod
+    def get_by_id_any_user(session_id: int) -> Optional[dict]:
+        """Get a session by ID without user scope (for validation/privacy checks)."""
+        with get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("SELECT * FROM sessions WHERE id = ?", (session_id,))
+            row = cursor.fetchone()
+            if not row:
+                return None
+            return SessionRepository._row_to_dict(row)
+
+    @staticmethod
     def update(
         user_id: int,
         session_id: int,
         session_date: Optional[date] = None,
+        class_time: Optional[str] = None,
         class_type: Optional[str] = None,
         gym_name: Optional[str] = None,
         location: Optional[str] = None,
@@ -137,6 +151,9 @@ class SessionRepository:
             if session_date is not None:
                 updates.append("session_date = ?")
                 params.append(session_date.isoformat())
+            if class_time is not None:
+                updates.append("class_time = ?")
+                params.append(class_time)
             if class_type is not None:
                 updates.append("class_type = ?")
                 params.append(class_type)
@@ -288,6 +305,28 @@ class SessionRepository:
                 (user_id, n),
             )
             return [row["class_type"] for row in cursor.fetchall()]
+
+    @staticmethod
+    def delete(user_id: int, session_id: int) -> bool:
+        """Delete a session by ID. Returns True if deleted, False if not found."""
+        from rivaflow.db.repositories.session_roll_repo import SessionRollRepository
+        from rivaflow.db.repositories.session_technique_repo import SessionTechniqueRepository
+
+        with get_connection() as conn:
+            cursor = conn.cursor()
+
+            # Delete related session rolls
+            SessionRollRepository.delete_by_session(session_id)
+
+            # Delete related session techniques
+            SessionTechniqueRepository.delete_by_session(session_id)
+
+            # Delete the session itself
+            cursor.execute(
+                "DELETE FROM sessions WHERE id = ? AND user_id = ?",
+                (session_id, user_id)
+            )
+            return cursor.rowcount > 0
 
     @staticmethod
     def _row_to_dict(row: sqlite3.Row) -> dict:
