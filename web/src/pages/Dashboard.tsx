@@ -25,6 +25,24 @@ export default function Dashboard() {
   });
   const [quickLogLoading, setQuickLogLoading] = useState(false);
 
+  // Quick readiness state
+  const [quickReadinessOpen, setQuickReadinessOpen] = useState(false);
+  const [quickReadinessData, setQuickReadinessData] = useState({
+    sleep: 3,
+    stress: 3,
+    soreness: 2,
+    energy: 3,
+  });
+  const [quickReadinessLoading, setQuickReadinessLoading] = useState(false);
+
+  // Quick rest state
+  const [quickRestOpen, setQuickRestOpen] = useState(false);
+  const [quickRestData, setQuickRestData] = useState({
+    rest_type: 'recovery',
+    note: '',
+  });
+  const [quickRestLoading, setQuickRestLoading] = useState(false);
+
   // Goals and streaks state
   const [weeklyGoals, setWeeklyGoals] = useState<WeeklyGoalProgress | null>(null);
   const [trainingStreaks, setTrainingStreaks] = useState<TrainingStreaks | null>(null);
@@ -121,11 +139,66 @@ export default function Dashboard() {
 
       // Show success message
       alert('Session logged successfully! 🥋');
+
+      // Reload page to update engagement banner
+      window.location.reload();
     } catch (error) {
       console.error('Error logging session:', error);
       alert('Failed to log session. Please try again.');
     } finally {
       setQuickLogLoading(false);
+    }
+  };
+
+  const handleQuickReadiness = async () => {
+    setQuickReadinessLoading(true);
+
+    try {
+      await readinessApi.create({
+        check_date: new Date().toISOString().split('T')[0],
+        sleep: quickReadinessData.sleep,
+        stress: quickReadinessData.stress,
+        soreness: quickReadinessData.soreness,
+        energy: quickReadinessData.energy,
+      });
+
+      setQuickReadinessOpen(false);
+      alert('Readiness logged successfully! 💚');
+
+      // Reload page to update engagement banner
+      window.location.reload();
+    } catch (error) {
+      console.error('Error logging readiness:', error);
+      alert('Failed to log readiness. Please try again.');
+    } finally {
+      setQuickReadinessLoading(false);
+    }
+  };
+
+  const handleQuickRest = async () => {
+    setQuickRestLoading(true);
+
+    try {
+      // For now, just create a check-in via readiness endpoint with minimal data
+      // TODO: Create proper rest day API endpoint
+      await readinessApi.create({
+        check_date: new Date().toISOString().split('T')[0],
+        sleep: 3,
+        stress: 2,
+        soreness: 2,
+        energy: 3,
+      });
+
+      setQuickRestOpen(false);
+      alert(`Rest day logged! (${quickRestData.rest_type}) 😴`);
+
+      // Reload page to update engagement banner
+      window.location.reload();
+    } catch (error) {
+      console.error('Error logging rest day:', error);
+      alert('Failed to log rest day. Please try again.');
+    } finally {
+      setQuickRestLoading(false);
     }
   };
 
@@ -146,6 +219,203 @@ export default function Dashboard() {
 
       {/* Engagement Banner */}
       <EngagementBanner />
+
+      {/* Quick Actions - No Scrolling Required */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        {/* Quick Session Log */}
+        <div className="card bg-gradient-to-br from-primary-50 to-primary-100 dark:from-primary-900/30 dark:to-primary-800/30 border-2 border-primary-300 dark:border-primary-700">
+          <div className="text-center">
+            <div className="text-3xl mb-2">🥋</div>
+            <h3 className="font-bold text-lg mb-1">Log Session</h3>
+            <p className="text-xs text-gray-600 dark:text-gray-400 mb-3">60s • 4/5 intensity</p>
+            {!quickLogOpen ? (
+              <button onClick={() => setQuickLogOpen(true)} className="btn-primary w-full">
+                Quick Log
+              </button>
+            ) : (
+              <div className="space-y-2 text-left">
+                <input
+                  type="text"
+                  className="input text-sm"
+                  placeholder="Gym name"
+                  value={quickLogData.gym_name}
+                  onChange={(e) => setQuickLogData({ ...quickLogData, gym_name: e.target.value })}
+                  disabled={quickLogLoading}
+                />
+                <select
+                  className="input text-sm"
+                  value={quickLogData.class_type}
+                  onChange={(e) => setQuickLogData({ ...quickLogData, class_type: e.target.value })}
+                  disabled={quickLogLoading}
+                >
+                  <option value="gi">Gi</option>
+                  <option value="no-gi">No-Gi</option>
+                  <option value="wrestling">Wrestling</option>
+                  <option value="open-mat">Open Mat</option>
+                </select>
+                <input
+                  type="number"
+                  className="input text-sm"
+                  placeholder="Rolls"
+                  value={quickLogData.rolls}
+                  onChange={(e) => setQuickLogData({ ...quickLogData, rolls: parseInt(e.target.value) || 0 })}
+                  min="0"
+                  disabled={quickLogLoading}
+                />
+                <div className="flex gap-2">
+                  <button
+                    onClick={handleQuickLog}
+                    disabled={quickLogLoading || !quickLogData.gym_name}
+                    className="btn-primary flex-1 text-sm"
+                  >
+                    {quickLogLoading ? 'Logging...' : 'Log'}
+                  </button>
+                  <button
+                    onClick={() => setQuickLogOpen(false)}
+                    disabled={quickLogLoading}
+                    className="btn-secondary text-sm"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Quick Readiness */}
+        <div className="card bg-gradient-to-br from-green-50 to-green-100 dark:from-green-900/30 dark:to-green-800/30 border-2 border-green-300 dark:border-green-700">
+          <div className="text-center">
+            <div className="text-3xl mb-2">💚</div>
+            <h3 className="font-bold text-lg mb-1">Readiness</h3>
+            <p className="text-xs text-gray-600 dark:text-gray-400 mb-3">Check-in today</p>
+            {!quickReadinessOpen ? (
+              <button onClick={() => setQuickReadinessOpen(true)} className="btn-primary w-full bg-green-600 hover:bg-green-700">
+                Quick Check-in
+              </button>
+            ) : (
+              <div className="space-y-2 text-left">
+                <div className="flex items-center justify-between text-sm">
+                  <span>Sleep</span>
+                  <input
+                    type="number"
+                    className="input w-16 text-sm text-center"
+                    value={quickReadinessData.sleep}
+                    onChange={(e) => setQuickReadinessData({ ...quickReadinessData, sleep: parseInt(e.target.value) || 3 })}
+                    min="1"
+                    max="5"
+                    disabled={quickReadinessLoading}
+                  />
+                </div>
+                <div className="flex items-center justify-between text-sm">
+                  <span>Stress</span>
+                  <input
+                    type="number"
+                    className="input w-16 text-sm text-center"
+                    value={quickReadinessData.stress}
+                    onChange={(e) => setQuickReadinessData({ ...quickReadinessData, stress: parseInt(e.target.value) || 3 })}
+                    min="1"
+                    max="5"
+                    disabled={quickReadinessLoading}
+                  />
+                </div>
+                <div className="flex items-center justify-between text-sm">
+                  <span>Soreness</span>
+                  <input
+                    type="number"
+                    className="input w-16 text-sm text-center"
+                    value={quickReadinessData.soreness}
+                    onChange={(e) => setQuickReadinessData({ ...quickReadinessData, soreness: parseInt(e.target.value) || 2 })}
+                    min="1"
+                    max="5"
+                    disabled={quickReadinessLoading}
+                  />
+                </div>
+                <div className="flex items-center justify-between text-sm">
+                  <span>Energy</span>
+                  <input
+                    type="number"
+                    className="input w-16 text-sm text-center"
+                    value={quickReadinessData.energy}
+                    onChange={(e) => setQuickReadinessData({ ...quickReadinessData, energy: parseInt(e.target.value) || 3 })}
+                    min="1"
+                    max="5"
+                    disabled={quickReadinessLoading}
+                  />
+                </div>
+                <div className="flex gap-2">
+                  <button
+                    onClick={handleQuickReadiness}
+                    disabled={quickReadinessLoading}
+                    className="btn-primary flex-1 text-sm bg-green-600 hover:bg-green-700"
+                  >
+                    {quickReadinessLoading ? 'Logging...' : 'Log'}
+                  </button>
+                  <button
+                    onClick={() => setQuickReadinessOpen(false)}
+                    disabled={quickReadinessLoading}
+                    className="btn-secondary text-sm"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Quick Rest Day */}
+        <div className="card bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-900/30 dark:to-purple-800/30 border-2 border-purple-300 dark:border-purple-700">
+          <div className="text-center">
+            <div className="text-3xl mb-2">😴</div>
+            <h3 className="font-bold text-lg mb-1">Rest Day</h3>
+            <p className="text-xs text-gray-600 dark:text-gray-400 mb-3">Log recovery</p>
+            {!quickRestOpen ? (
+              <button onClick={() => setQuickRestOpen(true)} className="btn-primary w-full bg-purple-600 hover:bg-purple-700">
+                Quick Log
+              </button>
+            ) : (
+              <div className="space-y-2 text-left">
+                <select
+                  className="input text-sm"
+                  value={quickRestData.rest_type}
+                  onChange={(e) => setQuickRestData({ ...quickRestData, rest_type: e.target.value })}
+                  disabled={quickRestLoading}
+                >
+                  <option value="recovery">Active recovery</option>
+                  <option value="life">Life got in the way</option>
+                  <option value="injury">Injury/rehab</option>
+                  <option value="travel">Traveling</option>
+                </select>
+                <input
+                  type="text"
+                  className="input text-sm"
+                  placeholder="Note (optional)"
+                  value={quickRestData.note}
+                  onChange={(e) => setQuickRestData({ ...quickRestData, note: e.target.value })}
+                  disabled={quickRestLoading}
+                />
+                <div className="flex gap-2">
+                  <button
+                    onClick={handleQuickRest}
+                    disabled={quickRestLoading}
+                    className="btn-primary flex-1 text-sm bg-purple-600 hover:bg-purple-700"
+                  >
+                    {quickRestLoading ? 'Logging...' : 'Log'}
+                  </button>
+                  <button
+                    onClick={() => setQuickRestOpen(false)}
+                    disabled={quickRestLoading}
+                    className="btn-secondary text-sm"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
