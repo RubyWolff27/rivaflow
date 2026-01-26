@@ -10,6 +10,7 @@ class ContactRepository:
 
     @staticmethod
     def create(
+        user_id: int,
         name: str,
         contact_type: str = "training-partner",
         belt_rank: Optional[str] = None,
@@ -25,71 +26,72 @@ class ContactRepository:
             cursor.execute(
                 """
                 INSERT INTO contacts
-                (name, contact_type, belt_rank, belt_stripes, instructor_certification, phone, email, notes)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                (user_id, name, contact_type, belt_rank, belt_stripes, instructor_certification, phone, email, notes)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
-                (name, contact_type, belt_rank, belt_stripes, instructor_certification, phone, email, notes),
+                (user_id, name, contact_type, belt_rank, belt_stripes, instructor_certification, phone, email, notes),
             )
             contact_id = cursor.lastrowid
 
             # Return the created contact
-            cursor.execute("SELECT * FROM contacts WHERE id = ?", (contact_id,))
+            cursor.execute("SELECT * FROM contacts WHERE id = ? AND user_id = ?", (contact_id, user_id))
             row = cursor.fetchone()
             return ContactRepository._row_to_dict(row)
 
     @staticmethod
-    def get_by_id(contact_id: int) -> Optional[dict]:
+    def get_by_id(user_id: int, contact_id: int) -> Optional[dict]:
         """Get a contact by ID."""
         with get_connection() as conn:
             cursor = conn.cursor()
-            cursor.execute("SELECT * FROM contacts WHERE id = ?", (contact_id,))
+            cursor.execute("SELECT * FROM contacts WHERE id = ? AND user_id = ?", (contact_id, user_id))
             row = cursor.fetchone()
             return ContactRepository._row_to_dict(row) if row else None
 
     @staticmethod
-    def get_by_name(name: str) -> Optional[dict]:
+    def get_by_name(user_id: int, name: str) -> Optional[dict]:
         """Get a contact by exact name match."""
         with get_connection() as conn:
             cursor = conn.cursor()
-            cursor.execute("SELECT * FROM contacts WHERE name = ?", (name,))
+            cursor.execute("SELECT * FROM contacts WHERE user_id = ? AND name = ?", (user_id, name))
             row = cursor.fetchone()
             return ContactRepository._row_to_dict(row) if row else None
 
     @staticmethod
-    def list_all(order_by: str = "name ASC") -> List[dict]:
+    def list_all(user_id: int, order_by: str = "name ASC") -> List[dict]:
         """Get all contacts, ordered by name alphabetically by default."""
         with get_connection() as conn:
             cursor = conn.cursor()
-            cursor.execute(f"SELECT * FROM contacts ORDER BY {order_by}")
+            cursor.execute(f"SELECT * FROM contacts WHERE user_id = ? ORDER BY {order_by}", (user_id,))
             rows = cursor.fetchall()
             return [ContactRepository._row_to_dict(row) for row in rows]
 
     @staticmethod
-    def list_by_type(contact_type: str, order_by: str = "name ASC") -> List[dict]:
+    def list_by_type(user_id: int, contact_type: str, order_by: str = "name ASC") -> List[dict]:
         """Get contacts filtered by type."""
         with get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(
-                f"SELECT * FROM contacts WHERE contact_type = ? ORDER BY {order_by}",
-                (contact_type,),
+                f"SELECT * FROM contacts WHERE user_id = ? AND contact_type = ? ORDER BY {order_by}",
+                (user_id, contact_type),
             )
             rows = cursor.fetchall()
             return [ContactRepository._row_to_dict(row) for row in rows]
 
     @staticmethod
-    def search(query: str) -> List[dict]:
+    def search(user_id: int, query: str) -> List[dict]:
         """Search contacts by name (case-insensitive partial match)."""
         with get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(
-                "SELECT * FROM contacts WHERE name LIKE ? ORDER BY name ASC",
-                (f"%{query}%",),
+                "SELECT * FROM contacts WHERE user_id = ? AND name LIKE ? ORDER BY name ASC",
+                (user_id, f"%{query}%"),
             )
             rows = cursor.fetchall()
             return [ContactRepository._row_to_dict(row) for row in rows]
 
     @staticmethod
     def update(
+        user_id: int,
         contact_id: int,
         name: Optional[str] = None,
         contact_type: Optional[str] = None,
@@ -135,26 +137,26 @@ class ContactRepository:
 
             if not updates:
                 # No updates provided, just return current record
-                return ContactRepository.get_by_id(contact_id)
+                return ContactRepository.get_by_id(user_id, contact_id)
 
             # Add updated_at timestamp
             updates.append("updated_at = datetime('now')")
-            params.append(contact_id)
+            params.extend([contact_id, user_id])
 
-            query = f"UPDATE contacts SET {', '.join(updates)} WHERE id = ?"
+            query = f"UPDATE contacts SET {', '.join(updates)} WHERE id = ? AND user_id = ?"
             cursor.execute(query, params)
 
             if cursor.rowcount == 0:
                 return None
 
-            return ContactRepository.get_by_id(contact_id)
+            return ContactRepository.get_by_id(user_id, contact_id)
 
     @staticmethod
-    def delete(contact_id: int) -> bool:
+    def delete(user_id: int, contact_id: int) -> bool:
         """Delete a contact by ID. Returns True if deleted, False if not found."""
         with get_connection() as conn:
             cursor = conn.cursor()
-            cursor.execute("DELETE FROM contacts WHERE id = ?", (contact_id,))
+            cursor.execute("DELETE FROM contacts WHERE id = ? AND user_id = ?", (contact_id, user_id))
             return cursor.rowcount > 0
 
     @staticmethod

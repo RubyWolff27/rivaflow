@@ -13,6 +13,7 @@ class ReadinessService:
 
     def log_readiness(
         self,
+        user_id: int,
         check_date: date,
         sleep: int,
         stress: int,
@@ -26,6 +27,7 @@ class ReadinessService:
         Returns readiness ID.
         """
         return self.repo.upsert(
+            user_id=user_id,
             check_date=check_date,
             sleep=sleep,
             stress=stress,
@@ -35,30 +37,31 @@ class ReadinessService:
             weight_kg=weight_kg,
         )
 
-    def get_readiness(self, check_date: date) -> Optional[dict]:
+    def get_readiness(self, user_id: int, check_date: date) -> Optional[dict]:
         """Get readiness entry for a specific date."""
-        return self.repo.get_by_date(check_date)
+        return self.repo.get_by_date(user_id, check_date)
 
-    def get_latest_readiness(self) -> Optional[dict]:
+    def get_latest_readiness(self, user_id: int) -> Optional[dict]:
         """Get the most recent readiness entry."""
-        return self.repo.get_latest()
+        return self.repo.get_latest(user_id)
 
-    def get_readiness_range(self, start_date: date, end_date: date) -> list[dict]:
+    def get_readiness_range(self, user_id: int, start_date: date, end_date: date) -> list[dict]:
         """Get readiness entries within a date range."""
-        return self.repo.get_by_date_range(start_date, end_date)
+        return self.repo.get_by_date_range(user_id, start_date, end_date)
 
-    def log_weight_only(self, check_date: date, weight_kg: float) -> int:
+    def log_weight_only(self, user_id: int, check_date: date, weight_kg: float) -> int:
         """
         Log weight only for a date. If readiness exists, updates weight.
         If not, creates entry with default middle values (3) for readiness scores.
         Returns readiness ID.
         """
         # Check if entry exists for this date
-        existing = self.repo.get_by_date(check_date)
+        existing = self.repo.get_by_date(user_id, check_date)
 
         if existing:
             # Update existing entry with new weight
             return self.repo.upsert(
+                user_id=user_id,
                 check_date=check_date,
                 sleep=existing["sleep"],
                 stress=existing["stress"],
@@ -70,6 +73,7 @@ class ReadinessService:
         else:
             # Create new entry with default middle values (3) for scores
             return self.repo.upsert(
+                user_id=user_id,
                 check_date=check_date,
                 sleep=3,
                 stress=3,

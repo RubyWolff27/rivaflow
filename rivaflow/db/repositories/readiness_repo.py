@@ -11,6 +11,7 @@ class ReadinessRepository:
 
     @staticmethod
     def upsert(
+        user_id: int,
         check_date: date,
         sleep: int,
         stress: int,
@@ -24,8 +25,8 @@ class ReadinessRepository:
             cursor = conn.cursor()
             # Try to get existing entry
             cursor.execute(
-                "SELECT id FROM readiness WHERE check_date = ?",
-                (check_date.isoformat(),),
+                "SELECT id FROM readiness WHERE user_id = ? AND check_date = ?",
+                (user_id, check_date.isoformat()),
             )
             existing = cursor.fetchone()
 
@@ -36,9 +37,9 @@ class ReadinessRepository:
                     UPDATE readiness
                     SET sleep = ?, stress = ?, soreness = ?, energy = ?,
                         hotspot_note = ?, weight_kg = ?, updated_at = datetime('now')
-                    WHERE check_date = ?
+                    WHERE user_id = ? AND check_date = ?
                     """,
-                    (sleep, stress, soreness, energy, hotspot_note, weight_kg, check_date.isoformat()),
+                    (sleep, stress, soreness, energy, hotspot_note, weight_kg, user_id, check_date.isoformat()),
                 )
                 return existing["id"]
             else:
@@ -46,21 +47,21 @@ class ReadinessRepository:
                 cursor.execute(
                     """
                     INSERT INTO readiness (
-                        check_date, sleep, stress, soreness, energy, hotspot_note, weight_kg
-                    ) VALUES (?, ?, ?, ?, ?, ?, ?)
+                        user_id, check_date, sleep, stress, soreness, energy, hotspot_note, weight_kg
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
                     """,
-                    (check_date.isoformat(), sleep, stress, soreness, energy, hotspot_note, weight_kg),
+                    (user_id, check_date.isoformat(), sleep, stress, soreness, energy, hotspot_note, weight_kg),
                 )
                 return cursor.lastrowid
 
     @staticmethod
-    def get_by_date(check_date: date) -> Optional[dict]:
+    def get_by_date(user_id: int, check_date: date) -> Optional[dict]:
         """Get readiness entry for a specific date."""
         with get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(
-                "SELECT * FROM readiness WHERE check_date = ?",
-                (check_date.isoformat(),),
+                "SELECT * FROM readiness WHERE user_id = ? AND check_date = ?",
+                (user_id, check_date.isoformat()),
             )
             row = cursor.fetchone()
             if row:
@@ -68,12 +69,13 @@ class ReadinessRepository:
             return None
 
     @staticmethod
-    def get_latest() -> Optional[dict]:
+    def get_latest(user_id: int) -> Optional[dict]:
         """Get the most recent readiness entry."""
         with get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(
-                "SELECT * FROM readiness ORDER BY check_date DESC LIMIT 1"
+                "SELECT * FROM readiness WHERE user_id = ? ORDER BY check_date DESC LIMIT 1",
+                (user_id,)
             )
             row = cursor.fetchone()
             if row:
@@ -81,17 +83,17 @@ class ReadinessRepository:
             return None
 
     @staticmethod
-    def get_by_date_range(start_date: date, end_date: date) -> list[dict]:
+    def get_by_date_range(user_id: int, start_date: date, end_date: date) -> list[dict]:
         """Get readiness entries within a date range (inclusive)."""
         with get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(
                 """
                 SELECT * FROM readiness
-                WHERE check_date BETWEEN ? AND ?
+                WHERE user_id = ? AND check_date BETWEEN ? AND ?
                 ORDER BY check_date DESC
                 """,
-                (start_date.isoformat(), end_date.isoformat()),
+                (user_id, start_date.isoformat(), end_date.isoformat()),
             )
             return [ReadinessRepository._row_to_dict(row) for row in cursor.fetchall()]
 

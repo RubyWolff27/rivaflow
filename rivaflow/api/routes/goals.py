@@ -1,9 +1,10 @@
 """Weekly goals and streak tracking endpoints."""
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Depends
 from pydantic import BaseModel
 from typing import Optional
 
 from rivaflow.core.services.goals_service import GoalsService
+from rivaflow.core.dependencies import get_current_user
 
 router = APIRouter()
 service = GoalsService()
@@ -18,7 +19,7 @@ class GoalTargetsUpdate(BaseModel):
 
 
 @router.get("/current-week")
-async def get_current_week_progress():
+async def get_current_week_progress(current_user: dict = Depends(get_current_user)):
     """Get current week's goal progress.
 
     Returns progress toward weekly targets:
@@ -28,13 +29,13 @@ async def get_current_week_progress():
     - Completion status
     """
     try:
-        return service.get_current_week_progress()
+        return service.get_current_week_progress(user_id=current_user["id"])
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
 
 @router.get("/summary")
-async def get_goals_summary():
+async def get_goals_summary(current_user: dict = Depends(get_current_user)):
     """Get comprehensive goals and streaks overview.
 
     Returns:
@@ -44,31 +45,31 @@ async def get_goals_summary():
     - Recent 12-week trend
     """
     try:
-        return service.get_goals_summary()
+        return service.get_goals_summary(user_id=current_user["id"])
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
 
 @router.get("/streaks/training")
-async def get_training_streaks():
+async def get_training_streaks(current_user: dict = Depends(get_current_user)):
     """Get training session streaks (consecutive days trained)."""
     try:
-        return service.get_training_streaks()
+        return service.get_training_streaks(user_id=current_user["id"])
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
 
 @router.get("/streaks/goals")
-async def get_goal_completion_streaks():
+async def get_goal_completion_streaks(current_user: dict = Depends(get_current_user)):
     """Get weekly goal completion streaks."""
     try:
-        return service.get_goal_completion_streak()
+        return service.get_goal_completion_streak(user_id=current_user["id"])
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
 
 @router.get("/trend")
-async def get_recent_trend(weeks: int = 12):
+async def get_recent_trend(weeks: int = 12, current_user: dict = Depends(get_current_user)):
     """Get goal completion trend for recent weeks.
 
     Args:
@@ -77,7 +78,7 @@ async def get_recent_trend(weeks: int = 12):
     try:
         if weeks < 1 or weeks > 52:
             raise HTTPException(status_code=400, detail="Weeks must be between 1 and 52")
-        return service.get_recent_weeks_trend(weeks=weeks)
+        return service.get_recent_weeks_trend(user_id=current_user["id"], weeks=weeks)
     except HTTPException:
         raise
     except Exception as e:
@@ -85,7 +86,7 @@ async def get_recent_trend(weeks: int = 12):
 
 
 @router.put("/targets")
-async def update_goal_targets(targets: GoalTargetsUpdate):
+async def update_goal_targets(targets: GoalTargetsUpdate, current_user: dict = Depends(get_current_user)):
     """Update weekly goal targets in profile.
 
     Body:
@@ -97,6 +98,7 @@ async def update_goal_targets(targets: GoalTargetsUpdate):
     """
     try:
         profile = service.update_profile_goals(
+            user_id=current_user["id"],
             weekly_sessions_target=targets.weekly_sessions_target,
             weekly_hours_target=targets.weekly_hours_target,
             weekly_rolls_target=targets.weekly_rolls_target,

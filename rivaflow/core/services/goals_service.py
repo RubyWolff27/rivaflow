@@ -18,7 +18,7 @@ class GoalsService:
         self.report_service = ReportService()
         self.analytics_service = AnalyticsService()
 
-    def get_current_week_progress(self) -> dict:
+    def get_current_week_progress(self, user_id: int) -> dict:
         """Get current week's goal progress vs targets.
 
         Returns:
@@ -49,7 +49,7 @@ class GoalsService:
         week_start, week_end = self.report_service.get_week_dates()
 
         # Get profile targets
-        profile = self.profile_repo.get()
+        profile = self.profile_repo.get(user_id)
         targets = {
             "sessions": profile.get("weekly_sessions_target", 3),
             "hours": profile.get("weekly_hours_target", 4.5),
@@ -57,7 +57,7 @@ class GoalsService:
         }
 
         # Get actual progress from sessions this week
-        sessions = self.session_repo.get_by_date_range(week_start, week_end)
+        sessions = self.session_repo.get_by_date_range(user_id, week_start, week_end)
 
         actual_sessions = len(sessions)
         actual_hours = round(sum(s["duration_mins"] for s in sessions) / 60, 1)
@@ -94,6 +94,7 @@ class GoalsService:
 
         # Update goal_progress table
         self._update_or_create_progress(
+            user_id=user_id,
             week_start=week_start,
             week_end=week_end,
             targets=targets,
@@ -112,17 +113,19 @@ class GoalsService:
 
     def _update_or_create_progress(
         self,
+        user_id: int,
         week_start: date,
         week_end: date,
         targets: dict,
         actual: dict,
     ):
         """Update or create goal_progress record for the week."""
-        existing = self.goal_progress_repo.get_by_week(week_start)
+        existing = self.goal_progress_repo.get_by_week(user_id, week_start)
 
         if existing:
             # Update existing record
             self.goal_progress_repo.update_progress(
+                user_id=user_id,
                 week_start_date=week_start,
                 actual_sessions=actual["sessions"],
                 actual_hours=actual["hours"],
@@ -131,6 +134,7 @@ class GoalsService:
         else:
             # Create new record
             self.goal_progress_repo.create(
+                user_id=user_id,
                 week_start_date=week_start,
                 week_end_date=week_end,
                 target_sessions=targets["sessions"],
@@ -141,9 +145,9 @@ class GoalsService:
                 actual_rolls=actual["rolls"],
             )
 
-    def get_recent_weeks_trend(self, weeks: int = 12) -> list[dict]:
+    def get_recent_weeks_trend(self, user_id: int, weeks: int = 12) -> list[dict]:
         """Get goal completion trend for recent weeks."""
-        progress_records = self.goal_progress_repo.get_recent_weeks(limit=weeks)
+        progress_records = self.goal_progress_repo.get_recent_weeks(user_id, limit=weeks)
 
         trend = []
         for record in progress_records:
@@ -175,17 +179,17 @@ class GoalsService:
 
         return round((sessions_pct + hours_pct + rolls_pct) / 3, 1)
 
-    def get_goal_completion_streak(self) -> dict:
+    def get_goal_completion_streak(self, user_id: int) -> dict:
         """Get current and longest weekly goal completion streaks."""
-        return self.goal_progress_repo.get_completion_streak()
+        return self.goal_progress_repo.get_completion_streak(user_id)
 
-    def get_training_streaks(self) -> dict:
+    def get_training_streaks(self, user_id: int) -> dict:
         """Get training session streaks (consecutive days trained).
 
         Uses existing AnalyticsService streak calculation.
         """
         # Get consistency analytics which includes streak data
-        consistency = self.analytics_service.get_consistency_analytics()
+        consistency = self.analytics_service.get_consistency_analytics(user_id)
 
         return {
             "current_streak": consistency["streaks"]["current"],
@@ -195,6 +199,7 @@ class GoalsService:
 
     def update_profile_goals(
         self,
+        user_id: int,
         weekly_sessions_target: Optional[int] = None,
         weekly_hours_target: Optional[float] = None,
         weekly_rolls_target: Optional[int] = None,
@@ -203,7 +208,7 @@ class GoalsService:
 
         Returns updated profile.
         """
-        profile = self.profile_repo.get()
+        profile = self.profile_repo.get(user_id)
 
         # Build update dict
         updates = {}
@@ -222,16 +227,16 @@ class GoalsService:
         with get_connection() as conn:
             cursor = conn.cursor()
             set_clause = ", ".join([f"{k} = ?" for k in updates.keys()])
-            values = list(updates.values())
+            values = list(updates.values()) + [user_id]
 
             cursor.execute(
-                f"UPDATE profile SET {set_clause}, updated_at = datetime('now') WHERE id = 1",
+                f"UPDATE profile SET {set_clause}, updated_at = datetime('now') WHERE user_id = ?",
                 values,
             )
 
-        return self.profile_repo.get()
+        return self.profile_repo.get(user_id)
 
-    def get_goals_summary(self) -> dict:
+    def get_goals_summary(self, user_id: int) -> dict:
         """Get comprehensive goals and streaks overview.
 
         Returns:
@@ -243,8 +248,8 @@ class GoalsService:
             }
         """
         return {
-            "current_week": self.get_current_week_progress(),
-            "training_streaks": self.get_training_streaks(),
-            "goal_streaks": self.get_goal_completion_streak(),
-            "recent_trend": self.get_recent_weeks_trend(weeks=12),
+            "current_week": self.get_current_week_progress(user_id),
+            "training_streaks": self.get_training_streaks(user_id),
+            "goal_streaks": self.get_goal_completion_streak(user_id),
+            "recent_trend": self.get_recent_weeks_trend(user_id, weeks=12),
         }

@@ -10,46 +10,48 @@ class GradingRepository:
     """Data access layer for belt gradings."""
 
     @staticmethod
-    def create(grade: str, date_graded: str, professor: Optional[str] = None, notes: Optional[str] = None) -> dict:
+    def create(user_id: int, grade: str, date_graded: str, professor: Optional[str] = None, notes: Optional[str] = None) -> dict:
         """Create a new grading entry."""
         with get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(
                 """
-                INSERT INTO gradings (grade, date_graded, professor, notes)
-                VALUES (?, ?, ?, ?)
+                INSERT INTO gradings (user_id, grade, date_graded, professor, notes)
+                VALUES (?, ?, ?, ?, ?)
                 """,
-                (grade, date_graded, professor, notes),
+                (user_id, grade, date_graded, professor, notes),
             )
             grading_id = cursor.lastrowid
 
             # Return the created grading
-            cursor.execute("SELECT * FROM gradings WHERE id = ?", (grading_id,))
+            cursor.execute("SELECT * FROM gradings WHERE id = ? AND user_id = ?", (grading_id, user_id))
             row = cursor.fetchone()
             return GradingRepository._row_to_dict(row)
 
     @staticmethod
-    def list_all(order_by: str = "date_graded DESC") -> List[dict]:
+    def list_all(user_id: int, order_by: str = "date_graded DESC") -> List[dict]:
         """Get all gradings, ordered by date (newest first by default)."""
         with get_connection() as conn:
             cursor = conn.cursor()
-            cursor.execute(f"SELECT * FROM gradings ORDER BY {order_by}")
+            cursor.execute(f"SELECT * FROM gradings WHERE user_id = ? ORDER BY {order_by}", (user_id,))
             rows = cursor.fetchall()
             return [GradingRepository._row_to_dict(row) for row in rows]
 
     @staticmethod
-    def get_latest() -> Optional[dict]:
+    def get_latest(user_id: int) -> Optional[dict]:
         """Get the most recent grading."""
         with get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(
-                "SELECT * FROM gradings ORDER BY date_graded DESC, id DESC LIMIT 1"
+                "SELECT * FROM gradings WHERE user_id = ? ORDER BY date_graded DESC, id DESC LIMIT 1",
+                (user_id,)
             )
             row = cursor.fetchone()
             return GradingRepository._row_to_dict(row) if row else None
 
     @staticmethod
     def update(
+        user_id: int,
         grading_id: int,
         grade: Optional[str] = None,
         date_graded: Optional[str] = None,
@@ -79,28 +81,28 @@ class GradingRepository:
 
             if not updates:
                 # Nothing to update, just return the current grading
-                cursor.execute("SELECT * FROM gradings WHERE id = ?", (grading_id,))
+                cursor.execute("SELECT * FROM gradings WHERE id = ? AND user_id = ?", (grading_id, user_id))
                 row = cursor.fetchone()
                 return GradingRepository._row_to_dict(row) if row else None
 
-            params.append(grading_id)
-            query = f"UPDATE gradings SET {', '.join(updates)} WHERE id = ?"
+            params.extend([grading_id, user_id])
+            query = f"UPDATE gradings SET {', '.join(updates)} WHERE id = ? AND user_id = ?"
             cursor.execute(query, params)
 
             if cursor.rowcount == 0:
                 return None
 
             # Return updated grading
-            cursor.execute("SELECT * FROM gradings WHERE id = ?", (grading_id,))
+            cursor.execute("SELECT * FROM gradings WHERE id = ? AND user_id = ?", (grading_id, user_id))
             row = cursor.fetchone()
             return GradingRepository._row_to_dict(row) if row else None
 
     @staticmethod
-    def delete(grading_id: int) -> bool:
+    def delete(user_id: int, grading_id: int) -> bool:
         """Delete a grading by ID. Returns True if deleted."""
         with get_connection() as conn:
             cursor = conn.cursor()
-            cursor.execute("DELETE FROM gradings WHERE id = ?", (grading_id,))
+            cursor.execute("DELETE FROM gradings WHERE id = ? AND user_id = ?", (grading_id, user_id))
             return cursor.rowcount > 0
 
     @staticmethod

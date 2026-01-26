@@ -11,32 +11,32 @@ class TechniqueService:
     def __init__(self):
         self.repo = TechniqueRepository()
 
-    def add_technique(self, name: str, category: Optional[str] = None) -> int:
+    def add_technique(self, user_id: int, name: str, category: Optional[str] = None) -> int:
         """
         Add a new technique or get existing one.
         Returns technique ID.
         """
-        return self.repo.create(name=name, category=category)
+        return self.repo.create(user_id=user_id, name=name, category=category)
 
-    def get_technique(self, technique_id: int) -> Optional[dict]:
+    def get_technique(self, user_id: int, technique_id: int) -> Optional[dict]:
         """Get a technique by ID."""
-        return self.repo.get_by_id(technique_id)
+        return self.repo.get_by_id(user_id, technique_id)
 
-    def get_technique_by_name(self, name: str) -> Optional[dict]:
+    def get_technique_by_name(self, user_id: int, name: str) -> Optional[dict]:
         """Get a technique by name."""
-        return self.repo.get_by_name(name)
+        return self.repo.get_by_name(user_id, name)
 
-    def list_all_techniques(self) -> list[dict]:
+    def list_all_techniques(self, user_id: int) -> list[dict]:
         """Get all techniques."""
-        return self.repo.list_all()
+        return self.repo.list_all(user_id)
 
-    def get_stale_techniques(self, days: int = 7) -> list[dict]:
+    def get_stale_techniques(self, user_id: int, days: int = 7) -> list[dict]:
         """Get techniques not trained in N days."""
-        return self.repo.get_stale(days)
+        return self.repo.get_stale(user_id, days)
 
-    def search_techniques(self, query: str) -> list[dict]:
+    def search_techniques(self, user_id: int, query: str) -> list[dict]:
         """Search techniques by name."""
-        return self.repo.search(query)
+        return self.repo.search(user_id, query)
 
     def format_technique_summary(self, technique: dict) -> str:
         """Format a technique as a human-readable summary."""

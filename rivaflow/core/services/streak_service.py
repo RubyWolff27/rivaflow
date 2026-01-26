@@ -11,11 +11,12 @@ class StreakService:
     def __init__(self):
         self.streak_repo = StreakRepository()
 
-    def record_checkin(self, checkin_type: str, checkin_date: Optional[date] = None) -> dict:
+    def record_checkin(self, user_id: int, checkin_type: str, checkin_date: Optional[date] = None) -> dict:
         """
         Record a check-in and update relevant streaks.
 
         Args:
+            user_id: User ID
             checkin_type: 'session', 'rest', or 'readiness_only'
             checkin_date: Date of check-in (defaults to today)
 
@@ -40,8 +41,8 @@ class StreakService:
         }
 
         # Always update check-in streak
-        old_checkin_streak = self.streak_repo.get_streak("checkin")
-        new_checkin_streak = self.streak_repo.update_streak("checkin", checkin_date)
+        old_checkin_streak = self.streak_repo.get_streak(user_id, "checkin")
+        new_checkin_streak = self.streak_repo.update_streak(user_id, "checkin", checkin_date)
         result["checkin_streak"] = new_checkin_streak
 
         if new_checkin_streak["current_streak"] > old_checkin_streak["current_streak"]:
@@ -55,8 +56,8 @@ class StreakService:
 
         # Update training streak if session
         if checkin_type == "session":
-            old_training_streak = self.streak_repo.get_streak("training")
-            new_training_streak = self.streak_repo.update_streak("training", checkin_date)
+            old_training_streak = self.streak_repo.get_streak(user_id, "training")
+            new_training_streak = self.streak_repo.update_streak(user_id, "training", checkin_date)
             result["training_streak"] = new_training_streak
 
             if new_training_streak["current_streak"] > old_training_streak["longest_streak"]:
@@ -67,7 +68,7 @@ class StreakService:
 
         return result
 
-    def record_readiness_checkin(self, checkin_date: Optional[date] = None) -> dict:
+    def record_readiness_checkin(self, user_id: int, checkin_date: Optional[date] = None) -> dict:
         """
         Record a readiness check-in and update readiness streak.
 
@@ -80,8 +81,8 @@ class StreakService:
         if checkin_date is None:
             checkin_date = date.today()
 
-        old_readiness_streak = self.streak_repo.get_streak("readiness")
-        new_readiness_streak = self.streak_repo.update_streak("readiness", checkin_date)
+        old_readiness_streak = self.streak_repo.get_streak(user_id, "readiness")
+        new_readiness_streak = self.streak_repo.update_streak(user_id, "readiness", checkin_date)
 
         return {
             "readiness_streak": new_readiness_streak,
@@ -90,7 +91,7 @@ class StreakService:
             "longest_beaten": new_readiness_streak["current_streak"] > old_readiness_streak["longest_streak"],
         }
 
-    def get_streak_status(self) -> dict:
+    def get_streak_status(self, user_id: int) -> dict:
         """
         Get current status of all streaks.
 
@@ -101,42 +102,43 @@ class StreakService:
         - any_at_risk: bool
         """
         streaks = {
-            "checkin": self.streak_repo.get_streak("checkin"),
-            "training": self.streak_repo.get_streak("training"),
-            "readiness": self.streak_repo.get_streak("readiness"),
+            "checkin": self.streak_repo.get_streak(user_id, "checkin"),
+            "training": self.streak_repo.get_streak(user_id, "training"),
+            "readiness": self.streak_repo.get_streak(user_id, "readiness"),
         }
 
         streaks["any_at_risk"] = (
-            self.streak_repo.is_streak_at_risk("checkin") or
-            self.streak_repo.is_streak_at_risk("training") or
-            self.streak_repo.is_streak_at_risk("readiness")
+            self.streak_repo.is_streak_at_risk(user_id, "checkin") or
+            self.streak_repo.is_streak_at_risk(user_id, "training") or
+            self.streak_repo.is_streak_at_risk(user_id, "readiness")
         )
 
         return streaks
 
-    def is_streak_at_risk(self, streak_type: Optional[str] = None) -> bool:
+    def is_streak_at_risk(self, user_id: int, streak_type: Optional[str] = None) -> bool:
         """
         Check if user will lose streak if they don't check in today.
 
         Args:
+            user_id: User ID
             streak_type: Specific streak type to check, or None to check all
 
         Returns:
             True if any streak is at risk (or specified streak is at risk)
         """
         if streak_type:
-            return self.streak_repo.is_streak_at_risk(streak_type)
+            return self.streak_repo.is_streak_at_risk(user_id, streak_type)
 
         return (
-            self.streak_repo.is_streak_at_risk("checkin") or
-            self.streak_repo.is_streak_at_risk("training") or
-            self.streak_repo.is_streak_at_risk("readiness")
+            self.streak_repo.is_streak_at_risk(user_id, "checkin") or
+            self.streak_repo.is_streak_at_risk(user_id, "training") or
+            self.streak_repo.is_streak_at_risk(user_id, "readiness")
         )
 
-    def get_streak(self, streak_type: str) -> dict:
+    def get_streak(self, user_id: int, streak_type: str) -> dict:
         """Get a specific streak."""
-        return self.streak_repo.get_streak(streak_type)
+        return self.streak_repo.get_streak(user_id, streak_type)
 
-    def get_all_streaks(self) -> list[dict]:
+    def get_all_streaks(self, user_id: int) -> list[dict]:
         """Get all streak types."""
-        return self.streak_repo.get_all_streaks()
+        return self.streak_repo.get_all_streaks(user_id)

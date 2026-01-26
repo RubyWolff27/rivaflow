@@ -1,18 +1,19 @@
 """Session management endpoints."""
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Depends
 from datetime import date
 from typing import Optional
 
 from rivaflow.core.services.session_service import SessionService
 from rivaflow.core.services.privacy_service import PrivacyService
 from rivaflow.core.models import SessionCreate, SessionUpdate
+from rivaflow.core.dependencies import get_current_user
 
 router = APIRouter()
 service = SessionService()
 
 
 @router.post("/")
-async def create_session(session: SessionCreate):
+async def create_session(session: SessionCreate, current_user: dict = Depends(get_current_user)):
     """Create a new training session."""
     try:
         # Convert SessionRollData models to dicts if present
@@ -26,6 +27,7 @@ async def create_session(session: SessionCreate):
             session_techniques_dict = [tech.model_dump() for tech in session.session_techniques]
 
         session_id = service.create_session(
+            user_id=current_user["id"],
             session_date=session.session_date,
             class_type=session.class_type.value,
             gym_name=session.gym_name,
@@ -48,14 +50,14 @@ async def create_session(session: SessionCreate):
             whoop_avg_hr=session.whoop_avg_hr,
             whoop_max_hr=session.whoop_max_hr,
         )
-        created_session = service.get_session(session_id)
+        created_session = service.get_session(user_id=current_user["id"], session_id=session_id)
         return created_session
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
 
 @router.put("/{session_id}")
-async def update_session(session_id: int, session: SessionUpdate):
+async def update_session(session_id: int, session: SessionUpdate, current_user: dict = Depends(get_current_user)):
     """Update an existing training session."""
     try:
         # Convert SessionTechniqueCreate models to dicts if present
@@ -64,6 +66,7 @@ async def update_session(session_id: int, session: SessionUpdate):
             session_techniques_dict = [tech.model_dump() for tech in session.session_techniques]
 
         updated = service.update_session(
+            user_id=current_user["id"],
             session_id=session_id,
             session_date=session.session_date,
             class_type=session.class_type.value if session.class_type else None,
@@ -96,7 +99,7 @@ async def update_session(session_id: int, session: SessionUpdate):
 
 
 @router.get("/{session_id}")
-async def get_session(session_id: int, apply_privacy: bool = False):
+async def get_session(session_id: int, apply_privacy: bool = False, current_user: dict = Depends(get_current_user)):
     """Get a session by ID.
 
     Args:
@@ -105,7 +108,7 @@ async def get_session(session_id: int, apply_privacy: bool = False):
                       Default False for owner access (current single-user mode).
                       Future: Will be True when viewer_id != owner_id.
     """
-    session = service.get_session(session_id)
+    session = service.get_session(user_id=current_user["id"], session_id=session_id)
     if not session:
         raise HTTPException(status_code=404, detail="Session not found")
 
@@ -120,7 +123,7 @@ async def get_session(session_id: int, apply_privacy: bool = False):
 
 
 @router.get("/")
-async def list_sessions(limit: int = 10, apply_privacy: bool = False):
+async def list_sessions(limit: int = 10, apply_privacy: bool = False, current_user: dict = Depends(get_current_user)):
     """List recent sessions.
 
     Args:
@@ -128,7 +131,7 @@ async def list_sessions(limit: int = 10, apply_privacy: bool = False):
         apply_privacy: If True, apply privacy redaction to each session.
                       Default False for owner access (current single-user mode).
     """
-    sessions = service.get_recent_sessions(limit)
+    sessions = service.get_recent_sessions(user_id=current_user["id"], limit=limit)
 
     if apply_privacy:
         sessions = PrivacyService.redact_sessions_list(
@@ -140,7 +143,7 @@ async def list_sessions(limit: int = 10, apply_privacy: bool = False):
 
 
 @router.get("/range/{start_date}/{end_date}")
-async def get_sessions_by_range(start_date: date, end_date: date, apply_privacy: bool = False):
+async def get_sessions_by_range(start_date: date, end_date: date, apply_privacy: bool = False, current_user: dict = Depends(get_current_user)):
     """Get sessions within a date range.
 
     Args:
@@ -149,7 +152,7 @@ async def get_sessions_by_range(start_date: date, end_date: date, apply_privacy:
         apply_privacy: If True, apply privacy redaction to each session.
                       Default False for owner access (current single-user mode).
     """
-    sessions = service.get_sessions_by_date_range(start_date, end_date)
+    sessions = service.get_sessions_by_date_range(user_id=current_user["id"], start_date=start_date, end_date=end_date)
 
     if apply_privacy:
         sessions = PrivacyService.redact_sessions_list(
@@ -161,13 +164,13 @@ async def get_sessions_by_range(start_date: date, end_date: date, apply_privacy:
 
 
 @router.get("/autocomplete/data")
-async def get_autocomplete_data():
+async def get_autocomplete_data(current_user: dict = Depends(get_current_user)):
     """Get data for autocomplete suggestions."""
-    return service.get_autocomplete_data()
+    return service.get_autocomplete_data(user_id=current_user["id"])
 
 
 @router.get("/{session_id}/with-rolls")
-async def get_session_with_rolls(session_id: int, apply_privacy: bool = False):
+async def get_session_with_rolls(session_id: int, apply_privacy: bool = False, current_user: dict = Depends(get_current_user)):
     """Get a session with detailed roll records.
 
     Args:
@@ -177,7 +180,7 @@ async def get_session_with_rolls(session_id: int, apply_privacy: bool = False):
                       excluded unless visibility is "full".
                       Default False for owner access (current single-user mode).
     """
-    session = service.get_session_with_rolls(session_id)
+    session = service.get_session_with_rolls(user_id=current_user["id"], session_id=session_id)
     if not session:
         raise HTTPException(status_code=404, detail="Session not found")
 
@@ -191,10 +194,10 @@ async def get_session_with_rolls(session_id: int, apply_privacy: bool = False):
 
 
 @router.get("/partner/{partner_id}/stats")
-async def get_partner_stats(partner_id: int):
+async def get_partner_stats(partner_id: int, current_user: dict = Depends(get_current_user)):
     """Get training statistics for a specific partner."""
     try:
-        stats = service.get_partner_stats(partner_id)
+        stats = service.get_partner_stats(user_id=current_user["id"], partner_id=partner_id)
         return stats
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

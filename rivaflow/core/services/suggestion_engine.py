@@ -15,7 +15,7 @@ class SuggestionEngine:
         self.technique_repo = TechniqueRepository()
         self.session_service = SessionService()
 
-    def get_suggestion(self, target_date: Optional[date] = None) -> dict:
+    def get_suggestion(self, user_id: int, target_date: Optional[date] = None) -> dict:
         """
         Get training suggestion for a date.
         Returns dict with suggestion, triggered rules, and readiness snapshot.
@@ -24,11 +24,11 @@ class SuggestionEngine:
             target_date = date.today()
 
         # Get latest readiness
-        readiness = self.readiness_repo.get_latest()
+        readiness = self.readiness_repo.get_latest(user_id)
 
         # Get session context
-        consecutive_counts = self.session_service.get_consecutive_class_type_count()
-        stale_techniques = self.technique_repo.get_stale(days=7)
+        consecutive_counts = self.session_service.get_consecutive_class_type_count(user_id)
+        stale_techniques = self.technique_repo.get_stale(days=7)  # Techniques are global, no user_id
 
         session_context = {
             "consecutive_gi_sessions": consecutive_counts.get("gi", 0),

@@ -10,7 +10,7 @@ class MilestoneRepository:
     """Data access layer for milestone achievements."""
 
     @staticmethod
-    def check_and_create_milestone(milestone_type: str, current_value: int) -> Optional[dict]:
+    def check_and_create_milestone(user_id: int, milestone_type: str, current_value: int) -> Optional[dict]:
         """
         Check if current value crosses a milestone threshold. Create if new.
         Returns the newly created milestone dict, or None if no new milestone.
@@ -34,9 +34,9 @@ class MilestoneRepository:
             cursor.execute(
                 """
                 SELECT id FROM milestones
-                WHERE milestone_type = ? AND milestone_value = ?
+                WHERE user_id = ? AND milestone_type = ? AND milestone_value = ?
                 """,
-                (milestone_type, crossed_threshold)
+                (user_id, milestone_type, crossed_threshold)
             )
             existing = cursor.fetchone()
 
@@ -47,10 +47,10 @@ class MilestoneRepository:
             label = MILESTONE_LABELS.get(milestone_type, "{}").format(crossed_threshold)
             cursor.execute(
                 """
-                INSERT INTO milestones (milestone_type, milestone_value, milestone_label, celebrated)
-                VALUES (?, ?, ?, 0)
+                INSERT INTO milestones (user_id, milestone_type, milestone_value, milestone_label, celebrated)
+                VALUES (?, ?, ?, ?, 0)
                 """,
-                (milestone_type, crossed_threshold, label)
+                (user_id, milestone_type, crossed_threshold, label)
             )
             conn.commit()
 
@@ -61,9 +61,9 @@ class MilestoneRepository:
                 """
                 SELECT id, milestone_type, milestone_value, milestone_label, achieved_at, celebrated
                 FROM milestones
-                WHERE id = ?
+                WHERE id = ? AND user_id = ?
                 """,
-                (milestone_id,)
+                (milestone_id, user_id)
             )
             row = cursor.fetchone()
 
@@ -77,7 +77,7 @@ class MilestoneRepository:
             }
 
     @staticmethod
-    def get_uncelebrated_milestones() -> list[dict]:
+    def get_uncelebrated_milestones(user_id: int) -> list[dict]:
         """Get milestones that haven't been shown to user yet."""
         with get_connection() as conn:
             cursor = conn.cursor()
@@ -85,9 +85,10 @@ class MilestoneRepository:
                 """
                 SELECT id, milestone_type, milestone_value, milestone_label, achieved_at, celebrated
                 FROM milestones
-                WHERE celebrated = 0
+                WHERE user_id = ? AND celebrated = 0
                 ORDER BY achieved_at DESC
-                """
+                """,
+                (user_id,)
             )
             rows = cursor.fetchall()
 
@@ -104,7 +105,7 @@ class MilestoneRepository:
             ]
 
     @staticmethod
-    def mark_celebrated(milestone_id: int) -> None:
+    def mark_celebrated(user_id: int, milestone_id: int) -> None:
         """Mark milestone as celebrated."""
         with get_connection() as conn:
             cursor = conn.cursor()
@@ -112,9 +113,9 @@ class MilestoneRepository:
                 """
                 UPDATE milestones
                 SET celebrated = 1
-                WHERE id = ?
+                WHERE id = ? AND user_id = ?
                 """,
-                (milestone_id,)
+                (milestone_id, user_id)
             )
             conn.commit()
 
@@ -138,7 +139,7 @@ class MilestoneRepository:
         return None  # No more milestones
 
     @staticmethod
-    def get_all_achieved() -> list[dict]:
+    def get_all_achieved(user_id: int) -> list[dict]:
         """Get all achieved milestones."""
         with get_connection() as conn:
             cursor = conn.cursor()
@@ -146,8 +147,10 @@ class MilestoneRepository:
                 """
                 SELECT id, milestone_type, milestone_value, milestone_label, achieved_at, celebrated
                 FROM milestones
+                WHERE user_id = ?
                 ORDER BY achieved_at DESC
-                """
+                """,
+                (user_id,)
             )
             rows = cursor.fetchall()
 
@@ -164,7 +167,7 @@ class MilestoneRepository:
             ]
 
     @staticmethod
-    def get_highest_achieved(milestone_type: str) -> Optional[int]:
+    def get_highest_achieved(user_id: int, milestone_type: str) -> Optional[int]:
         """Get the highest achieved value for a milestone type."""
         with get_connection() as conn:
             cursor = conn.cursor()
@@ -172,9 +175,9 @@ class MilestoneRepository:
                 """
                 SELECT MAX(milestone_value)
                 FROM milestones
-                WHERE milestone_type = ?
+                WHERE user_id = ? AND milestone_type = ?
                 """,
-                (milestone_type,)
+                (user_id, milestone_type)
             )
             row = cursor.fetchone()
             return row[0] if row and row[0] is not None else 0

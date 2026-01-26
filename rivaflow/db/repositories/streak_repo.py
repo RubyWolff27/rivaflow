@@ -11,7 +11,7 @@ class StreakRepository:
     """Data access layer for streak tracking."""
 
     @staticmethod
-    def get_streak(streak_type: str) -> dict:
+    def get_streak(user_id: int, streak_type: str) -> dict:
         """Get current streak info for type."""
         with get_connection() as conn:
             cursor = conn.cursor()
@@ -20,19 +20,19 @@ class StreakRepository:
                 SELECT id, streak_type, current_streak, longest_streak,
                        last_checkin_date, streak_started_date, grace_days_used, updated_at
                 FROM streaks
-                WHERE streak_type = ?
+                WHERE user_id = ? AND streak_type = ?
                 """,
-                (streak_type,)
+                (user_id, streak_type)
             )
             row = cursor.fetchone()
             if row is None:
                 # Initialize if not exists
                 cursor.execute(
                     """
-                    INSERT INTO streaks (streak_type, current_streak, longest_streak)
-                    VALUES (?, 0, 0)
+                    INSERT INTO streaks (user_id, streak_type, current_streak, longest_streak)
+                    VALUES (?, ?, 0, 0)
                     """,
-                    (streak_type,)
+                    (user_id, streak_type)
                 )
                 conn.commit()
                 return {
@@ -58,7 +58,7 @@ class StreakRepository:
             }
 
     @staticmethod
-    def update_streak(streak_type: str, checkin_date: date) -> dict:
+    def update_streak(user_id: int, streak_type: str, checkin_date: date) -> dict:
         """
         Update streak after check-in. Returns updated streak info.
 
@@ -68,7 +68,7 @@ class StreakRepository:
         - If checkin_date == last_checkin_date + 2 days AND grace_days_used < GRACE_DAYS: use grace day
         - Otherwise: reset streak to 1
         """
-        streak = StreakRepository.get_streak(streak_type)
+        streak = StreakRepository.get_streak(user_id, streak_type)
 
         last_checkin = streak["last_checkin_date"]
 
@@ -118,7 +118,7 @@ class StreakRepository:
                     streak_started_date = ?,
                     grace_days_used = ?,
                     updated_at = datetime('now')
-                WHERE streak_type = ?
+                WHERE user_id = ? AND streak_type = ?
                 """,
                 (
                     new_streak,
@@ -126,15 +126,16 @@ class StreakRepository:
                     checkin_date.isoformat(),
                     streak_started.isoformat() if isinstance(streak_started, date) else streak_started,
                     grace_days_used,
+                    user_id,
                     streak_type,
                 )
             )
             conn.commit()
 
-        return StreakRepository.get_streak(streak_type)
+        return StreakRepository.get_streak(user_id, streak_type)
 
     @staticmethod
-    def get_all_streaks() -> list[dict]:
+    def get_all_streaks(user_id: int) -> list[dict]:
         """Get all streak types with current values."""
         with get_connection() as conn:
             cursor = conn.cursor()
@@ -143,8 +144,10 @@ class StreakRepository:
                 SELECT id, streak_type, current_streak, longest_streak,
                        last_checkin_date, streak_started_date, grace_days_used, updated_at
                 FROM streaks
+                WHERE user_id = ?
                 ORDER BY streak_type
-                """
+                """,
+                (user_id,)
             )
             rows = cursor.fetchall()
 
@@ -163,9 +166,9 @@ class StreakRepository:
             ]
 
     @staticmethod
-    def is_streak_at_risk(streak_type: str) -> bool:
+    def is_streak_at_risk(user_id: int, streak_type: str) -> bool:
         """Check if user will lose streak if they don't check in today."""
-        streak = StreakRepository.get_streak(streak_type)
+        streak = StreakRepository.get_streak(user_id, streak_type)
 
         if streak["last_checkin_date"] is None or streak["current_streak"] == 0:
             return False

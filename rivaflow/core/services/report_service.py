@@ -45,10 +45,10 @@ class ReportService:
 
         return first_day, last_day
 
-    def generate_report(self, start_date: date, end_date: date) -> dict:
+    def generate_report(self, user_id: int, start_date: date, end_date: date) -> dict:
         """Generate comprehensive report for date range."""
-        sessions = self.session_repo.get_by_date_range(start_date, end_date)
-        readiness_entries = self.readiness_repo.get_by_date_range(start_date, end_date)
+        sessions = self.session_repo.get_by_date_range(user_id, start_date, end_date)
+        readiness_entries = self.readiness_repo.get_by_date_range(user_id, start_date, end_date)
 
         if not sessions:
             return {

@@ -12,6 +12,7 @@ class SessionTechniqueRepository:
     @staticmethod
     def create(
         session_id: int,
+        user_id: int,
         movement_id: int,
         technique_number: int = 1,
         notes: Optional[str] = None,
@@ -23,11 +24,12 @@ class SessionTechniqueRepository:
             cursor.execute(
                 """
                 INSERT INTO session_techniques
-                (session_id, movement_id, technique_number, notes, media_urls)
-                VALUES (?, ?, ?, ?, ?)
+                (session_id, user_id, movement_id, technique_number, notes, media_urls)
+                VALUES (?, ?, ?, ?, ?, ?)
                 """,
                 (
                     session_id,
+                    user_id,
                     movement_id,
                     technique_number,
                     notes,
@@ -51,19 +53,19 @@ class SessionTechniqueRepository:
             return SessionTechniqueRepository._row_to_dict(row) if row else None
 
     @staticmethod
-    def get_by_session_id(session_id: int) -> List[dict]:
+    def get_by_session_id(user_id: int, session_id: int) -> List[dict]:
         """Get all techniques for a specific session."""
         with get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(
-                "SELECT * FROM session_techniques WHERE session_id = ? ORDER BY technique_number ASC",
-                (session_id,),
+                "SELECT * FROM session_techniques WHERE session_id = ? AND user_id = ? ORDER BY technique_number ASC",
+                (session_id, user_id),
             )
             rows = cursor.fetchall()
             return [SessionTechniqueRepository._row_to_dict(row) for row in rows]
 
     @staticmethod
-    def list_by_movement(movement_id: int) -> List[dict]:
+    def list_by_movement(user_id: int, movement_id: int) -> List[dict]:
         """Get all technique records for a specific movement."""
         with get_connection() as conn:
             cursor = conn.cursor()
@@ -71,10 +73,10 @@ class SessionTechniqueRepository:
                 """
                 SELECT st.* FROM session_techniques st
                 JOIN sessions s ON st.session_id = s.id
-                WHERE st.movement_id = ?
+                WHERE st.movement_id = ? AND st.user_id = ?
                 ORDER BY s.session_date DESC, st.technique_number ASC
                 """,
-                (movement_id,),
+                (movement_id, user_id),
             )
             rows = cursor.fetchall()
             return [SessionTechniqueRepository._row_to_dict(row) for row in rows]

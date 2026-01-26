@@ -25,7 +25,7 @@ class GoalProgressRepository:
             "updated_at": row[11],
         }
 
-    def get_by_week(self, week_start_date: date) -> Optional[dict]:
+    def get_by_week(self, user_id: int, week_start_date: date) -> Optional[dict]:
         """Get goal progress for a specific week."""
         with get_connection() as conn:
             cursor = conn.cursor()
@@ -35,18 +35,18 @@ class GoalProgressRepository:
                        target_hours, actual_hours, target_rolls, actual_rolls,
                        completed_at, created_at, updated_at
                 FROM goal_progress
-                WHERE week_start_date = ?
+                WHERE user_id = ? AND week_start_date = ?
                 """,
-                (week_start_date.isoformat(),),
+                (user_id, week_start_date.isoformat()),
             )
             row = cursor.fetchone()
             return self._row_to_dict(row) if row else None
 
-    def get_current_week(self, week_start: date) -> Optional[dict]:
+    def get_current_week(self, user_id: int, week_start: date) -> Optional[dict]:
         """Get current week's goal progress."""
-        return self.get_by_week(week_start)
+        return self.get_by_week(user_id, week_start)
 
-    def get_recent_weeks(self, limit: int = 12) -> list[dict]:
+    def get_recent_weeks(self, user_id: int, limit: int = 12) -> list[dict]:
         """Get recent weeks' goal progress (for trend display)."""
         with get_connection() as conn:
             cursor = conn.cursor()
@@ -56,15 +56,17 @@ class GoalProgressRepository:
                        target_hours, actual_hours, target_rolls, actual_rolls,
                        completed_at, created_at, updated_at
                 FROM goal_progress
+                WHERE user_id = ?
                 ORDER BY week_start_date DESC
                 LIMIT ?
                 """,
-                (limit,),
+                (user_id, limit),
             )
             return [self._row_to_dict(row) for row in cursor.fetchall()]
 
     def create(
         self,
+        user_id: int,
         week_start_date: date,
         week_end_date: date,
         target_sessions: int,
@@ -80,11 +82,12 @@ class GoalProgressRepository:
             cursor.execute(
                 """
                 INSERT INTO goal_progress
-                (week_start_date, week_end_date, target_sessions, actual_sessions,
+                (user_id, week_start_date, week_end_date, target_sessions, actual_sessions,
                  target_hours, actual_hours, target_rolls, actual_rolls)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
+                    user_id,
                     week_start_date.isoformat(),
                     week_end_date.isoformat(),
                     target_sessions,
@@ -99,6 +102,7 @@ class GoalProgressRepository:
 
     def update_progress(
         self,
+        user_id: int,
         week_start_date: date,
         actual_sessions: int,
         actual_hours: float,
@@ -113,9 +117,9 @@ class GoalProgressRepository:
                 """
                 SELECT target_sessions, target_hours, target_rolls
                 FROM goal_progress
-                WHERE week_start_date = ?
+                WHERE user_id = ? AND week_start_date = ?
                 """,
-                (week_start_date.isoformat(),),
+                (user_id, week_start_date.isoformat()),
             )
             row = cursor.fetchone()
 
@@ -142,7 +146,7 @@ class GoalProgressRepository:
                         ELSE completed_at
                     END,
                     updated_at = datetime('now')
-                WHERE week_start_date = ?
+                WHERE user_id = ? AND week_start_date = ?
                 """,
                 (
                     actual_sessions,
@@ -150,12 +154,13 @@ class GoalProgressRepository:
                     actual_rolls,
                     all_complete,
                     all_complete,
+                    user_id,
                     week_start_date.isoformat(),
                 ),
             )
             return True
 
-    def get_completion_streak(self) -> dict:
+    def get_completion_streak(self, user_id: int) -> dict:
         """Calculate current and longest weekly goal completion streaks."""
         with get_connection() as conn:
             cursor = conn.cursor()
@@ -163,8 +168,10 @@ class GoalProgressRepository:
                 """
                 SELECT week_start_date, completed_at
                 FROM goal_progress
+                WHERE user_id = ?
                 ORDER BY week_start_date DESC
-                """
+                """,
+                (user_id,)
             )
             rows = cursor.fetchall()
 

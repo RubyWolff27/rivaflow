@@ -30,7 +30,7 @@ class AnalyticsService:
     # ============================================================================
 
     def get_performance_overview(
-        self, start_date: Optional[date] = None, end_date: Optional[date] = None
+        self, user_id: int, start_date: Optional[date] = None, end_date: Optional[date] = None
     ) -> Dict[str, Any]:
         """
         Get performance overview metrics.
@@ -46,7 +46,7 @@ class AnalyticsService:
         if not end_date:
             end_date = date.today()
 
-        sessions = self.session_repo.get_by_date_range(start_date, end_date)
+        sessions = self.session_repo.get_by_date_range(user_id, start_date, end_date)
 
         # Submission success over time (monthly)
         monthly_stats = defaultdict(lambda: {"for": 0, "against": 0, "ratio": 0})
@@ -80,7 +80,7 @@ class AnalyticsService:
 
         # Get detailed rolls to analyze individual submissions
         for session in sessions:
-            rolls = self.roll_repo.get_by_session_id(session["id"])
+            rolls = self.roll_repo.get_by_session_id(user_id, session["id"])
             for roll in rolls:
                 if roll.get("submissions_for"):
                     for movement_id in roll["submissions_for"]:
@@ -92,7 +92,7 @@ class AnalyticsService:
         # Convert movement IDs to names
         top_subs_for_list = []
         for movement_id, count in top_subs_for.most_common(5):
-            movement = self.glossary_repo.get_by_id(movement_id)
+            movement = self.glossary_repo.get_by_id(user_id, movement_id)
             if movement:
                 top_subs_for_list.append({
                     "name": movement["name"],
@@ -102,7 +102,7 @@ class AnalyticsService:
 
         top_subs_against_list = []
         for movement_id, count in top_subs_against.most_common(5):
-            movement = self.glossary_repo.get_by_id(movement_id)
+            movement = self.glossary_repo.get_by_id(user_id, movement_id)
             if movement:
                 top_subs_against_list.append({
                     "name": movement["name"],
@@ -111,7 +111,7 @@ class AnalyticsService:
                 })
 
         # Performance by belt rank
-        gradings = self.grading_repo.list_all()
+        gradings = self.grading_repo.list_all(user_id)
         belt_performance = self._calculate_performance_by_belt(sessions, gradings)
 
         return {
@@ -182,7 +182,7 @@ class AnalyticsService:
     # ============================================================================
 
     def get_partner_analytics(
-        self, start_date: Optional[date] = None, end_date: Optional[date] = None
+        self, user_id: int, start_date: Optional[date] = None, end_date: Optional[date] = None
     ) -> Dict[str, Any]:
         """
         Get partner analytics data.
@@ -196,20 +196,20 @@ class AnalyticsService:
         if not end_date:
             end_date = date.today()
 
-        sessions = self.session_repo.get_by_date_range(start_date, end_date)
+        sessions = self.session_repo.get_by_date_range(user_id, start_date, end_date)
 
         # Get all partners from contacts
-        partners = self.contact_repo.list_by_type("training-partner")
+        partners = self.contact_repo.list_by_type(user_id, "training-partner")
 
         partner_matrix = []
         for partner in partners:
-            stats = self.roll_repo.get_partner_stats(partner["id"])
+            stats = self.roll_repo.get_partner_stats(user_id, partner["id"])
 
             # Filter by date range
-            rolls_in_range = self.roll_repo.get_by_partner_id(partner["id"])
+            rolls_in_range = self.roll_repo.get_by_partner_id(user_id, partner["id"])
             rolls_in_range = [
                 r for r in rolls_in_range
-                if start_date <= self._get_session_date(r["session_id"]) <= end_date
+                if start_date <= self._get_session_date(user_id, r["session_id"]) <= end_date
             ]
 
             partner_matrix.append({
@@ -243,17 +243,17 @@ class AnalyticsService:
         }
 
     def get_head_to_head(
-        self, partner1_id: int, partner2_id: int
+        self, user_id: int, partner1_id: int, partner2_id: int
     ) -> Dict[str, Any]:
         """Get head-to-head comparison between two partners."""
-        partner1 = self.contact_repo.get_by_id(partner1_id)
-        partner2 = self.contact_repo.get_by_id(partner2_id)
+        partner1 = self.contact_repo.get_by_id(user_id, partner1_id)
+        partner2 = self.contact_repo.get_by_id(user_id, partner2_id)
 
         if not partner1 or not partner2:
             return {}
 
-        stats1 = self.roll_repo.get_partner_stats(partner1_id)
-        stats2 = self.roll_repo.get_partner_stats(partner2_id)
+        stats1 = self.roll_repo.get_partner_stats(user_id, partner1_id)
+        stats2 = self.roll_repo.get_partner_stats(user_id, partner2_id)
 
         return {
             "partner1": {
@@ -268,9 +268,9 @@ class AnalyticsService:
             },
         }
 
-    def _get_session_date(self, session_id: int) -> date:
+    def _get_session_date(self, user_id: int, session_id: int) -> date:
         """Helper to get session date."""
-        session = self.session_repo.get_by_id(session_id)
+        session = self.session_repo.get_by_id(user_id, session_id)
         return session["session_date"] if session else date.today()
 
     # ============================================================================
@@ -278,7 +278,7 @@ class AnalyticsService:
     # ============================================================================
 
     def get_readiness_trends(
-        self, start_date: Optional[date] = None, end_date: Optional[date] = None
+        self, user_id: int, start_date: Optional[date] = None, end_date: Optional[date] = None
     ) -> Dict[str, Any]:
         """
         Get readiness and recovery analytics.
@@ -294,8 +294,8 @@ class AnalyticsService:
         if not end_date:
             end_date = date.today()
 
-        readiness_records = self.readiness_repo.get_by_date_range(start_date, end_date)
-        sessions = self.session_repo.get_by_date_range(start_date, end_date)
+        readiness_records = self.readiness_repo.get_by_date_range(user_id, start_date, end_date)
+        sessions = self.session_repo.get_by_date_range(user_id, start_date, end_date)
 
         # Readiness over time
         readiness_over_time = []
@@ -398,7 +398,7 @@ class AnalyticsService:
     # ============================================================================
 
     def get_whoop_analytics(
-        self, start_date: Optional[date] = None, end_date: Optional[date] = None
+        self, user_id: int, start_date: Optional[date] = None, end_date: Optional[date] = None
     ) -> Dict[str, Any]:
         """
         Get Whoop fitness tracker analytics.
@@ -414,7 +414,7 @@ class AnalyticsService:
         if not end_date:
             end_date = date.today()
 
-        sessions = self.session_repo.get_by_date_range(start_date, end_date)
+        sessions = self.session_repo.get_by_date_range(user_id, start_date, end_date)
         whoop_sessions = [s for s in sessions if s.get("whoop_strain") is not None]
 
         # Strain vs performance
@@ -471,7 +471,7 @@ class AnalyticsService:
             })
 
         # Recovery correlation (Whoop strain vs next day readiness)
-        readiness_records = self.readiness_repo.get_by_date_range(start_date, end_date)
+        readiness_records = self.readiness_repo.get_by_date_range(user_id, start_date, end_date)
         recovery_correlation = []
 
         for session in whoop_sessions:
@@ -505,7 +505,7 @@ class AnalyticsService:
     # ============================================================================
 
     def get_technique_analytics(
-        self, start_date: Optional[date] = None, end_date: Optional[date] = None
+        self, user_id: int, start_date: Optional[date] = None, end_date: Optional[date] = None
     ) -> Dict[str, Any]:
         """
         Get technique mastery analytics.
@@ -521,17 +521,17 @@ class AnalyticsService:
         if not end_date:
             end_date = date.today()
 
-        sessions = self.session_repo.get_by_date_range(start_date, end_date)
-        movements = self.glossary_repo.list_all()
+        sessions = self.session_repo.get_by_date_range(user_id, start_date, end_date)
+        movements = self.glossary_repo.list_all(user_id)
 
         # Category breakdown (count submissions by category)
         category_counts = Counter()
         for session in sessions:
-            rolls = self.roll_repo.get_by_session_id(session["id"])
+            rolls = self.roll_repo.get_by_session_id(user_id, session["id"])
             for roll in rolls:
                 if roll.get("submissions_for"):
                     for movement_id in roll["submissions_for"]:
-                        movement = self.glossary_repo.get_by_id(movement_id)
+                        movement = self.glossary_repo.get_by_id(user_id, movement_id)
                         if movement:
                             category_counts[movement["category"]] += 1
 
@@ -547,9 +547,9 @@ class AnalyticsService:
         all_movement_ids = {m["id"] for m in movements}
         used_movement_ids = set()
 
-        recent_sessions = self.session_repo.get_by_date_range(stale_date, date.today())
+        recent_sessions = self.session_repo.get_by_date_range(user_id, stale_date, date.today())
         for session in recent_sessions:
-            rolls = self.roll_repo.get_by_session_id(session["id"])
+            rolls = self.roll_repo.get_by_session_id(user_id, session["id"])
             for roll in rolls:
                 if roll.get("submissions_for"):
                     used_movement_ids.update(roll["submissions_for"])
@@ -575,13 +575,13 @@ class AnalyticsService:
         nogi_techniques = Counter()
 
         for session in gi_sessions:
-            rolls = self.roll_repo.get_by_session_id(session["id"])
+            rolls = self.roll_repo.get_by_session_id(user_id, session["id"])
             for roll in rolls:
                 if roll.get("submissions_for"):
                     gi_techniques.update(roll["submissions_for"])
 
         for session in nogi_sessions:
-            rolls = self.roll_repo.get_by_session_id(session["id"])
+            rolls = self.roll_repo.get_by_session_id(user_id, session["id"])
             for roll in rolls:
                 if roll.get("submissions_for"):
                     nogi_techniques.update(roll["submissions_for"])
@@ -589,13 +589,13 @@ class AnalyticsService:
         # Get top 10 from each
         gi_top = []
         for movement_id, count in gi_techniques.most_common(10):
-            movement = self.glossary_repo.get_by_id(movement_id)
+            movement = self.glossary_repo.get_by_id(user_id, movement_id)
             if movement:
                 gi_top.append({"name": movement["name"], "count": count})
 
         nogi_top = []
         for movement_id, count in nogi_techniques.most_common(10):
-            movement = self.glossary_repo.get_by_id(movement_id)
+            movement = self.glossary_repo.get_by_id(user_id, movement_id)
             if movement:
                 nogi_top.append({"name": movement["name"], "count": count})
 
@@ -615,7 +615,7 @@ class AnalyticsService:
     # ============================================================================
 
     def get_consistency_analytics(
-        self, start_date: Optional[date] = None, end_date: Optional[date] = None
+        self, user_id: int, start_date: Optional[date] = None, end_date: Optional[date] = None
     ) -> Dict[str, Any]:
         """
         Get training consistency analytics.
@@ -631,7 +631,7 @@ class AnalyticsService:
         if not end_date:
             end_date = date.today()
 
-        sessions = self.session_repo.get_by_date_range(start_date, end_date)
+        sessions = self.session_repo.get_by_date_range(user_id, start_date, end_date)
 
         # Weekly volume
         weekly_stats = defaultdict(lambda: {"sessions": 0, "hours": 0, "rolls": 0})
@@ -660,7 +660,7 @@ class AnalyticsService:
         ]
 
         # Calculate streaks
-        all_sessions = self.session_repo.get_recent(1000)  # Get more for streak calc
+        all_sessions = self.session_repo.get_recent(user_id, 1000)  # Get more for streak calc
         current_streak, longest_streak = self._calculate_streaks(all_sessions)
 
         return {
@@ -714,7 +714,7 @@ class AnalyticsService:
     # PROGRESSION & MILESTONES DASHBOARD
     # ============================================================================
 
-    def get_milestones(self) -> Dict[str, Any]:
+    def get_milestones(self, user_id: int) -> Dict[str, Any]:
         """
         Get progression and milestone data.
 
@@ -723,8 +723,8 @@ class AnalyticsService:
             - personal_records: Best performances
             - rolling_totals: Lifetime and current belt stats
         """
-        all_sessions = self.session_repo.get_recent(10000)  # Get all
-        gradings = self.grading_repo.list_all()
+        all_sessions = self.session_repo.get_recent(user_id, 10000)  # Get all
+        gradings = self.grading_repo.list_all(user_id)
 
         # Belt progression timeline
         belt_progression = []
@@ -825,7 +825,7 @@ class AnalyticsService:
     # ============================================================================
 
     def get_instructor_analytics(
-        self, start_date: Optional[date] = None, end_date: Optional[date] = None
+        self, user_id: int, start_date: Optional[date] = None, end_date: Optional[date] = None
     ) -> Dict[str, Any]:
         """
         Get instructor insights.
@@ -839,8 +839,8 @@ class AnalyticsService:
         if not end_date:
             end_date = date.today()
 
-        sessions = self.session_repo.get_by_date_range(start_date, end_date)
-        instructors = self.contact_repo.list_by_type("instructor")
+        sessions = self.session_repo.get_by_date_range(user_id, start_date, end_date)
+        instructors = self.contact_repo.list_by_type(user_id, "instructor")
 
         performance_by_instructor = []
         for instructor in instructors:

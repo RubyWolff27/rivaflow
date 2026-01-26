@@ -12,6 +12,7 @@ class SessionRollRepository:
     @staticmethod
     def create(
         session_id: int,
+        user_id: int,
         roll_number: int = 1,
         partner_id: Optional[int] = None,
         partner_name: Optional[str] = None,
@@ -26,11 +27,12 @@ class SessionRollRepository:
             cursor.execute(
                 """
                 INSERT INTO session_rolls
-                (session_id, roll_number, partner_id, partner_name, duration_mins, submissions_for, submissions_against, notes)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                (session_id, user_id, roll_number, partner_id, partner_name, duration_mins, submissions_for, submissions_against, notes)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
                     session_id,
+                    user_id,
                     roll_number,
                     partner_id,
                     partner_name,
@@ -57,19 +59,19 @@ class SessionRollRepository:
             return SessionRollRepository._row_to_dict(row) if row else None
 
     @staticmethod
-    def get_by_session_id(session_id: int) -> List[dict]:
+    def get_by_session_id(user_id: int, session_id: int) -> List[dict]:
         """Get all rolls for a specific session."""
         with get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(
-                "SELECT * FROM session_rolls WHERE session_id = ? ORDER BY roll_number ASC",
-                (session_id,),
+                "SELECT * FROM session_rolls WHERE session_id = ? AND user_id = ? ORDER BY roll_number ASC",
+                (session_id, user_id),
             )
             rows = cursor.fetchall()
             return [SessionRollRepository._row_to_dict(row) for row in rows]
 
     @staticmethod
-    def list_by_partner(partner_id: int) -> List[dict]:
+    def list_by_partner(user_id: int, partner_id: int) -> List[dict]:
         """Get all rolls with a specific partner."""
         with get_connection() as conn:
             cursor = conn.cursor()
@@ -77,34 +79,34 @@ class SessionRollRepository:
                 """
                 SELECT sr.* FROM session_rolls sr
                 JOIN sessions s ON sr.session_id = s.id
-                WHERE sr.partner_id = ?
+                WHERE sr.partner_id = ? AND sr.user_id = ?
                 ORDER BY s.session_date DESC, sr.roll_number ASC
                 """,
-                (partner_id,),
+                (partner_id, user_id),
             )
             rows = cursor.fetchall()
             return [SessionRollRepository._row_to_dict(row) for row in rows]
 
     @staticmethod
-    def get_by_partner_id(partner_id: int) -> List[dict]:
+    def get_by_partner_id(user_id: int, partner_id: int) -> List[dict]:
         """Alias for list_by_partner. Get all rolls with a specific partner."""
-        return SessionRollRepository.list_by_partner(partner_id)
+        return SessionRollRepository.list_by_partner(user_id, partner_id)
 
     @staticmethod
-    def get_partner_stats(partner_id: int) -> dict:
+    def get_partner_stats(user_id: int, partner_id: int) -> dict:
         """Get analytics for a specific partner."""
         with get_connection() as conn:
             cursor = conn.cursor()
 
             # Get total rolls count
             cursor.execute(
-                "SELECT COUNT(*) as total_rolls FROM session_rolls WHERE partner_id = ?",
-                (partner_id,),
+                "SELECT COUNT(*) as total_rolls FROM session_rolls WHERE partner_id = ? AND user_id = ?",
+                (partner_id, user_id),
             )
             total_rolls = cursor.fetchone()[0]
 
             # Get all rolls to calculate submission stats
-            rolls = SessionRollRepository.list_by_partner(partner_id)
+            rolls = SessionRollRepository.list_by_partner(user_id, partner_id)
 
             total_subs_for = 0
             total_subs_against = 0

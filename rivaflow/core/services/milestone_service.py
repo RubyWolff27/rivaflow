@@ -15,7 +15,7 @@ class MilestoneService:
         self.milestone_repo = MilestoneRepository()
         self.streak_repo = StreakRepository()
 
-    def check_all_milestones(self) -> list[dict]:
+    def check_all_milestones(self, user_id: int) -> list[dict]:
         """
         Check all milestone types against current totals.
         Returns list of newly achieved milestones.
@@ -23,32 +23,32 @@ class MilestoneService:
         new_milestones = []
 
         # Calculate current totals
-        totals = self._get_current_totals()
+        totals = self._get_current_totals(user_id)
 
         # Check each milestone type
         for milestone_type, current_value in totals.items():
-            milestone = self.milestone_repo.check_and_create_milestone(milestone_type, current_value)
+            milestone = self.milestone_repo.check_and_create_milestone(user_id, milestone_type, current_value)
             if milestone:
                 new_milestones.append(milestone)
 
         return new_milestones
 
-    def _get_current_totals(self) -> dict:
+    def _get_current_totals(self, user_id: int) -> dict:
         """Calculate current totals for all milestone types."""
         with get_connection() as conn:
             cursor = conn.cursor()
 
             # Hours: sum of duration_mins / 60 from sessions
-            cursor.execute("SELECT SUM(duration_mins) FROM sessions")
+            cursor.execute("SELECT SUM(duration_mins) FROM sessions WHERE user_id = ?", (user_id,))
             total_mins = cursor.fetchone()[0] or 0
             hours = int(total_mins / 60)
 
             # Sessions: count of sessions
-            cursor.execute("SELECT COUNT(*) FROM sessions")
+            cursor.execute("SELECT COUNT(*) FROM sessions WHERE user_id = ?", (user_id,))
             sessions = cursor.fetchone()[0] or 0
 
             # Rolls: sum of rolls from sessions
-            cursor.execute("SELECT SUM(rolls) FROM sessions")
+            cursor.execute("SELECT SUM(rolls) FROM sessions WHERE user_id = ?", (user_id,))
             rolls = cursor.fetchone()[0] or 0
 
             # Partners: count of unique partners from sessions (JSON partners field)
@@ -56,8 +56,8 @@ class MilestoneService:
             cursor.execute("""
                 SELECT COUNT(DISTINCT partner_id)
                 FROM session_rolls
-                WHERE partner_id IS NOT NULL
-            """)
+                WHERE partner_id IS NOT NULL AND user_id = ?
+            """, (user_id,))
             partners = cursor.fetchone()[0] or 0
 
             # Techniques: count from techniques table with times_trained > 0
@@ -66,11 +66,12 @@ class MilestoneService:
             cursor.execute("""
                 SELECT COUNT(DISTINCT movement_id)
                 FROM session_techniques
-            """)
+                WHERE user_id = ?
+            """, (user_id,))
             techniques = cursor.fetchone()[0] or 0
 
             # Streak: current checkin streak
-            checkin_streak = self.streak_repo.get_streak("checkin")
+            checkin_streak = self.streak_repo.get_streak(user_id, "checkin")
             streak = checkin_streak["current_streak"]
 
         return {
@@ -104,7 +105,7 @@ class MilestoneService:
             "achieved_at": milestone["achieved_at"],
         }
 
-    def get_progress_to_next(self) -> list[dict]:
+    def get_progress_to_next(self, user_id: int) -> list[dict]:
         """
         Get progress toward next milestone for each type.
 
@@ -116,11 +117,11 @@ class MilestoneService:
         - remaining: how many until milestone
         - percentage: progress percentage
         """
-        totals = self._get_current_totals()
+        totals = self._get_current_totals(user_id)
         progress_list = []
 
         for milestone_type, current_value in totals.items():
-            next_milestone = self.milestone_repo.get_next_milestone(milestone_type, current_value)
+            next_milestone = self.milestone_repo.get_next_milestone(user_id, milestone_type, current_value)
 
             if next_milestone:
                 progress_list.append({
@@ -134,25 +135,25 @@ class MilestoneService:
 
         return progress_list
 
-    def get_uncelebrated_milestones(self) -> list[dict]:
+    def get_uncelebrated_milestones(self, user_id: int) -> list[dict]:
         """Get all milestones that haven't been celebrated yet."""
-        return self.milestone_repo.get_uncelebrated_milestones()
+        return self.milestone_repo.get_uncelebrated_milestones(user_id)
 
-    def mark_celebrated(self, milestone_id: int) -> None:
+    def mark_celebrated(self, user_id: int, milestone_id: int) -> None:
         """Mark a milestone as celebrated."""
-        self.milestone_repo.mark_celebrated(milestone_id)
+        self.milestone_repo.mark_celebrated(user_id, milestone_id)
 
-    def get_all_achieved(self) -> list[dict]:
+    def get_all_achieved(self, user_id: int) -> list[dict]:
         """Get all achieved milestones."""
-        return self.milestone_repo.get_all_achieved()
+        return self.milestone_repo.get_all_achieved(user_id)
 
-    def get_current_totals(self) -> dict:
+    def get_current_totals(self, user_id: int) -> dict:
         """Public method to get current totals."""
-        return self._get_current_totals()
+        return self._get_current_totals(user_id)
 
-    def get_closest_milestone(self) -> Optional[dict]:
+    def get_closest_milestone(self, user_id: int) -> Optional[dict]:
         """Get the closest upcoming milestone across all types."""
-        progress_list = self.get_progress_to_next()
+        progress_list = self.get_progress_to_next(user_id)
 
         if not progress_list:
             return None

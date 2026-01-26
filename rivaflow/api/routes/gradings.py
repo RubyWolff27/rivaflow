@@ -1,9 +1,10 @@
 """Grading/belt progression endpoints."""
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Depends
 from pydantic import BaseModel
 from typing import Optional
 
 from rivaflow.core.services.grading_service import GradingService
+from rivaflow.core.dependencies import get_current_user
 
 router = APIRouter()
 service = GradingService()
@@ -26,17 +27,18 @@ class GradingUpdate(BaseModel):
 
 
 @router.get("/")
-async def list_gradings():
+async def list_gradings(current_user: dict = Depends(get_current_user)):
     """Get all gradings, ordered by date (newest first)."""
-    gradings = service.list_gradings()
+    gradings = service.list_gradings(user_id=current_user["id"])
     return gradings
 
 
 @router.post("/")
-async def create_grading(grading: GradingCreate):
+async def create_grading(grading: GradingCreate, current_user: dict = Depends(get_current_user)):
     """Create a new grading and update the profile's current_grade."""
     try:
         created = service.create_grading(
+            user_id=current_user["id"],
             grade=grading.grade,
             date_graded=grading.date_graded,
             professor=grading.professor,
@@ -48,19 +50,20 @@ async def create_grading(grading: GradingCreate):
 
 
 @router.get("/latest")
-async def get_latest_grading():
+async def get_latest_grading(current_user: dict = Depends(get_current_user)):
     """Get the most recent grading."""
-    grading = service.get_latest_grading()
+    grading = service.get_latest_grading(user_id=current_user["id"])
     if not grading:
         return None
     return grading
 
 
 @router.put("/{grading_id}")
-async def update_grading(grading_id: int, grading: GradingUpdate):
+async def update_grading(grading_id: int, grading: GradingUpdate, current_user: dict = Depends(get_current_user)):
     """Update a grading by ID."""
     try:
         updated = service.update_grading(
+            user_id=current_user["id"],
             grading_id=grading_id,
             grade=grading.grade,
             date_graded=grading.date_graded,
@@ -77,9 +80,9 @@ async def update_grading(grading_id: int, grading: GradingUpdate):
 
 
 @router.delete("/{grading_id}")
-async def delete_grading(grading_id: int):
+async def delete_grading(grading_id: int, current_user: dict = Depends(get_current_user)):
     """Delete a grading by ID."""
-    deleted = service.delete_grading(grading_id)
+    deleted = service.delete_grading(user_id=current_user["id"], grading_id=grading_id)
     if not deleted:
         raise HTTPException(status_code=404, detail="Grading not found")
     return {"message": "Grading deleted successfully"}

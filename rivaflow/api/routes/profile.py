@@ -1,9 +1,10 @@
 """Profile management endpoints."""
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Depends
 from pydantic import BaseModel
 from typing import Optional
 
 from rivaflow.core.services.profile_service import ProfileService
+from rivaflow.core.dependencies import get_current_user
 
 router = APIRouter()
 service = ProfileService()
@@ -28,9 +29,9 @@ class ProfileUpdate(BaseModel):
 
 
 @router.get("/")
-async def get_profile():
+async def get_profile(current_user: dict = Depends(get_current_user)):
     """Get the user profile."""
-    profile = service.get_profile()
+    profile = service.get_profile(user_id=current_user["id"])
     if not profile:
         # Return empty profile if none exists
         return {
@@ -50,10 +51,11 @@ async def get_profile():
 
 
 @router.put("/")
-async def update_profile(profile: ProfileUpdate):
+async def update_profile(profile: ProfileUpdate, current_user: dict = Depends(get_current_user)):
     """Update the user profile."""
     try:
         updated = service.update_profile(
+            user_id=current_user["id"],
             first_name=profile.first_name,
             last_name=profile.last_name,
             date_of_birth=profile.date_of_birth,

@@ -1,16 +1,17 @@
 """Video library endpoints."""
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Depends
 from typing import Optional
 
 from rivaflow.core.services.video_service import VideoService
 from rivaflow.core.models import VideoCreate
+from rivaflow.core.dependencies import get_current_user
 
 router = APIRouter()
 service = VideoService()
 
 
 @router.post("/")
-async def add_video(video: VideoCreate):
+async def add_video(video: VideoCreate, current_user: dict = Depends(get_current_user)):
     """Add a new video."""
     try:
         # Convert technique_id to technique_name if provided
@@ -28,49 +29,50 @@ async def add_video(video: VideoCreate):
             timestamps = [{"time": ts.time, "label": ts.label} for ts in video.timestamps]
 
         video_id = service.add_video(
+            user_id=current_user["id"],
             url=video.url,
             title=video.title,
             timestamps=timestamps,
             technique_name=technique_name,
         )
-        created_video = service.get_video(video_id)
+        created_video = service.get_video(user_id=current_user["id"], video_id=video_id)
         return created_video
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
 
 @router.get("/")
-async def list_videos():
+async def list_videos(current_user: dict = Depends(get_current_user)):
     """List all videos."""
-    return service.list_all_videos()
+    return service.list_all_videos(user_id=current_user["id"])
 
 
 @router.get("/technique/{technique_name}")
-async def get_videos_by_technique(technique_name: str):
+async def get_videos_by_technique(technique_name: str, current_user: dict = Depends(get_current_user)):
     """Get videos for a specific technique."""
-    return service.list_videos_by_technique(technique_name)
+    return service.list_videos_by_technique(user_id=current_user["id"], technique_name=technique_name)
 
 
 @router.get("/search")
-async def search_videos(q: str):
+async def search_videos(q: str, current_user: dict = Depends(get_current_user)):
     """Search videos by title or URL."""
-    return service.search_videos(q)
+    return service.search_videos(user_id=current_user["id"], query=q)
 
 
 @router.delete("/{video_id}")
-async def delete_video(video_id: int):
+async def delete_video(video_id: int, current_user: dict = Depends(get_current_user)):
     """Delete a video."""
     try:
-        service.delete_video(video_id)
+        service.delete_video(user_id=current_user["id"], video_id=video_id)
         return {"status": "deleted", "video_id": video_id}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
 
 @router.get("/{video_id}")
-async def get_video(video_id: int):
+async def get_video(video_id: int, current_user: dict = Depends(get_current_user)):
     """Get a video by ID."""
-    video = service.get_video(video_id)
+    video = service.get_video(user_id=current_user["id"], video_id=video_id)
     if not video:
         raise HTTPException(status_code=404, detail="Video not found")
     return video

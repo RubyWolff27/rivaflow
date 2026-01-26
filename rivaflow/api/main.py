@@ -2,7 +2,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from rivaflow.api.routes import sessions, readiness, reports, suggestions, techniques, videos, profile, gradings, glossary, contacts, analytics, goals, checkins, streaks, milestones
+from rivaflow.api.routes import sessions, readiness, reports, suggestions, techniques, videos, profile, gradings, glossary, contacts, analytics, goals, checkins, streaks, milestones, auth
 
 app = FastAPI(
     title="RivaFlow API",
@@ -20,6 +20,7 @@ app.add_middleware(
 )
 
 # Register routes
+app.include_router(auth.router, prefix="/api/auth", tags=["auth"])
 app.include_router(sessions.router, prefix="/api/sessions", tags=["sessions"])
 app.include_router(readiness.router, prefix="/api/readiness", tags=["readiness"])
 app.include_router(reports.router, prefix="/api/reports", tags=["reports"])

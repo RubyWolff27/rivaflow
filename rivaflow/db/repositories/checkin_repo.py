@@ -10,7 +10,7 @@ class CheckinRepository:
     """Data access layer for daily check-ins."""
 
     @staticmethod
-    def get_checkin(check_date: date) -> Optional[dict]:
+    def get_checkin(user_id: int, check_date: date) -> Optional[dict]:
         """Get check-in for a specific date."""
         with get_connection() as conn:
             cursor = conn.cursor()
@@ -20,9 +20,9 @@ class CheckinRepository:
                        session_id, readiness_id, tomorrow_intention, insight_shown,
                        created_at
                 FROM daily_checkins
-                WHERE check_date = ?
+                WHERE user_id = ? AND check_date = ?
                 """,
-                (check_date.isoformat(),)
+                (user_id, check_date.isoformat())
             )
             row = cursor.fetchone()
             if row is None:
@@ -43,6 +43,7 @@ class CheckinRepository:
 
     @staticmethod
     def upsert_checkin(
+        user_id: int,
         check_date: date,
         checkin_type: str,
         rest_type: Optional[str] = None,
@@ -58,11 +59,11 @@ class CheckinRepository:
             cursor.execute(
                 """
                 INSERT INTO daily_checkins (
-                    check_date, checkin_type, rest_type, rest_note,
+                    user_id, check_date, checkin_type, rest_type, rest_note,
                     session_id, readiness_id, tomorrow_intention, insight_shown
                 )
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-                ON CONFLICT(check_date) DO UPDATE SET
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ON CONFLICT(user_id, check_date) DO UPDATE SET
                     checkin_type = excluded.checkin_type,
                     rest_type = excluded.rest_type,
                     rest_note = excluded.rest_note,
@@ -72,6 +73,7 @@ class CheckinRepository:
                     insight_shown = excluded.insight_shown
                 """,
                 (
+                    user_id,
                     check_date.isoformat(),
                     checkin_type,
                     rest_type,
@@ -86,7 +88,7 @@ class CheckinRepository:
             return cursor.lastrowid
 
     @staticmethod
-    def get_checkins_range(start_date: date, end_date: date) -> list[dict]:
+    def get_checkins_range(user_id: int, start_date: date, end_date: date) -> list[dict]:
         """Get all check-ins in date range."""
         with get_connection() as conn:
             cursor = conn.cursor()
@@ -96,10 +98,10 @@ class CheckinRepository:
                        session_id, readiness_id, tomorrow_intention, insight_shown,
                        created_at
                 FROM daily_checkins
-                WHERE check_date >= ? AND check_date <= ?
+                WHERE user_id = ? AND check_date >= ? AND check_date <= ?
                 ORDER BY check_date DESC
                 """,
-                (start_date.isoformat(), end_date.isoformat())
+                (user_id, start_date.isoformat(), end_date.isoformat())
             )
             rows = cursor.fetchall()
 
@@ -120,14 +122,14 @@ class CheckinRepository:
             ]
 
     @staticmethod
-    def has_checked_in_today() -> bool:
+    def has_checked_in_today(user_id: int) -> bool:
         """Check if user has checked in today."""
         today = date.today()
-        checkin = CheckinRepository.get_checkin(today)
+        checkin = CheckinRepository.get_checkin(user_id, today)
         return checkin is not None
 
     @staticmethod
-    def update_tomorrow_intention(check_date: date, intention: str) -> None:
+    def update_tomorrow_intention(user_id: int, check_date: date, intention: str) -> None:
         """Update tomorrow's intention for a specific date."""
         with get_connection() as conn:
             cursor = conn.cursor()
@@ -135,8 +137,8 @@ class CheckinRepository:
                 """
                 UPDATE daily_checkins
                 SET tomorrow_intention = ?
-                WHERE check_date = ?
+                WHERE user_id = ? AND check_date = ?
                 """,
-                (intention, check_date.isoformat())
+                (intention, user_id, check_date.isoformat())
             )
             conn.commit()

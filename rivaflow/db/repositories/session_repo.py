@@ -13,6 +13,7 @@ class SessionRepository:
 
     @staticmethod
     def create(
+        user_id: int,
         session_date: date,
         class_type: str,
         gym_name: str,
@@ -39,15 +40,16 @@ class SessionRepository:
             cursor.execute(
                 """
                 INSERT INTO sessions (
-                    session_date, class_type, gym_name, location,
+                    user_id, session_date, class_type, gym_name, location,
                     duration_mins, intensity, rolls,
                     submissions_for, submissions_against,
                     partners, techniques, notes, visibility_level,
                     instructor_id, instructor_name,
                     whoop_strain, whoop_calories, whoop_avg_hr, whoop_max_hr
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
+                    user_id,
                     session_date.isoformat(),
                     class_type,
                     gym_name,
@@ -72,11 +74,11 @@ class SessionRepository:
             return cursor.lastrowid
 
     @staticmethod
-    def get_by_id(session_id: int) -> Optional[dict]:
+    def get_by_id(user_id: int, session_id: int) -> Optional[dict]:
         """Get a session by ID with detailed techniques."""
         with get_connection() as conn:
             cursor = conn.cursor()
-            cursor.execute("SELECT * FROM sessions WHERE id = ?", (session_id,))
+            cursor.execute("SELECT * FROM sessions WHERE id = ? AND user_id = ?", (session_id, user_id))
             row = cursor.fetchone()
             if not row:
                 return None
@@ -102,6 +104,7 @@ class SessionRepository:
 
     @staticmethod
     def update(
+        user_id: int,
         session_id: int,
         session_date: Optional[date] = None,
         class_type: Optional[str] = None,
@@ -191,74 +194,79 @@ class SessionRepository:
 
             if not updates:
                 # Nothing to update, return current session
-                return SessionRepository.get_by_id(session_id)
+                return SessionRepository.get_by_id(user_id, session_id)
 
             updates.append("updated_at = datetime('now')")
-            params.append(session_id)
-            query = f"UPDATE sessions SET {', '.join(updates)} WHERE id = ?"
+            params.extend([session_id, user_id])
+            query = f"UPDATE sessions SET {', '.join(updates)} WHERE id = ? AND user_id = ?"
             cursor.execute(query, params)
 
             if cursor.rowcount == 0:
                 return None
 
             # Return updated session
-            return SessionRepository.get_by_id(session_id)
+            return SessionRepository.get_by_id(user_id, session_id)
 
     @staticmethod
-    def get_by_date_range(start_date: date, end_date: date) -> list[dict]:
+    def get_by_date_range(user_id: int, start_date: date, end_date: date) -> list[dict]:
         """Get all sessions within a date range (inclusive)."""
         with get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(
                 """
                 SELECT * FROM sessions
-                WHERE session_date BETWEEN ? AND ?
+                WHERE user_id = ? AND session_date BETWEEN ? AND ?
                 ORDER BY session_date DESC
                 """,
-                (start_date.isoformat(), end_date.isoformat()),
+                (user_id, start_date.isoformat(), end_date.isoformat()),
             )
             return [SessionRepository._row_to_dict(row) for row in cursor.fetchall()]
 
     @staticmethod
-    def get_recent(limit: int = 10) -> list[dict]:
+    def get_recent(user_id: int, limit: int = 10) -> list[dict]:
         """Get most recent sessions."""
         with get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(
-                "SELECT * FROM sessions ORDER BY session_date DESC LIMIT ?", (limit,)
+                "SELECT * FROM sessions WHERE user_id = ? ORDER BY session_date DESC LIMIT ?", (user_id, limit)
             )
             return [SessionRepository._row_to_dict(row) for row in cursor.fetchall()]
 
     @staticmethod
-    def get_unique_gyms() -> list[str]:
+    def get_unique_gyms(user_id: int) -> list[str]:
         """Get list of unique gym names from history."""
         with get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(
-                "SELECT DISTINCT gym_name FROM sessions ORDER BY gym_name"
+                "SELECT DISTINCT gym_name FROM sessions WHERE user_id = ? ORDER BY gym_name",
+                (user_id,)
             )
             return [row["gym_name"] for row in cursor.fetchall()]
 
     @staticmethod
-    def get_unique_locations() -> list[str]:
+    def get_unique_locations(user_id: int) -> list[str]:
         """Get list of unique locations from history."""
         with get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(
                 """
                 SELECT DISTINCT location FROM sessions
-                WHERE location IS NOT NULL
+                WHERE user_id = ? AND location IS NOT NULL
                 ORDER BY location
-                """
+                """,
+                (user_id,)
             )
             return [row["location"] for row in cursor.fetchall()]
 
     @staticmethod
-    def get_unique_partners() -> list[str]:
+    def get_unique_partners(user_id: int) -> list[str]:
         """Get list of unique partner names from history."""
         with get_connection() as conn:
             cursor = conn.cursor()
-            cursor.execute("SELECT partners FROM sessions WHERE partners IS NOT NULL")
+            cursor.execute(
+                "SELECT partners FROM sessions WHERE user_id = ? AND partners IS NOT NULL",
+                (user_id,)
+            )
             partners_set = set()
             for row in cursor.fetchall():
                 partners_list = json.loads(row["partners"])
@@ -266,17 +274,18 @@ class SessionRepository:
             return sorted(partners_set)
 
     @staticmethod
-    def get_last_n_sessions_by_type(n: int = 5) -> dict[str, list[str]]:
+    def get_last_n_sessions_by_type(user_id: int, n: int = 5) -> dict[str, list[str]]:
         """Get the class types of the last N sessions."""
         with get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(
                 """
                 SELECT class_type FROM sessions
+                WHERE user_id = ?
                 ORDER BY session_date DESC, created_at DESC
                 LIMIT ?
                 """,
-                (n,),
+                (user_id, n),
             )
             return [row["class_type"] for row in cursor.fetchall()]
 

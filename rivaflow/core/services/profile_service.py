@@ -10,12 +10,13 @@ class ProfileService:
     def __init__(self):
         self.repo = ProfileRepository()
 
-    def get_profile(self) -> Optional[dict]:
+    def get_profile(self, user_id: int) -> Optional[dict]:
         """Get the user profile."""
-        return self.repo.get()
+        return self.repo.get(user_id)
 
     def update_profile(
         self,
+        user_id: int,
         first_name: Optional[str] = None,
         last_name: Optional[str] = None,
         date_of_birth: Optional[str] = None,
@@ -33,6 +34,7 @@ class ProfileService:
     ) -> dict:
         """Update the user profile. Returns updated profile."""
         return self.repo.update(
+            user_id=user_id,
             first_name=first_name,
             last_name=last_name,
             date_of_birth=date_of_birth,
@@ -49,12 +51,12 @@ class ProfileService:
             show_weekly_goals=show_weekly_goals,
         )
 
-    def get_default_gym(self) -> Optional[str]:
+    def get_default_gym(self, user_id: int) -> Optional[str]:
         """Get the default gym from profile."""
-        profile = self.get_profile()
+        profile = self.get_profile(user_id)
         return profile.get("default_gym") if profile else None
 
-    def get_current_professor(self) -> Optional[str]:
+    def get_current_professor(self, user_id: int) -> Optional[str]:
         """Get the current professor from profile."""
-        profile = self.get_profile()
+        profile = self.get_profile(user_id)
         return profile.get("current_professor") if profile else None

@@ -14,6 +14,7 @@ class VideoService:
 
     def add_video(
         self,
+        user_id: int,
         url: str,
         title: Optional[str] = None,
         timestamps: Optional[list[dict]] = None,
@@ -25,36 +26,36 @@ class VideoService:
         """
         technique_id = None
         if technique_name:
-            technique = self.technique_repo.get_or_create(technique_name)
+            technique = self.technique_repo.get_or_create(user_id, technique_name)
             technique_id = technique["id"]
 
         return self.video_repo.create(
-            url=url, title=title, timestamps=timestamps, technique_id=technique_id
+            user_id=user_id, url=url, title=title, timestamps=timestamps, technique_id=technique_id
         )
 
-    def get_video(self, video_id: int) -> Optional[dict]:
+    def get_video(self, user_id: int, video_id: int) -> Optional[dict]:
         """Get a video by ID."""
-        return self.video_repo.get_by_id(video_id)
+        return self.video_repo.get_by_id(user_id, video_id)
 
-    def list_all_videos(self) -> list[dict]:
+    def list_all_videos(self, user_id: int) -> list[dict]:
         """Get all videos."""
-        return self.video_repo.list_all()
+        return self.video_repo.list_all(user_id)
 
-    def list_videos_by_technique(self, technique_name: str) -> list[dict]:
+    def list_videos_by_technique(self, user_id: int, technique_name: str) -> list[dict]:
         """Get all videos for a specific technique."""
-        technique = self.technique_repo.get_by_name(technique_name)
+        technique = self.technique_repo.get_by_name(user_id, technique_name)
         if not technique:
             return []
 
-        return self.video_repo.get_by_technique(technique["id"])
+        return self.video_repo.get_by_technique(user_id, technique["id"])
 
-    def search_videos(self, query: str) -> list[dict]:
+    def search_videos(self, user_id: int, query: str) -> list[dict]:
         """Search videos by title or URL."""
-        return self.video_repo.search(query)
+        return self.video_repo.search(user_id, query)
 
-    def delete_video(self, video_id: int) -> None:
+    def delete_video(self, user_id: int, video_id: int) -> None:
         """Delete a video by ID."""
-        self.video_repo.delete(video_id)
+        self.video_repo.delete(user_id, video_id)
 
     def format_video_summary(self, video: dict) -> str:
         """Format a video as a human-readable summary."""
@@ -65,9 +66,9 @@ class VideoService:
 
         lines.append(f"  URL: {video['url']}")
 
-        if video.get("technique_id"):
+        if video.get("technique_id") and video.get("user_id"):
             # Get technique name
-            technique = self.technique_repo.get_by_id(video["technique_id"])
+            technique = self.technique_repo.get_by_id(video["user_id"], video["technique_id"])
             if technique:
                 lines.append(f"  Technique: {technique['name']}")
 

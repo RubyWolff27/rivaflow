@@ -1,10 +1,18 @@
 import { useState } from 'react';
-import { Link, useLocation } from 'react-router-dom';
-import { Home, Plus, BarChart3, Activity, Book, BookOpen, Video, User, Users, Menu, X } from 'lucide-react';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { Home, Plus, BarChart3, Activity, Book, BookOpen, Video, User, Users, Menu, X, LogOut } from 'lucide-react';
+import { useAuth } from '../contexts/AuthContext';
 
 export default function Layout({ children }: { children: React.ReactNode }) {
   const location = useLocation();
+  const navigate = useNavigate();
+  const { user, logout } = useAuth();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+  const handleLogout = () => {
+    logout();
+    navigate('/login');
+  };
 
   const navigation = [
     { name: 'Dashboard', href: '/', icon: Home },
@@ -31,7 +39,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
             </div>
 
             {/* Desktop Navigation */}
-            <nav className="hidden md:flex space-x-1">
+            <nav className="hidden md:flex items-center space-x-1">
               {navigation.map((item) => {
                 const isActive = location.pathname === item.href;
                 const Icon = item.icon;
@@ -50,6 +58,21 @@ export default function Layout({ children }: { children: React.ReactNode }) {
                   </Link>
                 );
               })}
+
+              {/* User info and logout */}
+              <div className="ml-4 pl-4 border-l border-gray-200 dark:border-gray-700 flex items-center gap-3">
+                <span className="text-sm text-gray-700 dark:text-gray-300">
+                  {user?.first_name} {user?.last_name}
+                </span>
+                <button
+                  onClick={handleLogout}
+                  className="px-3 py-2 rounded-md text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2 transition-colors"
+                  title="Logout"
+                >
+                  <LogOut className="w-4 h-4" />
+                  Logout
+                </button>
+              </div>
             </nav>
 
             {/* Mobile menu button */}
@@ -85,6 +108,23 @@ export default function Layout({ children }: { children: React.ReactNode }) {
                   </Link>
                 );
               })}
+
+              {/* User info and logout for mobile */}
+              <div className="pt-3 mt-3 border-t border-gray-200 dark:border-gray-700">
+                <div className="px-3 py-2 text-sm text-gray-600 dark:text-gray-400">
+                  Logged in as: {user?.first_name} {user?.last_name}
+                </div>
+                <button
+                  onClick={() => {
+                    setMobileMenuOpen(false);
+                    handleLogout();
+                  }}
+                  className="w-full flex items-center gap-3 px-3 py-2 rounded-md text-base font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
+                >
+                  <LogOut className="w-5 h-5" />
+                  Logout
+                </button>
+              </div>
             </div>
           </div>
         )}

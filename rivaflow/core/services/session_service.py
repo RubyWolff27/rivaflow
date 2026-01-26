@@ -18,6 +18,7 @@ class SessionService:
 
     def create_session(
         self,
+        user_id: int,
         session_date: date,
         class_type: str,
         gym_name: str,
@@ -47,6 +48,7 @@ class SessionService:
         """
         # Create session
         session_id = self.session_repo.create(
+            user_id=user_id,
             session_date=session_date,
             class_type=class_type,
             gym_name=gym_name,
@@ -72,6 +74,7 @@ class SessionService:
         if session_rolls:
             for roll_data in session_rolls:
                 self.roll_repo.create(
+                    user_id=user_id,
                     session_id=session_id,
                     roll_number=roll_data.get("roll_number", 1),
                     partner_id=roll_data.get("partner_id"),
@@ -86,6 +89,7 @@ class SessionService:
         if session_techniques:
             for tech_data in session_techniques:
                 self.technique_detail_repo.create(
+                    user_id=user_id,
                     session_id=session_id,
                     movement_id=tech_data.get("movement_id"),
                     technique_number=tech_data.get("technique_number", 1),
@@ -96,17 +100,18 @@ class SessionService:
         # Update technique last_trained_date
         if techniques:
             for tech_name in techniques:
-                tech = self.technique_repo.get_or_create(tech_name)
-                self.technique_repo.update_last_trained(tech["id"], session_date)
+                tech = self.technique_repo.get_or_create(user_id, tech_name)
+                self.technique_repo.update_last_trained(user_id, tech["id"], session_date)
 
         return session_id
 
-    def get_session(self, session_id: int) -> Optional[dict]:
+    def get_session(self, user_id: int, session_id: int) -> Optional[dict]:
         """Get a session by ID."""
-        return self.session_repo.get_by_id(session_id)
+        return self.session_repo.get_by_id(user_id, session_id)
 
     def update_session(
         self,
+        user_id: int,
         session_id: int,
         session_date: Optional[date] = None,
         class_type: Optional[str] = None,
@@ -134,12 +139,13 @@ class SessionService:
         Returns updated session or None if not found.
         """
         # Get original session to compare techniques
-        original = self.session_repo.get_by_id(session_id)
+        original = self.session_repo.get_by_id(user_id, session_id)
         if not original:
             return None
 
         # Update session
         updated = self.session_repo.update(
+            user_id=user_id,
             session_id=session_id,
             session_date=session_date,
             class_type=class_type,
@@ -168,10 +174,11 @@ class SessionService:
         # Update detailed technique records if provided
         if session_techniques is not None:
             # Delete existing technique records
-            self.technique_detail_repo.delete_by_session(session_id)
+            self.technique_detail_repo.delete_by_session(user_id, session_id)
             # Create new technique records
             for tech_data in session_techniques:
                 self.technique_detail_repo.create(
+                    user_id=user_id,
                     session_id=session_id,
                     movement_id=tech_data.get("movement_id"),
                     technique_number=tech_data.get("technique_number", 1),
@@ -183,34 +190,34 @@ class SessionService:
         if techniques is not None:
             updated_date = session_date if session_date else original["session_date"]
             for tech_name in techniques:
-                tech = self.technique_repo.get_or_create(tech_name)
-                self.technique_repo.update_last_trained(tech["id"], updated_date)
+                tech = self.technique_repo.get_or_create(user_id, tech_name)
+                self.technique_repo.update_last_trained(user_id, tech["id"], updated_date)
 
         return updated
 
-    def get_sessions_by_date_range(self, start_date: date, end_date: date) -> list[dict]:
+    def get_sessions_by_date_range(self, user_id: int, start_date: date, end_date: date) -> list[dict]:
         """Get sessions within a date range."""
-        return self.session_repo.get_by_date_range(start_date, end_date)
+        return self.session_repo.get_by_date_range(user_id, start_date, end_date)
 
-    def get_recent_sessions(self, limit: int = 10) -> list[dict]:
+    def get_recent_sessions(self, user_id: int, limit: int = 10) -> list[dict]:
         """Get most recent sessions."""
-        return self.session_repo.get_recent(limit)
+        return self.session_repo.get_recent(user_id, limit)
 
-    def get_autocomplete_data(self) -> dict:
+    def get_autocomplete_data(self, user_id: int) -> dict:
         """Get data for autocomplete suggestions."""
         return {
-            "gyms": self.session_repo.get_unique_gyms(),
-            "locations": self.session_repo.get_unique_locations(),
-            "partners": self.session_repo.get_unique_partners(),
-            "techniques": self.technique_repo.get_unique_names(),
+            "gyms": self.session_repo.get_unique_gyms(user_id),
+            "locations": self.session_repo.get_unique_locations(user_id),
+            "partners": self.session_repo.get_unique_partners(user_id),
+            "techniques": self.technique_repo.get_unique_names(user_id),
         }
 
-    def get_consecutive_class_type_count(self) -> dict[str, int]:
+    def get_consecutive_class_type_count(self, user_id: int) -> dict[str, int]:
         """
         Count consecutive sessions of same type from most recent.
         Returns dict with 'gi' and 'no-gi' counts.
         """
-        recent_types = self.session_repo.get_last_n_sessions_by_type(10)
+        recent_types = self.session_repo.get_last_n_sessions_by_type(user_id, 10)
         counts = {"gi": 0, "no-gi": 0}
 
         if not recent_types:
@@ -265,18 +272,18 @@ class SessionService:
 
         return "\n".join(lines)
 
-    def get_session_with_rolls(self, session_id: int) -> Optional[dict]:
+    def get_session_with_rolls(self, user_id: int, session_id: int) -> Optional[dict]:
         """Get a session with detailed roll records included."""
-        session = self.session_repo.get_by_id(session_id)
+        session = self.session_repo.get_by_id(user_id, session_id)
         if not session:
             return None
 
         # Fetch detailed rolls
-        rolls = self.roll_repo.get_by_session_id(session_id)
+        rolls = self.roll_repo.get_by_session_id(user_id, session_id)
         session["detailed_rolls"] = rolls
 
         return session
 
-    def get_partner_stats(self, partner_id: int) -> dict:
+    def get_partner_stats(self, user_id: int, partner_id: int) -> dict:
         """Get analytics for a specific training partner."""
-        return self.roll_repo.get_partner_stats(partner_id)
+        return self.roll_repo.get_partner_stats(user_id, partner_id)

@@ -10,11 +10,11 @@ class ProfileRepository:
     """Data access layer for user profile (single row table)."""
 
     @staticmethod
-    def get() -> Optional[dict]:
+    def get(user_id: int) -> Optional[dict]:
         """Get the user profile."""
         with get_connection() as conn:
             cursor = conn.cursor()
-            cursor.execute("SELECT * FROM profile WHERE id = 1")
+            cursor.execute("SELECT * FROM profile WHERE user_id = ?", (user_id,))
             row = cursor.fetchone()
             if row:
                 return ProfileRepository._row_to_dict(row)
@@ -22,6 +22,7 @@ class ProfileRepository:
 
     @staticmethod
     def update(
+        user_id: int,
         first_name: Optional[str] = None,
         last_name: Optional[str] = None,
         date_of_birth: Optional[str] = None,
@@ -90,11 +91,12 @@ class ProfileRepository:
 
             if updates:
                 updates.append("updated_at = datetime('now')")
-                query = f"UPDATE profile SET {', '.join(updates)} WHERE id = 1"
+                params.append(user_id)
+                query = f"UPDATE profile SET {', '.join(updates)} WHERE user_id = ?"
                 cursor.execute(query, params)
 
             # Return updated profile
-            cursor.execute("SELECT * FROM profile WHERE id = 1")
+            cursor.execute("SELECT * FROM profile WHERE user_id = ?", (user_id,))
             row = cursor.fetchone()
             return ProfileRepository._row_to_dict(row)
 

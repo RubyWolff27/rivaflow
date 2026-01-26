@@ -15,7 +15,7 @@ class InsightService:
         self.streak_repo = StreakRepository()
         self.milestone_service = MilestoneService()
 
-    def generate_insight(self) -> dict:
+    def generate_insight(self, user_id: int) -> dict:
         """
         Generate a contextual insight based on user's data.
 
@@ -29,11 +29,11 @@ class InsightService:
         insights = []
 
         # Collect all possible insights
-        insights.extend(self._get_stat_insights())
-        insights.extend(self._get_streak_insights())
-        insights.extend(self._get_milestone_insights())
-        insights.extend(self._get_recovery_insights())
-        insights.extend(self._get_trend_insights())
+        insights.extend(self._get_stat_insights(user_id))
+        insights.extend(self._get_streak_insights(user_id))
+        insights.extend(self._get_milestone_insights(user_id))
+        insights.extend(self._get_recovery_insights(user_id))
+        insights.extend(self._get_trend_insights(user_id))
 
         # Select one insight (weighted by relevance)
         if insights:
@@ -54,7 +54,7 @@ class InsightService:
 
         return self._get_default_insight()
 
-    def _get_stat_insights(self) -> list[dict]:
+    def _get_stat_insights(self, user_id: int) -> list[dict]:
         """Generate insights comparing current week to average."""
         insights = []
 
@@ -67,8 +67,8 @@ class InsightService:
 
             cursor.execute("""
                 SELECT SUM(duration_mins) FROM sessions
-                WHERE session_date >= ?
-            """, (week_start.isoformat(),))
+                WHERE session_date >= ? AND user_id = ?
+            """, (week_start.isoformat(), user_id))
             week_mins = cursor.fetchone()[0] or 0
             week_hours = round(week_mins / 60, 1)
 
@@ -78,10 +78,10 @@ class InsightService:
                 SELECT AVG(weekly_mins) FROM (
                     SELECT SUM(duration_mins) as weekly_mins
                     FROM sessions
-                    WHERE session_date >= ? AND session_date < ?
+                    WHERE session_date >= ? AND session_date < ? AND user_id = ?
                     GROUP BY strftime('%Y-%W', session_date)
                 )
-            """, (four_weeks_ago.isoformat(), week_start.isoformat()))
+            """, (four_weeks_ago.isoformat(), week_start.isoformat(), user_id))
             avg_mins = cursor.fetchone()[0] or 0
             avg_hours = round(avg_mins / 60, 1)
 
@@ -107,11 +107,11 @@ class InsightService:
 
         return insights
 
-    def _get_streak_insights(self) -> list[dict]:
+    def _get_streak_insights(self, user_id: int) -> list[dict]:
         """Generate insights about streaks."""
         insights = []
 
-        checkin_streak = self.streak_repo.get_streak("checkin")
+        checkin_streak = self.streak_repo.get_streak(user_id, "checkin")
         current = checkin_streak["current_streak"]
 
         # Milestone streak achievements
@@ -142,11 +142,11 @@ class InsightService:
 
         return insights
 
-    def _get_milestone_insights(self) -> list[dict]:
+    def _get_milestone_insights(self, user_id: int) -> list[dict]:
         """Generate insights about upcoming milestones."""
         insights = []
 
-        closest = self.milestone_service.get_closest_milestone()
+        closest = self.milestone_service.get_closest_milestone(user_id)
         if closest and closest["percentage"] >= 80:
             insights.append({
                 "type": "milestone",
@@ -158,7 +158,7 @@ class InsightService:
 
         return insights
 
-    def _get_recovery_insights(self) -> list[dict]:
+    def _get_recovery_insights(self, user_id: int) -> list[dict]:
         """Generate insights about rest and recovery."""
         insights = []
 
@@ -168,8 +168,8 @@ class InsightService:
             # Check consecutive training days
             cursor.execute("""
                 SELECT COUNT(*) FROM sessions
-                WHERE session_date >= date('now', '-6 days')
-            """)
+                WHERE session_date >= date('now', '-6 days') AND user_id = ?
+            """, (user_id,))
             recent_days = cursor.fetchone()[0] or 0
 
             if recent_days >= 6:
@@ -183,7 +183,7 @@ class InsightService:
 
         return insights
 
-    def _get_trend_insights(self) -> list[dict]:
+    def _get_trend_insights(self, user_id: int) -> list[dict]:
         """Generate insights about performance trends."""
         insights = []
 
@@ -196,8 +196,8 @@ class InsightService:
                     SUM(submissions_for) as subs,
                     COUNT(*) as sessions
                 FROM sessions
-                WHERE session_date >= date('now', '-30 days')
-            """)
+                WHERE session_date >= date('now', '-30 days') AND user_id = ?
+            """, (user_id,))
             recent = cursor.fetchone()
             recent_rate = (recent[0] / recent[1]) if recent and recent[1] > 0 else 0
 
@@ -208,7 +208,8 @@ class InsightService:
                 FROM sessions
                 WHERE session_date >= date('now', '-60 days')
                   AND session_date < date('now', '-30 days')
-            """)
+                  AND user_id = ?
+            """, (user_id,))
             previous = cursor.fetchone()
             previous_rate = (previous[0] / previous[1]) if previous and previous[1] > 0 else 0
 
