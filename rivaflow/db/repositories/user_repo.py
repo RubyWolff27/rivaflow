@@ -38,14 +38,14 @@ class UserRepository:
             cursor.execute(
                 """
                 INSERT INTO users (email, hashed_password, first_name, last_name, is_active)
-                VALUES (?, ?, ?, ?, ?)
+                VALUES (%s, %s, %s, %s, %s)
                 """,
                 (email, hashed_password, first_name, last_name, is_active),
             )
             user_id = cursor.lastrowid
 
             # Fetch and return the created user
-            cursor.execute("SELECT * FROM users WHERE id = ?", (user_id,))
+            cursor.execute("SELECT * FROM users WHERE id = %s", (user_id,))
             row = cursor.fetchone()
             return UserRepository._row_to_dict(row)
 
@@ -62,7 +62,7 @@ class UserRepository:
         """
         with get_connection() as conn:
             cursor = conn.cursor()
-            cursor.execute("SELECT * FROM users WHERE email = ?", (email,))
+            cursor.execute("SELECT * FROM users WHERE email = %s", (email,))
             row = cursor.fetchone()
             if row:
                 return UserRepository._row_to_dict(row)
@@ -81,7 +81,7 @@ class UserRepository:
         """
         with get_connection() as conn:
             cursor = conn.cursor()
-            cursor.execute("SELECT * FROM users WHERE id = ?", (user_id,))
+            cursor.execute("SELECT * FROM users WHERE id = %s", (user_id,))
             row = cursor.fetchone()
             if row:
                 return UserRepository._row_to_dict(row)
@@ -118,29 +118,29 @@ class UserRepository:
             params = []
 
             if email is not None:
-                updates.append("email = ?")
+                updates.append("email = %s")
                 params.append(email)
             if hashed_password is not None:
-                updates.append("hashed_password = ?")
+                updates.append("hashed_password = %s")
                 params.append(hashed_password)
             if first_name is not None:
-                updates.append("first_name = ?")
+                updates.append("first_name = %s")
                 params.append(first_name)
             if last_name is not None:
-                updates.append("last_name = ?")
+                updates.append("last_name = %s")
                 params.append(last_name)
             if is_active is not None:
-                updates.append("is_active = ?")
+                updates.append("is_active = %s")
                 params.append(is_active)
 
             if updates:
-                updates.append("updated_at = datetime('now')")
+                updates.append("updated_at = CURRENT_TIMESTAMP")
                 params.append(user_id)
-                query = f"UPDATE users SET {', '.join(updates)} WHERE id = ?"
+                query = f"UPDATE users SET {', '.join(updates)} WHERE id = %s"
                 cursor.execute(query, params)
 
             # Return updated user
-            cursor.execute("SELECT * FROM users WHERE id = ?", (user_id,))
+            cursor.execute("SELECT * FROM users WHERE id = %s", (user_id,))
             row = cursor.fetchone()
             if row:
                 return UserRepository._row_to_dict(row)
@@ -175,7 +175,7 @@ class UserRepository:
         """
         with get_connection() as conn:
             cursor = conn.cursor()
-            cursor.execute("UPDATE users SET is_active = 0 WHERE id = ?", (user_id,))
+            cursor.execute("UPDATE users SET is_active = FALSE WHERE id = %s", (user_id,))
             return cursor.rowcount > 0
 
     @staticmethod

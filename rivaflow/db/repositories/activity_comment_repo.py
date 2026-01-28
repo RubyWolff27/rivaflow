@@ -38,13 +38,13 @@ class ActivityCommentRepository:
                 """
                 INSERT INTO activity_comments
                 (user_id, activity_type, activity_id, comment_text, parent_comment_id)
-                VALUES (?, ?, ?, ?, ?)
+                VALUES (%s, %s, %s, %s, %s)
                 """,
                 (user_id, activity_type, activity_id, comment_text, parent_comment_id),
             )
             comment_id = cursor.lastrowid
 
-            cursor.execute("SELECT * FROM activity_comments WHERE id = ?", (comment_id,))
+            cursor.execute("SELECT * FROM activity_comments WHERE id = %s", (comment_id,))
             row = cursor.fetchone()
             return ActivityCommentRepository._row_to_dict(row)
 
@@ -78,7 +78,7 @@ class ActivityCommentRepository:
                     u.email
                 FROM activity_comments ac
                 JOIN users u ON ac.user_id = u.id
-                WHERE ac.activity_type = ? AND ac.activity_id = ?
+                WHERE ac.activity_type = %s AND ac.activity_id = %s
                 ORDER BY ac.created_at ASC
                 """,
                 (activity_type, activity_id),
@@ -115,7 +115,7 @@ class ActivityCommentRepository:
                     u.email
                 FROM activity_comments ac
                 JOIN users u ON ac.user_id = u.id
-                WHERE ac.id = ?
+                WHERE ac.id = %s
                 """,
                 (comment_id,),
             )
@@ -140,8 +140,8 @@ class ActivityCommentRepository:
             cursor.execute(
                 """
                 UPDATE activity_comments
-                SET comment_text = ?, edited_at = datetime('now')
-                WHERE id = ? AND user_id = ?
+                SET comment_text = %s, edited_at = CURRENT_TIMESTAMP
+                WHERE id = %s AND user_id = %s
                 """,
                 (comment_text, comment_id, user_id),
             )
@@ -168,7 +168,7 @@ class ActivityCommentRepository:
             cursor.execute(
                 """
                 DELETE FROM activity_comments
-                WHERE id = ? AND user_id = ?
+                WHERE id = %s AND user_id = %s
                 """,
                 (comment_id, user_id),
             )
@@ -192,7 +192,7 @@ class ActivityCommentRepository:
                 """
                 SELECT COUNT(*) as count
                 FROM activity_comments
-                WHERE activity_type = ? AND activity_id = ?
+                WHERE activity_type = %s AND activity_id = %s
                 """,
                 (activity_type, activity_id),
             )
@@ -217,9 +217,9 @@ class ActivityCommentRepository:
             cursor.execute(
                 """
                 SELECT * FROM activity_comments
-                WHERE user_id = ?
+                WHERE user_id = %s
                 ORDER BY created_at DESC
-                LIMIT ? OFFSET ?
+                LIMIT %s OFFSET %s
                 """,
                 (user_id, limit, offset),
             )

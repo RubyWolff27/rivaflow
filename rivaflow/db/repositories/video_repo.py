@@ -23,7 +23,7 @@ class VideoRepository:
             cursor.execute(
                 """
                 INSERT INTO videos (url, title, timestamps, technique_id)
-                VALUES (?, ?, ?, ?)
+                VALUES (%s, %s, %s, %s)
                 """,
                 (
                     url,
@@ -39,7 +39,7 @@ class VideoRepository:
         """Get a video by ID."""
         with get_connection() as conn:
             cursor = conn.cursor()
-            cursor.execute("SELECT * FROM videos WHERE id = ?", (video_id,))
+            cursor.execute("SELECT * FROM videos WHERE id = %s", (video_id,))
             row = cursor.fetchone()
             if row:
                 return VideoRepository._row_to_dict(row)
@@ -59,7 +59,7 @@ class VideoRepository:
         with get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(
-                "SELECT * FROM videos WHERE technique_id = ? ORDER BY created_at DESC",
+                "SELECT * FROM videos WHERE technique_id = %s ORDER BY created_at DESC",
                 (technique_id,),
             )
             return [VideoRepository._row_to_dict(row) for row in cursor.fetchall()]
@@ -72,7 +72,7 @@ class VideoRepository:
             cursor.execute(
                 """
                 SELECT * FROM videos
-                WHERE title LIKE ? OR url LIKE ?
+                WHERE title LIKE %s OR url LIKE %s
                 ORDER BY created_at DESC
                 """,
                 (f"%{query}%", f"%{query}%"),
@@ -92,10 +92,10 @@ class VideoRepository:
             cursor.execute(
                 """
                 UPDATE videos
-                SET title = COALESCE(?, title),
-                    timestamps = COALESCE(?, timestamps),
-                    technique_id = COALESCE(?, technique_id)
-                WHERE id = ?
+                SET title = COALESCE(%s, title),
+                    timestamps = COALESCE(%s, timestamps),
+                    technique_id = COALESCE(%s, technique_id)
+                WHERE id = %s
                 """,
                 (
                     title,
@@ -110,7 +110,7 @@ class VideoRepository:
         """Delete a video by ID."""
         with get_connection() as conn:
             cursor = conn.cursor()
-            cursor.execute("DELETE FROM videos WHERE id = ?", (video_id,))
+            cursor.execute("DELETE FROM videos WHERE id = %s", (video_id,))
 
     @staticmethod
     def _row_to_dict(row: sqlite3.Row) -> dict:

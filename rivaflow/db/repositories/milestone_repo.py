@@ -34,7 +34,7 @@ class MilestoneRepository:
             cursor.execute(
                 """
                 SELECT id FROM milestones
-                WHERE user_id = ? AND milestone_type = ? AND milestone_value = ?
+                WHERE user_id = %s AND milestone_type = %s AND milestone_value = %s
                 """,
                 (user_id, milestone_type, crossed_threshold)
             )
@@ -48,7 +48,7 @@ class MilestoneRepository:
             cursor.execute(
                 """
                 INSERT INTO milestones (user_id, milestone_type, milestone_value, milestone_label, celebrated)
-                VALUES (?, ?, ?, ?, 0)
+                VALUES (%s, %s, %s, %s, 0)
                 """,
                 (user_id, milestone_type, crossed_threshold, label)
             )
@@ -61,7 +61,7 @@ class MilestoneRepository:
                 """
                 SELECT id, milestone_type, milestone_value, milestone_label, achieved_at, celebrated
                 FROM milestones
-                WHERE id = ? AND user_id = ?
+                WHERE id = %s AND user_id = %s
                 """,
                 (milestone_id, user_id)
             )
@@ -85,7 +85,7 @@ class MilestoneRepository:
                 """
                 SELECT id, milestone_type, milestone_value, milestone_label, achieved_at, celebrated
                 FROM milestones
-                WHERE user_id = ? AND celebrated = 0
+                WHERE user_id = %s AND celebrated = FALSE
                 ORDER BY achieved_at DESC
                 """,
                 (user_id,)
@@ -112,8 +112,8 @@ class MilestoneRepository:
             cursor.execute(
                 """
                 UPDATE milestones
-                SET celebrated = 1
-                WHERE id = ? AND user_id = ?
+                SET celebrated = TRUE
+                WHERE id = %s AND user_id = %s
                 """,
                 (milestone_id, user_id)
             )
@@ -147,7 +147,7 @@ class MilestoneRepository:
                 """
                 SELECT id, milestone_type, milestone_value, milestone_label, achieved_at, celebrated
                 FROM milestones
-                WHERE user_id = ?
+                WHERE user_id = %s
                 ORDER BY achieved_at DESC
                 """,
                 (user_id,)
@@ -175,7 +175,7 @@ class MilestoneRepository:
                 """
                 SELECT MAX(milestone_value)
                 FROM milestones
-                WHERE user_id = ? AND milestone_type = ?
+                WHERE user_id = %s AND milestone_type = %s
                 """,
                 (user_id, milestone_type)
             )

@@ -27,14 +27,14 @@ class RefreshTokenRepository:
             cursor.execute(
                 """
                 INSERT INTO refresh_tokens (user_id, token, expires_at)
-                VALUES (?, ?, ?)
+                VALUES (%s, %s, %s)
                 """,
                 (user_id, token, expires_at),
             )
             token_id = cursor.lastrowid
 
             # Fetch and return the created token
-            cursor.execute("SELECT * FROM refresh_tokens WHERE id = ?", (token_id,))
+            cursor.execute("SELECT * FROM refresh_tokens WHERE id = %s", (token_id,))
             row = cursor.fetchone()
             return RefreshTokenRepository._row_to_dict(row)
 
@@ -51,7 +51,7 @@ class RefreshTokenRepository:
         """
         with get_connection() as conn:
             cursor = conn.cursor()
-            cursor.execute("SELECT * FROM refresh_tokens WHERE token = ?", (token,))
+            cursor.execute("SELECT * FROM refresh_tokens WHERE token = %s", (token,))
             row = cursor.fetchone()
             if row:
                 return RefreshTokenRepository._row_to_dict(row)
@@ -73,7 +73,7 @@ class RefreshTokenRepository:
             cursor.execute(
                 """
                 SELECT * FROM refresh_tokens
-                WHERE user_id = ?
+                WHERE user_id = %s
                 ORDER BY created_at DESC
                 """,
                 (user_id,),
@@ -94,7 +94,7 @@ class RefreshTokenRepository:
         """
         with get_connection() as conn:
             cursor = conn.cursor()
-            cursor.execute("DELETE FROM refresh_tokens WHERE token = ?", (token,))
+            cursor.execute("DELETE FROM refresh_tokens WHERE token = %s", (token,))
             return cursor.rowcount > 0
 
     @staticmethod
@@ -110,7 +110,7 @@ class RefreshTokenRepository:
         """
         with get_connection() as conn:
             cursor = conn.cursor()
-            cursor.execute("DELETE FROM refresh_tokens WHERE user_id = ?", (user_id,))
+            cursor.execute("DELETE FROM refresh_tokens WHERE user_id = %s", (user_id,))
             return cursor.rowcount
 
     @staticmethod
@@ -125,7 +125,7 @@ class RefreshTokenRepository:
             cursor = conn.cursor()
             now = datetime.utcnow().isoformat()
             cursor.execute(
-                "DELETE FROM refresh_tokens WHERE expires_at < ?", (now,)
+                "DELETE FROM refresh_tokens WHERE expires_at < %s", (now,)
             )
             return cursor.rowcount
 

@@ -16,14 +16,14 @@ class TechniqueRepository:
             cursor = conn.cursor()
             try:
                 cursor.execute(
-                    "INSERT INTO techniques (name, category) VALUES (?, ?)",
+                    "INSERT INTO techniques (name, category) VALUES (%s, %s)",
                     (name.lower().strip(), category),
                 )
                 return cursor.lastrowid
             except sqlite3.IntegrityError:
                 # Technique already exists, return existing ID
                 cursor.execute(
-                    "SELECT id FROM techniques WHERE name = ?",
+                    "SELECT id FROM techniques WHERE name = %s",
                     (name.lower().strip(),),
                 )
                 return cursor.fetchone()["id"]
@@ -33,7 +33,7 @@ class TechniqueRepository:
         """Get a technique by ID."""
         with get_connection() as conn:
             cursor = conn.cursor()
-            cursor.execute("SELECT * FROM techniques WHERE id = ?", (technique_id,))
+            cursor.execute("SELECT * FROM techniques WHERE id = %s", (technique_id,))
             row = cursor.fetchone()
             if row:
                 return TechniqueRepository._row_to_dict(row)
@@ -45,7 +45,7 @@ class TechniqueRepository:
         with get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(
-                "SELECT * FROM techniques WHERE name = ?", (name.lower().strip(),)
+                "SELECT * FROM techniques WHERE name = %s", (name.lower().strip(),)
             )
             row = cursor.fetchone()
             if row:
@@ -76,7 +76,7 @@ class TechniqueRepository:
         with get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(
-                "UPDATE techniques SET last_trained_date = ? WHERE id = ?",
+                "UPDATE techniques SET last_trained_date = %s WHERE id = %s",
                 (trained_date.isoformat(), technique_id),
             )
 
@@ -89,7 +89,7 @@ class TechniqueRepository:
                 """
                 SELECT * FROM techniques
                 WHERE last_trained_date IS NULL
-                   OR last_trained_date < date('now', '-' || ? || ' days')
+                   OR last_trained_date < date('now', '-' || %s || ' days')
                 ORDER BY last_trained_date ASC
                 """,
                 (days,),
@@ -102,7 +102,7 @@ class TechniqueRepository:
         with get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(
-                "SELECT * FROM techniques WHERE name LIKE ? ORDER BY name",
+                "SELECT * FROM techniques WHERE name LIKE %s ORDER BY name",
                 (f"%{query.lower()}%",),
             )
             return [TechniqueRepository._row_to_dict(row) for row in cursor.fetchall()]

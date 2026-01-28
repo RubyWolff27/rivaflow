@@ -14,7 +14,7 @@ class ProfileRepository:
         """Get the user profile."""
         with get_connection() as conn:
             cursor = conn.cursor()
-            cursor.execute("SELECT * FROM profile WHERE user_id = ?", (user_id,))
+            cursor.execute("SELECT * FROM profile WHERE user_id = %s", (user_id,))
             row = cursor.fetchone()
             if row:
                 return ProfileRepository._row_to_dict(row)
@@ -46,7 +46,7 @@ class ProfileRepository:
             cursor = conn.cursor()
 
             # Check if profile exists
-            cursor.execute("SELECT id FROM profile WHERE user_id = ?", (user_id,))
+            cursor.execute("SELECT id FROM profile WHERE user_id = %s", (user_id,))
             exists = cursor.fetchone() is not None
 
             if not exists:
@@ -59,7 +59,7 @@ class ProfileRepository:
                         height_cm, target_weight_kg,
                         weekly_sessions_target, weekly_hours_target, weekly_rolls_target,
                         show_streak_on_dashboard, show_weekly_goals
-                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                     """,
                     (
                         user_id,
@@ -88,65 +88,65 @@ class ProfileRepository:
                 params = []
 
                 if first_name is not None:
-                    updates.append("first_name = ?")
+                    updates.append("first_name = %s")
                     params.append(first_name)
                 if last_name is not None:
-                    updates.append("last_name = ?")
+                    updates.append("last_name = %s")
                     params.append(last_name)
                 if date_of_birth is not None:
-                    updates.append("date_of_birth = ?")
+                    updates.append("date_of_birth = %s")
                     params.append(date_of_birth)
                 if sex is not None:
-                    updates.append("sex = ?")
+                    updates.append("sex = %s")
                     params.append(sex)
                 if city is not None:
-                    updates.append("location = ?")  # Column is named 'location' not 'city'
+                    updates.append("location = %s")  # Column is named 'location' not 'city'
                     params.append(city)
                 if state is not None:
-                    updates.append("state = ?")
+                    updates.append("state = %s")
                     params.append(state)
                 if default_gym is not None:
-                    updates.append("default_gym = ?")
+                    updates.append("default_gym = %s")
                     params.append(default_gym)
                 if current_grade is not None:
-                    updates.append("current_grade = ?")
+                    updates.append("current_grade = %s")
                     params.append(current_grade)
                 if current_professor is not None:
-                    updates.append("current_professor = ?")
+                    updates.append("current_professor = %s")
                     params.append(current_professor)
                 if current_instructor_id is not None:
-                    updates.append("current_instructor_id = ?")
+                    updates.append("current_instructor_id = %s")
                     params.append(current_instructor_id)
                 if height_cm is not None:
-                    updates.append("height_cm = ?")
+                    updates.append("height_cm = %s")
                     params.append(height_cm)
                 if target_weight_kg is not None:
-                    updates.append("target_weight_kg = ?")
+                    updates.append("target_weight_kg = %s")
                     params.append(target_weight_kg)
                 if weekly_sessions_target is not None:
-                    updates.append("weekly_sessions_target = ?")
+                    updates.append("weekly_sessions_target = %s")
                     params.append(weekly_sessions_target)
                 if weekly_hours_target is not None:
-                    updates.append("weekly_hours_target = ?")
+                    updates.append("weekly_hours_target = %s")
                     params.append(weekly_hours_target)
                 if weekly_rolls_target is not None:
-                    updates.append("weekly_rolls_target = ?")
+                    updates.append("weekly_rolls_target = %s")
                     params.append(weekly_rolls_target)
                 if show_streak_on_dashboard is not None:
-                    updates.append("show_streak_on_dashboard = ?")
+                    updates.append("show_streak_on_dashboard = %s")
                     params.append(show_streak_on_dashboard)
                 if show_weekly_goals is not None:
-                    updates.append("show_weekly_goals = ?")
+                    updates.append("show_weekly_goals = %s")
                     params.append(show_weekly_goals)
 
                 if updates:
-                    updates.append("updated_at = datetime('now')")
+                    updates.append("updated_at = CURRENT_TIMESTAMP")
                     params.append(user_id)
-                    query = f"UPDATE profile SET {', '.join(updates)} WHERE user_id = ?"
+                    query = f"UPDATE profile SET {', '.join(updates)} WHERE user_id = %s"
                     cursor.execute(query, params)
 
             # Return updated profile
-            cursor.execute("SELECT * FROM profile WHERE user_id = ?", (user_id,))
+            cursor.execute("SELECT * FROM profile WHERE user_id = %s", (user_id,))
             row = cursor.fetchone()
             if row:
                 return ProfileRepository._row_to_dict(row)

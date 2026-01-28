@@ -20,7 +20,7 @@ class CheckinRepository:
                        session_id, readiness_id, tomorrow_intention, insight_shown,
                        created_at
                 FROM daily_checkins
-                WHERE user_id = ? AND check_date = ?
+                WHERE user_id = %s AND check_date = %s
                 """,
                 (user_id, check_date.isoformat())
             )
@@ -62,7 +62,7 @@ class CheckinRepository:
                     user_id, check_date, checkin_type, rest_type, rest_note,
                     session_id, readiness_id, tomorrow_intention, insight_shown
                 )
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
                 ON CONFLICT(user_id, check_date) DO UPDATE SET
                     checkin_type = excluded.checkin_type,
                     rest_type = excluded.rest_type,
@@ -98,7 +98,7 @@ class CheckinRepository:
                        session_id, readiness_id, tomorrow_intention, insight_shown,
                        created_at
                 FROM daily_checkins
-                WHERE user_id = ? AND check_date >= ? AND check_date <= ?
+                WHERE user_id = %s AND check_date >= %s AND check_date <= %s
                 ORDER BY check_date DESC
                 """,
                 (user_id, start_date.isoformat(), end_date.isoformat())
@@ -136,8 +136,8 @@ class CheckinRepository:
             cursor.execute(
                 """
                 UPDATE daily_checkins
-                SET tomorrow_intention = ?
-                WHERE user_id = ? AND check_date = ?
+                SET tomorrow_intention = %s
+                WHERE user_id = %s AND check_date = %s
                 """,
                 (intention, user_id, check_date.isoformat())
             )

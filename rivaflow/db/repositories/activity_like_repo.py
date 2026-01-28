@@ -29,13 +29,13 @@ class ActivityLikeRepository:
             cursor.execute(
                 """
                 INSERT INTO activity_likes (user_id, activity_type, activity_id)
-                VALUES (?, ?, ?)
+                VALUES (%s, %s, %s)
                 """,
                 (user_id, activity_type, activity_id),
             )
             like_id = cursor.lastrowid
 
-            cursor.execute("SELECT * FROM activity_likes WHERE id = ?", (like_id,))
+            cursor.execute("SELECT * FROM activity_likes WHERE id = %s", (like_id,))
             row = cursor.fetchone()
             return ActivityLikeRepository._row_to_dict(row)
 
@@ -57,7 +57,7 @@ class ActivityLikeRepository:
             cursor.execute(
                 """
                 DELETE FROM activity_likes
-                WHERE user_id = ? AND activity_type = ? AND activity_id = ?
+                WHERE user_id = %s AND activity_type = %s AND activity_id = %s
                 """,
                 (user_id, activity_type, activity_id),
             )
@@ -81,7 +81,7 @@ class ActivityLikeRepository:
                 """
                 SELECT COUNT(*) as count
                 FROM activity_likes
-                WHERE activity_type = ? AND activity_id = ?
+                WHERE activity_type = %s AND activity_id = %s
                 """,
                 (activity_type, activity_id),
             )
@@ -106,7 +106,7 @@ class ActivityLikeRepository:
             cursor.execute(
                 """
                 SELECT 1 FROM activity_likes
-                WHERE user_id = ? AND activity_type = ? AND activity_id = ?
+                WHERE user_id = %s AND activity_type = %s AND activity_id = %s
                 """,
                 (user_id, activity_type, activity_id),
             )
@@ -139,7 +139,7 @@ class ActivityLikeRepository:
                     u.email
                 FROM activity_likes al
                 JOIN users u ON al.user_id = u.id
-                WHERE al.activity_type = ? AND al.activity_id = ?
+                WHERE al.activity_type = %s AND al.activity_id = %s
                 ORDER BY al.created_at DESC
                 """,
                 (activity_type, activity_id),
@@ -165,9 +165,9 @@ class ActivityLikeRepository:
             cursor.execute(
                 """
                 SELECT * FROM activity_likes
-                WHERE user_id = ?
+                WHERE user_id = %s
                 ORDER BY created_at DESC
-                LIMIT ? OFFSET ?
+                LIMIT %s OFFSET %s
                 """,
                 (user_id, limit, offset),
             )

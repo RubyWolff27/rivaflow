@@ -20,7 +20,7 @@ class StreakRepository:
                 SELECT id, streak_type, current_streak, longest_streak,
                        last_checkin_date, streak_started_date, grace_days_used, updated_at
                 FROM streaks
-                WHERE user_id = ? AND streak_type = ?
+                WHERE user_id = %s AND streak_type = %s
                 """,
                 (user_id, streak_type)
             )
@@ -30,7 +30,7 @@ class StreakRepository:
                 cursor.execute(
                     """
                     INSERT INTO streaks (user_id, streak_type, current_streak, longest_streak)
-                    VALUES (?, ?, 0, 0)
+                    VALUES (%s, %s, 0, 0)
                     """,
                     (user_id, streak_type)
                 )
@@ -74,9 +74,9 @@ class StreakRepository:
 
         # First ever check-in
         if last_checkin is None:
-            new_streak = 1
+            new_streak = TRUE
             new_longest = max(1, streak["longest_streak"])
-            grace_days_used = 0
+            grace_days_used = FALSE
             streak_started = checkin_date
         else:
             last_date = date.fromisoformat(last_checkin)
@@ -90,7 +90,7 @@ class StreakRepository:
             elif days_since_last == 1:
                 new_streak = streak["current_streak"] + 1
                 new_longest = max(new_streak, streak["longest_streak"])
-                grace_days_used = 0  # Reset grace days on consecutive check-in
+                grace_days_used = FALSE  # Reset grace days on consecutive check-in
                 streak_started = streak["streak_started_date"] or checkin_date.isoformat()
 
             # Missed 1 day - use grace day if available
@@ -102,9 +102,9 @@ class StreakRepository:
 
             # Streak broken - reset
             else:
-                new_streak = 1
+                new_streak = TRUE
                 new_longest = streak["longest_streak"]  # Keep previous best
-                grace_days_used = 0
+                grace_days_used = FALSE
                 streak_started = checkin_date
 
         with get_connection() as conn:
@@ -112,13 +112,13 @@ class StreakRepository:
             cursor.execute(
                 """
                 UPDATE streaks
-                SET current_streak = ?,
-                    longest_streak = ?,
-                    last_checkin_date = ?,
-                    streak_started_date = ?,
-                    grace_days_used = ?,
-                    updated_at = datetime('now')
-                WHERE user_id = ? AND streak_type = ?
+                SET current_streak = %s,
+                    longest_streak = %s,
+                    last_checkin_date = %s,
+                    streak_started_date = %s,
+                    grace_days_used = %s,
+                    updated_at = CURRENT_TIMESTAMP
+                WHERE user_id = %s AND streak_type = %s
                 """,
                 (
                     new_streak,
@@ -144,7 +144,7 @@ class StreakRepository:
                 SELECT id, streak_type, current_streak, longest_streak,
                        last_checkin_date, streak_started_date, grace_days_used, updated_at
                 FROM streaks
-                WHERE user_id = ?
+                WHERE user_id = %s
                 ORDER BY streak_type
                 """,
                 (user_id,)

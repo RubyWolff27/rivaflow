@@ -27,14 +27,14 @@ class ContactRepository:
                 """
                 INSERT INTO contacts
                 (user_id, name, contact_type, belt_rank, belt_stripes, instructor_certification, phone, email, notes)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
                 """,
                 (user_id, name, contact_type, belt_rank, belt_stripes, instructor_certification, phone, email, notes),
             )
             contact_id = cursor.lastrowid
 
             # Return the created contact
-            cursor.execute("SELECT * FROM contacts WHERE id = ? AND user_id = ?", (contact_id, user_id))
+            cursor.execute("SELECT * FROM contacts WHERE id = %s AND user_id = %s", (contact_id, user_id))
             row = cursor.fetchone()
             return ContactRepository._row_to_dict(row)
 
@@ -43,7 +43,7 @@ class ContactRepository:
         """Get a contact by ID."""
         with get_connection() as conn:
             cursor = conn.cursor()
-            cursor.execute("SELECT * FROM contacts WHERE id = ? AND user_id = ?", (contact_id, user_id))
+            cursor.execute("SELECT * FROM contacts WHERE id = %s AND user_id = %s", (contact_id, user_id))
             row = cursor.fetchone()
             return ContactRepository._row_to_dict(row) if row else None
 
@@ -52,7 +52,7 @@ class ContactRepository:
         """Get a contact by exact name match."""
         with get_connection() as conn:
             cursor = conn.cursor()
-            cursor.execute("SELECT * FROM contacts WHERE user_id = ? AND name = ?", (user_id, name))
+            cursor.execute("SELECT * FROM contacts WHERE user_id = %s AND name = %s", (user_id, name))
             row = cursor.fetchone()
             return ContactRepository._row_to_dict(row) if row else None
 
@@ -61,7 +61,7 @@ class ContactRepository:
         """Get all contacts, ordered by name alphabetically by default."""
         with get_connection() as conn:
             cursor = conn.cursor()
-            cursor.execute(f"SELECT * FROM contacts WHERE user_id = ? ORDER BY {order_by}", (user_id,))
+            cursor.execute(f"SELECT * FROM contacts WHERE user_id = %s ORDER BY {order_by}", (user_id,))
             rows = cursor.fetchall()
             return [ContactRepository._row_to_dict(row) for row in rows]
 
@@ -71,7 +71,7 @@ class ContactRepository:
         with get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(
-                f"SELECT * FROM contacts WHERE user_id = ? AND contact_type = ? ORDER BY {order_by}",
+                f"SELECT * FROM contacts WHERE user_id = %s AND contact_type = %s ORDER BY {order_by}",
                 (user_id, contact_type),
             )
             rows = cursor.fetchall()
@@ -83,7 +83,7 @@ class ContactRepository:
         with get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(
-                "SELECT * FROM contacts WHERE user_id = ? AND name LIKE ? ORDER BY name ASC",
+                "SELECT * FROM contacts WHERE user_id = %s AND name LIKE %s ORDER BY name ASC",
                 (user_id, f"%{query}%"),
             )
             rows = cursor.fetchall()
@@ -111,28 +111,28 @@ class ContactRepository:
             params = []
 
             if name is not None:
-                updates.append("name = ?")
+                updates.append("name = %s")
                 params.append(name)
             if contact_type is not None:
-                updates.append("contact_type = ?")
+                updates.append("contact_type = %s")
                 params.append(contact_type)
             if belt_rank is not None:
-                updates.append("belt_rank = ?")
+                updates.append("belt_rank = %s")
                 params.append(belt_rank)
             if belt_stripes is not None:
-                updates.append("belt_stripes = ?")
+                updates.append("belt_stripes = %s")
                 params.append(belt_stripes)
             if instructor_certification is not None:
-                updates.append("instructor_certification = ?")
+                updates.append("instructor_certification = %s")
                 params.append(instructor_certification)
             if phone is not None:
-                updates.append("phone = ?")
+                updates.append("phone = %s")
                 params.append(phone)
             if email is not None:
-                updates.append("email = ?")
+                updates.append("email = %s")
                 params.append(email)
             if notes is not None:
-                updates.append("notes = ?")
+                updates.append("notes = %s")
                 params.append(notes)
 
             if not updates:
@@ -140,10 +140,10 @@ class ContactRepository:
                 return ContactRepository.get_by_id(user_id, contact_id)
 
             # Add updated_at timestamp
-            updates.append("updated_at = datetime('now')")
+            updates.append("updated_at = CURRENT_TIMESTAMP")
             params.extend([contact_id, user_id])
 
-            query = f"UPDATE contacts SET {', '.join(updates)} WHERE id = ? AND user_id = ?"
+            query = f"UPDATE contacts SET {', '.join(updates)} WHERE id = %s AND user_id = %s"
             cursor.execute(query, params)
 
             if cursor.rowcount == 0:
@@ -156,7 +156,7 @@ class ContactRepository:
         """Delete a contact by ID. Returns True if deleted, False if not found."""
         with get_connection() as conn:
             cursor = conn.cursor()
-            cursor.execute("DELETE FROM contacts WHERE id = ? AND user_id = ?", (contact_id, user_id))
+            cursor.execute("DELETE FROM contacts WHERE id = %s AND user_id = %s", (contact_id, user_id))
             return cursor.rowcount > 0
 
     @staticmethod

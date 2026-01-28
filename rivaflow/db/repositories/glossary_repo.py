@@ -25,11 +25,11 @@ class GlossaryRepository:
             params = []
 
             if category:
-                query += " AND category = ?"
+                query += " AND category = %s"
                 params.append(category)
 
             if search:
-                query += " AND (name LIKE ? OR description LIKE ? OR aliases LIKE ?)"
+                query += " AND (name LIKE %s OR description LIKE %s OR aliases LIKE %s)"
                 search_param = f"%{search}%"
                 params.extend([search_param, search_param, search_param])
 
@@ -50,7 +50,7 @@ class GlossaryRepository:
         """Get a movement by ID, optionally including custom video links."""
         with get_connection() as conn:
             cursor = conn.cursor()
-            cursor.execute("SELECT * FROM movements_glossary WHERE id = ?", (movement_id,))
+            cursor.execute("SELECT * FROM movements_glossary WHERE id = %s", (movement_id,))
             row = cursor.fetchone()
 
             if not row:
@@ -63,7 +63,7 @@ class GlossaryRepository:
                 cursor.execute("""
                     SELECT id, title, url, video_type, created_at
                     FROM movement_videos
-                    WHERE movement_id = ?
+                    WHERE movement_id = %s
                     ORDER BY created_at DESC
                 """, (movement_id,))
                 videos = cursor.fetchall()
@@ -76,7 +76,7 @@ class GlossaryRepository:
         """Get a movement by exact name."""
         with get_connection() as conn:
             cursor = conn.cursor()
-            cursor.execute("SELECT * FROM movements_glossary WHERE name = ?", (name,))
+            cursor.execute("SELECT * FROM movements_glossary WHERE name = %s", (name,))
             row = cursor.fetchone()
             return GlossaryRepository._row_to_dict(row) if row else None
 
@@ -109,14 +109,14 @@ class GlossaryRepository:
                 INSERT INTO movements_glossary (
                     name, category, subcategory, points, description,
                     aliases, gi_applicable, nogi_applicable, custom
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1)
+                ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, 1)
             """, (
                 name, category, subcategory, points, description,
                 aliases_json, 1 if gi_applicable else 0, 1 if nogi_applicable else 0
             ))
 
             movement_id = cursor.lastrowid
-            cursor.execute("SELECT * FROM movements_glossary WHERE id = ?", (movement_id,))
+            cursor.execute("SELECT * FROM movements_glossary WHERE id = %s", (movement_id,))
             row = cursor.fetchone()
             return GlossaryRepository._row_to_dict(row)
 
@@ -125,7 +125,7 @@ class GlossaryRepository:
         """Delete a custom movement. Can only delete custom movements."""
         with get_connection() as conn:
             cursor = conn.cursor()
-            cursor.execute("DELETE FROM movements_glossary WHERE id = ? AND custom = 1", (movement_id,))
+            cursor.execute("DELETE FROM movements_glossary WHERE id = %s AND custom = 1", (movement_id,))
             return cursor.rowcount > 0
 
     @staticmethod
@@ -140,11 +140,11 @@ class GlossaryRepository:
             cursor = conn.cursor()
             cursor.execute("""
                 INSERT INTO movement_videos (movement_id, title, url, video_type)
-                VALUES (?, ?, ?, ?)
+                VALUES (%s, %s, %s, %s)
             """, (movement_id, title, url, video_type))
 
             video_id = cursor.lastrowid
-            cursor.execute("SELECT * FROM movement_videos WHERE id = ?", (video_id,))
+            cursor.execute("SELECT * FROM movement_videos WHERE id = %s", (video_id,))
             row = cursor.fetchone()
             return dict(row)
 
@@ -153,7 +153,7 @@ class GlossaryRepository:
         """Delete a custom video link."""
         with get_connection() as conn:
             cursor = conn.cursor()
-            cursor.execute("DELETE FROM movement_videos WHERE id = ?", (video_id,))
+            cursor.execute("DELETE FROM movement_videos WHERE id = %s", (video_id,))
             return cursor.rowcount > 0
 
     @staticmethod
@@ -164,7 +164,7 @@ class GlossaryRepository:
             cursor.execute("""
                 SELECT id, title, url, video_type, created_at
                 FROM movement_videos
-                WHERE movement_id = ?
+                WHERE movement_id = %s
                 ORDER BY created_at DESC
             """, (movement_id,))
             return [dict(row) for row in cursor.fetchall()]

@@ -28,13 +28,13 @@ class UserRelationshipRepository:
             cursor.execute(
                 """
                 INSERT INTO user_relationships (follower_user_id, following_user_id, status)
-                VALUES (?, ?, 'active')
+                VALUES (%s, %s, 'active')
                 """,
                 (follower_user_id, following_user_id),
             )
             relationship_id = cursor.lastrowid
 
-            cursor.execute("SELECT * FROM user_relationships WHERE id = ?", (relationship_id,))
+            cursor.execute("SELECT * FROM user_relationships WHERE id = %s", (relationship_id,))
             row = cursor.fetchone()
             return UserRelationshipRepository._row_to_dict(row)
 
@@ -55,7 +55,7 @@ class UserRelationshipRepository:
             cursor.execute(
                 """
                 DELETE FROM user_relationships
-                WHERE follower_user_id = ? AND following_user_id = ?
+                WHERE follower_user_id = %s AND following_user_id = %s
                 """,
                 (follower_user_id, following_user_id),
             )
@@ -85,7 +85,7 @@ class UserRelationshipRepository:
                     u.email
                 FROM user_relationships ur
                 JOIN users u ON ur.follower_user_id = u.id
-                WHERE ur.following_user_id = ? AND ur.status = 'active'
+                WHERE ur.following_user_id = %s AND ur.status = 'active'
                 ORDER BY ur.created_at DESC
                 """,
                 (user_id,),
@@ -117,7 +117,7 @@ class UserRelationshipRepository:
                     u.email
                 FROM user_relationships ur
                 JOIN users u ON ur.following_user_id = u.id
-                WHERE ur.follower_user_id = ? AND ur.status = 'active'
+                WHERE ur.follower_user_id = %s AND ur.status = 'active'
                 ORDER BY ur.created_at DESC
                 """,
                 (user_id,),
@@ -142,7 +142,7 @@ class UserRelationshipRepository:
             cursor.execute(
                 """
                 SELECT 1 FROM user_relationships
-                WHERE follower_user_id = ? AND following_user_id = ? AND status = 'active'
+                WHERE follower_user_id = %s AND following_user_id = %s AND status = 'active'
                 """,
                 (follower_user_id, following_user_id),
             )
@@ -165,7 +165,7 @@ class UserRelationshipRepository:
                 """
                 SELECT COUNT(*) as count
                 FROM user_relationships
-                WHERE following_user_id = ? AND status = 'active'
+                WHERE following_user_id = %s AND status = 'active'
                 """,
                 (user_id,),
             )
@@ -189,7 +189,7 @@ class UserRelationshipRepository:
                 """
                 SELECT COUNT(*) as count
                 FROM user_relationships
-                WHERE follower_user_id = ? AND status = 'active'
+                WHERE follower_user_id = %s AND status = 'active'
                 """,
                 (user_id,),
             )
@@ -213,7 +213,7 @@ class UserRelationshipRepository:
                 """
                 SELECT following_user_id
                 FROM user_relationships
-                WHERE follower_user_id = ? AND status = 'active'
+                WHERE follower_user_id = %s AND status = 'active'
                 """,
                 (user_id,),
             )

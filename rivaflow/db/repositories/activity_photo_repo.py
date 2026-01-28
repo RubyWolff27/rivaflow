@@ -30,7 +30,7 @@ class ActivityPhotoRepository:
                 INSERT INTO activity_photos (
                     user_id, activity_type, activity_id, activity_date,
                     file_path, file_name, file_size, mime_type, caption, display_order
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                 """,
                 (
                     user_id,
@@ -57,7 +57,7 @@ class ActivityPhotoRepository:
             cursor.execute(
                 """
                 SELECT * FROM activity_photos
-                WHERE user_id = ? AND activity_type = ? AND activity_id = ?
+                WHERE user_id = %s AND activity_type = %s AND activity_id = %s
                 ORDER BY display_order, created_at
                 """,
                 (user_id, activity_type, activity_id),
@@ -73,7 +73,7 @@ class ActivityPhotoRepository:
             cursor.execute(
                 """
                 SELECT * FROM activity_photos
-                WHERE user_id = ? AND activity_date = ?
+                WHERE user_id = %s AND activity_date = %s
                 ORDER BY display_order, created_at
                 """,
                 (user_id, activity_date),
@@ -87,7 +87,7 @@ class ActivityPhotoRepository:
         with get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(
-                "SELECT * FROM activity_photos WHERE id = ? AND user_id = ?",
+                "SELECT * FROM activity_photos WHERE id = %s AND user_id = %s",
                 (photo_id, user_id),
             )
             row = cursor.fetchone()
@@ -99,7 +99,7 @@ class ActivityPhotoRepository:
         with get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(
-                "DELETE FROM activity_photos WHERE id = ? AND user_id = ?",
+                "DELETE FROM activity_photos WHERE id = %s AND user_id = %s",
                 (photo_id, user_id),
             )
             return cursor.rowcount > 0
@@ -114,7 +114,7 @@ class ActivityPhotoRepository:
             cursor.execute(
                 """
                 DELETE FROM activity_photos
-                WHERE user_id = ? AND activity_type = ? AND activity_id = ?
+                WHERE user_id = %s AND activity_type = %s AND activity_id = %s
                 """,
                 (user_id, activity_type, activity_id),
             )
@@ -126,8 +126,8 @@ class ActivityPhotoRepository:
             cursor = conn.cursor()
             cursor.execute(
                 """
-                UPDATE activity_photos SET caption = ?
-                WHERE id = ? AND user_id = ?
+                UPDATE activity_photos SET caption = %s
+                WHERE id = %s AND user_id = %s
                 """,
                 (caption, photo_id, user_id),
             )
@@ -143,7 +143,7 @@ class ActivityPhotoRepository:
             cursor.execute(
                 """
                 SELECT COUNT(*) FROM activity_photos
-                WHERE user_id = ? AND activity_type = ? AND activity_id = ?
+                WHERE user_id = %s AND activity_type = %s AND activity_id = %s
                 """,
                 (user_id, activity_type, activity_id),
             )

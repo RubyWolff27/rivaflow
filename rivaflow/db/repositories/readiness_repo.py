@@ -25,7 +25,7 @@ class ReadinessRepository:
             cursor = conn.cursor()
             # Try to get existing entry
             cursor.execute(
-                "SELECT id FROM readiness WHERE user_id = ? AND check_date = ?",
+                "SELECT id FROM readiness WHERE user_id = %s AND check_date = %s",
                 (user_id, check_date.isoformat()),
             )
             existing = cursor.fetchone()
@@ -35,9 +35,9 @@ class ReadinessRepository:
                 cursor.execute(
                     """
                     UPDATE readiness
-                    SET sleep = ?, stress = ?, soreness = ?, energy = ?,
-                        hotspot_note = ?, weight_kg = ?, updated_at = datetime('now')
-                    WHERE user_id = ? AND check_date = ?
+                    SET sleep = %s, stress = %s, soreness = %s, energy = %s,
+                        hotspot_note = %s, weight_kg = %s, updated_at = CURRENT_TIMESTAMP
+                    WHERE user_id = %s AND check_date = %s
                     """,
                     (sleep, stress, soreness, energy, hotspot_note, weight_kg, user_id, check_date.isoformat()),
                 )
@@ -48,7 +48,7 @@ class ReadinessRepository:
                     """
                     INSERT INTO readiness (
                         user_id, check_date, sleep, stress, soreness, energy, hotspot_note, weight_kg
-                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                    ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
                     """,
                     (user_id, check_date.isoformat(), sleep, stress, soreness, energy, hotspot_note, weight_kg),
                 )
@@ -60,7 +60,7 @@ class ReadinessRepository:
         with get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(
-                "SELECT * FROM readiness WHERE user_id = ? AND check_date = ?",
+                "SELECT * FROM readiness WHERE user_id = %s AND check_date = %s",
                 (user_id, check_date.isoformat()),
             )
             row = cursor.fetchone()
@@ -74,7 +74,7 @@ class ReadinessRepository:
         with get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(
-                "SELECT * FROM readiness WHERE user_id = ? ORDER BY check_date DESC LIMIT 1",
+                "SELECT * FROM readiness WHERE user_id = %s ORDER BY check_date DESC LIMIT 1",
                 (user_id,)
             )
             row = cursor.fetchone()
@@ -87,7 +87,7 @@ class ReadinessRepository:
         """Get a readiness entry by ID without user scope (for validation/privacy checks)."""
         with get_connection() as conn:
             cursor = conn.cursor()
-            cursor.execute("SELECT * FROM readiness WHERE id = ?", (readiness_id,))
+            cursor.execute("SELECT * FROM readiness WHERE id = %s", (readiness_id,))
             row = cursor.fetchone()
             if row:
                 return ReadinessRepository._row_to_dict(row)
@@ -101,7 +101,7 @@ class ReadinessRepository:
             cursor.execute(
                 """
                 SELECT * FROM readiness
-                WHERE user_id = ? AND check_date BETWEEN ? AND ?
+                WHERE user_id = %s AND check_date BETWEEN %s AND %s
                 ORDER BY check_date DESC
                 """,
                 (user_id, start_date.isoformat(), end_date.isoformat()),

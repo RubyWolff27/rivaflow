@@ -35,7 +35,7 @@ class GoalProgressRepository:
                        target_hours, actual_hours, target_rolls, actual_rolls,
                        completed_at, created_at, updated_at
                 FROM goal_progress
-                WHERE user_id = ? AND week_start_date = ?
+                WHERE user_id = %s AND week_start_date = %s
                 """,
                 (user_id, week_start_date.isoformat()),
             )
@@ -56,9 +56,9 @@ class GoalProgressRepository:
                        target_hours, actual_hours, target_rolls, actual_rolls,
                        completed_at, created_at, updated_at
                 FROM goal_progress
-                WHERE user_id = ?
+                WHERE user_id = %s
                 ORDER BY week_start_date DESC
-                LIMIT ?
+                LIMIT %s
                 """,
                 (user_id, limit),
             )
@@ -84,7 +84,7 @@ class GoalProgressRepository:
                 INSERT INTO goal_progress
                 (user_id, week_start_date, week_end_date, target_sessions, actual_sessions,
                  target_hours, actual_hours, target_rolls, actual_rolls)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
                 """,
                 (
                     user_id,
@@ -117,7 +117,7 @@ class GoalProgressRepository:
                 """
                 SELECT target_sessions, target_hours, target_rolls
                 FROM goal_progress
-                WHERE user_id = ? AND week_start_date = ?
+                WHERE user_id = %s AND week_start_date = %s
                 """,
                 (user_id, week_start_date.isoformat()),
             )
@@ -137,16 +137,16 @@ class GoalProgressRepository:
             cursor.execute(
                 """
                 UPDATE goal_progress
-                SET actual_sessions = ?,
-                    actual_hours = ?,
-                    actual_rolls = ?,
+                SET actual_sessions = %s,
+                    actual_hours = %s,
+                    actual_rolls = %s,
                     completed_at = CASE
-                        WHEN ? AND completed_at IS NULL THEN datetime('now')
-                        WHEN NOT ? THEN NULL
+                        WHEN %s AND completed_at IS NULL THEN CURRENT_TIMESTAMP
+                        WHEN NOT %s THEN NULL
                         ELSE completed_at
                     END,
-                    updated_at = datetime('now')
-                WHERE user_id = ? AND week_start_date = ?
+                    updated_at = CURRENT_TIMESTAMP
+                WHERE user_id = %s AND week_start_date = %s
                 """,
                 (
                     actual_sessions,
@@ -168,7 +168,7 @@ class GoalProgressRepository:
                 """
                 SELECT week_start_date, completed_at
                 FROM goal_progress
-                WHERE user_id = ?
+                WHERE user_id = %s
                 ORDER BY week_start_date DESC
                 """,
                 (user_id,)
@@ -179,22 +179,22 @@ class GoalProgressRepository:
                 return {"current_streak": 0, "longest_streak": 0}
 
             # Calculate current streak (from most recent week backwards)
-            current_streak = 0
+            current_streak = FALSE
             for week_start, completed_at in rows:
                 if completed_at:
-                    current_streak += 1
+                    current_streak += TRUE
                 else:
                     break
 
             # Calculate longest streak
-            longest_streak = 0
-            temp_streak = 0
+            longest_streak = FALSE
+            temp_streak = FALSE
             for week_start, completed_at in reversed(rows):
                 if completed_at:
-                    temp_streak += 1
+                    temp_streak += TRUE
                     longest_streak = max(longest_streak, temp_streak)
                 else:
-                    temp_streak = 0
+                    temp_streak = FALSE
 
             return {
                 "current_streak": current_streak,
