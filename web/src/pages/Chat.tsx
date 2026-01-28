@@ -25,8 +25,9 @@ export default function Chat() {
 
     try {
       const token = localStorage.getItem('access_token');
+      const apiBase = import.meta.env.VITE_API_URL || '/api';
       const response = await axios.post(
-        'http://localhost:8000/api/chat/',
+        `${apiBase}/chat/`,
         { messages: newMessages },
         { headers: { Authorization: `Bearer ${token}` } }
       );
