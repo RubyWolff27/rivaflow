@@ -1,0 +1,40 @@
+services:
+  # Web Service (FastAPI backend + React frontend)
+  - type: web
+    name: rivaflow
+    runtime: python
+    region: oregon
+    plan: free
+    branch: main
+    buildCommand: |
+      # Install Python dependencies
+      pip install -r rivaflow/requirements.txt
+
+      # Install Node.js dependencies and build frontend
+      cd web
+      npm install
+      npm run build
+      cd ..
+    startCommand: |
+      # Run database migrations
+      python -c "from rivaflow.db.database import init_db; init_db()"
+
+      # Start FastAPI server
+      uvicorn rivaflow.api.main:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: SECRET_KEY
+        generateValue: true
+      - key: PYTHON_VERSION
+        value: 3.11.0
+      - key: ALLOWED_ORIGINS
+        sync: false
+    autoDeploy: true
+
+databases:
+  # PostgreSQL Database
+  - name: rivaflow-db
+    region: oregon
+    plan: free
+    databaseName: rivaflow
+    user: rivaflow
+    ipAllowList: []

@@ -121,7 +121,7 @@ class MilestoneService:
         progress_list = []
 
         for milestone_type, current_value in totals.items():
-            next_milestone = self.milestone_repo.get_next_milestone(user_id, milestone_type, current_value)
+            next_milestone = self.milestone_repo.get_next_milestone(milestone_type, current_value)
 
             if next_milestone:
                 progress_list.append({

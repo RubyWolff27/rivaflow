@@ -1,9 +1,20 @@
 """Application configuration."""
+import os
 from pathlib import Path
 
 # Data stored in user's home directory (survives pip upgrades)
 APP_DIR = Path.home() / ".rivaflow"
 DB_PATH = APP_DIR / "rivaflow.db"
+
+# Database configuration
+# If DATABASE_URL is set (production), use it. Otherwise, use local SQLite.
+DATABASE_URL = os.getenv("DATABASE_URL")
+if DATABASE_URL and DATABASE_URL.startswith("postgres://"):
+    # Render uses postgres:// but psycopg2 expects postgresql://
+    DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
+
+# Determine database type
+DB_TYPE = "postgresql" if DATABASE_URL else "sqlite"
 
 # Defaults
 DEFAULT_DURATION = 60

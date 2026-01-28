@@ -44,6 +44,12 @@ htmlcov/
 *.db
 *.db-journal
 
+# Environment variables (keep .env.example)
+.env
+.env.local
+web/.env
+web/.env.local
+
 # OS
 .DS_Store
 Thumbs.db

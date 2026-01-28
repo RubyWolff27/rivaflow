@@ -3,6 +3,7 @@ from datetime import date
 from typing import Optional
 
 from rivaflow.db.repositories import ReadinessRepository
+from rivaflow.db.repositories.checkin_repo import CheckinRepository
 
 
 class ReadinessService:
@@ -10,6 +11,7 @@ class ReadinessService:
 
     def __init__(self):
         self.repo = ReadinessRepository()
+        self.checkin_repo = CheckinRepository()
 
     def log_readiness(
         self,
@@ -26,7 +28,7 @@ class ReadinessService:
         Log daily readiness check-in (upsert if exists for date).
         Returns readiness ID.
         """
-        return self.repo.upsert(
+        readiness_id = self.repo.upsert(
             user_id=user_id,
             check_date=check_date,
             sleep=sleep,
@@ -36,6 +38,16 @@ class ReadinessService:
             hotspot_note=hotspot_note,
             weight_kg=weight_kg,
         )
+
+        # Create check-in record for this readiness entry
+        self.checkin_repo.upsert_checkin(
+            user_id=user_id,
+            check_date=check_date,
+            checkin_type="readiness",
+            readiness_id=readiness_id
+        )
+
+        return readiness_id
 
     def get_readiness(self, user_id: int, check_date: date) -> Optional[dict]:
         """Get readiness entry for a specific date."""
@@ -60,7 +72,7 @@ class ReadinessService:
 
         if existing:
             # Update existing entry with new weight
-            return self.repo.upsert(
+            readiness_id = self.repo.upsert(
                 user_id=user_id,
                 check_date=check_date,
                 sleep=existing["sleep"],
@@ -72,7 +84,7 @@ class ReadinessService:
             )
         else:
             # Create new entry with default middle values (3) for scores
-            return self.repo.upsert(
+            readiness_id = self.repo.upsert(
                 user_id=user_id,
                 check_date=check_date,
                 sleep=3,
@@ -82,6 +94,16 @@ class ReadinessService:
                 hotspot_note=None,
                 weight_kg=weight_kg,
             )
+
+        # Create check-in record for this readiness entry
+        self.checkin_repo.upsert_checkin(
+            user_id=user_id,
+            check_date=check_date,
+            checkin_type="readiness",
+            readiness_id=readiness_id
+        )
+
+        return readiness_id
 
     def calculate_composite_score(self, readiness: dict) -> int:
         """Calculate composite readiness score (4-20 range, higher is better)."""

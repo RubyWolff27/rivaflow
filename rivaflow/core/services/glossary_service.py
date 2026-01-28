@@ -19,8 +19,8 @@ class GlossaryService:
         nogi_only: bool = False,
     ) -> List[dict]:
         """Get all movements with optional filtering."""
+        # Movements are global, user_id not needed for listing
         return self.repo.list_all(
-            user_id=user_id,
             category=category,
             search=search,
             gi_only=gi_only,
@@ -29,15 +29,18 @@ class GlossaryService:
 
     def get_movement(self, user_id: int, movement_id: int, include_custom_videos: bool = False) -> Optional[dict]:
         """Get a specific movement by ID, optionally with custom video links."""
-        return self.repo.get_by_id(user_id, movement_id, include_custom_videos=include_custom_videos)
+        # Movements are global, but custom videos are user-specific
+        return self.repo.get_by_id(movement_id, include_custom_videos=include_custom_videos)
 
     def get_movement_by_name(self, user_id: int, name: str) -> Optional[dict]:
         """Get a movement by exact name."""
-        return self.repo.get_by_name(user_id, name)
+        # Movements are global
+        return self.repo.get_by_name(name)
 
     def get_categories(self, user_id: int) -> List[str]:
         """Get list of all movement categories."""
-        return self.repo.get_categories(user_id)
+        # Categories are global
+        return self.repo.get_categories()
 
     def create_custom_movement(
         self,
@@ -52,8 +55,8 @@ class GlossaryService:
         nogi_applicable: bool = True,
     ) -> dict:
         """Create a custom user-added movement."""
+        # Custom movements are global (not user-specific)
         return self.repo.create_custom(
-            user_id=user_id,
             name=name,
             category=category,
             subcategory=subcategory,
@@ -66,7 +69,8 @@ class GlossaryService:
 
     def delete_custom_movement(self, user_id: int, movement_id: int) -> bool:
         """Delete a custom movement. Can only delete custom movements."""
-        return self.repo.delete_custom(user_id, movement_id)
+        # Custom movements are global
+        return self.repo.delete_custom(movement_id)
 
     def add_custom_video(
         self,
@@ -77,8 +81,8 @@ class GlossaryService:
         video_type: str = "general",
     ) -> dict:
         """Add a custom video link to a movement."""
+        # Custom videos are global
         return self.repo.add_custom_video(
-            user_id=user_id,
             movement_id=movement_id,
             url=url,
             title=title,
@@ -87,4 +91,5 @@ class GlossaryService:
 
     def delete_custom_video(self, user_id: int, video_id: int) -> bool:
         """Delete a custom video link."""
-        return self.repo.delete_custom_video(user_id, video_id)
+        # Custom videos are global
+        return self.repo.delete_custom_video(video_id)

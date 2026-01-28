@@ -29,6 +29,7 @@ async def create_session(session: SessionCreate, current_user: dict = Depends(ge
         session_id = service.create_session(
             user_id=current_user["id"],
             session_date=session.session_date,
+            class_time=session.class_time,
             class_type=session.class_type.value,
             gym_name=session.gym_name,
             location=session.location,
@@ -69,6 +70,7 @@ async def update_session(session_id: int, session: SessionUpdate, current_user: 
             user_id=current_user["id"],
             session_id=session_id,
             session_date=session.session_date,
+            class_time=session.class_time,
             class_type=session.class_type.value if session.class_type else None,
             gym_name=session.gym_name,
             location=session.location,
@@ -96,6 +98,15 @@ async def update_session(session_id: int, session: SessionUpdate, current_user: 
         raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.delete("/{session_id}")
+async def delete_session(session_id: int, current_user: dict = Depends(get_current_user)):
+    """Delete a training session."""
+    deleted = service.delete_session(user_id=current_user["id"], session_id=session_id)
+    if not deleted:
+        raise HTTPException(status_code=404, detail="Session not found")
+    return {"message": "Session deleted successfully"}
 
 
 @router.get("/{session_id}")

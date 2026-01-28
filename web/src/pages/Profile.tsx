@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
-import { profileApi, gradingsApi, goalsApi } from '../api/client';
-import type { Profile as ProfileType, Grading } from '../types';
+import { profileApi, gradingsApi, goalsApi, contactsApi } from '../api/client';
+import type { Profile as ProfileType, Grading, Contact } from '../types';
 import { User, CheckCircle, Award, Plus, Trash2, Edit2, Target } from 'lucide-react';
 
 const BELT_GRADES = [
@@ -35,6 +35,7 @@ const BELT_GRADES = [
 export default function Profile() {
   const [profile, setProfile] = useState<ProfileType | null>(null);
   const [gradings, setGradings] = useState<Grading[]>([]);
+  const [instructors, setInstructors] = useState<Contact[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [success, setSuccess] = useState(false);
@@ -50,6 +51,9 @@ export default function Profile() {
     state: '',
     default_gym: '',
     current_professor: '',
+    current_instructor_id: null as number | null,
+    height_cm: '',
+    target_weight_kg: '',
     weekly_sessions_target: 3,
     weekly_hours_target: 4.5,
     weekly_rolls_target: 15,
@@ -71,12 +75,14 @@ export default function Profile() {
   const loadData = async () => {
     setLoading(true);
     try {
-      const [profileRes, gradingsRes] = await Promise.all([
+      const [profileRes, gradingsRes, instructorsRes] = await Promise.all([
         profileApi.get(),
         gradingsApi.list(),
+        contactsApi.listInstructors(),
       ]);
       setProfile(profileRes.data);
       setGradings(gradingsRes.data);
+      setInstructors(instructorsRes.data);
       setFormData({
         first_name: profileRes.data.first_name || '',
         last_name: profileRes.data.last_name || '',
@@ -86,6 +92,9 @@ export default function Profile() {
         state: profileRes.data.state || '',
         default_gym: profileRes.data.default_gym || '',
         current_professor: profileRes.data.current_professor || '',
+        current_instructor_id: profileRes.data.current_instructor_id || null,
+        height_cm: profileRes.data.height_cm?.toString() || '',
+        target_weight_kg: profileRes.data.target_weight_kg?.toString() || '',
         weekly_sessions_target: profileRes.data.weekly_sessions_target || 3,
         weekly_hours_target: profileRes.data.weekly_hours_target || 4.5,
         weekly_rolls_target: profileRes.data.weekly_rolls_target || 15,
@@ -114,6 +123,9 @@ export default function Profile() {
         state: formData.state || undefined,
         default_gym: formData.default_gym || undefined,
         current_professor: formData.current_professor || undefined,
+        current_instructor_id: formData.current_instructor_id || undefined,
+        height_cm: formData.height_cm ? parseInt(formData.height_cm) : undefined,
+        target_weight_kg: formData.target_weight_kg ? parseFloat(formData.target_weight_kg) : undefined,
       });
       setSuccess(true);
       await loadData();
@@ -340,6 +352,35 @@ export default function Profile() {
             </select>
           </div>
 
+          {/* Height and Target Weight */}
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="label">Height (cm)</label>
+              <input
+                type="number"
+                className="input"
+                value={formData.height_cm}
+                onChange={(e) => setFormData({ ...formData, height_cm: e.target.value })}
+                placeholder="e.g., 175"
+                min="100"
+                max="250"
+              />
+            </div>
+            <div>
+              <label className="label">Target Weight (kg)</label>
+              <input
+                type="number"
+                className="input"
+                value={formData.target_weight_kg}
+                onChange={(e) => setFormData({ ...formData, target_weight_kg: e.target.value })}
+                placeholder="e.g., 75.5"
+                min="30"
+                max="300"
+                step="0.1"
+              />
+            </div>
+          </div>
+
           {/* Location */}
           <div className="grid grid-cols-2 gap-4">
             <div>
@@ -381,18 +422,32 @@ export default function Profile() {
             </p>
           </div>
 
-          {/* Current Professor */}
+          {/* Current Coach/Instructor */}
           <div>
-            <label className="label">Current Professor / Instructor</label>
-            <input
-              type="text"
+            <label className="label">Current Coach / Instructor</label>
+            <select
               className="input"
-              value={formData.current_professor}
-              onChange={(e) => setFormData({ ...formData, current_professor: e.target.value })}
-              placeholder="e.g., Professor John Smith"
-            />
+              value={formData.current_instructor_id || ''}
+              onChange={(e) => {
+                const instructorId = e.target.value ? parseInt(e.target.value) : null;
+                const instructor = instructors.find(i => i.id === instructorId);
+                setFormData({
+                  ...formData,
+                  current_instructor_id: instructorId,
+                  current_professor: instructor?.name || '',
+                });
+              }}
+            >
+              <option value="">Select a coach...</option>
+              {instructors.map((instructor) => (
+                <option key={instructor.id} value={instructor.id}>
+                  {instructor.name}
+                  {instructor.belt_rank && ` - ${instructor.belt_rank}`}
+                </option>
+              ))}
+            </select>
             <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-              This will auto-populate when adding gradings
+              This will auto-populate when logging sessions. Add instructors in Contacts first.
             </p>
           </div>
 

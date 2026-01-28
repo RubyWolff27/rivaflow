@@ -64,6 +64,7 @@ class SessionCreate(BaseModel):
     """Input model for creating a session."""
 
     session_date: date
+    class_time: Optional[str] = Field(default=None, pattern=r"^([01]\d|2[0-3]):([0-5]\d)$")
     class_type: ClassType
     gym_name: str = Field(min_length=1, max_length=100)
     location: Optional[str] = Field(default=None, max_length=200)
@@ -90,6 +91,7 @@ class SessionUpdate(BaseModel):
     """Input model for updating a session. All fields optional."""
 
     session_date: Optional[date] = None
+    class_time: Optional[str] = Field(default=None, pattern=r"^([01]\d|2[0-3]):([0-5]\d)$")
     class_type: Optional[ClassType] = None
     gym_name: Optional[str] = Field(default=None, min_length=1, max_length=100)
     location: Optional[str] = Field(default=None, max_length=200)

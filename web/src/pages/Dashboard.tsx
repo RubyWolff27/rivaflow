@@ -1,13 +1,14 @@
 import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { sessionsApi, suggestionsApi, readinessApi, profileApi, goalsApi } from '../api/client';
+import { sessionsApi, suggestionsApi, readinessApi, profileApi, goalsApi, restApi } from '../api/client';
 import type { Session, Suggestion, Readiness, Profile, WeeklyGoalProgress, TrainingStreaks } from '../types';
-import { TrendingUp, Calendar, Users, Target, Edit2, Scale, Check, Zap, Trophy, Flame } from 'lucide-react';
+import { TrendingUp, Calendar, Users, Target, Edit2, Scale, Check, Zap, Trophy, Flame, Eye } from 'lucide-react';
 import EngagementBanner from '../components/EngagementBanner';
 
 export default function Dashboard() {
   const navigate = useNavigate();
   const [recentSessions, setRecentSessions] = useState<Session[]>([]);
+  const [statsSessions, setStatsSessions] = useState<Session[]>([]); // Last 30 days for stats
   const [suggestion, setSuggestion] = useState<Suggestion | null>(null);
   const [loading, setLoading] = useState(true);
   const [latestReadiness, setLatestReadiness] = useState<Readiness | null>(null);
@@ -53,15 +54,22 @@ export default function Dashboard() {
 
   const loadData = async () => {
     try {
-      const [sessionsRes, suggestionRes, readinessRes, profileRes, goalsRes, streaksRes] = await Promise.all([
-        sessionsApi.list(5),
+      // Get date range for last 30 days
+      const endDate = new Date();
+      const startDate = new Date();
+      startDate.setDate(startDate.getDate() - 30);
+
+      const [recentSessionsRes, statsSessionsRes, suggestionRes, readinessRes, profileRes, goalsRes, streaksRes] = await Promise.all([
+        sessionsApi.list(5), // For the recent sessions list display
+        sessionsApi.getByRange(startDate.toISOString().split('T')[0], endDate.toISOString().split('T')[0]), // For stats calculation
         suggestionsApi.getToday(),
         readinessApi.getLatest(),
         profileApi.get(),
         goalsApi.getCurrentWeek(),
         goalsApi.getTrainingStreaks(),
       ]);
-      setRecentSessions(sessionsRes.data);
+      setRecentSessions(recentSessionsRes.data);
+      setStatsSessions(statsSessionsRes.data); // Store sessions for stats separately
       setSuggestion(suggestionRes.data);
       setLatestReadiness(readinessRes.data);
       setProfile(profileRes.data);
@@ -126,12 +134,18 @@ export default function Dashboard() {
         submissions_against: 0,
       });
 
-      // Reload recent sessions and goals
-      const [sessionsRes, goalsRes] = await Promise.all([
+      // Reload recent sessions, stats, and goals
+      const endDate = new Date();
+      const startDate = new Date();
+      startDate.setDate(startDate.getDate() - 30);
+
+      const [recentRes, statsRes, goalsRes] = await Promise.all([
         sessionsApi.list(5),
+        sessionsApi.getByRange(startDate.toISOString().split('T')[0], endDate.toISOString().split('T')[0]),
         goalsApi.getCurrentWeek(),
       ]);
-      setRecentSessions(sessionsRes.data);
+      setRecentSessions(recentRes.data);
+      setStatsSessions(statsRes.data);
       setWeeklyGoals(goalsRes.data);
 
       // Close quick log
@@ -179,14 +193,10 @@ export default function Dashboard() {
     setQuickRestLoading(true);
 
     try {
-      // For now, just create a check-in via readiness endpoint with minimal data
-      // TODO: Create proper rest day API endpoint
-      await readinessApi.create({
-        check_date: new Date().toISOString().split('T')[0],
-        sleep: 3,
-        stress: 2,
-        soreness: 2,
-        energy: 3,
+      await restApi.logRestDay({
+        rest_type: quickRestData.rest_type,
+        note: quickRestData.note || undefined,
+        rest_date: new Date().toISOString().split('T')[0],
       });
 
       setQuickRestOpen(false);
@@ -206,11 +216,11 @@ export default function Dashboard() {
     return <div className="text-center py-12">Loading...</div>;
   }
 
-  // Calculate stats
-  const totalSessions = recentSessions.length;
-  const totalRolls = recentSessions.reduce((sum, s) => sum + s.rolls, 0);
+  // Calculate stats from last 30 days
+  const totalSessions = statsSessions.length;
+  const totalRolls = statsSessions.reduce((sum, s) => sum + s.rolls, 0);
   const avgIntensity = totalSessions > 0
-    ? (recentSessions.reduce((sum, s) => sum + s.intensity, 0) / totalSessions).toFixed(1)
+    ? (statsSessions.reduce((sum, s) => sum + s.intensity, 0) / totalSessions).toFixed(1)
     : '0';
 
   return (
@@ -422,7 +432,7 @@ export default function Dashboard() {
         <div className="card">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-gray-600 dark:text-gray-400">Recent Sessions</p>
+              <p className="text-sm text-gray-600 dark:text-gray-400">Sessions (30d)</p>
               <p className="text-2xl font-bold mt-1">{totalSessions}</p>
             </div>
             <Calendar className="w-8 h-8 text-primary-600" />
@@ -432,7 +442,7 @@ export default function Dashboard() {
         <div className="card">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-gray-600 dark:text-gray-400">Total Rolls</p>
+              <p className="text-sm text-gray-600 dark:text-gray-400">Total Rolls (30d)</p>
               <p className="text-2xl font-bold mt-1">{totalRolls}</p>
             </div>
             <Users className="w-8 h-8 text-primary-600" />
@@ -442,7 +452,7 @@ export default function Dashboard() {
         <div className="card">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-gray-600 dark:text-gray-400">Avg Intensity</p>
+              <p className="text-sm text-gray-600 dark:text-gray-400">Avg Intensity (30d)</p>
               <p className="text-2xl font-bold mt-1">{avgIntensity}/5</p>
             </div>
             <TrendingUp className="w-8 h-8 text-primary-600" />
@@ -782,13 +792,21 @@ export default function Dashboard() {
                       {session.gym_name}
                     </h3>
                     <p className="text-sm text-gray-600 dark:text-gray-400">
-                      {new Date(session.session_date).toLocaleDateString()} • {session.class_type}
+                      {new Date(session.session_date).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}
+                      {session.class_time && ` @ ${session.class_time}`} • {session.class_type}
                     </p>
                   </div>
                   <div className="flex items-center gap-2">
                     <span className="text-xs px-2 py-1 bg-primary-100 dark:bg-primary-900 text-primary-700 dark:text-primary-300 rounded">
                       {session.duration_mins} mins
                     </span>
+                    <Link
+                      to={`/session/${session.id}`}
+                      className="text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white p-2 hover:bg-gray-100 dark:hover:bg-gray-600 rounded transition-colors"
+                      title="View session details"
+                    >
+                      <Eye className="w-4 h-4" />
+                    </Link>
                     <Link
                       to={`/session/edit/${session.id}`}
                       className="text-blue-600 hover:text-blue-700 dark:text-blue-400 p-2 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded transition-colors"

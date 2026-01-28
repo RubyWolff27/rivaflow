@@ -1,7 +1,10 @@
 import axios from 'axios';
 import type { Session, Readiness, Report, Suggestion, Technique, Video, Profile, Grading, Movement, Contact, CustomVideo, WeeklyGoalProgress, GoalsSummary, TrainingStreaks, GoalCompletionStreak, DailyCheckin, StreakStatus, Streak, Milestone, MilestoneProgress } from '../types';
 
-const API_BASE = 'http://localhost:8000/api';
+// API base URL - use environment variable if set, otherwise default to relative path for production
+// In development, Vite proxy will forward /api requests to localhost:8000
+// In production, API and frontend are served from the same domain
+const API_BASE = import.meta.env.VITE_API_URL || '/api';
 
 const api = axios.create({
   baseURL: API_BASE,

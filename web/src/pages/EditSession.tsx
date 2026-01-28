@@ -2,10 +2,22 @@ import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { sessionsApi, contactsApi, glossaryApi } from '../api/client';
 import type { Contact, Movement, MediaUrl } from '../types';
-import { CheckCircle, ArrowLeft, Save, Loader, Plus, X, Search } from 'lucide-react';
+import { CheckCircle, ArrowLeft, Save, Loader, Plus, X, Search, Trash2, ToggleLeft, ToggleRight, Camera } from 'lucide-react';
+import PhotoGallery from '../components/PhotoGallery';
+import PhotoUpload from '../components/PhotoUpload';
 
 const CLASS_TYPES = ['gi', 'no-gi', 'wrestling', 'judo', 'open-mat', 's&c', 'mobility', 'yoga', 'rehab', 'physio', 'drilling', 'cardio'];
 const SPARRING_TYPES = ['gi', 'no-gi', 'wrestling', 'judo', 'open-mat'];
+
+interface RollEntry {
+  roll_number: number;
+  partner_id: number | null;
+  partner_name: string;
+  duration_mins: number;
+  submissions_for: number[];
+  submissions_against: number[];
+  notes: string;
+}
 
 interface TechniqueEntry {
   technique_number: number;
@@ -23,16 +35,27 @@ export default function EditSession() {
   const [success, setSuccess] = useState(false);
 
   const [instructors, setInstructors] = useState<Contact[]>([]);
+  const [partners, setPartners] = useState<Contact[]>([]);
   const [autocomplete, setAutocomplete] = useState<any>({});
   const [movements, setMovements] = useState<Movement[]>([]);
+
+  // Roll tracking
+  const [detailedMode, setDetailedMode] = useState(false);
+  const [rolls, setRolls] = useState<RollEntry[]>([]);
+  const [submissionSearchFor, setSubmissionSearchFor] = useState<{[rollIndex: number]: string}>({});
+  const [submissionSearchAgainst, setSubmissionSearchAgainst] = useState<{[rollIndex: number]: string}>({});
 
   // Technique tracking
   const [techniques, setTechniques] = useState<TechniqueEntry[]>([]);
   const [techniqueSearch, setTechniqueSearch] = useState<{[techIndex: number]: string}>({});
 
+  // Photo tracking
+  const [photoCount, setPhotoCount] = useState(0);
+
   // Form data
   const [formData, setFormData] = useState({
     session_date: '',
+    class_time: '',
     class_type: 'gi',
     gym_name: '',
     location: '',
@@ -58,21 +81,24 @@ export default function EditSession() {
   const loadData = async () => {
     setLoading(true);
     try {
-      const [sessionRes, instructorsRes, autocompleteRes, movementsRes] = await Promise.all([
+      const [sessionRes, instructorsRes, partnersRes, autocompleteRes, movementsRes] = await Promise.all([
         sessionsApi.getById(parseInt(id!)),
         contactsApi.listInstructors(),
+        contactsApi.listPartners(),
         sessionsApi.getAutocomplete(),
         glossaryApi.list(),
       ]);
 
       const sessionData = sessionRes.data;
       setInstructors(instructorsRes.data);
+      setPartners(partnersRes.data);
       setAutocomplete(autocompleteRes.data);
       setMovements(movementsRes.data);
 
       // Populate form
       setFormData({
         session_date: sessionData.session_date,
+        class_time: sessionData.class_time || '',
         class_type: sessionData.class_type,
         gym_name: sessionData.gym_name,
         location: sessionData.location || '',
@@ -90,6 +116,22 @@ export default function EditSession() {
         whoop_avg_hr: sessionData.whoop_avg_hr?.toString() || '',
         whoop_max_hr: sessionData.whoop_max_hr?.toString() || '',
       });
+
+      // Load session_rolls if present
+      if (sessionData.session_rolls && sessionData.session_rolls.length > 0) {
+        setDetailedMode(true);
+        setRolls(
+          sessionData.session_rolls.map((roll: any) => ({
+            roll_number: roll.roll_number,
+            partner_id: roll.partner_id || null,
+            partner_name: roll.partner_name || '',
+            duration_mins: roll.duration_mins || 5,
+            submissions_for: roll.submissions_for || [],
+            submissions_against: roll.submissions_against || [],
+            notes: roll.notes || '',
+          }))
+        );
+      }
 
       // Load session_techniques if present
       if (sessionData.session_techniques && sessionData.session_techniques.length > 0) {
@@ -110,6 +152,81 @@ export default function EditSession() {
     } finally {
       setLoading(false);
     }
+  };
+
+  // Roll handlers
+  const handleAddRoll = () => {
+    setRolls([
+      ...rolls,
+      {
+        roll_number: rolls.length + 1,
+        partner_id: null,
+        partner_name: '',
+        duration_mins: 5,
+        submissions_for: [],
+        submissions_against: [],
+        notes: '',
+      },
+    ]);
+  };
+
+  const handleRemoveRoll = (index: number) => {
+    const updated = rolls.filter((_, i) => i !== index);
+    updated.forEach((roll, i) => {
+      roll.roll_number = i + 1;
+    });
+    setRolls(updated);
+
+    const newSearchFor: {[key: number]: string} = {};
+    const newSearchAgainst: {[key: number]: string} = {};
+    Object.keys(submissionSearchFor).forEach(key => {
+      const idx = parseInt(key);
+      if (idx < index) {
+        newSearchFor[idx] = submissionSearchFor[idx];
+      } else if (idx > index) {
+        newSearchFor[idx - 1] = submissionSearchFor[idx];
+      }
+    });
+    Object.keys(submissionSearchAgainst).forEach(key => {
+      const idx = parseInt(key);
+      if (idx < index) {
+        newSearchAgainst[idx] = submissionSearchAgainst[idx];
+      } else if (idx > index) {
+        newSearchAgainst[idx - 1] = submissionSearchAgainst[idx];
+      }
+    });
+    setSubmissionSearchFor(newSearchFor);
+    setSubmissionSearchAgainst(newSearchAgainst);
+  };
+
+  const handleRollChange = (index: number, field: keyof RollEntry, value: any) => {
+    const updated = [...rolls];
+    updated[index] = { ...updated[index], [field]: value };
+    setRolls(updated);
+  };
+
+  const handleAddSubmission = (rollIndex: number, movementId: number, isFor: boolean) => {
+    const updated = [...rolls];
+    if (isFor) {
+      if (!updated[rollIndex].submissions_for.includes(movementId)) {
+        updated[rollIndex].submissions_for = [...updated[rollIndex].submissions_for, movementId];
+      }
+    } else {
+      if (!updated[rollIndex].submissions_against.includes(movementId)) {
+        updated[rollIndex].submissions_against = [...updated[rollIndex].submissions_against, movementId];
+      }
+    }
+    setRolls(updated);
+  };
+
+  const handleRemoveSubmission = (rollIndex: number, movementId: number, isFor: boolean) => {
+    const updated = [...rolls];
+    if (isFor) {
+      updated[rollIndex].submissions_for = updated[rollIndex].submissions_for.filter(id => id !== movementId);
+    } else {
+      updated[rollIndex].submissions_against = updated[rollIndex].submissions_against.filter(id => id !== movementId);
+    }
+    setRolls(updated);
   };
 
   // Technique handlers
@@ -182,6 +299,7 @@ export default function EditSession() {
     try {
       const payload: any = {
         session_date: formData.session_date,
+        class_time: formData.class_time || undefined,
         class_type: formData.class_type,
         gym_name: formData.gym_name,
         location: formData.location || undefined,
@@ -199,6 +317,24 @@ export default function EditSession() {
         whoop_avg_hr: formData.whoop_avg_hr ? parseInt(formData.whoop_avg_hr) : undefined,
         whoop_max_hr: formData.whoop_max_hr ? parseInt(formData.whoop_max_hr) : undefined,
       };
+
+      // Add detailed rolls
+      if (detailedMode && rolls.length > 0) {
+        payload.session_rolls = rolls.map(roll => ({
+          roll_number: roll.roll_number,
+          partner_id: roll.partner_id || undefined,
+          partner_name: roll.partner_name || undefined,
+          duration_mins: roll.duration_mins || undefined,
+          submissions_for: roll.submissions_for.length > 0 ? roll.submissions_for : undefined,
+          submissions_against: roll.submissions_against.length > 0 ? roll.submissions_against : undefined,
+          notes: roll.notes || undefined,
+        }));
+
+        // Calculate aggregates from detailed rolls
+        payload.rolls = rolls.length;
+        payload.submissions_for = rolls.reduce((sum, roll) => sum + roll.submissions_for.length, 0);
+        payload.submissions_against = rolls.reduce((sum, roll) => sum + roll.submissions_against.length, 0);
+      }
 
       // Add detailed techniques
       if (techniques.length > 0) {
@@ -222,6 +358,23 @@ export default function EditSession() {
       console.error('Error updating session:', error);
       alert('Failed to update session. Please try again.');
     } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!confirm('Are you sure you want to delete this session? This action cannot be undone.')) {
+      return;
+    }
+
+    setSaving(true);
+    try {
+      await sessionsApi.delete(parseInt(id!));
+      alert('Session deleted successfully');
+      navigate('/');
+    } catch (error) {
+      console.error('Error deleting session:', error);
+      alert('Failed to delete session. Please try again.');
       setSaving(false);
     }
   };
@@ -270,6 +423,22 @@ export default function EditSession() {
             onChange={(e) => setFormData({ ...formData, session_date: e.target.value })}
             required
           />
+        </div>
+
+        {/* Class Time */}
+        <div>
+          <label className="label">Class Time (optional)</label>
+          <select
+            className="input"
+            value={formData.class_time}
+            onChange={(e) => setFormData({ ...formData, class_time: e.target.value })}
+          >
+            <option value="">Not specified</option>
+            <option value="06:30">06:30 - Early Morning</option>
+            <option value="12:00">12:00 - Midday</option>
+            <option value="17:30">17:30 - Evening</option>
+            <option value="19:00">19:00 - Night</option>
+          </select>
         </div>
 
         {/* Class Type */}
@@ -375,43 +544,269 @@ export default function EditSession() {
           </div>
         </div>
 
-        {/* Sparring Details */}
+        {/* Roll Tracking (Sparring only) */}
         {isSparringType && (
-          <>
-            <div>
-              <label className="label">Rolls</label>
-              <input
-                type="number"
-                className="input"
-                value={formData.rolls}
-                onChange={(e) => setFormData({ ...formData, rolls: parseInt(e.target.value) })}
-                min="0"
-              />
+          <div className="border-t border-gray-200 dark:border-gray-700 pt-4 space-y-4">
+            <div className="flex items-center justify-between">
+              <h3 className="font-semibold text-lg">Roll Tracking</h3>
+              <button
+                type="button"
+                onClick={() => setDetailedMode(!detailedMode)}
+                className="flex items-center gap-2 text-sm text-primary-600 hover:text-primary-700"
+              >
+                {detailedMode ? (
+                  <>
+                    <ToggleRight className="w-5 h-5" />
+                    Detailed Mode
+                  </>
+                ) : (
+                  <>
+                    <ToggleLeft className="w-5 h-5" />
+                    Simple Mode
+                  </>
+                )}
+              </button>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="label">Submissions For</label>
-                <input
-                  type="number"
-                  className="input"
-                  value={formData.submissions_for}
-                  onChange={(e) => setFormData({ ...formData, submissions_for: parseInt(e.target.value) })}
-                  min="0"
-                />
+            {!detailedMode ? (
+              /* Simple Mode: Aggregate counts */
+              <>
+                <div>
+                  <label className="label">Rolls</label>
+                  <input
+                    type="number"
+                    className="input"
+                    value={formData.rolls}
+                    onChange={(e) => setFormData({ ...formData, rolls: parseInt(e.target.value) })}
+                    min="0"
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="label">Submissions For</label>
+                    <input
+                      type="number"
+                      className="input"
+                      value={formData.submissions_for}
+                      onChange={(e) => setFormData({ ...formData, submissions_for: parseInt(e.target.value) })}
+                      min="0"
+                    />
+                  </div>
+                  <div>
+                    <label className="label">Submissions Against</label>
+                    <input
+                      type="number"
+                      className="input"
+                      value={formData.submissions_against}
+                      onChange={(e) => setFormData({ ...formData, submissions_against: parseInt(e.target.value) })}
+                      min="0"
+                    />
+                  </div>
+                </div>
+              </>
+            ) : (
+              /* Detailed Mode: Individual roll records */
+              <div className="space-y-3">
+                {rolls.length === 0 ? (
+                  <p className="text-sm text-gray-600 dark:text-gray-400">
+                    Click "Add Roll" to track individual rolls with partners and submissions
+                  </p>
+                ) : (
+                  rolls.map((roll, index) => (
+                    <div key={index} className="border border-gray-300 dark:border-gray-600 rounded-lg p-4 space-y-3">
+                      <div className="flex items-center justify-between">
+                        <h4 className="font-semibold">Roll #{roll.roll_number}</h4>
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveRoll(index)}
+                          className="text-red-600 hover:text-red-700"
+                        >
+                          <X className="w-4 h-4" />
+                        </button>
+                      </div>
+
+                      {/* Partner Selection */}
+                      <div>
+                        <label className="label text-sm">Partner</label>
+                        <select
+                          className="input"
+                          value={roll.partner_id || ''}
+                          onChange={(e) => {
+                            const partnerId = e.target.value ? parseInt(e.target.value) : null;
+                            const partner = partners.find(p => p.id === partnerId);
+                            handleRollChange(index, 'partner_id', partnerId);
+                            handleRollChange(index, 'partner_name', partner ? partner.name : '');
+                          }}
+                        >
+                          <option value="">Select partner...</option>
+                          {partners.map(partner => (
+                            <option key={partner.id} value={partner.id}>
+                              {partner.name}
+                              {partner.belt_rank && ` (${partner.belt_rank} belt)`}
+                            </option>
+                          ))}
+                        </select>
+                        {!roll.partner_id && (
+                          <input
+                            type="text"
+                            className="input mt-2 text-sm"
+                            placeholder="Or enter partner name"
+                            value={roll.partner_name}
+                            onChange={(e) => handleRollChange(index, 'partner_name', e.target.value)}
+                          />
+                        )}
+                      </div>
+
+                      {/* Duration */}
+                      <div>
+                        <label className="label text-sm">Duration (mins)</label>
+                        <input
+                          type="number"
+                          className="input"
+                          value={roll.duration_mins}
+                          onChange={(e) => handleRollChange(index, 'duration_mins', parseInt(e.target.value) || 0)}
+                          min="0"
+                        />
+                      </div>
+
+                      {/* Submissions For */}
+                      <div>
+                        <label className="label text-sm">Submissions For ({roll.submissions_for.length})</label>
+                        <div className="relative mb-2">
+                          <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+                          <input
+                            type="text"
+                            className="input pl-8 text-sm"
+                            placeholder="Search submissions..."
+                            value={submissionSearchFor[index] || ''}
+                            onChange={(e) => setSubmissionSearchFor({ ...submissionSearchFor, [index]: e.target.value })}
+                          />
+                        </div>
+                        <div className="max-h-32 overflow-y-auto border border-gray-300 dark:border-gray-600 rounded p-2 space-y-1 mb-2">
+                          {movements
+                            .filter(m => {
+                              const search = submissionSearchFor[index]?.toLowerCase() || '';
+                              return (m.name.toLowerCase().includes(search) ||
+                                     m.category?.toLowerCase().includes(search)) &&
+                                     m.category === 'Submissions';
+                            })
+                            .slice(0, 10)
+                            .map(movement => (
+                              <button
+                                key={movement.id}
+                                type="button"
+                                onClick={() => handleAddSubmission(index, movement.id, true)}
+                                className="w-full text-left px-2 py-1 rounded text-sm hover:bg-gray-100 dark:hover:bg-gray-700"
+                                disabled={roll.submissions_for.includes(movement.id)}
+                              >
+                                {movement.name} {roll.submissions_for.includes(movement.id) && '✓'}
+                              </button>
+                            ))}
+                        </div>
+                        <div className="flex flex-wrap gap-1">
+                          {roll.submissions_for.map(movementId => {
+                            const movement = movements.find(m => m.id === movementId);
+                            return movement ? (
+                              <span
+                                key={movementId}
+                                className="text-xs px-2 py-1 bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-300 rounded flex items-center gap-1"
+                              >
+                                {movement.name}
+                                <button
+                                  type="button"
+                                  onClick={() => handleRemoveSubmission(index, movementId, true)}
+                                  className="hover:text-red-600"
+                                >
+                                  <X className="w-3 h-3" />
+                                </button>
+                              </span>
+                            ) : null;
+                          })}
+                        </div>
+                      </div>
+
+                      {/* Submissions Against */}
+                      <div>
+                        <label className="label text-sm">Submissions Against ({roll.submissions_against.length})</label>
+                        <div className="relative mb-2">
+                          <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+                          <input
+                            type="text"
+                            className="input pl-8 text-sm"
+                            placeholder="Search submissions..."
+                            value={submissionSearchAgainst[index] || ''}
+                            onChange={(e) => setSubmissionSearchAgainst({ ...submissionSearchAgainst, [index]: e.target.value })}
+                          />
+                        </div>
+                        <div className="max-h-32 overflow-y-auto border border-gray-300 dark:border-gray-600 rounded p-2 space-y-1 mb-2">
+                          {movements
+                            .filter(m => {
+                              const search = submissionSearchAgainst[index]?.toLowerCase() || '';
+                              return (m.name.toLowerCase().includes(search) ||
+                                     m.category?.toLowerCase().includes(search)) &&
+                                     m.category === 'Submissions';
+                            })
+                            .slice(0, 10)
+                            .map(movement => (
+                              <button
+                                key={movement.id}
+                                type="button"
+                                onClick={() => handleAddSubmission(index, movement.id, false)}
+                                className="w-full text-left px-2 py-1 rounded text-sm hover:bg-gray-100 dark:hover:bg-gray-700"
+                                disabled={roll.submissions_against.includes(movement.id)}
+                              >
+                                {movement.name} {roll.submissions_against.includes(movement.id) && '✓'}
+                              </button>
+                            ))}
+                        </div>
+                        <div className="flex flex-wrap gap-1">
+                          {roll.submissions_against.map(movementId => {
+                            const movement = movements.find(m => m.id === movementId);
+                            return movement ? (
+                              <span
+                                key={movementId}
+                                className="text-xs px-2 py-1 bg-red-100 dark:bg-red-900 text-red-700 dark:text-red-300 rounded flex items-center gap-1"
+                              >
+                                {movement.name}
+                                <button
+                                  type="button"
+                                  onClick={() => handleRemoveSubmission(index, movementId, false)}
+                                  className="hover:text-red-600"
+                                >
+                                  <X className="w-3 h-3" />
+                                </button>
+                              </span>
+                            ) : null;
+                          })}
+                        </div>
+                      </div>
+
+                      {/* Notes */}
+                      <div>
+                        <label className="label text-sm">Notes</label>
+                        <textarea
+                          className="input resize-none text-sm"
+                          rows={2}
+                          value={roll.notes}
+                          onChange={(e) => handleRollChange(index, 'notes', e.target.value)}
+                          placeholder="Key moments, positions, what worked/didn't work..."
+                        />
+                      </div>
+                    </div>
+                  ))
+                )}
+                <button
+                  type="button"
+                  onClick={handleAddRoll}
+                  className="btn-secondary w-full flex items-center justify-center gap-2"
+                >
+                  <Plus className="w-4 h-4" />
+                  Add Roll
+                </button>
               </div>
-              <div>
-                <label className="label">Submissions Against</label>
-                <input
-                  type="number"
-                  className="input"
-                  value={formData.submissions_against}
-                  onChange={(e) => setFormData({ ...formData, submissions_against: parseInt(e.target.value) })}
-                  min="0"
-                />
-              </div>
-            </div>
-          </>
+            )}
+          </div>
         )}
 
         {/* Technique Focus */}
@@ -580,8 +975,8 @@ export default function EditSession() {
           )}
         </div>
 
-        {/* Partners (Sparring only) */}
-        {isSparringType && (
+        {/* Partners (Simple mode sparring only) */}
+        {!detailedMode && isSparringType && (
           <div>
             <label className="label">Partners (comma-separated)</label>
             <input
@@ -668,6 +1063,33 @@ export default function EditSession() {
           />
         </div>
 
+        {/* Photos */}
+        <div className="border-t border-gray-200 dark:border-gray-700 pt-6">
+          <div className="flex items-center gap-2 mb-4">
+            <Camera className="w-5 h-5 text-gray-600 dark:text-gray-400" />
+            <h3 className="font-semibold text-lg">Photos</h3>
+            <span className="text-sm text-gray-500">({photoCount}/3)</span>
+          </div>
+
+          <div className="space-y-4">
+            <PhotoGallery
+              activityType="session"
+              activityId={parseInt(id!)}
+              onPhotoCountChange={setPhotoCount}
+            />
+
+            <PhotoUpload
+              activityType="session"
+              activityId={parseInt(id!)}
+              activityDate={formData.session_date}
+              currentPhotoCount={photoCount}
+              onUploadSuccess={() => {
+                setPhotoCount(photoCount + 1);
+              }}
+            />
+          </div>
+        </div>
+
         {/* Submit */}
         <div className="flex gap-2">
           <button
@@ -677,6 +1099,15 @@ export default function EditSession() {
           >
             <ArrowLeft className="w-4 h-4" />
             Cancel
+          </button>
+          <button
+            type="button"
+            onClick={handleDelete}
+            disabled={saving}
+            className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+          >
+            <Trash2 className="w-4 h-4" />
+            Delete
           </button>
           <button
             type="submit"

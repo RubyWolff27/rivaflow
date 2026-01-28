@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { sessionsApi, readinessApi, profileApi, contactsApi, glossaryApi } from '../api/client';
 import type { Contact, Movement, MediaUrl } from '../types';
-import { CheckCircle, ArrowRight, ArrowLeft, Plus, X, ToggleLeft, ToggleRight, Search } from 'lucide-react';
+import { CheckCircle, ArrowRight, ArrowLeft, Plus, X, ToggleLeft, ToggleRight, Search, Camera } from 'lucide-react';
 
 const CLASS_TYPES = ['gi', 'no-gi', 'wrestling', 'judo', 'open-mat', 's&c', 'mobility', 'yoga', 'rehab', 'physio', 'drilling', 'cardio'];
 const SPARRING_TYPES = ['gi', 'no-gi', 'wrestling', 'judo', 'open-mat'];
@@ -64,6 +64,7 @@ export default function LogSession() {
   // Session data (Step 2)
   const [sessionData, setSessionData] = useState({
     session_date: new Date().toISOString().split('T')[0],
+    class_time: '',
     class_type: 'gi',
     gym_name: '',
     location: '',
@@ -102,9 +103,18 @@ export default function LogSession() {
       setPartners(partnersRes.data);
       setMovements(movementsRes.data);
 
+      // Auto-populate default gym and coach from profile
+      const updates: any = {};
       if (profileRes.data.default_gym) {
         setDefaultGym(profileRes.data.default_gym);
-        setSessionData(prev => ({ ...prev, gym_name: profileRes.data.default_gym || '' }));
+        updates.gym_name = profileRes.data.default_gym;
+      }
+      if (profileRes.data.current_instructor_id) {
+        updates.instructor_id = profileRes.data.current_instructor_id;
+        updates.instructor_name = profileRes.data.current_professor || '';
+      }
+      if (Object.keys(updates).length > 0) {
+        setSessionData(prev => ({ ...prev, ...updates }));
       }
     } catch (error) {
       console.error('Error loading data:', error);
@@ -270,6 +280,9 @@ export default function LogSession() {
       // Build session payload
       const payload: any = {
         ...sessionData,
+        class_time: sessionData.class_time || undefined,
+        location: sessionData.location || undefined,
+        notes: sessionData.notes || undefined,
         partners: sessionData.partners ? sessionData.partners.split(',').map(p => p.trim()) : undefined,
         techniques: sessionData.techniques ? sessionData.techniques.split(',').map(t => t.trim()) : undefined,
         visibility_level: 'private',
@@ -288,6 +301,9 @@ export default function LogSession() {
         }
       } else if (sessionData.instructor_name) {
         payload.instructor_name = sessionData.instructor_name;
+      } else {
+        payload.instructor_id = undefined;
+        payload.instructor_name = undefined;
       }
 
       // Add detailed rolls if in detailed mode
@@ -320,9 +336,14 @@ export default function LogSession() {
           }));
       }
 
-      await sessionsApi.create(payload);
+      const response = await sessionsApi.create(payload);
       setSuccess(true);
-      setTimeout(() => navigate('/'), 1500);
+      // Redirect to session detail page after creation so user can add photos
+      if (response.data && response.data.id) {
+        setTimeout(() => navigate(`/session/${response.data.id}`), 1500);
+      } else {
+        setTimeout(() => navigate('/'), 1500);
+      }
     } catch (error) {
       console.error('Error creating session:', error);
       alert('Failed to log session. Please try again.');
@@ -339,7 +360,8 @@ export default function LogSession() {
       <div className="max-w-md mx-auto text-center py-12">
         <CheckCircle className="w-16 h-16 text-green-500 mx-auto mb-4" />
         <h2 className="text-2xl font-bold mb-2">Session Logged!</h2>
-        <p className="text-gray-600 dark:text-gray-400">Redirecting to dashboard...</p>
+        <p className="text-gray-600 dark:text-gray-400">Redirecting to session details...</p>
+        <p className="text-sm text-gray-500 dark:text-gray-500 mt-2">You can add photos on the next page</p>
       </div>
     );
   }
@@ -449,6 +471,22 @@ export default function LogSession() {
               onChange={(e) => setSessionData({ ...sessionData, session_date: e.target.value })}
               required
             />
+          </div>
+
+          {/* Class Time */}
+          <div>
+            <label className="label">Class Time (optional)</label>
+            <select
+              className="input"
+              value={sessionData.class_time}
+              onChange={(e) => setSessionData({ ...sessionData, class_time: e.target.value })}
+            >
+              <option value="">Not specified</option>
+              <option value="06:30">06:30 - Early Morning</option>
+              <option value="12:00">12:00 - Midday</option>
+              <option value="17:30">17:30 - Evening</option>
+              <option value="19:00">19:00 - Night</option>
+            </select>
           </div>
 
           {/* Class Type */}
@@ -1042,6 +1080,14 @@ export default function LogSession() {
                   : "Any notes about today's training..."
               }
             />
+          </div>
+
+          {/* Photo Upload Info */}
+          <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-3 flex items-start gap-2">
+            <Camera className="w-5 h-5 text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" />
+            <div className="text-sm text-blue-900 dark:text-blue-100">
+              <span className="font-semibold">Want to add photos?</span> Save the session first, then you can upload up to 3 photos on the next page.
+            </div>
           </div>
 
           {/* Submit */}

@@ -1,6 +1,10 @@
 """FastAPI application for RivaFlow web interface."""
+import os
+from pathlib import Path
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
 
 from rivaflow.api.routes import sessions, readiness, reports, suggestions, techniques, videos, profile, gradings, glossary, contacts, analytics, goals, checkins, streaks, milestones, auth, rest, feed, photos, social, chat, llm_tools
 
@@ -10,16 +14,24 @@ app = FastAPI(
     version="0.1.0",
 )
 
-# Enable CORS for local development
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=[
+# CORS configuration - read from environment or use defaults
+allowed_origins_str = os.getenv("ALLOWED_ORIGINS", "")
+if allowed_origins_str:
+    # Production: use environment variable (comma-separated list)
+    allowed_origins = [origin.strip() for origin in allowed_origins_str.split(",")]
+else:
+    # Development: default to localhost ports
+    allowed_origins = [
         "http://localhost:5173",
         "http://localhost:5174",
         "http://localhost:5175",
         "http://localhost:5176",
         "http://localhost:3000"
-    ],  # Vite ports
+    ]
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=allowed_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -64,3 +76,26 @@ async def root():
 async def health():
     """Health check endpoint."""
     return {"status": "ok"}
+
+
+# Serve static files from the React build (for production)
+# This allows serving both API and frontend from the same domain
+web_dist_path = Path(__file__).parent.parent.parent / "web" / "dist"
+if web_dist_path.exists():
+    # Mount static assets (JS, CSS, images, etc.)
+    app.mount("/assets", StaticFiles(directory=str(web_dist_path / "assets")), name="assets")
+
+    # Catch-all route to serve index.html for React Router
+    @app.get("/{full_path:path}")
+    async def serve_react_app(full_path: str):
+        """Serve the React app for all non-API routes."""
+        # Don't intercept API routes
+        if full_path.startswith("api/"):
+            return {"error": "Not found"}
+
+        # Serve index.html for all other routes (React Router will handle routing)
+        index_file = web_dist_path / "index.html"
+        if index_file.exists():
+            return FileResponse(index_file)
+        else:
+            return {"error": "Frontend not built. Run 'cd web && npm run build'"}
