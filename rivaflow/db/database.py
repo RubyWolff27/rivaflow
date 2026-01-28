@@ -88,8 +88,6 @@ def _init_postgresql_db() -> None:
 
 def _reset_postgresql_sequences(conn) -> None:
     """Reset PostgreSQL sequences for tables with SERIAL primary keys."""
-    cursor = conn.cursor()
-
     # Get all tables with SERIAL columns
     tables_with_serials = [
         'users', 'profile', 'sessions', 'readiness', 'techniques', 'videos',
@@ -100,21 +98,42 @@ def _reset_postgresql_sequences(conn) -> None:
     ]
 
     for table in tables_with_serials:
+        # Each table gets its own try-catch with rollback to prevent transaction abortion
+        cursor = conn.cursor()
         try:
-            # Reset sequence to max(id) + 1
-            cursor.execute(f"""
-                SELECT setval(
-                    pg_get_serial_sequence('{table}', 'id'),
-                    COALESCE((SELECT MAX(id) FROM {table}), 0) + 1,
-                    false
+            # Check if table exists first
+            cursor.execute("""
+                SELECT EXISTS (
+                    SELECT FROM information_schema.tables
+                    WHERE table_name = %s
                 )
+            """, (table,))
+
+            if not cursor.fetchone()[0]:
+                continue
+
+            # Reset sequence to max(id) + 1
+            # Use DO block to handle NULL sequences gracefully
+            cursor.execute(f"""
+                DO $$
+                DECLARE
+                    seq_name TEXT;
+                    max_id INTEGER;
+                BEGIN
+                    seq_name := pg_get_serial_sequence('{table}', 'id');
+                    IF seq_name IS NOT NULL THEN
+                        SELECT COALESCE(MAX(id), 0) INTO max_id FROM {table};
+                        PERFORM setval(seq_name, max_id + 1, false);
+                    END IF;
+                END $$;
             """)
+            conn.commit()
             print(f"[DB] Reset sequence for table: {table}")
         except Exception as e:
-            # Table might not exist or not have a sequence, skip
-            print(f"[DB] Skipping sequence reset for {table}: {e}")
-
-    conn.commit()
+            # Rollback this table's transaction and continue with next table
+            conn.rollback()
+            # Don't print full error, just note it was skipped
+            pass
 
 
 def _convert_sqlite_to_postgresql(sql: str) -> str:
