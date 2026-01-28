@@ -83,6 +83,37 @@ def _init_postgresql_db() -> None:
         conn.close()
 
 
+def _convert_sqlite_to_postgresql(sql: str) -> str:
+    """Convert SQLite SQL syntax to PostgreSQL syntax."""
+    import re
+
+    # Replace AUTOINCREMENT with SERIAL
+    sql = re.sub(
+        r'INTEGER PRIMARY KEY AUTOINCREMENT',
+        'SERIAL PRIMARY KEY',
+        sql,
+        flags=re.IGNORECASE
+    )
+
+    # Replace datetime('now') with CURRENT_TIMESTAMP
+    sql = re.sub(
+        r"datetime\('now'\)",
+        'CURRENT_TIMESTAMP',
+        sql,
+        flags=re.IGNORECASE
+    )
+
+    # Replace TEXT NOT NULL DEFAULT (datetime('now')) pattern
+    sql = re.sub(
+        r"TEXT NOT NULL DEFAULT \(datetime\('now'\)\)",
+        'TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP',
+        sql,
+        flags=re.IGNORECASE
+    )
+
+    return sql
+
+
 def _apply_migrations(conn: Union[sqlite3.Connection, 'psycopg2.extensions.connection'],
                       applied_migrations: set,
                       db_type: str) -> None:
@@ -132,12 +163,18 @@ def _apply_migrations(conn: Union[sqlite3.Connection, 'psycopg2.extensions.conne
             with open(migration_path) as f:
                 sql = f.read()
 
-                # For PostgreSQL, we need to execute statements separately
+                # Convert SQLite syntax to PostgreSQL if needed
                 if db_type == "postgresql":
-                    # Split on semicolons and execute separately (basic approach)
+                    sql = _convert_sqlite_to_postgresql(sql)
+
+                    # Split on semicolons and execute separately
                     statements = [s.strip() for s in sql.split(';') if s.strip()]
                     for statement in statements:
-                        cursor.execute(statement)
+                        try:
+                            cursor.execute(statement)
+                        except Exception as e:
+                            print(f"[DB] Error executing statement: {statement[:100]}...")
+                            raise
                 else:
                     # SQLite supports executescript
                     conn.executescript(sql)
