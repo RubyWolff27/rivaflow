@@ -81,7 +81,7 @@ class AuthService:
                 cursor.execute(
                     """
                     INSERT INTO profile (user_id, first_name, last_name, email)
-                    VALUES (?, ?, ?, ?)
+                    VALUES (%s, %s, %s, %s)
                     """,
                     (user["id"], first_name, last_name, email),
                 )
@@ -97,15 +97,15 @@ class AuthService:
             with get_connection() as conn:
                 cursor = conn.cursor()
                 cursor.execute(
-                    "INSERT INTO streaks (streak_type, current_streak, longest_streak, user_id) VALUES (?, ?, ?, ?)",
+                    "INSERT INTO streaks (streak_type, current_streak, longest_streak, user_id) VALUES (%s, %s, %s, %s)",
                     ("checkin", 0, 0, user["id"]),
                 )
                 cursor.execute(
-                    "INSERT INTO streaks (streak_type, current_streak, longest_streak, user_id) VALUES (?, ?, ?, ?)",
+                    "INSERT INTO streaks (streak_type, current_streak, longest_streak, user_id) VALUES (%s, %s, %s, %s)",
                     ("training", 0, 0, user["id"]),
                 )
                 cursor.execute(
-                    "INSERT INTO streaks (streak_type, current_streak, longest_streak, user_id) VALUES (?, ?, ?, ?)",
+                    "INSERT INTO streaks (streak_type, current_streak, longest_streak, user_id) VALUES (%s, %s, %s, %s)",
                     ("readiness", 0, 0, user["id"]),
                 )
         except Exception as e:
