@@ -1,11 +1,18 @@
 """Authentication endpoints."""
-from fastapi import APIRouter, HTTPException, Depends, status
+import logging
+from fastapi import APIRouter, HTTPException, Depends, status, Request
 from pydantic import BaseModel, EmailStr
+from slowapi import Limiter
+from slowapi.util import get_remote_address
 
 from rivaflow.core.services.auth_service import AuthService
 from rivaflow.core.dependencies import get_current_user
+from rivaflow.core.error_handling import handle_service_error
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter()
+limiter = Limiter(key_func=get_remote_address)
 
 
 class RegisterRequest(BaseModel):
@@ -47,7 +54,8 @@ class AccessTokenResponse(BaseModel):
 
 
 @router.post("/register", response_model=TokenResponse, status_code=status.HTTP_201_CREATED)
-async def register(req: RegisterRequest):
+@limiter.limit("5/minute")
+async def register(request: Request, req: RegisterRequest):
     """
     Register a new user account.
 
@@ -69,20 +77,22 @@ async def register(req: RegisterRequest):
         )
         return result
     except ValueError as e:
+        # ValueError contains user-facing validation messages
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=str(e),
         )
     except Exception as e:
-        print(f"Registration error: {e}")
+        error_msg = handle_service_error(e, "Registration failed", operation="register")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Registration failed",
+            detail=error_msg,
         )
 
 
 @router.post("/login", response_model=TokenResponse)
-async def login(req: LoginRequest):
+@limiter.limit("5/minute")
+async def login(request: Request, req: LoginRequest):
     """
     Login with email and password.
 
@@ -97,21 +107,24 @@ async def login(req: LoginRequest):
         result = service.login(email=req.email, password=req.password)
         return result
     except ValueError as e:
+        # ValueError for auth failures - use generic message to prevent user enumeration
+        logger.warning(f"Login attempt failed for {req.email}")
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail=str(e),
+            detail="Invalid email or password",
             headers={"WWW-Authenticate": "Bearer"},
         )
     except Exception as e:
-        print(f"Login error: {e}")
+        error_msg = handle_service_error(e, "Login failed", operation="login")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Login failed",
+            detail=error_msg,
         )
 
 
 @router.post("/refresh", response_model=AccessTokenResponse)
-async def refresh_token(req: RefreshRequest):
+@limiter.limit("10/minute")
+async def refresh_token(request: Request, req: RefreshRequest):
     """
     Refresh access token using a refresh token.
 
@@ -125,16 +138,17 @@ async def refresh_token(req: RefreshRequest):
         result = service.refresh_access_token(refresh_token=req.refresh_token)
         return result
     except ValueError as e:
+        logger.warning("Token refresh failed")
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail=str(e),
+            detail="Invalid or expired refresh token",
             headers={"WWW-Authenticate": "Bearer"},
         )
     except Exception as e:
-        print(f"Token refresh error: {e}")
+        error_msg = handle_service_error(e, "Token refresh failed", operation="refresh_token")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Token refresh failed",
+            detail=error_msg,
         )
 
 
@@ -154,12 +168,12 @@ async def logout(req: RefreshRequest, current_user: dict = Depends(get_current_u
         if success:
             return {"message": "Logged out successfully"}
         else:
-            return {"message": "Refresh token not found or already invalid"}
+            return {"message": "Logged out successfully"}  # Generic message to prevent info leakage
     except Exception as e:
-        print(f"Logout error: {e}")
+        error_msg = handle_service_error(e, "Logout failed", user_id=current_user["id"], operation="logout")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Logout failed",
+            detail=error_msg,
         )
 
 
@@ -176,10 +190,10 @@ async def logout_all_devices(current_user: dict = Depends(get_current_user)):
         count = service.logout_all_devices(user_id=current_user["id"])
         return {"message": f"Logged out from {count} device(s)"}
     except Exception as e:
-        print(f"Logout all error: {e}")
+        error_msg = handle_service_error(e, "Logout failed", user_id=current_user["id"], operation="logout_all")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Logout failed",
+            detail=error_msg,
         )
 
 

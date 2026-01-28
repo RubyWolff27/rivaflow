@@ -1,10 +1,15 @@
 """Movements glossary endpoints."""
+import logging
 from fastapi import APIRouter, HTTPException, Query, Depends
 from pydantic import BaseModel
 from typing import Optional, List
 
 from rivaflow.core.services.glossary_service import GlossaryService
 from rivaflow.core.dependencies import get_current_user
+from rivaflow.core.validation import validate_video_url
+from rivaflow.core.error_handling import handle_service_error
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter()
 service = GlossaryService()
@@ -99,6 +104,12 @@ async def delete_custom_movement(movement_id: int, current_user: dict = Depends(
 @router.post("/{movement_id}/videos")
 async def add_custom_video(movement_id: int, video: CustomVideoCreate, current_user: dict = Depends(get_current_user)):
     """Add a custom video link to a movement."""
+    # Validate URL for security
+    try:
+        validate_video_url(video.url)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
     try:
         created = service.add_custom_video(
             user_id=current_user["id"],
@@ -109,7 +120,10 @@ async def add_custom_video(movement_id: int, video: CustomVideoCreate, current_u
         )
         return created
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        error_msg = handle_service_error(
+            e, "Failed to add video", user_id=current_user["id"], operation="add_custom_video"
+        )
+        raise HTTPException(status_code=500, detail=error_msg)
 
 
 @router.delete("/{movement_id}/videos/{video_id}")

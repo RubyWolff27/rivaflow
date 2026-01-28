@@ -1,18 +1,28 @@
 """FastAPI application for RivaFlow web interface."""
 import os
 from pathlib import Path
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.util import get_remote_address
+from slowapi.errors import RateLimitExceeded
 
 from rivaflow.api.routes import sessions, readiness, reports, suggestions, techniques, videos, profile, gradings, glossary, contacts, analytics, goals, checkins, streaks, milestones, auth, rest, feed, photos, social, chat, llm_tools
+
+# Initialize rate limiter
+limiter = Limiter(key_func=get_remote_address)
 
 app = FastAPI(
     title="RivaFlow API",
     description="Training OS for the mat — Web API",
     version="0.1.0",
 )
+
+# Add rate limiter to app state
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 # CORS configuration - read from environment or use defaults
 allowed_origins_str = os.getenv("ALLOWED_ORIGINS", "")
@@ -33,8 +43,9 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=allowed_origins,
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],  # Restrict to necessary methods
+    allow_headers=["Content-Type", "Authorization"],  # Only allow necessary headers
+    max_age=3600,  # Cache preflight requests for 1 hour
 )
 
 # Register routes
@@ -64,8 +75,39 @@ app.include_router(llm_tools.router, prefix="/api")
 
 @app.get("/health")
 async def health():
-    """Health check endpoint."""
-    return {"status": "ok"}
+    """
+    Health check endpoint with database connectivity test.
+
+    Returns 200 if healthy, 503 if degraded/unhealthy.
+    """
+    from rivaflow.db.database import get_connection
+
+    checks = {}
+    overall_status = "ok"
+    status_code = 200
+
+    # Check database connectivity
+    try:
+        with get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("SELECT 1")
+            result = cursor.fetchone()
+            if result:
+                checks["database"] = "ok"
+            else:
+                checks["database"] = "error"
+                overall_status = "degraded"
+                status_code = 503
+    except Exception as e:
+        checks["database"] = f"error: {type(e).__name__}"
+        overall_status = "unhealthy"
+        status_code = 503
+
+    from fastapi.responses import JSONResponse
+    return JSONResponse(
+        status_code=status_code,
+        content={"status": overall_status, "checks": checks}
+    )
 
 
 # Serve static files from the React build (for production)

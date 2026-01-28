@@ -1,4 +1,6 @@
 """Chat API routes - proxy to Ollama LLM with BJJ coaching context."""
+import os
+import logging
 from fastapi import APIRouter, HTTPException, Depends
 from pydantic import BaseModel
 import httpx
@@ -11,10 +13,15 @@ from rivaflow.db.repositories.user_repo import UserRepository
 from rivaflow.core.services.privacy_service import PrivacyService
 
 router = APIRouter(prefix="/chat", tags=["chat"])
+logger = logging.getLogger(__name__)
 
-OLLAMA_URL = "http://localhost:11434/api/chat"
-MODEL_NAME = "llama3.2:3b"  # Lighter model for 4GB RAM VPS
-TIMEOUT = 60.0
+# Configuration from environment variables with fallback
+OLLAMA_URL = os.getenv("OLLAMA_URL", "http://localhost:11434/api/chat")
+MODEL_NAME = os.getenv("OLLAMA_MODEL", "llama3.2:3b")
+TIMEOUT = float(os.getenv("OLLAMA_TIMEOUT", "60.0"))
+
+# Flag to disable chat if Ollama is not available
+CHAT_ENABLED = os.getenv("CHAT_ENABLED", "true").lower() == "true"
 
 
 class Message(BaseModel):
@@ -146,6 +153,13 @@ async def chat(request: ChatRequest, current_user: dict = Depends(get_current_us
     Returns:
         Assistant reply with personalized BJJ coaching
     """
+    # Check if chat is enabled
+    if not CHAT_ENABLED:
+        raise HTTPException(
+            status_code=503,
+            detail="Chat service is currently unavailable. Please try again later."
+        )
+
     try:
         # Build user context and system prompt
         user_context = build_user_context(current_user["id"])
@@ -171,8 +185,26 @@ async def chat(request: ChatRequest, current_user: dict = Depends(get_current_us
             return ChatResponse(reply=data["message"]["content"])
 
     except httpx.TimeoutException:
-        raise HTTPException(status_code=504, detail="LLM request timed out")
+        logger.warning(f"Ollama LLM request timed out for user {current_user['id']}")
+        raise HTTPException(
+            status_code=504,
+            detail="The AI coach is taking too long to respond. Please try again."
+        )
+    except httpx.ConnectError:
+        logger.error(f"Cannot connect to Ollama service at {OLLAMA_URL}")
+        raise HTTPException(
+            status_code=503,
+            detail="Chat service is temporarily unavailable. Please try again later."
+        )
     except httpx.HTTPError as e:
-        raise HTTPException(status_code=502, detail=f"LLM service error: {str(e)}")
+        logger.error(f"Ollama HTTP error for user {current_user['id']}: {str(e)}")
+        raise HTTPException(
+            status_code=502,
+            detail="The AI coach encountered an error. Please try again."
+        )
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Chat error: {str(e)}")
+        logger.error(f"Unexpected chat error for user {current_user['id']}: {type(e).__name__}", exc_info=True)
+        raise HTTPException(
+            status_code=500,
+            detail="An unexpected error occurred. Please try again later."
+        )
