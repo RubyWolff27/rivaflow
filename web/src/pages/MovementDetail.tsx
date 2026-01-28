@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { glossaryApi } from '../api/client';
-import type { Movement, CustomVideo } from '../types';
+import type { Movement } from '../types';
 import { ArrowLeft, Award, Plus, Trash2, ExternalLink, Video as VideoIcon } from 'lucide-react';
 
 const CATEGORY_LABELS: Record<string, string> = {

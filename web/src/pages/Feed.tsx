@@ -163,7 +163,7 @@ export default function Feed() {
     return view === 'contacts' || (item.like_count !== undefined && item.comment_count !== undefined);
   };
 
-  const isActivityEditable = (item: FeedItem) => {
+  const isActivityEditable = (_item: FeedItem) => {
     // Only show edit/view buttons for own activities
     return view === 'my';
   };

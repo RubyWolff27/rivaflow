@@ -6,7 +6,7 @@ import { TrendingUp, Calendar, Users, Target, Edit2, Scale, Check, Zap, Trophy, 
 import EngagementBanner from '../components/EngagementBanner';
 
 export default function Dashboard() {
-  const navigate = useNavigate();
+  const _navigate = useNavigate();
   const [recentSessions, setRecentSessions] = useState<Session[]>([]);
   const [statsSessions, setStatsSessions] = useState<Session[]>([]); // Last 30 days for stats
   const [suggestion, setSuggestion] = useState<Suggestion | null>(null);

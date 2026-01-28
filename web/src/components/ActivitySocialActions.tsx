@@ -13,8 +13,8 @@ interface ActivitySocialActionsProps {
 }
 
 export default function ActivitySocialActions({
-  activityType,
-  activityId,
+  activityType: _activityType,
+  activityId: _activityId,
   likeCount,
   commentCount,
   hasLiked,

@@ -9,7 +9,7 @@ interface Message {
 }
 
 export default function Chat() {
-  const { user } = useAuth();
+  const { user: _user } = useAuth();
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);

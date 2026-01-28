@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { profileApi, gradingsApi, goalsApi, contactsApi } from '../api/client';
+import { profileApi, gradingsApi, contactsApi } from '../api/client';
 import type { Profile as ProfileType, Grading, Contact } from '../types';
 import { User, CheckCircle, Award, Plus, Trash2, Edit2, Target } from 'lucide-react';
 

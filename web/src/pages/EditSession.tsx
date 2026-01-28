@@ -117,11 +117,11 @@ export default function EditSession() {
         whoop_max_hr: sessionData.whoop_max_hr?.toString() || '',
       });
 
-      // Load session_rolls if present
-      if (sessionData.session_rolls && sessionData.session_rolls.length > 0) {
+      // Load detailed_rolls if present
+      if (sessionData.detailed_rolls && sessionData.detailed_rolls.length > 0) {
         setDetailedMode(true);
         setRolls(
-          sessionData.session_rolls.map((roll: any) => ({
+          sessionData.detailed_rolls.map((roll: any) => ({
             roll_number: roll.roll_number,
             partner_id: roll.partner_id || null,
             partner_name: roll.partner_name || '',
@@ -320,7 +320,7 @@ export default function EditSession() {
 
       // Add detailed rolls
       if (detailedMode && rolls.length > 0) {
-        payload.session_rolls = rolls.map(roll => ({
+        payload.detailed_rolls = rolls.map(roll => ({
           roll_number: roll.roll_number,
           partner_id: roll.partner_id || undefined,
           partner_name: roll.partner_name || undefined,
@@ -689,7 +689,7 @@ export default function EditSession() {
                               const search = submissionSearchFor[index]?.toLowerCase() || '';
                               return (m.name.toLowerCase().includes(search) ||
                                      m.category?.toLowerCase().includes(search)) &&
-                                     m.category === 'Submissions';
+                                     m.category === 'submission';
                             })
                             .slice(0, 10)
                             .map(movement => (
@@ -745,7 +745,7 @@ export default function EditSession() {
                               const search = submissionSearchAgainst[index]?.toLowerCase() || '';
                               return (m.name.toLowerCase().includes(search) ||
                                      m.category?.toLowerCase().includes(search)) &&
-                                     m.category === 'Submissions';
+                                     m.category === 'submission';
                             })
                             .slice(0, 10)
                             .map(movement => (

@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { readinessApi } from '../api/client';
-import { ArrowLeft, Save, Trash2, Camera } from 'lucide-react';
+import { ArrowLeft, Save, Camera } from 'lucide-react';
 import PhotoGallery from '../components/PhotoGallery';
 import PhotoUpload from '../components/PhotoUpload';
 
