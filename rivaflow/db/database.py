@@ -136,6 +136,20 @@ def _convert_sqlite_to_postgresql(sql: str) -> str:
         flags=re.IGNORECASE
     )
 
+    # Replace BOOLEAN DEFAULT 1/0 with TRUE/FALSE
+    sql = re.sub(
+        r'\bBOOLEAN\s+DEFAULT\s+1\b',
+        'BOOLEAN DEFAULT TRUE',
+        sql,
+        flags=re.IGNORECASE
+    )
+    sql = re.sub(
+        r'\bBOOLEAN\s+DEFAULT\s+0\b',
+        'BOOLEAN DEFAULT FALSE',
+        sql,
+        flags=re.IGNORECASE
+    )
+
     return sql
 
 
