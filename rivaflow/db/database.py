@@ -87,9 +87,9 @@ def _convert_sqlite_to_postgresql(sql: str) -> str:
     """Convert SQLite SQL syntax to PostgreSQL syntax."""
     import re
 
-    # Replace AUTOINCREMENT with SERIAL
+    # Replace AUTOINCREMENT with SERIAL (handle various whitespace)
     sql = re.sub(
-        r'INTEGER PRIMARY KEY AUTOINCREMENT',
+        r'\bINTEGER\s+PRIMARY\s+KEY\s+AUTOINCREMENT\b',
         'SERIAL PRIMARY KEY',
         sql,
         flags=re.IGNORECASE
@@ -97,16 +97,24 @@ def _convert_sqlite_to_postgresql(sql: str) -> str:
 
     # Replace datetime('now') with CURRENT_TIMESTAMP
     sql = re.sub(
-        r"datetime\('now'\)",
+        r"datetime\s*\(\s*['\"]now['\"]\s*\)",
         'CURRENT_TIMESTAMP',
         sql,
         flags=re.IGNORECASE
     )
 
-    # Replace TEXT NOT NULL DEFAULT (datetime('now')) pattern
+    # Replace TEXT columns with datetime defaults to TIMESTAMP
     sql = re.sub(
-        r"TEXT NOT NULL DEFAULT \(datetime\('now'\)\)",
+        r"TEXT\s+NOT\s+NULL\s+DEFAULT\s+\(\s*datetime\s*\(\s*['\"]now['\"]\s*\)\s*\)",
         'TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP',
+        sql,
+        flags=re.IGNORECASE
+    )
+
+    # Replace standalone datetime('now') in DEFAULT clauses
+    sql = re.sub(
+        r"DEFAULT\s+\(\s*datetime\s*\(\s*['\"]now['\"]\s*\)\s*\)",
+        'DEFAULT CURRENT_TIMESTAMP',
         sql,
         flags=re.IGNORECASE
     )
