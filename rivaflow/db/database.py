@@ -173,7 +173,10 @@ def _apply_migrations(conn: Union[sqlite3.Connection, 'psycopg2.extensions.conne
 
                 # Convert SQLite syntax to PostgreSQL if needed
                 if db_type == "postgresql":
+                    original_sql = sql
                     sql = _convert_sqlite_to_postgresql(sql)
+                    if 'AUTOINCREMENT' in original_sql.upper():
+                        print(f"[DB] Converted SQLite syntax to PostgreSQL for {migration}")
 
                     # Split on semicolons and execute separately
                     statements = [s.strip() for s in sql.split(';') if s.strip()]
