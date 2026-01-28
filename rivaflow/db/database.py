@@ -95,6 +95,23 @@ def _convert_sqlite_to_postgresql(sql: str) -> str:
         flags=re.IGNORECASE
     )
 
+    # Replace INSERT OR IGNORE with INSERT ... ON CONFLICT DO NOTHING
+    sql = re.sub(
+        r'\bINSERT\s+OR\s+IGNORE\s+INTO\b',
+        'INSERT INTO',
+        sql,
+        flags=re.IGNORECASE
+    )
+    # Add ON CONFLICT DO NOTHING at the end of INSERT statements that were INSERT OR IGNORE
+    # This is a bit tricky - we need to add it before the semicolon or end of statement
+    # For now, we'll handle simple cases: INSERT INTO table (...) VALUES (...)
+    sql = re.sub(
+        r'(\bINSERT\s+INTO\s+\w+\s*\([^)]+\)\s*VALUES\s*\([^)]+\))(?=\s*;|\s*$)',
+        r'\1 ON CONFLICT DO NOTHING',
+        sql,
+        flags=re.IGNORECASE
+    )
+
     # Replace datetime('now') with CURRENT_TIMESTAMP
     sql = re.sub(
         r"datetime\s*\(\s*['\"]now['\"]\s*\)",
