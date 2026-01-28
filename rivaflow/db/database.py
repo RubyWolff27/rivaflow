@@ -350,6 +350,36 @@ def get_cursor(conn: Union[sqlite3.Connection, 'psycopg2.extensions.connection']
     return conn.cursor()
 
 
+def get_last_insert_id(cursor, table_name: str = None) -> int:
+    """
+    Get the last inserted ID in a database-agnostic way.
+
+    For PostgreSQL, use RETURNING id in your INSERT and call cursor.fetchone()[0].
+    For SQLite, use cursor.lastrowid.
+
+    This is a fallback helper - prefer using RETURNING id for PostgreSQL.
+
+    Args:
+        cursor: Database cursor
+        table_name: Table name (for PostgreSQL sequence lookup, optional)
+
+    Returns:
+        Last inserted ID
+    """
+    if DB_TYPE == "sqlite":
+        return cursor.lastrowid
+    elif DB_TYPE == "postgresql":
+        # For PostgreSQL, we should use RETURNING id in the INSERT statement
+        # This is a fallback that queries the sequence
+        if table_name:
+            cursor.execute(f"SELECT currval(pg_get_serial_sequence('{table_name}', 'id'))")
+            return cursor.fetchone()[0]
+        else:
+            raise ValueError("table_name is required for PostgreSQL")
+    else:
+        raise ValueError(f"Unsupported database type: {DB_TYPE}")
+
+
 if __name__ == "__main__":
     print("Running database migrations...")
     init_db()

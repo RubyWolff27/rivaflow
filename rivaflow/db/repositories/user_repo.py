@@ -35,14 +35,28 @@ class UserRepository:
         """
         with get_connection() as conn:
             cursor = conn.cursor()
-            cursor.execute(
-                """
-                INSERT INTO users (email, hashed_password, first_name, last_name, is_active)
-                VALUES (%s, %s, %s, %s, %s)
-                """,
-                (email, hashed_password, first_name, last_name, is_active),
-            )
-            user_id = cursor.lastrowid
+
+            # PostgreSQL: use RETURNING clause, SQLite: use lastrowid
+            from rivaflow.db.database import DB_TYPE
+            if DB_TYPE == "postgresql":
+                cursor.execute(
+                    """
+                    INSERT INTO users (email, hashed_password, first_name, last_name, is_active)
+                    VALUES (%s, %s, %s, %s, %s)
+                    RETURNING id
+                    """,
+                    (email, hashed_password, first_name, last_name, is_active),
+                )
+                user_id = cursor.fetchone()[0]
+            else:
+                cursor.execute(
+                    """
+                    INSERT INTO users (email, hashed_password, first_name, last_name, is_active)
+                    VALUES (%s, %s, %s, %s, %s)
+                    """,
+                    (email, hashed_password, first_name, last_name, is_active),
+                )
+                user_id = cursor.lastrowid
 
             # Fetch and return the created user
             cursor.execute("SELECT * FROM users WHERE id = %s", (user_id,))
