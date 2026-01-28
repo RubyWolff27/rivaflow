@@ -239,12 +239,15 @@ def _apply_migrations(conn: Union[sqlite3.Connection, 'psycopg2.extensions.conne
                     # Split on semicolons and execute separately
                     statements = [s.strip() for s in sql.split(';') if s.strip()]
                     for statement in statements:
-                        # Skip comments-only or empty statements
-                        if not statement or statement.startswith('--'):
+                        if not statement:
                             continue
-                        # Remove comments from statement
-                        lines = [line for line in statement.split('\n') if not line.strip().startswith('--')]
-                        clean_statement = '\n'.join(lines).strip()
+
+                        # Remove comment lines, but keep the SQL
+                        lines = statement.split('\n')
+                        sql_lines = [line for line in lines if line.strip() and not line.strip().startswith('--')]
+                        clean_statement = '\n'.join(sql_lines).strip()
+
+                        # Skip if no SQL remains after removing comments
                         if not clean_statement:
                             continue
 
