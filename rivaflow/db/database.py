@@ -239,10 +239,19 @@ def _apply_migrations(conn: Union[sqlite3.Connection, 'psycopg2.extensions.conne
                     # Split on semicolons and execute separately
                     statements = [s.strip() for s in sql.split(';') if s.strip()]
                     for statement in statements:
+                        # Skip comments-only or empty statements
+                        if not statement or statement.startswith('--'):
+                            continue
+                        # Remove comments from statement
+                        lines = [line for line in statement.split('\n') if not line.strip().startswith('--')]
+                        clean_statement = '\n'.join(lines).strip()
+                        if not clean_statement:
+                            continue
+
                         try:
-                            cursor.execute(statement)
+                            cursor.execute(clean_statement)
                         except Exception as e:
-                            print(f"[DB] Error executing statement: {statement[:100]}...")
+                            print(f"[DB] Error executing statement: {clean_statement[:100]}...")
                             raise
                 else:
                     # SQLite supports executescript
