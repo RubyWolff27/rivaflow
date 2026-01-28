@@ -62,16 +62,6 @@ app.include_router(chat.router, prefix="/api")
 app.include_router(llm_tools.router, prefix="/api")
 
 
-@app.get("/")
-async def root():
-    """Root endpoint."""
-    return {
-        "message": "RivaFlow API",
-        "version": "0.1.0",
-        "docs": "/docs",
-    }
-
-
 @app.get("/health")
 async def health():
     """Health check endpoint."""
@@ -86,11 +76,12 @@ if web_dist_path.exists():
     app.mount("/assets", StaticFiles(directory=str(web_dist_path / "assets")), name="assets")
 
     # Catch-all route to serve index.html for React Router
+    # This must be defined last to not override other routes
     @app.get("/{full_path:path}")
     async def serve_react_app(full_path: str):
         """Serve the React app for all non-API routes."""
-        # Don't intercept API routes
-        if full_path.startswith("api/"):
+        # Don't intercept API routes or health check
+        if full_path.startswith("api/") or full_path == "health":
             return {"error": "Not found"}
 
         # Serve index.html for all other routes (React Router will handle routing)
@@ -99,3 +90,13 @@ if web_dist_path.exists():
             return FileResponse(index_file)
         else:
             return {"error": "Frontend not built. Run 'cd web && npm run build'"}
+else:
+    # If frontend not built, show API info at root
+    @app.get("/")
+    async def root():
+        """Root endpoint when frontend is not available."""
+        return {
+            "message": "RivaFlow API",
+            "version": "0.1.0",
+            "docs": "/docs",
+        }
