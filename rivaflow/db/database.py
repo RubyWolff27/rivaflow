@@ -136,7 +136,19 @@ def _convert_sqlite_to_postgresql(sql: str) -> str:
         flags=re.IGNORECASE
     )
 
-    # Replace BOOLEAN DEFAULT 1/0 with TRUE/FALSE
+    # Replace BOOLEAN DEFAULT 1/0 with TRUE/FALSE (handles NOT NULL case too)
+    sql = re.sub(
+        r'\bBOOLEAN\s+NOT\s+NULL\s+DEFAULT\s+1\b',
+        'BOOLEAN NOT NULL DEFAULT TRUE',
+        sql,
+        flags=re.IGNORECASE
+    )
+    sql = re.sub(
+        r'\bBOOLEAN\s+NOT\s+NULL\s+DEFAULT\s+0\b',
+        'BOOLEAN NOT NULL DEFAULT FALSE',
+        sql,
+        flags=re.IGNORECASE
+    )
     sql = re.sub(
         r'\bBOOLEAN\s+DEFAULT\s+1\b',
         'BOOLEAN DEFAULT TRUE',
@@ -146,6 +158,21 @@ def _convert_sqlite_to_postgresql(sql: str) -> str:
     sql = re.sub(
         r'\bBOOLEAN\s+DEFAULT\s+0\b',
         'BOOLEAN DEFAULT FALSE',
+        sql,
+        flags=re.IGNORECASE
+    )
+
+    # Replace integer literals used as boolean values in SELECT/INSERT
+    # Pattern: "1 as column_name" where column_name suggests boolean (is_*, has_*, etc)
+    sql = re.sub(
+        r'\b1\s+as\s+(is_\w+|has_\w+|show_\w+|enable_\w+)\b',
+        r'TRUE as \1',
+        sql,
+        flags=re.IGNORECASE
+    )
+    sql = re.sub(
+        r'\b0\s+as\s+(is_\w+|has_\w+|show_\w+|enable_\w+)\b',
+        r'FALSE as \1',
         sql,
         flags=re.IGNORECASE
     )
