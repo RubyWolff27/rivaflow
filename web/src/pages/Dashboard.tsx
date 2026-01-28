@@ -1,12 +1,11 @@
 import { useEffect, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { sessionsApi, suggestionsApi, readinessApi, profileApi, goalsApi, restApi } from '../api/client';
 import type { Session, Suggestion, Readiness, Profile, WeeklyGoalProgress, TrainingStreaks } from '../types';
 import { TrendingUp, Calendar, Users, Target, Edit2, Scale, Check, Zap, Trophy, Flame, Eye } from 'lucide-react';
 import EngagementBanner from '../components/EngagementBanner';
 
 export default function Dashboard() {
-  const _navigate = useNavigate();
   const [recentSessions, setRecentSessions] = useState<Session[]>([]);
   const [statsSessions, setStatsSessions] = useState<Session[]>([]); // Last 30 days for stats
   const [suggestion, setSuggestion] = useState<Suggestion | null>(null);
