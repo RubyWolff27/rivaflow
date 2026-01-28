@@ -79,8 +79,42 @@ def _init_postgresql_db() -> None:
 
         _apply_migrations(conn, applied_migrations, "postgresql")
 
+        # Reset sequences for tables with SERIAL primary keys
+        _reset_postgresql_sequences(conn)
+
     finally:
         conn.close()
+
+
+def _reset_postgresql_sequences(conn) -> None:
+    """Reset PostgreSQL sequences for tables with SERIAL primary keys."""
+    cursor = conn.cursor()
+
+    # Get all tables with SERIAL columns
+    tables_with_serials = [
+        'users', 'profile', 'sessions', 'readiness', 'techniques', 'videos',
+        'gradings', 'movements', 'contacts', 'movement_videos', 'session_rolls',
+        'session_techniques', 'weekly_goal_progress', 'daily_checkins',
+        'milestones', 'streaks', 'activity_photos', 'user_relationships',
+        'activity_likes', 'activity_comments', 'refresh_tokens'
+    ]
+
+    for table in tables_with_serials:
+        try:
+            # Reset sequence to max(id) + 1
+            cursor.execute(f"""
+                SELECT setval(
+                    pg_get_serial_sequence('{table}', 'id'),
+                    COALESCE((SELECT MAX(id) FROM {table}), 0) + 1,
+                    false
+                )
+            """)
+            print(f"[DB] Reset sequence for table: {table}")
+        except Exception as e:
+            # Table might not exist or not have a sequence, skip
+            print(f"[DB] Skipping sequence reset for {table}: {e}")
+
+    conn.commit()
 
 
 def _convert_sqlite_to_postgresql(sql: str) -> str:
