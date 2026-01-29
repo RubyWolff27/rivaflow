@@ -6,7 +6,6 @@ import shutil
 from pathlib import Path
 from datetime import date, datetime, timedelta
 from unittest.mock import patch
-from fastapi.testclient import TestClient
 
 # Set required environment variables for testing
 os.environ.setdefault("SECRET_KEY", "test-secret-key-for-testing-only-not-production")
@@ -158,6 +157,7 @@ def auth_headers(auth_token):
 @pytest.fixture
 def client(temp_db):
     """FastAPI TestClient with temp database."""
+    from fastapi.testclient import TestClient
     from rivaflow.api.main import app
     return TestClient(app)
 
