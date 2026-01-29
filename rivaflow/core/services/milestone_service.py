@@ -39,16 +39,16 @@ class MilestoneService:
             cursor = conn.cursor()
 
             # Hours: sum of duration_mins / 60 from sessions
-            cursor.execute("SELECT SUM(duration_mins) FROM sessions WHERE user_id = ?", (user_id,))
+            cursor.execute("SELECT SUM(duration_mins) FROM sessions WHERE user_id = %s", (user_id,))
             total_mins = cursor.fetchone()[0] or 0
             hours = int(total_mins / 60)
 
             # Sessions: count of sessions
-            cursor.execute("SELECT COUNT(*) FROM sessions WHERE user_id = ?", (user_id,))
+            cursor.execute("SELECT COUNT(*) FROM sessions WHERE user_id = %s", (user_id,))
             sessions = cursor.fetchone()[0] or 0
 
             # Rolls: sum of rolls from sessions
-            cursor.execute("SELECT SUM(rolls) FROM sessions WHERE user_id = ?", (user_id,))
+            cursor.execute("SELECT SUM(rolls) FROM sessions WHERE user_id = %s", (user_id,))
             rolls = cursor.fetchone()[0] or 0
 
             # Partners: count of unique partners from sessions (JSON partners field)
@@ -56,7 +56,7 @@ class MilestoneService:
             cursor.execute("""
                 SELECT COUNT(DISTINCT partner_id)
                 FROM session_rolls
-                WHERE partner_id IS NOT NULL AND user_id = ?
+                WHERE partner_id IS NOT NULL AND user_id = %s
             """, (user_id,))
             partners = cursor.fetchone()[0] or 0
 
@@ -66,7 +66,7 @@ class MilestoneService:
             cursor.execute("""
                 SELECT COUNT(DISTINCT movement_id)
                 FROM session_techniques
-                WHERE user_id = ?
+                WHERE user_id = %s
             """, (user_id,))
             techniques = cursor.fetchone()[0] or 0
 

@@ -67,7 +67,7 @@ class InsightService:
 
             cursor.execute("""
                 SELECT SUM(duration_mins) FROM sessions
-                WHERE session_date >= ? AND user_id = ?
+                WHERE session_date >= %s AND user_id = %s
             """, (week_start.isoformat(), user_id))
             week_mins = cursor.fetchone()[0] or 0
             week_hours = round(week_mins / 60, 1)
@@ -78,7 +78,7 @@ class InsightService:
                 SELECT AVG(weekly_mins) FROM (
                     SELECT SUM(duration_mins) as weekly_mins
                     FROM sessions
-                    WHERE session_date >= ? AND session_date < ? AND user_id = ?
+                    WHERE session_date >= %s AND session_date < %s AND user_id = %s
                     GROUP BY strftime('%Y-%W', session_date)
                 )
             """, (four_weeks_ago.isoformat(), week_start.isoformat(), user_id))
@@ -168,7 +168,7 @@ class InsightService:
             # Check consecutive training days
             cursor.execute("""
                 SELECT COUNT(*) FROM sessions
-                WHERE session_date >= date('now', '-6 days') AND user_id = ?
+                WHERE session_date >= CURRENT_DATE - INTERVAL '6 days' AND user_id = %s
             """, (user_id,))
             recent_days = cursor.fetchone()[0] or 0
 
@@ -196,7 +196,7 @@ class InsightService:
                     SUM(submissions_for) as subs,
                     COUNT(*) as sessions
                 FROM sessions
-                WHERE session_date >= date('now', '-30 days') AND user_id = ?
+                WHERE session_date >= CURRENT_DATE - INTERVAL '30 days' AND user_id = %s
             """, (user_id,))
             recent = cursor.fetchone()
             recent_rate = (recent[0] / recent[1]) if recent and recent[1] > 0 else 0
@@ -206,9 +206,9 @@ class InsightService:
                     SUM(submissions_for) as subs,
                     COUNT(*) as sessions
                 FROM sessions
-                WHERE session_date >= date('now', '-60 days')
-                  AND session_date < date('now', '-30 days')
-                  AND user_id = ?
+                WHERE session_date >= CURRENT_DATE - INTERVAL '60 days'
+                  AND session_date < CURRENT_DATE - INTERVAL '30 days'
+                  AND user_id = %s
             """, (user_id,))
             previous = cursor.fetchone()
             previous_rate = (previous[0] / previous[1]) if previous and previous[1] > 0 else 0

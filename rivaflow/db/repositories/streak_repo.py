@@ -46,15 +46,17 @@ class StreakRepository:
                     "updated_at": None,
                 }
 
+            # Convert row to dict (works for both SQLite Row and PostgreSQL RealDictRow)
+            row_dict = dict(row)
             return {
-                "id": row[0],
-                "streak_type": row[1],
-                "current_streak": row[2],
-                "longest_streak": row[3],
-                "last_checkin_date": row[4],
-                "streak_started_date": row[5],
-                "grace_days_used": row[6],
-                "updated_at": row[7],
+                "id": row_dict["id"],
+                "streak_type": row_dict["streak_type"],
+                "current_streak": row_dict["current_streak"],
+                "longest_streak": row_dict["longest_streak"],
+                "last_checkin_date": row_dict.get("last_checkin_date"),
+                "streak_started_date": row_dict.get("streak_started_date"),
+                "grace_days_used": row_dict["grace_days_used"],
+                "updated_at": row_dict.get("updated_at"),
             }
 
     @staticmethod

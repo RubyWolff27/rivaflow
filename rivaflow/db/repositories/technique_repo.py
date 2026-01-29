@@ -84,16 +84,27 @@ class TechniqueRepository:
     def get_stale(days: int = 7) -> list[dict]:
         """Get techniques not trained in N days (or never trained)."""
         with get_connection() as conn:
+            from rivaflow.db.database import DB_TYPE
             cursor = conn.cursor()
-            cursor.execute(
+
+            if DB_TYPE == "postgresql":
+                # PostgreSQL: CURRENT_DATE - INTERVAL '1 day' * days
+                query = """
+                    SELECT * FROM techniques
+                    WHERE last_trained_date IS NULL
+                       OR last_trained_date < CURRENT_DATE - INTERVAL '1 day' * %s
+                    ORDER BY last_trained_date ASC
                 """
-                SELECT * FROM techniques
-                WHERE last_trained_date IS NULL
-                   OR last_trained_date < date('now', '-' || %s || ' days')
-                ORDER BY last_trained_date ASC
-                """,
-                (days,),
-            )
+            else:
+                # SQLite: date('now', '-N days')
+                query = """
+                    SELECT * FROM techniques
+                    WHERE last_trained_date IS NULL
+                       OR last_trained_date < date('now', '-' || %s || ' days')
+                    ORDER BY last_trained_date ASC
+                """
+
+            cursor.execute(query, (days,))
             return [TechniqueRepository._row_to_dict(row) for row in cursor.fetchall()]
 
     @staticmethod
