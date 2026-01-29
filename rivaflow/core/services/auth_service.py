@@ -257,6 +257,138 @@ class AuthService:
         pattern = r"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$"
         return re.match(pattern, email) is not None
 
+    def request_password_reset(self, email: str) -> bool:
+        """
+        Request a password reset for a user.
+
+        Sends an email with a password reset link if the user exists.
+        Always returns True to prevent user enumeration.
+
+        Args:
+            email: User's email address
+
+        Returns:
+            True (always, for security)
+        """
+        import logging
+        from rivaflow.db.repositories.password_reset_token_repo import PasswordResetTokenRepository
+        from rivaflow.core.services.email_service import EmailService
+
+        logger = logging.getLogger(__name__)
+
+        # Get user by email
+        user = self.user_repo.get_by_email(email)
+
+        # Only send email if user exists (but don't reveal this to caller)
+        if user and user.get("is_active"):
+            token_repo = PasswordResetTokenRepository()
+
+            # Check rate limit (max 3 requests per hour)
+            recent_requests = token_repo.count_recent_requests(user["id"], hours=1)
+            if recent_requests >= 3:
+                logger.warning(f"Password reset rate limit exceeded for user {user['id']}")
+                # Still return True to not reveal rate limiting
+                return True
+
+            # Create reset token
+            token = token_repo.create_token(user["id"], expiry_hours=1)
+
+            # Send email
+            email_service = EmailService()
+            success = email_service.send_password_reset_email(
+                to_email=email,
+                reset_token=token,
+                user_name=user.get("first_name")
+            )
+
+            if success:
+                logger.info(f"Password reset email sent to {email}")
+            else:
+                logger.error(f"Failed to send password reset email to {email}")
+
+        else:
+            logger.info(f"Password reset requested for non-existent email: {email}")
+
+        # Always return True (don't reveal if user exists)
+        return True
+
+    def reset_password(self, token: str, new_password: str) -> bool:
+        """
+        Reset a user's password using a reset token.
+
+        Args:
+            token: Password reset token
+            new_password: New password (plain text, will be hashed)
+
+        Returns:
+            True if successful, False if token invalid
+
+        Raises:
+            ValueError: If password validation fails
+        """
+        import logging
+        from rivaflow.db.repositories.password_reset_token_repo import PasswordResetTokenRepository
+        from rivaflow.core.services.email_service import EmailService
+
+        logger = logging.getLogger(__name__)
+
+        # Validate password strength
+        if len(new_password) < 8:
+            raise ValueError("Password must be at least 8 characters long")
+
+        token_repo = PasswordResetTokenRepository()
+
+        # Get user ID from token
+        user_id = token_repo.get_user_id_from_token(token)
+        if not user_id:
+            return False
+
+        # Get user
+        user = self.user_repo.get_by_id(user_id)
+        if not user:
+            return False
+
+        # Hash new password
+        hashed_pwd = hash_password(new_password)
+
+        # Update user's password
+        try:
+            from rivaflow.db.database import get_connection
+
+            with get_connection() as conn:
+                cursor = conn.cursor()
+                cursor.execute(
+                    """
+                    UPDATE users
+                    SET hashed_password = %s, updated_at = CURRENT_TIMESTAMP
+                    WHERE id = %s
+                    """,
+                    (hashed_pwd, user_id),
+                )
+
+            # Mark token as used
+            token_repo.mark_as_used(token)
+
+            # Invalidate all other unused reset tokens for this user
+            token_repo.invalidate_all_user_tokens(user_id)
+
+            # Invalidate all refresh tokens (logout from all devices for security)
+            self.refresh_token_repo.delete_by_user_id(user_id)
+
+            # Send confirmation email
+            email_service = EmailService()
+            email_service.send_password_changed_confirmation(
+                to_email=user["email"],
+                user_name=user.get("first_name")
+            )
+
+            logger.info(f"Password reset successful for user {user_id}")
+            return True
+
+        except Exception as e:
+            logger.error(f"Password reset failed for user {user_id}: {e}")
+            raise
+
     @staticmethod
     def _sanitize_user(user: dict) -> dict:
         """Remove sensitive fields from user dict."""

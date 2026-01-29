@@ -205,3 +205,84 @@ async def get_current_user_info(current_user: dict = Depends(get_current_user)):
     Requires authentication (access token in Authorization header).
     """
     return current_user
+
+
+class ForgotPasswordRequest(BaseModel):
+    """Forgot password request model."""
+
+    email: EmailStr
+
+
+class ResetPasswordRequest(BaseModel):
+    """Reset password request model."""
+
+    token: str
+    new_password: str
+
+
+@router.post("/forgot-password")
+@limiter.limit("3/hour")
+async def forgot_password(req: ForgotPasswordRequest, request: Request):
+    """
+    Request a password reset email.
+
+    Rate limited to 3 requests per hour per IP address.
+
+    - **email**: User's email address
+
+    Returns success message regardless of whether email exists (prevents user enumeration).
+    """
+    service = AuthService()
+
+    try:
+        # Always return success to prevent user enumeration
+        # The service will only send email if user exists
+        service.request_password_reset(email=req.email)
+        return {
+            "message": "If an account exists with this email, you will receive a password reset link."
+        }
+    except Exception as e:
+        logger.error(f"Forgot password error for {req.email}: {e}")
+        # Still return success to prevent info leakage
+        return {
+            "message": "If an account exists with this email, you will receive a password reset link."
+        }
+
+
+@router.post("/reset-password")
+@limiter.limit("5/hour")
+async def reset_password(req: ResetPasswordRequest, request: Request):
+    """
+    Reset password using reset token.
+
+    Rate limited to 5 requests per hour per IP address.
+
+    - **token**: Password reset token from email
+    - **new_password**: New password (min 8 characters)
+
+    Returns success or error message.
+    """
+    service = AuthService()
+
+    try:
+        success = service.reset_password(token=req.token, new_password=req.new_password)
+
+        if success:
+            return {"message": "Password reset successfully. You can now log in with your new password."}
+        else:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Invalid or expired reset token"
+            )
+
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e)
+        )
+    except Exception as e:
+        error_msg = handle_service_error(e, "Password reset failed", operation="reset_password")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=error_msg,
+        )
