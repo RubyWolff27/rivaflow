@@ -48,9 +48,11 @@ class UserRepository:
                     (email, hashed_password, first_name, last_name, is_active),
                 )
                 result = cursor.fetchone()
-                print(f"[USER_REPO] INSERT RETURNING result: {result}")
-                user_id = result[0]
-                print(f"[USER_REPO] Extracted user_id: {user_id}")
+                # PostgreSQL may return RealDictRow (dict-like) or tuple depending on cursor type
+                if hasattr(result, 'keys'):  # Dictionary-like (RealDictRow)
+                    user_id = result['id']
+                else:  # Tuple-like
+                    user_id = result[0]
             else:
                 cursor.execute(
                     """
@@ -67,7 +69,6 @@ class UserRepository:
             # Fetch and return the created user
             cursor.execute("SELECT * FROM users WHERE id = %s", (user_id,))
             row = cursor.fetchone()
-            print(f"[USER_REPO] SELECT result: {row}")
 
             if not row:
                 raise ValueError(f"User {user_id} was inserted but cannot be retrieved")
