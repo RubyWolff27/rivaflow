@@ -67,14 +67,7 @@ class MilestoneRepository:
             )
             row = cursor.fetchone()
 
-            return {
-                "id": row[0],
-                "milestone_type": row[1],
-                "milestone_value": row[2],
-                "milestone_label": row[3],
-                "achieved_at": row[4],
-                "celebrated": row[5],
-            }
+            return dict(row)
 
     @staticmethod
     def get_uncelebrated_milestones(user_id: int) -> list[dict]:
@@ -92,17 +85,7 @@ class MilestoneRepository:
             )
             rows = cursor.fetchall()
 
-            return [
-                {
-                    "id": row[0],
-                    "milestone_type": row[1],
-                    "milestone_value": row[2],
-                    "milestone_label": row[3],
-                    "achieved_at": row[4],
-                    "celebrated": row[5],
-                }
-                for row in rows
-            ]
+            return [dict(row) for row in rows]
 
     @staticmethod
     def mark_celebrated(user_id: int, milestone_id: int) -> None:
@@ -154,17 +137,7 @@ class MilestoneRepository:
             )
             rows = cursor.fetchall()
 
-            return [
-                {
-                    "id": row[0],
-                    "milestone_type": row[1],
-                    "milestone_value": row[2],
-                    "milestone_label": row[3],
-                    "achieved_at": row[4],
-                    "celebrated": row[5],
-                }
-                for row in rows
-            ]
+            return [dict(row) for row in rows]
 
     @staticmethod
     def get_highest_achieved(user_id: int, milestone_type: str) -> Optional[int]:
@@ -173,11 +146,15 @@ class MilestoneRepository:
             cursor = conn.cursor()
             cursor.execute(
                 """
-                SELECT MAX(milestone_value)
+                SELECT MAX(milestone_value) as max_value
                 FROM milestones
                 WHERE user_id = %s AND milestone_type = %s
                 """,
                 (user_id, milestone_type)
             )
             row = cursor.fetchone()
-            return row[0] if row and row[0] is not None else 0
+            if row:
+                row_dict = dict(row)
+                max_value = row_dict.get('max_value')
+                return max_value if max_value is not None else 0
+            return 0

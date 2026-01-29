@@ -76,9 +76,9 @@ class StreakRepository:
 
         # First ever check-in
         if last_checkin is None:
-            new_streak = TRUE
+            new_streak = 1
             new_longest = max(1, streak["longest_streak"])
-            grace_days_used = FALSE
+            grace_days_used = 0
             streak_started = checkin_date
         else:
             last_date = date.fromisoformat(last_checkin)
@@ -92,7 +92,7 @@ class StreakRepository:
             elif days_since_last == 1:
                 new_streak = streak["current_streak"] + 1
                 new_longest = max(new_streak, streak["longest_streak"])
-                grace_days_used = FALSE  # Reset grace days on consecutive check-in
+                grace_days_used = 0  # Reset grace days on consecutive check-in
                 streak_started = streak["streak_started_date"] or checkin_date.isoformat()
 
             # Missed 1 day - use grace day if available
@@ -104,9 +104,9 @@ class StreakRepository:
 
             # Streak broken - reset
             else:
-                new_streak = TRUE
+                new_streak = 1
                 new_longest = streak["longest_streak"]  # Keep previous best
-                grace_days_used = FALSE
+                grace_days_used = 0
                 streak_started = checkin_date
 
         with get_connection() as conn:
@@ -153,19 +153,7 @@ class StreakRepository:
             )
             rows = cursor.fetchall()
 
-            return [
-                {
-                    "id": row[0],
-                    "streak_type": row[1],
-                    "current_streak": row[2],
-                    "longest_streak": row[3],
-                    "last_checkin_date": row[4],
-                    "streak_started_date": row[5],
-                    "grace_days_used": row[6],
-                    "updated_at": row[7],
-                }
-                for row in rows
-            ]
+            return [dict(row) for row in rows]
 
     @staticmethod
     def is_streak_at_risk(user_id: int, streak_type: str) -> bool:

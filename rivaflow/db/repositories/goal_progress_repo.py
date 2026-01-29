@@ -10,20 +10,7 @@ class GoalProgressRepository:
 
     def _row_to_dict(self, row) -> dict:
         """Convert database row to dictionary."""
-        return {
-            "id": row[0],
-            "week_start_date": row[1],
-            "week_end_date": row[2],
-            "target_sessions": row[3],
-            "actual_sessions": row[4],
-            "target_hours": row[5],
-            "actual_hours": row[6],
-            "target_rolls": row[7],
-            "actual_rolls": row[8],
-            "completed_at": row[9],
-            "created_at": row[10],
-            "updated_at": row[11],
-        }
+        return dict(row)
 
     def get_by_week(self, user_id: int, week_start_date: date) -> Optional[dict]:
         """Get goal progress for a specific week."""
