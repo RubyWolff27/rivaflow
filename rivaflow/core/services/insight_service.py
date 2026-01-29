@@ -211,7 +211,11 @@ class InsightService:
                 WHERE session_date >= CURRENT_DATE - INTERVAL '30 days' AND user_id = %s
             """, (user_id,))
             recent = cursor.fetchone()
-            recent_rate = (recent[0] / recent[1]) if recent and recent[1] > 0 else 0
+            if recent:
+                recent_dict = dict(recent)
+                recent_rate = (recent_dict['subs'] / recent_dict['sessions']) if recent_dict['sessions'] and recent_dict['sessions'] > 0 else 0
+            else:
+                recent_rate = 0
 
             cursor.execute("""
                 SELECT
@@ -223,7 +227,11 @@ class InsightService:
                   AND user_id = %s
             """, (user_id,))
             previous = cursor.fetchone()
-            previous_rate = (previous[0] / previous[1]) if previous and previous[1] > 0 else 0
+            if previous:
+                previous_dict = dict(previous)
+                previous_rate = (previous_dict['subs'] / previous_dict['sessions']) if previous_dict['sessions'] and previous_dict['sessions'] > 0 else 0
+            else:
+                previous_rate = 0
 
             if previous_rate > 0 and recent_rate > previous_rate * 1.15:
                 percent_up = round(((recent_rate - previous_rate) / previous_rate) * 100)
