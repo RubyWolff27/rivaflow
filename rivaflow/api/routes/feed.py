@@ -32,8 +32,8 @@ def get_activity_feed(
     )
 
 
-@router.get("/contacts")
-def get_contacts_feed(
+@router.get("/friends")
+def get_friends_feed(
     limit: int = Query(default=50, ge=1, le=200),
     offset: int = Query(default=0, ge=0, le=10000),
     days_back: Optional[int] = Query(default=30, ge=1, le=365),
@@ -44,7 +44,7 @@ def get_contacts_feed(
     Only shows activities with visibility_level != 'private' with privacy redaction applied.
     Always includes social data (likes, comments).
     """
-    return FeedService.get_contacts_feed(
+    return FeedService.get_friends_feed(
         user_id=current_user["id"],
         limit=limit,
         offset=offset,

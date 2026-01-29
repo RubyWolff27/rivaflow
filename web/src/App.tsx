@@ -17,7 +17,7 @@ import Videos from './pages/Videos';
 import Profile from './pages/Profile';
 import Glossary from './pages/Glossary';
 import MovementDetail from './pages/MovementDetail';
-import Contacts from './pages/Contacts';
+import Friends from './pages/Friends';
 import EditSession from './pages/EditSession';
 import Chat from './pages/Chat';
 import Login from './pages/Login';
@@ -56,7 +56,7 @@ function App() {
                     <Route path="/videos" element={<Videos />} />
                     <Route path="/glossary" element={<Glossary />} />
                     <Route path="/glossary/:id" element={<MovementDetail />} />
-                    <Route path="/contacts" element={<Contacts />} />
+                    <Route path="/friends" element={<Friends />} />
                     <Route path="/profile" element={<Profile />} />
                   </Routes>
                 </Layout>

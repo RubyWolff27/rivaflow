@@ -10,7 +10,7 @@ from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
 from fastapi.exceptions import RequestValidationError
 
-from rivaflow.api.routes import sessions, readiness, reports, suggestions, techniques, videos, profile, gradings, glossary, contacts, analytics, goals, checkins, streaks, milestones, auth, rest, feed, photos, social, chat, llm_tools
+from rivaflow.api.routes import sessions, readiness, reports, suggestions, techniques, videos, profile, gradings, glossary, friends, analytics, goals, checkins, streaks, milestones, auth, rest, feed, photos, social, chat, llm_tools
 from rivaflow.core.exceptions import RivaFlowException
 from rivaflow.api.middleware.error_handler import (
     rivaflow_exception_handler,
@@ -81,7 +81,7 @@ app.include_router(videos.router, prefix="/api/videos", tags=["videos"])
 app.include_router(profile.router, prefix="/api/profile", tags=["profile"])
 app.include_router(gradings.router, prefix="/api/gradings", tags=["gradings"])
 app.include_router(glossary.router, prefix="/api/glossary", tags=["glossary"])
-app.include_router(contacts.router, prefix="/api/contacts", tags=["contacts"])
+app.include_router(friends.router, prefix="/api/friends", tags=["friends"])
 app.include_router(analytics.router, prefix="/api/analytics", tags=["analytics"])
 app.include_router(goals.router, prefix="/api/goals", tags=["goals"])
 app.include_router(checkins.router, prefix="/api")

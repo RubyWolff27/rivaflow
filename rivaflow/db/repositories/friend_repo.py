@@ -1,18 +1,18 @@
-"""Repository for contacts (training partners and instructors) data access."""
+"""Repository for friends (training partners and instructors) data access."""
 import sqlite3
 from typing import List, Optional
 
 from rivaflow.db.database import get_connection
 
 
-class ContactRepository:
-    """Data access layer for contacts."""
+class FriendRepository:
+    """Data access layer for friends."""
 
     @staticmethod
     def create(
         user_id: int,
         name: str,
-        contact_type: str = "training-partner",
+        friend_type: str = "training-partner",
         belt_rank: Optional[str] = None,
         belt_stripes: int = 0,
         instructor_certification: Optional[str] = None,
@@ -20,64 +20,64 @@ class ContactRepository:
         email: Optional[str] = None,
         notes: Optional[str] = None,
     ) -> dict:
-        """Create a new contact."""
+        """Create a new friend."""
         with get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(
                 """
-                INSERT INTO contacts
-                (user_id, name, contact_type, belt_rank, belt_stripes, instructor_certification, phone, email, notes)
+                INSERT INTO friends
+                (user_id, name, friend_type, belt_rank, belt_stripes, instructor_certification, phone, email, notes)
                 VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
                 """,
-                (user_id, name, contact_type, belt_rank, belt_stripes, instructor_certification, phone, email, notes),
+                (user_id, name, friend_type, belt_rank, belt_stripes, instructor_certification, phone, email, notes),
             )
-            contact_id = cursor.lastrowid
+            friend_id = cursor.lastrowid
 
-            # Return the created contact
-            cursor.execute("SELECT * FROM contacts WHERE id = %s AND user_id = %s", (contact_id, user_id))
+            # Return the created friend
+            cursor.execute("SELECT * FROM friends WHERE id = %s AND user_id = %s", (friend_id, user_id))
             row = cursor.fetchone()
-            return ContactRepository._row_to_dict(row)
+            return FriendRepository._row_to_dict(row)
 
     @staticmethod
-    def get_by_id(user_id: int, contact_id: int) -> Optional[dict]:
-        """Get a contact by ID."""
+    def get_by_id(user_id: int, friend_id: int) -> Optional[dict]:
+        """Get a friend by ID."""
         with get_connection() as conn:
             cursor = conn.cursor()
-            cursor.execute("SELECT * FROM contacts WHERE id = %s AND user_id = %s", (contact_id, user_id))
+            cursor.execute("SELECT * FROM friends WHERE id = %s AND user_id = %s", (friend_id, user_id))
             row = cursor.fetchone()
-            return ContactRepository._row_to_dict(row) if row else None
+            return FriendRepository._row_to_dict(row) if row else None
 
     @staticmethod
     def get_by_name(user_id: int, name: str) -> Optional[dict]:
-        """Get a contact by exact name match."""
+        """Get a friend by exact name match."""
         with get_connection() as conn:
             cursor = conn.cursor()
-            cursor.execute("SELECT * FROM contacts WHERE user_id = %s AND name = %s", (user_id, name))
+            cursor.execute("SELECT * FROM friends WHERE user_id = %s AND name = %s", (user_id, name))
             row = cursor.fetchone()
-            return ContactRepository._row_to_dict(row) if row else None
+            return FriendRepository._row_to_dict(row) if row else None
 
     @staticmethod
     def list_all(user_id: int, order_by: str = "name ASC") -> List[dict]:
-        """Get all contacts, ordered by name alphabetically by default."""
+        """Get all friends, ordered by name alphabetically by default."""
         # Whitelist allowed ORDER BY values to prevent SQL injection
         allowed_order = {
             "name ASC", "name DESC",
             "created_at ASC", "created_at DESC",
             "belt_rank ASC", "belt_rank DESC",
-            "contact_type ASC", "contact_type DESC"
+            "friend_type ASC", "friend_type DESC"
         }
         if order_by not in allowed_order:
             order_by = "name ASC"  # Safe default
 
         with get_connection() as conn:
             cursor = conn.cursor()
-            cursor.execute(f"SELECT * FROM contacts WHERE user_id = %s ORDER BY {order_by}", (user_id,))
+            cursor.execute(f"SELECT * FROM friends WHERE user_id = %s ORDER BY {order_by}", (user_id,))
             rows = cursor.fetchall()
-            return [ContactRepository._row_to_dict(row) for row in rows]
+            return [FriendRepository._row_to_dict(row) for row in rows]
 
     @staticmethod
-    def list_by_type(user_id: int, contact_type: str, order_by: str = "name ASC") -> List[dict]:
-        """Get contacts filtered by type."""
+    def list_by_type(user_id: int, friend_type: str, order_by: str = "name ASC") -> List[dict]:
+        """Get friends filtered by type."""
         # Whitelist allowed ORDER BY values to prevent SQL injection
         allowed_order = {
             "name ASC", "name DESC",
@@ -90,30 +90,30 @@ class ContactRepository:
         with get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(
-                f"SELECT * FROM contacts WHERE user_id = %s AND contact_type = %s ORDER BY {order_by}",
-                (user_id, contact_type),
+                f"SELECT * FROM friends WHERE user_id = %s AND friend_type = %s ORDER BY {order_by}",
+                (user_id, friend_type),
             )
             rows = cursor.fetchall()
-            return [ContactRepository._row_to_dict(row) for row in rows]
+            return [FriendRepository._row_to_dict(row) for row in rows]
 
     @staticmethod
     def search(user_id: int, query: str) -> List[dict]:
-        """Search contacts by name (case-insensitive partial match)."""
+        """Search friends by name (case-insensitive partial match)."""
         with get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(
-                "SELECT * FROM contacts WHERE user_id = %s AND name LIKE %s ORDER BY name ASC",
+                "SELECT * FROM friends WHERE user_id = %s AND name LIKE %s ORDER BY name ASC",
                 (user_id, f"%{query}%"),
             )
             rows = cursor.fetchall()
-            return [ContactRepository._row_to_dict(row) for row in rows]
+            return [FriendRepository._row_to_dict(row) for row in rows]
 
     @staticmethod
     def update(
         user_id: int,
-        contact_id: int,
+        friend_id: int,
         name: Optional[str] = None,
-        contact_type: Optional[str] = None,
+        friend_type: Optional[str] = None,
         belt_rank: Optional[str] = None,
         belt_stripes: Optional[int] = None,
         instructor_certification: Optional[str] = None,
@@ -121,7 +121,7 @@ class ContactRepository:
         email: Optional[str] = None,
         notes: Optional[str] = None,
     ) -> Optional[dict]:
-        """Update a contact by ID. Returns updated contact or None if not found."""
+        """Update a friend by ID. Returns updated friend or None if not found."""
         with get_connection() as conn:
             cursor = conn.cursor()
 
@@ -132,9 +132,9 @@ class ContactRepository:
             if name is not None:
                 updates.append("name = %s")
                 params.append(name)
-            if contact_type is not None:
-                updates.append("contact_type = %s")
-                params.append(contact_type)
+            if friend_type is not None:
+                updates.append("friend_type = %s")
+                params.append(friend_type)
             if belt_rank is not None:
                 updates.append("belt_rank = %s")
                 params.append(belt_rank)
@@ -156,26 +156,26 @@ class ContactRepository:
 
             if not updates:
                 # No updates provided, just return current record
-                return ContactRepository.get_by_id(user_id, contact_id)
+                return FriendRepository.get_by_id(user_id, friend_id)
 
             # Add updated_at timestamp
             updates.append("updated_at = CURRENT_TIMESTAMP")
-            params.extend([contact_id, user_id])
+            params.extend([friend_id, user_id])
 
-            query = f"UPDATE contacts SET {', '.join(updates)} WHERE id = %s AND user_id = %s"
+            query = f"UPDATE friends SET {', '.join(updates)} WHERE id = %s AND user_id = %s"
             cursor.execute(query, params)
 
             if cursor.rowcount == 0:
                 return None
 
-            return ContactRepository.get_by_id(user_id, contact_id)
+            return FriendRepository.get_by_id(user_id, friend_id)
 
     @staticmethod
-    def delete(user_id: int, contact_id: int) -> bool:
-        """Delete a contact by ID. Returns True if deleted, False if not found."""
+    def delete(user_id: int, friend_id: int) -> bool:
+        """Delete a friend by ID. Returns True if deleted, False if not found."""
         with get_connection() as conn:
             cursor = conn.cursor()
-            cursor.execute("DELETE FROM contacts WHERE id = %s AND user_id = %s", (contact_id, user_id))
+            cursor.execute("DELETE FROM friends WHERE id = %s AND user_id = %s", (friend_id, user_id))
             return cursor.rowcount > 0
 
     @staticmethod

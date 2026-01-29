@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
-import { contactsApi } from '../api/client';
-import type { Contact } from '../types';
+import { friendsApi } from '../api/client';
+import type { Friend } from '../types';
 import { Users, Plus, Edit2, Trash2, Award, Filter } from 'lucide-react';
 
 const BELT_COLORS: Record<string, string> = {
@@ -11,18 +11,18 @@ const BELT_COLORS: Record<string, string> = {
   black: 'bg-gray-900 text-white border-gray-700',
 };
 
-export default function Contacts() {
-  const [contacts, setContacts] = useState<Contact[]>([]);
-  const [filteredContacts, setFilteredContacts] = useState<Contact[]>([]);
+export default function Friends() {
+  const [friends, setFriends] = useState<Friend[]>([]);
+  const [filteredFriends, setFilteredFriends] = useState<Friend[]>([]);
   const [loading, setLoading] = useState(true);
 
   const [selectedFilter, setSelectedFilter] = useState<string>('all');
   const [showAddForm, setShowAddForm] = useState(false);
-  const [editingContact, setEditingContact] = useState<Contact | null>(null);
+  const [editingFriend, setEditingFriend] = useState<Friend | null>(null);
 
   const [formData, setFormData] = useState({
     name: '',
-    contact_type: 'training-partner' as 'instructor' | 'training-partner' | 'both',
+    friend_type: 'training-partner' as 'instructor' | 'training-partner' | 'both',
     belt_rank: '' as '' | 'white' | 'blue' | 'purple' | 'brown' | 'black',
     belt_stripes: 0,
     instructor_certification: '',
@@ -32,18 +32,18 @@ export default function Contacts() {
   });
 
   useEffect(() => {
-    loadContacts();
+    loadFriends();
   }, []);
 
   useEffect(() => {
     filterContacts();
   }, [contacts, selectedFilter]);
 
-  const loadContacts = async () => {
+  const loadFriends = async () => {
     setLoading(true);
     try {
-      const response = await contactsApi.list();
-      setContacts(response.data);
+      const response = await friendsApi.list();
+      setFriends(response.data);
     } catch (error) {
       console.error('Error loading contacts:', error);
     } finally {
@@ -51,8 +51,8 @@ export default function Contacts() {
     }
   };
 
-  const filterContacts = () => {
-    let filtered = [...contacts];
+  const filterFriends = () => {
+    let filtered = [...friends];
 
     if (selectedFilter === 'instructors') {
       filtered = filtered.filter(c => c.contact_type === 'instructor' || c.contact_type === 'both');
@@ -60,16 +60,16 @@ export default function Contacts() {
       filtered = filtered.filter(c => c.contact_type === 'training-partner' || c.contact_type === 'both');
     }
 
-    setFilteredContacts(filtered);
+    setFilteredFriends(filtered);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      if (editingContact) {
-        await contactsApi.update(editingContact.id, {
+      if (editingFriend) {
+        await friendsApi.update(editingFriend.id, {
           name: formData.name,
-          contact_type: formData.contact_type,
+          friend_type: formData.contact_type,
           belt_rank: formData.belt_rank || undefined,
           belt_stripes: formData.belt_stripes,
           instructor_certification: formData.instructor_certification || undefined,
@@ -78,9 +78,9 @@ export default function Contacts() {
           notes: formData.notes || undefined,
         });
       } else {
-        await contactsApi.create({
+        await friendsApi.create({
           name: formData.name,
-          contact_type: formData.contact_type,
+          friend_type: formData.contact_type,
           belt_rank: formData.belt_rank || undefined,
           belt_stripes: formData.belt_stripes,
           instructor_certification: formData.instructor_certification || undefined,
@@ -91,18 +91,18 @@ export default function Contacts() {
       }
 
       resetForm();
-      await loadContacts();
+      await loadFriends();
     } catch (error) {
       console.error('Error saving contact:', error);
       alert('Failed to save contact.');
     }
   };
 
-  const handleEdit = (contact: Contact) => {
-    setEditingContact(contact);
+  const handleEdit = (friend: Friend) => {
+    setEditingFriend(contact);
     setFormData({
       name: contact.name,
-      contact_type: contact.contact_type,
+      friend_type: contact.contact_type,
       belt_rank: contact.belt_rank || '',
       belt_stripes: contact.belt_stripes || 0,
       instructor_certification: contact.instructor_certification || '',
@@ -113,12 +113,12 @@ export default function Contacts() {
     setShowAddForm(true);
   };
 
-  const handleDelete = async (contactId: number) => {
-    if (!confirm('Delete this contact? This cannot be undone.')) return;
+  const handleDelete = async (friendId: number) => {
+    if (!confirm('Delete this friend? This cannot be undone.')) return;
 
     try {
-      await contactsApi.delete(contactId);
-      await loadContacts();
+      await friendsApi.delete(contactId);
+      await loadFriends();
     } catch (error) {
       console.error('Error deleting contact:', error);
       alert('Failed to delete contact.');
@@ -128,7 +128,7 @@ export default function Contacts() {
   const resetForm = () => {
     setFormData({
       name: '',
-      contact_type: 'training-partner',
+      friend_type: 'training-partner',
       belt_rank: '',
       belt_stripes: 0,
       instructor_certification: '',
@@ -136,11 +136,11 @@ export default function Contacts() {
       email: '',
       notes: '',
     });
-    setEditingContact(null);
+    setEditingFriend(null);
     setShowAddForm(false);
   };
 
-  const renderBeltBadge = (contact: Contact) => {
+  const renderBeltBadge = (friend: Friend) => {
     if (!contact.belt_rank) return null;
 
     const colorClass = BELT_COLORS[contact.belt_rank];
@@ -148,7 +148,7 @@ export default function Contacts() {
 
     return (
       <span className={`inline-flex items-center gap-1 px-2 py-1 rounded text-xs font-medium border ${colorClass}`}>
-        {contact.belt_rank.charAt(0).toUpperCase() + contact.belt_rank.slice(1)} Belt
+        {friend.belt_rank.charAt(0).toUpperCase() + contact.belt_rank.slice(1)} Belt
         {stripes > 0 && (
           <span className="flex gap-0.5 ml-1">
             {Array.from({ length: stripes }).map((_, i) => (
@@ -171,9 +171,9 @@ export default function Contacts() {
         <div className="flex items-center gap-3">
           <Users className="w-8 h-8 text-primary-600" />
           <div>
-            <h1 className="text-3xl font-bold">Contacts</h1>
+            <h1 className="text-3xl font-bold">Friends</h1>
             <p className="text-gray-600 dark:text-gray-400">
-              {filteredContacts.length} of {contacts.length} contacts
+              {filteredFriends.length} of {friends.length} friends
             </p>
           </div>
         </div>
@@ -182,7 +182,7 @@ export default function Contacts() {
           className="btn-primary flex items-center gap-2"
         >
           <Plus className="w-4 h-4" />
-          {showAddForm ? 'Cancel' : 'Add Contact'}
+          {showAddForm ? 'Cancel' : 'Add Friend'}
         </button>
       </div>
 
@@ -190,7 +190,7 @@ export default function Contacts() {
       {showAddForm && (
         <form onSubmit={handleSubmit} className="card bg-gray-50 dark:bg-gray-800 space-y-4">
           <h3 className="text-lg font-semibold">
-            {editingContact ? 'Edit Contact' : 'Add New Contact'}
+            {editingFriend ? 'Edit Friend' : 'Add New Friend'}
           </h3>
 
           <div className="grid grid-cols-2 gap-4">
@@ -209,7 +209,7 @@ export default function Contacts() {
               <select
                 className="input"
                 value={formData.contact_type}
-                onChange={(e) => setFormData({ ...formData, contact_type: e.target.value as any })}
+                onChange={(e) => setFormData({ ...formData, friend_type: e.target.value as any })}
               >
                 <option value="training-partner">Training Partner</option>
                 <option value="instructor">Instructor</option>
@@ -290,7 +290,7 @@ export default function Contacts() {
 
           <div className="flex gap-2">
             <button type="submit" className="btn-primary">
-              {editingContact ? 'Update Contact' : 'Add Contact'}
+              {editingFriend ? 'Update Friend' : 'Add Friend'}
             </button>
             <button type="button" onClick={resetForm} className="btn-secondary">
               Cancel
@@ -312,7 +312,7 @@ export default function Contacts() {
                   : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600'
               }`}
             >
-              All ({contacts.length})
+              All ({friends.length})
             </button>
             <button
               onClick={() => setSelectedFilter('instructors')}
@@ -322,7 +322,7 @@ export default function Contacts() {
                   : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600'
               }`}
             >
-              Instructors ({contacts.filter(c => c.contact_type === 'instructor' || c.contact_type === 'both').length})
+              Instructors ({friends.filter(c => c.contact_type === 'instructor' || c.contact_type === 'both').length})
             </button>
             <button
               onClick={() => setSelectedFilter('partners')}
@@ -332,7 +332,7 @@ export default function Contacts() {
                   : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600'
               }`}
             >
-              Training Partners ({contacts.filter(c => c.contact_type === 'training-partner' || c.contact_type === 'both').length})
+              Training Partners ({friends.filter(c => c.contact_type === 'training-partner' || c.contact_type === 'both').length})
             </button>
           </div>
         </div>
@@ -340,29 +340,29 @@ export default function Contacts() {
 
       {/* Contacts List */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {filteredContacts.map(contact => (
-          <div key={contact.id} className="card hover:shadow-lg transition-shadow">
+        {filteredFriends.map(friend => (
+          <div key={friend.id} className="card hover:shadow-lg transition-shadow">
             <div className="flex items-start justify-between mb-3">
               <div className="flex-1">
                 <h3 className="font-semibold text-lg text-gray-900 dark:text-white">
-                  {contact.name}
+                  {friend.name}
                 </h3>
                 <p className="text-sm text-gray-500 dark:text-gray-400 capitalize">
-                  {contact.contact_type.replace('-', ' ')}
+                  {friend.contact_type.replace('-', ' ')}
                 </p>
               </div>
               <div className="flex gap-2">
                 <button
-                  onClick={() => handleEdit(contact)}
+                  onClick={() => handleEdit(friend)}
                   className="text-blue-600 hover:text-blue-700 dark:text-blue-400"
-                  title="Edit contact"
+                  title="Edit friend"
                 >
                   <Edit2 className="w-4 h-4" />
                 </button>
                 <button
-                  onClick={() => handleDelete(contact.id)}
+                  onClick={() => handleDelete(friend.id)}
                   className="text-red-600 hover:text-red-700 dark:text-red-400"
-                  title="Delete contact"
+                  title="Delete friend"
                 >
                   <Trash2 className="w-4 h-4" />
                 </button>
@@ -370,30 +370,30 @@ export default function Contacts() {
             </div>
 
             <div className="space-y-2">
-              {renderBeltBadge(contact)}
+              {renderBeltBadge(friend)}
 
-              {contact.instructor_certification && (
+              {friend.instructor_certification && (
                 <div className="flex items-center gap-1 text-sm text-gray-600 dark:text-gray-400">
                   <Award className="w-4 h-4" />
-                  <span>{contact.instructor_certification}</span>
+                  <span>{friend.instructor_certification}</span>
                 </div>
               )}
 
-              {contact.phone && (
+              {friend.phone && (
                 <p className="text-sm text-gray-600 dark:text-gray-400">
-                  📱 {contact.phone}
+                  📱 {friend.phone}
                 </p>
               )}
 
-              {contact.email && (
+              {friend.email && (
                 <p className="text-sm text-gray-600 dark:text-gray-400">
-                  📧 {contact.email}
+                  📧 {friend.email}
                 </p>
               )}
 
-              {contact.notes && (
+              {friend.notes && (
                 <p className="text-sm text-gray-500 dark:text-gray-500 italic">
-                  {contact.notes}
+                  {friend.notes}
                 </p>
               )}
             </div>
@@ -403,7 +403,7 @@ export default function Contacts() {
 
       {filteredContacts.length === 0 && (
         <div className="text-center py-12 text-gray-500 dark:text-gray-400">
-          No contacts found. Add your first contact to get started!
+          No friends found. Add your first friend to get started!
         </div>
       )}
     </div>

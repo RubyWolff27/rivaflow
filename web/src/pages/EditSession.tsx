@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { sessionsApi, contactsApi, glossaryApi } from '../api/client';
-import type { Contact, Movement, MediaUrl } from '../types';
+import { sessionsApi, friendsApi, glossaryApi } from '../api/client';
+import type { Friend, Movement, MediaUrl } from '../types';
 import { CheckCircle, ArrowLeft, Save, Loader, Plus, X, Search, Trash2, ToggleLeft, ToggleRight, Camera } from 'lucide-react';
 import PhotoGallery from '../components/PhotoGallery';
 import PhotoUpload from '../components/PhotoUpload';
@@ -34,8 +34,8 @@ export default function EditSession() {
   const [saving, setSaving] = useState(false);
   const [success, setSuccess] = useState(false);
 
-  const [instructors, setInstructors] = useState<Contact[]>([]);
-  const [partners, setPartners] = useState<Contact[]>([]);
+  const [instructors, setInstructors] = useState<Friend[]>([]);
+  const [partners, setPartners] = useState<Friend[]>([]);
   const [autocomplete, setAutocomplete] = useState<any>({});
   const [movements, setMovements] = useState<Movement[]>([]);
 
@@ -83,8 +83,8 @@ export default function EditSession() {
     try {
       const [sessionRes, instructorsRes, partnersRes, autocompleteRes, movementsRes] = await Promise.all([
         sessionsApi.getById(parseInt(id!)),
-        contactsApi.listInstructors(),
-        contactsApi.listPartners(),
+        friendsApi.listInstructors(),
+        friendsApi.listPartners(),
         sessionsApi.getAutocomplete(),
         glossaryApi.list(),
       ]);

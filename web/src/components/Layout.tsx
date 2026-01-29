@@ -23,7 +23,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
     { name: 'Readiness', href: '/readiness', icon: Activity },
     { name: 'Techniques', href: '/techniques', icon: Book },
     { name: 'Glossary', href: '/glossary', icon: BookOpen },
-    { name: 'Contacts', href: '/contacts', icon: Users },
+    { name: 'Friends', href: '/friends', icon: Users },
     { name: 'Videos', href: '/videos', icon: Video },
     { name: 'Profile', href: '/profile', icon: User },
   ];

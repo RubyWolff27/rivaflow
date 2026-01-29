@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
-import { profileApi, gradingsApi, contactsApi } from '../api/client';
-import type { Profile as ProfileType, Grading, Contact } from '../types';
+import { profileApi, gradingsApi, friendsApi } from '../api/client';
+import type { Profile as ProfileType, Grading, Friend } from '../types';
 import { User, CheckCircle, Award, Plus, Trash2, Edit2, Target } from 'lucide-react';
 
 const BELT_GRADES = [
@@ -35,7 +35,7 @@ const BELT_GRADES = [
 export default function Profile() {
   const [profile, setProfile] = useState<ProfileType | null>(null);
   const [gradings, setGradings] = useState<Grading[]>([]);
-  const [instructors, setInstructors] = useState<Contact[]>([]);
+  const [instructors, setInstructors] = useState<Friend[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [success, setSuccess] = useState(false);
@@ -78,7 +78,7 @@ export default function Profile() {
       const [profileRes, gradingsRes, instructorsRes] = await Promise.all([
         profileApi.get(),
         gradingsApi.list(),
-        contactsApi.listInstructors(),
+        friendsApi.listInstructors(),
       ]);
       setProfile(profileRes.data);
       setGradings(gradingsRes.data);

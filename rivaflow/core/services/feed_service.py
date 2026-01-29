@@ -1,4 +1,4 @@
-"""Feed service for activity feeds (my activities and contacts activities)."""
+"""Feed service for activity feeds (my activities and friends activities)."""
 from datetime import date, timedelta
 from typing import List, Dict, Any, Optional
 
@@ -137,14 +137,14 @@ class FeedService:
         }
 
     @staticmethod
-    def get_contacts_feed(
+    def get_friends_feed(
         user_id: int,
         limit: int = 50,
         offset: int = 0,
         days_back: int = 30,
     ) -> Dict[str, Any]:
         """
-        Get activity feed from users that this user follows (contacts feed).
+        Get activity feed from users that this user follows (friends feed).
         Only shows activities with visibility_level != 'private' and applies privacy redaction.
 
         Args:
@@ -270,7 +270,7 @@ class FeedService:
         # Sort by date descending
         feed_items.sort(key=lambda x: x["date"], reverse=True)
 
-        # Enrich with social data (always enabled for contacts feed)
+        # Enrich with social data (always enabled for friends feed)
         feed_items = FeedService._enrich_with_social_data(user_id, feed_items)
 
         # Apply pagination

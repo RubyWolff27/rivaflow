@@ -21,7 +21,7 @@ class AnalyticsService:
         self.session_repo = SessionRepository()
         self.readiness_repo = ReadinessRepository()
         self.roll_repo = SessionRollRepository()
-        self.contact_repo = ContactRepository()
+        self.friend_repo = FriendRepository()
         self.grading_repo = GradingRepository()
         self.glossary_repo = GlossaryRepository()
 
@@ -202,7 +202,7 @@ class AnalyticsService:
         sessions = self.session_repo.get_by_date_range(user_id, start_date, end_date)
 
         # Get all partners from contacts
-        partners = self.contact_repo.list_by_type(user_id, "training-partner")
+        partners = self.friend_repo.list_by_type(user_id, "training-partner")
 
         partner_matrix = []
         for partner in partners:
@@ -249,8 +249,8 @@ class AnalyticsService:
         self, user_id: int, partner1_id: int, partner2_id: int
     ) -> Dict[str, Any]:
         """Get head-to-head comparison between two partners."""
-        partner1 = self.contact_repo.get_by_id(user_id, partner1_id)
-        partner2 = self.contact_repo.get_by_id(user_id, partner2_id)
+        partner1 = self.friend_repo.get_by_id(user_id, partner1_id)
+        partner2 = self.friend_repo.get_by_id(user_id, partner2_id)
 
         if not partner1 or not partner2:
             return {}
@@ -854,7 +854,7 @@ class AnalyticsService:
             end_date = date.today()
 
         sessions = self.session_repo.get_by_date_range(user_id, start_date, end_date)
-        instructors = self.contact_repo.list_by_type(user_id, "instructor")
+        instructors = self.friend_repo.list_by_type(user_id, "instructor")
 
         performance_by_instructor = []
         for instructor in instructors:

@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { sessionsApi, readinessApi, profileApi, contactsApi, glossaryApi } from '../api/client';
-import type { Contact, Movement, MediaUrl } from '../types';
+import { sessionsApi, readinessApi, profileApi, friendsApi, glossaryApi } from '../api/client';
+import type { Friend, Movement, MediaUrl } from '../types';
 import { CheckCircle, ArrowRight, ArrowLeft, Plus, X, ToggleLeft, ToggleRight, Search, Camera } from 'lucide-react';
 
 const CLASS_TYPES = ['gi', 'no-gi', 'wrestling', 'judo', 'open-mat', 's&c', 'mobility', 'yoga', 'rehab', 'physio', 'drilling', 'cardio'];
@@ -34,8 +34,8 @@ export default function LogSession() {
   const [defaultGym, setDefaultGym] = useState('');
 
   // New: Contacts and glossary data
-  const [instructors, setInstructors] = useState<Contact[]>([]);
-  const [partners, setPartners] = useState<Contact[]>([]);
+  const [instructors, setInstructors] = useState<Friend[]>([]);
+  const [partners, setPartners] = useState<Friend[]>([]);
   const [movements, setMovements] = useState<Movement[]>([]);
 
   // New: Roll tracking mode
@@ -93,8 +93,8 @@ export default function LogSession() {
       const [autocompleteRes, profileRes, instructorsRes, partnersRes, movementsRes] = await Promise.all([
         sessionsApi.getAutocomplete(),
         profileApi.get(),
-        contactsApi.listInstructors(),
-        contactsApi.listPartners(),
+        friendsApi.listInstructors(),
+        friendsApi.listPartners(),
         glossaryApi.list(),
       ]);
 
@@ -525,7 +525,7 @@ export default function LogSession() {
               ))}
             </select>
             <p className="text-xs text-gray-500 mt-1">
-              Don't see your instructor? <a href="/contacts" className="text-primary-600 hover:underline">Add them in Contacts</a>
+              Don't see your instructor? <a href="/friends" className="text-primary-600 hover:underline">Add them in Friends</a>
             </p>
           </div>
 

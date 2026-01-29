@@ -5,11 +5,10 @@
 
 -- Drop the old unique constraint on streak_type
 -- PostgreSQL: Drop constraint by name
--- SQLite: Requires table recreation (handled by conversion logic)
-
--- For PostgreSQL
-ALTER TABLE streaks DROP CONSTRAINT IF EXISTS streaks_streak_type_key;
+-- SQLite: Just create the new index (IF NOT EXISTS prevents errors)
 
 -- Add new unique constraint on (user_id, streak_type)
 -- This allows each user to have their own set of streak types
+-- SQLite: If a conflicting unique constraint exists, this will fail silently with IF NOT EXISTS
+-- PostgreSQL: Will create the index if it doesn't exist
 CREATE UNIQUE INDEX IF NOT EXISTS idx_streaks_user_streak_type ON streaks(user_id, streak_type);

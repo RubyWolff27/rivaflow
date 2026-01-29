@@ -6,7 +6,7 @@ from rivaflow.db.repositories.video_repo import VideoRepository
 from rivaflow.db.repositories.profile_repo import ProfileRepository
 from rivaflow.db.repositories.grading_repo import GradingRepository
 from rivaflow.db.repositories.glossary_repo import GlossaryRepository
-from rivaflow.db.repositories.contact_repo import ContactRepository
+from rivaflow.db.repositories.friend_repo import FriendRepository
 from rivaflow.db.repositories.session_roll_repo import SessionRollRepository
 from rivaflow.db.repositories.goal_progress_repo import GoalProgressRepository
 from rivaflow.db.repositories.checkin_repo import CheckinRepository
@@ -24,7 +24,7 @@ __all__ = [
     "ProfileRepository",
     "GradingRepository",
     "GlossaryRepository",
-    "ContactRepository",
+    "FriendRepository",
     "SessionRollRepository",
     "GoalProgressRepository",
     "CheckinRepository",

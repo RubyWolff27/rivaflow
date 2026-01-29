@@ -1,5 +1,5 @@
 import axios from 'axios';
-import type { Session, Readiness, Report, Suggestion, Technique, Video, Profile, Grading, Movement, Contact, CustomVideo, WeeklyGoalProgress, GoalsSummary, TrainingStreaks, GoalCompletionStreak, DailyCheckin, StreakStatus, Streak, Milestone, MilestoneProgress } from '../types';
+import type { Session, Readiness, Report, Suggestion, Technique, Video, Profile, Grading, Movement, Friend, CustomVideo, WeeklyGoalProgress, GoalsSummary, TrainingStreaks, GoalCompletionStreak, DailyCheckin, StreakStatus, Streak, Milestone, MilestoneProgress } from '../types';
 
 // API base URL - use environment variable if set, otherwise default to relative path for production
 // In development, Vite proxy will forward /api requests to localhost:8000
@@ -149,16 +149,16 @@ export const glossaryApi = {
     api.delete(`/glossary/${movementId}/videos/${videoId}`),
 };
 
-export const contactsApi = {
-  list: (params?: { search?: string; contact_type?: string }) =>
-    api.get<Contact[]>('/contacts/', { params }),
-  listInstructors: () => api.get<Contact[]>('/contacts/instructors'),
-  listPartners: () => api.get<Contact[]>('/contacts/partners'),
-  getById: (id: number) => api.get<Contact>(`/contacts/${id}`),
-  create: (data: { name: string; contact_type?: string; belt_rank?: string; belt_stripes?: number; instructor_certification?: string; phone?: string; email?: string; notes?: string }) =>
-    api.post<Contact>('/contacts/', data),
-  update: (id: number, data: Partial<Contact>) => api.put<Contact>(`/contacts/${id}`, data),
-  delete: (id: number) => api.delete(`/contacts/${id}`),
+export const friendsApi = {
+  list: (params?: { search?: string; friend_type?: string }) =>
+    api.get<Friend[]>('/friends/', { params }),
+  listInstructors: () => api.get<Friend[]>('/friends/instructors'),
+  listPartners: () => api.get<Friend[]>('/friends/partners'),
+  getById: (id: number) => api.get<Friend>(`/friends/${id}`),
+  create: (data: { name: string; friend_type?: string; belt_rank?: string; belt_stripes?: number; instructor_certification?: string; phone?: string; email?: string; notes?: string }) =>
+    api.post<Friend>('/friends/', data),
+  update: (id: number, data: Partial<Friend>) => api.put<Friend>(`/friends/${id}`, data),
+  delete: (id: number) => api.delete(`/friends/${id}`),
 };
 
 export const analyticsApi = {
@@ -222,8 +222,8 @@ export const restApi = {
 export const feedApi = {
   getActivity: (params?: { limit?: number; offset?: number; days_back?: number; enrich_social?: boolean }) =>
     api.get('/feed/activity', { params }),
-  getContacts: (params?: { limit?: number; offset?: number; days_back?: number }) =>
-    api.get('/feed/contacts', { params }),
+  getFriends: (params?: { limit?: number; offset?: number; days_back?: number }) =>
+    api.get('/feed/friends', { params }),
 };
 
 export const socialApi = {

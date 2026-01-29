@@ -22,7 +22,7 @@ export default function Feed() {
   const [feed, setFeed] = useState<FeedResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [daysBack, setDaysBack] = useState(30);
-  const [view, setView] = useState<'my' | 'contacts'>('my');
+  const [view, setView] = useState<'my' | 'friends'>('my');
   const [expandedComments, setExpandedComments] = useState<Set<string>>(new Set());
 
   const currentUserId = user?.id || null;
@@ -42,7 +42,7 @@ export default function Feed() {
         });
         setFeed(response.data);
       } else {
-        const response = await feedApi.getContacts({
+        const response = await feedApi.getFriends({
           limit: 100,
           days_back: daysBack,
         });
@@ -160,7 +160,7 @@ export default function Feed() {
 
   const shouldShowSocialActions = (item: FeedItem) => {
     // Show social actions in contacts feed, or in my feed if enriched with social data
-    return view === 'contacts' || (item.like_count !== undefined && item.comment_count !== undefined);
+    return view === 'friends' || (item.like_count !== undefined && item.comment_count !== undefined);
   };
 
   const isActivityEditable = (_item: FeedItem) => {
@@ -201,12 +201,12 @@ export default function Feed() {
         <div className="card text-center py-12">
           <Activity className="w-16 h-16 text-gray-400 mx-auto mb-4" />
           <p className="text-gray-500 dark:text-gray-400 text-lg">
-            {view === 'contacts'
-              ? "No activity from contacts in the last " + daysBack + " days"
+            {view === 'friends'
+              ? "No activity from friends in the last " + daysBack + " days"
               : "No activity in the last " + daysBack + " days"}
           </p>
           <p className="text-gray-400 dark:text-gray-500 text-sm mt-2">
-            {view === 'contacts'
+            {view === 'friends'
               ? "Follow other users to see their activity here!"
               : "Log a session, readiness check-in, or rest day to see it here!"}
           </p>

@@ -177,10 +177,10 @@ export interface CustomVideo {
   created_at: string;
 }
 
-export interface Contact {
+export interface Friend {
   id: number;
   name: string;
-  contact_type: 'instructor' | 'training-partner' | 'both';
+  friend_type: 'instructor' | 'training-partner' | 'both';
   belt_rank?: 'white' | 'blue' | 'purple' | 'brown' | 'black';
   belt_stripes?: number;
   instructor_certification?: string;
