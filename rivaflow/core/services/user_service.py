@@ -2,8 +2,7 @@
 from typing import List, Optional, Dict, Any
 from datetime import datetime, timedelta
 
-from rivaflow.db.repositories import UserRepository, ProfileRepository
-from rivaflow.db.repositories.social_repo import SocialRepository
+from rivaflow.db.repositories import UserRepository, ProfileRepository, UserRelationshipRepository
 from rivaflow.db.repositories.session_repo import SessionRepository
 from rivaflow.db.repositories.readiness_repo import ReadinessRepository
 
@@ -14,7 +13,7 @@ class UserService:
     def __init__(self):
         self.user_repo = UserRepository()
         self.profile_repo = ProfileRepository()
-        self.social_repo = SocialRepository()
+        self.social_repo = UserRelationshipRepository()
         self.session_repo = SessionRepository()
         self.readiness_repo = ReadinessRepository()
 
