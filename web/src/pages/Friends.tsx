@@ -36,8 +36,8 @@ export default function Friends() {
   }, []);
 
   useEffect(() => {
-    filterContacts();
-  }, [contacts, selectedFilter]);
+    filterFriends();
+  }, [friends, selectedFilter]);
 
   const loadFriends = async () => {
     setLoading(true);
@@ -55,9 +55,9 @@ export default function Friends() {
     let filtered = [...friends];
 
     if (selectedFilter === 'instructors') {
-      filtered = filtered.filter(c => c.contact_type === 'instructor' || c.contact_type === 'both');
+      filtered = filtered.filter(c => c.friend_type === 'instructor' || c.friend_type === 'both');
     } else if (selectedFilter === 'partners') {
-      filtered = filtered.filter(c => c.contact_type === 'training-partner' || c.contact_type === 'both');
+      filtered = filtered.filter(c => c.friend_type === 'training-partner' || c.friend_type === 'both');
     }
 
     setFilteredFriends(filtered);
@@ -69,7 +69,7 @@ export default function Friends() {
       if (editingFriend) {
         await friendsApi.update(editingFriend.id, {
           name: formData.name,
-          friend_type: formData.contact_type,
+          friend_type: formData.friend_type,
           belt_rank: formData.belt_rank || undefined,
           belt_stripes: formData.belt_stripes,
           instructor_certification: formData.instructor_certification || undefined,
@@ -80,7 +80,7 @@ export default function Friends() {
       } else {
         await friendsApi.create({
           name: formData.name,
-          friend_type: formData.contact_type,
+          friend_type: formData.friend_type,
           belt_rank: formData.belt_rank || undefined,
           belt_stripes: formData.belt_stripes,
           instructor_certification: formData.instructor_certification || undefined,
@@ -99,16 +99,16 @@ export default function Friends() {
   };
 
   const handleEdit = (friend: Friend) => {
-    setEditingFriend(contact);
+    setEditingFriend(friend);
     setFormData({
-      name: contact.name,
-      friend_type: contact.contact_type,
-      belt_rank: contact.belt_rank || '',
-      belt_stripes: contact.belt_stripes || 0,
-      instructor_certification: contact.instructor_certification || '',
-      phone: contact.phone || '',
-      email: contact.email || '',
-      notes: contact.notes || '',
+      name: friend.name,
+      friend_type: friend.friend_type,
+      belt_rank: friend.belt_rank || '',
+      belt_stripes: friend.belt_stripes || 0,
+      instructor_certification: friend.instructor_certification || '',
+      phone: friend.phone || '',
+      email: friend.email || '',
+      notes: friend.notes || '',
     });
     setShowAddForm(true);
   };
@@ -117,11 +117,11 @@ export default function Friends() {
     if (!confirm('Delete this friend? This cannot be undone.')) return;
 
     try {
-      await friendsApi.delete(contactId);
+      await friendsApi.delete(friendId);
       await loadFriends();
     } catch (error) {
-      console.error('Error deleting contact:', error);
-      alert('Failed to delete contact.');
+      console.error('Error deleting friend:', error);
+      alert('Failed to delete friend.');
     }
   };
 
@@ -141,14 +141,14 @@ export default function Friends() {
   };
 
   const renderBeltBadge = (friend: Friend) => {
-    if (!contact.belt_rank) return null;
+    if (!friend.belt_rank) return null;
 
-    const colorClass = BELT_COLORS[contact.belt_rank];
-    const stripes = contact.belt_stripes || 0;
+    const colorClass = BELT_COLORS[friend.belt_rank];
+    const stripes = friend.belt_stripes || 0;
 
     return (
       <span className={`inline-flex items-center gap-1 px-2 py-1 rounded text-xs font-medium border ${colorClass}`}>
-        {friend.belt_rank.charAt(0).toUpperCase() + contact.belt_rank.slice(1)} Belt
+        {friend.belt_rank.charAt(0).toUpperCase() + friend.belt_rank.slice(1)} Belt
         {stripes > 0 && (
           <span className="flex gap-0.5 ml-1">
             {Array.from({ length: stripes }).map((_, i) => (
@@ -208,7 +208,7 @@ export default function Friends() {
               <label className="label">Type</label>
               <select
                 className="input"
-                value={formData.contact_type}
+                value={formData.friend_type}
                 onChange={(e) => setFormData({ ...formData, friend_type: e.target.value as any })}
               >
                 <option value="training-partner">Training Partner</option>
@@ -322,7 +322,7 @@ export default function Friends() {
                   : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600'
               }`}
             >
-              Instructors ({friends.filter(c => c.contact_type === 'instructor' || c.contact_type === 'both').length})
+              Instructors ({friends.filter(c => c.friend_type === 'instructor' || c.friend_type === 'both').length})
             </button>
             <button
               onClick={() => setSelectedFilter('partners')}
@@ -332,7 +332,7 @@ export default function Friends() {
                   : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600'
               }`}
             >
-              Training Partners ({friends.filter(c => c.contact_type === 'training-partner' || c.contact_type === 'both').length})
+              Training Partners ({friends.filter(c => c.friend_type === 'training-partner' || c.friend_type === 'both').length})
             </button>
           </div>
         </div>
@@ -348,7 +348,7 @@ export default function Friends() {
                   {friend.name}
                 </h3>
                 <p className="text-sm text-gray-500 dark:text-gray-400 capitalize">
-                  {friend.contact_type.replace('-', ' ')}
+                  {friend.friend_type.replace('-', ' ')}
                 </p>
               </div>
               <div className="flex gap-2">
@@ -401,7 +401,7 @@ export default function Friends() {
         ))}
       </div>
 
-      {filteredContacts.length === 0 && (
+      {filteredFriends.length === 0 && (
         <div className="text-center py-12 text-gray-500 dark:text-gray-400">
           No friends found. Add your first friend to get started!
         </div>
