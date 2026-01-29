@@ -3,7 +3,7 @@ import sqlite3
 import json
 from typing import List, Optional
 
-from rivaflow.db.database import get_connection
+from rivaflow.db.database import get_connection, convert_query
 
 
 class SessionRollRepository:
@@ -29,11 +29,11 @@ class SessionRollRepository:
         with get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(
-                """
+                convert_query("""
                 INSERT INTO session_rolls
                 (session_id, roll_number, partner_id, partner_name, duration_mins, submissions_for, submissions_against, notes)
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
-                """,
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                """),
                 (
                     session_id,
                     roll_number,
@@ -48,7 +48,7 @@ class SessionRollRepository:
             roll_id = cursor.lastrowid
 
             # Return the created roll
-            cursor.execute("SELECT * FROM session_rolls WHERE id = %s", (roll_id,))
+            cursor.execute(convert_query("SELECT * FROM session_rolls WHERE id = ?"), (roll_id,))
             row = cursor.fetchone()
             return SessionRollRepository._row_to_dict(row)
 
@@ -57,7 +57,7 @@ class SessionRollRepository:
         """Get a session roll by ID."""
         with get_connection() as conn:
             cursor = conn.cursor()
-            cursor.execute("SELECT * FROM session_rolls WHERE id = %s", (roll_id,))
+            cursor.execute(convert_query("SELECT * FROM session_rolls WHERE id = ?"), (roll_id,))
             row = cursor.fetchone()
             return SessionRollRepository._row_to_dict(row) if row else None
 
@@ -71,7 +71,7 @@ class SessionRollRepository:
         with get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(
-                "SELECT * FROM session_rolls WHERE session_id = %s ORDER BY roll_number ASC",
+                "SELECT * FROM session_rolls WHERE session_id = ? ORDER BY roll_number ASC",
                 (session_id,),
             )
             rows = cursor.fetchall()
@@ -97,7 +97,7 @@ class SessionRollRepository:
             # Build IN clause with proper placeholders
             # Note: session_rolls doesn't have user_id column
             # Caller should only pass session_ids that belong to the user
-            placeholders = ", ".join(["%s"] * len(session_ids))
+            placeholders = ", ".join(["?"] * len(session_ids))
             query = f"""
                 SELECT * FROM session_rolls
                 WHERE session_id IN ({placeholders})
@@ -127,12 +127,12 @@ class SessionRollRepository:
         with get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(
-                """
+                convert_query("""
                 SELECT sr.* FROM session_rolls sr
                 JOIN sessions s ON sr.session_id = s.id
-                WHERE sr.partner_id = %s AND s.user_id = %s
+                WHERE sr.partner_id = ? AND s.user_id = ?
                 ORDER BY s.session_date DESC, sr.roll_number ASC
-                """,
+                """),
                 (partner_id, user_id),
             )
             rows = cursor.fetchall()
@@ -154,11 +154,11 @@ class SessionRollRepository:
 
             # Get total rolls count - JOIN with sessions to filter by user_id
             cursor.execute(
-                """
+                convert_query("""
                 SELECT COUNT(*) as count FROM session_rolls sr
                 JOIN sessions s ON sr.session_id = s.id
-                WHERE sr.partner_id = %s AND s.user_id = %s
-                """,
+                WHERE sr.partner_id = ? AND s.user_id = ?
+                """),
                 (partner_id, user_id),
             )
             result = cursor.fetchone()
@@ -206,25 +206,25 @@ class SessionRollRepository:
             params = []
 
             if roll_number is not None:
-                updates.append("roll_number = %s")
+                updates.append("roll_number = ?")
                 params.append(roll_number)
             if partner_id is not None:
-                updates.append("partner_id = %s")
+                updates.append("partner_id = ?")
                 params.append(partner_id)
             if partner_name is not None:
-                updates.append("partner_name = %s")
+                updates.append("partner_name = ?")
                 params.append(partner_name)
             if duration_mins is not None:
-                updates.append("duration_mins = %s")
+                updates.append("duration_mins = ?")
                 params.append(duration_mins)
             if submissions_for is not None:
-                updates.append("submissions_for = %s")
+                updates.append("submissions_for = ?")
                 params.append(json.dumps(submissions_for) if submissions_for else None)
             if submissions_against is not None:
-                updates.append("submissions_against = %s")
+                updates.append("submissions_against = ?")
                 params.append(json.dumps(submissions_against) if submissions_against else None)
             if notes is not None:
-                updates.append("notes = %s")
+                updates.append("notes = ?")
                 params.append(notes)
 
             if not updates:
@@ -232,7 +232,7 @@ class SessionRollRepository:
                 return SessionRollRepository.get_by_id(roll_id)
 
             params.append(roll_id)
-            query = f"UPDATE session_rolls SET {', '.join(updates)} WHERE id = %s"
+            query = f"UPDATE session_rolls SET {', '.join(updates)} WHERE id = ?"
             cursor.execute(query, params)
 
             if cursor.rowcount == 0:
@@ -245,7 +245,7 @@ class SessionRollRepository:
         """Delete a session roll by ID. Returns True if deleted, False if not found."""
         with get_connection() as conn:
             cursor = conn.cursor()
-            cursor.execute("DELETE FROM session_rolls WHERE id = %s", (roll_id,))
+            cursor.execute(convert_query("DELETE FROM session_rolls WHERE id = ?"), (roll_id,))
             return cursor.rowcount > 0
 
     @staticmethod
@@ -253,7 +253,7 @@ class SessionRollRepository:
         """Delete all rolls for a session. Returns count of deleted rolls."""
         with get_connection() as conn:
             cursor = conn.cursor()
-            cursor.execute("DELETE FROM session_rolls WHERE session_id = %s", (session_id,))
+            cursor.execute(convert_query("DELETE FROM session_rolls WHERE session_id = ?"), (session_id,))
             return cursor.rowcount
 
     @staticmethod

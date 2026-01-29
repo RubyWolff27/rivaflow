@@ -3,7 +3,7 @@ import sqlite3
 from datetime import date, datetime
 from typing import Optional
 
-from rivaflow.db.database import get_connection
+from rivaflow.db.database import get_connection, convert_query
 
 
 class ReadinessRepository:
@@ -25,7 +25,7 @@ class ReadinessRepository:
             cursor = conn.cursor()
             # Try to get existing entry
             cursor.execute(
-                "SELECT id FROM readiness WHERE user_id = %s AND check_date = %s",
+                "SELECT id FROM readiness WHERE user_id = ? AND check_date = ?",
                 (user_id, check_date.isoformat()),
             )
             existing = cursor.fetchone()
@@ -33,40 +33,26 @@ class ReadinessRepository:
             if existing:
                 # Update existing
                 cursor.execute(
-                    """
+                convert_query("""
                     UPDATE readiness
-                    SET sleep = %s, stress = %s, soreness = %s, energy = %s,
-                        hotspot_note = %s, weight_kg = %s, updated_at = CURRENT_TIMESTAMP
-                    WHERE user_id = %s AND check_date = %s
-                    """,
+                    SET sleep = ?, stress = ?, soreness = ?, energy = ?,
+                        hotspot_note = ?, weight_kg = ?, updated_at = CURRENT_TIMESTAMP
+                    WHERE user_id = ? AND check_date = ?
+                    """),
                     (sleep, stress, soreness, energy, hotspot_note, weight_kg, user_id, check_date.isoformat()),
                 )
                 return existing["id"]
             else:
                 # Insert new
-                from rivaflow.db.database import DB_TYPE
-                if DB_TYPE == "postgresql":
-                    cursor.execute(
-                        """
-                        INSERT INTO readiness (
-                            user_id, check_date, sleep, stress, soreness, energy, hotspot_note, weight_kg
-                        ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
-                        RETURNING id
-                        """,
-                        (user_id, check_date.isoformat(), sleep, stress, soreness, energy, hotspot_note, weight_kg),
-                    )
-                    result = cursor.fetchone()
-                    return result['id'] if hasattr(result, 'keys') else result[0]
-                else:
-                    cursor.execute(
-                        """
-                        INSERT INTO readiness (
-                            user_id, check_date, sleep, stress, soreness, energy, hotspot_note, weight_kg
-                        ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
-                        """,
-                        (user_id, check_date.isoformat(), sleep, stress, soreness, energy, hotspot_note, weight_kg),
-                    )
-                    return cursor.lastrowid
+                cursor.execute(
+                    convert_query("""
+                    INSERT INTO readiness (
+                        user_id, check_date, sleep, stress, soreness, energy, hotspot_note, weight_kg
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                    """),
+                    (user_id, check_date.isoformat(), sleep, stress, soreness, energy, hotspot_note, weight_kg),
+                )
+                return cursor.lastrowid
 
     @staticmethod
     def get_by_date(user_id: int, check_date: date) -> Optional[dict]:
@@ -74,7 +60,7 @@ class ReadinessRepository:
         with get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(
-                "SELECT * FROM readiness WHERE user_id = %s AND check_date = %s",
+                "SELECT * FROM readiness WHERE user_id = ? AND check_date = ?",
                 (user_id, check_date.isoformat()),
             )
             row = cursor.fetchone()
@@ -88,7 +74,7 @@ class ReadinessRepository:
         with get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(
-                "SELECT * FROM readiness WHERE user_id = %s ORDER BY check_date DESC LIMIT 1",
+                "SELECT * FROM readiness WHERE user_id = ? ORDER BY check_date DESC LIMIT 1",
                 (user_id,)
             )
             row = cursor.fetchone()
@@ -101,7 +87,7 @@ class ReadinessRepository:
         """Get a readiness entry by ID without user scope (for validation/privacy checks)."""
         with get_connection() as conn:
             cursor = conn.cursor()
-            cursor.execute("SELECT * FROM readiness WHERE id = %s", (readiness_id,))
+            cursor.execute(convert_query("SELECT * FROM readiness WHERE id = ?"), (readiness_id,))
             row = cursor.fetchone()
             if row:
                 return ReadinessRepository._row_to_dict(row)
@@ -113,11 +99,11 @@ class ReadinessRepository:
         with get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(
-                """
+                convert_query("""
                 SELECT * FROM readiness
-                WHERE user_id = %s AND check_date BETWEEN %s AND %s
+                WHERE user_id = ? AND check_date BETWEEN ? AND ?
                 ORDER BY check_date DESC
-                """,
+                """),
                 (user_id, start_date.isoformat(), end_date.isoformat()),
             )
             return [ReadinessRepository._row_to_dict(row) for row in cursor.fetchall()]

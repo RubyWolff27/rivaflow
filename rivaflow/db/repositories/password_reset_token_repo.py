@@ -3,7 +3,7 @@ import secrets
 from datetime import datetime, timedelta
 from typing import Optional
 
-from rivaflow.db.database import get_connection
+from rivaflow.db.database import get_connection, convert_query
 
 
 class PasswordResetTokenRepository:
@@ -30,10 +30,10 @@ class PasswordResetTokenRepository:
         with get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(
-                """
+                convert_query("""
                 INSERT INTO password_reset_tokens (user_id, token, expires_at)
-                VALUES (%s, %s, %s)
-                """,
+                VALUES (?, ?, ?)
+                """),
                 (user_id, token, expires_at.isoformat()),
             )
 
@@ -53,11 +53,11 @@ class PasswordResetTokenRepository:
         with get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(
-                """
+                convert_query("""
                 SELECT id, user_id, token, expires_at, used_at, created_at
                 FROM password_reset_tokens
-                WHERE token = %s
-                """,
+                WHERE token = ?
+                """),
                 (token,),
             )
             row = cursor.fetchone()
@@ -108,11 +108,11 @@ class PasswordResetTokenRepository:
         with get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(
-                """
+                convert_query("""
                 UPDATE password_reset_tokens
                 SET used_at = CURRENT_TIMESTAMP
-                WHERE token = %s
-                """,
+                WHERE token = ?
+                """),
                 (token,),
             )
             return cursor.rowcount > 0
@@ -150,11 +150,11 @@ class PasswordResetTokenRepository:
         with get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(
-                """
+                convert_query("""
                 UPDATE password_reset_tokens
                 SET used_at = CURRENT_TIMESTAMP
-                WHERE user_id = %s AND used_at IS NULL
-                """,
+                WHERE user_id = ? AND used_at IS NULL
+                """),
                 (user_id,),
             )
             return cursor.rowcount
@@ -175,10 +175,10 @@ class PasswordResetTokenRepository:
         with get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(
-                """
+                convert_query("""
                 DELETE FROM password_reset_tokens
-                WHERE expires_at < %s
-                """,
+                WHERE expires_at < ?
+                """),
                 (cutoff.isoformat(),),
             )
             return cursor.rowcount
@@ -202,11 +202,11 @@ class PasswordResetTokenRepository:
         with get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(
-                """
+                convert_query("""
                 SELECT COUNT(*) as count
                 FROM password_reset_tokens
-                WHERE user_id = %s AND created_at > %s
-                """,
+                WHERE user_id = ? AND created_at > ?
+                """),
                 (user_id, since.isoformat()),
             )
             row = cursor.fetchone()

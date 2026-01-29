@@ -3,7 +3,7 @@ import sqlite3
 from datetime import date
 from typing import Optional
 
-from rivaflow.db.database import get_connection
+from rivaflow.db.database import get_connection, convert_query
 
 
 class CheckinRepository:
@@ -15,13 +15,13 @@ class CheckinRepository:
         with get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(
-                """
+                convert_query("""
                 SELECT id, check_date, checkin_type, rest_type, rest_note,
                        session_id, readiness_id, tomorrow_intention, insight_shown,
                        created_at
                 FROM daily_checkins
-                WHERE user_id = %s AND check_date = %s
-                """,
+                WHERE user_id = ? AND check_date = ?
+                """),
                 (user_id, check_date.isoformat())
             )
             row = cursor.fetchone()
@@ -46,12 +46,12 @@ class CheckinRepository:
         with get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(
-                """
+                convert_query("""
                 INSERT INTO daily_checkins (
                     user_id, check_date, checkin_type, rest_type, rest_note,
                     session_id, readiness_id, tomorrow_intention, insight_shown
                 )
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
                 ON CONFLICT(user_id, check_date) DO UPDATE SET
                     checkin_type = excluded.checkin_type,
                     rest_type = excluded.rest_type,
@@ -60,7 +60,7 @@ class CheckinRepository:
                     readiness_id = excluded.readiness_id,
                     tomorrow_intention = excluded.tomorrow_intention,
                     insight_shown = excluded.insight_shown
-                """,
+                """),
                 (
                     user_id,
                     check_date.isoformat(),
@@ -82,14 +82,14 @@ class CheckinRepository:
         with get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(
-                """
+                convert_query("""
                 SELECT id, check_date, checkin_type, rest_type, rest_note,
                        session_id, readiness_id, tomorrow_intention, insight_shown,
                        created_at
                 FROM daily_checkins
-                WHERE user_id = %s AND check_date >= %s AND check_date <= %s
+                WHERE user_id = ? AND check_date >= ? AND check_date <= ?
                 ORDER BY check_date DESC
-                """,
+                """),
                 (user_id, start_date.isoformat(), end_date.isoformat())
             )
             rows = cursor.fetchall()
@@ -109,11 +109,11 @@ class CheckinRepository:
         with get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(
-                """
+                convert_query("""
                 UPDATE daily_checkins
-                SET tomorrow_intention = %s
-                WHERE user_id = %s AND check_date = %s
-                """,
+                SET tomorrow_intention = ?
+                WHERE user_id = ? AND check_date = ?
+                """),
                 (intention, user_id, check_date.isoformat())
             )
             conn.commit()

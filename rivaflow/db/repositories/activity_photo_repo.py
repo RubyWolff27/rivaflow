@@ -3,7 +3,7 @@ import sqlite3
 from typing import Optional, List
 from datetime import datetime
 
-from rivaflow.db.database import get_connection
+from rivaflow.db.database import get_connection, convert_query
 
 
 class ActivityPhotoRepository:
@@ -26,12 +26,12 @@ class ActivityPhotoRepository:
         with get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(
-                """
+                convert_query("""
                 INSERT INTO activity_photos (
                     user_id, activity_type, activity_id, activity_date,
                     file_path, file_name, file_size, mime_type, caption, display_order
-                ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-                """,
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """),
                 (
                     user_id,
                     activity_type,
@@ -55,11 +55,11 @@ class ActivityPhotoRepository:
         with get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(
-                """
+                convert_query("""
                 SELECT * FROM activity_photos
-                WHERE user_id = %s AND activity_type = %s AND activity_id = %s
+                WHERE user_id = ? AND activity_type = ? AND activity_id = ?
                 ORDER BY display_order, created_at
-                """,
+                """),
                 (user_id, activity_type, activity_id),
             )
             rows = cursor.fetchall()
@@ -71,11 +71,11 @@ class ActivityPhotoRepository:
         with get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(
-                """
+                convert_query("""
                 SELECT * FROM activity_photos
-                WHERE user_id = %s AND activity_date = %s
+                WHERE user_id = ? AND activity_date = ?
                 ORDER BY display_order, created_at
-                """,
+                """),
                 (user_id, activity_date),
             )
             rows = cursor.fetchall()
@@ -87,7 +87,7 @@ class ActivityPhotoRepository:
         with get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(
-                "SELECT * FROM activity_photos WHERE id = %s AND user_id = %s",
+                "SELECT * FROM activity_photos WHERE id = ? AND user_id = ?",
                 (photo_id, user_id),
             )
             row = cursor.fetchone()
@@ -99,7 +99,7 @@ class ActivityPhotoRepository:
         with get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(
-                "DELETE FROM activity_photos WHERE id = %s AND user_id = %s",
+                "DELETE FROM activity_photos WHERE id = ? AND user_id = ?",
                 (photo_id, user_id),
             )
             return cursor.rowcount > 0
@@ -112,10 +112,10 @@ class ActivityPhotoRepository:
         with get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(
-                """
+                convert_query("""
                 DELETE FROM activity_photos
-                WHERE user_id = %s AND activity_type = %s AND activity_id = %s
-                """,
+                WHERE user_id = ? AND activity_type = ? AND activity_id = ?
+                """),
                 (user_id, activity_type, activity_id),
             )
 
@@ -125,10 +125,10 @@ class ActivityPhotoRepository:
         with get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(
-                """
-                UPDATE activity_photos SET caption = %s
-                WHERE id = %s AND user_id = %s
-                """,
+                convert_query("""
+                UPDATE activity_photos SET caption = ?
+                WHERE id = ? AND user_id = ?
+                """),
                 (caption, photo_id, user_id),
             )
             return cursor.rowcount > 0
@@ -141,10 +141,10 @@ class ActivityPhotoRepository:
         with get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(
-                """
+                convert_query("""
                 SELECT COUNT(*) FROM activity_photos
-                WHERE user_id = %s AND activity_type = %s AND activity_id = %s
-                """,
+                WHERE user_id = ? AND activity_type = ? AND activity_id = ?
+                """),
                 (user_id, activity_type, activity_id),
             )
             return cursor.fetchone()[0]

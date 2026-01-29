@@ -5,9 +5,33 @@ from pathlib import Path
 from typing import Optional, Union
 from contextlib import contextmanager
 
-from rivaflow.config import APP_DIR, DB_PATH, DATABASE_URL, DB_TYPE
+from rivaflow.config import APP_DIR, DB_PATH, DATABASE_URL, get_db_type
 
 logger = logging.getLogger(__name__)
+
+# Backwards compatibility
+DB_TYPE = get_db_type()
+
+
+def get_placeholder():
+    """Get the correct SQL parameter placeholder for the current database."""
+    return "?" if get_db_type() == "sqlite" else "%s"
+
+
+def convert_query(query: str) -> str:
+    """
+    Convert a query with ? placeholders to the correct format for current database.
+
+    Args:
+        query: SQL query string with ? placeholders (SQLite style)
+
+    Returns:
+        Query string with correct placeholders for current database
+    """
+    if get_db_type() == "postgresql":
+        # Convert ? to %s for PostgreSQL
+        return query.replace("?", "%s")
+    return query
 
 # Import PostgreSQL adapter if available
 try:

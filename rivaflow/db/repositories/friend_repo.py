@@ -2,7 +2,7 @@
 import sqlite3
 from typing import List, Optional
 
-from rivaflow.db.database import get_connection
+from rivaflow.db.database import get_connection, convert_query
 
 
 class FriendRepository:
@@ -24,17 +24,17 @@ class FriendRepository:
         with get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(
-                """
+                convert_query("""
                 INSERT INTO friends
                 (user_id, name, friend_type, belt_rank, belt_stripes, instructor_certification, phone, email, notes)
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
-                """,
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """),
                 (user_id, name, friend_type, belt_rank, belt_stripes, instructor_certification, phone, email, notes),
             )
             friend_id = cursor.lastrowid
 
             # Return the created friend
-            cursor.execute("SELECT * FROM friends WHERE id = %s AND user_id = %s", (friend_id, user_id))
+            cursor.execute(convert_query("SELECT * FROM friends WHERE id = ? AND user_id = ?"), (friend_id, user_id))
             row = cursor.fetchone()
             return FriendRepository._row_to_dict(row)
 
@@ -43,7 +43,7 @@ class FriendRepository:
         """Get a friend by ID."""
         with get_connection() as conn:
             cursor = conn.cursor()
-            cursor.execute("SELECT * FROM friends WHERE id = %s AND user_id = %s", (friend_id, user_id))
+            cursor.execute(convert_query("SELECT * FROM friends WHERE id = ? AND user_id = ?"), (friend_id, user_id))
             row = cursor.fetchone()
             return FriendRepository._row_to_dict(row) if row else None
 
@@ -52,7 +52,7 @@ class FriendRepository:
         """Get a friend by exact name match."""
         with get_connection() as conn:
             cursor = conn.cursor()
-            cursor.execute("SELECT * FROM friends WHERE user_id = %s AND name = %s", (user_id, name))
+            cursor.execute(convert_query("SELECT * FROM friends WHERE user_id = ? AND name = ?"), (user_id, name))
             row = cursor.fetchone()
             return FriendRepository._row_to_dict(row) if row else None
 
@@ -71,7 +71,7 @@ class FriendRepository:
 
         with get_connection() as conn:
             cursor = conn.cursor()
-            cursor.execute(f"SELECT * FROM friends WHERE user_id = %s ORDER BY {order_by}", (user_id,))
+            cursor.execute(f"SELECT * FROM friends WHERE user_id = ? ORDER BY {order_by}", (user_id,))
             rows = cursor.fetchall()
             return [FriendRepository._row_to_dict(row) for row in rows]
 
@@ -90,7 +90,7 @@ class FriendRepository:
         with get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(
-                f"SELECT * FROM friends WHERE user_id = %s AND friend_type = %s ORDER BY {order_by}",
+                f"SELECT * FROM friends WHERE user_id = ? AND friend_type = ? ORDER BY {order_by}",
                 (user_id, friend_type),
             )
             rows = cursor.fetchall()
@@ -102,7 +102,7 @@ class FriendRepository:
         with get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(
-                "SELECT * FROM friends WHERE user_id = %s AND name LIKE %s ORDER BY name ASC",
+                "SELECT * FROM friends WHERE user_id = ? AND name LIKE ? ORDER BY name ASC",
                 (user_id, f"%{query}%"),
             )
             rows = cursor.fetchall()
@@ -130,28 +130,28 @@ class FriendRepository:
             params = []
 
             if name is not None:
-                updates.append("name = %s")
+                updates.append("name = ?")
                 params.append(name)
             if friend_type is not None:
-                updates.append("friend_type = %s")
+                updates.append("friend_type = ?")
                 params.append(friend_type)
             if belt_rank is not None:
-                updates.append("belt_rank = %s")
+                updates.append("belt_rank = ?")
                 params.append(belt_rank)
             if belt_stripes is not None:
-                updates.append("belt_stripes = %s")
+                updates.append("belt_stripes = ?")
                 params.append(belt_stripes)
             if instructor_certification is not None:
-                updates.append("instructor_certification = %s")
+                updates.append("instructor_certification = ?")
                 params.append(instructor_certification)
             if phone is not None:
-                updates.append("phone = %s")
+                updates.append("phone = ?")
                 params.append(phone)
             if email is not None:
-                updates.append("email = %s")
+                updates.append("email = ?")
                 params.append(email)
             if notes is not None:
-                updates.append("notes = %s")
+                updates.append("notes = ?")
                 params.append(notes)
 
             if not updates:
@@ -162,7 +162,7 @@ class FriendRepository:
             updates.append("updated_at = CURRENT_TIMESTAMP")
             params.extend([friend_id, user_id])
 
-            query = f"UPDATE friends SET {', '.join(updates)} WHERE id = %s AND user_id = %s"
+            query = f"UPDATE friends SET {', '.join(updates)} WHERE id = ? AND user_id = ?"
             cursor.execute(query, params)
 
             if cursor.rowcount == 0:
@@ -175,7 +175,7 @@ class FriendRepository:
         """Delete a friend by ID. Returns True if deleted, False if not found."""
         with get_connection() as conn:
             cursor = conn.cursor()
-            cursor.execute("DELETE FROM friends WHERE id = %s AND user_id = %s", (friend_id, user_id))
+            cursor.execute(convert_query("DELETE FROM friends WHERE id = ? AND user_id = ?"), (friend_id, user_id))
             return cursor.rowcount > 0
 
     @staticmethod

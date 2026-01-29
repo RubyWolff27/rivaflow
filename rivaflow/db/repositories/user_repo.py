@@ -3,7 +3,7 @@ import sqlite3
 from datetime import datetime
 from typing import Optional
 
-from rivaflow.db.database import get_connection
+from rivaflow.db.database import get_connection, convert_query
 
 
 class UserRepository:
@@ -36,38 +36,20 @@ class UserRepository:
         with get_connection() as conn:
             cursor = conn.cursor()
 
-            # PostgreSQL: use RETURNING clause, SQLite: use lastrowid
-            from rivaflow.db.database import DB_TYPE
-            if DB_TYPE == "postgresql":
-                cursor.execute(
-                    """
-                    INSERT INTO users (email, hashed_password, first_name, last_name, is_active)
-                    VALUES (%s, %s, %s, %s, %s)
-                    RETURNING id
-                    """,
-                    (email, hashed_password, first_name, last_name, is_active),
-                )
-                result = cursor.fetchone()
-                # PostgreSQL may return RealDictRow (dict-like) or tuple depending on cursor type
-                if hasattr(result, 'keys'):  # Dictionary-like (RealDictRow)
-                    user_id = result['id']
-                else:  # Tuple-like
-                    user_id = result[0]
-            else:
-                cursor.execute(
-                    """
-                    INSERT INTO users (email, hashed_password, first_name, last_name, is_active)
-                    VALUES (%s, %s, %s, %s, %s)
-                    """,
-                    (email, hashed_password, first_name, last_name, is_active),
-                )
-                user_id = cursor.lastrowid
+            cursor.execute(
+                convert_query("""
+                INSERT INTO users (email, hashed_password, first_name, last_name, is_active)
+                VALUES (?, ?, ?, ?, ?)
+                """),
+                (email, hashed_password, first_name, last_name, is_active),
+            )
+            user_id = cursor.lastrowid
 
             if not user_id or user_id == 0:
                 raise ValueError(f"Invalid user_id returned: {user_id}")
 
             # Fetch and return the created user
-            cursor.execute("SELECT * FROM users WHERE id = %s", (user_id,))
+            cursor.execute(convert_query("SELECT * FROM users WHERE id = ?"), (user_id,))
             row = cursor.fetchone()
 
             if not row:
@@ -88,7 +70,7 @@ class UserRepository:
         """
         with get_connection() as conn:
             cursor = conn.cursor()
-            cursor.execute("SELECT * FROM users WHERE email = %s", (email,))
+            cursor.execute(convert_query("SELECT * FROM users WHERE email = ?"), (email,))
             row = cursor.fetchone()
             if row:
                 return UserRepository._row_to_dict(row)
@@ -107,7 +89,7 @@ class UserRepository:
         """
         with get_connection() as conn:
             cursor = conn.cursor()
-            cursor.execute("SELECT * FROM users WHERE id = %s", (user_id,))
+            cursor.execute(convert_query("SELECT * FROM users WHERE id = ?"), (user_id,))
             row = cursor.fetchone()
             if row:
                 return UserRepository._row_to_dict(row)
@@ -144,29 +126,29 @@ class UserRepository:
             params = []
 
             if email is not None:
-                updates.append("email = %s")
+                updates.append("email = ?")
                 params.append(email)
             if hashed_password is not None:
-                updates.append("hashed_password = %s")
+                updates.append("hashed_password = ?")
                 params.append(hashed_password)
             if first_name is not None:
-                updates.append("first_name = %s")
+                updates.append("first_name = ?")
                 params.append(first_name)
             if last_name is not None:
-                updates.append("last_name = %s")
+                updates.append("last_name = ?")
                 params.append(last_name)
             if is_active is not None:
-                updates.append("is_active = %s")
+                updates.append("is_active = ?")
                 params.append(is_active)
 
             if updates:
                 updates.append("updated_at = CURRENT_TIMESTAMP")
                 params.append(user_id)
-                query = f"UPDATE users SET {', '.join(updates)} WHERE id = %s"
+                query = f"UPDATE users SET {', '.join(updates)} WHERE id = ?"
                 cursor.execute(query, params)
 
             # Return updated user
-            cursor.execute("SELECT * FROM users WHERE id = %s", (user_id,))
+            cursor.execute(convert_query("SELECT * FROM users WHERE id = ?"), (user_id,))
             row = cursor.fetchone()
             if row:
                 return UserRepository._row_to_dict(row)
@@ -201,7 +183,7 @@ class UserRepository:
         """
         with get_connection() as conn:
             cursor = conn.cursor()
-            cursor.execute("UPDATE users SET is_active = FALSE WHERE id = %s", (user_id,))
+            cursor.execute(convert_query("UPDATE users SET is_active = FALSE WHERE id = ?"), (user_id,))
             return cursor.rowcount > 0
 
     @staticmethod

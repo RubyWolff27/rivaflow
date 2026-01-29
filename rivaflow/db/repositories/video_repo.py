@@ -4,7 +4,7 @@ import sqlite3
 from datetime import datetime
 from typing import Optional
 
-from rivaflow.db.database import get_connection
+from rivaflow.db.database import get_connection, convert_query
 
 
 class VideoRepository:
@@ -21,10 +21,10 @@ class VideoRepository:
         with get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(
-                """
+                convert_query("""
                 INSERT INTO videos (url, title, timestamps, technique_id)
-                VALUES (%s, %s, %s, %s)
-                """,
+                VALUES (?, ?, ?, ?)
+                """),
                 (
                     url,
                     title,
@@ -39,7 +39,7 @@ class VideoRepository:
         """Get a video by ID."""
         with get_connection() as conn:
             cursor = conn.cursor()
-            cursor.execute("SELECT * FROM videos WHERE id = %s", (video_id,))
+            cursor.execute(convert_query("SELECT * FROM videos WHERE id = ?"), (video_id,))
             row = cursor.fetchone()
             if row:
                 return VideoRepository._row_to_dict(row)
@@ -59,7 +59,7 @@ class VideoRepository:
         with get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(
-                "SELECT * FROM videos WHERE technique_id = %s ORDER BY created_at DESC",
+                "SELECT * FROM videos WHERE technique_id = ? ORDER BY created_at DESC",
                 (technique_id,),
             )
             return [VideoRepository._row_to_dict(row) for row in cursor.fetchall()]
@@ -70,11 +70,11 @@ class VideoRepository:
         with get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(
-                """
+                convert_query("""
                 SELECT * FROM videos
-                WHERE title LIKE %s OR url LIKE %s
+                WHERE title LIKE ? OR url LIKE ?
                 ORDER BY created_at DESC
-                """,
+                """),
                 (f"%{query}%", f"%{query}%"),
             )
             return [VideoRepository._row_to_dict(row) for row in cursor.fetchall()]
@@ -90,13 +90,13 @@ class VideoRepository:
         with get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(
-                """
+                convert_query("""
                 UPDATE videos
-                SET title = COALESCE(%s, title),
-                    timestamps = COALESCE(%s, timestamps),
-                    technique_id = COALESCE(%s, technique_id)
-                WHERE id = %s
-                """,
+                SET title = COALESCE(?, title),
+                    timestamps = COALESCE(?, timestamps),
+                    technique_id = COALESCE(?, technique_id)
+                WHERE id = ?
+                """),
                 (
                     title,
                     json.dumps(timestamps) if timestamps else None,
@@ -110,7 +110,7 @@ class VideoRepository:
         """Delete a video by ID."""
         with get_connection() as conn:
             cursor = conn.cursor()
-            cursor.execute("DELETE FROM videos WHERE id = %s", (video_id,))
+            cursor.execute(convert_query("DELETE FROM videos WHERE id = ?"), (video_id,))
 
     @staticmethod
     def _row_to_dict(row: sqlite3.Row) -> dict:

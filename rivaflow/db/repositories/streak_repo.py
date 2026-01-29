@@ -3,7 +3,7 @@ import sqlite3
 from datetime import date, timedelta
 from typing import Optional
 
-from rivaflow.db.database import get_connection
+from rivaflow.db.database import get_connection, convert_query
 from rivaflow.config import STREAK_GRACE_DAYS
 
 
@@ -16,22 +16,22 @@ class StreakRepository:
         with get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(
-                """
+                convert_query("""
                 SELECT id, streak_type, current_streak, longest_streak,
                        last_checkin_date, streak_started_date, grace_days_used, updated_at
                 FROM streaks
-                WHERE user_id = %s AND streak_type = %s
-                """,
+                WHERE user_id = ? AND streak_type = ?
+                """),
                 (user_id, streak_type)
             )
             row = cursor.fetchone()
             if row is None:
                 # Initialize if not exists
                 cursor.execute(
-                    """
+                convert_query("""
                     INSERT INTO streaks (user_id, streak_type, current_streak, longest_streak)
-                    VALUES (%s, %s, 0, 0)
-                    """,
+                    VALUES (?, ?, 0, 0)
+                    """),
                     (user_id, streak_type)
                 )
                 conn.commit()
@@ -112,16 +112,16 @@ class StreakRepository:
         with get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(
-                """
+                convert_query("""
                 UPDATE streaks
-                SET current_streak = %s,
-                    longest_streak = %s,
-                    last_checkin_date = %s,
-                    streak_started_date = %s,
-                    grace_days_used = %s,
+                SET current_streak = ?,
+                    longest_streak = ?,
+                    last_checkin_date = ?,
+                    streak_started_date = ?,
+                    grace_days_used = ?,
                     updated_at = CURRENT_TIMESTAMP
-                WHERE user_id = %s AND streak_type = %s
-                """,
+                WHERE user_id = ? AND streak_type = ?
+                """),
                 (
                     new_streak,
                     new_longest,
@@ -142,13 +142,13 @@ class StreakRepository:
         with get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(
-                """
+                convert_query("""
                 SELECT id, streak_type, current_streak, longest_streak,
                        last_checkin_date, streak_started_date, grace_days_used, updated_at
                 FROM streaks
-                WHERE user_id = %s
+                WHERE user_id = ?
                 ORDER BY streak_type
-                """,
+                """),
                 (user_id,)
             )
             rows = cursor.fetchall()

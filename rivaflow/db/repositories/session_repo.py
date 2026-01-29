@@ -4,7 +4,7 @@ import sqlite3
 from datetime import date, datetime
 from typing import Optional
 
-from rivaflow.db.database import get_connection
+from rivaflow.db.database import get_connection, convert_query
 from rivaflow.db.repositories.session_technique_repo import SessionTechniqueRepository
 
 
@@ -37,92 +37,50 @@ class SessionRepository:
     ) -> int:
         """Create a new session and return its ID."""
         with get_connection() as conn:
-            from rivaflow.db.database import DB_TYPE
             cursor = conn.cursor()
-
-            if DB_TYPE == "postgresql":
-                cursor.execute(
-                    """
-                    INSERT INTO sessions (
-                        user_id, session_date, class_time, class_type, gym_name, location,
-                        duration_mins, intensity, rolls,
-                        submissions_for, submissions_against,
-                        partners, techniques, notes, visibility_level,
-                        instructor_id, instructor_name,
-                        whoop_strain, whoop_calories, whoop_avg_hr, whoop_max_hr
-                    ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-                    RETURNING id
-                    """,
-                    (
-                        user_id,
-                        session_date.isoformat(),
-                        class_time,
-                        class_type,
-                        gym_name,
-                        location,
-                        duration_mins,
-                        intensity,
-                        rolls,
-                        submissions_for,
-                        submissions_against,
-                        json.dumps(partners) if partners else None,
-                        json.dumps(techniques) if techniques else None,
-                        notes,
-                        visibility_level,
-                        instructor_id,
-                        instructor_name,
-                        whoop_strain,
-                        whoop_calories,
-                        whoop_avg_hr,
-                        whoop_max_hr,
-                    ),
-                )
-                result = cursor.fetchone()
-                return result['id'] if hasattr(result, 'keys') else result[0]
-            else:
-                cursor.execute(
-                    """
-                    INSERT INTO sessions (
-                        user_id, session_date, class_time, class_type, gym_name, location,
-                        duration_mins, intensity, rolls,
-                        submissions_for, submissions_against,
-                        partners, techniques, notes, visibility_level,
-                        instructor_id, instructor_name,
-                        whoop_strain, whoop_calories, whoop_avg_hr, whoop_max_hr
-                    ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-                    """,
-                    (
-                        user_id,
-                        session_date.isoformat(),
-                        class_time,
-                        class_type,
-                        gym_name,
-                        location,
-                        duration_mins,
-                        intensity,
-                        rolls,
-                        submissions_for,
-                        submissions_against,
-                        json.dumps(partners) if partners else None,
-                        json.dumps(techniques) if techniques else None,
-                        notes,
-                        visibility_level,
-                        instructor_id,
-                        instructor_name,
-                        whoop_strain,
-                        whoop_calories,
-                        whoop_avg_hr,
-                        whoop_max_hr,
-                    ),
-                )
-                return cursor.lastrowid
+            cursor.execute(
+                convert_query("""
+                INSERT INTO sessions (
+                    user_id, session_date, class_time, class_type, gym_name, location,
+                    duration_mins, intensity, rolls,
+                    submissions_for, submissions_against,
+                    partners, techniques, notes, visibility_level,
+                    instructor_id, instructor_name,
+                    whoop_strain, whoop_calories, whoop_avg_hr, whoop_max_hr
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """),
+                (
+                    user_id,
+                    session_date.isoformat(),
+                    class_time,
+                    class_type,
+                    gym_name,
+                    location,
+                    duration_mins,
+                    intensity,
+                    rolls,
+                    submissions_for,
+                    submissions_against,
+                    json.dumps(partners) if partners else None,
+                    json.dumps(techniques) if techniques else None,
+                    notes,
+                    visibility_level,
+                    instructor_id,
+                    instructor_name,
+                    whoop_strain,
+                    whoop_calories,
+                    whoop_avg_hr,
+                    whoop_max_hr,
+                ),
+            )
+            return cursor.lastrowid
 
     @staticmethod
     def get_by_id(user_id: int, session_id: int) -> Optional[dict]:
         """Get a session by ID with detailed techniques."""
         with get_connection() as conn:
             cursor = conn.cursor()
-            cursor.execute("SELECT * FROM sessions WHERE id = %s AND user_id = %s", (session_id, user_id))
+            cursor.execute(convert_query("SELECT * FROM sessions WHERE id = ? AND user_id = ?"), (session_id, user_id))
             row = cursor.fetchone()
             if not row:
                 return None
@@ -135,7 +93,7 @@ class SessionRepository:
             # Enrich with movement names from glossary
             for technique in techniques:
                 cursor.execute(
-                    "SELECT name FROM movements_glossary WHERE id = %s",
+                    "SELECT name FROM movements_glossary WHERE id = ?",
                     (technique["movement_id"],)
                 )
                 movement_row = cursor.fetchone()
@@ -151,7 +109,7 @@ class SessionRepository:
         """Get a session by ID without user scope (for validation/privacy checks)."""
         with get_connection() as conn:
             cursor = conn.cursor()
-            cursor.execute("SELECT * FROM sessions WHERE id = %s", (session_id,))
+            cursor.execute(convert_query("SELECT * FROM sessions WHERE id = ?"), (session_id,))
             row = cursor.fetchone()
             if not row:
                 return None
@@ -191,64 +149,64 @@ class SessionRepository:
             params = []
 
             if session_date is not None:
-                updates.append("session_date = %s")
+                updates.append("session_date = ?")
                 params.append(session_date.isoformat())
             if class_time is not None:
-                updates.append("class_time = %s")
+                updates.append("class_time = ?")
                 params.append(class_time)
             if class_type is not None:
-                updates.append("class_type = %s")
+                updates.append("class_type = ?")
                 params.append(class_type)
             if gym_name is not None:
-                updates.append("gym_name = %s")
+                updates.append("gym_name = ?")
                 params.append(gym_name)
             if location is not None:
-                updates.append("location = %s")
+                updates.append("location = ?")
                 params.append(location)
             if duration_mins is not None:
-                updates.append("duration_mins = %s")
+                updates.append("duration_mins = ?")
                 params.append(duration_mins)
             if intensity is not None:
-                updates.append("intensity = %s")
+                updates.append("intensity = ?")
                 params.append(intensity)
             if rolls is not None:
-                updates.append("rolls = %s")
+                updates.append("rolls = ?")
                 params.append(rolls)
             if submissions_for is not None:
-                updates.append("submissions_for = %s")
+                updates.append("submissions_for = ?")
                 params.append(submissions_for)
             if submissions_against is not None:
-                updates.append("submissions_against = %s")
+                updates.append("submissions_against = ?")
                 params.append(submissions_against)
             if partners is not None:
-                updates.append("partners = %s")
+                updates.append("partners = ?")
                 params.append(json.dumps(partners) if partners else None)
             if techniques is not None:
-                updates.append("techniques = %s")
+                updates.append("techniques = ?")
                 params.append(json.dumps(techniques) if techniques else None)
             if notes is not None:
-                updates.append("notes = %s")
+                updates.append("notes = ?")
                 params.append(notes)
             if visibility_level is not None:
-                updates.append("visibility_level = %s")
+                updates.append("visibility_level = ?")
                 params.append(visibility_level)
             if instructor_id is not None:
-                updates.append("instructor_id = %s")
+                updates.append("instructor_id = ?")
                 params.append(instructor_id)
             if instructor_name is not None:
-                updates.append("instructor_name = %s")
+                updates.append("instructor_name = ?")
                 params.append(instructor_name)
             if whoop_strain is not None:
-                updates.append("whoop_strain = %s")
+                updates.append("whoop_strain = ?")
                 params.append(whoop_strain)
             if whoop_calories is not None:
-                updates.append("whoop_calories = %s")
+                updates.append("whoop_calories = ?")
                 params.append(whoop_calories)
             if whoop_avg_hr is not None:
-                updates.append("whoop_avg_hr = %s")
+                updates.append("whoop_avg_hr = ?")
                 params.append(whoop_avg_hr)
             if whoop_max_hr is not None:
-                updates.append("whoop_max_hr = %s")
+                updates.append("whoop_max_hr = ?")
                 params.append(whoop_max_hr)
 
             if not updates:
@@ -257,7 +215,7 @@ class SessionRepository:
 
             updates.append("updated_at = CURRENT_TIMESTAMP")
             params.extend([session_id, user_id])
-            query = f"UPDATE sessions SET {', '.join(updates)} WHERE id = %s AND user_id = %s"
+            query = f"UPDATE sessions SET {', '.join(updates)} WHERE id = ? AND user_id = ?"
             cursor.execute(query, params)
 
             if cursor.rowcount == 0:
@@ -272,11 +230,11 @@ class SessionRepository:
         with get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(
-                """
+                convert_query("""
                 SELECT * FROM sessions
-                WHERE user_id = %s AND session_date BETWEEN %s AND %s
+                WHERE user_id = ? AND session_date BETWEEN ? AND ?
                 ORDER BY session_date DESC
-                """,
+                """),
                 (user_id, start_date.isoformat(), end_date.isoformat()),
             )
             return [SessionRepository._row_to_dict(row) for row in cursor.fetchall()]
@@ -287,7 +245,7 @@ class SessionRepository:
         with get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(
-                "SELECT * FROM sessions WHERE user_id = %s ORDER BY session_date DESC LIMIT %s", (user_id, limit)
+                "SELECT * FROM sessions WHERE user_id = ? ORDER BY session_date DESC LIMIT ?", (user_id, limit)
             )
             return [SessionRepository._row_to_dict(row) for row in cursor.fetchall()]
 
@@ -297,7 +255,7 @@ class SessionRepository:
         with get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(
-                "SELECT DISTINCT gym_name FROM sessions WHERE user_id = %s ORDER BY gym_name",
+                "SELECT DISTINCT gym_name FROM sessions WHERE user_id = ? ORDER BY gym_name",
                 (user_id,)
             )
             return [row["gym_name"] for row in cursor.fetchall()]
@@ -308,11 +266,11 @@ class SessionRepository:
         with get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(
-                """
+                convert_query("""
                 SELECT DISTINCT location FROM sessions
-                WHERE user_id = %s AND location IS NOT NULL
+                WHERE user_id = ? AND location IS NOT NULL
                 ORDER BY location
-                """,
+                """),
                 (user_id,)
             )
             return [row["location"] for row in cursor.fetchall()]
@@ -323,7 +281,7 @@ class SessionRepository:
         with get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(
-                "SELECT partners FROM sessions WHERE user_id = %s AND partners IS NOT NULL",
+                "SELECT partners FROM sessions WHERE user_id = ? AND partners IS NOT NULL",
                 (user_id,)
             )
             partners_set = set()
@@ -338,12 +296,12 @@ class SessionRepository:
         with get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(
-                """
+                convert_query("""
                 SELECT class_type FROM sessions
-                WHERE user_id = %s
+                WHERE user_id = ?
                 ORDER BY session_date DESC, created_at DESC
-                LIMIT %s
-                """,
+                LIMIT ?
+                """),
                 (user_id, n),
             )
             return [row["class_type"] for row in cursor.fetchall()]
@@ -365,7 +323,7 @@ class SessionRepository:
 
             # Delete the session itself
             cursor.execute(
-                "DELETE FROM sessions WHERE id = %s AND user_id = %s",
+                "DELETE FROM sessions WHERE id = ? AND user_id = ?",
                 (session_id, user_id)
             )
             return cursor.rowcount > 0

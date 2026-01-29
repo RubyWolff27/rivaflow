@@ -3,7 +3,7 @@ import sqlite3
 import json
 from typing import List, Optional
 
-from rivaflow.db.database import get_connection
+from rivaflow.db.database import get_connection, convert_query
 
 
 class SessionTechniqueRepository:
@@ -26,11 +26,11 @@ class SessionTechniqueRepository:
         with get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(
-                """
+                convert_query("""
                 INSERT INTO session_techniques
                 (session_id, movement_id, technique_number, notes, media_urls)
-                VALUES (%s, %s, %s, %s, %s)
-                """,
+                VALUES (?, ?, ?, ?, ?)
+                """),
                 (
                     session_id,
                     movement_id,
@@ -42,7 +42,7 @@ class SessionTechniqueRepository:
             technique_id = cursor.lastrowid
 
             # Return the created technique
-            cursor.execute("SELECT * FROM session_techniques WHERE id = %s", (technique_id,))
+            cursor.execute(convert_query("SELECT * FROM session_techniques WHERE id = ?"), (technique_id,))
             row = cursor.fetchone()
             return SessionTechniqueRepository._row_to_dict(row)
 
@@ -51,7 +51,7 @@ class SessionTechniqueRepository:
         """Get a session technique by ID."""
         with get_connection() as conn:
             cursor = conn.cursor()
-            cursor.execute("SELECT * FROM session_techniques WHERE id = %s", (technique_id,))
+            cursor.execute(convert_query("SELECT * FROM session_techniques WHERE id = ?"), (technique_id,))
             row = cursor.fetchone()
             return SessionTechniqueRepository._row_to_dict(row) if row else None
 
@@ -63,7 +63,7 @@ class SessionTechniqueRepository:
         with get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(
-                "SELECT * FROM session_techniques WHERE session_id = %s ORDER BY technique_number ASC",
+                "SELECT * FROM session_techniques WHERE session_id = ? ORDER BY technique_number ASC",
                 (session_id,),
             )
             rows = cursor.fetchall()
@@ -76,12 +76,12 @@ class SessionTechniqueRepository:
         with get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(
-                """
+                convert_query("""
                 SELECT st.* FROM session_techniques st
                 JOIN sessions s ON st.session_id = s.id
-                WHERE st.movement_id = %s AND s.user_id = %s
+                WHERE st.movement_id = ? AND s.user_id = ?
                 ORDER BY s.session_date DESC, st.technique_number ASC
-                """,
+                """),
                 (movement_id, user_id),
             )
             rows = cursor.fetchall()
@@ -104,16 +104,16 @@ class SessionTechniqueRepository:
             params = []
 
             if movement_id is not None:
-                updates.append("movement_id = %s")
+                updates.append("movement_id = ?")
                 params.append(movement_id)
             if technique_number is not None:
-                updates.append("technique_number = %s")
+                updates.append("technique_number = ?")
                 params.append(technique_number)
             if notes is not None:
-                updates.append("notes = %s")
+                updates.append("notes = ?")
                 params.append(notes)
             if media_urls is not None:
-                updates.append("media_urls = %s")
+                updates.append("media_urls = ?")
                 params.append(json.dumps(media_urls) if media_urls else None)
 
             if not updates:
@@ -121,7 +121,7 @@ class SessionTechniqueRepository:
                 return SessionTechniqueRepository.get_by_id(technique_id)
 
             params.append(technique_id)
-            query = f"UPDATE session_techniques SET {', '.join(updates)} WHERE id = %s"
+            query = f"UPDATE session_techniques SET {', '.join(updates)} WHERE id = ?"
             cursor.execute(query, params)
 
             if cursor.rowcount == 0:
@@ -134,7 +134,7 @@ class SessionTechniqueRepository:
         """Delete a session technique by ID. Returns True if deleted, False if not found."""
         with get_connection() as conn:
             cursor = conn.cursor()
-            cursor.execute("DELETE FROM session_techniques WHERE id = %s", (technique_id,))
+            cursor.execute(convert_query("DELETE FROM session_techniques WHERE id = ?"), (technique_id,))
             return cursor.rowcount > 0
 
     @staticmethod
@@ -142,7 +142,7 @@ class SessionTechniqueRepository:
         """Delete all techniques for a session. Returns count of deleted techniques."""
         with get_connection() as conn:
             cursor = conn.cursor()
-            cursor.execute("DELETE FROM session_techniques WHERE session_id = %s", (session_id,))
+            cursor.execute(convert_query("DELETE FROM session_techniques WHERE session_id = ?"), (session_id,))
             return cursor.rowcount
 
     @staticmethod

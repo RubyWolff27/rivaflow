@@ -2,7 +2,7 @@
 import sqlite3
 from typing import List, Optional
 
-from rivaflow.db.database import get_connection
+from rivaflow.db.database import get_connection, convert_query
 
 
 class ActivityLikeRepository:
@@ -27,15 +27,15 @@ class ActivityLikeRepository:
         with get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(
-                """
+                convert_query("""
                 INSERT INTO activity_likes (user_id, activity_type, activity_id)
-                VALUES (%s, %s, %s)
-                """,
+                VALUES (?, ?, ?)
+                """),
                 (user_id, activity_type, activity_id),
             )
             like_id = cursor.lastrowid
 
-            cursor.execute("SELECT * FROM activity_likes WHERE id = %s", (like_id,))
+            cursor.execute(convert_query("SELECT * FROM activity_likes WHERE id = ?"), (like_id,))
             row = cursor.fetchone()
             return ActivityLikeRepository._row_to_dict(row)
 
@@ -55,10 +55,10 @@ class ActivityLikeRepository:
         with get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(
-                """
+                convert_query("""
                 DELETE FROM activity_likes
-                WHERE user_id = %s AND activity_type = %s AND activity_id = %s
-                """,
+                WHERE user_id = ? AND activity_type = ? AND activity_id = ?
+                """),
                 (user_id, activity_type, activity_id),
             )
             return cursor.rowcount > 0
@@ -78,11 +78,11 @@ class ActivityLikeRepository:
         with get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(
-                """
+                convert_query("""
                 SELECT COUNT(*) as count
                 FROM activity_likes
-                WHERE activity_type = %s AND activity_id = %s
-                """,
+                WHERE activity_type = ? AND activity_id = ?
+                """),
                 (activity_type, activity_id),
             )
             row = cursor.fetchone()
@@ -104,10 +104,10 @@ class ActivityLikeRepository:
         with get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(
-                """
+                convert_query("""
                 SELECT 1 FROM activity_likes
-                WHERE user_id = %s AND activity_type = %s AND activity_id = %s
-                """,
+                WHERE user_id = ? AND activity_type = ? AND activity_id = ?
+                """),
                 (user_id, activity_type, activity_id),
             )
             return cursor.fetchone() is not None
@@ -127,7 +127,7 @@ class ActivityLikeRepository:
         with get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(
-                """
+                convert_query("""
                 SELECT
                     al.id,
                     al.user_id,
@@ -139,9 +139,9 @@ class ActivityLikeRepository:
                     u.email
                 FROM activity_likes al
                 JOIN users u ON al.user_id = u.id
-                WHERE al.activity_type = %s AND al.activity_id = %s
+                WHERE al.activity_type = ? AND al.activity_id = ?
                 ORDER BY al.created_at DESC
-                """,
+                """),
                 (activity_type, activity_id),
             )
             rows = cursor.fetchall()
@@ -163,12 +163,12 @@ class ActivityLikeRepository:
         with get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(
-                """
+                convert_query("""
                 SELECT * FROM activity_likes
-                WHERE user_id = %s
+                WHERE user_id = ?
                 ORDER BY created_at DESC
-                LIMIT %s OFFSET %s
-                """,
+                LIMIT ? OFFSET ?
+                """),
                 (user_id, limit, offset),
             )
             rows = cursor.fetchall()

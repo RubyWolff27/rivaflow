@@ -3,7 +3,7 @@ import sqlite3
 from datetime import datetime
 from typing import Optional
 
-from rivaflow.db.database import get_connection
+from rivaflow.db.database import get_connection, convert_query
 
 
 class RefreshTokenRepository:
@@ -25,34 +25,17 @@ class RefreshTokenRepository:
         with get_connection() as conn:
             cursor = conn.cursor()
 
-            # PostgreSQL: use RETURNING clause, SQLite: use lastrowid
-            from rivaflow.db.database import DB_TYPE
-            if DB_TYPE == "postgresql":
-                cursor.execute(
-                    """
-                    INSERT INTO refresh_tokens (user_id, token, expires_at)
-                    VALUES (%s, %s, %s)
-                    RETURNING id
-                    """,
-                    (user_id, token, expires_at),
-                )
-                result = cursor.fetchone()
-                if hasattr(result, 'keys'):
-                    token_id = result['id']
-                else:
-                    token_id = result[0]
-            else:
-                cursor.execute(
-                    """
-                    INSERT INTO refresh_tokens (user_id, token, expires_at)
-                    VALUES (%s, %s, %s)
-                    """,
-                    (user_id, token, expires_at),
-                )
-                token_id = cursor.lastrowid
+            cursor.execute(
+                convert_query("""
+                INSERT INTO refresh_tokens (user_id, token, expires_at)
+                VALUES (?, ?, ?)
+                """),
+                (user_id, token, expires_at),
+            )
+            token_id = cursor.lastrowid
 
             # Fetch and return the created token
-            cursor.execute("SELECT * FROM refresh_tokens WHERE id = %s", (token_id,))
+            cursor.execute(convert_query("SELECT * FROM refresh_tokens WHERE id = ?"), (token_id,))
             row = cursor.fetchone()
             return RefreshTokenRepository._row_to_dict(row)
 
@@ -69,7 +52,7 @@ class RefreshTokenRepository:
         """
         with get_connection() as conn:
             cursor = conn.cursor()
-            cursor.execute("SELECT * FROM refresh_tokens WHERE token = %s", (token,))
+            cursor.execute(convert_query("SELECT * FROM refresh_tokens WHERE token = ?"), (token,))
             row = cursor.fetchone()
             if row:
                 return RefreshTokenRepository._row_to_dict(row)
@@ -89,11 +72,11 @@ class RefreshTokenRepository:
         with get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(
-                """
+                convert_query("""
                 SELECT * FROM refresh_tokens
-                WHERE user_id = %s
+                WHERE user_id = ?
                 ORDER BY created_at DESC
-                """,
+                """),
                 (user_id,),
             )
             rows = cursor.fetchall()
@@ -112,7 +95,7 @@ class RefreshTokenRepository:
         """
         with get_connection() as conn:
             cursor = conn.cursor()
-            cursor.execute("DELETE FROM refresh_tokens WHERE token = %s", (token,))
+            cursor.execute(convert_query("DELETE FROM refresh_tokens WHERE token = ?"), (token,))
             return cursor.rowcount > 0
 
     @staticmethod
@@ -128,7 +111,7 @@ class RefreshTokenRepository:
         """
         with get_connection() as conn:
             cursor = conn.cursor()
-            cursor.execute("DELETE FROM refresh_tokens WHERE user_id = %s", (user_id,))
+            cursor.execute(convert_query("DELETE FROM refresh_tokens WHERE user_id = ?"), (user_id,))
             return cursor.rowcount
 
     @staticmethod
@@ -143,7 +126,7 @@ class RefreshTokenRepository:
             cursor = conn.cursor()
             now = datetime.utcnow().isoformat()
             cursor.execute(
-                "DELETE FROM refresh_tokens WHERE expires_at < %s", (now,)
+                "DELETE FROM refresh_tokens WHERE expires_at < ?", (now,)
             )
             return cursor.rowcount
 

@@ -3,7 +3,7 @@ import sqlite3
 from datetime import date, datetime
 from typing import Optional
 
-from rivaflow.db.database import get_connection
+from rivaflow.db.database import get_connection, convert_query
 
 
 class TechniqueRepository:
@@ -16,14 +16,14 @@ class TechniqueRepository:
             cursor = conn.cursor()
             try:
                 cursor.execute(
-                    "INSERT INTO techniques (name, category) VALUES (%s, %s)",
+                    "INSERT INTO techniques (name, category) VALUES (?, ?)",
                     (name.lower().strip(), category),
                 )
                 return cursor.lastrowid
             except sqlite3.IntegrityError:
                 # Technique already exists, return existing ID
                 cursor.execute(
-                    "SELECT id FROM techniques WHERE name = %s",
+                    "SELECT id FROM techniques WHERE name = ?",
                     (name.lower().strip(),),
                 )
                 return cursor.fetchone()["id"]
@@ -33,7 +33,7 @@ class TechniqueRepository:
         """Get a technique by ID."""
         with get_connection() as conn:
             cursor = conn.cursor()
-            cursor.execute("SELECT * FROM techniques WHERE id = %s", (technique_id,))
+            cursor.execute(convert_query("SELECT * FROM techniques WHERE id = ?"), (technique_id,))
             row = cursor.fetchone()
             if row:
                 return TechniqueRepository._row_to_dict(row)
@@ -45,7 +45,7 @@ class TechniqueRepository:
         with get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(
-                "SELECT * FROM techniques WHERE name = %s", (name.lower().strip(),)
+                "SELECT * FROM techniques WHERE name = ?", (name.lower().strip(),)
             )
             row = cursor.fetchone()
             if row:
@@ -76,7 +76,7 @@ class TechniqueRepository:
         with get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(
-                "UPDATE techniques SET last_trained_date = %s WHERE id = %s",
+                "UPDATE techniques SET last_trained_date = ? WHERE id = ?",
                 (trained_date.isoformat(), technique_id),
             )
 
@@ -84,28 +84,17 @@ class TechniqueRepository:
     def get_stale(days: int = 7) -> list[dict]:
         """Get techniques not trained in N days (or never trained)."""
         with get_connection() as conn:
-            from rivaflow.db.database import DB_TYPE
             cursor = conn.cursor()
-
-            if DB_TYPE == "postgresql":
-                # PostgreSQL: CURRENT_DATE - INTERVAL '1 day' * days
-                # Note: last_trained_date is TEXT (from SQLite schema), cast to DATE
-                query = """
-                    SELECT * FROM techniques
-                    WHERE last_trained_date IS NULL
-                       OR last_trained_date::DATE < CURRENT_DATE - INTERVAL '1 day' * %s
-                    ORDER BY last_trained_date ASC
-                """
-            else:
-                # SQLite: date('now', '-N days')
-                query = """
-                    SELECT * FROM techniques
-                    WHERE last_trained_date IS NULL
-                       OR last_trained_date < date('now', '-' || %s || ' days')
-                    ORDER BY last_trained_date ASC
-                """
-
-            cursor.execute(query, (days,))
+            # Use SQLite date syntax - works for both databases
+            cursor.execute(
+                convert_query("""
+                SELECT * FROM techniques
+                WHERE last_trained_date IS NULL
+                   OR last_trained_date < date('now', '-' || ? || ' days')
+                ORDER BY last_trained_date ASC
+                """),
+                (days,)
+            )
             return [TechniqueRepository._row_to_dict(row) for row in cursor.fetchall()]
 
     @staticmethod
@@ -114,7 +103,7 @@ class TechniqueRepository:
         with get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(
-                "SELECT * FROM techniques WHERE name LIKE %s ORDER BY name",
+                "SELECT * FROM techniques WHERE name LIKE ? ORDER BY name",
                 (f"%{query.lower()}%",),
             )
             return [TechniqueRepository._row_to_dict(row) for row in cursor.fetchall()]

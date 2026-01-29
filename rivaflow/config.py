@@ -13,8 +13,14 @@ if DATABASE_URL and DATABASE_URL.startswith("postgres://"):
     # Render uses postgres:// but psycopg2 expects postgresql://
     DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
 
-# Determine database type
-DB_TYPE = "postgresql" if DATABASE_URL else "sqlite"
+# Determine database type dynamically (function to support runtime changes in tests)
+def get_db_type():
+    """Dynamically determine database type based on current DATABASE_URL."""
+    database_url = os.getenv("DATABASE_URL")
+    return "postgresql" if database_url else "sqlite"
+
+# Legacy constant for backwards compatibility
+DB_TYPE = get_db_type()
 
 # Defaults
 DEFAULT_DURATION = 60

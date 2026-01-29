@@ -2,7 +2,7 @@
 import sqlite3
 from typing import Optional
 
-from rivaflow.db.database import get_connection
+from rivaflow.db.database import get_connection, convert_query
 from rivaflow.config import MILESTONES, MILESTONE_LABELS
 
 
@@ -32,10 +32,10 @@ class MilestoneRepository:
         with get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(
-                """
+                convert_query("""
                 SELECT id FROM milestones
-                WHERE user_id = %s AND milestone_type = %s AND milestone_value = %s
-                """,
+                WHERE user_id = ? AND milestone_type = ? AND milestone_value = ?
+                """),
                 (user_id, milestone_type, crossed_threshold)
             )
             existing = cursor.fetchone()
@@ -46,10 +46,10 @@ class MilestoneRepository:
             # Create new milestone
             label = MILESTONE_LABELS.get(milestone_type, "{}").format(crossed_threshold)
             cursor.execute(
-                """
+                convert_query("""
                 INSERT INTO milestones (user_id, milestone_type, milestone_value, milestone_label, celebrated)
-                VALUES (%s, %s, %s, %s, 0)
-                """,
+                VALUES (?, ?, ?, ?, 0)
+                """),
                 (user_id, milestone_type, crossed_threshold, label)
             )
             conn.commit()
@@ -58,11 +58,11 @@ class MilestoneRepository:
 
             # Fetch and return the created milestone
             cursor.execute(
-                """
+                convert_query("""
                 SELECT id, milestone_type, milestone_value, milestone_label, achieved_at, celebrated
                 FROM milestones
-                WHERE id = %s AND user_id = %s
-                """,
+                WHERE id = ? AND user_id = ?
+                """),
                 (milestone_id, user_id)
             )
             row = cursor.fetchone()
@@ -75,12 +75,12 @@ class MilestoneRepository:
         with get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(
-                """
+                convert_query("""
                 SELECT id, milestone_type, milestone_value, milestone_label, achieved_at, celebrated
                 FROM milestones
-                WHERE user_id = %s AND celebrated = FALSE
+                WHERE user_id = ? AND celebrated = FALSE
                 ORDER BY achieved_at DESC
-                """,
+                """),
                 (user_id,)
             )
             rows = cursor.fetchall()
@@ -93,11 +93,11 @@ class MilestoneRepository:
         with get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(
-                """
+                convert_query("""
                 UPDATE milestones
                 SET celebrated = TRUE
-                WHERE id = %s AND user_id = %s
-                """,
+                WHERE id = ? AND user_id = ?
+                """),
                 (milestone_id, user_id)
             )
             conn.commit()
@@ -127,12 +127,12 @@ class MilestoneRepository:
         with get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(
-                """
+                convert_query("""
                 SELECT id, milestone_type, milestone_value, milestone_label, achieved_at, celebrated
                 FROM milestones
-                WHERE user_id = %s
+                WHERE user_id = ?
                 ORDER BY achieved_at DESC
-                """,
+                """),
                 (user_id,)
             )
             rows = cursor.fetchall()
@@ -145,11 +145,11 @@ class MilestoneRepository:
         with get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(
-                """
+                convert_query("""
                 SELECT MAX(milestone_value) as max_value
                 FROM milestones
-                WHERE user_id = %s AND milestone_type = %s
-                """,
+                WHERE user_id = ? AND milestone_type = ?
+                """),
                 (user_id, milestone_type)
             )
             row = cursor.fetchone()
