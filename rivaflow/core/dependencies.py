@@ -1,10 +1,13 @@
 """FastAPI dependency injection for authentication."""
+import logging
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from jose import JWTError
 
 from rivaflow.core.auth import decode_access_token
 from rivaflow.db.repositories.user_repo import UserRepository
+
+logger = logging.getLogger(__name__)
 
 
 # HTTP Bearer token security scheme
@@ -76,7 +79,7 @@ async def get_current_user(
         raise
     except Exception as e:
         # Log unexpected errors and return generic 401
-        print(f"Authentication error: {e}")
+        logger.error(f"Authentication error: {e}")
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Authentication failed",

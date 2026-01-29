@@ -1,10 +1,13 @@
 """Database connection management and initialization."""
+import logging
 import sqlite3
 from pathlib import Path
 from typing import Optional, Union
 from contextlib import contextmanager
 
 from rivaflow.config import APP_DIR, DB_PATH, DATABASE_URL, DB_TYPE
+
+logger = logging.getLogger(__name__)
 
 # Import PostgreSQL adapter if available
 try:
@@ -167,11 +170,11 @@ def _reset_postgresql_sequences(conn) -> None:
                 END $$;
             """)
             conn.commit()
-            print(f"[DB] Reset sequence for table: {table}")
+            logger.info(f"Reset sequence for table: {table}")
         except Exception as e:
             # Rollback this table's transaction and continue with next table
             conn.rollback()
-            # Don't print full error, just note it was skipped
+            logger.debug(f"Skipped sequence reset for table {table}: {e}")
             pass
 
 
@@ -313,12 +316,12 @@ def _apply_migrations(conn: Union[sqlite3.Connection, 'psycopg2.extensions.conne
     # Run only new migrations
     for migration in migrations:
         if migration in applied_migrations:
-            print(f"[DB] Skipping already applied migration: {migration}")
+            logger.info(f"Skipping already applied migration: {migration}")
             continue
 
         migration_path = migrations_dir / migration
         if migration_path.exists():
-            print(f"[DB] Applying migration: {migration}")
+            logger.info(f"Applying migration: {migration}")
             with open(migration_path) as f:
                 sql = f.read()
 
@@ -327,7 +330,7 @@ def _apply_migrations(conn: Union[sqlite3.Connection, 'psycopg2.extensions.conne
                     original_sql = sql
                     sql = _convert_sqlite_to_postgresql(sql)
                     if 'AUTOINCREMENT' in original_sql.upper():
-                        print(f"[DB] Converted SQLite syntax to PostgreSQL for {migration}")
+                        logger.debug(f"Converted SQLite syntax to PostgreSQL for {migration}")
 
                     # Split on semicolons and execute separately
                     statements = [s.strip() for s in sql.split(';') if s.strip()]
@@ -347,7 +350,7 @@ def _apply_migrations(conn: Union[sqlite3.Connection, 'psycopg2.extensions.conne
                         try:
                             cursor.execute(clean_statement)
                         except Exception as e:
-                            print(f"[DB] Error executing statement: {clean_statement[:100]}...")
+                            logger.error(f"Error executing statement: {clean_statement[:100]}... - {e}")
                             raise
                 else:
                     # SQLite supports executescript
@@ -359,9 +362,9 @@ def _apply_migrations(conn: Union[sqlite3.Connection, 'psycopg2.extensions.conne
                 (migration,)
             )
             conn.commit()
-            print(f"[DB] Successfully applied migration: {migration}")
+            logger.info(f"Successfully applied migration: {migration}")
         else:
-            print(f"[DB] Warning: Migration file not found: {migration}")
+            logger.warning(f"Migration file not found: {migration}")
 
 
 @contextmanager
@@ -441,6 +444,7 @@ def get_last_insert_id(cursor, table_name: str = None) -> int:
 
 
 if __name__ == "__main__":
-    print("Running database migrations...")
+    logging.basicConfig(level=logging.INFO, format='%(levelname)s: %(message)s')
+    logger.info("Running database migrations...")
     init_db()
-    print("Database migrations complete!")
+    logger.info("Database migrations complete!")
