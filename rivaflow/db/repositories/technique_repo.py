@@ -89,10 +89,11 @@ class TechniqueRepository:
 
             if DB_TYPE == "postgresql":
                 # PostgreSQL: CURRENT_DATE - INTERVAL '1 day' * days
+                # Note: last_trained_date is TEXT (from SQLite schema), cast to DATE
                 query = """
                     SELECT * FROM techniques
                     WHERE last_trained_date IS NULL
-                       OR last_trained_date < CURRENT_DATE - INTERVAL '1 day' * %s
+                       OR last_trained_date::DATE < CURRENT_DATE - INTERVAL '1 day' * %s
                     ORDER BY last_trained_date ASC
                 """
             else:

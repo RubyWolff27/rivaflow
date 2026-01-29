@@ -44,15 +44,29 @@ class ReadinessRepository:
                 return existing["id"]
             else:
                 # Insert new
-                cursor.execute(
-                    """
-                    INSERT INTO readiness (
-                        user_id, check_date, sleep, stress, soreness, energy, hotspot_note, weight_kg
-                    ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
-                    """,
-                    (user_id, check_date.isoformat(), sleep, stress, soreness, energy, hotspot_note, weight_kg),
-                )
-                return cursor.lastrowid
+                from rivaflow.db.database import DB_TYPE
+                if DB_TYPE == "postgresql":
+                    cursor.execute(
+                        """
+                        INSERT INTO readiness (
+                            user_id, check_date, sleep, stress, soreness, energy, hotspot_note, weight_kg
+                        ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+                        RETURNING id
+                        """,
+                        (user_id, check_date.isoformat(), sleep, stress, soreness, energy, hotspot_note, weight_kg),
+                    )
+                    result = cursor.fetchone()
+                    return result['id'] if hasattr(result, 'keys') else result[0]
+                else:
+                    cursor.execute(
+                        """
+                        INSERT INTO readiness (
+                            user_id, check_date, sleep, stress, soreness, energy, hotspot_note, weight_kg
+                        ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+                        """,
+                        (user_id, check_date.isoformat(), sleep, stress, soreness, energy, hotspot_note, weight_kg),
+                    )
+                    return cursor.lastrowid
 
     @staticmethod
     def get_by_date(user_id: int, check_date: date) -> Optional[dict]:

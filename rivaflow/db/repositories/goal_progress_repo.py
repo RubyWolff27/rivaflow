@@ -78,27 +78,53 @@ class GoalProgressRepository:
     ) -> int:
         """Create a new goal progress record."""
         with get_connection() as conn:
+            from rivaflow.db.database import DB_TYPE
             cursor = conn.cursor()
-            cursor.execute(
-                """
-                INSERT INTO goal_progress
-                (user_id, week_start_date, week_end_date, target_sessions, actual_sessions,
-                 target_hours, actual_hours, target_rolls, actual_rolls)
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
-                """,
-                (
-                    user_id,
-                    week_start_date.isoformat(),
-                    week_end_date.isoformat(),
-                    target_sessions,
-                    actual_sessions,
-                    target_hours,
-                    actual_hours,
-                    target_rolls,
-                    actual_rolls,
-                ),
-            )
-            return cursor.lastrowid
+
+            if DB_TYPE == "postgresql":
+                cursor.execute(
+                    """
+                    INSERT INTO goal_progress
+                    (user_id, week_start_date, week_end_date, target_sessions, actual_sessions,
+                     target_hours, actual_hours, target_rolls, actual_rolls)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+                    RETURNING id
+                    """,
+                    (
+                        user_id,
+                        week_start_date.isoformat(),
+                        week_end_date.isoformat(),
+                        target_sessions,
+                        actual_sessions,
+                        target_hours,
+                        actual_hours,
+                        target_rolls,
+                        actual_rolls,
+                    ),
+                )
+                result = cursor.fetchone()
+                return result['id'] if hasattr(result, 'keys') else result[0]
+            else:
+                cursor.execute(
+                    """
+                    INSERT INTO goal_progress
+                    (user_id, week_start_date, week_end_date, target_sessions, actual_sessions,
+                     target_hours, actual_hours, target_rolls, actual_rolls)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+                    """,
+                    (
+                        user_id,
+                        week_start_date.isoformat(),
+                        week_end_date.isoformat(),
+                        target_sessions,
+                        actual_sessions,
+                        target_hours,
+                        actual_hours,
+                        target_rolls,
+                        actual_rolls,
+                    ),
+                )
+                return cursor.lastrowid
 
     def update_progress(
         self,
