@@ -203,25 +203,16 @@ class ReportService:
     def export_to_csv(
         self, sessions: list[dict], output_path: str
     ) -> None:
-        """Export sessions to CSV file with privacy redaction applied.
+        """Export sessions to CSV file.
 
-        Sessions are redacted based on their visibility_level setting:
-        - private: Excluded from export
-        - attendance: Only gym/date/class_type/location
-        - summary: attendance + duration/intensity/rolls
-        - full: All fields
+        For personal exports, all sessions are included regardless of visibility_level.
+        Privacy settings only apply when sharing data with others.
         """
         if not sessions:
             return
 
-        # Apply privacy redaction to all sessions
-        redacted_sessions = PrivacyService.redact_sessions_list(
-            sessions,
-            default_visibility="private"
-        )
-
-        if not redacted_sessions:
-            return
+        # For personal exports, use sessions directly without privacy filtering
+        redacted_sessions = sessions
 
         # Determine which fields are present across all sessions
         # Start with mandatory attendance fields

@@ -108,14 +108,14 @@ class SessionService:
                 if movement_id:
                     movement = self.glossary_repo.get_by_id(movement_id)
                     if movement:
-                        tech = self.technique_repo.get_or_create(user_id, movement["name"])
-                        self.technique_repo.update_last_trained(user_id, tech["id"], session_date)
+                        tech = self.technique_repo.get_or_create(movement["name"])
+                        self.technique_repo.update_last_trained(tech["id"], session_date)
 
         # Update technique last_trained_date (from simple techniques field)
         if techniques:
             for tech_name in techniques:
-                tech = self.technique_repo.get_or_create(user_id, tech_name)
-                self.technique_repo.update_last_trained(user_id, tech["id"], session_date)
+                tech = self.technique_repo.get_or_create(tech_name)
+                self.technique_repo.update_last_trained(tech["id"], session_date)
 
         # Create check-in record for this session
         self.checkin_repo.upsert_checkin(
@@ -216,15 +216,15 @@ class SessionService:
                 if movement_id:
                     movement = self.glossary_repo.get_by_id(movement_id)
                     if movement:
-                        tech = self.technique_repo.get_or_create(user_id, movement["name"])
-                        self.technique_repo.update_last_trained(user_id, tech["id"], updated_date)
+                        tech = self.technique_repo.get_or_create(movement["name"])
+                        self.technique_repo.update_last_trained(tech["id"], updated_date)
 
         # Update technique last_trained_date if techniques changed (from simple techniques field)
         if techniques is not None:
             updated_date = session_date if session_date else original["session_date"]
             for tech_name in techniques:
-                tech = self.technique_repo.get_or_create(user_id, tech_name)
-                self.technique_repo.update_last_trained(user_id, tech["id"], updated_date)
+                tech = self.technique_repo.get_or_create(tech_name)
+                self.technique_repo.update_last_trained(tech["id"], updated_date)
 
         return updated
 

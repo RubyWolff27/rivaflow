@@ -75,13 +75,11 @@ def test_suggestion_with_stale_technique(temp_db, test_user):
     """Test suggestion when technique is stale."""
     with patch("rivaflow.config.DB_PATH", temp_db):
         # Setup: Create a technique and mark it as trained 10 days ago
-        technique_service = TechniqueService()
-        tech_id = technique_service.add_technique(user_id=test_user["id"], name="armbar", category="submission")
-
         from rivaflow.db.repositories import TechniqueRepository
 
         tech_repo = TechniqueRepository()
-        tech_repo.update_last_trained(user_id=test_user["id"], technique_id=tech_id, last_trained_date=date(2025, 1, 10))
+        tech = tech_repo.get_or_create(name="armbar", category="submission")
+        tech_repo.update_last_trained(technique_id=tech["id"], trained_date=date(2025, 1, 10))
 
         # Mock today as 10+ days later
         with patch("rivaflow.core.services.suggestion_engine.date") as mock_date:

@@ -48,7 +48,7 @@ def test_create_session_with_techniques(temp_db, test_user):
         from rivaflow.db.repositories import TechniqueRepository
 
         tech_repo = TechniqueRepository()
-        armbar = tech_repo.get_by_name(user_id=test_user["id"], name="armbar")
+        armbar = tech_repo.get_by_name(name="armbar")
         assert armbar is not None
         assert armbar["last_trained_date"] == date(2025, 1, 20)
 

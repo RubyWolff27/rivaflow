@@ -69,7 +69,7 @@ def test_generate_report_empty(temp_db, test_user):
     """Test generating report with no sessions."""
     with patch("rivaflow.config.DB_PATH", temp_db):
         service = ReportService()
-        report = service.generate_report(date(2025, 1, 20), date(2025, 1, 22))
+        report = service.generate_report(user_id=test_user["id"], start_date=date(2025, 1, 20), end_date=date(2025, 1, 22))
 
         assert report["summary"]["total_classes"] == 0
         assert len(report["sessions"]) == 0

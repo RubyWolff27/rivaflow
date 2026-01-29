@@ -16,27 +16,27 @@ class TechniqueService:
         Add a new technique or get existing one.
         Returns technique ID.
         """
-        return self.repo.create(user_id=user_id, name=name, category=category)
+        return self.repo.create(name=name, category=category)
 
     def get_technique(self, user_id: int, technique_id: int) -> Optional[dict]:
         """Get a technique by ID."""
-        return self.repo.get_by_id(user_id, technique_id)
+        return self.repo.get_by_id(technique_id)
 
     def get_technique_by_name(self, user_id: int, name: str) -> Optional[dict]:
         """Get a technique by name."""
-        return self.repo.get_by_name(user_id, name)
+        return self.repo.get_by_name(name)
 
     def list_all_techniques(self, user_id: int) -> list[dict]:
         """Get all techniques."""
-        return self.repo.list_all(user_id)
+        return self.repo.list_all()
 
     def get_stale_techniques(self, user_id: int, days: int = 7) -> list[dict]:
         """Get techniques not trained in N days."""
-        return self.repo.get_stale(user_id, days)
+        return self.repo.get_stale(days)
 
     def search_techniques(self, user_id: int, query: str) -> list[dict]:
         """Search techniques by name."""
-        return self.repo.search(user_id, query)
+        return self.repo.search(query)
 
     def format_technique_summary(self, technique: dict) -> str:
         """Format a technique as a human-readable summary."""

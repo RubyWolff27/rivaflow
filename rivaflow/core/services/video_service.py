@@ -26,7 +26,7 @@ class VideoService:
         """
         technique_id = None
         if technique_name:
-            technique = self.technique_repo.get_or_create(user_id, technique_name)
+            technique = self.technique_repo.get_or_create(technique_name)
             technique_id = technique["id"]
 
         return self.video_repo.create(
@@ -43,7 +43,7 @@ class VideoService:
 
     def list_videos_by_technique(self, user_id: int, technique_name: str) -> list[dict]:
         """Get all videos for a specific technique."""
-        technique = self.technique_repo.get_by_name(user_id, technique_name)
+        technique = self.technique_repo.get_by_name(technique_name)
         if not technique:
             return []
 
@@ -66,9 +66,9 @@ class VideoService:
 
         lines.append(f"  URL: {video['url']}")
 
-        if video.get("technique_id") and video.get("user_id"):
+        if video.get("technique_id"):
             # Get technique name
-            technique = self.technique_repo.get_by_id(video["user_id"], video["technique_id"])
+            technique = self.technique_repo.get_by_id(video["technique_id"])
             if technique:
                 lines.append(f"  Technique: {technique['name']}")
 
