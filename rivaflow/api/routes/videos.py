@@ -1,10 +1,11 @@
 """Video library endpoints."""
-from fastapi import APIRouter, HTTPException, Depends
+from fastapi import APIRouter, Depends
 from typing import Optional
 
 from rivaflow.core.services.video_service import VideoService
 from rivaflow.core.models import VideoCreate
 from rivaflow.core.dependencies import get_current_user
+from rivaflow.core.exceptions import ValidationError, NotFoundError
 
 router = APIRouter()
 service = VideoService()
@@ -37,8 +38,9 @@ async def add_video(video: VideoCreate, current_user: dict = Depends(get_current
         )
         created_video = service.get_video(user_id=current_user["id"], video_id=video_id)
         return created_video
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    # Global error handler will catch unexpected exceptions
+
+    pass
 
 
 @router.get("/")
@@ -65,8 +67,9 @@ async def delete_video(video_id: int, current_user: dict = Depends(get_current_u
     try:
         service.delete_video(user_id=current_user["id"], video_id=video_id)
         return {"status": "deleted", "video_id": video_id}
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    # Global error handler will catch unexpected exceptions
+
+    pass
 
 
 @router.get("/{video_id}")
@@ -74,5 +77,5 @@ async def get_video(video_id: int, current_user: dict = Depends(get_current_user
     """Get a video by ID."""
     video = service.get_video(user_id=current_user["id"], video_id=video_id)
     if not video:
-        raise HTTPException(status_code=404, detail="Video not found")
+        raise NotFoundError("Video not found")
     return video

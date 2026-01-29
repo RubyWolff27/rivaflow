@@ -1,10 +1,11 @@
 """Profile management endpoints."""
-from fastapi import APIRouter, HTTPException, Depends
+from fastapi import APIRouter, Depends
 from pydantic import BaseModel
 from typing import Optional
 
 from rivaflow.core.services.profile_service import ProfileService
 from rivaflow.core.dependencies import get_current_user
+from rivaflow.core.exceptions import ValidationError, NotFoundError
 
 router = APIRouter()
 service = ProfileService()
@@ -78,5 +79,6 @@ async def update_profile(profile: ProfileUpdate, current_user: dict = Depends(ge
             show_weekly_goals=profile.show_weekly_goals,
         )
         return updated
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    # Global error handler will catch unexpected exceptions
+
+    pass

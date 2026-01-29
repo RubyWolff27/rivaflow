@@ -8,6 +8,7 @@ from slowapi.util import get_remote_address
 from rivaflow.core.services.auth_service import AuthService
 from rivaflow.core.dependencies import get_current_user
 from rivaflow.core.error_handling import handle_service_error
+from rivaflow.core.exceptions import ValidationError
 
 logger = logging.getLogger(__name__)
 
@@ -78,10 +79,7 @@ async def register(request: Request, req: RegisterRequest):
         return result
     except ValueError as e:
         # ValueError contains user-facing validation messages
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=str(e),
-        )
+        raise ValidationError(str(e))
     except Exception as e:
         error_msg = handle_service_error(e, "Registration failed", operation="register")
         raise HTTPException(
@@ -276,10 +274,7 @@ async def reset_password(req: ResetPasswordRequest, request: Request):
             )
 
     except ValueError as e:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=str(e)
-        )
+        raise ValidationError(str(e))
     except Exception as e:
         error_msg = handle_service_error(e, "Password reset failed", operation="reset_password")
         raise HTTPException(

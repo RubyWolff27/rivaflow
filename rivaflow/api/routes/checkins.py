@@ -6,6 +6,7 @@ from pydantic import BaseModel
 
 from rivaflow.db.repositories.checkin_repo import CheckinRepository
 from rivaflow.core.dependencies import get_current_user
+from rivaflow.core.exceptions import NotFoundError
 
 router = APIRouter(prefix="/checkins", tags=["checkins"])
 
@@ -61,7 +62,7 @@ def update_tomorrow_intention(data: TomorrowIntentionUpdate, current_user: dict 
     # Check if today's check-in exists
     checkin = repo.get_checkin(user_id=current_user["id"], check_date=today)
     if not checkin:
-        raise HTTPException(status_code=404, detail="No check-in found for today")
+        raise NotFoundError("No check-in found for today")
 
     # Update tomorrow's intention
     repo.update_tomorrow_intention(user_id=current_user["id"], check_date=today, tomorrow_intention=data.tomorrow_intention)

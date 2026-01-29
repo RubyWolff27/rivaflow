@@ -1,13 +1,13 @@
 """Movements glossary endpoints."""
 import logging
-from fastapi import APIRouter, HTTPException, Query, Depends
+from fastapi import APIRouter, Query, Depends
 from pydantic import BaseModel
 from typing import Optional, List
 
 from rivaflow.core.services.glossary_service import GlossaryService
 from rivaflow.core.dependencies import get_current_user
+from rivaflow.core.exceptions import ValidationError, NotFoundError
 from rivaflow.core.validation import validate_video_url
-from rivaflow.core.error_handling import handle_service_error
 
 logger = logging.getLogger(__name__)
 
@@ -65,7 +65,7 @@ async def get_movement(movement_id: int, include_videos: bool = Query(True, desc
     """Get a specific movement by ID with optional video links."""
     movement = service.get_movement(user_id=current_user["id"], movement_id=movement_id, include_custom_videos=include_videos)
     if not movement:
-        raise HTTPException(status_code=404, detail="Movement not found")
+        raise NotFoundError("Movement not found")
     return movement
 
 
@@ -85,8 +85,9 @@ async def create_custom_movement(movement: MovementCreate, current_user: dict = 
             nogi_applicable=movement.nogi_applicable,
         )
         return created
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    # Global error handler will catch unexpected exceptions
+
+    pass
 
 
 @router.delete("/{movement_id}")
@@ -94,10 +95,7 @@ async def delete_custom_movement(movement_id: int, current_user: dict = Depends(
     """Delete a custom movement. Can only delete custom movements."""
     deleted = service.delete_custom_movement(user_id=current_user["id"], movement_id=movement_id)
     if not deleted:
-        raise HTTPException(
-            status_code=404,
-            detail="Movement not found or cannot delete seeded movements"
-        )
+        raise NotFoundError("Movement not found or cannot delete seeded movements")
     return {"message": "Movement deleted successfully"}
 
 
@@ -108,22 +106,17 @@ async def add_custom_video(movement_id: int, video: CustomVideoCreate, current_u
     try:
         validate_video_url(video.url)
     except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        raise ValidationError(str(e))
 
-    try:
-        created = service.add_custom_video(
-            user_id=current_user["id"],
-            movement_id=movement_id,
-            url=video.url,
-            title=video.title,
-            video_type=video.video_type,
-        )
-        return created
-    except Exception as e:
-        error_msg = handle_service_error(
-            e, "Failed to add video", user_id=current_user["id"], operation="add_custom_video"
-        )
-        raise HTTPException(status_code=500, detail=error_msg)
+    created = service.add_custom_video(
+        user_id=current_user["id"],
+        movement_id=movement_id,
+        url=video.url,
+        title=video.title,
+        video_type=video.video_type,
+    )
+    return created
+    # Global error handler will catch unexpected exceptions
 
 
 @router.delete("/{movement_id}/videos/{video_id}")
@@ -131,5 +124,5 @@ async def delete_custom_video(movement_id: int, video_id: int, current_user: dic
     """Delete a custom video link."""
     deleted = service.delete_custom_video(user_id=current_user["id"], video_id=video_id)
     if not deleted:
-        raise HTTPException(status_code=404, detail="Video not found")
+        raise NotFoundError("Video not found")
     return {"message": "Video deleted successfully"}

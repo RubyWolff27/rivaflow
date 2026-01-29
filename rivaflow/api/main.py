@@ -8,8 +8,15 @@ from fastapi.responses import FileResponse
 from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
+from fastapi.exceptions import RequestValidationError
 
 from rivaflow.api.routes import sessions, readiness, reports, suggestions, techniques, videos, profile, gradings, glossary, contacts, analytics, goals, checkins, streaks, milestones, auth, rest, feed, photos, social, chat, llm_tools
+from rivaflow.core.exceptions import RivaFlowException
+from rivaflow.api.middleware.error_handler import (
+    rivaflow_exception_handler,
+    validation_exception_handler,
+    generic_exception_handler,
+)
 
 # Initialize rate limiter
 limiter = Limiter(key_func=get_remote_address)
@@ -23,6 +30,11 @@ app = FastAPI(
 # Add rate limiter to app state
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+
+# Register custom error handlers
+app.add_exception_handler(RivaFlowException, rivaflow_exception_handler)
+app.add_exception_handler(RequestValidationError, validation_exception_handler)
+app.add_exception_handler(Exception, generic_exception_handler)
 
 # CORS configuration - read from environment or use defaults
 allowed_origins_str = os.getenv("ALLOWED_ORIGINS", "")

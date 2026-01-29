@@ -1,10 +1,11 @@
 """Grading/belt progression endpoints."""
-from fastapi import APIRouter, HTTPException, Depends
+from fastapi import APIRouter, Depends
 from pydantic import BaseModel
 from typing import Optional
 
 from rivaflow.core.services.grading_service import GradingService
 from rivaflow.core.dependencies import get_current_user
+from rivaflow.core.exceptions import ValidationError, NotFoundError
 
 router = APIRouter()
 service = GradingService()
@@ -45,8 +46,9 @@ async def create_grading(grading: GradingCreate, current_user: dict = Depends(ge
             notes=grading.notes,
         )
         return created
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    # Global error handler will catch unexpected exceptions
+
+    pass
 
 
 @router.get("/latest")
@@ -71,12 +73,13 @@ async def update_grading(grading_id: int, grading: GradingUpdate, current_user: 
             notes=grading.notes,
         )
         if not updated:
-            raise HTTPException(status_code=404, detail="Grading not found")
+            raise NotFoundError("Grading not found")
         return updated
     except HTTPException:
         raise
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    # Global error handler will catch unexpected exceptions
+
+    pass
 
 
 @router.delete("/{grading_id}")
@@ -84,5 +87,5 @@ async def delete_grading(grading_id: int, current_user: dict = Depends(get_curre
     """Delete a grading by ID."""
     deleted = service.delete_grading(user_id=current_user["id"], grading_id=grading_id)
     if not deleted:
-        raise HTTPException(status_code=404, detail="Grading not found")
+        raise NotFoundError("Grading not found")
     return {"message": "Grading deleted successfully"}

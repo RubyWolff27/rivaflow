@@ -1,10 +1,11 @@
 """Contacts (training partners and instructors) endpoints."""
-from fastapi import APIRouter, HTTPException, Query, Depends
+from fastapi import APIRouter, Query, Depends
 from pydantic import BaseModel
 from typing import Optional
 
 from rivaflow.core.services.contact_service import ContactService
 from rivaflow.core.dependencies import get_current_user
+from rivaflow.core.exceptions import NotFoundError
 
 router = APIRouter()
 service = ContactService()
@@ -69,53 +70,46 @@ async def get_contact(contact_id: int, current_user: dict = Depends(get_current_
     """Get a specific contact by ID."""
     contact = service.get_contact(user_id=current_user["id"], contact_id=contact_id)
     if not contact:
-        raise HTTPException(status_code=404, detail="Contact not found")
+        raise NotFoundError("Contact not found")
     return contact
 
 
 @router.post("/")
 async def create_contact(contact: ContactCreate, current_user: dict = Depends(get_current_user)):
     """Create a new contact."""
-    try:
-        created = service.create_contact(
-            user_id=current_user["id"],
-            name=contact.name,
-            contact_type=contact.contact_type,
-            belt_rank=contact.belt_rank,
-            belt_stripes=contact.belt_stripes,
-            instructor_certification=contact.instructor_certification,
-            phone=contact.phone,
-            email=contact.email,
-            notes=contact.notes,
-        )
-        return created
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    # Let exceptions bubble up - global handler will catch them
+    created = service.create_contact(
+        user_id=current_user["id"],
+        name=contact.name,
+        contact_type=contact.contact_type,
+        belt_rank=contact.belt_rank,
+        belt_stripes=contact.belt_stripes,
+        instructor_certification=contact.instructor_certification,
+        phone=contact.phone,
+        email=contact.email,
+        notes=contact.notes,
+    )
+    return created
 
 
 @router.put("/{contact_id}")
 async def update_contact(contact_id: int, contact: ContactUpdate, current_user: dict = Depends(get_current_user)):
     """Update a contact."""
-    try:
-        updated = service.update_contact(
-            user_id=current_user["id"],
-            contact_id=contact_id,
-            name=contact.name,
-            contact_type=contact.contact_type,
-            belt_rank=contact.belt_rank,
-            belt_stripes=contact.belt_stripes,
-            instructor_certification=contact.instructor_certification,
-            phone=contact.phone,
-            email=contact.email,
-            notes=contact.notes,
-        )
-        if not updated:
-            raise HTTPException(status_code=404, detail="Contact not found")
-        return updated
-    except HTTPException:
-        raise
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    updated = service.update_contact(
+        user_id=current_user["id"],
+        contact_id=contact_id,
+        name=contact.name,
+        contact_type=contact.contact_type,
+        belt_rank=contact.belt_rank,
+        belt_stripes=contact.belt_stripes,
+        instructor_certification=contact.instructor_certification,
+        phone=contact.phone,
+        email=contact.email,
+        notes=contact.notes,
+    )
+    if not updated:
+        raise NotFoundError("Contact not found")
+    return updated
 
 
 @router.delete("/{contact_id}")
@@ -123,5 +117,5 @@ async def delete_contact(contact_id: int, current_user: dict = Depends(get_curre
     """Delete a contact."""
     deleted = service.delete_contact(user_id=current_user["id"], contact_id=contact_id)
     if not deleted:
-        raise HTTPException(status_code=404, detail="Contact not found")
+        raise NotFoundError("Contact not found")
     return {"message": "Contact deleted successfully"}

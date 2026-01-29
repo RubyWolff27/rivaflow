@@ -1,5 +1,5 @@
 """Session management endpoints."""
-from fastapi import APIRouter, HTTPException, Depends, Query
+from fastapi import APIRouter, Depends, Query
 from datetime import date
 from typing import Optional
 
@@ -7,6 +7,7 @@ from rivaflow.core.services.session_service import SessionService
 from rivaflow.core.services.privacy_service import PrivacyService
 from rivaflow.core.models import SessionCreate, SessionUpdate
 from rivaflow.core.dependencies import get_current_user
+from rivaflow.core.exceptions import ValidationError, NotFoundError, AuthorizationError
 
 router = APIRouter()
 service = SessionService()
@@ -53,8 +54,9 @@ async def create_session(session: SessionCreate, current_user: dict = Depends(ge
         )
         created_session = service.get_session(user_id=current_user["id"], session_id=session_id)
         return created_session
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    # Global error handler will catch unexpected exceptions
+
+    pass
 
 
 @router.put("/{session_id}")
@@ -92,12 +94,13 @@ async def update_session(session_id: int, session: SessionUpdate, current_user: 
             whoop_max_hr=session.whoop_max_hr,
         )
         if not updated:
-            raise HTTPException(status_code=404, detail="Session not found")
+            raise NotFoundError("Session not found")
         return updated
     except HTTPException:
         raise
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    # Global error handler will catch unexpected exceptions
+
+    pass
 
 
 @router.delete("/{session_id}")
@@ -105,7 +108,7 @@ async def delete_session(session_id: int, current_user: dict = Depends(get_curre
     """Delete a training session."""
     deleted = service.delete_session(user_id=current_user["id"], session_id=session_id)
     if not deleted:
-        raise HTTPException(status_code=404, detail="Session not found")
+        raise NotFoundError("Session not found")
     return {"message": "Session deleted successfully"}
 
 
@@ -121,14 +124,14 @@ async def get_session(session_id: int, apply_privacy: bool = False, current_user
     """
     session = service.get_session(user_id=current_user["id"], session_id=session_id)
     if not session:
-        raise HTTPException(status_code=404, detail="Session not found")
+        raise NotFoundError("Session not found")
 
     # Apply privacy redaction if requested (for future social features)
     if apply_privacy:
         visibility = session.get("visibility_level", "private")
         session = PrivacyService.redact_session(session, visibility=visibility)
         if session is None:
-            raise HTTPException(status_code=403, detail="Session is private")
+            raise AuthorizationError("Session is private")
 
     return session
 
@@ -197,13 +200,13 @@ async def get_session_with_rolls(session_id: int, apply_privacy: bool = False, c
     """
     session = service.get_session_with_rolls(user_id=current_user["id"], session_id=session_id)
     if not session:
-        raise HTTPException(status_code=404, detail="Session not found")
+        raise NotFoundError("Session not found")
 
     if apply_privacy:
         visibility = session.get("visibility_level", "private")
         session = PrivacyService.redact_session(session, visibility=visibility)
         if session is None:
-            raise HTTPException(status_code=403, detail="Session is private")
+            raise AuthorizationError("Session is private")
 
     return session
 
@@ -214,5 +217,6 @@ async def get_partner_stats(partner_id: int, current_user: dict = Depends(get_cu
     try:
         stats = service.get_partner_stats(user_id=current_user["id"], partner_id=partner_id)
         return stats
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    # Global error handler will catch unexpected exceptions
+
+    pass

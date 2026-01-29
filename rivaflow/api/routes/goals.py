@@ -1,10 +1,11 @@
 """Weekly goals and streak tracking endpoints."""
-from fastapi import APIRouter, HTTPException, Depends
+from fastapi import APIRouter, Depends
 from pydantic import BaseModel
 from typing import Optional
 
 from rivaflow.core.services.goals_service import GoalsService
 from rivaflow.core.dependencies import get_current_user
+from rivaflow.core.exceptions import ValidationError, NotFoundError
 
 router = APIRouter()
 service = GoalsService()
@@ -30,8 +31,9 @@ async def get_current_week_progress(current_user: dict = Depends(get_current_use
     """
     try:
         return service.get_current_week_progress(user_id=current_user["id"])
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    # Global error handler will catch unexpected exceptions
+
+    pass
 
 
 @router.get("/summary")
@@ -46,8 +48,9 @@ async def get_goals_summary(current_user: dict = Depends(get_current_user)):
     """
     try:
         return service.get_goals_summary(user_id=current_user["id"])
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    # Global error handler will catch unexpected exceptions
+
+    pass
 
 
 @router.get("/streaks/training")
@@ -55,8 +58,9 @@ async def get_training_streaks(current_user: dict = Depends(get_current_user)):
     """Get training session streaks (consecutive days trained)."""
     try:
         return service.get_training_streaks(user_id=current_user["id"])
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    # Global error handler will catch unexpected exceptions
+
+    pass
 
 
 @router.get("/streaks/goals")
@@ -64,8 +68,9 @@ async def get_goal_completion_streaks(current_user: dict = Depends(get_current_u
     """Get weekly goal completion streaks."""
     try:
         return service.get_goal_completion_streak(user_id=current_user["id"])
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    # Global error handler will catch unexpected exceptions
+
+    pass
 
 
 @router.get("/trend")
@@ -77,12 +82,13 @@ async def get_recent_trend(weeks: int = 12, current_user: dict = Depends(get_cur
     """
     try:
         if weeks < 1 or weeks > 52:
-            raise HTTPException(status_code=400, detail="Weeks must be between 1 and 52")
+            raise ValidationError("Weeks must be between 1 and 52")
         return service.get_recent_weeks_trend(user_id=current_user["id"], weeks=weeks)
     except HTTPException:
         raise
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    # Global error handler will catch unexpected exceptions
+
+    pass
 
 
 @router.put("/targets")
@@ -104,5 +110,6 @@ async def update_goal_targets(targets: GoalTargetsUpdate, current_user: dict = D
             weekly_rolls_target=targets.weekly_rolls_target,
         )
         return profile
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    # Global error handler will catch unexpected exceptions
+
+    pass

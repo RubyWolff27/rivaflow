@@ -1,10 +1,11 @@
 """Technique management endpoints."""
-from fastapi import APIRouter, HTTPException, Depends
+from fastapi import APIRouter, Depends
 from typing import Optional
 
 from rivaflow.core.services.technique_service import TechniqueService
 from rivaflow.core.models import TechniqueCreate
 from rivaflow.core.dependencies import get_current_user
+from rivaflow.core.exceptions import ValidationError, NotFoundError
 
 router = APIRouter()
 service = TechniqueService()
@@ -21,8 +22,9 @@ async def add_technique(technique: TechniqueCreate, current_user: dict = Depends
         )
         created_technique = service.get_technique(user_id=current_user["id"], technique_id=technique_id)
         return created_technique
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    # Global error handler will catch unexpected exceptions
+
+    pass
 
 
 @router.get("/")
@@ -48,5 +50,5 @@ async def get_technique(technique_id: int, current_user: dict = Depends(get_curr
     """Get a technique by ID."""
     technique = service.get_technique(user_id=current_user["id"], technique_id=technique_id)
     if not technique:
-        raise HTTPException(status_code=404, detail="Technique not found")
+        raise NotFoundError("Technique not found")
     return technique

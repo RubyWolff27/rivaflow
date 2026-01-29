@@ -1,11 +1,12 @@
 """Social features API routes (relationships, likes, comments)."""
-from fastapi import APIRouter, HTTPException, Depends, Path, Body
+from fastapi import APIRouter, Depends, Path, Body
 from pydantic import BaseModel, Field
 from typing import Optional
 
 from rivaflow.core.services.social_service import SocialService
 from rivaflow.core.dependencies import get_current_user
 from rivaflow.db.repositories.user_repo import UserRepository
+from rivaflow.core.exceptions import ValidationError, NotFoundError
 
 router = APIRouter(prefix="/social", tags=["social"])
 
@@ -60,9 +61,10 @@ async def follow_user(user_id: int = Path(..., gt=0), current_user: dict = Depen
         relationship = SocialService.follow_user(current_user["id"], user_id)
         return {"success": True, "relationship": relationship}
     except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+
+        raise ValidationError(str(e))
+
+    # All other exceptions handled by global error handler
 
 
 @router.delete("/follow/{user_id}")
@@ -82,8 +84,9 @@ async def unfollow_user(user_id: int = Path(..., gt=0), current_user: dict = Dep
     try:
         success = SocialService.unfollow_user(current_user["id"], user_id)
         return {"success": success}
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    # Global error handler will catch unexpected exceptions
+
+    pass
 
 
 @router.get("/followers")
@@ -100,8 +103,9 @@ async def get_followers(current_user: dict = Depends(get_current_user)):
             "followers": followers,
             "count": len(followers),
         }
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    # Global error handler will catch unexpected exceptions
+
+    pass
 
 
 @router.get("/following")
@@ -118,8 +122,9 @@ async def get_following(current_user: dict = Depends(get_current_user)):
             "following": following,
             "count": len(following),
         }
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    # Global error handler will catch unexpected exceptions
+
+    pass
 
 
 @router.get("/following/{user_id}")
@@ -136,8 +141,9 @@ async def check_following(user_id: int = Path(..., gt=0), current_user: dict = D
     try:
         is_following = SocialService.is_following(current_user["id"], user_id)
         return {"is_following": is_following}
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    # Global error handler will catch unexpected exceptions
+
+    pass
 
 
 # Like endpoints
@@ -162,9 +168,10 @@ async def like_activity(request: LikeRequest, current_user: dict = Depends(get_c
         )
         return {"success": True, "like": like}
     except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+
+        raise ValidationError(str(e))
+
+    # All other exceptions handled by global error handler
 
 
 @router.delete("/like")
@@ -183,8 +190,9 @@ async def unlike_activity(request: UnlikeRequest, current_user: dict = Depends(g
             current_user["id"], request.activity_type, request.activity_id
         )
         return {"success": success}
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    # Global error handler will catch unexpected exceptions
+
+    pass
 
 
 @router.get("/likes/{activity_type}/{activity_id}")
@@ -209,8 +217,9 @@ async def get_activity_likes(
             "likes": likes,
             "count": len(likes),
         }
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    # Global error handler will catch unexpected exceptions
+
+    pass
 
 
 # Comment endpoints
@@ -239,9 +248,10 @@ async def add_comment(request: CommentRequest, current_user: dict = Depends(get_
         )
         return {"success": True, "comment": comment}
     except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+
+        raise ValidationError(str(e))
+
+    # All other exceptions handled by global error handler
 
 
 @router.put("/comment/{comment_id}")
@@ -268,14 +278,15 @@ async def update_comment(
     try:
         comment = SocialService.update_comment(comment_id, current_user["id"], request.comment_text)
         if not comment:
-            raise HTTPException(status_code=404, detail="Comment not found or you don't own it")
+            raise NotFoundError("Comment not found or you don't own it")
         return {"success": True, "comment": comment}
     except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        raise ValidationError(str(e))
     except HTTPException:
         raise
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    # Global error handler will catch unexpected exceptions
+
+    pass
 
 
 @router.delete("/comment/{comment_id}")
@@ -296,12 +307,13 @@ async def delete_comment(comment_id: int = Path(..., gt=0), current_user: dict =
     try:
         success = SocialService.delete_comment(comment_id, current_user["id"])
         if not success:
-            raise HTTPException(status_code=404, detail="Comment not found or you don't own it")
+            raise NotFoundError("Comment not found or you don't own it")
         return {"success": True}
     except HTTPException:
         raise
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    # Global error handler will catch unexpected exceptions
+
+    pass
 
 
 @router.get("/comments/{activity_type}/{activity_id}")
@@ -326,8 +338,9 @@ async def get_activity_comments(
             "comments": comments,
             "count": len(comments),
         }
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    # Global error handler will catch unexpected exceptions
+
+    pass
 
 
 # User search endpoint
@@ -367,5 +380,6 @@ async def search_users(q: str = "", current_user: dict = Depends(get_current_use
             "users": filtered_users[:20],  # Limit to 20 results
             "count": len(filtered_users[:20]),
         }
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    # Global error handler will catch unexpected exceptions
+
+    pass

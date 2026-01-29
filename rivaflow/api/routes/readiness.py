@@ -1,10 +1,11 @@
 """Readiness check-in endpoints."""
-from fastapi import APIRouter, HTTPException, Depends
+from fastapi import APIRouter, Depends
 from datetime import date
 
 from rivaflow.core.services.readiness_service import ReadinessService
 from rivaflow.core.models import ReadinessCreate
 from rivaflow.core.dependencies import get_current_user
+from rivaflow.core.exceptions import ValidationError, NotFoundError
 
 router = APIRouter()
 service = ReadinessService()
@@ -26,8 +27,9 @@ async def log_readiness(readiness: ReadinessCreate, current_user: dict = Depends
         )
         entry = service.get_readiness(user_id=current_user["id"], check_date=readiness.check_date)
         return entry
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    # Global error handler will catch unexpected exceptions
+
+    pass
 
 
 @router.get("/latest")
@@ -44,7 +46,7 @@ async def get_readiness(check_date: date, current_user: dict = Depends(get_curre
     """Get readiness for a specific date."""
     entry = service.get_readiness(user_id=current_user["id"], check_date=check_date)
     if not entry:
-        raise HTTPException(status_code=404, detail="Readiness entry not found")
+        raise NotFoundError("Readiness entry not found")
     return entry
 
 
@@ -62,14 +64,15 @@ async def log_weight_only(data: dict, current_user: dict = Depends(get_current_u
         weight_kg = float(data["weight_kg"])
 
         if weight_kg < 30 or weight_kg > 300:
-            raise HTTPException(status_code=400, detail="Weight must be between 30 and 300 kg")
+            raise ValidationError("Weight must be between 30 and 300 kg")
 
         readiness_id = service.log_weight_only(user_id=current_user["id"], check_date=check_date, weight_kg=weight_kg)
         entry = service.get_readiness(user_id=current_user["id"], check_date=check_date)
         return entry
     except KeyError:
-        raise HTTPException(status_code=400, detail="weight_kg is required")
+        raise ValidationError("weight_kg is required")
     except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        raise ValidationError(str(e))
+    # Global error handler will catch unexpected exceptions
+
+    pass
