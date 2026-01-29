@@ -8,7 +8,7 @@ from rivaflow.db.repositories import (
     SessionRepository,
     ReadinessRepository,
     SessionRollRepository,
-    ContactRepository,
+    FriendRepository,
     GradingRepository,
     GlossaryRepository,
 )
