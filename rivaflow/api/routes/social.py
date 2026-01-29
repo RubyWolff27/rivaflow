@@ -81,12 +81,8 @@ async def unfollow_user(user_id: int = Path(..., gt=0), current_user: dict = Dep
     Raises:
         500: Database error
     """
-    try:
-        success = SocialService.unfollow_user(current_user["id"], user_id)
-        return {"success": success}
-    # Global error handler will catch unexpected exceptions
-
-    pass
+    success = SocialService.unfollow_user(current_user["id"], user_id)
+    return {"success": success}
 
 
 @router.get("/followers")
@@ -97,15 +93,11 @@ async def get_followers(current_user: dict = Depends(get_current_user)):
     Returns:
         List of follower users with basic info
     """
-    try:
-        followers = SocialService.get_followers(current_user["id"])
-        return {
-            "followers": followers,
-            "count": len(followers),
-        }
-    # Global error handler will catch unexpected exceptions
-
-    pass
+    followers = SocialService.get_followers(current_user["id"])
+    return {
+        "followers": followers,
+        "count": len(followers),
+    }
 
 
 @router.get("/following")
@@ -116,15 +108,11 @@ async def get_following(current_user: dict = Depends(get_current_user)):
     Returns:
         List of followed users with basic info
     """
-    try:
-        following = SocialService.get_following(current_user["id"])
-        return {
-            "following": following,
-            "count": len(following),
-        }
-    # Global error handler will catch unexpected exceptions
-
-    pass
+    following = SocialService.get_following(current_user["id"])
+    return {
+        "following": following,
+        "count": len(following),
+    }
 
 
 @router.get("/following/{user_id}")
@@ -138,12 +126,8 @@ async def check_following(user_id: int = Path(..., gt=0), current_user: dict = D
     Returns:
         is_following status
     """
-    try:
-        is_following = SocialService.is_following(current_user["id"], user_id)
-        return {"is_following": is_following}
-    # Global error handler will catch unexpected exceptions
-
-    pass
+    is_following = SocialService.is_following(current_user["id"], user_id)
+    return {"is_following": is_following}
 
 
 # Like endpoints
@@ -185,14 +169,10 @@ async def unlike_activity(request: UnlikeRequest, current_user: dict = Depends(g
     Returns:
         Success status
     """
-    try:
-        success = SocialService.unlike_activity(
-            current_user["id"], request.activity_type, request.activity_id
-        )
-        return {"success": success}
-    # Global error handler will catch unexpected exceptions
-
-    pass
+    success = SocialService.unlike_activity(
+        current_user["id"], request.activity_type, request.activity_id
+    )
+    return {"success": success}
 
 
 @router.get("/likes/{activity_type}/{activity_id}")
@@ -211,15 +191,11 @@ async def get_activity_likes(
     Returns:
         List of likes with user info
     """
-    try:
-        likes = SocialService.get_activity_likes(activity_type, activity_id)
-        return {
-            "likes": likes,
-            "count": len(likes),
-        }
-    # Global error handler will catch unexpected exceptions
-
-    pass
+    likes = SocialService.get_activity_likes(activity_type, activity_id)
+    return {
+        "likes": likes,
+        "count": len(likes),
+    }
 
 
 # Comment endpoints
@@ -284,9 +260,6 @@ async def update_comment(
         raise ValidationError(str(e))
     except HTTPException:
         raise
-    # Global error handler will catch unexpected exceptions
-
-    pass
 
 
 @router.delete("/comment/{comment_id}")
@@ -311,9 +284,6 @@ async def delete_comment(comment_id: int = Path(..., gt=0), current_user: dict =
         return {"success": True}
     except HTTPException:
         raise
-    # Global error handler will catch unexpected exceptions
-
-    pass
 
 
 @router.get("/comments/{activity_type}/{activity_id}")
@@ -332,15 +302,11 @@ async def get_activity_comments(
     Returns:
         List of comments with user info
     """
-    try:
-        comments = SocialService.get_activity_comments(activity_type, activity_id)
-        return {
-            "comments": comments,
-            "count": len(comments),
-        }
-    # Global error handler will catch unexpected exceptions
-
-    pass
+    comments = SocialService.get_activity_comments(activity_type, activity_id)
+    return {
+        "comments": comments,
+        "count": len(comments),
+    }
 
 
 # User search endpoint
@@ -355,31 +321,27 @@ async def search_users(q: str = "", current_user: dict = Depends(get_current_use
     Returns:
         List of users with follow status
     """
-    try:
-        if not q or len(q) < 2:
-            return {"users": []}
+    if not q or len(q) < 2:
+        return {"users": []}
 
-        # Get all users (simple implementation for now)
-        all_users = UserRepository.list_all()
+    # Get all users (simple implementation for now)
+    all_users = UserRepository.list_all()
 
-        # Filter by query (case-insensitive search in first_name, last_name, email)
-        query_lower = q.lower()
-        filtered_users = [
-            user for user in all_users
-            if (query_lower in user.get('first_name', '').lower() or
-                query_lower in user.get('last_name', '').lower() or
-                query_lower in user.get('email', '').lower())
-            and user['id'] != current_user['id']  # Exclude current user
-        ]
+    # Filter by query (case-insensitive search in first_name, last_name, email)
+    query_lower = q.lower()
+    filtered_users = [
+        user for user in all_users
+        if (query_lower in user.get('first_name', '').lower() or
+            query_lower in user.get('last_name', '').lower() or
+            query_lower in user.get('email', '').lower())
+        and user['id'] != current_user['id']  # Exclude current user
+    ]
 
-        # Add follow status for each user
-        for user in filtered_users:
-            user['is_following'] = SocialService.is_following(current_user['id'], user['id'])
+    # Add follow status for each user
+    for user in filtered_users:
+        user['is_following'] = SocialService.is_following(current_user['id'], user['id'])
 
-        return {
-            "users": filtered_users[:20],  # Limit to 20 results
-            "count": len(filtered_users[:20]),
-        }
-    # Global error handler will catch unexpected exceptions
-
-    pass
+    return {
+        "users": filtered_users[:20],  # Limit to 20 results
+        "count": len(filtered_users[:20]),
+    }

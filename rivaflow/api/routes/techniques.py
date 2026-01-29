@@ -14,17 +14,13 @@ service = TechniqueService()
 @router.post("/")
 async def add_technique(technique: TechniqueCreate, current_user: dict = Depends(get_current_user)):
     """Add a new technique."""
-    try:
-        technique_id = service.add_technique(
-            user_id=current_user["id"],
-            name=technique.name,
-            category=technique.category,
-        )
-        created_technique = service.get_technique(user_id=current_user["id"], technique_id=technique_id)
-        return created_technique
-    # Global error handler will catch unexpected exceptions
-
-    pass
+    technique_id = service.add_technique(
+        user_id=current_user["id"],
+        name=technique.name,
+        category=technique.category,
+    )
+    created_technique = service.get_technique(user_id=current_user["id"], technique_id=technique_id)
+    return created_technique
 
 
 @router.get("/")

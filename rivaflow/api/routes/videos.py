@@ -14,33 +14,29 @@ service = VideoService()
 @router.post("/")
 async def add_video(video: VideoCreate, current_user: dict = Depends(get_current_user)):
     """Add a new video."""
-    try:
-        # Convert technique_id to technique_name if provided
-        technique_name = None
-        if video.technique_id:
-            from rivaflow.db.repositories import TechniqueRepository
-            tech_repo = TechniqueRepository()
-            tech = tech_repo.get_by_id(video.technique_id)
-            if tech:
-                technique_name = tech["name"]
+    # Convert technique_id to technique_name if provided
+    technique_name = None
+    if video.technique_id:
+        from rivaflow.db.repositories import TechniqueRepository
+        tech_repo = TechniqueRepository()
+        tech = tech_repo.get_by_id(video.technique_id)
+        if tech:
+            technique_name = tech["name"]
 
-        # Convert timestamps to dict format
-        timestamps = None
-        if video.timestamps:
-            timestamps = [{"time": ts.time, "label": ts.label} for ts in video.timestamps]
+    # Convert timestamps to dict format
+    timestamps = None
+    if video.timestamps:
+        timestamps = [{"time": ts.time, "label": ts.label} for ts in video.timestamps]
 
-        video_id = service.add_video(
-            user_id=current_user["id"],
-            url=video.url,
-            title=video.title,
-            timestamps=timestamps,
-            technique_name=technique_name,
-        )
-        created_video = service.get_video(user_id=current_user["id"], video_id=video_id)
-        return created_video
-    # Global error handler will catch unexpected exceptions
-
-    pass
+    video_id = service.add_video(
+        user_id=current_user["id"],
+        url=video.url,
+        title=video.title,
+        timestamps=timestamps,
+        technique_name=technique_name,
+    )
+    created_video = service.get_video(user_id=current_user["id"], video_id=video_id)
+    return created_video
 
 
 @router.get("/")
@@ -64,12 +60,8 @@ async def search_videos(q: str, current_user: dict = Depends(get_current_user)):
 @router.delete("/{video_id}")
 async def delete_video(video_id: int, current_user: dict = Depends(get_current_user)):
     """Delete a video."""
-    try:
-        service.delete_video(user_id=current_user["id"], video_id=video_id)
-        return {"status": "deleted", "video_id": video_id}
-    # Global error handler will catch unexpected exceptions
-
-    pass
+    service.delete_video(user_id=current_user["id"], video_id=video_id)
+    return {"status": "deleted", "video_id": video_id}
 
 
 @router.get("/{video_id}")

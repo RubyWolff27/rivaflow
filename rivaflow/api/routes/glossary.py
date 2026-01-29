@@ -72,22 +72,18 @@ async def get_movement(movement_id: int, include_videos: bool = Query(True, desc
 @router.post("/")
 async def create_custom_movement(movement: MovementCreate, current_user: dict = Depends(get_current_user)):
     """Create a custom user-added movement."""
-    try:
-        created = service.create_custom_movement(
-            user_id=current_user["id"],
-            name=movement.name,
-            category=movement.category,
-            subcategory=movement.subcategory,
-            points=movement.points,
-            description=movement.description,
-            aliases=movement.aliases,
-            gi_applicable=movement.gi_applicable,
-            nogi_applicable=movement.nogi_applicable,
-        )
-        return created
-    # Global error handler will catch unexpected exceptions
-
-    pass
+    created = service.create_custom_movement(
+        user_id=current_user["id"],
+        name=movement.name,
+        category=movement.category,
+        subcategory=movement.subcategory,
+        points=movement.points,
+        description=movement.description,
+        aliases=movement.aliases,
+        gi_applicable=movement.gi_applicable,
+        nogi_applicable=movement.nogi_applicable,
+    )
+    return created
 
 
 @router.delete("/{movement_id}")
@@ -116,9 +112,6 @@ async def add_custom_video(movement_id: int, video: CustomVideoCreate, current_u
         video_type=video.video_type,
     )
     return created
-    # Global error handler will catch unexpected exceptions
-
-
 @router.delete("/{movement_id}/videos/{video_id}")
 async def delete_custom_video(movement_id: int, video_id: int, current_user: dict = Depends(get_current_user)):
     """Delete a custom video link."""

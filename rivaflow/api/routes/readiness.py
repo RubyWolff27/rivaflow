@@ -14,22 +14,18 @@ service = ReadinessService()
 @router.post("/")
 async def log_readiness(readiness: ReadinessCreate, current_user: dict = Depends(get_current_user)):
     """Log daily readiness check-in."""
-    try:
-        readiness_id = service.log_readiness(
-            user_id=current_user["id"],
-            check_date=readiness.check_date,
-            sleep=readiness.sleep,
-            stress=readiness.stress,
-            soreness=readiness.soreness,
-            energy=readiness.energy,
-            hotspot_note=readiness.hotspot_note,
-            weight_kg=readiness.weight_kg,
-        )
-        entry = service.get_readiness(user_id=current_user["id"], check_date=readiness.check_date)
-        return entry
-    # Global error handler will catch unexpected exceptions
-
-    pass
+    readiness_id = service.log_readiness(
+        user_id=current_user["id"],
+        check_date=readiness.check_date,
+        sleep=readiness.sleep,
+        stress=readiness.stress,
+        soreness=readiness.soreness,
+        energy=readiness.energy,
+        hotspot_note=readiness.hotspot_note,
+        weight_kg=readiness.weight_kg,
+    )
+    entry = service.get_readiness(user_id=current_user["id"], check_date=readiness.check_date)
+    return entry
 
 
 @router.get("/latest")
@@ -73,6 +69,3 @@ async def log_weight_only(data: dict, current_user: dict = Depends(get_current_u
         raise ValidationError("weight_kg is required")
     except ValueError as e:
         raise ValidationError(str(e))
-    # Global error handler will catch unexpected exceptions
-
-    pass

@@ -37,18 +37,14 @@ async def list_gradings(current_user: dict = Depends(get_current_user)):
 @router.post("/")
 async def create_grading(grading: GradingCreate, current_user: dict = Depends(get_current_user)):
     """Create a new grading and update the profile's current_grade."""
-    try:
-        created = service.create_grading(
-            user_id=current_user["id"],
-            grade=grading.grade,
-            date_graded=grading.date_graded,
-            professor=grading.professor,
-            notes=grading.notes,
-        )
-        return created
-    # Global error handler will catch unexpected exceptions
-
-    pass
+    created = service.create_grading(
+        user_id=current_user["id"],
+        grade=grading.grade,
+        date_graded=grading.date_graded,
+        professor=grading.professor,
+        notes=grading.notes,
+    )
+    return created
 
 
 @router.get("/latest")
@@ -77,9 +73,6 @@ async def update_grading(grading_id: int, grading: GradingUpdate, current_user: 
         return updated
     except HTTPException:
         raise
-    # Global error handler will catch unexpected exceptions
-
-    pass
 
 
 @router.delete("/{grading_id}")

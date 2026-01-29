@@ -57,28 +57,24 @@ async def get_profile(current_user: dict = Depends(get_current_user)):
 @router.put("/")
 async def update_profile(profile: ProfileUpdate, current_user: dict = Depends(get_current_user)):
     """Update the user profile."""
-    try:
-        updated = service.update_profile(
-            user_id=current_user["id"],
-            first_name=profile.first_name,
-            last_name=profile.last_name,
-            date_of_birth=profile.date_of_birth,
-            sex=profile.sex,
-            city=profile.city,
-            state=profile.state,
-            default_gym=profile.default_gym,
-            current_grade=profile.current_grade,
-            current_professor=profile.current_professor,
-            current_instructor_id=profile.current_instructor_id,
-            height_cm=profile.height_cm,
-            target_weight_kg=profile.target_weight_kg,
-            weekly_sessions_target=profile.weekly_sessions_target,
-            weekly_hours_target=profile.weekly_hours_target,
-            weekly_rolls_target=profile.weekly_rolls_target,
-            show_streak_on_dashboard=profile.show_streak_on_dashboard,
-            show_weekly_goals=profile.show_weekly_goals,
-        )
-        return updated
-    # Global error handler will catch unexpected exceptions
-
-    pass
+    updated = service.update_profile(
+        user_id=current_user["id"],
+        first_name=profile.first_name,
+        last_name=profile.last_name,
+        date_of_birth=profile.date_of_birth,
+        sex=profile.sex,
+        city=profile.city,
+        state=profile.state,
+        default_gym=profile.default_gym,
+        current_grade=profile.current_grade,
+        current_professor=profile.current_professor,
+        current_instructor_id=profile.current_instructor_id,
+        height_cm=profile.height_cm,
+        target_weight_kg=profile.target_weight_kg,
+        weekly_sessions_target=profile.weekly_sessions_target,
+        weekly_hours_target=profile.weekly_hours_target,
+        weekly_rolls_target=profile.weekly_rolls_target,
+        show_streak_on_dashboard=profile.show_streak_on_dashboard,
+        show_weekly_goals=profile.show_weekly_goals,
+    )
+    return updated

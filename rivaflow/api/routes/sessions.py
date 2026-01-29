@@ -16,47 +16,43 @@ service = SessionService()
 @router.post("/")
 async def create_session(session: SessionCreate, current_user: dict = Depends(get_current_user)):
     """Create a new training session."""
-    try:
-        # Convert SessionRollData models to dicts if present
-        session_rolls_dict = None
-        if session.session_rolls:
-            session_rolls_dict = [roll.model_dump() for roll in session.session_rolls]
+    # Convert SessionRollData models to dicts if present
+    session_rolls_dict = None
+    if session.session_rolls:
+        session_rolls_dict = [roll.model_dump() for roll in session.session_rolls]
 
-        # Convert SessionTechniqueCreate models to dicts if present
-        session_techniques_dict = None
-        if session.session_techniques:
-            session_techniques_dict = [tech.model_dump() for tech in session.session_techniques]
+    # Convert SessionTechniqueCreate models to dicts if present
+    session_techniques_dict = None
+    if session.session_techniques:
+        session_techniques_dict = [tech.model_dump() for tech in session.session_techniques]
 
-        session_id = service.create_session(
-            user_id=current_user["id"],
-            session_date=session.session_date,
-            class_time=session.class_time,
-            class_type=session.class_type.value,
-            gym_name=session.gym_name,
-            location=session.location,
-            duration_mins=session.duration_mins,
-            intensity=session.intensity,
-            rolls=session.rolls,
-            submissions_for=session.submissions_for,
-            submissions_against=session.submissions_against,
-            partners=session.partners,
-            techniques=session.techniques,
-            notes=session.notes,
-            visibility_level=session.visibility_level.value,
-            instructor_id=session.instructor_id,
-            instructor_name=session.instructor_name,
-            session_rolls=session_rolls_dict,
-            session_techniques=session_techniques_dict,
-            whoop_strain=session.whoop_strain,
-            whoop_calories=session.whoop_calories,
-            whoop_avg_hr=session.whoop_avg_hr,
-            whoop_max_hr=session.whoop_max_hr,
-        )
-        created_session = service.get_session(user_id=current_user["id"], session_id=session_id)
-        return created_session
-    # Global error handler will catch unexpected exceptions
-
-    pass
+    session_id = service.create_session(
+        user_id=current_user["id"],
+        session_date=session.session_date,
+        class_time=session.class_time,
+        class_type=session.class_type.value,
+        gym_name=session.gym_name,
+        location=session.location,
+        duration_mins=session.duration_mins,
+        intensity=session.intensity,
+        rolls=session.rolls,
+        submissions_for=session.submissions_for,
+        submissions_against=session.submissions_against,
+        partners=session.partners,
+        techniques=session.techniques,
+        notes=session.notes,
+        visibility_level=session.visibility_level.value,
+        instructor_id=session.instructor_id,
+        instructor_name=session.instructor_name,
+        session_rolls=session_rolls_dict,
+        session_techniques=session_techniques_dict,
+        whoop_strain=session.whoop_strain,
+        whoop_calories=session.whoop_calories,
+        whoop_avg_hr=session.whoop_avg_hr,
+        whoop_max_hr=session.whoop_max_hr,
+    )
+    created_session = service.get_session(user_id=current_user["id"], session_id=session_id)
+    return created_session
 
 
 @router.put("/{session_id}")
@@ -98,9 +94,6 @@ async def update_session(session_id: int, session: SessionUpdate, current_user: 
         return updated
     except HTTPException:
         raise
-    # Global error handler will catch unexpected exceptions
-
-    pass
 
 
 @router.delete("/{session_id}")
@@ -214,9 +207,5 @@ async def get_session_with_rolls(session_id: int, apply_privacy: bool = False, c
 @router.get("/partner/{partner_id}/stats")
 async def get_partner_stats(partner_id: int, current_user: dict = Depends(get_current_user)):
     """Get training statistics for a specific partner."""
-    try:
-        stats = service.get_partner_stats(user_id=current_user["id"], partner_id=partner_id)
-        return stats
-    # Global error handler will catch unexpected exceptions
-
-    pass
+    stats = service.get_partner_stats(user_id=current_user["id"], partner_id=partner_id)
+    return stats
