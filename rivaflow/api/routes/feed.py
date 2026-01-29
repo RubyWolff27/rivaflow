@@ -14,7 +14,7 @@ router = APIRouter(prefix="/feed", tags=["feed"])
 @router.get("/activity")
 def get_activity_feed(
     limit: int = Query(default=50, ge=1, le=200),
-    offset: int = Query(default=0, ge=0),
+    offset: int = Query(default=0, ge=0, le=10000),
     days_back: Optional[int] = Query(default=30, ge=1, le=365),
     enrich_social: bool = Query(default=False),
     current_user: dict = Depends(get_current_user)
@@ -35,7 +35,7 @@ def get_activity_feed(
 @router.get("/contacts")
 def get_contacts_feed(
     limit: int = Query(default=50, ge=1, le=200),
-    offset: int = Query(default=0, ge=0),
+    offset: int = Query(default=0, ge=0, le=10000),
     days_back: Optional[int] = Query(default=30, ge=1, le=365),
     current_user: dict = Depends(get_current_user)
 ):
