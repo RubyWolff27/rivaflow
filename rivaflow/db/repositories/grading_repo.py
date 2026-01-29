@@ -31,6 +31,15 @@ class GradingRepository:
     @staticmethod
     def list_all(user_id: int, order_by: str = "date_graded DESC") -> List[dict]:
         """Get all gradings, ordered by date (newest first by default)."""
+        # Whitelist allowed ORDER BY values to prevent SQL injection
+        allowed_order = {
+            "date_graded ASC", "date_graded DESC",
+            "grade ASC", "grade DESC",
+            "created_at ASC", "created_at DESC"
+        }
+        if order_by not in allowed_order:
+            order_by = "date_graded DESC"  # Safe default
+
         with get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(f"SELECT * FROM gradings WHERE user_id = %s ORDER BY {order_by}", (user_id,))

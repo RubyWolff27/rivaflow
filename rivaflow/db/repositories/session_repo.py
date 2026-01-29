@@ -37,43 +37,85 @@ class SessionRepository:
     ) -> int:
         """Create a new session and return its ID."""
         with get_connection() as conn:
+            from rivaflow.db.database import DB_TYPE
             cursor = conn.cursor()
-            cursor.execute(
-                """
-                INSERT INTO sessions (
-                    user_id, session_date, class_time, class_type, gym_name, location,
-                    duration_mins, intensity, rolls,
-                    submissions_for, submissions_against,
-                    partners, techniques, notes, visibility_level,
-                    instructor_id, instructor_name,
-                    whoop_strain, whoop_calories, whoop_avg_hr, whoop_max_hr
-                ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-                """,
-                (
-                    user_id,
-                    session_date.isoformat(),
-                    class_time,
-                    class_type,
-                    gym_name,
-                    location,
-                    duration_mins,
-                    intensity,
-                    rolls,
-                    submissions_for,
-                    submissions_against,
-                    json.dumps(partners) if partners else None,
-                    json.dumps(techniques) if techniques else None,
-                    notes,
-                    visibility_level,
-                    instructor_id,
-                    instructor_name,
-                    whoop_strain,
-                    whoop_calories,
-                    whoop_avg_hr,
-                    whoop_max_hr,
-                ),
-            )
-            return cursor.lastrowid
+
+            if DB_TYPE == "postgresql":
+                cursor.execute(
+                    """
+                    INSERT INTO sessions (
+                        user_id, session_date, class_time, class_type, gym_name, location,
+                        duration_mins, intensity, rolls,
+                        submissions_for, submissions_against,
+                        partners, techniques, notes, visibility_level,
+                        instructor_id, instructor_name,
+                        whoop_strain, whoop_calories, whoop_avg_hr, whoop_max_hr
+                    ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                    RETURNING id
+                    """,
+                    (
+                        user_id,
+                        session_date.isoformat(),
+                        class_time,
+                        class_type,
+                        gym_name,
+                        location,
+                        duration_mins,
+                        intensity,
+                        rolls,
+                        submissions_for,
+                        submissions_against,
+                        json.dumps(partners) if partners else None,
+                        json.dumps(techniques) if techniques else None,
+                        notes,
+                        visibility_level,
+                        instructor_id,
+                        instructor_name,
+                        whoop_strain,
+                        whoop_calories,
+                        whoop_avg_hr,
+                        whoop_max_hr,
+                    ),
+                )
+                result = cursor.fetchone()
+                return result['id'] if hasattr(result, 'keys') else result[0]
+            else:
+                cursor.execute(
+                    """
+                    INSERT INTO sessions (
+                        user_id, session_date, class_time, class_type, gym_name, location,
+                        duration_mins, intensity, rolls,
+                        submissions_for, submissions_against,
+                        partners, techniques, notes, visibility_level,
+                        instructor_id, instructor_name,
+                        whoop_strain, whoop_calories, whoop_avg_hr, whoop_max_hr
+                    ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                    """,
+                    (
+                        user_id,
+                        session_date.isoformat(),
+                        class_time,
+                        class_type,
+                        gym_name,
+                        location,
+                        duration_mins,
+                        intensity,
+                        rolls,
+                        submissions_for,
+                        submissions_against,
+                        json.dumps(partners) if partners else None,
+                        json.dumps(techniques) if techniques else None,
+                        notes,
+                        visibility_level,
+                        instructor_id,
+                        instructor_name,
+                        whoop_strain,
+                        whoop_calories,
+                        whoop_avg_hr,
+                        whoop_max_hr,
+                    ),
+                )
+                return cursor.lastrowid
 
     @staticmethod
     def get_by_id(user_id: int, session_id: int) -> Optional[dict]:

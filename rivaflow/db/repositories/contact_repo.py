@@ -59,6 +59,16 @@ class ContactRepository:
     @staticmethod
     def list_all(user_id: int, order_by: str = "name ASC") -> List[dict]:
         """Get all contacts, ordered by name alphabetically by default."""
+        # Whitelist allowed ORDER BY values to prevent SQL injection
+        allowed_order = {
+            "name ASC", "name DESC",
+            "created_at ASC", "created_at DESC",
+            "belt_rank ASC", "belt_rank DESC",
+            "contact_type ASC", "contact_type DESC"
+        }
+        if order_by not in allowed_order:
+            order_by = "name ASC"  # Safe default
+
         with get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(f"SELECT * FROM contacts WHERE user_id = %s ORDER BY {order_by}", (user_id,))
@@ -68,6 +78,15 @@ class ContactRepository:
     @staticmethod
     def list_by_type(user_id: int, contact_type: str, order_by: str = "name ASC") -> List[dict]:
         """Get contacts filtered by type."""
+        # Whitelist allowed ORDER BY values to prevent SQL injection
+        allowed_order = {
+            "name ASC", "name DESC",
+            "created_at ASC", "created_at DESC",
+            "belt_rank ASC", "belt_rank DESC"
+        }
+        if order_by not in allowed_order:
+            order_by = "name ASC"  # Safe default
+
         with get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(
