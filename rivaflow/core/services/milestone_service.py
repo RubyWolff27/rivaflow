@@ -56,10 +56,12 @@ class MilestoneService:
 
             # Partners: count of unique partners from sessions (JSON partners field)
             # Note: This is simplified - in reality we'd need to parse JSON
+            # session_rolls doesn't have user_id, need to JOIN with sessions
             cursor.execute("""
-                SELECT COUNT(DISTINCT partner_id) as count
-                FROM session_rolls
-                WHERE partner_id IS NOT NULL AND user_id = %s
+                SELECT COUNT(DISTINCT sr.partner_id) as count
+                FROM session_rolls sr
+                JOIN sessions s ON sr.session_id = s.id
+                WHERE sr.partner_id IS NOT NULL AND s.user_id = %s
             """, (user_id,))
             result = cursor.fetchone()
             partners = result['count'] or 0
@@ -67,10 +69,12 @@ class MilestoneService:
             # Techniques: count from techniques table with times_trained > 0
             # Note: This assumes a techniques table - adjust based on actual schema
             # For now, use count of unique technique names from session_techniques
+            # session_techniques doesn't have user_id, need to JOIN with sessions
             cursor.execute("""
-                SELECT COUNT(DISTINCT movement_id) as count
-                FROM session_techniques
-                WHERE user_id = %s
+                SELECT COUNT(DISTINCT st.movement_id) as count
+                FROM session_techniques st
+                JOIN sessions s ON st.session_id = s.id
+                WHERE s.user_id = %s
             """, (user_id,))
             result = cursor.fetchone()
             techniques = result['count'] or 0

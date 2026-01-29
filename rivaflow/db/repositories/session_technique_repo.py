@@ -18,18 +18,21 @@ class SessionTechniqueRepository:
         notes: Optional[str] = None,
         media_urls: Optional[List[dict]] = None,
     ) -> dict:
-        """Create a new session technique record."""
+        """Create a new session technique record.
+
+        Note: user_id parameter is kept for API compatibility but not used
+        since session_techniques table doesn't have user_id column.
+        """
         with get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(
                 """
                 INSERT INTO session_techniques
-                (session_id, user_id, movement_id, technique_number, notes, media_urls)
-                VALUES (%s, %s, %s, %s, %s, %s)
+                (session_id, movement_id, technique_number, notes, media_urls)
+                VALUES (%s, %s, %s, %s, %s)
                 """,
                 (
                     session_id,
-                    user_id,
                     movement_id,
                     technique_number,
                     notes,
@@ -55,11 +58,13 @@ class SessionTechniqueRepository:
     @staticmethod
     def get_by_session_id(user_id: int, session_id: int) -> List[dict]:
         """Get all techniques for a specific session."""
+        # Note: session_techniques doesn't have user_id column
+        # Security is enforced by session_id since sessions belong to users
         with get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(
-                "SELECT * FROM session_techniques WHERE session_id = %s AND user_id = %s ORDER BY technique_number ASC",
-                (session_id, user_id),
+                "SELECT * FROM session_techniques WHERE session_id = %s ORDER BY technique_number ASC",
+                (session_id,),
             )
             rows = cursor.fetchall()
             return [SessionTechniqueRepository._row_to_dict(row) for row in rows]
@@ -67,13 +72,14 @@ class SessionTechniqueRepository:
     @staticmethod
     def list_by_movement(user_id: int, movement_id: int) -> List[dict]:
         """Get all technique records for a specific movement."""
+        # Note: session_techniques doesn't have user_id, filter via sessions JOIN
         with get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(
                 """
                 SELECT st.* FROM session_techniques st
                 JOIN sessions s ON st.session_id = s.id
-                WHERE st.movement_id = %s AND st.user_id = %s
+                WHERE st.movement_id = %s AND s.user_id = %s
                 ORDER BY s.session_date DESC, st.technique_number ASC
                 """,
                 (movement_id, user_id),

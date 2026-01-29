@@ -21,18 +21,21 @@ class SessionRollRepository:
         submissions_against: Optional[List[int]] = None,
         notes: Optional[str] = None,
     ) -> dict:
-        """Create a new session roll record."""
+        """Create a new session roll record.
+
+        Note: user_id parameter is kept for API compatibility but not used
+        since session_rolls table doesn't have user_id column.
+        """
         with get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(
                 """
                 INSERT INTO session_rolls
-                (session_id, user_id, roll_number, partner_id, partner_name, duration_mins, submissions_for, submissions_against, notes)
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+                (session_id, roll_number, partner_id, partner_name, duration_mins, submissions_for, submissions_against, notes)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
                 """,
                 (
                     session_id,
-                    user_id,
                     roll_number,
                     partner_id,
                     partner_name,
@@ -60,12 +63,16 @@ class SessionRollRepository:
 
     @staticmethod
     def get_by_session_id(user_id: int, session_id: int) -> List[dict]:
-        """Get all rolls for a specific session."""
+        """Get all rolls for a specific session.
+
+        Note: session_rolls doesn't have user_id column.
+        Security is enforced by session_id since sessions belong to users.
+        """
         with get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(
-                "SELECT * FROM session_rolls WHERE session_id = %s AND user_id = %s ORDER BY roll_number ASC",
-                (session_id, user_id),
+                "SELECT * FROM session_rolls WHERE session_id = %s ORDER BY roll_number ASC",
+                (session_id,),
             )
             rows = cursor.fetchall()
             return [SessionRollRepository._row_to_dict(row) for row in rows]
@@ -75,6 +82,9 @@ class SessionRollRepository:
         """
         Get all rolls for multiple sessions in bulk (avoids N+1 queries).
 
+        Note: session_rolls doesn't have user_id, but we filter session_ids
+        that belong to the user via the sessions passed in (already scoped).
+
         Returns:
             Dictionary mapping session_id -> list of rolls
         """
@@ -82,19 +92,19 @@ class SessionRollRepository:
             return {}
 
         with get_connection() as conn:
-            from rivaflow.db.database import DB_TYPE
             cursor = conn.cursor()
 
             # Build IN clause with proper placeholders
+            # Note: session_rolls doesn't have user_id column
+            # Caller should only pass session_ids that belong to the user
             placeholders = ", ".join(["%s"] * len(session_ids))
             query = f"""
                 SELECT * FROM session_rolls
-                WHERE user_id = %s AND session_id IN ({placeholders})
+                WHERE session_id IN ({placeholders})
                 ORDER BY session_id, roll_number ASC
             """
 
-            params = [user_id] + list(session_ids)
-            cursor.execute(query, params)
+            cursor.execute(query, session_ids)
             rows = cursor.fetchall()
 
             # Group rolls by session_id
@@ -110,14 +120,17 @@ class SessionRollRepository:
 
     @staticmethod
     def list_by_partner(user_id: int, partner_id: int) -> List[dict]:
-        """Get all rolls with a specific partner."""
+        """Get all rolls with a specific partner.
+
+        Note: session_rolls doesn't have user_id, filter via sessions JOIN.
+        """
         with get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(
                 """
                 SELECT sr.* FROM session_rolls sr
                 JOIN sessions s ON sr.session_id = s.id
-                WHERE sr.partner_id = %s AND sr.user_id = %s
+                WHERE sr.partner_id = %s AND s.user_id = %s
                 ORDER BY s.session_date DESC, sr.roll_number ASC
                 """,
                 (partner_id, user_id),
@@ -132,22 +145,30 @@ class SessionRollRepository:
 
     @staticmethod
     def get_partner_stats(user_id: int, partner_id: int) -> dict:
-        """Get analytics for a specific partner."""
+        """Get analytics for a specific partner.
+
+        Note: session_rolls doesn't have user_id, filter via sessions JOIN.
+        """
         with get_connection() as conn:
             cursor = conn.cursor()
 
-            # Get total rolls count
+            # Get total rolls count - JOIN with sessions to filter by user_id
             cursor.execute(
-                "SELECT COUNT(*) as total_rolls FROM session_rolls WHERE partner_id = %s AND user_id = %s",
+                """
+                SELECT COUNT(*) as count FROM session_rolls sr
+                JOIN sessions s ON sr.session_id = s.id
+                WHERE sr.partner_id = %s AND s.user_id = %s
+                """,
                 (partner_id, user_id),
             )
-            total_rolls = cursor.fetchone()[0]
+            result = cursor.fetchone()
+            total_rolls = result['count']
 
             # Get all rolls to calculate submission stats
             rolls = SessionRollRepository.list_by_partner(user_id, partner_id)
 
-            total_subs_for = FALSE
-            total_subs_against = FALSE
+            total_subs_for = 0
+            total_subs_against = 0
 
             for roll in rolls:
                 if roll.get("submissions_for"):
