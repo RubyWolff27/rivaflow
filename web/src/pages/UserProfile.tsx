@@ -1,0 +1,267 @@
+import { useState, useEffect } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
+import { usersApi, socialApi } from '../api/client';
+import { Users, MapPin, Calendar, TrendingUp, Activity, UserCheck, UserPlus } from 'lucide-react';
+
+export default function UserProfile() {
+  const { userId } = useParams<{ userId: string }>();
+  const navigate = useNavigate();
+
+  const [profile, setProfile] = useState<any>(null);
+  const [stats, setStats] = useState<any>(null);
+  const [activity, setActivity] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [followLoading, setFollowLoading] = useState(false);
+
+  useEffect(() => {
+    if (!userId) {
+      navigate('/feed');
+      return;
+    }
+
+    loadUserProfile();
+  }, [userId]);
+
+  const loadUserProfile = async () => {
+    try {
+      setLoading(true);
+      setError('');
+
+      const [profileRes, statsRes, activityRes] = await Promise.all([
+        usersApi.getProfile(parseInt(userId!)),
+        usersApi.getStats(parseInt(userId!)),
+        usersApi.getActivity(parseInt(userId!), { limit: 20 }),
+      ]);
+
+      setProfile(profileRes.data);
+      setStats(statsRes.data);
+      setActivity(activityRes.data.items || []);
+    } catch (err: any) {
+      console.error('Failed to load user profile:', err);
+      setError(err.response?.data?.error || 'Failed to load user profile');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleFollowToggle = async () => {
+    if (!profile) return;
+
+    try {
+      setFollowLoading(true);
+
+      if (profile.is_following) {
+        await socialApi.unfollow(profile.id);
+        setProfile({ ...profile, is_following: false, follower_count: profile.follower_count - 1 });
+      } else {
+        await socialApi.follow(profile.id);
+        setProfile({ ...profile, is_following: true, follower_count: profile.follower_count + 1 });
+      }
+    } catch (err: any) {
+      console.error('Failed to toggle follow:', err);
+      alert('Failed to update follow status');
+    } finally {
+      setFollowLoading(false);
+    }
+  };
+
+  const getBeltColor = (grade: string) => {
+    const beltColors: Record<string, string> = {
+      white: 'bg-gray-100 text-gray-800 border-gray-300',
+      blue: 'bg-blue-100 text-blue-800 border-blue-300',
+      purple: 'bg-purple-100 text-purple-800 border-purple-300',
+      brown: 'bg-amber-100 text-amber-800 border-amber-300',
+      black: 'bg-gray-900 text-white border-gray-700',
+    };
+
+    for (const [belt, colorClass] of Object.entries(beltColors)) {
+      if (grade?.toLowerCase().includes(belt)) {
+        return colorClass;
+      }
+    }
+
+    return 'bg-gray-100 text-gray-600 border-gray-200';
+  };
+
+  const formatDate = (dateStr: string) => {
+    const date = new Date(dateStr);
+    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mx-auto"></div>
+          <p className="mt-4 text-gray-600 dark:text-gray-400">Loading profile...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error || !profile) {
+    return (
+      <div className="max-w-4xl mx-auto px-4 py-8">
+        <div className="bg-red-50 dark:bg-red-900/20 text-red-800 dark:text-red-200 p-4 rounded-lg">
+          <p className="font-semibold">Error</p>
+          <p>{error || 'User not found'}</p>
+          <button
+            onClick={() => navigate('/feed')}
+            className="mt-4 text-sm underline"
+          >
+            Back to Feed
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="max-w-4xl mx-auto px-4 py-8">
+      {/* Profile Header */}
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6 mb-6">
+        <div className="flex items-start justify-between">
+          <div className="flex items-center gap-4">
+            <div className="w-20 h-20 bg-gradient-to-br from-primary-400 to-primary-600 rounded-full flex items-center justify-center text-white text-2xl font-bold">
+              {profile.first_name?.[0]}{profile.last_name?.[0]}
+            </div>
+            <div>
+              <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
+                {profile.first_name} {profile.last_name}
+              </h1>
+              <div className="flex items-center gap-4 mt-2 text-sm text-gray-600 dark:text-gray-400">
+                {profile.current_grade && (
+                  <span className={`px-3 py-1 rounded-full border ${getBeltColor(profile.current_grade)}`}>
+                    {profile.current_grade}
+                  </span>
+                )}
+                {profile.default_gym && (
+                  <span className="flex items-center gap-1">
+                    <Users className="w-4 h-4" />
+                    {profile.default_gym}
+                  </span>
+                )}
+                {(profile.location || profile.state) && (
+                  <span className="flex items-center gap-1">
+                    <MapPin className="w-4 h-4" />
+                    {[profile.location, profile.state].filter(Boolean).join(', ')}
+                  </span>
+                )}
+              </div>
+              <div className="flex items-center gap-4 mt-3 text-sm">
+                <span className="text-gray-700 dark:text-gray-300">
+                  <strong>{profile.follower_count}</strong> followers
+                </span>
+                <span className="text-gray-700 dark:text-gray-300">
+                  <strong>{profile.following_count}</strong> following
+                </span>
+                {profile.is_followed_by && (
+                  <span className="text-xs bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 px-2 py-1 rounded">
+                    Follows you
+                  </span>
+                )}
+              </div>
+            </div>
+          </div>
+
+          <button
+            onClick={handleFollowToggle}
+            disabled={followLoading}
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-colors ${
+              profile.is_following
+                ? 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600'
+                : 'bg-primary-600 text-white hover:bg-primary-700'
+            } disabled:opacity-50`}
+          >
+            {followLoading ? (
+              <>
+                <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
+                <span>...</span>
+              </>
+            ) : profile.is_following ? (
+              <>
+                <UserCheck className="w-4 h-4" />
+                Following
+              </>
+            ) : (
+              <>
+                <UserPlus className="w-4 h-4" />
+                Follow
+              </>
+            )}
+          </button>
+        </div>
+      </div>
+
+      {/* Stats Grid */}
+      {stats && (
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-4">
+            <div className="flex items-center gap-2 text-gray-600 dark:text-gray-400 mb-1">
+              <Activity className="w-4 h-4" />
+              <span className="text-sm">Total Sessions</span>
+            </div>
+            <p className="text-2xl font-bold text-gray-900 dark:text-white">{stats.total_sessions}</p>
+          </div>
+
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-4">
+            <div className="flex items-center gap-2 text-gray-600 dark:text-gray-400 mb-1">
+              <TrendingUp className="w-4 h-4" />
+              <span className="text-sm">Total Hours</span>
+            </div>
+            <p className="text-2xl font-bold text-gray-900 dark:text-white">{stats.total_hours}</p>
+          </div>
+
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-4">
+            <div className="flex items-center gap-2 text-gray-600 dark:text-gray-400 mb-1">
+              <Users className="w-4 h-4" />
+              <span className="text-sm">Total Rolls</span>
+            </div>
+            <p className="text-2xl font-bold text-gray-900 dark:text-white">{stats.total_rolls}</p>
+          </div>
+
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-4">
+            <div className="flex items-center gap-2 text-gray-600 dark:text-gray-400 mb-1">
+              <Calendar className="w-4 h-4" />
+              <span className="text-sm">This Week</span>
+            </div>
+            <p className="text-2xl font-bold text-gray-900 dark:text-white">{stats.sessions_this_week}</p>
+          </div>
+        </div>
+      )}
+
+      {/* Recent Activity */}
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6">
+        <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4">Recent Activity</h2>
+
+        {activity.length === 0 ? (
+          <p className="text-gray-500 dark:text-gray-400 text-center py-8">
+            No public activity to display
+          </p>
+        ) : (
+          <div className="space-y-4">
+            {activity.map((item: any) => (
+              <div
+                key={`${item.type}-${item.id}`}
+                className="border-l-4 border-primary-500 pl-4 py-2"
+              >
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">
+                      {formatDate(item.date)}
+                    </p>
+                    <p className="text-gray-900 dark:text-white">{item.summary}</p>
+                  </div>
+                  <span className="text-xs bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 px-2 py-1 rounded">
+                    {item.type}
+                  </span>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}

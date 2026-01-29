@@ -311,3 +311,124 @@ class FeedService:
             item["has_liked"] = ActivityLikeRepository.has_user_liked(user_id, activity_type, activity_id)
 
         return feed_items
+
+    @staticmethod
+    def get_user_public_activities(
+        user_id: int,
+        limit: int = 50,
+        offset: int = 0,
+        requesting_user_id: Optional[int] = None,
+    ) -> Dict[str, Any]:
+        """
+        Get a user's public activities (for profile viewing).
+
+        Args:
+            user_id: ID of user whose activities to retrieve
+            limit: Maximum items to return
+            offset: Pagination offset
+            requesting_user_id: ID of user requesting the activities
+
+        Returns:
+            Feed response with public items only
+        """
+        session_repo = SessionRepository()
+        readiness_repo = ReadinessRepository()
+        checkin_repo = CheckinRepository()
+
+        # Get recent activities (last 90 days)
+        end_date = date.today()
+        start_date = end_date - timedelta(days=90)
+
+        # Get all activity
+        sessions = session_repo.get_by_date_range(user_id, start_date, end_date)
+        readiness_entries = readiness_repo.get_by_date_range(user_id, start_date, end_date)
+        checkins = checkin_repo.get_checkins_range(user_id, start_date, end_date)
+
+        # Build unified feed
+        feed_items = []
+
+        # Add sessions (only non-private ones)
+        for session in sessions:
+            visibility = session.get("visibility_level", "summary")
+            if visibility == "private":
+                continue
+
+            session_date = session["session_date"]
+            if hasattr(session_date, "isoformat"):
+                session_date = session_date.isoformat()
+
+            # Apply privacy redaction based on visibility
+            session_data = PrivacyService.redact_session_for_visibility(session, visibility)
+
+            feed_items.append(
+                {
+                    "type": "session",
+                    "date": session_date,
+                    "id": session["id"],
+                    "data": session_data,
+                    "summary": f"{session_data.get('class_type', 'Training')} at {session_data.get('gym_name', 'Gym')} • {session_data.get('duration_mins', 0)}min",
+                    "owner_user_id": user_id,
+                }
+            )
+
+        # Add readiness check-ins (only public ones)
+        for readiness in readiness_entries:
+            readiness_date = readiness["check_date"]
+            if hasattr(readiness_date, "isoformat"):
+                readiness_date = readiness_date.isoformat()
+
+            composite = readiness.get("composite_score", 0)
+            feed_items.append(
+                {
+                    "type": "readiness",
+                    "date": readiness_date,
+                    "id": readiness["id"],
+                    "data": readiness,
+                    "summary": f"Readiness check-in • Score: {composite}/20",
+                    "owner_user_id": user_id,
+                }
+            )
+
+        # Add rest days (public)
+        for checkin in checkins:
+            if checkin["checkin_type"] == "rest":
+                checkin_date = checkin["check_date"]
+                if hasattr(checkin_date, "isoformat"):
+                    checkin_date = checkin_date.isoformat()
+
+                rest_type_label = {
+                    "recovery": "Active recovery",
+                    "life": "Life got in the way",
+                    "injury": "Injury/rehab",
+                    "travel": "Traveling",
+                }.get(checkin["rest_type"], checkin["rest_type"])
+
+                feed_items.append(
+                    {
+                        "type": "rest",
+                        "date": checkin_date,
+                        "id": checkin["id"],
+                        "data": checkin,
+                        "summary": f"Rest day • {rest_type_label}",
+                        "owner_user_id": user_id,
+                    }
+                )
+
+        # Sort by date descending
+        feed_items.sort(key=lambda x: x["date"], reverse=True)
+
+        # Enrich with social data if requesting user provided
+        if requesting_user_id:
+            feed_items = FeedService._enrich_with_social_data(requesting_user_id, feed_items)
+
+        # Apply pagination
+        total_items = len(feed_items)
+        paginated_items = feed_items[offset : offset + limit]
+
+        return {
+            "items": paginated_items,
+            "total": total_items,
+            "limit": limit,
+            "offset": offset,
+            "has_more": offset + limit < total_items,
+        }

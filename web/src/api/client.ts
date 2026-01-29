@@ -161,6 +161,17 @@ export const friendsApi = {
   delete: (id: number) => api.delete(`/friends/${id}`),
 };
 
+export const usersApi = {
+  search: (q: string, limit = 20) =>
+    api.get('/users/search', { params: { q, limit } }),
+  getProfile: (userId: number) =>
+    api.get(`/users/${userId}`),
+  getStats: (userId: number) =>
+    api.get(`/users/${userId}/stats`),
+  getActivity: (userId: number, params?: { limit?: number; offset?: number }) =>
+    api.get(`/users/${userId}/activity`, { params }),
+};
+
 export const analyticsApi = {
   performanceOverview: (params?: { start_date?: string; end_date?: string }) =>
     api.get('/analytics/performance-overview', { params }),

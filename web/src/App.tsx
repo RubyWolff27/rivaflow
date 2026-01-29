@@ -20,6 +20,7 @@ import MovementDetail from './pages/MovementDetail';
 import Friends from './pages/Friends';
 import EditSession from './pages/EditSession';
 import Chat from './pages/Chat';
+import UserProfile from './pages/UserProfile';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import ForgotPassword from './pages/ForgotPassword';
@@ -58,6 +59,7 @@ function App() {
                     <Route path="/glossary/:id" element={<MovementDetail />} />
                     <Route path="/friends" element={<Friends />} />
                     <Route path="/profile" element={<Profile />} />
+                    <Route path="/users/:userId" element={<UserProfile />} />
                   </Routes>
                 </Layout>
               </PrivateRoute>
