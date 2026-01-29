@@ -5,12 +5,13 @@ from unittest.mock import patch
 from rivaflow.core.services.session_service import SessionService
 
 
-def test_create_session(temp_db):
+def test_create_session(temp_db, test_user):
     """Test creating a session."""
     with patch("rivaflow.config.DB_PATH", temp_db):
         service = SessionService()
 
         session_id = service.create_session(
+            user_id=test_user["id"],
             session_date=date(2025, 1, 20),
             class_type="gi",
             gym_name="Test Gym",
@@ -24,18 +25,19 @@ def test_create_session(temp_db):
         assert session_id > 0
 
         # Verify session was created
-        session = service.get_session(session_id)
+        session = service.get_session(user_id=test_user["id"], session_id=session_id)
         assert session is not None
         assert session["gym_name"] == "Test Gym"
         assert session["rolls"] == 5
 
 
-def test_create_session_with_techniques(temp_db):
+def test_create_session_with_techniques(temp_db, test_user):
     """Test creating a session with techniques updates technique tracking."""
     with patch("rivaflow.config.DB_PATH", temp_db):
         service = SessionService()
 
         session_id = service.create_session(
+            user_id=test_user["id"],
             session_date=date(2025, 1, 20),
             class_type="gi",
             gym_name="Test Gym",
@@ -46,18 +48,19 @@ def test_create_session_with_techniques(temp_db):
         from rivaflow.db.repositories import TechniqueRepository
 
         tech_repo = TechniqueRepository()
-        armbar = tech_repo.get_by_name("armbar")
+        armbar = tech_repo.get_by_name(user_id=test_user["id"], name="armbar")
         assert armbar is not None
         assert armbar["last_trained_date"] == date(2025, 1, 20)
 
 
-def test_get_autocomplete_data(temp_db):
+def test_get_autocomplete_data(temp_db, test_user):
     """Test getting autocomplete data."""
     with patch("rivaflow.config.DB_PATH", temp_db):
         service = SessionService()
 
         # Create some sessions
         service.create_session(
+            user_id=test_user["id"],
             session_date=date(2025, 1, 20),
             class_type="gi",
             gym_name="Gym A",
@@ -66,7 +69,7 @@ def test_get_autocomplete_data(temp_db):
             techniques=["armbar"],
         )
 
-        autocomplete = service.get_autocomplete_data()
+        autocomplete = service.get_autocomplete_data(user_id=test_user["id"])
 
         assert "Gym A" in autocomplete["gyms"]
         assert "City A" in autocomplete["locations"]
@@ -85,7 +88,7 @@ def test_is_sparring_class(temp_db):
         assert service.is_sparring_class("yoga") is False
 
 
-def test_consecutive_class_type_count(temp_db):
+def test_consecutive_class_type_count(temp_db, test_user):
     """Test counting consecutive class types."""
     with patch("rivaflow.config.DB_PATH", temp_db):
         service = SessionService()
@@ -93,22 +96,24 @@ def test_consecutive_class_type_count(temp_db):
         # Create consecutive Gi sessions
         for i in range(3):
             service.create_session(
+                user_id=test_user["id"],
                 session_date=date(2025, 1, 20 + i),
                 class_type="gi",
                 gym_name="Test Gym",
             )
 
-        counts = service.get_consecutive_class_type_count()
+        counts = service.get_consecutive_class_type_count(user_id=test_user["id"])
         assert counts["gi"] == 3
         assert counts["no-gi"] == 0
 
 
-def test_format_session_summary(temp_db):
+def test_format_session_summary(temp_db, test_user):
     """Test session summary formatting."""
     with patch("rivaflow.config.DB_PATH", temp_db):
         service = SessionService()
 
         session_id = service.create_session(
+            user_id=test_user["id"],
             session_date=date(2025, 1, 20),
             class_type="gi",
             gym_name="Test Gym",
@@ -117,7 +122,7 @@ def test_format_session_summary(temp_db):
             submissions_against=1,
         )
 
-        session = service.get_session(session_id)
+        session = service.get_session(user_id=test_user["id"], session_id=session_id)
         summary = service.format_session_summary(session)
 
         assert "Test Gym" in summary
