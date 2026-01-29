@@ -71,6 +71,44 @@ class SessionRollRepository:
             return [SessionRollRepository._row_to_dict(row) for row in rows]
 
     @staticmethod
+    def get_by_session_ids(user_id: int, session_ids: List[int]) -> dict:
+        """
+        Get all rolls for multiple sessions in bulk (avoids N+1 queries).
+
+        Returns:
+            Dictionary mapping session_id -> list of rolls
+        """
+        if not session_ids:
+            return {}
+
+        with get_connection() as conn:
+            from rivaflow.db.database import DB_TYPE
+            cursor = conn.cursor()
+
+            # Build IN clause with proper placeholders
+            placeholders = ", ".join(["%s"] * len(session_ids))
+            query = f"""
+                SELECT * FROM session_rolls
+                WHERE user_id = %s AND session_id IN ({placeholders})
+                ORDER BY session_id, roll_number ASC
+            """
+
+            params = [user_id] + list(session_ids)
+            cursor.execute(query, params)
+            rows = cursor.fetchall()
+
+            # Group rolls by session_id
+            rolls_by_session = {}
+            for row in rows:
+                roll_dict = SessionRollRepository._row_to_dict(row)
+                session_id = roll_dict["session_id"]
+                if session_id not in rolls_by_session:
+                    rolls_by_session[session_id] = []
+                rolls_by_session[session_id].append(roll_dict)
+
+            return rolls_by_session
+
+    @staticmethod
     def list_by_partner(user_id: int, partner_id: int) -> List[dict]:
         """Get all rolls with a specific partner."""
         with get_connection() as conn:

@@ -78,9 +78,12 @@ class AnalyticsService:
         top_subs_for = Counter()
         top_subs_against = Counter()
 
-        # Get detailed rolls to analyze individual submissions
+        # Get detailed rolls in bulk to avoid N+1 queries
+        session_ids = [session["id"] for session in sessions]
+        rolls_by_session = self.roll_repo.get_by_session_ids(user_id, session_ids)
+
         for session in sessions:
-            rolls = self.roll_repo.get_by_session_id(user_id, session["id"])
+            rolls = rolls_by_session.get(session["id"], [])
             for roll in rolls:
                 if roll.get("submissions_for"):
                     for movement_id in roll["submissions_for"]:
@@ -526,8 +529,13 @@ class AnalyticsService:
 
         # Category breakdown (count submissions by category)
         category_counts = Counter()
+
+        # Get rolls in bulk to avoid N+1 queries
+        session_ids = [session["id"] for session in sessions]
+        rolls_by_session = self.roll_repo.get_by_session_ids(user_id, session_ids)
+
         for session in sessions:
-            rolls = self.roll_repo.get_by_session_id(user_id, session["id"])
+            rolls = rolls_by_session.get(session["id"], [])
             for roll in rolls:
                 if roll.get("submissions_for"):
                     for movement_id in roll["submissions_for"]:
@@ -548,8 +556,13 @@ class AnalyticsService:
         used_movement_ids = set()
 
         recent_sessions = self.session_repo.get_by_date_range(user_id, stale_date, date.today())
+
+        # Get rolls in bulk to avoid N+1 queries
+        recent_session_ids = [session["id"] for session in recent_sessions]
+        recent_rolls_by_session = self.roll_repo.get_by_session_ids(user_id, recent_session_ids)
+
         for session in recent_sessions:
-            rolls = self.roll_repo.get_by_session_id(user_id, session["id"])
+            rolls = recent_rolls_by_session.get(session["id"], [])
             for roll in rolls:
                 if roll.get("submissions_for"):
                     used_movement_ids.update(roll["submissions_for"])
@@ -574,14 +587,15 @@ class AnalyticsService:
         gi_techniques = Counter()
         nogi_techniques = Counter()
 
+        # Use already-loaded rolls from bulk query above
         for session in gi_sessions:
-            rolls = self.roll_repo.get_by_session_id(user_id, session["id"])
+            rolls = rolls_by_session.get(session["id"], [])
             for roll in rolls:
                 if roll.get("submissions_for"):
                     gi_techniques.update(roll["submissions_for"])
 
         for session in nogi_sessions:
-            rolls = self.roll_repo.get_by_session_id(user_id, session["id"])
+            rolls = rolls_by_session.get(session["id"], [])
             for roll in rolls:
                 if roll.get("submissions_for"):
                     nogi_techniques.update(roll["submissions_for"])
