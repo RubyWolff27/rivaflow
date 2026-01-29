@@ -3,6 +3,7 @@ import random
 from datetime import date, timedelta
 from typing import Optional
 
+from rivaflow.config import DB_TYPE
 from rivaflow.db.database import get_connection
 from rivaflow.db.repositories.streak_repo import StreakRepository
 from rivaflow.core.services.milestone_service import MilestoneService
@@ -66,23 +67,32 @@ class InsightService:
             week_start = today - timedelta(days=today.weekday())
 
             cursor.execute("""
-                SELECT SUM(duration_mins) FROM sessions
+                SELECT SUM(duration_mins) as total FROM sessions
                 WHERE session_date >= %s AND user_id = %s
             """, (week_start.isoformat(), user_id))
-            week_mins = cursor.fetchone()[0] or 0
+            result = cursor.fetchone()
+            week_mins = result['total'] or 0
             week_hours = round(week_mins / 60, 1)
 
             # Get 4-week average
             four_weeks_ago = today - timedelta(days=28)
-            cursor.execute("""
-                SELECT AVG(weekly_mins) FROM (
+
+            # Database-specific week formatting
+            if DB_TYPE == "postgresql":
+                week_format = "to_char(session_date, 'IYYY-IW')"
+            else:
+                week_format = "strftime('%Y-%W', session_date)"
+
+            cursor.execute(f"""
+                SELECT AVG(weekly_mins) as avg FROM (
                     SELECT SUM(duration_mins) as weekly_mins
                     FROM sessions
                     WHERE session_date >= %s AND session_date < %s AND user_id = %s
-                    GROUP BY strftime('%Y-%W', session_date)
+                    GROUP BY {week_format}
                 )
             """, (four_weeks_ago.isoformat(), week_start.isoformat(), user_id))
-            avg_mins = cursor.fetchone()[0] or 0
+            result = cursor.fetchone()
+            avg_mins = result['avg'] or 0
             avg_hours = round(avg_mins / 60, 1)
 
             if avg_hours > 0 and week_hours > 0:
@@ -166,11 +176,13 @@ class InsightService:
             cursor = conn.cursor()
 
             # Check consecutive training days
+            six_days_ago = date.today() - timedelta(days=6)
             cursor.execute("""
-                SELECT COUNT(*) FROM sessions
-                WHERE session_date >= CURRENT_DATE - INTERVAL '6 days' AND user_id = %s
-            """, (user_id,))
-            recent_days = cursor.fetchone()[0] or 0
+                SELECT COUNT(*) as count FROM sessions
+                WHERE session_date >= %s AND user_id = %s
+            """, (six_days_ago.isoformat(), user_id))
+            result = cursor.fetchone()
+            recent_days = result['count'] or 0
 
             if recent_days >= 6:
                 insights.append({

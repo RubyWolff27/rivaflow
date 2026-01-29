@@ -39,36 +39,41 @@ class MilestoneService:
             cursor = conn.cursor()
 
             # Hours: sum of duration_mins / 60 from sessions
-            cursor.execute("SELECT SUM(duration_mins) FROM sessions WHERE user_id = %s", (user_id,))
-            total_mins = cursor.fetchone()[0] or 0
+            cursor.execute("SELECT SUM(duration_mins) as total FROM sessions WHERE user_id = %s", (user_id,))
+            result = cursor.fetchone()
+            total_mins = result['total'] or 0
             hours = int(total_mins / 60)
 
             # Sessions: count of sessions
-            cursor.execute("SELECT COUNT(*) FROM sessions WHERE user_id = %s", (user_id,))
-            sessions = cursor.fetchone()[0] or 0
+            cursor.execute("SELECT COUNT(*) as count FROM sessions WHERE user_id = %s", (user_id,))
+            result = cursor.fetchone()
+            sessions = result['count'] or 0
 
             # Rolls: sum of rolls from sessions
-            cursor.execute("SELECT SUM(rolls) FROM sessions WHERE user_id = %s", (user_id,))
-            rolls = cursor.fetchone()[0] or 0
+            cursor.execute("SELECT SUM(rolls) as total FROM sessions WHERE user_id = %s", (user_id,))
+            result = cursor.fetchone()
+            rolls = result['total'] or 0
 
             # Partners: count of unique partners from sessions (JSON partners field)
             # Note: This is simplified - in reality we'd need to parse JSON
             cursor.execute("""
-                SELECT COUNT(DISTINCT partner_id)
+                SELECT COUNT(DISTINCT partner_id) as count
                 FROM session_rolls
                 WHERE partner_id IS NOT NULL AND user_id = %s
             """, (user_id,))
-            partners = cursor.fetchone()[0] or 0
+            result = cursor.fetchone()
+            partners = result['count'] or 0
 
             # Techniques: count from techniques table with times_trained > 0
             # Note: This assumes a techniques table - adjust based on actual schema
             # For now, use count of unique technique names from session_techniques
             cursor.execute("""
-                SELECT COUNT(DISTINCT movement_id)
+                SELECT COUNT(DISTINCT movement_id) as count
                 FROM session_techniques
                 WHERE user_id = %s
             """, (user_id,))
-            techniques = cursor.fetchone()[0] or 0
+            result = cursor.fetchone()
+            techniques = result['count'] or 0
 
             # Streak: current checkin streak
             checkin_streak = self.streak_repo.get_streak(user_id, "checkin")
