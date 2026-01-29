@@ -48,6 +48,14 @@ app.add_middleware(
     max_age=3600,  # Cache preflight requests for 1 hour
 )
 
+
+@app.on_event("shutdown")
+async def shutdown_event():
+    """Close database connection pool on application shutdown."""
+    from rivaflow.db.database import close_connection_pool
+    close_connection_pool()
+
+
 # Register routes
 app.include_router(auth.router, prefix="/api/auth", tags=["auth"])
 app.include_router(sessions.router, prefix="/api/sessions", tags=["sessions"])

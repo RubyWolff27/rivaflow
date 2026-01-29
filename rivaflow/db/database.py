@@ -10,9 +10,48 @@ from rivaflow.config import APP_DIR, DB_PATH, DATABASE_URL, DB_TYPE
 try:
     import psycopg2
     import psycopg2.extras
+    import psycopg2.pool
     PSYCOPG2_AVAILABLE = True
 except ImportError:
     PSYCOPG2_AVAILABLE = False
+
+# Global connection pool for PostgreSQL (initialized on first use)
+_connection_pool: Optional['psycopg2.pool.SimpleConnectionPool'] = None
+
+
+def _get_connection_pool() -> 'psycopg2.pool.SimpleConnectionPool':
+    """Get or create the PostgreSQL connection pool."""
+    global _connection_pool
+
+    if _connection_pool is None:
+        if not PSYCOPG2_AVAILABLE:
+            raise ImportError("psycopg2 is required for PostgreSQL support")
+
+        if not DATABASE_URL:
+            raise ValueError("DATABASE_URL environment variable is required")
+
+        # Create connection pool with min=1, max=20 connections
+        # minconn=1: Keep at least 1 connection alive
+        # maxconn=20: Allow up to 20 concurrent connections
+        _connection_pool = psycopg2.pool.SimpleConnectionPool(
+            minconn=1,
+            maxconn=20,
+            dsn=DATABASE_URL
+        )
+
+    return _connection_pool
+
+
+def close_connection_pool() -> None:
+    """Close all connections in the PostgreSQL connection pool.
+
+    Call this on application shutdown to gracefully close database connections.
+    """
+    global _connection_pool
+
+    if _connection_pool is not None:
+        _connection_pool.closeall()
+        _connection_pool = None
 
 
 def init_db() -> None:
@@ -327,7 +366,7 @@ def _apply_migrations(conn: Union[sqlite3.Connection, 'psycopg2.extensions.conne
 
 @contextmanager
 def get_connection():
-    """Context manager for database connections."""
+    """Context manager for database connections with connection pooling for PostgreSQL."""
     if DB_TYPE == "sqlite":
         # Auto-initialize if database doesn't exist
         if not DB_PATH.exists():
@@ -345,13 +384,13 @@ def get_connection():
             conn.close()
 
     elif DB_TYPE == "postgresql":
-        if not PSYCOPG2_AVAILABLE:
-            raise ImportError("psycopg2 is required for PostgreSQL support")
+        # Get connection from pool
+        pool = _get_connection_pool()
+        conn = pool.getconn()
 
-        if not DATABASE_URL:
-            raise ValueError("DATABASE_URL environment variable is required")
+        # Set RealDictCursor for this connection
+        conn.cursor_factory = psycopg2.extras.RealDictCursor
 
-        conn = psycopg2.connect(DATABASE_URL, cursor_factory=psycopg2.extras.RealDictCursor)
         try:
             yield conn
             conn.commit()
@@ -359,7 +398,8 @@ def get_connection():
             conn.rollback()
             raise
         finally:
-            conn.close()
+            # Return connection to pool instead of closing
+            pool.putconn(conn)
 
     else:
         raise ValueError(f"Unsupported database type: {DB_TYPE}")

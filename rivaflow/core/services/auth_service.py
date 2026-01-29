@@ -75,6 +75,8 @@ class AuthService:
         # Create default profile for user
         try:
             from rivaflow.db.database import get_connection
+            import logging
+            logger = logging.getLogger(__name__)
 
             with get_connection() as conn:
                 cursor = conn.cursor()
@@ -86,9 +88,17 @@ class AuthService:
                     (user["id"], first_name, last_name, email),
                 )
         except Exception as e:
-            # If profile creation fails, we should probably rollback user creation
-            # For now, log the error
-            print(f"Warning: Failed to create profile for user {user['id']}: {e}")
+            # Profile creation failed - delete the user and fail registration
+            logger.error(f"Failed to create profile for user {user['id']}: {e}")
+            try:
+                # Attempt to delete the user to maintain consistency
+                from rivaflow.db.database import get_connection
+                with get_connection() as conn:
+                    cursor = conn.cursor()
+                    cursor.execute("DELETE FROM users WHERE id = %s", (user["id"],))
+            except:
+                pass  # Best effort cleanup
+            raise ValueError("Registration failed - unable to create user profile")
 
         # Initialize streak records for the new user
         try:
@@ -109,7 +119,17 @@ class AuthService:
                     ("readiness", 0, 0, user["id"]),
                 )
         except Exception as e:
-            print(f"Warning: Failed to create streaks for user {user['id']}: {e}")
+            # Streaks creation failed - delete user and profile, fail registration
+            logger.error(f"Failed to create streaks for user {user['id']}: {e}")
+            try:
+                # Cleanup: delete user (CASCADE will delete profile)
+                from rivaflow.db.database import get_connection
+                with get_connection() as conn:
+                    cursor = conn.cursor()
+                    cursor.execute("DELETE FROM users WHERE id = %s", (user["id"],))
+            except:
+                pass  # Best effort cleanup
+            raise ValueError("Registration failed - unable to initialize user data")
 
         # Generate tokens (sub must be string for JWT)
         access_token = create_access_token(data={"sub": str(user["id"])})
