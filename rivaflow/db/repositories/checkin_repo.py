@@ -28,18 +28,7 @@ class CheckinRepository:
             if row is None:
                 return None
 
-            return {
-                "id": row[0],
-                "check_date": row[1],
-                "checkin_type": row[2],
-                "rest_type": row[3],
-                "rest_note": row[4],
-                "session_id": row[5],
-                "readiness_id": row[6],
-                "tomorrow_intention": row[7],
-                "insight_shown": row[8],
-                "created_at": row[9],
-            }
+            return dict(row)
 
     @staticmethod
     def upsert_checkin(
@@ -105,21 +94,7 @@ class CheckinRepository:
             )
             rows = cursor.fetchall()
 
-            return [
-                {
-                    "id": row[0],
-                    "check_date": row[1],
-                    "checkin_type": row[2],
-                    "rest_type": row[3],
-                    "rest_note": row[4],
-                    "session_id": row[5],
-                    "readiness_id": row[6],
-                    "tomorrow_intention": row[7],
-                    "insight_shown": row[8],
-                    "created_at": row[9],
-                }
-                for row in rows
-            ]
+            return [dict(row) for row in rows]
 
     @staticmethod
     def has_checked_in_today(user_id: int) -> bool:

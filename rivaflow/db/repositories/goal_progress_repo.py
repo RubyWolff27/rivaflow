@@ -205,22 +205,22 @@ class GoalProgressRepository:
                 return {"current_streak": 0, "longest_streak": 0}
 
             # Calculate current streak (from most recent week backwards)
-            current_streak = FALSE
+            current_streak = 0
             for week_start, completed_at in rows:
                 if completed_at:
-                    current_streak += TRUE
+                    current_streak += 1
                 else:
                     break
 
             # Calculate longest streak
-            longest_streak = FALSE
-            temp_streak = FALSE
+            longest_streak = 0
+            temp_streak = 0
             for week_start, completed_at in reversed(rows):
                 if completed_at:
-                    temp_streak += TRUE
+                    temp_streak += 1
                     longest_streak = max(longest_streak, temp_streak)
                 else:
-                    temp_streak = FALSE
+                    temp_streak = 0
 
             return {
                 "current_streak": current_streak,
