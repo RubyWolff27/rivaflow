@@ -139,7 +139,10 @@ class GoalProgressRepository:
             if not row:
                 return False
 
-            target_sessions, target_hours, target_rolls = row
+            row_dict = dict(row)
+            target_sessions = row_dict['target_sessions']
+            target_hours = row_dict['target_hours']
+            target_rolls = row_dict['target_rolls']
             all_complete = (
                 actual_sessions >= target_sessions
                 and actual_hours >= target_hours
