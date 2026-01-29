@@ -1,4 +1,5 @@
 """Repository layer for data access."""
+from rivaflow.db.repositories.user_repo import UserRepository
 from rivaflow.db.repositories.session_repo import SessionRepository
 from rivaflow.db.repositories.readiness_repo import ReadinessRepository
 from rivaflow.db.repositories.technique_repo import TechniqueRepository
@@ -17,6 +18,7 @@ from rivaflow.db.repositories.activity_like_repo import ActivityLikeRepository
 from rivaflow.db.repositories.activity_comment_repo import ActivityCommentRepository
 
 __all__ = [
+    "UserRepository",
     "SessionRepository",
     "ReadinessRepository",
     "TechniqueRepository",

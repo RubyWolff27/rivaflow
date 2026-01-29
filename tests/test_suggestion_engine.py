@@ -8,12 +8,13 @@ from rivaflow.core.services.session_service import SessionService
 from rivaflow.core.services.technique_service import TechniqueService
 
 
-def test_suggestion_with_high_stress(temp_db):
+def test_suggestion_with_high_stress(temp_db, test_user):
     """Test suggestion when readiness shows high stress."""
     with patch("rivaflow.config.DB_PATH", temp_db):
         # Setup
         readiness_service = ReadinessService()
         readiness_service.log_readiness(
+            user_id=test_user["id"],
             check_date=date.today(),
             sleep=3,
             stress=5,  # High stress
@@ -22,19 +23,20 @@ def test_suggestion_with_high_stress(temp_db):
         )
 
         engine = SuggestionEngine()
-        result = engine.get_suggestion()
+        result = engine.get_suggestion(user_id=test_user["id"])
 
         # Should trigger high_stress_low_energy rule
         assert "Flow roll" in result["suggestion"] or "drill" in result["suggestion"].lower()
         assert len(result["triggered_rules"]) > 0
 
 
-def test_suggestion_with_high_soreness(temp_db):
+def test_suggestion_with_high_soreness(temp_db, test_user):
     """Test suggestion when readiness shows high soreness."""
     with patch("rivaflow.config.DB_PATH", temp_db):
         # Setup
         readiness_service = ReadinessService()
         readiness_service.log_readiness(
+            user_id=test_user["id"],
             check_date=date.today(),
             sleep=4,
             stress=2,
@@ -43,61 +45,63 @@ def test_suggestion_with_high_soreness(temp_db):
         )
 
         engine = SuggestionEngine()
-        result = engine.get_suggestion()
+        result = engine.get_suggestion(user_id=test_user["id"])
 
         # Should trigger high_soreness rule
         assert "Recovery" in result["suggestion"] or "mobility" in result["suggestion"].lower()
 
 
-def test_suggestion_with_consecutive_gi(temp_db):
+def test_suggestion_with_consecutive_gi(temp_db, test_user):
     """Test suggestion after consecutive Gi sessions."""
     with patch("rivaflow.config.DB_PATH", temp_db):
         # Setup: Create 3 consecutive Gi sessions
         session_service = SessionService()
         for i in range(3):
             session_service.create_session(
+                user_id=test_user["id"],
                 session_date=date(2025, 1, 20 + i),
                 class_type="gi",
                 gym_name="Test Gym",
             )
 
         engine = SuggestionEngine()
-        result = engine.get_suggestion()
+        result = engine.get_suggestion(user_id=test_user["id"])
 
         # Should suggest No-Gi
         assert "No-Gi" in result["suggestion"] or len(result["triggered_rules"]) > 0
 
 
-def test_suggestion_with_stale_technique(temp_db):
+def test_suggestion_with_stale_technique(temp_db, test_user):
     """Test suggestion when technique is stale."""
     with patch("rivaflow.config.DB_PATH", temp_db):
         # Setup: Create a technique and mark it as trained 10 days ago
         technique_service = TechniqueService()
-        tech_id = technique_service.add_technique("armbar")
+        tech_id = technique_service.add_technique(user_id=test_user["id"], name="armbar", category="submission")
 
         from rivaflow.db.repositories import TechniqueRepository
 
         tech_repo = TechniqueRepository()
-        tech_repo.update_last_trained(tech_id, date(2025, 1, 10))
+        tech_repo.update_last_trained(user_id=test_user["id"], technique_id=tech_id, last_trained_date=date(2025, 1, 10))
 
         # Mock today as 10+ days later
         with patch("rivaflow.core.services.suggestion_engine.date") as mock_date:
             mock_date.today.return_value = date(2025, 1, 25)
 
             engine = SuggestionEngine()
-            result = engine.get_suggestion()
+            result = engine.get_suggestion(user_id=test_user["id"])
 
             # Should suggest revisiting stale technique
             triggered_names = [r["name"] for r in result["triggered_rules"]]
             assert "stale_technique" in triggered_names
 
 
-def test_suggestion_green_light(temp_db):
+def test_suggestion_green_light(temp_db, test_user):
     """Test suggestion when readiness is excellent."""
     with patch("rivaflow.config.DB_PATH", temp_db):
         # Setup: Perfect readiness
         readiness_service = ReadinessService()
         readiness_service.log_readiness(
+            user_id=test_user["id"],
             check_date=date.today(),
             sleep=5,
             stress=1,
@@ -106,7 +110,7 @@ def test_suggestion_green_light(temp_db):
         )
 
         engine = SuggestionEngine()
-        result = engine.get_suggestion()
+        result = engine.get_suggestion(user_id=test_user["id"])
 
         # Should give green light (or other suggestion if other rules triggered)
         # Just verify it returns a valid suggestion with good readiness
@@ -115,11 +119,11 @@ def test_suggestion_green_light(temp_db):
         assert result["readiness"]["composite_score"] >= 16
 
 
-def test_suggestion_no_readiness(temp_db):
+def test_suggestion_no_readiness(temp_db, test_user):
     """Test suggestion when no readiness data exists."""
     with patch("rivaflow.config.DB_PATH", temp_db):
         engine = SuggestionEngine()
-        result = engine.get_suggestion()
+        result = engine.get_suggestion(user_id=test_user["id"])
 
         # Should still return a suggestion
         assert result["suggestion"] is not None

@@ -1,4 +1,5 @@
 """Pytest fixtures for RivaFlow tests."""
+import os
 import pytest
 import tempfile
 import shutil
@@ -6,6 +7,12 @@ from pathlib import Path
 from datetime import date, datetime, timedelta
 from unittest.mock import patch
 from fastapi.testclient import TestClient
+
+# Set required environment variables for testing
+os.environ.setdefault("SECRET_KEY", "test-secret-key-for-testing-only-not-production")
+# Don't set DATABASE_URL - let it use SQLite by default
+if "DATABASE_URL" in os.environ:
+    del os.environ["DATABASE_URL"]
 
 from rivaflow.config import APP_DIR, DB_PATH
 from rivaflow.db.database import init_db
@@ -18,7 +25,7 @@ from rivaflow.db.repositories import (
     ProfileRepository,
     FriendRepository,
 )
-from rivaflow.core.auth import create_access_token, get_password_hash
+from rivaflow.core.auth import create_access_token, hash_password
 
 
 @pytest.fixture(scope="function", autouse=False)
@@ -113,7 +120,7 @@ def test_user(temp_db):
     user_repo = UserRepository()
     user = user_repo.create(
         email="test@example.com",
-        password=get_password_hash("testpass123"),
+        hashed_password=hash_password("testpass123"),
         first_name="Test",
         last_name="User"
     )
@@ -126,7 +133,7 @@ def test_user2(temp_db):
     user_repo = UserRepository()
     user = user_repo.create(
         email="test2@example.com",
-        password=get_password_hash("testpass123"),
+        hashed_password=hash_password("testpass123"),
         first_name="Test2",
         last_name="User2"
     )
