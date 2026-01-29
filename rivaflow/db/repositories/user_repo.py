@@ -47,7 +47,10 @@ class UserRepository:
                     """,
                     (email, hashed_password, first_name, last_name, is_active),
                 )
-                user_id = cursor.fetchone()[0]
+                result = cursor.fetchone()
+                print(f"[USER_REPO] INSERT RETURNING result: {result}")
+                user_id = result[0]
+                print(f"[USER_REPO] Extracted user_id: {user_id}")
             else:
                 cursor.execute(
                     """
@@ -58,9 +61,17 @@ class UserRepository:
                 )
                 user_id = cursor.lastrowid
 
+            if not user_id or user_id == 0:
+                raise ValueError(f"Invalid user_id returned: {user_id}")
+
             # Fetch and return the created user
             cursor.execute("SELECT * FROM users WHERE id = %s", (user_id,))
             row = cursor.fetchone()
+            print(f"[USER_REPO] SELECT result: {row}")
+
+            if not row:
+                raise ValueError(f"User {user_id} was inserted but cannot be retrieved")
+
             return UserRepository._row_to_dict(row)
 
     @staticmethod

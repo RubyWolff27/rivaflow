@@ -70,7 +70,10 @@ class AuthService:
                 last_name=last_name,
             )
         except Exception as e:
-            raise ValueError(f"Failed to create user: {str(e)}")
+            import traceback
+            print(f"[AUTH] User creation failed: {type(e).__name__}: {str(e)}")
+            print(f"[AUTH] Traceback: {traceback.format_exc()}")
+            raise ValueError(f"Failed to create user: {type(e).__name__}: {str(e)}")
 
         # Create default profile for user
         try:
