@@ -24,14 +24,32 @@ class RefreshTokenRepository:
         """
         with get_connection() as conn:
             cursor = conn.cursor()
-            cursor.execute(
-                """
-                INSERT INTO refresh_tokens (user_id, token, expires_at)
-                VALUES (%s, %s, %s)
-                """,
-                (user_id, token, expires_at),
-            )
-            token_id = cursor.lastrowid
+
+            # PostgreSQL: use RETURNING clause, SQLite: use lastrowid
+            from rivaflow.db.database import DB_TYPE
+            if DB_TYPE == "postgresql":
+                cursor.execute(
+                    """
+                    INSERT INTO refresh_tokens (user_id, token, expires_at)
+                    VALUES (%s, %s, %s)
+                    RETURNING id
+                    """,
+                    (user_id, token, expires_at),
+                )
+                result = cursor.fetchone()
+                if hasattr(result, 'keys'):
+                    token_id = result['id']
+                else:
+                    token_id = result[0]
+            else:
+                cursor.execute(
+                    """
+                    INSERT INTO refresh_tokens (user_id, token, expires_at)
+                    VALUES (%s, %s, %s)
+                    """,
+                    (user_id, token, expires_at),
+                )
+                token_id = cursor.lastrowid
 
             # Fetch and return the created token
             cursor.execute("SELECT * FROM refresh_tokens WHERE id = %s", (token_id,))
