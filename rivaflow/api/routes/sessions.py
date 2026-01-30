@@ -1,5 +1,5 @@
 """Session management endpoints."""
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, Query, HTTPException
 from datetime import date
 from typing import Optional
 
