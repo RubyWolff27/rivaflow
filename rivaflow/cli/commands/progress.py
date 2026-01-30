@@ -14,48 +14,60 @@ app = typer.Typer(
 console = Console()
 
 
-def get_lifetime_stats() -> dict:
-    """Calculate all lifetime statistics."""
+def get_lifetime_stats(user_id: int) -> dict:
+    """Calculate all lifetime statistics for a user.
+
+    Args:
+        user_id: User ID to calculate stats for
+
+    Returns:
+        dict: Lifetime statistics
+    """
+    from rivaflow.db.database import convert_query
+
     with get_connection() as conn:
         cursor = conn.cursor()
 
         # Hours
-        cursor.execute("SELECT SUM(duration_mins) FROM sessions")
+        cursor.execute(convert_query("SELECT SUM(duration_mins) FROM sessions WHERE user_id = ?"), (user_id,))
         total_mins = cursor.fetchone()[0] or 0
         hours = round(total_mins / 60, 1)
 
         # Sessions
-        cursor.execute("SELECT COUNT(*) FROM sessions")
+        cursor.execute(convert_query("SELECT COUNT(*) FROM sessions WHERE user_id = ?"), (user_id,))
         sessions = cursor.fetchone()[0] or 0
 
         # Rolls
-        cursor.execute("SELECT SUM(rolls) FROM sessions")
+        cursor.execute(convert_query("SELECT SUM(rolls) FROM sessions WHERE user_id = ?"), (user_id,))
         rolls = cursor.fetchone()[0] or 0
 
         # Submissions for
-        cursor.execute("SELECT SUM(submissions_for) FROM sessions")
+        cursor.execute(convert_query("SELECT SUM(submissions_for) FROM sessions WHERE user_id = ?"), (user_id,))
         subs_for = cursor.fetchone()[0] or 0
 
         # Submissions against
-        cursor.execute("SELECT SUM(submissions_against) FROM sessions")
+        cursor.execute(convert_query("SELECT SUM(submissions_against) FROM sessions WHERE user_id = ?"), (user_id,))
         subs_against = cursor.fetchone()[0] or 0
 
         # Sub ratio
         sub_ratio = round(subs_for / subs_against, 2) if subs_against > 0 else subs_for
 
-        # Partners
-        cursor.execute("""
-            SELECT COUNT(DISTINCT partner_id)
-            FROM session_rolls
-            WHERE partner_id IS NOT NULL
-        """)
+        # Partners (via JOIN with sessions for user_id filtering)
+        cursor.execute(convert_query("""
+            SELECT COUNT(DISTINCT sr.partner_id)
+            FROM session_rolls sr
+            JOIN sessions s ON sr.session_id = s.id
+            WHERE sr.partner_id IS NOT NULL AND s.user_id = ?
+        """), (user_id,))
         partners = cursor.fetchone()[0] or 0
 
-        # Techniques
-        cursor.execute("""
-            SELECT COUNT(DISTINCT movement_id)
-            FROM session_techniques
-        """)
+        # Techniques (via JOIN with sessions for user_id filtering)
+        cursor.execute(convert_query("""
+            SELECT COUNT(DISTINCT st.movement_id)
+            FROM session_techniques st
+            JOIN sessions s ON st.session_id = s.id
+            WHERE s.user_id = ?
+        """), (user_id,))
         techniques = cursor.fetchone()[0] or 0
 
     return {
@@ -85,6 +97,11 @@ def progress(ctx: typer.Context):
     if ctx.invoked_subcommand is not None:
         return
 
+    # TODO: Add CLI authentication for multi-user support
+    # For now, default to user_id=1 for backwards compatibility
+    from rivaflow.cli.utils.user_context import get_current_user_id
+    user_id = get_current_user_id()
+
     milestone_service = MilestoneService()
 
     # Header
@@ -97,7 +114,7 @@ def progress(ctx: typer.Context):
     console.print()
 
     # Lifetime stats table
-    stats = get_lifetime_stats()
+    stats = get_lifetime_stats(user_id)
 
     table = Table(title="TOTALS", border_style="bright_black", show_header=True)
     table.add_column("Metric", style="white", width=20)

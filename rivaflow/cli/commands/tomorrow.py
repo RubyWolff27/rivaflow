@@ -19,15 +19,22 @@ console = Console()
 
 def get_tip_based_on_recent_sessions() -> Optional[str]:
     """Generate contextual tip based on recent training."""
+    from rivaflow.db.database import convert_query
+
+    # TODO: Add CLI user authentication for multi-user support
+    # For now, default to user_id=1 for backwards compatibility
+    user_id = 1
+
     with get_connection() as conn:
         cursor = conn.cursor()
 
-        # Get last 3 sessions
-        cursor.execute("""
+        # Get last 3 sessions for this user
+        cursor.execute(convert_query("""
             SELECT class_type FROM sessions
+            WHERE user_id = ?
             ORDER BY session_date DESC
             LIMIT 3
-        """)
+        """), (user_id,))
         recent_sessions = [row[0] for row in cursor.fetchall()]
 
         if not recent_sessions:
@@ -40,11 +47,13 @@ def get_tip_based_on_recent_sessions() -> Optional[str]:
             elif all(ct == "no-gi" for ct in recent_sessions):
                 return "💡 TIP: Last 3 sessions were No-Gi — consider Gi work for grips"
 
-        # Check training intensity
-        cursor.execute("""
+        # Check training intensity (last 7 days)
+        # Calculate date in Python for database compatibility
+        six_days_ago = (date.today() - timedelta(days=6)).isoformat()
+        cursor.execute(convert_query("""
             SELECT COUNT(*) FROM sessions
-            WHERE session_date >= date('now', '-6 days')
-        """)
+            WHERE user_id = ? AND session_date >= ?
+        """), (user_id, six_days_ago))
         recent_count = cursor.fetchone()[0] or 0
 
         if recent_count >= 6:
