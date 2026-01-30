@@ -10,8 +10,8 @@ DROP INDEX IF EXISTS idx_contacts_type;
 DROP INDEX IF EXISTS idx_contacts_belt;
 DROP INDEX IF EXISTS idx_contacts_user_id;
 
--- Step 3: Drop the old contacts table
-DROP TABLE contacts;
+-- Step 3: Drop the old contacts table (CASCADE for PostgreSQL foreign key constraints)
+DROP TABLE IF EXISTS contacts CASCADE;
 
 -- Step 4: Create new friends table with updated column name (contact_type -> friend_type)
 CREATE TABLE friends (
@@ -43,5 +43,6 @@ CREATE INDEX IF NOT EXISTS idx_friends_type ON friends(friend_type);
 CREATE INDEX IF NOT EXISTS idx_friends_belt ON friends(belt_rank);
 CREATE INDEX IF NOT EXISTS idx_friends_user_id ON friends(user_id);
 
--- Note: Foreign key references in sessions and profile tables will automatically
--- update to reference the friends table when SQLite recreates the constraints
+-- Note: Foreign key constraints from sessions and session_rolls were dropped with CASCADE
+-- TODO: Add separate migration to recreate these constraints pointing to friends table
+-- For now, referential integrity is not enforced on partner_id and instructor_id
