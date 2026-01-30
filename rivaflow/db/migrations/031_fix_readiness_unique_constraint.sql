@@ -33,8 +33,8 @@ SELECT
     hotspot_note, weight_kg, created_at, updated_at
 FROM readiness;
 
--- Drop old table
-DROP TABLE readiness;
+-- Drop old table (CASCADE for PostgreSQL foreign key constraints)
+DROP TABLE IF EXISTS readiness CASCADE;
 
 -- Rename new table
 ALTER TABLE readiness_new RENAME TO readiness;

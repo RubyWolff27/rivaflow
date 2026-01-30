@@ -33,8 +33,8 @@ SELECT
     notes, created_at, updated_at
 FROM friends;
 
--- Drop old table
-DROP TABLE friends;
+-- Drop old table (CASCADE for PostgreSQL foreign key constraints)
+DROP TABLE IF EXISTS friends CASCADE;
 
 -- Rename new table
 ALTER TABLE friends_new RENAME TO friends;

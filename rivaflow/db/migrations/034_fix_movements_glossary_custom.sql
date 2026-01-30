@@ -39,8 +39,8 @@ SELECT
     created_at, updated_at
 FROM movements_glossary;
 
--- Drop old table
-DROP TABLE movements_glossary;
+-- Drop old table (CASCADE for PostgreSQL foreign key constraints)
+DROP TABLE IF EXISTS movements_glossary CASCADE;
 
 -- Rename new table
 ALTER TABLE movements_glossary_new RENAME TO movements_glossary;
