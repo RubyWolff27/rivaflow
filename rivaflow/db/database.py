@@ -380,6 +380,8 @@ def _apply_migrations(conn: Union[sqlite3.Connection, 'psycopg2.extensions.conne
         "028_password_reset_tokens.sql",
         "029_rename_contacts_to_friends.sql",
         "030_fix_goal_progress_unique_constraint.sql",
+        "031_fix_readiness_unique_constraint.sql",
+        "032_fix_friends_unique_constraint.sql",
     ]
 
     migrations_dir = Path(__file__).parent / "migrations"

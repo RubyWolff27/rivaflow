@@ -223,14 +223,14 @@ class GoalsService:
             return profile
 
         # Update profile
-        from rivaflow.db.database import get_connection
+        from rivaflow.db.database import get_connection, convert_query
         with get_connection() as conn:
             cursor = conn.cursor()
-            set_clause = ", ".join([f"{k} = %s" for k in updates.keys()])
+            set_clause = ", ".join([f"{k} = ?" for k in updates.keys()])
             values = list(updates.values()) + [user_id]
 
             cursor.execute(
-                f"UPDATE profile SET {set_clause}, updated_at = CURRENT_TIMESTAMP WHERE user_id = %s",
+                convert_query(f"UPDATE profile SET {set_clause}, updated_at = CURRENT_TIMESTAMP WHERE user_id = ?"),
                 values,
             )
 

@@ -74,17 +74,17 @@ class AuthService:
 
         # Create default profile for user
         try:
-            from rivaflow.db.database import get_connection
+            from rivaflow.db.database import get_connection, convert_query
             import logging
             logger = logging.getLogger(__name__)
 
             with get_connection() as conn:
                 cursor = conn.cursor()
                 cursor.execute(
-                    """
+                    convert_query("""
                     INSERT INTO profile (user_id, first_name, last_name, email)
-                    VALUES (%s, %s, %s, %s)
-                    """,
+                    VALUES (?, ?, ?, ?)
+                    """),
                     (user["id"], first_name, last_name, email),
                 )
         except Exception as e:
@@ -92,30 +92,30 @@ class AuthService:
             logger.error(f"Failed to create profile for user {user['id']}: {e}")
             try:
                 # Attempt to delete the user to maintain consistency
-                from rivaflow.db.database import get_connection
+                from rivaflow.db.database import get_connection, convert_query
                 with get_connection() as conn:
                     cursor = conn.cursor()
-                    cursor.execute("DELETE FROM users WHERE id = %s", (user["id"],))
+                    cursor.execute(convert_query("DELETE FROM users WHERE id = ?"), (user["id"],))
             except:
                 pass  # Best effort cleanup
             raise ValueError("Registration failed - unable to create user profile")
 
         # Initialize streak records for the new user
         try:
-            from rivaflow.db.database import get_connection
+            from rivaflow.db.database import get_connection, convert_query
 
             with get_connection() as conn:
                 cursor = conn.cursor()
                 cursor.execute(
-                    "INSERT INTO streaks (streak_type, current_streak, longest_streak, user_id) VALUES (%s, %s, %s, %s)",
+                    convert_query("INSERT INTO streaks (streak_type, current_streak, longest_streak, user_id) VALUES (?, ?, ?, ?)"),
                     ("checkin", 0, 0, user["id"]),
                 )
                 cursor.execute(
-                    "INSERT INTO streaks (streak_type, current_streak, longest_streak, user_id) VALUES (%s, %s, %s, %s)",
+                    convert_query("INSERT INTO streaks (streak_type, current_streak, longest_streak, user_id) VALUES (?, ?, ?, ?)"),
                     ("training", 0, 0, user["id"]),
                 )
                 cursor.execute(
-                    "INSERT INTO streaks (streak_type, current_streak, longest_streak, user_id) VALUES (%s, %s, %s, %s)",
+                    convert_query("INSERT INTO streaks (streak_type, current_streak, longest_streak, user_id) VALUES (?, ?, ?, ?)"),
                     ("readiness", 0, 0, user["id"]),
                 )
         except Exception as e:
@@ -123,10 +123,10 @@ class AuthService:
             logger.error(f"Failed to create streaks for user {user['id']}: {e}")
             try:
                 # Cleanup: delete user (CASCADE will delete profile)
-                from rivaflow.db.database import get_connection
+                from rivaflow.db.database import get_connection, convert_query
                 with get_connection() as conn:
                     cursor = conn.cursor()
-                    cursor.execute("DELETE FROM users WHERE id = %s", (user["id"],))
+                    cursor.execute(convert_query("DELETE FROM users WHERE id = ?"), (user["id"],))
             except:
                 pass  # Best effort cleanup
             raise ValueError("Registration failed - unable to initialize user data")

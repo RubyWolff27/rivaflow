@@ -145,7 +145,7 @@ class UserRepository:
                 updates.append("updated_at = CURRENT_TIMESTAMP")
                 params.append(user_id)
                 query = f"UPDATE users SET {', '.join(updates)} WHERE id = ?"
-                cursor.execute(query, params)
+                cursor.execute(convert_query(query), params)
 
             # Return updated user
             cursor.execute(convert_query("SELECT * FROM users WHERE id = ?"), (user_id,))

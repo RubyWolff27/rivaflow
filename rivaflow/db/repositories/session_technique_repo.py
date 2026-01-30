@@ -122,7 +122,7 @@ class SessionTechniqueRepository:
 
             params.append(technique_id)
             query = f"UPDATE session_techniques SET {', '.join(updates)} WHERE id = ?"
-            cursor.execute(query, params)
+            cursor.execute(convert_query(query), params)
 
             if cursor.rowcount == 0:
                 return None

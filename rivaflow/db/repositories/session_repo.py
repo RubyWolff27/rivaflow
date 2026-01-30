@@ -216,7 +216,7 @@ class SessionRepository:
             updates.append("updated_at = CURRENT_TIMESTAMP")
             params.extend([session_id, user_id])
             query = f"UPDATE sessions SET {', '.join(updates)} WHERE id = ? AND user_id = ?"
-            cursor.execute(query, params)
+            cursor.execute(convert_query(query), params)
 
             if cursor.rowcount == 0:
                 return None

@@ -96,7 +96,7 @@ class GradingRepository:
 
             params.extend([grading_id, user_id])
             query = f"UPDATE gradings SET {', '.join(updates)} WHERE id = ? AND user_id = ?"
-            cursor.execute(query, params)
+            cursor.execute(convert_query(query), params)
 
             if cursor.rowcount == 0:
                 return None
