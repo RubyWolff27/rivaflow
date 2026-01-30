@@ -198,7 +198,7 @@ class SessionService:
         # Update detailed technique records if provided
         if session_techniques is not None:
             # Delete existing technique records
-            self.technique_detail_repo.delete_by_session(user_id, session_id)
+            self.technique_detail_repo.delete_by_session(session_id)
             # Create new technique records
             updated_date = session_date if session_date else original["session_date"]
             for tech_data in session_techniques:
