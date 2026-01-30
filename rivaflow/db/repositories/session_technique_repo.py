@@ -63,7 +63,7 @@ class SessionTechniqueRepository:
         with get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(
-                "SELECT * FROM session_techniques WHERE session_id = ? ORDER BY technique_number ASC",
+                convert_query("SELECT * FROM session_techniques WHERE session_id = ? ORDER BY technique_number ASC"),
                 (session_id,),
             )
             rows = cursor.fetchall()

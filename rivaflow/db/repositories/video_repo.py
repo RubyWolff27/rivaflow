@@ -50,7 +50,7 @@ class VideoRepository:
         """Get all videos ordered by creation date."""
         with get_connection() as conn:
             cursor = conn.cursor()
-            cursor.execute("SELECT * FROM videos ORDER BY created_at DESC")
+            cursor.execute(convert_query("SELECT * FROM videos ORDER BY created_at DESC"))
             return [VideoRepository._row_to_dict(row) for row in cursor.fetchall()]
 
     @staticmethod
@@ -59,7 +59,7 @@ class VideoRepository:
         with get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(
-                "SELECT * FROM videos WHERE technique_id = ? ORDER BY created_at DESC",
+                convert_query("SELECT * FROM videos WHERE technique_id = ? ORDER BY created_at DESC"),
                 (technique_id,),
             )
             return [VideoRepository._row_to_dict(row) for row in cursor.fetchall()]

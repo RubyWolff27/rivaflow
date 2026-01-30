@@ -93,7 +93,7 @@ class SessionRepository:
             # Enrich with movement names from glossary
             for technique in techniques:
                 cursor.execute(
-                    "SELECT name FROM movements_glossary WHERE id = ?",
+                    convert_query("SELECT name FROM movements_glossary WHERE id = ?"),
                     (technique["movement_id"],)
                 )
                 movement_row = cursor.fetchone()
@@ -245,7 +245,7 @@ class SessionRepository:
         with get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(
-                "SELECT * FROM sessions WHERE user_id = ? ORDER BY session_date DESC LIMIT ?", (user_id, limit)
+                convert_query("SELECT * FROM sessions WHERE user_id = ? ORDER BY session_date DESC LIMIT ?"), (user_id, limit)
             )
             return [SessionRepository._row_to_dict(row) for row in cursor.fetchall()]
 
@@ -255,7 +255,7 @@ class SessionRepository:
         with get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(
-                "SELECT DISTINCT gym_name FROM sessions WHERE user_id = ? ORDER BY gym_name",
+                convert_query("SELECT DISTINCT gym_name FROM sessions WHERE user_id = ? ORDER BY gym_name"),
                 (user_id,)
             )
             return [row["gym_name"] for row in cursor.fetchall()]
@@ -281,7 +281,7 @@ class SessionRepository:
         with get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(
-                "SELECT partners FROM sessions WHERE user_id = ? AND partners IS NOT NULL",
+                convert_query("SELECT partners FROM sessions WHERE user_id = ? AND partners IS NOT NULL"),
                 (user_id,)
             )
             partners_set = set()
@@ -323,7 +323,7 @@ class SessionRepository:
 
             # Delete the session itself
             cursor.execute(
-                "DELETE FROM sessions WHERE id = ? AND user_id = ?",
+                convert_query("DELETE FROM sessions WHERE id = ? AND user_id = ?"),
                 (session_id, user_id)
             )
             return cursor.rowcount > 0

@@ -25,7 +25,7 @@ class ReadinessRepository:
             cursor = conn.cursor()
             # Try to get existing entry
             cursor.execute(
-                "SELECT id FROM readiness WHERE user_id = ? AND check_date = ?",
+                convert_query("SELECT id FROM readiness WHERE user_id = ? AND check_date = ?"),
                 (user_id, check_date.isoformat()),
             )
             existing = cursor.fetchone()
@@ -60,7 +60,7 @@ class ReadinessRepository:
         with get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(
-                "SELECT * FROM readiness WHERE user_id = ? AND check_date = ?",
+                convert_query("SELECT * FROM readiness WHERE user_id = ? AND check_date = ?"),
                 (user_id, check_date.isoformat()),
             )
             row = cursor.fetchone()
@@ -74,7 +74,7 @@ class ReadinessRepository:
         with get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(
-                "SELECT * FROM readiness WHERE user_id = ? ORDER BY check_date DESC LIMIT 1",
+                convert_query("SELECT * FROM readiness WHERE user_id = ? ORDER BY check_date DESC LIMIT 1"),
                 (user_id,)
             )
             row = cursor.fetchone()

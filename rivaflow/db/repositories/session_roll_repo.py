@@ -71,7 +71,7 @@ class SessionRollRepository:
         with get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(
-                "SELECT * FROM session_rolls WHERE session_id = ? ORDER BY roll_number ASC",
+                convert_query("SELECT * FROM session_rolls WHERE session_id = ? ORDER BY roll_number ASC"),
                 (session_id,),
             )
             rows = cursor.fetchall()

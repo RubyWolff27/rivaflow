@@ -126,7 +126,7 @@ class RefreshTokenRepository:
             cursor = conn.cursor()
             now = datetime.utcnow().isoformat()
             cursor.execute(
-                "DELETE FROM refresh_tokens WHERE expires_at < ?", (now,)
+                convert_query("DELETE FROM refresh_tokens WHERE expires_at < ?"), (now,)
             )
             return cursor.rowcount
 

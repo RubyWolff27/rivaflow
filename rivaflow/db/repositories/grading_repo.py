@@ -42,7 +42,7 @@ class GradingRepository:
 
         with get_connection() as conn:
             cursor = conn.cursor()
-            cursor.execute(f"SELECT * FROM gradings WHERE user_id = ? ORDER BY {order_by}", (user_id,))
+            cursor.execute(convert_query(f"SELECT * FROM gradings WHERE user_id = ? ORDER BY {order_by}"), (user_id,))
             rows = cursor.fetchall()
             return [GradingRepository._row_to_dict(row) for row in rows]
 
@@ -52,7 +52,7 @@ class GradingRepository:
         with get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(
-                "SELECT * FROM gradings WHERE user_id = ? ORDER BY date_graded DESC, id DESC LIMIT 1",
+                convert_query("SELECT * FROM gradings WHERE user_id = ? ORDER BY date_graded DESC, id DESC LIMIT 1"),
                 (user_id,)
             )
             row = cursor.fetchone()

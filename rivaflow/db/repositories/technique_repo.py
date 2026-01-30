@@ -23,7 +23,7 @@ class TechniqueRepository:
             except sqlite3.IntegrityError:
                 # Technique already exists, return existing ID
                 cursor.execute(
-                    "SELECT id FROM techniques WHERE name = ?",
+                    convert_query("SELECT id FROM techniques WHERE name = ?"),
                     (name.lower().strip(),),
                 )
                 return cursor.fetchone()["id"]
@@ -45,7 +45,7 @@ class TechniqueRepository:
         with get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(
-                "SELECT * FROM techniques WHERE name = ?", (name.lower().strip(),)
+                convert_query("SELECT * FROM techniques WHERE name = ?"), (name.lower().strip(),)
             )
             row = cursor.fetchone()
             if row:
@@ -67,7 +67,7 @@ class TechniqueRepository:
         """Get all techniques ordered by name."""
         with get_connection() as conn:
             cursor = conn.cursor()
-            cursor.execute("SELECT * FROM techniques ORDER BY name")
+            cursor.execute(convert_query("SELECT * FROM techniques ORDER BY name"))
             return [TechniqueRepository._row_to_dict(row) for row in cursor.fetchall()]
 
     @staticmethod
@@ -76,7 +76,7 @@ class TechniqueRepository:
         with get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(
-                "UPDATE techniques SET last_trained_date = ? WHERE id = ?",
+                convert_query("UPDATE techniques SET last_trained_date = ? WHERE id = ?"),
                 (trained_date.isoformat(), technique_id),
             )
 
@@ -103,7 +103,7 @@ class TechniqueRepository:
         with get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(
-                "SELECT * FROM techniques WHERE name LIKE ? ORDER BY name",
+                convert_query("SELECT * FROM techniques WHERE name LIKE ? ORDER BY name"),
                 (f"%{query.lower()}%",),
             )
             return [TechniqueRepository._row_to_dict(row) for row in cursor.fetchall()]
@@ -113,7 +113,7 @@ class TechniqueRepository:
         """Get all technique names for autocomplete."""
         with get_connection() as conn:
             cursor = conn.cursor()
-            cursor.execute("SELECT name FROM techniques ORDER BY name")
+            cursor.execute(convert_query("SELECT name FROM techniques ORDER BY name"))
             return [row["name"] for row in cursor.fetchall()]
 
     @staticmethod

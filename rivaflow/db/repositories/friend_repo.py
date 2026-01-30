@@ -71,7 +71,7 @@ class FriendRepository:
 
         with get_connection() as conn:
             cursor = conn.cursor()
-            cursor.execute(f"SELECT * FROM friends WHERE user_id = ? ORDER BY {order_by}", (user_id,))
+            cursor.execute(convert_query(f"SELECT * FROM friends WHERE user_id = ? ORDER BY {order_by}"), (user_id,))
             rows = cursor.fetchall()
             return [FriendRepository._row_to_dict(row) for row in rows]
 
@@ -90,7 +90,7 @@ class FriendRepository:
         with get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(
-                f"SELECT * FROM friends WHERE user_id = ? AND friend_type = ? ORDER BY {order_by}",
+                convert_query(f"SELECT * FROM friends WHERE user_id = ? AND friend_type = ? ORDER BY {order_by}"),
                 (user_id, friend_type),
             )
             rows = cursor.fetchall()
@@ -102,7 +102,7 @@ class FriendRepository:
         with get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(
-                "SELECT * FROM friends WHERE user_id = ? AND name LIKE ? ORDER BY name ASC",
+                convert_query("SELECT * FROM friends WHERE user_id = ? AND name LIKE ? ORDER BY name ASC"),
                 (user_id, f"%{query}%"),
             )
             rows = cursor.fetchall()

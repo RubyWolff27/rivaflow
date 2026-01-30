@@ -87,7 +87,7 @@ class ActivityPhotoRepository:
         with get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(
-                "SELECT * FROM activity_photos WHERE id = ? AND user_id = ?",
+                convert_query("SELECT * FROM activity_photos WHERE id = ? AND user_id = ?"),
                 (photo_id, user_id),
             )
             row = cursor.fetchone()
@@ -99,7 +99,7 @@ class ActivityPhotoRepository:
         with get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(
-                "DELETE FROM activity_photos WHERE id = ? AND user_id = ?",
+                convert_query("DELETE FROM activity_photos WHERE id = ? AND user_id = ?"),
                 (photo_id, user_id),
             )
             return cursor.rowcount > 0

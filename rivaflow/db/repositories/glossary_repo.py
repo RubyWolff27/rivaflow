@@ -41,7 +41,7 @@ class GlossaryRepository:
 
             query += " ORDER BY category, name"
 
-            cursor.execute(query, params)
+            cursor.execute(convert_query(query), params)
             rows = cursor.fetchall()
             return [GlossaryRepository._row_to_dict(row) for row in rows]
 
@@ -88,7 +88,7 @@ class GlossaryRepository:
         """Get list of all categories."""
         with get_connection() as conn:
             cursor = conn.cursor()
-            cursor.execute("SELECT DISTINCT category FROM movements_glossary ORDER BY category")
+            cursor.execute(convert_query("SELECT DISTINCT category FROM movements_glossary ORDER BY category"))
             return [row[0] for row in cursor.fetchall()]
 
     @staticmethod
