@@ -125,6 +125,7 @@ class GoalProgressRepository:
             )
 
             # Update with completion timestamp if newly completed
+            # PostgreSQL requires explicit NULL::timestamp casting for type matching in CASE
             cursor.execute(
                 convert_query("""
                 UPDATE goal_progress
@@ -133,7 +134,7 @@ class GoalProgressRepository:
                     actual_rolls = ?,
                     completed_at = CASE
                         WHEN ? AND completed_at IS NULL THEN CURRENT_TIMESTAMP
-                        WHEN NOT ? THEN NULL
+                        WHEN NOT ? THEN NULL::timestamp
                         ELSE completed_at
                     END,
                     updated_at = CURRENT_TIMESTAMP
