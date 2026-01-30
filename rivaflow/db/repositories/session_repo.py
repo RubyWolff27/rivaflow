@@ -337,11 +337,14 @@ class SessionRepository:
             data["partners"] = json.loads(data["partners"])
         if data.get("techniques"):
             data["techniques"] = json.loads(data["techniques"])
-        # Parse dates
+        # Parse dates (handle both string and datetime/date types)
         if data.get("session_date"):
-            data["session_date"] = date.fromisoformat(data["session_date"])
+            if isinstance(data["session_date"], str):
+                data["session_date"] = date.fromisoformat(data["session_date"])
         if data.get("created_at"):
-            data["created_at"] = datetime.fromisoformat(data["created_at"])
+            if isinstance(data["created_at"], str):
+                data["created_at"] = datetime.fromisoformat(data["created_at"])
         if data.get("updated_at"):
-            data["updated_at"] = datetime.fromisoformat(data["updated_at"])
+            if isinstance(data["updated_at"], str):
+                data["updated_at"] = datetime.fromisoformat(data["updated_at"])
         return data

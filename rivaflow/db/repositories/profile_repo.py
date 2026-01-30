@@ -162,11 +162,13 @@ class ProfileRepository:
         if "location" in data:
             data["city"] = data.pop("location")
 
-        # Parse dates
+        # Parse dates (handle both string and datetime types)
         if data.get("created_at"):
-            data["created_at"] = datetime.fromisoformat(data["created_at"])
+            if isinstance(data["created_at"], str):
+                data["created_at"] = datetime.fromisoformat(data["created_at"])
         if data.get("updated_at"):
-            data["updated_at"] = datetime.fromisoformat(data["updated_at"])
+            if isinstance(data["updated_at"], str):
+                data["updated_at"] = datetime.fromisoformat(data["updated_at"])
 
         # Calculate age from date_of_birth
         if data.get("date_of_birth"):
