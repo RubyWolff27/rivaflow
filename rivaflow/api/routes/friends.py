@@ -43,11 +43,11 @@ async def list_contacts(
 ):
     """Get all friends with optional filtering."""
     if search:
-        friends = service.search_contacts(user_id=current_user["id"], search=search)
+        friends = service.search_friends(user_id=current_user["id"], query=search)
     elif friend_type:
         friends = service.repo.list_by_type(user_id=current_user["id"], friend_type=friend_type)
     else:
-        friends = service.list_contacts(user_id=current_user["id"])
+        friends = service.list_friends(user_id=current_user["id"])
     return friends
 
 
@@ -68,7 +68,7 @@ async def list_training_partners(current_user: dict = Depends(get_current_user))
 @router.get("/{friend_id}")
 async def get_contact(friend_id: int, current_user: dict = Depends(get_current_user)):
     """Get a specific friend by ID."""
-    friend = service.get_contact(user_id=current_user["id"], friend_id=friend_id)
+    friend = service.get_friend(user_id=current_user["id"], friend_id=friend_id)
     if not friend:
         raise NotFoundError("Friend not found")
     return friend
@@ -78,7 +78,7 @@ async def get_contact(friend_id: int, current_user: dict = Depends(get_current_u
 async def create_contact(friend: FriendCreate, current_user: dict = Depends(get_current_user)):
     """Create a new friend."""
     # Let exceptions bubble up - global handler will catch them
-    created = service.create_contact(
+    created = service.create_friend(
         user_id=current_user["id"],
         name=friend.name,
         friend_type=friend.friend_type,
@@ -95,7 +95,7 @@ async def create_contact(friend: FriendCreate, current_user: dict = Depends(get_
 @router.put("/{friend_id}")
 async def update_contact(friend_id: int, friend: FriendUpdate, current_user: dict = Depends(get_current_user)):
     """Update a friend."""
-    updated = service.update_contact(
+    updated = service.update_friend(
         user_id=current_user["id"],
         friend_id=friend_id,
         name=friend.name,
@@ -115,7 +115,7 @@ async def update_contact(friend_id: int, friend: FriendUpdate, current_user: dic
 @router.delete("/{friend_id}")
 async def delete_contact(friend_id: int, current_user: dict = Depends(get_current_user)):
     """Delete a friend."""
-    deleted = service.delete_contact(user_id=current_user["id"], friend_id=friend_id)
+    deleted = service.delete_friend(user_id=current_user["id"], friend_id=friend_id)
     if not deleted:
         raise NotFoundError("Friend not found")
     return {"message": "Friend deleted successfully"}
