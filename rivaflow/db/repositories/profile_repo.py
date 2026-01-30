@@ -143,7 +143,7 @@ class ProfileRepository:
                     updates.append("updated_at = CURRENT_TIMESTAMP")
                     params.append(user_id)
                     query = f"UPDATE profile SET {', '.join(updates)} WHERE user_id = ?"
-                    cursor.execute(query, params)
+                    cursor.execute(convert_query(query), params)
 
             # Return updated profile
             cursor.execute(convert_query("SELECT * FROM profile WHERE user_id = ?"), (user_id,))
