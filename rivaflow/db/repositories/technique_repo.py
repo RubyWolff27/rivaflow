@@ -83,17 +83,21 @@ class TechniqueRepository:
     @staticmethod
     def get_stale(days: int = 7) -> list[dict]:
         """Get techniques not trained in N days (or never trained)."""
+        from datetime import date, timedelta
+
+        # Calculate cutoff date in Python (works for both SQLite and PostgreSQL)
+        cutoff_date = (date.today() - timedelta(days=days)).isoformat()
+
         with get_connection() as conn:
             cursor = conn.cursor()
-            # Use SQLite date syntax - works for both databases
             cursor.execute(
                 convert_query("""
                 SELECT * FROM techniques
                 WHERE last_trained_date IS NULL
-                   OR last_trained_date < date('now', '-' || ? || ' days')
+                   OR last_trained_date < ?
                 ORDER BY last_trained_date ASC
                 """),
-                (days,)
+                (cutoff_date,)
             )
             return [TechniqueRepository._row_to_dict(row) for row in cursor.fetchall()]
 
