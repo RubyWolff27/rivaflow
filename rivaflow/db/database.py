@@ -53,11 +53,30 @@ def execute_insert(cursor, query: str, params: tuple) -> int:
         query_with_returning = query.rstrip().rstrip(';') + " RETURNING id"
         cursor.execute(convert_query(query_with_returning), params)
         result = cursor.fetchone()
-        return result['id'] if hasattr(result, 'keys') else result[0]
+
+        if result is None:
+            logger.error(f"INSERT query returned no rows. Query: {query[:100]}...")
+            raise ValueError("INSERT did not return an ID")
+
+        # Handle both dict-like and tuple-like results
+        try:
+            if hasattr(result, 'keys'):
+                return result['id']
+            else:
+                return result[0]
+        except (KeyError, IndexError, TypeError) as e:
+            logger.error(f"Failed to extract ID from result: {result}, error: {e}")
+            raise ValueError(f"Could not extract ID from INSERT result: {result}")
     else:
         # SQLite: Use lastrowid
         cursor.execute(convert_query(query), params)
-        return cursor.lastrowid
+        inserted_id = cursor.lastrowid
+
+        if not inserted_id or inserted_id == 0:
+            logger.error(f"SQLite INSERT returned invalid lastrowid: {inserted_id}")
+            raise ValueError(f"INSERT did not return a valid ID (got {inserted_id})")
+
+        return inserted_id
 
 # Import PostgreSQL adapter if available
 try:
@@ -183,7 +202,7 @@ def _reset_postgresql_sequences(conn) -> None:
     # Get all tables with SERIAL columns
     tables_with_serials = [
         'users', 'profile', 'sessions', 'readiness', 'techniques', 'videos',
-        'gradings', 'movements', 'contacts', 'movement_videos', 'session_rolls',
+        'gradings', 'movements', 'friends', 'movement_videos', 'session_rolls',
         'session_techniques', 'weekly_goal_progress', 'daily_checkins',
         'milestones', 'streaks', 'activity_photos', 'user_relationships',
         'activity_likes', 'activity_comments', 'refresh_tokens'
