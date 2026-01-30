@@ -103,7 +103,7 @@ class GoalProgressRepository:
             # Check if all goals are met
             cursor.execute(
                 convert_query("""
-                SELECT target_sessions, target_hours, target_rolls
+                SELECT target_sessions, target_hours, target_rolls, completed_at
                 FROM goal_progress
                 WHERE user_id = ? AND week_start_date = ?
                 """),
@@ -118,38 +118,56 @@ class GoalProgressRepository:
             target_sessions = row_dict['target_sessions']
             target_hours = row_dict['target_hours']
             target_rolls = row_dict['target_rolls']
+            previously_completed = row_dict['completed_at'] is not None
+
             all_complete = (
                 actual_sessions >= target_sessions
                 and actual_hours >= target_hours
                 and actual_rolls >= target_rolls
             )
 
-            # Update with completion timestamp if newly completed
-            # Use CAST(NULL AS timestamp) for PostgreSQL/SQLite compatibility
-            cursor.execute(
-                convert_query("""
-                UPDATE goal_progress
-                SET actual_sessions = ?,
-                    actual_hours = ?,
-                    actual_rolls = ?,
-                    completed_at = CASE
-                        WHEN ? AND completed_at IS NULL THEN CURRENT_TIMESTAMP
-                        WHEN NOT ? THEN CAST(NULL AS timestamp)
-                        ELSE completed_at
-                    END,
-                    updated_at = CURRENT_TIMESTAMP
-                WHERE user_id = ? AND week_start_date = ?
-                """),
-                (
-                    actual_sessions,
-                    actual_hours,
-                    actual_rolls,
-                    all_complete,
-                    all_complete,
-                    user_id,
-                    week_start_date.isoformat(),
-                ),
-            )
+            # Simple update without CASE - use two separate queries for clarity
+            if all_complete and not previously_completed:
+                # Newly completed - set completion timestamp
+                cursor.execute(
+                    convert_query("""
+                    UPDATE goal_progress
+                    SET actual_sessions = ?,
+                        actual_hours = ?,
+                        actual_rolls = ?,
+                        completed_at = CURRENT_TIMESTAMP,
+                        updated_at = CURRENT_TIMESTAMP
+                    WHERE user_id = ? AND week_start_date = ?
+                    """),
+                    (actual_sessions, actual_hours, actual_rolls, user_id, week_start_date.isoformat()),
+                )
+            elif not all_complete:
+                # Not complete - clear completion timestamp
+                cursor.execute(
+                    convert_query("""
+                    UPDATE goal_progress
+                    SET actual_sessions = ?,
+                        actual_hours = ?,
+                        actual_rolls = ?,
+                        completed_at = NULL,
+                        updated_at = CURRENT_TIMESTAMP
+                    WHERE user_id = ? AND week_start_date = ?
+                    """),
+                    (actual_sessions, actual_hours, actual_rolls, user_id, week_start_date.isoformat()),
+                )
+            else:
+                # Already completed, keep existing completed_at
+                cursor.execute(
+                    convert_query("""
+                    UPDATE goal_progress
+                    SET actual_sessions = ?,
+                        actual_hours = ?,
+                        actual_rolls = ?,
+                        updated_at = CURRENT_TIMESTAMP
+                    WHERE user_id = ? AND week_start_date = ?
+                    """),
+                    (actual_sessions, actual_hours, actual_rolls, user_id, week_start_date.isoformat()),
+                )
             return True
 
     def get_completion_streak(self, user_id: int) -> dict:
