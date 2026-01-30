@@ -146,7 +146,11 @@ class RefreshTokenRepository:
             return False
 
         # Check if expired
-        expires_at = datetime.fromisoformat(token_data["expires_at"])
+        # Handle both string (SQLite) and datetime (PostgreSQL) types
+        expires_at = token_data["expires_at"]
+        if isinstance(expires_at, str):
+            expires_at = datetime.fromisoformat(expires_at)
+
         if expires_at < datetime.utcnow():
             # Clean up expired token
             RefreshTokenRepository.delete_by_token(token)
