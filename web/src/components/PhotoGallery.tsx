@@ -34,10 +34,23 @@ export default function PhotoGallery({
     setLoading(true);
     try {
       const response = await photosApi.getByActivity(activityType, activityId);
-      setPhotos(response.data.photos);
-      onPhotoCountChange?.(response.data.count);
+      // Handle both array response (from stub endpoint) and object response (from real endpoint)
+      if (Array.isArray(response.data)) {
+        setPhotos(response.data);
+        onPhotoCountChange?.(response.data.length);
+      } else if (response.data.photos) {
+        setPhotos(response.data.photos);
+        onPhotoCountChange?.(response.data.count);
+      } else {
+        // Handle error or unexpected response format gracefully
+        setPhotos([]);
+        onPhotoCountChange?.(0);
+      }
     } catch (error) {
       console.error('Error loading photos:', error);
+      // Gracefully handle errors - set empty photos instead of crashing
+      setPhotos([]);
+      onPhotoCountChange?.(0);
     } finally {
       setLoading(false);
     }
