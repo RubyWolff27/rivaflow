@@ -3,7 +3,7 @@ import sqlite3
 from datetime import datetime, date
 from typing import List, Optional
 
-from rivaflow.db.database import get_connection, convert_query
+from rivaflow.db.database import get_connection, convert_query, execute_insert
 
 
 class GradingRepository:
@@ -14,14 +14,14 @@ class GradingRepository:
         """Create a new grading entry."""
         with get_connection() as conn:
             cursor = conn.cursor()
-            cursor.execute(
-                convert_query("""
+            grading_id = execute_insert(
+                cursor,
+                """
                 INSERT INTO gradings (user_id, grade, date_graded, professor, notes)
                 VALUES (?, ?, ?, ?, ?)
-                """),
+                """,
                 (user_id, grade, date_graded, professor, notes),
             )
-            grading_id = cursor.lastrowid
 
             # Return the created grading
             cursor.execute(convert_query("SELECT * FROM gradings WHERE id = ? AND user_id = ?"), (grading_id, user_id))

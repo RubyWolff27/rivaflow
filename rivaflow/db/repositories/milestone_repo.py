@@ -2,7 +2,7 @@
 import sqlite3
 from typing import Optional
 
-from rivaflow.db.database import get_connection, convert_query
+from rivaflow.db.database import get_connection, convert_query, execute_insert
 from rivaflow.config import MILESTONES, MILESTONE_LABELS
 
 
@@ -45,16 +45,15 @@ class MilestoneRepository:
 
             # Create new milestone
             label = MILESTONE_LABELS.get(milestone_type, "{}").format(crossed_threshold)
-            cursor.execute(
-                convert_query("""
+            milestone_id = execute_insert(
+                cursor,
+                """
                 INSERT INTO milestones (user_id, milestone_type, milestone_value, milestone_label, celebrated)
                 VALUES (?, ?, ?, ?, 0)
-                """),
+                """,
                 (user_id, milestone_type, crossed_threshold, label)
             )
             conn.commit()
-
-            milestone_id = cursor.lastrowid
 
             # Fetch and return the created milestone
             cursor.execute(

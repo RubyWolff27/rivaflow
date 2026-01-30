@@ -2,7 +2,7 @@
 import sqlite3
 from typing import List, Optional
 
-from rivaflow.db.database import get_connection, convert_query
+from rivaflow.db.database import get_connection, convert_query, execute_insert
 
 
 class FriendRepository:
@@ -23,15 +23,15 @@ class FriendRepository:
         """Create a new friend."""
         with get_connection() as conn:
             cursor = conn.cursor()
-            cursor.execute(
-                convert_query("""
+            friend_id = execute_insert(
+                cursor,
+                """
                 INSERT INTO friends
                 (user_id, name, friend_type, belt_rank, belt_stripes, instructor_certification, phone, email, notes)
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-                """),
+                """,
                 (user_id, name, friend_type, belt_rank, belt_stripes, instructor_certification, phone, email, notes),
             )
-            friend_id = cursor.lastrowid
 
             # Return the created friend
             cursor.execute(convert_query("SELECT * FROM friends WHERE id = ? AND user_id = ?"), (friend_id, user_id))

@@ -4,7 +4,7 @@ import sqlite3
 from datetime import date, datetime
 from typing import Optional
 
-from rivaflow.db.database import get_connection, convert_query
+from rivaflow.db.database import get_connection, convert_query, execute_insert
 from rivaflow.db.repositories.session_technique_repo import SessionTechniqueRepository
 
 
@@ -38,8 +38,9 @@ class SessionRepository:
         """Create a new session and return its ID."""
         with get_connection() as conn:
             cursor = conn.cursor()
-            cursor.execute(
-                convert_query("""
+            return execute_insert(
+                cursor,
+                """
                 INSERT INTO sessions (
                     user_id, session_date, class_time, class_type, gym_name, location,
                     duration_mins, intensity, rolls,
@@ -48,7 +49,7 @@ class SessionRepository:
                     instructor_id, instructor_name,
                     whoop_strain, whoop_calories, whoop_avg_hr, whoop_max_hr
                 ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                """),
+                """,
                 (
                     user_id,
                     session_date.isoformat(),
@@ -73,7 +74,6 @@ class SessionRepository:
                     whoop_max_hr,
                 ),
             )
-            return cursor.lastrowid
 
     @staticmethod
     def get_by_id(user_id: int, session_id: int) -> Optional[dict]:

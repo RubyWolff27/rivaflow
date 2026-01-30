@@ -3,7 +3,7 @@ import sqlite3
 import json
 from typing import List, Optional
 
-from rivaflow.db.database import get_connection, convert_query
+from rivaflow.db.database import get_connection, convert_query, execute_insert
 
 
 class SessionRollRepository:
@@ -28,12 +28,13 @@ class SessionRollRepository:
         """
         with get_connection() as conn:
             cursor = conn.cursor()
-            cursor.execute(
-                convert_query("""
+            roll_id = execute_insert(
+                cursor,
+                """
                 INSERT INTO session_rolls
                 (session_id, roll_number, partner_id, partner_name, duration_mins, submissions_for, submissions_against, notes)
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-                """),
+                """,
                 (
                     session_id,
                     roll_number,
@@ -45,7 +46,6 @@ class SessionRollRepository:
                     notes,
                 ),
             )
-            roll_id = cursor.lastrowid
 
             # Return the created roll
             cursor.execute(convert_query("SELECT * FROM session_rolls WHERE id = ?"), (roll_id,))

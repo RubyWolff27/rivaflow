@@ -33,6 +33,32 @@ def convert_query(query: str) -> str:
         return query.replace("?", "%s")
     return query
 
+
+def execute_insert(cursor, query: str, params: tuple) -> int:
+    """
+    Execute an INSERT query and return the inserted ID.
+
+    Handles the difference between PostgreSQL (RETURNING id) and SQLite (lastrowid).
+
+    Args:
+        cursor: Database cursor
+        query: INSERT query string with ? placeholders (without RETURNING clause)
+        params: Query parameters tuple
+
+    Returns:
+        The ID of the inserted row
+    """
+    if get_db_type() == "postgresql":
+        # PostgreSQL: Add RETURNING id and fetch the result
+        query_with_returning = query.rstrip().rstrip(';') + " RETURNING id"
+        cursor.execute(convert_query(query_with_returning), params)
+        result = cursor.fetchone()
+        return result['id'] if hasattr(result, 'keys') else result[0]
+    else:
+        # SQLite: Use lastrowid
+        cursor.execute(convert_query(query), params)
+        return cursor.lastrowid
+
 # Import PostgreSQL adapter if available
 try:
     import psycopg2

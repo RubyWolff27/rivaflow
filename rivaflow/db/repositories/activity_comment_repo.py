@@ -2,7 +2,7 @@
 import sqlite3
 from typing import List, Optional
 
-from rivaflow.db.database import get_connection, convert_query
+from rivaflow.db.database import get_connection, convert_query, execute_insert
 
 
 class ActivityCommentRepository:
@@ -34,15 +34,15 @@ class ActivityCommentRepository:
         """
         with get_connection() as conn:
             cursor = conn.cursor()
-            cursor.execute(
-                convert_query("""
+            comment_id = execute_insert(
+                cursor,
+                """
                 INSERT INTO activity_comments
                 (user_id, activity_type, activity_id, comment_text, parent_comment_id)
                 VALUES (?, ?, ?, ?, ?)
-                """),
+                """,
                 (user_id, activity_type, activity_id, comment_text, parent_comment_id),
             )
-            comment_id = cursor.lastrowid
 
             cursor.execute(convert_query("SELECT * FROM activity_comments WHERE id = ?"), (comment_id,))
             row = cursor.fetchone()

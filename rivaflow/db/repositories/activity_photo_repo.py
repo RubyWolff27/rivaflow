@@ -3,7 +3,7 @@ import sqlite3
 from typing import Optional, List
 from datetime import datetime
 
-from rivaflow.db.database import get_connection, convert_query
+from rivaflow.db.database import get_connection, convert_query, execute_insert
 
 
 class ActivityPhotoRepository:
@@ -25,13 +25,14 @@ class ActivityPhotoRepository:
         """Create a new activity photo record. Returns photo ID."""
         with get_connection() as conn:
             cursor = conn.cursor()
-            cursor.execute(
-                convert_query("""
+            return execute_insert(
+                cursor,
+                """
                 INSERT INTO activity_photos (
                     user_id, activity_type, activity_id, activity_date,
                     file_path, file_name, file_size, mime_type, caption, display_order
                 ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                """),
+                """,
                 (
                     user_id,
                     activity_type,
@@ -45,7 +46,6 @@ class ActivityPhotoRepository:
                     display_order,
                 ),
             )
-            return cursor.lastrowid
 
     @staticmethod
     def get_by_activity(

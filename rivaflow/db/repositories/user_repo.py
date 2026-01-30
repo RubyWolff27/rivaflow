@@ -3,7 +3,7 @@ import sqlite3
 from datetime import datetime
 from typing import Optional
 
-from rivaflow.db.database import get_connection, convert_query
+from rivaflow.db.database import get_connection, convert_query, execute_insert
 
 
 class UserRepository:
@@ -36,14 +36,14 @@ class UserRepository:
         with get_connection() as conn:
             cursor = conn.cursor()
 
-            cursor.execute(
-                convert_query("""
+            user_id = execute_insert(
+                cursor,
+                """
                 INSERT INTO users (email, hashed_password, first_name, last_name, is_active)
                 VALUES (?, ?, ?, ?, ?)
-                """),
+                """,
                 (email, hashed_password, first_name, last_name, is_active),
             )
-            user_id = cursor.lastrowid
 
             if not user_id or user_id == 0:
                 raise ValueError(f"Invalid user_id returned: {user_id}")

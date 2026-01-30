@@ -3,7 +3,7 @@ import sqlite3
 from datetime import date
 from typing import Optional
 
-from rivaflow.db.database import get_connection, convert_query
+from rivaflow.db.database import get_connection, convert_query, execute_insert
 
 
 class CheckinRepository:
@@ -45,8 +45,9 @@ class CheckinRepository:
         """Create or update daily check-in."""
         with get_connection() as conn:
             cursor = conn.cursor()
-            cursor.execute(
-                convert_query("""
+            checkin_id = execute_insert(
+                cursor,
+                """
                 INSERT INTO daily_checkins (
                     user_id, check_date, checkin_type, rest_type, rest_note,
                     session_id, readiness_id, tomorrow_intention, insight_shown
@@ -60,7 +61,7 @@ class CheckinRepository:
                     readiness_id = excluded.readiness_id,
                     tomorrow_intention = excluded.tomorrow_intention,
                     insight_shown = excluded.insight_shown
-                """),
+                """,
                 (
                     user_id,
                     check_date.isoformat(),
@@ -74,7 +75,7 @@ class CheckinRepository:
                 )
             )
             conn.commit()
-            return cursor.lastrowid
+            return checkin_id
 
     @staticmethod
     def get_checkins_range(user_id: int, start_date: date, end_date: date) -> list[dict]:

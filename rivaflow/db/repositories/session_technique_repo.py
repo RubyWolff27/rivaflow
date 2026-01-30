@@ -3,7 +3,7 @@ import sqlite3
 import json
 from typing import List, Optional
 
-from rivaflow.db.database import get_connection, convert_query
+from rivaflow.db.database import get_connection, convert_query, execute_insert
 
 
 class SessionTechniqueRepository:
@@ -25,12 +25,13 @@ class SessionTechniqueRepository:
         """
         with get_connection() as conn:
             cursor = conn.cursor()
-            cursor.execute(
-                convert_query("""
+            technique_id = execute_insert(
+                cursor,
+                """
                 INSERT INTO session_techniques
                 (session_id, movement_id, technique_number, notes, media_urls)
                 VALUES (?, ?, ?, ?, ?)
-                """),
+                """,
                 (
                     session_id,
                     movement_id,
@@ -39,7 +40,6 @@ class SessionTechniqueRepository:
                     json.dumps(media_urls) if media_urls else None,
                 ),
             )
-            technique_id = cursor.lastrowid
 
             # Return the created technique
             cursor.execute(convert_query("SELECT * FROM session_techniques WHERE id = ?"), (technique_id,))

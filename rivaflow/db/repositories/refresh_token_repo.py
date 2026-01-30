@@ -3,7 +3,7 @@ import sqlite3
 from datetime import datetime
 from typing import Optional
 
-from rivaflow.db.database import get_connection, convert_query
+from rivaflow.db.database import get_connection, convert_query, execute_insert
 
 
 class RefreshTokenRepository:
@@ -25,14 +25,14 @@ class RefreshTokenRepository:
         with get_connection() as conn:
             cursor = conn.cursor()
 
-            cursor.execute(
-                convert_query("""
+            token_id = execute_insert(
+                cursor,
+                """
                 INSERT INTO refresh_tokens (user_id, token, expires_at)
                 VALUES (?, ?, ?)
-                """),
+                """,
                 (user_id, token, expires_at),
             )
-            token_id = cursor.lastrowid
 
             # Fetch and return the created token
             cursor.execute(convert_query("SELECT * FROM refresh_tokens WHERE id = ?"), (token_id,))

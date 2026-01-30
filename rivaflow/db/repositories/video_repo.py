@@ -4,7 +4,7 @@ import sqlite3
 from datetime import datetime
 from typing import Optional
 
-from rivaflow.db.database import get_connection, convert_query
+from rivaflow.db.database import get_connection, convert_query, execute_insert
 
 
 class VideoRepository:
@@ -20,11 +20,12 @@ class VideoRepository:
         """Create a new video and return its ID."""
         with get_connection() as conn:
             cursor = conn.cursor()
-            cursor.execute(
-                convert_query("""
+            return execute_insert(
+                cursor,
+                """
                 INSERT INTO videos (url, title, timestamps, technique_id)
                 VALUES (?, ?, ?, ?)
-                """),
+                """,
                 (
                     url,
                     title,
@@ -32,7 +33,6 @@ class VideoRepository:
                     technique_id,
                 ),
             )
-            return cursor.lastrowid
 
     @staticmethod
     def get_by_id(video_id: int) -> Optional[dict]:

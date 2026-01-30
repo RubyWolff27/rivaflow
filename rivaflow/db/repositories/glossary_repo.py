@@ -4,7 +4,7 @@ import json
 from datetime import datetime
 from typing import List, Optional
 
-from rivaflow.db.database import get_connection, convert_query
+from rivaflow.db.database import get_connection, convert_query, execute_insert
 
 
 class GlossaryRepository:
@@ -108,20 +108,19 @@ class GlossaryRepository:
 
             aliases_json = json.dumps(aliases or [])
 
-            cursor.execute(
-                convert_query("""
+            movement_id = execute_insert(
+                cursor,
+                """
                 INSERT INTO movements_glossary (
                     name, category, subcategory, points, description,
                     aliases, gi_applicable, nogi_applicable, custom
                 ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1)
-                """),
+                """,
                 (
                     name, category, subcategory, points, description,
                     aliases_json, 1 if gi_applicable else 0, 1 if nogi_applicable else 0
                 )
             )
-
-            movement_id = cursor.lastrowid
             cursor.execute(convert_query("SELECT * FROM movements_glossary WHERE id = ?"), (movement_id,))
             row = cursor.fetchone()
             return GlossaryRepository._row_to_dict(row)
@@ -144,15 +143,14 @@ class GlossaryRepository:
         """Add a custom video link for a movement."""
         with get_connection() as conn:
             cursor = conn.cursor()
-            cursor.execute(
-                convert_query("""
+            video_id = execute_insert(
+                cursor,
+                """
                 INSERT INTO movement_videos (movement_id, title, url, video_type)
                 VALUES (?, ?, ?, ?)
-                """),
+                """,
                 (movement_id, title, url, video_type)
             )
-
-            video_id = cursor.lastrowid
             cursor.execute(convert_query("SELECT * FROM movement_videos WHERE id = ?"), (video_id,))
             row = cursor.fetchone()
             return dict(row)

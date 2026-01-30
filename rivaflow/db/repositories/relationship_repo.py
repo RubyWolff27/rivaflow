@@ -2,7 +2,7 @@
 import sqlite3
 from typing import List, Optional
 
-from rivaflow.db.database import get_connection, convert_query
+from rivaflow.db.database import get_connection, convert_query, execute_insert
 
 
 class UserRelationshipRepository:
@@ -25,14 +25,14 @@ class UserRelationshipRepository:
         """
         with get_connection() as conn:
             cursor = conn.cursor()
-            cursor.execute(
-                convert_query("""
+            relationship_id = execute_insert(
+                cursor,
+                """
                 INSERT INTO user_relationships (follower_user_id, following_user_id, status)
                 VALUES (?, ?, 'active')
-                """),
+                """,
                 (follower_user_id, following_user_id),
             )
-            relationship_id = cursor.lastrowid
 
             cursor.execute(convert_query("SELECT * FROM user_relationships WHERE id = ?"), (relationship_id,))
             row = cursor.fetchone()

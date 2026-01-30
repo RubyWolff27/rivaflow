@@ -3,7 +3,7 @@ import sqlite3
 from datetime import date, timedelta
 from typing import Optional
 
-from rivaflow.db.database import get_connection, convert_query
+from rivaflow.db.database import get_connection, convert_query, execute_insert
 from rivaflow.config import STREAK_GRACE_DAYS
 
 
@@ -27,16 +27,17 @@ class StreakRepository:
             row = cursor.fetchone()
             if row is None:
                 # Initialize if not exists
-                cursor.execute(
-                convert_query("""
+                streak_id = execute_insert(
+                    cursor,
+                    """
                     INSERT INTO streaks (user_id, streak_type, current_streak, longest_streak)
                     VALUES (?, ?, 0, 0)
-                    """),
+                    """,
                     (user_id, streak_type)
                 )
                 conn.commit()
                 return {
-                    "id": cursor.lastrowid,
+                    "id": streak_id,
                     "streak_type": streak_type,
                     "current_streak": 0,
                     "longest_streak": 0,

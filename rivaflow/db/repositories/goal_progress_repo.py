@@ -2,7 +2,7 @@
 from typing import Optional
 from datetime import date, datetime
 
-from rivaflow.db.database import get_connection, convert_query
+from rivaflow.db.database import get_connection, convert_query, execute_insert
 
 
 class GoalProgressRepository:
@@ -67,13 +67,14 @@ class GoalProgressRepository:
         with get_connection() as conn:
             cursor = conn.cursor()
 
-            cursor.execute(
-                convert_query("""
+            return execute_insert(
+                cursor,
+                """
                 INSERT INTO goal_progress
                 (user_id, week_start_date, week_end_date, target_sessions, actual_sessions,
                  target_hours, actual_hours, target_rolls, actual_rolls)
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-                """),
+                """,
                 (
                     user_id,
                     week_start_date.isoformat(),
@@ -86,7 +87,6 @@ class GoalProgressRepository:
                     actual_rolls,
                 ),
             )
-            return cursor.lastrowid
 
     def update_progress(
         self,

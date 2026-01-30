@@ -3,7 +3,7 @@ import sqlite3
 from datetime import date, datetime
 from typing import Optional
 
-from rivaflow.db.database import get_connection, convert_query
+from rivaflow.db.database import get_connection, convert_query, execute_insert
 
 
 class TechniqueRepository:
@@ -15,11 +15,11 @@ class TechniqueRepository:
         with get_connection() as conn:
             cursor = conn.cursor()
             try:
-                cursor.execute(
+                return execute_insert(
+                    cursor,
                     "INSERT INTO techniques (name, category) VALUES (?, ?)",
                     (name.lower().strip(), category),
                 )
-                return cursor.lastrowid
             except sqlite3.IntegrityError:
                 # Technique already exists, return existing ID
                 cursor.execute(

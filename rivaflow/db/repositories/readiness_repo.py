@@ -3,7 +3,7 @@ import sqlite3
 from datetime import date, datetime
 from typing import Optional
 
-from rivaflow.db.database import get_connection, convert_query
+from rivaflow.db.database import get_connection, convert_query, execute_insert
 
 
 class ReadinessRepository:
@@ -44,15 +44,15 @@ class ReadinessRepository:
                 return existing["id"]
             else:
                 # Insert new
-                cursor.execute(
-                    convert_query("""
+                return execute_insert(
+                    cursor,
+                    """
                     INSERT INTO readiness (
                         user_id, check_date, sleep, stress, soreness, energy, hotspot_note, weight_kg
                     ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-                    """),
+                    """,
                     (user_id, check_date.isoformat(), sleep, stress, soreness, energy, hotspot_note, weight_kg),
                 )
-                return cursor.lastrowid
 
     @staticmethod
     def get_by_date(user_id: int, check_date: date) -> Optional[dict]:
