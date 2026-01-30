@@ -21,9 +21,17 @@ CREATE TABLE IF NOT EXISTS friends_new (
     UNIQUE(user_id, name)  -- Each user can have their own friend named "John"
 );
 
--- Copy existing data
-INSERT INTO friends_new
-SELECT * FROM friends;
+-- Copy existing data (explicitly list columns to handle different column order and schema)
+-- Note: Old friends table has more columns (belt_stripes, instructor_certification, phone, email)
+-- New schema simplified to: id, user_id, name, friend_type, belt_rank, gym, notes
+INSERT INTO friends_new (
+    id, user_id, name, friend_type, belt_rank, gym, notes, created_at, updated_at
+)
+SELECT
+    id, user_id, name, friend_type, belt_rank,
+    NULL as gym,  -- gym column doesn't exist in old schema
+    notes, created_at, updated_at
+FROM friends;
 
 -- Drop old table
 DROP TABLE friends;

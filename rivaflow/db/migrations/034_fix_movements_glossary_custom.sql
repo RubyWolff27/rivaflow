@@ -27,9 +27,17 @@ CREATE TABLE IF NOT EXISTS movements_glossary_new (
     UNIQUE(name, custom, user_id)
 );
 
--- Copy existing data
-INSERT INTO movements_glossary_new
-SELECT * FROM movements_glossary;
+-- Copy existing data (explicitly list columns, adding NULL for new user_id column)
+INSERT INTO movements_glossary_new (
+    id, name, category, description, gi_video_url, nogi_video_url,
+    custom, user_id, created_at, updated_at
+)
+SELECT
+    id, name, category, description, gi_video_url, nogi_video_url,
+    custom,
+    NULL as user_id,  -- New column: NULL for all existing (seeded) movements
+    created_at, updated_at
+FROM movements_glossary;
 
 -- Drop old table
 DROP TABLE movements_glossary;

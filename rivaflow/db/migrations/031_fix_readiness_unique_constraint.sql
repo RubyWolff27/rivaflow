@@ -23,9 +23,15 @@ CREATE TABLE IF NOT EXISTS readiness_new (
     UNIQUE(user_id, check_date)  -- One check-in per user per date
 );
 
--- Copy existing data
-INSERT INTO readiness_new
-SELECT * FROM readiness;
+-- Copy existing data (explicitly list columns to handle different column order)
+INSERT INTO readiness_new (
+    id, user_id, check_date, sleep, stress, soreness, energy,
+    hotspot_note, weight_kg, created_at, updated_at
+)
+SELECT
+    id, user_id, check_date, sleep, stress, soreness, energy,
+    hotspot_note, weight_kg, created_at, updated_at
+FROM readiness;
 
 -- Drop old table
 DROP TABLE readiness;

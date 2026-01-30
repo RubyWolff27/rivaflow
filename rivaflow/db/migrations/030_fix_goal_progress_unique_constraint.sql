@@ -26,9 +26,17 @@ CREATE TABLE IF NOT EXISTS goal_progress_new (
     UNIQUE(user_id, week_start_date)  -- One record per user per week
 );
 
--- Copy existing data
-INSERT INTO goal_progress_new
-SELECT * FROM goal_progress;
+-- Copy existing data (explicitly list columns to handle different column order)
+INSERT INTO goal_progress_new (
+    id, user_id, week_start_date, week_end_date,
+    target_sessions, actual_sessions, target_hours, actual_hours,
+    target_rolls, actual_rolls, completed_at, created_at, updated_at
+)
+SELECT
+    id, user_id, week_start_date, week_end_date,
+    target_sessions, actual_sessions, target_hours, actual_hours,
+    target_rolls, actual_rolls, completed_at, created_at, updated_at
+FROM goal_progress;
 
 -- Drop old table
 DROP TABLE goal_progress;
