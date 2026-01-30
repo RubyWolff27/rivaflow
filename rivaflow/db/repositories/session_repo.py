@@ -332,11 +332,16 @@ class SessionRepository:
     def _row_to_dict(row: sqlite3.Row) -> dict:
         """Convert a database row to a dictionary."""
         data = dict(row)
-        # Parse JSON fields
+        # Parse JSON fields - ensure arrays are never null
         if data.get("partners"):
             data["partners"] = json.loads(data["partners"])
+        else:
+            data["partners"] = []
+
         if data.get("techniques"):
             data["techniques"] = json.loads(data["techniques"])
+        else:
+            data["techniques"] = []
         # Parse dates (handle both string and datetime/date types)
         if data.get("session_date"):
             if isinstance(data["session_date"], str):
