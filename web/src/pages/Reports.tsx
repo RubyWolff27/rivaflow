@@ -76,7 +76,7 @@ export default function Reports() {
   const rollsDelta = deltas.rolls || 0;
   const submissionsDelta = deltas.submissions || 0;
 
-  // Quick Insights logic
+  // Quick Insights logic - generate 2 most valuable insights
   const getQuickInsights = () => {
     if (sessionsValue === 0) {
       return [
@@ -85,29 +85,81 @@ export default function Reports() {
       ];
     }
 
-    // Determine trends
-    const sessionTrend = sessionsDelta > 0 ? 'up' : sessionsDelta < 0 ? 'down' : 'flat';
-    const intensityTrend = intensityDelta > 0 ? 'up' : intensityDelta < 0 ? 'down' : 'flat';
+    const allInsights: Array<{ text: string; priority: number }> = [];
 
-    const insights = [];
-
-    if (sessionTrend === 'up') {
-      insights.push(`Training frequency up ${Math.abs(sessionsDelta)} sessions this period.`);
-    } else if (sessionTrend === 'down') {
-      insights.push(`Training frequency down ${Math.abs(sessionsDelta)} sessions this period.`);
-    } else {
-      insights.push('Training frequency holding steady.');
+    // Session frequency insights
+    if (sessionsDelta > 0) {
+      allInsights.push({
+        text: `Training frequency up ${Math.abs(sessionsDelta)} sessions this period.`,
+        priority: Math.abs(sessionsDelta) >= 2 ? 10 : 5,
+      });
+    } else if (sessionsDelta < 0) {
+      allInsights.push({
+        text: `Training frequency down ${Math.abs(sessionsDelta)} sessions this period.`,
+        priority: Math.abs(sessionsDelta) >= 2 ? 10 : 5,
+      });
     }
 
-    if (intensityTrend === 'up') {
-      insights.push(`Intensity trending higher (+${intensityDelta.toFixed(1)}/5 avg).`);
-    } else if (intensityTrend === 'down') {
-      insights.push(`Intensity trending lower (${intensityDelta.toFixed(1)}/5 avg).`);
-    } else {
-      insights.push('Intensity levels consistent across sessions.');
+    // Intensity insights
+    if (Math.abs(intensityDelta) >= 0.5) {
+      if (intensityDelta > 0) {
+        allInsights.push({
+          text: `Intensity trending higher (+${intensityDelta.toFixed(1)}/5 avg).`,
+          priority: 8,
+        });
+      } else {
+        allInsights.push({
+          text: `Intensity trending lower (${intensityDelta.toFixed(1)}/5 avg).`,
+          priority: 8,
+        });
+      }
     }
 
-    return insights.slice(0, 2); // Always exactly 2 bullets
+    // Submissions insights
+    if (Math.abs(submissionsDelta) >= 3) {
+      if (submissionsDelta > 0) {
+        allInsights.push({
+          text: `Submission rate up +${submissionsDelta} this period.`,
+          priority: 9,
+        });
+      } else {
+        allInsights.push({
+          text: `Submission rate down ${Math.abs(submissionsDelta)} this period.`,
+          priority: 7,
+        });
+      }
+    }
+
+    // Rolls insights
+    if (Math.abs(rollsDelta) >= 5) {
+      if (rollsDelta > 0) {
+        allInsights.push({
+          text: `Rolling more (+${rollsDelta} rounds this period).`,
+          priority: 6,
+        });
+      } else {
+        allInsights.push({
+          text: `Less live rolling (${Math.abs(rollsDelta)} fewer rounds).`,
+          priority: 6,
+        });
+      }
+    }
+
+    // Default insights if no significant changes
+    if (allInsights.length === 0) {
+      allInsights.push({
+        text: 'Training consistency maintained.',
+        priority: 3,
+      });
+      allInsights.push({
+        text: `Logged ${sessionsValue} sessions this period.`,
+        priority: 2,
+      });
+    }
+
+    // Sort by priority and take top 2
+    allInsights.sort((a, b) => b.priority - a.priority);
+    return allInsights.slice(0, 2).map(i => i.text);
   };
 
   const quickInsights = getQuickInsights();
