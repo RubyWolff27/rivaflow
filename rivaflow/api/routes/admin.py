@@ -19,6 +19,9 @@ class GymCreateRequest(BaseModel):
     country: str = Field("USA", max_length=100)
     address: Optional[str] = Field(None, max_length=500)
     website: Optional[str] = Field(None, max_length=500)
+    email: Optional[str] = Field(None, max_length=200)
+    phone: Optional[str] = Field(None, max_length=50)
+    head_coach: Optional[str] = Field(None, max_length=200)
     verified: bool = False
 
 
@@ -30,6 +33,9 @@ class GymUpdateRequest(BaseModel):
     country: Optional[str] = Field(None, max_length=100)
     address: Optional[str] = Field(None, max_length=500)
     website: Optional[str] = Field(None, max_length=500)
+    email: Optional[str] = Field(None, max_length=200)
+    phone: Optional[str] = Field(None, max_length=50)
+    head_coach: Optional[str] = Field(None, max_length=200)
     verified: Optional[bool] = None
 
 
@@ -106,6 +112,9 @@ async def create_gym(
         country=request.country,
         address=request.address,
         website=request.website,
+        email=request.email,
+        phone=request.phone,
+        head_coach=request.head_coach,
         verified=request.verified,
         added_by_user_id=current_user["id"],
     )

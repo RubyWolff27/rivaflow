@@ -303,9 +303,9 @@ export const adminApi = {
     api.get('/admin/gyms/pending'),
   searchGyms: (query: string, verifiedOnly = false) =>
     api.get('/admin/gyms/search', { params: { q: query, verified_only: verifiedOnly } }),
-  createGym: (data: { name: string; city?: string; state?: string; country?: string; address?: string; website?: string; verified?: boolean }) =>
+  createGym: (data: { name: string; city?: string; state?: string; country?: string; address?: string; website?: string; email?: string; phone?: string; head_coach?: string; verified?: boolean }) =>
     api.post('/admin/gyms', data),
-  updateGym: (gymId: number, data: { name?: string; city?: string; state?: string; country?: string; address?: string; website?: string; verified?: boolean }) =>
+  updateGym: (gymId: number, data: { name?: string; city?: string; state?: string; country?: string; address?: string; website?: string; email?: string; phone?: string; head_coach?: string; verified?: boolean }) =>
     api.put(`/admin/gyms/${gymId}`, data),
   deleteGym: (gymId: number) =>
     api.delete(`/admin/gyms/${gymId}`),

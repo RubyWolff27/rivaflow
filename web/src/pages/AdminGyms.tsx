@@ -11,14 +11,16 @@ interface Gym {
   country: string;
   address?: string;
   website?: string;
+  email?: string;
+  phone?: string;
+  head_coach?: string;
   verified: boolean;
   added_by_user_id?: number;
   created_at: string;
   updated_at: string;
-  // From pending gyms query
+  // From pending gyms query (user info)
   first_name?: string;
   last_name?: string;
-  email?: string;
 }
 
 export default function AdminGyms() {
@@ -38,6 +40,9 @@ export default function AdminGyms() {
     country: 'USA',
     address: '',
     website: '',
+    email: '',
+    phone: '',
+    head_coach: '',
     verified: false,
   });
 
@@ -89,7 +94,7 @@ export default function AdminGyms() {
     try {
       await adminApi.createGym(formData);
       setShowAddForm(false);
-      setFormData({ name: '', city: '', state: '', country: 'USA', address: '', website: '', verified: false });
+      setFormData({ name: '', city: '', state: '', country: 'USA', address: '', website: '', email: '', phone: '', head_coach: '', verified: false });
       loadGyms();
       loadPendingGyms();
     } catch (error) {
@@ -103,7 +108,7 @@ export default function AdminGyms() {
     try {
       await adminApi.updateGym(editingGym.id, formData);
       setEditingGym(null);
-      setFormData({ name: '', city: '', state: '', country: 'USA', address: '', website: '', verified: false });
+      setFormData({ name: '', city: '', state: '', country: 'USA', address: '', website: '', email: '', phone: '', head_coach: '', verified: false });
       loadGyms();
       loadPendingGyms();
     } catch (error) {
@@ -141,6 +146,9 @@ export default function AdminGyms() {
       country: gym.country,
       address: gym.address || '',
       website: gym.website || '',
+      email: gym.email || '',
+      phone: gym.phone || '',
+      head_coach: gym.head_coach || '',
       verified: gym.verified,
     });
     setShowAddForm(false);
@@ -149,7 +157,7 @@ export default function AdminGyms() {
   const cancelEdit = () => {
     setEditingGym(null);
     setShowAddForm(false);
-    setFormData({ name: '', city: '', state: '', country: 'USA', address: '', website: '', verified: false });
+    setFormData({ name: '', city: '', state: '', country: 'USA', address: '', website: '', email: '', phone: '', head_coach: '', verified: false });
   };
 
   const displayGyms = activeTab === 'pending' ? pendingGyms : gyms;
@@ -297,6 +305,45 @@ export default function AdminGyms() {
                   onChange={(e) => setFormData({ ...formData, website: e.target.value })}
                   className="input w-full"
                   placeholder="https://..."
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium mb-1" style={{ color: 'var(--text)' }}>
+                  Email
+                </label>
+                <input
+                  type="email"
+                  value={formData.email}
+                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                  className="input w-full"
+                  placeholder="contact@gym.com"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium mb-1" style={{ color: 'var(--text)' }}>
+                  Phone
+                </label>
+                <input
+                  type="tel"
+                  value={formData.phone}
+                  onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                  className="input w-full"
+                  placeholder="+1 (555) 123-4567"
+                />
+              </div>
+
+              <div className="md:col-span-2">
+                <label className="block text-sm font-medium mb-1" style={{ color: 'var(--text)' }}>
+                  Head Coach
+                </label>
+                <input
+                  type="text"
+                  value={formData.head_coach}
+                  onChange={(e) => setFormData({ ...formData, head_coach: e.target.value })}
+                  className="input w-full"
+                  placeholder="Coach name"
                 />
               </div>
 
