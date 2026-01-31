@@ -216,7 +216,7 @@ export default function Dashboard() {
             {recentSessions.map((session) => (
               <Link
                 key={session.id}
-                to={`/sessions/${session.id}`}
+                to={`/session/${session.id}`}
                 className="block p-4 rounded-[14px] transition-all"
                 style={{
                   backgroundColor: 'var(--surfaceElev)',
