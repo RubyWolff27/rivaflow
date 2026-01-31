@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { analyticsApi } from '../api/client';
-import { TrendingUp, Users, Activity, Target, Lightbulb } from 'lucide-react';
+import { TrendingUp, Users, Activity, Target, Lightbulb, Book } from 'lucide-react';
 import { Card, Chip, MetricTile } from '../components/ui';
 
 export default function Reports() {
@@ -12,6 +12,7 @@ export default function Reports() {
   // Data states
   const [performanceData, setPerformanceData] = useState<any>(null);
   const [partnersData, setPartnersData] = useState<any>(null);
+  const [techniquesData, setTechniquesData] = useState<any>(null);
 
   useEffect(() => {
     // Set default date range (last 7 days)
@@ -41,6 +42,9 @@ export default function Reports() {
       } else if (activeTab === 'partners') {
         const partnersRes = await analyticsApi.partnerStats(params);
         setPartnersData(partnersRes.data);
+      } else if (activeTab === 'techniques') {
+        const techRes = await analyticsApi.techniqueBreakdown(params);
+        setTechniquesData(techRes.data);
       }
     } catch (error) {
       console.error('Error loading analytics:', error);
@@ -410,12 +414,159 @@ export default function Reports() {
         </div>
       )}
 
-      {/* Placeholder for Readiness and Techniques tabs */}
-      {(activeTab === 'readiness' || activeTab === 'techniques') && (
+      {/* Techniques Tab Content */}
+      {activeTab === 'techniques' && techniquesData && (
+        <div className="space-y-6">
+          {/* Summary Metrics */}
+          <div className="grid grid-cols-2 gap-3">
+            <div className="p-4 rounded-[14px]" style={{ backgroundColor: 'var(--surfaceElev)', border: '1px solid var(--border)' }}>
+              <div className="flex items-center gap-2 mb-3">
+                <Book className="w-4 h-4" style={{ color: 'var(--muted)' }} />
+                <span className="text-xs font-medium uppercase tracking-wide" style={{ color: 'var(--muted)' }}>Unique Techniques</span>
+              </div>
+              <p className="text-2xl font-semibold" style={{ color: 'var(--text)' }}>
+                {techniquesData.summary?.total_unique_techniques_used || 0}
+              </p>
+            </div>
+
+            <div className="p-4 rounded-[14px]" style={{ backgroundColor: 'var(--surfaceElev)', border: '1px solid var(--border)' }}>
+              <div className="flex items-center gap-2 mb-3">
+                <Activity className="w-4 h-4" style={{ color: 'var(--muted)' }} />
+                <span className="text-xs font-medium uppercase tracking-wide" style={{ color: 'var(--muted)' }}>Stale (30+ days)</span>
+              </div>
+              <p className="text-2xl font-semibold" style={{ color: 'var(--text)' }}>
+                {techniquesData.summary?.stale_count || 0}
+              </p>
+            </div>
+          </div>
+
+          {/* Category Breakdown */}
+          {techniquesData.category_breakdown && techniquesData.category_breakdown.length > 0 && (
+            <Card>
+              <div className="mb-4">
+                <h3 className="text-lg font-semibold" style={{ color: 'var(--text)' }}>Submissions by Category</h3>
+                <p className="text-xs mt-1" style={{ color: 'var(--muted)' }}>Which categories you're using most</p>
+              </div>
+
+              <div className="space-y-3">
+                {techniquesData.category_breakdown
+                  .sort((a: any, b: any) => b.count - a.count)
+                  .map((cat: any) => {
+                    const maxCount = Math.max(...techniquesData.category_breakdown.map((c: any) => c.count));
+                    const percentage = (cat.count / maxCount) * 100;
+
+                    return (
+                      <div key={cat.category}>
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="text-sm font-medium" style={{ color: 'var(--text)' }}>
+                            {cat.category}
+                          </span>
+                          <span className="text-sm" style={{ color: 'var(--muted)' }}>
+                            {cat.count}
+                          </span>
+                        </div>
+                        <div className="w-full rounded-full h-2" style={{ backgroundColor: 'var(--border)' }}>
+                          <div
+                            className="h-2 rounded-full transition-all"
+                            style={{
+                              width: `${percentage}%`,
+                              backgroundColor: 'var(--accent)',
+                            }}
+                          />
+                        </div>
+                      </div>
+                    );
+                  })}
+              </div>
+            </Card>
+          )}
+
+          {/* Gi vs No-Gi Split */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* Gi Techniques */}
+            <Card>
+              <div className="mb-4">
+                <h3 className="text-lg font-semibold" style={{ color: 'var(--text)' }}>Top Gi Techniques</h3>
+                <p className="text-xs mt-1" style={{ color: 'var(--muted)' }}>Most successful in gi sessions</p>
+              </div>
+
+              {techniquesData.gi_top_techniques && techniquesData.gi_top_techniques.length > 0 ? (
+                <div className="space-y-2">
+                  {techniquesData.gi_top_techniques.slice(0, 5).map((tech: any, index: number) => (
+                    <div
+                      key={index}
+                      className="flex items-center justify-between p-3 rounded-lg"
+                      style={{ backgroundColor: 'var(--surfaceElev)' }}
+                    >
+                      <span className="text-sm" style={{ color: 'var(--text)' }}>{tech.name}</span>
+                      <span className="text-sm font-medium" style={{ color: 'var(--accent)' }}>{tech.count}</span>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-center py-8 text-sm" style={{ color: 'var(--muted)' }}>
+                  No gi techniques logged yet
+                </p>
+              )}
+            </Card>
+
+            {/* No-Gi Techniques */}
+            <Card>
+              <div className="mb-4">
+                <h3 className="text-lg font-semibold" style={{ color: 'var(--text)' }}>Top No-Gi Techniques</h3>
+                <p className="text-xs mt-1" style={{ color: 'var(--muted)' }}>Most successful in no-gi sessions</p>
+              </div>
+
+              {techniquesData.nogi_top_techniques && techniquesData.nogi_top_techniques.length > 0 ? (
+                <div className="space-y-2">
+                  {techniquesData.nogi_top_techniques.slice(0, 5).map((tech: any, index: number) => (
+                    <div
+                      key={index}
+                      className="flex items-center justify-between p-3 rounded-lg"
+                      style={{ backgroundColor: 'var(--surfaceElev)' }}
+                    >
+                      <span className="text-sm" style={{ color: 'var(--text)' }}>{tech.name}</span>
+                      <span className="text-sm font-medium" style={{ color: 'var(--accent)' }}>{tech.count}</span>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-center py-8 text-sm" style={{ color: 'var(--muted)' }}>
+                  No no-gi techniques logged yet
+                </p>
+              )}
+            </Card>
+          </div>
+
+          {/* Stale Techniques */}
+          {techniquesData.stale_techniques && techniquesData.stale_techniques.length > 0 && (
+            <Card>
+              <div className="mb-4">
+                <h3 className="text-lg font-semibold" style={{ color: 'var(--text)' }}>Stale Techniques</h3>
+                <p className="text-xs mt-1" style={{ color: 'var(--muted)' }}>
+                  Not practiced in the last 30 days
+                </p>
+              </div>
+
+              <div className="flex flex-wrap gap-2">
+                {techniquesData.stale_techniques.slice(0, 15).map((tech: any) => (
+                  <Chip key={tech.id}>{tech.name}</Chip>
+                ))}
+                {techniquesData.stale_techniques.length > 15 && (
+                  <Chip>+{techniquesData.stale_techniques.length - 15} more</Chip>
+                )}
+              </div>
+            </Card>
+          )}
+        </div>
+      )}
+
+      {/* Placeholder for Readiness tab */}
+      {activeTab === 'readiness' && (
         <Card>
           <div className="text-center py-12 text-[var(--muted)]">
             <p className="text-sm">
-              {tabs.find((t) => t.id === activeTab)?.name} analytics coming soon.
+              Readiness analytics coming soon.
             </p>
           </div>
         </Card>
