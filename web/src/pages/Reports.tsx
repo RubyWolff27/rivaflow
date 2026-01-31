@@ -11,6 +11,7 @@ export default function Reports() {
 
   // Data states
   const [performanceData, setPerformanceData] = useState<any>(null);
+  const [partnersData, setPartnersData] = useState<any>(null);
 
   useEffect(() => {
     // Set default date range (last 7 days)
@@ -33,8 +34,14 @@ export default function Reports() {
     setLoading(true);
     try {
       const params = { start_date: dateRange.start, end_date: dateRange.end };
-      const perfRes = await analyticsApi.performanceOverview(params);
-      setPerformanceData(perfRes.data);
+
+      if (activeTab === 'overview') {
+        const perfRes = await analyticsApi.performanceOverview(params);
+        setPerformanceData(perfRes.data);
+      } else if (activeTab === 'partners') {
+        const partnersRes = await analyticsApi.partnerStats(params);
+        setPartnersData(partnersRes.data);
+      }
     } catch (error) {
       console.error('Error loading analytics:', error);
     } finally {
@@ -285,8 +292,126 @@ export default function Reports() {
         </div>
       )}
 
-      {/* Placeholder for other tabs */}
-      {activeTab !== 'overview' && (
+      {/* Partners Tab Content */}
+      {activeTab === 'partners' && partnersData && (
+        <div className="space-y-6">
+          {/* Summary Metrics */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            <div className="p-4 rounded-[14px]" style={{ backgroundColor: 'var(--surfaceElev)', border: '1px solid var(--border)' }}>
+              <div className="flex items-center gap-2 mb-3">
+                <Users className="w-4 h-4" style={{ color: 'var(--muted)' }} />
+                <span className="text-xs font-medium uppercase tracking-wide" style={{ color: 'var(--muted)' }}>Active Partners</span>
+              </div>
+              <p className="text-2xl font-semibold" style={{ color: 'var(--text)' }}>
+                {partnersData.diversity_metrics?.active_partners || 0}
+              </p>
+            </div>
+
+            <div className="p-4 rounded-[14px]" style={{ backgroundColor: 'var(--surfaceElev)', border: '1px solid var(--border)' }}>
+              <div className="flex items-center gap-2 mb-3">
+                <Activity className="w-4 h-4" style={{ color: 'var(--muted)' }} />
+                <span className="text-xs font-medium uppercase tracking-wide" style={{ color: 'var(--muted)' }}>Total Rolls</span>
+              </div>
+              <p className="text-2xl font-semibold" style={{ color: 'var(--text)' }}>
+                {partnersData.summary?.total_rolls || 0}
+              </p>
+            </div>
+
+            <div className="p-4 rounded-[14px]" style={{ backgroundColor: 'var(--surfaceElev)', border: '1px solid var(--border)' }}>
+              <div className="flex items-center gap-2 mb-3">
+                <Target className="w-4 h-4" style={{ color: 'var(--muted)' }} />
+                <span className="text-xs font-medium uppercase tracking-wide" style={{ color: 'var(--muted)' }}>Subs For</span>
+              </div>
+              <p className="text-2xl font-semibold" style={{ color: 'var(--text)' }}>
+                {partnersData.summary?.total_submissions_for || 0}
+              </p>
+            </div>
+
+            <div className="p-4 rounded-[14px]" style={{ backgroundColor: 'var(--surfaceElev)', border: '1px solid var(--border)' }}>
+              <div className="flex items-center gap-2 mb-3">
+                <Target className="w-4 h-4" style={{ color: 'var(--muted)' }} />
+                <span className="text-xs font-medium uppercase tracking-wide" style={{ color: 'var(--muted)' }}>Subs Against</span>
+              </div>
+              <p className="text-2xl font-semibold" style={{ color: 'var(--text)' }}>
+                {partnersData.summary?.total_submissions_against || 0}
+              </p>
+            </div>
+          </div>
+
+          {/* Top Partners List */}
+          <Card>
+            <div className="mb-4">
+              <h3 className="text-lg font-semibold" style={{ color: 'var(--text)' }}>Top Training Partners</h3>
+              <p className="text-xs mt-1" style={{ color: 'var(--muted)' }}>Most frequent partners this period</p>
+            </div>
+
+            {partnersData.top_partners && partnersData.top_partners.length > 0 ? (
+              <div className="space-y-3">
+                {partnersData.top_partners.map((partner: any, index: number) => (
+                  <div
+                    key={partner.id}
+                    className="p-4 rounded-[14px]"
+                    style={{ backgroundColor: 'var(--surfaceElev)', border: '1px solid var(--border)' }}
+                  >
+                    <div className="flex items-center justify-between mb-3">
+                      <div className="flex items-center gap-3">
+                        <div
+                          className="w-8 h-8 rounded-full flex items-center justify-center text-sm font-semibold"
+                          style={{
+                            backgroundColor: 'var(--accent)',
+                            color: '#FFFFFF',
+                          }}
+                        >
+                          {index + 1}
+                        </div>
+                        <div>
+                          <p className="font-medium" style={{ color: 'var(--text)' }}>{partner.name}</p>
+                          {partner.belt_rank && (
+                            <p className="text-xs" style={{ color: 'var(--muted)' }}>{partner.belt_rank}</p>
+                          )}
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-lg font-semibold" style={{ color: 'var(--text)' }}>
+                          {partner.total_rolls} rolls
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-3 gap-3 pt-3" style={{ borderTop: '1px solid var(--border)' }}>
+                      <div>
+                        <p className="text-xs" style={{ color: 'var(--muted)' }}>Subs For</p>
+                        <p className="text-sm font-medium" style={{ color: 'var(--text)' }}>
+                          {partner.submissions_for || 0}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-xs" style={{ color: 'var(--muted)' }}>Subs Against</p>
+                        <p className="text-sm font-medium" style={{ color: 'var(--text)' }}>
+                          {partner.submissions_against || 0}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-xs" style={{ color: 'var(--muted)' }}>Ratio</p>
+                        <p className="text-sm font-medium" style={{ color: partner.sub_ratio >= 1 ? 'var(--accent)' : 'var(--text)' }}>
+                          {partner.sub_ratio ? partner.sub_ratio.toFixed(2) : '0.00'}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-center py-8 text-sm" style={{ color: 'var(--muted)' }}>
+                No partner data for this period. Start logging rolls with partners!
+              </p>
+            )}
+          </Card>
+        </div>
+      )}
+
+      {/* Placeholder for Readiness and Techniques tabs */}
+      {(activeTab === 'readiness' || activeTab === 'techniques') && (
         <Card>
           <div className="text-center py-12 text-[var(--muted)]">
             <p className="text-sm">

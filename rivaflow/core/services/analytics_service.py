@@ -212,6 +212,48 @@ class AnalyticsService:
             "submissions": submissions_series,
         }
 
+    def _calculate_partner_session_distribution(
+        self, user_id: int, sessions: List[Dict]
+    ) -> List[Dict[str, Any]]:
+        """Calculate which partners appear in which sessions."""
+        # Get all session IDs
+        session_ids = [s["id"] for s in sessions]
+
+        # Get rolls for these sessions
+        rolls_by_session = self.roll_repo.get_by_session_ids(user_id, session_ids)
+
+        # Count sessions per partner
+        partner_session_count = defaultdict(int)
+        partner_names = {}
+
+        for session in sessions:
+            rolls = rolls_by_session.get(session["id"], [])
+            partners_in_session = set()
+
+            for roll in rolls:
+                if roll.get("partner_id"):
+                    partners_in_session.add(roll["partner_id"])
+
+            for partner_id in partners_in_session:
+                partner_session_count[partner_id] += 1
+                if partner_id not in partner_names:
+                    partner = self.friend_repo.get_by_id(user_id, partner_id)
+                    if partner:
+                        partner_names[partner_id] = partner["name"]
+
+        # Build distribution list
+        distribution = []
+        for partner_id, session_count in partner_session_count.items():
+            distribution.append({
+                "partner_id": partner_id,
+                "partner_name": partner_names.get(partner_id, "Unknown"),
+                "session_count": session_count,
+            })
+
+        # Sort by session count
+        distribution.sort(key=lambda x: x["session_count"], reverse=True)
+        return distribution
+
     def _calculate_performance_by_belt(
         self, sessions: List[Dict], gradings: List[Dict]
     ) -> List[Dict]:
@@ -309,16 +351,37 @@ class AnalyticsService:
         partner_matrix.sort(key=lambda p: p["total_rolls"], reverse=True)
 
         # Partner diversity metrics
-        unique_partners = len([p for p in partner_matrix if p["total_rolls"] > 0])
-        new_partners = len([p for p in partner_matrix if p["total_rolls"] <= 3])
-        recurring_partners = len([p for p in partner_matrix if p["total_rolls"] > 3])
+        active_partners = [p for p in partner_matrix if p["total_rolls"] > 0]
+        unique_partners = len(active_partners)
+        new_partners = len([p for p in active_partners if p["total_rolls"] <= 3])
+        recurring_partners = len([p for p in active_partners if p["total_rolls"] > 3])
+
+        # Top partners summary (top 5)
+        top_partners = partner_matrix[:5] if len(partner_matrix) >= 5 else partner_matrix
+
+        # Calculate session distribution by partner
+        session_distribution = self._calculate_partner_session_distribution(user_id, sessions)
+
+        # Overall partner stats
+        total_rolls_all_partners = sum(p["total_rolls"] for p in partner_matrix)
+        total_subs_for = sum(p["submissions_for"] for p in partner_matrix)
+        total_subs_against = sum(p["submissions_against"] for p in partner_matrix)
 
         return {
             "partner_matrix": partner_matrix,
+            "top_partners": top_partners,
+            "session_distribution": session_distribution,
             "diversity_metrics": {
                 "unique_partners": unique_partners,
                 "new_partners": new_partners,
                 "recurring_partners": recurring_partners,
+            },
+            "summary": {
+                "total_partners": len(partners),
+                "active_partners": unique_partners,
+                "total_rolls": total_rolls_all_partners,
+                "total_submissions_for": total_subs_for,
+                "total_submissions_against": total_subs_against,
             },
         }
 
