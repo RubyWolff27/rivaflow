@@ -1,5 +1,6 @@
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { AuthProvider } from './contexts/AuthContext';
+import { ToastProvider } from './contexts/ToastContext';
 import PrivateRoute from './components/PrivateRoute';
 import Layout from './components/Layout';
 import Dashboard from './pages/Dashboard';
@@ -36,7 +37,8 @@ function App() {
   return (
     <Router>
       <AuthProvider>
-        <Routes>
+        <ToastProvider>
+          <Routes>
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
           <Route path="/forgot-password" element={<ForgotPassword />} />
@@ -78,6 +80,7 @@ function App() {
             }
           />
         </Routes>
+        </ToastProvider>
       </AuthProvider>
     </Router>
   );

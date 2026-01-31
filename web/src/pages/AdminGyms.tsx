@@ -4,6 +4,7 @@ import { Search, Plus, Edit2, Trash2, Check, MapPin, Globe, Building2 } from 'lu
 import { Card, PrimaryButton, SecondaryButton } from '../components/ui';
 import AdminNav from '../components/AdminNav';
 import ConfirmDialog from '../components/ConfirmDialog';
+import { useToast } from '../contexts/ToastContext';
 
 interface Gym {
   id: number;
@@ -26,6 +27,7 @@ interface Gym {
 }
 
 export default function AdminGyms() {
+  const toast = useToast();
   const [gyms, setGyms] = useState<Gym[]>([]);
   const [pendingGyms, setPendingGyms] = useState<Gym[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
@@ -68,7 +70,7 @@ export default function AdminGyms() {
       const response = await adminApi.listGyms(false);
       setGyms(response.data.gyms || []);
     } catch (error) {
-      console.error('Error loading gyms:', error);
+      toast.error('Failed to load gyms. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -79,7 +81,7 @@ export default function AdminGyms() {
       const response = await adminApi.getPendingGyms();
       setPendingGyms(response.data.pending_gyms || []);
     } catch (error) {
-      console.error('Error loading pending gyms:', error);
+      toast.error('Failed to load pending gyms. Please try again.');
     }
   };
 
@@ -88,7 +90,7 @@ export default function AdminGyms() {
       const response = await adminApi.searchGyms(searchQuery, false);
       setGyms(response.data.gyms || []);
     } catch (error) {
-      console.error('Error searching gyms:', error);
+      toast.error('Failed to search gyms. Please try again.');
     }
   };
 
@@ -98,10 +100,11 @@ export default function AdminGyms() {
       await adminApi.createGym(formData);
       setShowAddForm(false);
       setFormData({ name: '', city: '', state: '', country: 'Australia', address: '', website: '', email: '', phone: '', head_coach: '', verified: false });
+      toast.success(`Gym "${formData.name}" created successfully!`);
       loadGyms();
       loadPendingGyms();
     } catch (error) {
-      console.error('Error creating gym:', error);
+      toast.error('Failed to create gym. Please try again.');
     }
   };
 
@@ -112,10 +115,11 @@ export default function AdminGyms() {
       await adminApi.updateGym(editingGym.id, formData);
       setEditingGym(null);
       setFormData({ name: '', city: '', state: '', country: 'Australia', address: '', website: '', email: '', phone: '', head_coach: '', verified: false });
+      toast.success(`Gym "${formData.name}" updated successfully!`);
       loadGyms();
       loadPendingGyms();
     } catch (error) {
-      console.error('Error updating gym:', error);
+      toast.error('Failed to update gym. Please try again.');
     }
   };
 
@@ -123,11 +127,12 @@ export default function AdminGyms() {
     if (!confirmDelete) return;
     try {
       await adminApi.deleteGym(confirmDelete.id);
+      toast.success(`Gym "${confirmDelete.name}" deleted successfully!`);
       setConfirmDelete(null);
       loadGyms();
       loadPendingGyms();
     } catch (error) {
-      console.error('Error deleting gym:', error);
+      toast.error('Failed to delete gym. Please try again.');
       setConfirmDelete(null);
     }
   };
@@ -135,10 +140,11 @@ export default function AdminGyms() {
   const handleVerify = async (gym: Gym) => {
     try {
       await adminApi.updateGym(gym.id, { verified: true });
+      toast.success(`Gym "${gym.name}" verified successfully!`);
       loadGyms();
       loadPendingGyms();
     } catch (error) {
-      console.error('Error verifying gym:', error);
+      toast.error('Failed to verify gym. Please try again.');
     }
   };
 
