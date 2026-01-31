@@ -2,8 +2,7 @@
 from typing import List, Optional, Dict, Any
 from datetime import datetime
 
-from rivaflow.db.database import get_connection
-from rivaflow.db.helpers import convert_query
+from rivaflow.db.database import get_connection, convert_query
 
 
 class NotificationRepository:
