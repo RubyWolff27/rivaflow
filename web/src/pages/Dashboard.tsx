@@ -36,19 +36,19 @@ export default function Dashboard() {
         goalsApi.getTrainingStreaks(),
       ]);
 
-      setRecentSessions(recentSessionsRes.data);
-      setWeeklyGoals(goalsRes.data);
+      setRecentSessions(recentSessionsRes.data ?? []);
+      setWeeklyGoals(goalsRes.data ?? null);
 
       // Calculate stats from last 7 days
-      const weekSessions = weekSessionsRes.data;
-      const totalIntensity = weekSessions.reduce((sum: number, s: any) => sum + (s.intensity || 0), 0);
-      const totalRolls = weekSessions.reduce((sum: number, s: any) => sum + (s.rolls || 0), 0);
+      const weekSessions = weekSessionsRes.data ?? [];
+      const totalIntensity = weekSessions.reduce((sum: number, s: any) => sum + (s.intensity ?? 0), 0);
+      const totalRolls = weekSessions.reduce((sum: number, s: any) => sum + (s.rolls ?? 0), 0);
 
       setStats({
         sessions: weekSessions.length,
         avgIntensity: weekSessions.length > 0 ? totalIntensity / weekSessions.length : 0,
         totalRolls,
-        currentStreak: streaksRes.data?.current_streak || 0,
+        currentStreak: streaksRes.data?.current_streak ?? 0,
       });
     } catch (error) {
       console.error('Error loading dashboard:', error);
@@ -162,14 +162,14 @@ export default function Dashboard() {
               <div className="flex items-center justify-between mb-2">
                 <span className="text-sm text-[var(--text)]">Training Sessions</span>
                 <span className="text-sm font-medium text-[var(--text)]">
-                  {weeklyGoals.actual?.sessions || 0} / {weeklyGoals.targets?.sessions || 3}
+                  {weeklyGoals.actual?.sessions ?? 0} / {weeklyGoals.targets?.sessions ?? 3}
                 </span>
               </div>
               <div className="w-full rounded-full h-2" style={{ backgroundColor: 'var(--border)' }}>
                 <div
                   className="h-2 rounded-full transition-all"
                   style={{
-                    width: `${Math.min(100, weeklyGoals.progress?.sessions_pct || 0)}%`,
+                    width: `${Math.min(100, weeklyGoals.progress?.sessions_pct ?? 0)}%`,
                     backgroundColor: 'var(--accent)',
                   }}
                 />
@@ -181,14 +181,14 @@ export default function Dashboard() {
               <div className="flex items-center justify-between mb-2">
                 <span className="text-sm text-[var(--text)]">Training Hours</span>
                 <span className="text-sm font-medium text-[var(--text)]">
-                  {weeklyGoals.actual?.hours || 0} / {weeklyGoals.targets?.hours || 5}
+                  {weeklyGoals.actual?.hours ?? 0} / {weeklyGoals.targets?.hours ?? 5}
                 </span>
               </div>
               <div className="w-full rounded-full h-2" style={{ backgroundColor: 'var(--border)' }}>
                 <div
                   className="h-2 rounded-full transition-all"
                   style={{
-                    width: `${Math.min(100, weeklyGoals.progress?.hours_pct || 0)}%`,
+                    width: `${Math.min(100, weeklyGoals.progress?.hours_pct ?? 0)}%`,
                     backgroundColor: 'var(--accent)',
                   }}
                 />
@@ -230,14 +230,14 @@ export default function Dashboard() {
                 }}
               >
                 <div className="flex items-center justify-between mb-3">
-                  <span className="text-sm font-medium" style={{ color: 'var(--text)' }}>{session.gym_name}</span>
-                  <span className="text-xs" style={{ color: 'var(--muted)' }}>{session.session_date}</span>
+                  <span className="text-sm font-medium" style={{ color: 'var(--text)' }}>{session.gym_name ?? 'Unknown Gym'}</span>
+                  <span className="text-xs" style={{ color: 'var(--muted)' }}>{session.session_date ?? 'N/A'}</span>
                 </div>
                 <div className="flex items-center gap-2 flex-wrap">
-                  <Chip>{session.class_type}</Chip>
-                  <Chip>{session.duration_mins}m</Chip>
-                  <Chip>{session.intensity}/5</Chip>
-                  {session.rolls > 0 && <Chip>{session.rolls} rolls</Chip>}
+                  <Chip>{session.class_type ?? 'N/A'}</Chip>
+                  <Chip>{session.duration_mins ?? 0}m</Chip>
+                  <Chip>{session.intensity ?? 0}/5</Chip>
+                  {(session.rolls ?? 0) > 0 && <Chip>{session.rolls} rolls</Chip>}
                 </div>
               </Link>
             ))}

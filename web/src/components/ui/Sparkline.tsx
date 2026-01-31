@@ -13,7 +13,7 @@ export default function Sparkline({
   strokeWidth = 2,
   className = '',
 }: SparklineProps) {
-  if (!data || data.length === 0) {
+  if (!data || !Array.isArray(data) || data.length === 0) {
     return null;
   }
 

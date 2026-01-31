@@ -34,9 +34,9 @@ export default function UserProfile() {
         usersApi.getActivity(parseInt(userId!), { limit: 20 }),
       ]);
 
-      setProfile(profileRes.data);
-      setStats(statsRes.data);
-      setActivity(activityRes.data.items || []);
+      setProfile(profileRes.data ?? null);
+      setStats(statsRes.data ?? null);
+      setActivity(activityRes.data?.items ?? []);
     } catch (err: any) {
       console.error('Failed to load user profile:', err);
       setError(err.response?.data?.error || 'Failed to load user profile');
@@ -53,10 +53,10 @@ export default function UserProfile() {
 
       if (profile.is_following) {
         await socialApi.unfollow(profile.id);
-        setProfile({ ...profile, is_following: false, follower_count: profile.follower_count - 1 });
+        setProfile({ ...profile, is_following: false, follower_count: (profile.follower_count ?? 0) - 1 });
       } else {
         await socialApi.follow(profile.id);
-        setProfile({ ...profile, is_following: true, follower_count: profile.follower_count + 1 });
+        setProfile({ ...profile, is_following: true, follower_count: (profile.follower_count ?? 0) + 1 });
       }
     } catch (err: any) {
       console.error('Failed to toggle follow:', err);
@@ -124,11 +124,11 @@ export default function UserProfile() {
         <div className="flex items-start justify-between">
           <div className="flex items-center gap-4">
             <div className="w-20 h-20 bg-gradient-to-br from-primary-400 to-primary-600 rounded-full flex items-center justify-center text-white text-2xl font-bold">
-              {profile.first_name?.[0]}{profile.last_name?.[0]}
+              {profile.first_name?.[0] ?? 'U'}{profile.last_name?.[0] ?? '?'}
             </div>
             <div>
               <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
-                {profile.first_name} {profile.last_name}
+                {profile.first_name ?? 'Unknown'} {profile.last_name ?? 'User'}
               </h1>
               <div className="flex items-center gap-4 mt-2 text-sm text-gray-600 dark:text-gray-400">
                 {profile.current_grade && (
@@ -142,7 +142,7 @@ export default function UserProfile() {
                     {profile.default_gym}
                   </span>
                 )}
-                {(profile.location || profile.state) && (
+                {(profile.location ?? profile.state) && (
                   <span className="flex items-center gap-1">
                     <MapPin className="w-4 h-4" />
                     {[profile.location, profile.state].filter(Boolean).join(', ')}
@@ -151,10 +151,10 @@ export default function UserProfile() {
               </div>
               <div className="flex items-center gap-4 mt-3 text-sm">
                 <span className="text-gray-700 dark:text-gray-300">
-                  <strong>{profile.follower_count}</strong> followers
+                  <strong>{profile.follower_count ?? 0}</strong> followers
                 </span>
                 <span className="text-gray-700 dark:text-gray-300">
-                  <strong>{profile.following_count}</strong> following
+                  <strong>{profile.following_count ?? 0}</strong> following
                 </span>
                 {profile.is_followed_by && (
                   <span className="text-xs bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 px-2 py-1 rounded">
@@ -202,7 +202,7 @@ export default function UserProfile() {
               <Activity className="w-4 h-4" />
               <span className="text-sm">Total Sessions</span>
             </div>
-            <p className="text-2xl font-bold text-gray-900 dark:text-white">{stats.total_sessions}</p>
+            <p className="text-2xl font-bold text-gray-900 dark:text-white">{stats.total_sessions ?? 0}</p>
           </div>
 
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-4">
@@ -210,7 +210,7 @@ export default function UserProfile() {
               <TrendingUp className="w-4 h-4" />
               <span className="text-sm">Total Hours</span>
             </div>
-            <p className="text-2xl font-bold text-gray-900 dark:text-white">{stats.total_hours}</p>
+            <p className="text-2xl font-bold text-gray-900 dark:text-white">{stats.total_hours ?? 0}</p>
           </div>
 
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-4">
@@ -218,7 +218,7 @@ export default function UserProfile() {
               <Users className="w-4 h-4" />
               <span className="text-sm">Total Rolls</span>
             </div>
-            <p className="text-2xl font-bold text-gray-900 dark:text-white">{stats.total_rolls}</p>
+            <p className="text-2xl font-bold text-gray-900 dark:text-white">{stats.total_rolls ?? 0}</p>
           </div>
 
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-4">
@@ -226,7 +226,7 @@ export default function UserProfile() {
               <Calendar className="w-4 h-4" />
               <span className="text-sm">This Week</span>
             </div>
-            <p className="text-2xl font-bold text-gray-900 dark:text-white">{stats.sessions_this_week}</p>
+            <p className="text-2xl font-bold text-gray-900 dark:text-white">{stats.sessions_this_week ?? 0}</p>
           </div>
         </div>
       )}

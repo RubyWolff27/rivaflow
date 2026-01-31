@@ -20,8 +20,8 @@ export default function SessionDetail() {
   const loadSession = async () => {
     setLoading(true);
     try {
-      const response = await sessionsApi.getById(parseInt(id!));
-      setSession(response.data);
+      const response = await sessionsApi.getById(parseInt(id ?? '0'));
+      setSession(response.data ?? null);
     } catch (error) {
       console.error('Error loading session:', error);
       alert('Failed to load session');
@@ -47,7 +47,7 @@ export default function SessionDetail() {
     );
   }
 
-  const sessionDate = new Date(session.session_date);
+  const sessionDate = new Date(session.session_date ?? new Date());
   const formattedDate = sessionDate.toLocaleDateString('en-US', {
     weekday: 'long',
     year: 'numeric',
@@ -93,7 +93,7 @@ export default function SessionDetail() {
               </span>
             </div>
             <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-1">
-              {session.gym_name}
+              {session.gym_name ?? 'Unknown Gym'}
             </h2>
             {session.location && (
               <p className="flex items-center gap-1 text-gray-600 dark:text-gray-400">
@@ -122,21 +122,21 @@ export default function SessionDetail() {
               <Clock className="w-4 h-4" />
               Duration
             </div>
-            <p className="font-semibold">{session.duration_mins} mins</p>
+            <p className="font-semibold">{session.duration_mins ?? 0} mins</p>
           </div>
           <div>
             <div className="flex items-center gap-1 text-sm text-gray-600 dark:text-gray-400 mb-1">
               <Activity className="w-4 h-4" />
               Rolls
             </div>
-            <p className="font-semibold">{session.rolls}</p>
+            <p className="font-semibold">{session.rolls ?? 0}</p>
           </div>
           <div>
             <div className="flex items-center gap-1 text-sm text-gray-600 dark:text-gray-400 mb-1">
               <Target className="w-4 h-4" />
               Submissions
             </div>
-            <p className="font-semibold">{session.submissions_for} / {session.submissions_against}</p>
+            <p className="font-semibold">{session.submissions_for ?? 0} / {session.submissions_against ?? 0}</p>
             <p className="text-xs text-gray-500">For / Against</p>
           </div>
         </div>
@@ -154,7 +154,7 @@ export default function SessionDetail() {
       )}
 
       {/* Partners */}
-      {session.partners && session.partners.length > 0 && (
+      {session.partners && Array.isArray(session.partners) && session.partners.length > 0 && (
         <div className="card">
           <div className="flex items-center gap-2 mb-3">
             <Users className="w-5 h-5 text-gray-600 dark:text-gray-400" />
@@ -174,7 +174,7 @@ export default function SessionDetail() {
       )}
 
       {/* Techniques */}
-      {session.techniques && session.techniques.length > 0 && (
+      {session.techniques && Array.isArray(session.techniques) && session.techniques.length > 0 && (
         <div className="card">
           <div className="flex items-center gap-2 mb-3">
             <Book className="w-5 h-5 text-gray-600 dark:text-gray-400" />
@@ -194,7 +194,7 @@ export default function SessionDetail() {
       )}
 
       {/* Detailed Techniques */}
-      {session.session_techniques && session.session_techniques.length > 0 && (
+      {session.session_techniques && Array.isArray(session.session_techniques) && session.session_techniques.length > 0 && (
         <div className="card">
           <h3 className="font-semibold text-lg mb-4">Technique Details</h3>
           <div className="space-y-4">
@@ -202,10 +202,10 @@ export default function SessionDetail() {
               <div key={index} className="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
                 <div className="flex items-start justify-between mb-2">
                   <h4 className="font-semibold text-primary-700 dark:text-primary-300">
-                    {tech.movement_name || `Technique #${tech.technique_number}`}
+                    {tech.movement_name ?? `Technique #${tech.technique_number ?? index + 1}`}
                   </h4>
                   <span className="text-xs px-2 py-1 bg-gray-100 dark:bg-gray-800 rounded">
-                    #{tech.technique_number}
+                    #{tech.technique_number ?? index + 1}
                   </span>
                 </div>
                 {tech.notes && (
@@ -213,7 +213,7 @@ export default function SessionDetail() {
                     {tech.notes}
                   </p>
                 )}
-                {tech.media_urls && tech.media_urls.length > 0 && (
+                {tech.media_urls && Array.isArray(tech.media_urls) && tech.media_urls.length > 0 && (
                   <div className="mt-3 space-y-2">
                     <p className="text-xs font-semibold text-gray-600 dark:text-gray-400">Reference Media:</p>
                     {tech.media_urls.map((media: any, mediaIndex: number) => (
@@ -224,7 +224,7 @@ export default function SessionDetail() {
                         rel="noopener noreferrer"
                         className="block text-sm text-primary-600 hover:text-primary-700 dark:text-primary-400 dark:hover:text-primary-300 underline"
                       >
-                        {media.title || media.url}
+                        {media.title ?? media.url ?? 'Media Link'}
                       </a>
                     ))}
                   </div>

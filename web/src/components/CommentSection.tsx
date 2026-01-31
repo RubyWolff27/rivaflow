@@ -33,7 +33,7 @@ const CommentSection = memo(function CommentSection({
     setLoading(true);
     try {
       const response = await socialApi.getComments(activityType, activityId);
-      setComments(response.data.comments || []);
+      setComments(response.data?.comments ?? []);
     } catch (error) {
       console.error('Error loading comments:', error);
     } finally {
@@ -126,10 +126,10 @@ const CommentSection = memo(function CommentSection({
                 <div className="flex items-start justify-between mb-1">
                   <div className="flex-1">
                     <span className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                      {comment.first_name} {comment.last_name}
+                      {comment.first_name ?? 'Unknown'} {comment.last_name ?? 'User'}
                     </span>
                     <span className="text-xs text-gray-500 dark:text-gray-400 ml-2">
-                      {formatDate(comment.created_at)}
+                      {formatDate(comment.created_at ?? new Date().toISOString())}
                       {comment.edited_at && ' (edited)'}
                     </span>
                   </div>

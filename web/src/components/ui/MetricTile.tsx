@@ -34,7 +34,7 @@ export default function MetricTile({
       </div>
 
       {/* Sparkline */}
-      {sparklineData && sparklineData.length > 0 && (
+      {sparklineData && Array.isArray(sparklineData) && sparklineData.length > 0 && (
         <div className="mt-1">
           <Sparkline data={sparklineData} width={100} height={24} strokeWidth={1.5} />
         </div>

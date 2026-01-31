@@ -96,14 +96,14 @@ const FeedItemComponent = memo(function FeedItemComponent({
                     {item.type === 'readiness' && (
                       <>
                         <button
-                          onClick={() => navigate(`/readiness/${item.data.check_date}`)}
+                          onClick={() => navigate(`/readiness/${item.data?.check_date ?? ''}`)}
                           className="p-1 hover:bg-white/50 dark:hover:bg-black/20 rounded transition-colors"
                           aria-label="View readiness details"
                         >
                           <Eye className="w-4 h-4 text-gray-600 dark:text-gray-400" />
                         </button>
                         <button
-                          onClick={() => navigate(`/readiness/edit/${item.data.check_date}`)}
+                          onClick={() => navigate(`/readiness/edit/${item.data?.check_date ?? ''}`)}
                           className="p-1 hover:bg-white/50 dark:hover:bg-black/20 rounded transition-colors"
                           aria-label="Edit readiness"
                         >
@@ -114,14 +114,14 @@ const FeedItemComponent = memo(function FeedItemComponent({
                     {item.type === 'rest' && (
                       <>
                         <button
-                          onClick={() => navigate(`/rest/${item.data.rest_date}`)}
+                          onClick={() => navigate(`/rest/${item.data?.rest_date ?? ''}`)}
                           className="p-1 hover:bg-white/50 dark:hover:bg-black/20 rounded transition-colors"
                           aria-label="View rest day details"
                         >
                           <Eye className="w-4 h-4 text-gray-600 dark:text-gray-400" />
                         </button>
                         <button
-                          onClick={() => navigate(`/rest/edit/${item.data.rest_date}`)}
+                          onClick={() => navigate(`/rest/edit/${item.data?.rest_date ?? ''}`)}
                           className="p-1 hover:bg-white/50 dark:hover:bg-black/20 rounded transition-colors"
                           aria-label="Edit rest day"
                         >
@@ -140,16 +140,16 @@ const FeedItemComponent = memo(function FeedItemComponent({
             {/* Session details */}
             {item.type === 'session' && (
               <div className="mt-2 text-sm text-gray-600 dark:text-gray-400 space-y-1">
-                {item.data.class_time && <div>🕐 {item.data.class_time}</div>}
-                {item.data.location && <div>📍 {item.data.location}</div>}
-                {item.data.instructor_name && <div>👨‍🏫 {item.data.instructor_name}</div>}
-                {item.data.partners && item.data.partners.length > 0 && (
+                {item.data?.class_time && <div>🕐 {item.data.class_time}</div>}
+                {item.data?.location && <div>📍 {item.data.location}</div>}
+                {item.data?.instructor_name && <div>👨‍🏫 {item.data.instructor_name}</div>}
+                {item.data?.partners && Array.isArray(item.data.partners) && item.data.partners.length > 0 && (
                   <div>🤝 Partners: {item.data.partners.join(', ')}</div>
                 )}
-                {item.data.techniques && item.data.techniques.length > 0 && (
+                {item.data?.techniques && Array.isArray(item.data.techniques) && item.data.techniques.length > 0 && (
                   <div>🎯 Techniques: {item.data.techniques.join(', ')}</div>
                 )}
-                {item.data.notes && (
+                {item.data?.notes && (
                   <div className="mt-2 text-gray-700 dark:text-gray-300 italic">
                     "{item.data.notes}"
                   </div>
@@ -162,26 +162,26 @@ const FeedItemComponent = memo(function FeedItemComponent({
               <div className="mt-2 grid grid-cols-2 md:grid-cols-4 gap-2 text-xs">
                 <div className="flex items-center gap-1">
                   <span className="text-gray-500">😴 Sleep:</span>
-                  <span className="font-semibold">{item.data.sleep}/5</span>
+                  <span className="font-semibold">{item.data?.sleep ?? 0}/5</span>
                 </div>
                 <div className="flex items-center gap-1">
                   <span className="text-gray-500">😰 Stress:</span>
-                  <span className="font-semibold">{item.data.stress}/5</span>
+                  <span className="font-semibold">{item.data?.stress ?? 0}/5</span>
                 </div>
                 <div className="flex items-center gap-1">
                   <span className="text-gray-500">💪 Soreness:</span>
-                  <span className="font-semibold">{item.data.soreness}/5</span>
+                  <span className="font-semibold">{item.data?.soreness ?? 0}/5</span>
                 </div>
                 <div className="flex items-center gap-1">
                   <span className="text-gray-500">⚡ Energy:</span>
-                  <span className="font-semibold">{item.data.energy}/5</span>
+                  <span className="font-semibold">{item.data?.energy ?? 0}/5</span>
                 </div>
-                {item.data.hotspot_note && (
+                {item.data?.hotspot_note && (
                   <div className="col-span-2 md:col-span-4 text-gray-700 dark:text-gray-300 mt-1">
                     🔥 Hotspot: {item.data.hotspot_note}
                   </div>
                 )}
-                {item.data.weight_kg && (
+                {item.data?.weight_kg && (
                   <div className="col-span-2 md:col-span-4 text-gray-700 dark:text-gray-300">
                     ⚖️ Weight: {item.data.weight_kg} kg
                   </div>
@@ -190,13 +190,13 @@ const FeedItemComponent = memo(function FeedItemComponent({
             )}
 
             {/* Rest day details */}
-            {item.type === 'rest' && item.data.rest_note && (
+            {item.type === 'rest' && item.data?.rest_note && (
               <div className="mt-2 text-sm text-gray-700 dark:text-gray-300 italic">
                 "{item.data.rest_note}"
               </div>
             )}
 
-            {item.data.tomorrow_intention && (
+            {item.data?.tomorrow_intention && (
               <div className="mt-2 text-xs text-gray-500 dark:text-gray-400">
                 → Tomorrow: {item.data.tomorrow_intention}
               </div>
@@ -240,7 +240,7 @@ export default function Feed() {
   const [view, setView] = useState<'my' | 'friends'>('my');
   const [expandedComments, setExpandedComments] = useState<Set<string>>(new Set());
 
-  const currentUserId = user?.id || null;
+  const currentUserId = user?.id ?? null;
 
   useEffect(() => {
     loadFeed();
@@ -255,13 +255,13 @@ export default function Feed() {
           days_back: daysBack,
           enrich_social: true,
         });
-        setFeed(response.data);
+        setFeed(response.data ?? null);
       } else {
         const response = await feedApi.getFriends({
           limit: 100,
           days_back: daysBack,
         });
-        setFeed(response.data);
+        setFeed(response.data ?? null);
       }
     } catch (error) {
       console.error('Error loading feed:', error);

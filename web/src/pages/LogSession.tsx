@@ -98,20 +98,20 @@ export default function LogSession() {
         glossaryApi.list(),
       ]);
 
-      setAutocomplete(autocompleteRes.data);
-      setInstructors(instructorsRes.data);
-      setPartners(partnersRes.data);
-      setMovements(movementsRes.data);
+      setAutocomplete(autocompleteRes.data ?? {});
+      setInstructors(instructorsRes.data ?? []);
+      setPartners(partnersRes.data ?? []);
+      setMovements(movementsRes.data ?? []);
 
       // Auto-populate default gym and coach from profile
       const updates: any = {};
-      if (profileRes.data.default_gym) {
+      if (profileRes.data?.default_gym) {
         setDefaultGym(profileRes.data.default_gym);
         updates.gym_name = profileRes.data.default_gym;
       }
-      if (profileRes.data.current_instructor_id) {
+      if (profileRes.data?.current_instructor_id) {
         updates.instructor_id = profileRes.data.current_instructor_id;
-        updates.instructor_name = profileRes.data.current_professor || '';
+        updates.instructor_name = profileRes.data?.current_professor ?? '';
       }
       if (Object.keys(updates).length > 0) {
         setSessionData(prev => ({ ...prev, ...updates }));
@@ -297,7 +297,7 @@ export default function LogSession() {
         payload.instructor_id = sessionData.instructor_id;
         const instructor = instructors.find(i => i.id === sessionData.instructor_id);
         if (instructor) {
-          payload.instructor_name = instructor.name;
+          payload.instructor_name = instructor.name ?? undefined;
         }
       } else if (sessionData.instructor_name) {
         payload.instructor_name = sessionData.instructor_name;
@@ -339,7 +339,7 @@ export default function LogSession() {
       const response = await sessionsApi.create(payload);
       setSuccess(true);
       // Redirect to session detail page after creation so user can add photos
-      if (response.data && response.data.id) {
+      if (response.data?.id) {
         setTimeout(() => navigate(`/session/${response.data.id}`), 1500);
       } else {
         setTimeout(() => navigate('/'), 1500);
@@ -518,7 +518,7 @@ export default function LogSession() {
               <option value="">Select instructor...</option>
               {instructors.map(instructor => (
                 <option key={instructor.id} value={instructor.id}>
-                  {instructor.name}
+                  {instructor.name ?? 'Unknown'}
                   {instructor.belt_rank && ` (${instructor.belt_rank} belt)`}
                   {instructor.instructor_certification && ` - ${instructor.instructor_certification}`}
                 </option>
@@ -646,11 +646,11 @@ export default function LogSession() {
                       <div className="max-h-48 overflow-y-auto border border-gray-300 dark:border-gray-600 rounded p-2 space-y-1">
                         {movements
                           .filter(m => {
-                            const search = techniqueSearch[index]?.toLowerCase() || '';
-                            return m.name.toLowerCase().includes(search) ||
+                            const search = techniqueSearch[index]?.toLowerCase() ?? '';
+                            return m.name?.toLowerCase().includes(search) ||
                                    m.category?.toLowerCase().includes(search) ||
                                    m.subcategory?.toLowerCase().includes(search) ||
-                                   m.aliases.some(alias => alias.toLowerCase().includes(search));
+                                   (m.aliases ?? []).some(alias => alias.toLowerCase().includes(search));
                           })
                           .map(movement => (
                             <button
@@ -661,7 +661,7 @@ export default function LogSession() {
                                 updated[index] = {
                                   ...updated[index],
                                   movement_id: movement.id,
-                                  movement_name: movement.name
+                                  movement_name: movement.name ?? ''
                                 };
                                 setTechniques(updated);
                               }}
@@ -671,19 +671,19 @@ export default function LogSession() {
                                   : 'hover:bg-gray-100 dark:hover:bg-gray-700'
                               }`}
                             >
-                              <span className="font-medium">{movement.name}</span>
+                              <span className="font-medium">{movement.name ?? 'Unknown'}</span>
                               <span className="text-xs ml-2 opacity-75">
-                                {movement.category}
+                                {movement.category ?? 'N/A'}
                                 {movement.subcategory && ` - ${movement.subcategory}`}
                               </span>
                             </button>
                           ))}
                         {movements.filter(m => {
-                          const search = techniqueSearch[index]?.toLowerCase() || '';
-                          return m.name.toLowerCase().includes(search) ||
+                          const search = techniqueSearch[index]?.toLowerCase() ?? '';
+                          return m.name?.toLowerCase().includes(search) ||
                                  m.category?.toLowerCase().includes(search) ||
                                  m.subcategory?.toLowerCase().includes(search) ||
-                                 m.aliases.some(alias => alias.toLowerCase().includes(search));
+                                 (m.aliases ?? []).some(alias => alias.toLowerCase().includes(search));
                         }).length === 0 && (
                           <p className="text-xs text-gray-500 text-center py-2">No movements found</p>
                         )}
@@ -754,7 +754,7 @@ export default function LogSession() {
                                 type="text"
                                 className="input text-xs"
                                 placeholder="Title (optional)"
-                                value={media.title || ''}
+                                value={media.title ?? ''}
                                 onChange={(e) => handleMediaUrlChange(index, mediaIndex, 'title', e.target.value)}
                               />
                             </div>
@@ -865,7 +865,7 @@ export default function LogSession() {
                           <option value="">Select partner...</option>
                           {partners.map(partner => (
                             <option key={partner.id} value={partner.id}>
-                              {partner.name}
+                              {partner.name ?? 'Unknown'}
                               {partner.belt_rank && ` (${partner.belt_rank} belt)`}
                             </option>
                           ))}
@@ -901,10 +901,10 @@ export default function LogSession() {
                           {movements
                             .filter(m => m.category === 'submission')
                             .filter(m => {
-                              const search = submissionSearchFor[index]?.toLowerCase() || '';
-                              return m.name.toLowerCase().includes(search) ||
+                              const search = submissionSearchFor[index]?.toLowerCase() ?? '';
+                              return m.name?.toLowerCase().includes(search) ||
                                      m.subcategory?.toLowerCase().includes(search) ||
-                                     m.aliases.some(alias => alias.toLowerCase().includes(search));
+                                     (m.aliases ?? []).some(alias => alias.toLowerCase().includes(search));
                             })
                             .map(movement => (
                               <label key={movement.id} className="flex items-center gap-2 text-sm cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 p-1 rounded">
@@ -914,14 +914,14 @@ export default function LogSession() {
                                   onChange={() => handleToggleSubmission(index, movement.id, 'for')}
                                   className="w-4 h-4"
                                 />
-                                <span>{movement.name}</span>
+                                <span>{movement.name ?? 'Unknown'}</span>
                               </label>
                             ))}
                           {movements.filter(m => m.category === 'submission').filter(m => {
-                            const search = submissionSearchFor[index]?.toLowerCase() || '';
-                            return m.name.toLowerCase().includes(search) ||
+                            const search = submissionSearchFor[index]?.toLowerCase() ?? '';
+                            return m.name?.toLowerCase().includes(search) ||
                                    m.subcategory?.toLowerCase().includes(search) ||
-                                   m.aliases.some(alias => alias.toLowerCase().includes(search));
+                                   (m.aliases ?? []).some(alias => alias.toLowerCase().includes(search));
                           }).length === 0 && (
                             <p className="text-xs text-gray-500 text-center py-2">No submissions found</p>
                           )}
@@ -945,10 +945,10 @@ export default function LogSession() {
                           {movements
                             .filter(m => m.category === 'submission')
                             .filter(m => {
-                              const search = submissionSearchAgainst[index]?.toLowerCase() || '';
-                              return m.name.toLowerCase().includes(search) ||
+                              const search = submissionSearchAgainst[index]?.toLowerCase() ?? '';
+                              return m.name?.toLowerCase().includes(search) ||
                                      m.subcategory?.toLowerCase().includes(search) ||
-                                     m.aliases.some(alias => alias.toLowerCase().includes(search));
+                                     (m.aliases ?? []).some(alias => alias.toLowerCase().includes(search));
                             })
                             .map(movement => (
                               <label key={movement.id} className="flex items-center gap-2 text-sm cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 p-1 rounded">
@@ -958,14 +958,14 @@ export default function LogSession() {
                                   onChange={() => handleToggleSubmission(index, movement.id, 'against')}
                                   className="w-4 h-4"
                                 />
-                                <span>{movement.name}</span>
+                                <span>{movement.name ?? 'Unknown'}</span>
                               </label>
                             ))}
                           {movements.filter(m => m.category === 'submission').filter(m => {
-                            const search = submissionSearchAgainst[index]?.toLowerCase() || '';
-                            return m.name.toLowerCase().includes(search) ||
+                            const search = submissionSearchAgainst[index]?.toLowerCase() ?? '';
+                            return m.name?.toLowerCase().includes(search) ||
                                    m.subcategory?.toLowerCase().includes(search) ||
-                                   m.aliases.some(alias => alias.toLowerCase().includes(search));
+                                   (m.aliases ?? []).some(alias => alias.toLowerCase().includes(search));
                           }).length === 0 && (
                             <p className="text-xs text-gray-500 text-center py-2">No submissions found</p>
                           )}

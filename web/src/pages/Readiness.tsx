@@ -25,7 +25,7 @@ export default function Readiness() {
     try {
       const res = await readinessApi.getLatest();
       if (res.data) {
-        setLatest(res.data);
+        setLatest(res.data ?? null);
       }
     } catch (error) {
       console.error('Error loading readiness:', error);
@@ -63,13 +63,13 @@ export default function Readiness() {
         <div className="card bg-primary-50 dark:bg-primary-900/20 border-primary-200 dark:border-primary-800">
           <h3 className="font-semibold mb-2">Latest Check-in</h3>
           <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">
-            {new Date(latest.check_date).toLocaleDateString()} • Score: {latest.composite_score}/20
+            {new Date(latest.check_date ?? new Date()).toLocaleDateString()} • Score: {latest.composite_score ?? 0}/20
           </p>
           <div className="grid grid-cols-2 gap-3 text-sm">
-            <div>Sleep: {latest.sleep}/5</div>
-            <div>Stress: {latest.stress}/5</div>
-            <div>Soreness: {latest.soreness}/5</div>
-            <div>Energy: {latest.energy}/5</div>
+            <div>Sleep: {latest.sleep ?? 0}/5</div>
+            <div>Stress: {latest.stress ?? 0}/5</div>
+            <div>Soreness: {latest.soreness ?? 0}/5</div>
+            <div>Energy: {latest.energy ?? 0}/5</div>
           </div>
           {latest.hotspot_note && (
             <p className="mt-3 text-sm">Hotspot: {latest.hotspot_note}</p>

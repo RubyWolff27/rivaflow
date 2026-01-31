@@ -40,13 +40,13 @@ export default function Reports() {
 
       if (activeTab === 'overview') {
         const perfRes = await analyticsApi.performanceOverview(params);
-        setPerformanceData(perfRes.data);
+        setPerformanceData(perfRes.data ?? null);
       } else if (activeTab === 'partners') {
         const partnersRes = await analyticsApi.partnerStats(params);
-        setPartnersData(partnersRes.data);
+        setPartnersData(partnersRes.data ?? null);
       } else if (activeTab === 'techniques') {
         const techRes = await analyticsApi.techniqueBreakdown(params);
-        setTechniquesData(techRes.data);
+        setTechniquesData(techRes.data ?? null);
       }
     } catch (error) {
       console.error('Error loading analytics:', error);
@@ -91,7 +91,7 @@ export default function Reports() {
   const submissionsDelta = deltas.submissions ?? 0;
 
   // Check if we have any data
-  const hasData = performanceData && summary.total_sessions > 0;
+  const hasData = performanceData && (summary.total_sessions ?? 0) > 0;
 
   // Quick Insights logic - generate 2 most valuable insights
   const getQuickInsights = () => {
@@ -356,7 +356,7 @@ export default function Reports() {
                 description={error}
               />
             </Card>
-          ) : !partnersData || (partnersData.top_partners && partnersData.top_partners.length === 0) ? (
+          ) : !partnersData || (partnersData.top_partners && Array.isArray(partnersData.top_partners) && partnersData.top_partners.length === 0) ? (
             <Card>
               <EmptyState
                 icon={Users}
@@ -417,7 +417,7 @@ export default function Reports() {
               <p className="text-xs mt-1" style={{ color: 'var(--muted)' }}>Most frequent partners this period</p>
             </div>
 
-            {partnersData.top_partners && partnersData.top_partners.length > 0 ? (
+            {partnersData.top_partners && Array.isArray(partnersData.top_partners) && partnersData.top_partners.length > 0 ? (
               <div className="space-y-3">
                 {partnersData.top_partners.map((partner: any, index: number) => (
                   <div
@@ -437,7 +437,7 @@ export default function Reports() {
                           {index + 1}
                         </div>
                         <div>
-                          <p className="font-medium" style={{ color: 'var(--text)' }}>{partner.name}</p>
+                          <p className="font-medium" style={{ color: 'var(--text)' }}>{partner.name ?? 'Unknown'}</p>
                           {partner.belt_rank && (
                             <p className="text-xs" style={{ color: 'var(--muted)' }}>{partner.belt_rank}</p>
                           )}
@@ -445,7 +445,7 @@ export default function Reports() {
                       </div>
                       <div className="text-right">
                         <p className="text-lg font-semibold" style={{ color: 'var(--text)' }}>
-                          {partner.total_rolls} rolls
+                          {partner.total_rolls ?? 0} rolls
                         </p>
                       </div>
                     </div>
@@ -454,13 +454,13 @@ export default function Reports() {
                       <div>
                         <p className="text-xs" style={{ color: 'var(--muted)' }}>Subs For</p>
                         <p className="text-sm font-medium" style={{ color: 'var(--text)' }}>
-                          {partner.submissions_for || 0}
+                          {partner.submissions_for ?? 0}
                         </p>
                       </div>
                       <div>
                         <p className="text-xs" style={{ color: 'var(--muted)' }}>Subs Against</p>
                         <p className="text-sm font-medium" style={{ color: 'var(--text)' }}>
-                          {partner.submissions_against || 0}
+                          {partner.submissions_against ?? 0}
                         </p>
                       </div>
                       <div>
@@ -542,7 +542,7 @@ export default function Reports() {
             </div>
 
           {/* Category Breakdown */}
-          {techniquesData.category_breakdown && techniquesData.category_breakdown.length > 0 && (
+          {techniquesData.category_breakdown && Array.isArray(techniquesData.category_breakdown) && techniquesData.category_breakdown.length > 0 && (
             <Card>
               <div className="mb-4">
                 <h3 className="text-lg font-semibold" style={{ color: 'var(--text)' }}>Submissions by Category</h3>
@@ -557,13 +557,13 @@ export default function Reports() {
                     const percentage = (cat.count / maxCount) * 100;
 
                     return (
-                      <div key={cat.category}>
+                      <div key={cat.category ?? 'unknown'}>
                         <div className="flex items-center justify-between mb-2">
                           <span className="text-sm font-medium" style={{ color: 'var(--text)' }}>
-                            {cat.category}
+                            {cat.category ?? 'Unknown'}
                           </span>
                           <span className="text-sm" style={{ color: 'var(--muted)' }}>
-                            {cat.count}
+                            {cat.count ?? 0}
                           </span>
                         </div>
                         <div className="w-full rounded-full h-2" style={{ backgroundColor: 'var(--border)' }}>
@@ -591,7 +591,7 @@ export default function Reports() {
                 <p className="text-xs mt-1" style={{ color: 'var(--muted)' }}>Most successful in gi sessions</p>
               </div>
 
-              {techniquesData.gi_top_techniques && techniquesData.gi_top_techniques.length > 0 ? (
+              {techniquesData.gi_top_techniques && Array.isArray(techniquesData.gi_top_techniques) && techniquesData.gi_top_techniques.length > 0 ? (
                 <div className="space-y-2">
                   {techniquesData.gi_top_techniques.slice(0, 5).map((tech: any, index: number) => (
                     <div
@@ -599,8 +599,8 @@ export default function Reports() {
                       className="flex items-center justify-between p-3 rounded-lg"
                       style={{ backgroundColor: 'var(--surfaceElev)' }}
                     >
-                      <span className="text-sm" style={{ color: 'var(--text)' }}>{tech.name}</span>
-                      <span className="text-sm font-medium" style={{ color: 'var(--accent)' }}>{tech.count}</span>
+                      <span className="text-sm" style={{ color: 'var(--text)' }}>{tech.name ?? 'Unknown'}</span>
+                      <span className="text-sm font-medium" style={{ color: 'var(--accent)' }}>{tech.count ?? 0}</span>
                     </div>
                   ))}
                 </div>
@@ -618,7 +618,7 @@ export default function Reports() {
                 <p className="text-xs mt-1" style={{ color: 'var(--muted)' }}>Most successful in no-gi sessions</p>
               </div>
 
-              {techniquesData.nogi_top_techniques && techniquesData.nogi_top_techniques.length > 0 ? (
+              {techniquesData.nogi_top_techniques && Array.isArray(techniquesData.nogi_top_techniques) && techniquesData.nogi_top_techniques.length > 0 ? (
                 <div className="space-y-2">
                   {techniquesData.nogi_top_techniques.slice(0, 5).map((tech: any, index: number) => (
                     <div
@@ -626,8 +626,8 @@ export default function Reports() {
                       className="flex items-center justify-between p-3 rounded-lg"
                       style={{ backgroundColor: 'var(--surfaceElev)' }}
                     >
-                      <span className="text-sm" style={{ color: 'var(--text)' }}>{tech.name}</span>
-                      <span className="text-sm font-medium" style={{ color: 'var(--accent)' }}>{tech.count}</span>
+                      <span className="text-sm" style={{ color: 'var(--text)' }}>{tech.name ?? 'Unknown'}</span>
+                      <span className="text-sm font-medium" style={{ color: 'var(--accent)' }}>{tech.count ?? 0}</span>
                     </div>
                   ))}
                 </div>
@@ -640,7 +640,7 @@ export default function Reports() {
           </div>
 
           {/* Stale Techniques */}
-          {techniquesData.stale_techniques && techniquesData.stale_techniques.length > 0 && (
+          {techniquesData.stale_techniques && Array.isArray(techniquesData.stale_techniques) && techniquesData.stale_techniques.length > 0 && (
             <Card>
               <div className="mb-4">
                 <h3 className="text-lg font-semibold" style={{ color: 'var(--text)' }}>Stale Techniques</h3>
@@ -651,7 +651,7 @@ export default function Reports() {
 
               <div className="flex flex-wrap gap-2">
                 {techniquesData.stale_techniques.slice(0, 15).map((tech: any) => (
-                  <Chip key={tech.id}>{tech.name}</Chip>
+                  <Chip key={tech.id ?? `stale-${Math.random()}`}>{tech.name ?? 'Unknown'}</Chip>
                 ))}
                 {techniquesData.stale_techniques.length > 15 && (
                   <Chip>+{techniquesData.stale_techniques.length - 15} more</Chip>

@@ -80,26 +80,26 @@ export default function Profile() {
         gradingsApi.list(),
         friendsApi.listInstructors(),
       ]);
-      setProfile(profileRes.data);
-      setGradings(gradingsRes.data);
-      setInstructors(instructorsRes.data);
+      setProfile(profileRes.data ?? null);
+      setGradings(gradingsRes.data ?? []);
+      setInstructors(instructorsRes.data ?? []);
       setFormData({
-        first_name: profileRes.data.first_name || '',
-        last_name: profileRes.data.last_name || '',
-        date_of_birth: profileRes.data.date_of_birth || '',
-        sex: profileRes.data.sex || '',
-        city: profileRes.data.city || '',
-        state: profileRes.data.state || '',
-        default_gym: profileRes.data.default_gym || '',
-        current_professor: profileRes.data.current_professor || '',
-        current_instructor_id: profileRes.data.current_instructor_id || null,
-        height_cm: profileRes.data.height_cm?.toString() || '',
-        target_weight_kg: profileRes.data.target_weight_kg?.toString() || '',
-        weekly_sessions_target: profileRes.data.weekly_sessions_target || 3,
-        weekly_hours_target: profileRes.data.weekly_hours_target || 4.5,
-        weekly_rolls_target: profileRes.data.weekly_rolls_target || 15,
-        show_streak_on_dashboard: profileRes.data.show_streak_on_dashboard ?? true,
-        show_weekly_goals: profileRes.data.show_weekly_goals ?? true,
+        first_name: profileRes.data?.first_name ?? '',
+        last_name: profileRes.data?.last_name ?? '',
+        date_of_birth: profileRes.data?.date_of_birth ?? '',
+        sex: profileRes.data?.sex ?? '',
+        city: profileRes.data?.city ?? '',
+        state: profileRes.data?.state ?? '',
+        default_gym: profileRes.data?.default_gym ?? '',
+        current_professor: profileRes.data?.current_professor ?? '',
+        current_instructor_id: profileRes.data?.current_instructor_id ?? null,
+        height_cm: profileRes.data?.height_cm?.toString() ?? '',
+        target_weight_kg: profileRes.data?.target_weight_kg?.toString() ?? '',
+        weekly_sessions_target: profileRes.data?.weekly_sessions_target ?? 3,
+        weekly_hours_target: profileRes.data?.weekly_hours_target ?? 4.5,
+        weekly_rolls_target: profileRes.data?.weekly_rolls_target ?? 15,
+        show_streak_on_dashboard: profileRes.data?.show_streak_on_dashboard ?? true,
+        show_weekly_goals: profileRes.data?.show_weekly_goals ?? true,
       });
     } catch (error) {
       console.error('Error loading data:', error);
@@ -166,7 +166,7 @@ export default function Profile() {
     setGradingForm({
       grade: '',
       date_graded: new Date().toISOString().split('T')[0],
-      professor: profile?.current_professor || '',
+      professor: profile?.current_professor ?? '',
       notes: '',
     });
     setShowAddGrading(true);
@@ -204,10 +204,10 @@ export default function Profile() {
   const handleEditGrading = (grading: Grading) => {
     setEditingGrading(grading);
     setGradingForm({
-      grade: grading.grade,
-      date_graded: grading.date_graded,
-      professor: grading.professor || '',
-      notes: grading.notes || '',
+      grade: grading.grade ?? '',
+      date_graded: grading.date_graded ?? new Date().toISOString().split('T')[0],
+      professor: grading.professor ?? '',
+      notes: grading.notes ?? '',
     });
     setShowAddGrading(false);
   };
@@ -329,7 +329,7 @@ export default function Profile() {
               onChange={(e) => setFormData({ ...formData, date_of_birth: e.target.value })}
               max={new Date().toISOString().split('T')[0]}
             />
-            {profile?.age && (
+            {profile?.age != null && (
               <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
                 Age: {profile.age} years old
               </p>
@@ -427,21 +427,21 @@ export default function Profile() {
             <label className="label">Current Coach / Instructor</label>
             <select
               className="input"
-              value={formData.current_instructor_id || ''}
+              value={formData.current_instructor_id ?? ''}
               onChange={(e) => {
                 const instructorId = e.target.value ? parseInt(e.target.value) : null;
                 const instructor = instructors.find(i => i.id === instructorId);
                 setFormData({
                   ...formData,
                   current_instructor_id: instructorId,
-                  current_professor: instructor?.name || '',
+                  current_professor: instructor?.name ?? '',
                 });
               }}
             >
               <option value="">Select a coach...</option>
               {instructors.map((instructor) => (
                 <option key={instructor.id} value={instructor.id}>
-                  {instructor.name}
+                  {instructor.name ?? 'Unknown'}
                   {instructor.belt_rank && ` - ${instructor.belt_rank}`}
                 </option>
               ))}
