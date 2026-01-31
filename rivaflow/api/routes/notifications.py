@@ -1,10 +1,9 @@
 """Notifications API routes."""
-from fastapi import APIRouter, Depends
-from datetime import datetime, timedelta
+from fastapi import APIRouter, Depends, Query, Path
+from typing import Optional
 
 from rivaflow.core.dependencies import get_current_user
-from rivaflow.db.repositories.activity_repo import ActivityLikeRepository, ActivityCommentRepository
-from rivaflow.db.repositories.user_relationship_repo import UserRelationshipRepository
+from rivaflow.core.services.notification_service import NotificationService
 
 router = APIRouter(prefix="/notifications", tags=["notifications"])
 
@@ -15,33 +14,79 @@ async def get_notification_counts(current_user: dict = Depends(get_current_user)
     Get notification counts for the current user.
 
     Returns:
-        - feed_unread: Count of new likes and comments on user's activities (last 7 days)
-        - friend_requests: Count of new followers (last 30 days)
+        - feed_unread: Count of unread likes, comments, and replies
+        - friend_requests: Count of new follow notifications
+        - total: Total unread notifications
     """
     user_id = current_user["id"]
+    counts = NotificationService.get_notification_counts(user_id)
+    return counts
 
-    # Get unread feed activity (likes + comments on user's posts from last 7 days)
-    # This is a simple implementation - in production you'd track "last_seen" timestamps
-    seven_days_ago = datetime.utcnow() - timedelta(days=7)
 
-    like_repo = ActivityLikeRepository()
-    comment_repo = ActivityCommentRepository()
-    relationship_repo = UserRelationshipRepository()
+@router.get("/")
+async def get_notifications(
+    current_user: dict = Depends(get_current_user),
+    limit: int = Query(50, ge=1, le=100),
+    offset: int = Query(0, ge=0),
+    unread_only: bool = Query(False),
+):
+    """
+    Get notifications for the current user.
 
-    # Count recent likes on user's activities
-    # This would need session activities owned by the user
-    # For now, just return 0 - we'll implement properly with a notifications table later
+    Args:
+        limit: Maximum number of notifications to return (1-100)
+        offset: Offset for pagination
+        unread_only: If true, only return unread notifications
 
-    # Count new followers (followers who followed in last 30 days)
-    thirty_days_ago = datetime.utcnow() - timedelta(days=30)
-    followers = relationship_repo.get_followers(user_id)
+    Returns:
+        List of notifications with actor details
+    """
+    user_id = current_user["id"]
+    notifications = NotificationService.get_notifications(user_id, limit, offset, unread_only)
+    return {"notifications": notifications, "count": len(notifications)}
 
-    # Filter for recent followers (would need created_at column)
-    # For now, just count all pending if status field exists
-    new_followers = len(followers)  # Simplified for now
 
-    return {
-        "feed_unread": 0,  # Placeholder - needs proper implementation with last_seen tracking
-        "friend_requests": new_followers if new_followers > 0 else 0,
-        "total": new_followers,
-    }
+@router.post("/{notification_id}/read")
+async def mark_notification_as_read(
+    notification_id: int = Path(..., gt=0),
+    current_user: dict = Depends(get_current_user),
+):
+    """Mark a single notification as read."""
+    user_id = current_user["id"]
+    success = NotificationService.mark_as_read(notification_id, user_id)
+    return {"success": success}
+
+
+@router.post("/read-all")
+async def mark_all_notifications_as_read(current_user: dict = Depends(get_current_user)):
+    """Mark all notifications as read."""
+    user_id = current_user["id"]
+    count = NotificationService.mark_all_as_read(user_id)
+    return {"success": True, "count": count}
+
+
+@router.post("/feed/read")
+async def mark_feed_notifications_as_read(current_user: dict = Depends(get_current_user)):
+    """Mark all feed notifications (likes, comments, replies) as read."""
+    user_id = current_user["id"]
+    count = NotificationService.mark_feed_as_read(user_id)
+    return {"success": True, "count": count}
+
+
+@router.post("/follows/read")
+async def mark_follow_notifications_as_read(current_user: dict = Depends(get_current_user)):
+    """Mark all follow notifications as read."""
+    user_id = current_user["id"]
+    count = NotificationService.mark_follows_as_read(user_id)
+    return {"success": True, "count": count}
+
+
+@router.delete("/{notification_id}")
+async def delete_notification(
+    notification_id: int = Path(..., gt=0),
+    current_user: dict = Depends(get_current_user),
+):
+    """Delete a notification."""
+    user_id = current_user["id"]
+    success = NotificationService.delete_notification(notification_id, user_id)
+    return {"success": success}

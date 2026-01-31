@@ -44,6 +44,29 @@ const Layout = memo(function Layout({ children }: { children: React.ReactNode })
     return () => clearInterval(interval);
   }, []);
 
+  // Mark notifications as read when navigating to Feed or Friends
+  useEffect(() => {
+    const markNotificationsRead = async () => {
+      try {
+        if (location.pathname === '/feed') {
+          await notificationsApi.markFeedAsRead();
+          // Refresh counts after marking as read
+          const response = await notificationsApi.getCounts();
+          setNotificationCounts(response.data);
+        } else if (location.pathname === '/friends') {
+          await notificationsApi.markFollowsAsRead();
+          // Refresh counts after marking as read
+          const response = await notificationsApi.getCounts();
+          setNotificationCounts(response.data);
+        }
+      } catch (error) {
+        console.error('Error marking notifications as read:', error);
+      }
+    };
+
+    markNotificationsRead();
+  }, [location.pathname]);
+
   // Close more menu when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {

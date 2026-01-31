@@ -298,6 +298,13 @@ export const photosApi = {
 
 export const notificationsApi = {
   getCounts: () => api.get<{ feed_unread: number; friend_requests: number; total: number }>('/notifications/counts'),
+  getAll: (params?: { limit?: number; offset?: number; unread_only?: boolean }) =>
+    api.get<{ notifications: any[]; count: number }>('/notifications/', { params }),
+  markAsRead: (notificationId: number) => api.post(`/notifications/${notificationId}/read`),
+  markAllAsRead: () => api.post('/notifications/read-all'),
+  markFeedAsRead: () => api.post('/notifications/feed/read'),
+  markFollowsAsRead: () => api.post('/notifications/follows/read'),
+  deleteNotification: (notificationId: number) => api.delete(`/notifications/${notificationId}`),
 };
 
 export const adminApi = {

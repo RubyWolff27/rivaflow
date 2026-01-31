@@ -9,6 +9,7 @@ from rivaflow.db.repositories import (
     SessionRepository,
 )
 from rivaflow.db.repositories.readiness_repo import ReadinessRepository
+from rivaflow.core.services.notification_service import NotificationService
 
 
 class SocialService:
@@ -40,6 +41,10 @@ class SocialService:
         # Create the relationship
         try:
             relationship = UserRelationshipRepository.follow(follower_user_id, following_user_id)
+
+            # Create notification for the followed user
+            NotificationService.create_follow_notification(following_user_id, follower_user_id)
+
             return relationship
         except sqlite3.IntegrityError as e:
             if "UNIQUE constraint failed" in str(e):
@@ -120,6 +125,14 @@ class SocialService:
         # Create the like
         try:
             like = ActivityLikeRepository.create(user_id, activity_type, activity_id)
+
+            # Create notification for the activity owner
+            activity_owner_id = activity.get("user_id")
+            if activity_owner_id:
+                NotificationService.create_like_notification(
+                    activity_owner_id, user_id, activity_type, activity_id
+                )
+
             return like
         except sqlite3.IntegrityError as e:
             if "UNIQUE constraint failed" in str(e):
@@ -205,6 +218,25 @@ class SocialService:
         comment = ActivityCommentRepository.create(
             user_id, activity_type, activity_id, comment_text.strip(), parent_comment_id
         )
+
+        # Create notification for the activity owner
+        activity_owner_id = activity.get("user_id")
+        if activity_owner_id and comment.get("id"):
+            NotificationService.create_comment_notification(
+                activity_owner_id, user_id, activity_type, activity_id, comment["id"]
+            )
+
+        # If this is a reply, also notify the parent comment author
+        if parent_comment_id:
+            parent_comment = ActivityCommentRepository.get_by_id(parent_comment_id)
+            if parent_comment and parent_comment.get("user_id"):
+                parent_author_id = parent_comment["user_id"]
+                # Only notify if different from activity owner (to avoid duplicate notifications)
+                if parent_author_id != activity_owner_id and comment.get("id"):
+                    NotificationService.create_reply_notification(
+                        parent_author_id, user_id, activity_type, activity_id, comment["id"]
+                    )
+
         return comment
 
     @staticmethod
