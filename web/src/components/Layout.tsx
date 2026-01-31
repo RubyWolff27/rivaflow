@@ -1,8 +1,9 @@
 import { useState, useEffect, useRef, memo } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { Home, Plus, BarChart3, Book, User, Users, Menu, X, LogOut, ListOrdered, Grid, BookOpen, Video, MessageCircle, Activity, Shield } from 'lucide-react';
+import { Home, Plus, BarChart3, Book, User, Users, Menu, X, LogOut, Grid, BookOpen, Video, MessageCircle, Activity, Shield } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import QuickLog from './QuickLog';
+import { notificationsApi } from '../api/client';
 
 // Memoize Layout to prevent unnecessary re-renders
 const Layout = memo(function Layout({ children }: { children: React.ReactNode }) {
@@ -12,6 +13,7 @@ const Layout = memo(function Layout({ children }: { children: React.ReactNode })
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [quickLogOpen, setQuickLogOpen] = useState(false);
   const [moreMenuOpen, setMoreMenuOpen] = useState(false);
+  const [notificationCounts, setNotificationCounts] = useState({ feed_unread: 0, friend_requests: 0, total: 0 });
   const moreMenuRef = useRef<HTMLDivElement>(null);
   const mainContentRef = useRef<HTMLElement>(null);
 
@@ -23,6 +25,24 @@ const Layout = memo(function Layout({ children }: { children: React.ReactNode })
   const skipToContent = () => {
     mainContentRef.current?.focus();
   };
+
+  // Fetch notification counts
+  useEffect(() => {
+    const fetchNotifications = async () => {
+      try {
+        const response = await notificationsApi.getCounts();
+        setNotificationCounts(response.data);
+      } catch (error) {
+        console.error('Error fetching notifications:', error);
+      }
+    };
+
+    fetchNotifications();
+
+    // Refresh every 60 seconds
+    const interval = setInterval(fetchNotifications, 60000);
+    return () => clearInterval(interval);
+  }, []);
 
   // Close more menu when clicking outside
   useEffect(() => {
@@ -40,14 +60,15 @@ const Layout = memo(function Layout({ children }: { children: React.ReactNode })
   // Primary navigation - most important features only
   const navigation = [
     { name: 'Dashboard', href: '/', icon: Home },
+    { name: 'Feed', href: '/feed', icon: Activity, badge: notificationCounts.feed_unread },
     { name: 'Log', href: '/log', icon: Plus },
     { name: 'Analytics', href: '/reports', icon: BarChart3 },
-    { name: 'Techniques', href: '/techniques', icon: Book },
-    { name: 'Friends', href: '/friends', icon: Users },
+    { name: 'Friends', href: '/friends', icon: Users, badge: notificationCounts.friend_requests },
   ];
 
   // Secondary navigation - accessible via More menu
   const moreNavigation = [
+    { name: 'Techniques', href: '/techniques', icon: Book },
     { name: 'Glossary', href: '/glossary', icon: BookOpen },
     { name: 'Videos', href: '/videos', icon: Video },
     { name: 'Chat', href: '/chat', icon: MessageCircle },
@@ -92,11 +113,12 @@ const Layout = memo(function Layout({ children }: { children: React.ReactNode })
               {navigation.map((item) => {
                 const isActive = location.pathname === item.href;
                 const Icon = item.icon;
+                const hasBadge = item.badge && item.badge > 0;
                 return (
                   <Link
                     key={item.name}
                     to={item.href}
-                    className="px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 transition-colors"
+                    className="px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 transition-colors relative"
                     style={{
                       color: isActive ? 'var(--accent)' : 'var(--muted)',
                       backgroundColor: isActive ? 'var(--surfaceElev)' : 'transparent',
@@ -104,6 +126,17 @@ const Layout = memo(function Layout({ children }: { children: React.ReactNode })
                   >
                     <Icon className="w-4 h-4" />
                     {item.name}
+                    {hasBadge && (
+                      <span
+                        className="absolute -top-1 -right-1 flex items-center justify-center min-w-[18px] h-[18px] px-1 text-[10px] font-bold rounded-full"
+                        style={{
+                          backgroundColor: 'var(--error)',
+                          color: '#FFFFFF',
+                        }}
+                      >
+                        {item.badge > 99 ? '99+' : item.badge}
+                      </span>
+                    )}
                   </Link>
                 );
               })}
@@ -173,14 +206,6 @@ const Layout = memo(function Layout({ children }: { children: React.ReactNode })
                   <Plus className="w-4 h-4" />
                   Quick Log
                 </button>
-                <Link
-                  to="/feed"
-                  className="p-2 rounded-lg transition-colors"
-                  style={{ color: location.pathname === '/feed' ? 'var(--accent)' : 'var(--muted)' }}
-                  aria-label="Activity Feed"
-                >
-                  <ListOrdered className="w-5 h-5" />
-                </Link>
               </div>
 
               {/* User menu */}
@@ -224,12 +249,13 @@ const Layout = memo(function Layout({ children }: { children: React.ReactNode })
               {navigation.map((item) => {
                 const isActive = location.pathname === item.href;
                 const Icon = item.icon;
+                const hasBadge = item.badge && item.badge > 0;
                 return (
                   <Link
                     key={item.name}
                     to={item.href}
                     onClick={() => setMobileMenuOpen(false)}
-                    className="flex items-center gap-3 px-3 py-2 rounded-lg text-base font-medium"
+                    className="flex items-center gap-3 px-3 py-2 rounded-lg text-base font-medium relative"
                     style={{
                       color: isActive ? 'var(--accent)' : 'var(--text)',
                       backgroundColor: isActive ? 'var(--surfaceElev)' : 'transparent',
@@ -237,6 +263,17 @@ const Layout = memo(function Layout({ children }: { children: React.ReactNode })
                   >
                     <Icon className="w-5 h-5" />
                     {item.name}
+                    {hasBadge && (
+                      <span
+                        className="ml-auto flex items-center justify-center min-w-[20px] h-[20px] px-1.5 text-[10px] font-bold rounded-full"
+                        style={{
+                          backgroundColor: 'var(--error)',
+                          color: '#FFFFFF',
+                        }}
+                      >
+                        {item.badge > 99 ? '99+' : item.badge}
+                      </span>
+                    )}
                   </Link>
                 );
               })}
@@ -276,7 +313,7 @@ const Layout = memo(function Layout({ children }: { children: React.ReactNode })
                     setMobileMenuOpen(false);
                     setQuickLogOpen(true);
                   }}
-                  className="w-full flex items-center gap-3 px-3 py-3 rounded-lg text-base font-medium mb-2"
+                  className="w-full flex items-center gap-3 px-3 py-3 rounded-lg text-base font-medium"
                   style={{
                     backgroundColor: 'var(--accent)',
                     color: '#FFFFFF',
@@ -285,18 +322,6 @@ const Layout = memo(function Layout({ children }: { children: React.ReactNode })
                   <Plus className="w-5 h-5" />
                   Quick Log
                 </button>
-                <Link
-                  to="/feed"
-                  onClick={() => setMobileMenuOpen(false)}
-                  className="flex items-center gap-3 px-3 py-2 rounded-lg text-base font-medium"
-                  style={{
-                    color: location.pathname === '/feed' ? 'var(--accent)' : 'var(--text)',
-                    backgroundColor: location.pathname === '/feed' ? 'var(--surfaceElev)' : 'transparent',
-                  }}
-                >
-                  <ListOrdered className="w-5 h-5" />
-                  Feed
-                </Link>
               </div>
 
               {/* User section for mobile */}

@@ -296,6 +296,10 @@ export const photosApi = {
   },
 };
 
+export const notificationsApi = {
+  getCounts: () => api.get<{ feed_unread: number; friend_requests: number; total: number }>('/notifications/counts'),
+};
+
 export const adminApi = {
   // Dashboard
   getDashboardStats: () =>
