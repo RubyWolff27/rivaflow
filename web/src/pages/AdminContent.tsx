@@ -3,6 +3,7 @@ import { adminApi } from '../api/client';
 import { Trash2, MessageSquare, User } from 'lucide-react';
 import { Card, SecondaryButton } from '../components/ui';
 import AdminNav from '../components/AdminNav';
+import ConfirmDialog from '../components/ConfirmDialog';
 
 interface Comment {
   id: number;
@@ -20,6 +21,7 @@ export default function AdminContent() {
   const [comments, setComments] = useState<Comment[]>([]);
   const [loading, setLoading] = useState(true);
   const [total, setTotal] = useState(0);
+  const [confirmDelete, setConfirmDelete] = useState<{ id: number; text: string } | null>(null);
 
   useEffect(() => {
     loadComments();
@@ -38,13 +40,15 @@ export default function AdminContent() {
     }
   };
 
-  const deleteComment = async (commentId: number) => {
-    if (!confirm('Are you sure you want to delete this comment?')) return;
+  const deleteComment = async () => {
+    if (!confirmDelete) return;
     try {
-      await adminApi.deleteComment(commentId);
+      await adminApi.deleteComment(confirmDelete.id);
+      setConfirmDelete(null);
       loadComments();
     } catch (error) {
       console.error('Error deleting comment:', error);
+      setConfirmDelete(null);
     }
   };
 
@@ -165,8 +169,9 @@ export default function AdminContent() {
 
                   {/* Actions */}
                   <SecondaryButton
-                    onClick={() => deleteComment(comment.id)}
+                    onClick={() => setConfirmDelete({ id: comment.id, text: comment.comment_text })}
                     className="flex items-center gap-2"
+                    aria-label={`Delete comment from ${comment.first_name} ${comment.last_name}`}
                   >
                     <Trash2 className="w-4 h-4" />
                     Delete
@@ -200,6 +205,18 @@ export default function AdminContent() {
           </p>
         </div>
       </Card>
+
+      {/* Confirm Delete Dialog */}
+      <ConfirmDialog
+        isOpen={!!confirmDelete}
+        onClose={() => setConfirmDelete(null)}
+        onConfirm={deleteComment}
+        title="Delete Comment"
+        message={`Are you sure you want to delete this comment? "${confirmDelete?.text?.substring(0, 50)}${(confirmDelete?.text?.length || 0) > 50 ? '...' : ''}"`}
+        confirmText="Delete"
+        cancelText="Cancel"
+        variant="danger"
+      />
     </div>
   );
 }

@@ -3,6 +3,7 @@ import { adminApi, techniquesApi } from '../api/client';
 import { Search, Trash2, Plus } from 'lucide-react';
 import { Card, PrimaryButton, SecondaryButton } from '../components/ui';
 import AdminNav from '../components/AdminNav';
+import ConfirmDialog from '../components/ConfirmDialog';
 
 interface Technique {
   id: number;
@@ -22,6 +23,7 @@ export default function AdminTechniques() {
   const [customOnlyFilter, setCustomOnlyFilter] = useState(false);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [newTechnique, setNewTechnique] = useState({ name: '', category: '' });
+  const [confirmDelete, setConfirmDelete] = useState<{ id: number; name: string } | null>(null);
 
   useEffect(() => {
     loadTechniques();
@@ -43,13 +45,15 @@ export default function AdminTechniques() {
     }
   };
 
-  const deleteTechnique = async (techniqueId: number, name: string) => {
-    if (!confirm(`Delete technique "${name}"? This will remove it from all sessions that reference it.`)) return;
+  const deleteTechnique = async () => {
+    if (!confirmDelete) return;
     try {
-      await adminApi.deleteTechnique(techniqueId);
+      await adminApi.deleteTechnique(confirmDelete.id);
+      setConfirmDelete(null);
       loadTechniques();
     } catch (error) {
       console.error('Error deleting technique:', error);
+      setConfirmDelete(null);
     }
   };
 
@@ -226,9 +230,10 @@ export default function AdminTechniques() {
 
                 {technique.is_custom && (
                   <button
-                    onClick={() => deleteTechnique(technique.id, technique.name)}
+                    onClick={() => setConfirmDelete({ id: technique.id, name: technique.name })}
                     className="p-2 rounded-lg hover:bg-red-500/10 transition-colors"
                     title="Delete technique"
+                    aria-label={`Delete ${technique.name}`}
                   >
                     <Trash2 className="w-4 h-4" style={{ color: 'var(--danger)' }} />
                   </button>
@@ -296,6 +301,18 @@ export default function AdminTechniques() {
           </div>
         </div>
       )}
+
+      {/* Confirm Delete Dialog */}
+      <ConfirmDialog
+        isOpen={!!confirmDelete}
+        onClose={() => setConfirmDelete(null)}
+        onConfirm={deleteTechnique}
+        title="Delete Technique"
+        message={`Are you sure you want to delete "${confirmDelete?.name}"? This will remove it from all sessions that reference it.`}
+        confirmText="Delete"
+        cancelText="Cancel"
+        variant="danger"
+      />
     </div>
   );
 }

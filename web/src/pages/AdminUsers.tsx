@@ -3,6 +3,7 @@ import { adminApi } from '../api/client';
 import { Search, Shield, ShieldOff, UserX, Eye, CheckCircle, XCircle } from 'lucide-react';
 import { Card, PrimaryButton, SecondaryButton } from '../components/ui';
 import AdminNav from '../components/AdminNav';
+import ConfirmDialog from '../components/ConfirmDialog';
 
 interface User {
   id: number;
@@ -31,6 +32,12 @@ export default function AdminUsers() {
   const [showDetailsModal, setShowDetailsModal] = useState(false);
   const [filterActive, setFilterActive] = useState<boolean | undefined>(undefined);
   const [filterAdmin, setFilterAdmin] = useState<boolean | undefined>(undefined);
+  const [confirmAction, setConfirmAction] = useState<{
+    type: 'toggleActive' | 'toggleAdmin' | 'delete';
+    userId: number;
+    email?: string;
+    currentStatus?: boolean;
+  } | null>(null);
 
   useEffect(() => {
     loadUsers();
@@ -63,40 +70,46 @@ export default function AdminUsers() {
     }
   };
 
-  const toggleUserActive = async (userId: number, currentStatus: boolean) => {
-    if (!confirm(`Are you sure you want to ${currentStatus ? 'deactivate' : 'activate'} this user?`)) return;
+  const toggleUserActive = async () => {
+    if (!confirmAction || confirmAction.type !== 'toggleActive') return;
     try {
-      await adminApi.updateUser(userId, { is_active: !currentStatus });
+      await adminApi.updateUser(confirmAction.userId, { is_active: !confirmAction.currentStatus });
+      setConfirmAction(null);
       loadUsers();
-      if (selectedUser && selectedUser.id === userId) {
+      if (selectedUser && selectedUser.id === confirmAction.userId) {
         setShowDetailsModal(false);
       }
     } catch (error) {
       console.error('Error updating user:', error);
+      setConfirmAction(null);
     }
   };
 
-  const toggleUserAdmin = async (userId: number, currentStatus: boolean) => {
-    if (!confirm(`Are you sure you want to ${currentStatus ? 'revoke admin from' : 'grant admin to'} this user?`)) return;
+  const toggleUserAdmin = async () => {
+    if (!confirmAction || confirmAction.type !== 'toggleAdmin') return;
     try {
-      await adminApi.updateUser(userId, { is_admin: !currentStatus });
+      await adminApi.updateUser(confirmAction.userId, { is_admin: !confirmAction.currentStatus });
+      setConfirmAction(null);
       loadUsers();
-      if (selectedUser && selectedUser.id === userId) {
-        viewUserDetails(userId); // Refresh details
+      if (selectedUser && selectedUser.id === confirmAction.userId) {
+        viewUserDetails(confirmAction.userId); // Refresh details
       }
     } catch (error) {
       console.error('Error updating user:', error);
+      setConfirmAction(null);
     }
   };
 
-  const deleteUser = async (userId: number, email: string) => {
-    if (!confirm(`DANGER: Permanently delete user ${email}? This cannot be undone!`)) return;
+  const deleteUser = async () => {
+    if (!confirmAction || confirmAction.type !== 'delete') return;
     try {
-      await adminApi.deleteUser(userId);
+      await adminApi.deleteUser(confirmAction.userId);
+      setConfirmAction(null);
       loadUsers();
       setShowDetailsModal(false);
     } catch (error) {
       console.error('Error deleting user:', error);
+      setConfirmAction(null);
     }
   };
 
@@ -216,9 +229,10 @@ export default function AdminUsers() {
                     <Eye className="w-4 h-4" style={{ color: 'var(--primary)' }} />
                   </button>
                   <button
-                    onClick={() => toggleUserActive(user.id, user.is_active)}
+                    onClick={() => setConfirmAction({ type: 'toggleActive', userId: user.id, currentStatus: user.is_active })}
                     className="p-2 rounded-lg hover:bg-yellow-500/10 transition-colors"
                     title={user.is_active ? 'Deactivate' : 'Activate'}
+                    aria-label={`${user.is_active ? 'Deactivate' : 'Activate'} ${user.email}`}
                   >
                     {user.is_active ? (
                       <XCircle className="w-4 h-4" style={{ color: 'var(--warning)' }} />
@@ -227,9 +241,10 @@ export default function AdminUsers() {
                     )}
                   </button>
                   <button
-                    onClick={() => toggleUserAdmin(user.id, user.is_admin)}
+                    onClick={() => setConfirmAction({ type: 'toggleAdmin', userId: user.id, currentStatus: user.is_admin })}
                     className="p-2 rounded-lg hover:bg-purple-500/10 transition-colors"
                     title={user.is_admin ? 'Revoke admin' : 'Grant admin'}
+                    aria-label={`${user.is_admin ? 'Revoke admin from' : 'Grant admin to'} ${user.email}`}
                   >
                     {user.is_admin ? (
                       <ShieldOff className="w-4 h-4" style={{ color: 'var(--primary)' }} />
@@ -329,7 +344,7 @@ export default function AdminUsers() {
               {/* Actions */}
               <div className="flex gap-2 pt-4 border-t" style={{ borderColor: 'var(--border)' }}>
                 <PrimaryButton
-                  onClick={() => toggleUserAdmin(selectedUser.id, selectedUser.is_admin)}
+                  onClick={() => setConfirmAction({ type: 'toggleAdmin', userId: selectedUser.id, currentStatus: selectedUser.is_admin, email: selectedUser.email })}
                   className="flex items-center gap-2"
                 >
                   {selectedUser.is_admin ? <ShieldOff className="w-4 h-4" /> : <Shield className="w-4 h-4" />}
@@ -337,16 +352,17 @@ export default function AdminUsers() {
                 </PrimaryButton>
 
                 <SecondaryButton
-                  onClick={() => toggleUserActive(selectedUser.id, selectedUser.is_active)}
+                  onClick={() => setConfirmAction({ type: 'toggleActive', userId: selectedUser.id, currentStatus: selectedUser.is_active, email: selectedUser.email })}
                   className="flex items-center gap-2"
                 >
                   {selectedUser.is_active ? 'Deactivate' : 'Activate'}
                 </SecondaryButton>
 
                 <button
-                  onClick={() => deleteUser(selectedUser.id, selectedUser.email)}
+                  onClick={() => setConfirmAction({ type: 'delete', userId: selectedUser.id, email: selectedUser.email })}
                   className="px-4 py-2 rounded-lg text-sm font-medium transition-colors ml-auto"
                   style={{ backgroundColor: 'var(--danger-bg)', color: 'var(--danger)' }}
+                  aria-label={`Delete user ${selectedUser.email}`}
                 >
                   <UserX className="w-4 h-4 inline mr-2" />
                   Delete User
@@ -356,6 +372,38 @@ export default function AdminUsers() {
           </Card>
           </div>
         </div>
+      )}
+
+      {/* Confirm Action Dialog */}
+      {confirmAction && (
+        <ConfirmDialog
+          isOpen={true}
+          onClose={() => setConfirmAction(null)}
+          onConfirm={() => {
+            if (confirmAction.type === 'toggleActive') toggleUserActive();
+            else if (confirmAction.type === 'toggleAdmin') toggleUserAdmin();
+            else if (confirmAction.type === 'delete') deleteUser();
+          }}
+          title={
+            confirmAction.type === 'toggleActive'
+              ? confirmAction.currentStatus ? 'Deactivate User' : 'Activate User'
+              : confirmAction.type === 'toggleAdmin'
+              ? confirmAction.currentStatus ? 'Revoke Admin' : 'Grant Admin'
+              : 'Delete User'
+          }
+          message={
+            confirmAction.type === 'toggleActive'
+              ? `Are you sure you want to ${confirmAction.currentStatus ? 'deactivate' : 'activate'} this user${confirmAction.email ? ` (${confirmAction.email})` : ''}?`
+              : confirmAction.type === 'toggleAdmin'
+              ? `Are you sure you want to ${confirmAction.currentStatus ? 'revoke admin from' : 'grant admin to'} this user${confirmAction.email ? ` (${confirmAction.email})` : ''}?`
+              : `DANGER: Permanently delete user ${confirmAction.email}? This action cannot be undone!`
+          }
+          confirmText={
+            confirmAction.type === 'delete' ? 'Delete Permanently' : 'Confirm'
+          }
+          cancelText="Cancel"
+          variant={confirmAction.type === 'delete' ? 'danger' : 'warning'}
+        />
       )}
     </div>
   );

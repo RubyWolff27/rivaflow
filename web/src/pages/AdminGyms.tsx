@@ -3,6 +3,7 @@ import { adminApi } from '../api/client';
 import { Search, Plus, Edit2, Trash2, Check, MapPin, Globe, Building2 } from 'lucide-react';
 import { Card, PrimaryButton, SecondaryButton } from '../components/ui';
 import AdminNav from '../components/AdminNav';
+import ConfirmDialog from '../components/ConfirmDialog';
 
 interface Gym {
   id: number;
@@ -32,6 +33,7 @@ export default function AdminGyms() {
   const [showAddForm, setShowAddForm] = useState(false);
   const [editingGym, setEditingGym] = useState<Gym | null>(null);
   const [activeTab, setActiveTab] = useState<'all' | 'pending'>('all');
+  const [confirmDelete, setConfirmDelete] = useState<{ id: number; name: string } | null>(null);
 
   // Form state
   const [formData, setFormData] = useState({
@@ -117,14 +119,16 @@ export default function AdminGyms() {
     }
   };
 
-  const handleDelete = async (gymId: number) => {
-    if (!confirm('Are you sure you want to delete this gym?')) return;
+  const handleDelete = async () => {
+    if (!confirmDelete) return;
     try {
-      await adminApi.deleteGym(gymId);
+      await adminApi.deleteGym(confirmDelete.id);
+      setConfirmDelete(null);
       loadGyms();
       loadPendingGyms();
     } catch (error) {
       console.error('Error deleting gym:', error);
+      setConfirmDelete(null);
     }
   };
 
@@ -471,9 +475,10 @@ export default function AdminGyms() {
                     <Edit2 className="w-4 h-4" style={{ color: 'var(--primary)' }} />
                   </button>
                   <button
-                    onClick={() => handleDelete(gym.id)}
+                    onClick={() => setConfirmDelete({ id: gym.id, name: gym.name })}
                     className="p-2 rounded-lg hover:bg-red-500/10 transition-colors"
                     title="Delete gym"
+                    aria-label={`Delete ${gym.name}`}
                   >
                     <Trash2 className="w-4 h-4" style={{ color: 'var(--danger)' }} />
                   </button>
@@ -483,6 +488,18 @@ export default function AdminGyms() {
           ))}
         </div>
       )}
+
+      {/* Confirm Delete Dialog */}
+      <ConfirmDialog
+        isOpen={!!confirmDelete}
+        onClose={() => setConfirmDelete(null)}
+        onConfirm={handleDelete}
+        title="Delete Gym"
+        message={`Are you sure you want to delete "${confirmDelete?.name}"? This action cannot be undone.`}
+        confirmText="Delete"
+        cancelText="Cancel"
+        variant="danger"
+      />
     </div>
   );
 }
