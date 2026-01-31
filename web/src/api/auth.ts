@@ -68,4 +68,10 @@ export const authApi = {
         Authorization: `Bearer ${localStorage.getItem('access_token')}`,
       },
     }),
+
+  forgotPassword: (email: string) =>
+    authClient.post('/auth/forgot-password', { email }),
+
+  resetPassword: (token: string, newPassword: string) =>
+    authClient.post('/auth/reset-password', { token, new_password: newPassword }),
 };

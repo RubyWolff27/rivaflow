@@ -1,8 +1,6 @@
 import { useState, FormEvent, useEffect } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
-import axios from 'axios';
-
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+import { authApi } from '../api/auth';
 
 export default function ResetPassword() {
   const navigate = useNavigate();
@@ -45,10 +43,7 @@ export default function ResetPassword() {
     setIsLoading(true);
 
     try {
-      await axios.post(`${API_URL}/api/auth/reset-password`, {
-        token,
-        new_password: password,
-      });
+      await authApi.resetPassword(token, password);
       setSuccess(true);
       // Redirect to login after 3 seconds
       setTimeout(() => {

@@ -1,8 +1,6 @@
 import { useState, FormEvent } from 'react';
 import { Link } from 'react-router-dom';
-import axios from 'axios';
-
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+import { authApi } from '../api/auth';
 
 export default function ForgotPassword() {
   const [email, setEmail] = useState('');
@@ -17,7 +15,7 @@ export default function ForgotPassword() {
     setIsLoading(true);
 
     try {
-      await axios.post(`${API_URL}/api/auth/forgot-password`, { email });
+      await authApi.forgotPassword(email);
       setSuccess(true);
     } catch (err: any) {
       setError(err.response?.data?.detail || 'Failed to send reset email');
