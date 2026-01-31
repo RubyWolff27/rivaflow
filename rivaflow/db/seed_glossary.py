@@ -1,10 +1,7 @@
 """Seed the movements glossary with comprehensive BJJ techniques."""
-import sqlite3
 import json
-from pathlib import Path
 
-# Get database path
-DB_PATH = Path.home() / ".rivaflow" / "rivaflow.db"
+from rivaflow.db.database import get_connection, convert_query
 
 # Comprehensive glossary data
 MOVEMENTS = [
@@ -112,13 +109,17 @@ MOVEMENTS = [
 
 def seed_glossary():
     """Seed the movements glossary with comprehensive techniques."""
-    conn = sqlite3.connect(DB_PATH)
-    try:
+    with get_connection() as conn:
         cursor = conn.cursor()
 
         # Check if already seeded
-        cursor.execute("SELECT COUNT(*) FROM movements_glossary WHERE custom = 0")
-        seeded_count = cursor.fetchone()[0]
+        cursor.execute(convert_query("SELECT COUNT(*) as count FROM movements_glossary WHERE custom = 0"))
+        result = cursor.fetchone()
+        # Handle both tuple (SQLite/raw) and dict (PostgreSQL RealDictCursor) results
+        if hasattr(result, 'keys'):
+            seeded_count = result['count']
+        else:
+            seeded_count = result[0]
 
         if seeded_count > 0:
             print(f"Glossary already seeded with {seeded_count} techniques. Skipping.")
@@ -143,14 +144,14 @@ def seed_glossary():
             aliases_json = json.dumps(movement.get("aliases", []))
 
             try:
-                cursor.execute("""
+                cursor.execute(convert_query("""
                     INSERT INTO movements_glossary (
                         name, category, subcategory, points, description,
                         aliases, gi_applicable, nogi_applicable,
                         ibjjf_legal_white, ibjjf_legal_blue, ibjjf_legal_purple,
                         ibjjf_legal_brown, ibjjf_legal_black, custom
                     ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0)
-                """, (
+                """), (
                     movement["name"],
                     movement["category"],
                     movement["subcategory"],
@@ -166,15 +167,16 @@ def seed_glossary():
                     movement["ibjjf_legal_black"],
                 ))
                 inserted += 1
-            except sqlite3.IntegrityError:
-                print(f"Skipping duplicate: {movement['name']}")
-                continue
+            except Exception as e:
+                # Handle IntegrityError from both sqlite3 and psycopg2
+                if "unique" in str(e).lower() or "duplicate" in str(e).lower():
+                    print(f"Skipping duplicate: {movement['name']}")
+                    continue
+                else:
+                    raise
 
         conn.commit()
         print(f"Successfully seeded {inserted} techniques into glossary!")
-
-    finally:
-        conn.close()
 
 
 if __name__ == "__main__":
