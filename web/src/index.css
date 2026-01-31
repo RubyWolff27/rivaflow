@@ -3,189 +3,136 @@
 @tailwind utilities;
 
 @layer base {
-  /* RivaFlow Design Tokens v2.0 - "Blood & Gi" Performance Identity */
+  /* RIVAFLOW Design Tokens - Performance Athlete + Minimal Premium */
   :root {
-    /* Surface Colors */
-    --color-bg-primary: #F4F7F5;      /* Surface Base - Main app background */
-    --color-bg-secondary: #FFFFFF;    /* Surface Card - Cards, modals, sidebars */
-
-    /* Text Colors */
-    --color-text-primary: #0A0A0A;    /* High Contrast - Headings, primary body */
-    --color-text-secondary: #64748B;  /* Low Contrast - Captions, disabled text */
-
-    /* Brand Colors - Performance */
-    --color-brand-primary: #E63946;   /* Combat Red - Sessions, submissions, primary actions */
-    --color-brand-accent: #FF6B35;    /* Energy Orange - Streaks, achievements, highlights */
-    --color-brand-recovery: #00F5D4;  /* Recovery Teal - Readiness, rest metrics */
-
-    /* Semantic Colors */
-    --color-success: #06D6A0;         /* Victory Green - Goals completed, success states */
-    --color-warning: #FFA726;         /* Caution Orange - Warnings, moderation */
-    --color-danger: #E63946;          /* Alert Red - Errors, taps, injuries */
-
-    /* Border Colors */
-    --color-border: #E2E8F0;          /* Subtle Stroke - Card borders, dividers */
+    /* Light Mode Tokens */
+    --bg: #F4F5F7;
+    --surface: #FFFFFF;
+    --surfaceElev: #FFFFFF;
+    --text: #0B0D12;
+    --muted: #5B6270;
+    --border: rgba(15, 23, 42, 0.08);
+    --accent: #FF4D2D;
+    --accentPressed: #E63F24;
   }
 
-  .dark {
-    /* Surface Colors - Dark Mode */
-    --color-bg-primary: #0A0A0A;      /* Mat Black - Deep performance background */
-    --color-bg-secondary: #1A1A1A;    /* Elevated Black - Cards, elevated surfaces */
-
-    /* Text Colors - Dark Mode */
-    --color-text-primary: #F4F7F5;    /* High contrast on dark */
-    --color-text-secondary: #94A3B8;  /* Muted text on dark */
-
-    /* Brand Colors - Consistent across modes */
-    --color-brand-primary: #E63946;   /* Combat Red - unchanged */
-    --color-brand-accent: #FF6B35;    /* Energy Orange - unchanged */
-    --color-brand-recovery: #00F5D4;  /* Recovery Teal - unchanged */
-
-    /* Semantic Colors - Consistent */
-    --color-success: #06D6A0;         /* Victory Green */
-    --color-warning: #FFA726;         /* Caution Orange */
-    --color-danger: #E63946;          /* Alert Red */
-
-    /* Border Colors - Dark Mode */
-    --color-border: #2D343E;          /* Subtle strokes in dark */
+  @media (prefers-color-scheme: dark) {
+    :root {
+      /* Dark Mode Tokens */
+      --bg: #0B0D12;
+      --surface: #121622;
+      --surfaceElev: #171C2A;
+      --text: #F4F6FA;
+      --muted: rgba(244, 246, 250, 0.72);
+      --border: rgba(244, 246, 250, 0.08);
+      --accent: #FF4D2D;
+      --accentPressed: #E63F24;
+    }
   }
 
   /* Apply design tokens to body */
   body {
-    background-color: var(--color-bg-primary);
-    color: var(--color-text-primary);
+    background-color: var(--bg);
+    color: var(--text);
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
       'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
       sans-serif;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
   }
-
-  /* Secondary text styling */
-  .text-secondary {
-    color: var(--color-text-secondary);
-  }
 }
 
 @layer components {
-  /* Primary Button - Combat Red with 8px border radius */
+  /* Texture Background with subtle grain */
+  .app-bg {
+    background-color: var(--bg);
+    position: relative;
+  }
+
+  .app-bg::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 400 400' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+    opacity: 0.08;
+    pointer-events: none;
+  }
+
+  .app-bg::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(ellipse at center, transparent 0%, rgba(0,0,0,0.03) 100%);
+    pointer-events: none;
+  }
+
+  /* Card Component - 14px radius, hairline border, subtle shadow */
+  .card {
+    background-color: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 1.5rem;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+  }
+
+  /* Primary Button - Signal Orange */
   .btn-primary {
-    @apply px-4 py-2 text-white rounded-lg hover:opacity-90 transition-all font-medium;
-    background-color: var(--color-brand-primary);
-    border-radius: 8px;
-    color: #FFFFFF;  /* White text on Combat Red for high contrast */
+    @apply px-4 py-2.5 text-white rounded-[14px] font-medium transition-all;
+    background-color: var(--accent);
+  }
+
+  .btn-primary:hover {
+    background-color: var(--accentPressed);
   }
 
   .btn-primary:disabled {
     @apply opacity-50 cursor-not-allowed;
   }
 
-  /* Secondary Button - 8px border radius */
+  /* Secondary Button */
   .btn-secondary {
-    @apply px-4 py-2 rounded-lg hover:opacity-80 transition-all font-medium;
-    background-color: var(--color-bg-secondary);
-    color: var(--color-text-primary);
-    border: 1px solid var(--color-border);
-    border-radius: 8px;
+    @apply px-4 py-2.5 rounded-[14px] font-medium transition-all;
+    background-color: var(--surface);
+    color: var(--text);
+    border: 1px solid var(--border);
   }
 
-  /* Card Component - 12px border radius */
-  .card {
-    background-color: var(--color-bg-secondary);
-    border: 1px solid var(--color-border);
-    border-radius: 12px;
-    padding: 1.5rem;
-    box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+  .btn-secondary:hover {
+    background-color: var(--surfaceElev);
   }
 
-  /* Input Fields - 8px border radius */
+  /* Input Fields */
   .input {
-    @apply w-full px-3 py-2 rounded-lg focus:ring-2 focus:border-transparent transition-colors;
-    background-color: var(--color-bg-secondary);
-    color: var(--color-text-primary);
-    border: 1px solid var(--color-border);
-    border-radius: 8px;
-    /* Focus ring uses Combat Red */
-    --tw-ring-color: var(--color-brand-primary);
+    @apply w-full px-3 py-2 rounded-[14px] transition-colors;
+    background-color: var(--surface);
+    color: var(--text);
+    border: 1px solid var(--border);
   }
 
   .input:focus {
     outline: none;
-    box-shadow: 0 0 0 2px var(--color-brand-primary);
+    border-color: var(--accent);
   }
 
   .input::placeholder {
-    color: var(--color-text-secondary);
+    color: var(--muted);
   }
 
   /* Label Styling */
   .label {
     @apply block text-sm font-medium mb-1;
-    color: var(--color-text-primary);
-  }
-
-  /* Brand Utilities - Combat Performance */
-  .text-combat {
-    color: var(--color-brand-primary);
-  }
-
-  .bg-combat {
-    background-color: var(--color-brand-primary);
-  }
-
-  .border-combat {
-    border-color: var(--color-brand-primary);
-  }
-
-  .text-energy {
-    color: var(--color-brand-accent);
-  }
-
-  .bg-energy {
-    background-color: var(--color-brand-accent);
-  }
-
-  .text-recovery {
-    color: var(--color-brand-recovery);
-  }
-
-  .bg-recovery {
-    background-color: var(--color-brand-recovery);
-  }
-
-  .text-success {
-    color: var(--color-success);
-  }
-
-  .bg-success {
-    background-color: var(--color-success);
-  }
-
-  /* Progress Bar - Combat Red with gradient for intensity */
-  .progress-bar-combat {
-    background: linear-gradient(
-      90deg,
-      var(--color-brand-primary) 0%,
-      rgba(230, 57, 70, 0.3) 100%
-    );
-  }
-
-  .progress-bar-recovery {
-    background: linear-gradient(
-      90deg,
-      var(--color-brand-recovery) 0%,
-      rgba(0, 245, 212, 0.1) 100%
-    );
+    color: var(--text);
   }
 }
 
 @layer utilities {
-  /* Border Radius Standards */
-  .rounded-button {
-    border-radius: 8px;
+  /* Text utilities */
+  .text-muted {
+    color: var(--muted);
   }
 
-  .rounded-card {
-    border-radius: 12px;
+  /* Border utilities */
+  .border-default {
+    border-color: var(--border);
   }
 }
