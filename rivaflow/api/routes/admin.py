@@ -272,10 +272,24 @@ async def get_dashboard_stats(request: Request, current_user: dict = Depends(req
     with get_connection() as conn:
         cursor = conn.cursor()
 
+        # Helper function to safely extract count from query result
+        def get_count(result):
+            if not result:
+                return 0
+            # PostgreSQL with RealDictCursor returns dict, SQLite returns Row
+            if isinstance(result, dict):
+                # Get the first (and only) value from the dict
+                return list(result.values())[0] or 0
+            else:
+                # SQLite Row object - supports integer indexing
+                try:
+                    return result[0]
+                except (KeyError, IndexError, TypeError):
+                    return 0
+
         # Total users
         cursor.execute(convert_query("SELECT COUNT(*) FROM users"))
-        row = cursor.fetchone()
-        total_users = row[0] if row else 0
+        total_users = get_count(cursor.fetchone())
 
         # Active users (logged session in last 30 days)
         thirty_days_ago = (datetime.now() - timedelta(days=30)).strftime('%Y-%m-%d')
@@ -283,13 +297,11 @@ async def get_dashboard_stats(request: Request, current_user: dict = Depends(req
             SELECT COUNT(DISTINCT user_id) FROM sessions
             WHERE session_date >= ?
         """), (thirty_days_ago,))
-        row = cursor.fetchone()
-        active_users = row[0] if row else 0
+        active_users = get_count(cursor.fetchone())
 
         # Total sessions
         cursor.execute(convert_query("SELECT COUNT(*) FROM sessions"))
-        row = cursor.fetchone()
-        total_sessions = row[0] if row else 0
+        total_sessions = get_count(cursor.fetchone())
 
         # Total gyms
         total_gyms = len(GymRepository.list_all(verified_only=False))
@@ -298,8 +310,7 @@ async def get_dashboard_stats(request: Request, current_user: dict = Depends(req
 
         # Total comments
         cursor.execute(convert_query("SELECT COUNT(*) FROM activity_comments"))
-        row = cursor.fetchone()
-        total_comments = row[0] if row else 0
+        total_comments = get_count(cursor.fetchone())
 
         # New users this week
         week_ago = (datetime.now() - timedelta(days=7)).strftime('%Y-%m-%d')
@@ -307,8 +318,7 @@ async def get_dashboard_stats(request: Request, current_user: dict = Depends(req
             SELECT COUNT(*) FROM users
             WHERE created_at >= ?
         """), (week_ago,))
-        row = cursor.fetchone()
-        new_users_week = row[0] if row else 0
+        new_users_week = get_count(cursor.fetchone())
 
     return {
         "total_users": total_users,
@@ -383,7 +393,8 @@ async def list_users(
 
         cursor.execute(convert_query(count_query), count_params)
         row = cursor.fetchone()
-        total_count = row[0] if row else 0
+        # Handle both PostgreSQL (dict) and SQLite (Row) results
+        total_count = list(row.values())[0] if isinstance(row, dict) else (row[0] if row else 0)
 
         return {
             "users": [dict(row) for row in users],
@@ -413,29 +424,31 @@ async def get_user_details(
     with get_connection() as conn:
         cursor = conn.cursor()
 
+        # Helper to extract count from result (works with both PostgreSQL dict and SQLite Row)
+        def extract_count(result):
+            if not result:
+                return 0
+            return list(result.values())[0] if isinstance(result, dict) else result[0]
+
         # Session count
         cursor.execute(convert_query("SELECT COUNT(*) FROM sessions WHERE user_id = ?"), (user_id,))
-        row = cursor.fetchone()
-        session_count = row[0] if row else 0
+        session_count = extract_count(cursor.fetchone())
 
         # Comment count
         cursor.execute(convert_query("SELECT COUNT(*) FROM activity_comments WHERE user_id = ?"), (user_id,))
-        row = cursor.fetchone()
-        comment_count = row[0] if row else 0
+        comment_count = extract_count(cursor.fetchone())
 
         # Followers
         cursor.execute(convert_query("""
             SELECT COUNT(*) FROM user_relationships WHERE following_user_id = ?
         """), (user_id,))
-        row = cursor.fetchone()
-        followers_count = row[0] if row else 0
+        followers_count = extract_count(cursor.fetchone())
 
         # Following
         cursor.execute(convert_query("""
             SELECT COUNT(*) FROM user_relationships WHERE follower_user_id = ?
         """), (user_id,))
-        row = cursor.fetchone()
-        following_count = row[0] if row else 0
+        following_count = extract_count(cursor.fetchone())
 
     return {
         **user,
@@ -569,7 +582,8 @@ async def list_all_comments(
 
         cursor.execute(convert_query("SELECT COUNT(*) FROM activity_comments"))
         row = cursor.fetchone()
-        total = row[0] if row else 0
+        # Handle both PostgreSQL (dict) and SQLite (Row) results
+        total = list(row.values())[0] if isinstance(row, dict) else (row[0] if row else 0)
 
         return {
             "comments": comments,
