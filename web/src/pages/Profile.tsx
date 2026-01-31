@@ -62,6 +62,7 @@ export default function Profile() {
     weekly_rolls_target: 15,
     show_streak_on_dashboard: true,
     show_weekly_goals: true,
+    avatar_url: '',
   });
 
   const [gradingForm, setGradingForm] = useState({
@@ -103,6 +104,7 @@ export default function Profile() {
         weekly_rolls_target: profileRes.data?.weekly_rolls_target ?? 15,
         show_streak_on_dashboard: profileRes.data?.show_streak_on_dashboard ?? true,
         show_weekly_goals: profileRes.data?.show_weekly_goals ?? true,
+        avatar_url: profileRes.data?.avatar_url ?? '',
       });
     } catch (error) {
       console.error('Error loading data:', error);
@@ -129,6 +131,7 @@ export default function Profile() {
         current_instructor_id: formData.current_instructor_id || undefined,
         height_cm: formData.height_cm ? parseInt(formData.height_cm) : undefined,
         target_weight_kg: formData.target_weight_kg ? parseFloat(formData.target_weight_kg) : undefined,
+        avatar_url: formData.avatar_url || undefined,
       });
       setSuccess(true);
       await loadData();
@@ -296,6 +299,39 @@ export default function Profile() {
         )}
 
         <div className="space-y-6">
+          {/* Profile Photo */}
+          <div className="flex items-center gap-6 pb-6 border-b border-gray-200 dark:border-gray-700">
+            <div className="flex-shrink-0">
+              {formData.avatar_url ? (
+                <img
+                  src={formData.avatar_url}
+                  alt="Profile"
+                  className="w-24 h-24 rounded-full object-cover border-4 border-gray-200 dark:border-gray-700"
+                  onError={(e) => {
+                    e.currentTarget.src = 'https://ui-avatars.com/api/?name=' + encodeURIComponent(formData.first_name + '+' + formData.last_name) + '&size=200&background=random';
+                  }}
+                />
+              ) : (
+                <div className="w-24 h-24 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center">
+                  <User className="w-12 h-12 text-gray-400 dark:text-gray-500" />
+                </div>
+              )}
+            </div>
+            <div className="flex-1">
+              <label className="label">Profile Photo URL</label>
+              <input
+                type="url"
+                className="input"
+                value={formData.avatar_url}
+                onChange={(e) => setFormData({ ...formData, avatar_url: e.target.value })}
+                placeholder="https://example.com/photo.jpg or leave blank for initials"
+              />
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                Paste an image URL or leave blank to use your initials
+              </p>
+            </div>
+          </div>
+
           {/* Name */}
           <div className="grid grid-cols-2 gap-4">
             <div>

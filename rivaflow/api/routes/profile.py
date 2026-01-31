@@ -30,6 +30,7 @@ class ProfileUpdate(BaseModel):
     weekly_rolls_target: Optional[int] = None
     show_streak_on_dashboard: Optional[bool] = None
     show_weekly_goals: Optional[bool] = None
+    avatar_url: Optional[str] = None
 
 
 @router.get("/")

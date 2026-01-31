@@ -133,6 +133,7 @@ export interface Profile {
   weekly_rolls_target?: number;
   show_streak_on_dashboard?: boolean;
   show_weekly_goals?: boolean;
+  avatar_url?: string;
   created_at?: string;
   updated_at?: string;
 }

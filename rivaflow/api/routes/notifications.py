@@ -19,8 +19,16 @@ async def get_notification_counts(current_user: dict = Depends(get_current_user)
         - total: Total unread notifications
     """
     user_id = current_user["id"]
-    counts = NotificationService.get_notification_counts(user_id)
-    return counts
+    try:
+        counts = NotificationService.get_notification_counts(user_id)
+        return counts
+    except Exception as e:
+        # Return zero counts if table doesn't exist yet (migration not run)
+        return {
+            "feed_unread": 0,
+            "friend_requests": 0,
+            "total": 0,
+        }
 
 
 @router.get("/")
