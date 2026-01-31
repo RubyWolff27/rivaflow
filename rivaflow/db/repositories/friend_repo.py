@@ -14,11 +14,13 @@ class FriendRepository:
         name: str,
         friend_type: str = "training-partner",
         belt_rank: Optional[str] = None,
+        gym: Optional[str] = None,
+        notes: Optional[str] = None,
+        # Legacy parameters - ignored but kept for API compatibility
         belt_stripes: int = 0,
         instructor_certification: Optional[str] = None,
         phone: Optional[str] = None,
         email: Optional[str] = None,
-        notes: Optional[str] = None,
     ) -> dict:
         """Create a new friend."""
         with get_connection() as conn:
@@ -27,10 +29,10 @@ class FriendRepository:
                 cursor,
                 """
                 INSERT INTO friends
-                (user_id, name, friend_type, belt_rank, belt_stripes, instructor_certification, phone, email, notes)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                (user_id, name, friend_type, belt_rank, gym, notes)
+                VALUES (?, ?, ?, ?, ?, ?)
                 """,
-                (user_id, name, friend_type, belt_rank, belt_stripes, instructor_certification, phone, email, notes),
+                (user_id, name, friend_type, belt_rank, gym, notes),
             )
 
             # Return the created friend
@@ -115,11 +117,13 @@ class FriendRepository:
         name: Optional[str] = None,
         friend_type: Optional[str] = None,
         belt_rank: Optional[str] = None,
+        gym: Optional[str] = None,
+        notes: Optional[str] = None,
+        # Legacy parameters - ignored but kept for API compatibility
         belt_stripes: Optional[int] = None,
         instructor_certification: Optional[str] = None,
         phone: Optional[str] = None,
         email: Optional[str] = None,
-        notes: Optional[str] = None,
     ) -> Optional[dict]:
         """Update a friend by ID. Returns updated friend or None if not found."""
         with get_connection() as conn:
@@ -138,21 +142,13 @@ class FriendRepository:
             if belt_rank is not None:
                 updates.append("belt_rank = ?")
                 params.append(belt_rank)
-            if belt_stripes is not None:
-                updates.append("belt_stripes = ?")
-                params.append(belt_stripes)
-            if instructor_certification is not None:
-                updates.append("instructor_certification = ?")
-                params.append(instructor_certification)
-            if phone is not None:
-                updates.append("phone = ?")
-                params.append(phone)
-            if email is not None:
-                updates.append("email = ?")
-                params.append(email)
+            if gym is not None:
+                updates.append("gym = ?")
+                params.append(gym)
             if notes is not None:
                 updates.append("notes = ?")
                 params.append(notes)
+            # Legacy parameters ignored (belt_stripes, instructor_certification, phone, email)
 
             if not updates:
                 # No updates provided, just return current record
