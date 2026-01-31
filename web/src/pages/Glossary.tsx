@@ -169,7 +169,7 @@ export default function Glossary() {
           <div>
             <h1 className="text-3xl font-bold">BJJ Glossary</h1>
             <p className="text-gray-600 dark:text-gray-400">
-              {filteredMovements.length} of {movements.length} techniques
+              Showing {filteredMovements.length} of {movements.length} techniques
             </p>
           </div>
         </div>
