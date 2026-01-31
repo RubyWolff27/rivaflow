@@ -174,23 +174,14 @@ class FeedService:
             following_user_ids, start_date, end_date
         )
 
-        # Sort by date descending
-        feed_items.sort(key=lambda x: x["date"], reverse=True)
+        # Sort by date descending, then by type and id for consistent ordering
+        feed_items.sort(key=lambda x: (x["date"], x["type"], x["id"]), reverse=True)
 
         # Enrich with social data (always enabled for friends feed)
         feed_items = FeedService._enrich_with_social_data(user_id, feed_items)
 
-        # Apply pagination
-        total_items = len(feed_items)
-        paginated_items = feed_items[offset : offset + limit]
-
-        return {
-            "items": paginated_items,
-            "total": total_items,
-            "limit": limit,
-            "offset": offset,
-            "has_more": offset + limit < total_items,
-        }
+        # Apply cursor-based pagination
+        return paginate_with_cursor(feed_items, limit, offset, cursor)
 
     @staticmethod
     def _enrich_with_social_data(user_id: int, feed_items: List[Dict[str, Any]]) -> List[Dict[str, Any]]:

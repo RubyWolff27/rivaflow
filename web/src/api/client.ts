@@ -4,7 +4,8 @@ import type { Session, Readiness, Report, Suggestion, Technique, Video, Profile,
 // API base URL - use environment variable if set, otherwise default to relative path for production
 // In development, Vite proxy will forward /api requests to localhost:8000
 // In production, API and frontend are served from the same domain
-const API_BASE = import.meta.env.VITE_API_URL || '/api';
+// Using /api/v1 for versioned endpoints with backward compatibility via redirect middleware
+const API_BASE = import.meta.env.VITE_API_URL || '/api/v1';
 
 const api = axios.create({
   baseURL: API_BASE,

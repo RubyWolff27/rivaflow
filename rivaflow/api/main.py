@@ -17,6 +17,8 @@ from rivaflow.api.middleware.error_handler import (
     validation_exception_handler,
     generic_exception_handler,
 )
+from rivaflow.api.middleware.versioning import VersioningMiddleware
+from rivaflow.api.middleware.compression import GzipCompressionMiddleware
 
 # Initialize rate limiter
 limiter = Limiter(key_func=get_remote_address)
@@ -60,6 +62,12 @@ app.add_middleware(
     max_age=3600,  # Cache preflight requests for 1 hour
 )
 
+# Add versioning middleware for backward compatibility
+app.add_middleware(VersioningMiddleware)
+
+# Add gzip compression for responses > 1KB
+app.add_middleware(GzipCompressionMiddleware)
+
 
 @app.on_event("shutdown")
 async def shutdown_event():
@@ -68,31 +76,31 @@ async def shutdown_event():
     close_connection_pool()
 
 
-# Register routes
-app.include_router(auth.router, prefix="/api/auth", tags=["auth"])
-app.include_router(sessions.router, prefix="/api/sessions", tags=["sessions"])
-app.include_router(readiness.router, prefix="/api/readiness", tags=["readiness"])
-app.include_router(rest.router, prefix="/api")
-app.include_router(feed.router, prefix="/api")
-app.include_router(reports.router, prefix="/api/reports", tags=["reports"])
-app.include_router(suggestions.router, prefix="/api/suggestions", tags=["suggestions"])
-app.include_router(techniques.router, prefix="/api/techniques", tags=["techniques"])
-app.include_router(videos.router, prefix="/api/videos", tags=["videos"])
-app.include_router(profile.router, prefix="/api/profile", tags=["profile"])
-app.include_router(gradings.router, prefix="/api/gradings", tags=["gradings"])
-app.include_router(glossary.router, prefix="/api/glossary", tags=["glossary"])
-app.include_router(friends.router, prefix="/api/friends", tags=["friends"])
-app.include_router(users.router, prefix="/api/users", tags=["users"])
-app.include_router(analytics.router, prefix="/api/analytics", tags=["analytics"])
-app.include_router(goals.router, prefix="/api/goals", tags=["goals"])
-app.include_router(checkins.router, prefix="/api")
-app.include_router(streaks.router, prefix="/api")
-app.include_router(milestones.router, prefix="/api")
-app.include_router(photos.router, prefix="/api")
-app.include_router(social.router, prefix="/api")
-app.include_router(chat.router, prefix="/api")
-app.include_router(llm_tools.router, prefix="/api")
-app.include_router(admin.router, prefix="/api")
+# Register routes with /api/v1/ prefix
+app.include_router(auth.router, prefix="/api/v1/auth", tags=["auth"])
+app.include_router(sessions.router, prefix="/api/v1/sessions", tags=["sessions"])
+app.include_router(readiness.router, prefix="/api/v1/readiness", tags=["readiness"])
+app.include_router(rest.router, prefix="/api/v1")
+app.include_router(feed.router, prefix="/api/v1")
+app.include_router(reports.router, prefix="/api/v1/reports", tags=["reports"])
+app.include_router(suggestions.router, prefix="/api/v1/suggestions", tags=["suggestions"])
+app.include_router(techniques.router, prefix="/api/v1/techniques", tags=["techniques"])
+app.include_router(videos.router, prefix="/api/v1/videos", tags=["videos"])
+app.include_router(profile.router, prefix="/api/v1/profile", tags=["profile"])
+app.include_router(gradings.router, prefix="/api/v1/gradings", tags=["gradings"])
+app.include_router(glossary.router, prefix="/api/v1/glossary", tags=["glossary"])
+app.include_router(friends.router, prefix="/api/v1/friends", tags=["friends"])
+app.include_router(users.router, prefix="/api/v1/users", tags=["users"])
+app.include_router(analytics.router, prefix="/api/v1/analytics", tags=["analytics"])
+app.include_router(goals.router, prefix="/api/v1/goals", tags=["goals"])
+app.include_router(checkins.router, prefix="/api/v1")
+app.include_router(streaks.router, prefix="/api/v1")
+app.include_router(milestones.router, prefix="/api/v1")
+app.include_router(photos.router, prefix="/api/v1")
+app.include_router(social.router, prefix="/api/v1")
+app.include_router(chat.router, prefix="/api/v1")
+app.include_router(llm_tools.router, prefix="/api/v1")
+app.include_router(admin.router, prefix="/api/v1")
 
 
 @app.get("/health")
@@ -145,7 +153,7 @@ if web_dist_path.exists():
     async def serve_react_app(full_path: str):
         """Serve the React app for all non-API routes."""
         # Don't intercept API routes or health check
-        if full_path.startswith("api/") or full_path == "health":
+        if full_path.startswith("api/") or full_path.startswith("api/v1/") or full_path == "health":
             return {"error": "Not found"}
 
         # Serve index.html for all other routes (React Router will handle routing)
