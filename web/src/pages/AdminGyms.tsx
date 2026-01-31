@@ -37,7 +37,7 @@ export default function AdminGyms() {
     name: '',
     city: '',
     state: '',
-    country: 'USA',
+    country: 'Australia',
     address: '',
     website: '',
     email: '',
@@ -94,7 +94,7 @@ export default function AdminGyms() {
     try {
       await adminApi.createGym(formData);
       setShowAddForm(false);
-      setFormData({ name: '', city: '', state: '', country: 'USA', address: '', website: '', email: '', phone: '', head_coach: '', verified: false });
+      setFormData({ name: '', city: '', state: '', country: 'Australia', address: '', website: '', email: '', phone: '', head_coach: '', verified: false });
       loadGyms();
       loadPendingGyms();
     } catch (error) {
@@ -108,7 +108,7 @@ export default function AdminGyms() {
     try {
       await adminApi.updateGym(editingGym.id, formData);
       setEditingGym(null);
-      setFormData({ name: '', city: '', state: '', country: 'USA', address: '', website: '', email: '', phone: '', head_coach: '', verified: false });
+      setFormData({ name: '', city: '', state: '', country: 'Australia', address: '', website: '', email: '', phone: '', head_coach: '', verified: false });
       loadGyms();
       loadPendingGyms();
     } catch (error) {
@@ -157,7 +157,7 @@ export default function AdminGyms() {
   const cancelEdit = () => {
     setEditingGym(null);
     setShowAddForm(false);
-    setFormData({ name: '', city: '', state: '', country: 'USA', address: '', website: '', email: '', phone: '', head_coach: '', verified: false });
+    setFormData({ name: '', city: '', state: '', country: 'Australia', address: '', website: '', email: '', phone: '', head_coach: '', verified: false });
   };
 
   const displayGyms = activeTab === 'pending' ? pendingGyms : gyms;

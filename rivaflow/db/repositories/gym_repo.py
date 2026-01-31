@@ -11,7 +11,7 @@ class GymRepository:
         name: str,
         city: Optional[str] = None,
         state: Optional[str] = None,
-        country: str = "USA",
+        country: str = "Australia",
         address: Optional[str] = None,
         website: Optional[str] = None,
         email: Optional[str] = None,

@@ -16,7 +16,7 @@ class GymCreateRequest(BaseModel):
     name: str = Field(..., min_length=1, max_length=200)
     city: Optional[str] = Field(None, max_length=100)
     state: Optional[str] = Field(None, max_length=50)
-    country: str = Field("USA", max_length=100)
+    country: str = Field("Australia", max_length=100)
     address: Optional[str] = Field(None, max_length=500)
     website: Optional[str] = Field(None, max_length=500)
     email: Optional[str] = Field(None, max_length=200)
