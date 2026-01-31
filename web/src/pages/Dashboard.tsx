@@ -75,7 +75,7 @@ export default function Dashboard() {
       <Card>
         <div className="flex items-center justify-between">
           <div className="flex-1">
-            <h2 className="text-lg font-semibold text-[var(--text)] mb-1">Ready to train?</h2>
+            <h2 className="text-lg font-semibold text-[var(--text)] mb-1">How was training?</h2>
             <p className="text-sm text-[var(--muted)]">Log your session and track your progress</p>
           </div>
           <PrimaryButton onClick={() => navigate('/log')} className="flex items-center gap-2">
