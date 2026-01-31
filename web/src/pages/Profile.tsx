@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
-import { profileApi, gradingsApi, friendsApi } from '../api/client';
+import { profileApi, gradingsApi, friendsApi, adminApi } from '../api/client';
 import type { Profile as ProfileType, Grading, Friend } from '../types';
-import { User, CheckCircle, Award, Plus, Trash2, Edit2, Target } from 'lucide-react';
+import { User, CheckCircle, Award, Plus, Trash2, Edit2, Target, AlertCircle } from 'lucide-react';
+import GymSelector from '../components/GymSelector';
 
 const BELT_GRADES = [
   'White',
@@ -41,6 +42,8 @@ export default function Profile() {
   const [success, setSuccess] = useState(false);
   const [showAddGrading, setShowAddGrading] = useState(false);
   const [editingGrading, setEditingGrading] = useState<Grading | null>(null);
+  const [isCustomGym, setIsCustomGym] = useState(false);
+  const [gymVerificationPending, setGymVerificationPending] = useState(false);
 
   const [formData, setFormData] = useState({
     first_name: '',
@@ -410,15 +413,46 @@ export default function Profile() {
           {/* Default Gym */}
           <div>
             <label className="label">Default Gym</label>
-            <input
-              type="text"
-              className="input"
+            <GymSelector
               value={formData.default_gym}
-              onChange={(e) => setFormData({ ...formData, default_gym: e.target.value })}
-              placeholder="Your main training gym"
+              onChange={(value, custom) => {
+                setFormData({ ...formData, default_gym: value });
+                setIsCustomGym(custom);
+              }}
+              onCreateGym={async (gymName) => {
+                try {
+                  // Submit custom gym for verification
+                  await adminApi.createGym({
+                    name: gymName,
+                    country: formData.state === 'NSW' || formData.state === 'VIC' || formData.state === 'QLD'
+                      ? 'Australia'
+                      : 'Unknown',
+                    city: formData.city || undefined,
+                    state: formData.state || undefined,
+                    verified: false, // Pending verification
+                  });
+                  setGymVerificationPending(true);
+                  setTimeout(() => setGymVerificationPending(false), 5000);
+                } catch (error) {
+                  console.error('Error submitting gym:', error);
+                }
+              }}
             />
+            {isCustomGym && gymVerificationPending && (
+              <div className="flex items-start gap-2 mt-2 p-3 rounded-lg" style={{ backgroundColor: 'var(--warning-bg)' }}>
+                <AlertCircle className="w-4 h-4 mt-0.5 flex-shrink-0" style={{ color: 'var(--warning)' }} />
+                <div>
+                  <p className="text-sm font-medium" style={{ color: 'var(--warning)' }}>
+                    Gym Submitted for Verification
+                  </p>
+                  <p className="text-xs mt-1" style={{ color: 'var(--muted)' }}>
+                    Your gym has been added to our database and will be verified by our team soon.
+                  </p>
+                </div>
+              </div>
+            )}
             <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-              This will be pre-filled when logging sessions
+              Select from existing gyms or add a new one for verification
             </p>
           </div>
 
