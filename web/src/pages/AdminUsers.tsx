@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { adminApi } from '../api/client';
 import { Search, Shield, ShieldOff, UserX, Eye, CheckCircle, XCircle } from 'lucide-react';
 import { Card, PrimaryButton, SecondaryButton } from '../components/ui';
+import AdminNav from '../components/AdminNav';
 
 interface User {
   id: number;
@@ -101,6 +102,8 @@ export default function AdminUsers() {
 
   return (
     <div className="space-y-6">
+      <AdminNav />
+
       {/* Header */}
       <div>
         <h1 className="text-2xl font-semibold" style={{ color: 'var(--text)' }}>

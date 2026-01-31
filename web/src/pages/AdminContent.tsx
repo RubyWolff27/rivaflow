@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { adminApi } from '../api/client';
 import { Trash2, MessageSquare, User } from 'lucide-react';
 import { Card, SecondaryButton } from '../components/ui';
+import AdminNav from '../components/AdminNav';
 
 interface Comment {
   id: number;
@@ -58,6 +59,8 @@ export default function AdminContent() {
 
   return (
     <div className="space-y-6">
+      <AdminNav />
+
       {/* Header */}
       <div>
         <h1 className="text-2xl font-semibold" style={{ color: 'var(--text)' }}>

@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { adminApi, techniquesApi } from '../api/client';
 import { Search, Trash2, Plus } from 'lucide-react';
 import { Card, PrimaryButton, SecondaryButton } from '../components/ui';
+import AdminNav from '../components/AdminNav';
 
 interface Technique {
   id: number;
@@ -71,6 +72,8 @@ export default function AdminTechniques() {
 
   return (
     <div className="space-y-6">
+      <AdminNav />
+
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>

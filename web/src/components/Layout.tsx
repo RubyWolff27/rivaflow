@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { Home, Plus, BarChart3, Book, User, Users, Menu, X, LogOut, ListOrdered, Grid, BookOpen, Video, MessageCircle, Activity } from 'lucide-react';
+import { Home, Plus, BarChart3, Book, User, Users, Menu, X, LogOut, ListOrdered, Grid, BookOpen, Video, MessageCircle, Activity, Shield } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import QuickLog from './QuickLog';
 
@@ -46,6 +46,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
     { name: 'Videos', href: '/videos', icon: Video },
     { name: 'Chat', href: '/chat', icon: MessageCircle },
     { name: 'Readiness', href: '/readiness', icon: Activity },
+    ...(user?.is_admin ? [{ name: 'Admin', href: '/admin', icon: Shield }] : []),
   ];
 
   return (

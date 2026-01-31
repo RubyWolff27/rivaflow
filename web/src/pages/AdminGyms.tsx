@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { adminApi } from '../api/client';
 import { Search, Plus, Edit2, Trash2, Check, MapPin, Globe, Building2 } from 'lucide-react';
 import { Card, PrimaryButton, SecondaryButton } from '../components/ui';
+import AdminNav from '../components/AdminNav';
 
 interface Gym {
   id: number;
@@ -164,6 +165,8 @@ export default function AdminGyms() {
 
   return (
     <div className="space-y-6">
+      <AdminNav />
+
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>

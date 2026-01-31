@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { adminApi } from '../api/client';
 import { Users, Building2, MessageSquare, Activity, TrendingUp, Shield } from 'lucide-react';
 import { Card } from '../components/ui';
+import AdminNav from '../components/AdminNav';
 
 interface DashboardStats {
   total_users: number;
@@ -93,6 +94,8 @@ export default function AdminDashboard() {
 
   return (
     <div className="space-y-6">
+      <AdminNav />
+
       {/* Header */}
       <div>
         <h1 className="text-2xl font-semibold" style={{ color: 'var(--text)' }}>
