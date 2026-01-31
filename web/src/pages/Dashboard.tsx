@@ -68,7 +68,7 @@ export default function Dashboard() {
     <div className="space-y-6">
       {/* Page Header */}
       <div>
-        <h1 className="text-2xl font-semibold text-[var(--text)]">Dashboard</h1>
+        <h1 className="text-2xl font-semibold text-[var(--text)]" id="page-title">Dashboard</h1>
       </div>
 
       {/* Primary CTA */}

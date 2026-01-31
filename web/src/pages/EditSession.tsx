@@ -406,10 +406,11 @@ export default function EditSession() {
         <button
           onClick={() => navigate('/')}
           className="text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white"
+          aria-label="Back to dashboard"
         >
           <ArrowLeft className="w-6 h-6" />
         </button>
-        <h1 className="text-3xl font-bold">Edit Session</h1>
+        <h1 className="text-3xl font-bold" id="page-title">Edit Session</h1>
       </div>
 
       <form onSubmit={handleSubmit} className="card space-y-4">
@@ -621,6 +622,7 @@ export default function EditSession() {
                           type="button"
                           onClick={() => handleRemoveRoll(index)}
                           className="text-red-600 hover:text-red-700"
+                          aria-label={`Remove roll ${roll.roll_number}`}
                         >
                           <X className="w-4 h-4" />
                         </button>
@@ -717,6 +719,7 @@ export default function EditSession() {
                                   type="button"
                                   onClick={() => handleRemoveSubmission(index, movementId, true)}
                                   className="hover:text-red-600"
+                                  aria-label={`Remove ${movement.name} submission`}
                                 >
                                   <X className="w-3 h-3" />
                                 </button>
@@ -773,6 +776,7 @@ export default function EditSession() {
                                   type="button"
                                   onClick={() => handleRemoveSubmission(index, movementId, false)}
                                   className="hover:text-red-600"
+                                  aria-label={`Remove ${movement.name} submission against`}
                                 >
                                   <X className="w-3 h-3" />
                                 </button>
@@ -837,6 +841,7 @@ export default function EditSession() {
                       type="button"
                       onClick={() => handleRemoveTechnique(index)}
                       className="text-red-600 hover:text-red-700"
+                      aria-label={`Remove technique ${tech.technique_number}`}
                     >
                       <X className="w-4 h-4" />
                     </button>
@@ -951,6 +956,7 @@ export default function EditSession() {
                                 type="button"
                                 onClick={() => handleRemoveMediaUrl(index, mediaIndex)}
                                 className="text-red-600 hover:text-red-700"
+                                aria-label="Remove media URL"
                               >
                                 <X className="w-3 h-3" />
                               </button>

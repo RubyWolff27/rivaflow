@@ -247,14 +247,14 @@ export default function Feed() {
                                   <button
                                     onClick={() => navigate(`/session/${item.id}`)}
                                     className="p-1 hover:bg-white/50 dark:hover:bg-black/20 rounded transition-colors"
-                                    title="View session details"
+                                    aria-label="View session details"
                                   >
                                     <Eye className="w-4 h-4 text-gray-600 dark:text-gray-400" />
                                   </button>
                                   <button
                                     onClick={() => navigate(`/session/edit/${item.id}`)}
                                     className="p-1 hover:bg-white/50 dark:hover:bg-black/20 rounded transition-colors"
-                                    title="Edit session"
+                                    aria-label="Edit session"
                                   >
                                     <Edit2 className="w-4 h-4 text-gray-600 dark:text-gray-400" />
                                   </button>
@@ -265,14 +265,14 @@ export default function Feed() {
                                   <button
                                     onClick={() => navigate(`/readiness/${item.data.check_date}`)}
                                     className="p-1 hover:bg-white/50 dark:hover:bg-black/20 rounded transition-colors"
-                                    title="View readiness details"
+                                    aria-label="View readiness details"
                                   >
                                     <Eye className="w-4 h-4 text-gray-600 dark:text-gray-400" />
                                   </button>
                                   <button
                                     onClick={() => navigate(`/readiness/edit/${item.data.check_date}`)}
                                     className="p-1 hover:bg-white/50 dark:hover:bg-black/20 rounded transition-colors"
-                                    title="Edit readiness"
+                                    aria-label="Edit readiness"
                                   >
                                     <Edit2 className="w-4 h-4 text-gray-600 dark:text-gray-400" />
                                   </button>
@@ -283,14 +283,14 @@ export default function Feed() {
                                   <button
                                     onClick={() => navigate(`/rest/${item.data.rest_date}`)}
                                     className="p-1 hover:bg-white/50 dark:hover:bg-black/20 rounded transition-colors"
-                                    title="View rest day details"
+                                    aria-label="View rest day details"
                                   >
                                     <Eye className="w-4 h-4 text-gray-600 dark:text-gray-400" />
                                   </button>
                                   <button
                                     onClick={() => navigate(`/rest/edit/${item.data.rest_date}`)}
                                     className="p-1 hover:bg-white/50 dark:hover:bg-black/20 rounded transition-colors"
-                                    title="Edit rest day"
+                                    aria-label="Edit rest day"
                                   >
                                     <Edit2 className="w-4 h-4 text-gray-600 dark:text-gray-400" />
                                   </button>

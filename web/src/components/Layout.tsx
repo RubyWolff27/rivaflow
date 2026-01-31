@@ -12,10 +12,15 @@ export default function Layout({ children }: { children: React.ReactNode }) {
   const [quickLogOpen, setQuickLogOpen] = useState(false);
   const [moreMenuOpen, setMoreMenuOpen] = useState(false);
   const moreMenuRef = useRef<HTMLDivElement>(null);
+  const mainContentRef = useRef<HTMLElement>(null);
 
   const handleLogout = () => {
     logout();
     navigate('/login');
+  };
+
+  const skipToContent = () => {
+    mainContentRef.current?.focus();
   };
 
   // Close more menu when clicking outside
@@ -51,6 +56,22 @@ export default function Layout({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="min-h-screen app-bg">
+      {/* Skip to content link for screen readers */}
+      <a
+        href="#main-content"
+        onClick={(e) => {
+          e.preventDefault();
+          skipToContent();
+        }}
+        className="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 focus:z-50 focus:px-4 focus:py-2 focus:rounded-lg focus:shadow-lg"
+        style={{
+          backgroundColor: 'var(--accent)',
+          color: '#FFFFFF',
+        }}
+      >
+        Skip to main content
+      </a>
+
       {/* Header */}
       <header className="bg-[var(--surface)] shadow-sm border-b border-[var(--border)]" style={{ position: 'relative', zIndex: 10 }}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -66,7 +87,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
             </div>
 
             {/* Desktop Navigation */}
-            <nav className="hidden md:flex items-center space-x-2">
+            <nav className="hidden md:flex items-center space-x-2" role="navigation" aria-label="Main navigation">
               {navigation.map((item) => {
                 const isActive = location.pathname === item.href;
                 const Icon = item.icon;
@@ -95,6 +116,9 @@ export default function Layout({ children }: { children: React.ReactNode }) {
                     color: moreNavigation.some(item => location.pathname === item.href) ? 'var(--accent)' : 'var(--muted)',
                     backgroundColor: moreMenuOpen ? 'var(--surfaceElev)' : 'transparent',
                   }}
+                  aria-label="More menu"
+                  aria-expanded={moreMenuOpen}
+                  aria-haspopup="true"
                 >
                   <Grid className="w-4 h-4" />
                   More
@@ -109,6 +133,8 @@ export default function Layout({ children }: { children: React.ReactNode }) {
                       border: '1px solid var(--border)',
                       zIndex: 50,
                     }}
+                    role="menu"
+                    aria-label="More options"
                   >
                     {moreNavigation.map((item) => {
                       const isActive = location.pathname === item.href;
@@ -150,7 +176,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
                   to="/feed"
                   className="p-2 rounded-lg transition-colors"
                   style={{ color: location.pathname === '/feed' ? 'var(--accent)' : 'var(--muted)' }}
-                  title="Feed"
+                  aria-label="Activity Feed"
                 >
                   <ListOrdered className="w-5 h-5" />
                 </Link>
@@ -162,7 +188,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
                   to="/profile"
                   className="p-2 rounded-lg transition-colors"
                   style={{ color: 'var(--muted)' }}
-                  title={`${user?.first_name} ${user?.last_name}`}
+                  aria-label={`Profile - ${user?.first_name} ${user?.last_name}`}
                 >
                   <User className="w-5 h-5" />
                 </Link>
@@ -170,7 +196,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
                   onClick={handleLogout}
                   className="p-2 rounded-lg transition-colors"
                   style={{ color: 'var(--muted)' }}
-                  title="Logout"
+                  aria-label="Logout"
                 >
                   <LogOut className="w-5 h-5" />
                 </button>
@@ -182,6 +208,8 @@ export default function Layout({ children }: { children: React.ReactNode }) {
               className="md:hidden p-2 rounded-lg"
               style={{ color: 'var(--text)' }}
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+              aria-label={mobileMenuOpen ? 'Close menu' : 'Open menu'}
+              aria-expanded={mobileMenuOpen}
             >
               {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
             </button>
@@ -190,7 +218,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
 
         {/* Mobile Navigation */}
         {mobileMenuOpen && (
-          <div className="md:hidden" style={{ borderTop: '1px solid var(--border)' }}>
+          <div className="md:hidden" style={{ borderTop: '1px solid var(--border)' }} role="navigation" aria-label="Mobile navigation">
             <div className="px-2 pt-2 pb-3 space-y-1">
               {navigation.map((item) => {
                 const isActive = location.pathname === item.href;
@@ -299,7 +327,12 @@ export default function Layout({ children }: { children: React.ReactNode }) {
       </header>
 
       {/* Main Content */}
-      <main className="max-w-4xl mx-auto px-4 sm:px-6 py-8">
+      <main
+        id="main-content"
+        ref={mainContentRef}
+        className="max-w-4xl mx-auto px-4 sm:px-6 py-8"
+        tabIndex={-1}
+      >
         {children}
       </main>
 

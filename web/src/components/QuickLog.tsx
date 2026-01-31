@@ -73,10 +73,13 @@ export default function QuickLog({ isOpen, onClose, onSuccess }: QuickLogProps) 
   const intensityOptions = [1, 2, 3, 4, 5];
 
   return (
-    <div 
+    <div
       className="fixed inset-0 z-50 flex items-end sm:items-center justify-center"
       style={{ backgroundColor: 'rgba(0, 0, 0, 0.5)' }}
       onClick={onClose}
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="quick-log-title"
     >
       <div
         className="w-full max-w-md rounded-t-[24px] sm:rounded-[24px] p-6 space-y-6"
@@ -85,13 +88,14 @@ export default function QuickLog({ isOpen, onClose, onSuccess }: QuickLogProps) 
       >
         {/* Header */}
         <div className="flex items-center justify-between">
-          <h2 className="text-xl font-semibold" style={{ color: 'var(--text)' }}>
+          <h2 id="quick-log-title" className="text-xl font-semibold" style={{ color: 'var(--text)' }}>
             Quick Log
           </h2>
           <button
             onClick={onClose}
             className="p-2 rounded-lg"
             style={{ color: 'var(--muted)' }}
+            aria-label="Close quick log dialog"
           >
             <X className="w-5 h-5" />
           </button>
@@ -119,7 +123,7 @@ export default function QuickLog({ isOpen, onClose, onSuccess }: QuickLogProps) 
             <label className="block text-sm font-medium mb-2" style={{ color: 'var(--text)' }}>
               Duration (minutes)
             </label>
-            <div className="flex gap-2">
+            <div className="flex gap-2" role="group" aria-label="Duration options">
               {durationOptions.map((mins) => (
                 <button
                   key={mins}
@@ -130,6 +134,8 @@ export default function QuickLog({ isOpen, onClose, onSuccess }: QuickLogProps) 
                     color: duration === mins ? '#FFFFFF' : 'var(--text)',
                     border: duration === mins ? 'none' : '1px solid var(--border)',
                   }}
+                  aria-label={`${mins} minutes`}
+                  aria-pressed={duration === mins}
                 >
                   {mins}m
                 </button>
@@ -142,7 +148,7 @@ export default function QuickLog({ isOpen, onClose, onSuccess }: QuickLogProps) 
             <label className="block text-sm font-medium mb-2" style={{ color: 'var(--text)' }}>
               Intensity
             </label>
-            <div className="flex gap-2">
+            <div className="flex gap-2" role="group" aria-label="Intensity options">
               {intensityOptions.map((level) => (
                 <button
                   key={level}
@@ -153,6 +159,8 @@ export default function QuickLog({ isOpen, onClose, onSuccess }: QuickLogProps) 
                     color: intensity === level ? '#FFFFFF' : 'var(--text)',
                     border: intensity === level ? 'none' : '1px solid var(--border)',
                   }}
+                  aria-label={`Intensity level ${level} of 5`}
+                  aria-pressed={intensity === level}
                 >
                   {level}
                 </button>

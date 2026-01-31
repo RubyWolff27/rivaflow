@@ -63,14 +63,16 @@ export default function SessionDetail() {
           <button
             onClick={() => navigate(-1)}
             className="text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white"
+            aria-label="Go back"
           >
             <ArrowLeft className="w-6 h-6" />
           </button>
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Session Details</h1>
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-white" id="page-title">Session Details</h1>
         </div>
         <Link
           to={`/session/edit/${session.id}`}
           className="btn-primary flex items-center gap-2"
+          aria-label="Edit session"
         >
           <Edit2 className="w-4 h-4" />
           Edit
