@@ -2,6 +2,7 @@
 from typing import List, Optional
 
 from rivaflow.db.repositories import GlossaryRepository
+from rivaflow.cache import get_redis_client, CacheKeys
 
 
 class GlossaryService:
@@ -9,6 +10,7 @@ class GlossaryService:
 
     def __init__(self):
         self.repo = GlossaryRepository()
+        self.cache = get_redis_client()
 
     def list_movements(
         self,
@@ -19,28 +21,93 @@ class GlossaryService:
         nogi_only: bool = False,
     ) -> List[dict]:
         """Get all movements with optional filtering."""
-        # Movements are global, user_id not needed for listing
-        return self.repo.list_all(
+        # Skip cache for search queries (too many permutations)
+        if search:
+            return self.repo.list_all(
+                category=category,
+                search=search,
+                gi_only=gi_only,
+                nogi_only=nogi_only,
+            )
+
+        # Generate cache key based on filters
+        cache_key = CacheKeys.movements_glossary_filtered(
+            category=category,
+            gi_only=gi_only,
+            nogi_only=nogi_only,
+        )
+
+        # Try to get from cache
+        cached = self.cache.get(cache_key)
+        if cached is not None:
+            return cached
+
+        # Fetch from database
+        movements = self.repo.list_all(
             category=category,
             search=search,
             gi_only=gi_only,
             nogi_only=nogi_only,
         )
 
+        # Cache for 24 hours
+        self.cache.set(cache_key, movements, ttl=CacheKeys.TTL_24_HOURS)
+
+        return movements
+
     def get_movement(self, user_id: int, movement_id: int, include_custom_videos: bool = False) -> Optional[dict]:
         """Get a specific movement by ID, optionally with custom video links."""
-        # Movements are global, but custom videos are user-specific
-        return self.repo.get_by_id(movement_id, include_custom_videos=include_custom_videos)
+        # Skip cache if custom videos requested (user-specific)
+        if include_custom_videos:
+            return self.repo.get_by_id(movement_id, include_custom_videos=True)
+
+        # Try cache
+        cache_key = CacheKeys.movement_by_id(movement_id)
+        cached = self.cache.get(cache_key)
+        if cached is not None:
+            return cached
+
+        # Fetch from database
+        movement = self.repo.get_by_id(movement_id, include_custom_videos=False)
+
+        # Cache for 24 hours
+        if movement:
+            self.cache.set(cache_key, movement, ttl=CacheKeys.TTL_24_HOURS)
+
+        return movement
 
     def get_movement_by_name(self, user_id: int, name: str) -> Optional[dict]:
         """Get a movement by exact name."""
-        # Movements are global
-        return self.repo.get_by_name(name)
+        # Try cache
+        cache_key = CacheKeys.movement_by_name(name)
+        cached = self.cache.get(cache_key)
+        if cached is not None:
+            return cached
+
+        # Fetch from database
+        movement = self.repo.get_by_name(name)
+
+        # Cache for 24 hours
+        if movement:
+            self.cache.set(cache_key, movement, ttl=CacheKeys.TTL_24_HOURS)
+
+        return movement
 
     def get_categories(self, user_id: int) -> List[str]:
         """Get list of all movement categories."""
-        # Categories are global
-        return self.repo.get_categories()
+        # Try cache
+        cache_key = CacheKeys.MOVEMENTS_GLOSSARY_CATEGORIES
+        cached = self.cache.get(cache_key)
+        if cached is not None:
+            return cached
+
+        # Fetch from database
+        categories = self.repo.get_categories()
+
+        # Cache for 24 hours
+        self.cache.set(cache_key, categories, ttl=CacheKeys.TTL_24_HOURS)
+
+        return categories
 
     def create_custom_movement(
         self,
@@ -56,7 +123,7 @@ class GlossaryService:
     ) -> dict:
         """Create a custom user-added movement."""
         # Custom movements are global (not user-specific)
-        return self.repo.create_custom(
+        movement = self.repo.create_custom(
             name=name,
             category=category,
             subcategory=subcategory,
@@ -67,10 +134,21 @@ class GlossaryService:
             nogi_applicable=nogi_applicable,
         )
 
+        # Invalidate movement cache
+        self._invalidate_movement_cache()
+
+        return movement
+
     def delete_custom_movement(self, user_id: int, movement_id: int) -> bool:
         """Delete a custom movement. Can only delete custom movements."""
         # Custom movements are global
-        return self.repo.delete_custom(movement_id)
+        deleted = self.repo.delete_custom(movement_id)
+
+        # Invalidate movement cache
+        if deleted:
+            self._invalidate_movement_cache()
+
+        return deleted
 
     def add_custom_video(
         self,
@@ -93,3 +171,7 @@ class GlossaryService:
         """Delete a custom video link."""
         # Custom videos are global
         return self.repo.delete_custom_video(video_id)
+
+    def _invalidate_movement_cache(self) -> None:
+        """Invalidate all movement-related cache."""
+        self.cache.delete_pattern(CacheKeys.PATTERN_ALL_MOVEMENTS)

@@ -9,6 +9,7 @@ from rivaflow.db.repositories.gym_repo import GymRepository
 from rivaflow.core.dependencies import get_current_user
 from rivaflow.core.exceptions import NotFoundError, ValidationError
 from rivaflow.core.services.audit_service import AuditService
+from rivaflow.core.services.gym_service import GymService
 
 router = APIRouter(prefix="/admin", tags=["admin"])
 limiter = Limiter(key_func=get_remote_address)
@@ -79,7 +80,8 @@ async def list_gyms(
     current_user: dict = Depends(require_admin),
 ):
     """List all gyms (admin only)."""
-    gyms = GymRepository.list_all(verified_only=verified_only)
+    gym_service = GymService()
+    gyms = gym_service.list_all(verified_only=verified_only)
     return {
         "gyms": gyms,
         "count": len(gyms),
@@ -90,7 +92,8 @@ async def list_gyms(
 @limiter.limit("60/minute")
 async def get_pending_gyms(request: Request, current_user: dict = Depends(require_admin)):
     """Get all pending (unverified) gyms."""
-    pending = GymRepository.get_pending_gyms()
+    gym_service = GymService()
+    pending = gym_service.get_pending_gyms()
     return {
         "pending_gyms": pending,
         "count": len(pending),
@@ -109,7 +112,8 @@ async def search_gyms(
     if not q or len(q) < 2:
         return {"gyms": []}
     
-    gyms = GymRepository.search(q, verified_only=verified_only)
+    gym_service = GymService()
+    gyms = gym_service.search(q, verified_only=verified_only)
     return {
         "gyms": gyms,
         "count": len(gyms),
@@ -124,7 +128,8 @@ async def create_gym(
     current_user: dict = Depends(require_admin),
 ):
     """Create a new gym (admin only)."""
-    gym = GymRepository.create(
+    gym_service = GymService()
+    gym = gym_service.create(
         name=request.name,
         city=request.city,
         state=request.state,
@@ -160,14 +165,15 @@ async def update_gym(
     current_user: dict = Depends(require_admin),
 ):
     """Update a gym (admin only)."""
-    gym = GymRepository.get_by_id(gym_id)
+    gym_service = GymService()
+    gym = gym_service.get_by_id(gym_id)
     if not gym:
         raise NotFoundError(f"Gym with id {gym_id} not found")
 
     # Filter out None values
     update_data = {k: v for k, v in request.dict().items() if v is not None}
 
-    updated_gym = GymRepository.update(gym_id, **update_data)
+    updated_gym = gym_service.update(gym_id, **update_data)
 
     # Audit log
     AuditService.log(
@@ -190,12 +196,13 @@ async def delete_gym(
     current_user: dict = Depends(require_admin),
 ):
     """Delete a gym (admin only)."""
-    gym = GymRepository.get_by_id(gym_id)
+    gym_service = GymService()
+    gym = gym_service.get_by_id(gym_id)
     if not gym:
         raise NotFoundError(f"Gym with id {gym_id} not found")
 
     gym_name = gym["name"]
-    success = GymRepository.delete(gym_id)
+    success = gym_service.delete(gym_id)
 
     # Audit log
     if success:
@@ -224,8 +231,9 @@ async def merge_gyms(
         raise ValidationError("Cannot merge a gym into itself")
 
     # Verify both gyms exist
-    source = GymRepository.get_by_id(request.source_gym_id)
-    target = GymRepository.get_by_id(request.target_gym_id)
+    gym_service = GymService()
+    source = gym_service.get_by_id(request.source_gym_id)
+    target = gym_service.get_by_id(request.target_gym_id)
 
     if not source:
         raise NotFoundError(f"Source gym {request.source_gym_id} not found")
@@ -233,7 +241,7 @@ async def merge_gyms(
         raise NotFoundError(f"Target gym {request.target_gym_id} not found")
 
     try:
-        success = GymRepository.merge_gyms(request.source_gym_id, request.target_gym_id)
+        success = gym_service.merge_gyms(request.source_gym_id, request.target_gym_id)
 
         # Audit log
         AuditService.log(
@@ -304,8 +312,9 @@ async def get_dashboard_stats(request: Request, current_user: dict = Depends(req
         total_sessions = get_count(cursor.fetchone())
 
         # Total gyms
-        total_gyms = len(GymRepository.list_all(verified_only=False))
-        pending_gyms = len(GymRepository.get_pending_gyms())
+        gym_service = GymService()
+        total_gyms = len(gym_service.list_all(verified_only=False))
+        pending_gyms = len(gym_service.get_pending_gyms())
         verified_gyms = total_gyms - pending_gyms
 
         # Total comments

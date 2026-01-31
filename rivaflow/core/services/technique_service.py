@@ -3,6 +3,7 @@ from typing import Optional
 from datetime import date
 
 from rivaflow.db.repositories import TechniqueRepository
+from rivaflow.cache import get_redis_client, CacheKeys
 
 
 class TechniqueService:
@@ -10,25 +11,69 @@ class TechniqueService:
 
     def __init__(self):
         self.repo = TechniqueRepository()
+        self.cache = get_redis_client()
 
     def add_technique(self, user_id: int, name: str, category: Optional[str] = None) -> int:
         """
         Add a new technique or get existing one.
         Returns technique ID.
         """
-        return self.repo.create(name=name, category=category)
+        technique_id = self.repo.create(name=name, category=category)
+
+        # Invalidate technique cache
+        self._invalidate_technique_cache()
+
+        return technique_id
 
     def get_technique(self, user_id: int, technique_id: int) -> Optional[dict]:
         """Get a technique by ID."""
-        return self.repo.get_by_id(technique_id)
+        # Try cache
+        cache_key = CacheKeys.technique_by_id(technique_id)
+        cached = self.cache.get(cache_key)
+        if cached is not None:
+            return cached
+
+        # Fetch from database
+        technique = self.repo.get_by_id(technique_id)
+
+        # Cache for 24 hours
+        if technique:
+            self.cache.set(cache_key, technique, ttl=CacheKeys.TTL_24_HOURS)
+
+        return technique
 
     def get_technique_by_name(self, user_id: int, name: str) -> Optional[dict]:
         """Get a technique by name."""
-        return self.repo.get_by_name(name)
+        # Try cache
+        cache_key = CacheKeys.technique_by_name(name)
+        cached = self.cache.get(cache_key)
+        if cached is not None:
+            return cached
+
+        # Fetch from database
+        technique = self.repo.get_by_name(name)
+
+        # Cache for 24 hours
+        if technique:
+            self.cache.set(cache_key, technique, ttl=CacheKeys.TTL_24_HOURS)
+
+        return technique
 
     def list_all_techniques(self, user_id: int) -> list[dict]:
         """Get all techniques."""
-        return self.repo.list_all()
+        # Try cache
+        cache_key = CacheKeys.TECHNIQUES_ALL
+        cached = self.cache.get(cache_key)
+        if cached is not None:
+            return cached
+
+        # Fetch from database
+        techniques = self.repo.list_all()
+
+        # Cache for 24 hours
+        self.cache.set(cache_key, techniques, ttl=CacheKeys.TTL_24_HOURS)
+
+        return techniques
 
     def get_stale_techniques(self, user_id: int, days: int = 7) -> list[dict]:
         """Get techniques not trained in N days."""
@@ -60,3 +105,7 @@ class TechniqueService:
             return None
 
         return (date.today() - technique["last_trained_date"]).days
+
+    def _invalidate_technique_cache(self) -> None:
+        """Invalidate all technique-related cache."""
+        self.cache.delete_pattern(CacheKeys.PATTERN_ALL_TECHNIQUES)

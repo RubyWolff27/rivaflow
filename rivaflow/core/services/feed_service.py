@@ -8,10 +8,12 @@ from rivaflow.db.repositories import (
     UserRelationshipRepository,
     ActivityLikeRepository,
     ActivityCommentRepository,
+    UserRepository,
 )
 from rivaflow.db.repositories.checkin_repo import CheckinRepository
 from rivaflow.core.services.privacy_service import PrivacyService
 from rivaflow.core.pagination import paginate_with_cursor
+from rivaflow.cache import get_redis_client, CacheKeys
 
 
 class FeedService:
@@ -194,6 +196,7 @@ class FeedService:
     def _enrich_with_social_data(user_id: int, feed_items: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
         """
         Enrich feed items with social data (like count, comment count, has_liked).
+        Also enriches with cached user profiles for feed owners.
         Uses batch queries to avoid N+1 query problem.
 
         Args:
@@ -201,7 +204,7 @@ class FeedService:
             feed_items: List of feed items
 
         Returns:
-            Enriched feed items with social data
+            Enriched feed items with social data and user profiles
         """
         if not feed_items:
             return feed_items
@@ -211,12 +214,20 @@ class FeedService:
         comment_counts = FeedService._batch_get_comment_counts(feed_items)
         user_likes = FeedService._batch_get_user_likes(user_id, feed_items)
 
+        # Batch load user profiles with caching
+        owner_profiles = FeedService._batch_get_user_profiles(feed_items)
+
         # Enrich items with preloaded data
         for item in feed_items:
             activity_key = (item["type"], item["id"])
             item["like_count"] = like_counts.get(activity_key, 0)
             item["comment_count"] = comment_counts.get(activity_key, 0)
             item["has_liked"] = activity_key in user_likes
+
+            # Add owner profile if available
+            owner_user_id = item.get("owner_user_id")
+            if owner_user_id and owner_user_id in owner_profiles:
+                item["owner"] = owner_profiles[owner_user_id]
 
         return feed_items
 
@@ -617,3 +628,74 @@ class FeedService:
             "offset": offset,
             "has_more": offset + limit < total_items,
         }
+
+    @staticmethod
+    def _batch_get_user_profiles(feed_items: List[Dict[str, Any]]) -> Dict[int, Dict[str, Any]]:
+        """
+        Batch load user profiles for feed item owners with Redis caching.
+
+        Args:
+            feed_items: List of feed items
+
+        Returns:
+            Dictionary mapping user_id to user profile info
+        """
+        cache = get_redis_client()
+        user_repo = UserRepository()
+
+        # Collect unique owner user IDs
+        owner_user_ids = set()
+        for item in feed_items:
+            owner_user_id = item.get("owner_user_id")
+            if owner_user_id:
+                owner_user_ids.add(owner_user_id)
+
+        if not owner_user_ids:
+            return {}
+
+        profiles = {}
+        uncached_user_ids = []
+
+        # Try to get from cache first
+        for user_id in owner_user_ids:
+            cache_key = CacheKeys.user_basic(user_id)
+            cached_profile = cache.get(cache_key)
+
+            if cached_profile:
+                profiles[user_id] = {
+                    "id": cached_profile.get("id"),
+                    "first_name": cached_profile.get("first_name"),
+                    "last_name": cached_profile.get("last_name"),
+                }
+            else:
+                uncached_user_ids.append(user_id)
+
+        # Batch load uncached users from database
+        if uncached_user_ids:
+            from rivaflow.db.database import get_connection, convert_query
+
+            with get_connection() as conn:
+                cursor = conn.cursor()
+                placeholders = ",".join("?" * len(uncached_user_ids))
+                query = convert_query(f"""
+                    SELECT id, first_name, last_name, email
+                    FROM users
+                    WHERE id IN ({placeholders})
+                """)
+                cursor.execute(query, uncached_user_ids)
+
+                for row in cursor.fetchall():
+                    user = dict(row)
+                    user_id = user["id"]
+
+                    # Cache full user profile
+                    cache.set(CacheKeys.user_basic(user_id), user, ttl=CacheKeys.TTL_15_MINUTES)
+
+                    # Add to profiles (minimal info for feed)
+                    profiles[user_id] = {
+                        "id": user_id,
+                        "first_name": user.get("first_name"),
+                        "last_name": user.get("last_name"),
+                    }
+
+        return profiles

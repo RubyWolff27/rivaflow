@@ -5,6 +5,7 @@ from datetime import datetime, timedelta
 from rivaflow.db.repositories import UserRepository, ProfileRepository, UserRelationshipRepository
 from rivaflow.db.repositories.session_repo import SessionRepository
 from rivaflow.db.repositories.readiness_repo import ReadinessRepository
+from rivaflow.cache import get_redis_client, CacheKeys
 
 
 class UserService:
@@ -16,10 +17,24 @@ class UserService:
         self.social_repo = UserRelationshipRepository()
         self.session_repo = SessionRepository()
         self.readiness_repo = ReadinessRepository()
+        self.cache = get_redis_client()
 
     def get_user_by_id(self, user_id: int) -> Optional[Dict[str, Any]]:
         """Get basic user info by ID."""
-        return self.user_repo.get_by_id(user_id)
+        # Try cache
+        cache_key = CacheKeys.user_basic(user_id)
+        cached = self.cache.get(cache_key)
+        if cached is not None:
+            return cached
+
+        # Fetch from database
+        user = self.user_repo.get_by_id(user_id)
+
+        # Cache for 15 minutes
+        if user:
+            self.cache.set(cache_key, user, ttl=CacheKeys.TTL_15_MINUTES)
+
+        return user
 
     def search_users(self, query: str, limit: int = 20, exclude_user_id: Optional[int] = None) -> List[Dict[str, Any]]:
         """
@@ -93,6 +108,12 @@ class UserService:
         Returns:
             User profile with public information, or None if not found
         """
+        # Try cache (cache key includes requesting user for social context)
+        cache_key = f"{CacheKeys.user_profile(user_id)}:req:{requesting_user_id}"
+        cached = self.cache.get(cache_key)
+        if cached is not None:
+            return cached
+
         # Get basic user info
         user = self.user_repo.get_by_id(user_id)
         if not user:
@@ -142,6 +163,9 @@ class UserService:
                 "bio": profile.get("bio"),  # Will add this field later if needed
             })
 
+        # Cache for 15 minutes
+        self.cache.set(cache_key, public_profile, ttl=CacheKeys.TTL_15_MINUTES)
+
         return public_profile
 
     def get_user_stats(self, user_id: int) -> Optional[Dict[str, Any]]:
@@ -154,6 +178,12 @@ class UserService:
         Returns:
             Dictionary of user stats, or None if user not found
         """
+        # Try cache
+        cache_key = CacheKeys.user_stats(user_id)
+        cached = self.cache.get(cache_key)
+        if cached is not None:
+            return cached
+
         user = self.user_repo.get_by_id(user_id)
         if not user:
             return None
@@ -187,7 +217,7 @@ class UserService:
         all_readiness = self.readiness_repo.list_by_user(user_id=user_id)
         total_check_ins = len(all_readiness) if all_readiness else 0
 
-        return {
+        stats = {
             "user_id": user_id,
             "total_sessions": total_sessions,
             "total_hours": total_hours,
@@ -196,3 +226,17 @@ class UserService:
             "total_check_ins": total_check_ins,
             "member_since": user.get("created_at"),
         }
+
+        # Cache for 15 minutes
+        self.cache.set(cache_key, stats, ttl=CacheKeys.TTL_15_MINUTES)
+
+        return stats
+
+    def invalidate_user_cache(self, user_id: int) -> None:
+        """
+        Invalidate all cache for a specific user.
+
+        Args:
+            user_id: ID of user whose cache to invalidate
+        """
+        self.cache.delete_pattern(CacheKeys.pattern_user(user_id))
