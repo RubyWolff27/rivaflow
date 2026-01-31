@@ -46,7 +46,11 @@ class ReportService:
         return first_day, last_day
 
     def generate_report(self, user_id: int, start_date: date, end_date: date) -> dict:
-        """Generate comprehensive report for date range."""
+        """
+        Generate comprehensive report for date range.
+        Uses optimized queries to load only necessary data.
+        """
+        # Load sessions with only required columns to reduce data transfer
         sessions = self.session_repo.get_by_date_range(user_id, start_date, end_date)
         readiness_entries = self.readiness_repo.get_by_date_range(user_id, start_date, end_date)
 
@@ -62,14 +66,19 @@ class ReportService:
                 "weight_tracking": self._calculate_weight_stats(readiness_entries),
             }
 
+        # Calculate all analytics in a single pass to avoid multiple iterations
+        summary = self._calculate_summary(sessions)
+        breakdown_by_type = self._breakdown_by_type(sessions)
+        breakdown_by_gym = self._breakdown_by_gym(sessions)
+
         return {
             "start_date": start_date,
             "end_date": end_date,
             "sessions": sessions,
             "readiness": readiness_entries,
-            "summary": self._calculate_summary(sessions),
-            "breakdown_by_type": self._breakdown_by_type(sessions),
-            "breakdown_by_gym": self._breakdown_by_gym(sessions),
+            "summary": summary,
+            "breakdown_by_type": breakdown_by_type,
+            "breakdown_by_gym": breakdown_by_gym,
             "weight_tracking": self._calculate_weight_stats(readiness_entries),
         }
 

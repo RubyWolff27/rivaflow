@@ -321,6 +321,31 @@ class SessionService:
 
         return session
 
+    def get_session_with_details(self, user_id: int, session_id: int) -> Optional[dict]:
+        """
+        Get a session with all related data eagerly loaded (rolls, techniques, media, comments, likes).
+        This avoids N+1 queries when displaying session detail views.
+        """
+        from rivaflow.db.repositories.activity_like_repo import ActivityLikeRepository
+        from rivaflow.db.repositories.activity_comment_repo import ActivityCommentRepository
+
+        session = self.session_repo.get_by_id(user_id, session_id)
+        if not session:
+            return None
+
+        # Eagerly load all related data
+        session["detailed_rolls"] = self.roll_repo.get_by_session_id(user_id, session_id)
+        session["detailed_techniques"] = self.technique_detail_repo.get_by_session_id(session_id)
+
+        # Load social engagement data
+        session["likes"] = ActivityLikeRepository.get_by_activity("session", session_id)
+        session["comments"] = ActivityCommentRepository.get_by_activity("session", session_id)
+        session["like_count"] = len(session["likes"])
+        session["comment_count"] = len(session["comments"])
+        session["has_liked"] = ActivityLikeRepository.has_user_liked(user_id, "session", session_id)
+
+        return session
+
     def get_partner_stats(self, user_id: int, partner_id: int) -> dict:
         """Get analytics for a specific training partner."""
         return self.roll_repo.get_partner_stats(user_id, partner_id)

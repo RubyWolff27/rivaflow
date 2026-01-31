@@ -146,6 +146,49 @@ class SessionTechniqueRepository:
             return cursor.rowcount
 
     @staticmethod
+    def batch_get_by_session_ids(session_ids: List[int]) -> dict:
+        """
+        Batch load techniques for multiple sessions with movement names.
+        Returns dict mapping session_id to list of techniques.
+        Avoids N+1 queries when loading multiple sessions.
+        """
+        if not session_ids:
+            return {}
+
+        with get_connection() as conn:
+            cursor = conn.cursor()
+            placeholders = ",".join("?" * len(session_ids))
+            cursor.execute(
+                convert_query(f"""
+                    SELECT
+                        st.id,
+                        st.session_id,
+                        st.movement_id,
+                        st.technique_number,
+                        st.notes,
+                        st.media_urls,
+                        st.created_at,
+                        mg.name as movement_name
+                    FROM session_techniques st
+                    LEFT JOIN movements_glossary mg ON st.movement_id = mg.id
+                    WHERE st.session_id IN ({placeholders})
+                    ORDER BY st.session_id, st.technique_number
+                """),
+                session_ids,
+            )
+
+            # Group techniques by session_id
+            techniques_by_session = {}
+            for row in cursor.fetchall():
+                technique = SessionTechniqueRepository._row_to_dict(row)
+                session_id = technique["session_id"]
+                if session_id not in techniques_by_session:
+                    techniques_by_session[session_id] = []
+                techniques_by_session[session_id].append(technique)
+
+            return techniques_by_session
+
+    @staticmethod
     def _row_to_dict(row: sqlite3.Row) -> dict:
         """Convert a database row to a dictionary."""
         if not row:

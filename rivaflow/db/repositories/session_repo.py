@@ -87,18 +87,26 @@ class SessionRepository:
 
             session = SessionRepository._row_to_dict(row)
 
-            # Fetch detailed technique records
-            techniques = SessionTechniqueRepository.get_by_session_id(user_id, session_id)
-
-            # Enrich with movement names from glossary
-            for technique in techniques:
-                cursor.execute(
-                    convert_query("SELECT name FROM movements_glossary WHERE id = ?"),
-                    (technique["movement_id"],)
-                )
-                movement_row = cursor.fetchone()
-                if movement_row:
-                    technique["movement_name"] = movement_row["name"]
+            # Fetch detailed technique records with movement names in a single JOIN query
+            cursor.execute(
+                convert_query("""
+                    SELECT
+                        st.id,
+                        st.session_id,
+                        st.movement_id,
+                        st.technique_number,
+                        st.notes,
+                        st.media_urls,
+                        st.created_at,
+                        mg.name as movement_name
+                    FROM session_techniques st
+                    LEFT JOIN movements_glossary mg ON st.movement_id = mg.id
+                    WHERE st.session_id = ?
+                    ORDER BY st.technique_number
+                """),
+                (session_id,)
+            )
+            techniques = [dict(row) for row in cursor.fetchall()]
 
             session["session_techniques"] = techniques
 

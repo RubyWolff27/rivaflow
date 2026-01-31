@@ -11,6 +11,7 @@ from rivaflow.db.repositories import (
 )
 from rivaflow.db.repositories.checkin_repo import CheckinRepository
 from rivaflow.core.services.privacy_service import PrivacyService
+from rivaflow.core.pagination import paginate_with_cursor
 
 
 class FeedService:
@@ -21,21 +22,23 @@ class FeedService:
         user_id: int,
         limit: int = 50,
         offset: int = 0,
+        cursor: Optional[str] = None,
         days_back: int = 30,
         enrich_social: bool = False,
     ) -> Dict[str, Any]:
         """
-        Get user's own activity feed.
+        Get user's own activity feed with cursor-based pagination.
 
         Args:
             user_id: User ID
             limit: Maximum items to return
-            offset: Pagination offset
+            offset: Pagination offset (deprecated, use cursor instead)
+            cursor: Cursor for pagination (format: "date:type:id")
             days_back: Number of days to look back
             enrich_social: Whether to add social data (likes, comments)
 
         Returns:
-            Feed response with items, total, pagination info
+            Feed response with items, total, pagination info, and next_cursor
         """
         end_date = date.today()
         start_date = end_date - timedelta(days=days_back)
@@ -117,44 +120,37 @@ class FeedService:
                     }
                 )
 
-        # Sort by date descending
-        feed_items.sort(key=lambda x: x["date"], reverse=True)
+        # Sort by date descending, then by type and id for consistent ordering
+        feed_items.sort(key=lambda x: (x["date"], x["type"], x["id"]), reverse=True)
 
         # Enrich with social data if requested
         if enrich_social:
             feed_items = FeedService._enrich_with_social_data(user_id, feed_items)
 
-        # Apply pagination
-        total_items = len(feed_items)
-        paginated_items = feed_items[offset : offset + limit]
-
-        return {
-            "items": paginated_items,
-            "total": total_items,
-            "limit": limit,
-            "offset": offset,
-            "has_more": offset + limit < total_items,
-        }
+        # Apply cursor-based pagination
+        return paginate_with_cursor(feed_items, limit, offset, cursor)
 
     @staticmethod
     def get_friends_feed(
         user_id: int,
         limit: int = 50,
         offset: int = 0,
+        cursor: Optional[str] = None,
         days_back: int = 30,
     ) -> Dict[str, Any]:
         """
-        Get activity feed from users that this user follows (friends feed).
+        Get activity feed from users that this user follows (friends feed) with cursor-based pagination.
         Only shows activities with visibility_level != 'private' and applies privacy redaction.
 
         Args:
             user_id: Current user ID
             limit: Maximum items to return
-            offset: Pagination offset
+            offset: Pagination offset (deprecated, use cursor instead)
+            cursor: Cursor for pagination (format: "date:type:id")
             days_back: Number of days to look back
 
         Returns:
-            Feed response with items, total, pagination info
+            Feed response with items, total, pagination info, and next_cursor
         """
         end_date = date.today()
         start_date = end_date - timedelta(days=days_back)
@@ -171,21 +167,102 @@ class FeedService:
                 "has_more": False,
             }
 
-        session_repo = SessionRepository()
-        readiness_repo = ReadinessRepository()
-        checkin_repo = CheckinRepository()
+        # Batch load activities from all followed users to avoid N+1 queries
+        feed_items = FeedService._batch_load_friend_activities(
+            following_user_ids, start_date, end_date
+        )
+
+        # Sort by date descending
+        feed_items.sort(key=lambda x: x["date"], reverse=True)
+
+        # Enrich with social data (always enabled for friends feed)
+        feed_items = FeedService._enrich_with_social_data(user_id, feed_items)
+
+        # Apply pagination
+        total_items = len(feed_items)
+        paginated_items = feed_items[offset : offset + limit]
+
+        return {
+            "items": paginated_items,
+            "total": total_items,
+            "limit": limit,
+            "offset": offset,
+            "has_more": offset + limit < total_items,
+        }
+
+    @staticmethod
+    def _enrich_with_social_data(user_id: int, feed_items: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+        """
+        Enrich feed items with social data (like count, comment count, has_liked).
+        Uses batch queries to avoid N+1 query problem.
+
+        Args:
+            user_id: Current user ID (to check if they liked)
+            feed_items: List of feed items
+
+        Returns:
+            Enriched feed items with social data
+        """
+        if not feed_items:
+            return feed_items
+
+        # Batch load all like counts, comment counts, and user likes in single queries
+        like_counts = FeedService._batch_get_like_counts(feed_items)
+        comment_counts = FeedService._batch_get_comment_counts(feed_items)
+        user_likes = FeedService._batch_get_user_likes(user_id, feed_items)
+
+        # Enrich items with preloaded data
+        for item in feed_items:
+            activity_key = (item["type"], item["id"])
+            item["like_count"] = like_counts.get(activity_key, 0)
+            item["comment_count"] = comment_counts.get(activity_key, 0)
+            item["has_liked"] = activity_key in user_likes
+
+        return feed_items
+
+    @staticmethod
+    def _batch_load_friend_activities(
+        user_ids: List[int], start_date: date, end_date: date
+    ) -> List[Dict[str, Any]]:
+        """
+        Batch load activities from multiple users in optimized queries.
+
+        Args:
+            user_ids: List of user IDs to load activities from
+            start_date: Start date for activity range
+            end_date: End date for activity range
+
+        Returns:
+            List of feed items from all users
+        """
+        from rivaflow.db.database import get_connection, convert_query
+
+        if not user_ids:
+            return []
 
         feed_items = []
+        placeholders = ",".join("?" * len(user_ids))
 
-        # Get sessions from followed users (only non-private)
-        for followed_user_id in following_user_ids:
-            sessions = session_repo.get_by_date_range(followed_user_id, start_date, end_date)
+        with get_connection() as conn:
+            cursor = conn.cursor()
 
-            # Filter out private sessions and apply privacy redaction
-            for session in sessions:
+            # Batch load sessions from all followed users
+            query = convert_query(f"""
+                SELECT
+                    id, user_id, session_date, class_type, gym_name, location,
+                    duration_mins, intensity, rolls, submissions_for, submissions_against,
+                    partners, techniques, notes, visibility_level, instructor_name
+                FROM sessions
+                WHERE user_id IN ({placeholders})
+                    AND session_date BETWEEN ? AND ?
+                    AND visibility_level != 'private'
+                ORDER BY session_date DESC
+            """)
+            cursor.execute(query, user_ids + [start_date, end_date])
+
+            for row in cursor.fetchall():
+                session = dict(row)
                 visibility = session.get("visibility_level", "private")
-                if visibility == "private":
-                    continue
 
                 # Apply privacy redaction
                 redacted_session = PrivacyService.redact_session(session, visibility)
@@ -216,16 +293,24 @@ class FeedService:
                         "id": session["id"],
                         "data": redacted_session,
                         "summary": summary,
-                        "owner_user_id": followed_user_id,
+                        "owner_user_id": session["user_id"],
                     }
                 )
 
-        # For readiness and rest, we'll assume they're shareable for now
-        # (Can add visibility controls later if needed)
-        for followed_user_id in following_user_ids:
-            readiness_entries = readiness_repo.get_by_date_range(followed_user_id, start_date, end_date)
+            # Batch load readiness entries
+            query = convert_query(f"""
+                SELECT
+                    id, user_id, check_date, sleep, stress, soreness, energy,
+                    composite_score, hotspot_note, weight_kg
+                FROM readiness
+                WHERE user_id IN ({placeholders})
+                    AND check_date BETWEEN ? AND ?
+                ORDER BY check_date DESC
+            """)
+            cursor.execute(query, user_ids + [start_date, end_date])
 
-            for readiness in readiness_entries:
+            for row in cursor.fetchall():
+                readiness = dict(row)
                 readiness_date = readiness["check_date"]
                 if hasattr(readiness_date, "isoformat"):
                     readiness_date = readiness_date.isoformat()
@@ -238,79 +323,179 @@ class FeedService:
                         "id": readiness["id"],
                         "data": readiness,
                         "summary": f"Readiness check-in • Score: {composite}/20",
-                        "owner_user_id": followed_user_id,
+                        "owner_user_id": readiness["user_id"],
                     }
                 )
 
-            checkins = checkin_repo.get_checkins_range(followed_user_id, start_date, end_date)
-            for checkin in checkins:
-                if checkin["checkin_type"] == "rest":
-                    checkin_date = checkin["check_date"]
-                    if hasattr(checkin_date, "isoformat"):
-                        checkin_date = checkin_date.isoformat()
+            # Batch load rest day check-ins
+            query = convert_query(f"""
+                SELECT
+                    id, user_id, check_date, checkin_type, rest_type, rest_note
+                FROM daily_checkins
+                WHERE user_id IN ({placeholders})
+                    AND check_date BETWEEN ? AND ?
+                    AND checkin_type = 'rest'
+                ORDER BY check_date DESC
+            """)
+            cursor.execute(query, user_ids + [start_date, end_date])
 
-                    rest_type_label = {
-                        "recovery": "Active recovery",
-                        "life": "Life got in the way",
-                        "injury": "Injury/rehab",
-                        "travel": "Traveling",
-                    }.get(checkin["rest_type"], checkin["rest_type"])
+            for row in cursor.fetchall():
+                checkin = dict(row)
+                checkin_date = checkin["check_date"]
+                if hasattr(checkin_date, "isoformat"):
+                    checkin_date = checkin_date.isoformat()
 
-                    feed_items.append(
-                        {
-                            "type": "rest",
-                            "date": checkin_date,
-                            "id": checkin["id"],
-                            "data": checkin,
-                            "summary": f"Rest day • {rest_type_label}",
-                            "owner_user_id": followed_user_id,
-                        }
-                    )
+                rest_type_label = {
+                    "recovery": "Active recovery",
+                    "life": "Life got in the way",
+                    "injury": "Injury/rehab",
+                    "travel": "Traveling",
+                }.get(checkin["rest_type"], checkin["rest_type"])
 
-        # Sort by date descending
-        feed_items.sort(key=lambda x: x["date"], reverse=True)
+                feed_items.append(
+                    {
+                        "type": "rest",
+                        "date": checkin_date,
+                        "id": checkin["id"],
+                        "data": checkin,
+                        "summary": f"Rest day • {rest_type_label}",
+                        "owner_user_id": checkin["user_id"],
+                    }
+                )
 
-        # Enrich with social data (always enabled for friends feed)
-        feed_items = FeedService._enrich_with_social_data(user_id, feed_items)
-
-        # Apply pagination
-        total_items = len(feed_items)
-        paginated_items = feed_items[offset : offset + limit]
-
-        return {
-            "items": paginated_items,
-            "total": total_items,
-            "limit": limit,
-            "offset": offset,
-            "has_more": offset + limit < total_items,
-        }
+        return feed_items
 
     @staticmethod
-    def _enrich_with_social_data(user_id: int, feed_items: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    def _batch_get_like_counts(feed_items: List[Dict[str, Any]]) -> Dict[tuple, int]:
         """
-        Enrich feed items with social data (like count, comment count, has_liked).
+        Batch load like counts for all feed items in a single query.
 
         Args:
-            user_id: Current user ID (to check if they liked)
             feed_items: List of feed items
 
         Returns:
-            Enriched feed items with social data
+            Dictionary mapping (activity_type, activity_id) to like count
         """
+        from rivaflow.db.database import get_connection, convert_query
+
+        if not feed_items:
+            return {}
+
+        # Group items by type for efficient querying
+        items_by_type = {}
         for item in feed_items:
             activity_type = item["type"]
-            activity_id = item["id"]
+            if activity_type not in items_by_type:
+                items_by_type[activity_type] = []
+            items_by_type[activity_type].append(item["id"])
 
-            # Add like count
-            item["like_count"] = ActivityLikeRepository.get_like_count(activity_type, activity_id)
+        like_counts = {}
+        with get_connection() as conn:
+            cursor = conn.cursor()
+            for activity_type, activity_ids in items_by_type.items():
+                if not activity_ids:
+                    continue
 
-            # Add comment count
-            item["comment_count"] = ActivityCommentRepository.get_comment_count(activity_type, activity_id)
+                placeholders = ",".join("?" * len(activity_ids))
+                query = convert_query(f"""
+                    SELECT activity_id, COUNT(*) as count
+                    FROM activity_likes
+                    WHERE activity_type = ? AND activity_id IN ({placeholders})
+                    GROUP BY activity_id
+                """)
+                cursor.execute(query, [activity_type] + activity_ids)
+                for row in cursor.fetchall():
+                    like_counts[(activity_type, row["activity_id"])] = row["count"]
 
-            # Add has_liked
-            item["has_liked"] = ActivityLikeRepository.has_user_liked(user_id, activity_type, activity_id)
+        return like_counts
 
-        return feed_items
+    @staticmethod
+    def _batch_get_comment_counts(feed_items: List[Dict[str, Any]]) -> Dict[tuple, int]:
+        """
+        Batch load comment counts for all feed items in a single query.
+
+        Args:
+            feed_items: List of feed items
+
+        Returns:
+            Dictionary mapping (activity_type, activity_id) to comment count
+        """
+        from rivaflow.db.database import get_connection, convert_query
+
+        if not feed_items:
+            return {}
+
+        # Group items by type for efficient querying
+        items_by_type = {}
+        for item in feed_items:
+            activity_type = item["type"]
+            if activity_type not in items_by_type:
+                items_by_type[activity_type] = []
+            items_by_type[activity_type].append(item["id"])
+
+        comment_counts = {}
+        with get_connection() as conn:
+            cursor = conn.cursor()
+            for activity_type, activity_ids in items_by_type.items():
+                if not activity_ids:
+                    continue
+
+                placeholders = ",".join("?" * len(activity_ids))
+                query = convert_query(f"""
+                    SELECT activity_id, COUNT(*) as count
+                    FROM activity_comments
+                    WHERE activity_type = ? AND activity_id IN ({placeholders})
+                    GROUP BY activity_id
+                """)
+                cursor.execute(query, [activity_type] + activity_ids)
+                for row in cursor.fetchall():
+                    comment_counts[(activity_type, row["activity_id"])] = row["count"]
+
+        return comment_counts
+
+    @staticmethod
+    def _batch_get_user_likes(user_id: int, feed_items: List[Dict[str, Any]]) -> set:
+        """
+        Batch load user's likes for all feed items in a single query.
+
+        Args:
+            user_id: User ID to check likes for
+            feed_items: List of feed items
+
+        Returns:
+            Set of (activity_type, activity_id) tuples that the user has liked
+        """
+        from rivaflow.db.database import get_connection, convert_query
+
+        if not feed_items:
+            return set()
+
+        # Group items by type for efficient querying
+        items_by_type = {}
+        for item in feed_items:
+            activity_type = item["type"]
+            if activity_type not in items_by_type:
+                items_by_type[activity_type] = []
+            items_by_type[activity_type].append(item["id"])
+
+        user_likes = set()
+        with get_connection() as conn:
+            cursor = conn.cursor()
+            for activity_type, activity_ids in items_by_type.items():
+                if not activity_ids:
+                    continue
+
+                placeholders = ",".join("?" * len(activity_ids))
+                query = convert_query(f"""
+                    SELECT activity_type, activity_id
+                    FROM activity_likes
+                    WHERE user_id = ? AND activity_type = ? AND activity_id IN ({placeholders})
+                """)
+                cursor.execute(query, [user_id, activity_type] + activity_ids)
+                for row in cursor.fetchall():
+                    user_likes.add((row["activity_type"], row["activity_id"]))
+
+        return user_likes
 
     @staticmethod
     def get_user_public_activities(
