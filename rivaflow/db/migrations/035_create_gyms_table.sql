@@ -34,14 +34,15 @@ ALTER TABLE users ADD COLUMN primary_gym_id INTEGER REFERENCES gyms(id) ON DELET
 CREATE INDEX IF NOT EXISTS idx_users_primary_gym ON users(primary_gym_id);
 
 -- Seed some initial gyms (major BJJ academies in USA)
+-- Use TRUE instead of 1 for PostgreSQL compatibility
 INSERT INTO gyms (name, city, state, verified, added_by_user_id) VALUES
-    ('Gracie Barra', 'Irvine', 'CA', 1, NULL),
-    ('Alliance BJJ', 'San Diego', 'CA', 1, NULL),
-    ('Atos Jiu-Jitsu', 'San Diego', 'CA', 1, NULL),
-    ('10th Planet Jiu Jitsu', 'Los Angeles', 'CA', 1, NULL),
-    ('Marcelo Garcia Academy', 'New York', 'NY', 1, NULL),
-    ('Renzo Gracie Academy', 'New York', 'NY', 1, NULL),
-    ('Team Lloyd Irvin', 'Camp Springs', 'MD', 1, NULL),
-    ('Gracie Humaita', 'Rio de Janeiro', 'Brazil', 1, NULL),
-    ('Roger Gracie Academy', 'London', 'UK', 1, NULL),
-    ('Checkmat', 'Long Beach', 'CA', 1, NULL);
+    ('Gracie Barra', 'Irvine', 'CA', TRUE, NULL),
+    ('Alliance BJJ', 'San Diego', 'CA', TRUE, NULL),
+    ('Atos Jiu-Jitsu', 'San Diego', 'CA', TRUE, NULL),
+    ('10th Planet Jiu Jitsu', 'Los Angeles', 'CA', TRUE, NULL),
+    ('Marcelo Garcia Academy', 'New York', 'NY', TRUE, NULL),
+    ('Renzo Gracie Academy', 'New York', 'NY', TRUE, NULL),
+    ('Team Lloyd Irvin', 'Camp Springs', 'MD', TRUE, NULL),
+    ('Gracie Humaita', 'Rio de Janeiro', 'Brazil', TRUE, NULL),
+    ('Roger Gracie Academy', 'London', 'UK', TRUE, NULL),
+    ('Checkmat', 'Long Beach', 'CA', TRUE, NULL);
