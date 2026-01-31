@@ -367,8 +367,9 @@ export default function Reports() {
               />
             </Card>
           ) : (
-          {/* Summary Metrics */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            <>
+              {/* Summary Metrics */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
               <div className="p-4 rounded-[14px]" style={{ backgroundColor: 'var(--surfaceElev)', border: '1px solid var(--border)' }}>
                 <div className="flex items-center gap-2 mb-3">
                   <Users className="w-4 h-4" style={{ color: 'var(--muted)' }} />
@@ -518,8 +519,9 @@ export default function Reports() {
               />
             </Card>
           ) : (
-            {/* Summary Metrics */}
-            <div className="grid grid-cols-2 gap-3">
+            <>
+              {/* Summary Metrics */}
+              <div className="grid grid-cols-2 gap-3">
               <div className="p-4 rounded-[14px]" style={{ backgroundColor: 'var(--surfaceElev)', border: '1px solid var(--border)' }}>
                 <div className="flex items-center gap-2 mb-3">
                   <Book className="w-4 h-4" style={{ color: 'var(--muted)' }} />
@@ -658,8 +660,9 @@ export default function Reports() {
                 )}
               </div>
             </Card>
-            </>
           )}
+          </>
+        )}
         </div>
       )}
 
