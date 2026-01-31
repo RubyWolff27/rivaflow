@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { Home, Plus, BarChart3, Activity, Book, BookOpen, Video, User, Users, Menu, X, LogOut, ListOrdered, MessageCircle } from 'lucide-react';
+import { Home, Plus, BarChart3, Book, User, Users, Menu, X, LogOut } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 
 export default function Layout({ children }: { children: React.ReactNode }) {
@@ -14,18 +14,13 @@ export default function Layout({ children }: { children: React.ReactNode }) {
     navigate('/login');
   };
 
+  // Primary navigation - most important features only
   const navigation = [
     { name: 'Dashboard', href: '/', icon: Home },
-    { name: 'Log Session', href: '/log', icon: Plus },
-    { name: 'Feed', href: '/feed', icon: ListOrdered },
-    { name: 'Chat', href: '/chat', icon: MessageCircle },
-    { name: 'Reports', href: '/reports', icon: BarChart3 },
-    { name: 'Readiness', href: '/readiness', icon: Activity },
+    { name: 'Log', href: '/log', icon: Plus },
+    { name: 'Analytics', href: '/reports', icon: BarChart3 },
     { name: 'Techniques', href: '/techniques', icon: Book },
-    { name: 'Glossary', href: '/glossary', icon: BookOpen },
     { name: 'Friends', href: '/friends', icon: Users },
-    { name: 'Videos', href: '/videos', icon: Video },
-    { name: 'Profile', href: '/profile', icon: User },
   ];
 
   return (
@@ -35,13 +30,17 @@ export default function Layout({ children }: { children: React.ReactNode }) {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center">
-              <Link to="/" className="text-xl font-bold text-gray-900 dark:text-white hover:opacity-80 transition-opacity">
+              <Link
+                to="/"
+                className="text-xl font-bold hover:opacity-80 transition-opacity"
+                style={{ color: 'var(--text)' }}
+              >
                 RIVAFLOW
               </Link>
             </div>
 
             {/* Desktop Navigation */}
-            <nav className="hidden md:flex items-center space-x-1">
+            <nav className="hidden md:flex items-center space-x-2">
               {navigation.map((item) => {
                 const isActive = location.pathname === item.href;
                 const Icon = item.icon;
@@ -49,11 +48,11 @@ export default function Layout({ children }: { children: React.ReactNode }) {
                   <Link
                     key={item.name}
                     to={item.href}
-                    className={`px-3 py-2 rounded-md text-sm font-medium flex items-center gap-2 transition-colors ${
-                      isActive
-                        ? 'bg-primary-100 dark:bg-primary-900 text-primary-700 dark:text-primary-300'
-                        : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
-                    }`}
+                    className="px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 transition-colors"
+                    style={{
+                      color: isActive ? 'var(--accent)' : 'var(--muted)',
+                      backgroundColor: isActive ? 'var(--surfaceElev)' : 'transparent',
+                    }}
                   >
                     <Icon className="w-4 h-4" />
                     {item.name}
@@ -61,25 +60,31 @@ export default function Layout({ children }: { children: React.ReactNode }) {
                 );
               })}
 
-              {/* User info and logout */}
-              <div className="ml-4 pl-4 border-l border-gray-200 dark:border-gray-700 flex items-center gap-3">
-                <span className="text-sm text-gray-700 dark:text-gray-300">
-                  {user?.first_name} {user?.last_name}
-                </span>
+              {/* User menu */}
+              <div className="ml-4 pl-4 flex items-center gap-2" style={{ borderLeft: '1px solid var(--border)' }}>
+                <Link
+                  to="/profile"
+                  className="p-2 rounded-lg transition-colors"
+                  style={{ color: 'var(--muted)' }}
+                  title={`${user?.first_name} ${user?.last_name}`}
+                >
+                  <User className="w-5 h-5" />
+                </Link>
                 <button
                   onClick={handleLogout}
-                  className="px-3 py-2 rounded-md text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2 transition-colors"
+                  className="p-2 rounded-lg transition-colors"
+                  style={{ color: 'var(--muted)' }}
                   title="Logout"
                 >
-                  <LogOut className="w-4 h-4" />
-                  Logout
+                  <LogOut className="w-5 h-5" />
                 </button>
               </div>
             </nav>
 
             {/* Mobile menu button */}
             <button
-              className="md:hidden p-2 rounded-md text-gray-700 dark:text-gray-300"
+              className="md:hidden p-2 rounded-lg"
+              style={{ color: 'var(--text)' }}
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
             >
               {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
@@ -89,7 +94,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
 
         {/* Mobile Navigation */}
         {mobileMenuOpen && (
-          <div className="md:hidden border-t border-gray-200 dark:border-gray-700">
+          <div className="md:hidden" style={{ borderTop: '1px solid var(--border)' }}>
             <div className="px-2 pt-2 pb-3 space-y-1">
               {navigation.map((item) => {
                 const isActive = location.pathname === item.href;
@@ -99,11 +104,11 @@ export default function Layout({ children }: { children: React.ReactNode }) {
                     key={item.name}
                     to={item.href}
                     onClick={() => setMobileMenuOpen(false)}
-                    className={`flex items-center gap-3 px-3 py-2 rounded-md text-base font-medium ${
-                      isActive
-                        ? 'bg-primary-100 dark:bg-primary-900 text-primary-700 dark:text-primary-300'
-                        : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
-                    }`}
+                    className="flex items-center gap-3 px-3 py-2 rounded-lg text-base font-medium"
+                    style={{
+                      color: isActive ? 'var(--accent)' : 'var(--text)',
+                      backgroundColor: isActive ? 'var(--surfaceElev)' : 'transparent',
+                    }}
                   >
                     <Icon className="w-5 h-5" />
                     {item.name}
@@ -111,17 +116,24 @@ export default function Layout({ children }: { children: React.ReactNode }) {
                 );
               })}
 
-              {/* User info and logout for mobile */}
-              <div className="pt-3 mt-3 border-t border-gray-200 dark:border-gray-700">
-                <div className="px-3 py-2 text-sm text-gray-600 dark:text-gray-400">
-                  Logged in as: {user?.first_name} {user?.last_name}
-                </div>
+              {/* User section for mobile */}
+              <div className="pt-3 mt-3" style={{ borderTop: '1px solid var(--border)' }}>
+                <Link
+                  to="/profile"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="flex items-center gap-3 px-3 py-2 rounded-lg text-base font-medium"
+                  style={{ color: 'var(--text)' }}
+                >
+                  <User className="w-5 h-5" />
+                  Profile
+                </Link>
                 <button
                   onClick={() => {
                     setMobileMenuOpen(false);
                     handleLogout();
                   }}
-                  className="w-full flex items-center gap-3 px-3 py-2 rounded-md text-base font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
+                  className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-base font-medium"
+                  style={{ color: 'var(--text)' }}
                 >
                   <LogOut className="w-5 h-5" />
                   Logout
@@ -133,7 +145,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
       </header>
 
       {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <main className="max-w-4xl mx-auto px-4 sm:px-6 py-8">
         {children}
       </main>
     </div>

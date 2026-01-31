@@ -92,63 +92,59 @@ export default function Dashboard() {
           <p className="text-xs text-[var(--muted)] mt-1">Last 7 days</p>
         </div>
 
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-2 gap-3">
           {/* Sessions */}
-          <div className="p-3 bg-[var(--surfaceElev)] rounded-[14px] border border-[var(--border)]">
-            <div className="flex items-center gap-2 mb-2">
-              <Activity className="w-4 h-4 text-[var(--muted)]" />
-              <span className="text-xs font-medium text-[var(--muted)] uppercase tracking-wide">Sessions</span>
+          <div className="p-4 rounded-[14px]" style={{ backgroundColor: 'var(--surfaceElev)', border: '1px solid var(--border)' }}>
+            <div className="flex items-center gap-2 mb-3">
+              <Activity className="w-4 h-4" style={{ color: 'var(--muted)' }} />
+              <span className="text-xs font-medium uppercase tracking-wide" style={{ color: 'var(--muted)' }}>Sessions</span>
             </div>
-            <p className="text-2xl font-semibold text-[var(--text)]">{stats.sessions}</p>
+            <p className="text-2xl font-semibold" style={{ color: 'var(--text)' }}>{stats.sessions}</p>
           </div>
 
           {/* Avg Intensity */}
-          <div className="p-3 bg-[var(--surfaceElev)] rounded-[14px] border border-[var(--border)]">
-            <div className="flex items-center gap-2 mb-2">
-              <TrendingUp className="w-4 h-4 text-[var(--muted)]" />
-              <span className="text-xs font-medium text-[var(--muted)] uppercase tracking-wide">Intensity</span>
+          <div className="p-4 rounded-[14px]" style={{ backgroundColor: 'var(--surfaceElev)', border: '1px solid var(--border)' }}>
+            <div className="flex items-center gap-2 mb-3">
+              <TrendingUp className="w-4 h-4" style={{ color: 'var(--muted)' }} />
+              <span className="text-xs font-medium uppercase tracking-wide" style={{ color: 'var(--muted)' }}>Intensity</span>
             </div>
-            <p className="text-2xl font-semibold text-[var(--text)]">{stats.avgIntensity.toFixed(1)}/5</p>
+            <p className="text-2xl font-semibold" style={{ color: 'var(--text)' }}>{stats.avgIntensity.toFixed(1)}/5</p>
           </div>
 
           {/* Total Rolls */}
-          <div className="p-3 bg-[var(--surfaceElev)] rounded-[14px] border border-[var(--border)]">
-            <div className="flex items-center gap-2 mb-2">
-              <Target className="w-4 h-4 text-[var(--muted)]" />
-              <span className="text-xs font-medium text-[var(--muted)] uppercase tracking-wide">Rolls</span>
+          <div className="p-4 rounded-[14px]" style={{ backgroundColor: 'var(--surfaceElev)', border: '1px solid var(--border)' }}>
+            <div className="flex items-center gap-2 mb-3">
+              <Target className="w-4 h-4" style={{ color: 'var(--muted)' }} />
+              <span className="text-xs font-medium uppercase tracking-wide" style={{ color: 'var(--muted)' }}>Rolls</span>
             </div>
-            <p className="text-2xl font-semibold text-[var(--text)]">{stats.totalRolls}</p>
+            <p className="text-2xl font-semibold" style={{ color: 'var(--text)' }}>{stats.totalRolls}</p>
           </div>
 
           {/* Current Streak */}
-          <div className="p-3 bg-[var(--surfaceElev)] rounded-[14px] border border-[var(--border)]">
-            <div className="flex items-center gap-2 mb-2">
-              <Calendar className="w-4 h-4 text-[var(--muted)]" />
-              <span className="text-xs font-medium text-[var(--muted)] uppercase tracking-wide">Streak</span>
+          <div className="p-4 rounded-[14px]" style={{ backgroundColor: 'var(--surfaceElev)', border: '1px solid var(--border)' }}>
+            <div className="flex items-center gap-2 mb-3">
+              <Calendar className="w-4 h-4" style={{ color: 'var(--muted)' }} />
+              <span className="text-xs font-medium uppercase tracking-wide" style={{ color: 'var(--muted)' }}>Streak</span>
             </div>
-            <p className="text-2xl font-semibold text-[var(--text)]">{stats.currentStreak} days</p>
+            <p className="text-2xl font-semibold" style={{ color: 'var(--text)' }}>{stats.currentStreak} days</p>
           </div>
         </div>
       </Card>
 
-      {/* Coach Strip - Readiness/Goals Status */}
-      <Card>
-        <div className="flex items-center justify-between">
-          <div className="flex-1">
-            <h3 className="text-sm font-semibold text-[var(--text)] mb-1">Today's Check-in</h3>
-            {hasCheckedInToday ? (
-              <p className="text-sm text-[var(--muted)]">You're checked in for today. Keep it up!</p>
-            ) : (
-              <p className="text-sm text-[var(--muted)]">Not checked in yet. How are you feeling today?</p>
-            )}
-          </div>
-          {!hasCheckedInToday && (
+      {/* Readiness Check-in */}
+      {!hasCheckedInToday && (
+        <Card>
+          <div className="flex items-center justify-between">
+            <div className="flex-1">
+              <h3 className="text-sm font-semibold mb-1" style={{ color: 'var(--text)' }}>Today's Check-in</h3>
+              <p className="text-sm" style={{ color: 'var(--muted)' }}>How are you feeling today?</p>
+            </div>
             <SecondaryButton onClick={() => navigate('/readiness')} className="text-sm">
               Check In
             </SecondaryButton>
-          )}
-        </div>
-      </Card>
+          </div>
+        </Card>
+      )}
 
       {/* Weekly Goals Progress */}
       {weeklyGoals && (
@@ -169,11 +165,11 @@ export default function Dashboard() {
                   {weeklyGoals.actual?.sessions || 0} / {weeklyGoals.targets?.sessions || 3}
                 </span>
               </div>
-              <div className="w-full bg-[var(--surfaceElev)] rounded-full h-2">
+              <div className="w-full rounded-full h-2" style={{ backgroundColor: 'var(--border)' }}>
                 <div
                   className="h-2 rounded-full transition-all"
                   style={{
-                    width: `${weeklyGoals.progress?.sessions_pct || 0}%`,
+                    width: `${Math.min(100, weeklyGoals.progress?.sessions_pct || 0)}%`,
                     backgroundColor: 'var(--accent)',
                   }}
                 />
@@ -188,11 +184,11 @@ export default function Dashboard() {
                   {weeklyGoals.actual?.hours || 0} / {weeklyGoals.targets?.hours || 5}
                 </span>
               </div>
-              <div className="w-full bg-[var(--surfaceElev)] rounded-full h-2">
+              <div className="w-full rounded-full h-2" style={{ backgroundColor: 'var(--border)' }}>
                 <div
                   className="h-2 rounded-full transition-all"
                   style={{
-                    width: `${weeklyGoals.progress?.hours_pct || 0}%`,
+                    width: `${Math.min(100, weeklyGoals.progress?.hours_pct || 0)}%`,
                     backgroundColor: 'var(--accent)',
                   }}
                 />
@@ -216,21 +212,31 @@ export default function Dashboard() {
             No sessions logged yet. Start training!
           </p>
         ) : (
-          <div className="space-y-3">
+          <div className="space-y-2">
             {recentSessions.map((session) => (
               <Link
                 key={session.id}
                 to={`/sessions/${session.id}`}
-                className="block p-3 bg-[var(--surfaceElev)] rounded-[14px] border border-[var(--border)] hover:border-[var(--accent)] transition-colors"
+                className="block p-4 rounded-[14px] transition-all"
+                style={{
+                  backgroundColor: 'var(--surfaceElev)',
+                  border: '1px solid var(--border)',
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.borderColor = 'var(--accent)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.borderColor = 'var(--border)';
+                }}
               >
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-sm font-medium text-[var(--text)]">{session.gym_name}</span>
-                  <span className="text-xs text-[var(--muted)]">{session.session_date}</span>
+                <div className="flex items-center justify-between mb-3">
+                  <span className="text-sm font-medium" style={{ color: 'var(--text)' }}>{session.gym_name}</span>
+                  <span className="text-xs" style={{ color: 'var(--muted)' }}>{session.session_date}</span>
                 </div>
                 <div className="flex items-center gap-2 flex-wrap">
                   <Chip>{session.class_type}</Chip>
                   <Chip>{session.duration_mins}m</Chip>
-                  <Chip>Intensity {session.intensity}/5</Chip>
+                  <Chip>{session.intensity}/5</Chip>
                   {session.rolls > 0 && <Chip>{session.rolls} rolls</Chip>}
                 </div>
               </Link>
