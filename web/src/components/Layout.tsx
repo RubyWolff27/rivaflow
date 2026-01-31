@@ -1,13 +1,15 @@
 import { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { Home, Plus, BarChart3, Book, User, Users, Menu, X, LogOut } from 'lucide-react';
+import { Home, Plus, BarChart3, Book, User, Users, Menu, X, LogOut, ListOrdered } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
+import QuickLog from './QuickLog';
 
 export default function Layout({ children }: { children: React.ReactNode }) {
   const location = useLocation();
   const navigate = useNavigate();
   const { user, logout } = useAuth();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [quickLogOpen, setQuickLogOpen] = useState(false);
 
   const handleLogout = () => {
     logout();
@@ -60,8 +62,31 @@ export default function Layout({ children }: { children: React.ReactNode }) {
                 );
               })}
 
-              {/* User menu */}
+              {/* Quick Actions */}
               <div className="ml-4 pl-4 flex items-center gap-2" style={{ borderLeft: '1px solid var(--border)' }}>
+                <button
+                  onClick={() => setQuickLogOpen(true)}
+                  className="px-3 py-2 rounded-lg text-sm font-medium flex items-center gap-2 transition-colors"
+                  style={{
+                    backgroundColor: 'var(--accent)',
+                    color: '#FFFFFF',
+                  }}
+                >
+                  <Plus className="w-4 h-4" />
+                  Quick Log
+                </button>
+                <Link
+                  to="/feed"
+                  className="p-2 rounded-lg transition-colors"
+                  style={{ color: location.pathname === '/feed' ? 'var(--accent)' : 'var(--muted)' }}
+                  title="Feed"
+                >
+                  <ListOrdered className="w-5 h-5" />
+                </Link>
+              </div>
+
+              {/* User menu */}
+              <div className="ml-2 pl-4 flex items-center gap-2" style={{ borderLeft: '1px solid var(--border)' }}>
                 <Link
                   to="/profile"
                   className="p-2 rounded-lg transition-colors"
@@ -116,6 +141,36 @@ export default function Layout({ children }: { children: React.ReactNode }) {
                 );
               })}
 
+              {/* Quick Actions for mobile */}
+              <div className="pt-3 mt-3" style={{ borderTop: '1px solid var(--border)' }}>
+                <button
+                  onClick={() => {
+                    setMobileMenuOpen(false);
+                    setQuickLogOpen(true);
+                  }}
+                  className="w-full flex items-center gap-3 px-3 py-3 rounded-lg text-base font-medium mb-2"
+                  style={{
+                    backgroundColor: 'var(--accent)',
+                    color: '#FFFFFF',
+                  }}
+                >
+                  <Plus className="w-5 h-5" />
+                  Quick Log
+                </button>
+                <Link
+                  to="/feed"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="flex items-center gap-3 px-3 py-2 rounded-lg text-base font-medium"
+                  style={{
+                    color: location.pathname === '/feed' ? 'var(--accent)' : 'var(--text)',
+                    backgroundColor: location.pathname === '/feed' ? 'var(--surfaceElev)' : 'transparent',
+                  }}
+                >
+                  <ListOrdered className="w-5 h-5" />
+                  Feed
+                </Link>
+              </div>
+
               {/* User section for mobile */}
               <div className="pt-3 mt-3" style={{ borderTop: '1px solid var(--border)' }}>
                 <Link
@@ -148,6 +203,18 @@ export default function Layout({ children }: { children: React.ReactNode }) {
       <main className="max-w-4xl mx-auto px-4 sm:px-6 py-8">
         {children}
       </main>
+
+      {/* Quick Log Modal */}
+      <QuickLog
+        isOpen={quickLogOpen}
+        onClose={() => setQuickLogOpen(false)}
+        onSuccess={() => {
+          // Refresh if on dashboard
+          if (location.pathname === '/') {
+            window.location.reload();
+          }
+        }}
+      />
     </div>
   );
 }
