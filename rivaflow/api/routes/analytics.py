@@ -1,11 +1,15 @@
 """Analytics and dashboard endpoints."""
-from fastapi import APIRouter, Query, Depends
+from fastapi import APIRouter, Query, Depends, HTTPException
 from datetime import date
 from typing import Optional
+import traceback
+import logging
 
 from rivaflow.core.services.analytics_service import AnalyticsService
 from rivaflow.core.dependencies import get_current_user
 from rivaflow.core.exceptions import ValidationError, NotFoundError
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter()
 service = AnalyticsService()
@@ -18,7 +22,12 @@ async def get_performance_overview(
     current_user: dict = Depends(get_current_user),
 ):
     """Get performance overview dashboard data."""
-    return service.get_performance_overview(user_id=current_user["id"], start_date=start_date, end_date=end_date)
+    try:
+        return service.get_performance_overview(user_id=current_user["id"], start_date=start_date, end_date=end_date)
+    except Exception as e:
+        logger.error(f"Error in get_performance_overview: {type(e).__name__}: {str(e)}")
+        logger.error(traceback.format_exc())
+        raise HTTPException(status_code=500, detail=f"Analytics error: {type(e).__name__}: {str(e)}")
 
 
 @router.get("/partners/stats")
@@ -28,7 +37,12 @@ async def get_partner_analytics(
     current_user: dict = Depends(get_current_user),
 ):
     """Get partner analytics dashboard data."""
-    return service.get_partner_analytics(user_id=current_user["id"], start_date=start_date, end_date=end_date)
+    try:
+        return service.get_partner_analytics(user_id=current_user["id"], start_date=start_date, end_date=end_date)
+    except Exception as e:
+        logger.error(f"Error in get_partner_analytics: {type(e).__name__}: {str(e)}")
+        logger.error(traceback.format_exc())
+        raise HTTPException(status_code=500, detail=f"Analytics error: {type(e).__name__}: {str(e)}")
 
 
 @router.get("/partners/head-to-head")
