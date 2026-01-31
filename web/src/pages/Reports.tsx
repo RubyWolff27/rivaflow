@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react';
 import { analyticsApi } from '../api/client';
 import { TrendingUp, Users, Activity, Target, Lightbulb } from 'lucide-react';
 import { Card, Chip, MetricTile } from '../components/ui';
-import { generateSeries } from '../utils/sparkline';
 
 export default function Reports() {
   const [activeTab, setActiveTab] = useState('overview');
@@ -55,22 +54,27 @@ export default function Reports() {
     { id: 'techniques', name: 'Techniques', icon: Target },
   ];
 
-  // Generate placeholder series data
-  const sessionsValue = performanceData?.total_sessions || 0;
-  const intensityValue = performanceData?.avg_intensity?.toFixed(1) || '0.0';
-  const rollsValue = performanceData?.total_rolls || 0;
-  const submissionsValue = performanceData?.submissions_for || 0;
+  // Extract real data from API response
+  const summary = performanceData?.summary || {};
+  const timeseries = performanceData?.daily_timeseries || {};
+  const deltas = performanceData?.deltas || {};
 
-  const sessionsSeries = generateSeries(hasUserChangedRange ? 14 : 7, 'sessions');
-  const intensitySeries = generateSeries(hasUserChangedRange ? 14 : 7, 'intensity');
-  const rollsSeries = generateSeries(hasUserChangedRange ? 14 : 7, 'rolls');
-  const submissionsSeries = generateSeries(hasUserChangedRange ? 14 : 7, 'submissions');
+  const sessionsValue = summary.total_sessions || 0;
+  const intensityValue = summary.avg_intensity?.toFixed(1) || '0.0';
+  const rollsValue = summary.total_rolls || 0;
+  const submissionsValue = summary.total_submissions_for || 0;
 
-  // Calculate deltas (placeholder logic)
-  const sessionsDelta = 2;
-  const intensityDelta = 0.3;
-  const rollsDelta = -1;
-  const submissionsDelta = 3;
+  // Use real time series data from API
+  const sessionsSeries = timeseries.sessions || [];
+  const intensitySeries = timeseries.intensity || [];
+  const rollsSeries = timeseries.rolls || [];
+  const submissionsSeries = timeseries.submissions || [];
+
+  // Use real deltas from API
+  const sessionsDelta = deltas.sessions || 0;
+  const intensityDelta = deltas.intensity || 0;
+  const rollsDelta = deltas.rolls || 0;
+  const submissionsDelta = deltas.submissions || 0;
 
   // Quick Insights logic
   const getQuickInsights = () => {

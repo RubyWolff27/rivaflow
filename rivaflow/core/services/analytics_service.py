@@ -117,22 +117,99 @@ class AnalyticsService:
         gradings = self.grading_repo.list_all(user_id)
         belt_performance = self._calculate_performance_by_belt(sessions, gradings)
 
+        # Daily time series for sparklines
+        daily_timeseries = self._calculate_daily_timeseries(sessions, start_date, end_date)
+
+        # Previous period comparison for deltas
+        period_length = (end_date - start_date).days
+        prev_start = start_date - timedelta(days=period_length)
+        prev_end = start_date - timedelta(days=1)
+        prev_sessions = self.session_repo.get_by_date_range(user_id, prev_start, prev_end)
+        prev_summary = self._calculate_period_summary(prev_sessions)
+        current_summary = self._calculate_period_summary(sessions)
+
+        # Calculate deltas
+        deltas = {
+            "sessions": current_summary["total_sessions"] - prev_summary["total_sessions"],
+            "intensity": round(current_summary["avg_intensity"] - prev_summary["avg_intensity"], 1),
+            "rolls": current_summary["total_rolls"] - prev_summary["total_rolls"],
+            "submissions": current_summary["total_submissions_for"] - prev_summary["total_submissions_for"],
+        }
+
         return {
             "submission_success_over_time": [
                 {"month": k, **v} for k, v in sorted(monthly_stats.items())
             ],
             "training_volume_calendar": volume_calendar,
+            "daily_timeseries": daily_timeseries,
             "top_submissions_for": top_subs_for_list,
             "top_submissions_against": top_subs_against_list,
             "performance_by_belt": belt_performance,
-            "summary": {
-                "total_sessions": len(sessions),
-                "total_submissions_for": sum(s["submissions_for"] for s in sessions),
-                "total_submissions_against": sum(s["submissions_against"] for s in sessions),
-                "avg_intensity": round(
-                    statistics.mean([s["intensity"] for s in sessions]) if sessions else 0, 1
-                ),
-            },
+            "summary": current_summary,
+            "deltas": deltas,
+        }
+
+    def _calculate_period_summary(self, sessions: List[Dict]) -> Dict[str, Any]:
+        """Calculate summary metrics for a period."""
+        return {
+            "total_sessions": len(sessions),
+            "total_submissions_for": sum(s["submissions_for"] for s in sessions),
+            "total_submissions_against": sum(s["submissions_against"] for s in sessions),
+            "total_rolls": sum(s.get("rolls", 0) for s in sessions),
+            "avg_intensity": round(
+                statistics.mean([s["intensity"] for s in sessions]) if sessions else 0, 1
+            ),
+        }
+
+    def _calculate_daily_timeseries(
+        self, sessions: List[Dict], start_date: date, end_date: date
+    ) -> Dict[str, List[float]]:
+        """Calculate daily aggregated time series data for sparklines."""
+        # Create a dict for each day in the range
+        daily_data = defaultdict(lambda: {
+            "sessions": 0,
+            "total_intensity": 0,
+            "rolls": 0,
+            "submissions": 0,
+        })
+
+        # Aggregate sessions by day
+        for session in sessions:
+            day_key = session["session_date"].isoformat()
+            daily_data[day_key]["sessions"] += 1
+            daily_data[day_key]["total_intensity"] += session["intensity"]
+            daily_data[day_key]["rolls"] += session.get("rolls", 0)
+            daily_data[day_key]["submissions"] += session["submissions_for"]
+
+        # Build ordered time series arrays
+        current_day = start_date
+        sessions_series = []
+        intensity_series = []
+        rolls_series = []
+        submissions_series = []
+
+        while current_day <= end_date:
+            day_key = current_day.isoformat()
+            data = daily_data[day_key]
+
+            sessions_series.append(data["sessions"])
+
+            # Avg intensity for the day (if any sessions)
+            if data["sessions"] > 0:
+                intensity_series.append(round(data["total_intensity"] / data["sessions"], 1))
+            else:
+                intensity_series.append(0)
+
+            rolls_series.append(data["rolls"])
+            submissions_series.append(data["submissions"])
+
+            current_day += timedelta(days=1)
+
+        return {
+            "sessions": sessions_series,
+            "intensity": intensity_series,
+            "rolls": rolls_series,
+            "submissions": submissions_series,
         }
 
     def _calculate_performance_by_belt(
