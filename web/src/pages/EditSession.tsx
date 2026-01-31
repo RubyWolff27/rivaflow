@@ -874,8 +874,13 @@ export default function EditSession() {
                             type="button"
                             onClick={() => {
                               console.log('Movement clicked:', movement.name, movement.id);
-                              handleTechniqueChange(index, 'movement_id', movement.id);
-                              handleTechniqueChange(index, 'movement_name', movement.name);
+                              const updated = [...techniques];
+                              updated[index] = {
+                                ...updated[index],
+                                movement_id: movement.id,
+                                movement_name: movement.name
+                              };
+                              setTechniques(updated);
                             }}
                             className={`w-full text-left px-2 py-1 rounded text-sm ${
                               tech.movement_id === movement.id
