@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { sessionsApi, readinessApi, profileApi, friendsApi, glossaryApi } from '../api/client';
 import type { Friend, Movement, MediaUrl } from '../types';
 import { CheckCircle, ArrowRight, ArrowLeft, Plus, X, ToggleLeft, ToggleRight, Search, Camera } from 'lucide-react';
+import GymSelector from '../components/GymSelector';
 
 const CLASS_TYPES = ['gi', 'no-gi', 'wrestling', 'judo', 'open-mat', 's&c', 'mobility', 'yoga', 'rehab', 'physio', 'drilling', 'cardio'];
 const SPARRING_TYPES = ['gi', 'no-gi', 'wrestling', 'judo', 'open-mat'];
@@ -31,7 +32,6 @@ export default function LogSession() {
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const [autocomplete, setAutocomplete] = useState<any>({});
-  const [defaultGym, setDefaultGym] = useState('');
 
   // New: Contacts and glossary data
   const [instructors, setInstructors] = useState<Friend[]>([]);
@@ -106,7 +106,6 @@ export default function LogSession() {
       // Auto-populate default gym and coach from profile
       const updates: any = {};
       if (profileRes.data?.default_gym) {
-        setDefaultGym(profileRes.data.default_gym);
         updates.gym_name = profileRes.data.default_gym;
       }
       if (profileRes.data?.current_instructor_id) {
@@ -504,50 +503,72 @@ export default function LogSession() {
             </select>
           </div>
 
-          {/* Instructor */}
-          <div>
-            <label className="label">Instructor (optional)</label>
-            <select
-              className="input"
-              value={sessionData.instructor_id || ''}
-              onChange={(e) => setSessionData({
-                ...sessionData,
-                instructor_id: e.target.value ? parseInt(e.target.value) : null
-              })}
-            >
-              <option value="">Select instructor...</option>
-              {instructors.map(instructor => (
-                <option key={instructor.id} value={instructor.id}>
-                  {instructor.name ?? 'Unknown'}
-                  {instructor.belt_rank && ` (${instructor.belt_rank} belt)`}
-                  {instructor.instructor_certification && ` - ${instructor.instructor_certification}`}
-                </option>
-              ))}
-            </select>
-            <p className="text-xs text-gray-500 mt-1">
-              Don't see your instructor? <a href="/friends" className="text-primary-600 hover:underline">Add them in Friends</a>
-            </p>
-          </div>
-
           {/* Gym Name */}
           <div>
             <label className="label">Gym Name</label>
-            <input
-              type="text"
-              className="input"
+            <GymSelector
               value={sessionData.gym_name}
-              onChange={(e) => setSessionData({ ...sessionData, gym_name: e.target.value })}
-              placeholder={defaultGym || "e.g., Gracie Barra Sydney"}
-              list="gyms"
-              required
+              onChange={(gymName, _isCustom) => {
+                setSessionData({ ...sessionData, gym_name: gymName });
+              }}
+              onGymSelected={(gym) => {
+                // Auto-populate instructor with gym's head coach if available
+                if (gym.head_coach) {
+                  setSessionData(prev => ({
+                    ...prev,
+                    gym_name: [gym.name, gym.city, gym.state, gym.country].filter(Boolean).join(', '),
+                    instructor_name: gym.head_coach ?? '',
+                    instructor_id: null, // Clear instructor_id since head coach is free text
+                  }));
+                }
+              }}
             />
-            {autocomplete.gyms && (
-              <datalist id="gyms">
-                {autocomplete.gyms.map((gym: string) => (
-                  <option key={gym} value={gym} />
+            <p className="text-xs text-gray-500 mt-1">
+              Select from verified gyms or add a new one. Head coach will auto-populate if available.
+            </p>
+          </div>
+
+          {/* Instructor */}
+          <div>
+            <label className="label">Instructor (optional)</label>
+            <div className="space-y-2">
+              <select
+                className="input"
+                value={sessionData.instructor_id || ''}
+                onChange={(e) => {
+                  const instructorId = e.target.value ? parseInt(e.target.value) : null;
+                  const instructor = instructors.find(i => i.id === instructorId);
+                  setSessionData({
+                    ...sessionData,
+                    instructor_id: instructorId,
+                    instructor_name: instructor?.name || '',
+                  });
+                }}
+              >
+                <option value="">Select from your instructors...</option>
+                {instructors.map(instructor => (
+                  <option key={instructor.id} value={instructor.id}>
+                    {instructor.name ?? 'Unknown'}
+                    {instructor.belt_rank && ` (${instructor.belt_rank} belt)`}
+                    {instructor.instructor_certification && ` - ${instructor.instructor_certification}`}
+                  </option>
                 ))}
-              </datalist>
-            )}
+              </select>
+              <input
+                type="text"
+                className="input"
+                value={sessionData.instructor_name}
+                onChange={(e) => setSessionData({
+                  ...sessionData,
+                  instructor_name: e.target.value,
+                  instructor_id: null, // Clear ID when typing custom name
+                })}
+                placeholder="Or enter instructor name..."
+              />
+            </div>
+            <p className="text-xs text-gray-500 mt-1">
+              Select from your list or enter a name. <a href="/friends" className="text-primary-600 hover:underline">Manage instructors in Friends</a>
+            </p>
           </div>
 
           {/* Location */}

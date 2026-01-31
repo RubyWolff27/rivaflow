@@ -8,6 +8,7 @@ interface Gym {
   city?: string;
   state?: string;
   country: string;
+  head_coach?: string;
   verified: boolean;
 }
 
@@ -15,9 +16,10 @@ interface GymSelectorProps {
   value: string;
   onChange: (value: string, isCustom: boolean) => void;
   onCreateGym?: (gymName: string) => void;
+  onGymSelected?: (gym: Gym) => void;
 }
 
-export default function GymSelector({ value, onChange, onCreateGym }: GymSelectorProps) {
+export default function GymSelector({ value, onChange, onCreateGym, onGymSelected }: GymSelectorProps) {
   const [gyms, setGyms] = useState<Gym[]>([]);
   const [searchQuery, setSearchQuery] = useState(value || '');
   const [isOpen, setIsOpen] = useState(false);
@@ -77,6 +79,12 @@ export default function GymSelector({ value, onChange, onCreateGym }: GymSelecto
       .join(', ');
     setSearchQuery(gymName);
     onChange(gymName, false);
+
+    // Notify parent with full gym object (for head coach auto-population)
+    if (onGymSelected) {
+      onGymSelected(gym);
+    }
+
     setIsOpen(false);
   };
 
