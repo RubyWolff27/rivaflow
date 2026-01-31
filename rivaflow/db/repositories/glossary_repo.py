@@ -89,7 +89,12 @@ class GlossaryRepository:
         with get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(convert_query("SELECT DISTINCT category FROM movements_glossary ORDER BY category"))
-            return [row[0] for row in cursor.fetchall()]
+            rows = cursor.fetchall()
+            # Handle both dict (PostgreSQL RealDictCursor) and tuple (SQLite) results
+            if rows and hasattr(rows[0], 'keys'):
+                return [row['category'] for row in rows]
+            else:
+                return [row[0] for row in rows]
 
     @staticmethod
     def create_custom(
