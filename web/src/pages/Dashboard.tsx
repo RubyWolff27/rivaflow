@@ -202,8 +202,8 @@ export default function Dashboard() {
       <Card>
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-lg font-semibold text-[var(--text)]">Recent Sessions</h2>
-          <Link to="/reports" className="text-sm text-[var(--accent)] hover:opacity-80">
-            View All
+          <Link to="/sessions" className="text-sm text-[var(--accent)] hover:opacity-80">
+            View All Sessions
           </Link>
         </div>
 

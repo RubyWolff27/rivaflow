@@ -9,6 +9,7 @@ import LoadingSkeleton from './components/LoadingSkeleton';
 // Lazy load all route components for code splitting
 const Dashboard = lazy(() => import('./pages/Dashboard'));
 const LogSession = lazy(() => import('./pages/LogSession'));
+const Sessions = lazy(() => import('./pages/Sessions'));
 const Feed = lazy(() => import('./pages/Feed'));
 const SessionDetail = lazy(() => import('./pages/SessionDetail'));
 const Reports = lazy(() => import('./pages/Reports'));
@@ -57,6 +58,7 @@ function App() {
                         <Routes>
                           <Route path="/" element={<Dashboard />} />
                           <Route path="/log" element={<LogSession />} />
+                          <Route path="/sessions" element={<Sessions />} />
                           <Route path="/session/:id" element={<SessionDetail />} />
                           <Route path="/session/edit/:id" element={<EditSession />} />
                           <Route path="/feed" element={<Feed />} />
