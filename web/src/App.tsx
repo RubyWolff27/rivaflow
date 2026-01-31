@@ -18,6 +18,7 @@ import Profile from './pages/Profile';
 import Glossary from './pages/Glossary';
 import MovementDetail from './pages/MovementDetail';
 import Friends from './pages/Friends';
+import FindFriends from './pages/FindFriends';
 import EditSession from './pages/EditSession';
 import Chat from './pages/Chat';
 import UserProfile from './pages/UserProfile';
@@ -58,6 +59,7 @@ function App() {
                     <Route path="/glossary" element={<Glossary />} />
                     <Route path="/glossary/:id" element={<MovementDetail />} />
                     <Route path="/friends" element={<Friends />} />
+                    <Route path="/find-friends" element={<FindFriends />} />
                     <Route path="/profile" element={<Profile />} />
                     <Route path="/users/:userId" element={<UserProfile />} />
                   </Routes>

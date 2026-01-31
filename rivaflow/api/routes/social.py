@@ -345,3 +345,25 @@ async def search_users(q: str = "", current_user: dict = Depends(get_current_use
         "users": filtered_users[:20],  # Limit to 20 results
         "count": len(filtered_users[:20]),
     }
+
+
+# Friend recommendations endpoint
+@router.get("/users/recommended")
+async def get_recommended_users(current_user: dict = Depends(get_current_user)):
+    """
+    Get recommended users to follow based on gym overlap (Strava-style).
+
+    Recommendations are based on:
+    - Same gym (regular training location)
+    - Recent gym overlap (trained at same gym in last 30 days)
+    - Mutual training partners
+    - Already following status excluded
+
+    Returns:
+        List of recommended users with context on why they're recommended
+    """
+    recommendations = SocialService.get_friend_recommendations(current_user['id'])
+    return {
+        "recommendations": recommendations,
+        "count": len(recommendations),
+    }

@@ -240,6 +240,7 @@ export const feedApi = {
 export const socialApi = {
   // User search
   searchUsers: (query: string) => api.get('/social/users/search', { params: { q: query } }),
+  getRecommended: () => api.get('/social/users/recommended'),
 
   // Relationships
   follow: (userId: number) => api.post(`/social/follow/${userId}`),

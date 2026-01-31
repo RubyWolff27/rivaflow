@@ -276,3 +276,98 @@ class SocialService:
             # This can be implemented when RestDayRepository is created
             return {"id": activity_id, "visibility_level": "full"}
         return None
+
+    @staticmethod
+    def get_friend_recommendations(user_id: int) -> List[Dict[str, Any]]:
+        """
+        Get friend recommendations based on gym overlap (Strava-style).
+
+        Recommendations prioritize:
+        1. Same gym (most frequent training location)
+        2. Recent gym overlap (last 30 days)
+        3. Mutual training partners
+        4. Exclude users already following
+
+        Args:
+            user_id: Current user ID
+
+        Returns:
+            List of recommended users with context
+        """
+        from datetime import date, timedelta
+        from collections import Counter
+        from rivaflow.db.repositories.user_repo import UserRepository
+
+        # Get current user's sessions (last 90 days for pattern matching)
+        start_date = date.today() - timedelta(days=90)
+        end_date = date.today()
+        user_sessions = SessionRepository.get_by_date_range(user_id, start_date, end_date)
+
+        # Find user's most frequent gym
+        gym_counts = Counter([s.get('gym_name') for s in user_sessions if s.get('gym_name')])
+        user_primary_gym = gym_counts.most_common(1)[0][0] if gym_counts else None
+
+        # Get all users except current user
+        all_users = UserRepository.list_all()
+        other_users = [u for u in all_users if u['id'] != user_id]
+
+        # Get users already following
+        following = UserRelationshipRepository.get_following(user_id)
+        following_ids = {f['id'] for f in following}
+
+        recommendations = []
+
+        for other_user in other_users:
+            # Skip if already following
+            if other_user['id'] in following_ids:
+                continue
+
+            # Get other user's sessions
+            other_sessions = SessionRepository.get_by_date_range(other_user['id'], start_date, end_date)
+
+            # Skip if they have no sessions
+            if not other_sessions:
+                continue
+
+            # Find other user's most frequent gym
+            other_gym_counts = Counter([s.get('gym_name') for s in other_sessions if s.get('gym_name')])
+            other_primary_gym = other_gym_counts.most_common(1)[0][0] if other_gym_counts else None
+
+            reason = None
+            score = 0
+
+            # Check for same primary gym
+            if user_primary_gym and other_primary_gym and user_primary_gym == other_primary_gym:
+                reason = f"Trains at {user_primary_gym}"
+                score = 100
+
+            # Check for recent gym overlap (last 30 days)
+            if not reason:
+                recent_start = date.today() - timedelta(days=30)
+                user_recent_sessions = [s for s in user_sessions if s['session_date'] >= recent_start]
+                other_recent_sessions = [s for s in other_sessions if s['session_date'] >= recent_start]
+
+                user_recent_gyms = {s.get('gym_name') for s in user_recent_sessions if s.get('gym_name')}
+                other_recent_gyms = {s.get('gym_name') for s in other_recent_sessions if s.get('gym_name')}
+
+                overlap_gyms = user_recent_gyms & other_recent_gyms
+                if overlap_gyms:
+                    reason = f"Recently trained at {', '.join(list(overlap_gyms)[:2])}"
+                    score = 80
+
+            # Only include if we found a reason
+            if reason:
+                recommendations.append({
+                    'id': other_user['id'],
+                    'first_name': other_user.get('first_name', ''),
+                    'last_name': other_user.get('last_name', ''),
+                    'email': other_user.get('email', ''),
+                    'reason': reason,
+                    'score': score,
+                })
+
+        # Sort by score (highest first)
+        recommendations.sort(key=lambda x: x['score'], reverse=True)
+
+        # Return top 10 recommendations
+        return recommendations[:10]
