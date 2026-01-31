@@ -119,3 +119,18 @@ async def delete_custom_video(movement_id: int, video_id: int, current_user: dic
     if not deleted:
         raise NotFoundError("Video not found")
     return {"message": "Video deleted successfully"}
+
+
+@router.post("/admin/seed")
+async def seed_glossary_admin(current_user: dict = Depends(get_current_user)):
+    """
+    TEMPORARY ADMIN ENDPOINT: Seed the movements glossary with default techniques.
+    This endpoint should be removed after initial seeding.
+    """
+    try:
+        from rivaflow.db.seed_glossary import seed_glossary
+        seed_glossary()
+        return {"message": "Glossary seeded successfully", "status": "success"}
+    except Exception as e:
+        logger.error(f"Error seeding glossary: {e}")
+        return {"message": f"Error seeding glossary: {str(e)}", "status": "error"}
