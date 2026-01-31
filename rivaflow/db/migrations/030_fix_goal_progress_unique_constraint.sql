@@ -38,8 +38,8 @@ SELECT
     target_rolls, actual_rolls, completed_at, created_at, updated_at
 FROM goal_progress;
 
--- Drop old table (CASCADE for PostgreSQL foreign key constraints)
-DROP TABLE IF EXISTS goal_progress CASCADE;
+-- Drop old table
+DROP TABLE IF EXISTS goal_progress;
 
 -- Rename new table
 ALTER TABLE goal_progress_new RENAME TO goal_progress;

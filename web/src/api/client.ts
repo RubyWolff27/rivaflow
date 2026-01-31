@@ -294,3 +294,21 @@ export const photosApi = {
     });
   },
 };
+
+export const adminApi = {
+  // Gyms
+  listGyms: (verifiedOnly = false) =>
+    api.get('/admin/gyms', { params: { verified_only: verifiedOnly } }),
+  getPendingGyms: () =>
+    api.get('/admin/gyms/pending'),
+  searchGyms: (query: string, verifiedOnly = false) =>
+    api.get('/admin/gyms/search', { params: { q: query, verified_only: verifiedOnly } }),
+  createGym: (data: { name: string; city?: string; state?: string; country?: string; address?: string; website?: string; verified?: boolean }) =>
+    api.post('/admin/gyms', data),
+  updateGym: (gymId: number, data: { name?: string; city?: string; state?: string; country?: string; address?: string; website?: string; verified?: boolean }) =>
+    api.put(`/admin/gyms/${gymId}`, data),
+  deleteGym: (gymId: number) =>
+    api.delete(`/admin/gyms/${gymId}`),
+  mergeGyms: (sourceGymId: number, targetGymId: number) =>
+    api.post('/admin/gyms/merge', { source_gym_id: sourceGymId, target_gym_id: targetGymId }),
+};

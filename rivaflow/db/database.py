@@ -205,7 +205,7 @@ def _reset_postgresql_sequences(conn) -> None:
         'gradings', 'movements', 'friends', 'movement_videos', 'session_rolls',
         'session_techniques', 'weekly_goal_progress', 'daily_checkins',
         'milestones', 'streaks', 'activity_photos', 'user_relationships',
-        'activity_likes', 'activity_comments', 'refresh_tokens'
+        'activity_likes', 'activity_comments', 'refresh_tokens', 'gyms'
     ]
 
     for table in tables_with_serials:
@@ -383,6 +383,7 @@ def _apply_migrations(conn: Union[sqlite3.Connection, 'psycopg2.extensions.conne
         "031_fix_readiness_unique_constraint.sql",
         "032_fix_friends_unique_constraint.sql",
         "034_fix_movements_glossary_custom.sql",
+        "035_create_gyms_table.sql",
     ]
 
     migrations_dir = Path(__file__).parent / "migrations"

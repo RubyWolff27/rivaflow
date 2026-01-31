@@ -22,6 +22,7 @@ import FindFriends from './pages/FindFriends';
 import EditSession from './pages/EditSession';
 import Chat from './pages/Chat';
 import UserProfile from './pages/UserProfile';
+import AdminGyms from './pages/AdminGyms';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import ForgotPassword from './pages/ForgotPassword';
@@ -62,6 +63,7 @@ function App() {
                     <Route path="/find-friends" element={<FindFriends />} />
                     <Route path="/profile" element={<Profile />} />
                     <Route path="/users/:userId" element={<UserProfile />} />
+                    <Route path="/admin/gyms" element={<AdminGyms />} />
                   </Routes>
                 </Layout>
               </PrivateRoute>
