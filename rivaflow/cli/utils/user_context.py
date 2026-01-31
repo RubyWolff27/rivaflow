@@ -1,14 +1,17 @@
 """CLI user context management.
 
-TODO: Implement proper CLI authentication for multi-user support.
+KNOWN LIMITATION - Documented in README.md:
+The CLI currently supports single-user mode only (defaults to user_id=1).
+For multi-user accounts, users should use the Web App interface.
+Multi-user CLI authentication is planned for v0.2.
 
-For now, this module provides a temporary solution using user_id=1.
 In a true multi-user CLI (like Strava), users would:
 1. Login with email/password or API token
 2. Store session in ~/.rivaflow/session
 3. All commands would use authenticated user's ID
 
-Current behavior: Defaults to user_id=1 for backwards compatibility.
+Current behavior: Defaults to user_id=1 for local/single-user installations.
+Can be overridden with RIVAFLOW_USER_ID environment variable for testing.
 """
 import os
 from typing import Optional

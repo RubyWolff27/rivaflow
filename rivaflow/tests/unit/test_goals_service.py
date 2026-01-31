@@ -46,7 +46,7 @@ class TestCurrentWeekProgress:
             mock_date.today.return_value = today
 
             # Execute
-            progress = service.get_current_week_progress()
+            progress = service.get_current_week_progress(user_id=1)
 
         # Verify calculations
         assert progress["actual"]["sessions"] == 2
@@ -97,7 +97,7 @@ class TestCurrentWeekProgress:
 
         with patch('rivaflow.core.services.goals_service.date') as mock_date:
             mock_date.today.return_value = date(2026, 1, 22)
-            progress = service.get_current_week_progress()
+            progress = service.get_current_week_progress(user_id=1)
 
         assert progress["completed"] is True
         assert progress["actual"]["sessions"] == 3
@@ -124,7 +124,7 @@ class TestStreakCalculations:
         with patch('rivaflow.core.services.goals_service.date') as mock_date:
             mock_date.today.return_value = date(2026, 1, 22)
 
-            streaks = service.get_training_streaks()
+            streaks = service.get_training_streaks(user_id=1)
 
         assert streaks["current_streak"] == 7
         assert streaks["longest_streak"] == 14
@@ -140,7 +140,7 @@ class TestStreakCalculations:
             "longest_streak": 5,
         })
 
-        streaks = service.get_goal_completion_streak()
+        streaks = service.get_goal_completion_streak(user_id=1)
 
         assert streaks["current_streak"] == 3
         assert streaks["longest_streak"] == 5
@@ -180,6 +180,7 @@ class TestGoalsUpdate:
         ])
 
         updated = service.update_profile_goals(
+            user_id=1,
             weekly_sessions_target=5,
             weekly_hours_target=7.5,
             weekly_rolls_target=25,
@@ -231,7 +232,7 @@ class TestGoalsTrend:
             },
         ]
 
-        trend = service.get_recent_weeks_trend(weeks=2)
+        trend = service.get_recent_weeks_trend(user_id=1, weeks=2)
 
         assert len(trend) == 2
 
@@ -260,7 +261,7 @@ class TestGoalsSummary:
         mock_goal_streaks.return_value = {"current_streak": 2}
         mock_trend.return_value = [{"week_start": "2026-01-12"}]
 
-        summary = service.get_goals_summary()
+        summary = service.get_goals_summary(user_id=1)
 
         assert "current_week" in summary
         assert "training_streaks" in summary

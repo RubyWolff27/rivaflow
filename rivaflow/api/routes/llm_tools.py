@@ -1,4 +1,9 @@
-"""LLM tool contract endpoints - skeletons for future function calling."""
+"""
+LLM tool contract endpoints - skeletons for future AI features.
+
+BETA STATUS: These endpoints return placeholder data and are not used in the UI.
+Planned for v0.2+ for AI-powered training insights and recommendations.
+"""
 from fastapi import APIRouter, HTTPException, Depends
 from pydantic import BaseModel
 from datetime import date

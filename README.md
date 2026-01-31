@@ -55,6 +55,10 @@ See [WEB_README.md](WEB_README.md) for full web app documentation.
 
 ## 💻 CLI Usage
 
+> **⚠️ IMPORTANT:** The CLI currently supports **single-user mode only** (defaults to user_id=1).
+> For multi-user accounts, please use the **Web App** interface.
+> Multi-user CLI authentication is planned for v0.2.
+
 ## Quick Start
 
 ```bash

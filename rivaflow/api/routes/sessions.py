@@ -90,7 +90,7 @@ async def update_session(session_id: int, session: SessionUpdate, current_user: 
             whoop_max_hr=session.whoop_max_hr,
         )
         if not updated:
-            raise NotFoundError("Session not found")
+            raise NotFoundError(f"Session {session_id} not found or access denied")
         return updated
     except HTTPException:
         raise
@@ -101,7 +101,7 @@ async def delete_session(session_id: int, current_user: dict = Depends(get_curre
     """Delete a training session."""
     deleted = service.delete_session(user_id=current_user["id"], session_id=session_id)
     if not deleted:
-        raise NotFoundError("Session not found")
+        raise NotFoundError(f"Session {session_id} not found or access denied")
     return {"message": "Session deleted successfully"}
 
 
@@ -117,7 +117,7 @@ async def get_session(session_id: int, apply_privacy: bool = False, current_user
     """
     session = service.get_session(user_id=current_user["id"], session_id=session_id)
     if not session:
-        raise NotFoundError("Session not found")
+        raise NotFoundError(f"Session {session_id} not found or access denied")
 
     # Apply privacy redaction if requested (for future social features)
     if apply_privacy:
