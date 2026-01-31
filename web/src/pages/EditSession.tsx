@@ -263,11 +263,9 @@ export default function EditSession() {
   };
 
   const handleTechniqueChange = (index: number, field: keyof TechniqueEntry, value: any) => {
-    console.log('handleTechniqueChange called:', index, field, value);
     const updated = [...techniques];
     updated[index] = { ...updated[index], [field]: value };
     setTechniques(updated);
-    console.log('Updated techniques:', updated);
   };
 
   const handleAddMediaUrl = (techIndex: number) => {
@@ -831,9 +829,7 @@ export default function EditSession() {
             </p>
           ) : (
             <div className="space-y-4">
-              {techniques.map((tech, index) => {
-                console.log('Rendering technique', index, ':', tech);
-                return (
+              {techniques.map((tech, index) => (
                 <div key={index} className="border border-gray-300 dark:border-gray-600 rounded-lg p-4 space-y-3">
                   <div className="flex items-center justify-between">
                     <h4 className="font-semibold">Technique #{tech.technique_number}</h4>
@@ -873,7 +869,6 @@ export default function EditSession() {
                             key={movement.id}
                             type="button"
                             onClick={() => {
-                              console.log('Movement clicked:', movement.name, movement.id);
                               const updated = [...techniques];
                               updated[index] = {
                                 ...updated[index],
@@ -980,8 +975,7 @@ export default function EditSession() {
                     )}
                   </div>
                 </div>
-              );
-              })}
+              ))}
             </div>
           )}
         </div>

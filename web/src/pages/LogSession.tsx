@@ -236,11 +236,9 @@ export default function LogSession() {
   };
 
   const handleTechniqueChange = (index: number, field: keyof TechniqueEntry, value: any) => {
-    console.log('handleTechniqueChange called:', index, field, value);
     const updated = [...techniques];
     updated[index] = { ...updated[index], [field]: value };
     setTechniques(updated);
-    console.log('Updated techniques:', updated);
   };
 
   const handleAddMediaUrl = (techIndex: number) => {
@@ -659,7 +657,6 @@ export default function LogSession() {
                               key={movement.id}
                               type="button"
                               onClick={() => {
-                                console.log('Movement clicked:', movement.name, movement.id);
                                 const updated = [...techniques];
                                 updated[index] = {
                                   ...updated[index],
