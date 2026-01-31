@@ -1,10 +1,11 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, memo } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Home, Plus, BarChart3, Book, User, Users, Menu, X, LogOut, ListOrdered, Grid, BookOpen, Video, MessageCircle, Activity, Shield } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import QuickLog from './QuickLog';
 
-export default function Layout({ children }: { children: React.ReactNode }) {
+// Memoize Layout to prevent unnecessary re-renders
+const Layout = memo(function Layout({ children }: { children: React.ReactNode }) {
   const location = useLocation();
   const navigate = useNavigate();
   const { user, logout } = useAuth();
@@ -349,4 +350,6 @@ export default function Layout({ children }: { children: React.ReactNode }) {
       />
     </div>
   );
-}
+});
+
+export default Layout;

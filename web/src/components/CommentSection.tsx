@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, memo } from 'react';
 import { Edit2, Trash2, Send } from 'lucide-react';
 import { socialApi } from '../api/client';
 import type { ActivityComment } from '../types';
@@ -10,7 +10,7 @@ interface CommentSectionProps {
   isOpen: boolean;
 }
 
-export default function CommentSection({
+const CommentSection = memo(function CommentSection({
   activityType,
   activityId,
   currentUserId,
@@ -217,4 +217,6 @@ export default function CommentSection({
       )}
     </div>
   );
-}
+});
+
+export default CommentSection;

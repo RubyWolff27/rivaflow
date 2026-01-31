@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { X, AlertTriangle } from 'lucide-react';
-import { PrimaryButton, SecondaryButton } from './ui';
+import { SecondaryButton } from './ui';
 
 interface ConfirmDialogProps {
   isOpen: boolean;

@@ -1,3 +1,4 @@
+import { memo } from 'react';
 import { Heart, MessageCircle } from 'lucide-react';
 
 interface ActivitySocialActionsProps {
@@ -12,7 +13,7 @@ interface ActivitySocialActionsProps {
   disabled?: boolean;
 }
 
-export default function ActivitySocialActions({
+const ActivitySocialActions = memo(function ActivitySocialActions({
   activityType: _activityType,
   activityId: _activityId,
   likeCount,
@@ -59,4 +60,6 @@ export default function ActivitySocialActions({
       </button>
     </div>
   );
-}
+});
+
+export default ActivitySocialActions;

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, memo, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { feedApi, socialApi } from '../api/client';
 import { Activity, Calendar, Heart, Moon, Zap, Edit2, Eye } from 'lucide-react';
@@ -15,6 +15,221 @@ interface FeedResponse {
   offset: number;
   has_more: boolean;
 }
+
+// Memoized feed item component to prevent unnecessary re-renders
+const FeedItemComponent = memo(function FeedItemComponent({
+  item,
+  prevItem,
+  view: _view,
+  currentUserId,
+  navigate,
+  expandedComments,
+  handleLike,
+  handleUnlike,
+  toggleComments,
+  getIcon,
+  getBackgroundColor,
+  formatDate,
+  shouldShowSocialActions,
+  isActivityEditable,
+}: {
+  item: FeedItem;
+  prevItem: FeedItem | null;
+  view: 'my' | 'friends';
+  currentUserId: number | null;
+  navigate: (path: string) => void;
+  expandedComments: Set<string>;
+  handleLike: (type: string, id: number) => void;
+  handleUnlike: (type: string, id: number) => void;
+  toggleComments: (type: string, id: number) => void;
+  getIcon: (type: string) => JSX.Element;
+  getBackgroundColor: (type: string) => string;
+  formatDate: (date: string) => string;
+  shouldShowSocialActions: (item: FeedItem) => boolean;
+  isActivityEditable: (item: FeedItem) => boolean;
+}) {
+  const showDateHeader = !prevItem || prevItem.date !== item.date;
+  const commentKey = `${item.type}-${item.id}`;
+  const isCommentsOpen = expandedComments.has(commentKey);
+
+  return (
+    <div>
+      {showDateHeader && (
+        <div className="flex items-center gap-3 mb-3 mt-6 first:mt-0">
+          <Calendar className="w-4 h-4 text-gray-500" />
+          <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wide">
+            {formatDate(item.date)}
+          </h3>
+          <div className="flex-1 h-px bg-gray-200 dark:bg-gray-700" />
+        </div>
+      )}
+
+      <div className={`card border-2 ${getBackgroundColor(item.type)}`}>
+        <div className="flex items-start gap-4">
+          <div className="mt-1">{getIcon(item.type)}</div>
+          <div className="flex-1 min-w-0">
+            <div className="flex items-start justify-between gap-2 mb-1">
+              <p className="text-sm font-medium text-gray-900 dark:text-white">
+                {item.summary}
+              </p>
+              <div className="flex items-center gap-2">
+                {isActivityEditable(item) && (
+                  <>
+                    {item.type === 'session' && (
+                      <>
+                        <button
+                          onClick={() => navigate(`/session/${item.id}`)}
+                          className="p-1 hover:bg-white/50 dark:hover:bg-black/20 rounded transition-colors"
+                          aria-label="View session details"
+                        >
+                          <Eye className="w-4 h-4 text-gray-600 dark:text-gray-400" />
+                        </button>
+                        <button
+                          onClick={() => navigate(`/session/edit/${item.id}`)}
+                          className="p-1 hover:bg-white/50 dark:hover:bg-black/20 rounded transition-colors"
+                          aria-label="Edit session"
+                        >
+                          <Edit2 className="w-4 h-4 text-gray-600 dark:text-gray-400" />
+                        </button>
+                      </>
+                    )}
+                    {item.type === 'readiness' && (
+                      <>
+                        <button
+                          onClick={() => navigate(`/readiness/${item.data.check_date}`)}
+                          className="p-1 hover:bg-white/50 dark:hover:bg-black/20 rounded transition-colors"
+                          aria-label="View readiness details"
+                        >
+                          <Eye className="w-4 h-4 text-gray-600 dark:text-gray-400" />
+                        </button>
+                        <button
+                          onClick={() => navigate(`/readiness/edit/${item.data.check_date}`)}
+                          className="p-1 hover:bg-white/50 dark:hover:bg-black/20 rounded transition-colors"
+                          aria-label="Edit readiness"
+                        >
+                          <Edit2 className="w-4 h-4 text-gray-600 dark:text-gray-400" />
+                        </button>
+                      </>
+                    )}
+                    {item.type === 'rest' && (
+                      <>
+                        <button
+                          onClick={() => navigate(`/rest/${item.data.rest_date}`)}
+                          className="p-1 hover:bg-white/50 dark:hover:bg-black/20 rounded transition-colors"
+                          aria-label="View rest day details"
+                        >
+                          <Eye className="w-4 h-4 text-gray-600 dark:text-gray-400" />
+                        </button>
+                        <button
+                          onClick={() => navigate(`/rest/edit/${item.data.rest_date}`)}
+                          className="p-1 hover:bg-white/50 dark:hover:bg-black/20 rounded transition-colors"
+                          aria-label="Edit rest day"
+                        >
+                          <Edit2 className="w-4 h-4 text-gray-600 dark:text-gray-400" />
+                        </button>
+                      </>
+                    )}
+                  </>
+                )}
+                <span className="text-xs px-2 py-1 bg-white/50 dark:bg-black/20 rounded capitalize whitespace-nowrap">
+                  {item.type}
+                </span>
+              </div>
+            </div>
+
+            {/* Session details */}
+            {item.type === 'session' && (
+              <div className="mt-2 text-sm text-gray-600 dark:text-gray-400 space-y-1">
+                {item.data.class_time && <div>🕐 {item.data.class_time}</div>}
+                {item.data.location && <div>📍 {item.data.location}</div>}
+                {item.data.instructor_name && <div>👨‍🏫 {item.data.instructor_name}</div>}
+                {item.data.partners && item.data.partners.length > 0 && (
+                  <div>🤝 Partners: {item.data.partners.join(', ')}</div>
+                )}
+                {item.data.techniques && item.data.techniques.length > 0 && (
+                  <div>🎯 Techniques: {item.data.techniques.join(', ')}</div>
+                )}
+                {item.data.notes && (
+                  <div className="mt-2 text-gray-700 dark:text-gray-300 italic">
+                    "{item.data.notes}"
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Readiness details */}
+            {item.type === 'readiness' && (
+              <div className="mt-2 grid grid-cols-2 md:grid-cols-4 gap-2 text-xs">
+                <div className="flex items-center gap-1">
+                  <span className="text-gray-500">😴 Sleep:</span>
+                  <span className="font-semibold">{item.data.sleep}/5</span>
+                </div>
+                <div className="flex items-center gap-1">
+                  <span className="text-gray-500">😰 Stress:</span>
+                  <span className="font-semibold">{item.data.stress}/5</span>
+                </div>
+                <div className="flex items-center gap-1">
+                  <span className="text-gray-500">💪 Soreness:</span>
+                  <span className="font-semibold">{item.data.soreness}/5</span>
+                </div>
+                <div className="flex items-center gap-1">
+                  <span className="text-gray-500">⚡ Energy:</span>
+                  <span className="font-semibold">{item.data.energy}/5</span>
+                </div>
+                {item.data.hotspot_note && (
+                  <div className="col-span-2 md:col-span-4 text-gray-700 dark:text-gray-300 mt-1">
+                    🔥 Hotspot: {item.data.hotspot_note}
+                  </div>
+                )}
+                {item.data.weight_kg && (
+                  <div className="col-span-2 md:col-span-4 text-gray-700 dark:text-gray-300">
+                    ⚖️ Weight: {item.data.weight_kg} kg
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Rest day details */}
+            {item.type === 'rest' && item.data.rest_note && (
+              <div className="mt-2 text-sm text-gray-700 dark:text-gray-300 italic">
+                "{item.data.rest_note}"
+              </div>
+            )}
+
+            {item.data.tomorrow_intention && (
+              <div className="mt-2 text-xs text-gray-500 dark:text-gray-400">
+                → Tomorrow: {item.data.tomorrow_intention}
+              </div>
+            )}
+
+            {/* Social actions */}
+            {shouldShowSocialActions(item) && currentUserId && (
+              <>
+                <ActivitySocialActions
+                  activityType={item.type}
+                  activityId={item.id}
+                  likeCount={item.like_count || 0}
+                  commentCount={item.comment_count || 0}
+                  hasLiked={item.has_liked || false}
+                  onLike={() => handleLike(item.type, item.id)}
+                  onUnlike={() => handleUnlike(item.type, item.id)}
+                  onToggleComments={() => toggleComments(item.type, item.id)}
+                />
+
+                <CommentSection
+                  activityType={item.type}
+                  activityId={item.id}
+                  currentUserId={currentUserId}
+                  isOpen={isCommentsOpen}
+                />
+              </>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+});
 
 export default function Feed() {
   const navigate = useNavigate();
@@ -55,7 +270,7 @@ export default function Feed() {
     }
   };
 
-  const handleLike = async (activityType: string, activityId: number) => {
+  const handleLike = useCallback(async (activityType: string, activityId: number) => {
     if (!feed) return;
 
     // Optimistic update
@@ -75,9 +290,9 @@ export default function Feed() {
       // Revert optimistic update on error
       loadFeed();
     }
-  };
+  }, [feed]);
 
-  const handleUnlike = async (activityType: string, activityId: number) => {
+  const handleUnlike = useCallback(async (activityType: string, activityId: number) => {
     if (!feed) return;
 
     // Optimistic update
@@ -97,9 +312,9 @@ export default function Feed() {
       // Revert optimistic update on error
       loadFeed();
     }
-  };
+  }, [feed]);
 
-  const toggleComments = (activityType: string, activityId: number) => {
+  const toggleComments = useCallback((activityType: string, activityId: number) => {
     const key = `${activityType}-${activityId}`;
     setExpandedComments((prev) => {
       const newSet = new Set(prev);
@@ -110,9 +325,9 @@ export default function Feed() {
       }
       return newSet;
     });
-  };
+  }, []);
 
-  const getIcon = (type: string) => {
+  const getIcon = useCallback((type: string) => {
     switch (type) {
       case 'session':
         return <Zap className="w-5 h-5 text-primary-600" />;
@@ -123,9 +338,9 @@ export default function Feed() {
       default:
         return <Activity className="w-5 h-5 text-gray-600" />;
     }
-  };
+  }, []);
 
-  const getBackgroundColor = (type: string) => {
+  const getBackgroundColor = useCallback((type: string) => {
     switch (type) {
       case 'session':
         return 'bg-primary-50 dark:bg-primary-900/20 border-primary-200 dark:border-primary-800';
@@ -136,9 +351,9 @@ export default function Feed() {
       default:
         return 'bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700';
     }
-  };
+  }, []);
 
-  const formatDate = (dateStr: string) => {
+  const formatDate = useCallback((dateStr: string) => {
     const date = new Date(dateStr);
     const today = new Date();
     const yesterday = new Date(today);
@@ -156,17 +371,17 @@ export default function Feed() {
       day: 'numeric',
       year: date.getFullYear() !== today.getFullYear() ? 'numeric' : undefined,
     });
-  };
+  }, []);
 
-  const shouldShowSocialActions = (item: FeedItem) => {
+  const shouldShowSocialActions = useCallback((item: FeedItem) => {
     // Show social actions in contacts feed, or in my feed if enriched with social data
     return view === 'friends' || (item.like_count !== undefined && item.comment_count !== undefined);
-  };
+  }, [view]);
 
-  const isActivityEditable = (_item: FeedItem) => {
+  const isActivityEditable = useCallback((_item: FeedItem) => {
     // Only show edit/view buttons for own activities
     return view === 'my';
-  };
+  }, [view]);
 
   if (loading) {
     return <div className="text-center py-12">Loading activity...</div>;
@@ -213,190 +428,25 @@ export default function Feed() {
         </div>
       ) : (
         <div className="space-y-4">
-          {feed?.items.map((item, index) => {
-            const prevItem = index > 0 ? feed.items[index - 1] : null;
-            const showDateHeader = !prevItem || prevItem.date !== item.date;
-            const commentKey = `${item.type}-${item.id}`;
-            const isCommentsOpen = expandedComments.has(commentKey);
-
-            return (
-              <div key={`${item.type}-${item.id}`}>
-                {showDateHeader && (
-                  <div className="flex items-center gap-3 mb-3 mt-6 first:mt-0">
-                    <Calendar className="w-4 h-4 text-gray-500" />
-                    <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wide">
-                      {formatDate(item.date)}
-                    </h3>
-                    <div className="flex-1 h-px bg-gray-200 dark:bg-gray-700" />
-                  </div>
-                )}
-
-                <div className={`card border-2 ${getBackgroundColor(item.type)}`}>
-                  <div className="flex items-start gap-4">
-                    <div className="mt-1">{getIcon(item.type)}</div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-start justify-between gap-2 mb-1">
-                        <p className="text-sm font-medium text-gray-900 dark:text-white">
-                          {item.summary}
-                        </p>
-                        <div className="flex items-center gap-2">
-                          {isActivityEditable(item) && (
-                            <>
-                              {item.type === 'session' && (
-                                <>
-                                  <button
-                                    onClick={() => navigate(`/session/${item.id}`)}
-                                    className="p-1 hover:bg-white/50 dark:hover:bg-black/20 rounded transition-colors"
-                                    aria-label="View session details"
-                                  >
-                                    <Eye className="w-4 h-4 text-gray-600 dark:text-gray-400" />
-                                  </button>
-                                  <button
-                                    onClick={() => navigate(`/session/edit/${item.id}`)}
-                                    className="p-1 hover:bg-white/50 dark:hover:bg-black/20 rounded transition-colors"
-                                    aria-label="Edit session"
-                                  >
-                                    <Edit2 className="w-4 h-4 text-gray-600 dark:text-gray-400" />
-                                  </button>
-                                </>
-                              )}
-                              {item.type === 'readiness' && (
-                                <>
-                                  <button
-                                    onClick={() => navigate(`/readiness/${item.data.check_date}`)}
-                                    className="p-1 hover:bg-white/50 dark:hover:bg-black/20 rounded transition-colors"
-                                    aria-label="View readiness details"
-                                  >
-                                    <Eye className="w-4 h-4 text-gray-600 dark:text-gray-400" />
-                                  </button>
-                                  <button
-                                    onClick={() => navigate(`/readiness/edit/${item.data.check_date}`)}
-                                    className="p-1 hover:bg-white/50 dark:hover:bg-black/20 rounded transition-colors"
-                                    aria-label="Edit readiness"
-                                  >
-                                    <Edit2 className="w-4 h-4 text-gray-600 dark:text-gray-400" />
-                                  </button>
-                                </>
-                              )}
-                              {item.type === 'rest' && (
-                                <>
-                                  <button
-                                    onClick={() => navigate(`/rest/${item.data.rest_date}`)}
-                                    className="p-1 hover:bg-white/50 dark:hover:bg-black/20 rounded transition-colors"
-                                    aria-label="View rest day details"
-                                  >
-                                    <Eye className="w-4 h-4 text-gray-600 dark:text-gray-400" />
-                                  </button>
-                                  <button
-                                    onClick={() => navigate(`/rest/edit/${item.data.rest_date}`)}
-                                    className="p-1 hover:bg-white/50 dark:hover:bg-black/20 rounded transition-colors"
-                                    aria-label="Edit rest day"
-                                  >
-                                    <Edit2 className="w-4 h-4 text-gray-600 dark:text-gray-400" />
-                                  </button>
-                                </>
-                              )}
-                            </>
-                          )}
-                          <span className="text-xs px-2 py-1 bg-white/50 dark:bg-black/20 rounded capitalize whitespace-nowrap">
-                            {item.type}
-                          </span>
-                        </div>
-                      </div>
-
-                      {/* Session details */}
-                      {item.type === 'session' && (
-                        <div className="mt-2 text-sm text-gray-600 dark:text-gray-400 space-y-1">
-                          {item.data.class_time && <div>🕐 {item.data.class_time}</div>}
-                          {item.data.location && <div>📍 {item.data.location}</div>}
-                          {item.data.instructor_name && <div>👨‍🏫 {item.data.instructor_name}</div>}
-                          {item.data.partners && item.data.partners.length > 0 && (
-                            <div>🤝 Partners: {item.data.partners.join(', ')}</div>
-                          )}
-                          {item.data.techniques && item.data.techniques.length > 0 && (
-                            <div>🎯 Techniques: {item.data.techniques.join(', ')}</div>
-                          )}
-                          {item.data.notes && (
-                            <div className="mt-2 text-gray-700 dark:text-gray-300 italic">
-                              "{item.data.notes}"
-                            </div>
-                          )}
-                        </div>
-                      )}
-
-                      {/* Readiness details */}
-                      {item.type === 'readiness' && (
-                        <div className="mt-2 grid grid-cols-2 md:grid-cols-4 gap-2 text-xs">
-                          <div className="flex items-center gap-1">
-                            <span className="text-gray-500">😴 Sleep:</span>
-                            <span className="font-semibold">{item.data.sleep}/5</span>
-                          </div>
-                          <div className="flex items-center gap-1">
-                            <span className="text-gray-500">😰 Stress:</span>
-                            <span className="font-semibold">{item.data.stress}/5</span>
-                          </div>
-                          <div className="flex items-center gap-1">
-                            <span className="text-gray-500">💪 Soreness:</span>
-                            <span className="font-semibold">{item.data.soreness}/5</span>
-                          </div>
-                          <div className="flex items-center gap-1">
-                            <span className="text-gray-500">⚡ Energy:</span>
-                            <span className="font-semibold">{item.data.energy}/5</span>
-                          </div>
-                          {item.data.hotspot_note && (
-                            <div className="col-span-2 md:col-span-4 text-gray-700 dark:text-gray-300 mt-1">
-                              🔥 Hotspot: {item.data.hotspot_note}
-                            </div>
-                          )}
-                          {item.data.weight_kg && (
-                            <div className="col-span-2 md:col-span-4 text-gray-700 dark:text-gray-300">
-                              ⚖️ Weight: {item.data.weight_kg} kg
-                            </div>
-                          )}
-                        </div>
-                      )}
-
-                      {/* Rest day details */}
-                      {item.type === 'rest' && item.data.rest_note && (
-                        <div className="mt-2 text-sm text-gray-700 dark:text-gray-300 italic">
-                          "{item.data.rest_note}"
-                        </div>
-                      )}
-
-                      {item.data.tomorrow_intention && (
-                        <div className="mt-2 text-xs text-gray-500 dark:text-gray-400">
-                          → Tomorrow: {item.data.tomorrow_intention}
-                        </div>
-                      )}
-
-                      {/* Social actions */}
-                      {shouldShowSocialActions(item) && currentUserId && (
-                        <>
-                          <ActivitySocialActions
-                            activityType={item.type}
-                            activityId={item.id}
-                            likeCount={item.like_count || 0}
-                            commentCount={item.comment_count || 0}
-                            hasLiked={item.has_liked || false}
-                            onLike={() => handleLike(item.type, item.id)}
-                            onUnlike={() => handleUnlike(item.type, item.id)}
-                            onToggleComments={() => toggleComments(item.type, item.id)}
-                          />
-
-                          <CommentSection
-                            activityType={item.type}
-                            activityId={item.id}
-                            currentUserId={currentUserId}
-                            isOpen={isCommentsOpen}
-                          />
-                        </>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              </div>
-            );
-          })}
+          {feed?.items.map((item, index) => (
+            <FeedItemComponent
+              key={`${item.type}-${item.id}`}
+              item={item}
+              prevItem={index > 0 ? feed.items[index - 1] : null}
+              view={view}
+              currentUserId={currentUserId}
+              navigate={navigate}
+              expandedComments={expandedComments}
+              handleLike={handleLike}
+              handleUnlike={handleUnlike}
+              toggleComments={toggleComments}
+              getIcon={getIcon}
+              getBackgroundColor={getBackgroundColor}
+              formatDate={formatDate}
+              shouldShowSocialActions={shouldShowSocialActions}
+              isActivityEditable={isActivityEditable}
+            />
+          ))}
         </div>
       )}
 

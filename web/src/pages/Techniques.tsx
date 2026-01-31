@@ -1,7 +1,24 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, memo, useCallback } from 'react';
 import { techniquesApi } from '../api/client';
 import type { Technique } from '../types';
 import { Book, AlertCircle } from 'lucide-react';
+
+// Memoized technique row component
+const TechniqueRow = memo(function TechniqueRow({ tech }: { tech: Technique }) {
+  return (
+    <tr className="border-b border-gray-100 dark:border-gray-700">
+      <td className="py-3 px-4 font-medium">{tech.name}</td>
+      <td className="py-3 px-4 text-gray-600 dark:text-gray-400">
+        {tech.category || '—'}
+      </td>
+      <td className="py-3 px-4 text-gray-600 dark:text-gray-400">
+        {tech.last_trained_date
+          ? new Date(tech.last_trained_date).toLocaleDateString()
+          : 'Never'}
+      </td>
+    </tr>
+  );
+});
 
 export default function Techniques() {
   const [techniques, setTechniques] = useState<Technique[]>([]);
@@ -30,7 +47,7 @@ export default function Techniques() {
     }
   };
 
-  const handleAdd = async (e: React.FormEvent) => {
+  const handleAdd = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
     try {
       await techniquesApi.create(newTechnique);
@@ -40,7 +57,7 @@ export default function Techniques() {
     } catch (error) {
       console.error('Error adding technique:', error);
     }
-  };
+  }, [newTechnique]);
 
   if (loading) {
     return <div className="text-center py-12">Loading...</div>;
@@ -140,17 +157,7 @@ export default function Techniques() {
               </thead>
               <tbody>
                 {techniques.map((tech) => (
-                  <tr key={tech.id} className="border-b border-gray-100 dark:border-gray-700">
-                    <td className="py-3 px-4 font-medium">{tech.name}</td>
-                    <td className="py-3 px-4 text-gray-600 dark:text-gray-400">
-                      {tech.category || '—'}
-                    </td>
-                    <td className="py-3 px-4 text-gray-600 dark:text-gray-400">
-                      {tech.last_trained_date
-                        ? new Date(tech.last_trained_date).toLocaleDateString()
-                        : 'Never'}
-                    </td>
-                  </tr>
+                  <TechniqueRow key={tech.id} tech={tech} />
                 ))}
               </tbody>
             </table>
