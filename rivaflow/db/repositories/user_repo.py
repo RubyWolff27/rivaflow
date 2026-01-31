@@ -165,7 +165,7 @@ class UserRepository:
         with get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(
-                convert_query("SELECT id, email, first_name, last_name, is_active, created_at, updated_at FROM users WHERE is_active = 1")
+                convert_query("SELECT id, email, first_name, last_name, is_active, created_at, updated_at FROM users WHERE is_active = TRUE")
             )
             rows = cursor.fetchall()
             return [dict(row) for row in rows]

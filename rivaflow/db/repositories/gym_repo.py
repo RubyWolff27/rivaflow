@@ -68,7 +68,7 @@ class GymRepository:
             
             if verified_only:
                 cursor.execute(convert_query(
-                    "SELECT * FROM gyms WHERE verified = 1 ORDER BY name"
+                    "SELECT * FROM gyms WHERE verified = TRUE ORDER BY name"
                 ))
             else:
                 cursor.execute(convert_query(
@@ -95,8 +95,8 @@ class GymRepository:
             
             if verified_only:
                 cursor.execute(convert_query("""
-                    SELECT * FROM gyms 
-                    WHERE verified = 1 
+                    SELECT * FROM gyms
+                    WHERE verified = TRUE
                     AND (name LIKE ? OR city LIKE ? OR state LIKE ?)
                     ORDER BY name
                     LIMIT 50
@@ -163,10 +163,10 @@ class GymRepository:
         with get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(convert_query("""
-                SELECT g.*, u.first_name, u.last_name, u.email 
+                SELECT g.*, u.first_name, u.last_name, u.email
                 FROM gyms g
                 LEFT JOIN users u ON g.added_by_user_id = u.id
-                WHERE g.verified = 0
+                WHERE g.verified = FALSE
                 ORDER BY g.created_at DESC
             """))
             
