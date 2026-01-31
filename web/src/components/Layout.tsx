@@ -4,6 +4,7 @@ import { Home, Plus, BarChart3, Book, User, Users, Menu, X, LogOut, Grid, BookOp
 import { useAuth } from '../contexts/AuthContext';
 import QuickLog from './QuickLog';
 import { notificationsApi } from '../api/client';
+import BetaBanner from './BetaBanner';
 
 // Memoize Layout to prevent unnecessary re-renders
 const Layout = memo(function Layout({ children }: { children: React.ReactNode }) {
@@ -116,6 +117,9 @@ const Layout = memo(function Layout({ children }: { children: React.ReactNode })
       >
         Skip to main content
       </a>
+
+      {/* Beta Feedback Banner */}
+      <BetaBanner />
 
       {/* Header */}
       <header className="bg-[var(--surface)] shadow-sm border-b border-[var(--border)]" style={{ position: 'relative', zIndex: 10 }}>
