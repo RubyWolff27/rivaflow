@@ -4,6 +4,7 @@ import { Search, Shield, ShieldOff, UserX, Eye, CheckCircle, XCircle } from 'luc
 import { Card, PrimaryButton, SecondaryButton } from '../components/ui';
 import AdminNav from '../components/AdminNav';
 import ConfirmDialog from '../components/ConfirmDialog';
+import { useToast } from '../contexts/ToastContext';
 
 interface User {
   id: number;
@@ -25,6 +26,7 @@ interface UserDetails extends User {
 }
 
 export default function AdminUsers() {
+  const toast = useToast();
   const [users, setUsers] = useState<User[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading] = useState(true);
@@ -54,7 +56,7 @@ export default function AdminUsers() {
       });
       setUsers(response.data.users || []);
     } catch (error) {
-      console.error('Error loading users:', error);
+      toast.error('Failed to load users. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -66,7 +68,7 @@ export default function AdminUsers() {
       setSelectedUser(response.data);
       setShowDetailsModal(true);
     } catch (error) {
-      console.error('Error loading user details:', error);
+      toast.error('Failed to load user details. Please try again.');
     }
   };
 
@@ -74,13 +76,14 @@ export default function AdminUsers() {
     if (!confirmAction || confirmAction.type !== 'toggleActive') return;
     try {
       await adminApi.updateUser(confirmAction.userId, { is_active: !confirmAction.currentStatus });
+      toast.success(`User ${confirmAction.currentStatus ? 'deactivated' : 'activated'} successfully!`);
       setConfirmAction(null);
       loadUsers();
       if (selectedUser && selectedUser.id === confirmAction.userId) {
         setShowDetailsModal(false);
       }
     } catch (error) {
-      console.error('Error updating user:', error);
+      toast.error('Failed to update user status. Please try again.');
       setConfirmAction(null);
     }
   };
@@ -89,13 +92,14 @@ export default function AdminUsers() {
     if (!confirmAction || confirmAction.type !== 'toggleAdmin') return;
     try {
       await adminApi.updateUser(confirmAction.userId, { is_admin: !confirmAction.currentStatus });
+      toast.success(`Admin privileges ${confirmAction.currentStatus ? 'revoked' : 'granted'} successfully!`);
       setConfirmAction(null);
       loadUsers();
       if (selectedUser && selectedUser.id === confirmAction.userId) {
         viewUserDetails(confirmAction.userId); // Refresh details
       }
     } catch (error) {
-      console.error('Error updating user:', error);
+      toast.error('Failed to update admin privileges. Please try again.');
       setConfirmAction(null);
     }
   };
@@ -104,11 +108,12 @@ export default function AdminUsers() {
     if (!confirmAction || confirmAction.type !== 'delete') return;
     try {
       await adminApi.deleteUser(confirmAction.userId);
+      toast.success(`User "${confirmAction.email}" deleted successfully!`);
       setConfirmAction(null);
       loadUsers();
       setShowDetailsModal(false);
     } catch (error) {
-      console.error('Error deleting user:', error);
+      toast.error('Failed to delete user. Please try again.');
       setConfirmAction(null);
     }
   };

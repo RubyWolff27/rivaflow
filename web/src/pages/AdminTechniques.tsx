@@ -4,6 +4,7 @@ import { Search, Trash2, Plus } from 'lucide-react';
 import { Card, PrimaryButton, SecondaryButton } from '../components/ui';
 import AdminNav from '../components/AdminNav';
 import ConfirmDialog from '../components/ConfirmDialog';
+import { useToast } from '../contexts/ToastContext';
 
 interface Technique {
   id: number;
@@ -16,6 +17,7 @@ interface Technique {
 }
 
 export default function AdminTechniques() {
+  const toast = useToast();
   const [techniques, setTechniques] = useState<Technique[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading] = useState(true);
@@ -39,7 +41,7 @@ export default function AdminTechniques() {
       });
       setTechniques(response.data.techniques || []);
     } catch (error) {
-      console.error('Error loading techniques:', error);
+      toast.error('Failed to load techniques. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -49,10 +51,11 @@ export default function AdminTechniques() {
     if (!confirmDelete) return;
     try {
       await adminApi.deleteTechnique(confirmDelete.id);
+      toast.success(`Technique "${confirmDelete.name}" deleted successfully!`);
       setConfirmDelete(null);
       loadTechniques();
     } catch (error) {
-      console.error('Error deleting technique:', error);
+      toast.error('Failed to delete technique. Please try again.');
       setConfirmDelete(null);
     }
   };
@@ -64,11 +67,12 @@ export default function AdminTechniques() {
         name: newTechnique.name.trim(),
         category: newTechnique.category.trim() || undefined,
       });
+      toast.success(`Technique "${newTechnique.name}" created successfully!`);
       setShowCreateModal(false);
       setNewTechnique({ name: '', category: '' });
       loadTechniques();
     } catch (error) {
-      console.error('Error creating technique:', error);
+      toast.error('Failed to create technique. Please try again.');
     }
   };
 

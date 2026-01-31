@@ -4,6 +4,7 @@ import { adminApi } from '../api/client';
 import { Users, Building2, MessageSquare, Activity, TrendingUp, Shield } from 'lucide-react';
 import { Card } from '../components/ui';
 import AdminNav from '../components/AdminNav';
+import { useToast } from '../contexts/ToastContext';
 
 interface DashboardStats {
   total_users: number;
@@ -17,6 +18,7 @@ interface DashboardStats {
 }
 
 export default function AdminDashboard() {
+  const toast = useToast();
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -30,7 +32,7 @@ export default function AdminDashboard() {
       const response = await adminApi.getDashboardStats();
       setStats(response.data);
     } catch (error) {
-      console.error('Error loading dashboard stats:', error);
+      toast.error('Failed to load dashboard statistics. Please try again.');
     } finally {
       setLoading(false);
     }

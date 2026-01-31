@@ -4,6 +4,7 @@ import { Trash2, MessageSquare, User } from 'lucide-react';
 import { Card, SecondaryButton } from '../components/ui';
 import AdminNav from '../components/AdminNav';
 import ConfirmDialog from '../components/ConfirmDialog';
+import { useToast } from '../contexts/ToastContext';
 
 interface Comment {
   id: number;
@@ -18,6 +19,7 @@ interface Comment {
 }
 
 export default function AdminContent() {
+  const toast = useToast();
   const [comments, setComments] = useState<Comment[]>([]);
   const [loading, setLoading] = useState(true);
   const [total, setTotal] = useState(0);
@@ -34,7 +36,7 @@ export default function AdminContent() {
       setComments(response.data.comments || []);
       setTotal(response.data.total || 0);
     } catch (error) {
-      console.error('Error loading comments:', error);
+      toast.error('Failed to load comments. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -44,10 +46,11 @@ export default function AdminContent() {
     if (!confirmDelete) return;
     try {
       await adminApi.deleteComment(confirmDelete.id);
+      toast.success('Comment deleted successfully!');
       setConfirmDelete(null);
       loadComments();
     } catch (error) {
-      console.error('Error deleting comment:', error);
+      toast.error('Failed to delete comment. Please try again.');
       setConfirmDelete(null);
     }
   };
