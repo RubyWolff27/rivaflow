@@ -42,12 +42,13 @@ class GymMergeRequest(BaseModel):
 # Helper to check if user is admin
 def require_admin(current_user: dict = Depends(get_current_user)) -> dict:
     """Dependency to require admin access."""
-    # For now, check if user email ends with specific domain
-    # TODO: Add proper role-based access control
-    if not current_user.get("email", "").endswith(("@rivaflow.com", "@admin.com")):
-        # For development, allow user_id = 1 as admin
-        if current_user.get("id") != 1:
-            raise ValidationError("Admin access required")
+    # Check if user has admin role
+    if not current_user.get("is_admin"):
+        # Fallback: check email domain for backwards compatibility
+        if not current_user.get("email", "").endswith(("@rivaflow.com", "@admin.com")):
+            # Fallback: allow user_id = 1 for backwards compatibility
+            if current_user.get("id") != 1:
+                raise ValidationError("Admin access required")
     return current_user
 
 

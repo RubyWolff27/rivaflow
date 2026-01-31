@@ -384,6 +384,7 @@ def _apply_migrations(conn: Union[sqlite3.Connection, 'psycopg2.extensions.conne
         "032_fix_friends_unique_constraint.sql",
         "034_fix_movements_glossary_custom.sql",
         "035_create_gyms_table.sql",
+        "036_add_admin_role.sql",
     ]
 
     migrations_dir = Path(__file__).parent / "migrations"

@@ -1,6 +1,6 @@
 """Repository for gym data access."""
 from typing import List, Dict, Any, Optional
-from rivaflow.db.connection import get_connection, execute_insert, convert_query
+from rivaflow.db.database import get_connection, execute_insert, convert_query
 
 
 class GymRepository:
