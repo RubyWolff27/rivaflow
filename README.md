@@ -59,7 +59,56 @@ See [WEB_README.md](WEB_README.md) for full web app documentation.
 > For multi-user accounts, please use the **Web App** interface.
 > Multi-user CLI authentication is planned for v0.2.
 
-## Quick Start
+## Quick Start Examples
+
+**After training:**
+```bash
+# Log your session
+rivaflow log
+
+# You'll be prompted for:
+# - Class type (gi, no-gi, wrestling, etc.)
+# - Gym name (autocompletes from history)
+# - Duration, intensity (1-5)
+# - Number of rolls (for sparring classes)
+# - Submissions, partners, techniques
+# - Notes
+```
+
+**Morning routine:**
+```bash
+# Check your readiness
+rivaflow readiness
+
+# Prompts for:
+# - Sleep quality (1-5)
+# - Stress level (1-5)
+# - Soreness (1-5)
+# - Energy (1-5)
+# - Injury hotspots
+
+# Get training recommendation
+rivaflow suggest
+
+# Example output:
+# ✓ GREEN LIGHT - Full training available
+# or
+# ⚠ YELLOW LIGHT - Consider flow rolling (high stress detected)
+```
+
+**Weekly review:**
+```bash
+# See your week's stats
+rivaflow report week
+
+# Shows:
+# - Total classes, hours, rolls
+# - Submissions for/against
+# - Breakdown by class type and gym
+# - Unique training partners
+```
+
+## CLI Command Reference
 
 ```bash
 # Log your first session (interactive)
@@ -243,6 +292,33 @@ Current version: **v0.2.0**
 - Team/gym sharing features
 - Mobile companion app
 - Advanced visualizations and trend analysis
+
+## 🧪 Beta Status
+
+RivaFlow is currently in **beta testing**. Here's what to expect:
+
+**Working Well:**
+- ✅ Session logging (CLI and web)
+- ✅ Readiness tracking and suggestions
+- ✅ Weekly/monthly reports and analytics
+- ✅ Training streaks and goals
+- ✅ Social feed (share sessions with friends)
+- ✅ Profile and belt progression tracking
+
+**Known Limitations:**
+- ⚠️ **CLI Authentication:** Single-user only (use web app for multi-user)
+- ⚠️ **Photo Upload:** UI exists but backend in development
+- 📌 **Data Storage:** PostgreSQL in production, SQLite for local development
+
+**Reporting Issues:**
+- **Web App:** Click "Give Feedback" button (beta banner)
+- **GitHub:** Create issue at [github.com/RubyWolff27/rivaflow/issues](https://github.com/RubyWolff27/rivaflow/issues)
+- **Email:** support@rivaflow.com (if configured)
+
+**Data Privacy:**
+- All session data stored securely
+- You control visibility (private, friends-only, or public)
+- Export your data anytime: `rivaflow export` (CLI) or Settings → Export (Web)
 
 ## License
 

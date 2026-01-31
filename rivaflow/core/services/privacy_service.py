@@ -179,14 +179,31 @@ class PrivacyService:
             - "gym": Same gym members (check club memberships)
             - "public": Everyone
         """
+        from rivaflow.db.repositories.social_repo import SocialRepository
+
+        owner_user_id = session.get("user_id")
+
+        # Owner can always see their own content
+        if owner_user_id == viewer_id:
+            return True
+
         audience_scope = session.get("audience_scope")
 
+        # Public sessions visible to all
         if not audience_scope or audience_scope == "public":
-            return True  # Public sessions visible to all
+            return True
 
-        # TODO: Implement relationship checks when social features added
-        # For now, allow all (single-user app)
-        return True
+        # Friends-only scope: Check for mutual follow relationship
+        if audience_scope == "friends" or audience_scope == "circle":
+            try:
+                is_following = SocialRepository.is_following(viewer_id, owner_user_id)
+                is_followed_back = SocialRepository.is_following(owner_user_id, viewer_id)
+                return is_following and is_followed_back
+            except Exception:
+                return False
+
+        # Private or unknown scope - deny access
+        return False
 
     @staticmethod
     def validate_share_fields(share_fields: List[str]) -> List[str]:
