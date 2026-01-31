@@ -1,13 +1,14 @@
 import { useState, useEffect } from 'react';
 import { analyticsApi } from '../api/client';
-import { TrendingUp, Users, Activity, Target, Lightbulb, Book } from 'lucide-react';
-import { Card, Chip, MetricTile } from '../components/ui';
+import { TrendingUp, Users, Activity, Target, Lightbulb, Book, Calendar } from 'lucide-react';
+import { Card, Chip, MetricTile, MetricTileSkeleton, CardSkeleton, EmptyState } from '../components/ui';
 
 export default function Reports() {
   const [activeTab, setActiveTab] = useState('overview');
   const [dateRange, setDateRange] = useState({ start: '', end: '' });
   const [loading, setLoading] = useState(false);
   const [hasUserChangedRange, setHasUserChangedRange] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   // Data states
   const [performanceData, setPerformanceData] = useState<any>(null);
@@ -33,6 +34,7 @@ export default function Reports() {
 
   const loadData = async () => {
     setLoading(true);
+    setError(null);
     try {
       const params = { start_date: dateRange.start, end_date: dateRange.end };
 
@@ -48,6 +50,7 @@ export default function Reports() {
       }
     } catch (error) {
       console.error('Error loading analytics:', error);
+      setError('Failed to load analytics data. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -65,27 +68,30 @@ export default function Reports() {
     { id: 'techniques', name: 'Techniques', icon: Target },
   ];
 
-  // Extract real data from API response
+  // Extract real data from API response with safe defaults
   const summary = performanceData?.summary || {};
   const timeseries = performanceData?.daily_timeseries || {};
   const deltas = performanceData?.deltas || {};
 
-  const sessionsValue = summary.total_sessions || 0;
-  const intensityValue = summary.avg_intensity?.toFixed(1) || '0.0';
-  const rollsValue = summary.total_rolls || 0;
-  const submissionsValue = summary.total_submissions_for || 0;
+  const sessionsValue = summary.total_sessions ?? 0;
+  const intensityValue = summary.avg_intensity != null ? summary.avg_intensity.toFixed(1) : '0.0';
+  const rollsValue = summary.total_rolls ?? 0;
+  const submissionsValue = summary.total_submissions_for ?? 0;
 
-  // Use real time series data from API
+  // Use real time series data from API with safe defaults
   const sessionsSeries = timeseries.sessions || [];
   const intensitySeries = timeseries.intensity || [];
   const rollsSeries = timeseries.rolls || [];
   const submissionsSeries = timeseries.submissions || [];
 
-  // Use real deltas from API
-  const sessionsDelta = deltas.sessions || 0;
-  const intensityDelta = deltas.intensity || 0;
-  const rollsDelta = deltas.rolls || 0;
-  const submissionsDelta = deltas.submissions || 0;
+  // Use real deltas from API with safe defaults
+  const sessionsDelta = deltas.sessions ?? 0;
+  const intensityDelta = deltas.intensity ?? 0;
+  const rollsDelta = deltas.rolls ?? 0;
+  const submissionsDelta = deltas.submissions ?? 0;
+
+  // Check if we have any data
+  const hasData = performanceData && summary.total_sessions > 0;
 
   // Quick Insights logic - generate 2 most valuable insights
   const getQuickInsights = () => {
@@ -236,110 +242,172 @@ export default function Reports() {
       {/* Overview Tab Content */}
       {activeTab === 'overview' && (
         <div className="space-y-6">
-          {/* 2x2 Metric Tiles Grid */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <MetricTile
-              label="Sessions"
-              chipLabel={chipLabel}
-              value={sessionsValue}
-              delta={sessionsDelta}
-              sparklineData={sessionsSeries}
-            />
-            <MetricTile
-              label="Avg Intensity"
-              chipLabel={chipLabel}
-              value={`${intensityValue}/5`}
-              delta={intensityDelta}
-              sparklineData={intensitySeries}
-            />
-            <MetricTile
-              label="Total Rolls"
-              chipLabel={chipLabel}
-              value={rollsValue}
-              delta={rollsDelta}
-              sparklineData={rollsSeries}
-            />
-            <MetricTile
-              label="Submissions"
-              chipLabel={chipLabel}
-              value={submissionsValue}
-              delta={submissionsDelta}
-              sparklineData={submissionsSeries}
-            />
-          </div>
+          {loading ? (
+            <>
+              {/* Loading skeletons */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <MetricTileSkeleton />
+                <MetricTileSkeleton />
+                <MetricTileSkeleton />
+                <MetricTileSkeleton />
+              </div>
+              <CardSkeleton lines={2} />
+            </>
+          ) : error ? (
+            <Card>
+              <EmptyState
+                icon={Activity}
+                title="Error Loading Data"
+                description={error}
+              />
+            </Card>
+          ) : !hasData ? (
+            <Card>
+              <EmptyState
+                icon={Calendar}
+                title="No Training Data Yet"
+                description="Start logging your training sessions to see performance analytics, trends, and insights."
+                actionLabel="Log First Session"
+                actionPath="/log-session"
+              />
+            </Card>
+          ) : (
+            <>
+              {/* 2x2 Metric Tiles Grid */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <MetricTile
+                  label="Sessions"
+                  chipLabel={chipLabel}
+                  value={sessionsValue}
+                  delta={sessionsDelta}
+                  sparklineData={sessionsSeries}
+                />
+                <MetricTile
+                  label="Avg Intensity"
+                  chipLabel={chipLabel}
+                  value={`${intensityValue}/5`}
+                  delta={intensityDelta}
+                  sparklineData={intensitySeries}
+                />
+                <MetricTile
+                  label="Total Rolls"
+                  chipLabel={chipLabel}
+                  value={rollsValue}
+                  delta={rollsDelta}
+                  sparklineData={rollsSeries}
+                />
+                <MetricTile
+                  label="Submissions"
+                  chipLabel={chipLabel}
+                  value={submissionsValue}
+                  delta={submissionsDelta}
+                  sparklineData={submissionsSeries}
+                />
+              </div>
 
-          {/* Quick Insights */}
-          <Card>
-            <div className="flex items-start gap-3">
-              <div
-                className="flex items-center justify-center w-10 h-10 rounded-full"
-                style={{ backgroundColor: 'var(--surfaceElev)' }}
-              >
-                <Lightbulb className="w-5 h-5 text-[var(--muted)]" />
-              </div>
-              <div className="flex-1">
-                <div className="flex items-center gap-2 mb-3">
-                  <h3 className="text-sm font-semibold text-[var(--text)]">Quick Insights</h3>
-                  <Chip>{chipLabel}</Chip>
+              {/* Quick Insights */}
+              <Card>
+                <div className="flex items-start gap-3">
+                  <div
+                    className="flex items-center justify-center w-10 h-10 rounded-full"
+                    style={{ backgroundColor: 'var(--surfaceElev)' }}
+                  >
+                    <Lightbulb className="w-5 h-5 text-[var(--muted)]" />
+                  </div>
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2 mb-3">
+                      <h3 className="text-sm font-semibold text-[var(--text)]">Quick Insights</h3>
+                      <Chip>{chipLabel}</Chip>
+                    </div>
+                    <ul className="space-y-2">
+                      {quickInsights.map((insight, index) => (
+                        <li key={index} className="text-sm text-[var(--muted)] flex items-start gap-2">
+                          <span className="text-[var(--accent)] font-bold">•</span>
+                          <span>{insight}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
                 </div>
-                <ul className="space-y-2">
-                  {quickInsights.map((insight, index) => (
-                    <li key={index} className="text-sm text-[var(--muted)] flex items-start gap-2">
-                      <span className="text-[var(--accent)] font-bold">•</span>
-                      <span>{insight}</span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            </div>
-          </Card>
+              </Card>
+            </>
+          )}
         </div>
       )}
 
       {/* Partners Tab Content */}
-      {activeTab === 'partners' && partnersData && (
+      {activeTab === 'partners' && (
         <div className="space-y-6">
+          {loading ? (
+            <>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                <CardSkeleton lines={1} />
+                <CardSkeleton lines={1} />
+                <CardSkeleton lines={1} />
+                <CardSkeleton lines={1} />
+              </div>
+              <CardSkeleton lines={4} />
+            </>
+          ) : error ? (
+            <Card>
+              <EmptyState
+                icon={Activity}
+                title="Error Loading Data"
+                description={error}
+              />
+            </Card>
+          ) : !partnersData || (partnersData.top_partners && partnersData.top_partners.length === 0) ? (
+            <Card>
+              <EmptyState
+                icon={Users}
+                title="No Partner Data"
+                description="Start logging rolls with training partners to see analytics on your training relationships and performance with different partners."
+                actionLabel="Log Session with Partners"
+                actionPath="/log-session"
+              />
+            </Card>
+          ) : (
           {/* Summary Metrics */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-            <div className="p-4 rounded-[14px]" style={{ backgroundColor: 'var(--surfaceElev)', border: '1px solid var(--border)' }}>
-              <div className="flex items-center gap-2 mb-3">
-                <Users className="w-4 h-4" style={{ color: 'var(--muted)' }} />
-                <span className="text-xs font-medium uppercase tracking-wide" style={{ color: 'var(--muted)' }}>Active Partners</span>
+              <div className="p-4 rounded-[14px]" style={{ backgroundColor: 'var(--surfaceElev)', border: '1px solid var(--border)' }}>
+                <div className="flex items-center gap-2 mb-3">
+                  <Users className="w-4 h-4" style={{ color: 'var(--muted)' }} />
+                  <span className="text-xs font-medium uppercase tracking-wide" style={{ color: 'var(--muted)' }}>Active Partners</span>
+                </div>
+                <p className="text-2xl font-semibold" style={{ color: 'var(--text)' }}>
+                  {partnersData.diversity_metrics?.active_partners ?? 0}
+                </p>
               </div>
-              <p className="text-2xl font-semibold" style={{ color: 'var(--text)' }}>
-                {partnersData.diversity_metrics?.active_partners || 0}
-              </p>
-            </div>
 
-            <div className="p-4 rounded-[14px]" style={{ backgroundColor: 'var(--surfaceElev)', border: '1px solid var(--border)' }}>
-              <div className="flex items-center gap-2 mb-3">
-                <Activity className="w-4 h-4" style={{ color: 'var(--muted)' }} />
-                <span className="text-xs font-medium uppercase tracking-wide" style={{ color: 'var(--muted)' }}>Total Rolls</span>
+              <div className="p-4 rounded-[14px]" style={{ backgroundColor: 'var(--surfaceElev)', border: '1px solid var(--border)' }}>
+                <div className="flex items-center gap-2 mb-3">
+                  <Activity className="w-4 h-4" style={{ color: 'var(--muted)' }} />
+                  <span className="text-xs font-medium uppercase tracking-wide" style={{ color: 'var(--muted)' }}>Total Rolls</span>
+                </div>
+                <p className="text-2xl font-semibold" style={{ color: 'var(--text)' }}>
+                  {partnersData.summary?.total_rolls ?? 0}
+                </p>
               </div>
-              <p className="text-2xl font-semibold" style={{ color: 'var(--text)' }}>
-                {partnersData.summary?.total_rolls || 0}
-              </p>
-            </div>
 
-            <div className="p-4 rounded-[14px]" style={{ backgroundColor: 'var(--surfaceElev)', border: '1px solid var(--border)' }}>
-              <div className="flex items-center gap-2 mb-3">
-                <Target className="w-4 h-4" style={{ color: 'var(--muted)' }} />
-                <span className="text-xs font-medium uppercase tracking-wide" style={{ color: 'var(--muted)' }}>Subs For</span>
+              <div className="p-4 rounded-[14px]" style={{ backgroundColor: 'var(--surfaceElev)', border: '1px solid var(--border)' }}>
+                <div className="flex items-center gap-2 mb-3">
+                  <Target className="w-4 h-4" style={{ color: 'var(--muted)' }} />
+                  <span className="text-xs font-medium uppercase tracking-wide" style={{ color: 'var(--muted)' }}>Subs For</span>
+                </div>
+                <p className="text-2xl font-semibold" style={{ color: 'var(--text)' }}>
+                  {partnersData.summary?.total_submissions_for ?? 0}
+                </p>
               </div>
-              <p className="text-2xl font-semibold" style={{ color: 'var(--text)' }}>
-                {partnersData.summary?.total_submissions_for || 0}
-              </p>
-            </div>
 
-            <div className="p-4 rounded-[14px]" style={{ backgroundColor: 'var(--surfaceElev)', border: '1px solid var(--border)' }}>
-              <div className="flex items-center gap-2 mb-3">
-                <Target className="w-4 h-4" style={{ color: 'var(--muted)' }} />
-                <span className="text-xs font-medium uppercase tracking-wide" style={{ color: 'var(--muted)' }}>Subs Against</span>
+              <div className="p-4 rounded-[14px]" style={{ backgroundColor: 'var(--surfaceElev)', border: '1px solid var(--border)' }}>
+                <div className="flex items-center gap-2 mb-3">
+                  <Target className="w-4 h-4" style={{ color: 'var(--muted)' }} />
+                  <span className="text-xs font-medium uppercase tracking-wide" style={{ color: 'var(--muted)' }}>Subs Against</span>
+                </div>
+                <p className="text-2xl font-semibold" style={{ color: 'var(--text)' }}>
+                  {partnersData.summary?.total_submissions_against ?? 0}
+                </p>
               </div>
-              <p className="text-2xl font-semibold" style={{ color: 'var(--text)' }}>
-                {partnersData.summary?.total_submissions_against || 0}
-              </p>
-            </div>
           </div>
 
           {/* Top Partners List */}
@@ -397,8 +465,8 @@ export default function Reports() {
                       </div>
                       <div>
                         <p className="text-xs" style={{ color: 'var(--muted)' }}>Ratio</p>
-                        <p className="text-sm font-medium" style={{ color: partner.sub_ratio >= 1 ? 'var(--accent)' : 'var(--text)' }}>
-                          {partner.sub_ratio ? partner.sub_ratio.toFixed(2) : '0.00'}
+                        <p className="text-sm font-medium" style={{ color: (partner.sub_ratio ?? 0) >= 1 ? 'var(--accent)' : 'var(--text)' }}>
+                          {partner.sub_ratio != null ? partner.sub_ratio.toFixed(2) : '0.00'}
                         </p>
                       </div>
                     </div>
@@ -411,34 +479,67 @@ export default function Reports() {
               </p>
             )}
           </Card>
+            </>
+          )}
         </div>
       )}
 
       {/* Techniques Tab Content */}
-      {activeTab === 'techniques' && techniquesData && (
+      {activeTab === 'techniques' && (
         <div className="space-y-6">
-          {/* Summary Metrics */}
-          <div className="grid grid-cols-2 gap-3">
-            <div className="p-4 rounded-[14px]" style={{ backgroundColor: 'var(--surfaceElev)', border: '1px solid var(--border)' }}>
-              <div className="flex items-center gap-2 mb-3">
-                <Book className="w-4 h-4" style={{ color: 'var(--muted)' }} />
-                <span className="text-xs font-medium uppercase tracking-wide" style={{ color: 'var(--muted)' }}>Unique Techniques</span>
+          {loading ? (
+            <>
+              <div className="grid grid-cols-2 gap-3">
+                <CardSkeleton lines={1} />
+                <CardSkeleton lines={1} />
               </div>
-              <p className="text-2xl font-semibold" style={{ color: 'var(--text)' }}>
-                {techniquesData.summary?.total_unique_techniques_used || 0}
-              </p>
-            </div>
+              <CardSkeleton lines={4} />
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <CardSkeleton lines={3} />
+                <CardSkeleton lines={3} />
+              </div>
+            </>
+          ) : error ? (
+            <Card>
+              <EmptyState
+                icon={Activity}
+                title="Error Loading Data"
+                description={error}
+              />
+            </Card>
+          ) : !techniquesData || (techniquesData.summary?.total_unique_techniques_used ?? 0) === 0 ? (
+            <Card>
+              <EmptyState
+                icon={Target}
+                title="No Technique Data"
+                description="Start logging submissions and techniques during your rolls to see analytics on your technique usage and proficiency."
+                actionLabel="Log Session"
+                actionPath="/log-session"
+              />
+            </Card>
+          ) : (
+            {/* Summary Metrics */}
+            <div className="grid grid-cols-2 gap-3">
+              <div className="p-4 rounded-[14px]" style={{ backgroundColor: 'var(--surfaceElev)', border: '1px solid var(--border)' }}>
+                <div className="flex items-center gap-2 mb-3">
+                  <Book className="w-4 h-4" style={{ color: 'var(--muted)' }} />
+                  <span className="text-xs font-medium uppercase tracking-wide" style={{ color: 'var(--muted)' }}>Unique Techniques</span>
+                </div>
+                <p className="text-2xl font-semibold" style={{ color: 'var(--text)' }}>
+                  {techniquesData.summary?.total_unique_techniques_used ?? 0}
+                </p>
+              </div>
 
-            <div className="p-4 rounded-[14px]" style={{ backgroundColor: 'var(--surfaceElev)', border: '1px solid var(--border)' }}>
-              <div className="flex items-center gap-2 mb-3">
-                <Activity className="w-4 h-4" style={{ color: 'var(--muted)' }} />
-                <span className="text-xs font-medium uppercase tracking-wide" style={{ color: 'var(--muted)' }}>Stale (30+ days)</span>
+              <div className="p-4 rounded-[14px]" style={{ backgroundColor: 'var(--surfaceElev)', border: '1px solid var(--border)' }}>
+                <div className="flex items-center gap-2 mb-3">
+                  <Activity className="w-4 h-4" style={{ color: 'var(--muted)' }} />
+                  <span className="text-xs font-medium uppercase tracking-wide" style={{ color: 'var(--muted)' }}>Stale (30+ days)</span>
+                </div>
+                <p className="text-2xl font-semibold" style={{ color: 'var(--text)' }}>
+                  {techniquesData.summary?.stale_count ?? 0}
+                </p>
               </div>
-              <p className="text-2xl font-semibold" style={{ color: 'var(--text)' }}>
-                {techniquesData.summary?.stale_count || 0}
-              </p>
             </div>
-          </div>
 
           {/* Category Breakdown */}
           {techniquesData.category_breakdown && techniquesData.category_breakdown.length > 0 && (
@@ -557,6 +658,7 @@ export default function Reports() {
                 )}
               </div>
             </Card>
+            </>
           )}
         </div>
       )}
@@ -564,18 +666,12 @@ export default function Reports() {
       {/* Placeholder for Readiness tab */}
       {activeTab === 'readiness' && (
         <Card>
-          <div className="text-center py-12 text-[var(--muted)]">
-            <p className="text-sm">
-              Readiness analytics coming soon.
-            </p>
-          </div>
+          <EmptyState
+            icon={Activity}
+            title="Readiness Analytics Coming Soon"
+            description="Track your recovery, sleep, and readiness scores to optimize your training schedule and prevent overtraining."
+          />
         </Card>
-      )}
-
-      {loading && (
-        <div className="fixed inset-0 bg-[var(--bg)] bg-opacity-50 flex items-center justify-center">
-          <div className="text-[var(--text)]">Loading...</div>
-        </div>
       )}
     </div>
   );

@@ -200,11 +200,12 @@ def session_factory(temp_db, test_user):
             "session_date": date.today(),
             "class_type": "gi",
             "gym_name": "Test Gym",
+            "location": "Test City",
             "duration_mins": 60,
             "intensity": 4,
             "rolls": 5,
-            "partners": [],
-            "techniques_trained": [],
+            "submissions_for": 0,
+            "submissions_against": 0,
         }
         defaults.update(kwargs)
         repo = SessionRepository()

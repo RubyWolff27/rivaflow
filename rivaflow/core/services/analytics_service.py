@@ -55,13 +55,16 @@ class AnalyticsService:
             monthly_stats[month_key]["for"] += session["submissions_for"]
             monthly_stats[month_key]["against"] += session["submissions_against"]
 
+        # Calculate ratios with division by zero protection
         for month in monthly_stats:
             for_count = monthly_stats[month]["for"]
             against_count = monthly_stats[month]["against"]
             if against_count > 0:
                 monthly_stats[month]["ratio"] = round(for_count / against_count, 2)
+            elif for_count > 0:
+                monthly_stats[month]["ratio"] = float(for_count)
             else:
-                monthly_stats[month]["ratio"] = for_count if for_count > 0 else 0
+                monthly_stats[month]["ratio"] = 0.0
 
         # Training volume calendar (daily)
         volume_calendar = []
@@ -150,14 +153,23 @@ class AnalyticsService:
         }
 
     def _calculate_period_summary(self, sessions: List[Dict]) -> Dict[str, Any]:
-        """Calculate summary metrics for a period."""
+        """Calculate summary metrics for a period with safe null handling."""
+        if not sessions:
+            return {
+                "total_sessions": 0,
+                "total_submissions_for": 0,
+                "total_submissions_against": 0,
+                "total_rolls": 0,
+                "avg_intensity": 0.0,
+            }
+
         return {
             "total_sessions": len(sessions),
-            "total_submissions_for": sum(s["submissions_for"] for s in sessions),
-            "total_submissions_against": sum(s["submissions_against"] for s in sessions),
-            "total_rolls": sum(s.get("rolls", 0) for s in sessions),
+            "total_submissions_for": sum(s.get("submissions_for", 0) or 0 for s in sessions),
+            "total_submissions_against": sum(s.get("submissions_against", 0) or 0 for s in sessions),
+            "total_rolls": sum(s.get("rolls", 0) or 0 for s in sessions),
             "avg_intensity": round(
-                statistics.mean([s["intensity"] for s in sessions]) if sessions else 0, 1
+                statistics.mean([s.get("intensity", 0) or 0 for s in sessions]) if sessions else 0, 1
             ),
         }
 
