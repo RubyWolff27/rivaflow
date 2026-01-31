@@ -205,7 +205,7 @@ def _reset_postgresql_sequences(conn) -> None:
         'gradings', 'movements', 'friends', 'movement_videos', 'session_rolls',
         'session_techniques', 'weekly_goal_progress', 'daily_checkins',
         'milestones', 'streaks', 'activity_photos', 'user_relationships',
-        'activity_likes', 'activity_comments', 'refresh_tokens', 'gyms'
+        'activity_likes', 'activity_comments', 'refresh_tokens', 'gyms', 'audit_logs'
     ]
 
     for table in tables_with_serials:
@@ -387,6 +387,7 @@ def _apply_migrations(conn: Union[sqlite3.Connection, 'psycopg2.extensions.conne
         "036_add_admin_role.sql",
         "037_add_gym_contact_fields.sql",
         "038_set_production_admin.sql",
+        "039_create_audit_logs.sql",
     ]
 
     migrations_dir = Path(__file__).parent / "migrations"

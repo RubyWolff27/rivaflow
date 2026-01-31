@@ -1,13 +1,17 @@
 """Admin routes for gym and data management."""
-from fastapi import APIRouter, Depends, Path, Body
+from fastapi import APIRouter, Depends, Path, Body, Request
 from pydantic import BaseModel, Field
 from typing import Optional
+from slowapi import Limiter
+from slowapi.util import get_remote_address
 
 from rivaflow.db.repositories.gym_repo import GymRepository
 from rivaflow.core.dependencies import get_current_user
 from rivaflow.core.exceptions import NotFoundError, ValidationError
+from rivaflow.core.services.audit_service import AuditService
 
 router = APIRouter(prefix="/admin", tags=["admin"])
+limiter = Limiter(key_func=get_remote_address)
 
 
 # Pydantic models
@@ -53,9 +57,24 @@ def require_admin(current_user: dict = Depends(get_current_user)) -> dict:
     return current_user
 
 
+# Helper to get IP address from request
+def get_client_ip(request: Request) -> str:
+    """Extract client IP address from request."""
+    # Check X-Forwarded-For header first (for reverse proxies)
+    forwarded = request.headers.get("X-Forwarded-For")
+    if forwarded:
+        return forwarded.split(",")[0].strip()
+    # Fall back to direct client IP
+    if request.client:
+        return request.client.host
+    return "unknown"
+
+
 # Gym management endpoints
 @router.get("/gyms")
+@limiter.limit("60/minute")
 async def list_gyms(
+    request: Request,
     verified_only: bool = False,
     current_user: dict = Depends(require_admin),
 ):
@@ -68,7 +87,8 @@ async def list_gyms(
 
 
 @router.get("/gyms/pending")
-async def get_pending_gyms(current_user: dict = Depends(require_admin)):
+@limiter.limit("60/minute")
+async def get_pending_gyms(request: Request, current_user: dict = Depends(require_admin)):
     """Get all pending (unverified) gyms."""
     pending = GymRepository.get_pending_gyms()
     return {
@@ -78,7 +98,9 @@ async def get_pending_gyms(current_user: dict = Depends(require_admin)):
 
 
 @router.get("/gyms/search")
+@limiter.limit("60/minute")
 async def search_gyms(
+    request: Request,
     q: str = "",
     verified_only: bool = False,
     current_user: dict = Depends(require_admin),
@@ -95,7 +117,9 @@ async def search_gyms(
 
 
 @router.post("/gyms")
+@limiter.limit("30/minute")
 async def create_gym(
+    http_request: Request,
     request: GymCreateRequest,
     current_user: dict = Depends(require_admin),
 ):
@@ -113,11 +137,24 @@ async def create_gym(
         verified=request.verified,
         added_by_user_id=current_user["id"],
     )
+
+    # Audit log
+    AuditService.log(
+        actor_id=current_user["id"],
+        action="gym.create",
+        target_type="gym",
+        target_id=gym["id"],
+        details={"name": gym["name"], "verified": request.verified},
+        ip_address=get_client_ip(http_request),
+    )
+
     return {"success": True, "gym": gym}
 
 
 @router.put("/gyms/{gym_id}")
+@limiter.limit("30/minute")
 async def update_gym(
+    http_request: Request,
     gym_id: int = Path(..., gt=0),
     request: GymUpdateRequest = Body(...),
     current_user: dict = Depends(require_admin),
@@ -126,16 +163,29 @@ async def update_gym(
     gym = GymRepository.get_by_id(gym_id)
     if not gym:
         raise NotFoundError(f"Gym with id {gym_id} not found")
-    
+
     # Filter out None values
     update_data = {k: v for k, v in request.dict().items() if v is not None}
-    
+
     updated_gym = GymRepository.update(gym_id, **update_data)
+
+    # Audit log
+    AuditService.log(
+        actor_id=current_user["id"],
+        action="gym.update",
+        target_type="gym",
+        target_id=gym_id,
+        details={"changes": update_data, "name": gym["name"]},
+        ip_address=get_client_ip(http_request),
+    )
+
     return {"success": True, "gym": updated_gym}
 
 
 @router.delete("/gyms/{gym_id}")
+@limiter.limit("10/minute")
 async def delete_gym(
+    request: Request,
     gym_id: int = Path(..., gt=0),
     current_user: dict = Depends(require_admin),
 ):
@@ -143,36 +193,75 @@ async def delete_gym(
     gym = GymRepository.get_by_id(gym_id)
     if not gym:
         raise NotFoundError(f"Gym with id {gym_id} not found")
-    
+
+    gym_name = gym["name"]
     success = GymRepository.delete(gym_id)
+
+    # Audit log
+    if success:
+        AuditService.log(
+            actor_id=current_user["id"],
+            action="gym.delete",
+            target_type="gym",
+            target_id=gym_id,
+            details={"name": gym_name},
+            ip_address=get_client_ip(request),
+        )
+
     return {"success": success}
 
 
 @router.post("/gyms/merge")
+@limiter.limit("10/minute")
 async def merge_gyms(
+    http_request: Request,
     request: GymMergeRequest,
     current_user: dict = Depends(require_admin),
 ):
     """Merge duplicate gyms (admin only)."""
+    # Prevent merging a gym into itself
+    if request.source_gym_id == request.target_gym_id:
+        raise ValidationError("Cannot merge a gym into itself")
+
     # Verify both gyms exist
     source = GymRepository.get_by_id(request.source_gym_id)
     target = GymRepository.get_by_id(request.target_gym_id)
-    
+
     if not source:
         raise NotFoundError(f"Source gym {request.source_gym_id} not found")
     if not target:
         raise NotFoundError(f"Target gym {request.target_gym_id} not found")
-    
-    success = GymRepository.merge_gyms(request.source_gym_id, request.target_gym_id)
-    return {
-        "success": success,
-        "message": f"Merged '{source['name']}' into '{target['name']}'",
-    }
+
+    try:
+        success = GymRepository.merge_gyms(request.source_gym_id, request.target_gym_id)
+
+        # Audit log
+        AuditService.log(
+            actor_id=current_user["id"],
+            action="gym.merge",
+            target_type="gym",
+            target_id=request.target_gym_id,
+            details={
+                "source_gym_id": request.source_gym_id,
+                "source_gym_name": source["name"],
+                "target_gym_name": target["name"],
+            },
+            ip_address=get_client_ip(http_request),
+        )
+
+        return {
+            "success": success,
+            "message": f"Merged '{source['name']}' into '{target['name']}'",
+        }
+    except Exception as e:
+        # Transaction will be rolled back automatically by the context manager
+        raise ValidationError(f"Failed to merge gyms: {str(e)}")
 
 
 # Dashboard endpoints
 @router.get("/dashboard/stats")
-async def get_dashboard_stats(current_user: dict = Depends(require_admin)):
+@limiter.limit("60/minute")
+async def get_dashboard_stats(request: Request, current_user: dict = Depends(require_admin)):
     """Get platform statistics for admin dashboard."""
     from rivaflow.db.repositories.user_repo import UserRepository
     from rivaflow.db.repositories.session_repo import SessionRepository
@@ -241,7 +330,9 @@ class UserUpdateRequest(BaseModel):
 
 
 @router.get("/users")
+@limiter.limit("60/minute")
 async def list_users(
+    request: Request,
     search: Optional[str] = None,
     is_active: Optional[bool] = None,
     is_admin: Optional[bool] = None,
@@ -303,7 +394,9 @@ async def list_users(
 
 
 @router.get("/users/{user_id}")
+@limiter.limit("60/minute")
 async def get_user_details(
+    request: Request,
     user_id: int = Path(..., gt=0),
     current_user: dict = Depends(require_admin),
 ):
@@ -356,7 +449,9 @@ async def get_user_details(
 
 
 @router.put("/users/{user_id}")
+@limiter.limit("30/minute")
 async def update_user(
+    http_request: Request,
     user_id: int = Path(..., gt=0),
     request: UserUpdateRequest = Body(...),
     current_user: dict = Depends(require_admin),
@@ -369,6 +464,7 @@ async def update_user(
     if not user:
         raise NotFoundError(f"User {user_id} not found")
 
+    changes = {}
     with get_connection() as conn:
         cursor = conn.cursor()
         updates = []
@@ -377,10 +473,12 @@ async def update_user(
         if request.is_active is not None:
             updates.append("is_active = ?")
             params.append(request.is_active)
+            changes["is_active"] = request.is_active
 
         if request.is_admin is not None:
             updates.append("is_admin = ?")
             params.append(request.is_admin)
+            changes["is_admin"] = request.is_admin
 
         if updates:
             query = f"UPDATE users SET {', '.join(updates)} WHERE id = ?"
@@ -389,11 +487,25 @@ async def update_user(
             conn.commit()
 
     updated_user = UserRepository.get_by_id(user_id)
+
+    # Audit log
+    if changes:
+        AuditService.log(
+            actor_id=current_user["id"],
+            action="user.update",
+            target_type="user",
+            target_id=user_id,
+            details={"changes": changes, "email": user["email"]},
+            ip_address=get_client_ip(http_request),
+        )
+
     return {"success": True, "user": updated_user}
 
 
 @router.delete("/users/{user_id}")
+@limiter.limit("10/minute")
 async def delete_user(
+    request: Request,
     user_id: int = Path(..., gt=0),
     current_user: dict = Depends(require_admin),
 ):
@@ -408,17 +520,30 @@ async def delete_user(
     if not user:
         raise NotFoundError(f"User {user_id} not found")
 
+    user_email = user["email"]
     with get_connection() as conn:
         cursor = conn.cursor()
         cursor.execute(convert_query("DELETE FROM users WHERE id = ?"), (user_id,))
         conn.commit()
 
-    return {"success": True, "message": f"User {user['email']} deleted"}
+    # Audit log
+    AuditService.log(
+        actor_id=current_user["id"],
+        action="user.delete",
+        target_type="user",
+        target_id=user_id,
+        details={"email": user_email},
+        ip_address=get_client_ip(request),
+    )
+
+    return {"success": True, "message": f"User {user_email} deleted"}
 
 
 # Content moderation endpoints
 @router.get("/comments")
+@limiter.limit("60/minute")
 async def list_all_comments(
+    request: Request,
     limit: int = 100,
     offset: int = 0,
     current_user: dict = Depends(require_admin),
@@ -455,7 +580,9 @@ async def list_all_comments(
 
 
 @router.delete("/comments/{comment_id}")
+@limiter.limit("10/minute")
 async def delete_comment(
+    request: Request,
     comment_id: int = Path(..., gt=0),
     current_user: dict = Depends(require_admin),
 ):
@@ -466,12 +593,24 @@ async def delete_comment(
     if not success:
         raise NotFoundError(f"Comment {comment_id} not found")
 
+    # Audit log
+    AuditService.log(
+        actor_id=current_user["id"],
+        action="comment.delete",
+        target_type="comment",
+        target_id=comment_id,
+        details={},
+        ip_address=get_client_ip(request),
+    )
+
     return {"success": True, "message": "Comment deleted"}
 
 
 # Technique management endpoints
 @router.get("/techniques")
+@limiter.limit("60/minute")
 async def list_techniques(
+    request: Request,
     search: Optional[str] = None,
     category: Optional[str] = None,
     custom_only: bool = False,
@@ -513,12 +652,23 @@ async def list_techniques(
 
 
 @router.delete("/techniques/{technique_id}")
+@limiter.limit("10/minute")
 async def delete_technique(
+    request: Request,
     technique_id: int = Path(..., gt=0),
     current_user: dict = Depends(require_admin),
 ):
     """Delete a technique (admin only)."""
     from rivaflow.db.database import get_connection, convert_query
+
+    # Get technique name before deleting
+    technique_name = None
+    with get_connection() as conn:
+        cursor = conn.cursor()
+        cursor.execute(convert_query("SELECT name FROM movements_glossary WHERE id = ?"), (technique_id,))
+        row = cursor.fetchone()
+        if row:
+            technique_name = row["name"] if hasattr(row, "__getitem__") else row[0]
 
     with get_connection() as conn:
         cursor = conn.cursor()
@@ -528,4 +678,52 @@ async def delete_technique(
         if cursor.rowcount == 0:
             raise NotFoundError(f"Technique {technique_id} not found")
 
+    # Audit log
+    AuditService.log(
+        actor_id=current_user["id"],
+        action="technique.delete",
+        target_type="technique",
+        target_id=technique_id,
+        details={"name": technique_name} if technique_name else {},
+        ip_address=get_client_ip(request),
+    )
+
     return {"success": True, "message": "Technique deleted"}
+
+
+# Audit log endpoints
+@router.get("/audit-logs")
+@limiter.limit("60/minute")
+async def get_audit_logs(
+    request: Request,
+    limit: int = 100,
+    offset: int = 0,
+    actor_id: Optional[int] = None,
+    action: Optional[str] = None,
+    target_type: Optional[str] = None,
+    target_id: Optional[int] = None,
+    current_user: dict = Depends(require_admin),
+):
+    """Get audit logs with optional filters (admin only)."""
+    logs = AuditService.get_logs(
+        limit=limit,
+        offset=offset,
+        actor_id=actor_id,
+        action=action,
+        target_type=target_type,
+        target_id=target_id,
+    )
+
+    total = AuditService.get_total_count(
+        actor_id=actor_id,
+        action=action,
+        target_type=target_type,
+        target_id=target_id,
+    )
+
+    return {
+        "logs": logs,
+        "total": total,
+        "limit": limit,
+        "offset": offset,
+    }

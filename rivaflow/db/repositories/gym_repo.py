@@ -186,17 +186,38 @@ class GymRepository:
         """
         Merge two gyms by updating all references from source to target.
         Then delete the source gym.
+
+        This operation is atomic - all changes are committed together or rolled back on error.
+        The context manager ensures automatic transaction handling:
+        - Success: All changes are committed
+        - Failure: All changes are rolled back
+
+        Args:
+            source_gym_id: ID of the gym to merge (will be deleted)
+            target_gym_id: ID of the gym to merge into (will remain)
+
+        Returns:
+            bool: True if merge completed successfully
+
+        Raises:
+            Exception: If database operations fail (transaction will be rolled back)
         """
         with get_connection() as conn:
             cursor = conn.cursor()
-            
-            # Update users with primary_gym_id = source to target
-            cursor.execute(convert_query("""
-                UPDATE users SET primary_gym_id = ? WHERE primary_gym_id = ?
-            """), (target_gym_id, source_gym_id))
-            
-            # Delete the source gym
-            cursor.execute(convert_query("DELETE FROM gyms WHERE id = ?"), (source_gym_id,))
-            
-            conn.commit()
-            return True
+
+            try:
+                # Update users with primary_gym_id = source to target
+                cursor.execute(convert_query("""
+                    UPDATE users SET primary_gym_id = ? WHERE primary_gym_id = ?
+                """), (target_gym_id, source_gym_id))
+
+                # Delete the source gym
+                cursor.execute(convert_query("DELETE FROM gyms WHERE id = ?"), (source_gym_id,))
+
+                # Explicit commit (also happens automatically on context exit)
+                conn.commit()
+                return True
+            except Exception as e:
+                # Rollback happens automatically via context manager
+                # Re-raise to let caller handle the error
+                raise Exception(f"Gym merge failed: {str(e)}") from e
