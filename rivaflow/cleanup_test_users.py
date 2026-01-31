@@ -6,7 +6,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent))
 
 from rivaflow.db.repositories.user_repo import UserRepository
-from rivaflow.db.database import get_connection
+from rivaflow.db.database import get_connection, convert_query
 
 print("=" * 60)
 print("Cleaning Up Test Users")
@@ -42,34 +42,34 @@ with get_connection() as conn:
 
     for user_id in test_user_ids:
         # Delete sessions
-        cursor.execute("DELETE FROM sessions WHERE user_id = ?", (user_id,))
+        cursor.execute(convert_query("DELETE FROM sessions WHERE user_id = ?"), (user_id,))
         session_count = cursor.rowcount
 
         # Delete readiness
-        cursor.execute("DELETE FROM readiness WHERE user_id = ?", (user_id,))
+        cursor.execute(convert_query("DELETE FROM readiness WHERE user_id = ?"), (user_id,))
         readiness_count = cursor.rowcount
 
         # Delete checkins
-        cursor.execute("DELETE FROM daily_checkins WHERE user_id = ?", (user_id,))
+        cursor.execute(convert_query("DELETE FROM daily_checkins WHERE user_id = ?"), (user_id,))
         checkin_count = cursor.rowcount
 
         # Delete relationships (both follower and following)
-        cursor.execute("DELETE FROM user_relationships WHERE follower_user_id = ? OR following_user_id = ?", (user_id, user_id))
+        cursor.execute(convert_query("DELETE FROM user_relationships WHERE follower_user_id = ? OR following_user_id = ?"), (user_id, user_id))
         relationship_count = cursor.rowcount
 
         # Delete likes
-        cursor.execute("DELETE FROM activity_likes WHERE user_id = ?", (user_id,))
+        cursor.execute(convert_query("DELETE FROM activity_likes WHERE user_id = ?"), (user_id,))
         like_count = cursor.rowcount
 
         # Delete comments
-        cursor.execute("DELETE FROM activity_comments WHERE user_id = ?", (user_id,))
+        cursor.execute(convert_query("DELETE FROM activity_comments WHERE user_id = ?"), (user_id,))
         comment_count = cursor.rowcount
 
         # Delete profile
-        cursor.execute("DELETE FROM profile WHERE user_id = ?", (user_id,))
+        cursor.execute(convert_query("DELETE FROM profile WHERE user_id = ?"), (user_id,))
 
         # Delete user
-        cursor.execute("DELETE FROM users WHERE id = ?", (user_id,))
+        cursor.execute(convert_query("DELETE FROM users WHERE id = ?"), (user_id,))
 
         print(f"   ✓ User ID {user_id}: {session_count} sessions, {readiness_count} readiness, {checkin_count} checkins")
         print(f"     {relationship_count} relationships, {like_count} likes, {comment_count} comments")
