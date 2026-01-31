@@ -296,6 +296,10 @@ export const photosApi = {
 };
 
 export const adminApi = {
+  // Dashboard
+  getDashboardStats: () =>
+    api.get('/admin/dashboard/stats'),
+
   // Gyms
   listGyms: (verifiedOnly = false) =>
     api.get('/admin/gyms', { params: { verified_only: verifiedOnly } }),
@@ -311,4 +315,26 @@ export const adminApi = {
     api.delete(`/admin/gyms/${gymId}`),
   mergeGyms: (sourceGymId: number, targetGymId: number) =>
     api.post('/admin/gyms/merge', { source_gym_id: sourceGymId, target_gym_id: targetGymId }),
+
+  // Users
+  listUsers: (params?: { search?: string; is_active?: boolean; is_admin?: boolean; limit?: number; offset?: number }) =>
+    api.get('/admin/users', { params }),
+  getUserDetails: (userId: number) =>
+    api.get(`/admin/users/${userId}`),
+  updateUser: (userId: number, data: { is_active?: boolean; is_admin?: boolean }) =>
+    api.put(`/admin/users/${userId}`, data),
+  deleteUser: (userId: number) =>
+    api.delete(`/admin/users/${userId}`),
+
+  // Content Moderation
+  listComments: (params?: { limit?: number; offset?: number }) =>
+    api.get('/admin/comments', { params }),
+  deleteComment: (commentId: number) =>
+    api.delete(`/admin/comments/${commentId}`),
+
+  // Techniques
+  listTechniques: (params?: { search?: string; category?: string; custom_only?: boolean }) =>
+    api.get('/admin/techniques', { params }),
+  deleteTechnique: (techniqueId: number) =>
+    api.delete(`/admin/techniques/${techniqueId}`),
 };

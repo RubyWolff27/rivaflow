@@ -173,3 +173,353 @@ async def merge_gyms(
         "success": success,
         "message": f"Merged '{source['name']}' into '{target['name']}'",
     }
+
+
+# Dashboard endpoints
+@router.get("/dashboard/stats")
+async def get_dashboard_stats(current_user: dict = Depends(require_admin)):
+    """Get platform statistics for admin dashboard."""
+    from rivaflow.db.repositories.user_repo import UserRepository
+    from rivaflow.db.repositories.session_repo import SessionRepository
+    from rivaflow.db.repositories.activity_comment_repo import ActivityCommentRepository
+    from rivaflow.db.database import get_connection, convert_query
+    from datetime import datetime, timedelta
+
+    with get_connection() as conn:
+        cursor = conn.cursor()
+
+        # Total users
+        cursor.execute(convert_query("SELECT COUNT(*) FROM users"))
+        total_users = cursor.fetchone()[0]
+
+        # Active users (logged session in last 30 days)
+        thirty_days_ago = (datetime.now() - timedelta(days=30)).strftime('%Y-%m-%d')
+        cursor.execute(convert_query("""
+            SELECT COUNT(DISTINCT user_id) FROM sessions
+            WHERE session_date >= ?
+        """), (thirty_days_ago,))
+        active_users = cursor.fetchone()[0]
+
+        # Total sessions
+        cursor.execute(convert_query("SELECT COUNT(*) FROM sessions"))
+        total_sessions = cursor.fetchone()[0]
+
+        # Total gyms
+        total_gyms = len(GymRepository.list_all(verified_only=False))
+        pending_gyms = len(GymRepository.get_pending_gyms())
+        verified_gyms = total_gyms - pending_gyms
+
+        # Total comments
+        cursor.execute(convert_query("SELECT COUNT(*) FROM activity_comments"))
+        total_comments = cursor.fetchone()[0]
+
+        # New users this week
+        week_ago = (datetime.now() - timedelta(days=7)).strftime('%Y-%m-%d')
+        cursor.execute(convert_query("""
+            SELECT COUNT(*) FROM users
+            WHERE created_at >= ?
+        """), (week_ago,))
+        new_users_week = cursor.fetchone()[0]
+
+    return {
+        "total_users": total_users,
+        "active_users": active_users,
+        "new_users_week": new_users_week,
+        "total_sessions": total_sessions,
+        "total_gyms": total_gyms,
+        "verified_gyms": verified_gyms,
+        "pending_gyms": pending_gyms,
+        "total_comments": total_comments,
+    }
+
+
+# User management endpoints
+class UserUpdateRequest(BaseModel):
+    """Request model for updating a user."""
+    is_active: Optional[bool] = None
+    is_admin: Optional[bool] = None
+
+
+@router.get("/users")
+async def list_users(
+    search: Optional[str] = None,
+    is_active: Optional[bool] = None,
+    is_admin: Optional[bool] = None,
+    limit: int = 50,
+    offset: int = 0,
+    current_user: dict = Depends(require_admin),
+):
+    """List all users with optional filters (admin only)."""
+    from rivaflow.db.database import get_connection, convert_query
+
+    with get_connection() as conn:
+        cursor = conn.cursor()
+
+        query = "SELECT id, email, first_name, last_name, is_active, is_admin, created_at FROM users WHERE 1=1"
+        params = []
+
+        if search:
+            query += " AND (email LIKE ? OR first_name LIKE ? OR last_name LIKE ?)"
+            search_term = f"%{search}%"
+            params.extend([search_term, search_term, search_term])
+
+        if is_active is not None:
+            query += " AND is_active = ?"
+            params.append(is_active)
+
+        if is_admin is not None:
+            query += " AND is_admin = ?"
+            params.append(is_admin)
+
+        query += " ORDER BY created_at DESC LIMIT ? OFFSET ?"
+        params.extend([limit, offset])
+
+        cursor.execute(convert_query(query), params)
+        users = cursor.fetchall()
+
+        # Get total count
+        count_query = "SELECT COUNT(*) FROM users WHERE 1=1"
+        count_params = []
+        if search:
+            count_query += " AND (email LIKE ? OR first_name LIKE ? OR last_name LIKE ?)"
+            count_params.extend([search_term, search_term, search_term])
+        if is_active is not None:
+            count_query += " AND is_active = ?"
+            count_params.append(is_active)
+        if is_admin is not None:
+            count_query += " AND is_admin = ?"
+            count_params.append(is_admin)
+
+        cursor.execute(convert_query(count_query), count_params)
+        total_count = cursor.fetchone()[0]
+
+        return {
+            "users": [dict(row) for row in users],
+            "total": total_count,
+            "limit": limit,
+            "offset": offset,
+        }
+
+
+@router.get("/users/{user_id}")
+async def get_user_details(
+    user_id: int = Path(..., gt=0),
+    current_user: dict = Depends(require_admin),
+):
+    """Get detailed user information (admin only)."""
+    from rivaflow.db.repositories.user_repo import UserRepository
+    from rivaflow.db.repositories.session_repo import SessionRepository
+    from rivaflow.db.database import get_connection, convert_query
+
+    user = UserRepository.get_by_id(user_id)
+    if not user:
+        raise NotFoundError(f"User {user_id} not found")
+
+    # Get user stats
+    with get_connection() as conn:
+        cursor = conn.cursor()
+
+        # Session count
+        cursor.execute(convert_query("SELECT COUNT(*) FROM sessions WHERE user_id = ?"), (user_id,))
+        session_count = cursor.fetchone()[0]
+
+        # Comment count
+        cursor.execute(convert_query("SELECT COUNT(*) FROM activity_comments WHERE user_id = ?"), (user_id,))
+        comment_count = cursor.fetchone()[0]
+
+        # Followers
+        cursor.execute(convert_query("""
+            SELECT COUNT(*) FROM user_relationships WHERE following_user_id = ?
+        """), (user_id,))
+        followers_count = cursor.fetchone()[0]
+
+        # Following
+        cursor.execute(convert_query("""
+            SELECT COUNT(*) FROM user_relationships WHERE follower_user_id = ?
+        """), (user_id,))
+        following_count = cursor.fetchone()[0]
+
+    return {
+        **user,
+        "stats": {
+            "sessions": session_count,
+            "comments": comment_count,
+            "followers": followers_count,
+            "following": following_count,
+        }
+    }
+
+
+@router.put("/users/{user_id}")
+async def update_user(
+    user_id: int = Path(..., gt=0),
+    request: UserUpdateRequest = Body(...),
+    current_user: dict = Depends(require_admin),
+):
+    """Update user (admin only)."""
+    from rivaflow.db.repositories.user_repo import UserRepository
+    from rivaflow.db.database import get_connection, convert_query
+
+    user = UserRepository.get_by_id(user_id)
+    if not user:
+        raise NotFoundError(f"User {user_id} not found")
+
+    with get_connection() as conn:
+        cursor = conn.cursor()
+        updates = []
+        params = []
+
+        if request.is_active is not None:
+            updates.append("is_active = ?")
+            params.append(request.is_active)
+
+        if request.is_admin is not None:
+            updates.append("is_admin = ?")
+            params.append(request.is_admin)
+
+        if updates:
+            query = f"UPDATE users SET {', '.join(updates)} WHERE id = ?"
+            params.append(user_id)
+            cursor.execute(convert_query(query), params)
+            conn.commit()
+
+    updated_user = UserRepository.get_by_id(user_id)
+    return {"success": True, "user": updated_user}
+
+
+@router.delete("/users/{user_id}")
+async def delete_user(
+    user_id: int = Path(..., gt=0),
+    current_user: dict = Depends(require_admin),
+):
+    """Delete user (admin only). Cascades to all related data."""
+    from rivaflow.db.repositories.user_repo import UserRepository
+    from rivaflow.db.database import get_connection, convert_query
+
+    if user_id == current_user["id"]:
+        raise ValidationError("Cannot delete your own account")
+
+    user = UserRepository.get_by_id(user_id)
+    if not user:
+        raise NotFoundError(f"User {user_id} not found")
+
+    with get_connection() as conn:
+        cursor = conn.cursor()
+        cursor.execute(convert_query("DELETE FROM users WHERE id = ?"), (user_id,))
+        conn.commit()
+
+    return {"success": True, "message": f"User {user['email']} deleted"}
+
+
+# Content moderation endpoints
+@router.get("/comments")
+async def list_all_comments(
+    limit: int = 100,
+    offset: int = 0,
+    current_user: dict = Depends(require_admin),
+):
+    """List all comments for moderation (admin only)."""
+    from rivaflow.db.database import get_connection, convert_query
+
+    with get_connection() as conn:
+        cursor = conn.cursor()
+
+        cursor.execute(convert_query("""
+            SELECT
+                c.id, c.user_id, c.activity_type, c.activity_id,
+                c.comment_text, c.created_at,
+                u.email, u.first_name, u.last_name
+            FROM activity_comments c
+            LEFT JOIN users u ON c.user_id = u.id
+            ORDER BY c.created_at DESC
+            LIMIT ? OFFSET ?
+        """), (limit, offset))
+
+        comments = [dict(row) for row in cursor.fetchall()]
+
+        cursor.execute(convert_query("SELECT COUNT(*) FROM activity_comments"))
+        total = cursor.fetchone()[0]
+
+        return {
+            "comments": comments,
+            "total": total,
+            "limit": limit,
+            "offset": offset,
+        }
+
+
+@router.delete("/comments/{comment_id}")
+async def delete_comment(
+    comment_id: int = Path(..., gt=0),
+    current_user: dict = Depends(require_admin),
+):
+    """Delete a comment (admin only)."""
+    from rivaflow.db.repositories.activity_comment_repo import ActivityCommentRepository
+
+    success = ActivityCommentRepository.delete(comment_id)
+    if not success:
+        raise NotFoundError(f"Comment {comment_id} not found")
+
+    return {"success": True, "message": "Comment deleted"}
+
+
+# Technique management endpoints
+@router.get("/techniques")
+async def list_techniques(
+    search: Optional[str] = None,
+    category: Optional[str] = None,
+    custom_only: bool = False,
+    current_user: dict = Depends(require_admin),
+):
+    """List all techniques for admin management."""
+    from rivaflow.db.database import get_connection, convert_query
+
+    with get_connection() as conn:
+        cursor = conn.cursor()
+
+        query = """
+            SELECT id, name, category, subcategory, custom, user_id,
+                   gi_applicable, nogi_applicable
+            FROM movements_glossary WHERE 1=1
+        """
+        params = []
+
+        if search:
+            query += " AND name LIKE ?"
+            params.append(f"%{search}%")
+
+        if category:
+            query += " AND category = ?"
+            params.append(category)
+
+        if custom_only:
+            query += " AND custom = 1"
+
+        query += " ORDER BY name"
+
+        cursor.execute(convert_query(query), params)
+        techniques = [dict(row) for row in cursor.fetchall()]
+
+        return {
+            "techniques": techniques,
+            "count": len(techniques),
+        }
+
+
+@router.delete("/techniques/{technique_id}")
+async def delete_technique(
+    technique_id: int = Path(..., gt=0),
+    current_user: dict = Depends(require_admin),
+):
+    """Delete a technique (admin only)."""
+    from rivaflow.db.database import get_connection, convert_query
+
+    with get_connection() as conn:
+        cursor = conn.cursor()
+        cursor.execute(convert_query("DELETE FROM movements_glossary WHERE id = ?"), (technique_id,))
+        conn.commit()
+
+        if cursor.rowcount == 0:
+            raise NotFoundError(f"Technique {technique_id} not found")
+
+    return {"success": True, "message": "Technique deleted"}
