@@ -35,29 +35,30 @@ class MilestoneService:
 
     def _get_current_totals(self, user_id: int) -> dict:
         """Calculate current totals for all milestone types."""
+        from rivaflow.db.database import convert_query
+
         with get_connection() as conn:
             cursor = conn.cursor()
 
             # Hours: sum of duration_mins / 60 from sessions
-            cursor.execute("SELECT SUM(duration_mins) as total FROM sessions WHERE user_id = %s", (user_id,))
+            cursor.execute(convert_query("SELECT SUM(duration_mins) as total FROM sessions WHERE user_id = ?"), (user_id,))
             result = cursor.fetchone()
             total_mins = result['total'] or 0
             hours = int(total_mins / 60)
 
             # Sessions: count of sessions
-            cursor.execute("SELECT COUNT(*) as count FROM sessions WHERE user_id = %s", (user_id,))
+            cursor.execute(convert_query("SELECT COUNT(*) as count FROM sessions WHERE user_id = ?"), (user_id,))
             result = cursor.fetchone()
             sessions = result['count'] or 0
 
             # Rolls: sum of rolls from sessions
-            cursor.execute("SELECT SUM(rolls) as total FROM sessions WHERE user_id = %s", (user_id,))
+            cursor.execute(convert_query("SELECT SUM(rolls) as total FROM sessions WHERE user_id = ?"), (user_id,))
             result = cursor.fetchone()
             rolls = result['total'] or 0
 
             # Partners: count of unique partners from sessions (JSON partners field)
             # Note: This is simplified - in reality we'd need to parse JSON
             # session_rolls doesn't have user_id, need to JOIN with sessions
-            from rivaflow.db.database import convert_query
             cursor.execute(convert_query("""
                 SELECT COUNT(DISTINCT sr.partner_id) as count
                 FROM session_rolls sr

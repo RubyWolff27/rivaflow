@@ -175,6 +175,25 @@ class ActivityCommentRepository:
             return cursor.rowcount > 0
 
     @staticmethod
+    def delete_admin(comment_id: int) -> bool:
+        """
+        Delete a comment (admin can delete any comment without ownership check).
+
+        Args:
+            comment_id: The comment ID to delete
+
+        Returns:
+            True if deleted, False if not found
+        """
+        with get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                convert_query("DELETE FROM activity_comments WHERE id = ?"),
+                (comment_id,),
+            )
+            return cursor.rowcount > 0
+
+    @staticmethod
     def get_comment_count(activity_type: str, activity_id: int) -> int:
         """
         Get the count of comments for an activity.

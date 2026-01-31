@@ -353,16 +353,16 @@ class AuthService:
 
         # Update user's password
         try:
-            from rivaflow.db.database import get_connection
+            from rivaflow.db.database import get_connection, convert_query
 
             with get_connection() as conn:
                 cursor = conn.cursor()
                 cursor.execute(
-                    """
+                    convert_query("""
                     UPDATE users
-                    SET hashed_password = %s, updated_at = CURRENT_TIMESTAMP
-                    WHERE id = %s
-                    """,
+                    SET hashed_password = ?, updated_at = CURRENT_TIMESTAMP
+                    WHERE id = ?
+                    """),
                     (hashed_pwd, user_id),
                 )
 

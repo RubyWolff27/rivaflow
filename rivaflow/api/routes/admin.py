@@ -48,13 +48,8 @@ class GymMergeRequest(BaseModel):
 # Helper to check if user is admin
 def require_admin(current_user: dict = Depends(get_current_user)) -> dict:
     """Dependency to require admin access."""
-    # Check if user has admin role
-    if not current_user.get("is_admin"):
-        # Fallback: check email domain for backwards compatibility
-        if not current_user.get("email", "").endswith(("@rivaflow.com", "@admin.com")):
-            # Fallback: allow user_id = 1 for backwards compatibility
-            if current_user.get("id") != 1:
-                raise ValidationError("Admin access required")
+    if not current_user.get("is_admin", False):
+        raise ValidationError("Admin access required")
     return current_user
 
 
@@ -190,7 +185,8 @@ async def get_dashboard_stats(current_user: dict = Depends(require_admin)):
 
         # Total users
         cursor.execute(convert_query("SELECT COUNT(*) FROM users"))
-        total_users = cursor.fetchone()[0]
+        row = cursor.fetchone()
+        total_users = row[0] if row else 0
 
         # Active users (logged session in last 30 days)
         thirty_days_ago = (datetime.now() - timedelta(days=30)).strftime('%Y-%m-%d')
@@ -198,11 +194,13 @@ async def get_dashboard_stats(current_user: dict = Depends(require_admin)):
             SELECT COUNT(DISTINCT user_id) FROM sessions
             WHERE session_date >= ?
         """), (thirty_days_ago,))
-        active_users = cursor.fetchone()[0]
+        row = cursor.fetchone()
+        active_users = row[0] if row else 0
 
         # Total sessions
         cursor.execute(convert_query("SELECT COUNT(*) FROM sessions"))
-        total_sessions = cursor.fetchone()[0]
+        row = cursor.fetchone()
+        total_sessions = row[0] if row else 0
 
         # Total gyms
         total_gyms = len(GymRepository.list_all(verified_only=False))
@@ -211,7 +209,8 @@ async def get_dashboard_stats(current_user: dict = Depends(require_admin)):
 
         # Total comments
         cursor.execute(convert_query("SELECT COUNT(*) FROM activity_comments"))
-        total_comments = cursor.fetchone()[0]
+        row = cursor.fetchone()
+        total_comments = row[0] if row else 0
 
         # New users this week
         week_ago = (datetime.now() - timedelta(days=7)).strftime('%Y-%m-%d')
@@ -219,7 +218,8 @@ async def get_dashboard_stats(current_user: dict = Depends(require_admin)):
             SELECT COUNT(*) FROM users
             WHERE created_at >= ?
         """), (week_ago,))
-        new_users_week = cursor.fetchone()[0]
+        row = cursor.fetchone()
+        new_users_week = row[0] if row else 0
 
     return {
         "total_users": total_users,
@@ -291,7 +291,8 @@ async def list_users(
             count_params.append(is_admin)
 
         cursor.execute(convert_query(count_query), count_params)
-        total_count = cursor.fetchone()[0]
+        row = cursor.fetchone()
+        total_count = row[0] if row else 0
 
         return {
             "users": [dict(row) for row in users],
@@ -321,23 +322,27 @@ async def get_user_details(
 
         # Session count
         cursor.execute(convert_query("SELECT COUNT(*) FROM sessions WHERE user_id = ?"), (user_id,))
-        session_count = cursor.fetchone()[0]
+        row = cursor.fetchone()
+        session_count = row[0] if row else 0
 
         # Comment count
         cursor.execute(convert_query("SELECT COUNT(*) FROM activity_comments WHERE user_id = ?"), (user_id,))
-        comment_count = cursor.fetchone()[0]
+        row = cursor.fetchone()
+        comment_count = row[0] if row else 0
 
         # Followers
         cursor.execute(convert_query("""
             SELECT COUNT(*) FROM user_relationships WHERE following_user_id = ?
         """), (user_id,))
-        followers_count = cursor.fetchone()[0]
+        row = cursor.fetchone()
+        followers_count = row[0] if row else 0
 
         # Following
         cursor.execute(convert_query("""
             SELECT COUNT(*) FROM user_relationships WHERE follower_user_id = ?
         """), (user_id,))
-        following_count = cursor.fetchone()[0]
+        row = cursor.fetchone()
+        following_count = row[0] if row else 0
 
     return {
         **user,
@@ -438,7 +443,8 @@ async def list_all_comments(
         comments = [dict(row) for row in cursor.fetchall()]
 
         cursor.execute(convert_query("SELECT COUNT(*) FROM activity_comments"))
-        total = cursor.fetchone()[0]
+        row = cursor.fetchone()
+        total = row[0] if row else 0
 
         return {
             "comments": comments,
@@ -456,7 +462,7 @@ async def delete_comment(
     """Delete a comment (admin only)."""
     from rivaflow.db.repositories.activity_comment_repo import ActivityCommentRepository
 
-    success = ActivityCommentRepository.delete(comment_id)
+    success = ActivityCommentRepository.delete_admin(comment_id)
     if not success:
         raise NotFoundError(f"Comment {comment_id} not found")
 
