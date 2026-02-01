@@ -137,12 +137,12 @@ async def check_following(user_id: int = Path(..., gt=0), current_user: dict = D
 # Like endpoints
 @router.post("/like")
 @limiter.limit("60/minute")
-async def like_activity(http_request: Request, request: LikeRequest, current_user: dict = Depends(get_current_user)):
+async def like_activity(request: Request, like_req: LikeRequest, current_user: dict = Depends(get_current_user)):
     """
     Like an activity.
 
     Args:
-        request: Like request with activity_type and activity_id
+        like_req: Like request with activity_type and activity_id
 
     Returns:
         Created like
@@ -153,7 +153,7 @@ async def like_activity(http_request: Request, request: LikeRequest, current_use
     """
     try:
         like = SocialService.like_activity(
-            current_user["id"], request.activity_type, request.activity_id
+            current_user["id"], like_req.activity_type, like_req.activity_id
         )
         return {"success": True, "like": like}
     except ValueError as e:
@@ -206,12 +206,12 @@ async def get_activity_likes(
 # Comment endpoints
 @router.post("/comment")
 @limiter.limit("20/minute")
-async def add_comment(http_request: Request, request: CommentRequest, current_user: dict = Depends(get_current_user)):
+async def add_comment(request: Request, comment_req: CommentRequest, current_user: dict = Depends(get_current_user)):
     """
     Add a comment to an activity.
 
     Args:
-        request: Comment request with activity info and comment text
+        comment_req: Comment request with activity info and comment text
 
     Returns:
         Created comment
@@ -223,10 +223,10 @@ async def add_comment(http_request: Request, request: CommentRequest, current_us
     try:
         comment = SocialService.add_comment(
             current_user["id"],
-            request.activity_type,
-            request.activity_id,
-            request.comment_text,
-            request.parent_comment_id,
+            comment_req.activity_type,
+            comment_req.activity_id,
+            comment_req.comment_text,
+            comment_req.parent_comment_id,
         )
         return {"success": True, "comment": comment}
     except ValueError as e:
@@ -318,7 +318,7 @@ async def get_activity_comments(
 # User search endpoint
 @router.get("/users/search")
 @limiter.limit("60/minute")
-async def search_users(http_request: Request, q: str = "", current_user: dict = Depends(get_current_user)):
+async def search_users(request: Request, q: str = "", current_user: dict = Depends(get_current_user)):
     """
     Search for users by name or email.
 
