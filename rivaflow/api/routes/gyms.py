@@ -8,7 +8,7 @@ from rivaflow.core.services.gym_service import GymService
 router = APIRouter(prefix="/gyms", tags=["gyms"])
 
 
-@router.get("/")
+@router.get("")
 async def list_gyms(
     request: Request,
     verified_only: bool = Query(True),
