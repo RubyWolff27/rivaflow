@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Camera, Upload, X } from 'lucide-react';
 import { photosApi } from '../api/client';
+import { useToast } from '../contexts/ToastContext';
 
 interface PhotoUploadProps {
   activityType: 'session' | 'readiness' | 'rest';
@@ -21,6 +22,7 @@ export default function PhotoUpload({
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [caption, setCaption] = useState('');
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const toast = useToast();
 
   const maxPhotos = 3;
   const canUpload = currentPhotoCount < maxPhotos;
@@ -32,14 +34,14 @@ export default function PhotoUpload({
     // Validate file type
     const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
     if (!allowedTypes.includes(file.type)) {
-      alert('Invalid file type. Please upload a JPG, PNG, GIF, or WebP image.');
+      toast.error('Invalid file type. Please upload a JPG, PNG, GIF, or WebP image.');
       return;
     }
 
     // Validate file size (10MB)
     const maxSize = 10 * 1024 * 1024;
     if (file.size > maxSize) {
-      alert('File too large. Maximum size is 10MB.');
+      toast.error('File too large. Maximum size is 10MB.');
       return;
     }
 
@@ -70,9 +72,10 @@ export default function PhotoUpload({
 
       // Notify parent
       onUploadSuccess();
+      toast.success('Photo uploaded successfully');
     } catch (error: any) {
       console.error('Error uploading photo:', error);
-      alert(error.response?.data?.detail || 'Failed to upload photo');
+      toast.error(error.response?.data?.detail || 'Failed to upload photo');
     } finally {
       setUploading(false);
     }

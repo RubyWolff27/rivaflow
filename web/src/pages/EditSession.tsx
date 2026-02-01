@@ -5,6 +5,8 @@ import type { Friend, Movement, MediaUrl } from '../types';
 import { CheckCircle, ArrowLeft, Save, Loader, Plus, X, Search, Trash2, ToggleLeft, ToggleRight, Camera } from 'lucide-react';
 import PhotoGallery from '../components/PhotoGallery';
 import PhotoUpload from '../components/PhotoUpload';
+import ConfirmDialog from '../components/ConfirmDialog';
+import { useToast } from '../contexts/ToastContext';
 
 const CLASS_TYPES = ['gi', 'no-gi', 'wrestling', 'judo', 'open-mat', 's&c', 'mobility', 'yoga', 'rehab', 'physio', 'drilling', 'cardio'];
 const SPARRING_TYPES = ['gi', 'no-gi', 'wrestling', 'judo', 'open-mat'];
@@ -33,6 +35,8 @@ export default function EditSession() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [success, setSuccess] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const toast = useToast();
 
   const [instructors, setInstructors] = useState<Friend[]>([]);
   const [partners, setPartners] = useState<Friend[]>([]);
@@ -147,7 +151,7 @@ export default function EditSession() {
       }
     } catch (error) {
       console.error('Error loading session:', error);
-      alert('Failed to load session. Redirecting to dashboard.');
+      toast.error('Failed to load session. Redirecting to dashboard.');
       navigate('/');
     } finally {
       setLoading(false);
@@ -356,25 +360,21 @@ export default function EditSession() {
       setTimeout(() => navigate('/'), 1500);
     } catch (error) {
       console.error('Error updating session:', error);
-      alert('Failed to update session. Please try again.');
+      toast.error('Failed to update session. Please try again.');
     } finally {
       setSaving(false);
     }
   };
 
-  const handleDelete = async () => {
-    if (!confirm('Are you sure you want to delete this session? This action cannot be undone.')) {
-      return;
-    }
-
+  const handleDeleteConfirm = async () => {
     setSaving(true);
     try {
       await sessionsApi.delete(parseInt(id!));
-      alert('Session deleted successfully');
+      toast.success('Session deleted successfully');
       navigate('/');
     } catch (error) {
       console.error('Error deleting session:', error);
-      alert('Failed to delete session. Please try again.');
+      toast.error('Failed to delete session. Please try again.');
       setSaving(false);
     }
   };
@@ -1113,9 +1113,10 @@ export default function EditSession() {
           </button>
           <button
             type="button"
-            onClick={handleDelete}
+            onClick={() => setShowDeleteConfirm(true)}
             disabled={saving}
             className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+            aria-label="Delete session"
           >
             <Trash2 className="w-4 h-4" />
             Delete
@@ -1130,6 +1131,17 @@ export default function EditSession() {
           </button>
         </div>
       </form>
+
+      <ConfirmDialog
+        isOpen={showDeleteConfirm}
+        onClose={() => setShowDeleteConfirm(false)}
+        onConfirm={handleDeleteConfirm}
+        title="Delete Session"
+        message="Are you sure you want to delete this session? This action cannot be undone."
+        confirmText="Delete"
+        cancelText="Cancel"
+        variant="danger"
+      />
     </div>
   );
 }

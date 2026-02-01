@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { X } from 'lucide-react';
 import { sessionsApi } from '../api/client';
 import { PrimaryButton, SecondaryButton } from './ui';
+import { useToast } from '../contexts/ToastContext';
 
 interface QuickLogProps {
   isOpen: boolean;
@@ -11,6 +12,7 @@ interface QuickLogProps {
 
 export default function QuickLog({ isOpen, onClose, onSuccess }: QuickLogProps) {
   const [loading, setLoading] = useState(false);
+  const toast = useToast();
 
   // Quick log defaults
   const [gym, setGym] = useState('');
@@ -37,7 +39,7 @@ export default function QuickLog({ isOpen, onClose, onSuccess }: QuickLogProps) 
 
   const handleQuickLog = async () => {
     if (!gym.trim()) {
-      alert('Please enter a gym name');
+      toast.error('Please enter a gym name');
       return;
     }
 
@@ -52,16 +54,17 @@ export default function QuickLog({ isOpen, onClose, onSuccess }: QuickLogProps) 
         class_type: 'Open Mat',
         rolls: 0,
       });
-      
+
       if (onSuccess) onSuccess();
       onClose();
-      
+      toast.success('Session logged successfully');
+
       // Reset form
       setDuration(90);
       setIntensity(3);
     } catch (error) {
       console.error('Error creating session:', error);
-      alert('Failed to log session');
+      toast.error('Failed to log session');
     } finally {
       setLoading(false);
     }

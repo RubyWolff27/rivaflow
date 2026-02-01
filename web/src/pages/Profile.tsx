@@ -3,6 +3,8 @@ import { profileApi, gradingsApi, friendsApi, adminApi } from '../api/client';
 import type { Profile as ProfileType, Grading, Friend } from '../types';
 import { User, CheckCircle, Award, Plus, Trash2, Edit2, Target, AlertCircle } from 'lucide-react';
 import GymSelector from '../components/GymSelector';
+import ConfirmDialog from '../components/ConfirmDialog';
+import { useToast } from '../contexts/ToastContext';
 
 const BELT_GRADES = [
   'White',
@@ -44,6 +46,8 @@ export default function Profile() {
   const [editingGrading, setEditingGrading] = useState<Grading | null>(null);
   const [isCustomGym, setIsCustomGym] = useState(false);
   const [gymVerificationPending, setGymVerificationPending] = useState(false);
+  const [gradingToDelete, setGradingToDelete] = useState<number | null>(null);
+  const toast = useToast();
 
   const [formData, setFormData] = useState({
     first_name: '',
@@ -141,7 +145,7 @@ export default function Profile() {
       setTimeout(() => setSuccess(false), 3000);
     } catch (error) {
       console.error('Error updating profile:', error);
-      alert('Failed to update profile. Please try again.');
+      toast.error('Failed to update profile. Please try again.');
     } finally {
       setSaving(false);
     }
@@ -165,7 +169,7 @@ export default function Profile() {
       setTimeout(() => setSuccess(false), 3000);
     } catch (error) {
       console.error('Error updating goals:', error);
-      alert('Failed to update goals. Please try again.');
+      toast.error('Failed to update goals. Please try again.');
     } finally {
       setSaving(false);
     }
@@ -185,7 +189,7 @@ export default function Profile() {
   const handleAddGrading = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!gradingForm.grade || !gradingForm.date_graded) {
-      alert('Please select a grade and date.');
+      toast.error('Please select a grade and date.');
       return;
     }
 
@@ -204,9 +208,10 @@ export default function Profile() {
       });
       setShowAddGrading(false);
       await loadData();
+      toast.success('Grading added successfully');
     } catch (error) {
       console.error('Error adding grading:', error);
-      alert('Failed to add grading. Please try again.');
+      toast.error('Failed to add grading. Please try again.');
     }
   };
 
@@ -226,7 +231,7 @@ export default function Profile() {
     if (!editingGrading) return;
 
     if (!gradingForm.grade || !gradingForm.date_graded) {
-      alert('Please select a grade and date.');
+      toast.error('Please select a grade and date.');
       return;
     }
 
@@ -245,9 +250,10 @@ export default function Profile() {
       });
       setEditingGrading(null);
       await loadData();
+      toast.success('Grading updated successfully');
     } catch (error) {
       console.error('Error updating grading:', error);
-      alert('Failed to update grading. Please try again.');
+      toast.error('Failed to update grading. Please try again.');
     }
   };
 
@@ -261,17 +267,18 @@ export default function Profile() {
     });
   };
 
-  const handleDeleteGrading = async (gradingId: number) => {
-    if (!confirm('Are you sure you want to delete this grading?')) {
-      return;
-    }
+  const handleDeleteGrading = async () => {
+    if (!gradingToDelete) return;
 
     try {
-      await gradingsApi.delete(gradingId);
+      await gradingsApi.delete(gradingToDelete);
       await loadData();
+      toast.success('Grading deleted successfully');
     } catch (error) {
       console.error('Error deleting grading:', error);
-      alert('Failed to delete grading.');
+      toast.error('Failed to delete grading.');
+    } finally {
+      setGradingToDelete(null);
     }
   };
 
@@ -764,9 +771,10 @@ export default function Profile() {
                     <Edit2 className="w-4 h-4" />
                   </button>
                   <button
-                    onClick={() => handleDeleteGrading(grading.id)}
+                    onClick={() => setGradingToDelete(grading.id)}
                     className="text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300"
                     title="Delete grading"
+                    aria-label="Delete grading"
                   >
                     <Trash2 className="w-4 h-4" />
                   </button>
@@ -791,6 +799,17 @@ export default function Profile() {
           <li>• All fields are optional</li>
         </ul>
       </div>
+
+      <ConfirmDialog
+        isOpen={gradingToDelete !== null}
+        onClose={() => setGradingToDelete(null)}
+        onConfirm={handleDeleteGrading}
+        title="Delete Grading"
+        message="Are you sure you want to delete this grading? This action cannot be undone."
+        confirmText="Delete"
+        cancelText="Cancel"
+        variant="danger"
+      />
     </div>
   );
 }

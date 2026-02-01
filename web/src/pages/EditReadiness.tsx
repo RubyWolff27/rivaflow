@@ -4,6 +4,7 @@ import { readinessApi } from '../api/client';
 import { ArrowLeft, Save, Camera } from 'lucide-react';
 import PhotoGallery from '../components/PhotoGallery';
 import PhotoUpload from '../components/PhotoUpload';
+import { useToast } from '../contexts/ToastContext';
 
 export default function EditReadiness() {
   const { date } = useParams<{ date: string }>();
@@ -12,6 +13,7 @@ export default function EditReadiness() {
   const [saving, setSaving] = useState(false);
   const [readinessId, setReadinessId] = useState<number | null>(null);
   const [photoCount, setPhotoCount] = useState(0);
+  const toast = useToast();
 
   const [formData, setFormData] = useState({
     check_date: date || '',
@@ -44,7 +46,7 @@ export default function EditReadiness() {
       });
     } catch (error) {
       console.error('Error loading readiness:', error);
-      alert('Failed to load readiness check-in');
+      toast.error('Failed to load readiness check-in');
       navigate('/feed');
     } finally {
       setLoading(false);
@@ -66,11 +68,11 @@ export default function EditReadiness() {
         weight_kg: formData.weight_kg ? parseFloat(formData.weight_kg) : undefined,
       });
 
-      alert('Readiness check-in updated successfully!');
+      toast.success('Readiness check-in updated successfully!');
       navigate('/feed');
     } catch (error) {
       console.error('Error updating readiness:', error);
-      alert('Failed to update readiness check-in');
+      toast.error('Failed to update readiness check-in');
     } finally {
       setSaving(false);
     }

@@ -3,6 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { glossaryApi } from '../api/client';
 import type { Movement } from '../types';
 import { Book, Search, Plus, Trash2, Award } from 'lucide-react';
+import ConfirmDialog from '../components/ConfirmDialog';
+import { useToast } from '../contexts/ToastContext';
 
 const CATEGORY_LABELS: Record<string, string> = {
   position: 'Positions',
@@ -40,6 +42,8 @@ export default function Glossary() {
   const [showGiOnly, setShowGiOnly] = useState(false);
   const [showNoGiOnly, setShowNoGiOnly] = useState(false);
   const [showAddCustom, setShowAddCustom] = useState(false);
+  const [movementToDelete, setMovementToDelete] = useState<number | null>(null);
+  const toast = useToast();
 
   const [customForm, setCustomForm] = useState({
     name: '',
@@ -128,21 +132,25 @@ export default function Glossary() {
         nogi_applicable: true,
       });
       await loadData();
+      toast.success('Custom movement added successfully');
     } catch (error) {
       console.error('Error adding custom movement:', error);
-      alert('Failed to add custom movement.');
+      toast.error('Failed to add custom movement.');
     }
   };
 
-  const handleDeleteCustom = async (movementId: number) => {
-    if (!confirm('Delete this custom movement?')) return;
+  const handleDeleteCustom = async () => {
+    if (!movementToDelete) return;
 
     try {
-      await glossaryApi.delete(movementId);
+      await glossaryApi.delete(movementToDelete);
       await loadData();
+      toast.success('Custom movement deleted successfully');
     } catch (error) {
       console.error('Error deleting movement:', error);
-      alert('Failed to delete movement. Can only delete custom movements.');
+      toast.error('Failed to delete movement. Can only delete custom movements.');
+    } finally {
+      setMovementToDelete(null);
     }
   };
 
@@ -366,10 +374,11 @@ export default function Glossary() {
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
-                    handleDeleteCustom(movement.id);
+                    setMovementToDelete(movement.id);
                   }}
                   className="text-red-600 hover:text-red-700 dark:text-red-400"
                   title="Delete custom technique"
+                  aria-label="Delete custom technique"
                 >
                   <Trash2 className="w-4 h-4" />
                 </button>
@@ -423,6 +432,17 @@ export default function Glossary() {
           No techniques found matching your filters.
         </div>
       )}
+
+      <ConfirmDialog
+        isOpen={movementToDelete !== null}
+        onClose={() => setMovementToDelete(null)}
+        onConfirm={handleDeleteCustom}
+        title="Delete Custom Movement"
+        message="Are you sure you want to delete this custom movement? This action cannot be undone."
+        confirmText="Delete"
+        cancelText="Cancel"
+        variant="danger"
+      />
     </div>
   );
 }

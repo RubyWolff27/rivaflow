@@ -2,11 +2,13 @@ import { useState, useEffect } from 'react';
 import { readinessApi } from '../api/client';
 import type { Readiness as ReadinessType } from '../types';
 import { CheckCircle, Activity } from 'lucide-react';
+import { useToast } from '../contexts/ToastContext';
 
 export default function Readiness() {
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const [latest, setLatest] = useState<ReadinessType | null>(null);
+  const toast = useToast();
 
   const [formData, setFormData] = useState({
     check_date: new Date().toISOString().split('T')[0],
@@ -43,7 +45,7 @@ export default function Readiness() {
       setTimeout(() => setSuccess(false), 3000);
     } catch (error) {
       console.error('Error logging readiness:', error);
-      alert('Failed to log readiness. Please try again.');
+      toast.error('Failed to log readiness. Please try again.');
     } finally {
       setLoading(false);
     }

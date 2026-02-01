@@ -5,6 +5,7 @@ import type { Readiness } from '../types';
 import { ArrowLeft, Calendar, Heart, Edit2, Camera } from 'lucide-react';
 import PhotoGallery from '../components/PhotoGallery';
 import PhotoUpload from '../components/PhotoUpload';
+import { useToast } from '../contexts/ToastContext';
 
 export default function ReadinessDetail() {
   const { date } = useParams<{ date: string }>();
@@ -12,6 +13,7 @@ export default function ReadinessDetail() {
   const [readiness, setReadiness] = useState<Readiness | null>(null);
   const [loading, setLoading] = useState(true);
   const [photoCount, setPhotoCount] = useState(0);
+  const toast = useToast();
 
   useEffect(() => {
     loadReadiness();
@@ -24,7 +26,7 @@ export default function ReadinessDetail() {
       setReadiness(response.data);
     } catch (error) {
       console.error('Error loading readiness:', error);
-      alert('Failed to load readiness check-in');
+      toast.error('Failed to load readiness check-in');
       navigate('/feed');
     } finally {
       setLoading(false);

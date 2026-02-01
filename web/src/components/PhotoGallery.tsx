@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
 import { Trash2, X } from 'lucide-react';
 import { photosApi } from '../api/client';
+import ConfirmDialog from './ConfirmDialog';
+import { useToast } from '../contexts/ToastContext';
 
 interface Photo {
   id: number;
@@ -25,6 +27,8 @@ export default function PhotoGallery({
   const [loading, setLoading] = useState(true);
   const [selectedPhoto, setSelectedPhoto] = useState<Photo | null>(null);
   const [deleting, setDeleting] = useState(false);
+  const [photoToDelete, setPhotoToDelete] = useState<number | null>(null);
+  const toast = useToast();
 
   useEffect(() => {
     loadPhotos();
@@ -57,16 +61,16 @@ export default function PhotoGallery({
   };
 
   const handleDelete = async (photoId: number) => {
-    if (!confirm('Delete this photo?')) return;
-
     setDeleting(true);
     try {
       await photosApi.delete(photoId);
       await loadPhotos();
       setSelectedPhoto(null);
+      setPhotoToDelete(null);
+      toast.success('Photo deleted successfully');
     } catch (error: any) {
       console.error('Error deleting photo:', error);
-      alert(error.response?.data?.detail || 'Failed to delete photo');
+      toast.error(error.response?.data?.detail || 'Failed to delete photo');
     } finally {
       setDeleting(false);
     }
@@ -99,7 +103,7 @@ export default function PhotoGallery({
             <button
               onClick={(e) => {
                 e.stopPropagation();
-                handleDelete(photo.id);
+                setPhotoToDelete(photo.id);
               }}
               disabled={deleting}
               className="absolute top-1 right-1 p-1 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-600"
@@ -142,6 +146,18 @@ export default function PhotoGallery({
           </div>
         </div>
       )}
+
+      {/* Delete Confirmation */}
+      <ConfirmDialog
+        isOpen={photoToDelete !== null}
+        onClose={() => setPhotoToDelete(null)}
+        onConfirm={() => photoToDelete && handleDelete(photoToDelete)}
+        title="Delete Photo"
+        message="Are you sure you want to delete this photo? This action cannot be undone."
+        confirmText="Delete"
+        cancelText="Cancel"
+        variant="danger"
+      />
     </>
   );
 }

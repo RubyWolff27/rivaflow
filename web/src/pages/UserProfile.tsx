@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { usersApi, socialApi } from '../api/client';
 import { Users, MapPin, Calendar, TrendingUp, Activity, UserCheck, UserPlus } from 'lucide-react';
+import { useToast } from '../contexts/ToastContext';
 
 export default function UserProfile() {
   const { userId } = useParams<{ userId: string }>();
@@ -13,6 +14,7 @@ export default function UserProfile() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [followLoading, setFollowLoading] = useState(false);
+  const toast = useToast();
 
   useEffect(() => {
     if (!userId) {
@@ -60,7 +62,7 @@ export default function UserProfile() {
       }
     } catch (err: any) {
       console.error('Failed to toggle follow:', err);
-      alert('Failed to update follow status');
+      toast.error('Failed to update follow status');
     } finally {
       setFollowLoading(false);
     }

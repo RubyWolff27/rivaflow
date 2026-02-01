@@ -5,6 +5,7 @@ import type { Session } from '../types';
 import { ArrowLeft, Calendar, Clock, Zap, Users, MapPin, User, Book, Edit2, Activity, Target, Camera } from 'lucide-react';
 import PhotoGallery from '../components/PhotoGallery';
 import PhotoUpload from '../components/PhotoUpload';
+import { useToast } from '../contexts/ToastContext';
 
 export default function SessionDetail() {
   const { id } = useParams<{ id: string }>();
@@ -12,6 +13,7 @@ export default function SessionDetail() {
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
   const [photoCount, setPhotoCount] = useState(0);
+  const toast = useToast();
 
   useEffect(() => {
     loadSession();
@@ -24,7 +26,7 @@ export default function SessionDetail() {
       setSession(response.data ?? null);
     } catch (error) {
       console.error('Error loading session:', error);
-      alert('Failed to load session');
+      toast.error('Failed to load session');
       navigate('/feed');
     } finally {
       setLoading(false);

@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react';
 import { friendsApi } from '../api/client';
 import type { Friend } from '../types';
 import { Users, Plus, Edit2, Trash2, Award, Filter } from 'lucide-react';
+import ConfirmDialog from '../components/ConfirmDialog';
+import { useToast } from '../contexts/ToastContext';
 
 const BELT_COLORS: Record<string, string> = {
   white: 'bg-gray-100 text-gray-800 border-gray-300',
@@ -19,6 +21,8 @@ export default function Friends() {
   const [selectedFilter, setSelectedFilter] = useState<string>('all');
   const [showAddForm, setShowAddForm] = useState(false);
   const [editingFriend, setEditingFriend] = useState<Friend | null>(null);
+  const [friendToDelete, setFriendToDelete] = useState<number | null>(null);
+  const toast = useToast();
 
   const [formData, setFormData] = useState({
     name: '',
@@ -92,9 +96,10 @@ export default function Friends() {
 
       resetForm();
       await loadFriends();
+      toast.success(editingFriend ? 'Friend updated successfully' : 'Friend added successfully');
     } catch (error) {
       console.error('Error saving contact:', error);
-      alert('Failed to save contact.');
+      toast.error('Failed to save friend.');
     }
   };
 
@@ -113,15 +118,18 @@ export default function Friends() {
     setShowAddForm(true);
   };
 
-  const handleDelete = async (friendId: number) => {
-    if (!confirm('Delete this friend? This cannot be undone.')) return;
+  const handleDelete = async () => {
+    if (!friendToDelete) return;
 
     try {
-      await friendsApi.delete(friendId);
+      await friendsApi.delete(friendToDelete);
       await loadFriends();
+      toast.success('Friend deleted successfully');
     } catch (error) {
       console.error('Error deleting friend:', error);
-      alert('Failed to delete friend.');
+      toast.error('Failed to delete friend.');
+    } finally {
+      setFriendToDelete(null);
     }
   };
 
@@ -360,9 +368,10 @@ export default function Friends() {
                   <Edit2 className="w-4 h-4" />
                 </button>
                 <button
-                  onClick={() => handleDelete(friend.id)}
+                  onClick={() => setFriendToDelete(friend.id)}
                   className="text-red-600 hover:text-red-700 dark:text-red-400"
                   title="Delete friend"
+                  aria-label="Delete friend"
                 >
                   <Trash2 className="w-4 h-4" />
                 </button>
@@ -406,6 +415,17 @@ export default function Friends() {
           No friends found. Add your first friend to get started!
         </div>
       )}
+
+      <ConfirmDialog
+        isOpen={friendToDelete !== null}
+        onClose={() => setFriendToDelete(null)}
+        onConfirm={handleDelete}
+        title="Delete Friend"
+        message="Are you sure you want to delete this friend? This action cannot be undone."
+        confirmText="Delete"
+        cancelText="Cancel"
+        variant="danger"
+      />
     </div>
   );
 }

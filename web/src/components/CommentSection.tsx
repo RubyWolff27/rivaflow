@@ -2,6 +2,8 @@ import { useState, useEffect, memo } from 'react';
 import { Edit2, Trash2, Send } from 'lucide-react';
 import { socialApi } from '../api/client';
 import type { ActivityComment } from '../types';
+import ConfirmDialog from './ConfirmDialog';
+import { useToast } from '../contexts/ToastContext';
 
 interface CommentSectionProps {
   activityType: 'session' | 'readiness' | 'rest';
@@ -22,6 +24,8 @@ const CommentSection = memo(function CommentSection({
   const [editingText, setEditingText] = useState('');
   const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [commentToDelete, setCommentToDelete] = useState<number | null>(null);
+  const toast = useToast();
 
   useEffect(() => {
     if (isOpen) {
@@ -78,14 +82,18 @@ const CommentSection = memo(function CommentSection({
     }
   };
 
-  const handleDelete = async (commentId: number) => {
-    if (!confirm('Delete this comment?')) return;
+  const handleDelete = async () => {
+    if (!commentToDelete) return;
 
     try {
-      await socialApi.deleteComment(commentId);
+      await socialApi.deleteComment(commentToDelete);
       await loadComments();
+      toast.success('Comment deleted successfully');
     } catch (error) {
       console.error('Error deleting comment:', error);
+      toast.error('Failed to delete comment');
+    } finally {
+      setCommentToDelete(null);
     }
   };
 
@@ -143,8 +151,9 @@ const CommentSection = memo(function CommentSection({
                         <Edit2 className="w-3.5 h-3.5" />
                       </button>
                       <button
-                        onClick={() => handleDelete(comment.id)}
+                        onClick={() => setCommentToDelete(comment.id)}
                         className="p-1 text-gray-400 hover:text-red-600 dark:hover:text-red-400"
+                        aria-label="Delete comment"
                       >
                         <Trash2 className="w-3.5 h-3.5" />
                       </button>
@@ -215,6 +224,17 @@ const CommentSection = memo(function CommentSection({
           </form>
         </>
       )}
+
+      <ConfirmDialog
+        isOpen={commentToDelete !== null}
+        onClose={() => setCommentToDelete(null)}
+        onConfirm={handleDelete}
+        title="Delete Comment"
+        message="Are you sure you want to delete this comment? This action cannot be undone."
+        confirmText="Delete"
+        cancelText="Cancel"
+        variant="danger"
+      />
     </div>
   );
 });

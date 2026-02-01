@@ -3,6 +3,8 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { glossaryApi } from '../api/client';
 import type { Movement } from '../types';
 import { ArrowLeft, Award, Plus, Trash2, ExternalLink, Video as VideoIcon } from 'lucide-react';
+import ConfirmDialog from '../components/ConfirmDialog';
+import { useToast } from '../contexts/ToastContext';
 
 const CATEGORY_LABELS: Record<string, string> = {
   position: 'Position',
@@ -34,6 +36,8 @@ export default function MovementDetail() {
   const [movement, setMovement] = useState<Movement | null>(null);
   const [loading, setLoading] = useState(true);
   const [showAddVideo, setShowAddVideo] = useState(false);
+  const [videoToDelete, setVideoToDelete] = useState<number | null>(null);
+  const toast = useToast();
   const [videoForm, setVideoForm] = useState({
     url: '',
     title: '',
@@ -70,21 +74,25 @@ export default function MovementDetail() {
       setShowAddVideo(false);
       setVideoForm({ url: '', title: '', video_type: 'general' });
       await loadMovement();
+      toast.success('Video link added successfully');
     } catch (error) {
       console.error('Error adding video:', error);
-      alert('Failed to add video link.');
+      toast.error('Failed to add video link.');
     }
   };
 
-  const handleDeleteVideo = async (videoId: number) => {
-    if (!id || !confirm('Delete this video link?')) return;
+  const handleDeleteVideo = async () => {
+    if (!id || !videoToDelete) return;
 
     try {
-      await glossaryApi.deleteCustomVideo(parseInt(id), videoId);
+      await glossaryApi.deleteCustomVideo(parseInt(id), videoToDelete);
       await loadMovement();
+      toast.success('Video link deleted successfully');
     } catch (error) {
       console.error('Error deleting video:', error);
-      alert('Failed to delete video link.');
+      toast.error('Failed to delete video link.');
+    } finally {
+      setVideoToDelete(null);
     }
   };
 
@@ -353,9 +361,10 @@ export default function MovementDetail() {
                     </div>
                   </div>
                   <button
-                    onClick={() => handleDeleteVideo(video.id)}
+                    onClick={() => setVideoToDelete(video.id)}
                     className="text-red-600 hover:text-red-700 dark:text-red-400"
                     title="Delete video"
+                    aria-label="Delete video"
                   >
                     <Trash2 className="w-4 h-4" />
                   </button>
@@ -370,6 +379,17 @@ export default function MovementDetail() {
           </p>
         )}
       </div>
+
+      <ConfirmDialog
+        isOpen={videoToDelete !== null}
+        onClose={() => setVideoToDelete(null)}
+        onConfirm={handleDeleteVideo}
+        title="Delete Video Link"
+        message="Are you sure you want to delete this video link? This action cannot be undone."
+        confirmText="Delete"
+        cancelText="Cancel"
+        variant="danger"
+      />
     </div>
   );
 }
