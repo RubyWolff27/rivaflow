@@ -505,23 +505,36 @@ export default function LogSession() {
           {/* Class Time */}
           <div>
             <label className="label">Class Time (optional)</label>
+            <div className="flex gap-2 mb-2" role="group" aria-label="Common class times">
+              {[
+                { label: '6:30am', value: '06:30' },
+                { label: '12pm', value: '12:00' },
+                { label: '5:30pm', value: '17:30' },
+                { label: '7pm', value: '19:00' },
+              ].map((time) => (
+                <button
+                  key={time.value}
+                  type="button"
+                  onClick={() => setSessionData({ ...sessionData, class_time: time.value })}
+                  className="flex-1 py-2 rounded-lg font-medium text-sm transition-all"
+                  style={{
+                    backgroundColor: sessionData.class_time === time.value ? 'var(--accent)' : 'var(--surfaceElev)',
+                    color: sessionData.class_time === time.value ? '#FFFFFF' : 'var(--text)',
+                    border: sessionData.class_time === time.value ? 'none' : '1px solid var(--border)',
+                  }}
+                  aria-pressed={sessionData.class_time === time.value}
+                >
+                  {time.label}
+                </button>
+              ))}
+            </div>
             <input
               type="text"
-              className="input"
+              className="input text-sm"
               value={sessionData.class_time}
               onChange={(e) => setSessionData({ ...sessionData, class_time: e.target.value })}
-              placeholder="e.g., 18:00 or type custom time"
-              list="class-times"
+              placeholder="Or type custom time (e.g., 18:30, morning)"
             />
-            <datalist id="class-times">
-              <option value="06:30">Early Morning</option>
-              <option value="12:00">Midday</option>
-              <option value="17:30">Evening</option>
-              <option value="19:00">Night</option>
-            </datalist>
-            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-              Select from common times or type your own (e.g., 18:30, 7pm, morning)
-            </p>
           </div>
 
           {/* Class Type */}
@@ -614,31 +627,64 @@ export default function LogSession() {
             )}
           </div>
 
-          {/* Duration & Intensity */}
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="label">Duration (mins)</label>
-              <input
-                type="number"
-                className="input"
-                value={sessionData.duration_mins}
-                onChange={(e) => setSessionData({ ...sessionData, duration_mins: parseInt(e.target.value) })}
-                min="1"
-                required
-              />
+          {/* Duration */}
+          <div>
+            <label className="label">Duration (minutes)</label>
+            <div className="flex gap-2 mb-2" role="group" aria-label="Duration options">
+              {[60, 75, 90, 120].map((mins) => (
+                <button
+                  key={mins}
+                  type="button"
+                  onClick={() => setSessionData({ ...sessionData, duration_mins: mins })}
+                  className="flex-1 py-3 rounded-lg font-medium text-sm transition-all"
+                  style={{
+                    backgroundColor: sessionData.duration_mins === mins ? 'var(--accent)' : 'var(--surfaceElev)',
+                    color: sessionData.duration_mins === mins ? '#FFFFFF' : 'var(--text)',
+                    border: sessionData.duration_mins === mins ? 'none' : '1px solid var(--border)',
+                  }}
+                  aria-label={`${mins} minutes`}
+                  aria-pressed={sessionData.duration_mins === mins}
+                >
+                  {mins}m
+                </button>
+              ))}
             </div>
-            <div>
-              <label className="label">Intensity (1-5)</label>
-              <input
-                type="number"
-                className="input"
-                value={sessionData.intensity}
-                onChange={(e) => setSessionData({ ...sessionData, intensity: parseInt(e.target.value) })}
-                min="1"
-                max="5"
-                required
-              />
+            <input
+              type="number"
+              className="input text-sm"
+              value={sessionData.duration_mins}
+              onChange={(e) => setSessionData({ ...sessionData, duration_mins: parseInt(e.target.value) || 0 })}
+              placeholder="Or enter custom duration"
+              min="1"
+              required
+            />
+          </div>
+
+          {/* Intensity */}
+          <div>
+            <label className="label">Intensity</label>
+            <div className="flex gap-2" role="group" aria-label="Intensity options">
+              {[1, 2, 3, 4, 5].map((level) => (
+                <button
+                  key={level}
+                  type="button"
+                  onClick={() => setSessionData({ ...sessionData, intensity: level })}
+                  className="flex-1 py-3 rounded-lg font-semibold transition-all"
+                  style={{
+                    backgroundColor: sessionData.intensity === level ? 'var(--accent)' : 'var(--surfaceElev)',
+                    color: sessionData.intensity === level ? '#FFFFFF' : 'var(--text)',
+                    border: sessionData.intensity === level ? 'none' : '1px solid var(--border)',
+                  }}
+                  aria-label={`Intensity level ${level} of 5`}
+                  aria-pressed={sessionData.intensity === level}
+                >
+                  {level}
+                </button>
+              ))}
             </div>
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+              1 = Light, 3 = Moderate, 5 = Maximum effort
+            </p>
           </div>
 
           {/* Technique Focus */}

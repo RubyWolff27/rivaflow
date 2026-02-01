@@ -80,7 +80,7 @@ export default function QuickLog({ isOpen, onClose, onSuccess }: QuickLogProps) 
 
   if (!isOpen) return null;
 
-  const durationOptions = [60, 90, 120];
+  const durationOptions = [60, 75, 90, 120];
   const intensityOptions = [1, 2, 3, 4, 5];
 
   return (
