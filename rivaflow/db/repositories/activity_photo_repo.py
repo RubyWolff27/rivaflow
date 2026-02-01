@@ -147,4 +147,11 @@ class ActivityPhotoRepository:
                 """),
                 (user_id, activity_type, activity_id),
             )
-            return cursor.fetchone()[0]
+            row = cursor.fetchone()
+            # Handle both dict (PostgreSQL) and tuple (SQLite) results
+            if hasattr(row, 'keys'):
+                # PostgreSQL RealDictCursor - get first value
+                return list(row.values())[0]
+            else:
+                # SQLite tuple
+                return row[0]
