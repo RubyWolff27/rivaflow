@@ -165,7 +165,7 @@ ORDER BY date DESC, provider;
 CREATE OR REPLACE VIEW grapple_user_usage AS
 SELECT
     u.id as user_id,
-    u.username,
+    u.email,
     u.subscription_tier,
     COUNT(DISTINCT cs.id) as total_sessions,
     COUNT(cm.id) as total_messages,
@@ -176,7 +176,7 @@ FROM users u
 LEFT JOIN chat_sessions cs ON u.id = cs.user_id
 LEFT JOIN chat_messages cm ON cs.id = cm.session_id
 LEFT JOIN token_usage_logs tul ON u.id = tul.user_id
-GROUP BY u.id, u.username, u.subscription_tier;
+GROUP BY u.id, u.email, u.subscription_tier;
 
 -- ============================================================================
 -- Notes & Next Steps
