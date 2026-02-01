@@ -145,7 +145,9 @@ class UserService:
             "id": user["id"],
             "first_name": user.get("first_name"),
             "last_name": user.get("last_name"),
-            "email": user.get("email"),  # May want to make this conditional
+            # Only show email to the user themselves, not to others
+            "email": user.get("email") if user_id == requesting_user_id else None,
+            "avatar_url": user.get("avatar_url"),
             "created_at": user.get("created_at"),
             "follower_count": follower_count,
             "following_count": following_count,

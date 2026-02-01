@@ -125,9 +125,17 @@ export default function UserProfile() {
       <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6 mb-6">
         <div className="flex items-start justify-between">
           <div className="flex items-center gap-4">
-            <div className="w-20 h-20 bg-gradient-to-br from-primary-400 to-primary-600 rounded-full flex items-center justify-center text-white text-2xl font-bold">
-              {profile.first_name?.[0] ?? 'U'}{profile.last_name?.[0] ?? '?'}
-            </div>
+            {profile.avatar_url ? (
+              <img
+                src={profile.avatar_url}
+                alt={`${profile.first_name} ${profile.last_name}`}
+                className="w-20 h-20 rounded-full object-cover border-2 border-gray-200 dark:border-gray-700"
+              />
+            ) : (
+              <div className="w-20 h-20 bg-gradient-to-br from-primary-400 to-primary-600 rounded-full flex items-center justify-center text-white text-2xl font-bold">
+                {profile.first_name?.[0] ?? 'U'}{profile.last_name?.[0] ?? '?'}
+              </div>
+            )}
             <div>
               <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
                 {profile.first_name ?? 'Unknown'} {profile.last_name ?? 'User'}

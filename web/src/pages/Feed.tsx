@@ -71,9 +71,18 @@ const FeedItemComponent = memo(function FeedItemComponent({
           <div className="mt-1">{getIcon(item.type)}</div>
           <div className="flex-1 min-w-0">
             <div className="flex items-start justify-between gap-2 mb-1">
-              <p className="text-sm font-medium text-gray-900 dark:text-white">
-                {item.summary}
-              </p>
+              {item.owner_user_id && currentUserId && item.owner_user_id !== currentUserId ? (
+                <button
+                  onClick={() => navigate(`/user/${item.owner_user_id}`)}
+                  className="text-sm font-medium text-gray-900 dark:text-white hover:text-primary-600 dark:hover:text-primary-400 transition-colors text-left"
+                >
+                  {item.summary}
+                </button>
+              ) : (
+                <p className="text-sm font-medium text-gray-900 dark:text-white">
+                  {item.summary}
+                </p>
+              )}
               <div className="flex items-center gap-2">
                 {isActivityEditable(item) && (
                   <>
