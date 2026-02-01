@@ -68,6 +68,76 @@ Migrate from integer primary keys to UUIDs for all core entities to support futu
 
 ### Medium Priority (P2)
 
+#### Social Features - Friend Discovery & Activity Feed (Strava-style)
+**Status:** Deferred - Not worth effort until ~100+ active users
+**Effort:** 40-60 hours (full implementation)
+**Priority:** P2 (defer until user base grows)
+
+**Description:**
+Complete social network features for BJJ community building - friend discovery, connections, activity feed, and partner linking. Based on comprehensive PRD.
+
+**Why Deferred:**
+- Friend discovery algorithms are overkill with <100 users (manual search sufficient)
+- Activity feeds have little value with few friends to follow
+- Suggestion scoring complex but unnecessary at small scale
+- High development + maintenance cost for limited ROI
+- Better to focus on core training features and user retention first
+
+**When to Implement:**
+- **Trigger:** 100+ monthly active users OR strong user demand for social features
+- **Signal:** Users manually asking "who else from my gym is on RivaFlow?"
+
+**Phase 1: Foundation (8 hours)** ✅ Partially Complete
+- Database schema with enhanced profiles ✅ DONE (migration 046)
+- Friend connections repository ✅ DONE (social_connection_repo.py)
+- Basic profile fields: username, belt_rank, location ✅ DONE
+- **Status:** Schema exists but no APIs/UI implemented
+
+**Phase 2: Friend Discovery (12 hours)**
+- Friend suggestion algorithm with scoring:
+  - Same gym (40 pts), mutual friends (25 pts), partner match (30 pts), location (15 pts)
+- API endpoints for search, friend requests, accept/decline
+- Privacy filtering (blocked users, visibility settings)
+- Partner text matching (fuzzy match "John" in sessions to @john_bjj user)
+
+**Phase 3: Activity Feed (12 hours)**
+- Auto-generate feed items when logging sessions
+- Like/comment on friend activities
+- Privacy-filtered feed (friends-only visibility)
+- Milestone sharing (belt promotions, 100 hours, streaks)
+
+**Phase 4: UI/UX (16 hours)**
+- Profile pages (/profile/:username)
+- Find Friends page (suggestions, search, gym-based)
+- Friends list management
+- Activity feed with infinite scroll
+- Friend requests (accept/decline)
+
+**Phase 5: Advanced Features (12 hours)**
+- Partner linking flow (suggest linking text partners to users)
+- Gym-based groups/communities
+- Training stats comparisons (opt-in leaderboards)
+- QR code friend adding (in-person at gym)
+
+**Database Schema (Already Exists):**
+- Enhanced users table (username, belt_rank, location, privacy settings)
+- Enhanced gyms table (slug, affiliation, coordinates)
+- friend_connections, blocked_users, friend_suggestions
+- activity_feed, feed_likes, feed_comments
+- partner_links, user_gyms
+
+**Files Created (Not Yet Used):**
+- `db/migrations/046_social_features_comprehensive_pg.sql` ✅
+- `db/repositories/social_connection_repo.py` ✅
+- APIs: Pending (social_profile.py, social_connections.py, social_feed.py)
+- Frontend: Pending (Profile.tsx, FindFriends.tsx, SocialFeed.tsx)
+
+**Decision:** Keep migration 046 (safe, adds useful profile fields even without social features). Defer API/UI implementation until user base justifies effort.
+
+**See:** Full PRD in chat history with detailed specs, privacy model, and suggestion algorithm.
+
+---
+
 ### Future Enhancements
 
 #### Goal Completion Celebrations
