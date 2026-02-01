@@ -97,7 +97,6 @@ const Layout = memo(function Layout({ children }: { children: React.ReactNode })
     { name: 'Techniques', href: '/techniques', icon: Book },
     { name: 'Glossary', href: '/glossary', icon: BookOpen },
     { name: 'Videos', href: '/videos', icon: Video },
-    { name: 'Chat', href: '/chat', icon: MessageCircle },
     { name: 'Readiness', href: '/readiness', icon: Activity },
     ...(user?.is_admin ? [{ name: 'Admin', href: '/admin', icon: Shield }] : []),
   ];
