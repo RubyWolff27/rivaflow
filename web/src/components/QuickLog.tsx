@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { X } from 'lucide-react';
-import { sessionsApi } from '../api/client';
+import { sessionsApi, profileApi } from '../api/client';
 import { PrimaryButton, SecondaryButton } from './ui';
 import { useToast } from '../contexts/ToastContext';
 
@@ -21,19 +21,27 @@ export default function QuickLog({ isOpen, onClose, onSuccess }: QuickLogProps) 
 
   useEffect(() => {
     if (isOpen) {
-      loadLastGym();
+      loadDefaultGym();
     }
   }, [isOpen]);
 
-  const loadLastGym = async () => {
+  const loadDefaultGym = async () => {
     try {
+      // First try to get home gym from profile
+      const profileRes = await profileApi.get();
+      if (profileRes.data?.default_gym) {
+        setGym(profileRes.data.default_gym);
+        return;
+      }
+
+      // Fall back to last session's gym if no home gym set
       const res = await sessionsApi.list(1);
       if (res.data && res.data.length > 0) {
         const last = res.data[0].gym_name || '';
         setGym(last);
       }
     } catch (error) {
-      console.error('Error loading last gym:', error);
+      console.error('Error loading gym:', error);
     }
   };
 

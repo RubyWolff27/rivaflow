@@ -28,6 +28,13 @@ export default function GymSelector({ value, onChange, onCreateGym, onGymSelecte
   const [customGymName, setCustomGymName] = useState('');
   const wrapperRef = useRef<HTMLDivElement>(null);
 
+  // Sync searchQuery with value prop when it changes (e.g., from profile default)
+  useEffect(() => {
+    if (value && value !== searchQuery) {
+      setSearchQuery(value);
+    }
+  }, [value]);
+
   useEffect(() => {
     if (searchQuery.length >= 2) {
       searchGyms();

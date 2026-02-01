@@ -478,17 +478,23 @@ export default function LogSession() {
           {/* Class Time */}
           <div>
             <label className="label">Class Time (optional)</label>
-            <select
+            <input
+              type="text"
               className="input"
               value={sessionData.class_time}
               onChange={(e) => setSessionData({ ...sessionData, class_time: e.target.value })}
-            >
-              <option value="">Not specified</option>
-              <option value="06:30">06:30 - Early Morning</option>
-              <option value="12:00">12:00 - Midday</option>
-              <option value="17:30">17:30 - Evening</option>
-              <option value="19:00">19:00 - Night</option>
-            </select>
+              placeholder="e.g., 18:00 or type custom time"
+              list="class-times"
+            />
+            <datalist id="class-times">
+              <option value="06:30">Early Morning</option>
+              <option value="12:00">Midday</option>
+              <option value="17:30">Evening</option>
+              <option value="19:00">Night</option>
+            </datalist>
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+              Select from common times or type your own (e.g., 18:30, 7pm, morning)
+            </p>
           </div>
 
           {/* Class Type */}
