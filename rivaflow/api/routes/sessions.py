@@ -131,14 +131,14 @@ async def get_session(session_id: int, apply_privacy: bool = False, current_user
 
 @router.get("/")
 async def list_sessions(
-    limit: int = Query(default=10, ge=1, le=100),
+    limit: int = Query(default=10, ge=1, le=1000),
     apply_privacy: bool = False,
     current_user: dict = Depends(get_current_user)
 ):
     """List recent sessions.
 
     Args:
-        limit: Maximum number of sessions to return (1-100)
+        limit: Maximum number of sessions to return (1-1000)
         apply_privacy: If True, apply privacy redaction to each session.
                       Default False for owner access (current single-user mode).
     """
