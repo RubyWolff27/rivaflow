@@ -170,7 +170,13 @@ class UserRelationshipRepository:
                 (user_id,),
             )
             row = cursor.fetchone()
-            return row["count"] if row else 0
+            if not row:
+                return 0
+            # Handle both dict (PostgreSQL) and tuple (SQLite) results
+            if hasattr(row, 'keys'):
+                return row["count"]
+            else:
+                return row[0]
 
     @staticmethod
     def get_following_count(user_id: int) -> int:
@@ -194,7 +200,13 @@ class UserRelationshipRepository:
                 (user_id,),
             )
             row = cursor.fetchone()
-            return row["count"] if row else 0
+            if not row:
+                return 0
+            # Handle both dict (PostgreSQL) and tuple (SQLite) results
+            if hasattr(row, 'keys'):
+                return row["count"]
+            else:
+                return row[0]
 
     @staticmethod
     def get_following_user_ids(user_id: int) -> List[int]:
@@ -218,7 +230,11 @@ class UserRelationshipRepository:
                 (user_id,),
             )
             rows = cursor.fetchall()
-            return [row["following_user_id"] for row in rows]
+            # Handle both dict (PostgreSQL) and tuple (SQLite) results
+            if rows and hasattr(rows[0], 'keys'):
+                return [row["following_user_id"] for row in rows]
+            else:
+                return [row[0] for row in rows]
 
     @staticmethod
     def _row_to_dict(row: sqlite3.Row) -> dict:

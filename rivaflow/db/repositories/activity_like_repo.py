@@ -86,7 +86,13 @@ class ActivityLikeRepository:
                 (activity_type, activity_id),
             )
             row = cursor.fetchone()
-            return row["count"] if row else 0
+            if not row:
+                return 0
+            # Handle both dict (PostgreSQL) and tuple (SQLite) results
+            if hasattr(row, 'keys'):
+                return row["count"]
+            else:
+                return row[0]
 
     @staticmethod
     def has_user_liked(user_id: int, activity_type: str, activity_id: int) -> bool:

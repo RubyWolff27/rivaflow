@@ -266,7 +266,12 @@ class SessionRepository:
                 convert_query("SELECT DISTINCT gym_name FROM sessions WHERE user_id = ? ORDER BY gym_name"),
                 (user_id,)
             )
-            return [row["gym_name"] for row in cursor.fetchall()]
+            rows = cursor.fetchall()
+            # Handle both dict (PostgreSQL) and tuple (SQLite) results
+            if rows and hasattr(rows[0], 'keys'):
+                return [row["gym_name"] for row in rows]
+            else:
+                return [row[0] for row in rows]
 
     @staticmethod
     def get_unique_locations(user_id: int) -> list[str]:
@@ -281,7 +286,12 @@ class SessionRepository:
                 """),
                 (user_id,)
             )
-            return [row["location"] for row in cursor.fetchall()]
+            rows = cursor.fetchall()
+            # Handle both dict (PostgreSQL) and tuple (SQLite) results
+            if rows and hasattr(rows[0], 'keys'):
+                return [row["location"] for row in rows]
+            else:
+                return [row[0] for row in rows]
 
     @staticmethod
     def get_unique_partners(user_id: int) -> list[str]:
@@ -293,8 +303,13 @@ class SessionRepository:
                 (user_id,)
             )
             partners_set = set()
-            for row in cursor.fetchall():
-                partners_list = json.loads(row["partners"])
+            rows = cursor.fetchall()
+            for row in rows:
+                # Handle both dict (PostgreSQL) and tuple (SQLite) results
+                if hasattr(row, 'keys'):
+                    partners_list = json.loads(row["partners"])
+                else:
+                    partners_list = json.loads(row[0])
                 partners_set.update(partners_list)
             return sorted(partners_set)
 
@@ -312,7 +327,12 @@ class SessionRepository:
                 """),
                 (user_id, n),
             )
-            return [row["class_type"] for row in cursor.fetchall()]
+            rows = cursor.fetchall()
+            # Handle both dict (PostgreSQL) and tuple (SQLite) results
+            if rows and hasattr(rows[0], 'keys'):
+                return [row["class_type"] for row in rows]
+            else:
+                return [row[0] for row in rows]
 
     @staticmethod
     def delete(user_id: int, session_id: int) -> bool:

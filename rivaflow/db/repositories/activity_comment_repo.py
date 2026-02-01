@@ -216,7 +216,13 @@ class ActivityCommentRepository:
                 (activity_type, activity_id),
             )
             row = cursor.fetchone()
-            return row["count"] if row else 0
+            if not row:
+                return 0
+            # Handle both dict (PostgreSQL) and tuple (SQLite) results
+            if hasattr(row, 'keys'):
+                return row["count"]
+            else:
+                return row[0]
 
     @staticmethod
     def get_by_user(user_id: int, limit: int = 50, offset: int = 0) -> List[dict]:
