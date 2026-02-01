@@ -1,6 +1,6 @@
 """Notifications API routes."""
 import logging
-from fastapi import APIRouter, Depends, Query, Path, HTTPException, status
+from fastapi import APIRouter, Depends, Query, Path, HTTPException, Request, status
 from typing import Optional
 
 from rivaflow.core.dependencies import get_current_user
@@ -11,7 +11,7 @@ router = APIRouter(prefix="/notifications", tags=["notifications"])
 
 
 @router.get("/counts")
-async def get_notification_counts(current_user: dict = Depends(get_current_user)):
+async def get_notification_counts(request: Request, current_user: dict = Depends(get_current_user)):
     """
     Get notification counts for the current user.
 
@@ -35,6 +35,7 @@ async def get_notification_counts(current_user: dict = Depends(get_current_user)
 
 @router.get("/")
 async def get_notifications(
+    request: Request,
     current_user: dict = Depends(get_current_user),
     limit: int = Query(50, ge=1, le=100),
     offset: int = Query(0, ge=0),
@@ -62,7 +63,7 @@ async def get_notifications(
 
 
 @router.post("/read-all")
-async def mark_all_notifications_as_read(current_user: dict = Depends(get_current_user)):
+async def mark_all_notifications_as_read(request: Request, current_user: dict = Depends(get_current_user)):
     """Mark all notifications as read."""
     user_id = current_user["id"]
     try:
@@ -75,7 +76,7 @@ async def mark_all_notifications_as_read(current_user: dict = Depends(get_curren
 
 
 @router.post("/feed/read", status_code=status.HTTP_200_OK)
-async def mark_feed_notifications_as_read(current_user: dict = Depends(get_current_user)):
+async def mark_feed_notifications_as_read(request: Request, current_user: dict = Depends(get_current_user)):
     """Mark all feed notifications (likes, comments, replies) as read."""
     try:
         logger.info(f"mark_feed_notifications_as_read called for user {current_user.get('id', 'UNKNOWN')}")
@@ -100,7 +101,7 @@ async def mark_feed_notifications_as_read(current_user: dict = Depends(get_curre
 
 
 @router.post("/follows/read", status_code=status.HTTP_200_OK)
-async def mark_follow_notifications_as_read(current_user: dict = Depends(get_current_user)):
+async def mark_follow_notifications_as_read(request: Request, current_user: dict = Depends(get_current_user)):
     """Mark all follow notifications as read."""
     try:
         logger.info(f"mark_follow_notifications_as_read called for user {current_user.get('id', 'UNKNOWN')}")
@@ -125,6 +126,7 @@ async def mark_follow_notifications_as_read(current_user: dict = Depends(get_cur
 
 @router.post("/{notification_id}/read")
 async def mark_notification_as_read(
+    request: Request,
     notification_id: int = Path(..., gt=0),
     current_user: dict = Depends(get_current_user),
 ):
@@ -141,6 +143,7 @@ async def mark_notification_as_read(
 
 @router.delete("/{notification_id}")
 async def delete_notification(
+    request: Request,
     notification_id: int = Path(..., gt=0),
     current_user: dict = Depends(get_current_user),
 ):
