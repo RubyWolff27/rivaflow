@@ -16,6 +16,8 @@ class UserRepository:
         first_name: Optional[str] = None,
         last_name: Optional[str] = None,
         is_active: bool = True,
+        subscription_tier: str = "beta",  # Auto-enroll new users as beta for now
+        is_beta_user: bool = True,
     ) -> dict:
         """
         Create a new user.
@@ -26,6 +28,8 @@ class UserRepository:
             first_name: User's first name
             last_name: User's last name
             is_active: Whether the user account is active
+            subscription_tier: Subscription tier (default: beta for initial rollout)
+            is_beta_user: Whether user has beta access (default: True for initial rollout)
 
         Returns:
             Dictionary representation of the created user
@@ -39,10 +43,10 @@ class UserRepository:
             user_id = execute_insert(
                 cursor,
                 """
-                INSERT INTO users (email, hashed_password, first_name, last_name, is_active)
-                VALUES (?, ?, ?, ?, ?)
+                INSERT INTO users (email, hashed_password, first_name, last_name, is_active, subscription_tier, is_beta_user)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
                 """,
-                (email, hashed_password, first_name, last_name, is_active),
+                (email, hashed_password, first_name, last_name, is_active, subscription_tier, is_beta_user),
             )
 
             if not user_id or user_id == 0:
