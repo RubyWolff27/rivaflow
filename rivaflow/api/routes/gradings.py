@@ -1,7 +1,11 @@
 """Grading/belt progression endpoints."""
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, UploadFile, File, HTTPException
 from pydantic import BaseModel
 from typing import Optional
+import os
+from pathlib import Path
+import uuid
+from datetime import datetime
 
 from rivaflow.core.services.grading_service import GradingService
 from rivaflow.core.dependencies import get_current_user
@@ -10,13 +14,23 @@ from rivaflow.core.exceptions import ValidationError, NotFoundError
 router = APIRouter()
 service = GradingService()
 
+# Configure upload directory
+UPLOAD_DIR = Path(__file__).parent.parent.parent.parent / "uploads" / "gradings"
+UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
+
+# Allowed file extensions
+ALLOWED_EXTENSIONS = {".jpg", ".jpeg", ".png", ".webp", ".gif"}
+MAX_FILE_SIZE = 5 * 1024 * 1024  # 5MB
+
 
 class GradingCreate(BaseModel):
     """Grading creation model."""
     grade: str
     date_graded: str
     professor: Optional[str] = None
+    instructor_id: Optional[int] = None
     notes: Optional[str] = None
+    photo_url: Optional[str] = None
 
 
 class GradingUpdate(BaseModel):
@@ -24,7 +38,9 @@ class GradingUpdate(BaseModel):
     grade: Optional[str] = None
     date_graded: Optional[str] = None
     professor: Optional[str] = None
+    instructor_id: Optional[int] = None
     notes: Optional[str] = None
+    photo_url: Optional[str] = None
 
 
 @router.get("/")
@@ -42,7 +58,9 @@ async def create_grading(grading: GradingCreate, current_user: dict = Depends(ge
         grade=grading.grade,
         date_graded=grading.date_graded,
         professor=grading.professor,
+        instructor_id=grading.instructor_id,
         notes=grading.notes,
+        photo_url=grading.photo_url,
     )
     return created
 
@@ -66,7 +84,9 @@ async def update_grading(grading_id: int, grading: GradingUpdate, current_user: 
             grade=grading.grade,
             date_graded=grading.date_graded,
             professor=grading.professor,
+            instructor_id=grading.instructor_id,
             notes=grading.notes,
+            photo_url=grading.photo_url,
         )
         if not updated:
             raise NotFoundError("Grading not found")
@@ -82,3 +102,50 @@ async def delete_grading(grading_id: int, current_user: dict = Depends(get_curre
     if not deleted:
         raise NotFoundError("Grading not found")
     return {"message": "Grading deleted successfully"}
+
+
+@router.post("/photo")
+async def upload_grading_photo(
+    file: UploadFile = File(...),
+    current_user: dict = Depends(get_current_user)
+):
+    """
+    Upload a grading photo (belt certificate, etc.).
+
+    Accepts image files (jpg, png, webp, gif) up to 5MB.
+    Returns the URL of the uploaded photo.
+    """
+    # Validate file extension
+    file_ext = Path(file.filename).suffix.lower() if file.filename else ""
+    if file_ext not in ALLOWED_EXTENSIONS:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Invalid file type. Allowed types: {', '.join(ALLOWED_EXTENSIONS)}"
+        )
+
+    # Read file content and validate size
+    content = await file.read()
+    if len(content) > MAX_FILE_SIZE:
+        raise HTTPException(
+            status_code=400,
+            detail=f"File too large. Maximum size: {MAX_FILE_SIZE // (1024 * 1024)}MB"
+        )
+
+    # Generate unique filename: grading_{user_id}_{timestamp}_{uuid}.{ext}
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    unique_id = str(uuid.uuid4())[:8]
+    filename = f"grading_{current_user['id']}_{timestamp}_{unique_id}{file_ext}"
+    file_path = UPLOAD_DIR / filename
+
+    # Save file
+    with open(file_path, "wb") as f:
+        f.write(content)
+
+    # Return photo URL
+    photo_url = f"/uploads/gradings/{filename}"
+
+    return {
+        "photo_url": photo_url,
+        "filename": filename,
+        "message": "Grading photo uploaded successfully"
+    }

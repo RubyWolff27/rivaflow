@@ -10,17 +10,25 @@ class GradingRepository:
     """Data access layer for belt gradings."""
 
     @staticmethod
-    def create(user_id: int, grade: str, date_graded: str, professor: Optional[str] = None, notes: Optional[str] = None) -> dict:
+    def create(
+        user_id: int,
+        grade: str,
+        date_graded: str,
+        professor: Optional[str] = None,
+        instructor_id: Optional[int] = None,
+        notes: Optional[str] = None,
+        photo_url: Optional[str] = None
+    ) -> dict:
         """Create a new grading entry."""
         with get_connection() as conn:
             cursor = conn.cursor()
             grading_id = execute_insert(
                 cursor,
                 """
-                INSERT INTO gradings (user_id, grade, date_graded, professor, notes)
-                VALUES (?, ?, ?, ?, ?)
+                INSERT INTO gradings (user_id, grade, date_graded, professor, instructor_id, notes, photo_url)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
                 """,
-                (user_id, grade, date_graded, professor, notes),
+                (user_id, grade, date_graded, professor, instructor_id, notes, photo_url),
             )
 
             # Return the created grading
@@ -65,7 +73,9 @@ class GradingRepository:
         grade: Optional[str] = None,
         date_graded: Optional[str] = None,
         professor: Optional[str] = None,
+        instructor_id: Optional[int] = None,
         notes: Optional[str] = None,
+        photo_url: Optional[str] = None,
     ) -> Optional[dict]:
         """Update a grading by ID. Returns updated grading or None if not found."""
         with get_connection() as conn:
@@ -84,9 +94,15 @@ class GradingRepository:
             if professor is not None:
                 updates.append("professor = ?")
                 params.append(professor)
+            if instructor_id is not None:
+                updates.append("instructor_id = ?")
+                params.append(instructor_id)
             if notes is not None:
                 updates.append("notes = ?")
                 params.append(notes)
+            if photo_url is not None:
+                updates.append("photo_url = ?")
+                params.append(photo_url)
 
             if not updates:
                 # Nothing to update, just return the current grading

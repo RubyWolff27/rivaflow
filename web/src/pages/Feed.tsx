@@ -1,6 +1,6 @@
 import { useEffect, useState, memo, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { feedApi, socialApi } from '../api/client';
+import { feedApi, socialApi, sessionsApi } from '../api/client';
 import { Activity, Calendar, Heart, Moon, Zap, Edit2, Eye } from 'lucide-react';
 import FeedToggle from '../components/FeedToggle';
 import ActivitySocialActions from '../components/ActivitySocialActions';
@@ -32,6 +32,7 @@ const FeedItemComponent = memo(function FeedItemComponent({
   formatDate,
   shouldShowSocialActions,
   isActivityEditable,
+  handleVisibilityChange,
 }: {
   item: FeedItem;
   prevItem: FeedItem | null;
@@ -47,6 +48,7 @@ const FeedItemComponent = memo(function FeedItemComponent({
   formatDate: (date: string) => string;
   shouldShowSocialActions: (item: FeedItem) => boolean;
   isActivityEditable: (item: FeedItem) => boolean;
+  handleVisibilityChange: (type: string, id: number, visibility: string) => void;
 }) {
   const showDateHeader = !prevItem || prevItem.date !== item.date;
   const commentKey = `${item.type}-${item.id}`;
@@ -130,6 +132,19 @@ const FeedItemComponent = memo(function FeedItemComponent({
                       </>
                     )}
                   </>
+                )}
+                {isActivityEditable(item) && item.type === 'session' && (
+                  <select
+                    value={item.data?.visibility_level || item.data?.visibility || 'friends'}
+                    onChange={(e) => handleVisibilityChange(item.type, item.id, e.target.value)}
+                    className="text-xs px-2 py-1 bg-white/50 dark:bg-black/20 rounded cursor-pointer border-none outline-none"
+                    aria-label="Change visibility"
+                    title="Who can see this"
+                  >
+                    <option value="private">🔒 Private</option>
+                    <option value="friends">👥 Friends</option>
+                    <option value="public">🌐 Public</option>
+                  </select>
                 )}
                 <span className="text-xs px-2 py-1 bg-white/50 dark:bg-black/20 rounded capitalize whitespace-nowrap">
                   {item.type}
@@ -327,6 +342,40 @@ export default function Feed() {
     });
   }, []);
 
+  const handleVisibilityChange = useCallback(async (activityType: string, activityId: number, visibility: string) => {
+    if (!feed) return;
+
+    // Only sessions support visibility updates for now
+    if (activityType !== 'session') {
+      return;
+    }
+
+    // Optimistic update
+    setFeed({
+      ...feed,
+      items: feed.items.map((item) =>
+        item.type === activityType && item.id === activityId
+          ? { ...item, data: { ...item.data, visibility_level: visibility, visibility } }
+          : item
+      ),
+    });
+
+    try {
+      // Get current session data and update only visibility
+      const session = feed.items.find(item => item.type === 'session' && item.id === activityId);
+      if (session?.data) {
+        await sessionsApi.update(activityId, {
+          ...session.data,
+          visibility_level: visibility,
+        });
+      }
+    } catch (error) {
+      console.error('Error updating visibility:', error);
+      // Revert optimistic update on error
+      loadFeed();
+    }
+  }, [feed]);
+
   const getIcon = useCallback((type: string) => {
     switch (type) {
       case 'session':
@@ -445,6 +494,7 @@ export default function Feed() {
               formatDate={formatDate}
               shouldShowSocialActions={shouldShowSocialActions}
               isActivityEditable={isActivityEditable}
+              handleVisibilityChange={handleVisibilityChange}
             />
           ))}
         </div>

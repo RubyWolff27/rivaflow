@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { sessionsApi, readinessApi, profileApi, friendsApi, glossaryApi } from '../api/client';
+import { sessionsApi, readinessApi, profileApi, friendsApi, glossaryApi, restApi } from '../api/client';
 import type { Friend, Movement, MediaUrl } from '../types';
 import { CheckCircle, ArrowRight, ArrowLeft, Plus, X, ToggleLeft, ToggleRight, Search, Camera } from 'lucide-react';
 import GymSelector from '../components/GymSelector';
@@ -28,7 +28,8 @@ interface TechniqueEntry {
 
 export default function LogSession() {
   const navigate = useNavigate();
-  const [step, setStep] = useState(1); // 1 = Readiness, 2 = Session
+  const [activityType, setActivityType] = useState<'training' | 'rest'>('training');
+  const [step, setStep] = useState(1); // 1 = Readiness, 2 = Session (or Rest form if rest selected)
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const [skippedReadiness, setSkippedReadiness] = useState(false);
@@ -83,6 +84,13 @@ export default function LogSession() {
     whoop_calories: '',
     whoop_avg_hr: '',
     whoop_max_hr: '',
+  });
+
+  // Rest day data
+  const [restData, setRestData] = useState({
+    rest_date: new Date().toISOString().split('T')[0],
+    rest_type: 'active',
+    rest_note: '',
   });
 
   useEffect(() => {
@@ -281,6 +289,19 @@ export default function LogSession() {
     setLoading(true);
 
     try {
+      // Handle rest day submission
+      if (activityType === 'rest') {
+        await restApi.logRestDay({
+          rest_type: restData.rest_type,
+          note: restData.rest_note || undefined,
+          rest_date: restData.rest_date,
+        });
+        setSuccess(true);
+        setTimeout(() => navigate('/'), 1500);
+        return;
+      }
+
+      // Handle training session submission
       // Save readiness first (only if not skipped)
       if (!skippedReadiness) {
         const readinessPayload: any = {
@@ -372,17 +393,57 @@ export default function LogSession() {
     return (
       <div className="max-w-md mx-auto text-center py-12">
         <CheckCircle className="w-16 h-16 text-green-500 mx-auto mb-4" />
-        <h2 className="text-2xl font-bold mb-2">Session Logged!</h2>
-        <p className="text-gray-600 dark:text-gray-400">Redirecting to session details...</p>
-        <p className="text-sm text-gray-500 dark:text-gray-500 mt-2">You can add photos on the next page</p>
+        <h2 className="text-2xl font-bold mb-2">{activityType === 'rest' ? 'Rest Day Logged!' : 'Session Logged!'}</h2>
+        <p className="text-gray-600 dark:text-gray-400">{activityType === 'rest' ? 'Redirecting to home...' : 'Redirecting to session details...'}</p>
+        {activityType === 'training' && <p className="text-sm text-gray-500 dark:text-gray-500 mt-2">You can add photos on the next page</p>}
       </div>
     );
   }
 
   return (
     <div className="max-w-2xl mx-auto">
-      {/* Progress Indicator */}
-      <div className="mb-6">
+      {/* Activity Type Selector */}
+      <div className="card mb-6">
+        <label className="label">What would you like to log?</label>
+        <div className="flex gap-3" role="group" aria-label="Activity type">
+          <button
+            type="button"
+            onClick={() => {
+              setActivityType('training');
+              setStep(1);
+            }}
+            className="flex-1 py-3 rounded-lg font-medium text-sm transition-all"
+            style={{
+              backgroundColor: activityType === 'training' ? 'var(--accent)' : 'var(--surfaceElev)',
+              color: activityType === 'training' ? '#FFFFFF' : 'var(--text)',
+              border: activityType === 'training' ? 'none' : '1px solid var(--border)',
+            }}
+            aria-pressed={activityType === 'training'}
+          >
+            Training Session
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setActivityType('rest');
+              setStep(2); // Skip readiness for rest days
+            }}
+            className="flex-1 py-3 rounded-lg font-medium text-sm transition-all"
+            style={{
+              backgroundColor: activityType === 'rest' ? 'var(--accent)' : 'var(--surfaceElev)',
+              color: activityType === 'rest' ? '#FFFFFF' : 'var(--text)',
+              border: activityType === 'rest' ? 'none' : '1px solid var(--border)',
+            }}
+            aria-pressed={activityType === 'rest'}
+          >
+            Rest Day
+          </button>
+        </div>
+      </div>
+
+      {/* Progress Indicator (only for training) */}
+      {activityType === 'training' && (
+        <div className="mb-6">
         <div className="flex items-center justify-center gap-2">
           <div className={`w-8 h-8 rounded-full flex items-center justify-center font-semibold ${
             step === 1
@@ -405,13 +466,19 @@ export default function LogSession() {
           <span className={step === 2 ? 'font-semibold' : 'text-gray-500'}>Session Details</span>
         </div>
       </div>
+      )}
 
       <h1 className="text-3xl font-bold mb-6">
-        {step === 1 ? 'How Are You Feeling?' : 'Log Training Session'}
+        {activityType === 'rest'
+          ? 'Log Rest Day'
+          : step === 1
+            ? 'How Are You Feeling?'
+            : 'Log Training Session'
+        }
       </h1>
 
-      {/* Step 1: Readiness */}
-      {step === 1 && (
+      {/* Step 1: Readiness (only for training) */}
+      {activityType === 'training' && step === 1 && (
         <div className="card space-y-6">
           <p className="text-gray-600 dark:text-gray-400">
             Let's check your readiness before logging today's session.
@@ -490,8 +557,8 @@ export default function LogSession() {
         </div>
       )}
 
-      {/* Step 2: Session */}
-      {step === 2 && (
+      {/* Step 2: Training Session */}
+      {activityType === 'training' && step === 2 && (
         <form onSubmit={handleSubmit} className="card space-y-4">
           {/* Date */}
           <div>
@@ -1206,6 +1273,72 @@ export default function LogSession() {
               {loading ? 'Logging Session...' : 'Log Session'}
             </button>
           </div>
+        </form>
+      )}
+
+      {/* Rest Day Form */}
+      {activityType === 'rest' && step === 2 && (
+        <form onSubmit={handleSubmit} className="card space-y-4">
+          {/* Date */}
+          <div>
+            <label className="label">Date</label>
+            <input
+              type="date"
+              className="input"
+              value={restData.rest_date}
+              onChange={(e) => setRestData({ ...restData, rest_date: e.target.value })}
+              required
+            />
+          </div>
+
+          {/* Rest Type */}
+          <div>
+            <label className="label">Rest Type</label>
+            <div className="flex gap-2" role="group" aria-label="Rest type options">
+              {['active', 'passive', 'injury'].map((type) => (
+                <button
+                  key={type}
+                  type="button"
+                  onClick={() => setRestData({ ...restData, rest_type: type })}
+                  className="flex-1 py-3 rounded-lg font-medium text-sm transition-all capitalize"
+                  style={{
+                    backgroundColor: restData.rest_type === type ? 'var(--accent)' : 'var(--surfaceElev)',
+                    color: restData.rest_type === type ? '#FFFFFF' : 'var(--text)',
+                    border: restData.rest_type === type ? 'none' : '1px solid var(--border)',
+                  }}
+                  aria-pressed={restData.rest_type === type}
+                >
+                  {type}
+                </button>
+              ))}
+            </div>
+            <p className="text-xs text-gray-500 mt-2">
+              <span className="font-semibold">Active:</span> Light activity, stretching, mobility work.
+              <span className="font-semibold ml-3">Passive:</span> Complete rest, no training.
+              <span className="font-semibold ml-3">Injury:</span> Recovering from injury.
+            </p>
+          </div>
+
+          {/* Note */}
+          <div>
+            <label className="label">Note (optional)</label>
+            <textarea
+              className="input"
+              rows={4}
+              value={restData.rest_note}
+              onChange={(e) => setRestData({ ...restData, rest_note: e.target.value })}
+              placeholder="Any notes about your rest day, recovery activities, or how you're feeling..."
+            />
+          </div>
+
+          {/* Submit */}
+          <button
+            type="submit"
+            disabled={loading}
+            className="btn-primary w-full"
+          >
+            {loading ? 'Logging Rest Day...' : 'Log Rest Day'}
+          </button>
         </form>
       )}
     </div>

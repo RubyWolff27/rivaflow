@@ -145,7 +145,9 @@ export interface Grading {
   grade: string;
   date_graded: string;
   professor?: string;
+  instructor_id?: number;
   notes?: string;
+  photo_url?: string;
   created_at?: string;
 }
 

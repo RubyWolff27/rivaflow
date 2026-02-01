@@ -12,7 +12,14 @@ class GradingService:
         self.profile_repo = ProfileRepository()
 
     def create_grading(
-        self, user_id: int, grade: str, date_graded: str, professor: Optional[str] = None, notes: Optional[str] = None
+        self,
+        user_id: int,
+        grade: str,
+        date_graded: str,
+        professor: Optional[str] = None,
+        instructor_id: Optional[int] = None,
+        notes: Optional[str] = None,
+        photo_url: Optional[str] = None
     ) -> dict:
         """
         Create a new grading entry and update the profile's current_grade
@@ -20,7 +27,15 @@ class GradingService:
         Returns the created grading.
         """
         # Create the grading
-        grading = self.repo.create(user_id=user_id, grade=grade, date_graded=date_graded, professor=professor, notes=notes)
+        grading = self.repo.create(
+            user_id=user_id,
+            grade=grade,
+            date_graded=date_graded,
+            professor=professor,
+            instructor_id=instructor_id,
+            notes=notes,
+            photo_url=photo_url
+        )
 
         # Update profile's current_grade to the most recent grading by date
         latest = self.repo.get_latest(user_id)
@@ -44,7 +59,9 @@ class GradingService:
         grade: Optional[str] = None,
         date_graded: Optional[str] = None,
         professor: Optional[str] = None,
+        instructor_id: Optional[int] = None,
         notes: Optional[str] = None,
+        photo_url: Optional[str] = None,
     ) -> Optional[dict]:
         """
         Update a grading and refresh the profile's current_grade
@@ -57,7 +74,9 @@ class GradingService:
             grade=grade,
             date_graded=date_graded,
             professor=professor,
+            instructor_id=instructor_id,
             notes=notes,
+            photo_url=photo_url,
         )
 
         if updated:

@@ -77,8 +77,12 @@ export default function Profile() {
     grade: '',
     date_graded: new Date().toISOString().split('T')[0],
     professor: '',
+    instructor_id: null as number | null,
     notes: '',
+    photo_url: '',
   });
+  const [uploadingGradingPhoto, setUploadingGradingPhoto] = useState(false);
+  const [gradingPhotoPreview, setGradingPhotoPreview] = useState<string | null>(null);
 
   useEffect(() => {
     loadData();
@@ -183,6 +187,57 @@ export default function Profile() {
     }
   };
 
+  const handleGradingPhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Validate file type
+    const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/gif'];
+    if (!allowedTypes.includes(file.type)) {
+      toast.error('Invalid file type. Please upload a JPG, PNG, WebP, or GIF image.');
+      return;
+    }
+
+    // Validate file size (5MB max)
+    const maxSize = 5 * 1024 * 1024;
+    if (file.size > maxSize) {
+      toast.error('File too large. Maximum size is 5MB.');
+      return;
+    }
+
+    // Show preview
+    const reader = new FileReader();
+    reader.onload = () => {
+      setGradingPhotoPreview(reader.result as string);
+    };
+    reader.readAsDataURL(file);
+
+    // Upload file
+    setUploadingGradingPhoto(true);
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+
+      const response = await gradingsApi.uploadPhoto(formData);
+
+      // Update grading form with new photo URL
+      setGradingForm(prev => ({ ...prev, photo_url: response.data.photo_url }));
+
+      toast.success('Photo uploaded successfully!');
+    } catch (error: any) {
+      console.error('Error uploading grading photo:', error);
+      toast.error(error.response?.data?.detail || 'Failed to upload photo. Please try again.');
+      setGradingPhotoPreview(null);
+    } finally {
+      setUploadingGradingPhoto(false);
+    }
+  };
+
+  const handleDeleteGradingPhoto = () => {
+    setGradingForm(prev => ({ ...prev, photo_url: '' }));
+    setGradingPhotoPreview(null);
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSaving(true);
@@ -245,8 +300,11 @@ export default function Profile() {
       grade: '',
       date_graded: new Date().toISOString().split('T')[0],
       professor: profile?.current_professor ?? '',
+      instructor_id: profile?.current_instructor_id ?? null,
       notes: '',
+      photo_url: '',
     });
+    setGradingPhotoPreview(null);
     setShowAddGrading(true);
     setEditingGrading(null);
   };
@@ -263,14 +321,19 @@ export default function Profile() {
         grade: gradingForm.grade,
         date_graded: gradingForm.date_graded,
         professor: gradingForm.professor || undefined,
+        instructor_id: gradingForm.instructor_id || undefined,
         notes: gradingForm.notes || undefined,
+        photo_url: gradingForm.photo_url || undefined,
       });
       setGradingForm({
         grade: '',
         date_graded: new Date().toISOString().split('T')[0],
         professor: '',
+        instructor_id: null,
         notes: '',
+        photo_url: '',
       });
+      setGradingPhotoPreview(null);
       setShowAddGrading(false);
       await loadData();
       toast.success('Grading added successfully');
@@ -286,8 +349,11 @@ export default function Profile() {
       grade: grading.grade ?? '',
       date_graded: grading.date_graded ?? new Date().toISOString().split('T')[0],
       professor: grading.professor ?? '',
+      instructor_id: grading.instructor_id ?? null,
       notes: grading.notes ?? '',
+      photo_url: grading.photo_url ?? '',
     });
+    setGradingPhotoPreview(grading.photo_url ?? null);
     setShowAddGrading(false);
   };
 
@@ -305,14 +371,19 @@ export default function Profile() {
         grade: gradingForm.grade,
         date_graded: gradingForm.date_graded,
         professor: gradingForm.professor || undefined,
+        instructor_id: gradingForm.instructor_id || undefined,
         notes: gradingForm.notes || undefined,
+        photo_url: gradingForm.photo_url || undefined,
       });
       setGradingForm({
         grade: '',
         date_graded: new Date().toISOString().split('T')[0],
         professor: '',
+        instructor_id: null,
         notes: '',
+        photo_url: '',
       });
+      setGradingPhotoPreview(null);
       setEditingGrading(null);
       await loadData();
       toast.success('Grading updated successfully');
@@ -328,8 +399,11 @@ export default function Profile() {
       grade: '',
       date_graded: new Date().toISOString().split('T')[0],
       professor: '',
+      instructor_id: null,
       notes: '',
+      photo_url: '',
     });
+    setGradingPhotoPreview(null);
   };
 
   const handleDeleteGrading = async () => {
@@ -807,13 +881,64 @@ export default function Profile() {
 
             <div>
               <label className="label">Professor / Instructor (optional)</label>
-              <input
-                type="text"
+              <select
                 className="input"
-                value={gradingForm.professor}
-                onChange={(e) => setGradingForm({ ...gradingForm, professor: e.target.value })}
-                placeholder="e.g., Professor John Smith"
-              />
+                value={gradingForm.instructor_id ?? ''}
+                onChange={(e) => {
+                  const instructorId = e.target.value ? parseInt(e.target.value) : null;
+                  const instructor = instructors.find(i => i.id === instructorId);
+                  setGradingForm({
+                    ...gradingForm,
+                    instructor_id: instructorId,
+                    professor: instructor?.name ?? '',
+                  });
+                }}
+              >
+                <option value="">Select instructor...</option>
+                {instructors.map((instructor) => (
+                  <option key={instructor.id} value={instructor.id}>
+                    {instructor.name ?? 'Unknown'}
+                    {instructor.belt_rank && ` (${instructor.belt_rank} belt)`}
+                    {instructor.instructor_certification && ` - ${instructor.instructor_certification}`}
+                  </option>
+                ))}
+              </select>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                Select from your instructor list. <a href="/friends" className="text-primary-600 hover:underline">Add instructors in Friends</a>
+              </p>
+            </div>
+
+            <div>
+              <label className="label">Grading Photo (optional)</label>
+              {gradingPhotoPreview || gradingForm.photo_url ? (
+                <div className="mb-3">
+                  <img
+                    src={gradingPhotoPreview || gradingForm.photo_url}
+                    alt="Grading"
+                    className="w-full max-w-sm rounded-lg border border-gray-300 dark:border-gray-600"
+                  />
+                  <button
+                    type="button"
+                    onClick={handleDeleteGradingPhoto}
+                    className="mt-2 text-sm text-red-600 hover:text-red-700"
+                  >
+                    Remove Photo
+                  </button>
+                </div>
+              ) : null}
+              <label className="btn-secondary cursor-pointer inline-flex items-center gap-2">
+                <input
+                  type="file"
+                  className="hidden"
+                  accept="image/jpeg,image/jpg,image/png,image/webp,image/gif"
+                  onChange={handleGradingPhotoUpload}
+                  disabled={uploadingGradingPhoto}
+                />
+                {uploadingGradingPhoto ? 'Uploading...' : gradingForm.photo_url ? 'Change Photo' : 'Upload Photo'}
+              </label>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                Upload a photo of your belt certificate or grading (max 5MB)
+              </p>
             </div>
 
             <div>
@@ -865,6 +990,16 @@ export default function Profile() {
                     <p className="text-sm text-gray-500 dark:text-gray-500 mt-1 italic">
                       {grading.notes}
                     </p>
+                  )}
+                  {grading.photo_url && (
+                    <div className="mt-2">
+                      <img
+                        src={grading.photo_url}
+                        alt={`${grading.grade} certificate`}
+                        className="rounded-lg border border-gray-300 dark:border-gray-600 max-w-xs cursor-pointer hover:opacity-90"
+                        onClick={() => window.open(grading.photo_url, '_blank')}
+                      />
+                    </div>
                   )}
                 </div>
                 <div className="flex gap-2">

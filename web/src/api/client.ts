@@ -136,12 +136,19 @@ export const profileApi = {
 };
 
 export const gradingsApi = {
-  create: (data: { grade: string; date_graded: string; professor?: string; notes?: string }) =>
+  create: (data: { grade: string; date_graded: string; professor?: string; instructor_id?: number; notes?: string; photo_url?: string }) =>
     api.post<Grading>('/gradings/', data),
   list: () => api.get<Grading[]>('/gradings/'),
   getLatest: () => api.get<Grading | null>('/gradings/latest'),
   update: (id: number, data: Partial<Grading>) => api.put<Grading>(`/gradings/${id}`, data),
   delete: (id: number) => api.delete(`/gradings/${id}`),
+  uploadPhoto: (formData: FormData) => {
+    return api.post<{ photo_url: string; filename: string; message: string }>('/gradings/photo', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+  },
 };
 
 export const glossaryApi = {

@@ -17,6 +17,7 @@ from rivaflow.db.repositories.relationship_repo import UserRelationshipRepositor
 from rivaflow.db.repositories.activity_like_repo import ActivityLikeRepository
 from rivaflow.db.repositories.activity_comment_repo import ActivityCommentRepository
 from rivaflow.db.repositories.gym_repo import GymRepository
+from rivaflow.db.repositories.activity_photo_repo import ActivityPhotoRepository
 
 __all__ = [
     "UserRepository",
@@ -37,4 +38,5 @@ __all__ = [
     "ActivityLikeRepository",
     "ActivityCommentRepository",
     "GymRepository",
+    "ActivityPhotoRepository",
 ]

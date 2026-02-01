@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { X } from 'lucide-react';
-import { sessionsApi, profileApi } from '../api/client';
+import { sessionsApi, profileApi, restApi } from '../api/client';
 import { PrimaryButton, SecondaryButton } from './ui';
 import { useToast } from '../contexts/ToastContext';
 
@@ -14,10 +14,17 @@ export default function QuickLog({ isOpen, onClose, onSuccess }: QuickLogProps) 
   const [loading, setLoading] = useState(false);
   const toast = useToast();
 
-  // Quick log defaults
+  // Activity type: 'training' or 'rest'
+  const [activityType, setActivityType] = useState<'training' | 'rest'>('training');
+
+  // Training session fields
   const [gym, setGym] = useState('');
   const [duration, setDuration] = useState(90);
   const [intensity, setIntensity] = useState(3);
+
+  // Rest day fields
+  const [restType, setRestType] = useState('active');
+  const [restNote, setRestNote] = useState('');
 
   useEffect(() => {
     if (isOpen) {
@@ -46,33 +53,48 @@ export default function QuickLog({ isOpen, onClose, onSuccess }: QuickLogProps) 
   };
 
   const handleQuickLog = async () => {
-    if (!gym.trim()) {
-      toast.error('Please enter a gym name');
-      return;
-    }
-
     setLoading(true);
     try {
       const today = new Date().toISOString().split('T')[0];
-      await sessionsApi.create({
-        gym_name: gym,
-        session_date: today,
-        duration_mins: duration,
-        intensity,
-        class_type: 'Open Mat',
-        rolls: 0,
-      });
+
+      if (activityType === 'rest') {
+        // Log rest day
+        await restApi.logRestDay({
+          rest_type: restType,
+          note: restNote || undefined,
+          rest_date: today,
+        });
+        toast.success('Rest day logged successfully');
+        // Reset rest form
+        setRestType('active');
+        setRestNote('');
+      } else {
+        // Log training session
+        if (!gym.trim()) {
+          toast.error('Please enter a gym name');
+          setLoading(false);
+          return;
+        }
+
+        await sessionsApi.create({
+          gym_name: gym,
+          session_date: today,
+          duration_mins: duration,
+          intensity,
+          class_type: 'Open Mat',
+          rolls: 0,
+        });
+        toast.success('Session logged successfully');
+        // Reset training form
+        setDuration(90);
+        setIntensity(3);
+      }
 
       if (onSuccess) onSuccess();
       onClose();
-      toast.success('Session logged successfully');
-
-      // Reset form
-      setDuration(90);
-      setIntensity(3);
     } catch (error) {
-      console.error('Error creating session:', error);
-      toast.error('Failed to log session');
+      console.error('Error logging activity:', error);
+      toast.error(`Failed to log ${activityType === 'rest' ? 'rest day' : 'session'}`);
     } finally {
       setLoading(false);
     }
@@ -114,20 +136,56 @@ export default function QuickLog({ isOpen, onClose, onSuccess }: QuickLogProps) 
 
         {/* Quick Form */}
         <div className="space-y-4">
-          {/* Gym */}
+          {/* Activity Type Selector */}
           <div>
             <label className="block text-sm font-medium mb-2" style={{ color: 'var(--text)' }}>
-              Gym
+              Activity Type
             </label>
-            <input
-              type="text"
-              value={gym}
-              onChange={(e) => setGym(e.target.value)}
-              className="input w-full"
-              placeholder="Enter gym name"
-              autoFocus
-            />
+            <div className="flex gap-2" role="group" aria-label="Activity type">
+              <button
+                onClick={() => setActivityType('training')}
+                className="flex-1 py-3 rounded-lg font-medium text-sm transition-all"
+                style={{
+                  backgroundColor: activityType === 'training' ? 'var(--accent)' : 'var(--surfaceElev)',
+                  color: activityType === 'training' ? '#FFFFFF' : 'var(--text)',
+                  border: activityType === 'training' ? 'none' : '1px solid var(--border)',
+                }}
+                aria-pressed={activityType === 'training'}
+              >
+                Training
+              </button>
+              <button
+                onClick={() => setActivityType('rest')}
+                className="flex-1 py-3 rounded-lg font-medium text-sm transition-all"
+                style={{
+                  backgroundColor: activityType === 'rest' ? 'var(--accent)' : 'var(--surfaceElev)',
+                  color: activityType === 'rest' ? '#FFFFFF' : 'var(--text)',
+                  border: activityType === 'rest' ? 'none' : '1px solid var(--border)',
+                }}
+                aria-pressed={activityType === 'rest'}
+              >
+                Rest Day
+              </button>
+            </div>
           </div>
+
+          {/* Training Session Fields */}
+          {activityType === 'training' && (
+            <>
+              {/* Gym */}
+              <div>
+                <label className="block text-sm font-medium mb-2" style={{ color: 'var(--text)' }}>
+                  Gym
+                </label>
+                <input
+                  type="text"
+                  value={gym}
+                  onChange={(e) => setGym(e.target.value)}
+                  className="input w-full"
+                  placeholder="Enter gym name"
+                  autoFocus
+                />
+              </div>
 
           {/* Duration */}
           <div>
@@ -154,30 +212,75 @@ export default function QuickLog({ isOpen, onClose, onSuccess }: QuickLogProps) 
             </div>
           </div>
 
-          {/* Intensity */}
-          <div>
-            <label className="block text-sm font-medium mb-2" style={{ color: 'var(--text)' }}>
-              Intensity
-            </label>
-            <div className="flex gap-2" role="group" aria-label="Intensity options">
-              {intensityOptions.map((level) => (
-                <button
-                  key={level}
-                  onClick={() => setIntensity(level)}
-                  className="flex-1 py-3 rounded-lg font-semibold transition-all"
-                  style={{
-                    backgroundColor: intensity === level ? 'var(--accent)' : 'var(--surfaceElev)',
-                    color: intensity === level ? '#FFFFFF' : 'var(--text)',
-                    border: intensity === level ? 'none' : '1px solid var(--border)',
-                  }}
-                  aria-label={`Intensity level ${level} of 5`}
-                  aria-pressed={intensity === level}
-                >
-                  {level}
-                </button>
-              ))}
-            </div>
-          </div>
+              {/* Intensity */}
+              <div>
+                <label className="block text-sm font-medium mb-2" style={{ color: 'var(--text)' }}>
+                  Intensity
+                </label>
+                <div className="flex gap-2" role="group" aria-label="Intensity options">
+                  {intensityOptions.map((level) => (
+                    <button
+                      key={level}
+                      onClick={() => setIntensity(level)}
+                      className="flex-1 py-3 rounded-lg font-semibold transition-all"
+                      style={{
+                        backgroundColor: intensity === level ? 'var(--accent)' : 'var(--surfaceElev)',
+                        color: intensity === level ? '#FFFFFF' : 'var(--text)',
+                        border: intensity === level ? 'none' : '1px solid var(--border)',
+                      }}
+                      aria-label={`Intensity level ${level} of 5`}
+                      aria-pressed={intensity === level}
+                    >
+                      {level}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </>
+          )}
+
+          {/* Rest Day Fields */}
+          {activityType === 'rest' && (
+            <>
+              {/* Rest Type */}
+              <div>
+                <label className="block text-sm font-medium mb-2" style={{ color: 'var(--text)' }}>
+                  Rest Type
+                </label>
+                <div className="flex gap-2" role="group" aria-label="Rest type options">
+                  {['active', 'passive', 'injury'].map((type) => (
+                    <button
+                      key={type}
+                      onClick={() => setRestType(type)}
+                      className="flex-1 py-3 rounded-lg font-medium text-sm transition-all capitalize"
+                      style={{
+                        backgroundColor: restType === type ? 'var(--accent)' : 'var(--surfaceElev)',
+                        color: restType === type ? '#FFFFFF' : 'var(--text)',
+                        border: restType === type ? 'none' : '1px solid var(--border)',
+                      }}
+                      aria-pressed={restType === type}
+                    >
+                      {type}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Rest Note */}
+              <div>
+                <label className="block text-sm font-medium mb-2" style={{ color: 'var(--text)' }}>
+                  Note (optional)
+                </label>
+                <textarea
+                  value={restNote}
+                  onChange={(e) => setRestNote(e.target.value)}
+                  className="input w-full"
+                  rows={3}
+                  placeholder="Any notes about your rest day..."
+                />
+              </div>
+            </>
+          )}
         </div>
 
         {/* Actions */}
@@ -186,7 +289,7 @@ export default function QuickLog({ isOpen, onClose, onSuccess }: QuickLogProps) 
             Cancel
           </SecondaryButton>
           <PrimaryButton onClick={handleQuickLog} disabled={loading} className="flex-1">
-            {loading ? 'Logging...' : 'Log Session'}
+            {loading ? 'Logging...' : activityType === 'rest' ? 'Log Rest Day' : 'Log Session'}
           </PrimaryButton>
         </div>
 

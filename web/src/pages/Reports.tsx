@@ -61,6 +61,17 @@ export default function Reports() {
     setHasUserChangedRange(true);
   };
 
+  const setQuickRange = (days: number) => {
+    const end = new Date();
+    const start = new Date();
+    start.setDate(start.getDate() - days);
+    setDateRange({
+      start: start.toISOString().split('T')[0],
+      end: end.toISOString().split('T')[0],
+    });
+    setHasUserChangedRange(false);
+  };
+
   const tabs = [
     { id: 'overview', name: 'Performance', icon: TrendingUp },
     { id: 'partners', name: 'Partners', icon: Users },
@@ -219,23 +230,61 @@ export default function Reports() {
 
       {/* Date Range Control */}
       <Card>
-        <div className="flex items-center gap-4">
+        <div className="space-y-3">
           <label className="text-sm font-medium text-[var(--text)]">Date Range</label>
-          <input
-            type="date"
-            value={dateRange.start}
-            onChange={(e) => handleDateRangeChange(e.target.value, dateRange.end)}
-            className="input text-sm"
-            style={{ maxWidth: '160px' }}
-          />
-          <span className="text-[var(--muted)]">to</span>
-          <input
-            type="date"
-            value={dateRange.end}
-            onChange={(e) => handleDateRangeChange(dateRange.start, e.target.value)}
-            className="input text-sm"
-            style={{ maxWidth: '160px' }}
-          />
+
+          {/* Quick Range Buttons */}
+          <div className="flex gap-2" role="group" aria-label="Quick date range">
+            {[
+              { label: 'Last 7 days', days: 7 },
+              { label: 'Last 14 days', days: 14 },
+              { label: 'Last 30 days', days: 30 },
+            ].map((range) => {
+              const end = new Date();
+              const start = new Date();
+              start.setDate(start.getDate() - range.days);
+              const isActive = !hasUserChangedRange &&
+                dateRange.start === start.toISOString().split('T')[0] &&
+                dateRange.end === end.toISOString().split('T')[0];
+
+              return (
+                <button
+                  key={range.days}
+                  type="button"
+                  onClick={() => setQuickRange(range.days)}
+                  className="px-4 py-2 rounded-lg text-sm font-medium transition-all"
+                  style={{
+                    backgroundColor: isActive ? 'var(--accent)' : 'var(--surfaceElev)',
+                    color: isActive ? '#FFFFFF' : 'var(--text)',
+                    border: isActive ? 'none' : '1px solid var(--border)',
+                  }}
+                  aria-pressed={isActive}
+                >
+                  {range.label}
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Custom Date Range */}
+          <div className="flex items-center gap-4">
+            <span className="text-sm text-[var(--muted)]">Or select custom range:</span>
+            <input
+              type="date"
+              value={dateRange.start}
+              onChange={(e) => handleDateRangeChange(e.target.value, dateRange.end)}
+              className="input text-sm"
+              style={{ maxWidth: '160px' }}
+            />
+            <span className="text-[var(--muted)]">to</span>
+            <input
+              type="date"
+              value={dateRange.end}
+              onChange={(e) => handleDateRangeChange(dateRange.start, e.target.value)}
+              className="input text-sm"
+              style={{ maxWidth: '160px' }}
+            />
+          </div>
         </div>
       </Card>
 

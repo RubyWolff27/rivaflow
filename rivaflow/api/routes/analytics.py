@@ -88,7 +88,12 @@ async def get_technique_analytics(
     current_user: dict = Depends(get_current_user),
 ):
     """Get technique mastery analytics."""
-    return service.get_technique_analytics(user_id=current_user["id"], start_date=start_date, end_date=end_date)
+    try:
+        return service.get_technique_analytics(user_id=current_user["id"], start_date=start_date, end_date=end_date)
+    except Exception as e:
+        logger.error(f"Error in get_technique_analytics: {type(e).__name__}: {str(e)}")
+        logger.error(traceback.format_exc())
+        raise HTTPException(status_code=500, detail=f"Analytics error: {type(e).__name__}: {str(e)}")
 
 
 @router.get("/consistency/metrics")
@@ -98,13 +103,23 @@ async def get_consistency_analytics(
     current_user: dict = Depends(get_current_user),
 ):
     """Get training consistency analytics."""
-    return service.get_consistency_analytics(user_id=current_user["id"], start_date=start_date, end_date=end_date)
+    try:
+        return service.get_consistency_analytics(user_id=current_user["id"], start_date=start_date, end_date=end_date)
+    except Exception as e:
+        logger.error(f"Error in get_consistency_analytics: {type(e).__name__}: {str(e)}")
+        logger.error(traceback.format_exc())
+        raise HTTPException(status_code=500, detail=f"Analytics error: {type(e).__name__}: {str(e)}")
 
 
 @router.get("/milestones")
 async def get_milestones(current_user: dict = Depends(get_current_user)):
     """Get progression and milestone data."""
-    return service.get_milestones(user_id=current_user["id"])
+    try:
+        return service.get_milestones(user_id=current_user["id"])
+    except Exception as e:
+        logger.error(f"Error in get_milestones: {type(e).__name__}: {str(e)}")
+        logger.error(traceback.format_exc())
+        raise HTTPException(status_code=500, detail=f"Analytics error: {type(e).__name__}: {str(e)}")
 
 
 @router.get("/instructors/insights")
@@ -114,4 +129,9 @@ async def get_instructor_analytics(
     current_user: dict = Depends(get_current_user),
 ):
     """Get instructor insights analytics."""
-    return service.get_instructor_analytics(user_id=current_user["id"], start_date=start_date, end_date=end_date)
+    try:
+        return service.get_instructor_analytics(user_id=current_user["id"], start_date=start_date, end_date=end_date)
+    except Exception as e:
+        logger.error(f"Error in get_instructor_analytics: {type(e).__name__}: {str(e)}")
+        logger.error(traceback.format_exc())
+        raise HTTPException(status_code=500, detail=f"Analytics error: {type(e).__name__}: {str(e)}")
