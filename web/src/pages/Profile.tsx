@@ -53,6 +53,7 @@ export default function Profile() {
     city: '',
     state: '',
     default_gym: '',
+    default_location: '',
     current_professor: '',
     current_instructor_id: null as number | null,
     height_cm: '',
@@ -95,6 +96,7 @@ export default function Profile() {
         city: profileRes.data?.city ?? '',
         state: profileRes.data?.state ?? '',
         default_gym: profileRes.data?.default_gym ?? '',
+        default_location: profileRes.data?.default_location ?? '',
         current_professor: profileRes.data?.current_professor ?? '',
         current_instructor_id: profileRes.data?.current_instructor_id ?? null,
         height_cm: profileRes.data?.height_cm?.toString() ?? '',
@@ -127,6 +129,7 @@ export default function Profile() {
         city: formData.city || undefined,
         state: formData.state || undefined,
         default_gym: formData.default_gym || undefined,
+        default_location: formData.default_location || undefined,
         current_professor: formData.current_professor || undefined,
         current_instructor_id: formData.current_instructor_id || undefined,
         height_cm: formData.height_cm ? parseInt(formData.height_cm) : undefined,
@@ -489,6 +492,21 @@ export default function Profile() {
             )}
             <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
               Select from existing gyms or add a new one for verification
+            </p>
+          </div>
+
+          {/* Default Location */}
+          <div>
+            <label className="label">Default Location</label>
+            <input
+              type="text"
+              className="input"
+              value={formData.default_location}
+              onChange={(e) => setFormData({ ...formData, default_location: e.target.value })}
+              placeholder="e.g., Sydney, NSW"
+            />
+            <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+              This will auto-populate when logging sessions
             </p>
           </div>
 

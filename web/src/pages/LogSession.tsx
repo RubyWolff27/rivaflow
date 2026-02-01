@@ -103,10 +103,13 @@ export default function LogSession() {
       setPartners(partnersRes.data ?? []);
       setMovements(movementsRes.data ?? []);
 
-      // Auto-populate default gym and coach from profile
+      // Auto-populate default gym, location, and coach from profile
       const updates: any = {};
       if (profileRes.data?.default_gym) {
         updates.gym_name = profileRes.data.default_gym;
+      }
+      if (profileRes.data?.default_location) {
+        updates.location = profileRes.data.default_location;
       }
       if (profileRes.data?.current_instructor_id) {
         updates.instructor_id = profileRes.data.current_instructor_id;
@@ -531,43 +534,30 @@ export default function LogSession() {
           {/* Instructor */}
           <div>
             <label className="label">Instructor (optional)</label>
-            <div className="space-y-2">
-              <select
-                className="input"
-                value={sessionData.instructor_id || ''}
-                onChange={(e) => {
-                  const instructorId = e.target.value ? parseInt(e.target.value) : null;
-                  const instructor = instructors.find(i => i.id === instructorId);
-                  setSessionData({
-                    ...sessionData,
-                    instructor_id: instructorId,
-                    instructor_name: instructor?.name || '',
-                  });
-                }}
-              >
-                <option value="">Select from your instructors...</option>
-                {instructors.map(instructor => (
-                  <option key={instructor.id} value={instructor.id}>
-                    {instructor.name ?? 'Unknown'}
-                    {instructor.belt_rank && ` (${instructor.belt_rank} belt)`}
-                    {instructor.instructor_certification && ` - ${instructor.instructor_certification}`}
-                  </option>
-                ))}
-              </select>
-              <input
-                type="text"
-                className="input"
-                value={sessionData.instructor_name}
-                onChange={(e) => setSessionData({
+            <select
+              className="input"
+              value={sessionData.instructor_id || ''}
+              onChange={(e) => {
+                const instructorId = e.target.value ? parseInt(e.target.value) : null;
+                const instructor = instructors.find(i => i.id === instructorId);
+                setSessionData({
                   ...sessionData,
-                  instructor_name: e.target.value,
-                  instructor_id: null, // Clear ID when typing custom name
-                })}
-                placeholder="Or enter instructor name..."
-              />
-            </div>
+                  instructor_id: instructorId,
+                  instructor_name: instructor?.name || '',
+                });
+              }}
+            >
+              <option value="">Select instructor...</option>
+              {instructors.map(instructor => (
+                <option key={instructor.id} value={instructor.id}>
+                  {instructor.name ?? 'Unknown'}
+                  {instructor.belt_rank && ` (${instructor.belt_rank} belt)`}
+                  {instructor.instructor_certification && ` - ${instructor.instructor_certification}`}
+                </option>
+              ))}
+            </select>
             <p className="text-xs text-gray-500 mt-1">
-              Select from your list or enter a name. <a href="/friends" className="text-primary-600 hover:underline">Manage instructors in Friends</a>
+              Select from your list. <a href="/friends" className="text-primary-600 hover:underline">Manage instructors in Friends</a>
             </p>
           </div>
 
