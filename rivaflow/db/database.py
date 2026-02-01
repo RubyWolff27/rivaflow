@@ -146,7 +146,7 @@ def _init_sqlite_db() -> None:
         # Create migrations tracking table if it doesn't exist
         conn.execute("""
             CREATE TABLE IF NOT EXISTS schema_migrations (
-                migration_name TEXT PRIMARY KEY,
+                version TEXT PRIMARY KEY,
                 applied_at TEXT NOT NULL DEFAULT (datetime('now'))
             )
         """)
@@ -154,7 +154,7 @@ def _init_sqlite_db() -> None:
 
         # Get list of already applied migrations
         cursor = conn.cursor()
-        cursor.execute("SELECT migration_name FROM schema_migrations")
+        cursor.execute("SELECT version FROM schema_migrations")
         applied_migrations = {row[0] for row in cursor.fetchall()}
 
         _apply_migrations(conn, applied_migrations, "sqlite")
@@ -178,14 +178,14 @@ def _init_postgresql_db() -> None:
         # Create migrations tracking table if it doesn't exist
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS schema_migrations (
-                migration_name TEXT PRIMARY KEY,
-                applied_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+                version TEXT PRIMARY KEY,
+                applied_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
             )
         """)
         conn.commit()
 
         # Get list of already applied migrations
-        cursor.execute("SELECT migration_name FROM schema_migrations")
+        cursor.execute("SELECT version FROM schema_migrations")
         applied_migrations = {row[0] for row in cursor.fetchall()}
 
         _apply_migrations(conn, applied_migrations, "postgresql")
@@ -438,7 +438,7 @@ def _apply_migrations(conn: Union[sqlite3.Connection, 'psycopg2.extensions.conne
 
             # Record this migration as applied
             cursor.execute(
-                "INSERT INTO schema_migrations (migration_name) VALUES (%s)" if db_type == "postgresql" else "INSERT INTO schema_migrations (migration_name) VALUES (?)",
+                "INSERT INTO schema_migrations (version) VALUES (%s)" if db_type == "postgresql" else "INSERT INTO schema_migrations (version) VALUES (?)",
                 (migration,)
             )
             conn.commit()
