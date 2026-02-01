@@ -61,22 +61,6 @@ async def get_notifications(
         return {"notifications": [], "count": 0}
 
 
-@router.post("/{notification_id}/read")
-async def mark_notification_as_read(
-    notification_id: int = Path(..., gt=0),
-    current_user: dict = Depends(get_current_user),
-):
-    """Mark a single notification as read."""
-    user_id = current_user["id"]
-    try:
-        success = NotificationService.mark_as_read(notification_id, user_id)
-        return {"success": success}
-    except Exception as e:
-        # Gracefully handle if notifications table doesn't exist yet
-        logger.error(f"Error marking notification as read: {e}", exc_info=True)
-        return {"success": False}
-
-
 @router.post("/read-all")
 async def mark_all_notifications_as_read(current_user: dict = Depends(get_current_user)):
     """Mark all notifications as read."""
@@ -137,6 +121,22 @@ async def mark_follow_notifications_as_read(current_user: dict = Depends(get_cur
         # Gracefully handle if notifications table doesn't exist yet
         logger.error(f"Error marking follow notifications as read for user {current_user.get('id', 'UNKNOWN')}: {type(e).__name__}: {e}", exc_info=True)
         return {"success": True, "count": 0}
+
+
+@router.post("/{notification_id}/read")
+async def mark_notification_as_read(
+    notification_id: int = Path(..., gt=0),
+    current_user: dict = Depends(get_current_user),
+):
+    """Mark a single notification as read."""
+    user_id = current_user["id"]
+    try:
+        success = NotificationService.mark_as_read(notification_id, user_id)
+        return {"success": success}
+    except Exception as e:
+        # Gracefully handle if notifications table doesn't exist yet
+        logger.error(f"Error marking notification as read: {e}", exc_info=True)
+        return {"success": False}
 
 
 @router.delete("/{notification_id}")
