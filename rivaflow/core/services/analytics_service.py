@@ -98,7 +98,7 @@ class AnalyticsService:
         # Convert movement IDs to names
         top_subs_for_list = []
         for movement_id, count in top_subs_for.most_common(5):
-            movement = self.glossary_repo.get_by_id(user_id, movement_id)
+            movement = self.glossary_repo.get_by_id(movement_id)
             if movement:
                 top_subs_for_list.append({
                     "name": movement["name"],
@@ -108,7 +108,7 @@ class AnalyticsService:
 
         top_subs_against_list = []
         for movement_id, count in top_subs_against.most_common(5):
-            movement = self.glossary_repo.get_by_id(user_id, movement_id)
+            movement = self.glossary_repo.get_by_id(movement_id)
             if movement:
                 top_subs_against_list.append({
                     "name": movement["name"],
@@ -691,7 +691,7 @@ class AnalyticsService:
             for roll in rolls:
                 if roll.get("submissions_for"):
                     for movement_id in roll["submissions_for"]:
-                        movement = self.glossary_repo.get_by_id(user_id, movement_id)
+                        movement = self.glossary_repo.get_by_id(movement_id)
                         if movement:
                             category_counts[movement["category"]] += 1
 
@@ -755,13 +755,13 @@ class AnalyticsService:
         # Get top 10 from each
         gi_top = []
         for movement_id, count in gi_techniques.most_common(10):
-            movement = self.glossary_repo.get_by_id(user_id, movement_id)
+            movement = self.glossary_repo.get_by_id(movement_id)
             if movement:
                 gi_top.append({"name": movement["name"], "count": count})
 
         nogi_top = []
         for movement_id, count in nogi_techniques.most_common(10):
-            movement = self.glossary_repo.get_by_id(user_id, movement_id)
+            movement = self.glossary_repo.get_by_id(movement_id)
             if movement:
                 nogi_top.append({"name": movement["name"], "count": count})
 
