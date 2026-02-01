@@ -123,23 +123,23 @@ async def search_gyms(
 @router.post("/gyms")
 @limiter.limit("30/minute")
 async def create_gym(
-    http_request: Request,
-    request: GymCreateRequest,
+    request: Request,
+    gym_data: GymCreateRequest = Body(...),
     current_user: dict = Depends(require_admin),
 ):
     """Create a new gym (admin only)."""
     gym_service = GymService()
     gym = gym_service.create(
-        name=request.name,
-        city=request.city,
-        state=request.state,
-        country=request.country,
-        address=request.address,
-        website=request.website,
-        email=request.email,
-        phone=request.phone,
-        head_coach=request.head_coach,
-        verified=request.verified,
+        name=gym_data.name,
+        city=gym_data.city,
+        state=gym_data.state,
+        country=gym_data.country,
+        address=gym_data.address,
+        website=gym_data.website,
+        email=gym_data.email,
+        phone=gym_data.phone,
+        head_coach=gym_data.head_coach,
+        verified=gym_data.verified,
         added_by_user_id=current_user["id"],
     )
 
@@ -149,8 +149,8 @@ async def create_gym(
         action="gym.create",
         target_type="gym",
         target_id=gym["id"],
-        details={"name": gym["name"], "verified": request.verified},
-        ip_address=get_client_ip(http_request),
+        details={"name": gym["name"], "verified": gym_data.verified},
+        ip_address=get_client_ip(request),
     )
 
     return {"success": True, "gym": gym}
@@ -159,9 +159,9 @@ async def create_gym(
 @router.put("/gyms/{gym_id}")
 @limiter.limit("30/minute")
 async def update_gym(
-    http_request: Request,
+    request: Request,
     gym_id: int = Path(..., gt=0),
-    request: GymUpdateRequest = Body(...),
+    gym_data: GymUpdateRequest = Body(...),
     current_user: dict = Depends(require_admin),
 ):
     """Update a gym (admin only)."""
@@ -171,7 +171,7 @@ async def update_gym(
         raise NotFoundError(f"Gym with id {gym_id} not found")
 
     # Filter out None values
-    update_data = {k: v for k, v in request.dict().items() if v is not None}
+    update_data = {k: v for k, v in gym_data.dict().items() if v is not None}
 
     updated_gym = gym_service.update(gym_id, **update_data)
 
@@ -182,7 +182,7 @@ async def update_gym(
         target_type="gym",
         target_id=gym_id,
         details={"changes": update_data, "name": gym["name"]},
-        ip_address=get_client_ip(http_request),
+        ip_address=get_client_ip(request),
     )
 
     return {"success": True, "gym": updated_gym}
@@ -221,40 +221,40 @@ async def delete_gym(
 @router.post("/gyms/merge")
 @limiter.limit("10/minute")
 async def merge_gyms(
-    http_request: Request,
-    request: GymMergeRequest,
+    request: Request,
+    merge_data: GymMergeRequest = Body(...),
     current_user: dict = Depends(require_admin),
 ):
     """Merge duplicate gyms (admin only)."""
     # Prevent merging a gym into itself
-    if request.source_gym_id == request.target_gym_id:
+    if merge_data.source_gym_id == merge_data.target_gym_id:
         raise ValidationError("Cannot merge a gym into itself")
 
     # Verify both gyms exist
     gym_service = GymService()
-    source = gym_service.get_by_id(request.source_gym_id)
-    target = gym_service.get_by_id(request.target_gym_id)
+    source = gym_service.get_by_id(merge_data.source_gym_id)
+    target = gym_service.get_by_id(merge_data.target_gym_id)
 
     if not source:
-        raise NotFoundError(f"Source gym {request.source_gym_id} not found")
+        raise NotFoundError(f"Source gym {merge_data.source_gym_id} not found")
     if not target:
-        raise NotFoundError(f"Target gym {request.target_gym_id} not found")
+        raise NotFoundError(f"Target gym {merge_data.target_gym_id} not found")
 
     try:
-        success = gym_service.merge_gyms(request.source_gym_id, request.target_gym_id)
+        success = gym_service.merge_gyms(merge_data.source_gym_id, merge_data.target_gym_id)
 
         # Audit log
         AuditService.log(
             actor_id=current_user["id"],
             action="gym.merge",
             target_type="gym",
-            target_id=request.target_gym_id,
+            target_id=merge_data.target_gym_id,
             details={
-                "source_gym_id": request.source_gym_id,
+                "source_gym_id": merge_data.source_gym_id,
                 "source_gym_name": source["name"],
                 "target_gym_name": target["name"],
             },
-            ip_address=get_client_ip(http_request),
+            ip_address=get_client_ip(request),
         )
 
         return {
@@ -473,9 +473,9 @@ async def get_user_details(
 @router.put("/users/{user_id}")
 @limiter.limit("30/minute")
 async def update_user(
-    http_request: Request,
+    request: Request,
     user_id: int = Path(..., gt=0),
-    request: UserUpdateRequest = Body(...),
+    user_data: UserUpdateRequest = Body(...),
     current_user: dict = Depends(require_admin),
 ):
     """Update user (admin only)."""
@@ -492,15 +492,15 @@ async def update_user(
         updates = []
         params = []
 
-        if request.is_active is not None:
+        if user_data.is_active is not None:
             updates.append("is_active = ?")
-            params.append(request.is_active)
-            changes["is_active"] = request.is_active
+            params.append(user_data.is_active)
+            changes["is_active"] = user_data.is_active
 
-        if request.is_admin is not None:
+        if user_data.is_admin is not None:
             updates.append("is_admin = ?")
-            params.append(request.is_admin)
-            changes["is_admin"] = request.is_admin
+            params.append(user_data.is_admin)
+            changes["is_admin"] = user_data.is_admin
 
         if updates:
             query = f"UPDATE users SET {', '.join(updates)} WHERE id = ?"
@@ -518,7 +518,7 @@ async def update_user(
             target_type="user",
             target_id=user_id,
             details={"changes": changes, "email": user["email"]},
-            ip_address=get_client_ip(http_request),
+            ip_address=get_client_ip(request),
         )
 
     return {"success": True, "user": updated_user}
