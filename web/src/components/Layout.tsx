@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, memo } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { Home, Plus, BarChart3, Book, User, Users, Menu, X, LogOut, Grid, BookOpen, Video, MessageCircle, Activity, Shield, Calendar, Sparkles } from 'lucide-react';
+import { Home, Plus, BarChart3, Book, User, Users, Menu, X, LogOut, Grid, BookOpen, Video, Activity, Shield, Calendar, Sparkles } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import QuickLog from './QuickLog';
 import { notificationsApi } from '../api/client';
