@@ -167,7 +167,11 @@ def _init_sqlite_db() -> None:
 
 
 def _init_postgresql_db() -> None:
-    """Initialize PostgreSQL database with migrations."""
+    """Initialize PostgreSQL database.
+
+    Note: PostgreSQL migrations are handled by migrate.py, not by this function.
+    This function only creates the migrations tracking table and resets sequences.
+    """
     if not PSYCOPG2_AVAILABLE:
         raise ImportError("psycopg2 is required for PostgreSQL support. Install with: pip install psycopg2-binary")
 
@@ -179,6 +183,7 @@ def _init_postgresql_db() -> None:
         cursor = conn.cursor()
 
         # Create migrations tracking table if it doesn't exist
+        # migrate.py will populate this table with applied migrations
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS schema_migrations (
                 version TEXT PRIMARY KEY,
@@ -187,14 +192,16 @@ def _init_postgresql_db() -> None:
         """)
         conn.commit()
 
-        # Get list of already applied migrations
-        cursor.execute("SELECT version FROM schema_migrations")
-        applied_migrations = {row[0] for row in cursor.fetchall()}
-
-        _apply_migrations(conn, applied_migrations, "postgresql")
+        # PostgreSQL migrations are handled by migrate.py
+        # Skip _apply_migrations() to avoid conflicts with migrate.py
+        logger.info("PostgreSQL database initialized. Migrations will be handled by migrate.py")
 
         # Reset sequences for tables with SERIAL primary keys
-        _reset_postgresql_sequences(conn)
+        try:
+            _reset_postgresql_sequences(conn)
+        except Exception as e:
+            # Sequences might not exist yet if this is first run
+            logger.debug(f"Skipping sequence reset (tables may not exist yet): {e}")
 
     finally:
         conn.close()
