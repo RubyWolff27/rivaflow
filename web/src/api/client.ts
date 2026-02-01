@@ -125,6 +125,14 @@ export const videosApi = {
 export const profileApi = {
   get: () => api.get<Profile>('/profile/'),
   update: (data: Partial<Profile>) => api.put<Profile>('/profile/', data),
+  uploadPhoto: (formData: FormData) => {
+    return api.post<{ avatar_url: string; filename: string; message: string }>('/profile/photo', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+  },
+  deletePhoto: () => api.delete<{ message: string }>('/profile/photo'),
 };
 
 export const gradingsApi = {

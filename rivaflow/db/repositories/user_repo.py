@@ -191,6 +191,26 @@ class UserRepository:
             return cursor.rowcount > 0
 
     @staticmethod
+    def update_avatar(user_id: int, avatar_url: Optional[str]) -> bool:
+        """
+        Update a user's avatar URL.
+
+        Args:
+            user_id: User's ID
+            avatar_url: New avatar URL (or None to clear)
+
+        Returns:
+            True if updated successfully, False if user not found
+        """
+        with get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                convert_query("UPDATE users SET avatar_url = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?"),
+                (avatar_url, user_id)
+            )
+            return cursor.rowcount > 0
+
+    @staticmethod
     def _row_to_dict(row: sqlite3.Row) -> dict:
         """Convert a database row to a dictionary."""
         data = dict(row)

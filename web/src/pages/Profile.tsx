@@ -47,6 +47,8 @@ export default function Profile() {
   const [isCustomGym, setIsCustomGym] = useState(false);
   const [gymVerificationPending, setGymVerificationPending] = useState(false);
   const [gradingToDelete, setGradingToDelete] = useState<number | null>(null);
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
+  const [photoPreview, setPhotoPreview] = useState<string | null>(null);
   const toast = useToast();
 
   const [formData, setFormData] = useState({
@@ -116,6 +118,66 @@ export default function Profile() {
       console.error('Error loading data:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Validate file type
+    const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/gif'];
+    if (!allowedTypes.includes(file.type)) {
+      toast.error('Invalid file type. Please upload a JPG, PNG, WebP, or GIF image.');
+      return;
+    }
+
+    // Validate file size (5MB max)
+    const maxSize = 5 * 1024 * 1024;
+    if (file.size > maxSize) {
+      toast.error('File too large. Maximum size is 5MB.');
+      return;
+    }
+
+    // Show preview
+    const reader = new FileReader();
+    reader.onload = () => {
+      setPhotoPreview(reader.result as string);
+    };
+    reader.readAsDataURL(file);
+
+    // Upload file
+    setUploadingPhoto(true);
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+
+      const response = await profileApi.uploadPhoto(formData);
+
+      // Update local state with new avatar URL
+      setFormData(prev => ({ ...prev, avatar_url: response.data.avatar_url }));
+
+      toast.success('Profile photo uploaded successfully!');
+      await loadData(); // Refresh profile data
+    } catch (error: any) {
+      console.error('Error uploading photo:', error);
+      toast.error(error.response?.data?.detail || 'Failed to upload photo. Please try again.');
+      setPhotoPreview(null);
+    } finally {
+      setUploadingPhoto(false);
+    }
+  };
+
+  const handleDeletePhoto = async () => {
+    try {
+      await profileApi.deletePhoto();
+      setFormData(prev => ({ ...prev, avatar_url: '' }));
+      setPhotoPreview(null);
+      toast.success('Profile photo deleted successfully!');
+      await loadData();
+    } catch (error: any) {
+      console.error('Error deleting photo:', error);
+      toast.error(error.response?.data?.detail || 'Failed to delete photo.');
     }
   };
 
@@ -312,9 +374,9 @@ export default function Profile() {
           {/* Profile Photo */}
           <div className="flex items-center gap-6 pb-6 border-b border-gray-200 dark:border-gray-700">
             <div className="flex-shrink-0">
-              {formData.avatar_url ? (
+              {photoPreview || formData.avatar_url ? (
                 <img
-                  src={formData.avatar_url}
+                  src={photoPreview || formData.avatar_url}
                   alt="Profile"
                   className="w-24 h-24 rounded-full object-cover border-4 border-gray-200 dark:border-gray-700"
                   onError={(e) => {
@@ -328,16 +390,30 @@ export default function Profile() {
               )}
             </div>
             <div className="flex-1">
-              <label className="label">Profile Photo URL</label>
-              <input
-                type="url"
-                className="input"
-                value={formData.avatar_url}
-                onChange={(e) => setFormData({ ...formData, avatar_url: e.target.value })}
-                placeholder="https://example.com/photo.jpg or leave blank for initials"
-              />
+              <label className="label">Profile Photo</label>
+              <div className="flex gap-2">
+                <label className="btn-primary cursor-pointer flex items-center gap-2">
+                  <input
+                    type="file"
+                    className="hidden"
+                    accept="image/jpeg,image/jpg,image/png,image/webp,image/gif"
+                    onChange={handlePhotoUpload}
+                    disabled={uploadingPhoto}
+                  />
+                  {uploadingPhoto ? 'Uploading...' : 'Choose Photo'}
+                </label>
+                {formData.avatar_url && (
+                  <button
+                    type="button"
+                    onClick={handleDeletePhoto}
+                    className="btn-secondary"
+                  >
+                    Remove Photo
+                  </button>
+                )}
+              </div>
               <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                Paste an image URL or leave blank to use your initials
+                Upload a JPG, PNG, WebP, or GIF image (max 5MB)
               </p>
             </div>
           </div>

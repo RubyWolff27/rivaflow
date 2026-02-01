@@ -14,7 +14,16 @@ class ProfileRepository:
         """Get the user profile."""
         with get_connection() as conn:
             cursor = conn.cursor()
-            cursor.execute(convert_query("SELECT * FROM profile WHERE user_id = ?"), (user_id,))
+            # Join with users table to get avatar_url
+            cursor.execute(
+                convert_query("""
+                    SELECT p.*, u.avatar_url, u.email, u.primary_gym_id
+                    FROM profile p
+                    LEFT JOIN users u ON p.user_id = u.id
+                    WHERE p.user_id = ?
+                """),
+                (user_id,)
+            )
             row = cursor.fetchone()
             if row:
                 return ProfileRepository._row_to_dict(row)
@@ -145,8 +154,16 @@ class ProfileRepository:
                     query = f"UPDATE profile SET {', '.join(updates)} WHERE user_id = ?"
                     cursor.execute(convert_query(query), params)
 
-            # Return updated profile
-            cursor.execute(convert_query("SELECT * FROM profile WHERE user_id = ?"), (user_id,))
+            # Return updated profile (join with users table to get avatar_url)
+            cursor.execute(
+                convert_query("""
+                    SELECT p.*, u.avatar_url, u.email, u.primary_gym_id
+                    FROM profile p
+                    LEFT JOIN users u ON p.user_id = u.id
+                    WHERE p.user_id = ?
+                """),
+                (user_id,)
+            )
             row = cursor.fetchone()
             if row:
                 return ProfileRepository._row_to_dict(row)
