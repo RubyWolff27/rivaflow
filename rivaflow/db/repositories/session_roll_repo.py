@@ -98,11 +98,11 @@ class SessionRollRepository:
             # Note: session_rolls doesn't have user_id column
             # Caller should only pass session_ids that belong to the user
             placeholders = ", ".join(["?"] * len(session_ids))
-            query = f"""
+            query = convert_query(f"""
                 SELECT * FROM session_rolls
                 WHERE session_id IN ({placeholders})
                 ORDER BY session_id, roll_number ASC
-            """
+            """)
 
             cursor.execute(query, session_ids)
             rows = cursor.fetchall()
