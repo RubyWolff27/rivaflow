@@ -64,7 +64,7 @@ class NotificationRepository:
     @staticmethod
     def get_unread_count(user_id: int) -> int:
         """Get count of unread notifications for a user."""
-        query = "SELECT COUNT(*) FROM notifications WHERE user_id = ? AND is_read = 0"
+        query = "SELECT COUNT(*) FROM notifications WHERE user_id = ? AND is_read = FALSE"
 
         with get_connection() as conn:
             cursor = conn.cursor()
@@ -75,7 +75,7 @@ class NotificationRepository:
     @staticmethod
     def get_unread_count_by_type(user_id: int, notification_type: str) -> int:
         """Get count of unread notifications by type for a user."""
-        query = "SELECT COUNT(*) FROM notifications WHERE user_id = ? AND notification_type = ? AND is_read = 0"
+        query = "SELECT COUNT(*) FROM notifications WHERE user_id = ? AND notification_type = ? AND is_read = FALSE"
 
         with get_connection() as conn:
             cursor = conn.cursor()
@@ -91,7 +91,7 @@ class NotificationRepository:
             FROM notifications
             WHERE user_id = ?
             AND notification_type IN ('like', 'comment', 'reply')
-            AND is_read = 0
+            AND is_read = FALSE
         """
 
         with get_connection() as conn:
@@ -123,7 +123,7 @@ class NotificationRepository:
         params: List[Any] = [user_id]
 
         if unread_only:
-            where_clause += " AND n.is_read = 0"
+            where_clause += " AND n.is_read = FALSE"
 
         query = f"""
             SELECT
@@ -191,7 +191,7 @@ class NotificationRepository:
         query = convert_query("""
             UPDATE notifications
             SET is_read = ?, read_at = ?
-            WHERE user_id = ? AND is_read = 0
+            WHERE user_id = ? AND is_read = FALSE
         """)
 
         with get_connection() as conn:
@@ -208,7 +208,7 @@ class NotificationRepository:
             SET is_read = ?, read_at = ?
             WHERE user_id = ?
             AND notification_type IN ('like', 'comment', 'reply')
-            AND is_read = 0
+            AND is_read = FALSE
         """)
 
         with get_connection() as conn:
@@ -225,7 +225,7 @@ class NotificationRepository:
             SET is_read = ?, read_at = ?
             WHERE user_id = ?
             AND notification_type = 'follow'
-            AND is_read = 0
+            AND is_read = FALSE
         """)
 
         with get_connection() as conn:
