@@ -88,7 +88,11 @@ class PasswordResetTokenRepository:
             return False
 
         # Check if expired
-        expires_at = datetime.fromisoformat(token_record["expires_at"])
+        # Handle both PostgreSQL (datetime object) and SQLite (string)
+        expires_at = token_record["expires_at"]
+        if isinstance(expires_at, str):
+            expires_at = datetime.fromisoformat(expires_at)
+
         if datetime.utcnow() > expires_at:
             return False
 
@@ -210,4 +214,10 @@ class PasswordResetTokenRepository:
                 (user_id, since.isoformat()),
             )
             row = cursor.fetchone()
-            return dict(row)["count"] if row else 0
+            if not row:
+                return 0
+            # Handle both dict (PostgreSQL) and tuple (SQLite) results
+            if hasattr(row, 'keys'):
+                return row["count"]
+            else:
+                return row[0]
