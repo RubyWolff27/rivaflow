@@ -26,7 +26,12 @@ class TechniqueRepository:
                     convert_query("SELECT id FROM techniques WHERE name = ?"),
                     (name.lower().strip(),),
                 )
-                return cursor.fetchone()["id"]
+                row = cursor.fetchone()
+                # Handle both dict (PostgreSQL) and tuple (SQLite) results
+                if hasattr(row, 'keys'):
+                    return row["id"]
+                else:
+                    return row[0]
 
     @staticmethod
     def get_by_id(technique_id: int) -> Optional[dict]:
@@ -118,7 +123,12 @@ class TechniqueRepository:
         with get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(convert_query("SELECT name FROM techniques ORDER BY name"))
-            return [row["name"] for row in cursor.fetchall()]
+            rows = cursor.fetchall()
+            # Handle both dict (PostgreSQL) and tuple (SQLite) results
+            if rows and hasattr(rows[0], 'keys'):
+                return [row["name"] for row in rows]
+            else:
+                return [row[0] for row in rows]
 
     @staticmethod
     def _row_to_dict(row: sqlite3.Row) -> dict:
