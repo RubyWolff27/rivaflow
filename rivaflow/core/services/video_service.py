@@ -35,11 +35,13 @@ class VideoService:
 
     def get_video(self, user_id: int, video_id: int) -> Optional[dict]:
         """Get a video by ID."""
-        return self.video_repo.get_by_id(user_id, video_id)
+        # Videos are a shared resource, not user-specific
+        return self.video_repo.get_by_id(video_id)
 
     def list_all_videos(self, user_id: int) -> list[dict]:
         """Get all videos."""
-        return self.video_repo.list_all(user_id)
+        # Videos are a shared resource, not user-specific
+        return self.video_repo.list_all()
 
     def list_videos_by_technique(self, user_id: int, technique_name: str) -> list[dict]:
         """Get all videos for a specific technique."""
