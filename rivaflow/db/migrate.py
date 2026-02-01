@@ -30,6 +30,26 @@ def get_migration_files():
 def create_migrations_table(conn):
     """Create migrations tracking table if it doesn't exist."""
     cursor = conn.cursor()
+
+    # Check if table exists and has correct schema
+    try:
+        cursor.execute("""
+            SELECT column_name
+            FROM information_schema.columns
+            WHERE table_name = 'schema_migrations' AND column_name = 'version'
+        """)
+        has_version_column = cursor.fetchone() is not None
+
+        if not has_version_column:
+            # Table exists but has wrong schema - drop and recreate
+            logger.warning("schema_migrations table exists with incorrect schema. Recreating...")
+            cursor.execute("DROP TABLE IF EXISTS schema_migrations")
+            conn.commit()
+    except Exception as e:
+        logger.warning(f"Error checking schema_migrations table: {e}")
+        conn.rollback()
+
+    # Create table with correct schema
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS schema_migrations (
             version TEXT PRIMARY KEY,
@@ -43,10 +63,15 @@ def create_migrations_table(conn):
 def get_applied_migrations(conn):
     """Get list of already applied migrations."""
     cursor = conn.cursor()
-    cursor.execute("SELECT version FROM schema_migrations ORDER BY version")
-    applied = [row[0] for row in cursor.fetchall()]
-    cursor.close()
-    return set(applied)
+    try:
+        cursor.execute("SELECT version FROM schema_migrations ORDER BY version")
+        applied = [row[0] for row in cursor.fetchall()]
+        cursor.close()
+        return set(applied)
+    except Exception as e:
+        logger.error(f"Error getting applied migrations: {e}")
+        cursor.close()
+        return set()  # Return empty set if table doesn't exist or has issues
 
 
 def apply_migration(conn, migration_file):
