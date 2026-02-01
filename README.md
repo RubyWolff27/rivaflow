@@ -55,9 +55,24 @@ See [WEB_README.md](WEB_README.md) for full web app documentation.
 
 ## 💻 CLI Usage
 
-> **⚠️ IMPORTANT:** The CLI currently supports **single-user mode only** (defaults to user_id=1).
-> For multi-user accounts, please use the **Web App** interface.
-> Multi-user CLI authentication is planned for v0.2.
+### First Time Setup
+
+**Create your account:**
+```bash
+rivaflow auth register
+# Prompts for: email, first name, last name, password
+```
+
+**Or login to existing account:**
+```bash
+rivaflow auth login
+# Prompts for: email, password
+```
+
+**Check who's logged in:**
+```bash
+rivaflow auth whoami
+```
 
 ## Quick Start Examples
 
@@ -140,6 +155,26 @@ rivaflow log --quick      # Quick mode: minimal inputs
 
 **Quick mode prompts:** gym, class type, rolls (if applicable)
 
+**Example Session:**
+```bash
+$ rivaflow log
+Class type: gi
+Gym: Gracie Barra
+Location: Los Angeles
+Duration (minutes) [60]: 90
+Intensity (1-5) [4]: 5
+Number of rolls: 8
+Submissions scored: armbar, triangle
+Training partners: John, Sarah
+Notes: Great flow rolling session. Worked on passing guard.
+✓ Session logged successfully!
+```
+
+**With command-line flags:**
+```bash
+rivaflow log --gym "Gracie Barra" --duration 90 --intensity 5 --class-type gi
+```
+
 ### Daily Readiness
 
 ```bash
@@ -148,6 +183,20 @@ rivaflow readiness --date 2025-01-20 # Backfill a specific date
 ```
 
 Tracks: sleep (1-5), stress (1-5), soreness (1-5), energy (1-5), hotspots
+
+**Example Check-in:**
+```bash
+$ rivaflow readiness
+How did you sleep? (1-5): 4
+Stress level? (1-5): 2
+Soreness? (1-5): 3
+Energy level? (1-5): 4
+Any injury hotspots? (optional): left shoulder
+✓ Readiness logged
+
+Readiness Score: 13/20 (65%)
+Status: Good to train - moderate intensity recommended
+```
 
 ### Reports & Analytics
 
@@ -162,6 +211,36 @@ rivaflow report month --output monthly.csv  # Custom filename
 ```
 
 **Metrics:** Total classes, hours, rolls, unique partners, submissions (for/against), submission rates, breakdowns by type and gym
+
+**Example Weekly Report:**
+```bash
+$ rivaflow report week
+Week of Jan 27 - Feb 2, 2026
+
+Training Volume
+  Classes:         5
+  Total Hours:     7.5
+  Total Rolls:     42
+  Unique Partners: 8
+
+Performance
+  Submissions For:     12
+  Submissions Against: 8
+  Submission Rate:     60%
+
+By Class Type
+  Gi:      3 classes (4.5 hrs)
+  No-Gi:   2 classes (3.0 hrs)
+
+By Gym
+  Gracie Barra:    3 classes
+  10th Planet:     2 classes
+
+Consistency
+  Training Days:   5/7 (71%)
+  Rest Days:       2
+  Avg Intensity:   4.2/5
+```
 
 ### Training Suggestions
 
@@ -212,25 +291,162 @@ rivaflow technique stale --days 14
 rivaflow technique search "arm"
 ```
 
+### Authentication & Account
+
+```bash
+# Register new account
+rivaflow auth register
+# Prompts: email, first name, last name, password (min 8 chars)
+
+# Login
+rivaflow auth login
+# Prompts: email, password
+
+# Check current user
+rivaflow auth whoami
+# Shows: name, email, user ID
+
+# Logout
+rivaflow auth logout
+```
+
+**Example:**
+```bash
+$ rivaflow auth register
+Email: john@example.com
+First name: John
+Last name: Doe
+Password (min 8 characters): ********
+Confirm password: ********
+✓ Account created successfully!
+  Welcome to RivaFlow, John!
+  Your account email: john@example.com
+```
+
+### Rest Days & Recovery
+
+```bash
+# Log a rest day
+rivaflow rest
+# Prompts: type (active/passive/injury), optional note
+
+# With flags
+rivaflow rest --type injury --note "Shoulder rehab"
+
+# Log rest day for specific date
+rivaflow rest --date 2026-01-31 --type active
+```
+
+**Example:**
+```bash
+$ rivaflow rest
+Rest day type (active/passive/injury): active
+Note (optional): Light yoga and stretching
+✓ Rest day logged successfully
+```
+
+### Engagement Commands
+
+```bash
+# Today's dashboard
+rivaflow dashboard
+# Shows: greeting, week summary, streaks, tomorrow's plan
+
+# View streaks
+rivaflow streak
+# Shows: current training/readiness/check-in streaks
+
+# Track progress
+rivaflow progress
+# Shows: weekly progress, milestones, achievements
+
+# Plan tomorrow
+rivaflow tomorrow
+# Set intention: train_gi, train_nogi, rest, etc.
+```
+
+**Example Dashboard:**
+```bash
+$ rivaflow dashboard
+Good morning! 🥋
+
+This Week
+  Sessions:    3
+  Hours:       4.5
+  Rolls:       24
+  Rest Days:   1
+
+Current Streaks
+  Training:    3 days 🔥
+  Readiness:   7 days ⚡
+```
+
+### Data Export & Privacy
+
+```bash
+# Export all your data (GDPR compliant)
+rivaflow export
+# Creates: rivaflow_export_<user_id>_<date>.json
+
+# Export to specific file
+rivaflow export --output my_backup.json
+
+# Delete account (permanent!)
+rivaflow delete-account --confirm
+# Triple confirmation: yes/no prompt + email verification
+```
+
+**Export includes:** sessions, readiness entries, techniques, videos, gradings, friends, profile data
+
 ### Utilities
 
 ```bash
 rivaflow init    # Initialize database (runs automatically on first use)
 rivaflow stats   # Lifetime statistics
-rivaflow export  # Export all data to JSON (rivaflow_export.json)
+rivaflow --help  # See all commands
+rivaflow <command> --help  # Help for specific command
+```
+
+**Example Stats:**
+```bash
+$ rivaflow stats
+RivaFlow Lifetime Stats
+
+  Total Sessions        147
+  Total Hours           220.5
+  Total Rolls           1,234
+  Readiness Entries     203
+  Techniques Tracked    42
+  Videos Saved          18
 ```
 
 ## Data Location
 
-All data stored in `~/.rivaflow/rivaflow.db` (SQLite).
+All data stored locally in `~/.rivaflow/`:
 
-Backup strategy:
+- `rivaflow.db` - SQLite database with all your training data
+- `credentials.json` - Encrypted login credentials (0o600 permissions)
+- `.welcomed` - First-run marker
+
+**Backup strategy:**
 ```bash
-# Export to JSON
-rivaflow export
+# Option 1: Export to JSON (recommended)
+rivaflow export --output ~/backups/rivaflow_$(date +%Y%m%d).json
 
-# Or copy database file
+# Option 2: Copy database file
 cp ~/.rivaflow/rivaflow.db ~/backups/
+
+# Option 3: Full directory backup
+cp -r ~/.rivaflow ~/backups/rivaflow_backup_$(date +%Y%m%d)
+```
+
+**Restore from backup:**
+```bash
+# Restore database
+cp ~/backups/rivaflow.db ~/.rivaflow/
+
+# Or restore full directory
+cp -r ~/backups/rivaflow_backup_20260201 ~/.rivaflow
 ```
 
 ## Supported Class Types
@@ -295,30 +511,130 @@ Current version: **v0.2.0**
 
 ## 🧪 Beta Status
 
-RivaFlow is currently in **beta testing**. Here's what to expect:
+RivaFlow is currently in **beta testing** (v0.3.0-beta). Here's what to expect:
 
 **Working Well:**
-- ✅ Session logging (CLI and web)
-- ✅ Readiness tracking and suggestions
+- ✅ Multi-user authentication (CLI and web)
+- ✅ Session logging with detailed roll tracking
+- ✅ Readiness tracking and smart suggestions
 - ✅ Weekly/monthly reports and analytics
-- ✅ Training streaks and goals
+- ✅ Training streaks and milestone tracking
 - ✅ Social feed (share sessions with friends)
 - ✅ Profile and belt progression tracking
+- ✅ GDPR-compliant data export and account deletion
 
 **Known Limitations:**
-- ⚠️ **CLI Authentication:** Single-user only (use web app for multi-user)
-- ⚠️ **Photo Upload:** UI exists but backend in development
+- ⚠️ **Test Coverage:** Some edge cases may not be fully covered
+- ⚠️ **Performance:** Analytics queries not yet optimized for large datasets (>1000 sessions)
 - 📌 **Data Storage:** PostgreSQL in production, SQLite for local development
 
 **Reporting Issues:**
 - **Web App:** Click "Give Feedback" button (beta banner)
 - **GitHub:** Create issue at [github.com/RubyWolff27/rivaflow/issues](https://github.com/RubyWolff27/rivaflow/issues)
-- **Email:** support@rivaflow.com (if configured)
+- **Include:** What you were doing, what you expected, what happened, error messages
 
 **Data Privacy:**
-- All session data stored securely
-- You control visibility (private, friends-only, or public)
-- Export your data anytime: `rivaflow export` (CLI) or Settings → Export (Web)
+- ✅ All data encrypted at rest (database permissions: 0o600)
+- ✅ You control visibility (private, friends-only, or public)
+- ✅ Export your data anytime: `rivaflow export` (CLI) or Settings → Export (Web)
+- ✅ Delete account: `rivaflow delete-account` (permanent deletion with confirmation)
+
+## Troubleshooting
+
+### Common Issues
+
+**"Not logged in" error when running commands:**
+```bash
+# Solution: Login first
+rivaflow auth login
+
+# Or register if you're new
+rivaflow auth register
+```
+
+**"Invalid email or password":**
+```bash
+# Check your credentials
+rivaflow auth whoami  # See if you're logged in
+
+# If you forgot password, delete credentials and re-register
+rm ~/.rivaflow/credentials.json
+rivaflow auth register
+```
+
+**Database errors or corrupted data:**
+```bash
+# Option 1: Export data and reinitialize
+rivaflow export --output backup.json
+rm ~/.rivaflow/rivaflow.db
+rivaflow init
+
+# Option 2: Restore from backup
+cp ~/backups/rivaflow.db ~/.rivaflow/
+```
+
+**Command not found: rivaflow:**
+```bash
+# Reinstall package
+pip install -e .
+
+# Or run directly
+python -m rivaflow.cli.app
+```
+
+**Permission denied errors:**
+```bash
+# Fix database permissions
+chmod 600 ~/.rivaflow/rivaflow.db
+chmod 600 ~/.rivaflow/credentials.json
+```
+
+**Web app won't start:**
+```bash
+# Check if backend is running
+curl http://localhost:8000/health
+
+# Restart both services
+./start-web.sh
+
+# Or start separately
+uvicorn rivaflow.api.main:app --reload --port 8000  # Backend
+cd web && npm run dev  # Frontend
+```
+
+**Import errors:**
+```bash
+# Reinstall dependencies
+pip install -e ".[dev]"
+
+# For web app
+cd web && npm install
+```
+
+### Getting Help
+
+1. **Check the logs:**
+   ```bash
+   # CLI errors show in terminal
+   rivaflow --help
+
+   # Web app logs
+   tail -f ~/.rivaflow/logs/app.log  # If logging configured
+   ```
+
+2. **Search existing issues:**
+   - GitHub: https://github.com/RubyWolff27/rivaflow/issues
+
+3. **Create a new issue:**
+   - Include: OS, Python version, error message, steps to reproduce
+   - Run: `python --version` and `rivaflow --version`
+
+4. **Debug mode:**
+   ```bash
+   # Enable verbose logging
+   export RIVAFLOW_DEBUG=1
+   rivaflow log
+   ```
 
 ## License
 
