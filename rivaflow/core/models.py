@@ -1,5 +1,5 @@
 """Pydantic models for RivaFlow (web-ready for future API)."""
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 from datetime import date, datetime
 from typing import Optional
 from enum import Enum
@@ -86,6 +86,22 @@ class SessionCreate(BaseModel):
     whoop_avg_hr: Optional[int] = Field(default=None, ge=0, le=250)
     whoop_max_hr: Optional[int] = Field(default=None, ge=0, le=250)
 
+    @field_validator('class_time', 'location', 'notes', 'instructor_name', mode='before')
+    @classmethod
+    def empty_str_to_none(cls, v):
+        """Convert empty strings to None for optional string fields."""
+        if v == "":
+            return None
+        return v
+
+    @field_validator('partners', 'techniques', mode='before')
+    @classmethod
+    def empty_list_to_none(cls, v):
+        """Convert empty lists to None for optional list fields."""
+        if v is not None and len(v) == 0:
+            return None
+        return v
+
 
 class SessionUpdate(BaseModel):
     """Input model for updating a session. All fields optional."""
@@ -111,6 +127,22 @@ class SessionUpdate(BaseModel):
     whoop_calories: Optional[int] = Field(default=None, ge=0)
     whoop_avg_hr: Optional[int] = Field(default=None, ge=0, le=250)
     whoop_max_hr: Optional[int] = Field(default=None, ge=0, le=250)
+
+    @field_validator('class_time', 'gym_name', 'location', 'notes', 'instructor_name', mode='before')
+    @classmethod
+    def empty_str_to_none(cls, v):
+        """Convert empty strings to None for optional string fields."""
+        if v == "":
+            return None
+        return v
+
+    @field_validator('partners', 'techniques', mode='before')
+    @classmethod
+    def empty_list_to_none(cls, v):
+        """Convert empty lists to None for optional list fields."""
+        if v is not None and len(v) == 0:
+            return None
+        return v
 
 
 class Session(SessionCreate):
