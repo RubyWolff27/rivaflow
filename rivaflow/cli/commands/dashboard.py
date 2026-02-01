@@ -7,6 +7,7 @@ from rich.table import Table
 from rich.columns import Columns
 from rich.text import Text
 
+from rivaflow.cli.utils.user_context import get_current_user_id
 from rivaflow.db.repositories.checkin_repo import CheckinRepository
 from rivaflow.core.services.streak_service import StreakService
 from rivaflow.core.services.milestone_service import MilestoneService
@@ -33,7 +34,7 @@ def get_greeting() -> str:
         return "Good evening"
 
 
-def get_week_summary() -> dict:
+def get_week_summary(user_id: int) -> dict:
     """Get this week's training summary."""
     today = date.today()
     week_start = today - timedelta(days=today.weekday())
@@ -44,30 +45,30 @@ def get_week_summary() -> dict:
         # Sessions count
         cursor.execute("""
             SELECT COUNT(*) FROM sessions
-            WHERE session_date >= ?
-        """, (week_start.isoformat(),))
+            WHERE user_id = ? AND session_date >= ?
+        """, (user_id, week_start.isoformat(),))
         sessions = cursor.fetchone()[0] or 0
 
         # Total hours
         cursor.execute("""
             SELECT SUM(duration_mins) FROM sessions
-            WHERE session_date >= ?
-        """, (week_start.isoformat(),))
+            WHERE user_id = ? AND session_date >= ?
+        """, (user_id, week_start.isoformat(),))
         total_mins = cursor.fetchone()[0] or 0
         hours = round(total_mins / 60, 1)
 
         # Total rolls
         cursor.execute("""
             SELECT SUM(rolls) FROM sessions
-            WHERE session_date >= ?
-        """, (week_start.isoformat(),))
+            WHERE user_id = ? AND session_date >= ?
+        """, (user_id, week_start.isoformat(),))
         rolls = cursor.fetchone()[0] or 0
 
         # Rest days
         cursor.execute("""
             SELECT COUNT(*) FROM daily_checkins
-            WHERE check_date >= ? AND checkin_type = 'rest'
-        """, (week_start.isoformat(),))
+            WHERE user_id = ? AND check_date >= ? AND checkin_type = 'rest'
+        """, (user_id, week_start.isoformat(),))
         rest_days = cursor.fetchone()[0] or 0
 
     return {
@@ -90,22 +91,23 @@ def dashboard(ctx: typer.Context = None):
     today = date.today()
     day_name = today.strftime("%a %d %b")
 
+    user_id = get_current_user_id()
     checkin_repo = CheckinRepository()
     streak_service = StreakService()
     milestone_service = MilestoneService()
 
     # Get today's check-in status
-    today_checkin = checkin_repo.get_checkin(today)
+    today_checkin = checkin_repo.get_checkin(user_id, today)
     has_checked_in = today_checkin is not None
 
     # Get streak info
-    checkin_streak = streak_service.get_streak("checkin")
+    checkin_streak = streak_service.get_streak(user_id, "checkin")
 
     # Get profile name (if available)
     try:
         with get_connection() as conn:
             cursor = conn.cursor()
-            cursor.execute("SELECT first_name FROM profile LIMIT 1")
+            cursor.execute("SELECT first_name FROM profile WHERE user_id = ? LIMIT 1", (user_id,))
             row = cursor.fetchone()
             name = row[0] if row and row[0] else "there"
     except:
@@ -152,7 +154,7 @@ def dashboard(ctx: typer.Context = None):
     console.print()
 
     # Week summary
-    summary = get_week_summary()
+    summary = get_week_summary(user_id)
     console.print(f"  [bold]THIS WEEK:[/bold] {summary['sessions']} sessions │ {summary['hours']} hours │ {summary['rolls']} rolls │ {summary['rest_days']} rest days")
     console.print()
 
@@ -185,7 +187,7 @@ def dashboard(ctx: typer.Context = None):
         console.print()
 
     # Show closest milestone
-    closest = milestone_service.get_closest_milestone()
+    closest = milestone_service.get_closest_milestone(user_id)
     if closest and closest["percentage"] >= 70:
         bar_length = 20
         filled = int((closest["percentage"] / 100) * bar_length)

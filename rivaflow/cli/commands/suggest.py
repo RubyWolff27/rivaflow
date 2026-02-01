@@ -4,6 +4,7 @@ from rich.console import Console
 from rich.panel import Panel
 from rich.tree import Tree
 
+from rivaflow.cli.utils.user_context import get_current_user_id
 from rivaflow.core.services.suggestion_engine import SuggestionEngine
 from rivaflow.cli import prompts
 
@@ -18,8 +19,9 @@ def suggest(
     ),
 ):
     """Get today's training recommendation."""
+    user_id = get_current_user_id()
     engine = SuggestionEngine()
-    result = engine.get_suggestion()
+    result = engine.get_suggestion(user_id)
 
     # Header
     header = Panel(

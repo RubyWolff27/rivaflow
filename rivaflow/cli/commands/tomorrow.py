@@ -6,6 +6,7 @@ from rich.console import Console
 from rich.prompt import Prompt
 from rich.panel import Panel
 
+from rivaflow.cli.utils.user_context import get_current_user_id
 from rivaflow.db.repositories.checkin_repo import CheckinRepository
 from rivaflow.db.database import get_connection
 from rivaflow.config import TOMORROW_INTENTIONS
@@ -17,13 +18,9 @@ app = typer.Typer(
 console = Console()
 
 
-def get_tip_based_on_recent_sessions() -> Optional[str]:
+def get_tip_based_on_recent_sessions(user_id: int) -> Optional[str]:
     """Generate contextual tip based on recent training."""
     from rivaflow.db.database import convert_query
-
-    # TODO: Add CLI user authentication for multi-user support
-    # For now, default to user_id=1 for backwards compatibility
-    user_id = 1
 
     with get_connection() as conn:
         cursor = conn.cursor()
@@ -80,12 +77,13 @@ def tomorrow(
     if ctx.invoked_subcommand is not None:
         return
 
+    user_id = get_current_user_id()
     checkin_repo = CheckinRepository()
     today = date.today()
     tomorrow_date = today + timedelta(days=1)
 
     # Check if today's check-in exists
-    today_checkin = checkin_repo.get_checkin(today)
+    today_checkin = checkin_repo.get_checkin(user_id, today)
 
     # If intention provided directly, set it
     if intention:
@@ -96,10 +94,11 @@ def tomorrow(
 
         # Update or create check-in with intention
         if today_checkin:
-            checkin_repo.update_tomorrow_intention(today, intention)
+            checkin_repo.update_tomorrow_intention(user_id, today, intention)
         else:
             # Create a check-in with readiness_only if no check-in exists
             checkin_repo.upsert_checkin(
+                user_id=user_id,
                 check_date=today,
                 checkin_type="readiness_only",
                 tomorrow_intention=intention
@@ -144,9 +143,10 @@ def tomorrow(
 
     # Update or create check-in
     if today_checkin:
-        checkin_repo.update_tomorrow_intention(today, selected_intention)
+        checkin_repo.update_tomorrow_intention(user_id, today, selected_intention)
     else:
         checkin_repo.upsert_checkin(
+            user_id=user_id,
             check_date=today,
             checkin_type="readiness_only",
             tomorrow_intention=selected_intention
@@ -159,7 +159,7 @@ def tomorrow(
     console.print()
 
     # Show contextual tip
-    tip = get_tip_based_on_recent_sessions()
+    tip = get_tip_based_on_recent_sessions(user_id)
     if tip:
         console.print(f"  [dim]{tip}[/dim]")
         console.print()
@@ -168,10 +168,11 @@ def tomorrow(
 @app.command()
 def view():
     """View tomorrow's current intention (if set)."""
+    user_id = get_current_user_id()
     checkin_repo = CheckinRepository()
     today = date.today()
 
-    today_checkin = checkin_repo.get_checkin(today)
+    today_checkin = checkin_repo.get_checkin(user_id, today)
 
     if today_checkin and today_checkin.get("tomorrow_intention"):
         intention = today_checkin["tomorrow_intention"]

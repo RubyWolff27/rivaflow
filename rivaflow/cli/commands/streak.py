@@ -4,6 +4,7 @@ from rich.console import Console
 from rich.panel import Panel
 from rich.text import Text
 
+from rivaflow.cli.utils.user_context import get_current_user_id
 from rivaflow.core.services.streak_service import StreakService
 
 app = typer.Typer(
@@ -81,8 +82,9 @@ def streak(ctx: typer.Context):
     if ctx.invoked_subcommand is not None:
         return
 
+    user_id = get_current_user_id()
     streak_service = StreakService()
-    streaks = streak_service.get_streak_status()
+    streaks = streak_service.get_streak_status(user_id)
 
     # Header
     header = Panel(

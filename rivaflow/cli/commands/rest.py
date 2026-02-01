@@ -6,6 +6,7 @@ from rich.console import Console
 from rich.panel import Panel
 from rich.prompt import Prompt
 
+from rivaflow.cli.utils.user_context import get_current_user_id
 from rivaflow.core.services.rest_service import RestService
 from rivaflow.core.services.milestone_service import MilestoneService
 from rivaflow.config import REST_TYPES, TOMORROW_INTENTIONS, MILESTONE_QUOTES
@@ -18,7 +19,7 @@ app = typer.Typer(
 console = Console()
 
 
-def show_milestone_celebration(milestone: dict):
+def show_milestone_celebration(milestone: dict, user_id: int):
     """Display milestone celebration."""
     quote, author = random.choice(MILESTONE_QUOTES)
 
@@ -36,9 +37,9 @@ def show_milestone_celebration(milestone: dict):
 
     # Get next milestone
     milestone_service = MilestoneService()
-    totals = milestone_service.get_current_totals()
+    totals = milestone_service.get_current_totals(user_id)
     current = totals.get(milestone['milestone_type'], 0)
-    next_ms = milestone_service.milestone_repo.get_next_milestone(milestone['milestone_type'], current)
+    next_ms = milestone_service.milestone_repo.get_next_milestone(user_id, milestone['milestone_type'], current)
 
     if next_ms:
         celebration += f"\n  Next milestone: {next_ms['milestone_label']} ({next_ms['remaining']} to go)"
@@ -78,8 +79,10 @@ def rest(
         raise typer.Exit(1)
 
     # Log rest day
+    user_id = get_current_user_id()
     rest_service = RestService()
     result = rest_service.log_rest_day(
+        user_id=user_id,
         rest_type=rest_type,
         note=note,
         tomorrow_intention=tomorrow
@@ -132,10 +135,10 @@ def rest(
     # Celebrate milestones
     if result["milestones"]:
         for milestone in result["milestones"]:
-            show_milestone_celebration(milestone)
+            show_milestone_celebration(milestone, user_id)
             # Mark as celebrated
             milestone_service = MilestoneService()
-            milestone_service.mark_celebrated(milestone["id"])
+            milestone_service.mark_celebrated(user_id, milestone["id"])
 
     # Tomorrow prompt (if not provided)
     if not tomorrow:
@@ -172,7 +175,7 @@ def rest(
         # Update check-in with tomorrow's intention
         from rivaflow.db.repositories.checkin_repo import CheckinRepository
         checkin_repo = CheckinRepository()
-        checkin_repo.update_tomorrow_intention(date.today(), intention)
+        checkin_repo.update_tomorrow_intention(user_id, date.today(), intention)
 
         intention_label = TOMORROW_INTENTIONS.get(intention, intention)
         console.print()

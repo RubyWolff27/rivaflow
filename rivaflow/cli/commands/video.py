@@ -5,6 +5,7 @@ from typing import Optional
 from rich.console import Console
 from rich.table import Table
 
+from rivaflow.cli.utils.user_context import get_current_user_id
 from rivaflow.core.services.video_service import VideoService
 from rivaflow.cli import prompts
 
@@ -26,6 +27,7 @@ def add(
     ),
 ):
     """Add a video to the library."""
+    user_id = get_current_user_id()
     service = VideoService()
 
     # Parse timestamps if provided
@@ -39,11 +41,11 @@ def add(
 
     # Add video
     video_id = service.add_video(
-        url=url, title=title, timestamps=timestamps_list, technique_name=technique
+        user_id, url=url, title=title, timestamps=timestamps_list, technique_name=technique
     )
 
     # Display confirmation
-    video = service.get_video(video_id)
+    video = service.get_video(user_id, video_id)
     prompts.print_success(f"Video added (ID: {video_id})")
     console.print()
     console.print(service.format_video_summary(video))
@@ -56,13 +58,14 @@ def list(
     ),
 ):
     """List all videos or filter by technique."""
+    user_id = get_current_user_id()
     service = VideoService()
 
     if technique:
-        videos = service.list_videos_by_technique(technique)
+        videos = service.list_videos_by_technique(user_id, technique)
         title = f"Videos for '{technique}'"
     else:
-        videos = service.list_all_videos()
+        videos = service.list_all_videos(user_id)
         title = "Video Library"
 
     if not videos:

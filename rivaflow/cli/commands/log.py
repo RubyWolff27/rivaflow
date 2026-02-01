@@ -7,6 +7,7 @@ from typing import Optional
 from rich.prompt import Prompt
 
 from rivaflow.cli import prompts
+from rivaflow.cli.utils.user_context import get_current_user_id
 from rivaflow.core.services.session_service import SessionService
 from rivaflow.core.services.streak_service import StreakService
 from rivaflow.core.services.milestone_service import MilestoneService
@@ -36,6 +37,7 @@ def log(
 
 def _quick_log(service: SessionService, autocomplete: dict):
     """Quick session logging (< 20 seconds target)."""
+    user_id = get_current_user_id()
     prompts.console.print("[bold]Quick Session Log[/bold]\n")
 
     # 1. Gym
@@ -55,6 +57,7 @@ def _quick_log(service: SessionService, autocomplete: dict):
 
     # Create with defaults
     session_id = service.create_session(
+        user_id=user_id,
         session_date=date.today(),
         class_type=class_type,
         gym_name=gym_name,
@@ -64,7 +67,7 @@ def _quick_log(service: SessionService, autocomplete: dict):
     )
 
     # Display summary
-    session = service.get_session(session_id)
+    session = service.get_session(user_id, session_id)
     prompts.console.print()
     prompts.print_success("Session logged!")
     prompts.console.print(service.format_session_summary(session))
@@ -75,6 +78,7 @@ def _quick_log(service: SessionService, autocomplete: dict):
 
 def _full_log(service: SessionService, video_repo: VideoRepository, autocomplete: dict):
     """Full interactive session logging (< 60 seconds target)."""
+    user_id = get_current_user_id()
     prompts.console.print("[bold]Session Log[/bold]\n")
 
     # 1. Class type
@@ -159,6 +163,7 @@ def _full_log(service: SessionService, video_repo: VideoRepository, autocomplete
 
     # Create session
     session_id = service.create_session(
+        user_id=user_id,
         session_date=date.today(),
         class_type=class_type,
         gym_name=gym_name,
@@ -174,7 +179,7 @@ def _full_log(service: SessionService, video_repo: VideoRepository, autocomplete
     )
 
     # Display summary
-    session = service.get_session(session_id)
+    session = service.get_session(user_id, session_id)
     prompts.console.print()
     prompts.print_success("Session logged!")
     prompts.console.print()
@@ -185,6 +190,7 @@ def _full_log(service: SessionService, video_repo: VideoRepository, autocomplete
 
 def _add_engagement_features(session_id: int):
     """Add engagement features after session logging (v0.2)."""
+    user_id = get_current_user_id()
     checkin_repo = CheckinRepository()
     streak_service = StreakService()
     milestone_service = MilestoneService()
@@ -193,10 +199,11 @@ def _add_engagement_features(session_id: int):
     today = date.today()
 
     # 1. Create check-in record
-    insight = insight_service.generate_insight()
+    insight = insight_service.generate_insight(user_id)
     insight_json = json.dumps(insight)
 
     checkin_id = checkin_repo.upsert_checkin(
+        user_id=user_id,
         check_date=today,
         checkin_type="session",
         session_id=session_id,
@@ -204,10 +211,10 @@ def _add_engagement_features(session_id: int):
     )
 
     # 2. Update streaks
-    streak_info = streak_service.record_checkin("session", today)
+    streak_info = streak_service.record_checkin(user_id, "session", today)
 
     # 3. Check for new milestones
-    new_milestones = milestone_service.check_all_milestones()
+    new_milestones = milestone_service.check_all_milestones(user_id)
 
     # Display streak update
     prompts.console.print()
@@ -252,9 +259,9 @@ def _add_engagement_features(session_id: int):
 """
 
             # Get next milestone
-            totals = milestone_service.get_current_totals()
+            totals = milestone_service.get_current_totals(user_id)
             current = totals.get(milestone['milestone_type'], 0)
-            next_ms = milestone_service.milestone_repo.get_next_milestone(milestone['milestone_type'], current)
+            next_ms = milestone_service.milestone_repo.get_next_milestone(user_id, milestone['milestone_type'], current)
 
             if next_ms:
                 celebration += f"\n  Next milestone: {next_ms['milestone_label']} ({next_ms['remaining']} to go)"
@@ -289,7 +296,7 @@ def _add_engagement_features(session_id: int):
     intention = intention_map.get(choice, "unsure")
 
     # Update check-in with tomorrow's intention
-    checkin_repo.update_tomorrow_intention(today, intention)
+    checkin_repo.update_tomorrow_intention(user_id, today, intention)
 
     intention_label = TOMORROW_INTENTIONS.get(intention, intention)
     prompts.console.print()

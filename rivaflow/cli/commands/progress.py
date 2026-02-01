@@ -137,10 +137,10 @@ def progress(ctx: typer.Context):
     console.print()
 
     # Get achieved milestones
-    achieved = milestone_service.get_all_achieved()
+    achieved = milestone_service.get_all_achieved(user_id)
 
     # Get progress to next
-    progress_list = milestone_service.get_progress_to_next()
+    progress_list = milestone_service.get_progress_to_next(user_id)
 
     # Group by type
     milestone_types = ["hours", "sessions", "streak", "rolls", "partners", "techniques"]
@@ -169,7 +169,7 @@ def progress(ctx: typer.Context):
     console.print()
 
     # Next milestone highlight
-    closest = milestone_service.get_closest_milestone()
+    closest = milestone_service.get_closest_milestone(user_id)
     if closest:
         unit_map = {
             "hours": "hours",
@@ -189,8 +189,10 @@ def progress(ctx: typer.Context):
 @app.command()
 def milestones():
     """Show only milestone achievements (compact view)."""
+    from rivaflow.cli.utils.user_context import get_current_user_id
+    user_id = get_current_user_id()
     milestone_service = MilestoneService()
-    achieved = milestone_service.get_all_achieved()
+    achieved = milestone_service.get_all_achieved(user_id)
 
     if not achieved:
         console.print("  [dim]No milestones achieved yet. Keep training![/dim]")

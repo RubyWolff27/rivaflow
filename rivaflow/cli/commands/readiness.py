@@ -5,6 +5,7 @@ from datetime import date, datetime
 from typing import Optional
 
 from rivaflow.cli import prompts
+from rivaflow.cli.utils.user_context import get_current_user_id
 from rivaflow.core.services.readiness_service import ReadinessService
 from rivaflow.core.services.streak_service import StreakService
 from rivaflow.core.services.milestone_service import MilestoneService
@@ -24,6 +25,7 @@ def readiness(
     ),
 ):
     """Log daily readiness check-in."""
+    user_id = get_current_user_id()
     service = ReadinessService()
 
     # Parse date
@@ -37,7 +39,7 @@ def readiness(
         target_date = date.today()
 
     # Check if already logged for this date
-    existing = service.get_readiness(target_date)
+    existing = service.get_readiness(user_id, target_date)
     if existing:
         prompts.console.print(
             f"[yellow]Readiness already logged for {target_date}. Updating...[/yellow]\n"
@@ -59,6 +61,7 @@ def readiness(
 
     # Save readiness
     service.log_readiness(
+        user_id=user_id,
         check_date=target_date,
         sleep=sleep,
         stress=stress,
@@ -68,16 +71,16 @@ def readiness(
     )
 
     # Display summary
-    readiness_entry = service.get_readiness(target_date)
+    readiness_entry = service.get_readiness(user_id, target_date)
     prompts.console.print()
     prompts.console.print(service.format_readiness_summary(readiness_entry))
 
     # Engagement features (v0.2) - only for today's check-ins
     if target_date == date.today():
-        _add_engagement_features_readiness(readiness_entry["id"])
+        _add_engagement_features_readiness(user_id, readiness_entry["id"])
 
 
-def _add_engagement_features_readiness(readiness_id: int):
+def _add_engagement_features_readiness(user_id: int, readiness_id: int):
     """Add engagement features after readiness check-in (v0.2)."""
     checkin_repo = CheckinRepository()
     streak_service = StreakService()
@@ -87,17 +90,18 @@ def _add_engagement_features_readiness(readiness_id: int):
     today = date.today()
 
     # Check if already checked in today (session takes priority)
-    existing_checkin = checkin_repo.get_checkin(today)
+    existing_checkin = checkin_repo.get_checkin(user_id, today)
 
     if existing_checkin and existing_checkin["checkin_type"] == "session":
         # Already logged a session today, don't duplicate engagement
         return
 
     # 1. Create/update check-in record
-    insight = insight_service.generate_insight()
+    insight = insight_service.generate_insight(user_id)
     insight_json = json.dumps(insight)
 
     checkin_id = checkin_repo.upsert_checkin(
+        user_id=user_id,
         check_date=today,
         checkin_type="readiness_only" if not existing_checkin else existing_checkin["checkin_type"],
         readiness_id=readiness_id,
@@ -105,11 +109,11 @@ def _add_engagement_features_readiness(readiness_id: int):
     )
 
     # 2. Update streaks (check-in + readiness)
-    streak_info = streak_service.record_checkin("readiness_only", today)
-    readiness_streak_info = streak_service.record_readiness_checkin(today)
+    streak_info = streak_service.record_checkin(user_id, "readiness_only", today)
+    readiness_streak_info = streak_service.record_readiness_checkin(user_id, today)
 
     # 3. Check for new milestones
-    new_milestones = milestone_service.check_all_milestones()
+    new_milestones = milestone_service.check_all_milestones(user_id)
 
     # Display streak update
     prompts.console.print()

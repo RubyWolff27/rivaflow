@@ -4,6 +4,7 @@ from typing import Optional
 from rich.console import Console
 from rich.table import Table
 
+from rivaflow.cli.utils.user_context import get_current_user_id
 from rivaflow.core.services.technique_service import TechniqueService
 from rivaflow.cli import prompts
 
@@ -22,10 +23,11 @@ def add(
     ),
 ):
     """Add a technique to track."""
+    user_id = get_current_user_id()
     service = TechniqueService()
 
     # Check if already exists
-    existing = service.get_technique_by_name(name)
+    existing = service.get_technique_by_name(user_id, name)
     if existing:
         prompts.print_info(f"Technique '{name}' already exists (ID: {existing['id']})")
         console.print()
@@ -33,8 +35,8 @@ def add(
         return
 
     # Add new technique
-    technique_id = service.add_technique(name=name, category=category)
-    technique = service.get_technique(technique_id)
+    technique_id = service.add_technique(user_id, name=name, category=category)
+    technique = service.get_technique(user_id, technique_id)
 
     prompts.print_success(f"Technique added (ID: {technique_id})")
     console.print()
@@ -44,8 +46,9 @@ def add(
 @app.command()
 def list():
     """List all tracked techniques."""
+    user_id = get_current_user_id()
     service = TechniqueService()
-    techniques = service.list_all_techniques()
+    techniques = service.list_all_techniques(user_id)
 
     if not techniques:
         console.print("[yellow]No techniques tracked yet[/yellow]")
