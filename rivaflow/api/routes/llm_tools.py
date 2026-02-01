@@ -40,12 +40,15 @@ async def get_week_report_for_llm(
     Returns:
         Summary text and list of sessions for the week
 
-    Status: STUB - Returns mock data. To be implemented with:
-        - ReportService integration
+    Status: PLACEHOLDER - Returns mock data for API contract definition.
+
+    PLANNED FOR v0.4+: Will be implemented with:
+        - ReportService integration for actual data
         - PrivacyService.redact_for_llm() for session data
         - Natural language summary generation
+        - LLM-powered training insights
     """
-    # TODO: Implement with actual report generation
+    # PLACEHOLDER: Returns mock data - not used in beta
     return WeekReportResponse(
         summary=f"Week starting {week_start}: This is a placeholder summary. Implement with ReportService.",
         sessions=[
@@ -75,12 +78,15 @@ async def get_partners_summary_for_llm(
     Returns:
         List of training partners with aggregated stats
 
-    Status: STUB - Returns mock data. To be implemented with:
-        - ContactsRepository integration
+    Status: PLACEHOLDER - Returns mock data for API contract definition.
+
+    PLANNED FOR v0.4+: Will be implemented with:
+        - FriendRepository integration
         - Session partner relationship queries
         - Aggregated training statistics per partner
+        - LLM-powered partner insights
     """
-    # TODO: Implement with actual partner statistics
+    # PLACEHOLDER: Returns mock data - not used in beta
     return PartnersSummaryResponse(
         partners=[
             {
