@@ -1,14 +1,29 @@
 """Service layer for user profile operations."""
-from typing import Optional
+import os
+import uuid
+from datetime import datetime
+from pathlib import Path
+from typing import Optional, Tuple
 
 from rivaflow.db.repositories import ProfileRepository
+from rivaflow.db.repositories.user_repo import UserRepository
+from rivaflow.core.exceptions import ValidationError, NotFoundError
 
 
 class ProfileService:
     """Business logic for user profile."""
 
+    # Photo upload configuration
+    ALLOWED_EXTENSIONS = {".jpg", ".jpeg", ".png", ".webp", ".gif"}
+    MAX_FILE_SIZE = 5 * 1024 * 1024  # 5MB
+
     def __init__(self):
         self.repo = ProfileRepository()
+        self.user_repo = UserRepository()
+
+        # Configure upload directory
+        self.upload_dir = Path(__file__).parent.parent.parent.parent / "uploads" / "avatars"
+        self.upload_dir.mkdir(parents=True, exist_ok=True)
 
     def get_profile(self, user_id: int) -> Optional[dict]:
         """Get the user profile."""
@@ -70,3 +85,97 @@ class ProfileService:
         """Get the current professor from profile."""
         profile = self.get_profile(user_id)
         return profile.get("current_professor") if profile else None
+
+    def upload_profile_photo(
+        self,
+        user_id: int,
+        file_content: bytes,
+        filename: str
+    ) -> dict:
+        """Handle profile photo upload.
+
+        Args:
+            user_id: User ID
+            file_content: Raw file bytes
+            filename: Original filename
+
+        Returns:
+            Dict with avatar_url, filename, and success message
+
+        Raises:
+            ValidationError: If file type or size is invalid
+        """
+        # Validate file extension
+        file_ext = Path(filename).suffix.lower() if filename else ""
+        if file_ext not in self.ALLOWED_EXTENSIONS:
+            raise ValidationError(
+                f"Invalid file type. Allowed types: {', '.join(self.ALLOWED_EXTENSIONS)}",
+                details={"allowed_extensions": list(self.ALLOWED_EXTENSIONS)}
+            )
+
+        # Validate file size
+        if len(file_content) > self.MAX_FILE_SIZE:
+            raise ValidationError(
+                f"File too large. Maximum size: {self.MAX_FILE_SIZE // (1024 * 1024)}MB",
+                details={"max_size_mb": self.MAX_FILE_SIZE // (1024 * 1024)}
+            )
+
+        # Generate unique filename: user_{user_id}_{timestamp}_{uuid}.{ext}
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        unique_id = str(uuid.uuid4())[:8]
+        new_filename = f"user_{user_id}_{timestamp}_{unique_id}{file_ext}"
+        file_path = self.upload_dir / new_filename
+
+        # Save file to disk
+        with open(file_path, "wb") as f:
+            f.write(file_content)
+
+        # Set secure file permissions (user read/write only)
+        os.chmod(file_path, 0o600)
+
+        # Update user's avatar_url in database
+        avatar_url = f"/uploads/avatars/{new_filename}"
+        self.user_repo.update_avatar(user_id, avatar_url)
+
+        return {
+            "avatar_url": avatar_url,
+            "filename": new_filename,
+            "message": "Profile photo uploaded successfully"
+        }
+
+    def delete_profile_photo(self, user_id: int) -> dict:
+        """Delete the current profile photo.
+
+        Args:
+            user_id: User ID
+
+        Returns:
+            Success message dict
+
+        Raises:
+            NotFoundError: If no profile photo exists
+        """
+        user = self.user_repo.get_by_id(user_id)
+        if not user or not user.get("avatar_url"):
+            raise NotFoundError("No profile photo to delete")
+
+        avatar_url = user["avatar_url"]
+
+        # Extract filename from URL (format: /uploads/avatars/filename.jpg)
+        if avatar_url.startswith("/uploads/avatars/"):
+            filename = avatar_url.replace("/uploads/avatars/", "")
+            file_path = self.upload_dir / filename
+
+            # Delete file if it exists
+            if file_path.exists():
+                try:
+                    os.remove(file_path)
+                except Exception as e:
+                    # Log error but continue to clear database entry
+                    # In production, this should use proper logging
+                    print(f"Warning: Error deleting file {file_path}: {e}")
+
+        # Clear avatar_url in database
+        self.user_repo.update_avatar(user_id, None)
+
+        return {"message": "Profile photo deleted successfully"}

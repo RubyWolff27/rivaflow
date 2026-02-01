@@ -63,9 +63,16 @@ def login(
 
     except ValueError as e:
         console.print(f"❌ [red]Authentication failed: {e}[/red]")
+        console.print()
+        console.print("[dim]Tips:[/dim]")
+        console.print("  • Check that your email is correct")
+        console.print("  • Passwords are case-sensitive")
+        console.print("  • If you don't have an account: rivaflow auth register")
         raise typer.Exit(code=1)
     except Exception as e:
         console.print(f"❌ [red]Login error: {e}[/red]")
+        console.print("[dim]If this persists, please report it at:[/dim]")
+        console.print("  https://github.com/RubyWolff27/rivaflow/issues")
         raise typer.Exit(code=1)
 
 
@@ -124,6 +131,13 @@ def register(
 
             if password != password_confirm:
                 console.print("❌ [red]Passwords do not match[/red]")
+                console.print("[dim]Hint: Make sure both password entries are identical[/dim]")
+                raise typer.Exit(code=1)
+
+            # Validate password length
+            if len(password) < 8:
+                console.print("❌ [red]Password must be at least 8 characters long[/red]")
+                console.print("[dim]Tip: Use a mix of letters, numbers, and symbols for better security[/dim]")
                 raise typer.Exit(code=1)
 
         # Register with API
@@ -160,10 +174,19 @@ def register(
         console.print(f"   Your account email: {email}")
 
     except ValueError as e:
-        console.print(f"❌ [red]Registration failed: {e}[/red]")
+        error_msg = str(e)
+        if "already exists" in error_msg.lower() or "duplicate" in error_msg.lower():
+            console.print(f"❌ [red]An account with email '{email}' already exists[/red]")
+            console.print()
+            console.print("[dim]To login instead:[/dim]")
+            console.print("  rivaflow auth login")
+        else:
+            console.print(f"❌ [red]Registration failed: {e}[/red]")
         raise typer.Exit(code=1)
     except Exception as e:
         console.print(f"❌ [red]Registration error: {e}[/red]")
+        console.print("[dim]If this persists, please report it at:[/dim]")
+        console.print("  https://github.com/RubyWolff27/rivaflow/issues")
         raise typer.Exit(code=1)
 
 
@@ -172,8 +195,13 @@ def whoami():
     """Display current logged-in user information."""
     try:
         if not CREDENTIALS_FILE.exists():
-            console.print("[yellow]Not logged in[/yellow]")
-            console.print("Run [bold]rivaflow auth login[/bold] to login")
+            console.print("[yellow]⚠ Not logged in[/yellow]")
+            console.print()
+            console.print("[dim]Login with:[/dim]")
+            console.print("  rivaflow auth login")
+            console.print()
+            console.print("[dim]Or create a new account:[/dim]")
+            console.print("  rivaflow auth register")
             return
 
         with open(CREDENTIALS_FILE) as f:
@@ -186,6 +214,7 @@ def whoami():
 
     except Exception as e:
         console.print(f"❌ [red]Error reading user info: {e}[/red]")
+        console.print("[dim]Hint: Your credentials file may be corrupted. Try logging in again.[/dim]")
         raise typer.Exit(code=1)
 
 

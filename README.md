@@ -18,6 +18,15 @@ A local-first training tracker for BJJ/grappling with both **CLI** and **Web App
 
 ## Install
 
+### Prerequisites
+
+- **Python 3.11 or later** (check with `python --version`)
+- **Node.js 18 or later** (for web app, check with `node --version`)
+- **Git** (for cloning the repository)
+- **PostgreSQL** (optional for production, SQLite used for local development)
+
+### Installation Steps
+
 ```bash
 # Clone the repository
 git clone https://github.com/RubyWolff27/rivaflow
@@ -29,6 +38,8 @@ pip install -e .
 # For web app, also install Node.js dependencies
 cd web && npm install && cd ..
 ```
+
+**Note:** On first run, the database will be initialized automatically. Your data will be stored in `~/.rivaflow/`
 
 ## 🌐 Web App (NEW!)
 

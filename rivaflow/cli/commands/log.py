@@ -8,6 +8,7 @@ from rich.prompt import Prompt
 
 from rivaflow.cli import prompts
 from rivaflow.cli.utils.user_context import get_current_user_id
+from rivaflow.cli.utils.error_handler import handle_error, require_login
 from rivaflow.core.services.session_service import SessionService
 from rivaflow.core.services.streak_service import StreakService
 from rivaflow.core.services.milestone_service import MilestoneService
@@ -23,57 +24,66 @@ def log(
     quick: bool = typer.Option(False, "--quick", "-q", help="Quick mode: minimal inputs only"),
 ):
     """Log a training session."""
-    service = SessionService()
-    video_repo = VideoRepository()
+    try:
+        # Ensure user is logged in
+        require_login()
 
-    # Get autocomplete data
-    autocomplete = service.get_autocomplete_data()
+        service = SessionService()
+        video_repo = VideoRepository()
 
-    if quick:
-        _quick_log(service, autocomplete)
-    else:
-        _full_log(service, video_repo, autocomplete)
+        # Get autocomplete data
+        autocomplete = service.get_autocomplete_data()
+
+        if quick:
+            _quick_log(service, autocomplete)
+        else:
+            _full_log(service, video_repo, autocomplete)
+    except Exception as e:
+        handle_error(e, context="logging training session")
 
 
 def _quick_log(service: SessionService, autocomplete: dict):
     """Quick session logging (< 20 seconds target)."""
-    user_id = get_current_user_id()
-    prompts.console.print("[bold]Quick Session Log[/bold]\n")
+    try:
+        user_id = get_current_user_id()
+        prompts.console.print("[bold]Quick Session Log[/bold]\n")
 
-    # 1. Gym
-    gym_name = prompts.prompt_text(
-        "Gym name", autocomplete=autocomplete.get("gyms", [])
-    )
+        # 1. Gym
+        gym_name = prompts.prompt_text(
+            "Gym name", autocomplete=autocomplete.get("gyms", [])
+        )
 
-    # 2. Class type
-    class_type = prompts.prompt_choice(
-        "Class type", choices=sorted(ALL_CLASS_TYPES), default="gi"
-    )
+        # 2. Class type
+        class_type = prompts.prompt_choice(
+            "Class type", choices=sorted(ALL_CLASS_TYPES), default="gi"
+        )
 
-    # 3. Rolls (if applicable)
-    rolls = 0
-    if service.is_sparring_class(class_type):
-        rolls = prompts.prompt_int("Rolls", default=0, min_val=0, max_val=50)
+        # 3. Rolls (if applicable)
+        rolls = 0
+        if service.is_sparring_class(class_type):
+            rolls = prompts.prompt_int("Rolls", default=0, min_val=0, max_val=50)
 
-    # Create with defaults
-    session_id = service.create_session(
-        user_id=user_id,
-        session_date=date.today(),
-        class_type=class_type,
-        gym_name=gym_name,
-        duration_mins=DEFAULT_DURATION,
-        intensity=DEFAULT_INTENSITY,
-        rolls=rolls,
-    )
+        # Create with defaults
+        session_id = service.create_session(
+            user_id=user_id,
+            session_date=date.today(),
+            class_type=class_type,
+            gym_name=gym_name,
+            duration_mins=DEFAULT_DURATION,
+            intensity=DEFAULT_INTENSITY,
+            rolls=rolls,
+        )
 
-    # Display summary
-    session = service.get_session(user_id, session_id)
-    prompts.console.print()
-    prompts.print_success("Session logged!")
-    prompts.console.print(service.format_session_summary(session))
+        # Display summary
+        session = service.get_session(user_id, session_id)
+        prompts.console.print()
+        prompts.print_success("Session logged!")
+        prompts.console.print(service.format_session_summary(session))
 
-    # Engagement features (v0.2)
-    _add_engagement_features(session_id)
+        # Engagement features (v0.2)
+        _add_engagement_features(session_id)
+    except Exception as e:
+        handle_error(e, context="saving quick session")
 
 
 def _full_log(service: SessionService, video_repo: VideoRepository, autocomplete: dict):

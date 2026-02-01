@@ -6,6 +6,7 @@ from typing import Optional
 
 from rivaflow.cli import prompts
 from rivaflow.cli.utils.user_context import get_current_user_id
+from rivaflow.cli.utils.error_handler import handle_error, require_login
 from rivaflow.core.services.readiness_service import ReadinessService
 from rivaflow.core.services.streak_service import StreakService
 from rivaflow.core.services.milestone_service import MilestoneService
@@ -25,64 +26,71 @@ def readiness(
     ),
 ):
     """Log daily readiness check-in."""
-    user_id = get_current_user_id()
-    service = ReadinessService()
+    try:
+        # Ensure user is logged in
+        require_login()
 
-    # Parse date
-    if check_date:
-        try:
-            target_date = datetime.strptime(check_date, "%Y-%m-%d").date()
-        except ValueError:
-            prompts.print_error("Invalid date format. Use YYYY-MM-DD")
-            raise typer.Exit(1)
+        user_id = get_current_user_id()
+        service = ReadinessService()
 
-        # Validate date is not in the future
-        if target_date > date.today():
-            prompts.print_error("Cannot log readiness for future dates")
-            raise typer.Exit(1)
-    else:
-        target_date = date.today()
+        # Parse date
+        if check_date:
+            try:
+                target_date = datetime.strptime(check_date, "%Y-%m-%d").date()
+            except ValueError:
+                prompts.print_error("Invalid date format. Use YYYY-MM-DD (e.g., 2026-02-01)")
+                prompts.console.print("[dim]Example: rivaflow readiness --date 2026-01-31[/dim]")
+                raise typer.Exit(1)
 
-    # Check if already logged for this date
-    existing = service.get_readiness(user_id, target_date)
-    if existing:
-        prompts.console.print(
-            f"[yellow]Readiness already logged for {target_date}. Updating...[/yellow]\n"
+            # Validate date is not in the future
+            if target_date > date.today():
+                prompts.print_error(f"Cannot log readiness for future dates (today is {date.today()})")
+                raise typer.Exit(1)
+        else:
+            target_date = date.today()
+
+        # Check if already logged for this date
+        existing = service.get_readiness(user_id, target_date)
+        if existing:
+            prompts.console.print(
+                f"[yellow]⚠ Readiness already logged for {target_date}. Updating existing entry...[/yellow]\n"
+            )
+
+        # Prompt for readiness metrics
+        prompts.console.print(f"[bold]Readiness Check-in: {target_date}[/bold]\n")
+
+        sleep = prompts.prompt_int("How did you sleep? (1-5)", default=3, min_val=1, max_val=5)
+        stress = prompts.prompt_int("Stress level? (1-5)", default=3, min_val=1, max_val=5)
+        soreness = prompts.prompt_int("Soreness level? (1-5)", default=2, min_val=1, max_val=5)
+        energy = prompts.prompt_int("Energy level? (1-5)", default=3, min_val=1, max_val=5)
+
+        hotspot_note = prompts.prompt_text(
+            "Any hotspots? (injury/soreness location, optional)"
+        )
+        if not hotspot_note:
+            hotspot_note = None
+
+        # Save readiness
+        service.log_readiness(
+            user_id=user_id,
+            check_date=target_date,
+            sleep=sleep,
+            stress=stress,
+            soreness=soreness,
+            energy=energy,
+            hotspot_note=hotspot_note,
         )
 
-    # Prompt for readiness metrics
-    prompts.console.print(f"[bold]Readiness Check-in: {target_date}[/bold]\n")
+        # Display summary
+        readiness_entry = service.get_readiness(user_id, target_date)
+        prompts.console.print()
+        prompts.console.print(service.format_readiness_summary(readiness_entry))
 
-    sleep = prompts.prompt_int("How did you sleep? (1-5)", default=3, min_val=1, max_val=5)
-    stress = prompts.prompt_int("Stress level? (1-5)", default=3, min_val=1, max_val=5)
-    soreness = prompts.prompt_int("Soreness level? (1-5)", default=2, min_val=1, max_val=5)
-    energy = prompts.prompt_int("Energy level? (1-5)", default=3, min_val=1, max_val=5)
-
-    hotspot_note = prompts.prompt_text(
-        "Any hotspots? (injury/soreness location, optional)"
-    )
-    if not hotspot_note:
-        hotspot_note = None
-
-    # Save readiness
-    service.log_readiness(
-        user_id=user_id,
-        check_date=target_date,
-        sleep=sleep,
-        stress=stress,
-        soreness=soreness,
-        energy=energy,
-        hotspot_note=hotspot_note,
-    )
-
-    # Display summary
-    readiness_entry = service.get_readiness(user_id, target_date)
-    prompts.console.print()
-    prompts.console.print(service.format_readiness_summary(readiness_entry))
-
-    # Engagement features (v0.2) - only for today's check-ins
-    if target_date == date.today():
-        _add_engagement_features_readiness(user_id, readiness_entry["id"])
+        # Engagement features (v0.2) - only for today's check-ins
+        if target_date == date.today():
+            _add_engagement_features_readiness(user_id, readiness_entry["id"])
+    except Exception as e:
+        handle_error(e, context="logging readiness check-in")
 
 
 def _add_engagement_features_readiness(user_id: int, readiness_id: int):
