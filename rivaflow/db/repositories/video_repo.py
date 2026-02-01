@@ -119,7 +119,7 @@ class VideoRepository:
         # Parse JSON fields
         if data.get("timestamps"):
             data["timestamps"] = json.loads(data["timestamps"])
-        # Parse dates
-        if data.get("created_at"):
+        # Parse dates - handle both PostgreSQL (datetime) and SQLite (string)
+        if data.get("created_at") and isinstance(data["created_at"], str):
             data["created_at"] = datetime.fromisoformat(data["created_at"])
         return data

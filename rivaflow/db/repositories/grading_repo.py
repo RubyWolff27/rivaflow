@@ -130,10 +130,10 @@ class GradingRepository:
     def _row_to_dict(row: sqlite3.Row) -> dict:
         """Convert a database row to a dictionary."""
         data = dict(row)
-        # Parse date fields
-        if data.get("date_graded"):
+        # Parse date fields - handle both PostgreSQL (date/datetime) and SQLite (string)
+        if data.get("date_graded") and isinstance(data["date_graded"], str):
             data["date_graded"] = date.fromisoformat(data["date_graded"])
         # Parse datetime fields
-        if data.get("created_at"):
+        if data.get("created_at") and isinstance(data["created_at"], str):
             data["created_at"] = datetime.fromisoformat(data["created_at"])
         return data

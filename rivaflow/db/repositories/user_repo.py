@@ -215,10 +215,10 @@ class UserRepository:
         """Convert a database row to a dictionary."""
         data = dict(row)
 
-        # Parse timestamps
-        if data.get("created_at"):
+        # Parse timestamps - handle both PostgreSQL (datetime) and SQLite (string)
+        if data.get("created_at") and isinstance(data["created_at"], str):
             data["created_at"] = datetime.fromisoformat(data["created_at"])
-        if data.get("updated_at"):
+        if data.get("updated_at") and isinstance(data["updated_at"], str):
             data["updated_at"] = datetime.fromisoformat(data["updated_at"])
 
         # Remove hashed_password from returned dict for security

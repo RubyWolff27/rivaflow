@@ -134,9 +134,9 @@ class TechniqueRepository:
     def _row_to_dict(row: sqlite3.Row) -> dict:
         """Convert a database row to a dictionary."""
         data = dict(row)
-        # Parse dates
-        if data.get("last_trained_date"):
+        # Parse dates - handle both PostgreSQL (date/datetime) and SQLite (string)
+        if data.get("last_trained_date") and isinstance(data["last_trained_date"], str):
             data["last_trained_date"] = date.fromisoformat(data["last_trained_date"])
-        if data.get("created_at"):
+        if data.get("created_at") and isinstance(data["created_at"], str):
             data["created_at"] = datetime.fromisoformat(data["created_at"])
         return data

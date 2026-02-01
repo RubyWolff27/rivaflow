@@ -198,8 +198,8 @@ class GlossaryRepository:
         else:
             data["aliases"] = []
 
-        # Parse datetime
-        if data.get("created_at"):
+        # Parse datetime - handle both PostgreSQL (datetime) and SQLite (string)
+        if data.get("created_at") and isinstance(data["created_at"], str):
             data["created_at"] = datetime.fromisoformat(data["created_at"])
 
         # Convert integer booleans to actual booleans

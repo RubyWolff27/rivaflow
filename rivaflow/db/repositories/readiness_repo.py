@@ -112,12 +112,12 @@ class ReadinessRepository:
     def _row_to_dict(row: sqlite3.Row) -> dict:
         """Convert a database row to a dictionary."""
         data = dict(row)
-        # Parse dates
-        if data.get("check_date"):
+        # Parse dates - handle both PostgreSQL (date/datetime) and SQLite (string)
+        if data.get("check_date") and isinstance(data["check_date"], str):
             data["check_date"] = date.fromisoformat(data["check_date"])
-        if data.get("created_at"):
+        if data.get("created_at") and isinstance(data["created_at"], str):
             data["created_at"] = datetime.fromisoformat(data["created_at"])
-        if data.get("updated_at"):
+        if data.get("updated_at") and isinstance(data["updated_at"], str):
             data["updated_at"] = datetime.fromisoformat(data["updated_at"])
         # Calculate composite score
         data["composite_score"] = (

@@ -163,10 +163,10 @@ class RefreshTokenRepository:
         """Convert a database row to a dictionary."""
         data = dict(row)
 
-        # Parse timestamps
-        if data.get("created_at"):
+        # Parse timestamps - handle both PostgreSQL (datetime) and SQLite (string)
+        if data.get("created_at") and isinstance(data["created_at"], str):
             data["created_at"] = datetime.fromisoformat(data["created_at"])
-        if data.get("expires_at"):
+        if data.get("expires_at") and isinstance(data["expires_at"], str):
             data["expires_at"] = datetime.fromisoformat(data["expires_at"])
 
         return data
