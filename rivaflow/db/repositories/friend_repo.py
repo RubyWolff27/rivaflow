@@ -3,6 +3,7 @@ import sqlite3
 from typing import List, Optional
 
 from rivaflow.db.database import get_connection, convert_query, execute_insert
+from rivaflow.core.constants import FRIEND_SORT_OPTIONS
 
 
 class FriendRepository:
@@ -62,13 +63,7 @@ class FriendRepository:
     def list_all(user_id: int, order_by: str = "name ASC") -> List[dict]:
         """Get all friends, ordered by name alphabetically by default."""
         # Whitelist allowed ORDER BY values to prevent SQL injection
-        allowed_order = {
-            "name ASC", "name DESC",
-            "created_at ASC", "created_at DESC",
-            "belt_rank ASC", "belt_rank DESC",
-            "friend_type ASC", "friend_type DESC"
-        }
-        if order_by not in allowed_order:
+        if order_by not in FRIEND_SORT_OPTIONS:
             order_by = "name ASC"  # Safe default
 
         with get_connection() as conn:
@@ -81,12 +76,7 @@ class FriendRepository:
     def list_by_type(user_id: int, friend_type: str, order_by: str = "name ASC") -> List[dict]:
         """Get friends filtered by type."""
         # Whitelist allowed ORDER BY values to prevent SQL injection
-        allowed_order = {
-            "name ASC", "name DESC",
-            "created_at ASC", "created_at DESC",
-            "belt_rank ASC", "belt_rank DESC"
-        }
-        if order_by not in allowed_order:
+        if order_by not in FRIEND_SORT_OPTIONS:
             order_by = "name ASC"  # Safe default
 
         with get_connection() as conn:

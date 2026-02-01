@@ -4,6 +4,7 @@ from datetime import datetime, date
 from typing import List, Optional
 
 from rivaflow.db.database import get_connection, convert_query, execute_insert
+from rivaflow.core.constants import GRADING_SORT_OPTIONS
 
 
 class GradingRepository:
@@ -40,12 +41,7 @@ class GradingRepository:
     def list_all(user_id: int, order_by: str = "date_graded DESC") -> List[dict]:
         """Get all gradings, ordered by date (newest first by default)."""
         # Whitelist allowed ORDER BY values to prevent SQL injection
-        allowed_order = {
-            "date_graded ASC", "date_graded DESC",
-            "grade ASC", "grade DESC",
-            "created_at ASC", "created_at DESC"
-        }
-        if order_by not in allowed_order:
+        if order_by not in GRADING_SORT_OPTIONS:
             order_by = "date_graded DESC"  # Safe default
 
         with get_connection() as conn:
