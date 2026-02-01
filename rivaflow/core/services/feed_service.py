@@ -9,6 +9,7 @@ from rivaflow.db.repositories import (
     ActivityLikeRepository,
     ActivityCommentRepository,
     UserRepository,
+    ActivityPhotoRepository,
 )
 from rivaflow.db.repositories.checkin_repo import CheckinRepository
 from rivaflow.core.services.privacy_service import PrivacyService
@@ -48,6 +49,7 @@ class FeedService:
         session_repo = SessionRepository()
         readiness_repo = ReadinessRepository()
         checkin_repo = CheckinRepository()
+        photo_repo = ActivityPhotoRepository()
 
         # Get all activity
         sessions = session_repo.get_by_date_range(user_id, start_date, end_date)
@@ -57,11 +59,15 @@ class FeedService:
         # Build unified feed
         feed_items = []
 
-        # Add sessions
+        # Add sessions with photos
         for session in sessions:
             session_date = session["session_date"]
             if hasattr(session_date, "isoformat"):
                 session_date = session_date.isoformat()
+
+            # Get photos for this session
+            photos = photo_repo.get_by_activity(user_id, "session", session["id"])
+            thumbnail = photos[0]["file_path"] if photos else None
 
             feed_items.append(
                 {
@@ -70,6 +76,8 @@ class FeedService:
                     "id": session["id"],
                     "data": session,
                     "summary": f"{session['class_type']} at {session['gym_name']} • {session['duration_mins']}min • {session['rolls']} rolls",
+                    "thumbnail": thumbnail,
+                    "photo_count": len(photos),
                 }
             )
 
@@ -84,6 +92,11 @@ class FeedService:
 
             if readiness_date not in session_dates and readiness_date not in rest_dates:
                 composite = readiness.get("composite_score", 0)
+
+                # Get photos for this readiness entry
+                photos = photo_repo.get_by_activity(user_id, "readiness", readiness["id"])
+                thumbnail = photos[0]["file_path"] if photos else None
+
                 feed_items.append(
                     {
                         "type": "readiness",
@@ -91,6 +104,8 @@ class FeedService:
                         "id": readiness["id"],
                         "data": readiness,
                         "summary": f"Readiness check-in • Score: {composite}/20 • Sleep: {readiness['sleep']}/5",
+                        "thumbnail": thumbnail,
+                        "photo_count": len(photos),
                     }
                 )
 
@@ -112,6 +127,10 @@ class FeedService:
                 if checkin.get("rest_note"):
                     summary += f" • {checkin['rest_note']}"
 
+                # Get photos for this rest day
+                photos = photo_repo.get_by_activity(user_id, "rest", checkin["id"])
+                thumbnail = photos[0]["file_path"] if photos else None
+
                 feed_items.append(
                     {
                         "type": "rest",
@@ -119,6 +138,8 @@ class FeedService:
                         "id": checkin["id"],
                         "data": checkin,
                         "summary": summary,
+                        "thumbnail": thumbnail,
+                        "photo_count": len(photos),
                     }
                 )
 
