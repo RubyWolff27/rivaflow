@@ -31,6 +31,7 @@ export default function LogSession() {
   const [step, setStep] = useState(1); // 1 = Readiness, 2 = Session
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
+  const [skippedReadiness, setSkippedReadiness] = useState(false);
   const [autocomplete, setAutocomplete] = useState<any>({});
 
   // New: Contacts and glossary data
@@ -127,6 +128,11 @@ export default function LogSession() {
     if (step === 1) {
       setStep(2);
     }
+  };
+
+  const handleSkipReadiness = () => {
+    setSkippedReadiness(true);
+    setStep(2);
   };
 
   const handleBackStep = () => {
@@ -272,12 +278,14 @@ export default function LogSession() {
     setLoading(true);
 
     try {
-      // Save readiness first
-      const readinessPayload: any = {
-        ...readinessData,
-        weight_kg: readinessData.weight_kg ? parseFloat(readinessData.weight_kg as string) : undefined,
-      };
-      await readinessApi.create(readinessPayload);
+      // Save readiness first (only if not skipped)
+      if (!skippedReadiness) {
+        const readinessPayload: any = {
+          ...readinessData,
+          weight_kg: readinessData.weight_kg ? parseFloat(readinessData.weight_kg as string) : undefined,
+        };
+        await readinessApi.create(readinessPayload);
+      }
 
       // Build session payload
       const payload: any = {
@@ -373,7 +381,13 @@ export default function LogSession() {
       {/* Progress Indicator */}
       <div className="mb-6">
         <div className="flex items-center justify-center gap-2">
-          <div className={`w-8 h-8 rounded-full flex items-center justify-center font-semibold ${step === 1 ? 'bg-primary-600 text-white' : 'bg-green-500 text-white'}`}>
+          <div className={`w-8 h-8 rounded-full flex items-center justify-center font-semibold ${
+            step === 1
+              ? 'bg-primary-600 text-white'
+              : skippedReadiness
+                ? 'bg-gray-300 dark:bg-gray-600 text-gray-500 line-through'
+                : 'bg-green-500 text-white'
+          }`}>
             1
           </div>
           <div className="w-16 h-1 bg-gray-300 dark:bg-gray-600"></div>
@@ -382,7 +396,9 @@ export default function LogSession() {
           </div>
         </div>
         <div className="flex justify-between mt-2 text-sm">
-          <span className={step === 1 ? 'font-semibold' : 'text-gray-500'}>Readiness Check</span>
+          <span className={`${step === 1 ? 'font-semibold' : skippedReadiness ? 'text-gray-400 line-through' : 'text-gray-500'}`}>
+            Readiness Check {skippedReadiness && '(skipped)'}
+          </span>
           <span className={step === 2 ? 'font-semibold' : 'text-gray-500'}>Session Details</span>
         </div>
       </div>
@@ -457,6 +473,17 @@ export default function LogSession() {
             Continue to Session Details
             <ArrowRight className="w-4 h-4" />
           </button>
+
+          {/* Discreet skip option */}
+          <div className="text-center mt-3">
+            <button
+              type="button"
+              onClick={handleSkipReadiness}
+              className="text-xs text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 underline"
+            >
+              Skip readiness check
+            </button>
+          </div>
         </div>
       )}
 
