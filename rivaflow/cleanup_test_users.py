@@ -22,9 +22,10 @@ test_emails = [
 test_user_ids = []
 
 # Find test users
+user_repo = UserRepository()
 print("\n1. Finding test users...")
 for email in test_emails:
-    user = UserRepository.get_by_email(email)
+    user = user_repo.get_by_email(email)
     if user:
         test_user_ids.append(user['id'])
         print(f"   ✓ Found {user['first_name']} {user['last_name']} (ID: {user['id']})")

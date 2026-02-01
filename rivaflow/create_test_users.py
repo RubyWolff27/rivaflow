@@ -45,10 +45,11 @@ user_ids = []
 # Create users
 print("\n1. Creating test users...")
 auth_service = AuthService()
+user_repo = UserRepository()
 for user_data in test_users:
     try:
         # Check if user already exists
-        existing = UserRepository.get_by_email(user_data["email"])
+        existing = user_repo.get_by_email(user_data["email"])
         if existing:
             print(f"   ⚠️  User {user_data['email']} already exists (ID: {existing['id']})")
             user_ids.append(existing['id'])
