@@ -39,9 +39,11 @@ class ProfileRepository:
         city: Optional[str] = None,
         state: Optional[str] = None,
         default_gym: Optional[str] = None,
+        default_location: Optional[str] = None,
         current_grade: Optional[str] = None,
         current_professor: Optional[str] = None,
         current_instructor_id: Optional[int] = None,
+        primary_training_type: Optional[str] = None,
         height_cm: Optional[int] = None,
         target_weight_kg: Optional[float] = None,
         weekly_sessions_target: Optional[int] = None,
@@ -64,11 +66,11 @@ class ProfileRepository:
                 convert_query("""
                     INSERT INTO profile (
                         user_id, first_name, last_name, date_of_birth, sex, location, state,
-                        default_gym, current_grade, current_professor, current_instructor_id,
-                        height_cm, target_weight_kg,
+                        default_gym, default_location, current_grade, current_professor, current_instructor_id,
+                        primary_training_type, height_cm, target_weight_kg,
                         weekly_sessions_target, weekly_hours_target, weekly_rolls_target,
                         show_streak_on_dashboard, show_weekly_goals
-                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                     """),
                     (
                         user_id,
@@ -79,9 +81,11 @@ class ProfileRepository:
                         city,  # Maps to 'location' column in database
                         state,
                         default_gym,
+                        default_location,
                         current_grade,
                         current_professor,
                         current_instructor_id,
+                        primary_training_type,
                         height_cm,
                         target_weight_kg,
                         weekly_sessions_target if weekly_sessions_target is not None else 3,
@@ -117,6 +121,9 @@ class ProfileRepository:
                 if default_gym is not None:
                     updates.append("default_gym = ?")
                     params.append(default_gym)
+                if default_location is not None:
+                    updates.append("default_location = ?")
+                    params.append(default_location)
                 if current_grade is not None:
                     updates.append("current_grade = ?")
                     params.append(current_grade)
@@ -126,6 +133,9 @@ class ProfileRepository:
                 if current_instructor_id is not None:
                     updates.append("current_instructor_id = ?")
                     params.append(current_instructor_id)
+                if primary_training_type is not None:
+                    updates.append("primary_training_type = ?")
+                    params.append(primary_training_type)
                 if height_cm is not None:
                     updates.append("height_cm = ?")
                     params.append(height_cm)

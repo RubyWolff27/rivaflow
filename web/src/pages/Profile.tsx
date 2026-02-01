@@ -62,6 +62,7 @@ export default function Profile() {
     default_location: '',
     current_professor: '',
     current_instructor_id: null as number | null,
+    primary_training_type: 'gi',
     height_cm: '',
     target_weight_kg: '',
     weekly_sessions_target: 3,
@@ -105,6 +106,7 @@ export default function Profile() {
         default_location: profileRes.data?.default_location ?? '',
         current_professor: profileRes.data?.current_professor ?? '',
         current_instructor_id: profileRes.data?.current_instructor_id ?? null,
+        primary_training_type: profileRes.data?.primary_training_type ?? 'gi',
         height_cm: profileRes.data?.height_cm?.toString() ?? '',
         target_weight_kg: profileRes.data?.target_weight_kg?.toString() ?? '',
         weekly_sessions_target: profileRes.data?.weekly_sessions_target ?? 3,
@@ -198,6 +200,7 @@ export default function Profile() {
         default_location: formData.default_location || undefined,
         current_professor: formData.current_professor || undefined,
         current_instructor_id: formData.current_instructor_id || undefined,
+        primary_training_type: formData.primary_training_type || undefined,
         height_cm: formData.height_cm ? parseInt(formData.height_cm) : undefined,
         target_weight_kg: formData.target_weight_kg ? parseFloat(formData.target_weight_kg) : undefined,
         avatar_url: formData.avatar_url || undefined,
@@ -619,6 +622,32 @@ export default function Profile() {
             </select>
             <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
               This will auto-populate when logging sessions. Add instructors in Contacts first.
+            </p>
+          </div>
+
+          {/* Primary Training Type */}
+          <div>
+            <label className="label">Primary Training Type</label>
+            <select
+              className="input"
+              value={formData.primary_training_type}
+              onChange={(e) => setFormData({ ...formData, primary_training_type: e.target.value })}
+            >
+              <option value="gi">Gi</option>
+              <option value="no-gi">No-Gi</option>
+              <option value="s&c">S&C</option>
+              <option value="mobility">Mobility</option>
+              <option value="drilling">Drilling</option>
+              <option value="cardio">Cardio</option>
+              <option value="physio">Physio</option>
+              <option value="recovery">Recovery</option>
+              <option value="mma">MMA</option>
+              <option value="judo">Judo</option>
+              <option value="wrestling">Wrestling</option>
+              <option value="other">Other</option>
+            </select>
+            <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+              This will be the default class type when logging sessions
             </p>
           </div>
 

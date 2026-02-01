@@ -5,8 +5,8 @@ import type { Friend, Movement, MediaUrl } from '../types';
 import { CheckCircle, ArrowRight, ArrowLeft, Plus, X, ToggleLeft, ToggleRight, Search, Camera } from 'lucide-react';
 import GymSelector from '../components/GymSelector';
 
-const CLASS_TYPES = ['gi', 'no-gi', 'wrestling', 'judo', 'open-mat', 's&c', 'mobility', 'yoga', 'rehab', 'physio', 'drilling', 'cardio'];
-const SPARRING_TYPES = ['gi', 'no-gi', 'wrestling', 'judo', 'open-mat'];
+const CLASS_TYPES = ['gi', 'no-gi', 's&c', 'mobility', 'drilling', 'cardio', 'physio', 'recovery', 'mma', 'judo', 'wrestling', 'other'];
+const SPARRING_TYPES = ['gi', 'no-gi', 'mma', 'judo', 'wrestling'];
 
 interface RollEntry {
   roll_number: number;
@@ -104,7 +104,7 @@ export default function LogSession() {
       setPartners(partnersRes.data ?? []);
       setMovements(movementsRes.data ?? []);
 
-      // Auto-populate default gym, location, and coach from profile
+      // Auto-populate default gym, location, coach, and class type from profile
       const updates: any = {};
       if (profileRes.data?.default_gym) {
         updates.gym_name = profileRes.data.default_gym;
@@ -115,6 +115,9 @@ export default function LogSession() {
       if (profileRes.data?.current_instructor_id) {
         updates.instructor_id = profileRes.data.current_instructor_id;
         updates.instructor_name = profileRes.data?.current_professor ?? '';
+      }
+      if (profileRes.data?.primary_training_type) {
+        updates.class_type = profileRes.data.primary_training_type;
       }
       if (Object.keys(updates).length > 0) {
         setSessionData(prev => ({ ...prev, ...updates }));

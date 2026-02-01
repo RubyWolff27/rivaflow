@@ -127,6 +127,7 @@ export interface Profile {
   current_grade?: string;
   current_professor?: string;
   current_instructor_id?: number;
+  primary_training_type?: string;
   height_cm?: number;
   target_weight_kg?: number;
   weekly_sessions_target?: number;
