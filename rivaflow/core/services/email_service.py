@@ -107,7 +107,22 @@ class EmailService:
                 return False
 
         except Exception as e:
-            logger.error(f"Failed to send email via SendGrid to {to_email}: {e}")
+            error_msg = str(e)
+            if "403" in error_msg or "Forbidden" in error_msg:
+                logger.error(
+                    f"SendGrid 403 Forbidden error. "
+                    f"This usually means the sender email '{self.from_email}' is not verified in SendGrid. "
+                    f"Please verify the sender email in SendGrid dashboard or check API key permissions. "
+                    f"Error: {e}"
+                )
+            else:
+                logger.error(f"Failed to send email via SendGrid to {to_email}: {e}")
+
+            # Try SMTP fallback if configured
+            if self.smtp_user and self.smtp_password:
+                logger.info(f"Attempting SMTP fallback for {to_email}")
+                return self._send_via_smtp(to_email, subject, html_content, text_content)
+
             return False
 
     def _send_via_smtp(
