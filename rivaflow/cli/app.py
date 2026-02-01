@@ -4,6 +4,7 @@ from typing import Optional
 from datetime import date, datetime
 
 from rivaflow.cli.commands import (
+    auth,
     log,
     readiness,
     report,
@@ -25,6 +26,7 @@ app = typer.Typer(
 )
 
 # Register subcommands
+app.add_typer(auth.app, name="auth")
 app.add_typer(log.app, name="log")
 app.add_typer(readiness.app, name="readiness")
 app.add_typer(report.app, name="report")

@@ -141,6 +141,8 @@ def init_db() -> None:
 
 def _init_sqlite_db() -> None:
     """Initialize SQLite database with migrations."""
+    import os
+
     # Ensure app directory exists
     APP_DIR.mkdir(parents=True, exist_ok=True)
 
@@ -164,6 +166,12 @@ def _init_sqlite_db() -> None:
 
     finally:
         conn.close()
+
+    # Set secure file permissions (user read/write only) - 0o600
+    # This ensures other users on the system cannot access the database
+    if DB_PATH.exists():
+        os.chmod(DB_PATH, 0o600)
+        logger.info(f"Set secure file permissions (0o600) on {DB_PATH}")
 
 
 def _init_postgresql_db() -> None:
@@ -461,9 +469,18 @@ def _apply_migrations(conn: Union[sqlite3.Connection, 'psycopg2.extensions.conne
 def get_connection():
     """Context manager for database connections with connection pooling for PostgreSQL."""
     if DB_TYPE == "sqlite":
+        import os
+
         # Auto-initialize if database doesn't exist
         if not DB_PATH.exists():
             init_db()
+        else:
+            # Ensure permissions are secure on existing database
+            try:
+                os.chmod(DB_PATH, 0o600)
+            except (OSError, FileNotFoundError):
+                # Silently ignore permission errors
+                pass
 
         conn = sqlite3.connect(DB_PATH)
         conn.row_factory = sqlite3.Row  # Enable column access by name

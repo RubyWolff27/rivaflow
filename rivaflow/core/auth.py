@@ -19,6 +19,15 @@ if not SECRET_KEY:
         "Generate one with: python -c 'import secrets; print(secrets.token_urlsafe(32))'"
     )
 
+# Production security check - ensure dev secret is not used in production
+ENV = os.getenv("ENV", "development")
+if ENV == "production" and (SECRET_KEY.startswith("dev-") or SECRET_KEY == "dev" or len(SECRET_KEY) < 32):
+    raise RuntimeError(
+        "Production environment detected with insecure SECRET_KEY. "
+        "SECRET_KEY must be a secure random string (>= 32 characters). "
+        "Generate one with: python -c 'import secrets; print(secrets.token_urlsafe(32))'"
+    )
+
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 30
 REFRESH_TOKEN_EXPIRE_DAYS = 7
