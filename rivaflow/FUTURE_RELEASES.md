@@ -91,6 +91,40 @@ Migrate from integer primary keys to UUIDs for all core entities to support futu
 **Effort:** 6 hours
 **Description:** Restructure session logging to track "Technique of the Day" with detailed notes and media URLs
 
+#### AI Video Analysis & Feedback
+**Effort:** 8-12 hours
+**Description:** Integrate AI-powered video analysis to provide technique feedback and insights on instructional videos
+
+**Features:**
+- Analyze instructional videos for technique breakdown and key moments
+- Auto-generate timestamps for technique phases (setup, entry, control, finish)
+- Provide technique critique and common mistakes to watch for
+- Suggest related techniques and progressions
+- Generate searchable transcripts and summaries
+- Identify skill level (beginner/intermediate/advanced)
+- Extract drills and training recommendations
+
+**Technical Approach:**
+- Use Claude API with vision capabilities for video frame analysis
+- Process videos in chunks to stay within token limits
+- Cache analysis results to avoid re-processing
+- Allow users to regenerate analysis with different prompts
+- Store AI-generated insights alongside video metadata
+
+**Implementation:**
+- Add `ai_analysis` JSON field to videos table
+- Create background job queue for video processing
+- Add "Analyze Video" button in UI
+- Display AI insights in expandable section on video cards
+- Allow editing/refining AI-generated timestamps
+
+**Benefits:**
+- Dramatically improves video library value
+- Helps users quickly understand technique concepts
+- Reduces time spent manually creating timestamps
+- Enables better video search and discovery
+- Provides coaching insights without human instructor
+
 ---
 
 ## Completed in v0.1
