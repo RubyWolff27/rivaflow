@@ -1,6 +1,6 @@
 """Notifications API routes."""
 import logging
-from fastapi import APIRouter, Depends, Query, Path
+from fastapi import APIRouter, Depends, Query, Path, HTTPException, status
 from typing import Optional
 
 from rivaflow.core.dependencies import get_current_user
@@ -90,29 +90,52 @@ async def mark_all_notifications_as_read(current_user: dict = Depends(get_curren
         return {"success": True, "count": 0}
 
 
-@router.post("/feed/read")
+@router.post("/feed/read", status_code=status.HTTP_200_OK)
 async def mark_feed_notifications_as_read(current_user: dict = Depends(get_current_user)):
     """Mark all feed notifications (likes, comments, replies) as read."""
-    user_id = current_user["id"]
     try:
+        logger.info(f"mark_feed_notifications_as_read called for user {current_user.get('id', 'UNKNOWN')}")
+        user_id = current_user.get("id")
+        if not user_id:
+            logger.error("No user_id in current_user dict")
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Authentication required"
+            )
+
         count = NotificationService.mark_feed_as_read(user_id)
+        logger.info(f"Successfully marked {count} feed notifications as read for user {user_id}")
         return {"success": True, "count": count}
+    except HTTPException:
+        raise
     except Exception as e:
         # Gracefully handle if notifications table doesn't exist yet
-        logger.error(f"Error marking feed notifications as read: {e}", exc_info=True)
+        logger.error(f"Error marking feed notifications as read for user {current_user.get('id', 'UNKNOWN')}: {type(e).__name__}: {e}", exc_info=True)
+        # Return success anyway to prevent frontend errors
         return {"success": True, "count": 0}
 
 
-@router.post("/follows/read")
+@router.post("/follows/read", status_code=status.HTTP_200_OK)
 async def mark_follow_notifications_as_read(current_user: dict = Depends(get_current_user)):
     """Mark all follow notifications as read."""
-    user_id = current_user["id"]
     try:
+        logger.info(f"mark_follow_notifications_as_read called for user {current_user.get('id', 'UNKNOWN')}")
+        user_id = current_user.get("id")
+        if not user_id:
+            logger.error("No user_id in current_user dict")
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Authentication required"
+            )
+
         count = NotificationService.mark_follows_as_read(user_id)
+        logger.info(f"Successfully marked {count} follow notifications as read for user {user_id}")
         return {"success": True, "count": count}
+    except HTTPException:
+        raise
     except Exception as e:
         # Gracefully handle if notifications table doesn't exist yet
-        logger.error(f"Error marking follow notifications as read: {e}", exc_info=True)
+        logger.error(f"Error marking follow notifications as read for user {current_user.get('id', 'UNKNOWN')}: {type(e).__name__}: {e}", exc_info=True)
         return {"success": True, "count": 0}
 
 
