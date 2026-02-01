@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { adminApi } from '../api/client';
-import { Search, Plus, Edit2, Trash2, Check, MapPin, Globe, Building2 } from 'lucide-react';
+import { Search, Plus, Edit2, Trash2, Check, MapPin, Globe, Building2, ExternalLink, Map } from 'lucide-react';
 import { Card, PrimaryButton, SecondaryButton } from '../components/ui';
 import AdminNav from '../components/AdminNav';
 import ConfirmDialog from '../components/ConfirmDialog';
@@ -17,6 +17,8 @@ interface Gym {
   email?: string;
   phone?: string;
   head_coach?: string;
+  head_coach_belt?: string;
+  google_maps_url?: string;
   verified: boolean;
   added_by_user_id?: number;
   created_at: string;
@@ -48,6 +50,8 @@ export default function AdminGyms() {
     email: '',
     phone: '',
     head_coach: '',
+    head_coach_belt: '',
+    google_maps_url: '',
     verified: false,
   });
 
@@ -99,7 +103,7 @@ export default function AdminGyms() {
     try {
       await adminApi.createGym(formData);
       setShowAddForm(false);
-      setFormData({ name: '', city: '', state: '', country: 'Australia', address: '', website: '', email: '', phone: '', head_coach: '', verified: false });
+      setFormData({ name: '', city: '', state: '', country: 'Australia', address: '', website: '', email: '', phone: '', head_coach: '', head_coach_belt: '', google_maps_url: '', verified: false });
       toast.success(`Gym "${formData.name}" created successfully!`);
       loadGyms();
       loadPendingGyms();
@@ -114,7 +118,7 @@ export default function AdminGyms() {
     try {
       await adminApi.updateGym(editingGym.id, formData);
       setEditingGym(null);
-      setFormData({ name: '', city: '', state: '', country: 'Australia', address: '', website: '', email: '', phone: '', head_coach: '', verified: false });
+      setFormData({ name: '', city: '', state: '', country: 'Australia', address: '', website: '', email: '', phone: '', head_coach: '', head_coach_belt: '', google_maps_url: '', verified: false });
       toast.success(`Gym "${formData.name}" updated successfully!`);
       loadGyms();
       loadPendingGyms();
@@ -160,6 +164,8 @@ export default function AdminGyms() {
       email: gym.email || '',
       phone: gym.phone || '',
       head_coach: gym.head_coach || '',
+      head_coach_belt: gym.head_coach_belt || '',
+      google_maps_url: gym.google_maps_url || '',
       verified: gym.verified,
     });
     setShowAddForm(false);
@@ -168,7 +174,7 @@ export default function AdminGyms() {
   const cancelEdit = () => {
     setEditingGym(null);
     setShowAddForm(false);
-    setFormData({ name: '', city: '', state: '', country: 'Australia', address: '', website: '', email: '', phone: '', head_coach: '', verified: false });
+    setFormData({ name: '', city: '', state: '', country: 'Australia', address: '', website: '', email: '', phone: '', head_coach: '', head_coach_belt: '', google_maps_url: '', verified: false });
   };
 
   const displayGyms = activeTab === 'pending' ? pendingGyms : gyms;
@@ -347,7 +353,7 @@ export default function AdminGyms() {
                 />
               </div>
 
-              <div className="md:col-span-2">
+              <div>
                 <label className="block text-sm font-medium mb-1" style={{ color: 'var(--text)' }}>
                   Head Coach
                 </label>
@@ -357,6 +363,37 @@ export default function AdminGyms() {
                   onChange={(e) => setFormData({ ...formData, head_coach: e.target.value })}
                   className="input w-full"
                   placeholder="Coach name"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium mb-1" style={{ color: 'var(--text)' }}>
+                  Head Coach Belt
+                </label>
+                <select
+                  value={formData.head_coach_belt}
+                  onChange={(e) => setFormData({ ...formData, head_coach_belt: e.target.value })}
+                  className="input w-full"
+                >
+                  <option value="">Select belt...</option>
+                  <option value="white">White Belt</option>
+                  <option value="blue">Blue Belt</option>
+                  <option value="purple">Purple Belt</option>
+                  <option value="brown">Brown Belt</option>
+                  <option value="black">Black Belt</option>
+                </select>
+              </div>
+
+              <div className="md:col-span-2">
+                <label className="block text-sm font-medium mb-1" style={{ color: 'var(--text)' }}>
+                  Google Maps URL
+                </label>
+                <input
+                  type="url"
+                  value={formData.google_maps_url}
+                  onChange={(e) => setFormData({ ...formData, google_maps_url: e.target.value })}
+                  className="input w-full"
+                  placeholder="https://maps.google.com/..."
                 />
               </div>
 
@@ -452,6 +489,33 @@ export default function AdminGyms() {
                         >
                           {gym.website}
                         </a>
+                      </div>
+                    )}
+
+                    {gym.google_maps_url && (
+                      <div className="flex items-center gap-1 text-sm" style={{ color: 'var(--muted)' }}>
+                        <Map className="w-4 h-4" />
+                        <a
+                          href={gym.google_maps_url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="hover:underline flex items-center gap-1"
+                          style={{ color: 'var(--primary)' }}
+                        >
+                          View on Google Maps
+                          <ExternalLink className="w-3 h-3" />
+                        </a>
+                      </div>
+                    )}
+
+                    {gym.head_coach && (
+                      <div className="text-sm" style={{ color: 'var(--muted)' }}>
+                        Head Coach: {gym.head_coach}
+                        {gym.head_coach_belt && (
+                          <span className="ml-2 px-2 py-0.5 text-xs rounded-full capitalize" style={{ backgroundColor: 'var(--surfaceElev)', color: 'var(--text)' }}>
+                            {gym.head_coach_belt} belt
+                          </span>
+                        )}
                       </div>
                     )}
 

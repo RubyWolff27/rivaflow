@@ -17,6 +17,8 @@ class GymRepository:
         email: Optional[str] = None,
         phone: Optional[str] = None,
         head_coach: Optional[str] = None,
+        head_coach_belt: Optional[str] = None,
+        google_maps_url: Optional[str] = None,
         verified: bool = False,
         added_by_user_id: Optional[int] = None,
     ) -> Dict[str, Any]:
@@ -27,10 +29,10 @@ class GymRepository:
                 cursor,
                 convert_query("""
                 INSERT INTO gyms
-                (name, city, state, country, address, website, email, phone, head_coach, verified, added_by_user_id)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                (name, city, state, country, address, website, email, phone, head_coach, head_coach_belt, google_maps_url, verified, added_by_user_id)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """),
-                (name, city, state, country, address, website, email, phone, head_coach, verified, added_by_user_id),
+                (name, city, state, country, address, website, email, phone, head_coach, head_coach_belt, google_maps_url, verified, added_by_user_id),
             )
             conn.commit()
 
@@ -123,7 +125,7 @@ class GymRepository:
     @staticmethod
     def update(gym_id: int, **kwargs) -> Optional[Dict[str, Any]]:
         """Update a gym."""
-        allowed_fields = {'name', 'city', 'state', 'country', 'address', 'website', 'email', 'phone', 'head_coach', 'verified'}
+        allowed_fields = {'name', 'city', 'state', 'country', 'address', 'website', 'email', 'phone', 'head_coach', 'head_coach_belt', 'google_maps_url', 'verified'}
         update_fields = {k: v for k, v in kwargs.items() if k in allowed_fields}
 
         if not update_fields:

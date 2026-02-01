@@ -307,6 +307,13 @@ export const notificationsApi = {
   deleteNotification: (notificationId: number) => api.delete(`/notifications/${notificationId}`),
 };
 
+export const gymsApi = {
+  list: (verifiedOnly = true) =>
+    api.get('/gyms', { params: { verified_only: verifiedOnly } }),
+  search: (query: string, verifiedOnly = true) =>
+    api.get('/gyms/search', { params: { q: query, verified_only: verifiedOnly } }),
+};
+
 export const adminApi = {
   // Dashboard
   getDashboardStats: () =>
@@ -319,9 +326,9 @@ export const adminApi = {
     api.get('/admin/gyms/pending'),
   searchGyms: (query: string, verifiedOnly = false) =>
     api.get('/admin/gyms/search', { params: { q: query, verified_only: verifiedOnly } }),
-  createGym: (data: { name: string; city?: string; state?: string; country?: string; address?: string; website?: string; email?: string; phone?: string; head_coach?: string; verified?: boolean }) =>
+  createGym: (data: { name: string; city?: string; state?: string; country?: string; address?: string; website?: string; email?: string; phone?: string; head_coach?: string; head_coach_belt?: string; google_maps_url?: string; verified?: boolean }) =>
     api.post('/admin/gyms', data),
-  updateGym: (gymId: number, data: { name?: string; city?: string; state?: string; country?: string; address?: string; website?: string; email?: string; phone?: string; head_coach?: string; verified?: boolean }) =>
+  updateGym: (gymId: number, data: { name?: string; city?: string; state?: string; country?: string; address?: string; website?: string; email?: string; phone?: string; head_coach?: string; head_coach_belt?: string; google_maps_url?: string; verified?: boolean }) =>
     api.put(`/admin/gyms/${gymId}`, data),
   deleteGym: (gymId: number) =>
     api.delete(`/admin/gyms/${gymId}`),

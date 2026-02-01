@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { Search, Plus, CheckCircle, AlertCircle } from 'lucide-react';
-import { adminApi } from '../api/client';
+import { gymsApi } from '../api/client';
 
 interface Gym {
   id: number;
@@ -50,7 +50,7 @@ export default function GymSelector({ value, onChange, onCreateGym, onGymSelecte
   const loadGyms = async () => {
     setLoading(true);
     try {
-      const response = await adminApi.listGyms(true); // Only verified gyms
+      const response = await gymsApi.list(true); // Only verified gyms
       setGyms(response.data.gyms || []);
     } catch (error) {
       console.error('Error loading gyms:', error);
@@ -63,7 +63,7 @@ export default function GymSelector({ value, onChange, onCreateGym, onGymSelecte
   const searchGyms = async () => {
     setLoading(true);
     try {
-      const response = await adminApi.searchGyms(searchQuery, true);
+      const response = await gymsApi.search(searchQuery, true);
       setGyms(response.data.gyms || []);
     } catch (error) {
       console.error('Error searching gyms:', error);

@@ -23,6 +23,8 @@ class GymService:
         email: Optional[str] = None,
         phone: Optional[str] = None,
         head_coach: Optional[str] = None,
+        head_coach_belt: Optional[str] = None,
+        google_maps_url: Optional[str] = None,
         verified: bool = False,
         added_by_user_id: Optional[int] = None,
     ) -> Dict[str, Any]:
@@ -37,6 +39,8 @@ class GymService:
             email=email,
             phone=phone,
             head_coach=head_coach,
+            head_coach_belt=head_coach_belt,
+            google_maps_url=google_maps_url,
             verified=verified,
             added_by_user_id=added_by_user_id,
         )
