@@ -133,21 +133,141 @@ async def chat_with_grapple(
 
     Requires beta, premium, or admin subscription tier.
 
-    This is a placeholder implementation. Full implementation will include:
-    - Rate limiting check
-    - Session management
-    - LLM client call with failover
-    - Token monitoring and cost tracking
-    - Context building from user data
+    Flow:
+    1. Check rate limit
+    2. Create or get session
+    3. Build context from user training data
+    4. Call LLM with failover
+    5. Log token usage
+    6. Store messages
+    7. Update session stats
     """
-    # TODO: Implement in Task 3
-    # For now, return a placeholder response
+    from rivaflow.core.services.grapple.llm_client import GrappleLLMClient
+    from rivaflow.core.services.grapple.rate_limiter import GrappleRateLimiter
+    from rivaflow.core.services.grapple.token_monitor import GrappleTokenMonitor
+    from rivaflow.core.services.grapple.context_builder import GrappleContextBuilder
+    from rivaflow.db.repositories.chat_session_repo import ChatSessionRepository
+    from rivaflow.db.repositories.chat_message_repo import ChatMessageRepository
 
-    logger.info(f"Grapple chat request from user {current_user['id']}")
+    user_id = current_user["id"]
+    user_tier = current_user.get("subscription_tier", "free")
 
-    raise HTTPException(
-        status_code=status.HTTP_501_NOT_IMPLEMENTED,
-        detail="Grapple chat endpoint is under construction. Coming soon!",
+    logger.info(f"Grapple chat request from user {user_id} (tier: {user_tier})")
+
+    # Step 1: Check rate limit
+    rate_limiter = GrappleRateLimiter()
+    rate_check = rate_limiter.check_rate_limit(user_id, user_tier)
+
+    if not rate_check["allowed"]:
+        logger.warning(f"Rate limit exceeded for user {user_id}: {rate_check['reason']}")
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail={
+                "error": "rate_limit_exceeded",
+                "message": rate_check["reason"],
+                "limit": rate_check["limit"],
+                "remaining": rate_check["remaining"],
+                "reset_at": rate_check["reset_at"].isoformat(),
+            },
+        )
+
+    # Step 2: Get or create session
+    session_repo = ChatSessionRepository()
+    message_repo = ChatMessageRepository()
+
+    if request.session_id:
+        # Use existing session
+        session = session_repo.get_by_id(request.session_id, user_id)
+        if not session:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Session not found or access denied",
+            )
+    else:
+        # Create new session
+        session = session_repo.create(user_id, title="New Chat")
+
+    session_id = session["id"]
+
+    # Step 3: Store user message
+    user_message = message_repo.create(
+        session_id=session_id,
+        role="user",
+        content=request.message,
+    )
+
+    # Step 4: Build context
+    context_builder = GrappleContextBuilder(user_id)
+
+    # Get recent messages for conversation context
+    recent_messages = message_repo.get_recent_context(session_id, max_messages=10)
+
+    # Build full message list (system prompt + history + new message)
+    messages = context_builder.get_conversation_context(recent_messages)
+
+    # Step 5: Call LLM
+    try:
+        llm_client = GrappleLLMClient(environment="production")
+        llm_response = await llm_client.chat(
+            messages=messages,
+            user_id=user_id,
+            temperature=0.7,
+            max_tokens=1024,
+        )
+    except Exception as e:
+        logger.error(f"LLM call failed for user {user_id}: {e}", exc_info=True)
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="AI service temporarily unavailable. Please try again in a moment.",
+        )
+
+    # Step 6: Store assistant message
+    assistant_message = message_repo.create(
+        session_id=session_id,
+        role="assistant",
+        content=llm_response["content"],
+        input_tokens=llm_response["input_tokens"],
+        output_tokens=llm_response["output_tokens"],
+        cost_usd=llm_response["cost_usd"],
+    )
+
+    # Step 7: Log token usage
+    token_monitor = GrappleTokenMonitor()
+    token_monitor.log_usage(
+        user_id=user_id,
+        session_id=session_id,
+        message_id=assistant_message["id"],
+        provider=llm_response["provider"],
+        model=llm_response["model"],
+        input_tokens=llm_response["input_tokens"],
+        output_tokens=llm_response["output_tokens"],
+        cost_usd=llm_response["cost_usd"],
+    )
+
+    # Step 8: Update session stats
+    session_repo.update_stats(
+        session_id=session_id,
+        message_count_delta=2,  # user + assistant
+        tokens_delta=llm_response["total_tokens"],
+        cost_delta=llm_response["cost_usd"],
+    )
+
+    # Step 9: Record message for rate limiting
+    rate_limiter.record_message(user_id)
+
+    # Step 10: Return response
+    logger.info(
+        f"Grapple response for user {user_id}: {llm_response['total_tokens']} tokens, "
+        f"${llm_response['cost_usd']:.6f} via {llm_response['provider']}"
+    )
+
+    return ChatResponse(
+        session_id=session_id,
+        message_id=assistant_message["id"],
+        reply=llm_response["content"],
+        tokens_used=llm_response["total_tokens"],
+        cost_usd=llm_response["cost_usd"],
+        rate_limit_remaining=rate_check["remaining"] - 1,
     )
 
 
@@ -163,12 +283,15 @@ async def get_chat_sessions(
 
     Requires beta, premium, or admin subscription tier.
     """
-    # TODO: Implement in Task 4
+    from rivaflow.db.repositories.chat_session_repo import ChatSessionRepository
 
-    logger.info(f"Fetching sessions for user {current_user['id']}")
+    user_id = current_user["id"]
+    logger.info(f"Fetching sessions for user {user_id}")
 
-    # Placeholder response
-    return SessionListResponse(sessions=[])
+    session_repo = ChatSessionRepository()
+    sessions = session_repo.get_by_user(user_id, limit=limit, offset=offset)
+
+    return SessionListResponse(sessions=sessions)
 
 
 @router.get("/sessions/{session_id}")
@@ -182,14 +305,30 @@ async def get_chat_session(
 
     Requires beta, premium, or admin subscription tier.
     """
-    # TODO: Implement in Task 4
+    from rivaflow.db.repositories.chat_session_repo import ChatSessionRepository
+    from rivaflow.db.repositories.chat_message_repo import ChatMessageRepository
 
-    logger.info(f"Fetching session {session_id} for user {current_user['id']}")
+    user_id = current_user["id"]
+    logger.info(f"Fetching session {session_id} for user {user_id}")
 
-    raise HTTPException(
-        status_code=status.HTTP_501_NOT_IMPLEMENTED,
-        detail="Session retrieval is under construction. Coming soon!",
-    )
+    session_repo = ChatSessionRepository()
+    message_repo = ChatMessageRepository()
+
+    # Get session (includes ownership check)
+    session = session_repo.get_by_id(session_id, user_id)
+    if not session:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Session not found or access denied",
+        )
+
+    # Get messages
+    messages = message_repo.get_by_session(session_id)
+
+    return {
+        "session": session,
+        "messages": messages,
+    }
 
 
 @router.delete("/sessions/{session_id}")
@@ -203,14 +342,21 @@ async def delete_chat_session(
 
     Requires beta, premium, or admin subscription tier.
     """
-    # TODO: Implement in Task 4
+    from rivaflow.db.repositories.chat_session_repo import ChatSessionRepository
 
-    logger.info(f"Deleting session {session_id} for user {current_user['id']}")
+    user_id = current_user["id"]
+    logger.info(f"Deleting session {session_id} for user {user_id}")
 
-    raise HTTPException(
-        status_code=status.HTTP_501_NOT_IMPLEMENTED,
-        detail="Session deletion is under construction. Coming soon!",
-    )
+    session_repo = ChatSessionRepository()
+    deleted = session_repo.delete(session_id, user_id)
+
+    if not deleted:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Session not found or access denied",
+        )
+
+    return {"success": True, "message": "Session deleted"}
 
 
 @router.get("/usage")
@@ -226,29 +372,45 @@ async def get_usage_stats(
         - Tokens used
         - Cost incurred
         - Rate limit status
+        - Cost projections
     """
-    # TODO: Implement in Task 5
+    from rivaflow.core.services.grapple.token_monitor import GrappleTokenMonitor
+    from rivaflow.core.services.grapple.rate_limiter import GrappleRateLimiter
+    from rivaflow.core.middleware.feature_access import FeatureAccess
 
-    logger.info(f"Fetching usage stats for user {current_user['id']}")
+    user_id = current_user["id"]
+    user_tier = current_user.get("subscription_tier", "free")
 
-    # Placeholder response
+    logger.info(f"Fetching usage stats for user {user_id}")
+
+    # Get token usage stats
+    token_monitor = GrappleTokenMonitor()
+    usage_30d = token_monitor.get_user_usage(user_id)
+    cost_projection = token_monitor.get_cost_projection(user_id)
+    cost_limit_check = token_monitor.check_cost_limit(user_id, user_tier)
+
+    # Get rate limit stats
+    rate_limiter = GrappleRateLimiter()
+    rate_stats = rate_limiter.get_user_usage_stats(user_id, days=7)
+    rate_check = rate_limiter.check_rate_limit(user_id, user_tier)
+
     return {
-        "user_id": current_user['id'],
-        "tier": current_user.get('subscription_tier', 'free'),
-        "usage": {
-            "messages_today": 0,
-            "messages_this_week": 0,
-            "messages_this_month": 0,
-            "tokens_used_total": 0,
-            "cost_usd_total": 0.0,
+        "user_id": user_id,
+        "tier": user_tier,
+        "usage_30_days": usage_30d,
+        "cost_projection": cost_projection,
+        "cost_limit": cost_limit_check,
+        "rate_limit": {
+            "current_status": {
+                "allowed": rate_check["allowed"],
+                "remaining": rate_check["remaining"],
+                "limit": rate_check["limit"],
+                "reset_at": rate_check["reset_at"].isoformat(),
+            },
+            "weekly_stats": rate_stats,
         },
         "limits": {
-            "messages_per_hour": 30 if current_user.get('subscription_tier') == 'beta' else 60,
-            "monthly_cost_limit_usd": 5.0 if current_user.get('subscription_tier') == 'beta' else 50.0,
-        },
-        "rate_limit": {
-            "current_window_messages": 0,
-            "remaining_in_window": 30,
-            "window_resets_at": datetime.utcnow().isoformat(),
+            "messages_per_hour": FeatureAccess.get_rate_limit(user_tier),
+            "monthly_cost_limit_usd": FeatureAccess.get_cost_limit(user_tier),
         },
     }
