@@ -1,4 +1,7 @@
-"""Database connection management and initialization."""
+"""Database connection management and initialization.
+
+Schema migrations use 'version' column (not 'migration_name').
+"""
 import logging
 import sqlite3
 from pathlib import Path
