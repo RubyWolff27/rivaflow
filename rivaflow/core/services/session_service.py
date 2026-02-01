@@ -131,6 +131,49 @@ class SessionService:
         """Get a session by ID."""
         return self.session_repo.get_by_id(user_id, session_id)
 
+    def get_adjacent_sessions(self, user_id: int, session_id: int) -> dict:
+        """
+        Get the previous and next session IDs for navigation.
+
+        Args:
+            user_id: User ID
+            session_id: Current session ID
+
+        Returns:
+            Dict with previous_session_id and next_session_id (or None if at boundaries)
+        """
+        # Get current session to find its date
+        current_session = self.session_repo.get_by_id(user_id, session_id)
+        if not current_session:
+            return {"previous_session_id": None, "next_session_id": None}
+
+        current_date = current_session["session_date"]
+        current_created_at = current_session.get("created_at")
+
+        # Get all sessions ordered by date DESC, created_at DESC (newest first)
+        all_sessions = self.session_repo.get_recent(user_id, limit=10000)
+
+        # Find current session index
+        current_index = None
+        for i, session in enumerate(all_sessions):
+            if session["id"] == session_id:
+                current_index = i
+                break
+
+        if current_index is None:
+            return {"previous_session_id": None, "next_session_id": None}
+
+        # Previous session is the one after current (older, later in list)
+        previous_session_id = all_sessions[current_index + 1]["id"] if current_index + 1 < len(all_sessions) else None
+
+        # Next session is the one before current (newer, earlier in list)
+        next_session_id = all_sessions[current_index - 1]["id"] if current_index > 0 else None
+
+        return {
+            "previous_session_id": previous_session_id,
+            "next_session_id": next_session_id
+        }
+
     def update_session(
         self,
         user_id: int,

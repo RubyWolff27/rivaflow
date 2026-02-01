@@ -106,14 +106,20 @@ async def delete_session(session_id: int, current_user: dict = Depends(get_curre
 
 
 @router.get("/{session_id}")
-async def get_session(session_id: int, apply_privacy: bool = False, current_user: dict = Depends(get_current_user)):
-    """Get a session by ID.
+async def get_session(
+    session_id: int,
+    apply_privacy: bool = False,
+    include_navigation: bool = Query(default=True, description="Include previous/next session IDs for navigation"),
+    current_user: dict = Depends(get_current_user)
+):
+    """Get a session by ID with optional navigation info.
 
     Args:
         session_id: Session ID
         apply_privacy: If True, apply privacy redaction based on session's visibility_level.
                       Default False for owner access (current single-user mode).
                       Future: Will be True when viewer_id != owner_id.
+        include_navigation: If True, include previous_session_id and next_session_id for navigation.
     """
     session = service.get_session(user_id=current_user["id"], session_id=session_id)
     if not session:
@@ -125,6 +131,11 @@ async def get_session(session_id: int, apply_privacy: bool = False, current_user
         session = PrivacyService.redact_session(session, visibility=visibility)
         if session is None:
             raise AuthorizationError("Session is private")
+
+    # Add navigation info for easier browsing
+    if include_navigation:
+        navigation = service.get_adjacent_sessions(current_user["id"], session_id)
+        session["navigation"] = navigation
 
     return session
 
