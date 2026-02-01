@@ -1,7 +1,9 @@
 """API routes for activity feed."""
 from datetime import date, timedelta
 from typing import List, Optional
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, Query, Request
+from slowapi import Limiter
+from slowapi.util import get_remote_address
 
 from rivaflow.db.repositories import SessionRepository, ReadinessRepository
 from rivaflow.db.repositories.checkin_repo import CheckinRepository
@@ -9,10 +11,13 @@ from rivaflow.core.services.feed_service import FeedService
 from rivaflow.core.dependencies import get_current_user
 
 router = APIRouter(prefix="/feed", tags=["feed"])
+limiter = Limiter(key_func=get_remote_address)
 
 
 @router.get("/activity")
+@limiter.limit("120/minute")
 def get_activity_feed(
+    request: Request,
     limit: int = Query(default=50, ge=1, le=200),
     offset: int = Query(default=0, ge=0, le=10000),
     cursor: Optional[str] = Query(default=None),
@@ -38,7 +43,9 @@ def get_activity_feed(
 
 
 @router.get("/friends")
+@limiter.limit("120/minute")
 def get_friends_feed(
+    request: Request,
     limit: int = Query(default=50, ge=1, le=200),
     offset: int = Query(default=0, ge=0, le=10000),
     cursor: Optional[str] = Query(default=None),

@@ -96,7 +96,7 @@ class AuthService:
                 with get_connection() as conn:
                     cursor = conn.cursor()
                     cursor.execute(convert_query("DELETE FROM users WHERE id = ?"), (user["id"],))
-            except:
+            except Exception:
                 pass  # Best effort cleanup
             raise ValueError("Registration failed - unable to create user profile")
 
@@ -127,7 +127,7 @@ class AuthService:
                 with get_connection() as conn:
                     cursor = conn.cursor()
                     cursor.execute(convert_query("DELETE FROM users WHERE id = ?"), (user["id"],))
-            except:
+            except Exception:
                 pass  # Best effort cleanup
             raise ValueError("Registration failed - unable to initialize user data")
 

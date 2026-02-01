@@ -1,4 +1,5 @@
 """FastAPI application for RivaFlow web interface."""
+import logging
 import os
 from pathlib import Path
 from fastapi import FastAPI, Request
@@ -19,6 +20,13 @@ from rivaflow.api.middleware.error_handler import (
 )
 from rivaflow.api.middleware.versioning import VersioningMiddleware
 from rivaflow.api.middleware.compression import GzipCompressionMiddleware
+
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    datefmt='%Y-%m-%d %H:%M:%S'
+)
 
 # Initialize rate limiter
 limiter = Limiter(key_func=get_remote_address)

@@ -1,10 +1,12 @@
 """Notifications API routes."""
+import logging
 from fastapi import APIRouter, Depends, Query, Path
 from typing import Optional
 
 from rivaflow.core.dependencies import get_current_user
 from rivaflow.core.services.notification_service import NotificationService
 
+logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/notifications", tags=["notifications"])
 
 
@@ -55,7 +57,7 @@ async def get_notifications(
         return {"notifications": notifications, "count": len(notifications)}
     except Exception as e:
         # Gracefully handle if notifications table doesn't exist yet
-        print(f"Error getting notifications: {e}")
+        logger.error(f"Error getting notifications: {e}", exc_info=True)
         return {"notifications": [], "count": 0}
 
 
@@ -71,7 +73,7 @@ async def mark_notification_as_read(
         return {"success": success}
     except Exception as e:
         # Gracefully handle if notifications table doesn't exist yet
-        print(f"Error marking notification as read: {e}")
+        logger.error(f"Error marking notification as read: {e}", exc_info=True)
         return {"success": False}
 
 
@@ -84,7 +86,7 @@ async def mark_all_notifications_as_read(current_user: dict = Depends(get_curren
         return {"success": True, "count": count}
     except Exception as e:
         # Gracefully handle if notifications table doesn't exist yet
-        print(f"Error marking all notifications as read: {e}")
+        logger.error(f"Error marking all notifications as read: {e}", exc_info=True)
         return {"success": True, "count": 0}
 
 
@@ -97,7 +99,7 @@ async def mark_feed_notifications_as_read(current_user: dict = Depends(get_curre
         return {"success": True, "count": count}
     except Exception as e:
         # Gracefully handle if notifications table doesn't exist yet
-        print(f"Error marking feed notifications as read: {e}")
+        logger.error(f"Error marking feed notifications as read: {e}", exc_info=True)
         return {"success": True, "count": 0}
 
 
@@ -110,7 +112,7 @@ async def mark_follow_notifications_as_read(current_user: dict = Depends(get_cur
         return {"success": True, "count": count}
     except Exception as e:
         # Gracefully handle if notifications table doesn't exist yet
-        print(f"Error marking follow notifications as read: {e}")
+        logger.error(f"Error marking follow notifications as read: {e}", exc_info=True)
         return {"success": True, "count": 0}
 
 
@@ -126,5 +128,5 @@ async def delete_notification(
         return {"success": success}
     except Exception as e:
         # Gracefully handle if notifications table doesn't exist yet
-        print(f"Error deleting notification: {e}")
+        logger.error(f"Error deleting notification: {e}", exc_info=True)
         return {"success": False}

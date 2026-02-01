@@ -219,34 +219,49 @@ relationship_repo = UserRelationshipRepository()
 try:
     relationship_repo.follow(alice_id, bob_id)
     print(f"   ✓ Alice follows Bob")
-except:
-    print(f"   ⚠️  Alice already follows Bob")
+except Exception as e:
+    if "unique" in str(e).lower() or "already" in str(e).lower():
+        print(f"   ⚠️  Alice already follows Bob")
+    else:
+        print(f"   ✗ Error: {e}")
 
 try:
     relationship_repo.follow(alice_id, charlie_id)
     print(f"   ✓ Alice follows Charlie")
-except:
-    print(f"   ⚠️  Alice already follows Charlie")
+except Exception as e:
+    if "unique" in str(e).lower() or "already" in str(e).lower():
+        print(f"   ⚠️  Alice already follows Charlie")
+    else:
+        print(f"   ✗ Error: {e}")
 
 # Bob follows Alice and Charlie
 try:
     relationship_repo.follow(bob_id, alice_id)
     print(f"   ✓ Bob follows Alice")
-except:
-    print(f"   ⚠️  Bob already follows Alice")
+except Exception as e:
+    if "unique" in str(e).lower() or "already" in str(e).lower():
+        print(f"   ⚠️  Bob already follows Alice")
+    else:
+        print(f"   ✗ Error: {e}")
 
 try:
     relationship_repo.follow(bob_id, charlie_id)
     print(f"   ✓ Bob follows Charlie")
-except:
-    print(f"   ⚠️  Bob already follows Charlie")
+except Exception as e:
+    if "unique" in str(e).lower() or "already" in str(e).lower():
+        print(f"   ⚠️  Bob already follows Charlie")
+    else:
+        print(f"   ✗ Error: {e}")
 
 # Charlie follows Alice
 try:
     relationship_repo.follow(charlie_id, alice_id)
     print(f"   ✓ Charlie follows Alice")
-except:
-    print(f"   ⚠️  Charlie already follows Alice")
+except Exception as e:
+    if "unique" in str(e).lower() or "already" in str(e).lower():
+        print(f"   ⚠️  Charlie already follows Alice")
+    else:
+        print(f"   ✗ Error: {e}")
 
 # Add some likes
 print("\n6. Adding likes...")
@@ -257,29 +272,41 @@ for session_id in alice_sessions[1:3]:  # Like some of Alice's shareable session
     try:
         like_repo.create(bob_id, 'session', session_id)
         print(f"   ✓ Bob liked Alice's session {session_id}")
-    except:
-        print(f"   ⚠️  Bob already liked session {session_id}")
+    except Exception as e:
+        if "unique" in str(e).lower() or "already" in str(e).lower():
+            print(f"   ⚠️  Bob already liked session {session_id}")
+        else:
+            print(f"   ✗ Error: {e}")
 
 # Alice likes Bob's sessions
 for session_id in bob_sessions[0:2]:
     try:
         like_repo.create(alice_id, 'session', session_id)
         print(f"   ✓ Alice liked Bob's session {session_id}")
-    except:
-        print(f"   ⚠️  Alice already liked session {session_id}")
+    except Exception as e:
+        if "unique" in str(e).lower() or "already" in str(e).lower():
+            print(f"   ⚠️  Alice already liked session {session_id}")
+        else:
+            print(f"   ✗ Error: {e}")
 
 # Charlie likes everyone's sessions
 try:
     like_repo.create(charlie_id, 'session', alice_sessions[2])
     print(f"   ✓ Charlie liked Alice's session {alice_sessions[2]}")
-except:
-    print(f"   ⚠️  Charlie already liked the session")
+except Exception as e:
+    if "unique" in str(e).lower() or "already" in str(e).lower():
+        print(f"   ⚠️  Charlie already liked the session")
+    else:
+        print(f"   ✗ Error: {e}")
 
 try:
     like_repo.create(charlie_id, 'session', bob_sessions[1])
     print(f"   ✓ Charlie liked Bob's session {bob_sessions[1]}")
-except:
-    print(f"   ⚠️  Charlie already liked the session")
+except Exception as e:
+    if "unique" in str(e).lower() or "already" in str(e).lower():
+        print(f"   ⚠️  Charlie already liked the session")
+    else:
+        print(f"   ✗ Error: {e}")
 
 # Add some comments
 print("\n7. Adding comments...")
@@ -294,8 +321,8 @@ try:
         "Great work! Your guard passing is getting really sharp 🔥"
     )
     print(f"   ✓ Bob commented on Alice's session")
-except:
-    print(f"   ⚠️  Error adding Bob's comment")
+except Exception as e:
+    print(f"   ⚠️  Error adding Bob's comment: {e}")
 
 # Alice comments on Bob's session
 try:
@@ -306,8 +333,8 @@ try:
         "Nice session! Those sweeps were looking clean 👍"
     )
     print(f"   ✓ Alice commented on Bob's session")
-except:
-    print(f"   ⚠️  Error adding Alice's comment")
+except Exception as e:
+    print(f"   ⚠️  Error adding Alice's comment: {e}")
 
 # Charlie comments on Alice's session
 try:
@@ -318,8 +345,8 @@ try:
         "Keep it up! Love the intensity 💪"
     )
     print(f"   ✓ Charlie commented on Alice's session")
-except:
-    print(f"   ⚠️  Error adding Charlie's comment")
+except Exception as e:
+    print(f"   ⚠️  Error adding Charlie's comment: {e}")
 
 # Summary
 print("\n" + "=" * 60)

@@ -35,6 +35,11 @@ def readiness(
         except ValueError:
             prompts.print_error("Invalid date format. Use YYYY-MM-DD")
             raise typer.Exit(1)
+
+        # Validate date is not in the future
+        if target_date > date.today():
+            prompts.print_error("Cannot log readiness for future dates")
+            raise typer.Exit(1)
     else:
         target_date = date.today()
 

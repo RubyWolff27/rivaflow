@@ -3,6 +3,7 @@
 Automatic database migration runner.
 Runs pending migrations on app startup.
 """
+import logging
 import os
 import sys
 from pathlib import Path
@@ -12,6 +13,8 @@ sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
 from rivaflow.config import get_db_type
 import psycopg2
+
+logger = logging.getLogger(__name__)
 
 
 def get_migration_files():
@@ -50,7 +53,7 @@ def apply_migration(conn, migration_file):
     """Apply a single migration file."""
     version = migration_file.stem  # Filename without extension
 
-    print(f"Applying migration: {version}")
+    logger.info(f"Applying migration: {version}")
 
     # Read migration SQL
     with open(migration_file, 'r') as f:
@@ -68,12 +71,12 @@ def apply_migration(conn, migration_file):
         )
 
         conn.commit()
-        print(f"✓ Applied: {version}")
+        logger.info(f"✓ Applied: {version}")
         return True
 
     except Exception as e:
         conn.rollback()
-        print(f"✗ Failed to apply {version}: {e}")
+        logger.error(f"✗ Failed to apply {version}: {e}", exc_info=True)
         return False
     finally:
         cursor.close()
@@ -84,24 +87,24 @@ def run_migrations():
     db_type = get_db_type()
 
     if db_type != "postgresql":
-        print("Migrations only run on PostgreSQL (production).")
-        print("For SQLite (local dev), migrations are not needed.")
+        logger.info("Migrations only run on PostgreSQL (production).")
+        logger.info("For SQLite (local dev), migrations are not needed.")
         return
 
     database_url = os.getenv("DATABASE_URL")
     if not database_url:
-        print("ERROR: DATABASE_URL not set")
+        logger.error("ERROR: DATABASE_URL not set")
         sys.exit(1)
 
-    print("=" * 60)
-    print("Running database migrations...")
-    print("=" * 60)
+    logger.info("=" * 60)
+    logger.info("Running database migrations...")
+    logger.info("=" * 60)
 
     # Connect to database
     try:
         conn = psycopg2.connect(database_url)
     except Exception as e:
-        print(f"ERROR: Could not connect to database: {e}")
+        logger.error(f"ERROR: Could not connect to database: {e}", exc_info=True)
         sys.exit(1)
 
     # Create migrations tracking table
@@ -114,12 +117,11 @@ def run_migrations():
     pending = [f for f in migration_files if f.stem not in applied]
 
     if not pending:
-        print("✓ All migrations up to date!")
+        logger.info("✓ All migrations up to date!")
         conn.close()
         return
 
-    print(f"Found {len(pending)} pending migration(s)")
-    print()
+    logger.info(f"Found {len(pending)} pending migration(s)")
 
     # Apply each pending migration
     success_count = 0
@@ -127,17 +129,21 @@ def run_migrations():
         if apply_migration(conn, migration_file):
             success_count += 1
         else:
-            print(f"\nERROR: Migration failed. Stopping.")
+            logger.error("Migration failed. Stopping.")
             conn.close()
             sys.exit(1)
 
     conn.close()
 
-    print()
-    print("=" * 60)
-    print(f"✓ Successfully applied {success_count} migration(s)")
-    print("=" * 60)
+    logger.info("=" * 60)
+    logger.info(f"✓ Successfully applied {success_count} migration(s)")
+    logger.info("=" * 60)
 
 
 if __name__ == "__main__":
+    # Configure logging for standalone execution
+    logging.basicConfig(
+        level=logging.INFO,
+        format='%(asctime)s - %(levelname)s - %(message)s'
+    )
     run_migrations()

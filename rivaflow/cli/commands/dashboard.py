@@ -110,7 +110,7 @@ def dashboard(ctx: typer.Context = None):
             cursor.execute("SELECT first_name FROM profile WHERE user_id = ? LIMIT 1", (user_id,))
             row = cursor.fetchone()
             name = row[0] if row and row[0] else "there"
-    except:
+    except Exception:
         name = "there"
 
     # Header
@@ -176,7 +176,7 @@ def dashboard(ctx: typer.Context = None):
             if insight.get('action'):
                 console.print(f"  [dim italic]{insight['action']}[/dim italic]")
             console.print()
-        except:
+        except Exception:
             pass
 
     # Tomorrow's intention

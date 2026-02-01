@@ -1,7 +1,10 @@
 """Seed the movements glossary with comprehensive BJJ techniques."""
+import logging
 import json
 
 from rivaflow.db.database import get_connection, convert_query
+
+logger = logging.getLogger(__name__)
 
 # Comprehensive glossary data
 MOVEMENTS = [
@@ -122,7 +125,7 @@ def seed_glossary():
             seeded_count = result[0]
 
         if seeded_count > 0:
-            print(f"Glossary already seeded with {seeded_count} techniques. Skipping.")
+            logger.info(f"Glossary already seeded with {seeded_count} techniques. Skipping.")
             return
 
         # Insert all movements
@@ -170,14 +173,19 @@ def seed_glossary():
             except Exception as e:
                 # Handle IntegrityError from both sqlite3 and psycopg2
                 if "unique" in str(e).lower() or "duplicate" in str(e).lower():
-                    print(f"Skipping duplicate: {movement['name']}")
+                    logger.warning(f"Skipping duplicate: {movement['name']}")
                     continue
                 else:
                     raise
 
         conn.commit()
-        print(f"Successfully seeded {inserted} techniques into glossary!")
+        logger.info(f"Successfully seeded {inserted} techniques into glossary!")
 
 
 if __name__ == "__main__":
+    # Configure logging for standalone execution
+    logging.basicConfig(
+        level=logging.INFO,
+        format='%(asctime)s - %(levelname)s - %(message)s'
+    )
     seed_glossary()

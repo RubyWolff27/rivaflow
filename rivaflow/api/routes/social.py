@@ -1,7 +1,9 @@
 """Social features API routes (relationships, likes, comments)."""
-from fastapi import APIRouter, Depends, Path, Body
+from fastapi import APIRouter, Depends, Path, Body, Request
 from pydantic import BaseModel, Field
 from typing import Optional
+from slowapi import Limiter
+from slowapi.util import get_remote_address
 
 from rivaflow.core.services.social_service import SocialService
 from rivaflow.core.dependencies import get_current_user
@@ -9,6 +11,7 @@ from rivaflow.db.repositories.user_repo import UserRepository
 from rivaflow.core.exceptions import ValidationError, NotFoundError
 
 router = APIRouter(prefix="/social", tags=["social"])
+limiter = Limiter(key_func=get_remote_address)
 
 
 # Pydantic models
@@ -43,7 +46,8 @@ class CommentUpdateRequest(BaseModel):
 
 # Relationship endpoints
 @router.post("/follow/{user_id}")
-async def follow_user(user_id: int = Path(..., gt=0), current_user: dict = Depends(get_current_user)):
+@limiter.limit("30/minute")
+async def follow_user(request: Request, user_id: int = Path(..., gt=0), current_user: dict = Depends(get_current_user)):
     """
     Follow another user.
 
@@ -132,7 +136,8 @@ async def check_following(user_id: int = Path(..., gt=0), current_user: dict = D
 
 # Like endpoints
 @router.post("/like")
-async def like_activity(request: LikeRequest, current_user: dict = Depends(get_current_user)):
+@limiter.limit("60/minute")
+async def like_activity(http_request: Request, request: LikeRequest, current_user: dict = Depends(get_current_user)):
     """
     Like an activity.
 
@@ -200,7 +205,8 @@ async def get_activity_likes(
 
 # Comment endpoints
 @router.post("/comment")
-async def add_comment(request: CommentRequest, current_user: dict = Depends(get_current_user)):
+@limiter.limit("20/minute")
+async def add_comment(http_request: Request, request: CommentRequest, current_user: dict = Depends(get_current_user)):
     """
     Add a comment to an activity.
 
@@ -311,7 +317,8 @@ async def get_activity_comments(
 
 # User search endpoint
 @router.get("/users/search")
-async def search_users(q: str = "", current_user: dict = Depends(get_current_user)):
+@limiter.limit("60/minute")
+async def search_users(http_request: Request, q: str = "", current_user: dict = Depends(get_current_user)):
     """
     Search for users by name or email.
 
