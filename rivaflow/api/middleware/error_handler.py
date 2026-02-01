@@ -116,8 +116,11 @@ async def validation_exception_handler(
             "input": error.get("input"),  # Include invalid input for debugging
         })
 
+    # Format errors for logging
+    error_summary = "; ".join([f"{e['field']}: {e['message']}" for e in errors])
+
     logger.warning(
-        f"Validation error on {request.url.path}",
+        f"Validation error on {request.url.path}: {error_summary}",
         extra={
             "path": request.url.path,
             "method": request.method,
