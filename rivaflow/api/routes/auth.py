@@ -220,7 +220,7 @@ class ResetPasswordRequest(BaseModel):
 
 @router.post("/forgot-password")
 @limiter.limit("3/hour")
-async def forgot_password(req: ForgotPasswordRequest, request: Request):
+async def forgot_password(request: Request, req: ForgotPasswordRequest):
     """
     Request a password reset email.
 
@@ -249,7 +249,7 @@ async def forgot_password(req: ForgotPasswordRequest, request: Request):
 
 @router.post("/reset-password")
 @limiter.limit("5/hour")
-async def reset_password(req: ResetPasswordRequest, request: Request):
+async def reset_password(request: Request, req: ResetPasswordRequest):
     """
     Reset password using reset token.
 
