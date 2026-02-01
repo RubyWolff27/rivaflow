@@ -123,6 +123,7 @@ export interface Profile {
   city?: string;
   state?: string;
   default_gym?: string;
+  default_location?: string;
   current_grade?: string;
   current_professor?: string;
   current_instructor_id?: number;
