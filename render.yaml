@@ -15,13 +15,7 @@ services:
       npm install
       npm run build
       cd ..
-    startCommand: |
-      # Run database migrations
-      python -c "from rivaflow.db.database import init_db; init_db()"
-      python rivaflow/db/migrate.py
-
-      # Start FastAPI server
-      uvicorn rivaflow.api.main:app --host 0.0.0.0 --port $PORT
+    startCommand: bash start.sh
     envVars:
       - key: SECRET_KEY
         generateValue: true
@@ -29,6 +23,12 @@ services:
         value: 3.11.0
       - key: ALLOWED_ORIGINS
         sync: false
+      - key: DATABASE_URL
+        fromDatabase:
+          name: rivaflow-db
+          property: connectionString
+      - key: ENV
+        value: production
     autoDeploy: true
 
 databases:
