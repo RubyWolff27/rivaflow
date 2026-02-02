@@ -75,10 +75,20 @@ async def rivaflow_exception_handler(request: Request, exc: RivaFlowException) -
             "method": request.method,
             "status_code": exc.status_code,
             "details": exc.details,
+            "action": getattr(exc, "action", None),
             "user_agent": request.headers.get("user-agent"),
         },
         exc_info=True,
     )
+
+    # Build response details
+    response_details = exc.details if exc.details else None
+
+    # Add actionable next step if provided
+    if hasattr(exc, "action") and exc.action:
+        if response_details is None:
+            response_details = {}
+        response_details["suggested_action"] = exc.action
 
     return JSONResponse(
         status_code=exc.status_code,
@@ -86,7 +96,7 @@ async def rivaflow_exception_handler(request: Request, exc: RivaFlowException) -
             error_code=exc.__class__.__name__.upper().replace("ERROR", "_ERROR"),
             message=exc.message,
             status_code=exc.status_code,
-            details=exc.details if exc.details else None,
+            details=response_details,
             request_id=request.headers.get("X-Request-ID")
         ),
     )

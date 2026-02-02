@@ -10,6 +10,7 @@ from rivaflow.core.auth import (
     decode_access_token,
 )
 from rivaflow.core.email_validation import validate_email_address
+from rivaflow.core.exceptions import ValidationError, AuthenticationError
 from rivaflow.db.repositories.user_repo import UserRepository
 from rivaflow.db.repositories.refresh_token_repo import RefreshTokenRepository
 from rivaflow.db.repositories.profile_repo import ProfileRepository
@@ -52,19 +53,35 @@ class AuthService:
             allow_disposable=False  # Block disposable emails
         )
         if not is_valid:
-            raise ValueError(error.get("message", "Invalid email format"))
+            error_code = error.get("code", "INVALID_EMAIL")
+            if error_code == "DISPOSABLE_EMAIL":
+                action = "Use your personal or work email address instead of temporary email services"
+            else:
+                action = "Please provide a valid email address (e.g., user@example.com)"
+
+            raise ValidationError(
+                message=error.get("message", "Invalid email format"),
+                details={"code": error_code},
+                action=action
+            )
 
         # Use normalized email (lowercase domain)
         email = normalized_email
 
         # Validate password strength
         if len(password) < 8:
-            raise ValueError("Password must be at least 8 characters long")
+            raise ValidationError(
+                message="Password must be at least 8 characters long",
+                action="Choose a password with at least 8 characters. Consider using a mix of letters, numbers, and symbols for better security."
+            )
 
         # Check if email already exists
         existing_user = self.user_repo.get_by_email(email)
         if existing_user:
-            raise ValueError("Email already registered")
+            raise ValidationError(
+                message="Email already registered",
+                action="If you already have an account, please login instead. If you forgot your password, use the 'Forgot Password' link."
+            )
 
         # Hash password
         hashed_pwd = hash_password(password)
@@ -173,15 +190,24 @@ class AuthService:
         # Get user by email
         user = self.user_repo.get_by_email(email)
         if not user:
-            raise ValueError("Invalid email or password")
+            raise AuthenticationError(
+                message="Invalid email or password",
+                action="Double-check your email and password. If you forgot your password, click 'Forgot Password' to reset it."
+            )
 
         # Check if user is active
         if not user.get("is_active"):
-            raise ValueError("Account is inactive")
+            raise AuthenticationError(
+                message="Account is inactive",
+                action="Your account has been deactivated. Please contact support@rivaflow.com for assistance."
+            )
 
         # Verify password
         if not verify_password(password, user["hashed_password"]):
-            raise ValueError("Invalid email or password")
+            raise AuthenticationError(
+                message="Invalid email or password",
+                action="Double-check your email and password. If you forgot your password, click 'Forgot Password' to reset it."
+            )
 
         # Generate tokens (sub must be string for JWT)
         access_token = create_access_token(data={"sub": str(user["id"])})
