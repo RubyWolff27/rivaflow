@@ -5,6 +5,8 @@ from rich.panel import Panel
 from rich.text import Text
 from rich.prompt import Confirm
 
+from rivaflow.cli.utils.logo import LOGO, TAGLINE
+
 console = Console()
 
 # Marker file to track if user has seen welcome message
@@ -26,15 +28,13 @@ def show_welcome_message() -> None:
     """Display welcome message and quick start guide for new users."""
     console.clear()
 
-    # Welcome banner
-    welcome_text = Text()
-    welcome_text.append("Welcome to ", style="white")
-    welcome_text.append("RivaFlow", style="bold cyan")
-    welcome_text.append(" 🥋\n", style="white")
-    welcome_text.append("\nYour Training OS for the Mat", style="dim white")
+    # ASCII art logo
+    console.print(f"[bold cyan]{LOGO}[/bold cyan]")
+    console.print(f"[dim]{TAGLINE}[/dim]")
+    console.print()
 
     console.print(Panel(
-        welcome_text,
+        "[bold]Welcome to RivaFlow! 🥋[/bold]\n\n[dim]Your Training OS for the Mat[/dim]",
         border_style="cyan",
         padding=(1, 2),
         title="[bold]First Time Setup[/bold]",

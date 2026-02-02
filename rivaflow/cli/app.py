@@ -68,13 +68,51 @@ def init():
 
 
 @app.command()
+def about():
+    """Show RivaFlow version and info."""
+    from rich.console import Console
+    from rich.panel import Panel
+    from rivaflow.cli.utils.logo import LOGO, TAGLINE
+
+    console = Console()
+
+    console.print()
+    console.print(f"[bold cyan]{LOGO}[/bold cyan]")
+    console.print(f"[dim]{TAGLINE}[/dim]")
+    console.print()
+
+    info_text = """[bold]Version:[/bold] 0.2.0-beta
+[bold]Description:[/bold] Local-first training tracker for Brazilian Jiu-Jitsu and grappling
+
+[bold cyan]Features:[/bold cyan]
+  • Session logging with detailed roll tracking
+  • Readiness and recovery monitoring
+  • Training analytics and reports
+  • Streak tracking and milestones
+  • WHOOP integration support
+  • Technique library and video bookmarks
+
+[bold cyan]Links:[/bold cyan]
+  • GitHub: [link]https://github.com/RubyWolff27/rivaflow[/link]
+  • Issues: [link]https://github.com/RubyWolff27/rivaflow/issues[/link]
+
+[dim]Built with ❤️ for the BJJ community[/dim]
+"""
+
+    console.print(Panel(info_text, border_style="cyan", padding=(1, 2)))
+    console.print()
+
+
+@app.command()
 def stats():
     """Show quick lifetime statistics."""
     from rich.console import Console
     from rich.table import Table
     from rivaflow.db.repositories import SessionRepository, ReadinessRepository, TechniqueRepository, VideoRepository
+    from rivaflow.cli.utils.user_context import get_current_user_id
 
     console = Console()
+    user_id = get_current_user_id()
 
     session_repo = SessionRepository()
     readiness_repo = ReadinessRepository()
