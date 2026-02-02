@@ -1,20 +1,24 @@
 import { useState, useEffect } from 'react';
 import { socialApi } from '../api/client';
-import { UserPlus, UserMinus, Search } from 'lucide-react';
+import { UserPlus, UserMinus, Search, X } from 'lucide-react';
 import { Card, PrimaryButton, SecondaryButton } from '../components/ui';
 import { FriendSuggestions } from '../components/FriendSuggestions';
+import { useToast } from '../contexts/ToastContext';
 
 interface SearchUser {
   id: number;
   first_name: string;
   last_name: string;
   email: string;
-  is_following: boolean;
+  is_following?: boolean;
+  friendship_status?: 'none' | 'friends' | 'pending_sent' | 'pending_received';
+  connection_id?: number;
 }
 
 export default function FindFriends() {
   const [searchResults, setSearchResults] = useState<SearchUser[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
+  const toast = useToast();
 
   useEffect(() => {
     if (searchQuery.length >= 2) {
@@ -27,37 +31,101 @@ export default function FindFriends() {
   const searchUsers = async () => {
     try {
       const response = await socialApi.searchUsers(searchQuery);
-      setSearchResults(response.data.users || []);
+      const users = response.data.users || [];
+
+      // Fetch friendship status for each user
+      const usersWithStatus = await Promise.all(
+        users.map(async (user: any) => {
+          try {
+            const statusResponse = await socialApi.getFriendshipStatus(user.id);
+            return {
+              ...user,
+              friendship_status: statusResponse.data.status,
+            };
+          } catch {
+            return {
+              ...user,
+              friendship_status: 'none',
+            };
+          }
+        })
+      );
+
+      setSearchResults(usersWithStatus);
     } catch (error) {
       console.error('Error searching users:', error);
     }
   };
 
-  const handleFollow = async (userId: number) => {
+  const handleSendRequest = async (userId: number) => {
     try {
-      await socialApi.follow(userId);
+      await socialApi.sendFriendRequest(userId, { connection_source: 'search' });
+      toast.success('Friend request sent');
       // Update search results
       setSearchResults((prev) =>
         prev.map((user) =>
-          user.id === userId ? { ...user, is_following: true } : user
+          user.id === userId ? { ...user, friendship_status: 'pending_sent' } : user
         )
       );
-    } catch (error) {
-      console.error('Error following user:', error);
+    } catch (error: any) {
+      console.error('Error sending friend request:', error);
+      toast.error(error.response?.data?.detail || 'Failed to send friend request');
     }
   };
 
-  const handleUnfollow = async (userId: number) => {
+  const handleAcceptRequest = async (userId: number) => {
     try {
-      await socialApi.unfollow(userId);
-      // Update search results
+      // We need to get the connection ID from received requests
+      const receivedResponse = await socialApi.getReceivedRequests();
+      const request = receivedResponse.data.requests.find((r: any) => r.requester_id === userId);
+
+      if (request) {
+        await socialApi.acceptFriendRequest(request.id);
+        toast.success('Friend request accepted');
+        setSearchResults((prev) =>
+          prev.map((user) =>
+            user.id === userId ? { ...user, friendship_status: 'friends' } : user
+          )
+        );
+      }
+    } catch (error) {
+      console.error('Error accepting friend request:', error);
+      toast.error('Failed to accept friend request');
+    }
+  };
+
+  const handleDeclineRequest = async (userId: number) => {
+    try {
+      const receivedResponse = await socialApi.getReceivedRequests();
+      const request = receivedResponse.data.requests.find((r: any) => r.requester_id === userId);
+
+      if (request) {
+        await socialApi.declineFriendRequest(request.id);
+        toast.success('Friend request declined');
+        setSearchResults((prev) =>
+          prev.map((user) =>
+            user.id === userId ? { ...user, friendship_status: 'none' } : user
+          )
+        );
+      }
+    } catch (error) {
+      console.error('Error declining friend request:', error);
+      toast.error('Failed to decline friend request');
+    }
+  };
+
+  const handleUnfriend = async (userId: number) => {
+    try {
+      await socialApi.unfriend(userId);
+      toast.success('Friend removed');
       setSearchResults((prev) =>
         prev.map((user) =>
-          user.id === userId ? { ...user, is_following: false } : user
+          user.id === userId ? { ...user, friendship_status: 'none' } : user
         )
       );
     } catch (error) {
-      console.error('Error unfollowing user:', error);
+      console.error('Error removing friend:', error);
+      toast.error('Failed to remove friend');
     }
   };
 
@@ -110,15 +178,29 @@ export default function FindFriends() {
                     {user.email}
                   </p>
                 </div>
-                {user.is_following ? (
-                  <SecondaryButton onClick={() => handleUnfollow(user.id)} className="flex items-center gap-2">
+                {user.friendship_status === 'friends' ? (
+                  <SecondaryButton onClick={() => handleUnfriend(user.id)} className="flex items-center gap-2">
                     <UserMinus className="w-4 h-4" />
-                    Unfollow
+                    Unfriend
                   </SecondaryButton>
-                ) : (
-                  <PrimaryButton onClick={() => handleFollow(user.id)} className="flex items-center gap-2">
+                ) : user.friendship_status === 'pending_sent' ? (
+                  <SecondaryButton disabled className="flex items-center gap-2 opacity-60 cursor-not-allowed">
                     <UserPlus className="w-4 h-4" />
-                    Follow
+                    Request Sent
+                  </SecondaryButton>
+                ) : user.friendship_status === 'pending_received' ? (
+                  <div className="flex items-center gap-2">
+                    <PrimaryButton onClick={() => handleAcceptRequest(user.id)} className="text-sm px-3 py-1">
+                      Accept
+                    </PrimaryButton>
+                    <SecondaryButton onClick={() => handleDeclineRequest(user.id)} className="text-sm px-3 py-1">
+                      <X className="w-4 h-4" />
+                    </SecondaryButton>
+                  </div>
+                ) : (
+                  <PrimaryButton onClick={() => handleSendRequest(user.id)} className="flex items-center gap-2">
+                    <UserPlus className="w-4 h-4" />
+                    Add Friend
                   </PrimaryButton>
                 )}
               </div>

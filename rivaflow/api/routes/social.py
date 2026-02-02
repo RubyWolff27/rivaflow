@@ -1,5 +1,5 @@
 """Social features API routes (relationships, likes, comments)."""
-from fastapi import APIRouter, Depends, Path, Body, Request, Query
+from fastapi import APIRouter, Depends, Path, Body, Request, Query, HTTPException
 from pydantic import BaseModel, Field
 from typing import Optional
 from slowapi import Limiter
@@ -9,6 +9,7 @@ from rivaflow.core.services.social_service import SocialService
 from rivaflow.core.services.friend_suggestions_service import FriendSuggestionsService
 from rivaflow.core.dependencies import get_current_user
 from rivaflow.db.repositories.user_repo import UserRepository
+from rivaflow.db.repositories.social_connection_repo import SocialConnectionRepository
 from rivaflow.core.exceptions import ValidationError, NotFoundError
 
 router = APIRouter(prefix="/social", tags=["social"])
@@ -440,3 +441,157 @@ async def regenerate_friend_suggestions(current_user: dict = Depends(get_current
         "success": True,
         "suggestions_created": count,
     }
+
+
+# Friend Request System
+class FriendRequestBody(BaseModel):
+    """Request body for sending a friend request."""
+    connection_source: Optional[str] = Field(None, description="How they found each other")
+    request_message: Optional[str] = Field(None, max_length=500, description="Optional message with request")
+
+
+@router.post("/friend-requests/{user_id}")
+@limiter.limit("20/minute")
+async def send_friend_request(
+    request: Request,
+    user_id: int = Path(..., gt=0),
+    body: FriendRequestBody = Body(default=FriendRequestBody()),
+    current_user: dict = Depends(get_current_user)
+):
+    """Send a friend request to another user."""
+    try:
+        connection = SocialConnectionRepository.send_friend_request(
+            requester_id=current_user["id"],
+            recipient_id=user_id,
+            connection_source=body.connection_source,
+            request_message=body.request_message
+        )
+        return {"success": True, "connection": connection}
+    except ValueError as e:
+        raise ValidationError(str(e))
+
+
+@router.post("/friend-requests/{connection_id}/accept")
+async def accept_friend_request(
+    connection_id: int = Path(..., gt=0),
+    current_user: dict = Depends(get_current_user)
+):
+    """Accept a friend request (must be the recipient)."""
+    try:
+        connection = SocialConnectionRepository.accept_friend_request(
+            connection_id=connection_id,
+            recipient_id=current_user["id"]
+        )
+        return {"success": True, "connection": connection}
+    except ValueError as e:
+        raise ValidationError(str(e))
+
+
+@router.post("/friend-requests/{connection_id}/decline")
+async def decline_friend_request(
+    connection_id: int = Path(..., gt=0),
+    current_user: dict = Depends(get_current_user)
+):
+    """Decline a friend request (must be the recipient)."""
+    try:
+        connection = SocialConnectionRepository.decline_friend_request(
+            connection_id=connection_id,
+            recipient_id=current_user["id"]
+        )
+        return {"success": True, "connection": connection}
+    except ValueError as e:
+        raise ValidationError(str(e))
+
+
+@router.delete("/friend-requests/{connection_id}")
+async def cancel_friend_request(
+    connection_id: int = Path(..., gt=0),
+    current_user: dict = Depends(get_current_user)
+):
+    """Cancel a sent friend request (must be the requester)."""
+    success = SocialConnectionRepository.cancel_friend_request(
+        connection_id=connection_id,
+        requester_id=current_user["id"]
+    )
+    if not success:
+        raise NotFoundError("Friend request not found or already responded")
+    return {"success": True}
+
+
+@router.get("/friend-requests/received")
+async def get_received_friend_requests(current_user: dict = Depends(get_current_user)):
+    """Get pending friend requests received by the current user."""
+    requests = SocialConnectionRepository.get_pending_requests_received(current_user["id"])
+    return {
+        "requests": requests,
+        "count": len(requests)
+    }
+
+
+@router.get("/friend-requests/sent")
+async def get_sent_friend_requests(current_user: dict = Depends(get_current_user)):
+    """Get pending friend requests sent by the current user."""
+    requests = SocialConnectionRepository.get_pending_requests_sent(current_user["id"])
+    return {
+        "requests": requests,
+        "count": len(requests)
+    }
+
+
+@router.get("/friends")
+async def get_friends(
+    limit: int = Query(50, ge=1, le=100),
+    offset: int = Query(0, ge=0),
+    current_user: dict = Depends(get_current_user)
+):
+    """Get list of accepted friends for the current user."""
+    friends = SocialConnectionRepository.get_friends(
+        user_id=current_user["id"],
+        limit=limit,
+        offset=offset
+    )
+    return {
+        "friends": friends,
+        "count": len(friends)
+    }
+
+
+@router.delete("/friends/{user_id}")
+async def unfriend_user(
+    user_id: int = Path(..., gt=0),
+    current_user: dict = Depends(get_current_user)
+):
+    """Remove a friend connection."""
+    success = SocialConnectionRepository.unfriend(
+        user_id=current_user["id"],
+        friend_user_id=user_id
+    )
+    if not success:
+        raise NotFoundError("Friend connection not found")
+    return {"success": True}
+
+
+@router.get("/friends/{user_id}/status")
+async def get_friendship_status(
+    user_id: int = Path(..., gt=0),
+    current_user: dict = Depends(get_current_user)
+):
+    """Get friendship status with another user."""
+    are_friends = SocialConnectionRepository.are_friends(current_user["id"], user_id)
+
+    if not are_friends:
+        # Check for pending requests
+        received = SocialConnectionRepository.get_pending_requests_received(current_user["id"])
+        sent = SocialConnectionRepository.get_pending_requests_sent(current_user["id"])
+
+        pending_from_them = any(r['requester_id'] == user_id for r in received)
+        pending_from_me = any(r['recipient_id'] == user_id for r in sent)
+
+        if pending_from_them:
+            return {"status": "pending_received", "are_friends": False}
+        elif pending_from_me:
+            return {"status": "pending_sent", "are_friends": False}
+        else:
+            return {"status": "none", "are_friends": False}
+
+    return {"status": "friends", "are_friends": True}

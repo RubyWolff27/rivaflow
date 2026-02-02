@@ -1,57 +1,41 @@
 import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { dashboardApi } from '../api/client';
-import type { Session, WeeklyGoalProgress } from '../types';
-import { Plus, Activity, Calendar, Target, TrendingUp } from 'lucide-react';
-import { Card, Chip, PrimaryButton, SecondaryButton } from '../components/ui';
+import { Plus, Activity } from 'lucide-react';
+import { Card, PrimaryButton, SecondaryButton } from '../components/ui';
+import { WeekAtGlance } from '../components/dashboard/WeekAtGlance';
+import { LastSession } from '../components/dashboard/LastSession';
+import { JourneyProgress } from '../components/dashboard/JourneyProgress';
+import { WeeklyGoalsBreakdown } from '../components/dashboard/WeeklyGoalsBreakdown';
 
 export default function Dashboard() {
   const navigate = useNavigate();
-  const [recentSessions, setRecentSessions] = useState<Session[]>([]);
+  const [readinessScore, setReadinessScore] = useState<number | null>(null);
+  const [hasCheckedInToday, setHasCheckedInToday] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [weeklyGoals, setWeeklyGoals] = useState<WeeklyGoalProgress | null>(null);
-
-  // Stats for Performance Snapshot (last 7 days)
-  const [stats, setStats] = useState({
-    sessions: 0,
-    avgIntensity: 0,
-    totalRolls: 0,
-    currentStreak: 0,
-  });
 
   useEffect(() => {
-    loadData();
+    loadReadinessData();
   }, []);
 
-  const loadData = async () => {
+  const loadReadinessData = async () => {
     try {
-      const endDate = new Date();
-      const startDate = new Date();
-      startDate.setDate(startDate.getDate() - 7);
-
-      const response = await dashboardApi.getSummary({
-        start_date: startDate.toISOString().split('T')[0],
-        end_date: endDate.toISOString().split('T')[0],
+      const today = new Date().toISOString().split('T')[0];
+      const response = await fetch(`/api/v1/readiness?date=${today}`, {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`,
+        },
       });
 
-      const data = response.data;
-
-      // Set recent sessions
-      setRecentSessions(data.recent_sessions ?? []);
-
-      // Set weekly goals
-      setWeeklyGoals(data.weekly_goals ?? null);
-
-      // Set stats from performance summary
-      const perfSummary = data.performance?.summary ?? {};
-      setStats({
-        sessions: perfSummary.total_sessions ?? 0,
-        avgIntensity: perfSummary.avg_intensity ?? 0,
-        totalRolls: perfSummary.total_rolls ?? 0,
-        currentStreak: data.streaks?.current_streak ?? 0,
-      });
+      if (response.ok) {
+        const data = await response.json();
+        if (data && data.length > 0) {
+          setReadinessScore(data[0].overall_score);
+          setHasCheckedInToday(true);
+        }
+      }
     } catch (error) {
-      console.error('Error loading dashboard:', error);
+      console.error('Error loading readiness:', error);
     } finally {
       setLoading(false);
     }
@@ -60,9 +44,6 @@ export default function Dashboard() {
   if (loading) {
     return <div className="text-center py-12">Loading...</div>;
   }
-
-  // For now, assume not checked in (can be enhanced later with actual check-in API)
-  const hasCheckedInToday = false;
 
   return (
     <div className="space-y-6">
@@ -85,164 +66,70 @@ export default function Dashboard() {
         </div>
       </Card>
 
-      {/* Performance Snapshot */}
-      <Card>
-        <div className="mb-4">
-          <h2 className="text-lg font-semibold text-[var(--text)]">Performance Snapshot</h2>
-          <p className="text-xs text-[var(--muted)] mt-1">Last 7 days</p>
-        </div>
-
-        <div className="grid grid-cols-2 gap-3">
-          {/* Sessions */}
-          <div className="p-4 rounded-[14px]" style={{ backgroundColor: 'var(--surfaceElev)', border: '1px solid var(--border)' }}>
-            <div className="flex items-center gap-2 mb-3">
-              <Activity className="w-4 h-4" style={{ color: 'var(--muted)' }} />
-              <span className="text-xs font-medium uppercase tracking-wide" style={{ color: 'var(--muted)' }}>Sessions</span>
+      {/* Readiness Score - Prominent Display */}
+      {hasCheckedInToday && readinessScore !== null ? (
+        <Link to="/readiness">
+          <Card className="cursor-pointer hover:border-[var(--accent)] transition-colors">
+            <div className="flex items-center justify-between">
+              <div className="flex-1">
+                <h3 className="text-sm font-medium mb-1" style={{ color: 'var(--muted)' }}>Today's Readiness</h3>
+                <div className="flex items-center gap-3">
+                  <span className="text-4xl font-bold" style={{ color: 'var(--accent)' }}>
+                    {readinessScore}
+                  </span>
+                  <span className="text-sm" style={{ color: 'var(--text)' }}>/ 100</span>
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <Activity className="w-5 h-5" style={{ color: 'var(--accent)' }} />
+                <span className="text-sm" style={{ color: 'var(--accent)' }}>View Details →</span>
+              </div>
             </div>
-            <p className="text-2xl font-semibold" style={{ color: 'var(--text)' }}>{stats.sessions}</p>
-          </div>
-
-          {/* Avg Intensity */}
-          <div className="p-4 rounded-[14px]" style={{ backgroundColor: 'var(--surfaceElev)', border: '1px solid var(--border)' }}>
-            <div className="flex items-center gap-2 mb-3">
-              <TrendingUp className="w-4 h-4" style={{ color: 'var(--muted)' }} />
-              <span className="text-xs font-medium uppercase tracking-wide" style={{ color: 'var(--muted)' }}>Intensity</span>
-            </div>
-            <p className="text-2xl font-semibold" style={{ color: 'var(--text)' }}>{stats.avgIntensity.toFixed(1)}/5</p>
-          </div>
-
-          {/* Total Rolls */}
-          <div className="p-4 rounded-[14px]" style={{ backgroundColor: 'var(--surfaceElev)', border: '1px solid var(--border)' }}>
-            <div className="flex items-center gap-2 mb-3">
-              <Target className="w-4 h-4" style={{ color: 'var(--muted)' }} />
-              <span className="text-xs font-medium uppercase tracking-wide" style={{ color: 'var(--muted)' }}>Rolls</span>
-            </div>
-            <p className="text-2xl font-semibold" style={{ color: 'var(--text)' }}>{stats.totalRolls}</p>
-          </div>
-
-          {/* Current Streak */}
-          <div className="p-4 rounded-[14px]" style={{ backgroundColor: 'var(--surfaceElev)', border: '1px solid var(--border)' }}>
-            <div className="flex items-center gap-2 mb-3">
-              <Calendar className="w-4 h-4" style={{ color: 'var(--muted)' }} />
-              <span className="text-xs font-medium uppercase tracking-wide" style={{ color: 'var(--muted)' }}>Streak</span>
-            </div>
-            <p className="text-2xl font-semibold" style={{ color: 'var(--text)' }}>{stats.currentStreak} days</p>
-          </div>
-        </div>
-      </Card>
-
-      {/* Readiness Check-in */}
-      {!hasCheckedInToday && (
-        <Card>
+          </Card>
+        </Link>
+      ) : (
+        <Card className="bg-gradient-to-r from-[var(--accent)]/10 to-transparent">
           <div className="flex items-center justify-between">
             <div className="flex-1">
-              <h3 className="text-sm font-semibold mb-1" style={{ color: 'var(--text)' }}>Today's Check-in</h3>
-              <p className="text-sm" style={{ color: 'var(--muted)' }}>How are you feeling today?</p>
+              <h3 className="text-lg font-semibold mb-1" style={{ color: 'var(--text)' }}>Today's Check-in</h3>
+              <p className="text-sm" style={{ color: 'var(--muted)' }}>Track your readiness and optimize your training</p>
             </div>
-            <SecondaryButton onClick={() => navigate('/readiness')} className="text-sm">
+            <PrimaryButton onClick={() => navigate('/readiness')} className="flex items-center gap-2">
+              <Activity className="w-4 h-4" />
               Check In
-            </SecondaryButton>
+            </PrimaryButton>
           </div>
         </Card>
       )}
 
-      {/* Weekly Goals Progress */}
-      {weeklyGoals && (
-        <Card>
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-semibold text-[var(--text)]">Weekly Goals</h2>
-            <Link to="/goals" className="text-sm text-[var(--accent)] hover:opacity-80">
-              View All
-            </Link>
-          </div>
+      {/* Main Grid - Week at Glance and Weekly Goals */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <WeekAtGlance />
+        <WeeklyGoalsBreakdown />
+      </div>
 
-          <div className="space-y-3">
-            {/* Sessions Goal */}
-            <div>
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-sm text-[var(--text)]">Training Sessions</span>
-                <span className="text-sm font-medium text-[var(--text)]">
-                  {weeklyGoals.actual?.sessions ?? 0} / {weeklyGoals.targets?.sessions ?? 3}
-                </span>
-              </div>
-              <div className="w-full rounded-full h-2" style={{ backgroundColor: 'var(--border)' }}>
-                <div
-                  className="h-2 rounded-full transition-all"
-                  style={{
-                    width: `${Math.min(100, weeklyGoals.progress?.sessions_pct ?? 0)}%`,
-                    backgroundColor: 'var(--accent)',
-                  }}
-                />
-              </div>
-            </div>
+      {/* Journey Progress and Last Session */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <JourneyProgress />
+        <LastSession />
+      </div>
 
-            {/* Hours Goal */}
-            <div>
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-sm text-[var(--text)]">Training Hours</span>
-                <span className="text-sm font-medium text-[var(--text)]">
-                  {weeklyGoals.actual?.hours ?? 0} / {weeklyGoals.targets?.hours ?? 5}
-                </span>
-              </div>
-              <div className="w-full rounded-full h-2" style={{ backgroundColor: 'var(--border)' }}>
-                <div
-                  className="h-2 rounded-full transition-all"
-                  style={{
-                    width: `${Math.min(100, weeklyGoals.progress?.hours_pct ?? 0)}%`,
-                    backgroundColor: 'var(--accent)',
-                  }}
-                />
-              </div>
-            </div>
-          </div>
-        </Card>
-      )}
-
-      {/* Recent Sessions */}
+      {/* Quick Links */}
       <Card>
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-semibold text-[var(--text)]">Recent Sessions</h2>
-          <Link to="/sessions" className="text-sm text-[var(--accent)] hover:opacity-80">
-            View All Sessions
-          </Link>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          <SecondaryButton onClick={() => navigate('/sessions')} className="text-sm">
+            All Sessions
+          </SecondaryButton>
+          <SecondaryButton onClick={() => navigate('/reports')} className="text-sm">
+            Analytics
+          </SecondaryButton>
+          <SecondaryButton onClick={() => navigate('/friends')} className="text-sm">
+            Friends
+          </SecondaryButton>
+          <SecondaryButton onClick={() => navigate('/profile')} className="text-sm">
+            Profile
+          </SecondaryButton>
         </div>
-
-        {recentSessions.length === 0 ? (
-          <p className="text-sm text-[var(--muted)] text-center py-8">
-            No sessions logged yet. Start training!
-          </p>
-        ) : (
-          <div className="space-y-2">
-            {recentSessions.map((session) => (
-              <Link
-                key={session.id}
-                to={`/session/${session.id}`}
-                className="block p-4 rounded-[14px] transition-all"
-                style={{
-                  backgroundColor: 'var(--surfaceElev)',
-                  border: '1px solid var(--border)',
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.borderColor = 'var(--accent)';
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.borderColor = 'var(--border)';
-                }}
-              >
-                <div className="flex items-center justify-between mb-3">
-                  <span className="text-sm font-medium" style={{ color: 'var(--text)' }}>{session.gym_name ?? 'Unknown Gym'}</span>
-                  <span className="text-xs" style={{ color: 'var(--muted)' }}>{session.session_date ?? 'N/A'}</span>
-                </div>
-                <div className="flex items-center gap-2 flex-wrap">
-                  <Chip>{session.class_type ?? 'N/A'}</Chip>
-                  <Chip>{session.duration_mins ?? 0}m</Chip>
-                  <Chip>{session.intensity ?? 0}/5</Chip>
-                  {(session.rolls ?? 0) > 0 && <Chip>{session.rolls} rolls</Chip>}
-                </div>
-              </Link>
-            ))}
-          </div>
-        )}
       </Card>
     </div>
   );

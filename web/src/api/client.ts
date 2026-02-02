@@ -266,7 +266,27 @@ export const socialApi = {
   regenerateSuggestions: () =>
     api.post<{ success: boolean; suggestions_created: number }>('/social/friend-suggestions/regenerate'),
 
-  // Relationships
+  // Friend Requests (v0.2.0)
+  sendFriendRequest: (userId: number, data?: { connection_source?: string; request_message?: string }) =>
+    api.post(`/social/friend-requests/${userId}`, data || {}),
+  acceptFriendRequest: (connectionId: number) =>
+    api.post(`/social/friend-requests/${connectionId}/accept`),
+  declineFriendRequest: (connectionId: number) =>
+    api.post(`/social/friend-requests/${connectionId}/decline`),
+  cancelFriendRequest: (connectionId: number) =>
+    api.delete(`/social/friend-requests/${connectionId}`),
+  getReceivedRequests: () =>
+    api.get<{ requests: any[]; count: number }>('/social/friend-requests/received'),
+  getSentRequests: () =>
+    api.get<{ requests: any[]; count: number }>('/social/friend-requests/sent'),
+  getFriends: (params?: { limit?: number; offset?: number }) =>
+    api.get<{ friends: any[]; count: number }>('/social/friends', { params }),
+  unfriend: (userId: number) =>
+    api.delete(`/social/friends/${userId}`),
+  getFriendshipStatus: (userId: number) =>
+    api.get<{ status: string; are_friends: boolean }>(`/social/friends/${userId}/status`),
+
+  // Relationships (legacy follow/unfollow)
   follow: (userId: number) => api.post(`/social/follow/${userId}`),
   unfollow: (userId: number) => api.delete(`/social/follow/${userId}`),
   getFollowers: () => api.get('/social/followers'),

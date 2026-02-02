@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { sessionsApi } from '../api/client';
 import type { Session } from '../types';
-import { ArrowLeft, Calendar, Clock, Zap, Users, MapPin, User, Book, Edit2, Activity, Target, Camera } from 'lucide-react';
+import { ArrowLeft, Calendar, Clock, Zap, Users, MapPin, User, Book, Edit2, Activity, Target, Camera, ChevronLeft, ChevronRight } from 'lucide-react';
 import PhotoGallery from '../components/PhotoGallery';
 import PhotoUpload from '../components/PhotoUpload';
 import { useToast } from '../contexts/ToastContext';
@@ -13,11 +13,28 @@ export default function SessionDetail() {
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
   const [photoCount, setPhotoCount] = useState(0);
+  const [prevSessionId, setPrevSessionId] = useState<number | null>(null);
+  const [nextSessionId, setNextSessionId] = useState<number | null>(null);
   const toast = useToast();
 
   useEffect(() => {
     loadSession();
+    loadAdjacentSessions();
   }, [id]);
+
+  // Keyboard navigation
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'ArrowLeft' && prevSessionId) {
+        navigate(`/session/${prevSessionId}`);
+      } else if (e.key === 'ArrowRight' && nextSessionId) {
+        navigate(`/session/${nextSessionId}`);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [prevSessionId, nextSessionId, navigate]);
 
   const loadSession = async () => {
     setLoading(true);
@@ -30,6 +47,30 @@ export default function SessionDetail() {
       navigate('/feed');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadAdjacentSessions = async () => {
+    try {
+      // Fetch all sessions (or a large limit) to find adjacent ones
+      const response = await sessionsApi.list(1000);
+      const sessions = response.data || [];
+
+      // Sessions are typically ordered by date descending (newest first)
+      const currentIndex = sessions.findIndex(s => s.id === parseInt(id ?? '0'));
+
+      if (currentIndex !== -1) {
+        // Previous session is older (higher index)
+        if (currentIndex < sessions.length - 1) {
+          setPrevSessionId(sessions[currentIndex + 1].id);
+        }
+        // Next session is newer (lower index)
+        if (currentIndex > 0) {
+          setNextSessionId(sessions[currentIndex - 1].id);
+        }
+      }
+    } catch (error) {
+      console.error('Error loading adjacent sessions:', error);
     }
   };
 
@@ -71,14 +112,47 @@ export default function SessionDetail() {
           </button>
           <h1 className="text-3xl font-bold text-gray-900 dark:text-white" id="page-title">Session Details</h1>
         </div>
-        <Link
-          to={`/session/edit/${session.id}`}
-          className="btn-primary flex items-center gap-2"
-          aria-label="Edit session"
-        >
-          <Edit2 className="w-4 h-4" />
-          Edit
-        </Link>
+        <div className="flex items-center gap-2">
+          {/* Previous/Next Navigation */}
+          <div className="flex items-center gap-1 mr-2">
+            <button
+              onClick={() => prevSessionId && navigate(`/session/${prevSessionId}`)}
+              disabled={!prevSessionId}
+              className="p-2 rounded-lg transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+              style={{
+                backgroundColor: prevSessionId ? 'var(--surface)' : 'transparent',
+                color: 'var(--text)',
+                border: '1px solid var(--border)',
+              }}
+              aria-label="Previous session (Left Arrow)"
+              title="Previous session (←)"
+            >
+              <ChevronLeft className="w-5 h-5" />
+            </button>
+            <button
+              onClick={() => nextSessionId && navigate(`/session/${nextSessionId}`)}
+              disabled={!nextSessionId}
+              className="p-2 rounded-lg transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+              style={{
+                backgroundColor: nextSessionId ? 'var(--surface)' : 'transparent',
+                color: 'var(--text)',
+                border: '1px solid var(--border)',
+              }}
+              aria-label="Next session (Right Arrow)"
+              title="Next session (→)"
+            >
+              <ChevronRight className="w-5 h-5" />
+            </button>
+          </div>
+          <Link
+            to={`/session/edit/${session.id}`}
+            className="btn-primary flex items-center gap-2"
+            aria-label="Edit session"
+          >
+            <Edit2 className="w-4 h-4" />
+            Edit
+          </Link>
+        </div>
       </div>
 
       {/* Main Info Card */}
