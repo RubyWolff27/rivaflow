@@ -1,8 +1,10 @@
 """Photo routes."""
 import os
 import uuid
+import imghdr
 from pathlib import Path
 from datetime import datetime
+from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, File, UploadFile, Form
 from rivaflow.core.dependencies import get_current_user
@@ -15,10 +17,50 @@ photo_repo = ActivityPhotoRepository()
 UPLOAD_DIR = Path(__file__).parent.parent.parent.parent / "uploads" / "activities"
 UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
 
-# Allowed file extensions
+# Allowed file extensions and MIME types
 ALLOWED_EXTENSIONS = {".jpg", ".jpeg", ".png", ".webp", ".gif"}
+ALLOWED_MIME_TYPES = {
+    "image/jpeg",
+    "image/png",
+    "image/webp",
+    "image/gif",
+}
 MAX_FILE_SIZE = 5 * 1024 * 1024  # 5MB
 MAX_PHOTOS_PER_ACTIVITY = 3
+
+
+def validate_image_content(content: bytes, filename: str) -> Optional[str]:
+    """
+    Validate that file content is actually an image using magic bytes.
+
+    Args:
+        content: File content bytes
+        filename: Original filename
+
+    Returns:
+        Error message if invalid, None if valid
+    """
+    # Use imghdr to detect actual image type from content
+    detected_type = imghdr.what(None, h=content)
+
+    if detected_type is None:
+        return "File is not a valid image. File content does not match image format."
+
+    # Map imghdr types to our allowed types
+    allowed_types = {"jpeg", "png", "webp", "gif"}
+
+    if detected_type not in allowed_types:
+        return f"Unsupported image type: {detected_type}. Allowed: {', '.join(allowed_types)}"
+
+    # Verify extension matches content
+    file_ext = Path(filename).suffix.lower().lstrip(".")
+    if file_ext == "jpg":
+        file_ext = "jpeg"  # Normalize jpg to jpeg
+
+    if detected_type != file_ext:
+        return f"File extension mismatch. File claims to be .{file_ext} but content is {detected_type}"
+
+    return None
 
 
 @router.post("/photos/upload")
@@ -64,11 +106,28 @@ async def upload_photo(
             detail=f"File too large. Maximum size: {MAX_FILE_SIZE // (1024 * 1024)}MB"
         )
 
+    # Validate actual file content (magic bytes check)
+    content_error = validate_image_content(content, file.filename or "unknown")
+    if content_error:
+        raise HTTPException(status_code=400, detail=content_error)
+
+    # Validate MIME type
+    if file.content_type and file.content_type not in ALLOWED_MIME_TYPES:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Invalid MIME type: {file.content_type}. Allowed: {', '.join(ALLOWED_MIME_TYPES)}"
+        )
+
     # Generate unique filename: {activity_type}_{user_id}_{timestamp}_{uuid}.{ext}
+    # Use full UUID4 to avoid collisions (instead of truncated)
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    unique_id = str(uuid.uuid4())[:8]
+    unique_id = str(uuid.uuid4())
     filename = f"{activity_type}_{current_user['id']}_{timestamp}_{unique_id}{file_ext}"
+
+    # Security: Ensure filename doesn't escape upload directory
     file_path = UPLOAD_DIR / filename
+    if not file_path.resolve().is_relative_to(UPLOAD_DIR.resolve()):
+        raise HTTPException(status_code=400, detail="Invalid filename")
 
     # Save file
     with open(file_path, "wb") as f:

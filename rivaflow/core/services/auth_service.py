@@ -1,5 +1,4 @@
 """Service layer for authentication operations."""
-import re
 from typing import Optional
 
 from rivaflow.core.auth import (
@@ -10,6 +9,7 @@ from rivaflow.core.auth import (
     get_refresh_token_expiry,
     decode_access_token,
 )
+from rivaflow.core.email_validation import validate_email_address
 from rivaflow.db.repositories.user_repo import UserRepository
 from rivaflow.db.repositories.refresh_token_repo import RefreshTokenRepository
 from rivaflow.db.repositories.profile_repo import ProfileRepository
@@ -45,9 +45,17 @@ class AuthService:
         Raises:
             ValueError: If validation fails or email already exists
         """
-        # Validate email format
-        if not self._is_valid_email(email):
-            raise ValueError("Invalid email format")
+        # Validate email format and block disposable emails
+        is_valid, normalized_email, error = validate_email_address(
+            email,
+            check_deliverability=False,  # Skip MX check for performance
+            allow_disposable=False  # Block disposable emails
+        )
+        if not is_valid:
+            raise ValueError(error.get("message", "Invalid email format"))
+
+        # Use normalized email (lowercase domain)
+        email = normalized_email
 
         # Validate password strength
         if len(password) < 8:
@@ -252,10 +260,15 @@ class AuthService:
         return self.refresh_token_repo.delete_by_user_id(user_id)
 
     @staticmethod
+    @staticmethod
     def _is_valid_email(email: str) -> bool:
-        """Validate email format using regex."""
-        pattern = r"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$"
-        return re.match(pattern, email) is not None
+        """
+        Validate email format (legacy method for backward compatibility).
+
+        Prefer using rivaflow.core.email_validation.validate_email_address() directly.
+        """
+        from rivaflow.core.email_validation import is_valid_email_simple
+        return is_valid_email_simple(email, allow_disposable=True)
 
     def request_password_reset(self, email: str) -> bool:
         """

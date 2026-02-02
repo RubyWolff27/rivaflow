@@ -106,15 +106,41 @@ async def validation_exception_handler(
     Returns:
         JSON response with validation errors
     """
+    # Sensitive field names that should not have their values exposed
+    SENSITIVE_FIELDS = {
+        "password", "password_hash", "secret", "token", "api_key",
+        "access_token", "refresh_token", "reset_token", "secret_key"
+    }
+
     # Format validation errors in user-friendly way
     errors = []
     for error in exc.errors():
-        errors.append({
-            "field": ".".join(str(loc) for loc in error["loc"]),
+        field_name = ".".join(str(loc) for loc in error["loc"])
+
+        # Check if field is sensitive
+        is_sensitive = any(
+            sensitive in field_name.lower()
+            for sensitive in SENSITIVE_FIELDS
+        )
+
+        # Only include input value in development mode AND for non-sensitive fields
+        env = os.getenv("ENV", "development")
+        include_input = (
+            env == "development" and
+            not is_sensitive and
+            error.get("input") is not None
+        )
+
+        error_dict = {
+            "field": field_name,
             "message": error["msg"],
             "type": error["type"],
-            "input": error.get("input"),  # Include invalid input for debugging
-        })
+        }
+
+        if include_input:
+            error_dict["input"] = error.get("input")
+
+        errors.append(error_dict)
 
     # Format errors for logging
     error_summary = "; ".join([f"{e['field']}: {e['message']}" for e in errors])
