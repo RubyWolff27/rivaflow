@@ -49,7 +49,7 @@ def _get_dashboard_summary_cached(
 
     # Get milestones
     closest_milestone = milestone_service.get_closest_milestone(user_id)
-    milestone_progress = milestone_service.get_all_progress(user_id)
+    milestone_progress = milestone_service.get_progress_to_next(user_id)
 
     # Get weekly goals progress
     today = date.today()
