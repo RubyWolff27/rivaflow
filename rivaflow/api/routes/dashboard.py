@@ -1,0 +1,217 @@
+"""Dashboard API endpoints."""
+from fastapi import APIRouter, Depends, Query
+from datetime import date, timedelta
+from typing import Optional, List
+
+from rivaflow.core.services.analytics_service import AnalyticsService
+from rivaflow.core.services.milestone_service import MilestoneService
+from rivaflow.core.services.streak_service import StreakService
+from rivaflow.core.services.goals_service import GoalsService
+from rivaflow.db.repositories.session_repo import SessionRepository
+from rivaflow.db.repositories.readiness_repo import ReadinessRepository
+from rivaflow.core.dependencies import get_current_user
+from rivaflow.core.exceptions import ValidationError
+
+router = APIRouter(prefix="/dashboard", tags=["dashboard"])
+
+
+@router.get("/summary")
+async def get_dashboard_summary(
+    start_date: Optional[date] = Query(None, description="Start date for analytics"),
+    end_date: Optional[date] = Query(None, description="End date for analytics"),
+    types: Optional[List[str]] = Query(None, description="Filter by class types"),
+    current_user: dict = Depends(get_current_user),
+):
+    """
+    Get all dashboard data in a single consolidated request.
+
+    This endpoint combines data from multiple services:
+    - Performance overview (sessions, submissions, intensity, etc.)
+    - Training streaks (current and longest)
+    - Recent sessions (last 10)
+    - Upcoming milestones
+    - Weekly goals progress
+    - Latest readiness check
+
+    Returns:
+        Consolidated dashboard data
+    """
+    user_id = current_user["id"]
+
+    # Set default date range
+    if not start_date:
+        start_date = date.today() - timedelta(days=30)
+    if not end_date:
+        end_date = date.today()
+
+    try:
+        # Initialize services
+        analytics = AnalyticsService()
+        milestone_service = MilestoneService()
+        streak_service = StreakService()
+        goals_service = GoalsService()
+        session_repo = SessionRepository()
+        readiness_repo = ReadinessRepository()
+
+        # Fetch data in parallel (conceptually - Python will execute sequentially)
+        performance = analytics.get_performance_overview(
+            user_id, start_date, end_date, types=types
+        )
+
+        # Get streak data
+        session_streak = streak_service.get_streak(user_id, "session")
+        checkin_streak = streak_service.get_streak(user_id, "checkin")
+
+        # Get recent sessions
+        recent_sessions = session_repo.get_recent(user_id, limit=10)
+
+        # Get milestones
+        closest_milestone = milestone_service.get_closest_milestone(user_id)
+        milestone_progress = milestone_service.get_all_progress(user_id)
+
+        # Get weekly goals progress
+        today = date.today()
+        week_start = today - timedelta(days=today.weekday())
+        weekly_goals = goals_service.get_weekly_progress(user_id, week_start)
+
+        # Get latest readiness
+        latest_readiness = readiness_repo.get_latest(user_id)
+
+        # Get class type distribution for period
+        class_type_distribution = {}
+        for session in recent_sessions:
+            class_type = session.get("class_type", "unknown")
+            class_type_distribution[class_type] = class_type_distribution.get(class_type, 0) + 1
+
+        return {
+            "performance": {
+                "summary": performance.get("summary", {}),
+                "deltas": performance.get("deltas", {}),
+                "daily_timeseries": performance.get("daily_timeseries", {}),
+            },
+            "streaks": {
+                "session": session_streak,
+                "checkin": checkin_streak,
+            },
+            "recent_sessions": recent_sessions[:5],  # Just top 5 for dashboard
+            "milestones": {
+                "closest": closest_milestone,
+                "progress": milestone_progress[:3],  # Top 3 closest
+            },
+            "weekly_goals": weekly_goals,
+            "readiness": latest_readiness,
+            "class_type_distribution": class_type_distribution,
+            "period": {
+                "start_date": start_date.isoformat(),
+                "end_date": end_date.isoformat(),
+            },
+        }
+
+    except Exception as e:
+        raise ValidationError(f"Failed to load dashboard: {str(e)}")
+
+
+@router.get("/quick-stats")
+async def get_quick_stats(
+    current_user: dict = Depends(get_current_user),
+):
+    """
+    Get quick stats for minimal dashboard.
+
+    Returns just the essential numbers:
+    - Total sessions
+    - Total hours
+    - Current streak
+    - Next milestone
+
+    Returns:
+        Quick stats
+    """
+    user_id = current_user["id"]
+
+    try:
+        session_repo = SessionRepository()
+        streak_service = StreakService()
+        milestone_service = MilestoneService()
+
+        # Get all sessions for totals
+        all_sessions = session_repo.list_by_user(user_id)
+        total_sessions = len(all_sessions)
+        total_hours = sum(s.get("duration_mins", 60) for s in all_sessions) / 60
+
+        # Current streak
+        session_streak = streak_service.get_streak(user_id, "session")
+
+        # Next milestone
+        closest_milestone = milestone_service.get_closest_milestone(user_id)
+
+        return {
+            "total_sessions": total_sessions,
+            "total_hours": round(total_hours, 1),
+            "current_streak": session_streak.get("current_streak", 0),
+            "next_milestone": closest_milestone,
+        }
+
+    except Exception as e:
+        raise ValidationError(f"Failed to load quick stats: {str(e)}")
+
+
+@router.get("/week-summary")
+async def get_week_summary(
+    week_offset: int = Query(0, ge=-52, le=0, description="Weeks back from current week (0 = this week, -1 = last week)"),
+    current_user: dict = Depends(get_current_user),
+):
+    """
+    Get summary for a specific week.
+
+    Args:
+        week_offset: How many weeks back (0 = current week, -1 = last week, etc.)
+
+    Returns:
+        Week summary with sessions, goals progress, etc.
+    """
+    user_id = current_user["id"]
+
+    try:
+        # Calculate week start/end
+        today = date.today()
+        current_week_start = today - timedelta(days=today.weekday())
+        week_start = current_week_start + timedelta(weeks=week_offset)
+        week_end = week_start + timedelta(days=6)
+
+        session_repo = SessionRepository()
+        goals_service = GoalsService()
+
+        # Get sessions for the week
+        sessions = session_repo.get_by_date_range(user_id, week_start, week_end)
+
+        # Calculate stats
+        total_sessions = len(sessions)
+        total_hours = sum(s.get("duration_mins", 60) for s in sessions) / 60
+        total_rolls = sum(s.get("rolls", 0) for s in sessions)
+
+        # Class type breakdown
+        class_types = {}
+        for session in sessions:
+            ct = session.get("class_type", "unknown")
+            class_types[ct] = class_types.get(ct, 0) + 1
+
+        # Weekly goals
+        weekly_goals = goals_service.get_weekly_progress(user_id, week_start)
+
+        return {
+            "week_start": week_start.isoformat(),
+            "week_end": week_end.isoformat(),
+            "is_current_week": week_offset == 0,
+            "stats": {
+                "total_sessions": total_sessions,
+                "total_hours": round(total_hours, 1),
+                "total_rolls": total_rolls,
+            },
+            "class_types": class_types,
+            "goals": weekly_goals,
+            "sessions": sessions,
+        }
+
+    except Exception as e:
+        raise ValidationError(f"Failed to load week summary: {str(e)}")

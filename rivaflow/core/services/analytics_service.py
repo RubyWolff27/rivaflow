@@ -34,16 +34,16 @@ class AnalyticsService:
     # ============================================================================
 
     def get_performance_overview(
-        self, user_id: int, start_date: Optional[date] = None, end_date: Optional[date] = None
+        self, user_id: int, start_date: Optional[date] = None, end_date: Optional[date] = None, types: Optional[list] = None
     ) -> Dict[str, Any]:
         """Get performance overview metrics."""
-        return self.performance.get_performance_overview(user_id, start_date, end_date)
+        return self.performance.get_performance_overview(user_id, start_date, end_date, types)
 
     def get_partner_analytics(
-        self, user_id: int, start_date: Optional[date] = None, end_date: Optional[date] = None
+        self, user_id: int, start_date: Optional[date] = None, end_date: Optional[date] = None, types: Optional[list] = None
     ) -> Dict[str, Any]:
         """Get partner analytics data."""
-        return self.performance.get_partner_analytics(user_id, start_date, end_date)
+        return self.performance.get_partner_analytics(user_id, start_date, end_date, types)
 
     def get_head_to_head(
         self, user_id: int, partner1_id: int, partner2_id: int
@@ -52,46 +52,46 @@ class AnalyticsService:
         return self.performance.get_head_to_head(user_id, partner1_id, partner2_id)
 
     def get_instructor_analytics(
-        self, user_id: int, start_date: Optional[date] = None, end_date: Optional[date] = None
+        self, user_id: int, start_date: Optional[date] = None, end_date: Optional[date] = None, types: Optional[list] = None
     ) -> Dict[str, Any]:
         """Get instructor insights."""
-        return self.performance.get_instructor_analytics(user_id, start_date, end_date)
+        return self.performance.get_instructor_analytics(user_id, start_date, end_date, types)
 
     # ============================================================================
     # READINESS ANALYTICS - Delegate to ReadinessAnalyticsService
     # ============================================================================
 
     def get_readiness_trends(
-        self, user_id: int, start_date: Optional[date] = None, end_date: Optional[date] = None
+        self, user_id: int, start_date: Optional[date] = None, end_date: Optional[date] = None, types: Optional[list] = None
     ) -> Dict[str, Any]:
         """Get readiness and recovery analytics."""
-        return self.readiness.get_readiness_trends(user_id, start_date, end_date)
+        return self.readiness.get_readiness_trends(user_id, start_date, end_date, types)
 
     def get_whoop_analytics(
-        self, user_id: int, start_date: Optional[date] = None, end_date: Optional[date] = None
+        self, user_id: int, start_date: Optional[date] = None, end_date: Optional[date] = None, types: Optional[list] = None
     ) -> Dict[str, Any]:
         """Get Whoop fitness tracker analytics."""
-        return self.readiness.get_whoop_analytics(user_id, start_date, end_date)
+        return self.readiness.get_whoop_analytics(user_id, start_date, end_date, types)
 
     # ============================================================================
     # TECHNIQUE ANALYTICS - Delegate to TechniqueAnalyticsService
     # ============================================================================
 
     def get_technique_analytics(
-        self, user_id: int, start_date: Optional[date] = None, end_date: Optional[date] = None
+        self, user_id: int, start_date: Optional[date] = None, end_date: Optional[date] = None, types: Optional[list] = None
     ) -> Dict[str, Any]:
         """Get technique mastery analytics."""
-        return self.technique.get_technique_analytics(user_id, start_date, end_date)
+        return self.technique.get_technique_analytics(user_id, start_date, end_date, types)
 
     # ============================================================================
     # STREAK/CONSISTENCY ANALYTICS - Delegate to StreakAnalyticsService
     # ============================================================================
 
     def get_consistency_analytics(
-        self, user_id: int, start_date: Optional[date] = None, end_date: Optional[date] = None
+        self, user_id: int, start_date: Optional[date] = None, end_date: Optional[date] = None, types: Optional[list] = None
     ) -> Dict[str, Any]:
         """Get training consistency analytics."""
-        return self.streak.get_consistency_analytics(user_id, start_date, end_date)
+        return self.streak.get_consistency_analytics(user_id, start_date, end_date, types)
 
     def get_milestones(self, user_id: int) -> Dict[str, Any]:
         """Get progression and milestone data."""

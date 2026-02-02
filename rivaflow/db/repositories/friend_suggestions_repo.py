@@ -1,0 +1,168 @@
+"""Repository for friend suggestions data access."""
+from datetime import datetime, timedelta
+from typing import List, Dict, Any, Optional
+import json
+
+from rivaflow.db.database import get_connection, convert_query, execute_insert
+
+
+class FriendSuggestionsRepository:
+    """Data access layer for friend suggestions."""
+
+    @staticmethod
+    def create(
+        user_id: int,
+        suggested_user_id: int,
+        score: float,
+        reasons: List[str],
+        mutual_friends_count: int = 0,
+        expires_at: Optional[datetime] = None
+    ) -> int:
+        """Create a new friend suggestion."""
+        if expires_at is None:
+            expires_at = datetime.now() + timedelta(days=7)  # Default 7-day expiry
+
+        with get_connection() as conn:
+            cursor = conn.cursor()
+            return execute_insert(
+                cursor,
+                """
+                INSERT INTO friend_suggestions (
+                    user_id, suggested_user_id, score, reasons,
+                    mutual_friends_count, generated_at, expires_at
+                ) VALUES (?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    user_id,
+                    suggested_user_id,
+                    score,
+                    json.dumps(reasons),
+                    mutual_friends_count,
+                    datetime.now(),
+                    expires_at,
+                ),
+            )
+
+    @staticmethod
+    def get_active_suggestions(user_id: int, limit: int = 10) -> List[Dict[str, Any]]:
+        """Get active (non-dismissed, non-expired) suggestions for a user."""
+        with get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                convert_query("""
+                    SELECT
+                        fs.*,
+                        u.username,
+                        u.display_name,
+                        u.profile_photo_url,
+                        u.belt_rank,
+                        u.belt_stripes,
+                        u.location_city,
+                        u.location_state,
+                        u.primary_gym_id,
+                        g.name as primary_gym_name
+                    FROM friend_suggestions fs
+                    JOIN users u ON fs.suggested_user_id = u.id
+                    LEFT JOIN gyms g ON u.primary_gym_id = g.id
+                    WHERE fs.user_id = ?
+                    AND fs.dismissed = FALSE
+                    AND fs.expires_at > ?
+                    ORDER BY fs.score DESC
+                    LIMIT ?
+                """),
+                (user_id, datetime.now(), limit),
+            )
+            rows = cursor.fetchall()
+            return [FriendSuggestionsRepository._row_to_dict(row) for row in rows]
+
+    @staticmethod
+    def dismiss_suggestion(user_id: int, suggested_user_id: int) -> bool:
+        """Dismiss a friend suggestion."""
+        with get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                convert_query("""
+                    UPDATE friend_suggestions
+                    SET dismissed = TRUE, dismissed_at = ?
+                    WHERE user_id = ? AND suggested_user_id = ?
+                """),
+                (datetime.now(), user_id, suggested_user_id),
+            )
+            return cursor.rowcount > 0
+
+    @staticmethod
+    def clear_expired_suggestions(user_id: int) -> int:
+        """Delete expired suggestions for a user."""
+        with get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                convert_query("""
+                    DELETE FROM friend_suggestions
+                    WHERE user_id = ? AND expires_at < ?
+                """),
+                (user_id, datetime.now()),
+            )
+            return cursor.rowcount
+
+    @staticmethod
+    def clear_all_suggestions(user_id: int) -> int:
+        """Clear all suggestions for a user (for regeneration)."""
+        with get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                convert_query("DELETE FROM friend_suggestions WHERE user_id = ?"),
+                (user_id,),
+            )
+            return cursor.rowcount
+
+    @staticmethod
+    def suggestion_exists(user_id: int, suggested_user_id: int) -> bool:
+        """Check if a suggestion already exists."""
+        with get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                convert_query("""
+                    SELECT COUNT(*) as count FROM friend_suggestions
+                    WHERE user_id = ? AND suggested_user_id = ?
+                    AND dismissed = FALSE
+                """),
+                (user_id, suggested_user_id),
+            )
+            row = cursor.fetchone()
+            count = row["count"] if hasattr(row, 'keys') else row[0]
+            return count > 0
+
+    @staticmethod
+    def _row_to_dict(row) -> Dict[str, Any]:
+        """Convert database row to dictionary."""
+        if hasattr(row, 'keys'):
+            result = dict(row)
+        else:
+            # Tuple-based result (SQLite)
+            result = {
+                "id": row[0],
+                "user_id": row[1],
+                "suggested_user_id": row[2],
+                "score": row[3],
+                "reasons": json.loads(row[4]) if row[4] else [],
+                "mutual_friends_count": row[5],
+                "dismissed": bool(row[6]),
+                "dismissed_at": row[7],
+                "generated_at": row[8],
+                "expires_at": row[9],
+                "username": row[10] if len(row) > 10 else None,
+                "display_name": row[11] if len(row) > 11 else None,
+                "profile_photo_url": row[12] if len(row) > 12 else None,
+                "belt_rank": row[13] if len(row) > 13 else None,
+                "belt_stripes": row[14] if len(row) > 14 else None,
+                "location_city": row[15] if len(row) > 15 else None,
+                "location_state": row[16] if len(row) > 16 else None,
+                "primary_gym_id": row[17] if len(row) > 17 else None,
+                "primary_gym_name": row[18] if len(row) > 18 else None,
+            }
+
+        # Parse JSON fields if they're strings
+        if isinstance(result.get("reasons"), str):
+            result["reasons"] = json.loads(result["reasons"])
+
+        return result

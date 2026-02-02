@@ -1,11 +1,12 @@
 """Social features API routes (relationships, likes, comments)."""
-from fastapi import APIRouter, Depends, Path, Body, Request
+from fastapi import APIRouter, Depends, Path, Body, Request, Query
 from pydantic import BaseModel, Field
 from typing import Optional
 from slowapi import Limiter
 from slowapi.util import get_remote_address
 
 from rivaflow.core.services.social_service import SocialService
+from rivaflow.core.services.friend_suggestions_service import FriendSuggestionsService
 from rivaflow.core.dependencies import get_current_user
 from rivaflow.db.repositories.user_repo import UserRepository
 from rivaflow.core.exceptions import ValidationError, NotFoundError
@@ -373,4 +374,69 @@ async def get_recommended_users(current_user: dict = Depends(get_current_user)):
     return {
         "recommendations": recommendations,
         "count": len(recommendations),
+    }
+
+
+# Friend suggestions endpoints
+@router.get("/friend-suggestions")
+async def get_friend_suggestions(
+    limit: int = Query(10, ge=1, le=50, description="Max number of suggestions"),
+    current_user: dict = Depends(get_current_user)
+):
+    """
+    Get friend suggestions based on AI scoring algorithm.
+
+    Scoring:
+    - Same primary gym: 40 points
+    - Mutual friends: 5 points each (max 25)
+    - Same location (city): 15 points
+    - Partner name match: 30 points
+    - Similar belt rank: 5 points
+    - Minimum threshold: 10 points
+
+    Returns:
+        List of suggested users with score and reasons
+    """
+    service = FriendSuggestionsService()
+    suggestions = service.get_suggestions(current_user["id"], limit=limit)
+    return {
+        "suggestions": suggestions,
+        "count": len(suggestions),
+    }
+
+
+@router.post("/friend-suggestions/{suggested_user_id}/dismiss")
+async def dismiss_friend_suggestion(
+    suggested_user_id: int = Path(..., gt=0),
+    current_user: dict = Depends(get_current_user)
+):
+    """
+    Dismiss a friend suggestion.
+
+    Args:
+        suggested_user_id: ID of the suggested user to dismiss
+
+    Returns:
+        Success status
+    """
+    service = FriendSuggestionsService()
+    success = service.dismiss_suggestion(current_user["id"], suggested_user_id)
+    return {"success": success}
+
+
+@router.post("/friend-suggestions/regenerate")
+async def regenerate_friend_suggestions(current_user: dict = Depends(get_current_user)):
+    """
+    Regenerate friend suggestions.
+
+    This will clear existing suggestions and generate new ones.
+
+    Returns:
+        Number of suggestions created
+    """
+    service = FriendSuggestionsService()
+    count = service.generate_suggestions(current_user["id"])
+    return {
+        "success": True,
+        "suggestions_created": count,
     }

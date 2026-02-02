@@ -1,7 +1,7 @@
 """Analytics and dashboard endpoints."""
 from fastapi import APIRouter, Query, Depends, HTTPException
 from datetime import date
-from typing import Optional
+from typing import Optional, List
 import traceback
 import logging
 
@@ -19,11 +19,12 @@ service = AnalyticsService()
 async def get_performance_overview(
     start_date: Optional[date] = Query(None),
     end_date: Optional[date] = Query(None),
+    types: Optional[List[str]] = Query(None, description="Filter by class types (e.g., gi, no-gi, s&c)"),
     current_user: dict = Depends(get_current_user),
 ):
     """Get performance overview dashboard data."""
     try:
-        return service.get_performance_overview(user_id=current_user["id"], start_date=start_date, end_date=end_date)
+        return service.get_performance_overview(user_id=current_user["id"], start_date=start_date, end_date=end_date, types=types)
     except Exception as e:
         logger.error(f"Error in get_performance_overview: {type(e).__name__}: {str(e)}")
         logger.error(traceback.format_exc())
@@ -34,11 +35,12 @@ async def get_performance_overview(
 async def get_partner_analytics(
     start_date: Optional[date] = Query(None),
     end_date: Optional[date] = Query(None),
+    types: Optional[List[str]] = Query(None, description="Filter by class types (e.g., gi, no-gi, s&c)"),
     current_user: dict = Depends(get_current_user),
 ):
     """Get partner analytics dashboard data."""
     try:
-        return service.get_partner_analytics(user_id=current_user["id"], start_date=start_date, end_date=end_date)
+        return service.get_partner_analytics(user_id=current_user["id"], start_date=start_date, end_date=end_date, types=types)
     except Exception as e:
         logger.error(f"Error in get_partner_analytics: {type(e).__name__}: {str(e)}")
         logger.error(traceback.format_exc())
@@ -65,31 +67,34 @@ async def get_head_to_head(
 async def get_readiness_trends(
     start_date: Optional[date] = Query(None),
     end_date: Optional[date] = Query(None),
+    types: Optional[List[str]] = Query(None, description="Filter by class types (e.g., gi, no-gi, s&c)"),
     current_user: dict = Depends(get_current_user),
 ):
     """Get readiness and recovery analytics."""
-    return service.get_readiness_trends(user_id=current_user["id"], start_date=start_date, end_date=end_date)
+    return service.get_readiness_trends(user_id=current_user["id"], start_date=start_date, end_date=end_date, types=types)
 
 
 @router.get("/whoop/analytics")
 async def get_whoop_analytics(
     start_date: Optional[date] = Query(None),
     end_date: Optional[date] = Query(None),
+    types: Optional[List[str]] = Query(None, description="Filter by class types (e.g., gi, no-gi, s&c)"),
     current_user: dict = Depends(get_current_user),
 ):
     """Get Whoop fitness tracker analytics."""
-    return service.get_whoop_analytics(user_id=current_user["id"], start_date=start_date, end_date=end_date)
+    return service.get_whoop_analytics(user_id=current_user["id"], start_date=start_date, end_date=end_date, types=types)
 
 
 @router.get("/techniques/breakdown")
 async def get_technique_analytics(
     start_date: Optional[date] = Query(None),
     end_date: Optional[date] = Query(None),
+    types: Optional[List[str]] = Query(None, description="Filter by class types (e.g., gi, no-gi, s&c)"),
     current_user: dict = Depends(get_current_user),
 ):
     """Get technique mastery analytics."""
     try:
-        return service.get_technique_analytics(user_id=current_user["id"], start_date=start_date, end_date=end_date)
+        return service.get_technique_analytics(user_id=current_user["id"], start_date=start_date, end_date=end_date, types=types)
     except Exception as e:
         logger.error(f"Error in get_technique_analytics: {type(e).__name__}: {str(e)}")
         logger.error(traceback.format_exc())
@@ -100,11 +105,12 @@ async def get_technique_analytics(
 async def get_consistency_analytics(
     start_date: Optional[date] = Query(None),
     end_date: Optional[date] = Query(None),
+    types: Optional[List[str]] = Query(None, description="Filter by class types (e.g., gi, no-gi, s&c)"),
     current_user: dict = Depends(get_current_user),
 ):
     """Get training consistency analytics."""
     try:
-        return service.get_consistency_analytics(user_id=current_user["id"], start_date=start_date, end_date=end_date)
+        return service.get_consistency_analytics(user_id=current_user["id"], start_date=start_date, end_date=end_date, types=types)
     except Exception as e:
         logger.error(f"Error in get_consistency_analytics: {type(e).__name__}: {str(e)}")
         logger.error(traceback.format_exc())
@@ -126,11 +132,12 @@ async def get_milestones(current_user: dict = Depends(get_current_user)):
 async def get_instructor_analytics(
     start_date: Optional[date] = Query(None),
     end_date: Optional[date] = Query(None),
+    types: Optional[List[str]] = Query(None, description="Filter by class types (e.g., gi, no-gi, s&c)"),
     current_user: dict = Depends(get_current_user),
 ):
     """Get instructor insights analytics."""
     try:
-        return service.get_instructor_analytics(user_id=current_user["id"], start_date=start_date, end_date=end_date)
+        return service.get_instructor_analytics(user_id=current_user["id"], start_date=start_date, end_date=end_date, types=types)
     except Exception as e:
         logger.error(f"Error in get_instructor_analytics: {type(e).__name__}: {str(e)}")
         logger.error(traceback.format_exc())

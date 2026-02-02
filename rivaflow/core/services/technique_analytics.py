@@ -19,10 +19,16 @@ class TechniqueAnalyticsService:
         self.glossary_repo = GlossaryRepository()
 
     def get_technique_analytics(
-        self, user_id: int, start_date: Optional[date] = None, end_date: Optional[date] = None
+        self, user_id: int, start_date: Optional[date] = None, end_date: Optional[date] = None, types: Optional[List[str]] = None
     ) -> Dict[str, Any]:
         """
         Get technique mastery analytics.
+
+        Args:
+            user_id: User ID
+            start_date: Start date for filtering (default: 90 days ago)
+            end_date: End date for filtering (default: today)
+            types: Optional list of class types to filter by (e.g., ["gi", "no-gi"])
 
         Returns:
             - category_breakdown: Time spent on each technique category
@@ -35,7 +41,7 @@ class TechniqueAnalyticsService:
         if not end_date:
             end_date = date.today()
 
-        sessions = self.session_repo.get_by_date_range(user_id, start_date, end_date)
+        sessions = self.session_repo.get_by_date_range(user_id, start_date, end_date, types=types)
         movements = self.glossary_repo.list_all(user_id)
 
         # Category breakdown (count submissions by category)

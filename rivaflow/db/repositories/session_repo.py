@@ -2,7 +2,7 @@
 import json
 import sqlite3
 from datetime import date, datetime
-from typing import Optional
+from typing import Optional, List
 
 from rivaflow.db.database import get_connection, convert_query, execute_insert
 from rivaflow.db.repositories.session_technique_repo import SessionTechniqueRepository
@@ -200,18 +200,30 @@ class SessionRepository:
             return SessionRepository.get_by_id(user_id, session_id)
 
     @staticmethod
-    def get_by_date_range(user_id: int, start_date: date, end_date: date) -> list[dict]:
-        """Get all sessions within a date range (inclusive)."""
+    def get_by_date_range(user_id: int, start_date: date, end_date: date, types: Optional[list[str]] = None) -> list[dict]:
+        """Get all sessions within a date range (inclusive), optionally filtered by class types."""
         with get_connection() as conn:
             cursor = conn.cursor()
-            cursor.execute(
-                convert_query("""
+
+            if types:
+                # Build parameterized query with IN clause
+                placeholders = ', '.join('?' * len(types))
+                query = f"""
+                SELECT * FROM sessions
+                WHERE user_id = ? AND session_date BETWEEN ? AND ?
+                AND class_type IN ({placeholders})
+                ORDER BY session_date DESC
+                """
+                params = (user_id, start_date.isoformat(), end_date.isoformat(), *types)
+            else:
+                query = """
                 SELECT * FROM sessions
                 WHERE user_id = ? AND session_date BETWEEN ? AND ?
                 ORDER BY session_date DESC
-                """),
-                (user_id, start_date.isoformat(), end_date.isoformat()),
-            )
+                """
+                params = (user_id, start_date.isoformat(), end_date.isoformat())
+
+            cursor.execute(convert_query(query), params)
             return [SessionRepository._row_to_dict(row) for row in cursor.fetchall()]
 
     @staticmethod

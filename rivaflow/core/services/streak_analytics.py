@@ -18,10 +18,16 @@ class StreakAnalyticsService:
         self.grading_repo = GradingRepository()
 
     def get_consistency_analytics(
-        self, user_id: int, start_date: Optional[date] = None, end_date: Optional[date] = None
+        self, user_id: int, start_date: Optional[date] = None, end_date: Optional[date] = None, types: Optional[List[str]] = None
     ) -> Dict[str, Any]:
         """
         Get training consistency analytics.
+
+        Args:
+            user_id: User ID
+            start_date: Start date for filtering (default: 90 days ago)
+            end_date: End date for filtering (default: today)
+            types: Optional list of class types to filter by (e.g., ["gi", "no-gi"])
 
         Returns:
             - weekly_volume: Sessions/hours by week
@@ -34,7 +40,7 @@ class StreakAnalyticsService:
         if not end_date:
             end_date = date.today()
 
-        sessions = self.session_repo.get_by_date_range(user_id, start_date, end_date)
+        sessions = self.session_repo.get_by_date_range(user_id, start_date, end_date, types=types)
 
         # Weekly volume
         weekly_stats = defaultdict(lambda: {"sessions": 0, "hours": 0, "rolls": 0})

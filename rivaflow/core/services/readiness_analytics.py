@@ -18,10 +18,16 @@ class ReadinessAnalyticsService:
         self.readiness_repo = ReadinessRepository()
 
     def get_readiness_trends(
-        self, user_id: int, start_date: Optional[date] = None, end_date: Optional[date] = None
+        self, user_id: int, start_date: Optional[date] = None, end_date: Optional[date] = None, types: Optional[List[str]] = None
     ) -> Dict[str, Any]:
         """
         Get readiness and recovery analytics.
+
+        Args:
+            user_id: User ID
+            start_date: Start date for filtering (default: 90 days ago)
+            end_date: End date for filtering (default: today)
+            types: Optional list of class types to filter by (e.g., ["gi", "no-gi"])
 
         Returns:
             - readiness_over_time: Daily readiness scores
@@ -35,7 +41,7 @@ class ReadinessAnalyticsService:
             end_date = date.today()
 
         readiness_records = self.readiness_repo.get_by_date_range(user_id, start_date, end_date)
-        sessions = self.session_repo.get_by_date_range(user_id, start_date, end_date)
+        sessions = self.session_repo.get_by_date_range(user_id, start_date, end_date, types=types)
 
         # Readiness over time
         readiness_over_time = []
@@ -134,10 +140,16 @@ class ReadinessAnalyticsService:
         }
 
     def get_whoop_analytics(
-        self, user_id: int, start_date: Optional[date] = None, end_date: Optional[date] = None
+        self, user_id: int, start_date: Optional[date] = None, end_date: Optional[date] = None, types: Optional[List[str]] = None
     ) -> Dict[str, Any]:
         """
         Get Whoop fitness tracker analytics.
+
+        Args:
+            user_id: User ID
+            start_date: Start date for filtering (default: 90 days ago)
+            end_date: End date for filtering (default: today)
+            types: Optional list of class types to filter by (e.g., ["gi", "no-gi"])
 
         Returns:
             - strain_vs_performance: Whoop strain with submission ratio
@@ -150,7 +162,7 @@ class ReadinessAnalyticsService:
         if not end_date:
             end_date = date.today()
 
-        sessions = self.session_repo.get_by_date_range(user_id, start_date, end_date)
+        sessions = self.session_repo.get_by_date_range(user_id, start_date, end_date, types=types)
         whoop_sessions = [s for s in sessions if s.get("whoop_strain") is not None]
 
         # Strain vs performance

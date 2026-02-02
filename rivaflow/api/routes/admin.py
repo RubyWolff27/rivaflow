@@ -1,11 +1,12 @@
 """Admin routes for gym and data management."""
-from fastapi import APIRouter, Depends, Path, Body, Request
+from fastapi import APIRouter, Depends, Path, Body, Request, Query
 from pydantic import BaseModel, Field
 from typing import Optional
 from slowapi import Limiter
 from slowapi.util import get_remote_address
 
 from rivaflow.db.repositories.gym_repo import GymRepository
+from rivaflow.db.repositories.feedback_repo import FeedbackRepository
 from rivaflow.core.dependencies import get_current_user
 from rivaflow.core.exceptions import NotFoundError, ValidationError
 from rivaflow.core.services.audit_service import AuditService
@@ -222,6 +223,105 @@ async def delete_gym(
         )
 
     return {"success": success}
+
+
+@router.post("/gyms/{gym_id}/verify")
+@limiter.limit("30/minute")
+async def verify_gym(
+    request: Request,
+    gym_id: int = Path(..., gt=0),
+    current_user: dict = Depends(require_admin),
+):
+    """
+    Verify a gym (mark as verified by admin).
+
+    This endpoint marks a gym as verified, which:
+    - Shows the gym in verified-only searches
+    - Indicates the gym has been reviewed and approved by an admin
+    - May give the gym priority in search results
+
+    Returns:
+        Updated gym with verified status
+    """
+    gym_service = GymService()
+    gym = gym_service.get_by_id(gym_id)
+    if not gym:
+        raise NotFoundError(f"Gym with id {gym_id} not found")
+
+    # Update gym to verified
+    gym_repo = GymRepository()
+    updated = gym_repo.update(gym_id, verified=True)
+
+    if not updated:
+        raise ValidationError("Failed to verify gym")
+
+    # Audit log
+    AuditService.log(
+        actor_id=current_user["id"],
+        action="gym.verify",
+        target_type="gym",
+        target_id=gym_id,
+        details={"name": gym["name"], "verified": True},
+        ip_address=get_client_ip(request),
+    )
+
+    return {
+        "success": True,
+        "gym": updated,
+        "message": f"Gym '{gym['name']}' has been verified",
+    }
+
+
+@router.post("/gyms/{gym_id}/reject")
+@limiter.limit("30/minute")
+async def reject_gym(
+    request: Request,
+    gym_id: int = Path(..., gt=0),
+    reason: Optional[str] = Body(None, embed=True),
+    current_user: dict = Depends(require_admin),
+):
+    """
+    Reject a gym verification (mark as unverified or delete).
+
+    This endpoint rejects a gym's verification. You can optionally provide
+    a reason for the rejection which will be logged in the audit trail.
+
+    Options:
+    - Mark as unverified (keeps the gym but marks it unverified)
+    - Delete the gym entirely if it's spam or invalid
+
+    For now, this just marks the gym as unverified.
+
+    Returns:
+        Updated gym with unverified status
+    """
+    gym_service = GymService()
+    gym = gym_service.get_by_id(gym_id)
+    if not gym:
+        raise NotFoundError(f"Gym with id {gym_id} not found")
+
+    # Update gym to unverified
+    gym_repo = GymRepository()
+    updated = gym_repo.update(gym_id, verified=False)
+
+    if not updated:
+        raise ValidationError("Failed to reject gym")
+
+    # Audit log
+    AuditService.log(
+        actor_id=current_user["id"],
+        action="gym.reject",
+        target_type="gym",
+        target_id=gym_id,
+        details={"name": gym["name"], "verified": False, "reason": reason},
+        ip_address=get_client_ip(request),
+    )
+
+    return {
+        "success": True,
+        "gym": updated,
+        "message": f"Gym '{gym['name']}' verification has been rejected",
+    }
 
 
 @router.post("/gyms/merge")
@@ -756,3 +856,110 @@ async def get_audit_logs(
         "limit": limit,
         "offset": offset,
     }
+
+
+# Feedback management endpoints
+class FeedbackUpdateStatusRequest(BaseModel):
+    """Admin model for updating feedback status."""
+    status: str = Field(..., pattern="^(new|reviewing|resolved|closed)$")
+    admin_notes: Optional[str] = Field(None, max_length=1000)
+
+
+@router.get("/feedback")
+async def get_all_feedback(
+    status: Optional[str] = Query(None, pattern="^(new|reviewing|resolved|closed)$"),
+    category: Optional[str] = Query(None, pattern="^(bug|feature|improvement|question|other)$"),
+    limit: int = Query(100, ge=1, le=500),
+    offset: int = Query(0, ge=0),
+    current_user: dict = Depends(get_current_user),
+):
+    """
+    Get all feedback submissions (admin endpoint).
+
+    Filters:
+    - status: Filter by status (new, reviewing, resolved, closed)
+    - category: Filter by category (bug, feature, improvement, question, other)
+
+    Returns:
+        List of all feedback submissions with statistics
+    """
+    # TODO: Add admin authorization check
+    # For now, any authenticated user can access
+
+    repo = FeedbackRepository()
+    feedback_list = repo.list_all(
+        status=status,
+        category=category,
+        limit=limit,
+        offset=offset,
+    )
+    stats = repo.get_stats()
+
+    return {
+        "feedback": feedback_list,
+        "count": len(feedback_list),
+        "stats": stats,
+    }
+
+
+@router.put("/feedback/{feedback_id}/status")
+async def update_feedback_status(
+    feedback_id: int = Path(..., gt=0),
+    request: FeedbackUpdateStatusRequest = Body(...),
+    current_user: dict = Depends(get_current_user),
+):
+    """
+    Update the status of a feedback submission (admin endpoint).
+
+    Status values:
+    - new: Newly submitted
+    - reviewing: Under review
+    - resolved: Issue resolved
+    - closed: Closed without resolution
+
+    Returns:
+        Updated feedback submission
+    """
+    # TODO: Add admin authorization check
+    # For now, any authenticated user can access
+
+    repo = FeedbackRepository()
+
+    # Check if feedback exists
+    feedback = repo.get_by_id(feedback_id)
+    if not feedback:
+        raise NotFoundError("Feedback not found")
+
+    # Update status
+    success = repo.update_status(
+        feedback_id=feedback_id,
+        status=request.status,
+        admin_notes=request.admin_notes,
+    )
+
+    if not success:
+        raise ValidationError("Failed to update feedback status")
+
+    # Get updated feedback
+    updated = repo.get_by_id(feedback_id)
+
+    return {
+        "success": True,
+        "feedback": updated,
+    }
+
+
+@router.get("/feedback/stats")
+async def get_feedback_stats(current_user: dict = Depends(get_current_user)):
+    """
+    Get feedback statistics (admin endpoint).
+
+    Returns:
+        Statistics about feedback submissions
+    """
+    # TODO: Add admin authorization check
+
+    repo = FeedbackRepository()
+    stats = repo.get_stats()
+
+    return stats

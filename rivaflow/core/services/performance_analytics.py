@@ -24,10 +24,16 @@ class PerformanceAnalyticsService:
         self.glossary_repo = GlossaryRepository()
 
     def get_performance_overview(
-        self, user_id: int, start_date: Optional[date] = None, end_date: Optional[date] = None
+        self, user_id: int, start_date: Optional[date] = None, end_date: Optional[date] = None, types: Optional[List[str]] = None
     ) -> Dict[str, Any]:
         """
         Get performance overview metrics.
+
+        Args:
+            user_id: User ID
+            start_date: Start date for filtering (default: 90 days ago)
+            end_date: End date for filtering (default: today)
+            types: Optional list of class types to filter by (e.g., ["gi", "no-gi"])
 
         Returns:
             - submission_success_over_time: Monthly breakdown of subs for/against
@@ -40,7 +46,7 @@ class PerformanceAnalyticsService:
         if not end_date:
             end_date = date.today()
 
-        sessions = self.session_repo.get_by_date_range(user_id, start_date, end_date)
+        sessions = self.session_repo.get_by_date_range(user_id, start_date, end_date, types=types)
 
         # Submission success over time (monthly)
         monthly_stats = defaultdict(lambda: {"for": 0, "against": 0, "ratio": 0})
@@ -306,10 +312,16 @@ class PerformanceAnalyticsService:
         return belt_periods
 
     def get_partner_analytics(
-        self, user_id: int, start_date: Optional[date] = None, end_date: Optional[date] = None
+        self, user_id: int, start_date: Optional[date] = None, end_date: Optional[date] = None, types: Optional[List[str]] = None
     ) -> Dict[str, Any]:
         """
         Get partner analytics data.
+
+        Args:
+            user_id: User ID
+            start_date: Start date for filtering (default: 90 days ago)
+            end_date: End date for filtering (default: today)
+            types: Optional list of class types to filter by (e.g., ["gi", "no-gi"])
 
         Returns:
             - partner_matrix: Table of all partners with stats
@@ -320,7 +332,7 @@ class PerformanceAnalyticsService:
         if not end_date:
             end_date = date.today()
 
-        sessions = self.session_repo.get_by_date_range(user_id, start_date, end_date)
+        sessions = self.session_repo.get_by_date_range(user_id, start_date, end_date, types=types)
 
         # Get all partners from contacts
         partners = self.friend_repo.list_by_type(user_id, "training-partner")
@@ -419,10 +431,16 @@ class PerformanceAnalyticsService:
         return session["session_date"] if session else date.today()
 
     def get_instructor_analytics(
-        self, user_id: int, start_date: Optional[date] = None, end_date: Optional[date] = None
+        self, user_id: int, start_date: Optional[date] = None, end_date: Optional[date] = None, types: Optional[List[str]] = None
     ) -> Dict[str, Any]:
         """
         Get instructor insights.
+
+        Args:
+            user_id: User ID
+            start_date: Start date for filtering (default: 90 days ago)
+            end_date: End date for filtering (default: today)
+            types: Optional list of class types to filter by (e.g., ["gi", "no-gi"])
 
         Returns:
             - performance_by_instructor: Metrics for each instructor
@@ -433,7 +451,7 @@ class PerformanceAnalyticsService:
         if not end_date:
             end_date = date.today()
 
-        sessions = self.session_repo.get_by_date_range(user_id, start_date, end_date)
+        sessions = self.session_repo.get_by_date_range(user_id, start_date, end_date, types=types)
         instructors = self.friend_repo.list_by_type(user_id, "instructor")
 
         performance_by_instructor = []
