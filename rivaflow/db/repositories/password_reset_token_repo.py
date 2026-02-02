@@ -1,5 +1,6 @@
 """Repository for password reset token management."""
 import secrets
+import hashlib
 from datetime import datetime, timedelta
 from typing import Optional
 
@@ -10,19 +11,43 @@ class PasswordResetTokenRepository:
     """Data access layer for password reset tokens."""
 
     @staticmethod
+    def _hash_token(token: str) -> str:
+        """
+        Hash a reset token using SHA-256.
+
+        We use SHA-256 instead of bcrypt because:
+        1. Reset tokens are already cryptographically random (32 bytes)
+        2. SHA-256 is faster and sufficient for this use case
+        3. We don't need the computational slowness of bcrypt here
+
+        Args:
+            token: Plain token string
+
+        Returns:
+            Hexadecimal hash of the token
+        """
+        return hashlib.sha256(token.encode()).hexdigest()
+
+    @staticmethod
     def create_token(user_id: int, expiry_hours: int = 1) -> str:
         """
         Create a password reset token for a user.
+
+        The token is hashed before storage for security. If the database
+        is compromised, the hashed tokens cannot be used to reset passwords.
 
         Args:
             user_id: User ID
             expiry_hours: Token expiry time in hours (default 1)
 
         Returns:
-            Reset token string
+            Reset token string (unhashed, to send to user)
         """
-        # Generate secure random token
+        # Generate secure random token (32 bytes = 256 bits)
         token = secrets.token_urlsafe(32)
+
+        # Hash the token before storing
+        token_hash = PasswordResetTokenRepository._hash_token(token)
 
         # Calculate expiry timestamp
         expires_at = datetime.utcnow() + timedelta(hours=expiry_hours)
@@ -34,9 +59,11 @@ class PasswordResetTokenRepository:
                 INSERT INTO password_reset_tokens (user_id, token, expires_at)
                 VALUES (?, ?, ?)
                 """),
-                (user_id, token, expires_at.isoformat()),
+                (user_id, token_hash, expires_at.isoformat()),
             )
 
+        # Return the plain token (to send to user via email)
+        # The hashed version is stored in the database
         return token
 
     @staticmethod
@@ -45,11 +72,14 @@ class PasswordResetTokenRepository:
         Get password reset token record by token string.
 
         Args:
-            token: Reset token
+            token: Reset token (unhashed)
 
         Returns:
             Token record dict or None if not found
         """
+        # Hash the token before querying
+        token_hash = PasswordResetTokenRepository._hash_token(token)
+
         with get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(
@@ -58,7 +88,7 @@ class PasswordResetTokenRepository:
                 FROM password_reset_tokens
                 WHERE token = ?
                 """),
-                (token,),
+                (token_hash,),
             )
             row = cursor.fetchone()
 
@@ -104,11 +134,14 @@ class PasswordResetTokenRepository:
         Mark a token as used.
 
         Args:
-            token: Reset token
+            token: Reset token (unhashed)
 
         Returns:
             True if marked successfully, False if token not found
         """
+        # Hash the token before querying
+        token_hash = PasswordResetTokenRepository._hash_token(token)
+
         with get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(
@@ -117,7 +150,7 @@ class PasswordResetTokenRepository:
                 SET used_at = CURRENT_TIMESTAMP
                 WHERE token = ?
                 """),
-                (token,),
+                (token_hash,),
             )
             return cursor.rowcount > 0
 
