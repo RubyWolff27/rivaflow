@@ -96,6 +96,32 @@ def dashboard(ctx: typer.Context = None):
     streak_service = StreakService()
     milestone_service = MilestoneService()
 
+    # Check if this is a first-time user (no sessions logged yet)
+    try:
+        with get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("SELECT COUNT(*) FROM sessions WHERE user_id = ?", (user_id,))
+            session_count = cursor.fetchone()[0] or 0
+
+            if session_count == 0:
+                # First-time user - show welcome message
+                console.print()
+                console.print(Panel(
+                    "[bold white]Welcome to RivaFlow! 🥋[/bold white]\n\n"
+                    "Train with intent. Flow to mastery.\n\n"
+                    "[cyan]Get started:[/cyan]\n"
+                    "  • [bold]rivaflow log[/bold]       → Log your first training session\n"
+                    "  • [bold]rivaflow readiness[/bold] → Check in your readiness\n"
+                    "  • [bold]rivaflow --help[/bold]    → See all commands\n\n"
+                    "[dim]Once you log a session, your dashboard will show training stats and streaks.[/dim]",
+                    border_style="cyan",
+                    padding=(1, 2),
+                ))
+                console.print()
+                return
+    except Exception:
+        pass  # If check fails, continue with normal dashboard
+
     # Get today's check-in status
     today_checkin = checkin_repo.get_checkin(user_id, today)
     has_checked_in = today_checkin is not None

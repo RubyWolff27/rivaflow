@@ -109,6 +109,17 @@ class ReadinessRepository:
             return [ReadinessRepository._row_to_dict(row) for row in cursor.fetchall()]
 
     @staticmethod
+    def list_by_user(user_id: int) -> list[dict]:
+        """Get all readiness entries for a user (no limit)."""
+        with get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                convert_query("SELECT * FROM readiness WHERE user_id = ? ORDER BY check_date DESC"),
+                (user_id,)
+            )
+            return [ReadinessRepository._row_to_dict(row) for row in cursor.fetchall()]
+
+    @staticmethod
     def _row_to_dict(row: sqlite3.Row) -> dict:
         """Convert a database row to a dictionary."""
         data = dict(row)

@@ -258,6 +258,17 @@ class SessionRepository:
             return [SessionRepository._row_to_dict(row) for row in cursor.fetchall()]
 
     @staticmethod
+    def list_by_user(user_id: int) -> list[dict]:
+        """Get all sessions for a user (no limit)."""
+        with get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                convert_query("SELECT * FROM sessions WHERE user_id = ? ORDER BY session_date DESC"),
+                (user_id,)
+            )
+            return [SessionRepository._row_to_dict(row) for row in cursor.fetchall()]
+
+    @staticmethod
     def get_unique_gyms(user_id: int) -> list[str]:
         """Get list of unique gym names from history."""
         with get_connection() as conn:

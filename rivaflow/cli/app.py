@@ -82,7 +82,7 @@ def stats():
     video_repo = VideoRepository()
 
     # Get all sessions
-    all_sessions = session_repo.get_recent(limit=99999)  # Get all
+    all_sessions = session_repo.list_by_user(user_id)
 
     # Calculate stats
     total_classes = len(all_sessions)
@@ -91,9 +91,7 @@ def stats():
     total_hours = round(total_mins / 60, 1)
 
     # Get counts
-    readiness_count = len(readiness_repo.get_by_date_range(
-        date(2000, 1, 1), date.today()
-    ))
+    readiness_count = len(readiness_repo.list_by_user(user_id))
     technique_count = len(technique_repo.list_all())
     video_count = len(video_repo.list_all())
 
