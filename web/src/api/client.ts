@@ -189,22 +189,22 @@ export const usersApi = {
 };
 
 export const analyticsApi = {
-  performanceOverview: (params?: { start_date?: string; end_date?: string }) =>
+  performanceOverview: (params?: { start_date?: string; end_date?: string; types?: string[] }) =>
     api.get('/analytics/performance-overview', { params }),
-  partnerStats: (params?: { start_date?: string; end_date?: string }) =>
+  partnerStats: (params?: { start_date?: string; end_date?: string; types?: string[] }) =>
     api.get('/analytics/partners/stats', { params }),
   headToHead: (partner1_id: number, partner2_id: number) =>
     api.get('/analytics/partners/head-to-head', { params: { partner1_id, partner2_id } }),
-  readinessTrends: (params?: { start_date?: string; end_date?: string }) =>
+  readinessTrends: (params?: { start_date?: string; end_date?: string; types?: string[] }) =>
     api.get('/analytics/readiness/trends', { params }),
-  whoopAnalytics: (params?: { start_date?: string; end_date?: string }) =>
+  whoopAnalytics: (params?: { start_date?: string; end_date?: string; types?: string[] }) =>
     api.get('/analytics/whoop/analytics', { params }),
-  techniqueBreakdown: (params?: { start_date?: string; end_date?: string }) =>
+  techniqueBreakdown: (params?: { start_date?: string; end_date?: string; types?: string[] }) =>
     api.get('/analytics/techniques/breakdown', { params }),
-  consistencyMetrics: (params?: { start_date?: string; end_date?: string }) =>
+  consistencyMetrics: (params?: { start_date?: string; end_date?: string; types?: string[] }) =>
     api.get('/analytics/consistency/metrics', { params }),
   milestones: () => api.get('/analytics/milestones'),
-  instructorInsights: (params?: { start_date?: string; end_date?: string }) =>
+  instructorInsights: (params?: { start_date?: string; end_date?: string; types?: string[] }) =>
     api.get('/analytics/instructors/insights', { params }),
 };
 
@@ -257,6 +257,14 @@ export const socialApi = {
   // User search
   searchUsers: (query: string) => api.get('/social/users/search', { params: { q: query } }),
   getRecommended: () => api.get('/social/users/recommended'),
+
+  // Friend suggestions (v0.2.0)
+  getFriendSuggestions: (limit = 10) =>
+    api.get<{ suggestions: any[]; count: number }>('/social/friend-suggestions', { params: { limit } }),
+  dismissSuggestion: (suggestedUserId: number) =>
+    api.post(`/social/friend-suggestions/${suggestedUserId}/dismiss`),
+  regenerateSuggestions: () =>
+    api.post<{ success: boolean; suggestions_created: number }>('/social/friend-suggestions/regenerate'),
 
   // Relationships
   follow: (userId: number) => api.post(`/social/follow/${userId}`),
@@ -349,6 +357,10 @@ export const adminApi = {
     api.delete(`/admin/gyms/${gymId}`),
   mergeGyms: (sourceGymId: number, targetGymId: number) =>
     api.post('/admin/gyms/merge', { source_gym_id: sourceGymId, target_gym_id: targetGymId }),
+  verifyGym: (gymId: number) =>
+    api.post(`/admin/gyms/${gymId}/verify`),
+  rejectGym: (gymId: number, reason?: string) =>
+    api.post(`/admin/gyms/${gymId}/reject`, { reason }),
 
   // Users
   listUsers: (params?: { search?: string; is_active?: boolean; is_admin?: boolean; limit?: number; offset?: number }) =>
@@ -371,4 +383,37 @@ export const adminApi = {
     api.get('/admin/techniques', { params }),
   deleteTechnique: (techniqueId: number) =>
     api.delete(`/admin/techniques/${techniqueId}`),
+
+  // Feedback (v0.2.0)
+  listFeedback: (params?: { status?: string; category?: string; limit?: number; offset?: number }) =>
+    api.get<{ feedback: any[]; count: number; stats: any }>('/admin/feedback', { params }),
+  updateFeedbackStatus: (feedbackId: number, status: string, adminNotes?: string) =>
+    api.put(`/admin/feedback/${feedbackId}/status`, { status, admin_notes: adminNotes }),
+  getFeedbackStats: () =>
+    api.get<{ total: number; by_status: any; by_category: any }>('/admin/feedback/stats'),
+};
+
+// Feedback API (v0.2.0)
+export const feedbackApi = {
+  submit: (data: {
+    category: 'bug' | 'feature' | 'improvement' | 'question' | 'other';
+    subject?: string;
+    message: string;
+    platform?: 'web' | 'cli' | 'api';
+    url?: string;
+  }) => api.post<{ success: boolean; feedback: any }>('/feedback/', data),
+  getMy: (limit = 50) =>
+    api.get<{ feedback: any[]; count: number }>('/feedback/my', { params: { limit } }),
+  getById: (feedbackId: number) =>
+    api.get('/feedback/' + feedbackId),
+};
+
+// Dashboard API (v0.2.0)
+export const dashboardApi = {
+  getSummary: (params?: { start_date?: string; end_date?: string; types?: string[] }) =>
+    api.get('/dashboard/summary', { params }),
+  getQuickStats: () =>
+    api.get<{ total_sessions: number; total_hours: number; current_streak: number; next_milestone: any }>('/dashboard/quick-stats'),
+  getWeekSummary: (weekOffset = 0) =>
+    api.get('/dashboard/week-summary', { params: { week_offset: weekOffset } }),
 };

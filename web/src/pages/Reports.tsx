@@ -2,10 +2,12 @@ import { useState, useEffect } from 'react';
 import { analyticsApi } from '../api/client';
 import { TrendingUp, Users, Activity, Target, Lightbulb, Book, Calendar } from 'lucide-react';
 import { Card, Chip, MetricTile, MetricTileSkeleton, CardSkeleton, EmptyState } from '../components/ui';
+import { ActivityTypeFilter } from '../components/ActivityTypeFilter';
 
 export default function Reports() {
   const [activeTab, setActiveTab] = useState('overview');
   const [dateRange, setDateRange] = useState({ start: '', end: '' });
+  const [selectedTypes, setSelectedTypes] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
   const [hasUserChangedRange, setHasUserChangedRange] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -30,13 +32,17 @@ export default function Reports() {
     if (dateRange.start && dateRange.end) {
       loadData();
     }
-  }, [dateRange, activeTab]);
+  }, [dateRange, activeTab, selectedTypes]);
 
   const loadData = async () => {
     setLoading(true);
     setError(null);
     try {
-      const params = { start_date: dateRange.start, end_date: dateRange.end };
+      const params = {
+        start_date: dateRange.start,
+        end_date: dateRange.end,
+        types: selectedTypes.length > 0 ? selectedTypes : undefined,
+      };
 
       if (activeTab === 'overview') {
         const perfRes = await analyticsApi.performanceOverview(params);
@@ -198,6 +204,7 @@ export default function Reports() {
       {/* Page Header */}
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-semibold text-[var(--text)]">Analytics</h1>
+        <ActivityTypeFilter selectedTypes={selectedTypes} onChange={setSelectedTypes} />
       </div>
 
       {/* Tabs */}

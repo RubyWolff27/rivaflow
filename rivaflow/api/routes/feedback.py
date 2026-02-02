@@ -6,6 +6,10 @@ from typing import Optional
 from rivaflow.db.repositories.feedback_repo import FeedbackRepository
 from rivaflow.core.dependencies import get_current_user
 from rivaflow.core.exceptions import ValidationError, NotFoundError
+from rivaflow.core.services.email_service import EmailService
+import logging
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/feedback", tags=["feedback"])
 
@@ -60,6 +64,25 @@ async def submit_feedback(
         )
 
         created = repo.get_by_id(feedback_id)
+
+        # Send email notification to admins (async, don't block on failure)
+        try:
+            email_service = EmailService()
+            user_name = f"{current_user.get('first_name', '')} {current_user.get('last_name', '')}".strip() or 'Unknown User'
+            email_service.send_feedback_notification(
+                feedback_id=feedback_id,
+                category=feedback.category,
+                subject=feedback.subject or "No subject",
+                message=feedback.message,
+                user_email=current_user.get('email', 'unknown@example.com'),
+                user_name=user_name,
+                platform=feedback.platform or 'web',
+                url=feedback.url,
+            )
+        except Exception as e:
+            # Log but don't fail the request if email fails
+            logger.warning(f"Failed to send feedback notification email: {str(e)}")
+
         return {
             "success": True,
             "feedback": created,

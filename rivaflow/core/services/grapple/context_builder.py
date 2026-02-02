@@ -152,8 +152,11 @@ Now respond to the user's questions using this context. Reference their specific
 
                 context_parts.append(session_summary)
 
-            # Add recent readiness data if available
-            recent_readiness = self.readiness_repo.get_recent(self.user_id, limit=7)
+            # Add recent readiness data if available (last 7 days)
+            from datetime import date, timedelta
+            end_date = date.today()
+            start_date = end_date - timedelta(days=7)
+            recent_readiness = self.readiness_repo.get_by_date_range(self.user_id, start_date, end_date)
             if recent_readiness:
                 context_parts.append("")
                 context_parts.append("RECENT READINESS (last 7 days):")

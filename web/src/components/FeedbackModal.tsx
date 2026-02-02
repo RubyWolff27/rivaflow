@@ -1,50 +1,50 @@
 import { useState } from 'react';
-import { X, Bug, Lightbulb, MessageCircle, ExternalLink } from 'lucide-react';
+import { X, Bug, Lightbulb, MessageCircle } from 'lucide-react';
+import { feedbackApi } from '../api/client';
+import { useToast } from '../contexts/ToastContext';
 
 interface FeedbackModalProps {
   isOpen: boolean;
   onClose: () => void;
 }
 
-type FeedbackType = 'bug' | 'feature' | 'general';
+type FeedbackType = 'bug' | 'feature' | 'improvement' | 'question' | 'other';
 
 export default function FeedbackModal({ isOpen, onClose }: FeedbackModalProps) {
-  const [feedbackType, setFeedbackType] = useState<FeedbackType>('general');
+  const [feedbackType, setFeedbackType] = useState<FeedbackType>('improvement');
   const [summary, setSummary] = useState('');
   const [details, setDetails] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+  const toast = useToast();
 
   if (!isOpen) return null;
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    // Generate GitHub issue title and body
-    const emoji = feedbackType === 'bug' ? '🐛' : feedbackType === 'feature' ? '💡' : '💬';
-    const label = feedbackType === 'bug' ? 'bug' : feedbackType === 'feature' ? 'enhancement' : 'feedback';
+    try {
+      setSubmitting(true);
+      await feedbackApi.submit({
+        category: feedbackType,
+        subject: summary,
+        message: details || summary,
+        platform: 'web',
+        url: window.location.pathname,
+      });
 
-    const title = `${emoji} ${summary}`;
-    const body = `## Type
-${feedbackType === 'bug' ? 'Bug Report' : feedbackType === 'feature' ? 'Feature Request' : 'General Feedback'}
+      toast.success('Thank you for your feedback!');
 
-## Summary
-${summary}
-
-${details ? `## Details\n${details}\n\n` : ''}---
-**Version:** v0.1.0
-**Submitted via:** Web Feedback Form
-**Date:** ${new Date().toISOString().split('T')[0]}`;
-
-    // Encode for URL
-    const githubUrl = `https://github.com/RubyWolff27/rivaflow/issues/new?title=${encodeURIComponent(title)}&body=${encodeURIComponent(body)}&labels=${label}`;
-
-    // Open GitHub in new tab
-    window.open(githubUrl, '_blank', 'noopener,noreferrer');
-
-    // Reset form and close
-    setSummary('');
-    setDetails('');
-    setFeedbackType('general');
-    onClose();
+      // Reset form and close
+      setSummary('');
+      setDetails('');
+      setFeedbackType('improvement');
+      onClose();
+    } catch (error) {
+      console.error('Failed to submit feedback:', error);
+      toast.error('Failed to submit feedback. Please try again.');
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   const feedbackOptions = [
@@ -161,17 +161,6 @@ ${details ? `## Details\n${details}\n\n` : ''}---
             </p>
           </div>
 
-          {/* Info */}
-          <div
-            className="p-3 rounded-lg text-xs"
-            style={{ backgroundColor: 'var(--surfaceElev)', color: 'var(--muted)' }}
-          >
-            <p className="flex items-center gap-2">
-              <ExternalLink className="w-3.5 h-3.5" />
-              This will open GitHub in a new tab. Just click "Submit new issue" to send.
-            </p>
-          </div>
-
           {/* Actions */}
           <div className="flex gap-3 pt-2">
             <button
@@ -187,14 +176,14 @@ ${details ? `## Details\n${details}\n\n` : ''}---
             </button>
             <button
               type="submit"
-              disabled={!summary.trim()}
+              disabled={!summary.trim() || submitting}
               className="flex-1 px-4 py-2.5 rounded-lg font-medium transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
               style={{
                 backgroundColor: 'var(--accent)',
                 color: '#FFFFFF',
               }}
             >
-              Submit Feedback
+              {submitting ? 'Submitting...' : 'Submit Feedback'}
             </button>
           </div>
         </form>

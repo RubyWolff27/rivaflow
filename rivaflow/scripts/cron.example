@@ -1,0 +1,17 @@
+# Example crontab entries for RivaFlow background jobs
+#
+# To edit your crontab: crontab -e
+# To list your crontab: crontab -l
+#
+# Format: MIN HOUR DAY MONTH WEEKDAY COMMAND
+#
+# Adjust paths as needed for your installation
+
+# Regenerate friend suggestions daily at 3 AM
+0 3 * * * cd /path/to/rivaflow && /usr/bin/python3 scripts/regenerate_friend_suggestions.py >> logs/friend_suggestions_cron.log 2>&1
+
+# Alternative: Run every 6 hours
+# 0 */6 * * * cd /path/to/rivaflow && /usr/bin/python3 scripts/regenerate_friend_suggestions.py >> logs/friend_suggestions_cron.log 2>&1
+
+# Alternative: Run with specific options (limit to 100 users, minimum 5 sessions)
+# 0 3 * * * cd /path/to/rivaflow && /usr/bin/python3 scripts/regenerate_friend_suggestions.py --limit 100 --min-sessions 5 >> logs/friend_suggestions_cron.log 2>&1

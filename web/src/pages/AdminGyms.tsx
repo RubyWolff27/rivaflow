@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { adminApi } from '../api/client';
-import { Search, Plus, Edit2, Trash2, Check, MapPin, Globe, Building2, ExternalLink, Map } from 'lucide-react';
+import { Search, Plus, Edit2, Trash2, Check, XCircle, MapPin, Globe, Building2, ExternalLink, Map } from 'lucide-react';
 import { Card, PrimaryButton, SecondaryButton } from '../components/ui';
 import AdminNav from '../components/AdminNav';
 import ConfirmDialog from '../components/ConfirmDialog';
@@ -143,12 +143,26 @@ export default function AdminGyms() {
 
   const handleVerify = async (gym: Gym) => {
     try {
-      await adminApi.updateGym(gym.id, { verified: true });
+      await adminApi.verifyGym(gym.id);
       toast.success(`Gym "${gym.name}" verified successfully!`);
       loadGyms();
       loadPendingGyms();
     } catch (error) {
       toast.error('Failed to verify gym. Please try again.');
+    }
+  };
+
+  const handleReject = async (gym: Gym) => {
+    const reason = prompt(`Reason for rejecting "${gym.name}"?`);
+    if (reason === null) return; // User cancelled
+
+    try {
+      await adminApi.rejectGym(gym.id, reason || undefined);
+      toast.success(`Gym "${gym.name}" rejected`);
+      loadGyms();
+      loadPendingGyms();
+    } catch (error) {
+      toast.error('Failed to reject gym. Please try again.');
     }
   };
 
@@ -529,13 +543,22 @@ export default function AdminGyms() {
 
                 <div className="flex gap-2">
                   {!gym.verified && (
-                    <button
-                      onClick={() => handleVerify(gym)}
-                      className="p-2 rounded-lg hover:bg-green-500/10 transition-colors"
-                      title="Verify gym"
-                    >
-                      <Check className="w-4 h-4" style={{ color: 'var(--success)' }} />
-                    </button>
+                    <>
+                      <button
+                        onClick={() => handleVerify(gym)}
+                        className="p-2 rounded-lg hover:bg-green-500/10 transition-colors"
+                        title="Verify gym"
+                      >
+                        <Check className="w-4 h-4" style={{ color: 'var(--success)' }} />
+                      </button>
+                      <button
+                        onClick={() => handleReject(gym)}
+                        className="p-2 rounded-lg hover:bg-red-500/10 transition-colors"
+                        title="Reject gym"
+                      >
+                        <XCircle className="w-4 h-4" style={{ color: 'var(--danger)' }} />
+                      </button>
+                    </>
                   )}
                   <button
                     onClick={() => startEdit(gym)}

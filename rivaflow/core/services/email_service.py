@@ -305,3 +305,134 @@ RivaFlow - Training OS for the Mat
             html_content=html_content,
             text_content=text_content
         )
+
+    def send_feedback_notification(
+        self,
+        feedback_id: int,
+        category: str,
+        subject: str,
+        message: str,
+        user_email: str,
+        user_name: str,
+        platform: str = 'web',
+        url: Optional[str] = None,
+    ) -> bool:
+        """
+        Send notification email to admins about new feedback submission.
+
+        Args:
+            feedback_id: Feedback ID
+            category: Feedback category (bug, feature, etc.)
+            subject: Feedback subject
+            message: Feedback message
+            user_email: Email of user who submitted feedback
+            user_name: Name of user who submitted feedback
+            platform: Platform feedback was submitted from
+            url: Optional URL where feedback was submitted
+
+        Returns:
+            True if email was sent successfully, False otherwise
+        """
+        # Get admin emails from environment
+        admin_emails_str = os.getenv('ADMIN_EMAILS', '')
+        if not admin_emails_str:
+            logger.warning("No admin emails configured. Set ADMIN_EMAILS to receive feedback notifications.")
+            return False
+
+        admin_emails = [email.strip() for email in admin_emails_str.split(',')]
+
+        # Get base URL for admin panel link
+        base_url = os.getenv("APP_BASE_URL", "https://rivaflow.onrender.com")
+        admin_url = f"{base_url}/admin/feedback"
+
+        # Build HTML email
+        html_content = f"""
+<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        body {{ font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #333; }}
+        .container {{ max-width: 600px; margin: 0 auto; padding: 20px; }}
+        .header {{ background: #f8f9fa; padding: 20px; border-radius: 8px; margin-bottom: 20px; }}
+        .badge {{ display: inline-block; padding: 4px 12px; border-radius: 12px; font-size: 12px; font-weight: 600; text-transform: uppercase; }}
+        .badge-bug {{ background: #fee2e2; color: #991b1b; }}
+        .badge-feature {{ background: #dbeafe; color: #1e40af; }}
+        .badge-improvement {{ background: #d1fae5; color: #065f46; }}
+        .badge-question {{ background: #fef3c7; color: #92400e; }}
+        .badge-other {{ background: #e5e7eb; color: #374151; }}
+        .content {{ background: #fff; padding: 20px; border: 1px solid #e5e7eb; border-radius: 8px; margin-bottom: 20px; }}
+        .meta {{ color: #6b7280; font-size: 14px; margin-bottom: 12px; }}
+        .subject {{ font-size: 18px; font-weight: 600; margin-bottom: 12px; }}
+        .message {{ background: #f9fafb; padding: 16px; border-left: 3px solid #6366f1; border-radius: 4px; white-space: pre-wrap; }}
+        .button {{ display: inline-block; background: #6366f1; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; margin-top: 20px; }}
+        .footer {{ margin-top: 30px; padding-top: 20px; border-top: 1px solid #ddd; font-size: 12px; color: #666; }}
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h2 style="margin: 0;">New Feedback Submission</h2>
+        </div>
+
+        <div class="content">
+            <div class="meta">
+                <strong>Feedback ID:</strong> #{feedback_id}<br>
+                <strong>Category:</strong> <span class="badge badge-{category}">{category.upper()}</span><br>
+                <strong>Platform:</strong> {platform}<br>
+                <strong>User:</strong> {user_name} ({user_email})<br>
+                {f'<strong>URL:</strong> {url}<br>' if url else ''}
+            </div>
+
+            <div class="subject">{subject}</div>
+
+            <div class="message">{message}</div>
+
+            <a href="{admin_url}" class="button">View in Admin Panel</a>
+        </div>
+
+        <div class="footer">
+            <p>RivaFlow - Training OS for the Mat</p>
+            <p>This is an automated email. Please do not reply.</p>
+        </div>
+    </div>
+</body>
+</html>
+        """.strip()
+
+        # Build text email
+        text_content = f"""
+New Feedback Submission on RivaFlow
+
+Feedback ID: #{feedback_id}
+Category: {category.upper()}
+Platform: {platform}
+User: {user_name} ({user_email})
+{f'URL: {url}' if url else ''}
+
+Subject:
+{subject}
+
+Message:
+{message}
+
+---
+View and manage this feedback in the admin panel:
+{admin_url}
+
+---
+RivaFlow - Training OS for the Mat
+        """.strip()
+
+        # Send to all admin emails
+        success = True
+        for admin_email in admin_emails:
+            result = self.send_email(
+                to_email=admin_email,
+                subject=f"[RivaFlow Feedback] New {category.upper()} - {subject}",
+                html_content=html_content,
+                text_content=text_content
+            )
+            if not result:
+                success = False
+
+        return success

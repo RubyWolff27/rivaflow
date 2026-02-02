@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { sessionsApi, goalsApi } from '../api/client';
+import { dashboardApi } from '../api/client';
 import type { Session, WeeklyGoalProgress } from '../types';
 import { Plus, Activity, Calendar, Target, TrendingUp } from 'lucide-react';
 import { Card, Chip, PrimaryButton, SecondaryButton } from '../components/ui';
@@ -29,26 +29,26 @@ export default function Dashboard() {
       const startDate = new Date();
       startDate.setDate(startDate.getDate() - 7);
 
-      const [recentSessionsRes, weekSessionsRes, goalsRes, streaksRes] = await Promise.all([
-        sessionsApi.list(3),
-        sessionsApi.getByRange(startDate.toISOString().split('T')[0], endDate.toISOString().split('T')[0]),
-        goalsApi.getCurrentWeek(),
-        goalsApi.getTrainingStreaks(),
-      ]);
+      const response = await dashboardApi.getSummary({
+        start_date: startDate.toISOString().split('T')[0],
+        end_date: endDate.toISOString().split('T')[0],
+      });
 
-      setRecentSessions(recentSessionsRes.data ?? []);
-      setWeeklyGoals(goalsRes.data ?? null);
+      const data = response.data;
 
-      // Calculate stats from last 7 days
-      const weekSessions = weekSessionsRes.data ?? [];
-      const totalIntensity = weekSessions.reduce((sum: number, s: any) => sum + (s.intensity ?? 0), 0);
-      const totalRolls = weekSessions.reduce((sum: number, s: any) => sum + (s.rolls ?? 0), 0);
+      // Set recent sessions
+      setRecentSessions(data.recent_sessions ?? []);
 
+      // Set weekly goals
+      setWeeklyGoals(data.weekly_goals ?? null);
+
+      // Set stats from performance summary
+      const perfSummary = data.performance?.summary ?? {};
       setStats({
-        sessions: weekSessions.length,
-        avgIntensity: weekSessions.length > 0 ? totalIntensity / weekSessions.length : 0,
-        totalRolls,
-        currentStreak: streaksRes.data?.current_streak ?? 0,
+        sessions: perfSummary.total_sessions ?? 0,
+        avgIntensity: perfSummary.avg_intensity ?? 0,
+        totalRolls: perfSummary.total_rolls ?? 0,
+        currentStreak: data.streaks?.current_streak ?? 0,
       });
     } catch (error) {
       console.error('Error loading dashboard:', error);

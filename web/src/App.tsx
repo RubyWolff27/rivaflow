@@ -35,6 +35,7 @@ const AdminContent = lazy(() => import('./pages/AdminContent'));
 const AdminTechniques = lazy(() => import('./pages/AdminTechniques'));
 const Grapple = lazy(() => import('./pages/Grapple'));
 const AdminGrapple = lazy(() => import('./pages/AdminGrapple'));
+const AdminFeedback = lazy(() => import('./pages/AdminFeedback'));
 const Login = lazy(() => import('./pages/Login'));
 const Register = lazy(() => import('./pages/Register'));
 const ForgotPassword = lazy(() => import('./pages/ForgotPassword'));
@@ -86,6 +87,7 @@ function App() {
                           <Route path="/admin/content" element={<AdminContent />} />
                           <Route path="/admin/techniques" element={<AdminTechniques />} />
                           <Route path="/admin/grapple" element={<AdminGrapple />} />
+                          <Route path="/admin/feedback" element={<AdminFeedback />} />
                         </Routes>
                       </Suspense>
                     </Layout>

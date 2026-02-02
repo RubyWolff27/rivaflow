@@ -11,8 +11,83 @@ from rivaflow.db.repositories.session_repo import SessionRepository
 from rivaflow.db.repositories.readiness_repo import ReadinessRepository
 from rivaflow.core.dependencies import get_current_user
 from rivaflow.core.exceptions import ValidationError
+from rivaflow.core.utils.cache import cached
 
 router = APIRouter(prefix="/dashboard", tags=["dashboard"])
+
+
+@cached(ttl_seconds=300, key_prefix="dashboard_summary")
+def _get_dashboard_summary_cached(
+    user_id: int,
+    start_date: date,
+    end_date: date,
+    types: Optional[List[str]] = None,
+):
+    """
+    Cached helper for dashboard summary.
+    Cache TTL: 5 minutes
+    """
+    # Initialize services
+    analytics = AnalyticsService()
+    milestone_service = MilestoneService()
+    streak_service = StreakService()
+    goals_service = GoalsService()
+    session_repo = SessionRepository()
+    readiness_repo = ReadinessRepository()
+
+    # Fetch data
+    performance = analytics.get_performance_overview(
+        user_id, start_date, end_date, types=types
+    )
+
+    # Get streak data
+    session_streak = streak_service.get_streak(user_id, "session")
+    checkin_streak = streak_service.get_streak(user_id, "checkin")
+
+    # Get recent sessions
+    recent_sessions = session_repo.get_recent(user_id, limit=10)
+
+    # Get milestones
+    closest_milestone = milestone_service.get_closest_milestone(user_id)
+    milestone_progress = milestone_service.get_all_progress(user_id)
+
+    # Get weekly goals progress
+    today = date.today()
+    week_start = today - timedelta(days=today.weekday())
+    weekly_goals = goals_service.get_weekly_progress(user_id, week_start)
+
+    # Get latest readiness
+    latest_readiness = readiness_repo.get_latest(user_id)
+
+    # Get class type distribution
+    class_type_distribution = {}
+    for session in recent_sessions:
+        class_type = session.get("class_type", "unknown")
+        class_type_distribution[class_type] = class_type_distribution.get(class_type, 0) + 1
+
+    return {
+        "performance": {
+            "summary": performance.get("summary", {}),
+            "deltas": performance.get("deltas", {}),
+            "daily_timeseries": performance.get("daily_timeseries", {}),
+        },
+        "streaks": {
+            "session": session_streak,
+            "checkin": checkin_streak,
+        },
+        "recent_sessions": recent_sessions[:5],  # Just top 5 for dashboard
+        "milestones": {
+            "closest": closest_milestone,
+            "progress": milestone_progress[:3],  # Top 3 closest
+        },
+        "weekly_goals": weekly_goals,
+        "readiness": latest_readiness,
+        "class_type_distribution": class_type_distribution,
+        "period": {
+            "start_date": start_date.isoformat(),
+            "end_date": end_date.isoformat(),
+        },
+    }
 
 
 @router.get("/summary")
@@ -45,67 +120,13 @@ async def get_dashboard_summary(
         end_date = date.today()
 
     try:
-        # Initialize services
-        analytics = AnalyticsService()
-        milestone_service = MilestoneService()
-        streak_service = StreakService()
-        goals_service = GoalsService()
-        session_repo = SessionRepository()
-        readiness_repo = ReadinessRepository()
-
-        # Fetch data in parallel (conceptually - Python will execute sequentially)
-        performance = analytics.get_performance_overview(
-            user_id, start_date, end_date, types=types
+        # Use cached function (5-minute TTL)
+        return _get_dashboard_summary_cached(
+            user_id,
+            start_date,
+            end_date,
+            types=types if types else None
         )
-
-        # Get streak data
-        session_streak = streak_service.get_streak(user_id, "session")
-        checkin_streak = streak_service.get_streak(user_id, "checkin")
-
-        # Get recent sessions
-        recent_sessions = session_repo.get_recent(user_id, limit=10)
-
-        # Get milestones
-        closest_milestone = milestone_service.get_closest_milestone(user_id)
-        milestone_progress = milestone_service.get_all_progress(user_id)
-
-        # Get weekly goals progress
-        today = date.today()
-        week_start = today - timedelta(days=today.weekday())
-        weekly_goals = goals_service.get_weekly_progress(user_id, week_start)
-
-        # Get latest readiness
-        latest_readiness = readiness_repo.get_latest(user_id)
-
-        # Get class type distribution for period
-        class_type_distribution = {}
-        for session in recent_sessions:
-            class_type = session.get("class_type", "unknown")
-            class_type_distribution[class_type] = class_type_distribution.get(class_type, 0) + 1
-
-        return {
-            "performance": {
-                "summary": performance.get("summary", {}),
-                "deltas": performance.get("deltas", {}),
-                "daily_timeseries": performance.get("daily_timeseries", {}),
-            },
-            "streaks": {
-                "session": session_streak,
-                "checkin": checkin_streak,
-            },
-            "recent_sessions": recent_sessions[:5],  # Just top 5 for dashboard
-            "milestones": {
-                "closest": closest_milestone,
-                "progress": milestone_progress[:3],  # Top 3 closest
-            },
-            "weekly_goals": weekly_goals,
-            "readiness": latest_readiness,
-            "class_type_distribution": class_type_distribution,
-            "period": {
-                "start_date": start_date.isoformat(),
-                "end_date": end_date.isoformat(),
-            },
-        }
 
     except Exception as e:
         raise ValidationError(f"Failed to load dashboard: {str(e)}")

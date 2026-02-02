@@ -1,5 +1,5 @@
 import { Link, useLocation } from 'react-router-dom';
-import { LayoutDashboard, Users, Building2, MessageSquare, Book, Sparkles } from 'lucide-react';
+import { LayoutDashboard, Users, Building2, MessageSquare, Book, Sparkles, MessageCircle } from 'lucide-react';
 
 export default function AdminNav() {
   const location = useLocation();
@@ -11,6 +11,7 @@ export default function AdminNav() {
     { name: 'Gyms', href: '/admin/gyms', icon: Building2 },
     { name: 'Content', href: '/admin/content', icon: MessageSquare },
     { name: 'Techniques', href: '/admin/techniques', icon: Book },
+    { name: 'Feedback', href: '/admin/feedback', icon: MessageCircle },
   ];
 
   return (
