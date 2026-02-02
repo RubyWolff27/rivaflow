@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react';
 import { socialApi } from '../api/client';
 import { useToast } from '../contexts/ToastContext';
 import { Card, PrimaryButton, SecondaryButton } from './ui';
+import { useFeatureAccess } from '../hooks/useTier';
+import { UpgradePrompt } from './UpgradePrompt';
 
 interface FriendSuggestion {
   id: number;
@@ -20,10 +22,16 @@ interface FriendSuggestion {
 }
 
 export function FriendSuggestions() {
+  const { hasAccess } = useFeatureAccess('friend_suggestions');
   const [suggestions, setSuggestions] = useState<FriendSuggestion[]>([]);
   const [loading, setLoading] = useState(true);
   const [regenerating, setRegenerating] = useState(false);
   const toast = useToast();
+
+  // Show upgrade prompt for free users
+  if (!hasAccess) {
+    return <UpgradePrompt feature="friend_suggestions" inline />;
+  }
 
   const loadSuggestions = async () => {
     try {
