@@ -1,5 +1,5 @@
 """Service layer for authentication operations."""
-from typing import Optional
+from typing import Any, Dict, Optional
 
 from rivaflow.core.auth import (
     hash_password,
@@ -30,7 +30,7 @@ class AuthService:
         password: str,
         first_name: str,
         last_name: str,
-    ) -> dict:
+    ) -> Dict[str, Any]:
         """
         Register a new user with email and password.
 
@@ -173,7 +173,7 @@ class AuthService:
             "user": self._sanitize_user(user),
         }
 
-    def login(self, email: str, password: str) -> dict:
+    def login(self, email: str, password: str) -> Dict[str, Any]:
         """
         Authenticate a user with email and password.
 
@@ -226,7 +226,7 @@ class AuthService:
             "user": self._sanitize_user(user),
         }
 
-    def refresh_access_token(self, refresh_token: str) -> dict:
+    def refresh_access_token(self, refresh_token: str) -> Dict[str, Any]:
         """
         Generate a new access token using a refresh token.
 
@@ -285,7 +285,6 @@ class AuthService:
         """
         return self.refresh_token_repo.delete_by_user_id(user_id)
 
-    @staticmethod
     @staticmethod
     def _is_valid_email(email: str) -> bool:
         """
@@ -429,7 +428,7 @@ class AuthService:
             raise
 
     @staticmethod
-    def _sanitize_user(user: dict) -> dict:
+    def _sanitize_user(user: Dict[str, Any]) -> Dict[str, Any]:
         """Remove sensitive fields from user dict."""
         sanitized = user.copy()
         sanitized.pop("hashed_password", None)
