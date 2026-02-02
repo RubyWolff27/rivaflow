@@ -44,7 +44,8 @@ def week(
     service = ReportService()
     start_date, end_date = service.get_week_dates()
 
-    report = service.generate_report(start_date, end_date)
+    with console.status("[cyan]Generating weekly report...", spinner="dots"):
+        report = service.generate_report(start_date, end_date)
 
     if csv or output:
         _export_csv(service, report, output or "week_report.csv")
@@ -78,7 +79,8 @@ def month(
     service = ReportService()
     start_date, end_date = service.get_month_dates()
 
-    report = service.generate_report(start_date, end_date)
+    with console.status("[cyan]Generating monthly report...", spinner="dots"):
+        report = service.generate_report(start_date, end_date)
 
     if csv or output:
         _export_csv(service, report, output or "month_report.csv")
@@ -128,7 +130,8 @@ def range(
         prompts.print_error("Start date must be before end date")
         raise typer.Exit(1)
 
-    report = service.generate_report(start_date, end_date)
+    with console.status("[cyan]Generating custom range report...", spinner="dots"):
+        report = service.generate_report(start_date, end_date)
 
     if csv or output:
         _export_csv(service, report, output or "range_report.csv")

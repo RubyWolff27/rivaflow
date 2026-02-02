@@ -234,23 +234,25 @@ def _add_engagement_features(session_id: int):
 
     today = date.today()
 
-    # 1. Create check-in record
-    insight = insight_service.generate_insight(user_id)
-    insight_json = json.dumps(insight)
+    # Process engagement features with progress indicator
+    with prompts.console.status("[cyan]Calculating streaks and milestones...", spinner="dots"):
+        # 1. Create check-in record
+        insight = insight_service.generate_insight(user_id)
+        insight_json = json.dumps(insight)
 
-    checkin_id = checkin_repo.upsert_checkin(
-        user_id=user_id,
-        check_date=today,
-        checkin_type="session",
-        session_id=session_id,
-        insight_shown=insight_json
-    )
+        checkin_id = checkin_repo.upsert_checkin(
+            user_id=user_id,
+            check_date=today,
+            checkin_type="session",
+            session_id=session_id,
+            insight_shown=insight_json
+        )
 
-    # 2. Update streaks
-    streak_info = streak_service.record_checkin(user_id, "session", today)
+        # 2. Update streaks
+        streak_info = streak_service.record_checkin(user_id, "session", today)
 
-    # 3. Check for new milestones
-    new_milestones = milestone_service.check_all_milestones(user_id)
+        # 3. Check for new milestones
+        new_milestones = milestone_service.check_all_milestones(user_id)
 
     # Display streak update
     prompts.console.print()

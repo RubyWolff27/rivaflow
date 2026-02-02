@@ -122,22 +122,27 @@ def dashboard(ctx: typer.Context = None):
     except Exception:
         pass  # If check fails, continue with normal dashboard
 
-    # Get today's check-in status
-    today_checkin = checkin_repo.get_checkin(user_id, today)
-    has_checked_in = today_checkin is not None
+    # Get today's check-in status and data
+    with console.status("[cyan]Loading dashboard...", spinner="dots"):
+        today_checkin = checkin_repo.get_checkin(user_id, today)
+        has_checked_in = today_checkin is not None
 
-    # Get streak info
-    checkin_streak = streak_service.get_streak(user_id, "checkin")
+        # Get streak info
+        checkin_streak = streak_service.get_streak(user_id, "checkin")
 
-    # Get profile name (if available)
-    try:
-        with get_connection() as conn:
-            cursor = conn.cursor()
-            cursor.execute("SELECT first_name FROM profile WHERE user_id = ? LIMIT 1", (user_id,))
-            row = cursor.fetchone()
-            name = row[0] if row and row[0] else "there"
-    except Exception:
-        name = "there"
+        # Get profile name (if available)
+        try:
+            with get_connection() as conn:
+                cursor = conn.cursor()
+                cursor.execute("SELECT first_name FROM profile WHERE user_id = ? LIMIT 1", (user_id,))
+                row = cursor.fetchone()
+                name = row[0] if row and row[0] else "there"
+        except Exception:
+            name = "there"
+
+        # Preload week summary and milestone data
+        summary = get_week_summary(user_id)
+        closest = milestone_service.get_closest_milestone(user_id)
 
     # Header
     header = Panel(
@@ -179,8 +184,7 @@ def dashboard(ctx: typer.Context = None):
     console.print(f"  [bold]TODAY'S STATUS:[/bold] [{status_style}]{status_icon} {status_msg}[/{status_style}]")
     console.print()
 
-    # Week summary
-    summary = get_week_summary(user_id)
+    # Week summary (already loaded)
     console.print(f"  [bold]THIS WEEK:[/bold] {summary['sessions']} sessions │ {summary['hours']} hours │ {summary['rolls']} rolls │ {summary['rest_days']} rest days")
     console.print()
 
@@ -212,8 +216,7 @@ def dashboard(ctx: typer.Context = None):
         console.print(f"  [bold]TOMORROW:[/bold] {intention_label}")
         console.print()
 
-    # Show closest milestone
-    closest = milestone_service.get_closest_milestone(user_id)
+    # Show closest milestone (already loaded)
     if closest and closest["percentage"] >= 70:
         bar_length = 20
         filled = int((closest["percentage"] / 100) * bar_length)

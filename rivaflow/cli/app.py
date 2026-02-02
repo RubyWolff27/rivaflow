@@ -170,8 +170,6 @@ def export(
     console = Console()
     user_id = get_current_user_id()
 
-    console.print("[cyan]Exporting your data...[/cyan]")
-
     # Initialize repositories
     user_repo = UserRepository()
     profile_repo = ProfileRepository()
@@ -182,29 +180,31 @@ def export(
     grading_repo = GradingRepository()
     friend_repo = FriendRepository()
 
-    # Get user info
-    user = user_repo.get_by_id(user_id)
-    profile = profile_repo.get_by_user_id(user_id)
+    # Collect all data with progress indicator
+    with console.status("[cyan]Exporting your data...", spinner="dots"):
+        # Get user info
+        user = user_repo.get_by_id(user_id)
+        profile = profile_repo.get_by_user_id(user_id)
 
-    # Collect all data
-    data = {
-        "exported_at": datetime.now().isoformat(),
-        "export_version": "1.0",
-        "user": {
-            "id": user_id,
-            "email": user.get("email") if user else None,
-            "first_name": user.get("first_name") if user else None,
-            "last_name": user.get("last_name") if user else None,
-            "created_at": user.get("created_at") if user else None,
-        },
-        "profile": profile,
-        "sessions": session_repo.list_by_user(user_id),
-        "readiness": readiness_repo.list_by_user(user_id),
-        "techniques": technique_repo.list_all(user_id),
-        "videos": video_repo.list_all(user_id),
-        "gradings": grading_repo.list_all(user_id),
-        "friends": friend_repo.list_all(user_id),
-    }
+        # Collect all data
+        data = {
+            "exported_at": datetime.now().isoformat(),
+            "export_version": "1.0",
+            "user": {
+                "id": user_id,
+                "email": user.get("email") if user else None,
+                "first_name": user.get("first_name") if user else None,
+                "last_name": user.get("last_name") if user else None,
+                "created_at": user.get("created_at") if user else None,
+            },
+            "profile": profile,
+            "sessions": session_repo.list_by_user(user_id),
+            "readiness": readiness_repo.list_by_user(user_id),
+            "techniques": technique_repo.list_all(user_id),
+            "videos": video_repo.list_all(user_id),
+            "gradings": grading_repo.list_all(user_id),
+            "friends": friend_repo.list_all(user_id),
+        }
 
     # Convert dates to strings for JSON serialization
     def default_serializer(obj):

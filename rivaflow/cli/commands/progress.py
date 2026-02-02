@@ -113,8 +113,10 @@ def progress(ctx: typer.Context):
     console.print(header)
     console.print()
 
-    # Lifetime stats table
-    stats = get_lifetime_stats(user_id)
+    # Load all data with progress indicator
+    with console.status("[cyan]Loading lifetime stats...", spinner="dots"):
+        # Lifetime stats table
+        stats = get_lifetime_stats(user_id)
 
     table = Table(title="TOTALS", border_style="bright_black", show_header=True)
     table.add_column("Metric", style="white", width=20)
@@ -136,11 +138,16 @@ def progress(ctx: typer.Context):
     console.print("  [bold white]MILESTONES[/bold white]")
     console.print()
 
-    # Get achieved milestones
-    achieved = milestone_service.get_all_achieved(user_id)
+    # Load milestone data with progress indicator
+    with console.status("[cyan]Loading milestones...", spinner="dots"):
+        # Get achieved milestones
+        achieved = milestone_service.get_all_achieved(user_id)
 
-    # Get progress to next
-    progress_list = milestone_service.get_progress_to_next(user_id)
+        # Get progress to next
+        progress_list = milestone_service.get_progress_to_next(user_id)
+
+        # Get closest milestone
+        closest = milestone_service.get_closest_milestone(user_id)
 
     # Group by type
     milestone_types = ["hours", "sessions", "streak", "rolls", "partners", "techniques"]
@@ -168,8 +175,7 @@ def progress(ctx: typer.Context):
 
     console.print()
 
-    # Next milestone highlight
-    closest = milestone_service.get_closest_milestone(user_id)
+    # Next milestone highlight (already loaded)
     if closest:
         unit_map = {
             "hours": "hours",
