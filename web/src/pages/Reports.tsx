@@ -4,14 +4,18 @@ import { analyticsApi } from '../api/client';
 import { TrendingUp, Users, Activity, Target, Lightbulb, Book, Calendar } from 'lucide-react';
 import { Card, Chip, MetricTile, MetricTileSkeleton, CardSkeleton, EmptyState } from '../components/ui';
 import { ActivityTypeFilter } from '../components/ActivityTypeFilter';
+import { useFeatureAccess } from '../hooks/useTier';
+import { PremiumBadge, UpgradePrompt } from '../components/UpgradePrompt';
 
 export default function Reports() {
+  const { hasAccess: hasAdvancedAnalytics } = useFeatureAccess('advanced_analytics');
   const [searchParams, setSearchParams] = useSearchParams();
   const [activeTab, setActiveTab] = useState(searchParams.get('tab') || 'overview');
   const [dateRange, setDateRange] = useState({ start: '', end: '' });
   const [selectedTypes, setSelectedTypes] = useState<string[]>(
     searchParams.get('types')?.split(',').filter(Boolean) || []
   );
+  const [showUpgradePrompt, setShowUpgradePrompt] = useState(false);
   const [loading, setLoading] = useState(false);
   const [hasUserChangedRange, setHasUserChangedRange] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -226,8 +230,29 @@ export default function Reports() {
       {/* Page Header */}
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-semibold text-[var(--text)]">Analytics</h1>
-        <ActivityTypeFilter selectedTypes={selectedTypes} onChange={setSelectedTypes} />
+        <div className="flex items-center gap-3">
+          {hasAdvancedAnalytics ? (
+            <ActivityTypeFilter selectedTypes={selectedTypes} onChange={setSelectedTypes} />
+          ) : (
+            <button
+              onClick={() => setShowUpgradePrompt(true)}
+              className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+              style={{ backgroundColor: 'var(--surfaceElev)', border: '1px solid var(--border)', color: 'var(--muted)' }}
+            >
+              <span>Activity Filter</span>
+              <PremiumBadge className="ml-1" />
+            </button>
+          )}
+        </div>
       </div>
+
+      {/* Upgrade Prompt Modal */}
+      {showUpgradePrompt && !hasAdvancedAnalytics && (
+        <UpgradePrompt
+          feature="advanced_analytics"
+          onClose={() => setShowUpgradePrompt(false)}
+        />
+      )}
 
       {/* Tabs */}
       <div className="flex gap-1 border-b border-[var(--border)] pb-0">
