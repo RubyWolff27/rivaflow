@@ -3,7 +3,7 @@
  * Provides functions to check user's tier permissions and feature access
  */
 
-import { useAuth } from './useAuth';
+import { useAuth } from '../contexts/AuthContext';
 import { hasFeature, isPremiumTier, getLimit, getTierConfig, type TierName, type TierLimits } from '../config/tiers';
 
 export interface TierInfo {

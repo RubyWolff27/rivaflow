@@ -8,6 +8,10 @@ interface User {
   last_name: string;
   is_active: boolean;
   is_admin?: boolean;
+  subscription_tier?: string;
+  is_beta_user?: boolean;
+  tier_expires_at?: string;
+  beta_joined_at?: string;
   created_at: string;
   updated_at: string;
 }

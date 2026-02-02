@@ -154,7 +154,7 @@ interface LimitReachedPromptProps {
 
 export function LimitReachedPrompt({
   limitName,
-  currentUsage,
+  currentUsage: _currentUsage,
   maxLimit,
   onClose,
 }: LimitReachedPromptProps) {
