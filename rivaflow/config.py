@@ -1,26 +1,24 @@
-"""Application configuration."""
-import os
-from pathlib import Path
+"""Application configuration.
 
-# Data stored in user's home directory (survives pip upgrades)
-APP_DIR = Path.home() / ".rivaflow"
-DB_PATH = APP_DIR / "rivaflow.db"
+DEPRECATED: This module is maintained for backwards compatibility.
+New code should import from rivaflow.core.settings instead.
+"""
+from rivaflow.core.settings import settings
 
-# Database configuration
-# If DATABASE_URL is set (production), use it. Otherwise, use local SQLite.
-DATABASE_URL = os.getenv("DATABASE_URL")
-if DATABASE_URL and DATABASE_URL.startswith("postgres://"):
-    # Render uses postgres:// but psycopg2 expects postgresql://
-    DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
+# Legacy imports - use settings module instead
+APP_DIR = settings.APP_DIR
+DB_PATH = settings.DB_PATH
+DATABASE_URL = settings.DATABASE_URL
+DB_TYPE = settings.DB_TYPE
 
-# Determine database type dynamically (function to support runtime changes in tests)
+# Backwards compatibility function
 def get_db_type():
-    """Dynamically determine database type based on current DATABASE_URL."""
-    database_url = os.getenv("DATABASE_URL")
-    return "postgresql" if database_url else "sqlite"
+    """
+    Dynamically determine database type.
 
-# Legacy constant for backwards compatibility
-DB_TYPE = get_db_type()
+    DEPRECATED: Use settings.DB_TYPE instead.
+    """
+    return settings.DB_TYPE
 
 # Defaults
 DEFAULT_DURATION = 60

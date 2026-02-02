@@ -1,5 +1,4 @@
 """Authentication utilities for JWT tokens and password hashing."""
-import os
 import secrets
 from datetime import datetime, timedelta
 from typing import Optional
@@ -7,21 +6,18 @@ from typing import Optional
 from passlib.context import CryptContext
 from jose import JWTError, jwt
 
+from rivaflow.core.settings import settings
+
 
 # Password hashing configuration
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
-# JWT configuration - SECRET_KEY is REQUIRED in production
-SECRET_KEY = os.getenv("SECRET_KEY")
-if not SECRET_KEY:
-    raise ValueError(
-        "SECRET_KEY environment variable is required. "
-        "Generate one with: python -c 'import secrets; print(secrets.token_urlsafe(32))'"
-    )
+# JWT configuration - Load from centralized settings
+# This will raise ValueError if SECRET_KEY is not set
+SECRET_KEY = settings.SECRET_KEY
 
 # Production security check - ensure dev secret is not used in production
-ENV = os.getenv("ENV", "development")
-if ENV == "production" and (SECRET_KEY.startswith("dev-") or SECRET_KEY == "dev" or len(SECRET_KEY) < 32):
+if settings.IS_PRODUCTION and (SECRET_KEY.startswith("dev-") or SECRET_KEY == "dev" or len(SECRET_KEY) < 32):
     raise RuntimeError(
         "Production environment detected with insecure SECRET_KEY. "
         "SECRET_KEY must be a secure random string (>= 32 characters). "
@@ -29,8 +25,8 @@ if ENV == "production" and (SECRET_KEY.startswith("dev-") or SECRET_KEY == "dev"
     )
 
 ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = 30
-REFRESH_TOKEN_EXPIRE_DAYS = 7
+ACCESS_TOKEN_EXPIRE_MINUTES = settings.ACCESS_TOKEN_EXPIRE_MINUTES
+REFRESH_TOKEN_EXPIRE_DAYS = settings.REFRESH_TOKEN_EXPIRE_DAYS
 
 
 def hash_password(password: str) -> str:
