@@ -1,13 +1,17 @@
 import { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { analyticsApi } from '../api/client';
 import { TrendingUp, Users, Activity, Target, Lightbulb, Book, Calendar } from 'lucide-react';
 import { Card, Chip, MetricTile, MetricTileSkeleton, CardSkeleton, EmptyState } from '../components/ui';
 import { ActivityTypeFilter } from '../components/ActivityTypeFilter';
 
 export default function Reports() {
-  const [activeTab, setActiveTab] = useState('overview');
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [activeTab, setActiveTab] = useState(searchParams.get('tab') || 'overview');
   const [dateRange, setDateRange] = useState({ start: '', end: '' });
-  const [selectedTypes, setSelectedTypes] = useState<string[]>([]);
+  const [selectedTypes, setSelectedTypes] = useState<string[]>(
+    searchParams.get('types')?.split(',').filter(Boolean) || []
+  );
   const [loading, setLoading] = useState(false);
   const [hasUserChangedRange, setHasUserChangedRange] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -27,6 +31,15 @@ export default function Reports() {
       end: end.toISOString().split('T')[0],
     });
   }, []);
+
+  // Update URL params when filters change
+  useEffect(() => {
+    const params: any = { tab: activeTab };
+    if (selectedTypes.length > 0) {
+      params.types = selectedTypes.join(',');
+    }
+    setSearchParams(params, { replace: true });
+  }, [activeTab, selectedTypes]);
 
   useEffect(() => {
     if (dateRange.start && dateRange.end) {
@@ -78,12 +91,21 @@ export default function Reports() {
     setHasUserChangedRange(false);
   };
 
-  const tabs = [
+  // Determine if we should show BJJ-specific tabs
+  const isBJJActivity = selectedTypes.length === 0 || selectedTypes.some(t => ['gi', 'no-gi', 'drilling', 'open-mat', 'competition'].includes(t));
+  const isOnlySC = selectedTypes.length > 0 && selectedTypes.every(t => t === 's&c');
+
+  const allTabs = [
     { id: 'overview', name: 'Performance', icon: TrendingUp },
-    { id: 'partners', name: 'Partners', icon: Users },
+    { id: 'partners', name: 'Partners', icon: Users, bjjOnly: true },
     { id: 'readiness', name: 'Readiness', icon: Activity },
-    { id: 'techniques', name: 'Techniques', icon: Target },
+    { id: 'techniques', name: 'Techniques', icon: Target, bjjOnly: true },
   ];
+
+  // Filter tabs based on activity selection
+  const tabs = isOnlySC
+    ? allTabs.filter(tab => !tab.bjjOnly)
+    : allTabs;
 
   // Extract real data from API response with safe defaults
   const summary = performanceData?.summary || {};
@@ -321,15 +343,19 @@ export default function Reports() {
             <Card>
               <EmptyState
                 icon={Calendar}
-                title="No Training Data Yet"
-                description="Start logging your training sessions to see performance analytics, trends, and insights."
-                actionLabel="Log First Session"
-                actionPath="/log-session"
+                title={selectedTypes.length > 0 ? "No Data for Selected Activity Types" : "No Training Data Yet"}
+                description={
+                  selectedTypes.length > 0
+                    ? `No sessions found for ${selectedTypes.join(', ')} in this time period. Try adjusting your filters or date range.`
+                    : "Start logging your training sessions to see performance analytics, trends, and insights."
+                }
+                actionLabel={selectedTypes.length > 0 ? undefined : "Log First Session"}
+                actionPath={selectedTypes.length > 0 ? undefined : "/log-session"}
               />
             </Card>
           ) : (
             <>
-              {/* 2x2 Metric Tiles Grid */}
+              {/* Metric Tiles Grid - BJJ gets 2x2, S&C gets 1x2 */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <MetricTile
                   label="Sessions"
@@ -345,20 +371,25 @@ export default function Reports() {
                   delta={intensityDelta}
                   sparklineData={intensitySeries}
                 />
-                <MetricTile
-                  label="Total Rolls"
-                  chipLabel={chipLabel}
-                  value={rollsValue}
-                  delta={rollsDelta}
-                  sparklineData={rollsSeries}
-                />
-                <MetricTile
-                  label="Submissions"
-                  chipLabel={chipLabel}
-                  value={submissionsValue}
-                  delta={submissionsDelta}
-                  sparklineData={submissionsSeries}
-                />
+                {/* Only show Rolls and Submissions for BJJ activities */}
+                {isBJJActivity && (
+                  <>
+                    <MetricTile
+                      label="Total Rolls"
+                      chipLabel={chipLabel}
+                      value={rollsValue}
+                      delta={rollsDelta}
+                      sparklineData={rollsSeries}
+                    />
+                    <MetricTile
+                      label="Submissions"
+                      chipLabel={chipLabel}
+                      value={submissionsValue}
+                      delta={submissionsDelta}
+                      sparklineData={submissionsSeries}
+                    />
+                  </>
+                )}
               </div>
 
               {/* Quick Insights */}
@@ -416,10 +447,14 @@ export default function Reports() {
             <Card>
               <EmptyState
                 icon={Users}
-                title="No Partner Data"
-                description="Start logging rolls with training partners to see analytics on your training relationships and performance with different partners."
-                actionLabel="Log Session with Partners"
-                actionPath="/log-session"
+                title={selectedTypes.length > 0 ? "No Partner Data for Selected Activity Types" : "No Partner Data"}
+                description={
+                  selectedTypes.length > 0
+                    ? `No partner data found for ${selectedTypes.join(', ')} in this time period. Try adjusting your filters or date range.`
+                    : "Start logging rolls with training partners to see analytics on your training relationships and performance with different partners."
+                }
+                actionLabel={selectedTypes.length > 0 ? undefined : "Log Session with Partners"}
+                actionPath={selectedTypes.length > 0 ? undefined : "/log-session"}
               />
             </Card>
           ) : (
@@ -568,10 +603,14 @@ export default function Reports() {
             <Card>
               <EmptyState
                 icon={Target}
-                title="No Technique Data"
-                description="Start logging submissions and techniques during your rolls to see analytics on your technique usage and proficiency."
-                actionLabel="Log Session"
-                actionPath="/log-session"
+                title={selectedTypes.length > 0 ? "No Technique Data for Selected Activity Types" : "No Technique Data"}
+                description={
+                  selectedTypes.length > 0
+                    ? `No technique data found for ${selectedTypes.join(', ')} in this time period. Try adjusting your filters or date range.`
+                    : "Start logging submissions and techniques during your rolls to see analytics on your technique usage and proficiency."
+                }
+                actionLabel={selectedTypes.length > 0 ? undefined : "Log Session"}
+                actionPath={selectedTypes.length > 0 ? undefined : "/log-session"}
               />
             </Card>
           ) : (
