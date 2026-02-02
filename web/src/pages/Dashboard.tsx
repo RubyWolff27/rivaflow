@@ -6,9 +6,12 @@ import { WeekAtGlance } from '../components/dashboard/WeekAtGlance';
 import { LastSession } from '../components/dashboard/LastSession';
 import { JourneyProgress } from '../components/dashboard/JourneyProgress';
 import { WeeklyGoalsBreakdown } from '../components/dashboard/WeeklyGoalsBreakdown';
+import { BetaBadge } from '../components/UpgradePrompt';
+import { useTier } from '../hooks/useTier';
 
 export default function Dashboard() {
   const navigate = useNavigate();
+  const tierInfo = useTier();
   const [readinessScore, setReadinessScore] = useState<number | null>(null);
   const [hasCheckedInToday, setHasCheckedInToday] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -40,6 +43,19 @@ export default function Dashboard() {
     }
   };
 
+  const getReadinessColor = (score: number): string => {
+    if (score >= 80) return '#10B981'; // Green
+    if (score >= 60) return '#F59E0B'; // Yellow
+    return '#EF4444'; // Red
+  };
+
+  const getReadinessLabel = (score: number): string => {
+    if (score >= 80) return 'Excellent';
+    if (score >= 60) return 'Good';
+    if (score >= 40) return 'Fair';
+    return 'Low';
+  };
+
   if (loading) {
     return <div className="text-center py-12">Loading...</div>;
   }
@@ -47,8 +63,9 @@ export default function Dashboard() {
   return (
     <div className="space-y-6">
       {/* Page Header */}
-      <div>
+      <div className="flex items-center gap-3">
         <h1 className="text-2xl font-semibold text-[var(--text)]" id="page-title">Dashboard</h1>
+        {tierInfo.isBeta && <BetaBadge />}
       </div>
 
       {/* Primary CTA */}
@@ -65,22 +82,30 @@ export default function Dashboard() {
         </div>
       </Card>
 
-      {/* Readiness Score - Prominent Display */}
+      {/* Readiness Score - Prominent Display with Color Coding */}
       {hasCheckedInToday && readinessScore !== null ? (
         <Link to="/readiness">
           <Card className="cursor-pointer hover:border-[var(--accent)] transition-colors">
             <div className="flex items-center justify-between">
               <div className="flex-1">
-                <h3 className="text-sm font-medium mb-1" style={{ color: 'var(--muted)' }}>Today's Readiness</h3>
+                <div className="flex items-center gap-2 mb-1">
+                  <h3 className="text-sm font-medium" style={{ color: 'var(--muted)' }}>Today's Readiness</h3>
+                  <span
+                    className="text-xs font-semibold px-2 py-0.5 rounded"
+                    style={{ backgroundColor: getReadinessColor(readinessScore), color: 'white' }}
+                  >
+                    {getReadinessLabel(readinessScore)}
+                  </span>
+                </div>
                 <div className="flex items-center gap-3">
-                  <span className="text-4xl font-bold" style={{ color: 'var(--accent)' }}>
+                  <span className="text-4xl font-bold" style={{ color: getReadinessColor(readinessScore) }}>
                     {readinessScore}
                   </span>
                   <span className="text-sm" style={{ color: 'var(--text)' }}>/ 100</span>
                 </div>
               </div>
               <div className="flex items-center gap-2">
-                <Activity className="w-5 h-5" style={{ color: 'var(--accent)' }} />
+                <Activity className="w-5 h-5" style={{ color: getReadinessColor(readinessScore) }} />
                 <span className="text-sm" style={{ color: 'var(--accent)' }}>View Details →</span>
               </div>
             </div>
