@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Card } from '../ui';
-import { Trophy, Award, Target } from 'lucide-react';
+import { Trophy, Target } from 'lucide-react';
 
 interface Milestone {
   id: number;

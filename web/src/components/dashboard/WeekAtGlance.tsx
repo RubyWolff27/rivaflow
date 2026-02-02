@@ -91,7 +91,6 @@ export function WeekAtGlance() {
     );
   }
 
-  const sessionDelta = (currentWeek.total_sessions || 0) - (previousWeek?.total_sessions || 0);
   const hoursDelta = (currentWeek.total_hours || 0) - (previousWeek?.total_hours || 0);
 
   return (

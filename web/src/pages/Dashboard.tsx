@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { dashboardApi } from '../api/client';
 import { Plus, Activity } from 'lucide-react';
 import { Card, PrimaryButton, SecondaryButton } from '../components/ui';
 import { WeekAtGlance } from '../components/dashboard/WeekAtGlance';
