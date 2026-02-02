@@ -25,7 +25,30 @@ def readiness(
         help="Date for check-in (YYYY-MM-DD). Defaults to today.",
     ),
 ):
-    """Log daily readiness check-in."""
+    """
+    Log daily readiness check-in to monitor recovery.
+
+    \b
+    Track four key metrics (1-5 scale):
+      • Sleep quality
+      • Stress level
+      • Muscle soreness
+      • Energy level
+
+    \b
+    Optional tracking:
+      • Body weight (kg)
+      • Injury/hotspot notes
+
+    \b
+    Examples:
+      # Log today's readiness
+      $ rivaflow readiness
+
+      # Log readiness for a specific date
+      $ rivaflow readiness --date 2026-02-01
+      $ rivaflow readiness -d 2026-02-01
+    """
     try:
         # Ensure user is logged in
         require_login()

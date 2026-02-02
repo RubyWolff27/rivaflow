@@ -23,7 +23,33 @@ app = typer.Typer(help="Log training sessions")
 def log(
     quick: bool = typer.Option(False, "--quick", "-q", help="Quick mode: minimal inputs only"),
 ):
-    """Log a training session."""
+    """
+    Log a training session with detailed tracking.
+
+    \b
+    QUICK MODE (--quick):
+      Fast session logging with minimal prompts.
+      Great for logging on the go.
+
+    \b
+    FULL MODE (default):
+      Complete session tracking with:
+      • Partners and rolls
+      • Submissions for/against
+      • Techniques learned
+      • Notes and reflections
+
+    \b
+    Examples:
+      # Quick log (2-3 prompts only)
+      $ rivaflow log --quick
+
+      # Full detailed session
+      $ rivaflow log
+
+      # Log with short option
+      $ rivaflow log -q
+    """
     try:
         # Ensure user is logged in
         require_login()

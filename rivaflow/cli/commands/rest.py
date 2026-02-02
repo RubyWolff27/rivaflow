@@ -62,12 +62,26 @@ def rest(
     tomorrow: Optional[str] = typer.Option(None, "--tomorrow", help="Tomorrow's intention")
 ):
     """
-    Log a rest day. Quick and simple.
+    Log a rest/recovery day to maintain your check-in streak.
 
+    \b
+    Rest Types:
+      • recovery - Planned rest for recovery
+      • life - Life got in the way
+      • injury - Recovering from injury
+      • travel - Traveling or away from gym
+
+    \b
     Examples:
-        rivaflow rest                          # Default recovery day
-        rivaflow rest --type injury            # Injury rest
-        rivaflow rest -t travel -n "In Sydney"
+      # Quick recovery day
+      $ rivaflow rest
+
+      # Injury rest with note
+      $ rivaflow rest --type injury --note "Sore shoulder"
+      $ rivaflow rest -t injury -n "Knee tweak"
+
+      # Travel day with tomorrow's intention
+      $ rivaflow rest -t travel --tomorrow "Back to training!"
     """
     if ctx.invoked_subcommand is not None:
         return

@@ -21,7 +21,26 @@ def week(
     csv: bool = typer.Option(False, "--csv", help="Export to CSV"),
     output: Optional[str] = typer.Option(None, "--output", "-o", help="CSV output file"),
 ):
-    """Show current week report (Monday-Sunday)."""
+    """
+    Show current week training report (Monday-Sunday).
+
+    \b
+    Displays:
+      • Total sessions and hours
+      • Average intensity
+      • Rolls and submissions
+      • Class type breakdown
+      • Daily session list
+
+    \b
+    Examples:
+      # View week report
+      $ rivaflow report week
+
+      # Export to CSV
+      $ rivaflow report week --csv
+      $ rivaflow report week --output my_week.csv
+    """
     service = ReportService()
     start_date, end_date = service.get_week_dates()
 
@@ -38,7 +57,24 @@ def month(
     csv: bool = typer.Option(False, "--csv", help="Export to CSV"),
     output: Optional[str] = typer.Option(None, "--output", "-o", help="CSV output file"),
 ):
-    """Show current month report."""
+    """
+    Show current month training report.
+
+    \b
+    Monthly summary including:
+      • Training volume and trends
+      • Performance metrics
+      • Weekly comparison
+      • Top techniques
+
+    \b
+    Examples:
+      # View month report
+      $ rivaflow report month
+
+      # Export month data
+      $ rivaflow report month --csv
+    """
     service = ReportService()
     start_date, end_date = service.get_month_dates()
 
@@ -57,7 +93,27 @@ def range(
     csv: bool = typer.Option(False, "--csv", help="Export to CSV"),
     output: Optional[str] = typer.Option(None, "--output", "-o", help="CSV output file"),
 ):
-    """Show report for custom date range."""
+    """
+    Show training report for custom date range.
+
+    \b
+    Create reports for any time period:
+      • Belt promotion periods
+      • Training camps
+      • Competition prep cycles
+      • Injury recovery periods
+
+    \b
+    Examples:
+      # Last 30 days
+      $ rivaflow report range 2026-01-03 2026-02-02
+
+      # Competition prep (3 months)
+      $ rivaflow report range 2025-11-01 2026-02-01
+
+      # Export belt period
+      $ rivaflow report range 2025-06-01 2025-12-31 --csv
+    """
     service = ReportService()
 
     # Parse dates
