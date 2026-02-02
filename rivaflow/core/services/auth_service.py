@@ -437,4 +437,8 @@ class AuthService:
             sanitized["created_at"] = sanitized["created_at"].isoformat()
         if "updated_at" in sanitized and hasattr(sanitized["updated_at"], "isoformat"):
             sanitized["updated_at"] = sanitized["updated_at"].isoformat()
+        if "tier_expires_at" in sanitized and sanitized["tier_expires_at"] and hasattr(sanitized["tier_expires_at"], "isoformat"):
+            sanitized["tier_expires_at"] = sanitized["tier_expires_at"].isoformat()
+        if "beta_joined_at" in sanitized and sanitized["beta_joined_at"] and hasattr(sanitized["beta_joined_at"], "isoformat"):
+            sanitized["beta_joined_at"] = sanitized["beta_joined_at"].isoformat()
         return sanitized

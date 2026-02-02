@@ -16,8 +16,8 @@ class UserRepository:
         first_name: Optional[str] = None,
         last_name: Optional[str] = None,
         is_active: bool = True,
-        subscription_tier: str = "beta",  # Auto-enroll new users as beta for now
-        is_beta_user: bool = True,
+        subscription_tier: str = "free",  # Default to free tier
+        is_beta_user: bool = False,  # Beta period ended, new users start as free
     ) -> dict:
         """
         Create a new user.
@@ -28,8 +28,8 @@ class UserRepository:
             first_name: User's first name
             last_name: User's last name
             is_active: Whether the user account is active
-            subscription_tier: Subscription tier (default: beta for initial rollout)
-            is_beta_user: Whether user has beta access (default: True for initial rollout)
+            subscription_tier: Subscription tier (default: free)
+            is_beta_user: Whether user has beta access (default: False)
 
         Returns:
             Dictionary representation of the created user
@@ -220,6 +220,10 @@ class UserRepository:
             data["created_at"] = datetime.fromisoformat(data["created_at"])
         if data.get("updated_at") and isinstance(data["updated_at"], str):
             data["updated_at"] = datetime.fromisoformat(data["updated_at"])
+        if data.get("tier_expires_at") and isinstance(data["tier_expires_at"], str):
+            data["tier_expires_at"] = datetime.fromisoformat(data["tier_expires_at"])
+        if data.get("beta_joined_at") and isinstance(data["beta_joined_at"], str):
+            data["beta_joined_at"] = datetime.fromisoformat(data["beta_joined_at"])
 
         # Remove hashed_password from returned dict for security
         # (services that need it can access directly from row)
