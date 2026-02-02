@@ -178,61 +178,34 @@ class SessionService:
         self,
         user_id: int,
         session_id: int,
-        session_date: Optional[date] = None,
-        class_time: Optional[str] = None,
-        class_type: Optional[str] = None,
-        gym_name: Optional[str] = None,
-        location: Optional[str] = None,
-        duration_mins: Optional[int] = None,
-        intensity: Optional[int] = None,
-        rolls: Optional[int] = None,
-        submissions_for: Optional[int] = None,
-        submissions_against: Optional[int] = None,
-        partners: Optional[list[str]] = None,
-        techniques: Optional[list[str]] = None,
-        notes: Optional[str] = None,
-        visibility_level: Optional[str] = None,
-        instructor_id: Optional[int] = None,
-        instructor_name: Optional[str] = None,
         session_techniques: Optional[List[dict]] = None,
-        whoop_strain: Optional[float] = None,
-        whoop_calories: Optional[int] = None,
-        whoop_avg_hr: Optional[int] = None,
-        whoop_max_hr: Optional[int] = None,
+        **kwargs
     ) -> Optional[dict]:
         """
         Update a training session and refresh technique tracking.
-        Returns updated session or None if not found.
+
+        Args:
+            user_id: User ID for authorization
+            session_id: Session ID to update
+            session_techniques: Optional list of technique detail dicts
+            **kwargs: Session fields to update (session_date, class_type, intensity, etc.)
+
+        Returns:
+            Updated session dict or None if not found
+
+        Example:
+            update_session(user_id=1, session_id=123, intensity=5, notes="Great!")
         """
         # Get original session to compare techniques
         original = self.session_repo.get_by_id(user_id, session_id)
         if not original:
             return None
 
-        # Update session
+        # Update session (pass all kwargs to repo)
         updated = self.session_repo.update(
             user_id=user_id,
             session_id=session_id,
-            session_date=session_date,
-            class_time=class_time,
-            class_type=class_type,
-            gym_name=gym_name,
-            location=location,
-            duration_mins=duration_mins,
-            intensity=intensity,
-            rolls=rolls,
-            submissions_for=submissions_for,
-            submissions_against=submissions_against,
-            partners=partners,
-            techniques=techniques,
-            notes=notes,
-            visibility_level=visibility_level,
-            instructor_id=instructor_id,
-            instructor_name=instructor_name,
-            whoop_strain=whoop_strain,
-            whoop_calories=whoop_calories,
-            whoop_avg_hr=whoop_avg_hr,
-            whoop_max_hr=whoop_max_hr,
+            **kwargs
         )
 
         if not updated:

@@ -127,101 +127,68 @@ class SessionRepository:
     def update(
         user_id: int,
         session_id: int,
-        session_date: Optional[date] = None,
-        class_time: Optional[str] = None,
-        class_type: Optional[str] = None,
-        gym_name: Optional[str] = None,
-        location: Optional[str] = None,
-        duration_mins: Optional[int] = None,
-        intensity: Optional[int] = None,
-        rolls: Optional[int] = None,
-        submissions_for: Optional[int] = None,
-        submissions_against: Optional[int] = None,
-        partners: Optional[list[str]] = None,
-        techniques: Optional[list[str]] = None,
-        notes: Optional[str] = None,
-        visibility_level: Optional[str] = None,
-        instructor_id: Optional[int] = None,
-        instructor_name: Optional[str] = None,
-        whoop_strain: Optional[float] = None,
-        whoop_calories: Optional[int] = None,
-        whoop_avg_hr: Optional[int] = None,
-        whoop_max_hr: Optional[int] = None,
+        **kwargs
     ) -> Optional[dict]:
-        """Update a session by ID. Returns updated session or None if not found."""
+        """
+        Update a session by ID with flexible field updates.
+
+        Args:
+            user_id: User ID (for authorization)
+            session_id: Session ID to update
+            **kwargs: Fields to update (session_date, class_type, gym_name, etc.)
+
+        Returns:
+            Updated session dict or None if not found
+
+        Example:
+            update(user_id=1, session_id=123, intensity=5, notes="Great session!")
+        """
         with get_connection() as conn:
             cursor = conn.cursor()
 
-            # Build dynamic update query
+            # Define field handlers for special processing
+            # Most fields pass through directly, but some need transformation
+            field_processors = {
+                "session_date": lambda v: v.isoformat() if v else None,
+                "partners": lambda v: json.dumps(v) if v else None,
+                "techniques": lambda v: json.dumps(v) if v else None,
+            }
+
+            # Build update query dynamically from provided kwargs
             updates = []
             params = []
 
-            if session_date is not None:
-                updates.append("session_date = ?")
-                params.append(session_date.isoformat())
-            if class_time is not None:
-                updates.append("class_time = ?")
-                params.append(class_time)
-            if class_type is not None:
-                updates.append("class_type = ?")
-                params.append(class_type)
-            if gym_name is not None:
-                updates.append("gym_name = ?")
-                params.append(gym_name)
-            if location is not None:
-                updates.append("location = ?")
-                params.append(location)
-            if duration_mins is not None:
-                updates.append("duration_mins = ?")
-                params.append(duration_mins)
-            if intensity is not None:
-                updates.append("intensity = ?")
-                params.append(intensity)
-            if rolls is not None:
-                updates.append("rolls = ?")
-                params.append(rolls)
-            if submissions_for is not None:
-                updates.append("submissions_for = ?")
-                params.append(submissions_for)
-            if submissions_against is not None:
-                updates.append("submissions_against = ?")
-                params.append(submissions_against)
-            if partners is not None:
-                updates.append("partners = ?")
-                params.append(json.dumps(partners) if partners else None)
-            if techniques is not None:
-                updates.append("techniques = ?")
-                params.append(json.dumps(techniques) if techniques else None)
-            if notes is not None:
-                updates.append("notes = ?")
-                params.append(notes)
-            if visibility_level is not None:
-                updates.append("visibility_level = ?")
-                params.append(visibility_level)
-            if instructor_id is not None:
-                updates.append("instructor_id = ?")
-                params.append(instructor_id)
-            if instructor_name is not None:
-                updates.append("instructor_name = ?")
-                params.append(instructor_name)
-            if whoop_strain is not None:
-                updates.append("whoop_strain = ?")
-                params.append(whoop_strain)
-            if whoop_calories is not None:
-                updates.append("whoop_calories = ?")
-                params.append(whoop_calories)
-            if whoop_avg_hr is not None:
-                updates.append("whoop_avg_hr = ?")
-                params.append(whoop_avg_hr)
-            if whoop_max_hr is not None:
-                updates.append("whoop_max_hr = ?")
-                params.append(whoop_max_hr)
+            # Valid fields that can be updated
+            valid_fields = {
+                "session_date", "class_time", "class_type", "gym_name", "location",
+                "duration_mins", "intensity", "rolls", "submissions_for",
+                "submissions_against", "partners", "techniques", "notes",
+                "visibility_level", "instructor_id", "instructor_name",
+                "whoop_strain", "whoop_calories", "whoop_avg_hr", "whoop_max_hr"
+            }
+
+            # Process each provided field
+            for field, value in kwargs.items():
+                if field not in valid_fields:
+                    continue  # Skip invalid fields
+
+                if value is not None:  # Only update if value provided
+                    updates.append(f"{field} = ?")
+
+                    # Apply processor if field has special handling
+                    if field in field_processors:
+                        params.append(field_processors[field](value))
+                    else:
+                        params.append(value)
 
             if not updates:
                 # Nothing to update, return current session
                 return SessionRepository.get_by_id(user_id, session_id)
 
+            # Always update timestamp
             updates.append("updated_at = CURRENT_TIMESTAMP")
+
+            # Build and execute query
             params.extend([session_id, user_id])
             query = f"UPDATE sessions SET {', '.join(updates)} WHERE id = ? AND user_id = ?"
             cursor.execute(convert_query(query), params)
