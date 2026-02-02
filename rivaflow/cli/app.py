@@ -16,6 +16,7 @@ from rivaflow.cli.commands import (
     streak,
     tomorrow,
     progress,
+    setup,
 )
 
 app = typer.Typer(
@@ -27,6 +28,7 @@ app = typer.Typer(
 
 # Register subcommands
 app.add_typer(auth.app, name="auth")
+app.add_typer(setup.app, name="setup")  # Onboarding wizard
 app.add_typer(log.app, name="log")
 app.add_typer(readiness.app, name="readiness")
 app.add_typer(report.app, name="report")
