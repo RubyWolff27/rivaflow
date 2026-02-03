@@ -63,10 +63,18 @@ class GoalsService:
         actual_hours = round(sum(s["duration_mins"] for s in sessions) / 60, 1)
         actual_rolls = sum(s["rolls"] for s in sessions)
 
+        # Calculate activity type breakdown
+        bjj_sessions = sum(1 for s in sessions if s.get("class_type") in ["gi", "no-gi", "open-mat", "competition"])
+        sc_sessions = sum(1 for s in sessions if s.get("class_type") == "s&c")
+        mobility_sessions = sum(1 for s in sessions if s.get("class_type") in ["mobility", "recovery"])
+
         actual = {
             "sessions": actual_sessions,
             "hours": actual_hours,
             "rolls": actual_rolls,
+            "bjj_sessions": bjj_sessions,
+            "sc_sessions": sc_sessions,
+            "mobility_sessions": mobility_sessions,
         }
 
         # Calculate progress percentages
