@@ -452,6 +452,8 @@ class UserUpdateRequest(BaseModel):
     """Request model for updating a user."""
     is_active: Optional[bool] = None
     is_admin: Optional[bool] = None
+    subscription_tier: Optional[str] = Field(None, pattern="^(free|premium|lifetime_premium|admin)$")
+    is_beta_user: Optional[bool] = None
 
 
 @router.get("/users")
@@ -471,7 +473,7 @@ async def list_users(
     with get_connection() as conn:
         cursor = conn.cursor()
 
-        query = "SELECT id, email, first_name, last_name, is_active, is_admin, created_at FROM users WHERE 1=1"
+        query = "SELECT id, email, first_name, last_name, is_active, is_admin, subscription_tier, is_beta_user, created_at FROM users WHERE 1=1"
         params = []
 
         if search:
@@ -607,6 +609,16 @@ async def update_user(
             updates.append("is_admin = ?")
             params.append(user_data.is_admin)
             changes["is_admin"] = user_data.is_admin
+
+        if user_data.subscription_tier is not None:
+            updates.append("subscription_tier = ?")
+            params.append(user_data.subscription_tier)
+            changes["subscription_tier"] = user_data.subscription_tier
+
+        if user_data.is_beta_user is not None:
+            updates.append("is_beta_user = ?")
+            params.append(user_data.is_beta_user)
+            changes["is_beta_user"] = user_data.is_beta_user
 
         if updates:
             query = f"UPDATE users SET {', '.join(updates)} WHERE id = ?"
