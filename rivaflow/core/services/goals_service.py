@@ -45,8 +45,12 @@ class GoalsService:
                 "days_remaining": 3
             }
         """
+        import logging
+        logger = logging.getLogger(__name__)
+
         # Get current week date range (Monday-Sunday)
         week_start, week_end = self.report_service.get_week_dates()
+        logger.info(f"[DEBUG] Week range: {week_start} to {week_end}")
 
         # Get profile targets
         profile = self.profile_repo.get(user_id)
@@ -61,6 +65,9 @@ class GoalsService:
 
         # Get actual progress from sessions this week
         sessions = self.session_repo.get_by_date_range(user_id, week_start, week_end)
+        logger.info(f"[DEBUG] Retrieved {len(sessions)} sessions for week")
+        for s in sessions:
+            logger.info(f"[DEBUG] Session: date={s.get('session_date')}, type={s.get('class_type')}, duration={s.get('duration_mins')}")
 
         actual_sessions = len(sessions)
         actual_hours = round(sum(s["duration_mins"] for s in sessions) / 60, 1)
@@ -70,6 +77,8 @@ class GoalsService:
         bjj_sessions = sum(1 for s in sessions if s.get("class_type") in ["gi", "no-gi", "open-mat", "competition"])
         sc_sessions = sum(1 for s in sessions if s.get("class_type") in ["s&c", "cardio"])  # Include cardio as S&C
         mobility_sessions = sum(1 for s in sessions if s.get("class_type") in ["mobility", "recovery", "physio"])  # Include physio
+
+        logger.info(f"[DEBUG] Activity breakdown: BJJ={bjj_sessions}, S&C={sc_sessions}, Mobility={mobility_sessions}")
 
         actual = {
             "sessions": actual_sessions,
