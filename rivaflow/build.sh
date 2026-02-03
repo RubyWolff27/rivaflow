@@ -7,7 +7,7 @@ echo "==> Installing Python dependencies..."
 pip install --upgrade pip setuptools wheel
 
 echo "==> Installing RivaFlow package..."
-pip install -e .
+pip install .
 
 echo "==> Initializing database..."
 python -c "from rivaflow.db.database import init_db; init_db()"
