@@ -16,8 +16,12 @@ interface Milestone {
 interface Profile {
   belt_rank?: string;
   belt_stripes?: number;
+  current_grade?: string;
   total_sessions?: number;
   total_hours?: number;
+  sessions_since_promotion?: number;
+  hours_since_promotion?: number;
+  promotion_date?: string;
 }
 
 const BELT_COLORS: Record<string, string> = {
@@ -80,9 +84,15 @@ export function JourneyProgress() {
     );
   }
 
-  const beltColor = BELT_COLORS[profile?.belt_rank || 'white'] || '#9CA3AF';
-  const beltRank = profile?.belt_rank ? profile.belt_rank.charAt(0).toUpperCase() + profile.belt_rank.slice(1) : 'White';
-  const stripes = profile?.belt_stripes || 0;
+  // Use current_grade or belt_rank (fallback for compatibility)
+  const gradeStr = profile?.current_grade || profile?.belt_rank || 'white';
+  const beltBase = gradeStr.toLowerCase().split(' ')[0]; // Extract base belt color (e.g., "blue" from "Blue (1 stripe)")
+  const beltColor = BELT_COLORS[beltBase] || '#9CA3AF';
+  const beltRank = beltBase.charAt(0).toUpperCase() + beltBase.slice(1);
+
+  // Extract stripes from grade string like "Blue (2 stripes)"
+  const stripeMatch = gradeStr.match(/\((\d+) stripe/i);
+  const stripes = stripeMatch ? parseInt(stripeMatch[1]) : (profile?.belt_stripes || 0);
 
   return (
     <Card className="p-6">
@@ -173,19 +183,23 @@ export function JourneyProgress() {
         </div>
       )}
 
-      {/* Quick Stats */}
+      {/* Quick Stats - Sessions/Hours since last promotion */}
       <div className="grid grid-cols-2 gap-3 mt-4">
         <div>
           <p className="text-2xl font-bold" style={{ color: 'var(--text)' }}>
-            {profile?.total_sessions || 0}
+            {profile?.sessions_since_promotion || 0}
           </p>
-          <p className="text-xs" style={{ color: 'var(--muted)' }}>Total Sessions</p>
+          <p className="text-xs" style={{ color: 'var(--muted)' }}>
+            Sessions at {beltRank}
+          </p>
         </div>
         <div>
           <p className="text-2xl font-bold" style={{ color: 'var(--text)' }}>
-            {profile?.total_hours?.toFixed(0) || 0}
+            {profile?.hours_since_promotion?.toFixed(0) || 0}
           </p>
-          <p className="text-xs" style={{ color: 'var(--muted)' }}>Total Hours</p>
+          <p className="text-xs" style={{ color: 'var(--muted)' }}>
+            Hours at {beltRank}
+          </p>
         </div>
       </div>
     </Card>

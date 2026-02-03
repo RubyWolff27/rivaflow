@@ -30,6 +30,9 @@ class ProfileUpdate(BaseModel):
     weekly_sessions_target: Optional[int] = None
     weekly_hours_target: Optional[float] = None
     weekly_rolls_target: Optional[int] = None
+    weekly_bjj_sessions_target: Optional[int] = None
+    weekly_sc_sessions_target: Optional[int] = None
+    weekly_mobility_sessions_target: Optional[int] = None
     show_streak_on_dashboard: Optional[bool] = None
     show_weekly_goals: Optional[bool] = None
     avatar_url: Optional[str] = None
@@ -79,6 +82,9 @@ async def update_profile(profile: ProfileUpdate, current_user: dict = Depends(ge
         weekly_sessions_target=profile.weekly_sessions_target,
         weekly_hours_target=profile.weekly_hours_target,
         weekly_rolls_target=profile.weekly_rolls_target,
+        weekly_bjj_sessions_target=profile.weekly_bjj_sessions_target,
+        weekly_sc_sessions_target=profile.weekly_sc_sessions_target,
+        weekly_mobility_sessions_target=profile.weekly_mobility_sessions_target,
         show_streak_on_dashboard=profile.show_streak_on_dashboard,
         show_weekly_goals=profile.show_weekly_goals,
     )

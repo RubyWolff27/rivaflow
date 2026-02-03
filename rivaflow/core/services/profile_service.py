@@ -26,8 +26,46 @@ class ProfileService:
         self.upload_dir.mkdir(parents=True, exist_ok=True)
 
     def get_profile(self, user_id: int) -> Optional[dict]:
-        """Get the user profile."""
-        return self.repo.get(user_id)
+        """Get the user profile with progress stats since last promotion."""
+        profile = self.repo.get(user_id)
+        if not profile:
+            return None
+
+        # Calculate sessions and hours since last belt promotion
+        from rivaflow.db.repositories.grading_repo import GradingRepository
+        from rivaflow.db.repositories.session_repo import SessionRepository
+        from datetime import date
+
+        grading_repo = GradingRepository()
+        session_repo = SessionRepository()
+
+        latest_grading = grading_repo.get_latest(user_id)
+
+        if latest_grading and latest_grading.get('date_graded'):
+            # Get sessions since last grading date
+            grading_date_str = latest_grading['date_graded']
+            if isinstance(grading_date_str, str):
+                grading_date = date.fromisoformat(grading_date_str)
+            else:
+                grading_date = grading_date_str
+
+            today = date.today()
+            sessions_since_promotion = session_repo.get_by_date_range(user_id, grading_date, today)
+
+            total_sessions_since = len(sessions_since_promotion)
+            total_hours_since = sum(s.get('duration_mins', 0) for s in sessions_since_promotion) / 60
+
+            profile['sessions_since_promotion'] = total_sessions_since
+            profile['hours_since_promotion'] = round(total_hours_since, 1)
+            profile['promotion_date'] = grading_date_str
+        else:
+            # No promotion yet, count all sessions
+            all_sessions = session_repo.get_by_date_range(user_id, date(2020, 1, 1), date.today())
+            profile['sessions_since_promotion'] = len(all_sessions)
+            profile['hours_since_promotion'] = round(sum(s.get('duration_mins', 0) for s in all_sessions) / 60, 1)
+            profile['promotion_date'] = None
+
+        return profile
 
     def update_profile(
         self,
