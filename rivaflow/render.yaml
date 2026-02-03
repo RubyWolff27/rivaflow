@@ -8,8 +8,8 @@ services:
     branch: main
 
     buildCommand: |
-      pip install --upgrade pip
-      pip install -e .
+      pip install --upgrade pip setuptools wheel
+      pip install .
       python -c "from rivaflow.db.database import init_db; init_db()"
 
     startCommand: uvicorn rivaflow.api.main:app --host 0.0.0.0 --port $PORT

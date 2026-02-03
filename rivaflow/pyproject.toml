@@ -80,9 +80,21 @@ Repository = "https://github.com/RubyWolff27/rivaflow"
 Issues = "https://github.com/RubyWolff27/rivaflow/issues"
 Changelog = "https://github.com/RubyWolff27/rivaflow/blob/main/CHANGELOG.md"
 
-[tool.setuptools.packages.find]
-where = ["."]
-include = ["rivaflow*"]
+[tool.setuptools]
+packages = [
+    "rivaflow",
+    "rivaflow.api",
+    "rivaflow.api.routes",
+    "rivaflow.cache",
+    "rivaflow.cli",
+    "rivaflow.cli.commands",
+    "rivaflow.core",
+    "rivaflow.core.middleware",
+    "rivaflow.core.services",
+    "rivaflow.core.services.grapple",
+    "rivaflow.db",
+    "rivaflow.db.repositories",
+]
 
 [tool.setuptools.package-data]
 "*" = ["db/migrations/*.sql", "VERSION"]
