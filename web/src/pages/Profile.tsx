@@ -1010,7 +1010,7 @@ export default function Profile() {
 
         {/* Current Grade Display */}
         {profile?.current_grade && (() => {
-          const { beltColor, beltName, stripes, fullGrade } = parseBeltGrade(profile.current_grade);
+          const { beltColor, beltName, stripes } = parseBeltGrade(profile.current_grade);
           return (
             <div className="mb-6 p-4 bg-gradient-to-r from-primary-50 to-blue-50 dark:from-primary-900/20 dark:to-blue-900/20 rounded-lg">
               <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">Current Grade</p>
@@ -1165,7 +1165,7 @@ export default function Profile() {
           <div className="space-y-3">
             <h3 className="text-sm font-semibold text-gray-600 dark:text-gray-400 uppercase">History</h3>
             {gradings.map((grading) => {
-              const { beltColor, beltName, stripes } = parseBeltGrade(grading.grade);
+              const { beltColor, stripes } = parseBeltGrade(grading.grade);
               return (
                 <div
                   key={grading.id}
