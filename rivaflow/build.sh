@@ -3,6 +3,12 @@
 
 set -e  # Exit on error
 
+echo "==> RivaFlow Build Script v0.2.0-FIXED (no AI deps, non-editable install)"
+echo "==> Git commit: $(git rev-parse --short HEAD 2>/dev/null || echo 'unknown')"
+if [ -f rivaflow/VERSION ]; then
+    echo "==> Package version: $(cat rivaflow/VERSION)"
+fi
+
 echo "==> Installing Python dependencies..."
 pip install --upgrade pip setuptools wheel
 
