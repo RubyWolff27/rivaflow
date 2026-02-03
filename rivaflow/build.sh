@@ -1,40 +1,32 @@
 #!/bin/bash
-# Render build script for RivaFlow v0.2.0
+set -e
 
-set -e  # Exit on error
+echo "========================================================================"
+echo "RivaFlow Build v0.2.0 - NO AI DEPENDENCIES"
+echo "Commit: $(git rev-parse --short HEAD 2>/dev/null || echo 'unknown')"
+echo "========================================================================"
 
-echo ""
-echo "████████████████████████████████████████████████████████████████████████████████"
-echo "██                                                                            ██"
-echo "██  RivaFlow Build Script v0.2.0-NO-AI-DEPS                                   ██"
-echo "██  Git commit: $(git rev-parse --short HEAD 2>/dev/null || echo 'UNKNOWN')                                                     ██"
-echo "██  Build time: $(date -u +"%Y-%m-%d %H:%M:%S UTC")                            ██"
-echo "██                                                                            ██"
-echo "████████████████████████████████████████████████████████████████████████████████"
-echo ""
-
+# Verify we have the VERSION file (proves we're using fresh code)
 if [ -f rivaflow/VERSION ]; then
-    echo "✓ Found VERSION file: $(cat rivaflow/VERSION)"
+    echo "✓ VERSION file found: $(cat rivaflow/VERSION)"
 else
-    echo "✗ WARNING: VERSION file not found - using stale code!"
+    echo "✗ ERROR: VERSION file not found - using STALE CACHED CODE!"
+    echo "This build should FAIL to alert you to the cache problem."
+    exit 1
 fi
 
-echo ""
-echo "==> Installing Python dependencies..."
+echo "==> Upgrading pip..."
 pip install --upgrade pip setuptools wheel
 
-echo ""
-echo "==> Installing RivaFlow package (NON-EDITABLE)..."
+echo "==> Installing RivaFlow (non-editable)..."
 pip install .
 
-echo ""
-echo "==> Verifying NO AI dependencies installed..."
+echo "==> Checking for forbidden AI dependencies..."
 python verify_no_ai_deps.py
 
-echo ""
 echo "==> Initializing database..."
 python -c "from rivaflow.db.database import init_db; init_db()"
 
-echo ""
-echo "==> Build complete!"
-echo "████████████████████████████████████████████████████████████████████████████████"
+echo "========================================================================"
+echo "✓ Build complete - v0.2.0"
+echo "========================================================================"
