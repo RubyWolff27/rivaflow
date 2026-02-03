@@ -216,7 +216,8 @@ class SessionService:
             # Delete existing technique records
             self.technique_detail_repo.delete_by_session(session_id)
             # Create new technique records
-            updated_date = session_date if session_date else original["session_date"]
+            # Use the session date from the updated session (which includes any changes from kwargs)
+            updated_date = updated["session_date"]
             for tech_data in session_techniques:
                 self.technique_detail_repo.create(
                     user_id=user_id,
@@ -236,8 +237,10 @@ class SessionService:
                         self.technique_repo.update_last_trained(tech["id"], updated_date)
 
         # Update technique last_trained_date if techniques changed (from simple techniques field)
+        techniques = kwargs.get('techniques')
         if techniques is not None:
-            updated_date = session_date if session_date else original["session_date"]
+            # Use the session date from the updated session
+            updated_date = updated["session_date"]
             for tech_name in techniques:
                 tech = self.technique_repo.get_or_create(tech_name)
                 self.technique_repo.update_last_trained(tech["id"], updated_date)
