@@ -7,6 +7,9 @@ interface WeeklyGoalProgress {
   targets: {
     sessions?: number;
     hours?: number;
+    bjj_sessions?: number;
+    sc_sessions?: number;
+    mobility_sessions?: number;
   };
   actual: {
     sessions?: number;
@@ -18,6 +21,9 @@ interface WeeklyGoalProgress {
   progress: {
     sessions_pct?: number;
     hours_pct?: number;
+    bjj_sessions_pct?: number;
+    sc_sessions_pct?: number;
+    mobility_sessions_pct?: number;
   };
 }
 
@@ -83,6 +89,9 @@ export function WeeklyGoalsBreakdown() {
   const targetSessions = goals.targets?.sessions || 3;
   const targetHours = goals.targets?.hours || 5;
   const actualHours = goals.actual?.hours || 0;
+  const targetBjj = goals.targets?.bjj_sessions || 3;
+  const targetSC = goals.targets?.sc_sessions || 1;
+  const targetMobility = goals.targets?.mobility_sessions || 0;
 
   return (
     <Card className="p-6">
@@ -149,32 +158,72 @@ export function WeeklyGoalsBreakdown() {
         </div>
       </div>
 
-      {/* Activity Breakdown */}
-      <div>
+      {/* Activity-Specific Goals */}
+      <div className="space-y-3">
         <p className="text-sm font-medium mb-3" style={{ color: 'var(--text)' }}>
-          Activity Breakdown
+          Activity Goals
         </p>
-        <div className="grid grid-cols-3 gap-3">
-          <div
-            className="p-3 rounded-lg text-center"
-            style={{ backgroundColor: 'var(--surfaceElev)', border: '1px solid var(--border)' }}
-          >
-            <p className="text-2xl font-bold" style={{ color: '#3B82F6' }}>{bjjSessions}</p>
-            <p className="text-xs" style={{ color: 'var(--muted)' }}>BJJ</p>
+
+        {/* BJJ Sessions */}
+        <div>
+          <div className="flex items-center justify-between mb-1">
+            <span className="text-xs font-medium" style={{ color: 'var(--text)' }}>
+              BJJ Sessions
+            </span>
+            <span className="text-xs" style={{ color: 'var(--muted)' }}>
+              {bjjSessions} / {targetBjj}
+            </span>
           </div>
-          <div
-            className="p-3 rounded-lg text-center"
-            style={{ backgroundColor: 'var(--surfaceElev)', border: '1px solid var(--border)' }}
-          >
-            <p className="text-2xl font-bold" style={{ color: '#EF4444' }}>{scSessions}</p>
-            <p className="text-xs" style={{ color: 'var(--muted)' }}>S&C</p>
+          <div className="w-full h-2 rounded-full" style={{ backgroundColor: 'var(--border)' }}>
+            <div
+              className="h-2 rounded-full transition-all"
+              style={{
+                width: `${Math.min(100, (goals.progress?.bjj_sessions_pct || 0))}%`,
+                backgroundColor: '#3B82F6',
+              }}
+            />
           </div>
-          <div
-            className="p-3 rounded-lg text-center"
-            style={{ backgroundColor: 'var(--surfaceElev)', border: '1px solid var(--border)' }}
-          >
-            <p className="text-2xl font-bold" style={{ color: '#10B981' }}>{mobilitySessions}</p>
-            <p className="text-xs" style={{ color: 'var(--muted)' }}>Mobility</p>
+        </div>
+
+        {/* S&C Sessions */}
+        <div>
+          <div className="flex items-center justify-between mb-1">
+            <span className="text-xs font-medium" style={{ color: 'var(--text)' }}>
+              S&C Sessions
+            </span>
+            <span className="text-xs" style={{ color: 'var(--muted)' }}>
+              {scSessions} / {targetSC}
+            </span>
+          </div>
+          <div className="w-full h-2 rounded-full" style={{ backgroundColor: 'var(--border)' }}>
+            <div
+              className="h-2 rounded-full transition-all"
+              style={{
+                width: `${Math.min(100, (goals.progress?.sc_sessions_pct || 0))}%`,
+                backgroundColor: '#EF4444',
+              }}
+            />
+          </div>
+        </div>
+
+        {/* Mobility Sessions */}
+        <div>
+          <div className="flex items-center justify-between mb-1">
+            <span className="text-xs font-medium" style={{ color: 'var(--text)' }}>
+              Mobility Sessions
+            </span>
+            <span className="text-xs" style={{ color: 'var(--muted)' }}>
+              {mobilitySessions} / {targetMobility}
+            </span>
+          </div>
+          <div className="w-full h-2 rounded-full" style={{ backgroundColor: 'var(--border)' }}>
+            <div
+              className="h-2 rounded-full transition-all"
+              style={{
+                width: `${Math.min(100, (goals.progress?.mobility_sessions_pct || 0))}%`,
+                backgroundColor: '#10B981',
+              }}
+            />
           </div>
         </div>
       </div>

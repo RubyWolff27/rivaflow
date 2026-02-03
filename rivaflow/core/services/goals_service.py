@@ -54,6 +54,9 @@ class GoalsService:
             "sessions": profile.get("weekly_sessions_target", 3),
             "hours": profile.get("weekly_hours_target", 4.5),
             "rolls": profile.get("weekly_rolls_target", 15),
+            "bjj_sessions": profile.get("weekly_bjj_sessions_target", 3),
+            "sc_sessions": profile.get("weekly_sc_sessions_target", 1),
+            "mobility_sessions": profile.get("weekly_mobility_sessions_target", 0),
         }
 
         # Get actual progress from sessions this week
@@ -82,6 +85,9 @@ class GoalsService:
             "sessions_pct": round((actual_sessions / targets["sessions"] * 100), 1) if targets["sessions"] > 0 else 0,
             "hours_pct": round((actual_hours / targets["hours"] * 100), 1) if targets["hours"] > 0 else 0,
             "rolls_pct": round((actual_rolls / targets["rolls"] * 100), 1) if targets["rolls"] > 0 else 0,
+            "bjj_sessions_pct": round((bjj_sessions / targets["bjj_sessions"] * 100), 1) if targets["bjj_sessions"] > 0 else 0,
+            "sc_sessions_pct": round((sc_sessions / targets["sc_sessions"] * 100), 1) if targets["sc_sessions"] > 0 else 0,
+            "mobility_sessions_pct": round((mobility_sessions / targets["mobility_sessions"] * 100), 1) if targets["mobility_sessions"] > 0 else 0,
         }
         progress["overall_pct"] = round(
             (progress["sessions_pct"] + progress["hours_pct"] + progress["rolls_pct"]) / 3, 1
@@ -211,6 +217,9 @@ class GoalsService:
         weekly_sessions_target: Optional[int] = None,
         weekly_hours_target: Optional[float] = None,
         weekly_rolls_target: Optional[int] = None,
+        weekly_bjj_sessions_target: Optional[int] = None,
+        weekly_sc_sessions_target: Optional[int] = None,
+        weekly_mobility_sessions_target: Optional[int] = None,
     ) -> dict:
         """Update weekly goal targets in profile.
 
@@ -226,6 +235,12 @@ class GoalsService:
             updates["weekly_hours_target"] = weekly_hours_target
         if weekly_rolls_target is not None:
             updates["weekly_rolls_target"] = weekly_rolls_target
+        if weekly_bjj_sessions_target is not None:
+            updates["weekly_bjj_sessions_target"] = weekly_bjj_sessions_target
+        if weekly_sc_sessions_target is not None:
+            updates["weekly_sc_sessions_target"] = weekly_sc_sessions_target
+        if weekly_mobility_sessions_target is not None:
+            updates["weekly_mobility_sessions_target"] = weekly_mobility_sessions_target
 
         if not updates:
             return profile

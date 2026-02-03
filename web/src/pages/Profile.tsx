@@ -70,6 +70,9 @@ export default function Profile() {
     weekly_sessions_target: 3,
     weekly_hours_target: 4.5,
     weekly_rolls_target: 15,
+    weekly_bjj_sessions_target: 3,
+    weekly_sc_sessions_target: 1,
+    weekly_mobility_sessions_target: 0,
     show_streak_on_dashboard: true,
     show_weekly_goals: true,
     avatar_url: '',
@@ -118,6 +121,9 @@ export default function Profile() {
         weekly_sessions_target: profileRes.data?.weekly_sessions_target ?? 3,
         weekly_hours_target: profileRes.data?.weekly_hours_target ?? 4.5,
         weekly_rolls_target: profileRes.data?.weekly_rolls_target ?? 15,
+        weekly_bjj_sessions_target: profileRes.data?.weekly_bjj_sessions_target ?? 3,
+        weekly_sc_sessions_target: profileRes.data?.weekly_sc_sessions_target ?? 1,
+        weekly_mobility_sessions_target: profileRes.data?.weekly_mobility_sessions_target ?? 0,
         show_streak_on_dashboard: profileRes.data?.show_streak_on_dashboard ?? true,
         show_weekly_goals: profileRes.data?.show_weekly_goals ?? true,
         avatar_url: profileRes.data?.avatar_url ?? '',
@@ -279,10 +285,18 @@ export default function Profile() {
     setSuccess(false);
 
     try {
+      // Auto-calculate total sessions as sum of activity-specific goals
+      const totalSessions = formData.weekly_bjj_sessions_target +
+                          formData.weekly_sc_sessions_target +
+                          formData.weekly_mobility_sessions_target;
+
       await profileApi.update({
-        weekly_sessions_target: formData.weekly_sessions_target,
+        weekly_sessions_target: totalSessions,
         weekly_hours_target: formData.weekly_hours_target,
         weekly_rolls_target: formData.weekly_rolls_target,
+        weekly_bjj_sessions_target: formData.weekly_bjj_sessions_target,
+        weekly_sc_sessions_target: formData.weekly_sc_sessions_target,
+        weekly_mobility_sessions_target: formData.weekly_mobility_sessions_target,
         show_streak_on_dashboard: formData.show_streak_on_dashboard,
         show_weekly_goals: formData.show_weekly_goals,
       });
@@ -782,37 +796,67 @@ export default function Profile() {
           Set your weekly training targets. These will be tracked on your dashboard.
         </p>
 
-        {/* Activity Breakdown Explanation */}
+        {/* Activity Goals Explanation */}
         <div className="mb-6 p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
           <h3 className="text-sm font-semibold text-blue-900 dark:text-blue-300 mb-2">
-            How Activity Breakdown Works
+            How Activity Goals Work
           </h3>
           <div className="text-xs text-blue-800 dark:text-blue-400 space-y-1">
-            <p>Your sessions are automatically categorized:</p>
+            <p>Set specific goals for each training type:</p>
             <ul className="list-disc list-inside ml-2 mt-1 space-y-0.5">
               <li><strong>BJJ:</strong> Gi, No-Gi, Open Mat, Competition sessions</li>
               <li><strong>S&C:</strong> Strength & Conditioning sessions</li>
               <li><strong>Mobility:</strong> Mobility, Recovery, Physio sessions</li>
             </ul>
-            <p className="mt-2">The "Sessions / Week" goal tracks all training types combined.</p>
+            <p className="mt-2">Your dashboard will track progress for each activity type separately.</p>
           </div>
         </div>
 
         <div className="space-y-4">
+          {/* Activity-Specific Goals */}
           <div className="grid grid-cols-3 gap-4">
             <div>
-              <label className="label">Sessions / Week</label>
+              <label className="label">BJJ Sessions / Week</label>
               <input
                 type="number"
                 className="input"
-                value={formData.weekly_sessions_target}
-                onChange={(e) => setFormData({ ...formData, weekly_sessions_target: parseInt(e.target.value) || 0 })}
+                value={formData.weekly_bjj_sessions_target}
+                onChange={(e) => setFormData({ ...formData, weekly_bjj_sessions_target: parseInt(e.target.value) || 0 })}
                 min="0"
                 max="20"
               />
-              <p className="text-xs text-gray-500 dark:text-gray-500 mt-1">Recommended: 3-5</p>
+              <p className="text-xs text-gray-500 dark:text-gray-500 mt-1">Gi, No-Gi, Open Mat</p>
             </div>
 
+            <div>
+              <label className="label">S&C Sessions / Week</label>
+              <input
+                type="number"
+                className="input"
+                value={formData.weekly_sc_sessions_target}
+                onChange={(e) => setFormData({ ...formData, weekly_sc_sessions_target: parseInt(e.target.value) || 0 })}
+                min="0"
+                max="20"
+              />
+              <p className="text-xs text-gray-500 dark:text-gray-500 mt-1">Strength & Conditioning</p>
+            </div>
+
+            <div>
+              <label className="label">Mobility / Week</label>
+              <input
+                type="number"
+                className="input"
+                value={formData.weekly_mobility_sessions_target}
+                onChange={(e) => setFormData({ ...formData, weekly_mobility_sessions_target: parseInt(e.target.value) || 0 })}
+                min="0"
+                max="20"
+              />
+              <p className="text-xs text-gray-500 dark:text-gray-500 mt-1">Mobility, Recovery</p>
+            </div>
+          </div>
+
+          {/* Overall Goals */}
+          <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="label">Hours / Week</label>
               <input
@@ -824,7 +868,7 @@ export default function Profile() {
                 max="40"
                 step="0.5"
               />
-              <p className="text-xs text-gray-500 dark:text-gray-500 mt-1">Recommended: 4-6</p>
+              <p className="text-xs text-gray-500 dark:text-gray-500 mt-1">Total training time</p>
             </div>
 
             <div>
@@ -837,7 +881,7 @@ export default function Profile() {
                 min="0"
                 max="100"
               />
-              <p className="text-xs text-gray-500 dark:text-gray-500 mt-1">Recommended: 15-25</p>
+              <p className="text-xs text-gray-500 dark:text-gray-500 mt-1">Live sparring rounds</p>
             </div>
           </div>
 

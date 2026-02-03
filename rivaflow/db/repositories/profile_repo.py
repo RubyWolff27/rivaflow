@@ -49,6 +49,9 @@ class ProfileRepository:
         weekly_sessions_target: Optional[int] = None,
         weekly_hours_target: Optional[float] = None,
         weekly_rolls_target: Optional[int] = None,
+        weekly_bjj_sessions_target: Optional[int] = None,
+        weekly_sc_sessions_target: Optional[int] = None,
+        weekly_mobility_sessions_target: Optional[int] = None,
         show_streak_on_dashboard: Optional[bool] = None,
         show_weekly_goals: Optional[bool] = None,
     ) -> dict:
@@ -69,8 +72,9 @@ class ProfileRepository:
                         default_gym, default_location, current_grade, current_professor, current_instructor_id,
                         primary_training_type, height_cm, target_weight_kg,
                         weekly_sessions_target, weekly_hours_target, weekly_rolls_target,
+                        weekly_bjj_sessions_target, weekly_sc_sessions_target, weekly_mobility_sessions_target,
                         show_streak_on_dashboard, show_weekly_goals
-                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                     """),
                     (
                         user_id,
@@ -91,6 +95,9 @@ class ProfileRepository:
                         weekly_sessions_target if weekly_sessions_target is not None else 3,
                         weekly_hours_target if weekly_hours_target is not None else 4.5,
                         weekly_rolls_target if weekly_rolls_target is not None else 15,
+                        weekly_bjj_sessions_target if weekly_bjj_sessions_target is not None else 3,
+                        weekly_sc_sessions_target if weekly_sc_sessions_target is not None else 1,
+                        weekly_mobility_sessions_target if weekly_mobility_sessions_target is not None else 0,
                         show_streak_on_dashboard if show_streak_on_dashboard is not None else 1,
                         show_weekly_goals if show_weekly_goals is not None else 1,
                     )
@@ -151,6 +158,15 @@ class ProfileRepository:
                 if weekly_rolls_target is not None:
                     updates.append("weekly_rolls_target = ?")
                     params.append(weekly_rolls_target)
+                if weekly_bjj_sessions_target is not None:
+                    updates.append("weekly_bjj_sessions_target = ?")
+                    params.append(weekly_bjj_sessions_target)
+                if weekly_sc_sessions_target is not None:
+                    updates.append("weekly_sc_sessions_target = ?")
+                    params.append(weekly_sc_sessions_target)
+                if weekly_mobility_sessions_target is not None:
+                    updates.append("weekly_mobility_sessions_target = ?")
+                    params.append(weekly_mobility_sessions_target)
                 if show_streak_on_dashboard is not None:
                     updates.append("show_streak_on_dashboard = ?")
                     params.append(show_streak_on_dashboard)
