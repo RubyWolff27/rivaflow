@@ -35,7 +35,9 @@ redis==5.2.1
 sendgrid==6.11.0
 
 # AI/ML dependencies (Grapple AI Coach)
-groq==0.14.0
-together==1.5.35
-sentence-transformers==3.3.1
-tiktoken==0.8.0
+# TEMPORARILY DISABLED: Large CUDA dependencies cause deployment failures
+# Re-enable when migrating AI features to separate microservice or using CPU-only torch
+# groq==0.14.0
+# together==1.5.35
+# sentence-transformers==3.3.1
+# tiktoken==0.8.0
