@@ -387,7 +387,7 @@ export const adminApi = {
     api.get('/admin/users', { params }),
   getUserDetails: (userId: number) =>
     api.get(`/admin/users/${userId}`),
-  updateUser: (userId: number, data: { is_active?: boolean; is_admin?: boolean }) =>
+  updateUser: (userId: number, data: { is_active?: boolean; is_admin?: boolean; subscription_tier?: string; is_beta_user?: boolean }) =>
     api.put(`/admin/users/${userId}`, data),
   deleteUser: (userId: number) =>
     api.delete(`/admin/users/${userId}`),
