@@ -133,9 +133,20 @@ export interface Profile {
   weekly_sessions_target?: number;
   weekly_hours_target?: number;
   weekly_rolls_target?: number;
+  weekly_bjj_sessions_target?: number;
+  weekly_sc_sessions_target?: number;
+  weekly_mobility_sessions_target?: number;
   show_streak_on_dashboard?: boolean;
   show_weekly_goals?: boolean;
   avatar_url?: string;
+  // Journey progress fields
+  belt_rank?: string; // Deprecated, use current_grade
+  belt_stripes?: number; // Deprecated, use current_grade
+  total_sessions?: number; // Total all-time sessions
+  total_hours?: number; // Total all-time hours
+  sessions_since_promotion?: number; // Sessions at current belt
+  hours_since_promotion?: number; // Hours at current belt
+  promotion_date?: string; // Date of last belt promotion
   created_at?: string;
   updated_at?: string;
 }
@@ -241,17 +252,26 @@ export interface WeeklyGoalProgress {
     sessions: number;
     hours: number;
     rolls: number;
+    bjj_sessions?: number;
+    sc_sessions?: number;
+    mobility_sessions?: number;
   };
   actual: {
     sessions: number;
     hours: number;
     rolls: number;
+    bjj_sessions?: number;
+    sc_sessions?: number;
+    mobility_sessions?: number;
   };
   progress: {
     sessions_pct: number;
     hours_pct: number;
     rolls_pct: number;
     overall_pct: number;
+    bjj_sessions_pct?: number;
+    sc_sessions_pct?: number;
+    mobility_sessions_pct?: number;
   };
   completed: boolean;
   days_remaining: number;
