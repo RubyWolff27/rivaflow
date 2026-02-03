@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { adminApi } from '../api/client';
-import { Search, Shield, ShieldOff, UserX, Eye, CheckCircle, XCircle } from 'lucide-react';
+import { Search, Shield, ShieldOff, UserX, Eye, CheckCircle, XCircle, Crown, Star } from 'lucide-react';
 import { Card, PrimaryButton, SecondaryButton } from '../components/ui';
 import AdminNav from '../components/AdminNav';
 import ConfirmDialog from '../components/ConfirmDialog';
@@ -13,10 +13,14 @@ interface User {
   last_name: string;
   is_active: boolean;
   is_admin: boolean;
+  subscription_tier?: string;
+  is_beta_user?: boolean;
   created_at: string;
 }
 
 interface UserDetails extends User {
+  subscription_tier?: string;
+  is_beta_user?: boolean;
   stats: {
     sessions: number;
     comments: number;
@@ -35,11 +39,14 @@ export default function AdminUsers() {
   const [filterActive, setFilterActive] = useState<boolean | undefined>(undefined);
   const [filterAdmin, setFilterAdmin] = useState<boolean | undefined>(undefined);
   const [confirmAction, setConfirmAction] = useState<{
-    type: 'toggleActive' | 'toggleAdmin' | 'delete';
+    type: 'toggleActive' | 'toggleAdmin' | 'delete' | 'changeTier';
     userId: number;
     email?: string;
     currentStatus?: boolean;
+    currentTier?: string;
   } | null>(null);
+  const [showTierModal, setShowTierModal] = useState(false);
+  const [selectedTier, setSelectedTier] = useState<string>('free');
 
   useEffect(() => {
     loadUsers();
@@ -115,6 +122,44 @@ export default function AdminUsers() {
     } catch (error) {
       toast.error('Failed to delete user. Please try again.');
       setConfirmAction(null);
+    }
+  };
+
+  const changeTier = async () => {
+    if (!confirmAction || confirmAction.type !== 'changeTier') return;
+    try {
+      await adminApi.updateUser(confirmAction.userId, { subscription_tier: selectedTier });
+      toast.success(`User tier updated to ${selectedTier}!`);
+      setConfirmAction(null);
+      setShowTierModal(false);
+      loadUsers();
+      if (selectedUser && selectedUser.id === confirmAction.userId) {
+        viewUserDetails(confirmAction.userId); // Refresh details
+      }
+    } catch (error) {
+      toast.error('Failed to update user tier. Please try again.');
+      setConfirmAction(null);
+      setShowTierModal(false);
+    }
+  };
+
+  const getTierDisplayName = (tier?: string) => {
+    switch (tier) {
+      case 'lifetime_premium': return 'Lifetime Premium';
+      case 'premium': return 'Premium';
+      case 'admin': return 'Admin';
+      case 'free':
+      default: return 'Free';
+    }
+  };
+
+  const getTierColor = (tier?: string) => {
+    switch (tier) {
+      case 'lifetime_premium': return 'text-purple-600 dark:text-purple-400 bg-purple-500/20';
+      case 'premium': return 'text-blue-600 dark:text-blue-400 bg-blue-500/20';
+      case 'admin': return 'text-red-600 dark:text-red-400 bg-red-500/20';
+      case 'free':
+      default: return 'text-gray-600 dark:text-gray-400 bg-gray-500/20';
     }
   };
 
@@ -196,10 +241,18 @@ export default function AdminUsers() {
             <Card key={user.id}>
               <div className="flex items-center justify-between">
                 <div className="flex-1">
-                  <div className="flex items-center gap-2 mb-1">
+                  <div className="flex items-center gap-2 mb-1 flex-wrap">
                     <h3 className="font-semibold" style={{ color: 'var(--text)' }}>
                       {user.first_name} {user.last_name}
                     </h3>
+                    <span className={`px-2 py-0.5 text-xs rounded-full ${getTierColor(user.subscription_tier)}`}>
+                      {getTierDisplayName(user.subscription_tier)}
+                    </span>
+                    {user.is_beta_user && (
+                      <span className="px-2 py-0.5 text-xs rounded-full bg-primary-100 text-primary-800 dark:bg-primary-900/40 dark:text-primary-300">
+                        Beta
+                      </span>
+                    )}
                     {user.is_admin && (
                       <span
                         className="px-2 py-0.5 text-xs rounded-full"
@@ -232,6 +285,18 @@ export default function AdminUsers() {
                     title="View details"
                   >
                     <Eye className="w-4 h-4" style={{ color: 'var(--primary)' }} />
+                  </button>
+                  <button
+                    onClick={() => {
+                      setSelectedTier(user.subscription_tier || 'free');
+                      setConfirmAction({ type: 'changeTier', userId: user.id, email: user.email, currentTier: user.subscription_tier });
+                      setShowTierModal(true);
+                    }}
+                    className="p-2 rounded-lg hover:bg-purple-500/10 transition-colors"
+                    title="Change tier"
+                    aria-label={`Change tier for ${user.email}`}
+                  >
+                    <Crown className="w-4 h-4" style={{ color: 'var(--primary)' }} />
                   </button>
                   <button
                     onClick={() => setConfirmAction({ type: 'toggleActive', userId: user.id, currentStatus: user.is_active })}
@@ -283,7 +348,15 @@ export default function AdminUsers() {
                     {selectedUser.email}
                   </p>
                 </div>
-                <div className="flex gap-2">
+                <div className="flex flex-wrap gap-2 justify-end">
+                  <span className={`px-3 py-1 text-xs rounded-full ${getTierColor(selectedUser.subscription_tier)}`}>
+                    {getTierDisplayName(selectedUser.subscription_tier)}
+                  </span>
+                  {selectedUser.is_beta_user && (
+                    <span className="px-3 py-1 text-xs rounded-full bg-primary-100 text-primary-800 dark:bg-primary-900/40 dark:text-primary-300">
+                      Beta User
+                    </span>
+                  )}
                   {selectedUser.is_admin && (
                     <span
                       className="px-3 py-1 text-xs rounded-full"
@@ -347,14 +420,26 @@ export default function AdminUsers() {
               </div>
 
               {/* Actions */}
-              <div className="flex gap-2 pt-4 border-t" style={{ borderColor: 'var(--border)' }}>
+              <div className="flex gap-2 pt-4 border-t flex-wrap" style={{ borderColor: 'var(--border)' }}>
                 <PrimaryButton
+                  onClick={() => {
+                    setSelectedTier(selectedUser.subscription_tier || 'free');
+                    setConfirmAction({ type: 'changeTier', userId: selectedUser.id, email: selectedUser.email, currentTier: selectedUser.subscription_tier });
+                    setShowTierModal(true);
+                  }}
+                  className="flex items-center gap-2"
+                >
+                  <Crown className="w-4 h-4" />
+                  Change Tier
+                </PrimaryButton>
+
+                <SecondaryButton
                   onClick={() => setConfirmAction({ type: 'toggleAdmin', userId: selectedUser.id, currentStatus: selectedUser.is_admin, email: selectedUser.email })}
                   className="flex items-center gap-2"
                 >
                   {selectedUser.is_admin ? <ShieldOff className="w-4 h-4" /> : <Shield className="w-4 h-4" />}
                   {selectedUser.is_admin ? 'Revoke Admin' : 'Grant Admin'}
-                </PrimaryButton>
+                </SecondaryButton>
 
                 <SecondaryButton
                   onClick={() => setConfirmAction({ type: 'toggleActive', userId: selectedUser.id, currentStatus: selectedUser.is_active, email: selectedUser.email })}
@@ -380,7 +465,7 @@ export default function AdminUsers() {
       )}
 
       {/* Confirm Action Dialog */}
-      {confirmAction && (
+      {confirmAction && confirmAction.type !== 'changeTier' && (
         <ConfirmDialog
           isOpen={true}
           onClose={() => setConfirmAction(null)}
@@ -409,6 +494,59 @@ export default function AdminUsers() {
           cancelText="Cancel"
           variant={confirmAction.type === 'delete' ? 'danger' : 'warning'}
         />
+      )}
+
+      {/* Tier Change Modal */}
+      {showTierModal && confirmAction && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4"
+          style={{ backgroundColor: 'rgba(0, 0, 0, 0.5)' }}
+          onClick={() => setShowTierModal(false)}
+        >
+          <div onClick={(e: React.MouseEvent) => e.stopPropagation()}>
+            <Card className="max-w-md w-full">
+              <div className="space-y-4">
+                <div>
+                  <h2 className="text-xl font-bold" style={{ color: 'var(--text)' }}>
+                    Change Subscription Tier
+                  </h2>
+                  <p className="text-sm mt-1" style={{ color: 'var(--muted)' }}>
+                    {confirmAction.email}
+                  </p>
+                </div>
+
+                <div>
+                  <label className="label">Select Tier</label>
+                  <select
+                    className="input w-full"
+                    value={selectedTier}
+                    onChange={(e) => setSelectedTier(e.target.value)}
+                  >
+                    <option value="free">Free</option>
+                    <option value="premium">Premium</option>
+                    <option value="lifetime_premium">Lifetime Premium</option>
+                    <option value="admin">Admin Tier</option>
+                  </select>
+                  <p className="text-xs mt-2" style={{ color: 'var(--muted)' }}>
+                    Current tier: <strong>{getTierDisplayName(confirmAction.currentTier)}</strong>
+                  </p>
+                </div>
+
+                <div className="flex gap-2 pt-4 border-t" style={{ borderColor: 'var(--border)' }}>
+                  <PrimaryButton onClick={changeTier}>
+                    Update Tier
+                  </PrimaryButton>
+                  <SecondaryButton onClick={() => {
+                    setShowTierModal(false);
+                    setConfirmAction(null);
+                  }}>
+                    Cancel
+                  </SecondaryButton>
+                </div>
+              </div>
+            </Card>
+          </div>
+        </div>
       )}
     </div>
   );
