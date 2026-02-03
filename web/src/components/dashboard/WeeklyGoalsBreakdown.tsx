@@ -62,7 +62,7 @@ export function WeeklyGoalsBreakdown() {
             Weekly Goals
           </h3>
           <Link
-            to="/goals"
+            to="/profile"
             className="text-xs font-medium hover:underline"
             style={{ color: 'var(--accent)' }}
           >
@@ -96,7 +96,7 @@ export function WeeklyGoalsBreakdown() {
           </p>
         </div>
         <Link
-          to="/goals"
+          to="/profile"
           className="text-xs font-medium hover:underline"
           style={{ color: 'var(--accent)' }}
         >
