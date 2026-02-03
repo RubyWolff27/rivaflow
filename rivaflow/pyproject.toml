@@ -5,6 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "rivaflow"
 version = "0.2.0"
+packages = ["rivaflow"]
 description = "Training OS for the Mat — Local-first BJJ training tracker with CLI and web interface"
 readme = "README.md"
 requires-python = ">=3.11"
@@ -81,7 +82,7 @@ Issues = "https://github.com/RubyWolff27/rivaflow/issues"
 Changelog = "https://github.com/RubyWolff27/rivaflow/blob/main/CHANGELOG.md"
 
 [tool.setuptools]
-packages = { find = {} }
+packages = { find = { where = ["."], include = ["rivaflow*"] } }
 
 [tool.setuptools.package-data]
 "*" = ["db/migrations/*.sql", "VERSION"]
