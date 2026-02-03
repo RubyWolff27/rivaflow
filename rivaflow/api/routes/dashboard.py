@@ -52,9 +52,7 @@ def _get_dashboard_summary_cached(
     milestone_progress = milestone_service.get_progress_to_next(user_id)
 
     # Get weekly goals progress
-    today = date.today()
-    week_start = today - timedelta(days=today.weekday())
-    weekly_goals = goals_service.get_weekly_progress(user_id, week_start)
+    weekly_goals = goals_service.get_current_week_progress(user_id)
 
     # Get latest readiness
     latest_readiness = readiness_repo.get_latest(user_id)
