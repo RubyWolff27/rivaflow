@@ -68,8 +68,8 @@ class GoalsService:
 
         # Calculate activity type breakdown
         bjj_sessions = sum(1 for s in sessions if s.get("class_type") in ["gi", "no-gi", "open-mat", "competition"])
-        sc_sessions = sum(1 for s in sessions if s.get("class_type") == "s&c")
-        mobility_sessions = sum(1 for s in sessions if s.get("class_type") in ["mobility", "recovery"])
+        sc_sessions = sum(1 for s in sessions if s.get("class_type") in ["s&c", "cardio"])  # Include cardio as S&C
+        mobility_sessions = sum(1 for s in sessions if s.get("class_type") in ["mobility", "recovery", "physio"])  # Include physio
 
         actual = {
             "sessions": actual_sessions,
