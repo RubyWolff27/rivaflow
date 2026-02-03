@@ -8,11 +8,10 @@ UPDATE users
 SET
     subscription_tier = 'lifetime_premium',
     is_beta_user = TRUE,
-    beta_joined_at = COALESCE(created_at, NOW()),
+    beta_joined_at = COALESCE(created_at::TIMESTAMP WITH TIME ZONE, NOW()),
     tier_expires_at = NULL  -- NULL = never expires
 WHERE
-    created_at <= NOW()
-    AND (subscription_tier IS NULL OR subscription_tier = 'free');
+    (subscription_tier IS NULL OR subscription_tier = 'free');
 
 -- Verify migration (should output count of migrated users)
 SELECT
