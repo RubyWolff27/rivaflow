@@ -34,6 +34,9 @@ redis==5.2.1
 # Email
 sendgrid==6.11.0
 
+# File type detection (Python 3.13+ compatibility - replaces deprecated imghdr)
+filetype==1.2.0
+
 # AI/ML dependencies (Grapple AI Coach)
 # TEMPORARILY DISABLED: Large CUDA dependencies cause deployment failures
 # Re-enable when migrating AI features to separate microservice or using CPU-only torch
