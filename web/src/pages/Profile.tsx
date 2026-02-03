@@ -782,6 +782,22 @@ export default function Profile() {
           Set your weekly training targets. These will be tracked on your dashboard.
         </p>
 
+        {/* Activity Breakdown Explanation */}
+        <div className="mb-6 p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
+          <h3 className="text-sm font-semibold text-blue-900 dark:text-blue-300 mb-2">
+            How Activity Breakdown Works
+          </h3>
+          <div className="text-xs text-blue-800 dark:text-blue-400 space-y-1">
+            <p>Your sessions are automatically categorized:</p>
+            <ul className="list-disc list-inside ml-2 mt-1 space-y-0.5">
+              <li><strong>BJJ:</strong> Gi, No-Gi, Open Mat, Competition sessions</li>
+              <li><strong>S&C:</strong> Strength & Conditioning sessions</li>
+              <li><strong>Mobility:</strong> Mobility, Recovery, Physio sessions</li>
+            </ul>
+            <p className="mt-2">The "Sessions / Week" goal tracks all training types combined.</p>
+          </div>
+        </div>
+
         <div className="space-y-4">
           <div className="grid grid-cols-3 gap-4">
             <div>
