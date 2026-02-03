@@ -42,6 +42,9 @@ class ProfileService:
         latest_grading = grading_repo.get_latest(user_id)
 
         if latest_grading and latest_grading.get('date_graded'):
+            # Always sync current_grade from latest grading
+            profile['current_grade'] = latest_grading.get('grade', 'White')
+
             # Get sessions since last grading date
             grading_date_str = latest_grading['date_graded']
             if isinstance(grading_date_str, str):

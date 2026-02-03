@@ -442,6 +442,30 @@ export default function Profile() {
     return date.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
   };
 
+  const BELT_COLORS: Record<string, string> = {
+    white: '#F3F4F6',
+    blue: '#3B82F6',
+    purple: '#8B5CF6',
+    brown: '#78350F',
+    black: '#1F2937',
+  };
+
+  const parseBeltGrade = (gradeStr: string) => {
+    if (!gradeStr) return { beltColor: '#9CA3AF', beltName: 'White', stripes: 0 };
+
+    const lower = gradeStr.toLowerCase();
+    const beltBase = lower.split(' ')[0]; // Extract base belt color
+    const stripeMatch = gradeStr.match(/\((\d+) stripe/i);
+    const stripes = stripeMatch ? parseInt(stripeMatch[1]) : 0;
+
+    return {
+      beltColor: BELT_COLORS[beltBase] || '#9CA3AF',
+      beltName: beltBase.charAt(0).toUpperCase() + beltBase.slice(1),
+      stripes,
+      fullGrade: gradeStr,
+    };
+  };
+
   if (loading) {
     return <div className="text-center py-12">Loading...</div>;
   }
@@ -934,12 +958,34 @@ export default function Profile() {
         </div>
 
         {/* Current Grade Display */}
-        {profile?.current_grade && (
-          <div className="mb-6 p-4 bg-gradient-to-r from-primary-50 to-blue-50 dark:from-primary-900/20 dark:to-blue-900/20 rounded-lg">
-            <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">Current Grade</p>
-            <p className="text-2xl font-bold text-primary-600">{profile.current_grade}</p>
-          </div>
-        )}
+        {profile?.current_grade && (() => {
+          const { beltColor, beltName, stripes, fullGrade } = parseBeltGrade(profile.current_grade);
+          return (
+            <div className="mb-6 p-4 bg-gradient-to-r from-primary-50 to-blue-50 dark:from-primary-900/20 dark:to-blue-900/20 rounded-lg">
+              <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">Current Grade</p>
+              <div className="flex items-center gap-4">
+                <div
+                  className="w-16 h-10 rounded border-2 flex-shrink-0"
+                  style={{ backgroundColor: beltColor, borderColor: 'var(--border)' }}
+                />
+                <div>
+                  <p className="text-2xl font-bold text-primary-600">{beltName} Belt</p>
+                  <div className="flex items-center gap-1 mt-1">
+                    {[...Array(4)].map((_, i) => (
+                      <div
+                        key={i}
+                        className="w-2.5 h-2.5 rounded-full transition-colors"
+                        style={{
+                          backgroundColor: i < stripes ? beltColor : 'var(--border)',
+                        }}
+                      />
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+          );
+        })()}
 
         {/* Add/Edit Grading Form */}
         {(showAddGrading || editingGrading) && (
@@ -1067,16 +1113,37 @@ export default function Profile() {
         {gradings.length > 0 ? (
           <div className="space-y-3">
             <h3 className="text-sm font-semibold text-gray-600 dark:text-gray-400 uppercase">History</h3>
-            {gradings.map((grading) => (
-              <div
-                key={grading.id}
-                className="flex items-start justify-between p-3 bg-gray-50 dark:bg-gray-800 rounded-lg"
-              >
-                <div className="flex-1">
-                  <p className="font-semibold text-gray-900 dark:text-white">{grading.grade}</p>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">
-                    {formatDate(grading.date_graded)}
-                  </p>
+            {gradings.map((grading) => {
+              const { beltColor, beltName, stripes } = parseBeltGrade(grading.grade);
+              return (
+                <div
+                  key={grading.id}
+                  className="flex items-start justify-between p-3 bg-gray-50 dark:bg-gray-800 rounded-lg"
+                >
+                  <div className="flex-1">
+                    <div className="flex items-center gap-3 mb-2">
+                      <div
+                        className="w-12 h-7 rounded border-2 flex-shrink-0"
+                        style={{ backgroundColor: beltColor, borderColor: 'var(--border)' }}
+                      />
+                      <div>
+                        <p className="font-semibold text-gray-900 dark:text-white">{grading.grade}</p>
+                        <div className="flex items-center gap-1">
+                          {[...Array(4)].map((_, i) => (
+                            <div
+                              key={i}
+                              className="w-2 h-2 rounded-full"
+                              style={{
+                                backgroundColor: i < stripes ? beltColor : 'var(--border)',
+                              }}
+                            />
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">
+                      {formatDate(grading.date_graded)}
+                    </p>
                   {grading.professor && (
                     <p className="text-sm text-gray-600 dark:text-gray-400">
                       Professor: {grading.professor}
@@ -1116,7 +1183,8 @@ export default function Profile() {
                   </button>
                 </div>
               </div>
-            ))}
+            );
+            })}
           </div>
         ) : (
           <p className="text-gray-500 dark:text-gray-400 text-center py-6">
