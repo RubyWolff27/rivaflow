@@ -88,10 +88,44 @@ export default function Profile() {
   });
   const [uploadingGradingPhoto, setUploadingGradingPhoto] = useState(false);
   const [gradingPhotoPreview, setGradingPhotoPreview] = useState<string | null>(null);
+  const [gymHeadCoach, setGymHeadCoach] = useState<string | null>(null);
 
   useEffect(() => {
     loadData();
   }, []);
+
+  // Fetch gym head coach when gym is selected
+  useEffect(() => {
+    const fetchGymHeadCoach = async () => {
+      if (!formData.default_gym) {
+        setGymHeadCoach(null);
+        return;
+      }
+
+      try {
+        const response = await fetch(`/api/v1/gyms/search?q=${encodeURIComponent(formData.default_gym)}&verified_only=false`, {
+          headers: {
+            'Authorization': `Bearer ${localStorage.getItem('token')}`,
+          },
+        });
+        const data = await response.json();
+
+        if (data && data.length > 0) {
+          const gym = data.find((g: any) => g.name === formData.default_gym);
+          if (gym && gym.head_coach) {
+            setGymHeadCoach(gym.head_coach);
+          } else {
+            setGymHeadCoach(null);
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching gym details:', error);
+        setGymHeadCoach(null);
+      }
+    };
+
+    fetchGymHeadCoach();
+  }, [formData.default_gym]);
 
   const loadData = async () => {
     setLoading(true);
@@ -751,16 +785,31 @@ export default function Profile() {
               className="input"
               value={formData.current_instructor_id ?? ''}
               onChange={(e) => {
-                const instructorId = e.target.value ? parseInt(e.target.value) : null;
-                const instructor = instructors.find(i => i.id === instructorId);
-                setFormData({
-                  ...formData,
-                  current_instructor_id: instructorId,
-                  current_professor: instructor?.name ?? '',
-                });
+                const value = e.target.value;
+                if (value === 'gym_head_coach') {
+                  // Using gym head coach (no ID, just name)
+                  setFormData({
+                    ...formData,
+                    current_instructor_id: null,
+                    current_professor: gymHeadCoach ?? '',
+                  });
+                } else {
+                  const instructorId = value ? parseInt(value) : null;
+                  const instructor = instructors.find(i => i.id === instructorId);
+                  setFormData({
+                    ...formData,
+                    current_instructor_id: instructorId,
+                    current_professor: instructor?.name ?? '',
+                  });
+                }
               }}
             >
               <option value="">Select a coach...</option>
+              {gymHeadCoach && (
+                <option value="gym_head_coach">
+                  {gymHeadCoach} (Head Coach at {formData.default_gym})
+                </option>
+              )}
               {instructors.map((instructor) => (
                 <option key={instructor.id} value={instructor.id}>
                   {instructor.name ?? 'Unknown'}
@@ -769,7 +818,9 @@ export default function Profile() {
               ))}
             </select>
             <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-              This will auto-populate when logging sessions. Add instructors in Contacts first.
+              {gymHeadCoach
+                ? `Head coach from your selected gym is available, or add other instructors in Contacts.`
+                : 'This will auto-populate when logging sessions. Add instructors in Contacts first.'}
             </p>
           </div>
 
