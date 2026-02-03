@@ -217,8 +217,8 @@ async def get_week_summary(
             ct = session.get("class_type", "unknown")
             class_types[ct] = class_types.get(ct, 0) + 1
 
-        # Weekly goals
-        weekly_goals = goals_service.get_weekly_progress(user_id, week_start)
+        # Weekly goals - just return None for now, goals are tracked separately
+        weekly_goals = None
 
         return {
             "week_start": week_start.isoformat(),
