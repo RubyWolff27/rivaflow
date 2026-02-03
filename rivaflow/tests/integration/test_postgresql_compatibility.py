@@ -34,7 +34,7 @@ def test_user():
         cursor.execute("""
             INSERT INTO users (email, password_hash, created_at)
             VALUES (?, ?, CURRENT_TIMESTAMP)
-        """, ("postgres_test@rivaflow.test", "dummy_hash"))
+        """, ("postgres_test@example.com", "dummy_hash"))
         conn.commit()
         user_id = cursor.lastrowid
 

@@ -24,6 +24,6 @@ SET
 WHERE weekly_sessions_target IS NOT NULL;
 
 -- Add comments
-COMMENT ON COLUMN profile.weekly_bjj_sessions_target IS 'Target number of BJJ sessions per week (Gi, No-Gi, Open Mat, Competition)';
-COMMENT ON COLUMN profile.weekly_sc_sessions_target IS 'Target number of Strength & Conditioning sessions per week';
-COMMENT ON COLUMN profile.weekly_mobility_sessions_target IS 'Target number of Mobility/Recovery sessions per week';
+-- COMMENT: COLUMN profile.weekly_bjj_sessions_target IS 'Target number of BJJ sessions per week (Gi, No-Gi, Open Mat, Competition)';
+-- COMMENT: COLUMN profile.weekly_sc_sessions_target IS 'Target number of Strength & Conditioning sessions per week';
+-- COMMENT: COLUMN profile.weekly_mobility_sessions_target IS 'Target number of Mobility/Recovery sessions per week';

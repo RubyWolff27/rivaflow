@@ -146,7 +146,7 @@ class TestRowToDictConversion:
             cursor.execute("""
                 INSERT INTO users (email, password_hash, created_at)
                 VALUES (?, ?, CURRENT_TIMESTAMP)
-            """, ("test_dict@rivaflow.test", "dummy_hash"))
+            """, ("test_dict@example.com", "dummy_hash"))
             conn.commit()
             user_id = cursor.lastrowid
 
@@ -225,7 +225,7 @@ class TestTransactionIsolation:
             cursor.execute("""
                 INSERT INTO users (email, password_hash, created_at)
                 VALUES (?, ?, CURRENT_TIMESTAMP)
-            """, ("test_rollback@rivaflow.test", "dummy_hash"))
+            """, ("test_rollback@example.com", "dummy_hash"))
             conn.commit()
             user_id = cursor.lastrowid
 
@@ -275,7 +275,7 @@ class TestTransactionIsolation:
             cursor.execute("""
                 INSERT INTO users (email, password_hash, created_at)
                 VALUES (?, ?, CURRENT_TIMESTAMP)
-            """, ("test_explicit_rollback@rivaflow.test", "dummy_hash"))
+            """, ("test_explicit_rollback@example.com", "dummy_hash"))
             conn.commit()
             user_id = cursor.lastrowid
 
@@ -321,7 +321,7 @@ class TestDatabaseTypes:
             cursor.execute("""
                 INSERT INTO users (email, password_hash, created_at)
                 VALUES (?, ?, CURRENT_TIMESTAMP)
-            """, ("test_int@rivaflow.test", "hash"))
+            """, ("test_int@example.com", "hash"))
             conn.commit()
             user_id = cursor.lastrowid
 
@@ -344,7 +344,7 @@ class TestDatabaseTypes:
             cursor.execute("""
                 INSERT INTO users (email, password_hash, created_at)
                 VALUES (?, ?, CURRENT_TIMESTAMP)
-            """, ("test_string@rivaflow.test", "hash"))
+            """, ("test_string@example.com", "hash"))
             conn.commit()
             user_id = cursor.lastrowid
 
@@ -379,7 +379,7 @@ class TestDatabaseTypes:
             cursor.execute("""
                 INSERT INTO users (email, password_hash, created_at)
                 VALUES (?, ?, CURRENT_TIMESTAMP)
-            """, ("test_null@rivaflow.test", "hash"))
+            """, ("test_null@example.com", "hash"))
             conn.commit()
             user_id = cursor.lastrowid
 

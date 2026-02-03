@@ -310,5 +310,10 @@ def delete_account(
         raise typer.Exit(code=1)
 
 
-if __name__ == "__main__":
+def main():
+    """Entry point for console_scripts."""
     app()
+
+
+if __name__ == "__main__":
+    main()

@@ -1,7 +1,7 @@
 """Photo routes."""
 import os
 import uuid
-import imghdr
+import filetype
 from pathlib import Path
 from datetime import datetime
 from typing import Optional
@@ -40,24 +40,29 @@ def validate_image_content(content: bytes, filename: str) -> Optional[str]:
     Returns:
         Error message if invalid, None if valid
     """
-    # Use imghdr to detect actual image type from content
-    detected_type = imghdr.what(None, h=content)
+    # Use filetype to detect actual image type from content
+    kind = filetype.guess(content)
 
-    if detected_type is None:
+    if kind is None:
         return "File is not a valid image. File content does not match image format."
 
-    # Map imghdr types to our allowed types
-    allowed_types = {"jpeg", "png", "webp", "gif"}
+    # Get detected type (extension without dot)
+    detected_type = kind.extension
+
+    # Map allowed types (filetype uses 'jpg' not 'jpeg')
+    allowed_types = {"jpg", "jpeg", "png", "webp", "gif"}
 
     if detected_type not in allowed_types:
         return f"Unsupported image type: {detected_type}. Allowed: {', '.join(allowed_types)}"
 
     # Verify extension matches content
     file_ext = Path(filename).suffix.lower().lstrip(".")
-    if file_ext == "jpg":
-        file_ext = "jpeg"  # Normalize jpg to jpeg
 
-    if detected_type != file_ext:
+    # Normalize both to jpeg for comparison
+    normalized_detected = "jpeg" if detected_type == "jpg" else detected_type
+    normalized_file_ext = "jpeg" if file_ext == "jpg" else file_ext
+
+    if normalized_detected != normalized_file_ext:
         return f"File extension mismatch. File claims to be .{file_ext} but content is {detected_type}"
 
     return None

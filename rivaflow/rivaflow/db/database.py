@@ -406,6 +406,20 @@ def _apply_migrations(conn: Union[sqlite3.Connection, 'psycopg2.extensions.conne
         "037_add_gym_contact_fields.sql",
         "038_set_production_admin.sql",
         "039_create_audit_logs.sql",
+        "040_add_performance_indexes.sql",
+        "041_create_notifications.sql",
+        "042_add_avatar_url.sql",
+        "043_add_default_location.sql",
+        "044_grapple_foundation.sql",
+        "045_add_gym_maps_and_belt.sql",
+        "047_add_primary_training_type.sql",
+        "048_add_setup_wizard_fields.sql",
+        "049_app_feedback_system.sql",
+        "050_tier_system_enhancements.sql",
+        "051_migrate_beta_users.sql",
+        "052_add_activity_specific_goals.sql",
+        "053_add_gradings_instructor_photo.sql",
+        "054_fix_streaks_unique_constraint_final.sql",
     ]
 
     migrations_dir = Path(__file__).parent / "migrations"
@@ -452,7 +466,12 @@ def _apply_migrations(conn: Union[sqlite3.Connection, 'psycopg2.extensions.conne
                             raise
                 else:
                     # SQLite supports executescript
-                    conn.executescript(sql)
+                    try:
+                        conn.executescript(sql)
+                    except Exception as e:
+                        logger.error(f"Failed to apply migration {migration}: {e}")
+                        logger.error(f"SQL content (first 1000 chars): {sql[:1000]}")
+                        raise
 
             # Record this migration as applied
             cursor.execute(

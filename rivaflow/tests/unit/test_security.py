@@ -16,7 +16,7 @@ from rivaflow.core.auth import (
     hash_password,
     verify_password,
     create_access_token,
-    verify_token,
+    decode_access_token,
     generate_refresh_token,
 )
 from rivaflow.db.repositories.password_reset_token_repo import PasswordResetTokenRepository
@@ -93,23 +93,23 @@ class TestJWTTokenSecurity:
 
     def test_token_contains_user_info(self):
         """Test tokens contain user information."""
-        user_email = "test@rivaflow.test"
+        user_email = "test@example.com"
         user_id = 123
 
         token = create_access_token(
             data={"sub": user_email, "user_id": user_id}
         )
 
-        payload = verify_token(token)
+        payload = decode_access_token(token)
         assert payload is not None
         assert payload["sub"] == user_email
         assert payload["user_id"] == user_id
 
     def test_token_has_expiration(self):
         """Test tokens have expiration time."""
-        token = create_access_token(data={"sub": "test@rivaflow.test"})
+        token = create_access_token(data={"sub": "test@example.com"})
 
-        payload = verify_token(token)
+        payload = decode_access_token(token)
         assert payload is not None
         assert "exp" in payload
 
@@ -121,11 +121,11 @@ class TestJWTTokenSecurity:
         """Test expired tokens are rejected."""
         # Create token that expires immediately
         token = create_access_token(
-            data={"sub": "test@rivaflow.test"},
+            data={"sub": "test@example.com"},
             expires_delta=timedelta(seconds=-1)  # Already expired
         )
 
-        payload = verify_token(token)
+        payload = decode_access_token(token)
         # Expired token should be rejected
         assert payload is None
 
@@ -133,17 +133,17 @@ class TestJWTTokenSecurity:
         """Test invalid tokens are rejected."""
         invalid_token = "invalid.jwt.token"
 
-        payload = verify_token(invalid_token)
+        payload = decode_access_token(invalid_token)
         assert payload is None
 
     def test_tampered_token_rejected(self):
         """Test tampered tokens are rejected."""
-        token = create_access_token(data={"sub": "test@rivaflow.test"})
+        token = create_access_token(data={"sub": "test@example.com"})
 
         # Tamper with token by changing a character
         tampered_token = token[:-1] + ("X" if token[-1] != "X" else "Y")
 
-        payload = verify_token(tampered_token)
+        payload = decode_access_token(tampered_token)
         assert payload is None
 
     def test_refresh_token_different_from_access(self):
@@ -163,7 +163,7 @@ class TestJWTTokenSecurity:
         # Attempt to create a "token" manually
         fake_token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJhdHRhY2tlckByaXZhZmxvdy50ZXN0In0.fake_signature"
 
-        payload = verify_token(fake_token)
+        payload = decode_access_token(fake_token)
         # Should be rejected (invalid signature)
         assert payload is None
 
@@ -178,7 +178,7 @@ class TestPasswordResetTokenSecurity:
             cursor.execute("""
                 INSERT INTO users (email, password_hash, created_at)
                 VALUES (?, ?, CURRENT_TIMESTAMP)
-            """, ("test_reset_hash@rivaflow.test", "hash"))
+            """, ("test_reset_hash@example.com", "hash"))
             conn.commit()
             user_id = cursor.lastrowid
 
@@ -219,7 +219,7 @@ class TestPasswordResetTokenSecurity:
             cursor.execute("""
                 INSERT INTO users (email, password_hash, created_at)
                 VALUES (?, ?, CURRENT_TIMESTAMP)
-            """, ("test_single_use@rivaflow.test", "hash"))
+            """, ("test_single_use@example.com", "hash"))
             conn.commit()
             user_id = cursor.lastrowid
 
@@ -253,7 +253,7 @@ class TestPasswordResetTokenSecurity:
             cursor.execute("""
                 INSERT INTO users (email, password_hash, created_at)
                 VALUES (?, ?, CURRENT_TIMESTAMP)
-            """, ("test_expire@rivaflow.test", "hash"))
+            """, ("test_expire@example.com", "hash"))
             conn.commit()
             user_id = cursor.lastrowid
 
@@ -288,7 +288,7 @@ class TestSQLInjectionPrevention:
             cursor = conn.cursor()
 
             # Malicious input attempting SQL injection
-            malicious_email = "attacker@test.com'; DROP TABLE users; --"
+            malicious_email = "attacker@example.com'; DROP TABLE users; --"
 
             # This should safely escape the input
             cursor.execute("""
@@ -311,7 +311,7 @@ class TestSQLInjectionPrevention:
             cursor.execute("""
                 INSERT INTO users (email, password_hash, created_at)
                 VALUES (?, ?, CURRENT_TIMESTAMP)
-            """, ("test_special@rivaflow.test", "hash"))
+            """, ("test_special@example.com", "hash"))
             conn.commit()
             user_id = cursor.lastrowid
 
@@ -361,14 +361,14 @@ class TestAuthorizationChecks:
             cursor.execute("""
                 INSERT INTO users (email, password_hash, created_at)
                 VALUES (?, ?, CURRENT_TIMESTAMP)
-            """, ("user1@rivaflow.test", "hash"))
+            """, ("user1@example.com", "hash"))
             conn.commit()
             user1_id = cursor.lastrowid
 
             cursor.execute("""
                 INSERT INTO users (email, password_hash, created_at)
                 VALUES (?, ?, CURRENT_TIMESTAMP)
-            """, ("user2@rivaflow.test", "hash"))
+            """, ("user2@example.com", "hash"))
             conn.commit()
             user2_id = cursor.lastrowid
 
@@ -414,7 +414,7 @@ class TestInputValidation:
             "not-an-email",
             "@no-local-part.com",
             "no-domain@",
-            "spaces in email@test.com",
+            "spaces in email@example.com",
             "missing-at-sign.com",
         ]
 
@@ -436,7 +436,7 @@ class TestInputValidation:
         # Too short
         with pytest.raises(ValueError):
             service.register(
-                email="test@rivaflow.test",
+                email="test@example.com",
                 password="short",
                 first_name="Test",
                 last_name="User",

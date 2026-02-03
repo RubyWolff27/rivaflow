@@ -23,4 +23,4 @@ SELECT
 FROM users;
 
 -- Add comment
-COMMENT ON COLUMN users.subscription_tier IS 'User tier: free, premium, lifetime_premium, admin';
+-- COMMENT: users.subscription_tier - User tier: free, premium, lifetime_premium, admin

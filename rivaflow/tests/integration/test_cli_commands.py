@@ -32,9 +32,9 @@ def cleanup_test_data():
     # Clean up test users and sessions
     with get_connection() as conn:
         cursor = conn.cursor()
-        cursor.execute("DELETE FROM users WHERE email LIKE 'cli_test_%@rivaflow.test'")
-        cursor.execute("DELETE FROM sessions WHERE user_id IN (SELECT user_id FROM users WHERE email LIKE 'cli_test_%@rivaflow.test')")
-        cursor.execute("DELETE FROM daily_checkins WHERE user_id IN (SELECT user_id FROM users WHERE email LIKE 'cli_test_%@rivaflow.test')")
+        cursor.execute("DELETE FROM users WHERE email LIKE 'cli_test_%@example.com'")
+        cursor.execute("DELETE FROM sessions WHERE user_id IN (SELECT user_id FROM users WHERE email LIKE 'cli_test_%@example.com')")
+        cursor.execute("DELETE FROM daily_checkins WHERE user_id IN (SELECT user_id FROM users WHERE email LIKE 'cli_test_%@example.com')")
         conn.commit()
 
 
@@ -49,7 +49,7 @@ def mock_user_context():
         cursor.execute("""
             INSERT INTO users (email, password_hash, created_at)
             VALUES (?, ?, CURRENT_TIMESTAMP)
-        """, ("cli_test_user@rivaflow.test", "dummy_hash"))
+        """, ("cli_test_user@example.com", "dummy_hash"))
         conn.commit()
         test_user_id = cursor.lastrowid
 

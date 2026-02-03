@@ -14,7 +14,7 @@ os.environ.setdefault("SECRET_KEY", "test-secret-key-for-integration-tests-minim
 
 from rivaflow.api.main import app
 from rivaflow.db.database import get_connection, init_db
-from rivaflow.core.auth import create_access_token, verify_token
+from rivaflow.core.auth import create_access_token, decode_access_token
 
 
 @pytest.fixture(scope="module")
@@ -33,7 +33,7 @@ def cleanup_test_user():
     with get_connection() as conn:
         cursor = conn.cursor()
         cursor.execute(
-            "DELETE FROM users WHERE email LIKE 'test_%@rivaflow.test'"
+            "DELETE FROM users WHERE email LIKE 'test_%@example.com'"
         )
         conn.commit()
 
@@ -44,7 +44,7 @@ class TestRegistration:
     def test_successful_registration(self, test_client, cleanup_test_user):
         """Test successful user registration."""
         response = test_client.post("/api/v1/auth/register", json={
-            "email": f"test_{datetime.now().timestamp()}@rivaflow.test",
+            "email": f"test_{datetime.now().timestamp()}@example.com",
             "password": "SecurePassword123!",
             "first_name": "Test",
             "last_name": "User",
@@ -56,11 +56,11 @@ class TestRegistration:
         assert "refresh_token" in data
         assert data["token_type"] == "bearer"
         assert "user" in data
-        assert data["user"]["email"].endswith("@rivaflow.test")
+        assert data["user"]["email"].endswith("@example.com")
 
     def test_registration_duplicate_email(self, test_client, cleanup_test_user):
         """Test registration fails with duplicate email."""
-        email = f"test_duplicate_{datetime.now().timestamp()}@rivaflow.test"
+        email = f"test_duplicate_{datetime.now().timestamp()}@example.com"
 
         # First registration
         response1 = test_client.post("/api/v1/auth/register", json={
@@ -94,7 +94,7 @@ class TestRegistration:
     def test_registration_weak_password(self, test_client):
         """Test registration fails with weak password."""
         response = test_client.post("/api/v1/auth/register", json={
-            "email": f"test_{datetime.now().timestamp()}@rivaflow.test",
+            "email": f"test_{datetime.now().timestamp()}@example.com",
             "password": "weak",
             "first_name": "Test",
             "last_name": "User",
@@ -109,7 +109,7 @@ class TestLogin:
     @pytest.fixture
     def registered_user(self, test_client, cleanup_test_user):
         """Create a registered user for testing."""
-        email = f"test_login_{datetime.now().timestamp()}@rivaflow.test"
+        email = f"test_login_{datetime.now().timestamp()}@example.com"
         password = "SecurePassword123!"
 
         response = test_client.post("/api/v1/auth/register", json={
@@ -148,7 +148,7 @@ class TestLogin:
     def test_login_nonexistent_user(self, test_client):
         """Test login fails for non-existent user."""
         response = test_client.post("/api/v1/auth/login", json={
-            "email": "nonexistent@rivaflow.test",
+            "email": "nonexistent@example.com",
             "password": "SomePassword123!",
         })
 
@@ -171,7 +171,7 @@ class TestTokenRefresh:
     @pytest.fixture
     def logged_in_user(self, test_client, cleanup_test_user):
         """Create and login a user."""
-        email = f"test_refresh_{datetime.now().timestamp()}@rivaflow.test"
+        email = f"test_refresh_{datetime.now().timestamp()}@example.com"
         password = "SecurePassword123!"
 
         # Register
@@ -231,7 +231,7 @@ class TestProtectedEndpoints:
     @pytest.fixture
     def logged_in_user(self, test_client, cleanup_test_user):
         """Create and login a user."""
-        email = f"test_protected_{datetime.now().timestamp()}@rivaflow.test"
+        email = f"test_protected_{datetime.now().timestamp()}@example.com"
         password = "SecurePassword123!"
 
         # Register
@@ -282,7 +282,7 @@ class TestProtectedEndpoints:
         """Test expired token is rejected."""
         # Create an expired token
         expired_token = create_access_token(
-            data={"sub": "test@rivaflow.test", "user_id": 999},
+            data={"sub": "test@example.com", "user_id": 999},
             expires_delta=timedelta(seconds=-1)  # Already expired
         )
 
@@ -300,7 +300,7 @@ class TestPasswordReset:
     @pytest.fixture
     def registered_user(self, test_client, cleanup_test_user):
         """Create a registered user for testing."""
-        email = f"test_reset_{datetime.now().timestamp()}@rivaflow.test"
+        email = f"test_reset_{datetime.now().timestamp()}@example.com"
         password = "SecurePassword123!"
 
         response = test_client.post("/api/v1/auth/register", json={
@@ -325,7 +325,7 @@ class TestPasswordReset:
     def test_forgot_password_nonexistent_user(self, test_client):
         """Test forgot password endpoint doesn't leak user non-existence."""
         response = test_client.post("/api/v1/auth/forgot-password", json={
-            "email": "nonexistent@rivaflow.test",
+            "email": "nonexistent@example.com",
         })
 
         # Should still return 200 (security: don't leak user existence)
@@ -342,7 +342,7 @@ class TestRateLimiting:
         responses = []
         for i in range(10):
             response = test_client.post("/api/v1/auth/login", json={
-                "email": "ratelimit@rivaflow.test",
+                "email": "ratelimit@example.com",
                 "password": "SomePassword123!",
             })
             responses.append(response)
@@ -357,26 +357,26 @@ class TestRateLimiting:
 class TestTokenVerification:
     """Test token creation and verification."""
 
-    def test_create_and_verify_token(self):
+    def test_create_and_decode_access_token(self):
         """Test token can be created and verified."""
-        user_email = "test@rivaflow.test"
+        user_email = "test@example.com"
         user_id = 123
 
         token = create_access_token(
             data={"sub": user_email, "user_id": user_id}
         )
 
-        payload = verify_token(token)
+        payload = decode_access_token(token)
         assert payload is not None
         assert payload["sub"] == user_email
         assert payload["user_id"] == user_id
 
     def test_verify_invalid_token(self):
         """Test invalid token returns None."""
-        payload = verify_token("invalid.token.here")
+        payload = decode_access_token("invalid.token.here")
         assert payload is None
 
     def test_verify_malformed_token(self):
         """Test malformed token returns None."""
-        payload = verify_token("not-even-a-jwt")
+        payload = decode_access_token("not-even-a-jwt")
         assert payload is None

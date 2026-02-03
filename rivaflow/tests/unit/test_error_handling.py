@@ -152,13 +152,13 @@ class TestAuthenticationErrors:
             cursor.execute("""
                 INSERT INTO users (email, password_hash, created_at)
                 VALUES (?, ?, CURRENT_TIMESTAMP)
-            """, ("test_wrong_pass@rivaflow.test", "dummy_hash"))
+            """, ("test_wrong_pass@example.com", "dummy_hash"))
             conn.commit()
             user_id = cursor.lastrowid
 
         try:
             # Try login with wrong password
-            result = service.login("test_wrong_pass@rivaflow.test", "WrongPassword123!")
+            result = service.login("test_wrong_pass@example.com", "WrongPassword123!")
             assert result is None
         finally:
             # Cleanup
@@ -171,7 +171,7 @@ class TestAuthenticationErrors:
         """Test login for non-existent user returns None."""
         service = AuthService()
 
-        result = service.login("nonexistent@rivaflow.test", "Password123!")
+        result = service.login("nonexistent@example.com", "Password123!")
         assert result is None
 
 
@@ -224,7 +224,7 @@ class TestDatabaseConstraintErrors:
             cursor.execute("""
                 INSERT INTO users (email, password_hash, created_at)
                 VALUES (?, ?, CURRENT_TIMESTAMP)
-            """, ("duplicate@rivaflow.test", "hash1"))
+            """, ("duplicate@example.com", "hash1"))
             conn.commit()
             user1_id = cursor.lastrowid
 
@@ -234,7 +234,7 @@ class TestDatabaseConstraintErrors:
                     cursor.execute("""
                         INSERT INTO users (email, password_hash, created_at)
                         VALUES (?, ?, CURRENT_TIMESTAMP)
-                    """, ("duplicate@rivaflow.test", "hash2"))
+                    """, ("duplicate@example.com", "hash2"))
                     conn.commit()
             finally:
                 # Cleanup
@@ -254,7 +254,7 @@ class TestInputSanitization:
             cursor.execute("""
                 INSERT INTO users (email, password_hash, created_at)
                 VALUES (?, ?, CURRENT_TIMESTAMP)
-            """, ("test_injection@rivaflow.test", "hash"))
+            """, ("test_injection@example.com", "hash"))
             conn.commit()
             user_id = cursor.lastrowid
 
@@ -301,7 +301,7 @@ class TestInputSanitization:
             cursor.execute("""
                 INSERT INTO users (email, password_hash, created_at)
                 VALUES (?, ?, CURRENT_TIMESTAMP)
-            """, ("test_special@rivaflow.test", "hash"))
+            """, ("test_special@example.com", "hash"))
             conn.commit()
             user_id = cursor.lastrowid
 
@@ -355,7 +355,7 @@ class TestErrorMessages:
         service = AuthService()
 
         # Non-existent user
-        result1 = service.login("nonexistent@rivaflow.test", "Password123!")
+        result1 = service.login("nonexistent@example.com", "Password123!")
 
         # Wrong password
         with get_connection() as conn:
@@ -363,12 +363,12 @@ class TestErrorMessages:
             cursor.execute("""
                 INSERT INTO users (email, password_hash, created_at)
                 VALUES (?, ?, CURRENT_TIMESTAMP)
-            """, ("test_secure_msg@rivaflow.test", "hash"))
+            """, ("test_secure_msg@example.com", "hash"))
             conn.commit()
             user_id = cursor.lastrowid
 
         try:
-            result2 = service.login("test_secure_msg@rivaflow.test", "WrongPassword!")
+            result2 = service.login("test_secure_msg@example.com", "WrongPassword!")
 
             # Both should return None (don't leak which failed)
             assert result1 is None
@@ -390,7 +390,7 @@ class TestExceptionRecovery:
             cursor.execute("""
                 INSERT INTO users (email, password_hash, created_at)
                 VALUES (?, ?, CURRENT_TIMESTAMP)
-            """, ("test_recovery@rivaflow.test", "hash"))
+            """, ("test_recovery@example.com", "hash"))
             conn.commit()
             user_id = cursor.lastrowid
 

@@ -30,7 +30,7 @@ def test_client():
 def authenticated_user(test_client):
     """Create and authenticate a test user."""
     from datetime import datetime
-    email = f"test_session_{datetime.now().timestamp()}@rivaflow.test"
+    email = f"test_session_{datetime.now().timestamp()}@example.com"
     password = "SecurePassword123!"
 
     # Register user
@@ -43,7 +43,7 @@ def authenticated_user(test_client):
     assert response.status_code == 201
 
     tokens = response.json()
-    user_id = tokens["user"]["user_id"]
+    user_id = tokens["user"]["id"]
 
     yield {
         "user_id": user_id,
@@ -57,7 +57,7 @@ def authenticated_user(test_client):
         cursor = conn.cursor()
         cursor.execute("DELETE FROM sessions WHERE user_id = ?", (user_id,))
         cursor.execute("DELETE FROM daily_checkins WHERE user_id = ?", (user_id,))
-        cursor.execute("DELETE FROM users WHERE user_id = ?", (user_id,))
+        cursor.execute("DELETE FROM users WHERE id = ?", (user_id,))
         conn.commit()
 
 
@@ -222,7 +222,7 @@ class TestSessionRetrieval:
         """Test users cannot access other users' sessions."""
         # Create a second user
         from datetime import datetime
-        email2 = f"test_session2_{datetime.now().timestamp()}@rivaflow.test"
+        email2 = f"test_session2_{datetime.now().timestamp()}@example.com"
 
         response2 = test_client.post("/api/v1/auth/register", json={
             "email": email2,
@@ -231,7 +231,7 @@ class TestSessionRetrieval:
             "last_name": "User",
         })
         user2_token = response2.json()["access_token"]
-        user2_id = response2.json()["user"]["user_id"]
+        user2_id = response2.json()["user"]["id"]
 
         # User 1 creates a session
         create_response = test_client.post(

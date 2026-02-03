@@ -1,0 +1,163 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "rivaflow"
+version = "0.2.0"
+description = "Training OS for the Mat — Local-first BJJ training tracker with CLI and web interface"
+readme = "README.md"
+requires-python = ">=3.11"
+license = {text = "MIT"}
+authors = [
+    {name = "RivaFlow Team", email = "contact@rivaflow.com"}
+]
+keywords = [
+    "bjj",
+    "brazilian-jiu-jitsu",
+    "jiu-jitsu",
+    "training",
+    "tracker",
+    "grappling",
+    "martial-arts",
+    "fitness",
+    "sports",
+    "analytics"
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: End Users/Desktop",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Other/Nonlisted Topic",
+    "Operating System :: OS Independent",
+    "Environment :: Console",
+    "Environment :: Web Environment",
+]
+
+dependencies = [
+    "fastapi==0.128.0",
+    "uvicorn[standard]==0.40.0",
+    "typer==0.9.0",
+    "rich==13.9.4",
+    "pydantic==2.10.3",
+    "pydantic-settings==2.6.1",
+    "python-jose[cryptography]==3.5.0",
+    "passlib[bcrypt]==1.7.4",
+    "bcrypt==4.3.0",
+    "python-multipart==0.0.22",
+    "httpx==0.28.1",
+    "psycopg2-binary==2.9.10",
+    "pgvector==0.3.6",
+    "python-dotenv==1.1.0",
+    "email-validator==2.3.0",
+    "slowapi==0.1.9",
+    "redis==5.2.1",
+    "sendgrid==6.11.0",
+    "filetype==1.2.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.4.0",
+    "pytest-cov>=4.1.0",
+    "pytest-anyio>=0.0.0",
+    "ruff>=0.1.9",
+    "mypy>=1.7.0",
+    "black>=23.12.0",
+]
+
+[project.scripts]
+rivaflow = "rivaflow.cli.app:main"
+
+[project.urls]
+Homepage = "https://github.com/RubyWolff27/rivaflow"
+Documentation = "https://github.com/RubyWolff27/rivaflow/tree/main/docs"
+Repository = "https://github.com/RubyWolff27/rivaflow"
+Issues = "https://github.com/RubyWolff27/rivaflow/issues"
+Changelog = "https://github.com/RubyWolff27/rivaflow/blob/main/CHANGELOG.md"
+
+[tool.setuptools]
+packages = { find = {} }
+
+[tool.setuptools.package-data]
+"*" = ["db/migrations/*.sql", "VERSION"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+select = [
+    "E",   # pycodestyle errors
+    "W",   # pycodestyle warnings
+    "F",   # pyflakes
+    "I",   # isort
+    "C90", # mccabe complexity
+    "N",   # pep8-naming
+    "UP",  # pyupgrade
+]
+ignore = [
+    "E501",  # Line too long (handled by formatter)
+]
+
+[tool.ruff.lint.mccabe]
+max-complexity = 10
+
+[tool.ruff.lint.isort]
+known-first-party = ["rivaflow"]
+
+[tool.black]
+line-length = 100
+target-version = ['py311']
+include = '\.pyi?$'
+extend-exclude = '''
+/(
+  # directories
+  \.eggs
+  | \.git
+  | \.hg
+  | \.mypy_cache
+  | \.tox
+  | \.venv
+  | build
+  | dist
+)/
+'''
+
+[tool.mypy]
+python_version = "3.11"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = false
+check_untyped_defs = true
+ignore_missing_imports = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py", "*_test.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+addopts = "-v --tb=short --strict-markers"
+markers = [
+    "unit: Unit tests",
+    "integration: Integration tests",
+    "performance: Performance tests",
+    "slow: Slow-running tests",
+]
+
+[tool.coverage.run]
+source = ["rivaflow"]
+omit = [
+    "*/tests/*",
+    "*/migrations/*",
+    "*/__pycache__/*",
+]
+
+[tool.coverage.report]
+precision = 2
+show_missing = true
+skip_covered = false
