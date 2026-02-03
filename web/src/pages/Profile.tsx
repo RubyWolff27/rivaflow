@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { profileApi, gradingsApi, friendsApi, adminApi } from '../api/client';
+import { profileApi, gradingsApi, friendsApi, adminApi, gymsApi } from '../api/client';
 import type { Profile as ProfileType, Grading, Friend } from '../types';
 import { User, CheckCircle, Award, Plus, Trash2, Edit2, Target, AlertCircle, Crown, Star } from 'lucide-react';
 import GymSelector from '../components/GymSelector';
@@ -103,12 +103,8 @@ export default function Profile() {
       }
 
       try {
-        const response = await fetch(`/api/v1/gyms/search?q=${encodeURIComponent(formData.default_gym)}&verified_only=false`, {
-          headers: {
-            'Authorization': `Bearer ${localStorage.getItem('token')}`,
-          },
-        });
-        const data = await response.json();
+        const response = await gymsApi.search(formData.default_gym, false);
+        const data = response.data;
 
         if (data && data.length > 0) {
           const gym = data.find((g: any) => g.name === formData.default_gym);
