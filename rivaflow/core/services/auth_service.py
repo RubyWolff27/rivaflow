@@ -50,7 +50,7 @@ class AuthService:
         is_valid, normalized_email, error = validate_email_address(
             email,
             check_deliverability=False,  # Skip MX check for performance
-            allow_disposable=False  # Block disposable emails
+            allow_disposable=True  # Allow disposable emails for testing/beta
         )
         if not is_valid:
             error_code = error.get("code", "INVALID_EMAIL")
