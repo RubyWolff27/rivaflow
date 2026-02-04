@@ -10,8 +10,8 @@ DROP INDEX IF EXISTS idx_contacts_type;
 DROP INDEX IF EXISTS idx_contacts_belt;
 DROP INDEX IF EXISTS idx_contacts_user_id;
 
--- Step 3: Drop the old contacts table
-DROP TABLE IF EXISTS contacts;
+-- Step 3: Drop the old contacts table (CASCADE drops dependent foreign keys)
+DROP TABLE IF EXISTS contacts CASCADE;
 
 -- Step 4: Create new friends table with updated column name (contact_type -> friend_type)
 CREATE TABLE friends (
