@@ -33,7 +33,7 @@ dependencies = [
     "python-jose[cryptography]==3.5.0",
     "passlib[bcrypt]==1.7.4",
     "bcrypt==4.3.0",
-    "python-multipart==0.0.20",
+    "python-multipart==0.0.22",
     "httpx==0.28.1",
     "psycopg2-binary==2.9.10",
     "python-dotenv==1.1.0",
@@ -41,11 +41,15 @@ dependencies = [
     "slowapi==0.1.9",
     "redis==5.2.1",
     "sendgrid==6.11.0",
-    "groq==0.14.0",
-    "together==1.5.35",
-    "sentence-transformers==3.3.1",
-    "tiktoken==0.8.0",
     "pgvector==0.3.6",
+    "cryptography==46.0.4",
+    "ecdsa==0.19.1",
+    "filetype==1.2.0",
+    # AI/ML dependencies REMOVED for v0.2.0 production deployment
+    # "groq==0.14.0",
+    # "together==1.5.35",
+    # "sentence-transformers==3.3.1",
+    # "tiktoken==0.8.0",
 ]
 
 [project.optional-dependencies]
