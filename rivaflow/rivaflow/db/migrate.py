@@ -113,7 +113,7 @@ def run_migrations():
 
     if db_type != "postgresql":
         logger.info("Migrations only run on PostgreSQL (production).")
-        logger.info("For SQLite (local dev), migrations are not needed.")
+        logger.info("For SQLite (local dev), migrations are handled by database.py")
         return
 
     database_url = os.getenv("DATABASE_URL")
@@ -135,34 +135,23 @@ def run_migrations():
     # Create migrations tracking table
     create_migrations_table(conn)
 
-    # Get applied and pending migrations
+    # Get applied migrations
     applied = get_applied_migrations(conn)
-    migration_files = get_migration_files()
+    logger.info(f"Already applied: {len(applied)} migrations")
 
-    pending = [f for f in migration_files if f.stem not in applied]
-
-    if not pending:
-        logger.info("✓ All migrations up to date!")
+    # Use database.py's _apply_migrations which handles SQLite-to-PostgreSQL conversion
+    try:
+        from rivaflow.db.database import _apply_migrations
+        _apply_migrations(conn, applied, 'postgresql')
+        logger.info("=" * 60)
+        logger.info("✓ All migrations applied successfully")
+        logger.info("=" * 60)
+    except Exception as e:
+        logger.error(f"Migration failed: {e}", exc_info=True)
         conn.close()
-        return
-
-    logger.info(f"Found {len(pending)} pending migration(s)")
-
-    # Apply each pending migration
-    success_count = 0
-    for migration_file in pending:
-        if apply_migration(conn, migration_file):
-            success_count += 1
-        else:
-            logger.error("Migration failed. Stopping.")
-            conn.close()
-            sys.exit(1)
+        sys.exit(1)
 
     conn.close()
-
-    logger.info("=" * 60)
-    logger.info(f"✓ Successfully applied {success_count} migration(s)")
-    logger.info("=" * 60)
 
 
 if __name__ == "__main__":

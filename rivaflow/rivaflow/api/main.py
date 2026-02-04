@@ -89,6 +89,18 @@ async def startup_event():
     from rivaflow.core.config_validator import validate_environment
     validate_environment()
 
+    # Run database migrations on startup (PostgreSQL only)
+    from rivaflow.config import get_db_type
+    if get_db_type() == "postgresql":
+        logging.info("Running database migrations...")
+        try:
+            from rivaflow.db.migrate import run_migrations
+            run_migrations()
+            logging.info("Database migrations completed successfully")
+        except Exception as e:
+            logging.error(f"Failed to run migrations: {e}")
+            raise
+
 
 @app.on_event("shutdown")
 async def shutdown_event():
