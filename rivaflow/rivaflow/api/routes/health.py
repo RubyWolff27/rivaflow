@@ -46,9 +46,12 @@ async def health_check():
                 )
     except Exception as e:
         logger.error(f"Health check database error: {e}")
+        logger.error(f"Error type: {type(e).__name__}")
+        logger.error(f"Error repr: {repr(e)}")
         health_status["database"] = "disconnected"
         health_status["status"] = "unhealthy"
         health_status["error"] = str(e)
+        health_status["error_type"] = type(e).__name__
         return JSONResponse(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             content=health_status
