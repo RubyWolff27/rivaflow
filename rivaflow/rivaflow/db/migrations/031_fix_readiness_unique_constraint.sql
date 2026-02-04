@@ -34,7 +34,7 @@ SELECT
 FROM readiness;
 
 -- Drop old table
-DROP TABLE IF EXISTS readiness;
+DROP TABLE IF EXISTS readiness CASCADE;
 
 -- Rename new table
 ALTER TABLE readiness_new RENAME TO readiness;

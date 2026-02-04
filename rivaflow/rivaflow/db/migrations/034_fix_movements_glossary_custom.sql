@@ -58,7 +58,7 @@ SELECT
 FROM movements_glossary;
 
 -- Drop old table
-DROP TABLE IF EXISTS movements_glossary;
+DROP TABLE IF EXISTS movements_glossary CASCADE;
 
 -- Rename new table
 ALTER TABLE movements_glossary_new RENAME TO movements_glossary;
