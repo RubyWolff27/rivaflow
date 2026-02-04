@@ -48,7 +48,7 @@ services:
       - key: NODE_VERSION
         value: 18.17.0
       - key: VITE_API_URL
-        value: https://rivaflow-api.onrender.com
+        value: https://api.rivaflow.app
 
 databases:
   - name: rivaflow-db

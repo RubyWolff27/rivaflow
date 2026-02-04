@@ -92,32 +92,50 @@ async def unfollow_user(user_id: int = Path(..., gt=0), current_user: dict = Dep
 
 
 @router.get("/followers")
-async def get_followers(current_user: dict = Depends(get_current_user)):
+async def get_followers(
+    limit: int = Query(default=50, ge=1, le=200, description="Max results to return"),
+    offset: int = Query(default=0, ge=0, description="Number of results to skip"),
+    current_user: dict = Depends(get_current_user)
+):
     """
-    Get list of users who follow the current user.
+    Get list of users who follow the current user with pagination.
 
     Returns:
-        List of follower users with basic info
+        Paginated list of follower users with basic info
     """
-    followers = SocialService.get_followers(current_user["id"])
+    all_followers = SocialService.get_followers(current_user["id"])
+    total = len(all_followers)
+    followers = all_followers[offset:offset + limit]
+
     return {
         "followers": followers,
-        "count": len(followers),
+        "total": total,
+        "limit": limit,
+        "offset": offset
     }
 
 
 @router.get("/following")
-async def get_following(current_user: dict = Depends(get_current_user)):
+async def get_following(
+    limit: int = Query(default=50, ge=1, le=200, description="Max results to return"),
+    offset: int = Query(default=0, ge=0, description="Number of results to skip"),
+    current_user: dict = Depends(get_current_user)
+):
     """
-    Get list of users that the current user follows.
+    Get list of users that the current user follows with pagination.
 
     Returns:
-        List of followed users with basic info
+        Paginated list of followed users with basic info
     """
-    following = SocialService.get_following(current_user["id"])
+    all_following = SocialService.get_following(current_user["id"])
+    total = len(all_following)
+    following = all_following[offset:offset + limit]
+
     return {
         "following": following,
-        "count": len(following),
+        "total": total,
+        "limit": limit,
+        "offset": offset
     }
 
 
@@ -320,7 +338,7 @@ async def get_activity_comments(
 # User search endpoint
 @router.get("/users/search")
 @limiter.limit("60/minute")
-async def search_users(request: Request, q: str = "", current_user: dict = Depends(get_current_user)):
+async def search_users(request: Request, q: str = Query(..., min_length=2), current_user: dict = Depends(get_current_user)):
     """
     Search for users by name or email.
 

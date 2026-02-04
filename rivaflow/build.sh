@@ -1,8 +1,12 @@
-#!/bin/bash
-set -e
+#!/usr/bin/env bash
+set -euo pipefail
+
+# Ensure we're in the repository root
+cd "$(dirname "$0")"
 
 echo "========================================================================"
 echo "RivaFlow Build v0.2.0 - NO AI DEPENDENCIES"
+echo "Working directory: $(pwd)"
 echo "Commit: $(git rev-parse --short HEAD 2>/dev/null || echo 'unknown')"
 echo "========================================================================"
 
@@ -15,18 +19,23 @@ else
     exit 1
 fi
 
+echo ""
 echo "==> Upgrading pip..."
 pip install --upgrade pip setuptools wheel
 
+echo ""
 echo "==> Installing RivaFlow (non-editable)..."
 pip install .
 
+echo ""
 echo "==> Checking for forbidden AI dependencies..."
 python verify_no_ai_deps.py
 
+echo ""
 echo "==> Initializing database..."
 python -c "from rivaflow.db.database import init_db; init_db()"
 
+echo ""
 echo "========================================================================"
-echo "✓ Build complete - v0.2.0"
+echo "✓ BUILD SUCCESSFUL - RivaFlow v0.2.0"
 echo "========================================================================"

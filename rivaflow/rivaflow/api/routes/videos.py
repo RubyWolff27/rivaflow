@@ -1,5 +1,5 @@
 """Video library endpoints."""
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Query
 from typing import Optional
 
 from rivaflow.core.services.video_service import VideoService
@@ -40,9 +40,22 @@ async def add_video(video: VideoCreate, current_user: dict = Depends(get_current
 
 
 @router.get("/")
-async def list_videos(current_user: dict = Depends(get_current_user)):
-    """List all videos."""
-    return service.list_all_videos(user_id=current_user["id"])
+async def list_videos(
+    limit: int = Query(default=50, ge=1, le=200, description="Max results to return"),
+    offset: int = Query(default=0, ge=0, description="Number of results to skip"),
+    current_user: dict = Depends(get_current_user)
+):
+    """List all videos with pagination."""
+    all_videos = service.list_all_videos(user_id=current_user["id"])
+    total = len(all_videos)
+    videos = all_videos[offset:offset + limit]
+
+    return {
+        "videos": videos,
+        "total": total,
+        "limit": limit,
+        "offset": offset
+    }
 
 
 @router.get("/technique/{technique_name}")
@@ -52,7 +65,7 @@ async def get_videos_by_technique(technique_name: str, current_user: dict = Depe
 
 
 @router.get("/search")
-async def search_videos(q: str, current_user: dict = Depends(get_current_user)):
+async def search_videos(q: str = Query(..., min_length=2), current_user: dict = Depends(get_current_user)):
     """Search videos by title or URL."""
     return service.search_videos(user_id=current_user["id"], query=q)
 

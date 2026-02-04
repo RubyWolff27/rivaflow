@@ -37,20 +37,32 @@ class CustomVideoCreate(BaseModel):
 @router.get("/")
 async def list_movements(
     category: Optional[str] = Query(None, description="Filter by category"),
-    search: Optional[str] = Query(None, description="Search in name, description, aliases"),
+    search: Optional[str] = Query(None, min_length=2, description="Search in name, description, aliases"),
     gi_only: bool = Query(False, description="Only gi-applicable movements"),
     nogi_only: bool = Query(False, description="Only no-gi-applicable movements"),
+    limit: int = Query(default=50, ge=1, le=200, description="Max results to return"),
+    offset: int = Query(default=0, ge=0, description="Number of results to skip"),
     current_user: dict = Depends(get_current_user),
 ):
-    """Get all movements with optional filtering."""
-    movements = service.list_movements(
+    """Get all movements with optional filtering and pagination."""
+    all_movements = service.list_movements(
         user_id=current_user["id"],
         category=category,
         search=search,
         gi_only=gi_only,
         nogi_only=nogi_only,
     )
-    return movements
+
+    # Apply pagination
+    total = len(all_movements)
+    movements = all_movements[offset:offset + limit]
+
+    return {
+        "movements": movements,
+        "total": total,
+        "limit": limit,
+        "offset": offset
+    }
 
 
 @router.get("/categories")

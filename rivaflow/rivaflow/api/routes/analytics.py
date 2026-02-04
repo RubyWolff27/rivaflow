@@ -81,6 +81,13 @@ async def get_performance_overview(
     current_user: dict = Depends(get_current_user),
 ):
     """Get performance overview dashboard data. Cached for 10 minutes."""
+    # Validate date range
+    if start_date and end_date:
+        if start_date > end_date:
+            raise HTTPException(status_code=400, detail="start_date must be before end_date")
+        if (end_date - start_date).days > 730:  # 2 years max
+            raise HTTPException(status_code=400, detail="Date range cannot exceed 2 years")
+
     try:
         return _get_performance_overview_cached(
             user_id=current_user["id"],

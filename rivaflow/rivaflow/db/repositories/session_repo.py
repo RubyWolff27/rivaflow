@@ -237,15 +237,57 @@ class SessionRepository:
             return [SessionRepository._row_to_dict(row) for row in cursor.fetchall()]
 
     @staticmethod
-    def list_by_user(user_id: int) -> list[dict]:
-        """Get all sessions for a user (no limit)."""
+    def list_by_user(user_id: int, limit: int = None) -> list[dict]:
+        """Get all sessions for a user.
+
+        Args:
+            user_id: User ID
+            limit: Optional limit on number of sessions to return
+        """
+        with get_connection() as conn:
+            cursor = conn.cursor()
+            if limit:
+                cursor.execute(
+                    convert_query("SELECT * FROM sessions WHERE user_id = ? ORDER BY session_date DESC LIMIT ?"),
+                    (user_id, limit)
+                )
+            else:
+                cursor.execute(
+                    convert_query("SELECT * FROM sessions WHERE user_id = ? ORDER BY session_date DESC"),
+                    (user_id,)
+                )
+            return [SessionRepository._row_to_dict(row) for row in cursor.fetchall()]
+
+    @staticmethod
+    def get_user_stats(user_id: int) -> dict:
+        """Get aggregate stats for a user's sessions efficiently.
+
+        Returns:
+            Dict with total_sessions and total_hours
+        """
         with get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(
-                convert_query("SELECT * FROM sessions WHERE user_id = ? ORDER BY session_date DESC"),
+                convert_query("""
+                    SELECT
+                        COUNT(*) as total_sessions,
+                        COALESCE(SUM(duration_mins), 0) as total_minutes
+                    FROM sessions
+                    WHERE user_id = ?
+                """),
                 (user_id,)
             )
-            return [SessionRepository._row_to_dict(row) for row in cursor.fetchall()]
+            row = cursor.fetchone()
+            if hasattr(row, 'keys'):  # PostgreSQL dict result
+                return {
+                    "total_sessions": row["total_sessions"],
+                    "total_hours": round(row["total_minutes"] / 60, 1)
+                }
+            else:  # SQLite tuple result
+                return {
+                    "total_sessions": row[0],
+                    "total_hours": round(row[1] / 60, 1)
+                }
 
     @staticmethod
     def get_unique_gyms(user_id: int) -> list[str]:

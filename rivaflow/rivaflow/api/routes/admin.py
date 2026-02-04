@@ -7,7 +7,7 @@ from slowapi.util import get_remote_address
 
 from rivaflow.db.repositories.gym_repo import GymRepository
 from rivaflow.db.repositories.feedback_repo import FeedbackRepository
-from rivaflow.core.dependencies import get_current_user
+from rivaflow.core.dependencies import get_current_user, get_admin_user
 from rivaflow.core.exceptions import NotFoundError, ValidationError
 from rivaflow.core.services.audit_service import AuditService
 from rivaflow.core.services.gym_service import GymService
@@ -56,10 +56,15 @@ class GymMergeRequest(BaseModel):
 
 
 # Helper to check if user is admin
-def require_admin(current_user: dict = Depends(get_current_user)) -> dict:
-    """Dependency to require admin access."""
-    if not current_user.get("is_admin", False):
-        raise ValidationError("Admin access required")
+def require_admin(current_user: dict = Depends(get_admin_user)) -> dict:
+    """
+    Dependency to require admin access.
+
+    Now uses centralized get_admin_user dependency which:
+    - Returns 403 Forbidden (not 400) for non-admins
+    - Logs unauthorized access attempts
+    - Provides consistent admin auth across the app
+    """
     return current_user
 
 
@@ -883,7 +888,7 @@ async def get_all_feedback(
     category: Optional[str] = Query(None, pattern="^(bug|feature|improvement|question|other)$"),
     limit: int = Query(100, ge=1, le=500),
     offset: int = Query(0, ge=0),
-    current_user: dict = Depends(get_current_user),
+    current_user: dict = Depends(get_admin_user),
 ):
     """
     Get all feedback submissions (admin endpoint).
@@ -918,7 +923,7 @@ async def get_all_feedback(
 async def update_feedback_status(
     feedback_id: int = Path(..., gt=0),
     request: FeedbackUpdateStatusRequest = Body(...),
-    current_user: dict = Depends(get_current_user),
+    current_user: dict = Depends(get_admin_user),
 ):
     """
     Update the status of a feedback submission (admin endpoint).
@@ -962,7 +967,7 @@ async def update_feedback_status(
 
 
 @router.get("/feedback/stats")
-async def get_feedback_stats(current_user: dict = Depends(get_current_user)):
+async def get_feedback_stats(current_user: dict = Depends(get_admin_user)):
     """
     Get feedback statistics (admin endpoint).
 

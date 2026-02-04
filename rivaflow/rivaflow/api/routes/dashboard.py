@@ -153,10 +153,8 @@ async def get_quick_stats(
         streak_service = StreakService()
         milestone_service = MilestoneService()
 
-        # Get all sessions for totals
-        all_sessions = session_repo.list_by_user(user_id)
-        total_sessions = len(all_sessions)
-        total_hours = sum(s.get("duration_mins", 60) for s in all_sessions) / 60
+        # Get user stats efficiently (no unbounded query)
+        stats = session_repo.get_user_stats(user_id)
 
         # Current streak
         session_streak = streak_service.get_streak(user_id, "session")
@@ -165,8 +163,8 @@ async def get_quick_stats(
         closest_milestone = milestone_service.get_closest_milestone(user_id)
 
         return {
-            "total_sessions": total_sessions,
-            "total_hours": round(total_hours, 1),
+            "total_sessions": stats["total_sessions"],
+            "total_hours": stats["total_hours"],
             "current_streak": session_streak.get("current_streak", 0),
             "next_milestone": closest_milestone,
         }

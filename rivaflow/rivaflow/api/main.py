@@ -11,7 +11,7 @@ from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
 from fastapi.exceptions import RequestValidationError
 
-from rivaflow.api.routes import sessions, readiness, reports, suggestions, techniques, videos, profile, gradings, glossary, friends, analytics, goals, checkins, streaks, milestones, auth, rest, feed, photos, social, users, admin, notifications, gyms, feedback, dashboard
+from rivaflow.api.routes import sessions, readiness, reports, suggestions, techniques, videos, profile, gradings, glossary, friends, analytics, goals, checkins, streaks, milestones, auth, rest, feed, photos, social, users, admin, notifications, gyms, feedback, dashboard, health
 # AI features temporarily disabled for deployment (large CUDA dependencies)
 # from rivaflow.api.routes import chat, llm_tools, grapple, admin_grapple
 from rivaflow.core.exceptions import RivaFlowException
@@ -22,6 +22,7 @@ from rivaflow.api.middleware.error_handler import (
 )
 from rivaflow.api.middleware.versioning import VersioningMiddleware
 from rivaflow.api.middleware.compression import GzipCompressionMiddleware
+from rivaflow.api.middleware.security_headers import SecurityHeadersMiddleware
 
 # Configure logging
 logging.basicConfig(
@@ -78,6 +79,16 @@ app.add_middleware(VersioningMiddleware)
 # Add gzip compression for responses > 1KB
 app.add_middleware(GzipCompressionMiddleware)
 
+# Add security headers for production hardening
+app.add_middleware(SecurityHeadersMiddleware)
+
+
+@app.on_event("startup")
+async def startup_event():
+    """Validate configuration and initialize services at startup."""
+    from rivaflow.core.config_validator import validate_environment
+    validate_environment()
+
 
 @app.on_event("shutdown")
 async def shutdown_event():
@@ -85,6 +96,9 @@ async def shutdown_event():
     from rivaflow.db.database import close_connection_pool
     close_connection_pool()
 
+
+# Register health check routes (no prefix for easy access by load balancers)
+app.include_router(health.router)
 
 # Register routes with /api/v1/ prefix
 app.include_router(auth.router, prefix="/api/v1/auth", tags=["auth"])

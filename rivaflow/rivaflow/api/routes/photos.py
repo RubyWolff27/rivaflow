@@ -6,12 +6,15 @@ from pathlib import Path
 from datetime import datetime
 from typing import Optional
 
-from fastapi import APIRouter, Depends, HTTPException, File, UploadFile, Form
+from fastapi import APIRouter, Depends, HTTPException, File, UploadFile, Form, Request
+from slowapi import Limiter
+from slowapi.util import get_remote_address
 from rivaflow.core.dependencies import get_current_user
 from rivaflow.db.repositories import ActivityPhotoRepository
 
 router = APIRouter()
 photo_repo = ActivityPhotoRepository()
+limiter = Limiter(key_func=get_remote_address)
 
 # Configure upload directory
 UPLOAD_DIR = Path(__file__).parent.parent.parent.parent / "uploads" / "activities"
@@ -69,7 +72,9 @@ def validate_image_content(content: bytes, filename: str) -> Optional[str]:
 
 
 @router.post("/photos/upload")
+@limiter.limit("10/minute")
 async def upload_photo(
+    request: Request,
     file: UploadFile = File(...),
     activity_type: str = Form(...),
     activity_id: int = Form(...),

@@ -37,18 +37,30 @@ class FriendUpdate(BaseModel):
 
 @router.get("/")
 async def list_contacts(
-    search: Optional[str] = Query(None, description="Search by name"),
+    search: Optional[str] = Query(None, min_length=2, description="Search by name"),
     friend_type: Optional[str] = Query(None, description="Filter by friend type"),
+    limit: int = Query(default=50, ge=1, le=200, description="Max results to return"),
+    offset: int = Query(default=0, ge=0, description="Number of results to skip"),
     current_user: dict = Depends(get_current_user),
 ):
-    """Get all friends with optional filtering."""
+    """Get all friends with optional filtering and pagination."""
     if search:
-        friends = service.search_friends(user_id=current_user["id"], query=search)
+        all_friends = service.search_friends(user_id=current_user["id"], query=search)
     elif friend_type:
-        friends = service.repo.list_by_type(user_id=current_user["id"], friend_type=friend_type)
+        all_friends = service.repo.list_by_type(user_id=current_user["id"], friend_type=friend_type)
     else:
-        friends = service.list_friends(user_id=current_user["id"])
-    return friends
+        all_friends = service.list_friends(user_id=current_user["id"])
+
+    # Apply pagination
+    total = len(all_friends)
+    friends = all_friends[offset:offset + limit]
+
+    return {
+        "friends": friends,
+        "total": total,
+        "limit": limit,
+        "offset": offset
+    }
 
 
 @router.get("/instructors")

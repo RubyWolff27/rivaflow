@@ -107,3 +107,29 @@ def get_current_active_user(current_user: dict = Depends(get_current_user)) -> d
             detail="Inactive user",
         )
     return current_user
+
+
+def get_admin_user(current_user: dict = Depends(get_current_user)) -> dict:
+    """
+    Dependency that ensures the current user is an admin.
+
+    Use this dependency on admin-only endpoints to restrict access.
+
+    Args:
+        current_user: User from get_current_user dependency
+
+    Returns:
+        Admin user dictionary
+
+    Raises:
+        HTTPException: 403 Forbidden if user is not an admin
+    """
+    if not current_user.get("is_admin"):
+        logger.warning(
+            f"Non-admin user {current_user.get('email')} attempted to access admin endpoint"
+        )
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Admin access required. This incident will be logged.",
+        )
+    return current_user

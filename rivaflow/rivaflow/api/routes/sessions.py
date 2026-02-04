@@ -1,7 +1,9 @@
 """Session management endpoints."""
-from fastapi import APIRouter, Depends, Query, HTTPException
+from fastapi import APIRouter, Depends, Query, HTTPException, Request
 from datetime import date
 from typing import Optional
+from slowapi import Limiter
+from slowapi.util import get_remote_address
 
 from rivaflow.core.services.session_service import SessionService
 from rivaflow.core.services.privacy_service import PrivacyService
@@ -11,10 +13,12 @@ from rivaflow.core.exceptions import ValidationError, NotFoundError, Authorizati
 
 router = APIRouter()
 service = SessionService()
+limiter = Limiter(key_func=get_remote_address)
 
 
 @router.post("/")
-async def create_session(session: SessionCreate, current_user: dict = Depends(get_current_user)):
+@limiter.limit("60/minute")
+async def create_session(request: Request, session: SessionCreate, current_user: dict = Depends(get_current_user)):
     """Create a new training session."""
     # Convert SessionRollData models to dicts if present
     session_rolls_dict = None
@@ -56,7 +60,8 @@ async def create_session(session: SessionCreate, current_user: dict = Depends(ge
 
 
 @router.put("/{session_id}")
-async def update_session(session_id: int, session: SessionUpdate, current_user: dict = Depends(get_current_user)):
+@limiter.limit("60/minute")
+async def update_session(request: Request, session_id: int, session: SessionUpdate, current_user: dict = Depends(get_current_user)):
     """Update an existing training session."""
     try:
         # Convert SessionTechniqueCreate models to dicts if present
@@ -97,7 +102,8 @@ async def update_session(session_id: int, session: SessionUpdate, current_user: 
 
 
 @router.delete("/{session_id}")
-async def delete_session(session_id: int, current_user: dict = Depends(get_current_user)):
+@limiter.limit("60/minute")
+async def delete_session(request: Request, session_id: int, current_user: dict = Depends(get_current_user)):
     """Delete a training session."""
     deleted = service.delete_session(user_id=current_user["id"], session_id=session_id)
     if not deleted:
