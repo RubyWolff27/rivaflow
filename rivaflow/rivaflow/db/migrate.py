@@ -119,7 +119,7 @@ def run_migrations():
     database_url = os.getenv("DATABASE_URL")
     if not database_url:
         logger.error("ERROR: DATABASE_URL not set")
-        sys.exit(1)
+        raise RuntimeError("DATABASE_URL environment variable is not set")
 
     logger.info("=" * 60)
     logger.info("Running database migrations...")
@@ -130,7 +130,7 @@ def run_migrations():
         conn = psycopg2.connect(database_url)
     except Exception as e:
         logger.error(f"ERROR: Could not connect to database: {e}", exc_info=True)
-        sys.exit(1)
+        raise RuntimeError(f"Could not connect to database: {e}") from e
 
     # Create migrations tracking table
     create_migrations_table(conn)
@@ -149,9 +149,9 @@ def run_migrations():
     except Exception as e:
         logger.error(f"Migration failed: {e}", exc_info=True)
         conn.close()
-        sys.exit(1)
-
-    conn.close()
+        raise RuntimeError(f"Database migration failed: {e}") from e
+    finally:
+        conn.close()
 
 
 if __name__ == "__main__":
