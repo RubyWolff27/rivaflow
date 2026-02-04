@@ -153,6 +153,11 @@ def run_migrations():
     finally:
         conn.close()
 
+    # Reset connection pool after migrations to ensure clean state
+    from rivaflow.db.database import close_connection_pool
+    close_connection_pool()
+    logger.info("Connection pool reset after migrations")
+
 
 if __name__ == "__main__":
     # Configure logging for standalone execution
