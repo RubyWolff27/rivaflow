@@ -33,9 +33,9 @@ async def health_check():
     try:
         with get_connection() as conn:
             cursor = conn.cursor()
-            cursor.execute("SELECT 1")
+            cursor.execute("SELECT 1 as health_check")
             result = cursor.fetchone()
-            if result and result[0] == 1:
+            if result and result.get("health_check") == 1:
                 health_status["database"] = "connected"
             else:
                 health_status["database"] = "error"
