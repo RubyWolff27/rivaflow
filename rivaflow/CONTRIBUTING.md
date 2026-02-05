@@ -56,7 +56,7 @@ Violations of the Code of Conduct can be reported to [security@rivaflow.com]. Al
 
 ### Find an Issue
 
-1. Browse [open issues](https://github.com/yourusername/rivaflow/issues)
+1. Browse [open issues](https://github.com/RubyWolff27/rivaflow/issues)
 2. Look for issues tagged `good-first-issue` or `help-wanted`
 3. Comment on the issue to claim it
 4. Wait for maintainer approval before starting work

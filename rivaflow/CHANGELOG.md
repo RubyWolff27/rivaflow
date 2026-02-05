@@ -128,9 +128,9 @@ Please read [CONTRIBUTING.md](./CONTRIBUTING.md) for details on our process for 
 
 ## Links
 
-- [GitHub Repository](https://github.com/yourusername/rivaflow)
+- [GitHub Repository](https://github.com/RubyWolff27/rivaflow)
 - [Documentation](./docs/)
-- [Issue Tracker](https://github.com/yourusername/rivaflow/issues)
+- [Issue Tracker](https://github.com/RubyWolff27/rivaflow/issues)
 
 ---
 

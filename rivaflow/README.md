@@ -38,7 +38,7 @@ RivaFlow is a comprehensive training tracker built specifically for Brazilian Ji
 pip install rivaflow
 
 # From source
-git clone https://github.com/yourusername/rivaflow.git
+git clone https://github.com/RubyWolff27/rivaflow.git
 cd rivaflow
 pip install -e .
 ```
@@ -389,7 +389,7 @@ RivaFlow is **free and open-source** (MIT License). You can self-host for $0/mon
 
 - 📧 Email: support@rivaflow.com
 - 💬 Discord: [Coming soon]
-- 🐛 GitHub Issues: [Report bugs](https://github.com/yourusername/rivaflow/issues)
+- 🐛 GitHub Issues: [Report bugs](https://github.com/RubyWolff27/rivaflow/issues)
 
 ---
 
