@@ -324,7 +324,7 @@ class TestPasswordHashing:
 
     def test_password_verification(self, temp_db):
         """Test password verification."""
-        from rivaflow.core.auth import hash_password, verify_password
+        from rivaflow.core.auth import hash_password
 
         password = "mySecurePassword123"
         hashed = hash_password(password)
@@ -337,7 +337,7 @@ class TestPasswordHashing:
 
     def test_long_password_truncation(self, temp_db):
         """Test that bcrypt 72-byte limit is handled correctly."""
-        from rivaflow.core.auth import hash_password, verify_password
+        from rivaflow.core.auth import hash_password
 
         # Create password longer than 72 bytes
         long_password = "a" * 100

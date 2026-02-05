@@ -36,7 +36,7 @@ def test_create_session_with_techniques(temp_db, test_user):
     with patch("rivaflow.config.DB_PATH", temp_db):
         service = SessionService()
 
-        session_id = service.create_session(
+        service.create_session(
             user_id=test_user["id"],
             session_date=date(2025, 1, 20),
             class_type="gi",

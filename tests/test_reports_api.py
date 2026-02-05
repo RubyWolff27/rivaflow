@@ -1,7 +1,5 @@
 """Integration tests for analytics/reports API endpoints."""
-import pytest
 from datetime import date, timedelta
-from fastapi.testclient import TestClient
 
 
 class TestAnalyticsAPI:
@@ -125,7 +123,7 @@ class TestAnalyticsAPI:
     def test_partner_stats_with_data(self, client, test_user, auth_headers, session_factory, friend_repo):
         """Test partner stats with training partner data."""
         # Create a training partner
-        partner = friend_repo.create(
+        friend_repo.create(
             user_id=test_user["id"],
             name="John Doe",
             friend_type="training-partner",

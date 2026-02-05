@@ -4,7 +4,7 @@ import pytest
 import tempfile
 import shutil
 from pathlib import Path
-from datetime import date, datetime, timedelta
+from datetime import date, timedelta
 from unittest.mock import patch
 
 # Set required environment variables for testing
@@ -13,7 +13,6 @@ os.environ.setdefault("SECRET_KEY", "test-secret-key-for-testing-only-not-produc
 if "DATABASE_URL" in os.environ:
     del os.environ["DATABASE_URL"]
 
-from rivaflow.config import APP_DIR, DB_PATH
 from rivaflow.db.database import init_db
 from rivaflow.db.repositories import (
     SessionRepository,

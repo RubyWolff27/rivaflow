@@ -1,5 +1,4 @@
 """Tests for 'rivaflow log' CLI command."""
-import pytest
 from typer.testing import CliRunner
 from datetime import date
 
