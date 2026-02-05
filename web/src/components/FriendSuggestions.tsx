@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { socialApi } from '../api/client';
 import { useToast } from '../contexts/ToastContext';
 import { Card, PrimaryButton, SecondaryButton } from './ui';
@@ -22,6 +23,7 @@ interface FriendSuggestion {
 }
 
 export function FriendSuggestions() {
+  const navigate = useNavigate();
   const { hasAccess } = useFeatureAccess('friend_suggestions');
   const [suggestions, setSuggestions] = useState<FriendSuggestion[]>([]);
   const [loading, setLoading] = useState(true);
@@ -184,7 +186,7 @@ export function FriendSuggestions() {
               <div className="flex space-x-2">
                 <PrimaryButton
                   className="text-sm px-3 py-1.5"
-                  onClick={() => window.location.href = `/users/${suggestion.suggested_user_id}`}
+                  onClick={() => navigate(`/users/${suggestion.suggested_user_id}`)}
                 >
                   View Profile
                 </PrimaryButton>

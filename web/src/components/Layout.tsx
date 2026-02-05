@@ -397,7 +397,7 @@ const Layout = memo(function Layout({ children }: { children: React.ReactNode })
         onSuccess={() => {
           // Refresh if on dashboard
           if (location.pathname === '/') {
-            window.location.reload();
+            navigate(0); // Force re-render without full page reload
           }
         }}
       />
