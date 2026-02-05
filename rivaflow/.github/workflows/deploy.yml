@@ -1,0 +1,97 @@
+name: Deploy to Production
+
+on:
+  push:
+    branches: [ main ]
+    paths-ignore:
+      - '**.md'
+      - 'docs/**'
+      - '.github/**'
+      - '!.github/workflows/deploy.yml'
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Deployment environment'
+        required: true
+        default: 'production'
+        type: choice
+        options:
+          - production
+          - staging
+
+jobs:
+  # Ensure all tests pass before deploying
+  tests:
+    name: Run Full Test Suite
+    uses: ./.github/workflows/test.yml
+
+  security:
+    name: Security Checks
+    uses: ./.github/workflows/security.yml
+
+  deploy:
+    name: Deploy to Render
+    runs-on: ubuntu-latest
+    needs: [tests, security]
+    if: github.ref == 'refs/heads/main'
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Notify deployment start
+      run: |
+        echo "🚀 Deploying RivaFlow to production..."
+        echo "Commit: ${{ github.sha }}"
+        echo "Author: ${{ github.actor }}"
+
+    - name: Trigger Render deployment
+      run: |
+        # Render auto-deploys on git push to main
+        # This step can be enhanced with Render API for controlled deploys
+        echo "✓ Render will auto-deploy from main branch"
+        echo "Monitor: https://dashboard.render.com/"
+
+    - name: Wait for deployment health check
+      run: |
+        echo "Waiting 60 seconds for deployment..."
+        sleep 60
+
+    - name: Verify health endpoint
+      run: |
+        response=$(curl -s -o /dev/null -w "%{http_code}" https://api.rivaflow.app/health)
+        if [ "$response" -eq 200 ]; then
+          echo "✅ Health check passed (HTTP 200)"
+          curl -s https://api.rivaflow.app/health | jq '.'
+        else
+          echo "❌ Health check failed (HTTP $response)"
+          exit 1
+        fi
+
+    - name: Run smoke tests
+      run: |
+        echo "Running post-deployment smoke tests..."
+
+        # Test authentication endpoint
+        response=$(curl -s -o /dev/null -w "%{http_code}" https://api.rivaflow.app/api/v1/health/db)
+        if [ "$response" -eq 200 ]; then
+          echo "✅ Database health check passed"
+        else
+          echo "⚠️  Database health check failed (HTTP $response)"
+        fi
+
+    - name: Notify deployment success
+      if: success()
+      run: |
+        echo "✅ Deployment successful!"
+        echo "API: https://api.rivaflow.app"
+        echo "Frontend: https://rivaflow.app"
+        echo "Docs: https://api.rivaflow.app/docs"
+
+    - name: Notify deployment failure
+      if: failure()
+      run: |
+        echo "❌ Deployment failed!"
+        echo "Check Render logs: https://dashboard.render.com/"
+        echo "Rollback: Revert commit ${{ github.sha }}"
+        exit 1
