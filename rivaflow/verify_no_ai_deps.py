@@ -3,8 +3,8 @@
 Pre-build verification script to ensure AI dependencies are not being installed.
 This script will FAIL LOUDLY if it detects torch, groq, or other AI packages.
 """
-import sys
 import subprocess
+import sys
 
 FORBIDDEN_PACKAGES = [
     'torch',

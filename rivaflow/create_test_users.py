@@ -7,11 +7,11 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent))
 
 from rivaflow.core.services.auth_service import AuthService
-from rivaflow.db.repositories import SessionRepository, ReadinessRepository
+from rivaflow.db.repositories import ReadinessRepository, SessionRepository
+from rivaflow.db.repositories.activity_comment_repo import ActivityCommentRepository
+from rivaflow.db.repositories.activity_like_repo import ActivityLikeRepository
 from rivaflow.db.repositories.checkin_repo import CheckinRepository
 from rivaflow.db.repositories.relationship_repo import UserRelationshipRepository
-from rivaflow.db.repositories.activity_like_repo import ActivityLikeRepository
-from rivaflow.db.repositories.activity_comment_repo import ActivityCommentRepository
 from rivaflow.db.repositories.user_repo import UserRepository
 
 print("=" * 60)
@@ -173,7 +173,7 @@ for i, days_ago in enumerate(alice_readiness_dates):
         )
     except Exception as e:
         print(f"   ⚠️  Alice readiness on {check_date}: {e}")
-print(f"   ✓ Alice: readiness check-ins")
+print("   ✓ Alice: readiness check-ins")
 
 # Bob's readiness (using days 1, 7 to avoid conflicts)
 bob_readiness_dates = [1, 7]
@@ -191,7 +191,7 @@ for i, days_ago in enumerate(bob_readiness_dates):
         )
     except Exception as e:
         print(f"   ⚠️  Bob readiness on {check_date}: {e}")
-print(f"   ✓ Bob: readiness check-ins")
+print("   ✓ Bob: readiness check-ins")
 
 # Create some rest days
 print("\n4. Creating rest days...")
@@ -218,48 +218,48 @@ relationship_repo = UserRelationshipRepository()
 # Alice follows Bob and Charlie
 try:
     relationship_repo.follow(alice_id, bob_id)
-    print(f"   ✓ Alice follows Bob")
+    print("   ✓ Alice follows Bob")
 except Exception as e:
     if "unique" in str(e).lower() or "already" in str(e).lower():
-        print(f"   ⚠️  Alice already follows Bob")
+        print("   ⚠️  Alice already follows Bob")
     else:
         print(f"   ✗ Error: {e}")
 
 try:
     relationship_repo.follow(alice_id, charlie_id)
-    print(f"   ✓ Alice follows Charlie")
+    print("   ✓ Alice follows Charlie")
 except Exception as e:
     if "unique" in str(e).lower() or "already" in str(e).lower():
-        print(f"   ⚠️  Alice already follows Charlie")
+        print("   ⚠️  Alice already follows Charlie")
     else:
         print(f"   ✗ Error: {e}")
 
 # Bob follows Alice and Charlie
 try:
     relationship_repo.follow(bob_id, alice_id)
-    print(f"   ✓ Bob follows Alice")
+    print("   ✓ Bob follows Alice")
 except Exception as e:
     if "unique" in str(e).lower() or "already" in str(e).lower():
-        print(f"   ⚠️  Bob already follows Alice")
+        print("   ⚠️  Bob already follows Alice")
     else:
         print(f"   ✗ Error: {e}")
 
 try:
     relationship_repo.follow(bob_id, charlie_id)
-    print(f"   ✓ Bob follows Charlie")
+    print("   ✓ Bob follows Charlie")
 except Exception as e:
     if "unique" in str(e).lower() or "already" in str(e).lower():
-        print(f"   ⚠️  Bob already follows Charlie")
+        print("   ⚠️  Bob already follows Charlie")
     else:
         print(f"   ✗ Error: {e}")
 
 # Charlie follows Alice
 try:
     relationship_repo.follow(charlie_id, alice_id)
-    print(f"   ✓ Charlie follows Alice")
+    print("   ✓ Charlie follows Alice")
 except Exception as e:
     if "unique" in str(e).lower() or "already" in str(e).lower():
-        print(f"   ⚠️  Charlie already follows Alice")
+        print("   ⚠️  Charlie already follows Alice")
     else:
         print(f"   ✗ Error: {e}")
 
@@ -295,7 +295,7 @@ try:
     print(f"   ✓ Charlie liked Alice's session {alice_sessions[2]}")
 except Exception as e:
     if "unique" in str(e).lower() or "already" in str(e).lower():
-        print(f"   ⚠️  Charlie already liked the session")
+        print("   ⚠️  Charlie already liked the session")
     else:
         print(f"   ✗ Error: {e}")
 
@@ -304,7 +304,7 @@ try:
     print(f"   ✓ Charlie liked Bob's session {bob_sessions[1]}")
 except Exception as e:
     if "unique" in str(e).lower() or "already" in str(e).lower():
-        print(f"   ⚠️  Charlie already liked the session")
+        print("   ⚠️  Charlie already liked the session")
     else:
         print(f"   ✗ Error: {e}")
 
@@ -320,7 +320,7 @@ try:
         alice_sessions[1],
         "Great work! Your guard passing is getting really sharp 🔥"
     )
-    print(f"   ✓ Bob commented on Alice's session")
+    print("   ✓ Bob commented on Alice's session")
 except Exception as e:
     print(f"   ⚠️  Error adding Bob's comment: {e}")
 
@@ -332,7 +332,7 @@ try:
         bob_sessions[0],
         "Nice session! Those sweeps were looking clean 👍"
     )
-    print(f"   ✓ Alice commented on Bob's session")
+    print("   ✓ Alice commented on Bob's session")
 except Exception as e:
     print(f"   ⚠️  Error adding Alice's comment: {e}")
 
@@ -344,7 +344,7 @@ try:
         alice_sessions[3],
         "Keep it up! Love the intensity 💪"
     )
-    print(f"   ✓ Charlie commented on Alice's session")
+    print("   ✓ Charlie commented on Alice's session")
 except Exception as e:
     print(f"   ⚠️  Error adding Charlie's comment: {e}")
 
@@ -352,8 +352,8 @@ except Exception as e:
 print("\n" + "=" * 60)
 print("Test Data Creation Complete!")
 print("=" * 60)
-print(f"\n📊 Summary:")
-print(f"   Users created: 3")
+print("\n📊 Summary:")
+print("   Users created: 3")
 print(f"   - Alice Anderson (ID: {alice_id}) - alice.bjj@test.com")
 print(f"   - Bob Brown (ID: {bob_id}) - bob.grappler@test.com")
 print(f"   - Charlie Chen (ID: {charlie_id}) - charlie.rolls@test.com")
@@ -361,16 +361,16 @@ print(f"\n   Total sessions: {len(alice_sessions) + len(bob_sessions) + len(char
 print(f"   - Alice: {len(alice_sessions)} sessions (mixed privacy)")
 print(f"   - Bob: {len(bob_sessions)} sessions (mostly shareable)")
 print(f"   - Charlie: {len(charlie_sessions)} sessions (all shareable)")
-print(f"\n   Follow relationships: 5")
-print(f"   Social interactions: ~10 likes and comments")
-print(f"\n🔑 Login credentials (all users):")
-print(f"   Password: testpass123")
-print(f"\n🧪 Testing scenarios:")
-print(f"   1. Login as Alice → See Bob & Charlie's activities in Contacts feed")
-print(f"   2. Login as Bob → See Alice & Charlie's activities")
-print(f"   3. Login as Charlie → See Alice's activities")
-print(f"   4. Test privacy: Alice's private session should NOT appear in feeds")
-print(f"   5. Test likes & comments on shareable activities")
-print(f"\n🗑️  To remove test data later, run:")
-print(f"   python cleanup_test_users.py")
+print("\n   Follow relationships: 5")
+print("   Social interactions: ~10 likes and comments")
+print("\n🔑 Login credentials (all users):")
+print("   Password: testpass123")
+print("\n🧪 Testing scenarios:")
+print("   1. Login as Alice → See Bob & Charlie's activities in Contacts feed")
+print("   2. Login as Bob → See Alice & Charlie's activities")
+print("   3. Login as Charlie → See Alice's activities")
+print("   4. Test privacy: Alice's private session should NOT appear in feeds")
+print("   5. Test likes & comments on shareable activities")
+print("\n🗑️  To remove test data later, run:")
+print("   python cleanup_test_users.py")
 print("=" * 60)

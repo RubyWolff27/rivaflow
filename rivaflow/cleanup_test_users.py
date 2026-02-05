@@ -5,8 +5,8 @@ from pathlib import Path
 # Add parent directory to path
 sys.path.insert(0, str(Path(__file__).parent))
 
+from rivaflow.db.database import convert_query, get_connection
 from rivaflow.db.repositories.user_repo import UserRepository
-from rivaflow.db.database import get_connection, convert_query
 
 print("=" * 60)
 print("Cleaning Up Test Users")
