@@ -2,6 +2,7 @@
 
 Provides consistent error responses and logging across all API routes.
 """
+
 import logging
 from typing import Any
 
@@ -18,7 +19,7 @@ def format_error_response(
     message: str,
     status_code: int,
     details: dict[str, Any] | None = None,
-    request_id: str | None = None
+    request_id: str | None = None,
 ) -> dict[str, Any]:
     """Format error response in consistent structure.
 
@@ -63,16 +64,15 @@ async def validation_exception_handler(
     """
     errors = []
     for error in exc.errors():
-        errors.append({
-            "field": ".".join(str(loc) for loc in error["loc"]),
-            "message": error["msg"],
-            "type": error["type"]
-        })
+        errors.append(
+            {
+                "field": ".".join(str(loc) for loc in error["loc"]),
+                "message": error["msg"],
+                "type": error["type"],
+            }
+        )
 
-    logger.warning(
-        f"Validation error on {request.url.path}",
-        extra={"errors": errors}
-    )
+    logger.warning(f"Validation error on {request.url.path}", extra={"errors": errors})
 
     return JSONResponse(
         status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
@@ -81,8 +81,8 @@ async def validation_exception_handler(
             message="Request validation failed",
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
             details={"errors": errors},
-            request_id=request.headers.get("X-Request-ID")
-        )
+            request_id=request.headers.get("X-Request-ID"),
+        ),
     )
 
 
@@ -96,10 +96,7 @@ async def http_exception_handler(request: Request, exc: StarletteHTTPException) 
     Returns:
         JSON response with formatted error
     """
-    logger.warning(
-        f"HTTP {exc.status_code}: {exc.detail}",
-        extra={"path": request.url.path}
-    )
+    logger.warning(f"HTTP {exc.status_code}: {exc.detail}", extra={"path": request.url.path})
 
     return JSONResponse(
         status_code=exc.status_code,
@@ -107,8 +104,8 @@ async def http_exception_handler(request: Request, exc: StarletteHTTPException) 
             error_code=f"HTTP_{exc.status_code}",
             message=str(exc.detail),
             status_code=exc.status_code,
-            request_id=request.headers.get("X-Request-ID")
-        )
+            request_id=request.headers.get("X-Request-ID"),
+        ),
     )
 
 
@@ -128,7 +125,7 @@ async def general_exception_handler(request: Request, exc: Exception) -> JSONRes
         extra={
             "exception_type": type(exc).__name__,
             "path": request.url.path,
-        }
+        },
     )
 
     # Don't expose internal error details in production
@@ -137,6 +134,7 @@ async def general_exception_handler(request: Request, exc: Exception) -> JSONRes
 
     # In development, include more details
     import os
+
     if os.getenv("ENV", "development") == "development":
         message = f"{type(exc).__name__}: {str(exc)}"
         details = {
@@ -150,8 +148,8 @@ async def general_exception_handler(request: Request, exc: Exception) -> JSONRes
             message=message,
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             details=details,
-            request_id=request.headers.get("X-Request-ID")
-        )
+            request_id=request.headers.get("X-Request-ID"),
+        ),
     )
 
 

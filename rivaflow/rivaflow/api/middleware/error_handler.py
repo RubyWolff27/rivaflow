@@ -6,6 +6,7 @@ Provides consistent error responses across all API endpoints with:
 - Detailed logging
 - Environment-aware error messages
 """
+
 import logging
 import os
 from typing import Any
@@ -24,7 +25,7 @@ def format_error_response(
     message: str,
     status_code: int,
     details: dict[str, Any] | None = None,
-    request_id: str | None = None
+    request_id: str | None = None,
 ) -> dict[str, Any]:
     """Format error response in consistent structure.
 
@@ -97,7 +98,7 @@ async def rivaflow_exception_handler(request: Request, exc: RivaFlowException) -
             message=exc.message,
             status_code=exc.status_code,
             details=response_details,
-            request_id=request.headers.get("X-Request-ID")
+            request_id=request.headers.get("X-Request-ID"),
         ),
     )
 
@@ -118,8 +119,15 @@ async def validation_exception_handler(
     """
     # Sensitive field names that should not have their values exposed
     sensitive_fields = {
-        "password", "password_hash", "secret", "token", "api_key",
-        "access_token", "refresh_token", "reset_token", "secret_key"
+        "password",
+        "password_hash",
+        "secret",
+        "token",
+        "api_key",
+        "access_token",
+        "refresh_token",
+        "reset_token",
+        "secret_key",
     }
 
     # Format validation errors in user-friendly way
@@ -128,18 +136,11 @@ async def validation_exception_handler(
         field_name = ".".join(str(loc) for loc in error["loc"])
 
         # Check if field is sensitive
-        is_sensitive = any(
-            sensitive in field_name.lower()
-            for sensitive in sensitive_fields
-        )
+        is_sensitive = any(sensitive in field_name.lower() for sensitive in sensitive_fields)
 
         # Only include input value in development mode AND for non-sensitive fields
         env = os.getenv("ENV", "development")
-        include_input = (
-            env == "development" and
-            not is_sensitive and
-            error.get("input") is not None
-        )
+        include_input = env == "development" and not is_sensitive and error.get("input") is not None
 
         error_dict = {
             "field": field_name,
@@ -172,7 +173,7 @@ async def validation_exception_handler(
             message="Request validation failed. Please check your input.",
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
             details={"errors": errors},
-            request_id=request.headers.get("X-Request-ID")
+            request_id=request.headers.get("X-Request-ID"),
         ),
     )
 
@@ -210,7 +211,7 @@ async def generic_exception_handler(request: Request, exc: Exception) -> JSONRes
         message = f"{type(exc).__name__}: {str(exc)}"
         details = {
             "type": type(exc).__name__,
-            "hint": "This detailed error is only shown in development mode"
+            "hint": "This detailed error is only shown in development mode",
         }
 
     return JSONResponse(
@@ -220,6 +221,6 @@ async def generic_exception_handler(request: Request, exc: Exception) -> JSONRes
             message=message,
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             details=details,
-            request_id=request.headers.get("X-Request-ID")
+            request_id=request.headers.get("X-Request-ID"),
         ),
     )

@@ -1,4 +1,5 @@
 """Secure error handling utilities."""
+
 import logging
 
 logger = logging.getLogger(__name__)
@@ -8,7 +9,7 @@ def handle_service_error(
     error: Exception,
     user_message: str = "An error occurred",
     user_id: int | None = None,
-    operation: str | None = None
+    operation: str | None = None,
 ) -> str:
     """
     Handle service errors securely.
@@ -31,11 +32,7 @@ def handle_service_error(
     if operation:
         log_context["operation"] = operation
 
-    logger.error(
-        f"{user_message}: {type(error).__name__}",
-        exc_info=True,
-        extra=log_context
-    )
+    logger.error(f"{user_message}: {type(error).__name__}", exc_info=True, extra=log_context)
 
     # Return generic message to client
     return user_message

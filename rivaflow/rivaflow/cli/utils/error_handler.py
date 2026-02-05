@@ -2,6 +2,7 @@
 
 Provides user-friendly error messages and recovery suggestions.
 """
+
 import typer
 
 from rivaflow.cli import prompts
@@ -60,7 +61,9 @@ def handle_error(e: Exception, context: str = "") -> None:
     # Conflict errors
     if isinstance(e, ConflictError):
         prompts.print_error(f"Conflict: {e.message}")
-        prompts.console.print("[dim]This data already exists or conflicts with existing records[/dim]")
+        prompts.console.print(
+            "[dim]This data already exists or conflicts with existing records[/dim]"
+        )
         raise typer.Exit(1)
 
     # Database errors
