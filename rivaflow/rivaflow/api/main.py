@@ -275,6 +275,6 @@ else:
         """Root endpoint when frontend is not available."""
         return {
             "message": "RivaFlow API",
-            "version": "0.1.0",
+            "version": "0.2.0",
             "docs": "/docs",
         }
