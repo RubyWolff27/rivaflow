@@ -68,7 +68,7 @@ def temp_db(monkeypatch):
                         # Truncate each table
                         for table_row in tables:
                             # Handle RealDictRow from psycopg2
-                            table_name = table_row['table_name']
+                            table_name = table_row["table_name"]
                             cursor.execute(
                                 f'TRUNCATE TABLE "{table_name}" RESTART IDENTITY CASCADE'
                             )
