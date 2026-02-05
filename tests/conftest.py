@@ -50,13 +50,13 @@ def temp_db(monkeypatch):
             cursor.execute("SET session_replication_role = 'replica';")
             # Get all tables
             cursor.execute("""
-                SELECT tablename FROM pg_tables
-                WHERE schemaname = 'public'
+                SELECT table_name FROM information_schema.tables
+                WHERE table_schema = 'public' AND table_type = 'BASE TABLE'
             """)
             tables = cursor.fetchall()
             # Truncate each table
-            for (table,) in tables:
-                cursor.execute(f'TRUNCATE TABLE "{table}" CASCADE')
+            for (table_name,) in tables:
+                cursor.execute(f'TRUNCATE TABLE "{table_name}" RESTART IDENTITY CASCADE')
             # Re-enable foreign key checks
             cursor.execute("SET session_replication_role = 'origin';")
             conn.commit()
