@@ -1,4 +1,5 @@
 """Email service for sending transactional emails."""
+
 import logging
 import os
 import smtplib
@@ -36,14 +37,16 @@ class EmailService:
         else:
             self.method = None
             self.enabled = False
-            logger.warning("Email service not configured. Set SENDGRID_API_KEY or SMTP_USER/SMTP_PASSWORD environment variables.")
+            logger.warning(
+                "Email service not configured. Set SENDGRID_API_KEY or SMTP_USER/SMTP_PASSWORD environment variables."
+            )
 
     def send_email(
         self,
         to_email: str,
         subject: str,
         html_content: str,
-        text_content: str | None = None
+        text_content: str | None = None,
     ) -> bool:
         """
         Send an email.
@@ -58,11 +61,15 @@ class EmailService:
             True if sent successfully, False otherwise
         """
         if not self.enabled:
-            logger.error(f"Email service not configured. Cannot send email to {to_email}")
+            logger.error(
+                f"Email service not configured. Cannot send email to {to_email}"
+            )
             return False
 
         if self.method == "sendgrid":
-            return self._send_via_sendgrid(to_email, subject, html_content, text_content)
+            return self._send_via_sendgrid(
+                to_email, subject, html_content, text_content
+            )
         else:
             return self._send_via_smtp(to_email, subject, html_content, text_content)
 
@@ -71,7 +78,7 @@ class EmailService:
         to_email: str,
         subject: str,
         html_content: str,
-        text_content: str | None = None
+        text_content: str | None = None,
     ) -> bool:
         """Send email via SendGrid HTTP API."""
         try:
@@ -83,7 +90,14 @@ class EmailService:
             to_email_obj = To(to_email)
 
             # Use text content as fallback if provided, otherwise use HTML
-            plain_text = Content("text/plain", text_content if text_content else "Please view this email in HTML format.")
+            plain_text = Content(
+                "text/plain",
+                (
+                    text_content
+                    if text_content
+                    else "Please view this email in HTML format."
+                ),
+            )
             html = Content("text/html", html_content)
 
             mail = Mail(
@@ -91,7 +105,7 @@ class EmailService:
                 to_emails=to_email_obj,
                 subject=subject,
                 plain_text_content=plain_text,
-                html_content=html
+                html_content=html,
             )
 
             # Send via SendGrid API
@@ -102,7 +116,9 @@ class EmailService:
                 logger.info(f"Email sent successfully to {to_email} via SendGrid")
                 return True
             else:
-                logger.error(f"SendGrid returned status {response.status_code} for {to_email}")
+                logger.error(
+                    f"SendGrid returned status {response.status_code} for {to_email}"
+                )
                 return False
 
         except Exception as e:
@@ -120,7 +136,9 @@ class EmailService:
             # Try SMTP fallback if configured
             if self.smtp_user and self.smtp_password:
                 logger.info(f"Attempting SMTP fallback for {to_email}")
-                return self._send_via_smtp(to_email, subject, html_content, text_content)
+                return self._send_via_smtp(
+                    to_email, subject, html_content, text_content
+                )
 
             return False
 
@@ -129,20 +147,20 @@ class EmailService:
         to_email: str,
         subject: str,
         html_content: str,
-        text_content: str | None = None
+        text_content: str | None = None,
     ) -> bool:
         """Send email via SMTP (fallback for local development)."""
         try:
             # Create message
-            msg = MIMEMultipart('alternative')
-            msg['Subject'] = subject
-            msg['From'] = f"{self.from_name} <{self.from_email}>"
-            msg['To'] = to_email
+            msg = MIMEMultipart("alternative")
+            msg["Subject"] = subject
+            msg["From"] = f"{self.from_name} <{self.from_email}>"
+            msg["To"] = to_email
 
             # Attach text and HTML parts
             if text_content:
-                msg.attach(MIMEText(text_content, 'plain'))
-            msg.attach(MIMEText(html_content, 'html'))
+                msg.attach(MIMEText(text_content, "plain"))
+            msg.attach(MIMEText(html_content, "html"))
 
             # Connect to SMTP server and send
             with smtplib.SMTP(self.smtp_host, self.smtp_port, timeout=10) as server:
@@ -158,10 +176,7 @@ class EmailService:
             return False
 
     def send_password_reset_email(
-        self,
-        to_email: str,
-        reset_token: str,
-        user_name: str | None = None
+        self, to_email: str, reset_token: str, user_name: str | None = None
     ) -> bool:
         """
         Send password reset email with reset link.
@@ -240,13 +255,11 @@ RivaFlow - Training OS for the Mat
             to_email=to_email,
             subject="Reset Your RivaFlow Password",
             html_content=html_content,
-            text_content=text_content
+            text_content=text_content,
         )
 
     def send_password_changed_confirmation(
-        self,
-        to_email: str,
-        user_name: str | None = None
+        self, to_email: str, user_name: str | None = None
     ) -> bool:
         """
         Send confirmation email after password change.
@@ -302,7 +315,7 @@ RivaFlow - Training OS for the Mat
             to_email=to_email,
             subject="Your RivaFlow Password Was Changed",
             html_content=html_content,
-            text_content=text_content
+            text_content=text_content,
         )
 
     def send_feedback_notification(
@@ -313,7 +326,7 @@ RivaFlow - Training OS for the Mat
         message: str,
         user_email: str,
         user_name: str,
-        platform: str = 'web',
+        platform: str = "web",
         url: str | None = None,
     ) -> bool:
         """
@@ -333,12 +346,14 @@ RivaFlow - Training OS for the Mat
             True if email was sent successfully, False otherwise
         """
         # Get admin emails from environment
-        admin_emails_str = os.getenv('ADMIN_EMAILS', '')
+        admin_emails_str = os.getenv("ADMIN_EMAILS", "")
         if not admin_emails_str:
-            logger.warning("No admin emails configured. Set ADMIN_EMAILS to receive feedback notifications.")
+            logger.warning(
+                "No admin emails configured. Set ADMIN_EMAILS to receive feedback notifications."
+            )
             return False
 
-        admin_emails = [email.strip() for email in admin_emails_str.split(',')]
+        admin_emails = [email.strip() for email in admin_emails_str.split(",")]
 
         # Get base URL for admin panel link
         base_url = os.getenv("APP_BASE_URL", "https://rivaflow.onrender.com")
@@ -429,7 +444,7 @@ RivaFlow - Training OS for the Mat
                 to_email=admin_email,
                 subject=f"[RivaFlow Feedback] New {category.upper()} - {subject}",
                 html_content=html_content,
-                text_content=text_content
+                text_content=text_content,
             )
             if not result:
                 success = False

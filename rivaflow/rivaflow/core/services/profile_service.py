@@ -1,4 +1,5 @@
 """Service layer for user profile operations."""
+
 import os
 import uuid
 from datetime import datetime
@@ -21,7 +22,9 @@ class ProfileService:
         self.user_repo = UserRepository()
 
         # Configure upload directory
-        self.upload_dir = Path(__file__).parent.parent.parent.parent / "uploads" / "avatars"
+        self.upload_dir = (
+            Path(__file__).parent.parent.parent.parent / "uploads" / "avatars"
+        )
         self.upload_dir.mkdir(parents=True, exist_ok=True)
 
     def get_profile(self, user_id: int) -> dict | None:
@@ -41,36 +44,44 @@ class ProfileService:
 
         latest_grading = grading_repo.get_latest(user_id)
 
-        if latest_grading and latest_grading.get('date_graded'):
+        if latest_grading and latest_grading.get("date_graded"):
             # Sync current_grade from latest grading if it doesn't match
-            latest_grade = latest_grading.get('grade', 'White')
-            if profile.get('current_grade') != latest_grade:
+            latest_grade = latest_grading.get("grade", "White")
+            if profile.get("current_grade") != latest_grade:
                 # Update database
                 self.repo.update(user_id, current_grade=latest_grade)
-                profile['current_grade'] = latest_grade
+                profile["current_grade"] = latest_grade
 
             # Get sessions since last grading date
-            grading_date_str = latest_grading['date_graded']
+            grading_date_str = latest_grading["date_graded"]
             if isinstance(grading_date_str, str):
                 grading_date = date.fromisoformat(grading_date_str)
             else:
                 grading_date = grading_date_str
 
             today = date.today()
-            sessions_since_promotion = session_repo.get_by_date_range(user_id, grading_date, today)
+            sessions_since_promotion = session_repo.get_by_date_range(
+                user_id, grading_date, today
+            )
 
             total_sessions_since = len(sessions_since_promotion)
-            total_hours_since = sum(s.get('duration_mins', 0) for s in sessions_since_promotion) / 60
+            total_hours_since = (
+                sum(s.get("duration_mins", 0) for s in sessions_since_promotion) / 60
+            )
 
-            profile['sessions_since_promotion'] = total_sessions_since
-            profile['hours_since_promotion'] = round(total_hours_since, 1)
-            profile['promotion_date'] = grading_date_str
+            profile["sessions_since_promotion"] = total_sessions_since
+            profile["hours_since_promotion"] = round(total_hours_since, 1)
+            profile["promotion_date"] = grading_date_str
         else:
             # No promotion yet, count all sessions
-            all_sessions = session_repo.get_by_date_range(user_id, date(2020, 1, 1), date.today())
-            profile['sessions_since_promotion'] = len(all_sessions)
-            profile['hours_since_promotion'] = round(sum(s.get('duration_mins', 0) for s in all_sessions) / 60, 1)
-            profile['promotion_date'] = None
+            all_sessions = session_repo.get_by_date_range(
+                user_id, date(2020, 1, 1), date.today()
+            )
+            profile["sessions_since_promotion"] = len(all_sessions)
+            profile["hours_since_promotion"] = round(
+                sum(s.get("duration_mins", 0) for s in all_sessions) / 60, 1
+            )
+            profile["promotion_date"] = None
 
         return profile
 
@@ -138,10 +149,7 @@ class ProfileService:
         return profile.get("current_professor") if profile else None
 
     def upload_profile_photo(
-        self,
-        user_id: int,
-        file_content: bytes,
-        filename: str
+        self, user_id: int, file_content: bytes, filename: str
     ) -> dict:
         """Handle profile photo upload.
 
@@ -161,14 +169,14 @@ class ProfileService:
         if file_ext not in self.ALLOWED_EXTENSIONS:
             raise ValidationError(
                 f"Invalid file type. Allowed types: {', '.join(self.ALLOWED_EXTENSIONS)}",
-                details={"allowed_extensions": list(self.ALLOWED_EXTENSIONS)}
+                details={"allowed_extensions": list(self.ALLOWED_EXTENSIONS)},
             )
 
         # Validate file size
         if len(file_content) > self.MAX_FILE_SIZE:
             raise ValidationError(
                 f"File too large. Maximum size: {self.MAX_FILE_SIZE // (1024 * 1024)}MB",
-                details={"max_size_mb": self.MAX_FILE_SIZE // (1024 * 1024)}
+                details={"max_size_mb": self.MAX_FILE_SIZE // (1024 * 1024)},
             )
 
         # Generate unique filename: user_{user_id}_{timestamp}_{uuid}.{ext}
@@ -191,7 +199,7 @@ class ProfileService:
         return {
             "avatar_url": avatar_url,
             "filename": new_filename,
-            "message": "Profile photo uploaded successfully"
+            "message": "Profile photo uploaded successfully",
         }
 
     def delete_profile_photo(self, user_id: int) -> dict:

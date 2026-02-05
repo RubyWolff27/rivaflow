@@ -20,8 +20,10 @@ def fix_user_tier(user_email: str):
 
         # First, check current status
         cursor.execute(
-            convert_query("SELECT id, email, subscription_tier, is_beta_user FROM users WHERE email = ?"),
-            (user_email,)
+            convert_query(
+                "SELECT id, email, subscription_tier, is_beta_user FROM users WHERE email = ?"
+            ),
+            (user_email,),
         )
         user = cursor.fetchone()
 
@@ -38,23 +40,27 @@ def fix_user_tier(user_email: str):
 
         # Update to lifetime premium beta
         cursor.execute(
-            convert_query("""
+            convert_query(
+                """
                 UPDATE users
                 SET subscription_tier = 'lifetime_premium',
                     is_beta_user = TRUE,
                     beta_joined_at = COALESCE(beta_joined_at, ?),
                     tier_expires_at = NULL
                 WHERE email = ?
-            """),
-            (datetime.now(), user_email)
+            """
+            ),
+            (datetime.now(), user_email),
         )
 
         conn.commit()
 
         # Verify update
         cursor.execute(
-            convert_query("SELECT id, email, subscription_tier, is_beta_user, beta_joined_at FROM users WHERE email = ?"),
-            (user_email,)
+            convert_query(
+                "SELECT id, email, subscription_tier, is_beta_user, beta_joined_at FROM users WHERE email = ?"
+            ),
+            (user_email,),
         )
         updated_user = cursor.fetchone()
         updated_dict = dict(updated_user)
@@ -81,7 +87,9 @@ if __name__ == "__main__":
     success = fix_user_tier(user_email)
 
     if success:
-        print(f"\n✨ Success! User {user_email} has been upgraded to lifetime_premium beta status.")
+        print(
+            f"\n✨ Success! User {user_email} has been upgraded to lifetime_premium beta status."
+        )
         print("   Please log out and log back in to see the changes.")
     else:
         print(f"\n❌ Failed to update user {user_email}")

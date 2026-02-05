@@ -1,4 +1,5 @@
 """Repository for session rolls (detailed roll tracking) data access."""
+
 import json
 import sqlite3
 
@@ -47,7 +48,9 @@ class SessionRollRepository:
             )
 
             # Return the created roll
-            cursor.execute(convert_query("SELECT * FROM session_rolls WHERE id = ?"), (roll_id,))
+            cursor.execute(
+                convert_query("SELECT * FROM session_rolls WHERE id = ?"), (roll_id,)
+            )
             row = cursor.fetchone()
             return SessionRollRepository._row_to_dict(row)
 
@@ -56,7 +59,9 @@ class SessionRollRepository:
         """Get a session roll by ID."""
         with get_connection() as conn:
             cursor = conn.cursor()
-            cursor.execute(convert_query("SELECT * FROM session_rolls WHERE id = ?"), (roll_id,))
+            cursor.execute(
+                convert_query("SELECT * FROM session_rolls WHERE id = ?"), (roll_id,)
+            )
             row = cursor.fetchone()
             return SessionRollRepository._row_to_dict(row) if row else None
 
@@ -70,7 +75,9 @@ class SessionRollRepository:
         with get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(
-                convert_query("SELECT * FROM session_rolls WHERE session_id = ? ORDER BY roll_number ASC"),
+                convert_query(
+                    "SELECT * FROM session_rolls WHERE session_id = ? ORDER BY roll_number ASC"
+                ),
                 (session_id,),
             )
             rows = cursor.fetchall()
@@ -97,11 +104,13 @@ class SessionRollRepository:
             # Note: session_rolls doesn't have user_id column
             # Caller should only pass session_ids that belong to the user
             placeholders = ", ".join(["?"] * len(session_ids))
-            query = convert_query(f"""
+            query = convert_query(
+                f"""
                 SELECT * FROM session_rolls
                 WHERE session_id IN ({placeholders})
                 ORDER BY session_id, roll_number ASC
-            """)
+            """
+            )
 
             cursor.execute(query, session_ids)
             rows = cursor.fetchall()
@@ -126,12 +135,14 @@ class SessionRollRepository:
         with get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(
-                convert_query("""
+                convert_query(
+                    """
                 SELECT sr.* FROM session_rolls sr
                 JOIN sessions s ON sr.session_id = s.id
                 WHERE sr.partner_id = ? AND s.user_id = ?
                 ORDER BY s.session_date DESC, sr.roll_number ASC
-                """),
+                """
+                ),
                 (partner_id, user_id),
             )
             rows = cursor.fetchall()
@@ -153,15 +164,17 @@ class SessionRollRepository:
 
             # Get total rolls count - JOIN with sessions to filter by user_id
             cursor.execute(
-                convert_query("""
+                convert_query(
+                    """
                 SELECT COUNT(*) as count FROM session_rolls sr
                 JOIN sessions s ON sr.session_id = s.id
                 WHERE sr.partner_id = ? AND s.user_id = ?
-                """),
+                """
+                ),
                 (partner_id, user_id),
             )
             result = cursor.fetchone()
-            total_rolls = result['count']
+            total_rolls = result["count"]
 
             # Get all rolls to calculate submission stats
             rolls = SessionRollRepository.list_by_partner(user_id, partner_id)
@@ -180,9 +193,17 @@ class SessionRollRepository:
                 "total_rolls": total_rolls,
                 "total_submissions_for": total_subs_for,
                 "total_submissions_against": total_subs_against,
-                "subs_per_roll": round(total_subs_for / total_rolls, 2) if total_rolls > 0 else 0,
-                "taps_per_roll": round(total_subs_against / total_rolls, 2) if total_rolls > 0 else 0,
-                "sub_ratio": round(total_subs_for / total_subs_against, 2) if total_subs_against > 0 else float('inf') if total_subs_for > 0 else 0,
+                "subs_per_roll": (
+                    round(total_subs_for / total_rolls, 2) if total_rolls > 0 else 0
+                ),
+                "taps_per_roll": (
+                    round(total_subs_against / total_rolls, 2) if total_rolls > 0 else 0
+                ),
+                "sub_ratio": (
+                    round(total_subs_for / total_subs_against, 2)
+                    if total_subs_against > 0
+                    else float("inf") if total_subs_for > 0 else 0
+                ),
             }
 
     @staticmethod
@@ -221,7 +242,9 @@ class SessionRollRepository:
                 params.append(json.dumps(submissions_for) if submissions_for else None)
             if submissions_against is not None:
                 updates.append("submissions_against = ?")
-                params.append(json.dumps(submissions_against) if submissions_against else None)
+                params.append(
+                    json.dumps(submissions_against) if submissions_against else None
+                )
             if notes is not None:
                 updates.append("notes = ?")
                 params.append(notes)
@@ -244,7 +267,9 @@ class SessionRollRepository:
         """Delete a session roll by ID. Returns True if deleted, False if not found."""
         with get_connection() as conn:
             cursor = conn.cursor()
-            cursor.execute(convert_query("DELETE FROM session_rolls WHERE id = ?"), (roll_id,))
+            cursor.execute(
+                convert_query("DELETE FROM session_rolls WHERE id = ?"), (roll_id,)
+            )
             return cursor.rowcount > 0
 
     @staticmethod
@@ -252,7 +277,10 @@ class SessionRollRepository:
         """Delete all rolls for a session. Returns count of deleted rolls."""
         with get_connection() as conn:
             cursor = conn.cursor()
-            cursor.execute(convert_query("DELETE FROM session_rolls WHERE session_id = ?"), (session_id,))
+            cursor.execute(
+                convert_query("DELETE FROM session_rolls WHERE session_id = ?"),
+                (session_id,),
+            )
             return cursor.rowcount
 
     @staticmethod

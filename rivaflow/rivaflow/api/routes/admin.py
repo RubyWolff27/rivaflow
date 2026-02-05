@@ -19,6 +19,7 @@ limiter = Limiter(key_func=get_remote_address)
 # Pydantic models
 class GymCreateRequest(BaseModel):
     """Request model for creating a gym."""
+
     name: str = Field(..., min_length=1, max_length=200)
     city: str | None = Field(None, max_length=100)
     state: str | None = Field(None, max_length=50)
@@ -35,6 +36,7 @@ class GymCreateRequest(BaseModel):
 
 class GymUpdateRequest(BaseModel):
     """Request model for updating a gym."""
+
     name: str | None = Field(None, min_length=1, max_length=200)
     city: str | None = Field(None, max_length=100)
     state: str | None = Field(None, max_length=50)
@@ -51,6 +53,7 @@ class GymUpdateRequest(BaseModel):
 
 class GymMergeRequest(BaseModel):
     """Request model for merging gyms."""
+
     source_gym_id: int = Field(..., gt=0)
     target_gym_id: int = Field(..., gt=0)
 
@@ -100,7 +103,9 @@ async def list_gyms(
 
 @router.get("/gyms/pending")
 @limiter.limit("60/minute")
-async def get_pending_gyms(request: Request, current_user: dict = Depends(require_admin)):
+async def get_pending_gyms(
+    request: Request, current_user: dict = Depends(require_admin)
+):
     """Get all pending (unverified) gyms."""
     gym_service = GymService()
     pending = gym_service.get_pending_gyms()
@@ -352,7 +357,9 @@ async def merge_gyms(
         raise NotFoundError(f"Target gym {merge_data.target_gym_id} not found")
 
     try:
-        success = gym_service.merge_gyms(merge_data.source_gym_id, merge_data.target_gym_id)
+        success = gym_service.merge_gyms(
+            merge_data.source_gym_id, merge_data.target_gym_id
+        )
 
         # Audit log
         AuditService.log(
@@ -380,7 +387,9 @@ async def merge_gyms(
 # Dashboard endpoints
 @router.get("/dashboard/stats")
 @limiter.limit("60/minute")
-async def get_dashboard_stats(request: Request, current_user: dict = Depends(require_admin)):
+async def get_dashboard_stats(
+    request: Request, current_user: dict = Depends(require_admin)
+):
     """Get platform statistics for admin dashboard."""
     from datetime import datetime, timedelta
 
@@ -409,11 +418,16 @@ async def get_dashboard_stats(request: Request, current_user: dict = Depends(req
         total_users = get_count(cursor.fetchone())
 
         # Active users (logged session in last 30 days)
-        thirty_days_ago = (datetime.now() - timedelta(days=30)).strftime('%Y-%m-%d')
-        cursor.execute(convert_query("""
+        thirty_days_ago = (datetime.now() - timedelta(days=30)).strftime("%Y-%m-%d")
+        cursor.execute(
+            convert_query(
+                """
             SELECT COUNT(DISTINCT user_id) FROM sessions
             WHERE session_date >= ?
-        """), (thirty_days_ago,))
+        """
+            ),
+            (thirty_days_ago,),
+        )
         active_users = get_count(cursor.fetchone())
 
         # Total sessions
@@ -431,11 +445,16 @@ async def get_dashboard_stats(request: Request, current_user: dict = Depends(req
         total_comments = get_count(cursor.fetchone())
 
         # New users this week
-        week_ago = (datetime.now() - timedelta(days=7)).strftime('%Y-%m-%d')
-        cursor.execute(convert_query("""
+        week_ago = (datetime.now() - timedelta(days=7)).strftime("%Y-%m-%d")
+        cursor.execute(
+            convert_query(
+                """
             SELECT COUNT(*) FROM users
             WHERE created_at >= ?
-        """), (week_ago,))
+        """
+            ),
+            (week_ago,),
+        )
         new_users_week = get_count(cursor.fetchone())
 
     return {
@@ -453,9 +472,12 @@ async def get_dashboard_stats(request: Request, current_user: dict = Depends(req
 # User management endpoints
 class UserUpdateRequest(BaseModel):
     """Request model for updating a user."""
+
     is_active: bool | None = None
     is_admin: bool | None = None
-    subscription_tier: str | None = Field(None, pattern="^(free|premium|lifetime_premium|admin)$")
+    subscription_tier: str | None = Field(
+        None, pattern="^(free|premium|lifetime_premium|admin)$"
+    )
     is_beta_user: bool | None = None
 
 
@@ -502,7 +524,9 @@ async def list_users(
         count_query = "SELECT COUNT(*) FROM users WHERE 1=1"
         count_params = []
         if search:
-            count_query += " AND (email LIKE ? OR first_name LIKE ? OR last_name LIKE ?)"
+            count_query += (
+                " AND (email LIKE ? OR first_name LIKE ? OR last_name LIKE ?)"
+            )
             count_params.extend([search_term, search_term, search_term])
         if is_active is not None:
             count_query += " AND is_active = ?"
@@ -514,7 +538,9 @@ async def list_users(
         cursor.execute(convert_query(count_query), count_params)
         row = cursor.fetchone()
         # Handle both PostgreSQL (dict) and SQLite (Row) results
-        total_count = list(row.values())[0] if isinstance(row, dict) else (row[0] if row else 0)
+        total_count = (
+            list(row.values())[0] if isinstance(row, dict) else (row[0] if row else 0)
+        )
 
         return {
             "users": [dict(row) for row in users],
@@ -550,23 +576,38 @@ async def get_user_details(
             return list(result.values())[0] if isinstance(result, dict) else result[0]
 
         # Session count
-        cursor.execute(convert_query("SELECT COUNT(*) FROM sessions WHERE user_id = ?"), (user_id,))
+        cursor.execute(
+            convert_query("SELECT COUNT(*) FROM sessions WHERE user_id = ?"), (user_id,)
+        )
         session_count = extract_count(cursor.fetchone())
 
         # Comment count
-        cursor.execute(convert_query("SELECT COUNT(*) FROM activity_comments WHERE user_id = ?"), (user_id,))
+        cursor.execute(
+            convert_query("SELECT COUNT(*) FROM activity_comments WHERE user_id = ?"),
+            (user_id,),
+        )
         comment_count = extract_count(cursor.fetchone())
 
         # Followers
-        cursor.execute(convert_query("""
+        cursor.execute(
+            convert_query(
+                """
             SELECT COUNT(*) FROM user_relationships WHERE following_user_id = ?
-        """), (user_id,))
+        """
+            ),
+            (user_id,),
+        )
         followers_count = extract_count(cursor.fetchone())
 
         # Following
-        cursor.execute(convert_query("""
+        cursor.execute(
+            convert_query(
+                """
             SELECT COUNT(*) FROM user_relationships WHERE follower_user_id = ?
-        """), (user_id,))
+        """
+            ),
+            (user_id,),
+        )
         following_count = extract_count(cursor.fetchone())
 
     return {
@@ -576,7 +617,7 @@ async def get_user_details(
             "comments": comment_count,
             "followers": followers_count,
             "following": following_count,
-        }
+        },
     }
 
 
@@ -696,7 +737,9 @@ async def list_all_comments(
     with get_connection() as conn:
         cursor = conn.cursor()
 
-        cursor.execute(convert_query("""
+        cursor.execute(
+            convert_query(
+                """
             SELECT
                 c.id, c.user_id, c.activity_type, c.activity_id,
                 c.comment_text, c.created_at,
@@ -705,14 +748,19 @@ async def list_all_comments(
             LEFT JOIN users u ON c.user_id = u.id
             ORDER BY c.created_at DESC
             LIMIT ? OFFSET ?
-        """), (limit, offset))
+        """
+            ),
+            (limit, offset),
+        )
 
         comments = [dict(row) for row in cursor.fetchall()]
 
         cursor.execute(convert_query("SELECT COUNT(*) FROM activity_comments"))
         row = cursor.fetchone()
         # Handle both PostgreSQL (dict) and SQLite (Row) results
-        total = list(row.values())[0] if isinstance(row, dict) else (row[0] if row else 0)
+        total = (
+            list(row.values())[0] if isinstance(row, dict) else (row[0] if row else 0)
+        )
 
         return {
             "comments": comments,
@@ -808,14 +856,20 @@ async def delete_technique(
     technique_name = None
     with get_connection() as conn:
         cursor = conn.cursor()
-        cursor.execute(convert_query("SELECT name FROM movements_glossary WHERE id = ?"), (technique_id,))
+        cursor.execute(
+            convert_query("SELECT name FROM movements_glossary WHERE id = ?"),
+            (technique_id,),
+        )
         row = cursor.fetchone()
         if row:
             technique_name = row["name"] if hasattr(row, "__getitem__") else row[0]
 
     with get_connection() as conn:
         cursor = conn.cursor()
-        cursor.execute(convert_query("DELETE FROM movements_glossary WHERE id = ?"), (technique_id,))
+        cursor.execute(
+            convert_query("DELETE FROM movements_glossary WHERE id = ?"),
+            (technique_id,),
+        )
         conn.commit()
 
         if cursor.rowcount == 0:
@@ -875,6 +929,7 @@ async def get_audit_logs(
 # Feedback management endpoints
 class FeedbackUpdateStatusRequest(BaseModel):
     """Admin model for updating feedback status."""
+
     status: str = Field(..., pattern="^(new|reviewing|resolved|closed)$")
     admin_notes: str | None = Field(None, max_length=1000)
 
@@ -882,7 +937,9 @@ class FeedbackUpdateStatusRequest(BaseModel):
 @router.get("/feedback")
 async def get_all_feedback(
     status: str | None = Query(None, pattern="^(new|reviewing|resolved|closed)$"),
-    category: str | None = Query(None, pattern="^(bug|feature|improvement|question|other)$"),
+    category: str | None = Query(
+        None, pattern="^(bug|feature|improvement|question|other)$"
+    ),
     limit: int = Query(100, ge=1, le=500),
     offset: int = Query(0, ge=0),
     current_user: dict = Depends(get_admin_user),

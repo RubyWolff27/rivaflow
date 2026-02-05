@@ -1,4 +1,5 @@
 """Tests for SessionService."""
+
 from datetime import date
 from unittest.mock import patch
 

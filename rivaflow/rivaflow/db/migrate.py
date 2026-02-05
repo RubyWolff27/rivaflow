@@ -34,16 +34,20 @@ def create_migrations_table(conn):
 
     # Check if table exists and has correct schema
     try:
-        cursor.execute("""
+        cursor.execute(
+            """
             SELECT column_name
             FROM information_schema.columns
             WHERE table_name = 'schema_migrations' AND column_name = 'version'
-        """)
+        """
+        )
         has_version_column = cursor.fetchone() is not None
 
         if not has_version_column:
             # Table exists but has wrong schema - drop and recreate
-            logger.warning("schema_migrations table exists with incorrect schema. Recreating...")
+            logger.warning(
+                "schema_migrations table exists with incorrect schema. Recreating..."
+            )
             cursor.execute("DROP TABLE IF EXISTS schema_migrations")
             conn.commit()
     except Exception as e:
@@ -51,12 +55,14 @@ def create_migrations_table(conn):
         conn.rollback()
 
     # Create table with correct schema
-    cursor.execute("""
+    cursor.execute(
+        """
         CREATE TABLE IF NOT EXISTS schema_migrations (
             version TEXT PRIMARY KEY,
             applied_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
         )
-    """)
+    """
+    )
     conn.commit()
     cursor.close()
 
@@ -92,8 +98,7 @@ def apply_migration(conn, migration_file):
 
         # Record migration
         cursor.execute(
-            "INSERT INTO schema_migrations (version) VALUES (%s)",
-            (version,)
+            "INSERT INTO schema_migrations (version) VALUES (%s)", (version,)
         )
 
         conn.commit()
@@ -143,7 +148,8 @@ def run_migrations():
     # Use database.py's _apply_migrations which handles SQLite-to-PostgreSQL conversion
     try:
         from rivaflow.db.database import _apply_migrations
-        _apply_migrations(conn, applied, 'postgresql')
+
+        _apply_migrations(conn, applied, "postgresql")
         logger.info("=" * 60)
         logger.info("✓ All migrations applied successfully")
         logger.info("=" * 60)
@@ -156,6 +162,7 @@ def run_migrations():
 
     # Reset connection pool after migrations to ensure clean state
     from rivaflow.db.database import close_connection_pool
+
     close_connection_pool()
     logger.info("Connection pool reset after migrations")
 
@@ -163,7 +170,6 @@ def run_migrations():
 if __name__ == "__main__":
     # Configure logging for standalone execution
     logging.basicConfig(
-        level=logging.INFO,
-        format='%(asctime)s - %(levelname)s - %(message)s'
+        level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
     )
     run_migrations()

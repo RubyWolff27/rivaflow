@@ -1,4 +1,5 @@
 """API routes for milestone tracking."""
+
 from fastapi import APIRouter, Depends
 
 from rivaflow.core.dependencies import get_current_user
@@ -34,10 +35,7 @@ def get_closest_milestone(current_user: dict = Depends(get_current_user)):
     if not closest:
         return {"has_milestone": False}
 
-    return {
-        "has_milestone": True,
-        **closest
-    }
+    return {"has_milestone": True, **closest}
 
 
 @router.get("/totals")

@@ -18,6 +18,7 @@ async def add_video(video: VideoCreate, current_user: dict = Depends(get_current
     technique_name = None
     if video.technique_id:
         from rivaflow.db.repositories import TechniqueRepository
+
         tech_repo = TechniqueRepository()
         tech = tech_repo.get_by_id(video.technique_id)
         if tech:
@@ -43,29 +44,30 @@ async def add_video(video: VideoCreate, current_user: dict = Depends(get_current
 async def list_videos(
     limit: int = Query(default=50, ge=1, le=200, description="Max results to return"),
     offset: int = Query(default=0, ge=0, description="Number of results to skip"),
-    current_user: dict = Depends(get_current_user)
+    current_user: dict = Depends(get_current_user),
 ):
     """List all videos with pagination."""
     all_videos = service.list_all_videos(user_id=current_user["id"])
     total = len(all_videos)
-    videos = all_videos[offset:offset + limit]
+    videos = all_videos[offset : offset + limit]
 
-    return {
-        "videos": videos,
-        "total": total,
-        "limit": limit,
-        "offset": offset
-    }
+    return {"videos": videos, "total": total, "limit": limit, "offset": offset}
 
 
 @router.get("/technique/{technique_name}")
-async def get_videos_by_technique(technique_name: str, current_user: dict = Depends(get_current_user)):
+async def get_videos_by_technique(
+    technique_name: str, current_user: dict = Depends(get_current_user)
+):
     """Get videos for a specific technique."""
-    return service.list_videos_by_technique(user_id=current_user["id"], technique_name=technique_name)
+    return service.list_videos_by_technique(
+        user_id=current_user["id"], technique_name=technique_name
+    )
 
 
 @router.get("/search")
-async def search_videos(q: str = Query(..., min_length=2), current_user: dict = Depends(get_current_user)):
+async def search_videos(
+    q: str = Query(..., min_length=2), current_user: dict = Depends(get_current_user)
+):
     """Search videos by title or URL."""
     return service.search_videos(user_id=current_user["id"], query=q)
 

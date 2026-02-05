@@ -1,4 +1,5 @@
 """Unit tests for ReportService calculations."""
+
 from datetime import date
 
 from rivaflow.core.services.report_service import ReportService
@@ -43,7 +44,9 @@ class TestReportMetrics:
 
         # Critical assertion: subs_per_class should ONLY count submissions FOR
         assert summary["subs_per_class"] == round(10 / 3, 2)  # 10 sf / 3 classes = 3.33
-        assert summary["subs_per_class"] != round(14 / 3, 2)  # NOT (10 sf + 4 sa) / 3 = 4.67
+        assert summary["subs_per_class"] != round(
+            14 / 3, 2
+        )  # NOT (10 sf + 4 sa) / 3 = 4.67
 
         # Verify other metrics are also correct
         assert summary["total_classes"] == 3
@@ -58,7 +61,14 @@ class TestReportMetrics:
         service = ReportService()
 
         sessions = [
-            {"duration_mins": 60, "intensity": 4, "rolls": 10, "submissions_for": 5, "submissions_against": 2, "partners": []},
+            {
+                "duration_mins": 60,
+                "intensity": 4,
+                "rolls": 10,
+                "submissions_for": 5,
+                "submissions_against": 2,
+                "partners": [],
+            },
         ]
 
         summary = service._calculate_summary(sessions)
@@ -69,7 +79,14 @@ class TestReportMetrics:
         service = ReportService()
 
         sessions = [
-            {"duration_mins": 60, "intensity": 4, "rolls": 10, "submissions_for": 3, "submissions_against": 7, "partners": []},
+            {
+                "duration_mins": 60,
+                "intensity": 4,
+                "rolls": 10,
+                "submissions_for": 3,
+                "submissions_against": 7,
+                "partners": [],
+            },
         ]
 
         summary = service._calculate_summary(sessions)
@@ -81,7 +98,14 @@ class TestReportMetrics:
 
         # Non-sparring session: rolls=0
         sessions = [
-            {"duration_mins": 60, "intensity": 3, "rolls": 0, "submissions_for": 0, "submissions_against": 0, "partners": []},
+            {
+                "duration_mins": 60,
+                "intensity": 3,
+                "rolls": 0,
+                "submissions_for": 0,
+                "submissions_against": 0,
+                "partners": [],
+            },
         ]
 
         summary = service._calculate_summary(sessions)
@@ -93,9 +117,30 @@ class TestReportMetrics:
         service = ReportService()
 
         sessions = [
-            {"duration_mins": 60, "intensity": 4, "rolls": 5, "submissions_for": 2, "submissions_against": 1, "partners": ["Alice", "Bob"]},
-            {"duration_mins": 60, "intensity": 4, "rolls": 5, "submissions_for": 3, "submissions_against": 0, "partners": ["Bob", "Charlie"]},
-            {"duration_mins": 60, "intensity": 5, "rolls": 5, "submissions_for": 1, "submissions_against": 2, "partners": ["Alice"]},
+            {
+                "duration_mins": 60,
+                "intensity": 4,
+                "rolls": 5,
+                "submissions_for": 2,
+                "submissions_against": 1,
+                "partners": ["Alice", "Bob"],
+            },
+            {
+                "duration_mins": 60,
+                "intensity": 4,
+                "rolls": 5,
+                "submissions_for": 3,
+                "submissions_against": 0,
+                "partners": ["Bob", "Charlie"],
+            },
+            {
+                "duration_mins": 60,
+                "intensity": 5,
+                "rolls": 5,
+                "submissions_for": 1,
+                "submissions_against": 2,
+                "partners": ["Alice"],
+            },
         ]
 
         summary = service._calculate_summary(sessions)
@@ -106,7 +151,14 @@ class TestReportMetrics:
         service = ReportService()
 
         sessions = [
-            {"duration_mins": 60, "intensity": 4, "rolls": 10, "submissions_for": 6, "submissions_against": 3, "partners": []},
+            {
+                "duration_mins": 60,
+                "intensity": 4,
+                "rolls": 10,
+                "submissions_for": 6,
+                "submissions_against": 3,
+                "partners": [],
+            },
         ]
 
         summary = service._calculate_summary(sessions)
@@ -118,14 +170,28 @@ class TestReportMetrics:
 
         # Case 1: sf > 0, sa = 0 → return sf as float
         sessions = [
-            {"duration_mins": 60, "intensity": 4, "rolls": 10, "submissions_for": 5, "submissions_against": 0, "partners": []},
+            {
+                "duration_mins": 60,
+                "intensity": 4,
+                "rolls": 10,
+                "submissions_for": 5,
+                "submissions_against": 0,
+                "partners": [],
+            },
         ]
         summary = service._calculate_summary(sessions)
         assert summary["sub_ratio"] == 5.0  # All submissions, no taps
 
         # Case 2: sf = 0, sa = 0 → return 0.0
         sessions = [
-            {"duration_mins": 60, "intensity": 3, "rolls": 0, "submissions_for": 0, "submissions_against": 0, "partners": []},
+            {
+                "duration_mins": 60,
+                "intensity": 3,
+                "rolls": 0,
+                "submissions_for": 0,
+                "submissions_against": 0,
+                "partners": [],
+            },
         ]
         summary = service._calculate_summary(sessions)
         assert summary["sub_ratio"] == 0.0

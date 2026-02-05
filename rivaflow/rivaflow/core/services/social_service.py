@@ -1,4 +1,5 @@
 """Social features service for relationships, likes, and comments."""
+
 import sqlite3
 from typing import Any
 
@@ -40,10 +41,14 @@ class SocialService:
 
         # Create the relationship
         try:
-            relationship = UserRelationshipRepository.follow(follower_user_id, following_user_id)
+            relationship = UserRelationshipRepository.follow(
+                follower_user_id, following_user_id
+            )
 
             # Create notification for the followed user
-            NotificationService.create_follow_notification(following_user_id, follower_user_id)
+            NotificationService.create_follow_notification(
+                following_user_id, follower_user_id
+            )
 
             return relationship
         except sqlite3.IntegrityError as e:
@@ -78,7 +83,9 @@ class SocialService:
     @staticmethod
     def is_following(follower_user_id: int, following_user_id: int) -> bool:
         """Check if follower_user_id follows following_user_id."""
-        return UserRelationshipRepository.is_following(follower_user_id, following_user_id)
+        return UserRelationshipRepository.is_following(
+            follower_user_id, following_user_id
+        )
 
     @staticmethod
     def get_follower_count(user_id: int) -> int:
@@ -91,7 +98,9 @@ class SocialService:
         return UserRelationshipRepository.get_following_count(user_id)
 
     @staticmethod
-    def like_activity(user_id: int, activity_type: str, activity_id: int) -> dict[str, Any]:
+    def like_activity(
+        user_id: int, activity_type: str, activity_id: int
+    ) -> dict[str, Any]:
         """
         Like an activity.
 
@@ -155,7 +164,9 @@ class SocialService:
         return ActivityLikeRepository.delete(user_id, activity_type, activity_id)
 
     @staticmethod
-    def get_activity_likes(activity_type: str, activity_id: int) -> list[dict[str, Any]]:
+    def get_activity_likes(
+        activity_type: str, activity_id: int
+    ) -> list[dict[str, Any]]:
         """Get all likes for an activity with user information."""
         return ActivityLikeRepository.get_by_activity(activity_type, activity_id)
 
@@ -167,7 +178,9 @@ class SocialService:
     @staticmethod
     def has_user_liked(user_id: int, activity_type: str, activity_id: int) -> bool:
         """Check if user has liked an activity."""
-        return ActivityLikeRepository.has_user_liked(user_id, activity_type, activity_id)
+        return ActivityLikeRepository.has_user_liked(
+            user_id, activity_type, activity_id
+        )
 
     @staticmethod
     def add_comment(
@@ -234,13 +247,19 @@ class SocialService:
                 # Only notify if different from activity owner (to avoid duplicate notifications)
                 if parent_author_id != activity_owner_id and comment.get("id"):
                     NotificationService.create_reply_notification(
-                        parent_author_id, user_id, activity_type, activity_id, comment["id"]
+                        parent_author_id,
+                        user_id,
+                        activity_type,
+                        activity_id,
+                        comment["id"],
                     )
 
         return comment
 
     @staticmethod
-    def get_activity_comments(activity_type: str, activity_id: int) -> list[dict[str, Any]]:
+    def get_activity_comments(
+        activity_type: str, activity_id: int
+    ) -> list[dict[str, Any]]:
         """Get all comments for an activity with user information."""
         return ActivityCommentRepository.get_by_activity(activity_type, activity_id)
 
@@ -250,7 +269,9 @@ class SocialService:
         return ActivityCommentRepository.get_comment_count(activity_type, activity_id)
 
     @staticmethod
-    def update_comment(comment_id: int, user_id: int, comment_text: str) -> dict[str, Any] | None:
+    def update_comment(
+        comment_id: int, user_id: int, comment_text: str
+    ) -> dict[str, Any] | None:
         """
         Update a comment (user can only update their own comments).
 
@@ -271,7 +292,9 @@ class SocialService:
         if len(comment_text) > 1000:
             raise ValueError("Comment text cannot exceed 1000 characters")
 
-        return ActivityCommentRepository.update(comment_id, user_id, comment_text.strip())
+        return ActivityCommentRepository.update(
+            comment_id, user_id, comment_text.strip()
+        )
 
     @staticmethod
     def delete_comment(comment_id: int, user_id: int) -> bool:
@@ -334,54 +357,78 @@ class SocialService:
         # Get current user's sessions (last 90 days for pattern matching)
         start_date = date.today() - timedelta(days=90)
         end_date = date.today()
-        user_sessions = SessionRepository.get_by_date_range(user_id, start_date, end_date)
+        user_sessions = SessionRepository.get_by_date_range(
+            user_id, start_date, end_date
+        )
 
         # Find user's most frequent gym
-        gym_counts = Counter([s.get('gym_name') for s in user_sessions if s.get('gym_name')])
+        gym_counts = Counter(
+            [s.get("gym_name") for s in user_sessions if s.get("gym_name")]
+        )
         user_primary_gym = gym_counts.most_common(1)[0][0] if gym_counts else None
 
         # Get all users except current user
         all_users = UserRepository.list_all()
-        other_users = [u for u in all_users if u['id'] != user_id]
+        other_users = [u for u in all_users if u["id"] != user_id]
 
         # Get users already following
         following = UserRelationshipRepository.get_following(user_id)
-        following_ids = {f['id'] for f in following}
+        following_ids = {f["id"] for f in following}
 
         recommendations = []
 
         for other_user in other_users:
             # Skip if already following
-            if other_user['id'] in following_ids:
+            if other_user["id"] in following_ids:
                 continue
 
             # Get other user's sessions
-            other_sessions = SessionRepository.get_by_date_range(other_user['id'], start_date, end_date)
+            other_sessions = SessionRepository.get_by_date_range(
+                other_user["id"], start_date, end_date
+            )
 
             # Skip if they have no sessions
             if not other_sessions:
                 continue
 
             # Find other user's most frequent gym
-            other_gym_counts = Counter([s.get('gym_name') for s in other_sessions if s.get('gym_name')])
-            other_primary_gym = other_gym_counts.most_common(1)[0][0] if other_gym_counts else None
+            other_gym_counts = Counter(
+                [s.get("gym_name") for s in other_sessions if s.get("gym_name")]
+            )
+            other_primary_gym = (
+                other_gym_counts.most_common(1)[0][0] if other_gym_counts else None
+            )
 
             reason = None
             score = 0
 
             # Check for same primary gym
-            if user_primary_gym and other_primary_gym and user_primary_gym == other_primary_gym:
+            if (
+                user_primary_gym
+                and other_primary_gym
+                and user_primary_gym == other_primary_gym
+            ):
                 reason = f"Trains at {user_primary_gym}"
                 score = 100
 
             # Check for recent gym overlap (last 30 days)
             if not reason:
                 recent_start = date.today() - timedelta(days=30)
-                user_recent_sessions = [s for s in user_sessions if s['session_date'] >= recent_start]
-                other_recent_sessions = [s for s in other_sessions if s['session_date'] >= recent_start]
+                user_recent_sessions = [
+                    s for s in user_sessions if s["session_date"] >= recent_start
+                ]
+                other_recent_sessions = [
+                    s for s in other_sessions if s["session_date"] >= recent_start
+                ]
 
-                user_recent_gyms = {s.get('gym_name') for s in user_recent_sessions if s.get('gym_name')}
-                other_recent_gyms = {s.get('gym_name') for s in other_recent_sessions if s.get('gym_name')}
+                user_recent_gyms = {
+                    s.get("gym_name") for s in user_recent_sessions if s.get("gym_name")
+                }
+                other_recent_gyms = {
+                    s.get("gym_name")
+                    for s in other_recent_sessions
+                    if s.get("gym_name")
+                }
 
                 overlap_gyms = user_recent_gyms & other_recent_gyms
                 if overlap_gyms:
@@ -390,17 +437,19 @@ class SocialService:
 
             # Only include if we found a reason
             if reason:
-                recommendations.append({
-                    'id': other_user['id'],
-                    'first_name': other_user.get('first_name', ''),
-                    'last_name': other_user.get('last_name', ''),
-                    'email': other_user.get('email', ''),
-                    'reason': reason,
-                    'score': score,
-                })
+                recommendations.append(
+                    {
+                        "id": other_user["id"],
+                        "first_name": other_user.get("first_name", ""),
+                        "last_name": other_user.get("last_name", ""),
+                        "email": other_user.get("email", ""),
+                        "reason": reason,
+                        "score": score,
+                    }
+                )
 
         # Sort by score (highest first)
-        recommendations.sort(key=lambda x: x['score'], reverse=True)
+        recommendations.sort(key=lambda x: x["score"], reverse=True)
 
         # Return top 10 recommendations
         return recommendations[:10]

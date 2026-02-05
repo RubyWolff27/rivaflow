@@ -3,10 +3,13 @@ Unit tests for database abstraction layer.
 
 Tests the SQLite/PostgreSQL compatibility layer and query conversion.
 """
+
 import os
 
 # Set SECRET_KEY for testing
-os.environ.setdefault("SECRET_KEY", "test-secret-key-for-db-abstraction-tests-min32chars")
+os.environ.setdefault(
+    "SECRET_KEY", "test-secret-key-for-db-abstraction-tests-min32chars"
+)
 
 from rivaflow.db.database import convert_query
 
@@ -47,7 +50,9 @@ class TestQueryConversion:
 
     def test_convert_query_handles_update(self):
         """Test UPDATE query conversion."""
-        sqlite_query = "UPDATE sessions SET intensity = ?, notes = ? WHERE session_id = ?"
+        sqlite_query = (
+            "UPDATE sessions SET intensity = ?, notes = ? WHERE session_id = ?"
+        )
         converted = convert_query(sqlite_query)
 
         assert "UPDATE" in converted.upper()
@@ -93,7 +98,9 @@ class TestQueryConversion:
 
     def test_convert_query_preserves_current_timestamp(self):
         """Test CURRENT_TIMESTAMP is preserved."""
-        sqlite_query = "INSERT INTO sessions (user_id, created_at) VALUES (?, CURRENT_TIMESTAMP)"
+        sqlite_query = (
+            "INSERT INTO sessions (user_id, created_at) VALUES (?, CURRENT_TIMESTAMP)"
+        )
         converted = convert_query(sqlite_query)
 
         assert "CURRENT_TIMESTAMP" in converted.upper()
@@ -108,7 +115,9 @@ class TestQueryConversion:
 
     def test_convert_query_handles_aggregate(self):
         """Test aggregate function queries."""
-        sqlite_query = "SELECT SUM(duration_mins), AVG(intensity) FROM sessions WHERE user_id = ?"
+        sqlite_query = (
+            "SELECT SUM(duration_mins), AVG(intensity) FROM sessions WHERE user_id = ?"
+        )
         converted = convert_query(sqlite_query)
 
         assert "SUM" in converted.upper()
@@ -143,21 +152,27 @@ class TestRowToDictConversion:
             cursor = conn.cursor()
 
             # First create a test user
-            cursor.execute("""
+            cursor.execute(
+                """
                 INSERT INTO users (email, password_hash, created_at)
                 VALUES (?, ?, CURRENT_TIMESTAMP)
-            """, ("test_dict@example.com", "dummy_hash"))
+            """,
+                ("test_dict@example.com", "dummy_hash"),
+            )
             conn.commit()
             user_id = cursor.lastrowid
 
             # Create a session
-            cursor.execute("""
+            cursor.execute(
+                """
                 INSERT INTO sessions (
                     user_id, session_date, class_type, gym_name,
                     duration_mins, intensity, rolls, created_at
                 )
                 VALUES (?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
-            """, (user_id, date.today().isoformat(), "gi", "Test Gym", 90, 4, 5))
+            """,
+                (user_id, date.today().isoformat(), "gi", "Test Gym", 90, 4, 5),
+            )
             conn.commit()
             session_id = cursor.lastrowid
 
@@ -196,8 +211,7 @@ class TestParameterBinding:
 
             # This should safely escape the input
             cursor.execute(
-                "SELECT * FROM sessions WHERE gym_name = ?",
-                (malicious_input,)
+                "SELECT * FROM sessions WHERE gym_name = ?", (malicious_input,)
             )
 
             # Should return empty results, not execute injection
@@ -222,10 +236,13 @@ class TestTransactionIsolation:
         # Create test user
         with get_connection() as conn:
             cursor = conn.cursor()
-            cursor.execute("""
+            cursor.execute(
+                """
                 INSERT INTO users (email, password_hash, created_at)
                 VALUES (?, ?, CURRENT_TIMESTAMP)
-            """, ("test_rollback@example.com", "dummy_hash"))
+            """,
+                ("test_rollback@example.com", "dummy_hash"),
+            )
             conn.commit()
             user_id = cursor.lastrowid
 
@@ -234,13 +251,16 @@ class TestTransactionIsolation:
                 cursor = conn.cursor()
 
                 # Insert a session
-                cursor.execute("""
+                cursor.execute(
+                    """
                     INSERT INTO sessions (
                         user_id, session_date, class_type, gym_name,
                         duration_mins, intensity, rolls, created_at
                     )
                     VALUES (?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
-                """, (user_id, "2026-02-01", "gi", "Test Gym", 90, 4, 5))
+                """,
+                    (user_id, "2026-02-01", "gi", "Test Gym", 90, 4, 5),
+                )
 
                 # Force an error (invalid SQL)
                 cursor.execute("INVALID SQL SYNTAX HERE")
@@ -254,7 +274,7 @@ class TestTransactionIsolation:
             cursor = conn.cursor()
             cursor.execute(
                 "SELECT COUNT(*) FROM sessions WHERE user_id = ? AND gym_name = ?",
-                (user_id, "Test Gym")
+                (user_id, "Test Gym"),
             )
             count = cursor.fetchone()[0]
             assert count == 0
@@ -272,10 +292,13 @@ class TestTransactionIsolation:
         # Create test user
         with get_connection() as conn:
             cursor = conn.cursor()
-            cursor.execute("""
+            cursor.execute(
+                """
                 INSERT INTO users (email, password_hash, created_at)
                 VALUES (?, ?, CURRENT_TIMESTAMP)
-            """, ("test_explicit_rollback@example.com", "dummy_hash"))
+            """,
+                ("test_explicit_rollback@example.com", "dummy_hash"),
+            )
             conn.commit()
             user_id = cursor.lastrowid
 
@@ -283,13 +306,16 @@ class TestTransactionIsolation:
         with get_connection() as conn:
             cursor = conn.cursor()
 
-            cursor.execute("""
+            cursor.execute(
+                """
                 INSERT INTO sessions (
                     user_id, session_date, class_type, gym_name,
                     duration_mins, intensity, rolls, created_at
                 )
                 VALUES (?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
-            """, (user_id, "2026-02-01", "gi", "Rollback Gym", 90, 4, 5))
+            """,
+                (user_id, "2026-02-01", "gi", "Rollback Gym", 90, 4, 5),
+            )
 
             # Explicit rollback
             conn.rollback()
@@ -299,7 +325,7 @@ class TestTransactionIsolation:
             cursor = conn.cursor()
             cursor.execute(
                 "SELECT COUNT(*) FROM sessions WHERE user_id = ? AND gym_name = ?",
-                (user_id, "Rollback Gym")
+                (user_id, "Rollback Gym"),
             )
             count = cursor.fetchone()[0]
             assert count == 0
@@ -318,10 +344,13 @@ class TestDatabaseTypes:
 
         with get_connection() as conn:
             cursor = conn.cursor()
-            cursor.execute("""
+            cursor.execute(
+                """
                 INSERT INTO users (email, password_hash, created_at)
                 VALUES (?, ?, CURRENT_TIMESTAMP)
-            """, ("test_int@example.com", "hash"))
+            """,
+                ("test_int@example.com", "hash"),
+            )
             conn.commit()
             user_id = cursor.lastrowid
 
@@ -341,25 +370,33 @@ class TestDatabaseTypes:
 
         with get_connection() as conn:
             cursor = conn.cursor()
-            cursor.execute("""
+            cursor.execute(
+                """
                 INSERT INTO users (email, password_hash, created_at)
                 VALUES (?, ?, CURRENT_TIMESTAMP)
-            """, ("test_string@example.com", "hash"))
+            """,
+                ("test_string@example.com", "hash"),
+            )
             conn.commit()
             user_id = cursor.lastrowid
 
-            cursor.execute("""
+            cursor.execute(
+                """
                 INSERT INTO sessions (
                     user_id, session_date, class_type, gym_name,
                     duration_mins, intensity, rolls, created_at
                 )
                 VALUES (?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
-            """, (user_id, "2026-02-01", "gi", test_string, 90, 4, 5))
+            """,
+                (user_id, "2026-02-01", "gi", test_string, 90, 4, 5),
+            )
             conn.commit()
             session_id = cursor.lastrowid
 
             # Retrieve
-            cursor.execute("SELECT gym_name FROM sessions WHERE session_id = ?", (session_id,))
+            cursor.execute(
+                "SELECT gym_name FROM sessions WHERE session_id = ?", (session_id,)
+            )
             row = cursor.fetchone()
             retrieved_string = row[0] if isinstance(row, tuple) else row["gym_name"]
 
@@ -376,25 +413,33 @@ class TestDatabaseTypes:
 
         with get_connection() as conn:
             cursor = conn.cursor()
-            cursor.execute("""
+            cursor.execute(
+                """
                 INSERT INTO users (email, password_hash, created_at)
                 VALUES (?, ?, CURRENT_TIMESTAMP)
-            """, ("test_null@example.com", "hash"))
+            """,
+                ("test_null@example.com", "hash"),
+            )
             conn.commit()
             user_id = cursor.lastrowid
 
-            cursor.execute("""
+            cursor.execute(
+                """
                 INSERT INTO sessions (
                     user_id, session_date, class_type, gym_name,
                     duration_mins, intensity, rolls, notes, created_at
                 )
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
-            """, (user_id, "2026-02-01", "gi", "Test Gym", 90, 4, 5, None))
+            """,
+                (user_id, "2026-02-01", "gi", "Test Gym", 90, 4, 5, None),
+            )
             conn.commit()
             session_id = cursor.lastrowid
 
             # Retrieve
-            cursor.execute("SELECT notes FROM sessions WHERE session_id = ?", (session_id,))
+            cursor.execute(
+                "SELECT notes FROM sessions WHERE session_id = ?", (session_id,)
+            )
             row = cursor.fetchone()
             notes = row[0] if isinstance(row, tuple) else row["notes"]
 

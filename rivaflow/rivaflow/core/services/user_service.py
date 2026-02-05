@@ -1,9 +1,14 @@
 """User service for user profile management."""
+
 from datetime import datetime, timedelta
 from typing import Any
 
 from rivaflow.cache import CacheKeys, get_redis_client
-from rivaflow.db.repositories import ProfileRepository, UserRelationshipRepository, UserRepository
+from rivaflow.db.repositories import (
+    ProfileRepository,
+    UserRelationshipRepository,
+    UserRepository,
+)
 from rivaflow.db.repositories.readiness_repo import ReadinessRepository
 from rivaflow.db.repositories.session_repo import SessionRepository
 
@@ -36,7 +41,9 @@ class UserService:
 
         return user
 
-    def search_users(self, query: str, limit: int = 20, exclude_user_id: int | None = None) -> list[dict[str, Any]]:
+    def search_users(
+        self, query: str, limit: int = 20, exclude_user_id: int | None = None
+    ) -> list[dict[str, Any]]:
         """
         Search for users by name or email.
 
@@ -57,9 +64,7 @@ class UserService:
         return users
 
     def enrich_users_with_social_status(
-        self,
-        users: list[dict[str, Any]],
-        current_user_id: int
+        self, users: list[dict[str, Any]], current_user_id: int
     ) -> list[dict[str, Any]]:
         """
         Enrich user list with social relationship status.
@@ -77,26 +82,21 @@ class UserService:
 
             # Check if current user is following this user
             is_following = self.social_repo.is_following(
-                follower_id=current_user_id,
-                following_id=user_id
+                follower_id=current_user_id, following_id=user_id
             )
 
             # Get follower count
             followers = self.social_repo.get_followers(user_id=user_id)
             follower_count = len(followers) if followers else 0
 
-            enriched.append({
-                **user,
-                "is_following": is_following,
-                "follower_count": follower_count
-            })
+            enriched.append(
+                {**user, "is_following": is_following, "follower_count": follower_count}
+            )
 
         return enriched
 
     def get_user_profile(
-        self,
-        user_id: int,
-        requesting_user_id: int
+        self, user_id: int, requesting_user_id: int
     ) -> dict[str, Any] | None:
         """
         Get a user's public profile.
@@ -130,14 +130,12 @@ class UserService:
 
         # Check if requesting user is following this user
         is_following = self.social_repo.is_following(
-            follower_id=requesting_user_id,
-            following_id=user_id
+            follower_id=requesting_user_id, following_id=user_id
         )
 
         # Check if this user is following the requester (mutual follow)
         is_followed_by = self.social_repo.is_following(
-            follower_id=user_id,
-            following_id=requesting_user_id
+            follower_id=user_id, following_id=requesting_user_id
         )
 
         # Build public profile
@@ -157,13 +155,15 @@ class UserService:
 
         # Add profile data if exists
         if profile:
-            public_profile.update({
-                "current_grade": profile.get("current_grade"),
-                "default_gym": profile.get("default_gym"),
-                "location": profile.get("location"),
-                "state": profile.get("state"),
-                "bio": profile.get("bio"),  # Will add this field later if needed
-            })
+            public_profile.update(
+                {
+                    "current_grade": profile.get("current_grade"),
+                    "default_gym": profile.get("default_gym"),
+                    "location": profile.get("location"),
+                    "state": profile.get("state"),
+                    "bio": profile.get("bio"),  # Will add this field later if needed
+                }
+            )
 
         # Cache for 15 minutes
         self.cache.set(cache_key, public_profile, ttl=CacheKeys.TTL_15_MINUTES)
@@ -209,9 +209,11 @@ class UserService:
 
         # Recent activity counts
         recent_sessions = [
-            s for s in (all_sessions or [])
-            if s.get("session_date") and
-            datetime.fromisoformat(s["session_date"].replace("Z", "+00:00")) >= week_ago
+            s
+            for s in (all_sessions or [])
+            if s.get("session_date")
+            and datetime.fromisoformat(s["session_date"].replace("Z", "+00:00"))
+            >= week_ago
         ]
         sessions_this_week = len(recent_sessions)
 

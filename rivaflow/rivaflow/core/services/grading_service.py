@@ -18,7 +18,7 @@ class GradingService:
         professor: str | None = None,
         instructor_id: int | None = None,
         notes: str | None = None,
-        photo_url: str | None = None
+        photo_url: str | None = None,
     ) -> dict:
         """
         Create a new grading entry and update the profile's current_grade
@@ -33,7 +33,7 @@ class GradingService:
             professor=professor,
             instructor_id=instructor_id,
             notes=notes,
-            photo_url=photo_url
+            photo_url=photo_url,
         )
 
         # Update profile's current_grade to the most recent grading by date

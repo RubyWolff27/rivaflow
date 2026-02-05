@@ -4,6 +4,7 @@ Smoke tests for critical system integrity.
 These tests verify that core services can be imported and instantiated.
 Run before deploying to ensure no import errors or critical failures.
 """
+
 import os
 
 # Set SECRET_KEY for testing (required by auth module)
@@ -95,14 +96,14 @@ def test_api_routes_importable():
     )
 
     # Verify routers exist
-    assert hasattr(sessions, 'router')
-    assert hasattr(readiness, 'router')
-    assert hasattr(auth, 'router')
-    assert hasattr(profile, 'router')
-    assert hasattr(social, 'router')
-    assert hasattr(notifications, 'router')
-    assert hasattr(glossary, 'router')
-    assert hasattr(admin, 'router')
+    assert hasattr(sessions, "router")
+    assert hasattr(readiness, "router")
+    assert hasattr(auth, "router")
+    assert hasattr(profile, "router")
+    assert hasattr(social, "router")
+    assert hasattr(notifications, "router")
+    assert hasattr(glossary, "router")
+    assert hasattr(admin, "router")
 
 
 def test_privacy_service_redaction():

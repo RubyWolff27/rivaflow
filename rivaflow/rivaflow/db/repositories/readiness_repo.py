@@ -1,4 +1,5 @@
 """Repository for readiness check-in data access."""
+
 import sqlite3
 from datetime import date, datetime
 
@@ -24,7 +25,9 @@ class ReadinessRepository:
             cursor = conn.cursor()
             # Try to get existing entry
             cursor.execute(
-                convert_query("SELECT id FROM readiness WHERE user_id = ? AND check_date = ?"),
+                convert_query(
+                    "SELECT id FROM readiness WHERE user_id = ? AND check_date = ?"
+                ),
                 (user_id, check_date.isoformat()),
             )
             existing = cursor.fetchone()
@@ -32,13 +35,24 @@ class ReadinessRepository:
             if existing:
                 # Update existing
                 cursor.execute(
-                convert_query("""
+                    convert_query(
+                        """
                     UPDATE readiness
                     SET sleep = ?, stress = ?, soreness = ?, energy = ?,
                         hotspot_note = ?, weight_kg = ?, updated_at = CURRENT_TIMESTAMP
                     WHERE user_id = ? AND check_date = ?
-                    """),
-                    (sleep, stress, soreness, energy, hotspot_note, weight_kg, user_id, check_date.isoformat()),
+                    """
+                    ),
+                    (
+                        sleep,
+                        stress,
+                        soreness,
+                        energy,
+                        hotspot_note,
+                        weight_kg,
+                        user_id,
+                        check_date.isoformat(),
+                    ),
                 )
                 return existing["id"]
             else:
@@ -50,7 +64,16 @@ class ReadinessRepository:
                         user_id, check_date, sleep, stress, soreness, energy, hotspot_note, weight_kg
                     ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
                     """,
-                    (user_id, check_date.isoformat(), sleep, stress, soreness, energy, hotspot_note, weight_kg),
+                    (
+                        user_id,
+                        check_date.isoformat(),
+                        sleep,
+                        stress,
+                        soreness,
+                        energy,
+                        hotspot_note,
+                        weight_kg,
+                    ),
                 )
 
     @staticmethod
@@ -59,7 +82,9 @@ class ReadinessRepository:
         with get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(
-                convert_query("SELECT * FROM readiness WHERE user_id = ? AND check_date = ?"),
+                convert_query(
+                    "SELECT * FROM readiness WHERE user_id = ? AND check_date = ?"
+                ),
                 (user_id, check_date.isoformat()),
             )
             row = cursor.fetchone()
@@ -73,8 +98,10 @@ class ReadinessRepository:
         with get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(
-                convert_query("SELECT * FROM readiness WHERE user_id = ? ORDER BY check_date DESC LIMIT 1"),
-                (user_id,)
+                convert_query(
+                    "SELECT * FROM readiness WHERE user_id = ? ORDER BY check_date DESC LIMIT 1"
+                ),
+                (user_id,),
             )
             row = cursor.fetchone()
             if row:
@@ -86,7 +113,9 @@ class ReadinessRepository:
         """Get a readiness entry by ID without user scope (for validation/privacy checks)."""
         with get_connection() as conn:
             cursor = conn.cursor()
-            cursor.execute(convert_query("SELECT * FROM readiness WHERE id = ?"), (readiness_id,))
+            cursor.execute(
+                convert_query("SELECT * FROM readiness WHERE id = ?"), (readiness_id,)
+            )
             row = cursor.fetchone()
             if row:
                 return ReadinessRepository._row_to_dict(row)
@@ -98,11 +127,13 @@ class ReadinessRepository:
         with get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(
-                convert_query("""
+                convert_query(
+                    """
                 SELECT * FROM readiness
                 WHERE user_id = ? AND check_date BETWEEN ? AND ?
                 ORDER BY check_date DESC
-                """),
+                """
+                ),
                 (user_id, start_date.isoformat(), end_date.isoformat()),
             )
             return [ReadinessRepository._row_to_dict(row) for row in cursor.fetchall()]
@@ -113,8 +144,10 @@ class ReadinessRepository:
         with get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(
-                convert_query("SELECT * FROM readiness WHERE user_id = ? ORDER BY check_date DESC"),
-                (user_id,)
+                convert_query(
+                    "SELECT * FROM readiness WHERE user_id = ? ORDER BY check_date DESC"
+                ),
+                (user_id,),
             )
             return [ReadinessRepository._row_to_dict(row) for row in cursor.fetchall()]
 
@@ -131,6 +164,9 @@ class ReadinessRepository:
             data["updated_at"] = datetime.fromisoformat(data["updated_at"])
         # Calculate composite score
         data["composite_score"] = (
-            data["sleep"] + (6 - data["stress"]) + (6 - data["soreness"]) + data["energy"]
+            data["sleep"]
+            + (6 - data["stress"])
+            + (6 - data["soreness"])
+            + data["energy"]
         )
         return data

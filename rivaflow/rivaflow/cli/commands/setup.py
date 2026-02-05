@@ -1,4 +1,5 @@
 """Onboarding setup wizard for new users."""
+
 from datetime import date
 
 import typer
@@ -40,7 +41,9 @@ def setup(ctx: typer.Context):
     if _is_setup_complete(user_id):
         console.print("\n[yellow]⚠️  You've already completed setup.[/yellow]")
         if not Confirm.ask("\nWould you like to update your profile?"):
-            console.print("\n[dim]Run 'rivaflow profile' to update your settings.[/dim]")
+            console.print(
+                "\n[dim]Run 'rivaflow profile' to update your settings.[/dim]"
+            )
             return
 
     # Welcome screen
@@ -82,9 +85,12 @@ def setup(ctx: typer.Context):
     _mark_setup_complete(user_id)
 
     # Show dashboard
-    console.print("\n[bold yellow]🎉 Setup Complete! Here's your dashboard:[/bold yellow]\n")
+    console.print(
+        "\n[bold yellow]🎉 Setup Complete! Here's your dashboard:[/bold yellow]\n"
+    )
 
     from rivaflow.cli.commands.dashboard import dashboard
+
     dashboard()
 
 
@@ -112,8 +118,10 @@ def _is_setup_complete(user_id: int) -> bool:
 
         # Check if profile exists with basic info
         cursor.execute(
-            convert_query("SELECT first_name, belt_rank FROM profile WHERE user_id = ? LIMIT 1"),
-            (user_id,)
+            convert_query(
+                "SELECT first_name, belt_rank FROM profile WHERE user_id = ? LIMIT 1"
+            ),
+            (user_id,),
         )
         profile = cursor.fetchone()
 
@@ -122,8 +130,7 @@ def _is_setup_complete(user_id: int) -> bool:
 
         # Check if has logged at least one session
         cursor.execute(
-            convert_query("SELECT COUNT(*) FROM sessions WHERE user_id = ?"),
-            (user_id,)
+            convert_query("SELECT COUNT(*) FROM sessions WHERE user_id = ?"), (user_id,)
         )
         session_count = cursor.fetchone()[0]
 
@@ -136,8 +143,10 @@ def _collect_profile_data(user_id: int) -> dict:
     with get_connection() as conn:
         cursor = conn.cursor()
         cursor.execute(
-            convert_query("SELECT email, first_name, last_name FROM users WHERE id = ? LIMIT 1"),
-            (user_id,)
+            convert_query(
+                "SELECT email, first_name, last_name FROM users WHERE id = ? LIMIT 1"
+            ),
+            (user_id,),
         )
         user = cursor.fetchone()
         email = user[0] if user else ""
@@ -146,41 +155,29 @@ def _collect_profile_data(user_id: int) -> dict:
 
     # First name
     first_name = Prompt.ask(
-        "  [bold]First Name[/bold]",
-        default=existing_first if existing_first else None
+        "  [bold]First Name[/bold]", default=existing_first if existing_first else None
     )
 
     # Last name
     last_name = Prompt.ask(
-        "  [bold]Last Name[/bold]",
-        default=existing_last if existing_last else None
+        "  [bold]Last Name[/bold]", default=existing_last if existing_last else None
     )
 
     # Belt rank
     console.print("\n  [bold]Current Belt Rank[/bold]")
     console.print("  [dim]1) White  2) Blue  3) Purple  4) Brown  5) Black[/dim]")
-    belt_choice = Prompt.ask(
-        "  Select",
-        choices=["1", "2", "3", "4", "5"],
-        default="1"
-    )
+    belt_choice = Prompt.ask("  Select", choices=["1", "2", "3", "4", "5"], default="1")
 
     belt_map = {"1": "white", "2": "blue", "3": "purple", "4": "brown", "5": "black"}
     belt_rank = belt_map[belt_choice]
 
     # Stripes
-    belt_stripes = IntPrompt.ask(
-        "  [bold]Stripes on current belt[/bold]",
-        default=0
-    )
+    belt_stripes = IntPrompt.ask("  [bold]Stripes on current belt[/bold]", default=0)
     if belt_stripes < 0 or belt_stripes > 4:
         belt_stripes = 0
 
     # Home gym
-    gym_name = Prompt.ask(
-        "\n  [bold]Home Gym / Academy[/bold]",
-        default="My Academy"
-    )
+    gym_name = Prompt.ask("\n  [bold]Home Gym / Academy[/bold]", default="My Academy")
 
     return {
         "first_name": first_name,
@@ -199,30 +196,34 @@ def _save_profile(user_id: int, data: dict):
 
         # Update user table
         cursor.execute(
-            convert_query("""
+            convert_query(
+                """
                 UPDATE users
                 SET first_name = ?, last_name = ?
                 WHERE id = ?
-            """),
-            (data["first_name"], data["last_name"], user_id)
+            """
+            ),
+            (data["first_name"], data["last_name"], user_id),
         )
 
         # Check if profile exists
         cursor.execute(
             convert_query("SELECT id FROM profile WHERE user_id = ? LIMIT 1"),
-            (user_id,)
+            (user_id,),
         )
         profile_exists = cursor.fetchone()
 
         if profile_exists:
             # Update existing profile
             cursor.execute(
-                convert_query("""
+                convert_query(
+                    """
                     UPDATE profile
                     SET first_name = ?, last_name = ?, email = ?,
                         belt_rank = ?, belt_stripes = ?, gym_name = ?
                     WHERE user_id = ?
-                """),
+                """
+                ),
                 (
                     data["first_name"],
                     data["last_name"],
@@ -231,15 +232,17 @@ def _save_profile(user_id: int, data: dict):
                     data["belt_stripes"],
                     data["gym_name"],
                     user_id,
-                )
+                ),
             )
         else:
             # Create new profile
             cursor.execute(
-                convert_query("""
+                convert_query(
+                    """
                     INSERT INTO profile (user_id, first_name, last_name, email, belt_rank, belt_stripes, gym_name)
                     VALUES (?, ?, ?, ?, ?, ?, ?)
-                """),
+                """
+                ),
                 (
                     user_id,
                     data["first_name"],
@@ -248,7 +251,7 @@ def _save_profile(user_id: int, data: dict):
                     data["belt_rank"],
                     data["belt_stripes"],
                     data["gym_name"],
-                )
+                ),
             )
 
 
@@ -257,18 +260,13 @@ def _collect_goals_data() -> dict:
     console.print("  [dim]How many times per week do you want to train?[/dim]\n")
 
     bjj_goal = IntPrompt.ask(
-        "  [bold]🥋 BJJ/Grappling sessions per week[/bold]",
-        default=3
+        "  [bold]🥋 BJJ/Grappling sessions per week[/bold]", default=3
     )
 
-    sc_goal = IntPrompt.ask(
-        "  [bold]🏋️  S&C sessions per week[/bold]",
-        default=2
-    )
+    sc_goal = IntPrompt.ask("  [bold]🏋️  S&C sessions per week[/bold]", default=2)
 
     mobility_goal = IntPrompt.ask(
-        "  [bold]🧘 Mobility/Recovery minutes per week[/bold]",
-        default=60
+        "  [bold]🧘 Mobility/Recovery minutes per week[/bold]", default=60
     )
 
     return {
@@ -284,17 +282,19 @@ def _save_goals(user_id: int, data: dict):
         cursor = conn.cursor()
 
         cursor.execute(
-            convert_query("""
+            convert_query(
+                """
                 UPDATE profile
                 SET weekly_bjj_goal = ?, weekly_sc_goal = ?, weekly_mobility_goal = ?
                 WHERE user_id = ?
-            """),
+            """
+            ),
             (
                 data["bjj_sessions_goal"],
                 data["sc_sessions_goal"],
                 data["mobility_mins_goal"],
                 user_id,
-            )
+            ),
         )
 
 
@@ -306,8 +306,7 @@ def _log_first_session(user_id: int):
 
     # Session date
     session_date_str = Prompt.ask(
-        "  [bold]When did you train?[/bold] (YYYY-MM-DD or 'today')",
-        default="today"
+        "  [bold]When did you train?[/bold] (YYYY-MM-DD or 'today')", default="today"
     )
 
     if session_date_str.lower() == "today":
@@ -322,25 +321,18 @@ def _log_first_session(user_id: int):
     # Class type
     console.print("\n  [bold]Class Type[/bold]")
     console.print("  [dim]1) Gi  2) No-Gi  3) Wrestling  4) S&C  5) Mobility[/dim]")
-    class_choice = Prompt.ask("  Select", choices=["1", "2", "3", "4", "5"], default="1")
+    class_choice = Prompt.ask(
+        "  Select", choices=["1", "2", "3", "4", "5"], default="1"
+    )
 
-    class_map = {
-        "1": "gi",
-        "2": "no-gi",
-        "3": "wrestling",
-        "4": "s&c",
-        "5": "mobility"
-    }
+    class_map = {"1": "gi", "2": "no-gi", "3": "wrestling", "4": "s&c", "5": "mobility"}
     class_type = class_map[class_choice]
 
     # Duration
     duration = IntPrompt.ask("\n  [bold]Duration (minutes)[/bold]", default=90)
 
     # Intensity
-    intensity = IntPrompt.ask(
-        "  [bold]Intensity (1-5)[/bold]",
-        default=4
-    )
+    intensity = IntPrompt.ask("  [bold]Intensity (1-5)[/bold]", default=4)
     intensity = max(1, min(5, intensity))
 
     # Rolls (if applicable)
@@ -353,7 +345,7 @@ def _log_first_session(user_id: int):
         cursor = conn.cursor()
         cursor.execute(
             convert_query("SELECT gym_name FROM profile WHERE user_id = ? LIMIT 1"),
-            (user_id,)
+            (user_id,),
         )
         result = cursor.fetchone()
         gym_name = result[0] if result and result[0] else "My Academy"
@@ -381,7 +373,7 @@ def _mark_setup_complete(user_id: int):
         cursor = conn.cursor()
         cursor.execute(
             convert_query("UPDATE profile SET setup_completed = 1 WHERE user_id = ?"),
-            (user_id,)
+            (user_id,),
         )
 
 

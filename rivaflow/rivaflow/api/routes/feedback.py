@@ -1,4 +1,5 @@
 """Feedback API endpoints."""
+
 import logging
 
 from fastapi import APIRouter, Depends, Path, Query
@@ -68,15 +69,18 @@ async def submit_feedback(
         # Send email notification to admins (async, don't block on failure)
         try:
             email_service = EmailService()
-            user_name = f"{current_user.get('first_name', '')} {current_user.get('last_name', '')}".strip() or 'Unknown User'
+            user_name = (
+                f"{current_user.get('first_name', '')} {current_user.get('last_name', '')}".strip()
+                or "Unknown User"
+            )
             email_service.send_feedback_notification(
                 feedback_id=feedback_id,
                 category=feedback.category,
                 subject=feedback.subject or "No subject",
                 message=feedback.message,
-                user_email=current_user.get('email', 'unknown@example.com'),
+                user_email=current_user.get("email", "unknown@example.com"),
                 user_name=user_name,
-                platform=feedback.platform or 'web',
+                platform=feedback.platform or "web",
                 url=feedback.url,
             )
         except Exception as e:

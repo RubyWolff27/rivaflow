@@ -7,6 +7,7 @@ into focused services:
 - TechniqueAnalyticsService: Technique tracking and mastery
 - StreakAnalyticsService: Training consistency, streaks, and milestones
 """
+
 from datetime import date
 from typing import Any
 
@@ -34,16 +35,28 @@ class AnalyticsService:
     # ============================================================================
 
     def get_performance_overview(
-        self, user_id: int, start_date: date | None = None, end_date: date | None = None, types: list | None = None
+        self,
+        user_id: int,
+        start_date: date | None = None,
+        end_date: date | None = None,
+        types: list | None = None,
     ) -> dict[str, Any]:
         """Get performance overview metrics."""
-        return self.performance.get_performance_overview(user_id, start_date, end_date, types)
+        return self.performance.get_performance_overview(
+            user_id, start_date, end_date, types
+        )
 
     def get_partner_analytics(
-        self, user_id: int, start_date: date | None = None, end_date: date | None = None, types: list | None = None
+        self,
+        user_id: int,
+        start_date: date | None = None,
+        end_date: date | None = None,
+        types: list | None = None,
     ) -> dict[str, Any]:
         """Get partner analytics data."""
-        return self.performance.get_partner_analytics(user_id, start_date, end_date, types)
+        return self.performance.get_partner_analytics(
+            user_id, start_date, end_date, types
+        )
 
     def get_head_to_head(
         self, user_id: int, partner1_id: int, partner2_id: int
@@ -52,23 +65,37 @@ class AnalyticsService:
         return self.performance.get_head_to_head(user_id, partner1_id, partner2_id)
 
     def get_instructor_analytics(
-        self, user_id: int, start_date: date | None = None, end_date: date | None = None, types: list | None = None
+        self,
+        user_id: int,
+        start_date: date | None = None,
+        end_date: date | None = None,
+        types: list | None = None,
     ) -> dict[str, Any]:
         """Get instructor insights."""
-        return self.performance.get_instructor_analytics(user_id, start_date, end_date, types)
+        return self.performance.get_instructor_analytics(
+            user_id, start_date, end_date, types
+        )
 
     # ============================================================================
     # READINESS ANALYTICS - Delegate to ReadinessAnalyticsService
     # ============================================================================
 
     def get_readiness_trends(
-        self, user_id: int, start_date: date | None = None, end_date: date | None = None, types: list | None = None
+        self,
+        user_id: int,
+        start_date: date | None = None,
+        end_date: date | None = None,
+        types: list | None = None,
     ) -> dict[str, Any]:
         """Get readiness and recovery analytics."""
         return self.readiness.get_readiness_trends(user_id, start_date, end_date, types)
 
     def get_whoop_analytics(
-        self, user_id: int, start_date: date | None = None, end_date: date | None = None, types: list | None = None
+        self,
+        user_id: int,
+        start_date: date | None = None,
+        end_date: date | None = None,
+        types: list | None = None,
     ) -> dict[str, Any]:
         """Get Whoop fitness tracker analytics."""
         return self.readiness.get_whoop_analytics(user_id, start_date, end_date, types)
@@ -78,20 +105,32 @@ class AnalyticsService:
     # ============================================================================
 
     def get_technique_analytics(
-        self, user_id: int, start_date: date | None = None, end_date: date | None = None, types: list | None = None
+        self,
+        user_id: int,
+        start_date: date | None = None,
+        end_date: date | None = None,
+        types: list | None = None,
     ) -> dict[str, Any]:
         """Get technique mastery analytics."""
-        return self.technique.get_technique_analytics(user_id, start_date, end_date, types)
+        return self.technique.get_technique_analytics(
+            user_id, start_date, end_date, types
+        )
 
     # ============================================================================
     # STREAK/CONSISTENCY ANALYTICS - Delegate to StreakAnalyticsService
     # ============================================================================
 
     def get_consistency_analytics(
-        self, user_id: int, start_date: date | None = None, end_date: date | None = None, types: list | None = None
+        self,
+        user_id: int,
+        start_date: date | None = None,
+        end_date: date | None = None,
+        types: list | None = None,
     ) -> dict[str, Any]:
         """Get training consistency analytics."""
-        return self.streak.get_consistency_analytics(user_id, start_date, end_date, types)
+        return self.streak.get_consistency_analytics(
+            user_id, start_date, end_date, types
+        )
 
     def get_milestones(self, user_id: int) -> dict[str, Any]:
         """Get progression and milestone data."""

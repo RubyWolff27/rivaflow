@@ -3,6 +3,7 @@
 DEPRECATED: This module is maintained for backwards compatibility.
 New code should import from rivaflow.core.settings instead.
 """
+
 from rivaflow.core.settings import settings
 
 # Legacy imports - use settings module instead
@@ -10,6 +11,7 @@ APP_DIR = settings.APP_DIR
 DB_PATH = settings.DB_PATH
 DATABASE_URL = settings.DATABASE_URL
 DB_TYPE = settings.DB_TYPE
+
 
 # Backwards compatibility function
 def get_db_type():
@@ -19,6 +21,7 @@ def get_db_type():
     DEPRECATED: Use settings.DB_TYPE instead.
     """
     return settings.DB_TYPE
+
 
 # Defaults
 DEFAULT_DURATION = 60
@@ -42,7 +45,7 @@ REST_TYPES = {
     "recovery": "Active recovery",
     "life": "Life got in the way",
     "injury": "Injury/rehab",
-    "travel": "Traveling"
+    "travel": "Traveling",
 }
 
 # Tomorrow intentions
@@ -54,7 +57,7 @@ TOMORROW_INTENTIONS = {
     "train_sc": "🏋️ S&C / Conditioning",
     "train_mobility": "🧘 Mobility / Yoga",
     "rest": "😴 Rest day",
-    "unsure": "🤷 Not sure yet"
+    "unsure": "🤷 Not sure yet",
 }
 
 # Streak settings
@@ -67,7 +70,7 @@ MILESTONES = {
     "streak": [7, 14, 30, 60, 90, 180, 365],
     "rolls": [50, 100, 250, 500, 1000],
     "partners": [10, 25, 50, 100],
-    "techniques": [10, 25, 50, 100]
+    "techniques": [10, 25, 50, 100],
 }
 
 MILESTONE_LABELS = {
@@ -76,11 +79,14 @@ MILESTONE_LABELS = {
     "streak": "{}-Day Streak",
     "rolls": "{} Rolls Completed",
     "partners": "{} Training Partners",
-    "techniques": "{} Techniques Practiced"
+    "techniques": "{} Techniques Practiced",
 }
 
 MILESTONE_QUOTES = [
-    ("The more you sweat in training, the less you bleed in combat.", "Richard Marcinko"),
+    (
+        "The more you sweat in training, the less you bleed in combat.",
+        "Richard Marcinko",
+    ),
     ("A black belt is a white belt who never quit.", "Unknown"),
     ("The ground is my ocean, I'm the shark.", "Jean Jacques Machado"),
     ("There is no losing, only winning or learning.", "Carlos Gracie Jr"),

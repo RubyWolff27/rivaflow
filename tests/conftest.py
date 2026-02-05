@@ -1,4 +1,5 @@
 """Pytest fixtures for RivaFlow tests."""
+
 import os
 import pytest
 import tempfile
@@ -112,6 +113,7 @@ def sample_readiness_data():
 
 # ===== User & Authentication Fixtures =====
 
+
 @pytest.fixture
 def test_user(temp_db):
     """Create a test user in the database."""
@@ -120,7 +122,7 @@ def test_user(temp_db):
         email="test@example.com",
         hashed_password=hash_password("testpass123"),
         first_name="Test",
-        last_name="User"
+        last_name="User",
     )
     return user
 
@@ -133,7 +135,7 @@ def test_user2(temp_db):
         email="test2@example.com",
         hashed_password=hash_password("testpass123"),
         first_name="Test2",
-        last_name="User2"
+        last_name="User2",
     )
     return user
 
@@ -142,8 +144,7 @@ def test_user2(temp_db):
 def auth_token(test_user):
     """Generate a valid JWT token for test_user."""
     return create_access_token(
-        data={"sub": str(test_user["id"])},
-        expires_delta=timedelta(hours=1)
+        data={"sub": str(test_user["id"])}, expires_delta=timedelta(hours=1)
     )
 
 
@@ -158,6 +159,7 @@ def client(temp_db):
     """FastAPI TestClient with temp database."""
     from fastapi.testclient import TestClient
     from rivaflow.api.main import app
+
     return TestClient(app)
 
 
@@ -169,6 +171,7 @@ def authenticated_client(client, auth_headers):
 
 
 # ===== Additional Repository Fixtures =====
+
 
 @pytest.fixture
 def user_repo(temp_db):
@@ -190,9 +193,11 @@ def friend_repo(temp_db):
 
 # ===== Data Factory Fixtures =====
 
+
 @pytest.fixture
 def session_factory(temp_db, test_user):
     """Factory for creating test sessions."""
+
     def _create_session(**kwargs):
         defaults = {
             "user_id": test_user["id"],
@@ -209,12 +214,14 @@ def session_factory(temp_db, test_user):
         defaults.update(kwargs)
         repo = SessionRepository()
         return repo.create(**defaults)
+
     return _create_session
 
 
 @pytest.fixture
 def readiness_factory(temp_db, test_user):
     """Factory for creating test readiness entries."""
+
     def _create_readiness(**kwargs):
         defaults = {
             "user_id": test_user["id"],
@@ -227,4 +234,5 @@ def readiness_factory(temp_db, test_user):
         defaults.update(kwargs)
         repo = ReadinessRepository()
         return repo.log_readiness(**defaults)
+
     return _create_readiness

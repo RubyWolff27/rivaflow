@@ -1,4 +1,5 @@
 """Repository for grading/belt progression data access."""
+
 import sqlite3
 from datetime import date, datetime
 
@@ -17,7 +18,7 @@ class GradingRepository:
         professor: str | None = None,
         instructor_id: int | None = None,
         notes: str | None = None,
-        photo_url: str | None = None
+        photo_url: str | None = None,
     ) -> dict:
         """Create a new grading entry."""
         with get_connection() as conn:
@@ -28,11 +29,22 @@ class GradingRepository:
                 INSERT INTO gradings (user_id, grade, date_graded, professor, instructor_id, notes, photo_url)
                 VALUES (?, ?, ?, ?, ?, ?, ?)
                 """,
-                (user_id, grade, date_graded, professor, instructor_id, notes, photo_url),
+                (
+                    user_id,
+                    grade,
+                    date_graded,
+                    professor,
+                    instructor_id,
+                    notes,
+                    photo_url,
+                ),
             )
 
             # Return the created grading
-            cursor.execute(convert_query("SELECT * FROM gradings WHERE id = ? AND user_id = ?"), (grading_id, user_id))
+            cursor.execute(
+                convert_query("SELECT * FROM gradings WHERE id = ? AND user_id = ?"),
+                (grading_id, user_id),
+            )
             row = cursor.fetchone()
             return GradingRepository._row_to_dict(row)
 
@@ -45,7 +57,12 @@ class GradingRepository:
 
         with get_connection() as conn:
             cursor = conn.cursor()
-            cursor.execute(convert_query(f"SELECT * FROM gradings WHERE user_id = ? ORDER BY {order_by}"), (user_id,))
+            cursor.execute(
+                convert_query(
+                    f"SELECT * FROM gradings WHERE user_id = ? ORDER BY {order_by}"
+                ),
+                (user_id,),
+            )
             rows = cursor.fetchall()
             return [GradingRepository._row_to_dict(row) for row in rows]
 
@@ -55,8 +72,10 @@ class GradingRepository:
         with get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(
-                convert_query("SELECT * FROM gradings WHERE user_id = ? ORDER BY date_graded DESC, id DESC LIMIT 1"),
-                (user_id,)
+                convert_query(
+                    "SELECT * FROM gradings WHERE user_id = ? ORDER BY date_graded DESC, id DESC LIMIT 1"
+                ),
+                (user_id,),
             )
             row = cursor.fetchone()
             return GradingRepository._row_to_dict(row) if row else None
@@ -101,19 +120,29 @@ class GradingRepository:
 
             if not updates:
                 # Nothing to update, just return the current grading
-                cursor.execute(convert_query("SELECT * FROM gradings WHERE id = ? AND user_id = ?"), (grading_id, user_id))
+                cursor.execute(
+                    convert_query(
+                        "SELECT * FROM gradings WHERE id = ? AND user_id = ?"
+                    ),
+                    (grading_id, user_id),
+                )
                 row = cursor.fetchone()
                 return GradingRepository._row_to_dict(row) if row else None
 
             params.extend([grading_id, user_id])
-            query = f"UPDATE gradings SET {', '.join(updates)} WHERE id = ? AND user_id = ?"
+            query = (
+                f"UPDATE gradings SET {', '.join(updates)} WHERE id = ? AND user_id = ?"
+            )
             cursor.execute(convert_query(query), params)
 
             if cursor.rowcount == 0:
                 return None
 
             # Return updated grading
-            cursor.execute(convert_query("SELECT * FROM gradings WHERE id = ? AND user_id = ?"), (grading_id, user_id))
+            cursor.execute(
+                convert_query("SELECT * FROM gradings WHERE id = ? AND user_id = ?"),
+                (grading_id, user_id),
+            )
             row = cursor.fetchone()
             return GradingRepository._row_to_dict(row) if row else None
 
@@ -122,7 +151,10 @@ class GradingRepository:
         """Delete a grading by ID. Returns True if deleted."""
         with get_connection() as conn:
             cursor = conn.cursor()
-            cursor.execute(convert_query("DELETE FROM gradings WHERE id = ? AND user_id = ?"), (grading_id, user_id))
+            cursor.execute(
+                convert_query("DELETE FROM gradings WHERE id = ? AND user_id = ?"),
+                (grading_id, user_id),
+            )
             return cursor.rowcount > 0
 
     @staticmethod

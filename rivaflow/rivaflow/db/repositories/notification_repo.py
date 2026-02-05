@@ -1,4 +1,5 @@
 """Repository for notifications data access."""
+
 from datetime import datetime
 from typing import Any
 
@@ -33,15 +34,28 @@ class NotificationRepository:
         Returns:
             Created notification as dict
         """
-        query = convert_query("""
+        query = convert_query(
+            """
             INSERT INTO notifications (user_id, actor_id, notification_type, activity_type, activity_id, comment_id, message)
             VALUES (?, ?, ?, ?, ?, ?, ?)
             RETURNING id, user_id, actor_id, notification_type, activity_type, activity_id, comment_id, message, is_read, created_at, read_at
-        """)
+        """
+        )
 
         with get_connection() as conn:
             cursor = conn.cursor()
-            cursor.execute(query, (user_id, actor_id, notification_type, activity_type, activity_id, comment_id, message))
+            cursor.execute(
+                query,
+                (
+                    user_id,
+                    actor_id,
+                    notification_type,
+                    activity_type,
+                    activity_id,
+                    comment_id,
+                    message,
+                ),
+            )
             row = cursor.fetchone()
             conn.commit()
 
@@ -64,7 +78,9 @@ class NotificationRepository:
     @staticmethod
     def get_unread_count(user_id: int) -> int:
         """Get count of unread notifications for a user."""
-        query = "SELECT COUNT(*) FROM notifications WHERE user_id = ? AND is_read = FALSE"
+        query = (
+            "SELECT COUNT(*) FROM notifications WHERE user_id = ? AND is_read = FALSE"
+        )
 
         with get_connection() as conn:
             cursor = conn.cursor()
@@ -173,11 +189,13 @@ class NotificationRepository:
     @staticmethod
     def mark_as_read(notification_id: int, user_id: int) -> bool:
         """Mark a notification as read."""
-        query = convert_query("""
+        query = convert_query(
+            """
             UPDATE notifications
             SET is_read = ?, read_at = ?
             WHERE id = ? AND user_id = ?
-        """)
+        """
+        )
 
         with get_connection() as conn:
             cursor = conn.cursor()
@@ -188,11 +206,13 @@ class NotificationRepository:
     @staticmethod
     def mark_all_as_read(user_id: int) -> int:
         """Mark all notifications as read for a user. Returns count of notifications marked."""
-        query = convert_query("""
+        query = convert_query(
+            """
             UPDATE notifications
             SET is_read = ?, read_at = ?
             WHERE user_id = ? AND is_read = FALSE
-        """)
+        """
+        )
 
         with get_connection() as conn:
             cursor = conn.cursor()
@@ -203,13 +223,15 @@ class NotificationRepository:
     @staticmethod
     def mark_feed_as_read(user_id: int) -> int:
         """Mark all feed notifications (likes, comments, replies) as read. Returns count."""
-        query = convert_query("""
+        query = convert_query(
+            """
             UPDATE notifications
             SET is_read = ?, read_at = ?
             WHERE user_id = ?
             AND notification_type IN ('like', 'comment', 'reply')
             AND is_read = FALSE
-        """)
+        """
+        )
 
         with get_connection() as conn:
             cursor = conn.cursor()
@@ -220,13 +242,15 @@ class NotificationRepository:
     @staticmethod
     def mark_follows_as_read(user_id: int) -> int:
         """Mark all follow notifications as read. Returns count."""
-        query = convert_query("""
+        query = convert_query(
+            """
             UPDATE notifications
             SET is_read = ?, read_at = ?
             WHERE user_id = ?
             AND notification_type = 'follow'
             AND is_read = FALSE
-        """)
+        """
+        )
 
         with get_connection() as conn:
             cursor = conn.cursor()
@@ -272,7 +296,15 @@ class NotificationRepository:
             cursor = conn.cursor()
             cursor.execute(
                 query,
-                (user_id, actor_id, notification_type, activity_type, activity_type, activity_id, activity_id),
+                (
+                    user_id,
+                    actor_id,
+                    notification_type,
+                    activity_type,
+                    activity_type,
+                    activity_id,
+                    activity_id,
+                ),
             )
             result = cursor.fetchone()
             return (result[0] if result else 0) > 0

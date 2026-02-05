@@ -1,4 +1,5 @@
 """Service layer for report generation and analytics."""
+
 import csv
 from collections import defaultdict
 from datetime import date, timedelta
@@ -49,7 +50,9 @@ class ReportService:
         """
         # Load sessions with only required columns to reduce data transfer
         sessions = self.session_repo.get_by_date_range(user_id, start_date, end_date)
-        readiness_entries = self.readiness_repo.get_by_date_range(user_id, start_date, end_date)
+        readiness_entries = self.readiness_repo.get_by_date_range(
+            user_id, start_date, end_date
+        )
 
         if not sessions:
             return {
@@ -103,9 +106,7 @@ class ReportService:
         total_rolls = sum(s["rolls"] for s in sessions)
         submissions_for = sum(s["submissions_for"] for s in sessions)
         submissions_against = sum(s["submissions_against"] for s in sessions)
-        avg_intensity = round(
-            sum(s["intensity"] for s in sessions) / total_classes, 1
-        )
+        avg_intensity = round(sum(s["intensity"] for s in sessions) / total_classes, 1)
 
         # Collect unique partners
         partners_set = set()
@@ -115,21 +116,23 @@ class ReportService:
         unique_partners = len(partners_set)
 
         # Calculate rates
-        subs_per_class = round(
-            submissions_for / total_classes, 2
-        ) if total_classes > 0 else 0.0
+        subs_per_class = (
+            round(submissions_for / total_classes, 2) if total_classes > 0 else 0.0
+        )
 
-        subs_per_roll = round(
-            submissions_for / total_rolls, 2
-        ) if total_rolls > 0 else 0.0
+        subs_per_roll = (
+            round(submissions_for / total_rolls, 2) if total_rolls > 0 else 0.0
+        )
 
-        taps_per_roll = round(
-            submissions_against / total_rolls, 2
-        ) if total_rolls > 0 else 0.0
+        taps_per_roll = (
+            round(submissions_against / total_rolls, 2) if total_rolls > 0 else 0.0
+        )
 
-        sub_ratio = round(
-            submissions_for / submissions_against, 2
-        ) if submissions_against > 0 else float(submissions_for) if submissions_for > 0 else 0.0
+        sub_ratio = (
+            round(submissions_for / submissions_against, 2)
+            if submissions_against > 0
+            else float(submissions_for) if submissions_for > 0 else 0.0
+        )
 
         return {
             "total_classes": total_classes,
@@ -206,9 +209,7 @@ class ReportService:
             "entries": weight_entries,
         }
 
-    def export_to_csv(
-        self, sessions: list[dict], output_path: str
-    ) -> None:
+    def export_to_csv(self, sessions: list[dict], output_path: str) -> None:
         """Export sessions to CSV file.
 
         For personal exports, all sessions are included regardless of visibility_level.
@@ -231,16 +232,30 @@ class ReportService:
 
         # Add summary fields if any session has them
         summary_fields = ["duration_mins", "intensity", "rolls"]
-        if any(field in session for session in redacted_sessions for field in summary_fields):
+        if any(
+            field in session
+            for session in redacted_sessions
+            for field in summary_fields
+        ):
             fieldnames.extend(summary_fields)
 
         # Add full detail fields if any session has them
-        full_fields = ["submissions_for", "submissions_against", "partners", "techniques", "notes"]
-        if any(field in session for session in redacted_sessions for field in full_fields):
+        full_fields = [
+            "submissions_for",
+            "submissions_against",
+            "partners",
+            "techniques",
+            "notes",
+        ]
+        if any(
+            field in session for session in redacted_sessions for field in full_fields
+        ):
             fieldnames.extend(full_fields)
 
         with open(output_path, "w", newline="", encoding="utf-8") as csvfile:
-            writer = csv.DictWriter(csvfile, fieldnames=fieldnames, extrasaction='ignore')
+            writer = csv.DictWriter(
+                csvfile, fieldnames=fieldnames, extrasaction="ignore"
+            )
             writer.writeheader()
 
             for session in redacted_sessions:
@@ -265,9 +280,17 @@ class ReportService:
                 if "submissions_against" in session:
                     row["submissions_against"] = session["submissions_against"]
                 if "partners" in session:
-                    row["partners"] = ", ".join(session["partners"]) if session.get("partners") else ""
+                    row["partners"] = (
+                        ", ".join(session["partners"])
+                        if session.get("partners")
+                        else ""
+                    )
                 if "techniques" in session:
-                    row["techniques"] = ", ".join(session["techniques"]) if session.get("techniques") else ""
+                    row["techniques"] = (
+                        ", ".join(session["techniques"])
+                        if session.get("techniques")
+                        else ""
+                    )
                 if "notes" in session:
                     row["notes"] = session.get("notes", "")
 

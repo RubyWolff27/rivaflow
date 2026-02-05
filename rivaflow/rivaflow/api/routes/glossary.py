@@ -1,4 +1,5 @@
 """Movements glossary endpoints."""
+
 import logging
 
 from fastapi import APIRouter, Depends, Query
@@ -17,6 +18,7 @@ service = GlossaryService()
 
 class MovementCreate(BaseModel):
     """Movement creation model."""
+
     name: str
     category: str
     subcategory: str | None = None
@@ -29,6 +31,7 @@ class MovementCreate(BaseModel):
 
 class CustomVideoCreate(BaseModel):
     """Custom video link creation model."""
+
     url: str
     title: str | None = None
     video_type: str = "general"  # gi, nogi, or general
@@ -37,7 +40,9 @@ class CustomVideoCreate(BaseModel):
 @router.get("/")
 async def list_movements(
     category: str | None = Query(None, description="Filter by category"),
-    search: str | None = Query(None, min_length=2, description="Search in name, description, aliases"),
+    search: str | None = Query(
+        None, min_length=2, description="Search in name, description, aliases"
+    ),
     gi_only: bool = Query(False, description="Only gi-applicable movements"),
     nogi_only: bool = Query(False, description="Only no-gi-applicable movements"),
     limit: int = Query(default=50, ge=1, le=200, description="Max results to return"),
@@ -55,14 +60,9 @@ async def list_movements(
 
     # Apply pagination
     total = len(all_movements)
-    movements = all_movements[offset:offset + limit]
+    movements = all_movements[offset : offset + limit]
 
-    return {
-        "movements": movements,
-        "total": total,
-        "limit": limit,
-        "offset": offset
-    }
+    return {"movements": movements, "total": total, "limit": limit, "offset": offset}
 
 
 @router.get("/categories")
@@ -73,16 +73,26 @@ async def get_categories(current_user: dict = Depends(get_current_user)):
 
 
 @router.get("/{movement_id}")
-async def get_movement(movement_id: int, include_videos: bool = Query(True, description="Include custom video links"), current_user: dict = Depends(get_current_user)):
+async def get_movement(
+    movement_id: int,
+    include_videos: bool = Query(True, description="Include custom video links"),
+    current_user: dict = Depends(get_current_user),
+):
     """Get a specific movement by ID with optional video links."""
-    movement = service.get_movement(user_id=current_user["id"], movement_id=movement_id, include_custom_videos=include_videos)
+    movement = service.get_movement(
+        user_id=current_user["id"],
+        movement_id=movement_id,
+        include_custom_videos=include_videos,
+    )
     if not movement:
         raise NotFoundError("Movement not found")
     return movement
 
 
 @router.post("/")
-async def create_custom_movement(movement: MovementCreate, current_user: dict = Depends(get_current_user)):
+async def create_custom_movement(
+    movement: MovementCreate, current_user: dict = Depends(get_current_user)
+):
     """Create a custom user-added movement."""
     created = service.create_custom_movement(
         user_id=current_user["id"],
@@ -99,16 +109,24 @@ async def create_custom_movement(movement: MovementCreate, current_user: dict = 
 
 
 @router.delete("/{movement_id}")
-async def delete_custom_movement(movement_id: int, current_user: dict = Depends(get_current_user)):
+async def delete_custom_movement(
+    movement_id: int, current_user: dict = Depends(get_current_user)
+):
     """Delete a custom movement. Can only delete custom movements."""
-    deleted = service.delete_custom_movement(user_id=current_user["id"], movement_id=movement_id)
+    deleted = service.delete_custom_movement(
+        user_id=current_user["id"], movement_id=movement_id
+    )
     if not deleted:
         raise NotFoundError("Movement not found or cannot delete seeded movements")
     return {"message": "Movement deleted successfully"}
 
 
 @router.post("/{movement_id}/videos")
-async def add_custom_video(movement_id: int, video: CustomVideoCreate, current_user: dict = Depends(get_current_user)):
+async def add_custom_video(
+    movement_id: int,
+    video: CustomVideoCreate,
+    current_user: dict = Depends(get_current_user),
+):
     """Add a custom video link to a movement."""
     # Validate URL for security
     try:
@@ -124,8 +142,12 @@ async def add_custom_video(movement_id: int, video: CustomVideoCreate, current_u
         video_type=video.video_type,
     )
     return created
+
+
 @router.delete("/{movement_id}/videos/{video_id}")
-async def delete_custom_video(movement_id: int, video_id: int, current_user: dict = Depends(get_current_user)):
+async def delete_custom_video(
+    movement_id: int, video_id: int, current_user: dict = Depends(get_current_user)
+):
     """Delete a custom video link."""
     deleted = service.delete_custom_video(user_id=current_user["id"], video_id=video_id)
     if not deleted:

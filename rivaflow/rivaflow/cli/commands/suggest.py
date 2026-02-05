@@ -1,4 +1,5 @@
 """Training suggestion commands."""
+
 import typer
 from rich.console import Console
 from rich.panel import Panel
@@ -49,7 +50,9 @@ def suggest(
         else:
             # Compact mode: just show top 3 rules
             for i, rule in enumerate(result["triggered_rules"][:3]):
-                prefix = "├─" if i < min(len(result["triggered_rules"]), 3) - 1 else "└─"
+                prefix = (
+                    "├─" if i < min(len(result["triggered_rules"]), 3) - 1 else "└─"
+                )
                 icon = _get_priority_icon(rule["priority"])
                 console.print(f"  {prefix} {icon} {rule['explanation']}")
                 if i < min(len(result["triggered_rules"]), 3) - 1:
@@ -67,8 +70,12 @@ def suggest(
         soreness_bar = "█" * r["soreness"] + "░" * (5 - r["soreness"])
         energy_bar = "█" * r["energy"] + "░" * (5 - r["energy"])
 
-        console.print(f"  Sleep: {sleep_bar} {r['sleep']}    Stress: {stress_bar} {r['stress']}")
-        console.print(f"  Soreness: {soreness_bar} {r['soreness']}  Energy: {energy_bar} {r['energy']}")
+        console.print(
+            f"  Sleep: {sleep_bar} {r['sleep']}    Stress: {stress_bar} {r['stress']}"
+        )
+        console.print(
+            f"  Soreness: {soreness_bar} {r['soreness']}  Energy: {energy_bar} {r['energy']}"
+        )
 
         score = r["composite_score"]
         score_label = _get_score_label(score)

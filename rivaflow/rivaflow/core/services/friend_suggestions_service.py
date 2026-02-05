@@ -1,4 +1,5 @@
 """Service for generating friend suggestions based on multiple signals."""
+
 from typing import Any
 
 from rivaflow.db.database import convert_query, get_connection
@@ -54,13 +55,17 @@ class FriendSuggestionsService:
             score, reasons = self._calculate_score(current_user, candidate, user_id)
 
             if score >= 10:  # Minimum threshold
-                mutual_count = len([r for r in reasons if r.startswith("mutual_friends")])
-                scored_candidates.append({
-                    "suggested_user_id": candidate["id"],
-                    "score": score,
-                    "reasons": reasons,
-                    "mutual_friends_count": mutual_count,
-                })
+                mutual_count = len(
+                    [r for r in reasons if r.startswith("mutual_friends")]
+                )
+                scored_candidates.append(
+                    {
+                        "suggested_user_id": candidate["id"],
+                        "score": score,
+                        "reasons": reasons,
+                        "mutual_friends_count": mutual_count,
+                    }
+                )
 
         # Sort by score and take top N
         scored_candidates.sort(key=lambda x: x["score"], reverse=True)
@@ -108,17 +113,19 @@ class FriendSuggestionsService:
         with get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(
-                convert_query("""
+                convert_query(
+                    """
                     SELECT requester_id, recipient_id FROM friend_connections
                     WHERE (requester_id = ? OR recipient_id = ?)
                     AND status IN ('accepted', 'pending', 'blocked')
-                """),
-                (user_id, user_id)
+                """
+                ),
+                (user_id, user_id),
             )
             rows = cursor.fetchall()
 
             for row in rows:
-                if hasattr(row, 'keys'):
+                if hasattr(row, "keys"):
                     req_id = row["requester_id"]
                     rec_id = row["recipient_id"]
                 else:
@@ -132,17 +139,20 @@ class FriendSuggestionsService:
 
         return existing_ids
 
-    def _get_candidate_users(self, user_id: int, exclude_ids: set[int]) -> list[dict[str, Any]]:
+    def _get_candidate_users(
+        self, user_id: int, exclude_ids: set[int]
+    ) -> list[dict[str, Any]]:
         """Get all users who could be suggested (excluding self and connections)."""
         with get_connection() as conn:
             cursor = conn.cursor()
 
             # Get all users except self and existing connections
             exclude_list = list(exclude_ids) + [user_id]
-            placeholders = ', '.join('?' * len(exclude_list))
+            placeholders = ", ".join("?" * len(exclude_list))
 
             cursor.execute(
-                convert_query(f"""
+                convert_query(
+                    f"""
                     SELECT
                         id, username, display_name, belt_rank, belt_stripes,
                         location_city, location_state, primary_gym_id,
@@ -152,28 +162,31 @@ class FriendSuggestionsService:
                     AND searchable = TRUE
                     AND profile_visibility IN ('public', 'friends')
                     LIMIT 500
-                """),
+                """
+                ),
                 exclude_list,
             )
             rows = cursor.fetchall()
 
             candidates = []
             for row in rows:
-                if hasattr(row, 'keys'):
+                if hasattr(row, "keys"):
                     candidates.append(dict(row))
                 else:
-                    candidates.append({
-                        "id": row[0],
-                        "username": row[1],
-                        "display_name": row[2],
-                        "belt_rank": row[3],
-                        "belt_stripes": row[4],
-                        "location_city": row[5],
-                        "location_state": row[6],
-                        "primary_gym_id": row[7],
-                        "searchable": row[8],
-                        "profile_visibility": row[9],
-                    })
+                    candidates.append(
+                        {
+                            "id": row[0],
+                            "username": row[1],
+                            "display_name": row[2],
+                            "belt_rank": row[3],
+                            "belt_stripes": row[4],
+                            "location_city": row[5],
+                            "location_state": row[6],
+                            "primary_gym_id": row[7],
+                            "searchable": row[8],
+                            "profile_visibility": row[9],
+                        }
+                    )
 
             return candidates
 
@@ -209,7 +222,8 @@ class FriendSuggestionsService:
         if (
             current_user.get("location_city")
             and candidate.get("location_city")
-            and current_user["location_city"].lower() == candidate["location_city"].lower()
+            and current_user["location_city"].lower()
+            == candidate["location_city"].lower()
         ):
             score += 15
             reasons.append("same_city")

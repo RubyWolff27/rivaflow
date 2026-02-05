@@ -1,4 +1,5 @@
 """Tests for authentication service."""
+
 import pytest
 from datetime import timedelta
 
@@ -19,7 +20,7 @@ class TestAuthServiceRegister:
             email="newuser@example.com",
             password="securepass123",
             first_name="New",
-            last_name="User"
+            last_name="User",
         )
 
         assert result is not None
@@ -39,11 +40,12 @@ class TestAuthServiceRegister:
             email="newuser@example.com",
             password="securepass123",
             first_name="New",
-            last_name="User"
+            last_name="User",
         )
 
         # Check that profile was created
         from rivaflow.db.repositories.profile_repo import ProfileRepository
+
         profile_repo = ProfileRepository()
         profile = profile_repo.get_by_user_id(result["user"]["id"])
 
@@ -59,21 +61,24 @@ class TestAuthServiceRegister:
             email="newuser@example.com",
             password="securepass123",
             first_name="New",
-            last_name="User"
+            last_name="User",
         )
 
         # Check that streaks were created
         from rivaflow.db.database import get_connection, convert_query
+
         with get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(
                 convert_query("SELECT * FROM streaks WHERE user_id = ?"),
-                (result["user"]["id"],)
+                (result["user"]["id"],),
             )
             streaks = cursor.fetchall()
 
         assert len(streaks) == 3  # checkin, training, readiness
-        streak_types = {row["streak_type"] if isinstance(row, dict) else row[1] for row in streaks}
+        streak_types = {
+            row["streak_type"] if isinstance(row, dict) else row[1] for row in streaks
+        }
         assert "checkin" in streak_types
         assert "training" in streak_types
         assert "readiness" in streak_types
@@ -87,7 +92,7 @@ class TestAuthServiceRegister:
                 email="not-an-email",
                 password="securepass123",
                 first_name="New",
-                last_name="User"
+                last_name="User",
             )
 
     def test_register_short_password(self, temp_db):
@@ -99,7 +104,7 @@ class TestAuthServiceRegister:
                 email="newuser@example.com",
                 password="short",
                 first_name="New",
-                last_name="User"
+                last_name="User",
             )
 
     def test_register_duplicate_email(self, temp_db, test_user):
@@ -111,7 +116,7 @@ class TestAuthServiceRegister:
                 email="test@example.com",  # Already exists from test_user fixture
                 password="securepass123",
                 first_name="Duplicate",
-                last_name="User"
+                last_name="User",
             )
 
     def test_register_stores_refresh_token(self, temp_db):
@@ -122,7 +127,7 @@ class TestAuthServiceRegister:
             email="newuser@example.com",
             password="securepass123",
             first_name="New",
-            last_name="User"
+            last_name="User",
         )
 
         # Check that refresh token was stored
@@ -140,10 +145,7 @@ class TestAuthServiceLogin:
         """Test successful login with valid credentials."""
         auth_service = AuthService()
 
-        result = auth_service.login(
-            email="test@example.com",
-            password="testpass123"
-        )
+        result = auth_service.login(email="test@example.com", password="testpass123")
 
         assert result is not None
         assert "access_token" in result
@@ -157,29 +159,20 @@ class TestAuthServiceLogin:
         auth_service = AuthService()
 
         with pytest.raises(ValueError, match="Invalid email or password"):
-            auth_service.login(
-                email="test@example.com",
-                password="wrongpassword"
-            )
+            auth_service.login(email="test@example.com", password="wrongpassword")
 
     def test_login_nonexistent_user(self, temp_db):
         """Test login with non-existent email."""
         auth_service = AuthService()
 
         with pytest.raises(ValueError, match="Invalid email or password"):
-            auth_service.login(
-                email="nonexistent@example.com",
-                password="anypassword"
-            )
+            auth_service.login(email="nonexistent@example.com", password="anypassword")
 
     def test_login_generates_valid_jwt(self, temp_db, test_user):
         """Test that login generates a valid JWT token."""
         auth_service = AuthService()
 
-        result = auth_service.login(
-            email="test@example.com",
-            password="testpass123"
-        )
+        result = auth_service.login(email="test@example.com", password="testpass123")
 
         # Decode and verify token
         payload = decode_access_token(result["access_token"])
@@ -189,10 +182,7 @@ class TestAuthServiceLogin:
         """Test that login stores refresh token in database."""
         auth_service = AuthService()
 
-        result = auth_service.login(
-            email="test@example.com",
-            password="testpass123"
-        )
+        result = auth_service.login(email="test@example.com", password="testpass123")
 
         # Check that refresh token was stored
         refresh_token_repo = RefreshTokenRepository()
@@ -206,29 +196,28 @@ class TestAuthServiceLogin:
         # Create inactive user
         user_repo = UserRepository()
         from rivaflow.core.auth import hash_password
+
         user = user_repo.create(
             email="inactive@example.com",
             hashed_password=hash_password("testpass123"),
             first_name="Inactive",
-            last_name="User"
+            last_name="User",
         )
 
         # Mark as inactive
         from rivaflow.db.database import get_connection, convert_query
+
         with get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(
                 convert_query("UPDATE users SET is_active = ? WHERE id = ?"),
-                (False, user["id"])
+                (False, user["id"]),
             )
 
         auth_service = AuthService()
 
         with pytest.raises(ValueError, match="Account is inactive"):
-            auth_service.login(
-                email="inactive@example.com",
-                password="testpass123"
-            )
+            auth_service.login(email="inactive@example.com", password="testpass123")
 
 
 class TestAuthServiceRefreshToken:
@@ -240,8 +229,7 @@ class TestAuthServiceRefreshToken:
 
         # First login to get refresh token
         login_result = auth_service.login(
-            email="test@example.com",
-            password="testpass123"
+            email="test@example.com", password="testpass123"
         )
 
         # Refresh access token
@@ -261,9 +249,7 @@ class TestAuthServiceRefreshToken:
         auth_service = AuthService()
 
         with pytest.raises(ValueError, match="Invalid"):
-            auth_service.refresh_access_token(
-                refresh_token="invalid-token-12345"
-            )
+            auth_service.refresh_access_token(refresh_token="invalid-token-12345")
 
 
 class TestAuthServiceLogout:
@@ -275,8 +261,7 @@ class TestAuthServiceLogout:
 
         # Login first
         login_result = auth_service.login(
-            email="test@example.com",
-            password="testpass123"
+            email="test@example.com", password="testpass123"
         )
 
         # Logout
@@ -377,8 +362,7 @@ class TestJWTTokens:
 
         # Create token that expires immediately
         token = create_access_token(
-            data={"sub": "123"},
-            expires_delta=timedelta(seconds=-1)  # Already expired
+            data={"sub": "123"}, expires_delta=timedelta(seconds=-1)  # Already expired
         )
 
         with pytest.raises(JWTError):

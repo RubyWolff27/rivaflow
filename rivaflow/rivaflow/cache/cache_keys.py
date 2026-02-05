@@ -11,16 +11,18 @@ class CacheKeys:
 
     # TTL Constants (in seconds)
     TTL_24_HOURS = 86400  # 24 hours
-    TTL_1_HOUR = 3600     # 1 hour
+    TTL_1_HOUR = 3600  # 1 hour
     TTL_15_MINUTES = 900  # 15 minutes
-    TTL_5_MINUTES = 300   # 5 minutes
+    TTL_5_MINUTES = 300  # 5 minutes
 
     # Movements Glossary Cache Keys
     MOVEMENTS_GLOSSARY_ALL = "movements:glossary:all"
     MOVEMENTS_GLOSSARY_CATEGORIES = "movements:glossary:categories"
 
     @staticmethod
-    def movements_glossary_filtered(category: str = None, gi_only: bool = False, nogi_only: bool = False) -> str:
+    def movements_glossary_filtered(
+        category: str = None, gi_only: bool = False, nogi_only: bool = False
+    ) -> str:
         """
         Generate cache key for filtered movements list.
 

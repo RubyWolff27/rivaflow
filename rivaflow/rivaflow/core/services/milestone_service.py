@@ -1,4 +1,5 @@
 """Milestone detection and celebration."""
+
 import random
 
 from rivaflow.config import MILESTONE_QUOTES
@@ -26,7 +27,9 @@ class MilestoneService:
 
         # Check each milestone type
         for milestone_type, current_value in totals.items():
-            milestone = self.milestone_repo.check_and_create_milestone(user_id, milestone_type, current_value)
+            milestone = self.milestone_repo.check_and_create_milestone(
+                user_id, milestone_type, current_value
+            )
             if milestone:
                 new_milestones.append(milestone)
 
@@ -40,45 +43,70 @@ class MilestoneService:
             cursor = conn.cursor()
 
             # Hours: sum of duration_mins / 60 from sessions
-            cursor.execute(convert_query("SELECT SUM(duration_mins) as total FROM sessions WHERE user_id = ?"), (user_id,))
+            cursor.execute(
+                convert_query(
+                    "SELECT SUM(duration_mins) as total FROM sessions WHERE user_id = ?"
+                ),
+                (user_id,),
+            )
             result = cursor.fetchone()
-            total_mins = result['total'] or 0
+            total_mins = result["total"] or 0
             hours = int(total_mins / 60)
 
             # Sessions: count of sessions
-            cursor.execute(convert_query("SELECT COUNT(*) as count FROM sessions WHERE user_id = ?"), (user_id,))
+            cursor.execute(
+                convert_query(
+                    "SELECT COUNT(*) as count FROM sessions WHERE user_id = ?"
+                ),
+                (user_id,),
+            )
             result = cursor.fetchone()
-            sessions = result['count'] or 0
+            sessions = result["count"] or 0
 
             # Rolls: sum of rolls from sessions
-            cursor.execute(convert_query("SELECT SUM(rolls) as total FROM sessions WHERE user_id = ?"), (user_id,))
+            cursor.execute(
+                convert_query(
+                    "SELECT SUM(rolls) as total FROM sessions WHERE user_id = ?"
+                ),
+                (user_id,),
+            )
             result = cursor.fetchone()
-            rolls = result['total'] or 0
+            rolls = result["total"] or 0
 
             # Partners: count of unique partners from sessions (JSON partners field)
             # Note: This is simplified - in reality we'd need to parse JSON
             # session_rolls doesn't have user_id, need to JOIN with sessions
-            cursor.execute(convert_query("""
+            cursor.execute(
+                convert_query(
+                    """
                 SELECT COUNT(DISTINCT sr.partner_id) as count
                 FROM session_rolls sr
                 JOIN sessions s ON sr.session_id = s.id
                 WHERE sr.partner_id IS NOT NULL AND s.user_id = ?
-            """), (user_id,))
+            """
+                ),
+                (user_id,),
+            )
             result = cursor.fetchone()
-            partners = result['count'] or 0
+            partners = result["count"] or 0
 
             # Techniques: count from techniques table with times_trained > 0
             # Note: This assumes a techniques table - adjust based on actual schema
             # For now, use count of unique technique names from session_techniques
             # session_techniques doesn't have user_id, need to JOIN with sessions
-            cursor.execute(convert_query("""
+            cursor.execute(
+                convert_query(
+                    """
                 SELECT COUNT(DISTINCT st.movement_id) as count
                 FROM session_techniques st
                 JOIN sessions s ON st.session_id = s.id
                 WHERE s.user_id = ?
-            """), (user_id,))
+            """
+                ),
+                (user_id,),
+            )
             result = cursor.fetchone()
-            techniques = result['count'] or 0
+            techniques = result["count"] or 0
 
             # Streak: current checkin streak
             checkin_streak = self.streak_repo.get_streak(user_id, "checkin")
@@ -131,17 +159,21 @@ class MilestoneService:
         progress_list = []
 
         for milestone_type, current_value in totals.items():
-            next_milestone = self.milestone_repo.get_next_milestone(milestone_type, current_value)
+            next_milestone = self.milestone_repo.get_next_milestone(
+                milestone_type, current_value
+            )
 
             if next_milestone:
-                progress_list.append({
-                    "type": milestone_type,
-                    "current": current_value,
-                    "next_target": next_milestone["milestone_value"],
-                    "next_label": next_milestone["milestone_label"],
-                    "remaining": next_milestone["remaining"],
-                    "percentage": next_milestone["percentage"],
-                })
+                progress_list.append(
+                    {
+                        "type": milestone_type,
+                        "current": current_value,
+                        "next_target": next_milestone["milestone_value"],
+                        "next_label": next_milestone["milestone_label"],
+                        "remaining": next_milestone["remaining"],
+                        "percentage": next_milestone["percentage"],
+                    }
+                )
 
         return progress_list
 

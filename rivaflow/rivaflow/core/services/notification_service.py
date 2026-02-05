@@ -1,4 +1,5 @@
 """Service layer for notifications."""
+
 from typing import Any
 
 from rivaflow.db.repositories.notification_repo import NotificationRepository
@@ -118,7 +119,9 @@ class NotificationService:
         )
 
     @staticmethod
-    def create_follow_notification(followed_user_id: int, follower_id: int) -> dict[str, Any] | None:
+    def create_follow_notification(
+        followed_user_id: int, follower_id: int
+    ) -> dict[str, Any] | None:
         """
         Create a notification when someone follows a user.
 
@@ -151,7 +154,9 @@ class NotificationService:
             Dict with feed_unread, friend_requests (follows), and total
         """
         feed_unread = NotificationRepository.get_feed_unread_count(user_id)
-        follow_unread = NotificationRepository.get_unread_count_by_type(user_id, "follow")
+        follow_unread = NotificationRepository.get_unread_count_by_type(
+            user_id, "follow"
+        )
         total_unread = NotificationRepository.get_unread_count(user_id)
 
         return {

@@ -1,4 +1,5 @@
 """Video management commands."""
+
 import json
 
 import typer
@@ -41,7 +42,11 @@ def add(
 
     # Add video
     video_id = service.add_video(
-        user_id, url=url, title=title, timestamps=timestamps_list, technique_name=technique
+        user_id,
+        url=url,
+        title=title,
+        timestamps=timestamps_list,
+        technique_name=technique,
     )
 
     # Display confirmation

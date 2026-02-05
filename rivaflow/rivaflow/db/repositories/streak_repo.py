@@ -1,4 +1,5 @@
 """Repository for streak tracking."""
+
 from datetime import date
 
 from rivaflow.config import STREAK_GRACE_DAYS
@@ -14,13 +15,15 @@ class StreakRepository:
         with get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(
-                convert_query("""
+                convert_query(
+                    """
                 SELECT id, streak_type, current_streak, longest_streak,
                        last_checkin_date, streak_started_date, grace_days_used, updated_at
                 FROM streaks
                 WHERE user_id = ? AND streak_type = ?
-                """),
-                (user_id, streak_type)
+                """
+                ),
+                (user_id, streak_type),
             )
             row = cursor.fetchone()
             if row is None:
@@ -31,7 +34,7 @@ class StreakRepository:
                     INSERT INTO streaks (user_id, streak_type, current_streak, longest_streak)
                     VALUES (?, ?, 0, 0)
                     """,
-                    (user_id, streak_type)
+                    (user_id, streak_type),
                 )
                 conn.commit()
                 return {
@@ -92,14 +95,18 @@ class StreakRepository:
                 new_streak = streak["current_streak"] + 1
                 new_longest = max(new_streak, streak["longest_streak"])
                 grace_days_used = 0  # Reset grace days on consecutive check-in
-                streak_started = streak["streak_started_date"] or checkin_date.isoformat()
+                streak_started = (
+                    streak["streak_started_date"] or checkin_date.isoformat()
+                )
 
             # Missed 1 day - use grace day if available
             elif days_since_last == 2 and streak["grace_days_used"] < STREAK_GRACE_DAYS:
                 new_streak = streak["current_streak"] + 1
                 new_longest = max(new_streak, streak["longest_streak"])
                 grace_days_used = streak["grace_days_used"] + 1
-                streak_started = streak["streak_started_date"] or checkin_date.isoformat()
+                streak_started = (
+                    streak["streak_started_date"] or checkin_date.isoformat()
+                )
 
             # Streak broken - reset
             else:
@@ -111,7 +118,8 @@ class StreakRepository:
         with get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(
-                convert_query("""
+                convert_query(
+                    """
                 UPDATE streaks
                 SET current_streak = ?,
                     longest_streak = ?,
@@ -120,16 +128,21 @@ class StreakRepository:
                     grace_days_used = ?,
                     updated_at = CURRENT_TIMESTAMP
                 WHERE user_id = ? AND streak_type = ?
-                """),
+                """
+                ),
                 (
                     new_streak,
                     new_longest,
                     checkin_date.isoformat(),
-                    streak_started.isoformat() if isinstance(streak_started, date) else streak_started,
+                    (
+                        streak_started.isoformat()
+                        if isinstance(streak_started, date)
+                        else streak_started
+                    ),
                     grace_days_used,
                     user_id,
                     streak_type,
-                )
+                ),
             )
             conn.commit()
 
@@ -141,14 +154,16 @@ class StreakRepository:
         with get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(
-                convert_query("""
+                convert_query(
+                    """
                 SELECT id, streak_type, current_streak, longest_streak,
                        last_checkin_date, streak_started_date, grace_days_used, updated_at
                 FROM streaks
                 WHERE user_id = ?
                 ORDER BY streak_type
-                """),
-                (user_id,)
+                """
+                ),
+                (user_id,),
             )
             rows = cursor.fetchall()
 

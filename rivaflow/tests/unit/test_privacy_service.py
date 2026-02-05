@@ -1,4 +1,5 @@
 """Unit tests for PrivacyService redaction logic."""
+
 import pytest
 
 from rivaflow.core.services.privacy_service import PrivacyService
@@ -34,7 +35,9 @@ class TestPrivacyRedaction:
 
     def test_attendance_includes_only_metadata(self):
         """Verify attendance level includes only gym/date/type/location."""
-        result = PrivacyService.redact_session(self.full_session, visibility="attendance")
+        result = PrivacyService.redact_session(
+            self.full_session, visibility="attendance"
+        )
 
         # Should include attendance fields
         assert "gym_name" in result
@@ -150,9 +153,33 @@ class TestSessionsListRedaction:
     def test_redact_sessions_list(self):
         """Verify list redaction respects individual visibility settings."""
         sessions = [
-            {"id": 1, "gym_name": "Gym A", "session_date": "2025-01-20", "class_type": "gi", "notes": "Secret", "visibility_level": "private"},
-            {"id": 2, "gym_name": "Gym B", "session_date": "2025-01-21", "class_type": "no-gi", "notes": "Public", "visibility_level": "attendance"},
-            {"id": 3, "gym_name": "Gym C", "session_date": "2025-01-22", "class_type": "gi", "notes": "Details", "visibility_level": "summary", "duration_mins": 60, "intensity": 4, "rolls": 5},
+            {
+                "id": 1,
+                "gym_name": "Gym A",
+                "session_date": "2025-01-20",
+                "class_type": "gi",
+                "notes": "Secret",
+                "visibility_level": "private",
+            },
+            {
+                "id": 2,
+                "gym_name": "Gym B",
+                "session_date": "2025-01-21",
+                "class_type": "no-gi",
+                "notes": "Public",
+                "visibility_level": "attendance",
+            },
+            {
+                "id": 3,
+                "gym_name": "Gym C",
+                "session_date": "2025-01-22",
+                "class_type": "gi",
+                "notes": "Details",
+                "visibility_level": "summary",
+                "duration_mins": 60,
+                "intensity": 4,
+                "rolls": 5,
+            },
         ]
 
         result = PrivacyService.redact_sessions_list(sessions)
@@ -174,11 +201,19 @@ class TestSessionsListRedaction:
     def test_default_visibility_applied(self):
         """Verify default visibility used when not specified per session."""
         sessions = [
-            {"id": 1, "gym_name": "Gym A", "session_date": "2025-01-20", "class_type": "gi", "notes": "No visibility set"},
+            {
+                "id": 1,
+                "gym_name": "Gym A",
+                "session_date": "2025-01-20",
+                "class_type": "gi",
+                "notes": "No visibility set",
+            },
         ]
 
         # Default to attendance
-        result = PrivacyService.redact_sessions_list(sessions, default_visibility="attendance")
+        result = PrivacyService.redact_sessions_list(
+            sessions, default_visibility="attendance"
+        )
 
         assert len(result) == 1
         assert "gym_name" in result[0]
@@ -281,7 +316,9 @@ class TestSensitiveFieldsProtection:
 
         # Verify NO sensitive fields present
         for field in PrivacyService.SENSITIVE_FIELDS:
-            assert field not in result, f"Sensitive field '{field}' leaked in attendance mode"
+            assert (
+                field not in result
+            ), f"Sensitive field '{field}' leaked in attendance mode"
 
     def test_sensitive_fields_never_in_summary(self):
         """Verify sensitive fields excluded from summary."""

@@ -1,4 +1,5 @@
 """Authentication endpoints."""
+
 import logging
 
 from fastapi import APIRouter, Depends, HTTPException, Request, status
@@ -55,7 +56,9 @@ class AccessTokenResponse(BaseModel):
     token_type: str = "bearer"
 
 
-@router.post("/register", response_model=TokenResponse, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/register", response_model=TokenResponse, status_code=status.HTTP_201_CREATED
+)
 @limiter.limit("5/minute")
 async def register(request: Request, req: RegisterRequest):
     """
@@ -144,7 +147,9 @@ async def refresh_token(request: Request, req: RefreshRequest):
             headers={"WWW-Authenticate": "Bearer"},
         )
     except Exception as e:
-        error_msg = handle_service_error(e, "Token refresh failed", operation="refresh_token")
+        error_msg = handle_service_error(
+            e, "Token refresh failed", operation="refresh_token"
+        )
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=error_msg,
@@ -167,9 +172,13 @@ async def logout(req: RefreshRequest, current_user: dict = Depends(get_current_u
         if success:
             return {"message": "Logged out successfully"}
         else:
-            return {"message": "Logged out successfully"}  # Generic message to prevent info leakage
+            return {
+                "message": "Logged out successfully"
+            }  # Generic message to prevent info leakage
     except Exception as e:
-        error_msg = handle_service_error(e, "Logout failed", user_id=current_user["id"], operation="logout")
+        error_msg = handle_service_error(
+            e, "Logout failed", user_id=current_user["id"], operation="logout"
+        )
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=error_msg,
@@ -189,7 +198,9 @@ async def logout_all_devices(current_user: dict = Depends(get_current_user)):
         count = service.logout_all_devices(user_id=current_user["id"])
         return {"message": f"Logged out from {count} device(s)"}
     except Exception as e:
-        error_msg = handle_service_error(e, "Logout failed", user_id=current_user["id"], operation="logout_all")
+        error_msg = handle_service_error(
+            e, "Logout failed", user_id=current_user["id"], operation="logout_all"
+        )
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=error_msg,
@@ -267,17 +278,21 @@ async def reset_password(request: Request, req: ResetPasswordRequest):
         success = service.reset_password(token=req.token, new_password=req.new_password)
 
         if success:
-            return {"message": "Password reset successfully. You can now log in with your new password."}
+            return {
+                "message": "Password reset successfully. You can now log in with your new password."
+            }
         else:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Invalid or expired reset token"
+                detail="Invalid or expired reset token",
             )
 
     except ValueError as e:
         raise ValidationError(str(e))
     except Exception as e:
-        error_msg = handle_service_error(e, "Password reset failed", operation="reset_password")
+        error_msg = handle_service_error(
+            e, "Password reset failed", operation="reset_password"
+        )
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=error_msg,

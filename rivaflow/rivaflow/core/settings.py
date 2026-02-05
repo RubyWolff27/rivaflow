@@ -3,6 +3,7 @@
 This module provides a single source of truth for all configuration,
 including environment variables, API keys, and runtime settings.
 """
+
 import os
 from pathlib import Path
 
@@ -276,7 +277,9 @@ class Settings:
     @property
     def CORS_ORIGINS(self) -> list[str]:
         """Allowed CORS origins (comma-separated)."""
-        origins = os.getenv("CORS_ORIGINS", "http://localhost:3000,http://localhost:8000")
+        origins = os.getenv(
+            "CORS_ORIGINS", "http://localhost:3000,http://localhost:8000"
+        )
         return [origin.strip() for origin in origins.split(",")]
 
     # ==============================================================================

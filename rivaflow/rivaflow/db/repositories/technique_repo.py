@@ -1,4 +1,5 @@
 """Repository for technique data access."""
+
 import sqlite3
 from datetime import date, datetime
 
@@ -27,7 +28,7 @@ class TechniqueRepository:
                 )
                 row = cursor.fetchone()
                 # Handle both dict (PostgreSQL) and tuple (SQLite) results
-                if hasattr(row, 'keys'):
+                if hasattr(row, "keys"):
                     return row["id"]
                 else:
                     return row[0]
@@ -37,7 +38,9 @@ class TechniqueRepository:
         """Get a technique by ID."""
         with get_connection() as conn:
             cursor = conn.cursor()
-            cursor.execute(convert_query("SELECT * FROM techniques WHERE id = ?"), (technique_id,))
+            cursor.execute(
+                convert_query("SELECT * FROM techniques WHERE id = ?"), (technique_id,)
+            )
             row = cursor.fetchone()
             if row:
                 return TechniqueRepository._row_to_dict(row)
@@ -49,7 +52,8 @@ class TechniqueRepository:
         with get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(
-                convert_query("SELECT * FROM techniques WHERE name = ?"), (name.lower().strip(),)
+                convert_query("SELECT * FROM techniques WHERE name = ?"),
+                (name.lower().strip(),),
             )
             row = cursor.fetchone()
             if row:
@@ -80,7 +84,9 @@ class TechniqueRepository:
         with get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(
-                convert_query("UPDATE techniques SET last_trained_date = ? WHERE id = ?"),
+                convert_query(
+                    "UPDATE techniques SET last_trained_date = ? WHERE id = ?"
+                ),
                 (trained_date.isoformat(), technique_id),
             )
 
@@ -95,13 +101,15 @@ class TechniqueRepository:
         with get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(
-                convert_query("""
+                convert_query(
+                    """
                 SELECT * FROM techniques
                 WHERE last_trained_date IS NULL
                    OR last_trained_date < ?
                 ORDER BY last_trained_date ASC
-                """),
-                (cutoff_date,)
+                """
+                ),
+                (cutoff_date,),
             )
             return [TechniqueRepository._row_to_dict(row) for row in cursor.fetchall()]
 
@@ -111,7 +119,9 @@ class TechniqueRepository:
         with get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(
-                convert_query("SELECT * FROM techniques WHERE name LIKE ? ORDER BY name"),
+                convert_query(
+                    "SELECT * FROM techniques WHERE name LIKE ? ORDER BY name"
+                ),
                 (f"%{query.lower()}%",),
             )
             return [TechniqueRepository._row_to_dict(row) for row in cursor.fetchall()]
@@ -124,7 +134,7 @@ class TechniqueRepository:
             cursor.execute(convert_query("SELECT name FROM techniques ORDER BY name"))
             rows = cursor.fetchall()
             # Handle both dict (PostgreSQL) and tuple (SQLite) results
-            if rows and hasattr(rows[0], 'keys'):
+            if rows and hasattr(rows[0], "keys"):
                 return [row["name"] for row in rows]
             else:
                 return [row[0] for row in rows]

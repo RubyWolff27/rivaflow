@@ -1,4 +1,5 @@
 """Integration tests for complete user journeys."""
+
 import pytest
 from datetime import date, timedelta
 
@@ -22,7 +23,7 @@ class TestNewUserJourney:
             email="newuser@example.com",
             password="securepass123",
             first_name="John",
-            last_name="Doe"
+            last_name="Doe",
         )
 
         assert registration is not None
@@ -112,8 +113,7 @@ class TestAnalyticsJourney:
         # View analytics
         analytics_service = AnalyticsService()
         weekly_stats = analytics_service.get_week_summary(
-            user_id=user_id,
-            week_start=date.today() - timedelta(days=6)
+            user_id=user_id, week_start=date.today() - timedelta(days=6)
         )
 
         assert weekly_stats is not None
@@ -135,9 +135,7 @@ class TestAnalyticsJourney:
         # Get monthly analytics
         analytics_service = AnalyticsService()
         monthly_stats = analytics_service.get_monthly_summary(
-            user_id=user_id,
-            month=date.today().month,
-            year=date.today().year
+            user_id=user_id, month=date.today().month, year=date.today().year
         )
 
         assert monthly_stats is not None
@@ -149,7 +147,9 @@ class TestMultiUserInteraction:
 
     def test_user_follow_workflow(self, temp_db, test_user, test_user2):
         """Test: User follows another user → views their profile."""
-        from rivaflow.db.repositories.user_relationship_repo import UserRelationshipRepository
+        from rivaflow.db.repositories.user_relationship_repo import (
+            UserRelationshipRepository,
+        )
 
         user1_id = test_user["id"]
         user2_id = test_user2["id"]
@@ -157,14 +157,12 @@ class TestMultiUserInteraction:
         # User1 follows User2
         relationship_repo = UserRelationshipRepository()
         relationship_repo.create_relationship(
-            follower_id=user1_id,
-            following_id=user2_id
+            follower_id=user1_id, following_id=user2_id
         )
 
         # Verify relationship exists
         is_following = relationship_repo.is_following(
-            follower_id=user1_id,
-            following_id=user2_id
+            follower_id=user1_id, following_id=user2_id
         )
 
         assert is_following is True
@@ -173,9 +171,13 @@ class TestMultiUserInteraction:
         followers = relationship_repo.get_followers(user_id=user2_id)
         assert len(followers) > 0
 
-    def test_social_feed_workflow(self, temp_db, test_user, test_user2, session_factory):
+    def test_social_feed_workflow(
+        self, temp_db, test_user, test_user2, session_factory
+    ):
         """Test: Users follow each other → view social feed."""
-        from rivaflow.db.repositories.user_relationship_repo import UserRelationshipRepository
+        from rivaflow.db.repositories.user_relationship_repo import (
+            UserRelationshipRepository,
+        )
 
         user1_id = test_user["id"]
         user2_id = test_user2["id"]
@@ -190,7 +192,9 @@ class TestMultiUserInteraction:
         session_factory(user_id=user2_id, gym_name="Gym B")
 
         # Get follower sessions
-        following_ids = [rel["following_id"] for rel in relationship_repo.get_following(user1_id)]
+        following_ids = [
+            rel["following_id"] for rel in relationship_repo.get_following(user1_id)
+        ]
 
         assert user2_id in following_ids
 
@@ -198,7 +202,9 @@ class TestMultiUserInteraction:
 class TestDataExportImport:
     """Test data export and portability."""
 
-    def test_export_user_data(self, temp_db, test_user, session_factory, readiness_factory):
+    def test_export_user_data(
+        self, temp_db, test_user, session_factory, readiness_factory
+    ):
         """Test: User exports all their data."""
         user_id = test_user["id"]
 
@@ -291,6 +297,7 @@ class TestStreakCalculation:
 
         # Verify streak calculation
         from rivaflow.core.services.streak_service import StreakService
+
         streak_service = StreakService()
 
         streak = streak_service.get_current_streak(user_id, "training")

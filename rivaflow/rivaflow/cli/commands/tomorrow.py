@@ -1,4 +1,5 @@
 """Tomorrow's intention command."""
+
 from datetime import date, timedelta
 
 import typer
@@ -25,12 +26,17 @@ def get_tip_based_on_recent_sessions(user_id: int) -> str | None:
         cursor = conn.cursor()
 
         # Get last 3 sessions for this user
-        cursor.execute(convert_query("""
+        cursor.execute(
+            convert_query(
+                """
             SELECT class_type FROM sessions
             WHERE user_id = ?
             ORDER BY session_date DESC
             LIMIT 3
-        """), (user_id,))
+        """
+            ),
+            (user_id,),
+        )
         recent_sessions = [row[0] for row in cursor.fetchall()]
 
         if not recent_sessions:
@@ -39,21 +45,30 @@ def get_tip_based_on_recent_sessions(user_id: int) -> str | None:
         # Check if all recent sessions are same type
         if len(recent_sessions) >= 3:
             if all(ct == "gi" for ct in recent_sessions):
-                return "💡 TIP: Last 3 sessions were Gi — consider No-Gi to unload grips"
+                return (
+                    "💡 TIP: Last 3 sessions were Gi — consider No-Gi to unload grips"
+                )
             elif all(ct == "no-gi" for ct in recent_sessions):
                 return "💡 TIP: Last 3 sessions were No-Gi — consider Gi work for grips"
 
         # Check training intensity (last 7 days)
         # Calculate date in Python for database compatibility
         six_days_ago = (date.today() - timedelta(days=6)).isoformat()
-        cursor.execute(convert_query("""
+        cursor.execute(
+            convert_query(
+                """
             SELECT COUNT(*) FROM sessions
             WHERE user_id = ? AND session_date >= ?
-        """), (user_id, six_days_ago))
+        """
+            ),
+            (user_id, six_days_ago),
+        )
         recent_count = cursor.fetchone()[0] or 0
 
         if recent_count >= 6:
-            return "💡 TIP: You've trained 6 of the last 7 days — recovery is training too"
+            return (
+                "💡 TIP: You've trained 6 of the last 7 days — recovery is training too"
+            )
 
     return None
 
@@ -61,7 +76,9 @@ def get_tip_based_on_recent_sessions(user_id: int) -> str | None:
 @app.callback(invoke_without_command=True)
 def tomorrow(
     ctx: typer.Context,
-    intention: str | None = typer.Argument(None, help="Intention: train_gi, train_nogi, rest, unsure")
+    intention: str | None = typer.Argument(
+        None, help="Intention: train_gi, train_nogi, rest, unsure"
+    ),
 ):
     """
     Set or view tomorrow's training intention.
@@ -100,7 +117,7 @@ def tomorrow(
                 user_id=user_id,
                 check_date=today,
                 checkin_type="readiness_only",
-                tomorrow_intention=intention
+                tomorrow_intention=intention,
             )
 
         intention_label = TOMORROW_INTENTIONS.get(intention, intention)
@@ -125,7 +142,9 @@ def tomorrow(
     console.print("    [cyan]8[/cyan] 🤷 Not sure yet")
     console.print()
 
-    choice = Prompt.ask("  Select", choices=["1", "2", "3", "4", "5", "6", "7", "8"], default="8")
+    choice = Prompt.ask(
+        "  Select", choices=["1", "2", "3", "4", "5", "6", "7", "8"], default="8"
+    )
 
     intention_map = {
         "1": "train_gi",
@@ -148,7 +167,7 @@ def tomorrow(
             user_id=user_id,
             check_date=today,
             checkin_type="readiness_only",
-            tomorrow_intention=selected_intention
+            tomorrow_intention=selected_intention,
         )
 
     intention_label = TOMORROW_INTENTIONS.get(selected_intention, selected_intention)

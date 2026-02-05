@@ -4,13 +4,16 @@ Integration tests for PostgreSQL compatibility.
 Tests that the database abstraction layer works correctly with both
 SQLite (development) and PostgreSQL (production).
 """
+
 import os
 from datetime import date, timedelta
 
 import pytest
 
 # Set SECRET_KEY for testing
-os.environ.setdefault("SECRET_KEY", "test-secret-key-for-postgresql-tests-minimum-32chars")
+os.environ.setdefault(
+    "SECRET_KEY", "test-secret-key-for-postgresql-tests-minimum-32chars"
+)
 
 from rivaflow.db.database import convert_query, get_connection, init_db
 from rivaflow.db.repositories.checkin_repo import CheckinRepository
@@ -30,10 +33,13 @@ def test_user():
     """Create a test user for database operations."""
     with get_connection() as conn:
         cursor = conn.cursor()
-        cursor.execute("""
+        cursor.execute(
+            """
             INSERT INTO users (email, password_hash, created_at)
             VALUES (?, ?, CURRENT_TIMESTAMP)
-        """, ("postgres_test@example.com", "dummy_hash"))
+        """,
+            ("postgres_test@example.com", "dummy_hash"),
+        )
         conn.commit()
         user_id = cursor.lastrowid
 
@@ -178,10 +184,7 @@ class TestDateHandling:
     def test_date_range_queries(self, test_db, test_user):
         """Test querying by date range."""
         # Create sessions across a range
-        dates = [
-            date.today() - timedelta(days=i)
-            for i in range(5)
-        ]
+        dates = [date.today() - timedelta(days=i) for i in range(5)]
 
         for i, session_date in enumerate(dates):
             SessionRepository.create(
@@ -238,6 +241,7 @@ class TestTimestampHandling:
 
         # Small delay to ensure timestamp difference
         import time
+
         time.sleep(0.1)
 
         # Update
@@ -330,13 +334,16 @@ class TestTransactionHandling:
         """Test transactions are committed properly."""
         with get_connection() as conn:
             cursor = conn.cursor()
-            cursor.execute("""
+            cursor.execute(
+                """
                 INSERT INTO sessions (
                     user_id, session_date, class_type, gym_name,
                     duration_mins, intensity, rolls, created_at
                 )
                 VALUES (?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
-            """, (test_user, date.today().isoformat(), "gi", "Test Gym", 90, 4, 5))
+            """,
+                (test_user, date.today().isoformat(), "gi", "Test Gym", 90, 4, 5),
+            )
             conn.commit()
             session_id = cursor.lastrowid
 
@@ -350,13 +357,16 @@ class TestTransactionHandling:
             with get_connection() as conn:
                 cursor = conn.cursor()
                 # Insert valid record
-                cursor.execute("""
+                cursor.execute(
+                    """
                     INSERT INTO sessions (
                         user_id, session_date, class_type, gym_name,
                         duration_mins, intensity, rolls, created_at
                     )
                     VALUES (?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
-                """, (test_user, date.today().isoformat(), "gi", "Test Gym", 90, 4, 5))
+                """,
+                    (test_user, date.today().isoformat(), "gi", "Test Gym", 90, 4, 5),
+                )
 
                 # Force an error (invalid SQL)
                 cursor.execute("INVALID SQL HERE")
@@ -377,13 +387,16 @@ class TestConcurrency:
         # Create session in first connection
         with get_connection() as conn1:
             cursor = conn1.cursor()
-            cursor.execute("""
+            cursor.execute(
+                """
                 INSERT INTO sessions (
                     user_id, session_date, class_type, gym_name,
                     duration_mins, intensity, rolls, created_at
                 )
                 VALUES (?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
-            """, (test_user, date.today().isoformat(), "gi", "Test Gym", 90, 4, 5))
+            """,
+                (test_user, date.today().isoformat(), "gi", "Test Gym", 90, 4, 5),
+            )
             conn1.commit()
             session_id = cursor.lastrowid
 
@@ -392,7 +405,7 @@ class TestConcurrency:
             cursor = conn2.cursor()
             cursor.execute(
                 convert_query("SELECT * FROM sessions WHERE session_id = ?"),
-                (session_id,)
+                (session_id,),
             )
             row = cursor.fetchone()
             assert row is not None
@@ -407,13 +420,16 @@ class TestDataIntegrity:
         try:
             with get_connection() as conn:
                 cursor = conn.cursor()
-                cursor.execute("""
+                cursor.execute(
+                    """
                     INSERT INTO sessions (
                         user_id, session_date, class_type, gym_name,
                         duration_mins, intensity, rolls, created_at
                     )
                     VALUES (?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
-                """, (999999, date.today().isoformat(), "gi", "Test Gym", 90, 4, 5))
+                """,
+                    (999999, date.today().isoformat(), "gi", "Test Gym", 90, 4, 5),
+                )
                 conn.commit()
 
             # If we get here, foreign keys might not be enforced

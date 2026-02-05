@@ -1,4 +1,5 @@
 """Create test users with dummy data for social features testing."""
+
 import sys
 from datetime import date, timedelta
 from pathlib import Path
@@ -51,8 +52,10 @@ for user_data in test_users:
         # Check if user already exists
         existing = user_repo.get_by_email(user_data["email"])
         if existing:
-            print(f"   ⚠️  User {user_data['email']} already exists (ID: {existing['id']})")
-            user_ids.append(existing['id'])
+            print(
+                f"   ⚠️  User {user_data['email']} already exists (ID: {existing['id']})"
+            )
+            user_ids.append(existing["id"])
         else:
             result = auth_service.register(
                 email=user_data["email"],
@@ -61,7 +64,9 @@ for user_data in test_users:
                 last_name=user_data["last_name"],
             )
             user_ids.append(result["user"]["id"])
-            print(f"   ✓ Created {user_data['first_name']} {user_data['last_name']} (ID: {result['user']['id']})")
+            print(
+                f"   ✓ Created {user_data['first_name']} {user_data['last_name']} (ID: {result['user']['id']})"
+            )
     except Exception as e:
         print(f"   ✗ Error creating {user_data['email']}: {e}")
 
@@ -80,12 +85,12 @@ alice_sessions = []
 for i in range(5):
     days_ago = i * 2
     session_date = date.today() - timedelta(days=days_ago)
-    visibility = ['private', 'attendance', 'summary', 'full', 'summary'][i]
+    visibility = ["private", "attendance", "summary", "full", "summary"][i]
 
     session_id = session_repo.create(
         user_id=alice_id,
         session_date=session_date,
-        class_type=['gi', 'no-gi', 'open-mat', 'gi', 'no-gi'][i],
+        class_type=["gi", "no-gi", "open-mat", "gi", "no-gi"][i],
         gym_name="Alliance BJJ",
         location="San Diego, CA",
         duration_mins=90,
@@ -106,12 +111,12 @@ bob_sessions = []
 for i in range(4):
     days_ago = i * 3 + 1
     session_date = date.today() - timedelta(days=days_ago)
-    visibility = ['summary', 'full', 'attendance', 'full'][i]
+    visibility = ["summary", "full", "attendance", "full"][i]
 
     session_id = session_repo.create(
         user_id=bob_id,
         session_date=session_date,
-        class_type=['gi', 'no-gi', 'gi', 'open-mat'][i],
+        class_type=["gi", "no-gi", "gi", "open-mat"][i],
         gym_name="Gracie Barra",
         location="Austin, TX",
         duration_mins=75,
@@ -132,12 +137,12 @@ charlie_sessions = []
 for i in range(3):
     days_ago = i * 4 + 2
     session_date = date.today() - timedelta(days=days_ago)
-    visibility = ['full', 'summary', 'full'][i]
+    visibility = ["full", "summary", "full"][i]
 
     session_id = session_repo.create(
         user_id=charlie_id,
         session_date=session_date,
-        class_type=['gi', 'no-gi', 'gi'][i],
+        class_type=["gi", "no-gi", "gi"][i],
         gym_name="10th Planet",
         location="Los Angeles, CA",
         duration_mins=80,
@@ -270,7 +275,7 @@ like_repo = ActivityLikeRepository()
 # Bob likes Alice's sessions
 for session_id in alice_sessions[1:3]:  # Like some of Alice's shareable sessions
     try:
-        like_repo.create(bob_id, 'session', session_id)
+        like_repo.create(bob_id, "session", session_id)
         print(f"   ✓ Bob liked Alice's session {session_id}")
     except Exception as e:
         if "unique" in str(e).lower() or "already" in str(e).lower():
@@ -281,7 +286,7 @@ for session_id in alice_sessions[1:3]:  # Like some of Alice's shareable session
 # Alice likes Bob's sessions
 for session_id in bob_sessions[0:2]:
     try:
-        like_repo.create(alice_id, 'session', session_id)
+        like_repo.create(alice_id, "session", session_id)
         print(f"   ✓ Alice liked Bob's session {session_id}")
     except Exception as e:
         if "unique" in str(e).lower() or "already" in str(e).lower():
@@ -291,7 +296,7 @@ for session_id in bob_sessions[0:2]:
 
 # Charlie likes everyone's sessions
 try:
-    like_repo.create(charlie_id, 'session', alice_sessions[2])
+    like_repo.create(charlie_id, "session", alice_sessions[2])
     print(f"   ✓ Charlie liked Alice's session {alice_sessions[2]}")
 except Exception as e:
     if "unique" in str(e).lower() or "already" in str(e).lower():
@@ -300,7 +305,7 @@ except Exception as e:
         print(f"   ✗ Error: {e}")
 
 try:
-    like_repo.create(charlie_id, 'session', bob_sessions[1])
+    like_repo.create(charlie_id, "session", bob_sessions[1])
     print(f"   ✓ Charlie liked Bob's session {bob_sessions[1]}")
 except Exception as e:
     if "unique" in str(e).lower() or "already" in str(e).lower():
@@ -316,9 +321,9 @@ comment_repo = ActivityCommentRepository()
 try:
     comment_repo.create(
         bob_id,
-        'session',
+        "session",
         alice_sessions[1],
-        "Great work! Your guard passing is getting really sharp 🔥"
+        "Great work! Your guard passing is getting really sharp 🔥",
     )
     print("   ✓ Bob commented on Alice's session")
 except Exception as e:
@@ -328,9 +333,9 @@ except Exception as e:
 try:
     comment_repo.create(
         alice_id,
-        'session',
+        "session",
         bob_sessions[0],
-        "Nice session! Those sweeps were looking clean 👍"
+        "Nice session! Those sweeps were looking clean 👍",
     )
     print("   ✓ Alice commented on Bob's session")
 except Exception as e:
@@ -339,10 +344,7 @@ except Exception as e:
 # Charlie comments on Alice's session
 try:
     comment_repo.create(
-        charlie_id,
-        'session',
-        alice_sessions[3],
-        "Keep it up! Love the intensity 💪"
+        charlie_id, "session", alice_sessions[3], "Keep it up! Love the intensity 💪"
     )
     print("   ✓ Charlie commented on Alice's session")
 except Exception as e:
@@ -357,7 +359,9 @@ print("   Users created: 3")
 print(f"   - Alice Anderson (ID: {alice_id}) - alice.bjj@test.com")
 print(f"   - Bob Brown (ID: {bob_id}) - bob.grappler@test.com")
 print(f"   - Charlie Chen (ID: {charlie_id}) - charlie.rolls@test.com")
-print(f"\n   Total sessions: {len(alice_sessions) + len(bob_sessions) + len(charlie_sessions)}")
+print(
+    f"\n   Total sessions: {len(alice_sessions) + len(bob_sessions) + len(charlie_sessions)}"
+)
 print(f"   - Alice: {len(alice_sessions)} sessions (mixed privacy)")
 print(f"   - Bob: {len(bob_sessions)} sessions (mostly shareable)")
 print(f"   - Charlie: {len(charlie_sessions)} sessions (all shareable)")

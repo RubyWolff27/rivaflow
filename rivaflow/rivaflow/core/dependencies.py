@@ -1,4 +1,5 @@
 """FastAPI dependency injection for authentication."""
+
 import logging
 
 from fastapi import Depends, HTTPException, status

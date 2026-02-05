@@ -1,4 +1,5 @@
 """Session logging commands."""
+
 import json
 import random
 from datetime import date
@@ -27,7 +28,9 @@ app = typer.Typer(help="Log training sessions")
 
 @app.command()
 def log(
-    quick: bool = typer.Option(False, "--quick", "-q", help="Quick mode: minimal inputs only"),
+    quick: bool = typer.Option(
+        False, "--quick", "-q", help="Quick mode: minimal inputs only"
+    ),
 ):
     """
     Log a training session with detailed tracking.
@@ -230,6 +233,7 @@ def _full_log(service: SessionService, video_repo: VideoRepository, autocomplete
     # Engagement features (v0.2)
     _add_engagement_features(session_id)
 
+
 def _add_engagement_features(session_id: int):
     """Add engagement features after session logging (v0.2)."""
     user_id = get_current_user_id()
@@ -241,7 +245,9 @@ def _add_engagement_features(session_id: int):
     today = date.today()
 
     # Process engagement features with progress indicator
-    with prompts.console.status("[cyan]Calculating streaks and milestones...", spinner="dots"):
+    with prompts.console.status(
+        "[cyan]Calculating streaks and milestones...", spinner="dots"
+    ):
         # 1. Create check-in record
         insight = insight_service.generate_insight(user_id)
         insight_json = json.dumps(insight)
@@ -251,7 +257,7 @@ def _add_engagement_features(session_id: int):
             check_date=today,
             checkin_type="session",
             session_id=session_id,
-            insight_shown=insight_json
+            insight_shown=insight_json,
         )
 
         # 2. Update streaks
@@ -279,9 +285,11 @@ def _add_engagement_features(session_id: int):
     prompts.console.print()
 
     # Display insight
-    prompts.console.print(f"  [bold]{insight.get('icon', '💡')} {insight.get('title', 'INSIGHT').upper()}:[/bold]")
+    prompts.console.print(
+        f"  [bold]{insight.get('icon', '💡')} {insight.get('title', 'INSIGHT').upper()}:[/bold]"
+    )
     prompts.console.print(f"  [dim]{insight.get('message', '')}[/dim]")
-    if insight.get('action'):
+    if insight.get("action"):
         prompts.console.print(f"  [dim italic]{insight['action']}[/dim italic]")
     prompts.console.print()
 
@@ -304,8 +312,10 @@ def _add_engagement_features(session_id: int):
 
             # Get next milestone
             totals = milestone_service.get_current_totals(user_id)
-            current = totals.get(milestone['milestone_type'], 0)
-            next_ms = milestone_service.milestone_repo.get_next_milestone(user_id, milestone['milestone_type'], current)
+            current = totals.get(milestone["milestone_type"], 0)
+            next_ms = milestone_service.milestone_repo.get_next_milestone(
+                user_id, milestone["milestone_type"], current
+            )
 
             if next_ms:
                 celebration += f"\n  Next milestone: {next_ms['milestone_label']} ({next_ms['remaining']} to go)"
@@ -325,10 +335,14 @@ def _add_engagement_features(session_id: int):
     # Tomorrow's intention prompt
     prompts.console.print("  [bold]What's the plan for tomorrow?[/bold]")
     prompts.console.print()
-    prompts.console.print("  [cyan]1[/cyan] 🥋 Gi   [cyan]2[/cyan] 🩳 No-Gi   [cyan]3[/cyan] 😴 Rest   [cyan]4[/cyan] 🤷 Not sure")
+    prompts.console.print(
+        "  [cyan]1[/cyan] 🥋 Gi   [cyan]2[/cyan] 🩳 No-Gi   [cyan]3[/cyan] 😴 Rest   [cyan]4[/cyan] 🤷 Not sure"
+    )
     prompts.console.print()
 
-    choice = Prompt.ask("  Select", choices=["1", "2", "3", "4"], default="4", show_default=False)
+    choice = Prompt.ask(
+        "  Select", choices=["1", "2", "3", "4"], default="4", show_default=False
+    )
 
     intention_map = {
         "1": "train_gi",

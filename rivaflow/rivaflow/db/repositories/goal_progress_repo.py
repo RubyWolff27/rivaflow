@@ -1,4 +1,5 @@
 """Repository for goal progress tracking."""
+
 from datetime import date
 
 from rivaflow.db.database import convert_query, execute_insert, get_connection
@@ -16,13 +17,15 @@ class GoalProgressRepository:
         with get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(
-                convert_query("""
+                convert_query(
+                    """
                 SELECT id, week_start_date, week_end_date, target_sessions, actual_sessions,
                        target_hours, actual_hours, target_rolls, actual_rolls,
                        completed_at, created_at, updated_at
                 FROM goal_progress
                 WHERE user_id = ? AND week_start_date = ?
-                """),
+                """
+                ),
                 (user_id, week_start_date.isoformat()),
             )
             row = cursor.fetchone()
@@ -37,7 +40,8 @@ class GoalProgressRepository:
         with get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(
-                convert_query("""
+                convert_query(
+                    """
                 SELECT id, week_start_date, week_end_date, target_sessions, actual_sessions,
                        target_hours, actual_hours, target_rolls, actual_rolls,
                        completed_at, created_at, updated_at
@@ -45,7 +49,8 @@ class GoalProgressRepository:
                 WHERE user_id = ?
                 ORDER BY week_start_date DESC
                 LIMIT ?
-                """),
+                """
+                ),
                 (user_id, limit),
             )
             return [self._row_to_dict(row) for row in cursor.fetchall()]
@@ -101,11 +106,13 @@ class GoalProgressRepository:
 
             # Check if all goals are met
             cursor.execute(
-                convert_query("""
+                convert_query(
+                    """
                 SELECT target_sessions, target_hours, target_rolls, completed_at
                 FROM goal_progress
                 WHERE user_id = ? AND week_start_date = ?
-                """),
+                """
+                ),
                 (user_id, week_start_date.isoformat()),
             )
             row = cursor.fetchone()
@@ -114,10 +121,10 @@ class GoalProgressRepository:
                 return False
 
             row_dict = dict(row)
-            target_sessions = row_dict['target_sessions']
-            target_hours = row_dict['target_hours']
-            target_rolls = row_dict['target_rolls']
-            previously_completed = row_dict['completed_at'] is not None
+            target_sessions = row_dict["target_sessions"]
+            target_hours = row_dict["target_hours"]
+            target_rolls = row_dict["target_rolls"]
+            previously_completed = row_dict["completed_at"] is not None
 
             all_complete = (
                 actual_sessions >= target_sessions
@@ -129,7 +136,8 @@ class GoalProgressRepository:
             if all_complete and not previously_completed:
                 # Newly completed - set completion timestamp
                 cursor.execute(
-                    convert_query("""
+                    convert_query(
+                        """
                     UPDATE goal_progress
                     SET actual_sessions = ?,
                         actual_hours = ?,
@@ -137,13 +145,21 @@ class GoalProgressRepository:
                         completed_at = CURRENT_TIMESTAMP,
                         updated_at = CURRENT_TIMESTAMP
                     WHERE user_id = ? AND week_start_date = ?
-                    """),
-                    (actual_sessions, actual_hours, actual_rolls, user_id, week_start_date.isoformat()),
+                    """
+                    ),
+                    (
+                        actual_sessions,
+                        actual_hours,
+                        actual_rolls,
+                        user_id,
+                        week_start_date.isoformat(),
+                    ),
                 )
             elif not all_complete:
                 # Not complete - clear completion timestamp
                 cursor.execute(
-                    convert_query("""
+                    convert_query(
+                        """
                     UPDATE goal_progress
                     SET actual_sessions = ?,
                         actual_hours = ?,
@@ -151,21 +167,36 @@ class GoalProgressRepository:
                         completed_at = NULL,
                         updated_at = CURRENT_TIMESTAMP
                     WHERE user_id = ? AND week_start_date = ?
-                    """),
-                    (actual_sessions, actual_hours, actual_rolls, user_id, week_start_date.isoformat()),
+                    """
+                    ),
+                    (
+                        actual_sessions,
+                        actual_hours,
+                        actual_rolls,
+                        user_id,
+                        week_start_date.isoformat(),
+                    ),
                 )
             else:
                 # Already completed, keep existing completed_at
                 cursor.execute(
-                    convert_query("""
+                    convert_query(
+                        """
                     UPDATE goal_progress
                     SET actual_sessions = ?,
                         actual_hours = ?,
                         actual_rolls = ?,
                         updated_at = CURRENT_TIMESTAMP
                     WHERE user_id = ? AND week_start_date = ?
-                    """),
-                    (actual_sessions, actual_hours, actual_rolls, user_id, week_start_date.isoformat()),
+                    """
+                    ),
+                    (
+                        actual_sessions,
+                        actual_hours,
+                        actual_rolls,
+                        user_id,
+                        week_start_date.isoformat(),
+                    ),
                 )
             return True
 
@@ -174,13 +205,15 @@ class GoalProgressRepository:
         with get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(
-                convert_query("""
+                convert_query(
+                    """
                 SELECT week_start_date, completed_at
                 FROM goal_progress
                 WHERE user_id = ?
                 ORDER BY week_start_date DESC
-                """),
-                (user_id,)
+                """
+                ),
+                (user_id,),
             )
             rows = cursor.fetchall()
 

@@ -1,4 +1,5 @@
 """Redis client with connection pooling and graceful fallback."""
+
 import json
 import logging
 import os
@@ -8,6 +9,7 @@ from typing import Any
 try:
     import redis
     from redis.exceptions import ConnectionError, RedisError, TimeoutError
+
     REDIS_AVAILABLE = True
 except ImportError:
     REDIS_AVAILABLE = False
@@ -40,7 +42,9 @@ class RedisClient:
         self._fallback_mode = False
 
         if not REDIS_AVAILABLE:
-            logger.warning("Redis library not available. Running in fallback mode (no caching).")
+            logger.warning(
+                "Redis library not available. Running in fallback mode (no caching)."
+            )
             self._fallback_mode = True
         else:
             self._initialize_client()
@@ -60,7 +64,9 @@ class RedisClient:
             self._client.ping()
             logger.info(f"Redis client connected to {self.redis_url}")
         except (RedisError, ConnectionError, Exception) as e:
-            logger.warning(f"Failed to connect to Redis: {e}. Running in fallback mode (no caching).")
+            logger.warning(
+                f"Failed to connect to Redis: {e}. Running in fallback mode (no caching)."
+            )
             self._client = None
             self._fallback_mode = True
 
@@ -108,7 +114,13 @@ class RedisClient:
             else:
                 self._client.set(key, serialized)
             return True
-        except (RedisError, ConnectionError, TimeoutError, TypeError, json.JSONEncodeError) as e:
+        except (
+            RedisError,
+            ConnectionError,
+            TimeoutError,
+            TypeError,
+            json.JSONEncodeError,
+        ) as e:
             logger.warning(f"Redis SET error for key '{key}': {e}")
             return False
 

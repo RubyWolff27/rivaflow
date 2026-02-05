@@ -1,4 +1,5 @@
 """Readiness check-in commands."""
+
 import json
 from datetime import date, datetime
 
@@ -61,13 +62,19 @@ def readiness(
             try:
                 target_date = datetime.strptime(check_date, "%Y-%m-%d").date()
             except ValueError:
-                prompts.print_error("Invalid date format. Use YYYY-MM-DD (e.g., 2026-02-01)")
-                prompts.console.print("[dim]Example: rivaflow readiness --date 2026-01-31[/dim]")
+                prompts.print_error(
+                    "Invalid date format. Use YYYY-MM-DD (e.g., 2026-02-01)"
+                )
+                prompts.console.print(
+                    "[dim]Example: rivaflow readiness --date 2026-01-31[/dim]"
+                )
                 raise typer.Exit(1)
 
             # Validate date is not in the future
             if target_date > date.today():
-                prompts.print_error(f"Cannot log readiness for future dates (today is {date.today()})")
+                prompts.print_error(
+                    f"Cannot log readiness for future dates (today is {date.today()})"
+                )
                 raise typer.Exit(1)
         else:
             target_date = date.today()
@@ -82,10 +89,18 @@ def readiness(
         # Prompt for readiness metrics
         prompts.console.print(f"[bold]Readiness Check-in: {target_date}[/bold]\n")
 
-        sleep = prompts.prompt_int("How did you sleep? (1-5)", default=3, min_val=1, max_val=5)
-        stress = prompts.prompt_int("Stress level? (1-5)", default=3, min_val=1, max_val=5)
-        soreness = prompts.prompt_int("Soreness level? (1-5)", default=2, min_val=1, max_val=5)
-        energy = prompts.prompt_int("Energy level? (1-5)", default=3, min_val=1, max_val=5)
+        sleep = prompts.prompt_int(
+            "How did you sleep? (1-5)", default=3, min_val=1, max_val=5
+        )
+        stress = prompts.prompt_int(
+            "Stress level? (1-5)", default=3, min_val=1, max_val=5
+        )
+        soreness = prompts.prompt_int(
+            "Soreness level? (1-5)", default=2, min_val=1, max_val=5
+        )
+        energy = prompts.prompt_int(
+            "Energy level? (1-5)", default=3, min_val=1, max_val=5
+        )
 
         hotspot_note = prompts.prompt_text(
             "Any hotspots? (injury/soreness location, optional)"
@@ -133,7 +148,9 @@ def _add_engagement_features_readiness(user_id: int, readiness_id: int):
         return
 
     # Process engagement features with progress indicator
-    with prompts.console.status("[cyan]Calculating streaks and milestones...", spinner="dots"):
+    with prompts.console.status(
+        "[cyan]Calculating streaks and milestones...", spinner="dots"
+    ):
         # 1. Create/update check-in record
         insight = insight_service.generate_insight(user_id)
         insight_json = json.dumps(insight)
@@ -141,9 +158,13 @@ def _add_engagement_features_readiness(user_id: int, readiness_id: int):
         checkin_repo.upsert_checkin(
             user_id=user_id,
             check_date=today,
-            checkin_type="readiness_only" if not existing_checkin else existing_checkin["checkin_type"],
+            checkin_type=(
+                "readiness_only"
+                if not existing_checkin
+                else existing_checkin["checkin_type"]
+            ),
             readiness_id=readiness_id,
-            insight_shown=insight_json
+            insight_shown=insight_json,
         )
 
         # 2. Update streaks (check-in + readiness)
@@ -158,19 +179,26 @@ def _add_engagement_features_readiness(user_id: int, readiness_id: int):
     checkin_streak = streak_info["checkin_streak"]
     readiness_streak = readiness_streak_info["readiness_streak"]
 
-    prompts.console.print(f"  🔥 [bold yellow]Check-in streak: {checkin_streak['current_streak']} days[/bold yellow]")
-    prompts.console.print(f"  💚 [bold green]Readiness streak: {readiness_streak['current_streak']} days[/bold green]")
+    prompts.console.print(
+        f"  🔥 [bold yellow]Check-in streak: {checkin_streak['current_streak']} days[/bold yellow]"
+    )
+    prompts.console.print(
+        f"  💚 [bold green]Readiness streak: {readiness_streak['current_streak']} days[/bold green]"
+    )
     prompts.console.print()
 
     # Display insight
-    prompts.console.print(f"  [bold]{insight.get('icon', '💡')} {insight.get('title', 'INSIGHT').upper()}:[/bold]")
+    prompts.console.print(
+        f"  [bold]{insight.get('icon', '💡')} {insight.get('title', 'INSIGHT').upper()}:[/bold]"
+    )
     prompts.console.print(f"  [dim]{insight.get('message', '')}[/dim]")
-    if insight.get('action'):
+    if insight.get("action"):
         prompts.console.print(f"  [dim italic]{insight['action']}[/dim italic]")
     prompts.console.print()
 
     # Show today's recommendation based on readiness
     from rivaflow.core.services.suggestion_engine import SuggestionEngine
+
     engine = SuggestionEngine()
     try:
         result = engine.get_suggestion()

@@ -54,7 +54,9 @@ class GlossaryService:
 
         return movements
 
-    def get_movement(self, user_id: int, movement_id: int, include_custom_videos: bool = False) -> dict | None:
+    def get_movement(
+        self, user_id: int, movement_id: int, include_custom_videos: bool = False
+    ) -> dict | None:
         """Get a specific movement by ID, optionally with custom video links."""
         # Skip cache if custom videos requested (user-specific)
         if include_custom_videos:

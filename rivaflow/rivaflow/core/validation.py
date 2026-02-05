@@ -1,4 +1,5 @@
 """Input validation utilities for security."""
+
 from urllib.parse import urlparse
 
 
@@ -17,7 +18,7 @@ def validate_url(url: str, allowed_schemes: list | None = None) -> bool:
         ValueError: If URL is invalid or uses disallowed scheme
     """
     if allowed_schemes is None:
-        allowed_schemes = ['https']  # Only HTTPS by default for security
+        allowed_schemes = ["https"]  # Only HTTPS by default for security
 
     try:
         parsed = urlparse(url)
@@ -31,7 +32,7 @@ def validate_url(url: str, allowed_schemes: list | None = None) -> bool:
             raise ValueError("URL must include a domain")
 
         # Prevent javascript: and data: URLs (XSS vectors)
-        if parsed.scheme in ['javascript', 'data', 'file', 'vbscript']:
+        if parsed.scheme in ["javascript", "data", "file", "vbscript"]:
             raise ValueError("URL scheme not allowed for security reasons")
 
         # Basic length check
@@ -62,13 +63,17 @@ def validate_video_url(url: str) -> bool:
         ValueError: If URL is invalid
     """
     # Allow http and https for video platforms
-    allowed_schemes = ['https', 'http']
+    allowed_schemes = ["https", "http"]
 
     # Common video platforms (can be expanded)
     trusted_domains = [
-        'youtube.com', 'www.youtube.com', 'youtu.be',
-        'vimeo.com', 'www.vimeo.com',
-        'wistia.com', 'fast.wistia.com',
+        "youtube.com",
+        "www.youtube.com",
+        "youtu.be",
+        "vimeo.com",
+        "www.vimeo.com",
+        "wistia.com",
+        "fast.wistia.com",
     ]
 
     if not validate_url(url, allowed_schemes=allowed_schemes):
@@ -81,6 +86,7 @@ def validate_video_url(url: str) -> bool:
     if not any(parsed.netloc.endswith(domain) for domain in trusted_domains):
         # Log warning but allow - users might use custom video hosting
         import logging
+
         logger = logging.getLogger(__name__)
         logger.warning(f"Video URL from non-standard domain: {parsed.netloc}")
 

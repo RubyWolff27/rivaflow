@@ -1,4 +1,5 @@
 """Service layer for gym management with caching."""
+
 from typing import Any
 
 from rivaflow.cache import CacheKeys, get_redis_client
@@ -70,7 +71,11 @@ class GymService:
     def list_all(self, verified_only: bool = False) -> list[dict[str, Any]]:
         """List all gyms."""
         # Try cache
-        cache_key = CacheKeys.GYM_DIRECTORY_VERIFIED if verified_only else CacheKeys.GYM_DIRECTORY_ALL
+        cache_key = (
+            CacheKeys.GYM_DIRECTORY_VERIFIED
+            if verified_only
+            else CacheKeys.GYM_DIRECTORY_ALL
+        )
         cached = self.cache.get(cache_key)
         if cached is not None:
             return cached

@@ -1,4 +1,5 @@
 """Authentication utilities for JWT tokens and password hashing."""
+
 import secrets
 from datetime import datetime, timedelta
 
@@ -15,7 +16,9 @@ pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 SECRET_KEY = settings.SECRET_KEY
 
 # Production security check - ensure dev secret is not used in production
-if settings.IS_PRODUCTION and (SECRET_KEY.startswith("dev-") or SECRET_KEY == "dev" or len(SECRET_KEY) < 32):
+if settings.IS_PRODUCTION and (
+    SECRET_KEY.startswith("dev-") or SECRET_KEY == "dev" or len(SECRET_KEY) < 32
+):
     raise RuntimeError(
         "Production environment detected with insecure SECRET_KEY. "
         "SECRET_KEY must be a secure random string (>= 32 characters). "
@@ -34,10 +37,10 @@ def hash_password(password: str) -> str:
     Truncates password to 72 bytes as bcrypt has a maximum password length.
     """
     # Bcrypt has a 72 byte limit, truncate if necessary
-    password_bytes = password.encode('utf-8')
+    password_bytes = password.encode("utf-8")
     if len(password_bytes) > 72:
         # Truncate to 72 bytes and decode, removing any partial characters
-        truncated = password_bytes[:72].decode('utf-8', errors='ignore')
+        truncated = password_bytes[:72].decode("utf-8", errors="ignore")
         return pwd_context.hash(truncated)
     return pwd_context.hash(password)
 
@@ -49,9 +52,9 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
     Truncates password to 72 bytes to match hashing behavior.
     """
     # Truncate to 72 bytes to match hash_password behavior
-    password_bytes = plain_password.encode('utf-8')
+    password_bytes = plain_password.encode("utf-8")
     if len(password_bytes) > 72:
-        truncated = password_bytes[:72].decode('utf-8', errors='ignore')
+        truncated = password_bytes[:72].decode("utf-8", errors="ignore")
         return pwd_context.verify(truncated, hashed_password)
     return pwd_context.verify(plain_password, hashed_password)
 

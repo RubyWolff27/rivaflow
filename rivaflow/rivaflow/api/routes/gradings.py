@@ -1,4 +1,5 @@
 """Grading/belt progression endpoints."""
+
 import uuid
 from datetime import datetime
 from pathlib import Path
@@ -24,6 +25,7 @@ MAX_FILE_SIZE = 5 * 1024 * 1024  # 5MB
 
 class GradingCreate(BaseModel):
     """Grading creation model."""
+
     grade: str
     date_graded: str
     professor: str | None = None
@@ -34,6 +36,7 @@ class GradingCreate(BaseModel):
 
 class GradingUpdate(BaseModel):
     """Grading update model."""
+
     grade: str | None = None
     date_graded: str | None = None
     professor: str | None = None
@@ -50,7 +53,9 @@ async def list_gradings(current_user: dict = Depends(get_current_user)):
 
 
 @router.post("/")
-async def create_grading(grading: GradingCreate, current_user: dict = Depends(get_current_user)):
+async def create_grading(
+    grading: GradingCreate, current_user: dict = Depends(get_current_user)
+):
     """Create a new grading and update the profile's current_grade."""
     created = service.create_grading(
         user_id=current_user["id"],
@@ -74,7 +79,11 @@ async def get_latest_grading(current_user: dict = Depends(get_current_user)):
 
 
 @router.put("/{grading_id}")
-async def update_grading(grading_id: int, grading: GradingUpdate, current_user: dict = Depends(get_current_user)):
+async def update_grading(
+    grading_id: int,
+    grading: GradingUpdate,
+    current_user: dict = Depends(get_current_user),
+):
     """Update a grading by ID."""
     try:
         updated = service.update_grading(
@@ -95,7 +104,9 @@ async def update_grading(grading_id: int, grading: GradingUpdate, current_user: 
 
 
 @router.delete("/{grading_id}")
-async def delete_grading(grading_id: int, current_user: dict = Depends(get_current_user)):
+async def delete_grading(
+    grading_id: int, current_user: dict = Depends(get_current_user)
+):
     """Delete a grading by ID."""
     deleted = service.delete_grading(user_id=current_user["id"], grading_id=grading_id)
     if not deleted:
@@ -105,8 +116,7 @@ async def delete_grading(grading_id: int, current_user: dict = Depends(get_curre
 
 @router.post("/photo")
 async def upload_grading_photo(
-    file: UploadFile = File(...),
-    current_user: dict = Depends(get_current_user)
+    file: UploadFile = File(...), current_user: dict = Depends(get_current_user)
 ):
     """
     Upload a grading photo (belt certificate, etc.).
@@ -119,7 +129,7 @@ async def upload_grading_photo(
     if file_ext not in ALLOWED_EXTENSIONS:
         raise HTTPException(
             status_code=400,
-            detail=f"Invalid file type. Allowed types: {', '.join(ALLOWED_EXTENSIONS)}"
+            detail=f"Invalid file type. Allowed types: {', '.join(ALLOWED_EXTENSIONS)}",
         )
 
     # Read file content and validate size
@@ -127,7 +137,7 @@ async def upload_grading_photo(
     if len(content) > MAX_FILE_SIZE:
         raise HTTPException(
             status_code=400,
-            detail=f"File too large. Maximum size: {MAX_FILE_SIZE // (1024 * 1024)}MB"
+            detail=f"File too large. Maximum size: {MAX_FILE_SIZE // (1024 * 1024)}MB",
         )
 
     # Generate unique filename: grading_{user_id}_{timestamp}_{uuid}.{ext}
@@ -146,5 +156,5 @@ async def upload_grading_photo(
     return {
         "photo_url": photo_url,
         "filename": filename,
-        "message": "Grading photo uploaded successfully"
+        "message": "Grading photo uploaded successfully",
     }

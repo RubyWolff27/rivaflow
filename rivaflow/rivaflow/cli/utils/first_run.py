@@ -1,4 +1,5 @@
 """First-run experience for new RivaFlow users."""
+
 from pathlib import Path
 
 from rich.console import Console
@@ -33,12 +34,14 @@ def show_welcome_message() -> None:
     console.print(f"[dim]{TAGLINE}[/dim]")
     console.print()
 
-    console.print(Panel(
-        "[bold]Welcome to RivaFlow! 🥋[/bold]\n\n[dim]Your Training OS for the Mat[/dim]",
-        border_style="cyan",
-        padding=(1, 2),
-        title="[bold]First Time Setup[/bold]",
-    ))
+    console.print(
+        Panel(
+            "[bold]Welcome to RivaFlow! 🥋[/bold]\n\n[dim]Your Training OS for the Mat[/dim]",
+            border_style="cyan",
+            padding=(1, 2),
+            title="[bold]First Time Setup[/bold]",
+        )
+    )
 
     console.print()
 
@@ -94,7 +97,9 @@ def show_welcome_message() -> None:
         console.print()
         console.print("[green]Great! Let's get started.[/green]")
         console.print()
-        console.print("[dim]Hint: Try [cyan]rivaflow auth register[/cyan] to create your account[/dim]")
+        console.print(
+            "[dim]Hint: Try [cyan]rivaflow auth register[/cyan] to create your account[/dim]"
+        )
         console.print()
 
     mark_welcomed()

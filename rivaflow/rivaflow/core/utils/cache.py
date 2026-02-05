@@ -1,4 +1,5 @@
 """Simple in-memory cache with TTL support."""
+
 import logging
 import time
 from collections.abc import Callable

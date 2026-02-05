@@ -7,12 +7,12 @@ import subprocess
 import sys
 
 FORBIDDEN_PACKAGES = [
-    'torch',
-    'groq',
-    'together',
-    'tiktoken',
-    'sentence-transformers',
-    'transformers',
+    "torch",
+    "groq",
+    "together",
+    "tiktoken",
+    "sentence-transformers",
+    "transformers",
 ]
 
 print("=" * 80)
@@ -21,9 +21,7 @@ print("=" * 80)
 
 # Check installed packages
 result = subprocess.run(
-    ['pip', 'list', '--format=freeze'],
-    capture_output=True,
-    text=True
+    ["pip", "list", "--format=freeze"], capture_output=True, text=True
 )
 
 installed = result.stdout.lower()

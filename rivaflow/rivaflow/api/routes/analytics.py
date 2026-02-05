@@ -1,4 +1,5 @@
 """Analytics and dashboard endpoints."""
+
 import logging
 import traceback
 from datetime import date
@@ -28,10 +29,7 @@ def _get_performance_overview_cached(
     Cache TTL: 10 minutes
     """
     return service.get_performance_overview(
-        user_id=user_id,
-        start_date=start_date,
-        end_date=end_date,
-        types=types
+        user_id=user_id, start_date=start_date, end_date=end_date, types=types
     )
 
 
@@ -47,10 +45,7 @@ def _get_partner_analytics_cached(
     Cache TTL: 10 minutes
     """
     return service.get_partner_analytics(
-        user_id=user_id,
-        start_date=start_date,
-        end_date=end_date,
-        types=types
+        user_id=user_id, start_date=start_date, end_date=end_date, types=types
     )
 
 
@@ -66,10 +61,7 @@ def _get_technique_analytics_cached(
     Cache TTL: 10 minutes
     """
     return service.get_technique_analytics(
-        user_id=user_id,
-        start_date=start_date,
-        end_date=end_date,
-        types=types
+        user_id=user_id, start_date=start_date, end_date=end_date, types=types
     )
 
 
@@ -77,35 +69,45 @@ def _get_technique_analytics_cached(
 async def get_performance_overview(
     start_date: date | None = Query(None),
     end_date: date | None = Query(None),
-    types: list[str] | None = Query(None, description="Filter by class types (e.g., gi, no-gi, s&c)"),
+    types: list[str] | None = Query(
+        None, description="Filter by class types (e.g., gi, no-gi, s&c)"
+    ),
     current_user: dict = Depends(get_current_user),
 ):
     """Get performance overview dashboard data. Cached for 10 minutes."""
     # Validate date range
     if start_date and end_date:
         if start_date > end_date:
-            raise HTTPException(status_code=400, detail="start_date must be before end_date")
+            raise HTTPException(
+                status_code=400, detail="start_date must be before end_date"
+            )
         if (end_date - start_date).days > 730:  # 2 years max
-            raise HTTPException(status_code=400, detail="Date range cannot exceed 2 years")
+            raise HTTPException(
+                status_code=400, detail="Date range cannot exceed 2 years"
+            )
 
     try:
         return _get_performance_overview_cached(
             user_id=current_user["id"],
             start_date=start_date,
             end_date=end_date,
-            types=types
+            types=types,
         )
     except Exception as e:
         logger.error(f"Error in get_performance_overview: {type(e).__name__}: {str(e)}")
         logger.error(traceback.format_exc())
-        raise HTTPException(status_code=500, detail=f"Analytics error: {type(e).__name__}: {str(e)}")
+        raise HTTPException(
+            status_code=500, detail=f"Analytics error: {type(e).__name__}: {str(e)}"
+        )
 
 
 @router.get("/partners/stats")
 async def get_partner_analytics(
     start_date: date | None = Query(None),
     end_date: date | None = Query(None),
-    types: list[str] | None = Query(None, description="Filter by class types (e.g., gi, no-gi, s&c)"),
+    types: list[str] | None = Query(
+        None, description="Filter by class types (e.g., gi, no-gi, s&c)"
+    ),
     current_user: dict = Depends(get_current_user),
 ):
     """Get partner analytics dashboard data. Cached for 10 minutes."""
@@ -114,12 +116,14 @@ async def get_partner_analytics(
             user_id=current_user["id"],
             start_date=start_date,
             end_date=end_date,
-            types=types
+            types=types,
         )
     except Exception as e:
         logger.error(f"Error in get_partner_analytics: {type(e).__name__}: {str(e)}")
         logger.error(traceback.format_exc())
-        raise HTTPException(status_code=500, detail=f"Analytics error: {type(e).__name__}: {str(e)}")
+        raise HTTPException(
+            status_code=500, detail=f"Analytics error: {type(e).__name__}: {str(e)}"
+        )
 
 
 @router.get("/partners/head-to-head")
@@ -130,7 +134,9 @@ async def get_head_to_head(
 ):
     """Get head-to-head comparison between two partners."""
     try:
-        result = service.get_head_to_head(user_id=current_user["id"], partner1_id=partner1_id, partner2_id=partner2_id)
+        result = service.get_head_to_head(
+            user_id=current_user["id"], partner1_id=partner1_id, partner2_id=partner2_id
+        )
         if not result:
             raise NotFoundError("One or both partners not found")
         return result
@@ -142,29 +148,45 @@ async def get_head_to_head(
 async def get_readiness_trends(
     start_date: date | None = Query(None),
     end_date: date | None = Query(None),
-    types: list[str] | None = Query(None, description="Filter by class types (e.g., gi, no-gi, s&c)"),
+    types: list[str] | None = Query(
+        None, description="Filter by class types (e.g., gi, no-gi, s&c)"
+    ),
     current_user: dict = Depends(get_current_user),
 ):
     """Get readiness and recovery analytics."""
-    return service.get_readiness_trends(user_id=current_user["id"], start_date=start_date, end_date=end_date, types=types)
+    return service.get_readiness_trends(
+        user_id=current_user["id"],
+        start_date=start_date,
+        end_date=end_date,
+        types=types,
+    )
 
 
 @router.get("/whoop/analytics")
 async def get_whoop_analytics(
     start_date: date | None = Query(None),
     end_date: date | None = Query(None),
-    types: list[str] | None = Query(None, description="Filter by class types (e.g., gi, no-gi, s&c)"),
+    types: list[str] | None = Query(
+        None, description="Filter by class types (e.g., gi, no-gi, s&c)"
+    ),
     current_user: dict = Depends(get_current_user),
 ):
     """Get Whoop fitness tracker analytics."""
-    return service.get_whoop_analytics(user_id=current_user["id"], start_date=start_date, end_date=end_date, types=types)
+    return service.get_whoop_analytics(
+        user_id=current_user["id"],
+        start_date=start_date,
+        end_date=end_date,
+        types=types,
+    )
 
 
 @router.get("/techniques/breakdown")
 async def get_technique_analytics(
     start_date: date | None = Query(None),
     end_date: date | None = Query(None),
-    types: list[str] | None = Query(None, description="Filter by class types (e.g., gi, no-gi, s&c)"),
+    types: list[str] | None = Query(
+        None, description="Filter by class types (e.g., gi, no-gi, s&c)"
+    ),
     current_user: dict = Depends(get_current_user),
 ):
     """Get technique mastery analytics. Cached for 10 minutes."""
@@ -173,28 +195,41 @@ async def get_technique_analytics(
             user_id=current_user["id"],
             start_date=start_date,
             end_date=end_date,
-            types=types
+            types=types,
         )
     except Exception as e:
         logger.error(f"Error in get_technique_analytics: {type(e).__name__}: {str(e)}")
         logger.error(traceback.format_exc())
-        raise HTTPException(status_code=500, detail=f"Analytics error: {type(e).__name__}: {str(e)}")
+        raise HTTPException(
+            status_code=500, detail=f"Analytics error: {type(e).__name__}: {str(e)}"
+        )
 
 
 @router.get("/consistency/metrics")
 async def get_consistency_analytics(
     start_date: date | None = Query(None),
     end_date: date | None = Query(None),
-    types: list[str] | None = Query(None, description="Filter by class types (e.g., gi, no-gi, s&c)"),
+    types: list[str] | None = Query(
+        None, description="Filter by class types (e.g., gi, no-gi, s&c)"
+    ),
     current_user: dict = Depends(get_current_user),
 ):
     """Get training consistency analytics."""
     try:
-        return service.get_consistency_analytics(user_id=current_user["id"], start_date=start_date, end_date=end_date, types=types)
+        return service.get_consistency_analytics(
+            user_id=current_user["id"],
+            start_date=start_date,
+            end_date=end_date,
+            types=types,
+        )
     except Exception as e:
-        logger.error(f"Error in get_consistency_analytics: {type(e).__name__}: {str(e)}")
+        logger.error(
+            f"Error in get_consistency_analytics: {type(e).__name__}: {str(e)}"
+        )
         logger.error(traceback.format_exc())
-        raise HTTPException(status_code=500, detail=f"Analytics error: {type(e).__name__}: {str(e)}")
+        raise HTTPException(
+            status_code=500, detail=f"Analytics error: {type(e).__name__}: {str(e)}"
+        )
 
 
 @router.get("/milestones")
@@ -205,20 +240,31 @@ async def get_milestones(current_user: dict = Depends(get_current_user)):
     except Exception as e:
         logger.error(f"Error in get_milestones: {type(e).__name__}: {str(e)}")
         logger.error(traceback.format_exc())
-        raise HTTPException(status_code=500, detail=f"Analytics error: {type(e).__name__}: {str(e)}")
+        raise HTTPException(
+            status_code=500, detail=f"Analytics error: {type(e).__name__}: {str(e)}"
+        )
 
 
 @router.get("/instructors/insights")
 async def get_instructor_analytics(
     start_date: date | None = Query(None),
     end_date: date | None = Query(None),
-    types: list[str] | None = Query(None, description="Filter by class types (e.g., gi, no-gi, s&c)"),
+    types: list[str] | None = Query(
+        None, description="Filter by class types (e.g., gi, no-gi, s&c)"
+    ),
     current_user: dict = Depends(get_current_user),
 ):
     """Get instructor insights analytics."""
     try:
-        return service.get_instructor_analytics(user_id=current_user["id"], start_date=start_date, end_date=end_date, types=types)
+        return service.get_instructor_analytics(
+            user_id=current_user["id"],
+            start_date=start_date,
+            end_date=end_date,
+            types=types,
+        )
     except Exception as e:
         logger.error(f"Error in get_instructor_analytics: {type(e).__name__}: {str(e)}")
         logger.error(traceback.format_exc())
-        raise HTTPException(status_code=500, detail=f"Analytics error: {type(e).__name__}: {str(e)}")
+        raise HTTPException(
+            status_code=500, detail=f"Analytics error: {type(e).__name__}: {str(e)}"
+        )

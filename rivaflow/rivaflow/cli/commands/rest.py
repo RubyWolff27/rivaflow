@@ -1,4 +1,5 @@
 """Rest day logging command."""
+
 import random
 from datetime import date
 
@@ -38,8 +39,10 @@ def show_milestone_celebration(milestone: dict, user_id: int):
     # Get next milestone
     milestone_service = MilestoneService()
     totals = milestone_service.get_current_totals(user_id)
-    current = totals.get(milestone['milestone_type'], 0)
-    next_ms = milestone_service.milestone_repo.get_next_milestone(user_id, milestone['milestone_type'], current)
+    current = totals.get(milestone["milestone_type"], 0)
+    next_ms = milestone_service.milestone_repo.get_next_milestone(
+        user_id, milestone["milestone_type"], current
+    )
 
     if next_ms:
         celebration += f"\n  Next milestone: {next_ms['milestone_label']} ({next_ms['remaining']} to go)"
@@ -57,9 +60,13 @@ def show_milestone_celebration(milestone: dict, user_id: int):
 @app.callback(invoke_without_command=True)
 def rest(
     ctx: typer.Context,
-    rest_type: str = typer.Option("recovery", "--type", "-t", help="Type: recovery, life, injury, travel"),
+    rest_type: str = typer.Option(
+        "recovery", "--type", "-t", help="Type: recovery, life, injury, travel"
+    ),
     note: str | None = typer.Option(None, "--note", "-n", help="Optional note"),
-    tomorrow: str | None = typer.Option(None, "--tomorrow", help="Tomorrow's intention")
+    tomorrow: str | None = typer.Option(
+        None, "--tomorrow", help="Tomorrow's intention"
+    ),
 ):
     """
     Log a rest/recovery day to maintain your check-in streak.
@@ -96,10 +103,7 @@ def rest(
     user_id = get_current_user_id()
     rest_service = RestService()
     result = rest_service.log_rest_day(
-        user_id=user_id,
-        rest_type=rest_type,
-        note=note,
-        tomorrow_intention=tomorrow
+        user_id=user_id, rest_type=rest_type, note=note, tomorrow_intention=tomorrow
     )
 
     # Header
@@ -115,7 +119,7 @@ def rest(
     rest_type_label = REST_TYPES.get(rest_type, rest_type)
     console.print(f"  [bold]Type:[/bold] {rest_type_label}")
     if note:
-        console.print(f"  [bold]Note:[/bold] \"{note}\"")
+        console.print(f'  [bold]Note:[/bold] "{note}"')
     console.print()
 
     # Streak info
@@ -140,9 +144,11 @@ def rest(
 
     # Insight
     insight = result["insight"]
-    console.print(f"  [bold]{insight.get('icon', '💡')} {insight.get('title', 'INSIGHT').upper()}:[/bold]")
+    console.print(
+        f"  [bold]{insight.get('icon', '💡')} {insight.get('title', 'INSIGHT').upper()}:[/bold]"
+    )
     console.print(f"  [dim]{insight.get('message', '')}[/dim]")
-    if insight.get('action'):
+    if insight.get("action"):
         console.print(f"  [dim italic]{insight['action']}[/dim italic]")
     console.print()
 
@@ -171,7 +177,9 @@ def rest(
         console.print("    [cyan]8[/cyan] 🤷 Not sure yet")
         console.print()
 
-        choice = Prompt.ask("  Select", choices=["1", "2", "3", "4", "5", "6", "7", "8"], default="8")
+        choice = Prompt.ask(
+            "  Select", choices=["1", "2", "3", "4", "5", "6", "7", "8"], default="8"
+        )
 
         intention_map = {
             "1": "train_gi",
@@ -188,6 +196,7 @@ def rest(
 
         # Update check-in with tomorrow's intention
         from rivaflow.db.repositories.checkin_repo import CheckinRepository
+
         checkin_repo = CheckinRepository()
         checkin_repo.update_tomorrow_intention(user_id, date.today(), intention)
 

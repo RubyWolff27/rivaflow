@@ -1,4 +1,5 @@
 """Feed service for activity feeds (my activities and friends activities)."""
+
 from datetime import date, timedelta
 from typing import Any
 
@@ -51,7 +52,9 @@ class FeedService:
 
         # Get all activity
         sessions = session_repo.get_by_date_range(user_id, start_date, end_date)
-        readiness_entries = readiness_repo.get_by_date_range(user_id, start_date, end_date)
+        readiness_entries = readiness_repo.get_by_date_range(
+            user_id, start_date, end_date
+        )
         checkins = checkin_repo.get_checkins_range(user_id, start_date, end_date)
 
         # Build unified feed
@@ -92,7 +95,9 @@ class FeedService:
                 composite = readiness.get("composite_score", 0)
 
                 # Get photos for this readiness entry
-                photos = photo_repo.get_by_activity(user_id, "readiness", readiness["id"])
+                photos = photo_repo.get_by_activity(
+                    user_id, "readiness", readiness["id"]
+                )
                 thumbnail = photos[0]["file_path"] if photos else None
 
                 feed_items.append(
@@ -203,7 +208,9 @@ class FeedService:
         return paginate_with_cursor(feed_items, limit, offset, cursor)
 
     @staticmethod
-    def _enrich_with_social_data(user_id: int, feed_items: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    def _enrich_with_social_data(
+        user_id: int, feed_items: list[dict[str, Any]]
+    ) -> list[dict[str, Any]]:
         """
         Enrich feed items with social data (like count, comment count, has_liked).
         Also enriches with cached user profiles for feed owners.
@@ -268,7 +275,8 @@ class FeedService:
             cursor = conn.cursor()
 
             # Batch load sessions from all followed users
-            query = convert_query(f"""
+            query = convert_query(
+                f"""
                 SELECT
                     id, user_id, session_date, class_type, gym_name, location,
                     duration_mins, intensity, rolls, submissions_for, submissions_against,
@@ -278,7 +286,8 @@ class FeedService:
                     AND session_date BETWEEN ? AND ?
                     AND visibility_level != 'private'
                 ORDER BY session_date DESC
-            """)
+            """
+            )
             cursor.execute(query, user_ids + [start_date, end_date])
 
             for row in cursor.fetchall():
@@ -305,7 +314,9 @@ class FeedService:
                 if redacted_session.get("rolls") is not None:
                     summary_parts.append(f"{redacted_session['rolls']} rolls")
 
-                summary = " • ".join(summary_parts) if summary_parts else "Training session"
+                summary = (
+                    " • ".join(summary_parts) if summary_parts else "Training session"
+                )
 
                 feed_items.append(
                     {
@@ -319,7 +330,8 @@ class FeedService:
                 )
 
             # Batch load readiness entries
-            query = convert_query(f"""
+            query = convert_query(
+                f"""
                 SELECT
                     id, user_id, check_date, sleep, stress, soreness, energy,
                     composite_score, hotspot_note, weight_kg
@@ -327,7 +339,8 @@ class FeedService:
                 WHERE user_id IN ({placeholders})
                     AND check_date BETWEEN ? AND ?
                 ORDER BY check_date DESC
-            """)
+            """
+            )
             cursor.execute(query, user_ids + [start_date, end_date])
 
             for row in cursor.fetchall():
@@ -349,7 +362,8 @@ class FeedService:
                 )
 
             # Batch load rest day check-ins
-            query = convert_query(f"""
+            query = convert_query(
+                f"""
                 SELECT
                     id, user_id, check_date, checkin_type, rest_type, rest_note
                 FROM daily_checkins
@@ -357,7 +371,8 @@ class FeedService:
                     AND check_date BETWEEN ? AND ?
                     AND checkin_type = 'rest'
                 ORDER BY check_date DESC
-            """)
+            """
+            )
             cursor.execute(query, user_ids + [start_date, end_date])
 
             for row in cursor.fetchall():
@@ -418,12 +433,14 @@ class FeedService:
                     continue
 
                 placeholders = ",".join("?" * len(activity_ids))
-                query = convert_query(f"""
+                query = convert_query(
+                    f"""
                     SELECT activity_id, COUNT(*) as count
                     FROM activity_likes
                     WHERE activity_type = ? AND activity_id IN ({placeholders})
                     GROUP BY activity_id
-                """)
+                """
+                )
                 cursor.execute(query, [activity_type] + activity_ids)
                 for row in cursor.fetchall():
                     like_counts[(activity_type, row["activity_id"])] = row["count"]
@@ -462,12 +479,14 @@ class FeedService:
                     continue
 
                 placeholders = ",".join("?" * len(activity_ids))
-                query = convert_query(f"""
+                query = convert_query(
+                    f"""
                     SELECT activity_id, COUNT(*) as count
                     FROM activity_comments
                     WHERE activity_type = ? AND activity_id IN ({placeholders})
                     GROUP BY activity_id
-                """)
+                """
+                )
                 cursor.execute(query, [activity_type] + activity_ids)
                 for row in cursor.fetchall():
                     comment_counts[(activity_type, row["activity_id"])] = row["count"]
@@ -507,11 +526,13 @@ class FeedService:
                     continue
 
                 placeholders = ",".join("?" * len(activity_ids))
-                query = convert_query(f"""
+                query = convert_query(
+                    f"""
                     SELECT activity_type, activity_id
                     FROM activity_likes
                     WHERE user_id = ? AND activity_type = ? AND activity_id IN ({placeholders})
-                """)
+                """
+                )
                 cursor.execute(query, [user_id, activity_type] + activity_ids)
                 for row in cursor.fetchall():
                     user_likes.add((row["activity_type"], row["activity_id"]))
@@ -547,7 +568,9 @@ class FeedService:
 
         # Get all activity
         sessions = session_repo.get_by_date_range(user_id, start_date, end_date)
-        readiness_entries = readiness_repo.get_by_date_range(user_id, start_date, end_date)
+        readiness_entries = readiness_repo.get_by_date_range(
+            user_id, start_date, end_date
+        )
         checkins = checkin_repo.get_checkins_range(user_id, start_date, end_date)
 
         # Build unified feed
@@ -564,7 +587,9 @@ class FeedService:
                 session_date = session_date.isoformat()
 
             # Apply privacy redaction based on visibility
-            session_data = PrivacyService.redact_session_for_visibility(session, visibility)
+            session_data = PrivacyService.redact_session_for_visibility(
+                session, visibility
+            )
 
             feed_items.append(
                 {
@@ -625,7 +650,9 @@ class FeedService:
 
         # Enrich with social data if requesting user provided
         if requesting_user_id:
-            feed_items = FeedService._enrich_with_social_data(requesting_user_id, feed_items)
+            feed_items = FeedService._enrich_with_social_data(
+                requesting_user_id, feed_items
+            )
 
         # Apply pagination
         total_items = len(feed_items)
@@ -640,7 +667,9 @@ class FeedService:
         }
 
     @staticmethod
-    def _batch_get_user_profiles(feed_items: list[dict[str, Any]]) -> dict[int, dict[str, Any]]:
+    def _batch_get_user_profiles(
+        feed_items: list[dict[str, Any]],
+    ) -> dict[int, dict[str, Any]]:
         """
         Batch load user profiles for feed item owners with Redis caching.
 
@@ -687,11 +716,13 @@ class FeedService:
             with get_connection() as conn:
                 cursor = conn.cursor()
                 placeholders = ",".join("?" * len(uncached_user_ids))
-                query = convert_query(f"""
+                query = convert_query(
+                    f"""
                     SELECT id, first_name, last_name, email
                     FROM users
                     WHERE id IN ({placeholders})
-                """)
+                """
+                )
                 cursor.execute(query, uncached_user_ids)
 
                 for row in cursor.fetchall():
@@ -699,7 +730,11 @@ class FeedService:
                     user_id = user["id"]
 
                     # Cache full user profile
-                    cache.set(CacheKeys.user_basic(user_id), user, ttl=CacheKeys.TTL_15_MINUTES)
+                    cache.set(
+                        CacheKeys.user_basic(user_id),
+                        user,
+                        ttl=CacheKeys.TTL_15_MINUTES,
+                    )
 
                     # Add to profiles (minimal info for feed)
                     profiles[user_id] = {

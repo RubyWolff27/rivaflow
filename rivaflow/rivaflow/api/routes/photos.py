@@ -1,4 +1,5 @@
 """Photo routes."""
+
 import os
 import uuid
 from datetime import datetime
@@ -93,11 +94,13 @@ async def upload_photo(
         raise HTTPException(status_code=400, detail="Invalid activity type")
 
     # Check photo count limit
-    photo_count = photo_repo.count_by_activity(current_user["id"], activity_type, activity_id)
+    photo_count = photo_repo.count_by_activity(
+        current_user["id"], activity_type, activity_id
+    )
     if photo_count >= MAX_PHOTOS_PER_ACTIVITY:
         raise HTTPException(
             status_code=400,
-            detail=f"Maximum {MAX_PHOTOS_PER_ACTIVITY} photos per activity"
+            detail=f"Maximum {MAX_PHOTOS_PER_ACTIVITY} photos per activity",
         )
 
     # Validate file extension
@@ -105,7 +108,7 @@ async def upload_photo(
     if file_ext not in ALLOWED_EXTENSIONS:
         raise HTTPException(
             status_code=400,
-            detail=f"Invalid file type. Allowed types: {', '.join(ALLOWED_EXTENSIONS)}"
+            detail=f"Invalid file type. Allowed types: {', '.join(ALLOWED_EXTENSIONS)}",
         )
 
     # Read file content and validate size
@@ -113,7 +116,7 @@ async def upload_photo(
     if len(content) > MAX_FILE_SIZE:
         raise HTTPException(
             status_code=400,
-            detail=f"File too large. Maximum size: {MAX_FILE_SIZE // (1024 * 1024)}MB"
+            detail=f"File too large. Maximum size: {MAX_FILE_SIZE // (1024 * 1024)}MB",
         )
 
     # Validate actual file content (magic bytes check)
@@ -125,7 +128,7 @@ async def upload_photo(
     if file.content_type and file.content_type not in ALLOWED_MIME_TYPES:
         raise HTTPException(
             status_code=400,
-            detail=f"Invalid MIME type: {file.content_type}. Allowed: {', '.join(ALLOWED_MIME_TYPES)}"
+            detail=f"Invalid MIME type: {file.content_type}. Allowed: {', '.join(ALLOWED_MIME_TYPES)}",
         )
 
     # Generate unique filename: {activity_type}_{user_id}_{timestamp}_{uuid}.{ext}
@@ -163,7 +166,7 @@ async def upload_photo(
         "file_path": photo_url,
         "filename": filename,
         "caption": caption,
-        "message": "Photo uploaded successfully"
+        "message": "Photo uploaded successfully",
     }
 
 

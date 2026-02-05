@@ -1,4 +1,5 @@
 """Service layer for weekly goals and streak tracking."""
+
 from datetime import date
 
 from rivaflow.core.services.analytics_service import AnalyticsService
@@ -45,6 +46,7 @@ class GoalsService:
             }
         """
         import logging
+
         logger = logging.getLogger(__name__)
 
         # Get current week date range (Monday-Sunday)
@@ -66,18 +68,32 @@ class GoalsService:
         sessions = self.session_repo.get_by_date_range(user_id, week_start, week_end)
         logger.info(f"[DEBUG] Retrieved {len(sessions)} sessions for week")
         for s in sessions:
-            logger.info(f"[DEBUG] Session: date={s.get('session_date')}, type={s.get('class_type')}, duration={s.get('duration_mins')}")
+            logger.info(
+                f"[DEBUG] Session: date={s.get('session_date')}, type={s.get('class_type')}, duration={s.get('duration_mins')}"
+            )
 
         actual_sessions = len(sessions)
         actual_hours = round(sum(s["duration_mins"] for s in sessions) / 60, 1)
         actual_rolls = sum(s["rolls"] for s in sessions)
 
         # Calculate activity type breakdown
-        bjj_sessions = sum(1 for s in sessions if s.get("class_type") in ["gi", "no-gi", "open-mat", "competition"])
-        sc_sessions = sum(1 for s in sessions if s.get("class_type") in ["s&c", "cardio"])  # Include cardio as S&C
-        mobility_sessions = sum(1 for s in sessions if s.get("class_type") in ["mobility", "recovery", "physio"])  # Include physio
+        bjj_sessions = sum(
+            1
+            for s in sessions
+            if s.get("class_type") in ["gi", "no-gi", "open-mat", "competition"]
+        )
+        sc_sessions = sum(
+            1 for s in sessions if s.get("class_type") in ["s&c", "cardio"]
+        )  # Include cardio as S&C
+        mobility_sessions = sum(
+            1
+            for s in sessions
+            if s.get("class_type") in ["mobility", "recovery", "physio"]
+        )  # Include physio
 
-        logger.info(f"[DEBUG] Activity breakdown: BJJ={bjj_sessions}, S&C={sc_sessions}, Mobility={mobility_sessions}")
+        logger.info(
+            f"[DEBUG] Activity breakdown: BJJ={bjj_sessions}, S&C={sc_sessions}, Mobility={mobility_sessions}"
+        )
 
         actual = {
             "sessions": actual_sessions,
@@ -90,15 +106,41 @@ class GoalsService:
 
         # Calculate progress percentages
         progress = {
-            "sessions_pct": round((actual_sessions / targets["sessions"] * 100), 1) if targets["sessions"] > 0 else 0,
-            "hours_pct": round((actual_hours / targets["hours"] * 100), 1) if targets["hours"] > 0 else 0,
-            "rolls_pct": round((actual_rolls / targets["rolls"] * 100), 1) if targets["rolls"] > 0 else 0,
-            "bjj_sessions_pct": round((bjj_sessions / targets["bjj_sessions"] * 100), 1) if targets["bjj_sessions"] > 0 else 0,
-            "sc_sessions_pct": round((sc_sessions / targets["sc_sessions"] * 100), 1) if targets["sc_sessions"] > 0 else 0,
-            "mobility_sessions_pct": round((mobility_sessions / targets["mobility_sessions"] * 100), 1) if targets["mobility_sessions"] > 0 else 0,
+            "sessions_pct": (
+                round((actual_sessions / targets["sessions"] * 100), 1)
+                if targets["sessions"] > 0
+                else 0
+            ),
+            "hours_pct": (
+                round((actual_hours / targets["hours"] * 100), 1)
+                if targets["hours"] > 0
+                else 0
+            ),
+            "rolls_pct": (
+                round((actual_rolls / targets["rolls"] * 100), 1)
+                if targets["rolls"] > 0
+                else 0
+            ),
+            "bjj_sessions_pct": (
+                round((bjj_sessions / targets["bjj_sessions"] * 100), 1)
+                if targets["bjj_sessions"] > 0
+                else 0
+            ),
+            "sc_sessions_pct": (
+                round((sc_sessions / targets["sc_sessions"] * 100), 1)
+                if targets["sc_sessions"] > 0
+                else 0
+            ),
+            "mobility_sessions_pct": (
+                round((mobility_sessions / targets["mobility_sessions"] * 100), 1)
+                if targets["mobility_sessions"] > 0
+                else 0
+            ),
         }
         progress["overall_pct"] = round(
-            (progress["sessions_pct"] + progress["hours_pct"] + progress["rolls_pct"]) / 3, 1
+            (progress["sessions_pct"] + progress["hours_pct"] + progress["rolls_pct"])
+            / 3,
+            1,
         )
 
         # Calculate days remaining in week
@@ -169,35 +211,51 @@ class GoalsService:
 
     def get_recent_weeks_trend(self, user_id: int, weeks: int = 12) -> list[dict]:
         """Get goal completion trend for recent weeks."""
-        progress_records = self.goal_progress_repo.get_recent_weeks(user_id, limit=weeks)
+        progress_records = self.goal_progress_repo.get_recent_weeks(
+            user_id, limit=weeks
+        )
 
         trend = []
         for record in progress_records:
             completion_pct = self._calculate_completion_pct(record)
-            trend.append({
-                "week_start": record["week_start_date"],
-                "week_end": record["week_end_date"],
-                "completion_pct": completion_pct,
-                "completed": record["completed_at"] is not None,
-                "targets": {
-                    "sessions": record["target_sessions"],
-                    "hours": record["target_hours"],
-                    "rolls": record["target_rolls"],
-                },
-                "actual": {
-                    "sessions": record["actual_sessions"],
-                    "hours": record["actual_hours"],
-                    "rolls": record["actual_rolls"],
-                },
-            })
+            trend.append(
+                {
+                    "week_start": record["week_start_date"],
+                    "week_end": record["week_end_date"],
+                    "completion_pct": completion_pct,
+                    "completed": record["completed_at"] is not None,
+                    "targets": {
+                        "sessions": record["target_sessions"],
+                        "hours": record["target_hours"],
+                        "rolls": record["target_rolls"],
+                    },
+                    "actual": {
+                        "sessions": record["actual_sessions"],
+                        "hours": record["actual_hours"],
+                        "rolls": record["actual_rolls"],
+                    },
+                }
+            )
 
         return trend
 
     def _calculate_completion_pct(self, record: dict) -> float:
         """Calculate overall completion percentage for a goal record."""
-        sessions_pct = (record["actual_sessions"] / record["target_sessions"] * 100) if record["target_sessions"] > 0 else 0
-        hours_pct = (record["actual_hours"] / record["target_hours"] * 100) if record["target_hours"] > 0 else 0
-        rolls_pct = (record["actual_rolls"] / record["target_rolls"] * 100) if record["target_rolls"] > 0 else 0
+        sessions_pct = (
+            (record["actual_sessions"] / record["target_sessions"] * 100)
+            if record["target_sessions"] > 0
+            else 0
+        )
+        hours_pct = (
+            (record["actual_hours"] / record["target_hours"] * 100)
+            if record["target_hours"] > 0
+            else 0
+        )
+        rolls_pct = (
+            (record["actual_rolls"] / record["target_rolls"] * 100)
+            if record["target_rolls"] > 0
+            else 0
+        )
 
         return round((sessions_pct + hours_pct + rolls_pct) / 3, 1)
 
@@ -255,13 +313,16 @@ class GoalsService:
 
         # Update profile
         from rivaflow.db.database import convert_query, get_connection
+
         with get_connection() as conn:
             cursor = conn.cursor()
             set_clause = ", ".join([f"{k} = ?" for k in updates.keys()])
             values = list(updates.values()) + [user_id]
 
             cursor.execute(
-                convert_query(f"UPDATE profile SET {set_clause}, updated_at = CURRENT_TIMESTAMP WHERE user_id = ?"),
+                convert_query(
+                    f"UPDATE profile SET {set_clause}, updated_at = CURRENT_TIMESTAMP WHERE user_id = ?"
+                ),
                 values,
             )
 

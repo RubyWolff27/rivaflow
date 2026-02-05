@@ -1,4 +1,5 @@
 """Tests for 'rivaflow log' CLI command."""
+
 from typer.testing import CliRunner
 from datetime import date
 
@@ -17,7 +18,7 @@ class TestLogCommand:
         # Mock user context to return test_user
         monkeypatch.setattr(
             "rivaflow.cli.utils.user_context.get_current_user_id",
-            lambda: test_user["id"]
+            lambda: test_user["id"],
         )
 
         # Mock prompts to provide input
@@ -45,17 +46,25 @@ class TestLogCommand:
         """Test logging session with command-line flags."""
         monkeypatch.setattr(
             "rivaflow.cli.utils.user_context.get_current_user_id",
-            lambda: test_user["id"]
+            lambda: test_user["id"],
         )
 
-        result = runner.invoke(app, [
-            "log",
-            "--gym", "Test Gym",
-            "--duration", "90",
-            "--intensity", "5",
-            "--class-type", "no-gi",
-            "--rolls", "8",
-        ])
+        result = runner.invoke(
+            app,
+            [
+                "log",
+                "--gym",
+                "Test Gym",
+                "--duration",
+                "90",
+                "--intensity",
+                "5",
+                "--class-type",
+                "no-gi",
+                "--rolls",
+                "8",
+            ],
+        )
 
         # Note: May need interactive prompts still
         # Just verify it doesn't crash
@@ -65,52 +74,76 @@ class TestLogCommand:
         """Test error handling for invalid date format."""
         monkeypatch.setattr(
             "rivaflow.cli.utils.user_context.get_current_user_id",
-            lambda: test_user["id"]
+            lambda: test_user["id"],
         )
 
-        result = runner.invoke(app, [
-            "log",
-            "--date", "invalid-date",
-        ])
+        result = runner.invoke(
+            app,
+            [
+                "log",
+                "--date",
+                "invalid-date",
+            ],
+        )
 
         # Should show error about date format
-        assert result.exit_code != 0 or "invalid" in result.output.lower() or "date" in result.output.lower()
+        assert (
+            result.exit_code != 0
+            or "invalid" in result.output.lower()
+            or "date" in result.output.lower()
+        )
 
     def test_log_negative_duration(self, temp_db, test_user, monkeypatch):
         """Test validation for negative duration."""
         monkeypatch.setattr(
             "rivaflow.cli.utils.user_context.get_current_user_id",
-            lambda: test_user["id"]
+            lambda: test_user["id"],
         )
 
-        result = runner.invoke(app, [
-            "log",
-            "--duration", "-10",
-        ])
+        result = runner.invoke(
+            app,
+            [
+                "log",
+                "--duration",
+                "-10",
+            ],
+        )
 
         # Should show error about invalid duration
-        assert result.exit_code != 0 or "duration" in result.output.lower() or "invalid" in result.output.lower()
+        assert (
+            result.exit_code != 0
+            or "duration" in result.output.lower()
+            or "invalid" in result.output.lower()
+        )
 
     def test_log_intensity_out_of_range(self, temp_db, test_user, monkeypatch):
         """Test validation for intensity out of range (1-5)."""
         monkeypatch.setattr(
             "rivaflow.cli.utils.user_context.get_current_user_id",
-            lambda: test_user["id"]
+            lambda: test_user["id"],
         )
 
-        result = runner.invoke(app, [
-            "log",
-            "--intensity", "10",
-        ])
+        result = runner.invoke(
+            app,
+            [
+                "log",
+                "--intensity",
+                "10",
+            ],
+        )
 
         # Should show error about intensity range
-        assert result.exit_code != 0 or "intensity" in result.output.lower() or "1" in result.output
+        assert (
+            result.exit_code != 0
+            or "intensity" in result.output.lower()
+            or "1" in result.output
+        )
 
     def test_log_creates_database_record(self, temp_db, test_user, monkeypatch):
         """Test that log command creates a session record in database."""
         monkeypatch.setattr(
             "rivaflow.cli.utils.user_context.get_current_user_id",
-            lambda: test_user["id"]
+            lambda: test_user["id"],
         )
 
         # Get initial count
@@ -136,7 +169,7 @@ class TestRestCommand:
         """Test logging a rest day."""
         monkeypatch.setattr(
             "rivaflow.cli.utils.user_context.get_current_user_id",
-            lambda: test_user["id"]
+            lambda: test_user["id"],
         )
 
         # Mock inputs
@@ -151,14 +184,19 @@ class TestRestCommand:
         """Test rest day with command-line flags."""
         monkeypatch.setattr(
             "rivaflow.cli.utils.user_context.get_current_user_id",
-            lambda: test_user["id"]
+            lambda: test_user["id"],
         )
 
-        result = runner.invoke(app, [
-            "rest",
-            "--type", "injury",
-            "--note", "Shoulder rehab",
-        ])
+        result = runner.invoke(
+            app,
+            [
+                "rest",
+                "--type",
+                "injury",
+                "--note",
+                "Shoulder rehab",
+            ],
+        )
 
         assert result.exit_code == 0 or "rest" in result.output.lower()
 
@@ -170,7 +208,7 @@ class TestReadinessCommand:
         """Test logging a readiness check-in."""
         monkeypatch.setattr(
             "rivaflow.cli.utils.user_context.get_current_user_id",
-            lambda: test_user["id"]
+            lambda: test_user["id"],
         )
 
         # Mock inputs for sleep, stress, soreness, energy
@@ -185,13 +223,17 @@ class TestReadinessCommand:
         """Test validation for readiness values (should be 1-5)."""
         monkeypatch.setattr(
             "rivaflow.cli.utils.user_context.get_current_user_id",
-            lambda: test_user["id"]
+            lambda: test_user["id"],
         )
 
-        result = runner.invoke(app, [
-            "readiness",
-            "--sleep", "10",  # Out of range
-        ])
+        result = runner.invoke(
+            app,
+            [
+                "readiness",
+                "--sleep",
+                "10",  # Out of range
+            ],
+        )
 
         # Should show error or reprompt
         assert result.exit_code != 0 or "sleep" in result.output.lower()
@@ -204,7 +246,7 @@ class TestReportCommand:
         """Test weekly report generation."""
         monkeypatch.setattr(
             "rivaflow.cli.utils.user_context.get_current_user_id",
-            lambda: test_user["id"]
+            lambda: test_user["id"],
         )
 
         # Create some test sessions
@@ -221,7 +263,7 @@ class TestReportCommand:
         """Test monthly report generation."""
         monkeypatch.setattr(
             "rivaflow.cli.utils.user_context.get_current_user_id",
-            lambda: test_user["id"]
+            lambda: test_user["id"],
         )
 
         session_factory(session_date=date.today())
@@ -239,7 +281,7 @@ class TestStreakCommand:
         """Test streak information display."""
         monkeypatch.setattr(
             "rivaflow.cli.utils.user_context.get_current_user_id",
-            lambda: test_user["id"]
+            lambda: test_user["id"],
         )
 
         result = runner.invoke(app, ["streak"])
@@ -256,7 +298,7 @@ class TestProgressCommand:
         """Test progress information display."""
         monkeypatch.setattr(
             "rivaflow.cli.utils.user_context.get_current_user_id",
-            lambda: test_user["id"]
+            lambda: test_user["id"],
         )
 
         # Create some sessions for progress
@@ -274,7 +316,7 @@ class TestDashboardCommand:
         """Test dashboard rendering."""
         monkeypatch.setattr(
             "rivaflow.cli.utils.user_context.get_current_user_id",
-            lambda: test_user["id"]
+            lambda: test_user["id"],
         )
 
         session_factory(session_date=date.today())
@@ -307,7 +349,9 @@ class TestAuthCommands:
         """Test whoami when not logged in."""
         result = runner.invoke(app, ["auth", "whoami"])
         assert result.exit_code == 0
-        assert "not logged in" in result.output.lower() or "login" in result.output.lower()
+        assert (
+            "not logged in" in result.output.lower() or "login" in result.output.lower()
+        )
 
 
 class TestStatsCommand:
@@ -317,7 +361,7 @@ class TestStatsCommand:
         """Test lifetime stats display."""
         monkeypatch.setattr(
             "rivaflow.cli.utils.user_context.get_current_user_id",
-            lambda: test_user["id"]
+            lambda: test_user["id"],
         )
 
         # Create test data
@@ -333,11 +377,13 @@ class TestStatsCommand:
 class TestExportCommand:
     """Tests for data export command."""
 
-    def test_export_creates_file(self, temp_db, test_user, session_factory, monkeypatch):
+    def test_export_creates_file(
+        self, temp_db, test_user, session_factory, monkeypatch
+    ):
         """Test that export creates a JSON file."""
         monkeypatch.setattr(
             "rivaflow.cli.utils.user_context.get_current_user_id",
-            lambda: test_user["id"]
+            lambda: test_user["id"],
         )
 
         session_factory(session_date=date.today())

@@ -2,6 +2,7 @@
 
 Schema migrations use 'version' column (not 'migration_name').
 """
+
 import logging
 import sqlite3
 from contextlib import contextmanager
@@ -53,7 +54,7 @@ def execute_insert(cursor, query: str, params: tuple) -> int:
     """
     if get_db_type() == "postgresql":
         # PostgreSQL: Add RETURNING id and fetch the result
-        query_with_returning = query.rstrip().rstrip(';') + " RETURNING id"
+        query_with_returning = query.rstrip().rstrip(";") + " RETURNING id"
         cursor.execute(convert_query(query_with_returning), params)
         result = cursor.fetchone()
 
@@ -63,8 +64,8 @@ def execute_insert(cursor, query: str, params: tuple) -> int:
 
         # Handle both dict-like and tuple-like results
         try:
-            if hasattr(result, 'keys'):
-                return result['id']
+            if hasattr(result, "keys"):
+                return result["id"]
             else:
                 return result[0]
         except (KeyError, IndexError, TypeError) as e:
@@ -81,20 +82,22 @@ def execute_insert(cursor, query: str, params: tuple) -> int:
 
         return inserted_id
 
+
 # Import PostgreSQL adapter if available
 try:
     import psycopg2
     import psycopg2.extras
     import psycopg2.pool
+
     PSYCOPG2_AVAILABLE = True
 except ImportError:
     PSYCOPG2_AVAILABLE = False
 
 # Global connection pool for PostgreSQL (initialized on first use)
-_connection_pool: Optional['psycopg2.pool.SimpleConnectionPool'] = None
+_connection_pool: Optional["psycopg2.pool.SimpleConnectionPool"] = None
 
 
-def _get_connection_pool() -> 'psycopg2.pool.SimpleConnectionPool':
+def _get_connection_pool() -> "psycopg2.pool.SimpleConnectionPool":
     """Get or create the PostgreSQL connection pool."""
     global _connection_pool
 
@@ -109,9 +112,7 @@ def _get_connection_pool() -> 'psycopg2.pool.SimpleConnectionPool':
         # minconn=1: Keep at least 1 connection alive
         # maxconn=20: Allow up to 20 concurrent connections
         _connection_pool = psycopg2.pool.SimpleConnectionPool(
-            minconn=1,
-            maxconn=20,
-            dsn=DATABASE_URL
+            minconn=1, maxconn=20, dsn=DATABASE_URL
         )
 
     return _connection_pool
@@ -149,12 +150,14 @@ def _init_sqlite_db() -> None:
     conn = sqlite3.connect(DB_PATH)
     try:
         # Create migrations tracking table if it doesn't exist
-        conn.execute("""
+        conn.execute(
+            """
             CREATE TABLE IF NOT EXISTS schema_migrations (
                 version TEXT PRIMARY KEY,
                 applied_at TEXT NOT NULL DEFAULT (datetime('now'))
             )
-        """)
+        """
+        )
         conn.commit()
 
         # Get list of already applied migrations
@@ -181,7 +184,9 @@ def _init_postgresql_db() -> None:
     This function only creates the migrations tracking table and resets sequences.
     """
     if not PSYCOPG2_AVAILABLE:
-        raise ImportError("psycopg2 is required for PostgreSQL support. Install with: pip install psycopg2-binary")
+        raise ImportError(
+            "psycopg2 is required for PostgreSQL support. Install with: pip install psycopg2-binary"
+        )
 
     if not DATABASE_URL:
         raise ValueError("DATABASE_URL environment variable is required for PostgreSQL")
@@ -192,17 +197,21 @@ def _init_postgresql_db() -> None:
 
         # Create migrations tracking table if it doesn't exist
         # migrate.py will populate this table with applied migrations
-        cursor.execute("""
+        cursor.execute(
+            """
             CREATE TABLE IF NOT EXISTS schema_migrations (
                 version TEXT PRIMARY KEY,
                 applied_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
             )
-        """)
+        """
+        )
         conn.commit()
 
         # PostgreSQL migrations are handled by migrate.py
         # Skip _apply_migrations() to avoid conflicts with migrate.py
-        logger.info("PostgreSQL database initialized. Migrations will be handled by migrate.py")
+        logger.info(
+            "PostgreSQL database initialized. Migrations will be handled by migrate.py"
+        )
 
         # Reset sequences for tables with SERIAL primary keys
         try:
@@ -219,11 +228,29 @@ def _reset_postgresql_sequences(conn) -> None:
     """Reset PostgreSQL sequences for tables with SERIAL primary keys."""
     # Get all tables with SERIAL columns
     tables_with_serials = [
-        'users', 'profile', 'sessions', 'readiness', 'techniques', 'videos',
-        'gradings', 'movements', 'friends', 'movement_videos', 'session_rolls',
-        'session_techniques', 'weekly_goal_progress', 'daily_checkins',
-        'milestones', 'streaks', 'activity_photos', 'user_relationships',
-        'activity_likes', 'activity_comments', 'refresh_tokens', 'gyms', 'audit_logs'
+        "users",
+        "profile",
+        "sessions",
+        "readiness",
+        "techniques",
+        "videos",
+        "gradings",
+        "movements",
+        "friends",
+        "movement_videos",
+        "session_rolls",
+        "session_techniques",
+        "weekly_goal_progress",
+        "daily_checkins",
+        "milestones",
+        "streaks",
+        "activity_photos",
+        "user_relationships",
+        "activity_likes",
+        "activity_comments",
+        "refresh_tokens",
+        "gyms",
+        "audit_logs",
     ]
 
     for table in tables_with_serials:
@@ -231,19 +258,23 @@ def _reset_postgresql_sequences(conn) -> None:
         cursor = conn.cursor()
         try:
             # Check if table exists first
-            cursor.execute("""
+            cursor.execute(
+                """
                 SELECT EXISTS (
                     SELECT FROM information_schema.tables
                     WHERE table_name = %s
                 )
-            """, (table,))
+            """,
+                (table,),
+            )
 
             if not cursor.fetchone()[0]:
                 continue
 
             # Reset sequence to max(id) + 1
             # Use DO block to handle NULL sequences gracefully
-            cursor.execute(f"""
+            cursor.execute(
+                f"""
                 DO $$
                 DECLARE
                     seq_name TEXT;
@@ -255,7 +286,8 @@ def _reset_postgresql_sequences(conn) -> None:
                         PERFORM setval(seq_name, max_id + 1, false);
                     END IF;
                 END $$;
-            """)
+            """
+            )
             conn.commit()
             logger.info(f"Reset sequence for table: {table}")
         except Exception as e:
@@ -271,100 +303,93 @@ def _convert_sqlite_to_postgresql(sql: str) -> str:
 
     # Replace AUTOINCREMENT with SERIAL (handle various whitespace)
     sql = re.sub(
-        r'\bINTEGER\s+PRIMARY\s+KEY\s+AUTOINCREMENT\b',
-        'SERIAL PRIMARY KEY',
+        r"\bINTEGER\s+PRIMARY\s+KEY\s+AUTOINCREMENT\b",
+        "SERIAL PRIMARY KEY",
         sql,
-        flags=re.IGNORECASE
+        flags=re.IGNORECASE,
     )
 
     # Replace INSERT OR IGNORE with INSERT ... ON CONFLICT DO NOTHING
     sql = re.sub(
-        r'\bINSERT\s+OR\s+IGNORE\s+INTO\b',
-        'INSERT INTO',
-        sql,
-        flags=re.IGNORECASE
+        r"\bINSERT\s+OR\s+IGNORE\s+INTO\b", "INSERT INTO", sql, flags=re.IGNORECASE
     )
     # Add ON CONFLICT DO NOTHING at the end of INSERT statements that were INSERT OR IGNORE
     # This is a bit tricky - we need to add it before the semicolon or end of statement
     # For now, we'll handle simple cases: INSERT INTO table (...) VALUES (...)
     sql = re.sub(
-        r'(\bINSERT\s+INTO\s+\w+\s*\([^)]+\)\s*VALUES\s*\([^)]+\))(?=\s*;|\s*$)',
-        r'\1 ON CONFLICT DO NOTHING',
+        r"(\bINSERT\s+INTO\s+\w+\s*\([^)]+\)\s*VALUES\s*\([^)]+\))(?=\s*;|\s*$)",
+        r"\1 ON CONFLICT DO NOTHING",
         sql,
-        flags=re.IGNORECASE
+        flags=re.IGNORECASE,
     )
 
     # Replace datetime('now') with CURRENT_TIMESTAMP
     sql = re.sub(
         r"datetime\s*\(\s*['\"]now['\"]\s*\)",
-        'CURRENT_TIMESTAMP',
+        "CURRENT_TIMESTAMP",
         sql,
-        flags=re.IGNORECASE
+        flags=re.IGNORECASE,
     )
 
     # Replace TEXT columns with datetime defaults to TIMESTAMP
     sql = re.sub(
         r"TEXT\s+NOT\s+NULL\s+DEFAULT\s+\(\s*datetime\s*\(\s*['\"]now['\"]\s*\)\s*\)",
-        'TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP',
+        "TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP",
         sql,
-        flags=re.IGNORECASE
+        flags=re.IGNORECASE,
     )
 
     # Replace standalone datetime('now') in DEFAULT clauses
     sql = re.sub(
         r"DEFAULT\s+\(\s*datetime\s*\(\s*['\"]now['\"]\s*\)\s*\)",
-        'DEFAULT CURRENT_TIMESTAMP',
+        "DEFAULT CURRENT_TIMESTAMP",
         sql,
-        flags=re.IGNORECASE
+        flags=re.IGNORECASE,
     )
 
     # Replace BOOLEAN DEFAULT 1/0 with TRUE/FALSE (handles NOT NULL case too)
     sql = re.sub(
-        r'\bBOOLEAN\s+NOT\s+NULL\s+DEFAULT\s+1\b',
-        'BOOLEAN NOT NULL DEFAULT TRUE',
+        r"\bBOOLEAN\s+NOT\s+NULL\s+DEFAULT\s+1\b",
+        "BOOLEAN NOT NULL DEFAULT TRUE",
         sql,
-        flags=re.IGNORECASE
+        flags=re.IGNORECASE,
     )
     sql = re.sub(
-        r'\bBOOLEAN\s+NOT\s+NULL\s+DEFAULT\s+0\b',
-        'BOOLEAN NOT NULL DEFAULT FALSE',
+        r"\bBOOLEAN\s+NOT\s+NULL\s+DEFAULT\s+0\b",
+        "BOOLEAN NOT NULL DEFAULT FALSE",
         sql,
-        flags=re.IGNORECASE
+        flags=re.IGNORECASE,
     )
     sql = re.sub(
-        r'\bBOOLEAN\s+DEFAULT\s+1\b',
-        'BOOLEAN DEFAULT TRUE',
-        sql,
-        flags=re.IGNORECASE
+        r"\bBOOLEAN\s+DEFAULT\s+1\b", "BOOLEAN DEFAULT TRUE", sql, flags=re.IGNORECASE
     )
     sql = re.sub(
-        r'\bBOOLEAN\s+DEFAULT\s+0\b',
-        'BOOLEAN DEFAULT FALSE',
-        sql,
-        flags=re.IGNORECASE
+        r"\bBOOLEAN\s+DEFAULT\s+0\b", "BOOLEAN DEFAULT FALSE", sql, flags=re.IGNORECASE
     )
 
     # Replace integer literals used as boolean values in SELECT/INSERT
     # Pattern: "1 as column_name" where column_name suggests boolean (is_*, has_*, etc)
     sql = re.sub(
-        r'\b1\s+as\s+(is_\w+|has_\w+|show_\w+|enable_\w+)\b',
-        r'TRUE as \1',
+        r"\b1\s+as\s+(is_\w+|has_\w+|show_\w+|enable_\w+)\b",
+        r"TRUE as \1",
         sql,
-        flags=re.IGNORECASE
+        flags=re.IGNORECASE,
     )
     sql = re.sub(
-        r'\b0\s+as\s+(is_\w+|has_\w+|show_\w+|enable_\w+)\b',
-        r'FALSE as \1',
+        r"\b0\s+as\s+(is_\w+|has_\w+|show_\w+|enable_\w+)\b",
+        r"FALSE as \1",
         sql,
-        flags=re.IGNORECASE
+        flags=re.IGNORECASE,
     )
 
     return sql
 
 
-def _apply_migrations(conn: Union[sqlite3.Connection, 'psycopg2.extensions.connection'],
-                      applied_migrations: set,
-                      db_type: str) -> None:
+def _apply_migrations(
+    conn: Union[sqlite3.Connection, "psycopg2.extensions.connection"],
+    applied_migrations: set,
+    db_type: str,
+) -> None:
     """Apply pending migrations to the database."""
     # Define migrations in order
     migrations = [
@@ -442,19 +467,25 @@ def _apply_migrations(conn: Union[sqlite3.Connection, 'psycopg2.extensions.conne
                 if db_type == "postgresql":
                     original_sql = sql
                     sql = _convert_sqlite_to_postgresql(sql)
-                    if 'AUTOINCREMENT' in original_sql.upper():
-                        logger.debug(f"Converted SQLite syntax to PostgreSQL for {migration}")
+                    if "AUTOINCREMENT" in original_sql.upper():
+                        logger.debug(
+                            f"Converted SQLite syntax to PostgreSQL for {migration}"
+                        )
 
                     # Split on semicolons and execute separately
-                    statements = [s.strip() for s in sql.split(';') if s.strip()]
+                    statements = [s.strip() for s in sql.split(";") if s.strip()]
                     for statement in statements:
                         if not statement:
                             continue
 
                         # Remove comment lines, but keep the SQL
-                        lines = statement.split('\n')
-                        sql_lines = [line for line in lines if line.strip() and not line.strip().startswith('--')]
-                        clean_statement = '\n'.join(sql_lines).strip()
+                        lines = statement.split("\n")
+                        sql_lines = [
+                            line
+                            for line in lines
+                            if line.strip() and not line.strip().startswith("--")
+                        ]
+                        clean_statement = "\n".join(sql_lines).strip()
 
                         # Skip if no SQL remains after removing comments
                         if not clean_statement:
@@ -463,7 +494,9 @@ def _apply_migrations(conn: Union[sqlite3.Connection, 'psycopg2.extensions.conne
                         try:
                             cursor.execute(clean_statement)
                         except Exception as e:
-                            logger.error(f"Error executing statement: {clean_statement[:100]}... - {e}")
+                            logger.error(
+                                f"Error executing statement: {clean_statement[:100]}... - {e}"
+                            )
                             raise
                 else:
                     # SQLite supports executescript
@@ -476,8 +509,12 @@ def _apply_migrations(conn: Union[sqlite3.Connection, 'psycopg2.extensions.conne
 
             # Record this migration as applied
             cursor.execute(
-                "INSERT INTO schema_migrations (version) VALUES (%s)" if db_type == "postgresql" else "INSERT INTO schema_migrations (version) VALUES (?)",
-                (migration,)
+                (
+                    "INSERT INTO schema_migrations (version) VALUES (%s)"
+                    if db_type == "postgresql"
+                    else "INSERT INTO schema_migrations (version) VALUES (?)"
+                ),
+                (migration,),
             )
             conn.commit()
             logger.info(f"Successfully applied migration: {migration}")
@@ -535,7 +572,7 @@ def get_connection():
         raise ValueError(f"Unsupported database type: {DB_TYPE}")
 
 
-def get_cursor(conn: Union[sqlite3.Connection, 'psycopg2.extensions.connection']):
+def get_cursor(conn: Union[sqlite3.Connection, "psycopg2.extensions.connection"]):
     """Get a cursor from a connection."""
     return conn.cursor()
 
@@ -562,7 +599,9 @@ def get_last_insert_id(cursor, table_name: str = None) -> int:
         # For PostgreSQL, we should use RETURNING id in the INSERT statement
         # This is a fallback that queries the sequence
         if table_name:
-            cursor.execute(f"SELECT currval(pg_get_serial_sequence('{table_name}', 'id'))")
+            cursor.execute(
+                f"SELECT currval(pg_get_serial_sequence('{table_name}', 'id'))"
+            )
             return cursor.fetchone()[0]
         else:
             raise ValueError("table_name is required for PostgreSQL")
@@ -571,7 +610,7 @@ def get_last_insert_id(cursor, table_name: str = None) -> int:
 
 
 if __name__ == "__main__":
-    logging.basicConfig(level=logging.INFO, format='%(levelname)s: %(message)s')
+    logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
     logger.info("Running database migrations...")
     init_db()
     logger.info("Database migrations complete!")

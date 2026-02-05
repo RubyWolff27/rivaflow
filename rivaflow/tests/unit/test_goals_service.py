@@ -1,4 +1,5 @@
 """Unit tests for GoalsService."""
+
 from datetime import date
 from unittest.mock import Mock, patch
 
@@ -8,11 +9,13 @@ from rivaflow.core.services.goals_service import GoalsService
 class TestCurrentWeekProgress:
     """Test current week goal progress calculation."""
 
-    @patch('rivaflow.core.services.goals_service.ProfileRepository')
-    @patch('rivaflow.core.services.goals_service.SessionRepository')
-    @patch('rivaflow.core.services.goals_service.GoalProgressRepository')
-    @patch('rivaflow.core.services.goals_service.ReportService')
-    def test_calculates_progress_correctly(self, mock_report_service, mock_goal_repo, mock_session_repo, mock_profile_repo):
+    @patch("rivaflow.core.services.goals_service.ProfileRepository")
+    @patch("rivaflow.core.services.goals_service.SessionRepository")
+    @patch("rivaflow.core.services.goals_service.GoalProgressRepository")
+    @patch("rivaflow.core.services.goals_service.ReportService")
+    def test_calculates_progress_correctly(
+        self, mock_report_service, mock_goal_repo, mock_session_repo, mock_profile_repo
+    ):
         """Test that progress percentages are calculated correctly."""
         # Setup
         service = GoalsService()
@@ -21,14 +24,18 @@ class TestCurrentWeekProgress:
         today = date(2026, 1, 22)  # Wednesday
         week_start = date(2026, 1, 19)  # Monday
         week_end = date(2026, 1, 25)  # Sunday
-        service.report_service.get_week_dates = Mock(return_value=(week_start, week_end))
+        service.report_service.get_week_dates = Mock(
+            return_value=(week_start, week_end)
+        )
 
         # Mock profile with targets
-        service.profile_repo.get = Mock(return_value={
-            "weekly_sessions_target": 4,
-            "weekly_hours_target": 6.0,
-            "weekly_rolls_target": 20,
-        })
+        service.profile_repo.get = Mock(
+            return_value={
+                "weekly_sessions_target": 4,
+                "weekly_hours_target": 6.0,
+                "weekly_rolls_target": 20,
+            }
+        )
 
         # Mock sessions (2 sessions, 3 hours, 10 rolls)
         sessions = [
@@ -41,7 +48,7 @@ class TestCurrentWeekProgress:
         service.goal_progress_repo.get_by_week = Mock(return_value=None)
         service.goal_progress_repo.create = Mock(return_value=1)
 
-        with patch('rivaflow.core.services.goals_service.date') as mock_date:
+        with patch("rivaflow.core.services.goals_service.date") as mock_date:
             mock_date.today.return_value = today
 
             # Execute
@@ -65,23 +72,29 @@ class TestCurrentWeekProgress:
         assert progress["completed"] is False
         assert progress["days_remaining"] == 3  # Wed to Sun
 
-    @patch('rivaflow.core.services.goals_service.ProfileRepository')
-    @patch('rivaflow.core.services.goals_service.SessionRepository')
-    @patch('rivaflow.core.services.goals_service.GoalProgressRepository')
-    @patch('rivaflow.core.services.goals_service.ReportService')
-    def test_detects_goal_completion(self, mock_report_service, mock_goal_repo, mock_session_repo, mock_profile_repo):
+    @patch("rivaflow.core.services.goals_service.ProfileRepository")
+    @patch("rivaflow.core.services.goals_service.SessionRepository")
+    @patch("rivaflow.core.services.goals_service.GoalProgressRepository")
+    @patch("rivaflow.core.services.goals_service.ReportService")
+    def test_detects_goal_completion(
+        self, mock_report_service, mock_goal_repo, mock_session_repo, mock_profile_repo
+    ):
         """Test that completed goals are properly detected."""
         service = GoalsService()
 
         week_start = date(2026, 1, 19)
         week_end = date(2026, 1, 25)
-        service.report_service.get_week_dates = Mock(return_value=(week_start, week_end))
+        service.report_service.get_week_dates = Mock(
+            return_value=(week_start, week_end)
+        )
 
-        service.profile_repo.get = Mock(return_value={
-            "weekly_sessions_target": 3,
-            "weekly_hours_target": 4.5,
-            "weekly_rolls_target": 15,
-        })
+        service.profile_repo.get = Mock(
+            return_value={
+                "weekly_sessions_target": 3,
+                "weekly_hours_target": 4.5,
+                "weekly_rolls_target": 15,
+            }
+        )
 
         # Sessions that meet all targets
         sessions = [
@@ -94,7 +107,7 @@ class TestCurrentWeekProgress:
         service.goal_progress_repo.get_by_week = Mock(return_value=None)
         service.goal_progress_repo.create = Mock(return_value=1)
 
-        with patch('rivaflow.core.services.goals_service.date') as mock_date:
+        with patch("rivaflow.core.services.goals_service.date") as mock_date:
             mock_date.today.return_value = date(2026, 1, 22)
             progress = service.get_current_week_progress(user_id=1)
 
@@ -107,20 +120,22 @@ class TestCurrentWeekProgress:
 class TestStreakCalculations:
     """Test streak tracking functionality."""
 
-    @patch('rivaflow.core.services.goals_service.AnalyticsService')
+    @patch("rivaflow.core.services.goals_service.AnalyticsService")
     def test_retrieves_training_streaks_from_analytics(self, mock_analytics_service):
         """Test that training streaks are retrieved from AnalyticsService."""
         service = GoalsService()
 
         # Mock analytics response
-        service.analytics_service.get_consistency_analytics = Mock(return_value={
-            "streaks": {
-                "current": 7,
-                "longest": 14,
+        service.analytics_service.get_consistency_analytics = Mock(
+            return_value={
+                "streaks": {
+                    "current": 7,
+                    "longest": 14,
+                }
             }
-        })
+        )
 
-        with patch('rivaflow.core.services.goals_service.date') as mock_date:
+        with patch("rivaflow.core.services.goals_service.date") as mock_date:
             mock_date.today.return_value = date(2026, 1, 22)
 
             streaks = service.get_training_streaks(user_id=1)
@@ -129,15 +144,17 @@ class TestStreakCalculations:
         assert streaks["longest_streak"] == 14
         assert streaks["last_updated"] == "2026-01-22"
 
-    @patch('rivaflow.core.services.goals_service.GoalProgressRepository')
+    @patch("rivaflow.core.services.goals_service.GoalProgressRepository")
     def test_calculates_goal_completion_streaks(self, mock_goal_repo):
         """Test calculation of consecutive weeks hitting all goals."""
         service = GoalsService()
 
-        service.goal_progress_repo.get_completion_streak = Mock(return_value={
-            "current_streak": 3,
-            "longest_streak": 5,
-        })
+        service.goal_progress_repo.get_completion_streak = Mock(
+            return_value={
+                "current_streak": 3,
+                "longest_streak": 5,
+            }
+        )
 
         streaks = service.get_goal_completion_streak(user_id=1)
 
@@ -148,8 +165,8 @@ class TestStreakCalculations:
 class TestGoalsUpdate:
     """Test goal target updates."""
 
-    @patch('rivaflow.core.services.goals_service.ProfileRepository')
-    @patch('rivaflow.db.database.get_connection')
+    @patch("rivaflow.core.services.goals_service.ProfileRepository")
+    @patch("rivaflow.db.database.get_connection")
     def test_updates_profile_goals(self, mock_get_connection, mock_profile_repo):
         """Test updating weekly goal targets in profile."""
         service = GoalsService()
@@ -163,20 +180,22 @@ class TestGoalsUpdate:
         mock_get_connection.return_value = mock_conn
 
         # Mock profile get to return updated values
-        service.profile_repo.get = Mock(side_effect=[
-            # First call (existing)
-            {
-                "weekly_sessions_target": 3,
-                "weekly_hours_target": 4.5,
-                "weekly_rolls_target": 15,
-            },
-            # Second call (after update)
-            {
-                "weekly_sessions_target": 5,
-                "weekly_hours_target": 7.5,
-                "weekly_rolls_target": 25,
-            }
-        ])
+        service.profile_repo.get = Mock(
+            side_effect=[
+                # First call (existing)
+                {
+                    "weekly_sessions_target": 3,
+                    "weekly_hours_target": 4.5,
+                    "weekly_rolls_target": 15,
+                },
+                # Second call (after update)
+                {
+                    "weekly_sessions_target": 5,
+                    "weekly_hours_target": 7.5,
+                    "weekly_rolls_target": 25,
+                },
+            ]
+        )
 
         updated = service.update_profile_goals(
             user_id=1,
@@ -197,7 +216,7 @@ class TestGoalsUpdate:
 class TestGoalsTrend:
     """Test goal completion trend calculation."""
 
-    @patch('rivaflow.core.services.goals_service.GoalProgressRepository')
+    @patch("rivaflow.core.services.goals_service.GoalProgressRepository")
     def test_calculates_completion_percentage(self, mock_goal_repo):
         """Test that completion percentage is calculated correctly for trends."""
         service = GoalsService()
@@ -247,11 +266,17 @@ class TestGoalsTrend:
 class TestGoalsSummary:
     """Test comprehensive goals summary."""
 
-    @patch('rivaflow.core.services.goals_service.GoalsService.get_current_week_progress')
-    @patch('rivaflow.core.services.goals_service.GoalsService.get_training_streaks')
-    @patch('rivaflow.core.services.goals_service.GoalsService.get_goal_completion_streak')
-    @patch('rivaflow.core.services.goals_service.GoalsService.get_recent_weeks_trend')
-    def test_returns_complete_summary(self, mock_trend, mock_goal_streaks, mock_training_streaks, mock_current):
+    @patch(
+        "rivaflow.core.services.goals_service.GoalsService.get_current_week_progress"
+    )
+    @patch("rivaflow.core.services.goals_service.GoalsService.get_training_streaks")
+    @patch(
+        "rivaflow.core.services.goals_service.GoalsService.get_goal_completion_streak"
+    )
+    @patch("rivaflow.core.services.goals_service.GoalsService.get_recent_weeks_trend")
+    def test_returns_complete_summary(
+        self, mock_trend, mock_goal_streaks, mock_training_streaks, mock_current
+    ):
         """Test that summary combines all goal data."""
         service = GoalsService()
 

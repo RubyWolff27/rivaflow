@@ -4,6 +4,7 @@ Integration tests for session logging workflow.
 Tests the complete session logging flow from creation through
 retrieval, updates, and analytics integration.
 """
+
 import os
 from datetime import date, timedelta
 
@@ -11,7 +12,9 @@ import pytest
 from fastapi.testclient import TestClient
 
 # Set SECRET_KEY for testing
-os.environ.setdefault("SECRET_KEY", "test-secret-key-for-session-integration-tests-32chars")
+os.environ.setdefault(
+    "SECRET_KEY", "test-secret-key-for-session-integration-tests-32chars"
+)
 
 from rivaflow.api.main import app
 from rivaflow.core.services.analytics_service import AnalyticsService
@@ -31,16 +34,20 @@ def test_client():
 def authenticated_user(test_client):
     """Create and authenticate a test user."""
     from datetime import datetime
+
     email = f"test_session_{datetime.now().timestamp()}@example.com"
     password = "SecurePassword123!"
 
     # Register user
-    response = test_client.post("/api/v1/auth/register", json={
-        "email": email,
-        "password": password,
-        "first_name": "Test",
-        "last_name": "User",
-    })
+    response = test_client.post(
+        "/api/v1/auth/register",
+        json={
+            "email": email,
+            "password": password,
+            "first_name": "Test",
+            "last_name": "User",
+        },
+    )
     assert response.status_code == 201
 
     tokens = response.json()
@@ -77,7 +84,7 @@ class TestSessionCreation:
                 "duration_mins": 90,
                 "intensity": 4,
                 "rolls": 5,
-            }
+            },
         )
 
         assert response.status_code == 201
@@ -106,7 +113,7 @@ class TestSessionCreation:
                 "techniques": ["armbar", "triangle", "kimura"],
                 "notes": "Great session, worked on guard passing",
                 "visibility_level": "full",
-            }
+            },
         )
 
         assert response.status_code == 201
@@ -131,7 +138,7 @@ class TestSessionCreation:
                 "duration_mins": 90,
                 "intensity": 4,
                 "rolls": 5,
-            }
+            },
         )
 
         assert response.status_code == 400
@@ -149,7 +156,7 @@ class TestSessionCreation:
                 "duration_mins": 90,
                 "intensity": 4,
                 "rolls": 5,
-            }
+            },
         )
 
         assert response.status_code == 422  # Validation error
@@ -173,15 +180,14 @@ class TestSessionRetrieval:
                     "duration_mins": 90 + (i * 10),
                     "intensity": 3 + i,
                     "rolls": 5 + i,
-                }
+                },
             )
         return authenticated_user
 
     def test_list_sessions(self, test_client, user_with_sessions):
         """Test listing all user sessions."""
         response = test_client.get(
-            "/api/v1/sessions",
-            headers=user_with_sessions["headers"]
+            "/api/v1/sessions", headers=user_with_sessions["headers"]
         )
 
         assert response.status_code == 200
@@ -204,14 +210,13 @@ class TestSessionRetrieval:
                 "duration_mins": 90,
                 "intensity": 4,
                 "rolls": 5,
-            }
+            },
         )
         session_id = create_response.json()["session_id"]
 
         # Retrieve it
         response = test_client.get(
-            f"/api/v1/sessions/{session_id}",
-            headers=authenticated_user["headers"]
+            f"/api/v1/sessions/{session_id}", headers=authenticated_user["headers"]
         )
 
         assert response.status_code == 200
@@ -223,14 +228,18 @@ class TestSessionRetrieval:
         """Test users cannot access other users' sessions."""
         # Create a second user
         from datetime import datetime
+
         email2 = f"test_session2_{datetime.now().timestamp()}@example.com"
 
-        response2 = test_client.post("/api/v1/auth/register", json={
-            "email": email2,
-            "password": "SecurePassword123!",
-            "first_name": "Other",
-            "last_name": "User",
-        })
+        response2 = test_client.post(
+            "/api/v1/auth/register",
+            json={
+                "email": email2,
+                "password": "SecurePassword123!",
+                "first_name": "Other",
+                "last_name": "User",
+            },
+        )
         user2_token = response2.json()["access_token"]
         user2_id = response2.json()["user"]["id"]
 
@@ -245,14 +254,14 @@ class TestSessionRetrieval:
                 "duration_mins": 90,
                 "intensity": 4,
                 "rolls": 5,
-            }
+            },
         )
         session_id = create_response.json()["session_id"]
 
         # User 2 tries to access it
         response = test_client.get(
             f"/api/v1/sessions/{session_id}",
-            headers={"Authorization": f"Bearer {user2_token}"}
+            headers={"Authorization": f"Bearer {user2_token}"},
         )
 
         assert response.status_code == 404  # Not found (or 403 Forbidden)
@@ -280,7 +289,7 @@ class TestSessionUpdate:
                 "duration_mins": 90,
                 "intensity": 4,
                 "rolls": 5,
-            }
+            },
         )
         session_id = create_response.json()["session_id"]
 
@@ -292,7 +301,7 @@ class TestSessionUpdate:
                 "duration_mins": 120,
                 "intensity": 5,
                 "notes": "Updated notes",
-            }
+            },
         )
 
         assert response.status_code == 200
@@ -308,7 +317,7 @@ class TestSessionUpdate:
             headers=authenticated_user["headers"],
             json={
                 "duration_mins": 120,
-            }
+            },
         )
 
         assert response.status_code == 404
@@ -330,22 +339,20 @@ class TestSessionDeletion:
                 "duration_mins": 90,
                 "intensity": 4,
                 "rolls": 5,
-            }
+            },
         )
         session_id = create_response.json()["session_id"]
 
         # Delete it
         response = test_client.delete(
-            f"/api/v1/sessions/{session_id}",
-            headers=authenticated_user["headers"]
+            f"/api/v1/sessions/{session_id}", headers=authenticated_user["headers"]
         )
 
         assert response.status_code == 200
 
         # Verify it's gone
         get_response = test_client.get(
-            f"/api/v1/sessions/{session_id}",
-            headers=authenticated_user["headers"]
+            f"/api/v1/sessions/{session_id}", headers=authenticated_user["headers"]
         )
         assert get_response.status_code == 404
 
@@ -412,7 +419,7 @@ class TestSessionValidation:
                 "duration_mins": -10,
                 "intensity": 4,
                 "rolls": 5,
-            }
+            },
         )
 
         assert response.status_code == 422
@@ -429,7 +436,7 @@ class TestSessionValidation:
                 "duration_mins": 90,
                 "intensity": 10,  # Invalid
                 "rolls": 5,
-            }
+            },
         )
 
         assert response.status_code == 422
@@ -446,7 +453,7 @@ class TestSessionValidation:
                 "duration_mins": 90,
                 "intensity": 4,
                 "rolls": 5,
-            }
+            },
         )
 
         assert response.status_code == 400

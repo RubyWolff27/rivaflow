@@ -1,4 +1,5 @@
 """Repository for user data access."""
+
 import sqlite3
 from datetime import datetime
 
@@ -45,14 +46,24 @@ class UserRepository:
                 INSERT INTO users (email, hashed_password, first_name, last_name, is_active, subscription_tier, is_beta_user)
                 VALUES (?, ?, ?, ?, ?, ?, ?)
                 """,
-                (email, hashed_password, first_name, last_name, is_active, subscription_tier, is_beta_user),
+                (
+                    email,
+                    hashed_password,
+                    first_name,
+                    last_name,
+                    is_active,
+                    subscription_tier,
+                    is_beta_user,
+                ),
             )
 
             if not user_id or user_id == 0:
                 raise ValueError(f"Invalid user_id returned: {user_id}")
 
             # Fetch and return the created user
-            cursor.execute(convert_query("SELECT * FROM users WHERE id = ?"), (user_id,))
+            cursor.execute(
+                convert_query("SELECT * FROM users WHERE id = ?"), (user_id,)
+            )
             row = cursor.fetchone()
 
             if not row:
@@ -73,7 +84,9 @@ class UserRepository:
         """
         with get_connection() as conn:
             cursor = conn.cursor()
-            cursor.execute(convert_query("SELECT * FROM users WHERE email = ?"), (email,))
+            cursor.execute(
+                convert_query("SELECT * FROM users WHERE email = ?"), (email,)
+            )
             row = cursor.fetchone()
             if row:
                 return UserRepository._row_to_dict(row)
@@ -92,7 +105,9 @@ class UserRepository:
         """
         with get_connection() as conn:
             cursor = conn.cursor()
-            cursor.execute(convert_query("SELECT * FROM users WHERE id = ?"), (user_id,))
+            cursor.execute(
+                convert_query("SELECT * FROM users WHERE id = ?"), (user_id,)
+            )
             row = cursor.fetchone()
             if row:
                 return UserRepository._row_to_dict(row)
@@ -151,7 +166,9 @@ class UserRepository:
                 cursor.execute(convert_query(query), params)
 
             # Return updated user
-            cursor.execute(convert_query("SELECT * FROM users WHERE id = ?"), (user_id,))
+            cursor.execute(
+                convert_query("SELECT * FROM users WHERE id = ?"), (user_id,)
+            )
             row = cursor.fetchone()
             if row:
                 return UserRepository._row_to_dict(row)
@@ -168,7 +185,9 @@ class UserRepository:
         with get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(
-                convert_query("SELECT id, email, first_name, last_name, is_active, created_at, updated_at FROM users WHERE is_active = TRUE")
+                convert_query(
+                    "SELECT id, email, first_name, last_name, is_active, created_at, updated_at FROM users WHERE is_active = TRUE"
+                )
             )
             rows = cursor.fetchall()
             return [dict(row) for row in rows]
@@ -186,7 +205,10 @@ class UserRepository:
         """
         with get_connection() as conn:
             cursor = conn.cursor()
-            cursor.execute(convert_query("UPDATE users SET is_active = FALSE WHERE id = ?"), (user_id,))
+            cursor.execute(
+                convert_query("UPDATE users SET is_active = FALSE WHERE id = ?"),
+                (user_id,),
+            )
             return cursor.rowcount > 0
 
     @staticmethod
@@ -204,8 +226,10 @@ class UserRepository:
         with get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(
-                convert_query("UPDATE users SET avatar_url = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?"),
-                (avatar_url, user_id)
+                convert_query(
+                    "UPDATE users SET avatar_url = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?"
+                ),
+                (avatar_url, user_id),
             )
             return cursor.rowcount > 0
 

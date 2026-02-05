@@ -1,4 +1,5 @@
 """Progress and milestones command."""
+
 import typer
 from rich.console import Console
 from rich.panel import Panel
@@ -29,45 +30,73 @@ def get_lifetime_stats(user_id: int) -> dict:
         cursor = conn.cursor()
 
         # Hours
-        cursor.execute(convert_query("SELECT SUM(duration_mins) FROM sessions WHERE user_id = ?"), (user_id,))
+        cursor.execute(
+            convert_query("SELECT SUM(duration_mins) FROM sessions WHERE user_id = ?"),
+            (user_id,),
+        )
         total_mins = cursor.fetchone()[0] or 0
         hours = round(total_mins / 60, 1)
 
         # Sessions
-        cursor.execute(convert_query("SELECT COUNT(*) FROM sessions WHERE user_id = ?"), (user_id,))
+        cursor.execute(
+            convert_query("SELECT COUNT(*) FROM sessions WHERE user_id = ?"), (user_id,)
+        )
         sessions = cursor.fetchone()[0] or 0
 
         # Rolls
-        cursor.execute(convert_query("SELECT SUM(rolls) FROM sessions WHERE user_id = ?"), (user_id,))
+        cursor.execute(
+            convert_query("SELECT SUM(rolls) FROM sessions WHERE user_id = ?"),
+            (user_id,),
+        )
         rolls = cursor.fetchone()[0] or 0
 
         # Submissions for
-        cursor.execute(convert_query("SELECT SUM(submissions_for) FROM sessions WHERE user_id = ?"), (user_id,))
+        cursor.execute(
+            convert_query(
+                "SELECT SUM(submissions_for) FROM sessions WHERE user_id = ?"
+            ),
+            (user_id,),
+        )
         subs_for = cursor.fetchone()[0] or 0
 
         # Submissions against
-        cursor.execute(convert_query("SELECT SUM(submissions_against) FROM sessions WHERE user_id = ?"), (user_id,))
+        cursor.execute(
+            convert_query(
+                "SELECT SUM(submissions_against) FROM sessions WHERE user_id = ?"
+            ),
+            (user_id,),
+        )
         subs_against = cursor.fetchone()[0] or 0
 
         # Sub ratio
         sub_ratio = round(subs_for / subs_against, 2) if subs_against > 0 else subs_for
 
         # Partners (via JOIN with sessions for user_id filtering)
-        cursor.execute(convert_query("""
+        cursor.execute(
+            convert_query(
+                """
             SELECT COUNT(DISTINCT sr.partner_id)
             FROM session_rolls sr
             JOIN sessions s ON sr.session_id = s.id
             WHERE sr.partner_id IS NOT NULL AND s.user_id = ?
-        """), (user_id,))
+        """
+            ),
+            (user_id,),
+        )
         partners = cursor.fetchone()[0] or 0
 
         # Techniques (via JOIN with sessions for user_id filtering)
-        cursor.execute(convert_query("""
+        cursor.execute(
+            convert_query(
+                """
             SELECT COUNT(DISTINCT st.movement_id)
             FROM session_techniques st
             JOIN sessions s ON st.session_id = s.id
             WHERE s.user_id = ?
-        """), (user_id,))
+        """
+            ),
+            (user_id,),
+        )
         techniques = cursor.fetchone()[0] or 0
 
     return {
@@ -100,6 +129,7 @@ def progress(ctx: typer.Context):
     # TODO: Add CLI authentication for multi-user support
     # For now, default to user_id=1 for backwards compatibility
     from rivaflow.cli.utils.user_context import get_current_user_id
+
     user_id = get_current_user_id()
 
     milestone_service = MilestoneService()
@@ -171,7 +201,9 @@ def progress(ctx: typer.Context):
                 bar = "█" * filled + "░" * (bar_length - filled)
 
                 remaining_text = f"({prog['remaining']} to go)"
-                console.print(f"  [dim]⬜ {prog['next_label']} [yellow]{bar}[/yellow] {prog['percentage']}% {remaining_text}[/dim]")
+                console.print(
+                    f"  [dim]⬜ {prog['next_label']} [yellow]{bar}[/yellow] {prog['percentage']}% {remaining_text}[/dim]"
+                )
 
     console.print()
 
@@ -187,8 +219,12 @@ def progress(ctx: typer.Context):
         }
         unit = unit_map.get(closest["type"], closest["type"])
 
-        console.print(f"  [bold yellow]🎯 NEXT MILESTONE:[/bold yellow] {closest['next_label']}")
-        console.print(f"  [dim]{closest['remaining']} {unit} away ({closest['percentage']}% complete)[/dim]")
+        console.print(
+            f"  [bold yellow]🎯 NEXT MILESTONE:[/bold yellow] {closest['next_label']}"
+        )
+        console.print(
+            f"  [dim]{closest['remaining']} {unit} away ({closest['percentage']}% complete)[/dim]"
+        )
         console.print()
 
 
@@ -196,6 +232,7 @@ def progress(ctx: typer.Context):
 def milestones():
     """Show only milestone achievements (compact view)."""
     from rivaflow.cli.utils.user_context import get_current_user_id
+
     user_id = get_current_user_id()
     milestone_service = MilestoneService()
     achieved = milestone_service.get_all_achieved(user_id)
@@ -226,5 +263,7 @@ def milestones():
         console.print(f"  [bold white]{mtype.upper()}:[/bold white]")
         for milestone in sorted(milestones, key=lambda x: x["milestone_value"]):
             date_str = milestone["achieved_at"][:10]
-            console.print(f"  └─ [yellow]{milestone['milestone_label']}[/yellow] [dim]({date_str})[/dim]")
+            console.print(
+                f"  └─ [yellow]{milestone['milestone_label']}[/yellow] [dim]({date_str})[/dim]"
+            )
         console.print()

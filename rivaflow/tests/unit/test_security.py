@@ -4,6 +4,7 @@ Unit tests for security features.
 Tests authentication, authorization, password hashing, token security,
 and protection against common vulnerabilities.
 """
+
 import os
 import time
 from datetime import timedelta
@@ -11,7 +12,9 @@ from datetime import timedelta
 import pytest
 
 # Set SECRET_KEY for testing
-os.environ.setdefault("SECRET_KEY", "test-secret-key-for-security-tests-minimum-32-characters-long")
+os.environ.setdefault(
+    "SECRET_KEY", "test-secret-key-for-security-tests-minimum-32-characters-long"
+)
 
 from rivaflow.core.auth import (
     create_access_token,
@@ -21,7 +24,9 @@ from rivaflow.core.auth import (
     verify_password,
 )
 from rivaflow.db.database import get_connection
-from rivaflow.db.repositories.password_reset_token_repo import PasswordResetTokenRepository
+from rivaflow.db.repositories.password_reset_token_repo import (
+    PasswordResetTokenRepository,
+)
 
 
 class TestPasswordHashing:
@@ -97,9 +102,7 @@ class TestJWTTokenSecurity:
         user_email = "test@example.com"
         user_id = 123
 
-        token = create_access_token(
-            data={"sub": user_email, "user_id": user_id}
-        )
+        token = create_access_token(data={"sub": user_email, "user_id": user_id})
 
         payload = decode_access_token(token)
         assert payload is not None
@@ -123,7 +126,7 @@ class TestJWTTokenSecurity:
         # Create token that expires immediately
         token = create_access_token(
             data={"sub": "test@example.com"},
-            expires_delta=timedelta(seconds=-1)  # Already expired
+            expires_delta=timedelta(seconds=-1),  # Already expired
         )
 
         payload = decode_access_token(token)
@@ -176,10 +179,13 @@ class TestPasswordResetTokenSecurity:
         """Test password reset tokens are hashed before storage."""
         with get_connection() as conn:
             cursor = conn.cursor()
-            cursor.execute("""
+            cursor.execute(
+                """
                 INSERT INTO users (email, password_hash, created_at)
                 VALUES (?, ?, CURRENT_TIMESTAMP)
-            """, ("test_reset_hash@example.com", "hash"))
+            """,
+                ("test_reset_hash@example.com", "hash"),
+            )
             conn.commit()
             user_id = cursor.lastrowid
 
@@ -195,7 +201,7 @@ class TestPasswordResetTokenSecurity:
                 cursor = conn.cursor()
                 cursor.execute(
                     "SELECT token FROM password_reset_tokens WHERE user_id = ?",
-                    (user_id,)
+                    (user_id,),
                 )
                 row = cursor.fetchone()
                 stored_token = row[0] if isinstance(row, tuple) else row["token"]
@@ -205,7 +211,9 @@ class TestPasswordResetTokenSecurity:
                 assert len(stored_token) == 64
 
                 # Cleanup
-                cursor.execute("DELETE FROM password_reset_tokens WHERE user_id = ?", (user_id,))
+                cursor.execute(
+                    "DELETE FROM password_reset_tokens WHERE user_id = ?", (user_id,)
+                )
                 conn.commit()
         finally:
             with get_connection() as conn:
@@ -217,10 +225,13 @@ class TestPasswordResetTokenSecurity:
         """Test password reset tokens can only be used once."""
         with get_connection() as conn:
             cursor = conn.cursor()
-            cursor.execute("""
+            cursor.execute(
+                """
                 INSERT INTO users (email, password_hash, created_at)
                 VALUES (?, ?, CURRENT_TIMESTAMP)
-            """, ("test_single_use@example.com", "hash"))
+            """,
+                ("test_single_use@example.com", "hash"),
+            )
             conn.commit()
             user_id = cursor.lastrowid
 
@@ -239,7 +250,9 @@ class TestPasswordResetTokenSecurity:
             # Cleanup
             with get_connection() as conn:
                 cursor = conn.cursor()
-                cursor.execute("DELETE FROM password_reset_tokens WHERE user_id = ?", (user_id,))
+                cursor.execute(
+                    "DELETE FROM password_reset_tokens WHERE user_id = ?", (user_id,)
+                )
                 conn.commit()
         finally:
             with get_connection() as conn:
@@ -251,16 +264,21 @@ class TestPasswordResetTokenSecurity:
         """Test password reset tokens expire."""
         with get_connection() as conn:
             cursor = conn.cursor()
-            cursor.execute("""
+            cursor.execute(
+                """
                 INSERT INTO users (email, password_hash, created_at)
                 VALUES (?, ?, CURRENT_TIMESTAMP)
-            """, ("test_expire@example.com", "hash"))
+            """,
+                ("test_expire@example.com", "hash"),
+            )
             conn.commit()
             user_id = cursor.lastrowid
 
         try:
             # Create token with very short expiry
-            token = PasswordResetTokenRepository.create_token(user_id, expiry_hours=0.0001)
+            token = PasswordResetTokenRepository.create_token(
+                user_id, expiry_hours=0.0001
+            )
 
             # Wait for expiry (0.0001 hours = 0.36 seconds)
             time.sleep(1)
@@ -271,7 +289,9 @@ class TestPasswordResetTokenSecurity:
             # Cleanup
             with get_connection() as conn:
                 cursor = conn.cursor()
-                cursor.execute("DELETE FROM password_reset_tokens WHERE user_id = ?", (user_id,))
+                cursor.execute(
+                    "DELETE FROM password_reset_tokens WHERE user_id = ?", (user_id,)
+                )
                 conn.commit()
         finally:
             with get_connection() as conn:
@@ -292,9 +312,12 @@ class TestSQLInjectionPrevention:
             malicious_email = "attacker@example.com'; DROP TABLE users; --"
 
             # This should safely escape the input
-            cursor.execute("""
+            cursor.execute(
+                """
                 SELECT * FROM users WHERE email = ?
-            """, (malicious_email,))
+            """,
+                (malicious_email,),
+            )
 
             # Should return empty (no results), not drop the table
             results = cursor.fetchall()
@@ -309,38 +332,48 @@ class TestSQLInjectionPrevention:
         """Test special characters are properly escaped."""
         with get_connection() as conn:
             cursor = conn.cursor()
-            cursor.execute("""
+            cursor.execute(
+                """
                 INSERT INTO users (email, password_hash, created_at)
                 VALUES (?, ?, CURRENT_TIMESTAMP)
-            """, ("test_special@example.com", "hash"))
+            """,
+                ("test_special@example.com", "hash"),
+            )
             conn.commit()
             user_id = cursor.lastrowid
 
         try:
             # Input with special SQL characters
-            special_input = "Gym's \"Name\" <with> & chars; --comment"
+            special_input = 'Gym\'s "Name" <with> & chars; --comment'
 
             with get_connection() as conn:
                 cursor = conn.cursor()
-                cursor.execute("""
+                cursor.execute(
+                    """
                     INSERT INTO sessions (
                         user_id, session_date, class_type, gym_name,
                         duration_mins, intensity, rolls, created_at
                     )
                     VALUES (?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
-                """, (user_id, "2026-02-01", "gi", special_input, 90, 4, 5))
+                """,
+                    (user_id, "2026-02-01", "gi", special_input, 90, 4, 5),
+                )
                 conn.commit()
                 session_id = cursor.lastrowid
 
                 # Retrieve and verify stored correctly
-                cursor.execute("SELECT gym_name FROM sessions WHERE session_id = ?", (session_id,))
+                cursor.execute(
+                    "SELECT gym_name FROM sessions WHERE session_id = ?", (session_id,)
+                )
                 row = cursor.fetchone()
                 gym_name = row[0] if isinstance(row, tuple) else row["gym_name"]
 
                 assert gym_name == special_input
 
                 # Cleanup
-                cursor.execute("DELETE FROM sessions WHERE session_id = ?", (session_id,))
+                cursor.execute(
+                    "DELETE FROM sessions WHERE session_id = ?", (session_id,)
+                )
                 conn.commit()
         finally:
             with get_connection() as conn:
@@ -359,17 +392,23 @@ class TestAuthorizationChecks:
         # Create two users
         with get_connection() as conn:
             cursor = conn.cursor()
-            cursor.execute("""
+            cursor.execute(
+                """
                 INSERT INTO users (email, password_hash, created_at)
                 VALUES (?, ?, CURRENT_TIMESTAMP)
-            """, ("user1@example.com", "hash"))
+            """,
+                ("user1@example.com", "hash"),
+            )
             conn.commit()
             user1_id = cursor.lastrowid
 
-            cursor.execute("""
+            cursor.execute(
+                """
                 INSERT INTO users (email, password_hash, created_at)
                 VALUES (?, ?, CURRENT_TIMESTAMP)
-            """, ("user2@example.com", "hash"))
+            """,
+                ("user2@example.com", "hash"),
+            )
             conn.commit()
             user2_id = cursor.lastrowid
 
@@ -397,7 +436,9 @@ class TestAuthorizationChecks:
         finally:
             with get_connection() as conn:
                 cursor = conn.cursor()
-                cursor.execute("DELETE FROM users WHERE user_id IN (?, ?)", (user1_id, user2_id))
+                cursor.execute(
+                    "DELETE FROM users WHERE user_id IN (?, ?)", (user1_id, user2_id)
+                )
                 conn.commit()
 
 

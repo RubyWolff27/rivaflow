@@ -5,11 +5,13 @@ import os
 import sys
 
 # Add project root to path
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 # Set environment variables for testing
 os.environ.setdefault("SECRET_KEY", "test-secret-key-for-diagnostics")
-os.environ.setdefault("DATABASE_URL", "postgresql://user:pass@localhost/rivaflow")  # Update as needed
+os.environ.setdefault(
+    "DATABASE_URL", "postgresql://user:pass@localhost/rivaflow"
+)  # Update as needed
 
 from rivaflow.core.auth import hash_password, verify_password
 from rivaflow.db.repositories.user_repo import UserRepository
@@ -34,7 +36,9 @@ def test_bcrypt_compatibility():
 
     print("\n3. Testing password verification (wrong password)...")
     is_valid = verify_password("WrongPassword", hashed)
-    print(f"   {'✓' if not is_valid else '✗'} Verification: {is_valid} (should be False)")
+    print(
+        f"   {'✓' if not is_valid else '✗'} Verification: {is_valid} (should be False)"
+    )
 
     return True
 
@@ -50,12 +54,14 @@ def test_existing_users():
 
         with get_connection() as conn:
             cursor = conn.cursor()
-            cursor.execute("""
+            cursor.execute(
+                """
                 SELECT id, email, first_name, last_name, is_active, created_at
                 FROM users
                 ORDER BY created_at DESC
                 LIMIT 5
-            """)
+            """
+            )
             users = cursor.fetchall()
 
             if not users:
@@ -93,13 +99,13 @@ def test_user_login(email: str, password: str):
         print(f"   ✓ User found: ID={user['id']}, Active={user.get('is_active')}")
 
         # Check if active
-        if not user.get('is_active'):
+        if not user.get("is_active"):
             print("   ✗ User account is inactive")
             return False
 
         # Verify password
         print("\n2. Verifying password...")
-        hashed_password = user.get('hashed_password')
+        hashed_password = user.get("hashed_password")
 
         if not hashed_password:
             print("   ✗ No password hash found for user")
@@ -118,6 +124,7 @@ def test_user_login(email: str, password: str):
     except Exception as e:
         print(f"\n✗ Error during login test: {e}")
         import traceback
+
         traceback.print_exc()
         return False
 

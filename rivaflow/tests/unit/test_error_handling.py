@@ -3,13 +3,16 @@ Unit tests for error handling across the application.
 
 Tests exception handling, validation errors, and error messages.
 """
+
 import os
 from datetime import date, timedelta
 
 import pytest
 
 # Set SECRET_KEY for testing
-os.environ.setdefault("SECRET_KEY", "test-secret-key-for-error-handling-tests-minimum32chars")
+os.environ.setdefault(
+    "SECRET_KEY", "test-secret-key-for-error-handling-tests-minimum32chars"
+)
 
 from rivaflow.core.services.auth_service import AuthService
 from rivaflow.core.services.session_service import SessionService
@@ -51,7 +54,10 @@ class TestSessionValidationErrors:
                 intensity=4,
             )
 
-        assert "class_type" in str(exc_info.value).lower() or "invalid" in str(exc_info.value).lower()
+        assert (
+            "class_type" in str(exc_info.value).lower()
+            or "invalid" in str(exc_info.value).lower()
+        )
 
     def test_negative_duration_rejected(self):
         """Test negative duration raises error."""
@@ -67,7 +73,10 @@ class TestSessionValidationErrors:
                 intensity=4,
             )
 
-        assert "duration" in str(exc_info.value).lower() or "positive" in str(exc_info.value).lower()
+        assert (
+            "duration" in str(exc_info.value).lower()
+            or "positive" in str(exc_info.value).lower()
+        )
 
     def test_invalid_intensity_rejected(self):
         """Test intensity outside 1-5 range raises error."""
@@ -109,7 +118,10 @@ class TestSessionValidationErrors:
                 intensity=4,
             )
 
-        assert "gym" in str(exc_info.value).lower() or "empty" in str(exc_info.value).lower()
+        assert (
+            "gym" in str(exc_info.value).lower()
+            or "empty" in str(exc_info.value).lower()
+        )
 
 
 class TestAuthenticationErrors:
@@ -150,10 +162,13 @@ class TestAuthenticationErrors:
         # Create user first
         with get_connection() as conn:
             cursor = conn.cursor()
-            cursor.execute("""
+            cursor.execute(
+                """
                 INSERT INTO users (email, password_hash, created_at)
                 VALUES (?, ?, CURRENT_TIMESTAMP)
-            """, ("test_wrong_pass@example.com", "dummy_hash"))
+            """,
+                ("test_wrong_pass@example.com", "dummy_hash"),
+            )
             conn.commit()
             user_id = cursor.lastrowid
 
@@ -207,13 +222,16 @@ class TestDatabaseConstraintErrors:
         with pytest.raises(Exception):  # Database error expected
             with get_connection() as conn:
                 cursor = conn.cursor()
-                cursor.execute("""
+                cursor.execute(
+                    """
                     INSERT INTO sessions (
                         user_id, session_date, class_type, gym_name,
                         duration_mins, intensity, rolls, created_at
                     )
                     VALUES (?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
-                """, (999999, date.today().isoformat(), "gi", "Test Gym", 90, 4, 5))
+                """,
+                    (999999, date.today().isoformat(), "gi", "Test Gym", 90, 4, 5),
+                )
                 conn.commit()
 
     def test_duplicate_email_handled(self):
@@ -222,20 +240,26 @@ class TestDatabaseConstraintErrors:
             cursor = conn.cursor()
 
             # Create first user
-            cursor.execute("""
+            cursor.execute(
+                """
                 INSERT INTO users (email, password_hash, created_at)
                 VALUES (?, ?, CURRENT_TIMESTAMP)
-            """, ("duplicate@example.com", "hash1"))
+            """,
+                ("duplicate@example.com", "hash1"),
+            )
             conn.commit()
             user1_id = cursor.lastrowid
 
             try:
                 # Try to create duplicate
                 with pytest.raises(Exception):  # Database constraint error
-                    cursor.execute("""
+                    cursor.execute(
+                        """
                         INSERT INTO users (email, password_hash, created_at)
                         VALUES (?, ?, CURRENT_TIMESTAMP)
-                    """, ("duplicate@example.com", "hash2"))
+                    """,
+                        ("duplicate@example.com", "hash2"),
+                    )
                     conn.commit()
             finally:
                 # Cleanup
@@ -252,10 +276,13 @@ class TestInputSanitization:
             cursor = conn.cursor()
 
             # Create test user
-            cursor.execute("""
+            cursor.execute(
+                """
                 INSERT INTO users (email, password_hash, created_at)
                 VALUES (?, ?, CURRENT_TIMESTAMP)
-            """, ("test_injection@example.com", "hash"))
+            """,
+                ("test_injection@example.com", "hash"),
+            )
             conn.commit()
             user_id = cursor.lastrowid
 
@@ -263,18 +290,31 @@ class TestInputSanitization:
                 # Attempt SQL injection via gym_name
                 malicious_input = "'; DROP TABLE sessions; --"
 
-                cursor.execute("""
+                cursor.execute(
+                    """
                     INSERT INTO sessions (
                         user_id, session_date, class_type, gym_name,
                         duration_mins, intensity, rolls, created_at
                     )
                     VALUES (?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
-                """, (user_id, date.today().isoformat(), "gi", malicious_input, 90, 4, 5))
+                """,
+                    (
+                        user_id,
+                        date.today().isoformat(),
+                        "gi",
+                        malicious_input,
+                        90,
+                        4,
+                        5,
+                    ),
+                )
                 conn.commit()
                 session_id = cursor.lastrowid
 
                 # Verify sessions table still exists and data is safe
-                cursor.execute("SELECT gym_name FROM sessions WHERE session_id = ?", (session_id,))
+                cursor.execute(
+                    "SELECT gym_name FROM sessions WHERE session_id = ?", (session_id,)
+                )
                 row = cursor.fetchone()
                 gym_name = row[0] if isinstance(row, tuple) else row["gym_name"]
 
@@ -287,7 +327,9 @@ class TestInputSanitization:
                 assert count is not None
 
                 # Cleanup
-                cursor.execute("DELETE FROM sessions WHERE session_id = ?", (session_id,))
+                cursor.execute(
+                    "DELETE FROM sessions WHERE session_id = ?", (session_id,)
+                )
                 conn.commit()
             finally:
                 cursor.execute("DELETE FROM users WHERE user_id = ?", (user_id,))
@@ -299,16 +341,19 @@ class TestInputSanitization:
 
         with get_connection() as conn:
             cursor = conn.cursor()
-            cursor.execute("""
+            cursor.execute(
+                """
                 INSERT INTO users (email, password_hash, created_at)
                 VALUES (?, ?, CURRENT_TIMESTAMP)
-            """, ("test_special@example.com", "hash"))
+            """,
+                ("test_special@example.com", "hash"),
+            )
             conn.commit()
             user_id = cursor.lastrowid
 
         try:
             # Test various special characters
-            special_chars_gym = "Gym's \"Best\" <Place> & More!"
+            special_chars_gym = 'Gym\'s "Best" <Place> & More!'
 
             session = service.create_session(
                 user_id=user_id,
@@ -361,10 +406,13 @@ class TestErrorMessages:
         # Wrong password
         with get_connection() as conn:
             cursor = conn.cursor()
-            cursor.execute("""
+            cursor.execute(
+                """
                 INSERT INTO users (email, password_hash, created_at)
                 VALUES (?, ?, CURRENT_TIMESTAMP)
-            """, ("test_secure_msg@example.com", "hash"))
+            """,
+                ("test_secure_msg@example.com", "hash"),
+            )
             conn.commit()
             user_id = cursor.lastrowid
 
@@ -388,10 +436,13 @@ class TestExceptionRecovery:
         """Test database transaction rolls back on error."""
         with get_connection() as conn:
             cursor = conn.cursor()
-            cursor.execute("""
+            cursor.execute(
+                """
                 INSERT INTO users (email, password_hash, created_at)
                 VALUES (?, ?, CURRENT_TIMESTAMP)
-            """, ("test_recovery@example.com", "hash"))
+            """,
+                ("test_recovery@example.com", "hash"),
+            )
             conn.commit()
             user_id = cursor.lastrowid
 
@@ -400,13 +451,16 @@ class TestExceptionRecovery:
                 cursor = conn.cursor()
 
                 # Start transaction
-                cursor.execute("""
+                cursor.execute(
+                    """
                     INSERT INTO sessions (
                         user_id, session_date, class_type, gym_name,
                         duration_mins, intensity, rolls, created_at
                     )
                     VALUES (?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
-                """, (user_id, date.today().isoformat(), "gi", "Test Gym", 90, 4, 5))
+                """,
+                    (user_id, date.today().isoformat(), "gi", "Test Gym", 90, 4, 5),
+                )
 
                 # Force error
                 cursor.execute("INVALID SQL")
@@ -419,7 +473,7 @@ class TestExceptionRecovery:
             cursor = conn.cursor()
             cursor.execute(
                 "SELECT COUNT(*) FROM sessions WHERE user_id = ? AND gym_name = ?",
-                (user_id, "Test Gym")
+                (user_id, "Test Gym"),
             )
             count = cursor.fetchone()[0]
             assert count == 0

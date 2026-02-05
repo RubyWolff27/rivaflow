@@ -1,4 +1,5 @@
 """Repository for session data access."""
+
 import json
 import sqlite3
 from datetime import date, datetime
@@ -79,7 +80,10 @@ class SessionRepository:
         """Get a session by ID with detailed techniques."""
         with get_connection() as conn:
             cursor = conn.cursor()
-            cursor.execute(convert_query("SELECT * FROM sessions WHERE id = ? AND user_id = ?"), (session_id, user_id))
+            cursor.execute(
+                convert_query("SELECT * FROM sessions WHERE id = ? AND user_id = ?"),
+                (session_id, user_id),
+            )
             row = cursor.fetchone()
             if not row:
                 return None
@@ -88,7 +92,8 @@ class SessionRepository:
 
             # Fetch detailed technique records with movement names in a single JOIN query
             cursor.execute(
-                convert_query("""
+                convert_query(
+                    """
                     SELECT
                         st.id,
                         st.session_id,
@@ -102,8 +107,9 @@ class SessionRepository:
                     LEFT JOIN movements_glossary mg ON st.movement_id = mg.id
                     WHERE st.session_id = ?
                     ORDER BY st.technique_number
-                """),
-                (session_id,)
+                """
+                ),
+                (session_id,),
             )
             techniques = [dict(row) for row in cursor.fetchall()]
 
@@ -116,18 +122,16 @@ class SessionRepository:
         """Get a session by ID without user scope (for validation/privacy checks)."""
         with get_connection() as conn:
             cursor = conn.cursor()
-            cursor.execute(convert_query("SELECT * FROM sessions WHERE id = ?"), (session_id,))
+            cursor.execute(
+                convert_query("SELECT * FROM sessions WHERE id = ?"), (session_id,)
+            )
             row = cursor.fetchone()
             if not row:
                 return None
             return SessionRepository._row_to_dict(row)
 
     @staticmethod
-    def update(
-        user_id: int,
-        session_id: int,
-        **kwargs
-    ) -> dict | None:
+    def update(user_id: int, session_id: int, **kwargs) -> dict | None:
         """
         Update a session by ID with flexible field updates.
 
@@ -159,11 +163,26 @@ class SessionRepository:
 
             # Valid fields that can be updated
             valid_fields = {
-                "session_date", "class_time", "class_type", "gym_name", "location",
-                "duration_mins", "intensity", "rolls", "submissions_for",
-                "submissions_against", "partners", "techniques", "notes",
-                "visibility_level", "instructor_id", "instructor_name",
-                "whoop_strain", "whoop_calories", "whoop_avg_hr", "whoop_max_hr"
+                "session_date",
+                "class_time",
+                "class_type",
+                "gym_name",
+                "location",
+                "duration_mins",
+                "intensity",
+                "rolls",
+                "submissions_for",
+                "submissions_against",
+                "partners",
+                "techniques",
+                "notes",
+                "visibility_level",
+                "instructor_id",
+                "instructor_name",
+                "whoop_strain",
+                "whoop_calories",
+                "whoop_avg_hr",
+                "whoop_max_hr",
             }
 
             # Process each provided field
@@ -189,7 +208,9 @@ class SessionRepository:
 
             # Build and execute query
             params.extend([session_id, user_id])
-            query = f"UPDATE sessions SET {', '.join(updates)} WHERE id = ? AND user_id = ?"
+            query = (
+                f"UPDATE sessions SET {', '.join(updates)} WHERE id = ? AND user_id = ?"
+            )
             cursor.execute(convert_query(query), params)
 
             if cursor.rowcount == 0:
@@ -199,14 +220,16 @@ class SessionRepository:
             return SessionRepository.get_by_id(user_id, session_id)
 
     @staticmethod
-    def get_by_date_range(user_id: int, start_date: date, end_date: date, types: list[str] | None = None) -> list[dict]:
+    def get_by_date_range(
+        user_id: int, start_date: date, end_date: date, types: list[str] | None = None
+    ) -> list[dict]:
         """Get all sessions within a date range (inclusive), optionally filtered by class types."""
         with get_connection() as conn:
             cursor = conn.cursor()
 
             if types:
                 # Build parameterized query with IN clause
-                placeholders = ', '.join('?' * len(types))
+                placeholders = ", ".join("?" * len(types))
                 query = f"""
                 SELECT * FROM sessions
                 WHERE user_id = ? AND session_date BETWEEN ? AND ?
@@ -231,7 +254,10 @@ class SessionRepository:
         with get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(
-                convert_query("SELECT * FROM sessions WHERE user_id = ? ORDER BY session_date DESC LIMIT ?"), (user_id, limit)
+                convert_query(
+                    "SELECT * FROM sessions WHERE user_id = ? ORDER BY session_date DESC LIMIT ?"
+                ),
+                (user_id, limit),
             )
             return [SessionRepository._row_to_dict(row) for row in cursor.fetchall()]
 
@@ -247,13 +273,17 @@ class SessionRepository:
             cursor = conn.cursor()
             if limit:
                 cursor.execute(
-                    convert_query("SELECT * FROM sessions WHERE user_id = ? ORDER BY session_date DESC LIMIT ?"),
-                    (user_id, limit)
+                    convert_query(
+                        "SELECT * FROM sessions WHERE user_id = ? ORDER BY session_date DESC LIMIT ?"
+                    ),
+                    (user_id, limit),
                 )
             else:
                 cursor.execute(
-                    convert_query("SELECT * FROM sessions WHERE user_id = ? ORDER BY session_date DESC"),
-                    (user_id,)
+                    convert_query(
+                        "SELECT * FROM sessions WHERE user_id = ? ORDER BY session_date DESC"
+                    ),
+                    (user_id,),
                 )
             return [SessionRepository._row_to_dict(row) for row in cursor.fetchall()]
 
@@ -267,26 +297,25 @@ class SessionRepository:
         with get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(
-                convert_query("""
+                convert_query(
+                    """
                     SELECT
                         COUNT(*) as total_sessions,
                         COALESCE(SUM(duration_mins), 0) as total_minutes
                     FROM sessions
                     WHERE user_id = ?
-                """),
-                (user_id,)
+                """
+                ),
+                (user_id,),
             )
             row = cursor.fetchone()
-            if hasattr(row, 'keys'):  # PostgreSQL dict result
+            if hasattr(row, "keys"):  # PostgreSQL dict result
                 return {
                     "total_sessions": row["total_sessions"],
-                    "total_hours": round(row["total_minutes"] / 60, 1)
+                    "total_hours": round(row["total_minutes"] / 60, 1),
                 }
             else:  # SQLite tuple result
-                return {
-                    "total_sessions": row[0],
-                    "total_hours": round(row[1] / 60, 1)
-                }
+                return {"total_sessions": row[0], "total_hours": round(row[1] / 60, 1)}
 
     @staticmethod
     def get_unique_gyms(user_id: int) -> list[str]:
@@ -294,12 +323,14 @@ class SessionRepository:
         with get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(
-                convert_query("SELECT DISTINCT gym_name FROM sessions WHERE user_id = ? ORDER BY gym_name"),
-                (user_id,)
+                convert_query(
+                    "SELECT DISTINCT gym_name FROM sessions WHERE user_id = ? ORDER BY gym_name"
+                ),
+                (user_id,),
             )
             rows = cursor.fetchall()
             # Handle both dict (PostgreSQL) and tuple (SQLite) results
-            if rows and hasattr(rows[0], 'keys'):
+            if rows and hasattr(rows[0], "keys"):
                 return [row["gym_name"] for row in rows]
             else:
                 return [row[0] for row in rows]
@@ -310,16 +341,18 @@ class SessionRepository:
         with get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(
-                convert_query("""
+                convert_query(
+                    """
                 SELECT DISTINCT location FROM sessions
                 WHERE user_id = ? AND location IS NOT NULL
                 ORDER BY location
-                """),
-                (user_id,)
+                """
+                ),
+                (user_id,),
             )
             rows = cursor.fetchall()
             # Handle both dict (PostgreSQL) and tuple (SQLite) results
-            if rows and hasattr(rows[0], 'keys'):
+            if rows and hasattr(rows[0], "keys"):
                 return [row["location"] for row in rows]
             else:
                 return [row[0] for row in rows]
@@ -330,14 +363,16 @@ class SessionRepository:
         with get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(
-                convert_query("SELECT partners FROM sessions WHERE user_id = ? AND partners IS NOT NULL"),
-                (user_id,)
+                convert_query(
+                    "SELECT partners FROM sessions WHERE user_id = ? AND partners IS NOT NULL"
+                ),
+                (user_id,),
             )
             partners_set = set()
             rows = cursor.fetchall()
             for row in rows:
                 # Handle both dict (PostgreSQL) and tuple (SQLite) results
-                if hasattr(row, 'keys'):
+                if hasattr(row, "keys"):
                     partners_list = json.loads(row["partners"])
                 else:
                     partners_list = json.loads(row[0])
@@ -350,17 +385,19 @@ class SessionRepository:
         with get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(
-                convert_query("""
+                convert_query(
+                    """
                 SELECT class_type FROM sessions
                 WHERE user_id = ?
                 ORDER BY session_date DESC, created_at DESC
                 LIMIT ?
-                """),
+                """
+                ),
                 (user_id, n),
             )
             rows = cursor.fetchall()
             # Handle both dict (PostgreSQL) and tuple (SQLite) results
-            if rows and hasattr(rows[0], 'keys'):
+            if rows and hasattr(rows[0], "keys"):
                 return [row["class_type"] for row in rows]
             else:
                 return [row[0] for row in rows]
@@ -382,7 +419,7 @@ class SessionRepository:
             # Delete the session itself
             cursor.execute(
                 convert_query("DELETE FROM sessions WHERE id = ? AND user_id = ?"),
-                (session_id, user_id)
+                (session_id, user_id),
             )
             return cursor.rowcount > 0
 

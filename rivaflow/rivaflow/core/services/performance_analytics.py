@@ -1,4 +1,5 @@
 """Performance analytics service for training sessions."""
+
 import statistics
 from collections import Counter, defaultdict
 from datetime import date, timedelta
@@ -24,7 +25,11 @@ class PerformanceAnalyticsService:
         self.glossary_repo = GlossaryRepository()
 
     def get_performance_overview(
-        self, user_id: int, start_date: date | None = None, end_date: date | None = None, types: list[str] | None = None
+        self,
+        user_id: int,
+        start_date: date | None = None,
+        end_date: date | None = None,
+        types: list[str] | None = None,
     ) -> dict[str, Any]:
         """
         Get performance overview metrics.
@@ -46,7 +51,9 @@ class PerformanceAnalyticsService:
         if not end_date:
             end_date = date.today()
 
-        sessions = self.session_repo.get_by_date_range(user_id, start_date, end_date, types=types)
+        sessions = self.session_repo.get_by_date_range(
+            user_id, start_date, end_date, types=types
+        )
 
         # Submission success over time (monthly)
         monthly_stats = defaultdict(lambda: {"for": 0, "against": 0, "ratio": 0})
@@ -69,13 +76,15 @@ class PerformanceAnalyticsService:
         # Training volume calendar (daily)
         volume_calendar = []
         for session in sessions:
-            volume_calendar.append({
-                "date": session["session_date"].isoformat(),
-                "intensity": session["intensity"],
-                "duration": session["duration_mins"],
-                "class_type": session["class_type"],
-                "sessions": 1,
-            })
+            volume_calendar.append(
+                {
+                    "date": session["session_date"].isoformat(),
+                    "intensity": session["intensity"],
+                    "duration": session["duration_mins"],
+                    "class_type": session["class_type"],
+                    "sessions": 1,
+                }
+            )
 
         # Top submissions (requires roll data with movement IDs)
         top_subs_for = Counter()
@@ -100,43 +109,55 @@ class PerformanceAnalyticsService:
         for movement_id, count in top_subs_for.most_common(5):
             movement = self.glossary_repo.get_by_id(movement_id)
             if movement:
-                top_subs_for_list.append({
-                    "name": movement["name"],
-                    "count": count,
-                    "id": movement_id,
-                })
+                top_subs_for_list.append(
+                    {
+                        "name": movement["name"],
+                        "count": count,
+                        "id": movement_id,
+                    }
+                )
 
         top_subs_against_list = []
         for movement_id, count in top_subs_against.most_common(5):
             movement = self.glossary_repo.get_by_id(movement_id)
             if movement:
-                top_subs_against_list.append({
-                    "name": movement["name"],
-                    "count": count,
-                    "id": movement_id,
-                })
+                top_subs_against_list.append(
+                    {
+                        "name": movement["name"],
+                        "count": count,
+                        "id": movement_id,
+                    }
+                )
 
         # Performance by belt rank
         gradings = self.grading_repo.list_all(user_id)
         belt_performance = self._calculate_performance_by_belt(sessions, gradings)
 
         # Daily time series for sparklines
-        daily_timeseries = self._calculate_daily_timeseries(sessions, start_date, end_date)
+        daily_timeseries = self._calculate_daily_timeseries(
+            sessions, start_date, end_date
+        )
 
         # Previous period comparison for deltas
         period_length = (end_date - start_date).days
         prev_start = start_date - timedelta(days=period_length)
         prev_end = start_date - timedelta(days=1)
-        prev_sessions = self.session_repo.get_by_date_range(user_id, prev_start, prev_end)
+        prev_sessions = self.session_repo.get_by_date_range(
+            user_id, prev_start, prev_end
+        )
         prev_summary = self._calculate_period_summary(prev_sessions)
         current_summary = self._calculate_period_summary(sessions)
 
         # Calculate deltas
         deltas = {
-            "sessions": current_summary["total_sessions"] - prev_summary["total_sessions"],
-            "intensity": round(current_summary["avg_intensity"] - prev_summary["avg_intensity"], 1),
+            "sessions": current_summary["total_sessions"]
+            - prev_summary["total_sessions"],
+            "intensity": round(
+                current_summary["avg_intensity"] - prev_summary["avg_intensity"], 1
+            ),
             "rolls": current_summary["total_rolls"] - prev_summary["total_rolls"],
-            "submissions": current_summary["total_submissions_for"] - prev_summary["total_submissions_for"],
+            "submissions": current_summary["total_submissions_for"]
+            - prev_summary["total_submissions_for"],
         }
 
         return {
@@ -165,11 +186,20 @@ class PerformanceAnalyticsService:
 
         return {
             "total_sessions": len(sessions),
-            "total_submissions_for": sum(s.get("submissions_for", 0) or 0 for s in sessions),
-            "total_submissions_against": sum(s.get("submissions_against", 0) or 0 for s in sessions),
+            "total_submissions_for": sum(
+                s.get("submissions_for", 0) or 0 for s in sessions
+            ),
+            "total_submissions_against": sum(
+                s.get("submissions_against", 0) or 0 for s in sessions
+            ),
             "total_rolls": sum(s.get("rolls", 0) or 0 for s in sessions),
             "avg_intensity": round(
-                statistics.mean([s.get("intensity", 0) or 0 for s in sessions]) if sessions else 0, 1
+                (
+                    statistics.mean([s.get("intensity", 0) or 0 for s in sessions])
+                    if sessions
+                    else 0
+                ),
+                1,
             ),
         }
 
@@ -178,12 +208,14 @@ class PerformanceAnalyticsService:
     ) -> dict[str, list[float]]:
         """Calculate daily aggregated time series data for sparklines."""
         # Create a dict for each day in the range
-        daily_data = defaultdict(lambda: {
-            "sessions": 0,
-            "total_intensity": 0,
-            "rolls": 0,
-            "submissions": 0,
-        })
+        daily_data = defaultdict(
+            lambda: {
+                "sessions": 0,
+                "total_intensity": 0,
+                "rolls": 0,
+                "submissions": 0,
+            }
+        )
 
         # Aggregate sessions by day
         for session in sessions:
@@ -208,7 +240,9 @@ class PerformanceAnalyticsService:
 
             # Avg intensity for the day (if any sessions)
             if data["sessions"] > 0:
-                intensity_series.append(round(data["total_intensity"] / data["sessions"], 1))
+                intensity_series.append(
+                    round(data["total_intensity"] / data["sessions"], 1)
+                )
             else:
                 intensity_series.append(0)
 
@@ -256,11 +290,13 @@ class PerformanceAnalyticsService:
         # Build distribution list
         distribution = []
         for partner_id, session_count in partner_session_count.items():
-            distribution.append({
-                "partner_id": partner_id,
-                "partner_name": partner_names.get(partner_id, "Unknown"),
-                "session_count": session_count,
-            })
+            distribution.append(
+                {
+                    "partner_id": partner_id,
+                    "partner_name": partner_names.get(partner_id, "Unknown"),
+                    "session_count": session_count,
+                }
+            )
 
         # Sort by session count
         distribution.sort(key=lambda x: x["session_count"], reverse=True)
@@ -272,12 +308,14 @@ class PerformanceAnalyticsService:
         """Calculate metrics for each belt rank period."""
         if not gradings:
             # No belt data, return overall stats
-            return [{
-                "belt": "unranked",
-                "sessions": len(sessions),
-                "subs_for": sum(s["submissions_for"] for s in sessions),
-                "subs_against": sum(s["submissions_against"] for s in sessions),
-            }]
+            return [
+                {
+                    "belt": "unranked",
+                    "sessions": len(sessions),
+                    "subs_for": sum(s["submissions_for"] for s in sessions),
+                    "subs_against": sum(s["submissions_against"] for s in sessions),
+                }
+            ]
 
         # Sort gradings by date
         sorted_gradings = sorted(gradings, key=lambda g: g["date_graded"])
@@ -295,24 +333,29 @@ class PerformanceAnalyticsService:
             else:
                 end = date.today()
 
-            period_sessions = [
-                s for s in sessions
-                if start <= s["session_date"] < end
-            ]
+            period_sessions = [s for s in sessions if start <= s["session_date"] < end]
 
-            belt_periods.append({
-                "belt": grading["grade"],
-                "start_date": start.isoformat(),
-                "end_date": end.isoformat(),
-                "sessions": len(period_sessions),
-                "subs_for": sum(s["submissions_for"] for s in period_sessions),
-                "subs_against": sum(s["submissions_against"] for s in period_sessions),
-            })
+            belt_periods.append(
+                {
+                    "belt": grading["grade"],
+                    "start_date": start.isoformat(),
+                    "end_date": end.isoformat(),
+                    "sessions": len(period_sessions),
+                    "subs_for": sum(s["submissions_for"] for s in period_sessions),
+                    "subs_against": sum(
+                        s["submissions_against"] for s in period_sessions
+                    ),
+                }
+            )
 
         return belt_periods
 
     def get_partner_analytics(
-        self, user_id: int, start_date: date | None = None, end_date: date | None = None, types: list[str] | None = None
+        self,
+        user_id: int,
+        start_date: date | None = None,
+        end_date: date | None = None,
+        types: list[str] | None = None,
     ) -> dict[str, Any]:
         """
         Get partner analytics data.
@@ -332,7 +375,9 @@ class PerformanceAnalyticsService:
         if not end_date:
             end_date = date.today()
 
-        sessions = self.session_repo.get_by_date_range(user_id, start_date, end_date, types=types)
+        sessions = self.session_repo.get_by_date_range(
+            user_id, start_date, end_date, types=types
+        )
 
         # Get all partners from contacts
         partners = self.friend_repo.list_by_type(user_id, "training-partner")
@@ -344,22 +389,27 @@ class PerformanceAnalyticsService:
             # Filter by date range
             rolls_in_range = self.roll_repo.get_by_partner_id(user_id, partner["id"])
             rolls_in_range = [
-                r for r in rolls_in_range
-                if start_date <= self._get_session_date(user_id, r["session_id"]) <= end_date
+                r
+                for r in rolls_in_range
+                if start_date
+                <= self._get_session_date(user_id, r["session_id"])
+                <= end_date
             ]
 
-            partner_matrix.append({
-                "id": partner["id"],
-                "name": partner["name"],
-                "belt_rank": partner.get("belt_rank"),
-                "belt_stripes": partner.get("belt_stripes", 0),
-                "total_rolls": len(rolls_in_range),
-                "submissions_for": stats.get("total_submissions_for", 0),
-                "submissions_against": stats.get("total_submissions_against", 0),
-                "sub_ratio": stats.get("sub_ratio", 0),
-                "subs_per_roll_for": stats.get("subs_per_roll_for", 0),
-                "subs_per_roll_against": stats.get("subs_per_roll_against", 0),
-            })
+            partner_matrix.append(
+                {
+                    "id": partner["id"],
+                    "name": partner["name"],
+                    "belt_rank": partner.get("belt_rank"),
+                    "belt_stripes": partner.get("belt_stripes", 0),
+                    "total_rolls": len(rolls_in_range),
+                    "submissions_for": stats.get("total_submissions_for", 0),
+                    "submissions_against": stats.get("total_submissions_against", 0),
+                    "sub_ratio": stats.get("sub_ratio", 0),
+                    "subs_per_roll_for": stats.get("subs_per_roll_for", 0),
+                    "subs_per_roll_against": stats.get("subs_per_roll_against", 0),
+                }
+            )
 
         # Sort by total rolls
         partner_matrix.sort(key=lambda p: p["total_rolls"], reverse=True)
@@ -371,10 +421,14 @@ class PerformanceAnalyticsService:
         recurring_partners = len([p for p in active_partners if p["total_rolls"] > 3])
 
         # Top partners summary (top 5)
-        top_partners = partner_matrix[:5] if len(partner_matrix) >= 5 else partner_matrix
+        top_partners = (
+            partner_matrix[:5] if len(partner_matrix) >= 5 else partner_matrix
+        )
 
         # Calculate session distribution by partner
-        session_distribution = self._calculate_partner_session_distribution(user_id, sessions)
+        session_distribution = self._calculate_partner_session_distribution(
+            user_id, sessions
+        )
 
         # Overall partner stats
         total_rolls_all_partners = sum(p["total_rolls"] for p in partner_matrix)
@@ -431,7 +485,11 @@ class PerformanceAnalyticsService:
         return session["session_date"] if session else date.today()
 
     def get_instructor_analytics(
-        self, user_id: int, start_date: date | None = None, end_date: date | None = None, types: list[str] | None = None
+        self,
+        user_id: int,
+        start_date: date | None = None,
+        end_date: date | None = None,
+        types: list[str] | None = None,
     ) -> dict[str, Any]:
         """
         Get instructor insights.
@@ -451,14 +509,15 @@ class PerformanceAnalyticsService:
         if not end_date:
             end_date = date.today()
 
-        sessions = self.session_repo.get_by_date_range(user_id, start_date, end_date, types=types)
+        sessions = self.session_repo.get_by_date_range(
+            user_id, start_date, end_date, types=types
+        )
         instructors = self.friend_repo.list_by_type(user_id, "instructor")
 
         performance_by_instructor = []
         for instructor in instructors:
             instructor_sessions = [
-                s for s in sessions
-                if s.get("instructor_id") == instructor["id"]
+                s for s in sessions if s.get("instructor_id") == instructor["id"]
             ]
 
             if not instructor_sessions:
@@ -466,9 +525,13 @@ class PerformanceAnalyticsService:
 
             # Calculate metrics
             total_sessions = len(instructor_sessions)
-            avg_intensity = statistics.mean([s["intensity"] for s in instructor_sessions])
+            avg_intensity = statistics.mean(
+                [s["intensity"] for s in instructor_sessions]
+            )
             total_subs_for = sum(s["submissions_for"] for s in instructor_sessions)
-            total_subs_against = sum(s["submissions_against"] for s in instructor_sessions)
+            total_subs_against = sum(
+                s["submissions_against"] for s in instructor_sessions
+            )
 
             # Analyze techniques taught
             techniques_taught = Counter()
@@ -476,20 +539,22 @@ class PerformanceAnalyticsService:
                 if session.get("techniques"):
                     techniques_taught.update(session["techniques"])
 
-            performance_by_instructor.append({
-                "instructor_id": instructor["id"],
-                "instructor_name": instructor["name"],
-                "belt_rank": instructor.get("belt_rank"),
-                "certification": instructor.get("instructor_certification"),
-                "total_sessions": total_sessions,
-                "avg_intensity": round(avg_intensity, 1),
-                "submissions_for": total_subs_for,
-                "submissions_against": total_subs_against,
-                "top_techniques": [
-                    {"name": tech, "count": count}
-                    for tech, count in techniques_taught.most_common(5)
-                ],
-            })
+            performance_by_instructor.append(
+                {
+                    "instructor_id": instructor["id"],
+                    "instructor_name": instructor["name"],
+                    "belt_rank": instructor.get("belt_rank"),
+                    "certification": instructor.get("instructor_certification"),
+                    "total_sessions": total_sessions,
+                    "avg_intensity": round(avg_intensity, 1),
+                    "submissions_for": total_subs_for,
+                    "submissions_against": total_subs_against,
+                    "top_techniques": [
+                        {"name": tech, "count": count}
+                        for tech, count in techniques_taught.most_common(5)
+                    ],
+                }
+            )
 
         return {
             "performance_by_instructor": performance_by_instructor,

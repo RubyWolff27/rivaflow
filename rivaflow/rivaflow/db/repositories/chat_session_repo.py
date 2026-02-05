@@ -1,4 +1,5 @@
 """Repository for Grapple chat sessions data access."""
+
 from datetime import datetime
 from typing import Any
 from uuid import uuid4
@@ -24,11 +25,13 @@ class ChatSessionRepository:
         session_id = str(uuid4())
         session_title = title or "New Chat"
 
-        query = convert_query("""
+        query = convert_query(
+            """
             INSERT INTO chat_sessions (id, user_id, title, message_count, total_tokens, total_cost_usd)
             VALUES (?, ?, ?, 0, 0, 0.0)
             RETURNING id, user_id, title, message_count, total_tokens, total_cost_usd, created_at, updated_at
-        """)
+        """
+        )
 
         with get_connection() as conn:
             cursor = conn.cursor()
@@ -38,7 +41,7 @@ class ChatSessionRepository:
 
             if row:
                 # Handle both dict (PostgreSQL) and tuple (SQLite) results
-                if hasattr(row, 'keys'):
+                if hasattr(row, "keys"):
                     # PostgreSQL RealDictCursor
                     return dict(row)
                 else:
@@ -80,7 +83,7 @@ class ChatSessionRepository:
 
             if row:
                 # Handle both dict (PostgreSQL) and tuple (SQLite) results
-                if hasattr(row, 'keys'):
+                if hasattr(row, "keys"):
                     # PostgreSQL RealDictCursor
                     return dict(row)
                 else:
@@ -98,7 +101,9 @@ class ChatSessionRepository:
             return None
 
     @staticmethod
-    def get_by_user(user_id: int, limit: int = 20, offset: int = 0) -> list[dict[str, Any]]:
+    def get_by_user(
+        user_id: int, limit: int = 20, offset: int = 0
+    ) -> list[dict[str, Any]]:
         """
         Get sessions for a user.
 
@@ -124,7 +129,7 @@ class ChatSessionRepository:
             rows = cursor.fetchall()
 
             # Handle both dict (PostgreSQL) and tuple (SQLite) results
-            if rows and hasattr(rows[0], 'keys'):
+            if rows and hasattr(rows[0], "keys"):
                 # PostgreSQL RealDictCursor
                 return [dict(row) for row in rows]
             else:
@@ -162,20 +167,28 @@ class ChatSessionRepository:
         Returns:
             True if updated
         """
-        query = convert_query("""
+        query = convert_query(
+            """
             UPDATE chat_sessions
             SET message_count = message_count + ?,
                 total_tokens = total_tokens + ?,
                 total_cost_usd = total_cost_usd + ?,
                 updated_at = ?
             WHERE id = ?
-        """)
+        """
+        )
 
         with get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(
                 query,
-                (message_count_delta, tokens_delta, cost_delta, datetime.utcnow(), session_id),
+                (
+                    message_count_delta,
+                    tokens_delta,
+                    cost_delta,
+                    datetime.utcnow(),
+                    session_id,
+                ),
             )
             conn.commit()
             return cursor.rowcount > 0
@@ -183,11 +196,13 @@ class ChatSessionRepository:
     @staticmethod
     def update_title(session_id: str, user_id: int, title: str) -> bool:
         """Update session title."""
-        query = convert_query("""
+        query = convert_query(
+            """
             UPDATE chat_sessions
             SET title = ?, updated_at = ?
             WHERE id = ? AND user_id = ?
-        """)
+        """
+        )
 
         with get_connection() as conn:
             cursor = conn.cursor()

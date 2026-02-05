@@ -1,4 +1,5 @@
 """FastAPI application for RivaFlow web interface."""
+
 import logging
 import os
 from pathlib import Path
@@ -58,8 +59,8 @@ from rivaflow.core.settings import settings
 # Configure logging
 logging.basicConfig(
     level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-    datefmt='%Y-%m-%d %H:%M:%S'
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+    datefmt="%Y-%m-%d %H:%M:%S",
 )
 
 # Initialize rate limiter (disabled in test environment)
@@ -68,6 +69,7 @@ if not settings.IS_TEST:
 else:
     # Create a dummy limiter for test environment that doesn't limit
     from slowapi import Limiter as DummyLimiter
+
     limiter = DummyLimiter(key_func=get_remote_address, enabled=False)
 
 app = FastAPI(
@@ -98,14 +100,20 @@ else:
         "http://localhost:5174",
         "http://localhost:5175",
         "http://localhost:5176",
-        "http://localhost:3000"
+        "http://localhost:3000",
     ]
 
 app.add_middleware(
     CORSMiddleware,
     allow_origins=allowed_origins,
     allow_credentials=True,
-    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],  # Restrict to necessary methods
+    allow_methods=[
+        "GET",
+        "POST",
+        "PUT",
+        "DELETE",
+        "OPTIONS",
+    ],  # Restrict to necessary methods
     allow_headers=["Content-Type", "Authorization"],  # Only allow necessary headers
     max_age=3600,  # Cache preflight requests for 1 hour
 )
@@ -124,14 +132,17 @@ app.add_middleware(SecurityHeadersMiddleware)
 async def startup_event():
     """Validate configuration and initialize services at startup."""
     from rivaflow.core.config_validator import validate_environment
+
     validate_environment()
 
     # Run database migrations on startup (PostgreSQL only)
     from rivaflow.config import get_db_type
+
     if get_db_type() == "postgresql":
         logging.info("Running database migrations...")
         try:
             from rivaflow.db.migrate import run_migrations
+
             run_migrations()
             logging.info("Database migrations completed successfully")
         except Exception as e:
@@ -143,6 +154,7 @@ async def startup_event():
 async def shutdown_event():
     """Close database connection pool on application shutdown."""
     from rivaflow.db.database import close_connection_pool
+
     close_connection_pool()
 
 
@@ -156,7 +168,9 @@ app.include_router(readiness.router, prefix="/api/v1/readiness", tags=["readines
 app.include_router(rest.router, prefix="/api/v1")
 app.include_router(feed.router, prefix="/api/v1")
 app.include_router(reports.router, prefix="/api/v1/reports", tags=["reports"])
-app.include_router(suggestions.router, prefix="/api/v1/suggestions", tags=["suggestions"])
+app.include_router(
+    suggestions.router, prefix="/api/v1/suggestions", tags=["suggestions"]
+)
 app.include_router(techniques.router, prefix="/api/v1/techniques", tags=["techniques"])
 app.include_router(videos.router, prefix="/api/v1/videos", tags=["videos"])
 app.include_router(profile.router, prefix="/api/v1/profile", tags=["profile"])
@@ -214,9 +228,9 @@ async def health():
         status_code = 503
 
     from fastapi.responses import JSONResponse
+
     return JSONResponse(
-        status_code=status_code,
-        content={"status": overall_status, "checks": checks}
+        status_code=status_code, content={"status": overall_status, "checks": checks}
     )
 
 
@@ -230,7 +244,9 @@ app.mount("/uploads", StaticFiles(directory=str(uploads_path)), name="uploads")
 web_dist_path = Path(__file__).parent.parent.parent / "web" / "dist"
 if web_dist_path.exists():
     # Mount static assets (JS, CSS, images, etc.)
-    app.mount("/assets", StaticFiles(directory=str(web_dist_path / "assets")), name="assets")
+    app.mount(
+        "/assets", StaticFiles(directory=str(web_dist_path / "assets")), name="assets"
+    )
 
     # Catch-all route to serve index.html for React Router
     # This must be defined last to not override other routes
@@ -238,7 +254,11 @@ if web_dist_path.exists():
     async def serve_react_app(full_path: str):
         """Serve the React app for all non-API routes."""
         # Don't intercept API routes or health check
-        if full_path.startswith("api/") or full_path.startswith("api/v1/") or full_path == "health":
+        if (
+            full_path.startswith("api/")
+            or full_path.startswith("api/v1/")
+            or full_path == "health"
+        ):
             return {"error": "Not found"}
 
         # Serve index.html for all other routes (React Router will handle routing)
@@ -247,6 +267,7 @@ if web_dist_path.exists():
             return FileResponse(index_file)
         else:
             return {"error": "Frontend not built. Run 'cd web && npm run build'"}
+
 else:
     # If frontend not built, show API info at root
     @app.get("/")

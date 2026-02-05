@@ -1,4 +1,5 @@
 """Repository for movements glossary data access."""
+
 import json
 import sqlite3
 from datetime import datetime
@@ -49,7 +50,10 @@ class GlossaryRepository:
         """Get a movement by ID, optionally including custom video links."""
         with get_connection() as conn:
             cursor = conn.cursor()
-            cursor.execute(convert_query("SELECT * FROM movements_glossary WHERE id = ?"), (movement_id,))
+            cursor.execute(
+                convert_query("SELECT * FROM movements_glossary WHERE id = ?"),
+                (movement_id,),
+            )
             row = cursor.fetchone()
 
             if not row:
@@ -60,13 +64,15 @@ class GlossaryRepository:
             if include_custom_videos:
                 # Fetch custom videos for this movement
                 cursor.execute(
-                    convert_query("""
+                    convert_query(
+                        """
                     SELECT id, title, url, video_type, created_at
                     FROM movement_videos
                     WHERE movement_id = ?
                     ORDER BY created_at DESC
-                    """),
-                    (movement_id,)
+                    """
+                    ),
+                    (movement_id,),
                 )
                 videos = cursor.fetchall()
                 movement["custom_videos"] = [dict(v) for v in videos]
@@ -78,7 +84,10 @@ class GlossaryRepository:
         """Get a movement by exact name."""
         with get_connection() as conn:
             cursor = conn.cursor()
-            cursor.execute(convert_query("SELECT * FROM movements_glossary WHERE name = ?"), (name,))
+            cursor.execute(
+                convert_query("SELECT * FROM movements_glossary WHERE name = ?"),
+                (name,),
+            )
             row = cursor.fetchone()
             return GlossaryRepository._row_to_dict(row) if row else None
 
@@ -87,11 +96,15 @@ class GlossaryRepository:
         """Get list of all categories."""
         with get_connection() as conn:
             cursor = conn.cursor()
-            cursor.execute(convert_query("SELECT DISTINCT category FROM movements_glossary ORDER BY category"))
+            cursor.execute(
+                convert_query(
+                    "SELECT DISTINCT category FROM movements_glossary ORDER BY category"
+                )
+            )
             rows = cursor.fetchall()
             # Handle both dict (PostgreSQL RealDictCursor) and tuple (SQLite) results
-            if rows and hasattr(rows[0], 'keys'):
-                return [row['category'] for row in rows]
+            if rows and hasattr(rows[0], "keys"):
+                return [row["category"] for row in rows]
             else:
                 return [row[0] for row in rows]
 
@@ -121,11 +134,20 @@ class GlossaryRepository:
                 ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1)
                 """,
                 (
-                    name, category, subcategory, points, description,
-                    aliases_json, 1 if gi_applicable else 0, 1 if nogi_applicable else 0
-                )
+                    name,
+                    category,
+                    subcategory,
+                    points,
+                    description,
+                    aliases_json,
+                    1 if gi_applicable else 0,
+                    1 if nogi_applicable else 0,
+                ),
             )
-            cursor.execute(convert_query("SELECT * FROM movements_glossary WHERE id = ?"), (movement_id,))
+            cursor.execute(
+                convert_query("SELECT * FROM movements_glossary WHERE id = ?"),
+                (movement_id,),
+            )
             row = cursor.fetchone()
             return GlossaryRepository._row_to_dict(row)
 
@@ -134,7 +156,12 @@ class GlossaryRepository:
         """Delete a custom movement. Can only delete custom movements."""
         with get_connection() as conn:
             cursor = conn.cursor()
-            cursor.execute(convert_query("DELETE FROM movements_glossary WHERE id = ? AND custom = 1"), (movement_id,))
+            cursor.execute(
+                convert_query(
+                    "DELETE FROM movements_glossary WHERE id = ? AND custom = 1"
+                ),
+                (movement_id,),
+            )
             return cursor.rowcount > 0
 
     @staticmethod
@@ -153,9 +180,11 @@ class GlossaryRepository:
                 INSERT INTO movement_videos (movement_id, title, url, video_type)
                 VALUES (?, ?, ?, ?)
                 """,
-                (movement_id, title, url, video_type)
+                (movement_id, title, url, video_type),
             )
-            cursor.execute(convert_query("SELECT * FROM movement_videos WHERE id = ?"), (video_id,))
+            cursor.execute(
+                convert_query("SELECT * FROM movement_videos WHERE id = ?"), (video_id,)
+            )
             row = cursor.fetchone()
             return dict(row)
 
@@ -164,7 +193,9 @@ class GlossaryRepository:
         """Delete a custom video link."""
         with get_connection() as conn:
             cursor = conn.cursor()
-            cursor.execute(convert_query("DELETE FROM movement_videos WHERE id = ?"), (video_id,))
+            cursor.execute(
+                convert_query("DELETE FROM movement_videos WHERE id = ?"), (video_id,)
+            )
             return cursor.rowcount > 0
 
     @staticmethod
@@ -173,13 +204,15 @@ class GlossaryRepository:
         with get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(
-                convert_query("""
+                convert_query(
+                    """
                 SELECT id, title, url, video_type, created_at
                 FROM movement_videos
                 WHERE movement_id = ?
                 ORDER BY created_at DESC
-                """),
-                (movement_id,)
+                """
+                ),
+                (movement_id,),
             )
             return [dict(row) for row in cursor.fetchall()]
 
@@ -202,9 +235,16 @@ class GlossaryRepository:
             data["created_at"] = datetime.fromisoformat(data["created_at"])
 
         # Convert integer booleans to actual booleans
-        for field in ["gi_applicable", "nogi_applicable", "custom",
-                      "ibjjf_legal_white", "ibjjf_legal_blue", "ibjjf_legal_purple",
-                      "ibjjf_legal_brown", "ibjjf_legal_black"]:
+        for field in [
+            "gi_applicable",
+            "nogi_applicable",
+            "custom",
+            "ibjjf_legal_white",
+            "ibjjf_legal_blue",
+            "ibjjf_legal_purple",
+            "ibjjf_legal_brown",
+            "ibjjf_legal_black",
+        ]:
             if field in data:
                 data[field] = bool(data[field])
 

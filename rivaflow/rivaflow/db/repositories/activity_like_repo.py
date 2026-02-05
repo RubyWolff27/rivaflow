@@ -1,4 +1,5 @@
 """Repository for activity likes data access."""
+
 import sqlite3
 
 from rivaflow.db.database import convert_query, execute_insert, get_connection
@@ -34,7 +35,9 @@ class ActivityLikeRepository:
                 (user_id, activity_type, activity_id),
             )
 
-            cursor.execute(convert_query("SELECT * FROM activity_likes WHERE id = ?"), (like_id,))
+            cursor.execute(
+                convert_query("SELECT * FROM activity_likes WHERE id = ?"), (like_id,)
+            )
             row = cursor.fetchone()
             return ActivityLikeRepository._row_to_dict(row)
 
@@ -54,10 +57,12 @@ class ActivityLikeRepository:
         with get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(
-                convert_query("""
+                convert_query(
+                    """
                 DELETE FROM activity_likes
                 WHERE user_id = ? AND activity_type = ? AND activity_id = ?
-                """),
+                """
+                ),
                 (user_id, activity_type, activity_id),
             )
             return cursor.rowcount > 0
@@ -77,18 +82,20 @@ class ActivityLikeRepository:
         with get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(
-                convert_query("""
+                convert_query(
+                    """
                 SELECT COUNT(*) as count
                 FROM activity_likes
                 WHERE activity_type = ? AND activity_id = ?
-                """),
+                """
+                ),
                 (activity_type, activity_id),
             )
             row = cursor.fetchone()
             if not row:
                 return 0
             # Handle both dict (PostgreSQL) and tuple (SQLite) results
-            if hasattr(row, 'keys'):
+            if hasattr(row, "keys"):
                 return row["count"]
             else:
                 return row[0]
@@ -109,10 +116,12 @@ class ActivityLikeRepository:
         with get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(
-                convert_query("""
+                convert_query(
+                    """
                 SELECT 1 FROM activity_likes
                 WHERE user_id = ? AND activity_type = ? AND activity_id = ?
-                """),
+                """
+                ),
                 (user_id, activity_type, activity_id),
             )
             return cursor.fetchone() is not None
@@ -132,7 +141,8 @@ class ActivityLikeRepository:
         with get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(
-                convert_query("""
+                convert_query(
+                    """
                 SELECT
                     al.id,
                     al.user_id,
@@ -146,7 +156,8 @@ class ActivityLikeRepository:
                 JOIN users u ON al.user_id = u.id
                 WHERE al.activity_type = ? AND al.activity_id = ?
                 ORDER BY al.created_at DESC
-                """),
+                """
+                ),
                 (activity_type, activity_id),
             )
             rows = cursor.fetchall()
@@ -168,12 +179,14 @@ class ActivityLikeRepository:
         with get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(
-                convert_query("""
+                convert_query(
+                    """
                 SELECT * FROM activity_likes
                 WHERE user_id = ?
                 ORDER BY created_at DESC
                 LIMIT ? OFFSET ?
-                """),
+                """
+                ),
                 (user_id, limit, offset),
             )
             rows = cursor.fetchall()

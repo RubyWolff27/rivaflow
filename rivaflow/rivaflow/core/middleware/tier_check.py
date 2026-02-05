@@ -20,31 +20,38 @@ def require_feature(feature: str):
         async def get_advanced_analytics(request: Request, current_user=Depends(get_current_user)):
             ...
     """
+
     def decorator(func):
         @wraps(func)
         async def wrapper(*args, **kwargs):
             # Extract request and user from kwargs
-            kwargs.get('request') or next((arg for arg in args if isinstance(arg, Request)), None)
-            current_user = kwargs.get('current_user')
+            kwargs.get("request") or next(
+                (arg for arg in args if isinstance(arg, Request)), None
+            )
+            current_user = kwargs.get("current_user")
 
             if not current_user:
                 raise HTTPException(
                     status_code=status.HTTP_401_UNAUTHORIZED,
-                    detail="Authentication required"
+                    detail="Authentication required",
                 )
 
-            user_tier = getattr(current_user, 'subscription_tier', 'free')
-            has_access, error_msg = TierAccessService.check_tier_access(user_tier, feature)
+            user_tier = getattr(current_user, "subscription_tier", "free")
+            has_access, error_msg = TierAccessService.check_tier_access(
+                user_tier, feature
+            )
 
             if not has_access:
                 raise HTTPException(
                     status_code=status.HTTP_403_FORBIDDEN,
                     detail=error_msg or "Access denied",
-                    headers={"X-Upgrade-Required": "true"}
+                    headers={"X-Upgrade-Required": "true"},
                 )
 
             return await func(*args, **kwargs)
+
         return wrapper
+
     return decorator
 
 
@@ -58,20 +65,21 @@ def check_limit(feature: str, increment: bool = True):
         async def add_friend(request: Request, current_user=Depends(get_current_user)):
             ...
     """
+
     def decorator(func):
         @wraps(func)
         async def wrapper(*args, **kwargs):
             # Extract user from kwargs
-            current_user = kwargs.get('current_user')
+            current_user = kwargs.get("current_user")
 
             if not current_user:
                 raise HTTPException(
                     status_code=status.HTTP_401_UNAUTHORIZED,
-                    detail="Authentication required"
+                    detail="Authentication required",
                 )
 
             user_id = current_user.id
-            user_tier = getattr(current_user, 'subscription_tier', 'free')
+            user_tier = getattr(current_user, "subscription_tier", "free")
 
             allowed, error_msg, current_count = TierAccessService.check_usage_limit(
                 user_id, user_tier, feature, increment=increment
@@ -83,20 +91,22 @@ def check_limit(feature: str, increment: bool = True):
                     detail=error_msg or "Usage limit exceeded",
                     headers={
                         "X-Upgrade-Required": "true",
-                        "X-Current-Usage": str(current_count)
-                    }
+                        "X-Current-Usage": str(current_count),
+                    },
                 )
 
             # Add usage info to request state
-            if hasattr(kwargs.get('request'), 'state'):
-                kwargs['request'].state.feature_usage = {
-                    'feature': feature,
-                    'current': current_count,
-                    'incremented': increment
+            if hasattr(kwargs.get("request"), "state"):
+                kwargs["request"].state.feature_usage = {
+                    "feature": feature,
+                    "current": current_count,
+                    "incremented": increment,
                 }
 
             return await func(*args, **kwargs)
+
         return wrapper
+
     return decorator
 
 
@@ -110,28 +120,31 @@ def require_premium():
         async def get_premium_feature(request: Request, current_user=Depends(get_current_user)):
             ...
     """
+
     def decorator(func):
         @wraps(func)
         async def wrapper(*args, **kwargs):
-            current_user = kwargs.get('current_user')
+            current_user = kwargs.get("current_user")
 
             if not current_user:
                 raise HTTPException(
                     status_code=status.HTTP_401_UNAUTHORIZED,
-                    detail="Authentication required"
+                    detail="Authentication required",
                 )
 
-            user_tier = getattr(current_user, 'subscription_tier', 'free')
+            user_tier = getattr(current_user, "subscription_tier", "free")
 
-            if user_tier not in ['premium', 'lifetime_premium', 'admin']:
+            if user_tier not in ["premium", "lifetime_premium", "admin"]:
                 raise HTTPException(
                     status_code=status.HTTP_403_FORBIDDEN,
                     detail="This feature requires a Premium subscription.",
-                    headers={"X-Upgrade-Required": "true"}
+                    headers={"X-Upgrade-Required": "true"},
                 )
 
             return await func(*args, **kwargs)
+
         return wrapper
+
     return decorator
 
 
@@ -145,25 +158,28 @@ def require_admin():
         async def verify_gym(request: Request, current_user=Depends(get_current_user)):
             ...
     """
+
     def decorator(func):
         @wraps(func)
         async def wrapper(*args, **kwargs):
-            current_user = kwargs.get('current_user')
+            current_user = kwargs.get("current_user")
 
             if not current_user:
                 raise HTTPException(
                     status_code=status.HTTP_401_UNAUTHORIZED,
-                    detail="Authentication required"
+                    detail="Authentication required",
                 )
 
-            user_tier = getattr(current_user, 'subscription_tier', 'free')
+            user_tier = getattr(current_user, "subscription_tier", "free")
 
-            if user_tier != 'admin':
+            if user_tier != "admin":
                 raise HTTPException(
                     status_code=status.HTTP_403_FORBIDDEN,
-                    detail="Administrative access required."
+                    detail="Administrative access required.",
                 )
 
             return await func(*args, **kwargs)
+
         return wrapper
+
     return decorator

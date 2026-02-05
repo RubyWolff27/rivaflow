@@ -1,4 +1,5 @@
 """Repository for friend suggestions data access."""
+
 import json
 from datetime import datetime, timedelta
 from typing import Any
@@ -16,7 +17,7 @@ class FriendSuggestionsRepository:
         score: float,
         reasons: list[str],
         mutual_friends_count: int = 0,
-        expires_at: datetime | None = None
+        expires_at: datetime | None = None,
     ) -> int:
         """Create a new friend suggestion."""
         if expires_at is None:
@@ -49,7 +50,8 @@ class FriendSuggestionsRepository:
         with get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(
-                convert_query("""
+                convert_query(
+                    """
                     SELECT
                         fs.*,
                         u.username,
@@ -69,7 +71,8 @@ class FriendSuggestionsRepository:
                     AND fs.expires_at > ?
                     ORDER BY fs.score DESC
                     LIMIT ?
-                """),
+                """
+                ),
                 (user_id, datetime.now(), limit),
             )
             rows = cursor.fetchall()
@@ -81,11 +84,13 @@ class FriendSuggestionsRepository:
         with get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(
-                convert_query("""
+                convert_query(
+                    """
                     UPDATE friend_suggestions
                     SET dismissed = TRUE, dismissed_at = ?
                     WHERE user_id = ? AND suggested_user_id = ?
-                """),
+                """
+                ),
                 (datetime.now(), user_id, suggested_user_id),
             )
             return cursor.rowcount > 0
@@ -96,10 +101,12 @@ class FriendSuggestionsRepository:
         with get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(
-                convert_query("""
+                convert_query(
+                    """
                     DELETE FROM friend_suggestions
                     WHERE user_id = ? AND expires_at < ?
-                """),
+                """
+                ),
                 (user_id, datetime.now()),
             )
             return cursor.rowcount
@@ -121,21 +128,23 @@ class FriendSuggestionsRepository:
         with get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(
-                convert_query("""
+                convert_query(
+                    """
                     SELECT COUNT(*) as count FROM friend_suggestions
                     WHERE user_id = ? AND suggested_user_id = ?
                     AND dismissed = FALSE
-                """),
+                """
+                ),
                 (user_id, suggested_user_id),
             )
             row = cursor.fetchone()
-            count = row["count"] if hasattr(row, 'keys') else row[0]
+            count = row["count"] if hasattr(row, "keys") else row[0]
             return count > 0
 
     @staticmethod
     def _row_to_dict(row) -> dict[str, Any]:
         """Convert database row to dictionary."""
-        if hasattr(row, 'keys'):
+        if hasattr(row, "keys"):
             result = dict(row)
         else:
             # Tuple-based result (SQLite)

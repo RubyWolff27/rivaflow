@@ -1,4 +1,5 @@
 """API routes for daily check-ins."""
+
 from datetime import date, timedelta
 
 from fastapi import APIRouter, Depends
@@ -13,6 +14,7 @@ router = APIRouter(prefix="/checkins", tags=["checkins"])
 
 class TomorrowIntentionUpdate(BaseModel):
     """Update tomorrow's intention."""
+
     tomorrow_intention: str
 
 
@@ -26,11 +28,7 @@ def get_today_checkin(current_user: dict = Depends(get_current_user)):
     if not checkin:
         return {"checked_in": False, "date": today.isoformat()}
 
-    return {
-        "checked_in": True,
-        "date": today.isoformat(),
-        **checkin
-    }
+    return {"checked_in": True, "date": today.isoformat(), **checkin}
 
 
 @router.get("/week")
@@ -44,17 +42,21 @@ def get_week_checkins(current_user: dict = Depends(get_current_user)):
     for i in range(7):
         check_date = week_start + timedelta(days=i)
         checkin = repo.get_checkin(user_id=current_user["id"], check_date=check_date)
-        checkins.append({
-            "date": check_date.isoformat(),
-            "checked_in": checkin is not None,
-            "checkin_type": checkin.get("checkin_type") if checkin else None,
-        })
+        checkins.append(
+            {
+                "date": check_date.isoformat(),
+                "checked_in": checkin is not None,
+                "checkin_type": checkin.get("checkin_type") if checkin else None,
+            }
+        )
 
     return {"week_start": week_start.isoformat(), "checkins": checkins}
 
 
 @router.put("/today/tomorrow")
-def update_tomorrow_intention(data: TomorrowIntentionUpdate, current_user: dict = Depends(get_current_user)):
+def update_tomorrow_intention(
+    data: TomorrowIntentionUpdate, current_user: dict = Depends(get_current_user)
+):
     """Update tomorrow's intention for today's check-in."""
     repo = CheckinRepository()
     today = date.today()
@@ -65,6 +67,10 @@ def update_tomorrow_intention(data: TomorrowIntentionUpdate, current_user: dict 
         raise NotFoundError("No check-in found for today")
 
     # Update tomorrow's intention
-    repo.update_tomorrow_intention(user_id=current_user["id"], check_date=today, tomorrow_intention=data.tomorrow_intention)
+    repo.update_tomorrow_intention(
+        user_id=current_user["id"],
+        check_date=today,
+        tomorrow_intention=data.tomorrow_intention,
+    )
 
     return {"success": True, "tomorrow_intention": data.tomorrow_intention}

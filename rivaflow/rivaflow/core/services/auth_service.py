@@ -1,4 +1,5 @@
 """Service layer for authentication operations."""
+
 from typing import Any
 
 from rivaflow.core.auth import (
@@ -49,7 +50,7 @@ class AuthService:
         is_valid, normalized_email, error = validate_email_address(
             email,
             check_deliverability=False,  # Skip MX check for performance
-            allow_disposable=True  # Allow disposable emails for testing/beta
+            allow_disposable=True,  # Allow disposable emails for testing/beta
         )
         if not is_valid:
             error_code = error.get("code", "INVALID_EMAIL")
@@ -61,7 +62,7 @@ class AuthService:
             raise ValidationError(
                 message=error.get("message", "Invalid email format"),
                 details={"code": error_code},
-                action=action
+                action=action,
             )
 
         # Use normalized email (lowercase domain)
@@ -71,7 +72,7 @@ class AuthService:
         if len(password) < 8:
             raise ValidationError(
                 message="Password must be at least 8 characters long",
-                action="Choose a password with at least 8 characters. Consider using a mix of letters, numbers, and symbols for better security."
+                action="Choose a password with at least 8 characters. Consider using a mix of letters, numbers, and symbols for better security.",
             )
 
         # Check if email already exists
@@ -79,7 +80,7 @@ class AuthService:
         if existing_user:
             raise ValidationError(
                 message="Email already registered",
-                action="If you already have an account, please login instead. If you forgot your password, use the 'Forgot Password' link."
+                action="If you already have an account, please login instead. If you forgot your password, use the 'Forgot Password' link.",
             )
 
         # Hash password
@@ -101,15 +102,18 @@ class AuthService:
             import logging
 
             from rivaflow.db.database import convert_query, get_connection
+
             logger = logging.getLogger(__name__)
 
             with get_connection() as conn:
                 cursor = conn.cursor()
                 cursor.execute(
-                    convert_query("""
+                    convert_query(
+                        """
                     INSERT INTO profile (user_id, first_name, last_name, email)
                     VALUES (?, ?, ?, ?)
-                    """),
+                    """
+                    ),
                     (user["id"], first_name, last_name, email),
                 )
         except Exception as e:
@@ -118,9 +122,12 @@ class AuthService:
             try:
                 # Attempt to delete the user to maintain consistency
                 from rivaflow.db.database import convert_query, get_connection
+
                 with get_connection() as conn:
                     cursor = conn.cursor()
-                    cursor.execute(convert_query("DELETE FROM users WHERE id = ?"), (user["id"],))
+                    cursor.execute(
+                        convert_query("DELETE FROM users WHERE id = ?"), (user["id"],)
+                    )
             except Exception:
                 pass  # Best effort cleanup
             raise ValueError("Registration failed - unable to create user profile")
@@ -132,15 +139,21 @@ class AuthService:
             with get_connection() as conn:
                 cursor = conn.cursor()
                 cursor.execute(
-                    convert_query("INSERT INTO streaks (streak_type, current_streak, longest_streak, user_id) VALUES (?, ?, ?, ?)"),
+                    convert_query(
+                        "INSERT INTO streaks (streak_type, current_streak, longest_streak, user_id) VALUES (?, ?, ?, ?)"
+                    ),
                     ("checkin", 0, 0, user["id"]),
                 )
                 cursor.execute(
-                    convert_query("INSERT INTO streaks (streak_type, current_streak, longest_streak, user_id) VALUES (?, ?, ?, ?)"),
+                    convert_query(
+                        "INSERT INTO streaks (streak_type, current_streak, longest_streak, user_id) VALUES (?, ?, ?, ?)"
+                    ),
                     ("training", 0, 0, user["id"]),
                 )
                 cursor.execute(
-                    convert_query("INSERT INTO streaks (streak_type, current_streak, longest_streak, user_id) VALUES (?, ?, ?, ?)"),
+                    convert_query(
+                        "INSERT INTO streaks (streak_type, current_streak, longest_streak, user_id) VALUES (?, ?, ?, ?)"
+                    ),
                     ("readiness", 0, 0, user["id"]),
                 )
         except Exception as e:
@@ -149,9 +162,12 @@ class AuthService:
             try:
                 # Cleanup: delete user (CASCADE will delete profile)
                 from rivaflow.db.database import convert_query, get_connection
+
                 with get_connection() as conn:
                     cursor = conn.cursor()
-                    cursor.execute(convert_query("DELETE FROM users WHERE id = ?"), (user["id"],))
+                    cursor.execute(
+                        convert_query("DELETE FROM users WHERE id = ?"), (user["id"],)
+                    )
             except Exception:
                 pass  # Best effort cleanup
             raise ValueError("Registration failed - unable to initialize user data")
@@ -192,21 +208,21 @@ class AuthService:
         if not user:
             raise AuthenticationError(
                 message="Invalid email or password",
-                action="Double-check your email and password. If you forgot your password, click 'Forgot Password' to reset it."
+                action="Double-check your email and password. If you forgot your password, click 'Forgot Password' to reset it.",
             )
 
         # Check if user is active
         if not user.get("is_active"):
             raise AuthenticationError(
                 message="Account is inactive",
-                action="Your account has been deactivated. Please contact support@rivaflow.com for assistance."
+                action="Your account has been deactivated. Please contact support@rivaflow.com for assistance.",
             )
 
         # Verify password
         if not verify_password(password, user["hashed_password"]):
             raise AuthenticationError(
                 message="Invalid email or password",
-                action="Double-check your email and password. If you forgot your password, click 'Forgot Password' to reset it."
+                action="Double-check your email and password. If you forgot your password, click 'Forgot Password' to reset it.",
             )
 
         # Generate tokens (sub must be string for JWT)
@@ -293,6 +309,7 @@ class AuthService:
         Prefer using rivaflow.core.email_validation.validate_email_address() directly.
         """
         from rivaflow.core.email_validation import is_valid_email_simple
+
         return is_valid_email_simple(email, allow_disposable=True)
 
     def request_password_reset(self, email: str) -> bool:
@@ -311,7 +328,9 @@ class AuthService:
         import logging
 
         from rivaflow.core.services.email_service import EmailService
-        from rivaflow.db.repositories.password_reset_token_repo import PasswordResetTokenRepository
+        from rivaflow.db.repositories.password_reset_token_repo import (
+            PasswordResetTokenRepository,
+        )
 
         logger = logging.getLogger(__name__)
 
@@ -325,7 +344,9 @@ class AuthService:
             # Check rate limit (max 3 requests per hour)
             recent_requests = token_repo.count_recent_requests(user["id"], hours=1)
             if recent_requests >= 3:
-                logger.warning(f"Password reset rate limit exceeded for user {user['id']}")
+                logger.warning(
+                    f"Password reset rate limit exceeded for user {user['id']}"
+                )
                 # Still return True to not reveal rate limiting
                 return True
 
@@ -335,9 +356,7 @@ class AuthService:
             # Send email
             email_service = EmailService()
             success = email_service.send_password_reset_email(
-                to_email=email,
-                reset_token=token,
-                user_name=user.get("first_name")
+                to_email=email, reset_token=token, user_name=user.get("first_name")
             )
 
             if success:
@@ -368,7 +387,9 @@ class AuthService:
         import logging
 
         from rivaflow.core.services.email_service import EmailService
-        from rivaflow.db.repositories.password_reset_token_repo import PasswordResetTokenRepository
+        from rivaflow.db.repositories.password_reset_token_repo import (
+            PasswordResetTokenRepository,
+        )
 
         logger = logging.getLogger(__name__)
 
@@ -398,11 +419,13 @@ class AuthService:
             with get_connection() as conn:
                 cursor = conn.cursor()
                 cursor.execute(
-                    convert_query("""
+                    convert_query(
+                        """
                     UPDATE users
                     SET hashed_password = ?, updated_at = CURRENT_TIMESTAMP
                     WHERE id = ?
-                    """),
+                    """
+                    ),
                     (hashed_pwd, user_id),
                 )
 
@@ -418,8 +441,7 @@ class AuthService:
             # Send confirmation email
             email_service = EmailService()
             email_service.send_password_changed_confirmation(
-                to_email=user["email"],
-                user_name=user.get("first_name")
+                to_email=user["email"], user_name=user.get("first_name")
             )
 
             logger.info(f"Password reset successful for user {user_id}")
@@ -439,8 +461,16 @@ class AuthService:
             sanitized["created_at"] = sanitized["created_at"].isoformat()
         if "updated_at" in sanitized and hasattr(sanitized["updated_at"], "isoformat"):
             sanitized["updated_at"] = sanitized["updated_at"].isoformat()
-        if "tier_expires_at" in sanitized and sanitized["tier_expires_at"] and hasattr(sanitized["tier_expires_at"], "isoformat"):
+        if (
+            "tier_expires_at" in sanitized
+            and sanitized["tier_expires_at"]
+            and hasattr(sanitized["tier_expires_at"], "isoformat")
+        ):
             sanitized["tier_expires_at"] = sanitized["tier_expires_at"].isoformat()
-        if "beta_joined_at" in sanitized and sanitized["beta_joined_at"] and hasattr(sanitized["beta_joined_at"], "isoformat"):
+        if (
+            "beta_joined_at" in sanitized
+            and sanitized["beta_joined_at"]
+            and hasattr(sanitized["beta_joined_at"], "isoformat")
+        ):
             sanitized["beta_joined_at"] = sanitized["beta_joined_at"].isoformat()
         return sanitized

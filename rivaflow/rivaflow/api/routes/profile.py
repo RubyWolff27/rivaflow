@@ -12,6 +12,7 @@ service = ProfileService()
 
 class ProfileUpdate(BaseModel):
     """Profile update model."""
+
     first_name: str | None = None
     last_name: str | None = None
     date_of_birth: str | None = None
@@ -60,7 +61,9 @@ async def get_profile(current_user: dict = Depends(get_current_user)):
 
 
 @router.put("/")
-async def update_profile(profile: ProfileUpdate, current_user: dict = Depends(get_current_user)):
+async def update_profile(
+    profile: ProfileUpdate, current_user: dict = Depends(get_current_user)
+):
     """Update the user profile."""
     updated = service.update_profile(
         user_id=current_user["id"],
@@ -92,8 +95,7 @@ async def update_profile(profile: ProfileUpdate, current_user: dict = Depends(ge
 
 @router.post("/photo")
 async def upload_profile_photo(
-    file: UploadFile = File(...),
-    current_user: dict = Depends(get_current_user)
+    file: UploadFile = File(...), current_user: dict = Depends(get_current_user)
 ):
     """
     Upload a profile photo.
@@ -108,7 +110,7 @@ async def upload_profile_photo(
     result = service.upload_profile_photo(
         user_id=current_user["id"],
         file_content=content,
-        filename=file.filename or "photo.jpg"
+        filename=file.filename or "photo.jpg",
     )
 
     return result

@@ -1,4 +1,5 @@
 """Streak display command with visual flair."""
+
 import typer
 from rich.console import Console
 from rich.panel import Panel
@@ -91,7 +92,7 @@ def render_progress_bar(current: int, milestones: list[int], width: int = 30) ->
 
     # Use gradient characters for visual interest
     filled_char = "▓"  # Dark shade
-    empty_char = "░"   # Light shade
+    empty_char = "░"  # Light shade
     progress_tip = "▒" if filled < width else ""  # Medium shade at tip
 
     bar = filled_char * filled
@@ -168,16 +169,22 @@ def streak(ctx: typer.Context):
     streak_color = get_streak_color(current)
     title_text = get_streak_title(current, "check-in")
 
-    console.print(f"  {fire_emoji} [bold white]CHECK-IN STREAK[/bold white] [dim]— {title_text}[/dim]")
+    console.print(
+        f"  {fire_emoji} [bold white]CHECK-IN STREAK[/bold white] [dim]— {title_text}[/dim]"
+    )
     bar = render_progress_bar(current, streak_milestones)
-    console.print(f"  [{streak_color}]{bar}[/{streak_color}]  [bold]{current} days[/bold]")
+    console.print(
+        f"  [{streak_color}]{bar}[/{streak_color}]  [bold]{current} days[/bold]"
+    )
 
     if longest > 0 and checkin_streak.get("last_checkin_date"):
         markers = render_milestone_markers(current, streak_milestones)
         console.print(f"  {markers}")
 
     if checkin_streak.get("grace_days_used", 0) > 0:
-        console.print(f"  [dim]⏳ Grace days used: {checkin_streak['grace_days_used']}[/dim]")
+        console.print(
+            f"  [dim]⏳ Grace days used: {checkin_streak['grace_days_used']}[/dim]"
+        )
 
     console.print()
 
@@ -190,9 +197,13 @@ def streak(ctx: typer.Context):
     streak_color = get_streak_color(current_training)
     title_text = get_streak_title(current_training, "training")
 
-    console.print(f"  {fire_emoji} [bold white]TRAINING STREAK[/bold white] [dim]— {title_text}[/dim]")
+    console.print(
+        f"  {fire_emoji} [bold white]TRAINING STREAK[/bold white] [dim]— {title_text}[/dim]"
+    )
     bar = render_progress_bar(current_training, streak_milestones)
-    console.print(f"  [{streak_color}]{bar}[/{streak_color}]  [bold]{current_training} days[/bold]")
+    console.print(
+        f"  [{streak_color}]{bar}[/{streak_color}]  [bold]{current_training} days[/bold]"
+    )
 
     if longest_training > 0 and training_streak.get("last_checkin_date"):
         markers = render_milestone_markers(current_training, streak_milestones)
@@ -209,9 +220,13 @@ def streak(ctx: typer.Context):
     streak_color = get_streak_color(current_readiness)
     title_text = get_streak_title(current_readiness, "readiness")
 
-    console.print(f"  {fire_emoji} [bold white]READINESS STREAK[/bold white] [dim]— {title_text}[/dim]")
+    console.print(
+        f"  {fire_emoji} [bold white]READINESS STREAK[/bold white] [dim]— {title_text}[/dim]"
+    )
     bar = render_progress_bar(current_readiness, streak_milestones)
-    console.print(f"  [{streak_color}]{bar}[/{streak_color}]  [bold]{current_readiness} days[/bold]")
+    console.print(
+        f"  [{streak_color}]{bar}[/{streak_color}]  [bold]{current_readiness} days[/bold]"
+    )
 
     if longest_readiness > 0 and readiness_streak.get("last_checkin_date"):
         markers = render_milestone_markers(current_readiness, streak_milestones)
@@ -222,7 +237,11 @@ def streak(ctx: typer.Context):
     # Milestone celebration
     major_milestones = {365: "1 Year", 730: "2 Years", 1095: "3 Years", 1825: "5 Years"}
     for milestone_days, milestone_name in major_milestones.items():
-        if current == milestone_days or current_training == milestone_days or current_readiness == milestone_days:
+        if (
+            current == milestone_days
+            or current_training == milestone_days
+            or current_readiness == milestone_days
+        ):
             celebration = Panel(
                 f"[bold yellow]✨ {milestone_name} Streak! ✨[/bold yellow]\n\n"
                 f"[white]Incredible dedication! You're an inspiration to the community.[/white]",
@@ -245,19 +264,19 @@ def streak(ctx: typer.Context):
         if longest > 0:
             best_date = ""
             if checkin_streak.get("streak_started_date"):
-                best_date = checkin_streak['streak_started_date'][:7]
+                best_date = checkin_streak["streak_started_date"][:7]
             best_table.add_row("Check-in", f"{longest} days", best_date)
 
         if longest_training > 0:
             best_date = ""
             if training_streak.get("streak_started_date"):
-                best_date = training_streak['streak_started_date'][:7]
+                best_date = training_streak["streak_started_date"][:7]
             best_table.add_row("Training", f"{longest_training} days", best_date)
 
         if longest_readiness > 0:
             best_date = ""
             if readiness_streak.get("streak_started_date"):
-                best_date = readiness_streak['streak_started_date'][:7]
+                best_date = readiness_streak["streak_started_date"][:7]
             best_table.add_row("Readiness", f"{longest_readiness} days", best_date)
 
         console.print(best_table)

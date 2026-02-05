@@ -1,4 +1,5 @@
 """API versioning middleware for backward compatibility."""
+
 from fastapi import Request
 from fastapi.responses import RedirectResponse
 from starlette.middleware.base import BaseHTTPMiddleware

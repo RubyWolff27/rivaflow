@@ -8,7 +8,9 @@ class MilestoneRepository:
     """Data access layer for milestone achievements."""
 
     @staticmethod
-    def check_and_create_milestone(user_id: int, milestone_type: str, current_value: int) -> dict | None:
+    def check_and_create_milestone(
+        user_id: int, milestone_type: str, current_value: int
+    ) -> dict | None:
         """
         Check if current value crosses a milestone threshold. Create if new.
         Returns the newly created milestone dict, or None if no new milestone.
@@ -30,11 +32,13 @@ class MilestoneRepository:
         with get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(
-                convert_query("""
+                convert_query(
+                    """
                 SELECT id FROM milestones
                 WHERE user_id = ? AND milestone_type = ? AND milestone_value = ?
-                """),
-                (user_id, milestone_type, crossed_threshold)
+                """
+                ),
+                (user_id, milestone_type, crossed_threshold),
             )
             existing = cursor.fetchone()
 
@@ -49,18 +53,20 @@ class MilestoneRepository:
                 INSERT INTO milestones (user_id, milestone_type, milestone_value, milestone_label, celebrated)
                 VALUES (?, ?, ?, ?, 0)
                 """,
-                (user_id, milestone_type, crossed_threshold, label)
+                (user_id, milestone_type, crossed_threshold, label),
             )
             conn.commit()
 
             # Fetch and return the created milestone
             cursor.execute(
-                convert_query("""
+                convert_query(
+                    """
                 SELECT id, milestone_type, milestone_value, milestone_label, achieved_at, celebrated
                 FROM milestones
                 WHERE id = ? AND user_id = ?
-                """),
-                (milestone_id, user_id)
+                """
+                ),
+                (milestone_id, user_id),
             )
             row = cursor.fetchone()
 
@@ -72,13 +78,15 @@ class MilestoneRepository:
         with get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(
-                convert_query("""
+                convert_query(
+                    """
                 SELECT id, milestone_type, milestone_value, milestone_label, achieved_at, celebrated
                 FROM milestones
                 WHERE user_id = ? AND celebrated = FALSE
                 ORDER BY achieved_at DESC
-                """),
-                (user_id,)
+                """
+                ),
+                (user_id,),
             )
             rows = cursor.fetchall()
 
@@ -90,12 +98,14 @@ class MilestoneRepository:
         with get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(
-                convert_query("""
+                convert_query(
+                    """
                 UPDATE milestones
                 SET celebrated = TRUE
                 WHERE id = ? AND user_id = ?
-                """),
-                (milestone_id, user_id)
+                """
+                ),
+                (milestone_id, user_id),
             )
             conn.commit()
 
@@ -124,13 +134,15 @@ class MilestoneRepository:
         with get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(
-                convert_query("""
+                convert_query(
+                    """
                 SELECT id, milestone_type, milestone_value, milestone_label, achieved_at, celebrated
                 FROM milestones
                 WHERE user_id = ?
                 ORDER BY achieved_at DESC
-                """),
-                (user_id,)
+                """
+                ),
+                (user_id,),
             )
             rows = cursor.fetchall()
 
@@ -142,16 +154,18 @@ class MilestoneRepository:
         with get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(
-                convert_query("""
+                convert_query(
+                    """
                 SELECT MAX(milestone_value) as max_value
                 FROM milestones
                 WHERE user_id = ? AND milestone_type = ?
-                """),
-                (user_id, milestone_type)
+                """
+                ),
+                (user_id, milestone_type),
             )
             row = cursor.fetchone()
             if row:
                 row_dict = dict(row)
-                max_value = row_dict.get('max_value')
+                max_value = row_dict.get("max_value")
                 return max_value if max_value is not None else 0
             return 0

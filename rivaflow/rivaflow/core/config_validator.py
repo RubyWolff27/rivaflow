@@ -1,4 +1,5 @@
 """Environment variable validation for production deployment."""
+
 import logging
 import os
 import sys
@@ -8,6 +9,7 @@ logger = logging.getLogger(__name__)
 
 class ConfigurationError(Exception):
     """Raised when required configuration is missing or invalid."""
+
     pass
 
 
@@ -48,9 +50,11 @@ def validate_environment():
 
     if database_url:
         # Validate format
-        if not (database_url.startswith("postgresql://") or
-                database_url.startswith("postgres://") or
-                database_url.startswith("sqlite:///")):
+        if not (
+            database_url.startswith("postgresql://")
+            or database_url.startswith("postgres://")
+            or database_url.startswith("sqlite:///")
+        ):
             errors.append(
                 f"DATABASE_URL has invalid format. "
                 f"Expected postgresql:// or sqlite:/// but got: {database_url[:20]}..."
@@ -93,7 +97,9 @@ def validate_environment():
     # Log successful validation
     logger.info("✓ Environment configuration validated successfully")
     logger.info(f"  Environment: {env}")
-    logger.info(f"  Database: {'PostgreSQL' if database_url and 'postgres' in database_url else 'SQLite'}")
+    logger.info(
+        f"  Database: {'PostgreSQL' if database_url and 'postgres' in database_url else 'SQLite'}"
+    )
     logger.info(f"  Redis caching: {'enabled' if redis_url else 'disabled'}")
     logger.info(f"  Email notifications: {'enabled' if sendgrid_key else 'disabled'}")
 

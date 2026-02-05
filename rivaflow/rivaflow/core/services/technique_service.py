@@ -1,4 +1,5 @@
 """Service layer for technique management."""
+
 from datetime import date
 
 from rivaflow.cache import CacheKeys, get_redis_client
@@ -12,7 +13,9 @@ class TechniqueService:
         self.repo = TechniqueRepository()
         self.cache = get_redis_client()
 
-    def add_technique(self, user_id: int, name: str, category: str | None = None) -> int:
+    def add_technique(
+        self, user_id: int, name: str, category: str | None = None
+    ) -> int:
         """
         Add a new technique or get existing one.
         Returns technique ID.

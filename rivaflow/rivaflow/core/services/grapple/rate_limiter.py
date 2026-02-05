@@ -1,4 +1,5 @@
 """Rate limiting for Grapple AI Coach."""
+
 import logging
 from datetime import datetime, timedelta
 from typing import Any
@@ -107,12 +108,14 @@ class GrappleRateLimiter:
         window_start = datetime.utcnow().replace(minute=0, second=0, microsecond=0)
         window_end = window_start + timedelta(hours=1)
 
-        query = convert_query("""
+        query = convert_query(
+            """
             INSERT INTO grapple_rate_limits (id, user_id, window_start, window_end, message_count)
             VALUES (?, ?, ?, ?, 1)
             ON CONFLICT (user_id, window_start) DO UPDATE SET
                 message_count = grapple_rate_limits.message_count + 1
-        """)
+        """
+        )
 
         try:
             with get_connection() as conn:

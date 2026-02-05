@@ -1,4 +1,5 @@
 """Repository for session techniques (detailed technique tracking) data access."""
+
 import json
 import sqlite3
 
@@ -41,7 +42,10 @@ class SessionTechniqueRepository:
             )
 
             # Return the created technique
-            cursor.execute(convert_query("SELECT * FROM session_techniques WHERE id = ?"), (technique_id,))
+            cursor.execute(
+                convert_query("SELECT * FROM session_techniques WHERE id = ?"),
+                (technique_id,),
+            )
             row = cursor.fetchone()
             return SessionTechniqueRepository._row_to_dict(row)
 
@@ -50,7 +54,10 @@ class SessionTechniqueRepository:
         """Get a session technique by ID."""
         with get_connection() as conn:
             cursor = conn.cursor()
-            cursor.execute(convert_query("SELECT * FROM session_techniques WHERE id = ?"), (technique_id,))
+            cursor.execute(
+                convert_query("SELECT * FROM session_techniques WHERE id = ?"),
+                (technique_id,),
+            )
             row = cursor.fetchone()
             return SessionTechniqueRepository._row_to_dict(row) if row else None
 
@@ -62,7 +69,9 @@ class SessionTechniqueRepository:
         with get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(
-                convert_query("SELECT * FROM session_techniques WHERE session_id = ? ORDER BY technique_number ASC"),
+                convert_query(
+                    "SELECT * FROM session_techniques WHERE session_id = ? ORDER BY technique_number ASC"
+                ),
                 (session_id,),
             )
             rows = cursor.fetchall()
@@ -75,12 +84,14 @@ class SessionTechniqueRepository:
         with get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(
-                convert_query("""
+                convert_query(
+                    """
                 SELECT st.* FROM session_techniques st
                 JOIN sessions s ON st.session_id = s.id
                 WHERE st.movement_id = ? AND s.user_id = ?
                 ORDER BY s.session_date DESC, st.technique_number ASC
-                """),
+                """
+                ),
                 (movement_id, user_id),
             )
             rows = cursor.fetchall()
@@ -133,7 +144,10 @@ class SessionTechniqueRepository:
         """Delete a session technique by ID. Returns True if deleted, False if not found."""
         with get_connection() as conn:
             cursor = conn.cursor()
-            cursor.execute(convert_query("DELETE FROM session_techniques WHERE id = ?"), (technique_id,))
+            cursor.execute(
+                convert_query("DELETE FROM session_techniques WHERE id = ?"),
+                (technique_id,),
+            )
             return cursor.rowcount > 0
 
     @staticmethod
@@ -141,7 +155,10 @@ class SessionTechniqueRepository:
         """Delete all techniques for a session. Returns count of deleted techniques."""
         with get_connection() as conn:
             cursor = conn.cursor()
-            cursor.execute(convert_query("DELETE FROM session_techniques WHERE session_id = ?"), (session_id,))
+            cursor.execute(
+                convert_query("DELETE FROM session_techniques WHERE session_id = ?"),
+                (session_id,),
+            )
             return cursor.rowcount
 
     @staticmethod
@@ -158,7 +175,8 @@ class SessionTechniqueRepository:
             cursor = conn.cursor()
             placeholders = ",".join("?" * len(session_ids))
             cursor.execute(
-                convert_query(f"""
+                convert_query(
+                    f"""
                     SELECT
                         st.id,
                         st.session_id,
@@ -172,7 +190,8 @@ class SessionTechniqueRepository:
                     LEFT JOIN movements_glossary mg ON st.movement_id = mg.id
                     WHERE st.session_id IN ({placeholders})
                     ORDER BY st.session_id, st.technique_number
-                """),
+                """
+                ),
                 session_ids,
             )
 

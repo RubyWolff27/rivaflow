@@ -1,4 +1,5 @@
 """Rest day logging."""
+
 import json
 from datetime import date, timedelta
 
@@ -23,7 +24,7 @@ class RestService:
         rest_type: str = "recovery",
         note: str | None = None,
         tomorrow_intention: str | None = None,
-        rest_date: date | None = None
+        rest_date: date | None = None,
     ) -> dict:
         """
         Log a rest day.
@@ -59,7 +60,7 @@ class RestService:
             rest_type=rest_type,
             rest_note=note,
             tomorrow_intention=tomorrow_intention,
-            insight_shown=insight_json
+            insight_shown=insight_json,
         )
 
         # Update streaks (check-in only, not training)

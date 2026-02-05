@@ -1,4 +1,5 @@
 """Daily insight generation."""
+
 import random
 from datetime import date, timedelta
 
@@ -65,12 +66,15 @@ class InsightService:
             today = date.today()
             week_start = today - timedelta(days=today.weekday())
 
-            cursor.execute("""
+            cursor.execute(
+                """
                 SELECT SUM(duration_mins) as total FROM sessions
                 WHERE session_date >= %s AND user_id = %s
-            """, (week_start.isoformat(), user_id))
+            """,
+                (week_start.isoformat(), user_id),
+            )
             result = cursor.fetchone()
-            week_mins = result['total'] or 0
+            week_mins = result["total"] or 0
             week_hours = round(week_mins / 60, 1)
 
             # Get 4-week average
@@ -82,37 +86,44 @@ class InsightService:
             else:
                 week_format = "strftime('%Y-%W', session_date)"
 
-            cursor.execute(f"""
+            cursor.execute(
+                f"""
                 SELECT AVG(weekly_mins) as avg FROM (
                     SELECT SUM(duration_mins) as weekly_mins
                     FROM sessions
                     WHERE session_date >= %s AND session_date < %s AND user_id = %s
                     GROUP BY {week_format}
                 )
-            """, (four_weeks_ago.isoformat(), week_start.isoformat(), user_id))
+            """,
+                (four_weeks_ago.isoformat(), week_start.isoformat(), user_id),
+            )
             result = cursor.fetchone()
-            avg_mins = result['avg'] or 0
+            avg_mins = result["avg"] or 0
             avg_hours = round(avg_mins / 60, 1)
 
             if avg_hours > 0 and week_hours > 0:
                 percent_diff = round(((week_hours - avg_hours) / avg_hours) * 100)
 
                 if percent_diff > 15:
-                    insights.append({
-                        "type": "stat",
-                        "title": "Training volume up",
-                        "message": f"You've trained {week_hours} hours this week — {percent_diff}% more than your 4-week average.",
-                        "action": None,
-                        "icon": "📈"
-                    })
+                    insights.append(
+                        {
+                            "type": "stat",
+                            "title": "Training volume up",
+                            "message": f"You've trained {week_hours} hours this week — {percent_diff}% more than your 4-week average.",
+                            "action": None,
+                            "icon": "📈",
+                        }
+                    )
                 elif percent_diff < -15:
-                    insights.append({
-                        "type": "stat",
-                        "title": "Recovery week",
-                        "message": f"You've trained {week_hours} hours this week — {abs(percent_diff)}% less than average. Recovery matters.",
-                        "action": None,
-                        "icon": "📉"
-                    })
+                    insights.append(
+                        {
+                            "type": "stat",
+                            "title": "Recovery week",
+                            "message": f"You've trained {week_hours} hours this week — {abs(percent_diff)}% less than average. Recovery matters.",
+                            "action": None,
+                            "icon": "📉",
+                        }
+                    )
 
         return insights
 
@@ -125,29 +136,35 @@ class InsightService:
 
         # Milestone streak achievements
         if current >= 30:
-            insights.append({
-                "type": "streak",
-                "title": "Consistency wins",
-                "message": f"You've checked in {current} days in a row. This is who you are now.",
-                "action": None,
-                "icon": "🔥"
-            })
+            insights.append(
+                {
+                    "type": "streak",
+                    "title": "Consistency wins",
+                    "message": f"You've checked in {current} days in a row. This is who you are now.",
+                    "action": None,
+                    "icon": "🔥",
+                }
+            )
         elif current >= 14:
-            insights.append({
-                "type": "streak",
-                "title": "Habit forming",
-                "message": f"{current}-day check-in streak. Two weeks of consistency builds champions.",
-                "action": None,
-                "icon": "🔥"
-            })
+            insights.append(
+                {
+                    "type": "streak",
+                    "title": "Habit forming",
+                    "message": f"{current}-day check-in streak. Two weeks of consistency builds champions.",
+                    "action": None,
+                    "icon": "🔥",
+                }
+            )
         elif current >= 7:
-            insights.append({
-                "type": "streak",
-                "title": "One week down",
-                "message": f"{current}-day streak. Keep the momentum going.",
-                "action": None,
-                "icon": "🔥"
-            })
+            insights.append(
+                {
+                    "type": "streak",
+                    "title": "One week down",
+                    "message": f"{current}-day streak. Keep the momentum going.",
+                    "action": None,
+                    "icon": "🔥",
+                }
+            )
 
         return insights
 
@@ -157,13 +174,15 @@ class InsightService:
 
         closest = self.milestone_service.get_closest_milestone(user_id)
         if closest and closest["percentage"] >= 80:
-            insights.append({
-                "type": "milestone",
-                "title": "Almost there",
-                "message": f"{closest['remaining']} more {closest['type']} to hit {closest['next_label']}.",
-                "action": "You're so close!",
-                "icon": "🎯"
-            })
+            insights.append(
+                {
+                    "type": "milestone",
+                    "title": "Almost there",
+                    "message": f"{closest['remaining']} more {closest['type']} to hit {closest['next_label']}.",
+                    "action": "You're so close!",
+                    "icon": "🎯",
+                }
+            )
 
         return insights
 
@@ -176,21 +195,26 @@ class InsightService:
 
             # Check consecutive training days
             six_days_ago = date.today() - timedelta(days=6)
-            cursor.execute("""
+            cursor.execute(
+                """
                 SELECT COUNT(*) as count FROM sessions
                 WHERE session_date >= %s AND user_id = %s
-            """, (six_days_ago.isoformat(), user_id))
+            """,
+                (six_days_ago.isoformat(), user_id),
+            )
             result = cursor.fetchone()
-            recent_days = result['count'] or 0
+            recent_days = result["count"] or 0
 
             if recent_days >= 6:
-                insights.append({
-                    "type": "recovery",
-                    "title": "Rest is training",
-                    "message": f"You've trained {recent_days} of the last 7 days. Consider a recovery day.",
-                    "action": "Your body needs time to adapt",
-                    "icon": "😴"
-                })
+                insights.append(
+                    {
+                        "type": "recovery",
+                        "title": "Rest is training",
+                        "message": f"You've trained {recent_days} of the last 7 days. Consider a recovery day.",
+                        "action": "Your body needs time to adapt",
+                        "icon": "😴",
+                    }
+                )
 
         return insights
 
@@ -202,21 +226,29 @@ class InsightService:
             cursor = conn.cursor()
 
             # Check submission rate trend
-            cursor.execute("""
+            cursor.execute(
+                """
                 SELECT
                     SUM(submissions_for) as subs,
                     COUNT(*) as sessions
                 FROM sessions
                 WHERE session_date >= CURRENT_DATE - INTERVAL '30 days' AND user_id = %s
-            """, (user_id,))
+            """,
+                (user_id,),
+            )
             recent = cursor.fetchone()
             if recent:
                 recent_dict = dict(recent)
-                recent_rate = (recent_dict['subs'] / recent_dict['sessions']) if recent_dict['sessions'] and recent_dict['sessions'] > 0 else 0
+                recent_rate = (
+                    (recent_dict["subs"] / recent_dict["sessions"])
+                    if recent_dict["sessions"] and recent_dict["sessions"] > 0
+                    else 0
+                )
             else:
                 recent_rate = 0
 
-            cursor.execute("""
+            cursor.execute(
+                """
                 SELECT
                     SUM(submissions_for) as subs,
                     COUNT(*) as sessions
@@ -224,23 +256,33 @@ class InsightService:
                 WHERE session_date >= CURRENT_DATE - INTERVAL '60 days'
                   AND session_date < CURRENT_DATE - INTERVAL '30 days'
                   AND user_id = %s
-            """, (user_id,))
+            """,
+                (user_id,),
+            )
             previous = cursor.fetchone()
             if previous:
                 previous_dict = dict(previous)
-                previous_rate = (previous_dict['subs'] / previous_dict['sessions']) if previous_dict['sessions'] and previous_dict['sessions'] > 0 else 0
+                previous_rate = (
+                    (previous_dict["subs"] / previous_dict["sessions"])
+                    if previous_dict["sessions"] and previous_dict["sessions"] > 0
+                    else 0
+                )
             else:
                 previous_rate = 0
 
             if previous_rate > 0 and recent_rate > previous_rate * 1.15:
-                percent_up = round(((recent_rate - previous_rate) / previous_rate) * 100)
-                insights.append({
-                    "type": "trend",
-                    "title": "Submissions trending up",
-                    "message": f"Your submission rate is up {percent_up}% this month. The work is paying off.",
-                    "action": None,
-                    "icon": "📊"
-                })
+                percent_up = round(
+                    ((recent_rate - previous_rate) / previous_rate) * 100
+                )
+                insights.append(
+                    {
+                        "type": "trend",
+                        "title": "Submissions trending up",
+                        "message": f"Your submission rate is up {percent_up}% this month. The work is paying off.",
+                        "action": None,
+                        "icon": "📊",
+                    }
+                )
 
         return insights
 
@@ -252,21 +294,21 @@ class InsightService:
                 "title": "Keep showing up",
                 "message": "Consistency beats intensity. You're building something.",
                 "action": None,
-                "icon": "💪"
+                "icon": "💪",
             },
             {
                 "type": "encouragement",
                 "title": "Trust the process",
                 "message": "Every session is an investment in your future self.",
                 "action": None,
-                "icon": "🥋"
+                "icon": "🥋",
             },
             {
                 "type": "encouragement",
                 "title": "Small wins compound",
                 "message": "You don't need to be great today. Just better than yesterday.",
                 "action": None,
-                "icon": "📈"
+                "icon": "📈",
             },
         ]
 

@@ -1,4 +1,5 @@
 """Repository layer for data access."""
+
 from rivaflow.db.repositories.activity_comment_repo import ActivityCommentRepository
 from rivaflow.db.repositories.activity_like_repo import ActivityLikeRepository
 from rivaflow.db.repositories.activity_photo_repo import ActivityPhotoRepository

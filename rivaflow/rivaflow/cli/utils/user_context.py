@@ -10,6 +10,7 @@ For backwards compatibility, if no credentials file exists, falls back to:
 - RIVAFLOW_USER_ID environment variable (useful for testing)
 - Default user_id=1 (for legacy single-user setups)
 """
+
 import json
 import os
 import sys
@@ -40,7 +41,9 @@ def get_current_user_id() -> int:
                     return int(user_id)
         except (OSError, json.JSONDecodeError, KeyError):
             # Credentials file corrupted or invalid - prompt for login
-            print("⚠️  Warning: Credentials file is invalid or corrupted", file=sys.stderr)
+            print(
+                "⚠️  Warning: Credentials file is invalid or corrupted", file=sys.stderr
+            )
             print("   Please run: rivaflow auth login", file=sys.stderr)
             sys.exit(1)
 

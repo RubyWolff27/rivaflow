@@ -1,4 +1,5 @@
 """Grapple AI Coach API routes - Premium BJJ coaching with cloud LLMs."""
+
 import logging
 
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -18,20 +19,24 @@ logger = logging.getLogger(__name__)
 # Request/Response Models
 # ============================================================================
 
+
 class Message(BaseModel):
     """Chat message model."""
+
     role: str  # 'user', 'assistant', 'system'
     content: str
 
 
 class ChatRequest(BaseModel):
     """Request to send a message to Grapple."""
+
     message: str
     session_id: str | None = None  # If None, creates new session
 
 
 class ChatResponse(BaseModel):
     """Response from Grapple."""
+
     session_id: str
     message_id: str
     reply: str
@@ -42,11 +47,13 @@ class ChatResponse(BaseModel):
 
 class SessionListResponse(BaseModel):
     """List of chat sessions."""
+
     sessions: list[dict]
 
 
 class TierInfoResponse(BaseModel):
     """User's subscription tier and feature access."""
+
     tier: str
     is_beta: bool
     features: dict
@@ -56,6 +63,7 @@ class TierInfoResponse(BaseModel):
 # ============================================================================
 # Teaser Endpoint (Free Users)
 # ============================================================================
+
 
 @router.get("/info", response_model=TierInfoResponse)
 async def get_grapple_info(current_user: dict = Depends(get_current_user)):
@@ -82,8 +90,8 @@ async def get_grapple_teaser(current_user: dict = Depends(get_current_user)):
 
     Returns information about Grapple features and upgrade path.
     """
-    tier = current_user.get('subscription_tier', 'free')
-    has_access = tier in ['beta', 'premium', 'admin']
+    tier = current_user.get("subscription_tier", "free")
+    has_access = tier in ["beta", "premium", "admin"]
 
     return {
         "has_access": has_access,
@@ -120,6 +128,7 @@ async def get_grapple_teaser(current_user: dict = Depends(get_current_user)):
 # ============================================================================
 # Premium Endpoints (Beta, Premium, Admin only)
 # ============================================================================
+
 
 @router.post("/chat", response_model=ChatResponse)
 @require_beta_or_premium
@@ -158,7 +167,9 @@ async def chat_with_grapple(
     rate_check = rate_limiter.check_rate_limit(user_id, user_tier)
 
     if not rate_check["allowed"]:
-        logger.warning(f"Rate limit exceeded for user {user_id}: {rate_check['reason']}")
+        logger.warning(
+            f"Rate limit exceeded for user {user_id}: {rate_check['reason']}"
+        )
         raise HTTPException(
             status_code=status.HTTP_429_TOO_MANY_REQUESTS,
             detail={

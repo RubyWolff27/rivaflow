@@ -1,4 +1,5 @@
 """Technique mastery analytics service."""
+
 from collections import Counter
 from datetime import date, timedelta
 from typing import Any
@@ -19,7 +20,11 @@ class TechniqueAnalyticsService:
         self.glossary_repo = GlossaryRepository()
 
     def get_technique_analytics(
-        self, user_id: int, start_date: date | None = None, end_date: date | None = None, types: list[str] | None = None
+        self,
+        user_id: int,
+        start_date: date | None = None,
+        end_date: date | None = None,
+        types: list[str] | None = None,
     ) -> dict[str, Any]:
         """
         Get technique mastery analytics.
@@ -41,7 +46,9 @@ class TechniqueAnalyticsService:
         if not end_date:
             end_date = date.today()
 
-        sessions = self.session_repo.get_by_date_range(user_id, start_date, end_date, types=types)
+        sessions = self.session_repo.get_by_date_range(
+            user_id, start_date, end_date, types=types
+        )
         movements = self.glossary_repo.list_all(user_id)
 
         # Category breakdown (count submissions by category)
@@ -61,8 +68,7 @@ class TechniqueAnalyticsService:
                             category_counts[movement["category"]] += 1
 
         category_breakdown = [
-            {"category": cat, "count": count}
-            for cat, count in category_counts.items()
+            {"category": cat, "count": count} for cat, count in category_counts.items()
         ]
 
         # Stale techniques (movements from glossary not used in X days)
@@ -72,11 +78,15 @@ class TechniqueAnalyticsService:
         all_movement_ids = {m["id"] for m in movements}
         used_movement_ids = set()
 
-        recent_sessions = self.session_repo.get_by_date_range(user_id, stale_date, date.today())
+        recent_sessions = self.session_repo.get_by_date_range(
+            user_id, stale_date, date.today()
+        )
 
         # Get rolls in bulk to avoid N+1 queries
         recent_session_ids = [session["id"] for session in recent_sessions]
-        recent_rolls_by_session = self.roll_repo.get_by_session_ids(user_id, recent_session_ids)
+        recent_rolls_by_session = self.roll_repo.get_by_session_ids(
+            user_id, recent_session_ids
+        )
 
         for session in recent_sessions:
             rolls = recent_rolls_by_session.get(session["id"], [])

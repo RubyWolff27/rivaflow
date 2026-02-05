@@ -28,7 +28,11 @@ class VideoService:
             technique_id = technique["id"]
 
         return self.video_repo.create(
-            user_id=user_id, url=url, title=title, timestamps=timestamps, technique_id=technique_id
+            user_id=user_id,
+            url=url,
+            title=title,
+            timestamps=timestamps,
+            technique_id=technique_id,
         )
 
     def get_video(self, user_id: int, video_id: int) -> dict | None:

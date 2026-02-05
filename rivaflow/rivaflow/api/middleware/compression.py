@@ -1,4 +1,5 @@
 """Response compression middleware."""
+
 import gzip
 
 from fastapi import Request, Response

@@ -1,4 +1,5 @@
 """Chat API routes - proxy to Ollama LLM with BJJ coaching context."""
+
 import logging
 import os
 
@@ -60,7 +61,9 @@ def build_user_context(user_id: int) -> str:
     if total_sessions > 0:
         total_duration = sum(s.get("duration_mins", 0) for s in all_sessions)
         total_rolls = sum(s.get("rolls_count", 0) for s in all_sessions)
-        avg_intensity = sum(s.get("intensity", 0) for s in all_sessions) / total_sessions
+        avg_intensity = (
+            sum(s.get("intensity", 0) for s in all_sessions) / total_sessions
+        )
 
         # Get unique gyms and techniques
         gyms = set(s.get("gym", "") for s in all_sessions if s.get("gym"))
@@ -83,7 +86,9 @@ def build_user_context(user_id: int) -> str:
         context_parts.append(f"Total rolls: {total_rolls}")
         context_parts.append(f"Average intensity: {avg_intensity:.1f}/10")
         context_parts.append(f"Gyms trained at: {', '.join(sorted(gyms))}")
-        context_parts.append(f"Techniques practiced: {len(all_techniques)} unique techniques")
+        context_parts.append(
+            f"Techniques practiced: {len(all_techniques)} unique techniques"
+        )
         context_parts.append("")
         context_parts.append("RECENT SESSIONS (most recent 20):")
         context_parts.append("")
@@ -99,7 +104,9 @@ def build_user_context(user_id: int) -> str:
             techniques = session.get("techniques", [])
             notes = session.get("notes", "")
 
-            session_summary = f"- {date_str} at {gym}: {duration}min, intensity {intensity}/10"
+            session_summary = (
+                f"- {date_str} at {gym}: {duration}min, intensity {intensity}/10"
+            )
             if rolls > 0:
                 session_summary += f", {rolls} rolls"
             if techniques:
@@ -156,7 +163,7 @@ async def chat(request: ChatRequest, current_user: dict = Depends(get_current_us
     if not CHAT_ENABLED:
         raise HTTPException(
             status_code=503,
-            detail="Chat service is currently unavailable. Please try again later."
+            detail="Chat service is currently unavailable. Please try again later.",
         )
 
     try:
@@ -165,9 +172,9 @@ async def chat(request: ChatRequest, current_user: dict = Depends(get_current_us
         system_prompt = build_system_prompt(user_context)
 
         # Prepend system message to conversation
-        messages = [
-            {"role": "system", "content": system_prompt}
-        ] + [msg.model_dump() for msg in request.messages]
+        messages = [{"role": "system", "content": system_prompt}] + [
+            msg.model_dump() for msg in request.messages
+        ]
 
         # Call Ollama with full context
         async with httpx.AsyncClient(timeout=TIMEOUT) as client:
@@ -187,23 +194,26 @@ async def chat(request: ChatRequest, current_user: dict = Depends(get_current_us
         logger.warning(f"Ollama LLM request timed out for user {current_user['id']}")
         raise HTTPException(
             status_code=504,
-            detail="The AI coach is taking too long to respond. Please try again."
+            detail="The AI coach is taking too long to respond. Please try again.",
         )
     except httpx.ConnectError:
         logger.error(f"Cannot connect to Ollama service at {OLLAMA_URL}")
         raise HTTPException(
             status_code=503,
-            detail="Chat service is temporarily unavailable. Please try again later."
+            detail="Chat service is temporarily unavailable. Please try again later.",
         )
     except httpx.HTTPError as e:
         logger.error(f"Ollama HTTP error for user {current_user['id']}: {str(e)}")
         raise HTTPException(
             status_code=502,
-            detail="The AI coach encountered an error. Please try again."
+            detail="The AI coach encountered an error. Please try again.",
         )
     except Exception as e:
-        logger.error(f"Unexpected chat error for user {current_user['id']}: {type(e).__name__}", exc_info=True)
+        logger.error(
+            f"Unexpected chat error for user {current_user['id']}: {type(e).__name__}",
+            exc_info=True,
+        )
         raise HTTPException(
             status_code=500,
-            detail="An unexpected error occurred. Please try again later."
+            detail="An unexpected error occurred. Please try again later.",
         )

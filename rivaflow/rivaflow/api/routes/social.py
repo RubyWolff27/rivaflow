@@ -49,7 +49,11 @@ class CommentUpdateRequest(BaseModel):
 # Relationship endpoints
 @router.post("/follow/{user_id}")
 @limiter.limit("30/minute")
-async def follow_user(request: Request, user_id: int = Path(..., gt=0), current_user: dict = Depends(get_current_user)):
+async def follow_user(
+    request: Request,
+    user_id: int = Path(..., gt=0),
+    current_user: dict = Depends(get_current_user),
+):
     """
     Follow another user.
 
@@ -74,7 +78,9 @@ async def follow_user(request: Request, user_id: int = Path(..., gt=0), current_
 
 
 @router.delete("/follow/{user_id}")
-async def unfollow_user(user_id: int = Path(..., gt=0), current_user: dict = Depends(get_current_user)):
+async def unfollow_user(
+    user_id: int = Path(..., gt=0), current_user: dict = Depends(get_current_user)
+):
     """
     Unfollow a user.
 
@@ -95,7 +101,7 @@ async def unfollow_user(user_id: int = Path(..., gt=0), current_user: dict = Dep
 async def get_followers(
     limit: int = Query(default=50, ge=1, le=200, description="Max results to return"),
     offset: int = Query(default=0, ge=0, description="Number of results to skip"),
-    current_user: dict = Depends(get_current_user)
+    current_user: dict = Depends(get_current_user),
 ):
     """
     Get list of users who follow the current user with pagination.
@@ -105,21 +111,16 @@ async def get_followers(
     """
     all_followers = SocialService.get_followers(current_user["id"])
     total = len(all_followers)
-    followers = all_followers[offset:offset + limit]
+    followers = all_followers[offset : offset + limit]
 
-    return {
-        "followers": followers,
-        "total": total,
-        "limit": limit,
-        "offset": offset
-    }
+    return {"followers": followers, "total": total, "limit": limit, "offset": offset}
 
 
 @router.get("/following")
 async def get_following(
     limit: int = Query(default=50, ge=1, le=200, description="Max results to return"),
     offset: int = Query(default=0, ge=0, description="Number of results to skip"),
-    current_user: dict = Depends(get_current_user)
+    current_user: dict = Depends(get_current_user),
 ):
     """
     Get list of users that the current user follows with pagination.
@@ -129,18 +130,15 @@ async def get_following(
     """
     all_following = SocialService.get_following(current_user["id"])
     total = len(all_following)
-    following = all_following[offset:offset + limit]
+    following = all_following[offset : offset + limit]
 
-    return {
-        "following": following,
-        "total": total,
-        "limit": limit,
-        "offset": offset
-    }
+    return {"following": following, "total": total, "limit": limit, "offset": offset}
 
 
 @router.get("/following/{user_id}")
-async def check_following(user_id: int = Path(..., gt=0), current_user: dict = Depends(get_current_user)):
+async def check_following(
+    user_id: int = Path(..., gt=0), current_user: dict = Depends(get_current_user)
+):
     """
     Check if current user follows another user.
 
@@ -157,7 +155,11 @@ async def check_following(user_id: int = Path(..., gt=0), current_user: dict = D
 # Like endpoints
 @router.post("/like")
 @limiter.limit("60/minute")
-async def like_activity(request: Request, like_req: LikeRequest, current_user: dict = Depends(get_current_user)):
+async def like_activity(
+    request: Request,
+    like_req: LikeRequest,
+    current_user: dict = Depends(get_current_user),
+):
     """
     Like an activity.
 
@@ -184,7 +186,9 @@ async def like_activity(request: Request, like_req: LikeRequest, current_user: d
 
 
 @router.delete("/like")
-async def unlike_activity(request: UnlikeRequest, current_user: dict = Depends(get_current_user)):
+async def unlike_activity(
+    request: UnlikeRequest, current_user: dict = Depends(get_current_user)
+):
     """
     Remove a like from an activity.
 
@@ -226,7 +230,11 @@ async def get_activity_likes(
 # Comment endpoints
 @router.post("/comment")
 @limiter.limit("20/minute")
-async def add_comment(request: Request, comment_req: CommentRequest, current_user: dict = Depends(get_current_user)):
+async def add_comment(
+    request: Request,
+    comment_req: CommentRequest,
+    current_user: dict = Depends(get_current_user),
+):
     """
     Add a comment to an activity.
 
@@ -278,7 +286,9 @@ async def update_comment(
         500: Database error
     """
     try:
-        comment = SocialService.update_comment(comment_id, current_user["id"], request.comment_text)
+        comment = SocialService.update_comment(
+            comment_id, current_user["id"], request.comment_text
+        )
         if not comment:
             raise NotFoundError("Comment not found or you don't own it")
         return {"success": True, "comment": comment}
@@ -289,7 +299,9 @@ async def update_comment(
 
 
 @router.delete("/comment/{comment_id}")
-async def delete_comment(comment_id: int = Path(..., gt=0), current_user: dict = Depends(get_current_user)):
+async def delete_comment(
+    comment_id: int = Path(..., gt=0), current_user: dict = Depends(get_current_user)
+):
     """
     Delete a comment (user can only delete their own comments).
 
@@ -338,7 +350,11 @@ async def get_activity_comments(
 # User search endpoint
 @router.get("/users/search")
 @limiter.limit("60/minute")
-async def search_users(request: Request, q: str = Query(..., min_length=2), current_user: dict = Depends(get_current_user)):
+async def search_users(
+    request: Request,
+    q: str = Query(..., min_length=2),
+    current_user: dict = Depends(get_current_user),
+):
     """
     Search for users by name or email.
 
@@ -357,16 +373,21 @@ async def search_users(request: Request, q: str = Query(..., min_length=2), curr
     # Filter by query (case-insensitive search in first_name, last_name, email)
     query_lower = q.lower()
     filtered_users = [
-        user for user in all_users
-        if (query_lower in user.get('first_name', '').lower() or
-            query_lower in user.get('last_name', '').lower() or
-            query_lower in user.get('email', '').lower())
-        and user['id'] != current_user['id']  # Exclude current user
+        user
+        for user in all_users
+        if (
+            query_lower in user.get("first_name", "").lower()
+            or query_lower in user.get("last_name", "").lower()
+            or query_lower in user.get("email", "").lower()
+        )
+        and user["id"] != current_user["id"]  # Exclude current user
     ]
 
     # Add follow status for each user
     for user in filtered_users:
-        user['is_following'] = SocialService.is_following(current_user['id'], user['id'])
+        user["is_following"] = SocialService.is_following(
+            current_user["id"], user["id"]
+        )
 
     return {
         "users": filtered_users[:20],  # Limit to 20 results
@@ -389,7 +410,7 @@ async def get_recommended_users(current_user: dict = Depends(get_current_user)):
     Returns:
         List of recommended users with context on why they're recommended
     """
-    recommendations = SocialService.get_friend_recommendations(current_user['id'])
+    recommendations = SocialService.get_friend_recommendations(current_user["id"])
     return {
         "recommendations": recommendations,
         "count": len(recommendations),
@@ -400,7 +421,7 @@ async def get_recommended_users(current_user: dict = Depends(get_current_user)):
 @router.get("/friend-suggestions")
 async def get_friend_suggestions(
     limit: int = Query(10, ge=1, le=50, description="Max number of suggestions"),
-    current_user: dict = Depends(get_current_user)
+    current_user: dict = Depends(get_current_user),
 ):
     """
     Get friend suggestions based on AI scoring algorithm.
@@ -427,7 +448,7 @@ async def get_friend_suggestions(
 @router.post("/friend-suggestions/{suggested_user_id}/dismiss")
 async def dismiss_friend_suggestion(
     suggested_user_id: int = Path(..., gt=0),
-    current_user: dict = Depends(get_current_user)
+    current_user: dict = Depends(get_current_user),
 ):
     """
     Dismiss a friend suggestion.
@@ -464,8 +485,11 @@ async def regenerate_friend_suggestions(current_user: dict = Depends(get_current
 # Friend Request System
 class FriendRequestBody(BaseModel):
     """Request body for sending a friend request."""
+
     connection_source: str | None = Field(None, description="How they found each other")
-    request_message: str | None = Field(None, max_length=500, description="Optional message with request")
+    request_message: str | None = Field(
+        None, max_length=500, description="Optional message with request"
+    )
 
 
 @router.post("/friend-requests/{user_id}")
@@ -474,7 +498,7 @@ async def send_friend_request(
     request: Request,
     user_id: int = Path(..., gt=0),
     body: FriendRequestBody = Body(default=FriendRequestBody()),
-    current_user: dict = Depends(get_current_user)
+    current_user: dict = Depends(get_current_user),
 ):
     """Send a friend request to another user."""
     try:
@@ -482,7 +506,7 @@ async def send_friend_request(
             requester_id=current_user["id"],
             recipient_id=user_id,
             connection_source=body.connection_source,
-            request_message=body.request_message
+            request_message=body.request_message,
         )
         return {"success": True, "connection": connection}
     except ValueError as e:
@@ -491,14 +515,12 @@ async def send_friend_request(
 
 @router.post("/friend-requests/{connection_id}/accept")
 async def accept_friend_request(
-    connection_id: int = Path(..., gt=0),
-    current_user: dict = Depends(get_current_user)
+    connection_id: int = Path(..., gt=0), current_user: dict = Depends(get_current_user)
 ):
     """Accept a friend request (must be the recipient)."""
     try:
         connection = SocialConnectionRepository.accept_friend_request(
-            connection_id=connection_id,
-            recipient_id=current_user["id"]
+            connection_id=connection_id, recipient_id=current_user["id"]
         )
         return {"success": True, "connection": connection}
     except ValueError as e:
@@ -507,14 +529,12 @@ async def accept_friend_request(
 
 @router.post("/friend-requests/{connection_id}/decline")
 async def decline_friend_request(
-    connection_id: int = Path(..., gt=0),
-    current_user: dict = Depends(get_current_user)
+    connection_id: int = Path(..., gt=0), current_user: dict = Depends(get_current_user)
 ):
     """Decline a friend request (must be the recipient)."""
     try:
         connection = SocialConnectionRepository.decline_friend_request(
-            connection_id=connection_id,
-            recipient_id=current_user["id"]
+            connection_id=connection_id, recipient_id=current_user["id"]
         )
         return {"success": True, "connection": connection}
     except ValueError as e:
@@ -523,13 +543,11 @@ async def decline_friend_request(
 
 @router.delete("/friend-requests/{connection_id}")
 async def cancel_friend_request(
-    connection_id: int = Path(..., gt=0),
-    current_user: dict = Depends(get_current_user)
+    connection_id: int = Path(..., gt=0), current_user: dict = Depends(get_current_user)
 ):
     """Cancel a sent friend request (must be the requester)."""
     success = SocialConnectionRepository.cancel_friend_request(
-        connection_id=connection_id,
-        requester_id=current_user["id"]
+        connection_id=connection_id, requester_id=current_user["id"]
     )
     if not success:
         raise NotFoundError("Friend request not found or already responded")
@@ -539,50 +557,39 @@ async def cancel_friend_request(
 @router.get("/friend-requests/received")
 async def get_received_friend_requests(current_user: dict = Depends(get_current_user)):
     """Get pending friend requests received by the current user."""
-    requests = SocialConnectionRepository.get_pending_requests_received(current_user["id"])
-    return {
-        "requests": requests,
-        "count": len(requests)
-    }
+    requests = SocialConnectionRepository.get_pending_requests_received(
+        current_user["id"]
+    )
+    return {"requests": requests, "count": len(requests)}
 
 
 @router.get("/friend-requests/sent")
 async def get_sent_friend_requests(current_user: dict = Depends(get_current_user)):
     """Get pending friend requests sent by the current user."""
     requests = SocialConnectionRepository.get_pending_requests_sent(current_user["id"])
-    return {
-        "requests": requests,
-        "count": len(requests)
-    }
+    return {"requests": requests, "count": len(requests)}
 
 
 @router.get("/friends")
 async def get_friends(
     limit: int = Query(50, ge=1, le=100),
     offset: int = Query(0, ge=0),
-    current_user: dict = Depends(get_current_user)
+    current_user: dict = Depends(get_current_user),
 ):
     """Get list of accepted friends for the current user."""
     friends = SocialConnectionRepository.get_friends(
-        user_id=current_user["id"],
-        limit=limit,
-        offset=offset
+        user_id=current_user["id"], limit=limit, offset=offset
     )
-    return {
-        "friends": friends,
-        "count": len(friends)
-    }
+    return {"friends": friends, "count": len(friends)}
 
 
 @router.delete("/friends/{user_id}")
 async def unfriend_user(
-    user_id: int = Path(..., gt=0),
-    current_user: dict = Depends(get_current_user)
+    user_id: int = Path(..., gt=0), current_user: dict = Depends(get_current_user)
 ):
     """Remove a friend connection."""
     success = SocialConnectionRepository.unfriend(
-        user_id=current_user["id"],
-        friend_user_id=user_id
+        user_id=current_user["id"], friend_user_id=user_id
     )
     if not success:
         raise NotFoundError("Friend connection not found")
@@ -591,19 +598,20 @@ async def unfriend_user(
 
 @router.get("/friends/{user_id}/status")
 async def get_friendship_status(
-    user_id: int = Path(..., gt=0),
-    current_user: dict = Depends(get_current_user)
+    user_id: int = Path(..., gt=0), current_user: dict = Depends(get_current_user)
 ):
     """Get friendship status with another user."""
     are_friends = SocialConnectionRepository.are_friends(current_user["id"], user_id)
 
     if not are_friends:
         # Check for pending requests
-        received = SocialConnectionRepository.get_pending_requests_received(current_user["id"])
+        received = SocialConnectionRepository.get_pending_requests_received(
+            current_user["id"]
+        )
         sent = SocialConnectionRepository.get_pending_requests_sent(current_user["id"])
 
-        pending_from_them = any(r['requester_id'] == user_id for r in received)
-        pending_from_me = any(r['recipient_id'] == user_id for r in sent)
+        pending_from_them = any(r["requester_id"] == user_id for r in received)
+        pending_from_me = any(r["recipient_id"] == user_id for r in sent)
 
         if pending_from_them:
             return {"status": "pending_received", "are_friends": False}

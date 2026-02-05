@@ -1,9 +1,14 @@
 """Service layer for training session operations."""
+
 from datetime import date
 from typing import Any
 
 from rivaflow.config import SPARRING_CLASS_TYPES
-from rivaflow.db.repositories import SessionRepository, SessionRollRepository, TechniqueRepository
+from rivaflow.db.repositories import (
+    SessionRepository,
+    SessionRollRepository,
+    TechniqueRepository,
+)
 from rivaflow.db.repositories.checkin_repo import CheckinRepository
 from rivaflow.db.repositories.glossary_repo import GlossaryRepository
 from rivaflow.db.repositories.session_technique_repo import SessionTechniqueRepository
@@ -109,7 +114,9 @@ class SessionService:
                     movement = self.glossary_repo.get_by_id(movement_id)
                     if movement:
                         tech = self.technique_repo.get_or_create(movement["name"])
-                        self.technique_repo.update_last_trained(tech["id"], session_date)
+                        self.technique_repo.update_last_trained(
+                            tech["id"], session_date
+                        )
 
         # Update technique last_trained_date (from simple techniques field)
         if techniques:
@@ -122,7 +129,7 @@ class SessionService:
             user_id=user_id,
             check_date=session_date,
             checkin_type="session",
-            session_id=session_id
+            session_id=session_id,
         )
 
         return session_id
@@ -164,14 +171,20 @@ class SessionService:
             return {"previous_session_id": None, "next_session_id": None}
 
         # Previous session is the one after current (older, later in list)
-        previous_session_id = all_sessions[current_index + 1]["id"] if current_index + 1 < len(all_sessions) else None
+        previous_session_id = (
+            all_sessions[current_index + 1]["id"]
+            if current_index + 1 < len(all_sessions)
+            else None
+        )
 
         # Next session is the one before current (newer, earlier in list)
-        next_session_id = all_sessions[current_index - 1]["id"] if current_index > 0 else None
+        next_session_id = (
+            all_sessions[current_index - 1]["id"] if current_index > 0 else None
+        )
 
         return {
             "previous_session_id": previous_session_id,
-            "next_session_id": next_session_id
+            "next_session_id": next_session_id,
         }
 
     def update_session(
@@ -179,7 +192,7 @@ class SessionService:
         user_id: int,
         session_id: int,
         session_techniques: list[dict] | None = None,
-        **kwargs
+        **kwargs,
     ) -> dict | None:
         """
         Update a training session and refresh technique tracking.
@@ -203,9 +216,7 @@ class SessionService:
 
         # Update session (pass all kwargs to repo)
         updated = self.session_repo.update(
-            user_id=user_id,
-            session_id=session_id,
-            **kwargs
+            user_id=user_id, session_id=session_id, **kwargs
         )
 
         if not updated:
@@ -234,10 +245,12 @@ class SessionService:
                     movement = self.glossary_repo.get_by_id(movement_id)
                     if movement:
                         tech = self.technique_repo.get_or_create(movement["name"])
-                        self.technique_repo.update_last_trained(tech["id"], updated_date)
+                        self.technique_repo.update_last_trained(
+                            tech["id"], updated_date
+                        )
 
         # Update technique last_trained_date if techniques changed (from simple techniques field)
-        techniques = kwargs.get('techniques')
+        techniques = kwargs.get("techniques")
         if techniques is not None:
             # Use the session date from the updated session
             updated_date = updated["session_date"]
@@ -251,11 +264,15 @@ class SessionService:
         """Delete a session by ID. Returns True if deleted, False if not found."""
         return self.session_repo.delete(user_id, session_id)
 
-    def get_sessions_by_date_range(self, user_id: int, start_date: date, end_date: date) -> list[dict[str, Any]]:
+    def get_sessions_by_date_range(
+        self, user_id: int, start_date: date, end_date: date
+    ) -> list[dict[str, Any]]:
         """Get sessions within a date range."""
         return self.session_repo.get_by_date_range(user_id, start_date, end_date)
 
-    def get_recent_sessions(self, user_id: int, limit: int = 10) -> list[dict[str, Any]]:
+    def get_recent_sessions(
+        self, user_id: int, limit: int = 10
+    ) -> list[dict[str, Any]]:
         """Get most recent sessions."""
         return self.session_repo.get_recent(user_id, limit)
 
@@ -311,11 +328,15 @@ class SessionService:
             lines.append(f"  Location: {session['location']}")
 
         lines.append(f"  Duration: {session['duration_mins']} mins")
-        lines.append(f"  Intensity: {'█' * session['intensity']}{'░' * (5 - session['intensity'])} {session['intensity']}/5")
+        lines.append(
+            f"  Intensity: {'█' * session['intensity']}{'░' * (5 - session['intensity'])} {session['intensity']}/5"
+        )
 
         if session["rolls"] > 0:
             lines.append(f"  Rolls: {session['rolls']}")
-            lines.append(f"  Subs for: {session['submissions_for']} | against: {session['submissions_against']}")
+            lines.append(
+                f"  Subs for: {session['submissions_for']} | against: {session['submissions_against']}"
+            )
 
         if session.get("partners"):
             lines.append(f"  Partners: {', '.join(session['partners'])}")
@@ -328,7 +349,9 @@ class SessionService:
 
         return "\n".join(lines)
 
-    def get_session_with_rolls(self, user_id: int, session_id: int) -> dict[str, Any] | None:
+    def get_session_with_rolls(
+        self, user_id: int, session_id: int
+    ) -> dict[str, Any] | None:
         """Get a session with detailed roll records included."""
         session = self.session_repo.get_by_id(user_id, session_id)
         if not session:
@@ -340,12 +363,16 @@ class SessionService:
 
         return session
 
-    def get_session_with_details(self, user_id: int, session_id: int) -> dict[str, Any] | None:
+    def get_session_with_details(
+        self, user_id: int, session_id: int
+    ) -> dict[str, Any] | None:
         """
         Get a session with all related data eagerly loaded (rolls, techniques, media, comments, likes).
         This avoids N+1 queries when displaying session detail views.
         """
-        from rivaflow.db.repositories.activity_comment_repo import ActivityCommentRepository
+        from rivaflow.db.repositories.activity_comment_repo import (
+            ActivityCommentRepository,
+        )
         from rivaflow.db.repositories.activity_like_repo import ActivityLikeRepository
 
         session = self.session_repo.get_by_id(user_id, session_id)
@@ -353,15 +380,23 @@ class SessionService:
             return None
 
         # Eagerly load all related data
-        session["detailed_rolls"] = self.roll_repo.get_by_session_id(user_id, session_id)
-        session["detailed_techniques"] = self.technique_detail_repo.get_by_session_id(session_id)
+        session["detailed_rolls"] = self.roll_repo.get_by_session_id(
+            user_id, session_id
+        )
+        session["detailed_techniques"] = self.technique_detail_repo.get_by_session_id(
+            session_id
+        )
 
         # Load social engagement data
         session["likes"] = ActivityLikeRepository.get_by_activity("session", session_id)
-        session["comments"] = ActivityCommentRepository.get_by_activity("session", session_id)
+        session["comments"] = ActivityCommentRepository.get_by_activity(
+            "session", session_id
+        )
         session["like_count"] = len(session["likes"])
         session["comment_count"] = len(session["comments"])
-        session["has_liked"] = ActivityLikeRepository.has_user_liked(user_id, "session", session_id)
+        session["has_liked"] = ActivityLikeRepository.has_user_liked(
+            user_id, "session", session_id
+        )
 
         return session
 

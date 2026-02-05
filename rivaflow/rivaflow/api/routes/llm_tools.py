@@ -4,6 +4,7 @@ LLM tool contract endpoints - skeletons for future AI features.
 BETA STATUS: These endpoints return placeholder data and are not used in the UI.
 Planned for v0.2+ for AI-powered training insights and recommendations.
 """
+
 from datetime import date
 from typing import Any
 
@@ -17,19 +18,20 @@ router = APIRouter(prefix="/llm-tools", tags=["llm-tools"])
 
 class WeekReportResponse(BaseModel):
     """Week report response for LLM consumption."""
+
     summary: str
     sessions: list[dict[str, Any]]
 
 
 class PartnersSummaryResponse(BaseModel):
     """Partners summary response for LLM consumption."""
+
     partners: list[dict[str, Any]]
 
 
 @router.get("/report/week", response_model=WeekReportResponse)
 async def get_week_report_for_llm(
-    week_start: date,
-    current_user: dict = Depends(get_current_user)
+    week_start: date, current_user: dict = Depends(get_current_user)
 ):
     """
     Get week report formatted for LLM tool calling.
@@ -56,17 +58,15 @@ async def get_week_report_for_llm(
             {
                 "date": str(week_start),
                 "type": "training",
-                "summary": "Example session - to be populated from database"
+                "summary": "Example session - to be populated from database",
             }
-        ]
+        ],
     )
 
 
 @router.get("/partners/summary", response_model=PartnersSummaryResponse)
 async def get_partners_summary_for_llm(
-    start: date,
-    end: date,
-    current_user: dict = Depends(get_current_user)
+    start: date, end: date, current_user: dict = Depends(get_current_user)
 ):
     """
     Get training partners summary for date range, formatted for LLM.
@@ -93,7 +93,7 @@ async def get_partners_summary_for_llm(
             {
                 "name": "Example Partner",
                 "sessions_count": 0,
-                "note": "Placeholder - to be populated from contacts and sessions"
+                "note": "Placeholder - to be populated from contacts and sessions",
             }
         ]
     )

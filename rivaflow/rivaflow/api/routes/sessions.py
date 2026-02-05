@@ -1,4 +1,5 @@
 """Session management endpoints."""
+
 from datetime import date
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
@@ -18,7 +19,11 @@ limiter = Limiter(key_func=get_remote_address)
 
 @router.post("/")
 @limiter.limit("60/minute")
-async def create_session(request: Request, session: SessionCreate, current_user: dict = Depends(get_current_user)):
+async def create_session(
+    request: Request,
+    session: SessionCreate,
+    current_user: dict = Depends(get_current_user),
+):
     """Create a new training session."""
     # Convert SessionRollData models to dicts if present
     session_rolls_dict = None
@@ -28,7 +33,9 @@ async def create_session(request: Request, session: SessionCreate, current_user:
     # Convert SessionTechniqueCreate models to dicts if present
     session_techniques_dict = None
     if session.session_techniques:
-        session_techniques_dict = [tech.model_dump() for tech in session.session_techniques]
+        session_techniques_dict = [
+            tech.model_dump() for tech in session.session_techniques
+        ]
 
     session_id = service.create_session(
         user_id=current_user["id"],
@@ -55,19 +62,28 @@ async def create_session(request: Request, session: SessionCreate, current_user:
         whoop_avg_hr=session.whoop_avg_hr,
         whoop_max_hr=session.whoop_max_hr,
     )
-    created_session = service.get_session(user_id=current_user["id"], session_id=session_id)
+    created_session = service.get_session(
+        user_id=current_user["id"], session_id=session_id
+    )
     return created_session
 
 
 @router.put("/{session_id}")
 @limiter.limit("60/minute")
-async def update_session(request: Request, session_id: int, session: SessionUpdate, current_user: dict = Depends(get_current_user)):
+async def update_session(
+    request: Request,
+    session_id: int,
+    session: SessionUpdate,
+    current_user: dict = Depends(get_current_user),
+):
     """Update an existing training session."""
     try:
         # Convert SessionTechniqueCreate models to dicts if present
         session_techniques_dict = None
         if session.session_techniques is not None:
-            session_techniques_dict = [tech.model_dump() for tech in session.session_techniques]
+            session_techniques_dict = [
+                tech.model_dump() for tech in session.session_techniques
+            ]
 
         updated = service.update_session(
             user_id=current_user["id"],
@@ -85,7 +101,9 @@ async def update_session(request: Request, session_id: int, session: SessionUpda
             partners=session.partners,
             techniques=session.techniques,
             notes=session.notes,
-            visibility_level=session.visibility_level.value if session.visibility_level else None,
+            visibility_level=(
+                session.visibility_level.value if session.visibility_level else None
+            ),
             instructor_id=session.instructor_id,
             instructor_name=session.instructor_name,
             session_techniques=session_techniques_dict,
@@ -103,7 +121,9 @@ async def update_session(request: Request, session_id: int, session: SessionUpda
 
 @router.delete("/{session_id}")
 @limiter.limit("60/minute")
-async def delete_session(request: Request, session_id: int, current_user: dict = Depends(get_current_user)):
+async def delete_session(
+    request: Request, session_id: int, current_user: dict = Depends(get_current_user)
+):
     """Delete a training session."""
     deleted = service.delete_session(user_id=current_user["id"], session_id=session_id)
     if not deleted:
@@ -115,8 +135,10 @@ async def delete_session(request: Request, session_id: int, current_user: dict =
 async def get_session(
     session_id: int,
     apply_privacy: bool = False,
-    include_navigation: bool = Query(default=True, description="Include previous/next session IDs for navigation"),
-    current_user: dict = Depends(get_current_user)
+    include_navigation: bool = Query(
+        default=True, description="Include previous/next session IDs for navigation"
+    ),
+    current_user: dict = Depends(get_current_user),
 ):
     """Get a session by ID with optional navigation info.
 
@@ -150,7 +172,7 @@ async def get_session(
 async def list_sessions(
     limit: int = Query(default=10, ge=1, le=1000),
     apply_privacy: bool = False,
-    current_user: dict = Depends(get_current_user)
+    current_user: dict = Depends(get_current_user),
 ):
     """List recent sessions.
 
@@ -163,15 +185,19 @@ async def list_sessions(
 
     if apply_privacy:
         sessions = PrivacyService.redact_sessions_list(
-            sessions,
-            default_visibility="private"
+            sessions, default_visibility="private"
         )
 
     return sessions
 
 
 @router.get("/range/{start_date}/{end_date}")
-async def get_sessions_by_range(start_date: date, end_date: date, apply_privacy: bool = False, current_user: dict = Depends(get_current_user)):
+async def get_sessions_by_range(
+    start_date: date,
+    end_date: date,
+    apply_privacy: bool = False,
+    current_user: dict = Depends(get_current_user),
+):
     """Get sessions within a date range.
 
     Args:
@@ -180,12 +206,13 @@ async def get_sessions_by_range(start_date: date, end_date: date, apply_privacy:
         apply_privacy: If True, apply privacy redaction to each session.
                       Default False for owner access (current single-user mode).
     """
-    sessions = service.get_sessions_by_date_range(user_id=current_user["id"], start_date=start_date, end_date=end_date)
+    sessions = service.get_sessions_by_date_range(
+        user_id=current_user["id"], start_date=start_date, end_date=end_date
+    )
 
     if apply_privacy:
         sessions = PrivacyService.redact_sessions_list(
-            sessions,
-            default_visibility="private"
+            sessions, default_visibility="private"
         )
 
     return sessions
@@ -198,7 +225,11 @@ async def get_autocomplete_data(current_user: dict = Depends(get_current_user)):
 
 
 @router.get("/{session_id}/with-rolls")
-async def get_session_with_rolls(session_id: int, apply_privacy: bool = False, current_user: dict = Depends(get_current_user)):
+async def get_session_with_rolls(
+    session_id: int,
+    apply_privacy: bool = False,
+    current_user: dict = Depends(get_current_user),
+):
     """Get a session with detailed roll records.
 
     Args:
@@ -208,7 +239,9 @@ async def get_session_with_rolls(session_id: int, apply_privacy: bool = False, c
                       excluded unless visibility is "full".
                       Default False for owner access (current single-user mode).
     """
-    session = service.get_session_with_rolls(user_id=current_user["id"], session_id=session_id)
+    session = service.get_session_with_rolls(
+        user_id=current_user["id"], session_id=session_id
+    )
     if not session:
         raise NotFoundError("Session not found")
 
@@ -222,7 +255,9 @@ async def get_session_with_rolls(session_id: int, apply_privacy: bool = False, c
 
 
 @router.get("/partner/{partner_id}/stats")
-async def get_partner_stats(partner_id: int, current_user: dict = Depends(get_current_user)):
+async def get_partner_stats(
+    partner_id: int, current_user: dict = Depends(get_current_user)
+):
     """Get training statistics for a specific partner."""
     stats = service.get_partner_stats(user_id=current_user["id"], partner_id=partner_id)
     return stats

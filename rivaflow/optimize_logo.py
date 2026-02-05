@@ -28,7 +28,7 @@ def optimize_logo(logo_path):
     print(f"📐 Original dimensions: {original.size[0]}x{original.size[1]}px")
 
     # Backup original
-    backup_path = logo_path.replace('.png', '-original.png')
+    backup_path = logo_path.replace(".png", "-original.png")
     if not os.path.exists(backup_path):
         print(f"💾 Backing up original to {backup_path}...")
         original.save(backup_path, optimize=True)
@@ -42,19 +42,21 @@ def optimize_logo(logo_path):
 
     # Save optimized PNG
     print("💾 Saving optimized PNG...")
-    resized.save(logo_path, 'PNG', optimize=True, quality=95)
+    resized.save(logo_path, "PNG", optimize=True, quality=95)
     png_size = os.path.getsize(logo_path)
 
     # Save WebP version
-    webp_path = logo_path.replace('.png', '.webp')
+    webp_path = logo_path.replace(".png", ".webp")
     print("💾 Saving WebP version...")
-    resized.save(webp_path, 'WEBP', quality=85, method=6)
+    resized.save(webp_path, "WEBP", quality=85, method=6)
     webp_size = os.path.getsize(webp_path)
 
     # Print results
     print("\n✅ Logo optimization complete!")
     print("=" * 60)
-    print(f"Original:     {original_size / 1024 / 1024:.2f} MB ({original.size[0]}x{original.size[1]}px)")
+    print(
+        f"Original:     {original_size / 1024 / 1024:.2f} MB ({original.size[0]}x{original.size[1]}px)"
+    )
     print(f"Optimized PNG: {png_size / 1024:.2f} KB ({new_size[0]}x{new_size[1]}px)")
     print(f"WebP:         {webp_size / 1024:.2f} KB ({new_size[0]}x{new_size[1]}px)")
     print("=" * 60)
@@ -65,6 +67,7 @@ def optimize_logo(logo_path):
     print(f"   - {logo_path} (optimized PNG)")
     print(f"   - {webp_path} (optimized WebP)")
     print("\n🎯 Next step: git add public/logo* && git commit")
+
 
 if __name__ == "__main__":
     # Check if Pillow is installed

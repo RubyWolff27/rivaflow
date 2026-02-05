@@ -1,4 +1,5 @@
 """Repository for Grapple chat messages data access."""
+
 from typing import Any
 from uuid import uuid4
 
@@ -11,7 +12,7 @@ class ChatMessageRepository:
     @staticmethod
     def _row_to_dict(row) -> dict[str, Any]:
         """Convert database row to dictionary (handles both SQLite tuples and PostgreSQL dicts)."""
-        if hasattr(row, 'keys'):
+        if hasattr(row, "keys"):
             # PostgreSQL - row is already a dict
             result = dict(row)
             if result.get("cost_usd") is not None:
@@ -55,17 +56,27 @@ class ChatMessageRepository:
         """
         message_id = str(uuid4())
 
-        query = convert_query("""
+        query = convert_query(
+            """
             INSERT INTO chat_messages (id, session_id, role, content, input_tokens, output_tokens, cost_usd)
             VALUES (?, ?, ?, ?, ?, ?, ?)
             RETURNING id, session_id, role, content, input_tokens, output_tokens, cost_usd, created_at
-        """)
+        """
+        )
 
         with get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(
                 query,
-                (message_id, session_id, role, content, input_tokens, output_tokens, cost_usd),
+                (
+                    message_id,
+                    session_id,
+                    role,
+                    content,
+                    input_tokens,
+                    output_tokens,
+                    cost_usd,
+                ),
             )
             row = cursor.fetchone()
             conn.commit()
@@ -86,13 +97,15 @@ class ChatMessageRepository:
         Returns:
             List of message dicts ordered by created_at ASC
         """
-        query = convert_query("""
+        query = convert_query(
+            """
             SELECT id, session_id, role, content, input_tokens, output_tokens, cost_usd, created_at
             FROM chat_messages
             WHERE session_id = ?
             ORDER BY created_at ASC
             LIMIT ?
-        """)
+        """
+        )
 
         with get_connection() as conn:
             cursor = conn.cursor()
@@ -102,7 +115,9 @@ class ChatMessageRepository:
             return [ChatMessageRepository._row_to_dict(row) for row in rows]
 
     @staticmethod
-    def get_recent_context(session_id: str, max_messages: int = 10) -> list[dict[str, str]]:
+    def get_recent_context(
+        session_id: str, max_messages: int = 10
+    ) -> list[dict[str, str]]:
         """
         Get recent messages for context (formatted for LLM).
 
@@ -113,13 +128,15 @@ class ChatMessageRepository:
         Returns:
             List of dicts with 'role' and 'content' keys
         """
-        query = convert_query("""
+        query = convert_query(
+            """
             SELECT role, content
             FROM chat_messages
             WHERE session_id = ?
             ORDER BY created_at DESC
             LIMIT ?
-        """)
+        """
+        )
 
         with get_connection() as conn:
             cursor = conn.cursor()
@@ -129,7 +146,7 @@ class ChatMessageRepository:
             # Reverse to get chronological order
             messages = []
             for row in reversed(rows):
-                if hasattr(row, 'keys'):
+                if hasattr(row, "keys"):
                     messages.append({"role": row["role"], "content": row["content"]})
                 else:
                     messages.append({"role": row[0], "content": row[1]})
@@ -138,7 +155,9 @@ class ChatMessageRepository:
     @staticmethod
     def count_by_session(session_id: str) -> int:
         """Get message count for a session."""
-        query = convert_query("SELECT COUNT(*) as count FROM chat_messages WHERE session_id = ?")
+        query = convert_query(
+            "SELECT COUNT(*) as count FROM chat_messages WHERE session_id = ?"
+        )
 
         with get_connection() as conn:
             cursor = conn.cursor()
@@ -146,7 +165,7 @@ class ChatMessageRepository:
             result = cursor.fetchone()
             if result:
                 # Handle both dict (PostgreSQL) and tuple (SQLite)
-                if hasattr(result, 'keys'):
+                if hasattr(result, "keys"):
                     return result["count"]
                 else:
                     return result[0]

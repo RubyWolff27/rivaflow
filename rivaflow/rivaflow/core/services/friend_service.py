@@ -54,7 +54,9 @@ class FriendService:
 
     def list_training_partners(self, user_id: int) -> list[dict]:
         """Get all friends who are training partners."""
-        partners = self.repo.list_by_type(user_id, "training-partner", order_by="name ASC")
+        partners = self.repo.list_by_type(
+            user_id, "training-partner", order_by="name ASC"
+        )
         both = self.repo.list_by_type(user_id, "both", order_by="name ASC")
         return partners + both
 

@@ -1,4 +1,5 @@
 """Dashboard API endpoints."""
+
 from datetime import date, timedelta
 
 from fastapi import APIRouter, Depends, Query
@@ -61,7 +62,9 @@ def _get_dashboard_summary_cached(
     class_type_distribution = {}
     for session in recent_sessions:
         class_type = session.get("class_type", "unknown")
-        class_type_distribution[class_type] = class_type_distribution.get(class_type, 0) + 1
+        class_type_distribution[class_type] = (
+            class_type_distribution.get(class_type, 0) + 1
+        )
 
     return {
         "performance": {
@@ -120,10 +123,7 @@ async def get_dashboard_summary(
     try:
         # Use cached function (5-minute TTL)
         return _get_dashboard_summary_cached(
-            user_id,
-            start_date,
-            end_date,
-            types=types if types else None
+            user_id, start_date, end_date, types=types if types else None
         )
 
     except Exception as e:
@@ -175,7 +175,12 @@ async def get_quick_stats(
 
 @router.get("/week-summary")
 async def get_week_summary(
-    week_offset: int = Query(0, ge=-52, le=0, description="Weeks back from current week (0 = this week, -1 = last week)"),
+    week_offset: int = Query(
+        0,
+        ge=-52,
+        le=0,
+        description="Weeks back from current week (0 = this week, -1 = last week)",
+    ),
     current_user: dict = Depends(get_current_user),
 ):
     """

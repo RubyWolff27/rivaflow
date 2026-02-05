@@ -1,4 +1,5 @@
 """Context builder for Grapple AI Coach - builds personalized prompts from user data."""
+
 import logging
 from datetime import datetime, timedelta
 
@@ -97,7 +98,9 @@ Now respond to the user's questions using this context. Reference their specific
             # Calculate training stats
             total_duration = sum(s.get("duration_mins", 0) for s in redacted_sessions)
             total_rolls = sum(s.get("rolls_count", 0) for s in redacted_sessions)
-            avg_intensity = sum(s.get("intensity", 0) for s in redacted_sessions) / total_sessions
+            avg_intensity = (
+                sum(s.get("intensity", 0) for s in redacted_sessions) / total_sessions
+            )
 
             # Get unique gyms and techniques
             gyms = set(s.get("gym", "") for s in redacted_sessions if s.get("gym"))
@@ -108,21 +111,24 @@ Now respond to the user's questions using this context. Reference their specific
 
             # Sessions in last 30 days
             sessions_last_30_days = [
-                s for s in redacted_sessions
+                s
+                for s in redacted_sessions
                 if s.get("date") and self._parse_date(s["date"]) >= thirty_days_ago
             ]
 
-            context_parts.extend([
-                "TRAINING SUMMARY:",
-                f"Total sessions logged: {total_sessions}",
-                f"Sessions in last 30 days: {len(sessions_last_30_days)}",
-                f"Total training time: {total_duration} minutes ({total_duration / 60:.1f} hours)",
-                f"Total rolls: {total_rolls}",
-                f"Average intensity: {avg_intensity:.1f}/10",
-                f"Gyms trained at: {', '.join(sorted(gyms)) if gyms else 'Not specified'}",
-                f"Techniques practiced: {len(all_techniques)} unique techniques",
-                "",
-            ])
+            context_parts.extend(
+                [
+                    "TRAINING SUMMARY:",
+                    f"Total sessions logged: {total_sessions}",
+                    f"Sessions in last 30 days: {len(sessions_last_30_days)}",
+                    f"Total training time: {total_duration} minutes ({total_duration / 60:.1f} hours)",
+                    f"Total rolls: {total_rolls}",
+                    f"Average intensity: {avg_intensity:.1f}/10",
+                    f"Gyms trained at: {', '.join(sorted(gyms)) if gyms else 'Not specified'}",
+                    f"Techniques practiced: {len(all_techniques)} unique techniques",
+                    "",
+                ]
+            )
 
             # Show last 15 sessions in detail
             context_parts.append("RECENT SESSIONS (last 15):")
@@ -138,7 +144,9 @@ Now respond to the user's questions using this context. Reference their specific
                 techniques = session.get("techniques", [])
                 notes = session.get("notes", "")
 
-                session_summary = f"- {date_str} at {gym}: {duration}min, intensity {intensity}/10"
+                session_summary = (
+                    f"- {date_str} at {gym}: {duration}min, intensity {intensity}/10"
+                )
                 if rolls > 0:
                     session_summary += f", {rolls} rolls"
                 if techniques:
@@ -153,9 +161,12 @@ Now respond to the user's questions using this context. Reference their specific
 
             # Add recent readiness data if available (last 7 days)
             from datetime import date, timedelta
+
             end_date = date.today()
             start_date = end_date - timedelta(days=7)
-            recent_readiness = self.readiness_repo.get_by_date_range(self.user_id, start_date, end_date)
+            recent_readiness = self.readiness_repo.get_by_date_range(
+                self.user_id, start_date, end_date
+            )
             if recent_readiness:
                 context_parts.append("")
                 context_parts.append("RECENT READINESS (last 7 days):")
@@ -182,7 +193,9 @@ Now respond to the user's questions using this context. Reference their specific
         except Exception:
             return datetime.min
 
-    def get_conversation_context(self, recent_messages: list[dict[str, str]]) -> list[dict[str, str]]:
+    def get_conversation_context(
+        self, recent_messages: list[dict[str, str]]
+    ) -> list[dict[str, str]]:
         """
         Build full conversation context for LLM.
 

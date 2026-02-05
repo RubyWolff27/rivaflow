@@ -1,4 +1,5 @@
 """Tests for ReportService."""
+
 from datetime import date
 from unittest.mock import patch
 import tempfile
@@ -55,7 +56,11 @@ def test_generate_report_with_sessions(temp_db, test_user):
             )
 
         report_service = ReportService()
-        report = report_service.generate_report(user_id=test_user["id"], start_date=date(2025, 1, 20), end_date=date(2025, 1, 22))
+        report = report_service.generate_report(
+            user_id=test_user["id"],
+            start_date=date(2025, 1, 20),
+            end_date=date(2025, 1, 22),
+        )
 
         # Verify summary
         assert report["summary"]["total_classes"] == 3
@@ -69,7 +74,11 @@ def test_generate_report_empty(temp_db, test_user):
     """Test generating report with no sessions."""
     with patch("rivaflow.config.DB_PATH", temp_db):
         service = ReportService()
-        report = service.generate_report(user_id=test_user["id"], start_date=date(2025, 1, 20), end_date=date(2025, 1, 22))
+        report = service.generate_report(
+            user_id=test_user["id"],
+            start_date=date(2025, 1, 20),
+            end_date=date(2025, 1, 22),
+        )
 
         assert report["summary"]["total_classes"] == 0
         assert len(report["sessions"]) == 0
@@ -81,22 +90,26 @@ def test_breakdown_by_type(temp_db, test_user):
         # Setup: Create mixed sessions
         session_service = SessionService()
         session_service.create_session(
-                user_id=test_user["id"],
-                session_date=date(2025, 1, 20),
+            user_id=test_user["id"],
+            session_date=date(2025, 1, 20),
             class_type="gi",
             gym_name="Test Gym",
             rolls=5,
         )
         session_service.create_session(
-                user_id=test_user["id"],
-                session_date=date(2025, 1, 21),
+            user_id=test_user["id"],
+            session_date=date(2025, 1, 21),
             class_type="no-gi",
             gym_name="Test Gym",
             rolls=4,
         )
 
         report_service = ReportService()
-        report = report_service.generate_report(user_id=test_user["id"], start_date=date(2025, 1, 20), end_date=date(2025, 1, 21))
+        report = report_service.generate_report(
+            user_id=test_user["id"],
+            start_date=date(2025, 1, 20),
+            end_date=date(2025, 1, 21),
+        )
 
         breakdown = report["breakdown_by_type"]
         assert breakdown["gi"]["classes"] == 1
@@ -109,15 +122,19 @@ def test_export_to_csv(temp_db, test_user):
         # Setup: Create session
         session_service = SessionService()
         session_service.create_session(
-                user_id=test_user["id"],
-                session_date=date(2025, 1, 20),
+            user_id=test_user["id"],
+            session_date=date(2025, 1, 20),
             class_type="gi",
             gym_name="Test Gym",
         )
 
         # Export
         report_service = ReportService()
-        report = report_service.generate_report(user_id=test_user["id"], start_date=date(2025, 1, 20), end_date=date(2025, 1, 20))
+        report = report_service.generate_report(
+            user_id=test_user["id"],
+            start_date=date(2025, 1, 20),
+            end_date=date(2025, 1, 20),
+        )
 
         with tempfile.NamedTemporaryFile(mode="w", delete=False, suffix=".csv") as f:
             csv_path = f.name
@@ -139,8 +156,8 @@ def test_calculate_rates(temp_db, test_user):
     with patch("rivaflow.config.DB_PATH", temp_db):
         session_service = SessionService()
         session_service.create_session(
-                user_id=test_user["id"],
-                session_date=date(2025, 1, 20),
+            user_id=test_user["id"],
+            session_date=date(2025, 1, 20),
             class_type="gi",
             gym_name="Test Gym",
             rolls=10,
@@ -149,7 +166,11 @@ def test_calculate_rates(temp_db, test_user):
         )
 
         report_service = ReportService()
-        report = report_service.generate_report(user_id=test_user["id"], start_date=date(2025, 1, 20), end_date=date(2025, 1, 20))
+        report = report_service.generate_report(
+            user_id=test_user["id"],
+            start_date=date(2025, 1, 20),
+            end_date=date(2025, 1, 20),
+        )
 
         # Verify rates (rounded to 2 decimal places)
         assert abs(report["summary"]["subs_per_roll"] - 0.3) < 0.01  # 3/10

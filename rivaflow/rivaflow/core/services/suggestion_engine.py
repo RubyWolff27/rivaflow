@@ -1,4 +1,5 @@
 """Service layer for generating training suggestions."""
+
 from datetime import date
 
 from rivaflow.core.rules import RULES, format_explanation
@@ -26,8 +27,12 @@ class SuggestionEngine:
         readiness = self.readiness_repo.get_latest(user_id)
 
         # Get session context
-        consecutive_counts = self.session_service.get_consecutive_class_type_count(user_id)
-        stale_techniques = self.technique_repo.get_stale(days=7)  # Techniques are global, no user_id
+        consecutive_counts = self.session_service.get_consecutive_class_type_count(
+            user_id
+        )
+        stale_techniques = self.technique_repo.get_stale(
+            days=7
+        )  # Techniques are global, no user_id
 
         session_context = {
             "consecutive_gi_sessions": consecutive_counts.get("gi", 0),

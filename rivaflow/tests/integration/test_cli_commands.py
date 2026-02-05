@@ -4,6 +4,7 @@ Integration tests for CLI commands.
 Tests the complete CLI workflow including user registration,
 session logging, check-ins, and data retrieval.
 """
+
 import os
 from datetime import date
 from unittest.mock import patch
@@ -12,7 +13,9 @@ import pytest
 from typer.testing import CliRunner
 
 # Set SECRET_KEY for testing
-os.environ.setdefault("SECRET_KEY", "test-secret-key-for-cli-integration-tests-minimum-32-chars")
+os.environ.setdefault(
+    "SECRET_KEY", "test-secret-key-for-cli-integration-tests-minimum-32-chars"
+)
 
 from rivaflow.cli.app import app as cli_app
 from rivaflow.db.database import get_connection, init_db
@@ -34,8 +37,12 @@ def cleanup_test_data():
     with get_connection() as conn:
         cursor = conn.cursor()
         cursor.execute("DELETE FROM users WHERE email LIKE 'cli_test_%@example.com'")
-        cursor.execute("DELETE FROM sessions WHERE user_id IN (SELECT user_id FROM users WHERE email LIKE 'cli_test_%@example.com')")
-        cursor.execute("DELETE FROM daily_checkins WHERE user_id IN (SELECT user_id FROM users WHERE email LIKE 'cli_test_%@example.com')")
+        cursor.execute(
+            "DELETE FROM sessions WHERE user_id IN (SELECT user_id FROM users WHERE email LIKE 'cli_test_%@example.com')"
+        )
+        cursor.execute(
+            "DELETE FROM daily_checkins WHERE user_id IN (SELECT user_id FROM users WHERE email LIKE 'cli_test_%@example.com')"
+        )
         conn.commit()
 
 
@@ -47,14 +54,19 @@ def mock_user_context():
     # Create test user
     with get_connection() as conn:
         cursor = conn.cursor()
-        cursor.execute("""
+        cursor.execute(
+            """
             INSERT INTO users (email, password_hash, created_at)
             VALUES (?, ?, CURRENT_TIMESTAMP)
-        """, ("cli_test_user@example.com", "dummy_hash"))
+        """,
+            ("cli_test_user@example.com", "dummy_hash"),
+        )
         conn.commit()
         test_user_id = cursor.lastrowid
 
-    with patch("rivaflow.cli.utils.user_context.get_current_user_id", return_value=test_user_id):
+    with patch(
+        "rivaflow.cli.utils.user_context.get_current_user_id", return_value=test_user_id
+    ):
         yield test_user_id
 
     # Cleanup
@@ -89,24 +101,20 @@ class TestSessionLogging:
         # Mock interactive inputs
         inputs = [
             "2026-02-01",  # session_date
-            "gi",          # class_type
-            "Test Gym",    # gym_name
-            "90",          # duration_mins
-            "4",           # intensity
-            "5",           # rolls
-            "",            # submissions_for (skip)
-            "",            # submissions_against (skip)
-            "",            # partners (skip)
-            "",            # techniques (skip)
+            "gi",  # class_type
+            "Test Gym",  # gym_name
+            "90",  # duration_mins
+            "4",  # intensity
+            "5",  # rolls
+            "",  # submissions_for (skip)
+            "",  # submissions_against (skip)
+            "",  # partners (skip)
+            "",  # techniques (skip)
             "Great session",  # notes
-            "full",        # visibility_level
+            "full",  # visibility_level
         ]
 
-        result = cli_runner.invoke(
-            cli_app,
-            ["log"],
-            input="\n".join(inputs)
-        )
+        result = cli_runner.invoke(cli_app, ["log"], input="\n".join(inputs))
 
         # Command should complete successfully
         # Note: May fail if prompts are different, this is a basic check
@@ -116,9 +124,7 @@ class TestSessionLogging:
         """Test quick session logging with minimal input."""
         # This tests the quick log flow if available
         result = cli_runner.invoke(
-            cli_app,
-            ["log", "--quick"],
-            input="\n".join(["gi", "Test Gym", "90"])
+            cli_app, ["log", "--quick"], input="\n".join(["gi", "Test Gym", "90"])
         )
 
         # Should complete (may not be implemented yet)
@@ -131,20 +137,16 @@ class TestReadinessCommands:
     def test_readiness_command(self, cli_runner, mock_user_context):
         """Test readiness check-in command."""
         inputs = [
-            "4",   # energy
-            "4",   # soreness
-            "4",   # stress
-            "8",   # sleep_hours
-            "4",   # mood
-            "",    # notes (skip)
-            "y",   # training_planned
+            "4",  # energy
+            "4",  # soreness
+            "4",  # stress
+            "8",  # sleep_hours
+            "4",  # mood
+            "",  # notes (skip)
+            "y",  # training_planned
         ]
 
-        result = cli_runner.invoke(
-            cli_app,
-            ["readiness"],
-            input="\n".join(inputs)
-        )
+        result = cli_runner.invoke(cli_app, ["readiness"], input="\n".join(inputs))
 
         # Should complete
         assert result.exit_code in [0, 1]
@@ -162,11 +164,7 @@ class TestRestDayCommands:
             "train",  # tomorrow_intention
         ]
 
-        result = cli_runner.invoke(
-            cli_app,
-            ["rest"],
-            input="\n".join(inputs)
-        )
+        result = cli_runner.invoke(cli_app, ["rest"], input="\n".join(inputs))
 
         # Should complete
         assert result.exit_code in [0, 1]
@@ -182,7 +180,9 @@ class TestProgressCommands:
         # Should display without error
         assert result.exit_code == 0
         # Should show some progress metrics
-        assert "sessions" in result.stdout.lower() or "training" in result.stdout.lower()
+        assert (
+            "sessions" in result.stdout.lower() or "training" in result.stdout.lower()
+        )
 
     def test_streak_command(self, cli_runner, mock_user_context):
         """Test streak display command."""
@@ -238,11 +238,7 @@ class TestGoalsCommands:
             "y",  # is_current
         ]
 
-        result = cli_runner.invoke(
-            cli_app,
-            ["goals", "set"],
-            input="\n".join(inputs)
-        )
+        result = cli_runner.invoke(cli_app, ["goals", "set"], input="\n".join(inputs))
 
         # Should complete
         assert result.exit_code in [0, 1]
@@ -276,21 +272,24 @@ class TestDataIntegrity:
         # First, log a session
         with get_connection() as conn:
             cursor = conn.cursor()
-            cursor.execute("""
+            cursor.execute(
+                """
                 INSERT INTO sessions (
                     user_id, session_date, class_type, gym_name,
                     duration_mins, intensity, rolls, created_at
                 )
                 VALUES (?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
-            """, (
-                mock_user_context,
-                date.today().isoformat(),
-                "gi",
-                "Test Gym",
-                90,
-                4,
-                5
-            ))
+            """,
+                (
+                    mock_user_context,
+                    date.today().isoformat(),
+                    "gi",
+                    "Test Gym",
+                    90,
+                    4,
+                    5,
+                ),
+            )
             conn.commit()
 
         # Then check progress
@@ -305,26 +304,28 @@ class TestDataIntegrity:
         # Log readiness
         with get_connection() as conn:
             cursor = conn.cursor()
-            cursor.execute("""
+            cursor.execute(
+                """
                 INSERT INTO readiness (
                     user_id, check_date, energy, soreness, stress,
                     sleep_hours, mood, created_at
                 )
                 VALUES (?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
-            """, (
-                mock_user_context,
-                date.today().isoformat(),
-                4, 4, 4, 8, 4
-            ))
+            """,
+                (mock_user_context, date.today().isoformat(), 4, 4, 4, 8, 4),
+            )
             conn.commit()
 
         # Verify check-in exists
         with get_connection() as conn:
             cursor = conn.cursor()
-            cursor.execute("""
+            cursor.execute(
+                """
                 SELECT COUNT(*) FROM readiness
                 WHERE user_id = ? AND check_date = ?
-            """, (mock_user_context, date.today().isoformat()))
+            """,
+                (mock_user_context, date.today().isoformat()),
+            )
             count = cursor.fetchone()[0]
 
         assert count >= 1
@@ -343,11 +344,7 @@ class TestErrorHandling:
         """Test missing required argument shows error."""
         # Try to invoke a command that requires input without providing it
         # This is a basic check - specific behavior depends on implementation
-        result = cli_runner.invoke(
-            cli_app,
-            ["log"],
-            input=""  # No input provided
-        )
+        result = cli_runner.invoke(cli_app, ["log"], input="")  # No input provided
 
         # Should either complete or show error
         assert result.exit_code in [0, 1]

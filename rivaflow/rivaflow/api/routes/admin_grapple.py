@@ -1,4 +1,5 @@
 """Admin endpoints for Grapple AI Coach monitoring and management."""
+
 import logging
 from datetime import datetime, timedelta
 from typing import Any
@@ -17,8 +18,10 @@ logger = logging.getLogger(__name__)
 # Request/Response Models
 # ============================================================================
 
+
 class FeedbackRequest(BaseModel):
     """User feedback on a Grapple response."""
+
     message_id: str
     rating: str  # 'positive' or 'negative'
     category: str | None = None  # 'helpful', 'accurate', 'unclear', etc.
@@ -27,6 +30,7 @@ class FeedbackRequest(BaseModel):
 
 class UsageStatsResponse(BaseModel):
     """Global usage statistics."""
+
     total_users: int
     active_users_7d: int
     total_sessions: int
@@ -40,6 +44,7 @@ class UsageStatsResponse(BaseModel):
 # ============================================================================
 # User Feedback Endpoints (Beta/Premium users)
 # ============================================================================
+
 
 @router.post("/feedback")
 async def submit_feedback(
@@ -80,10 +85,12 @@ async def submit_feedback(
 
         # Insert feedback
         feedback_id = str(uuid4())
-        insert_query = convert_query("""
+        insert_query = convert_query(
+            """
             INSERT INTO grapple_feedback (id, user_id, session_id, message_id, rating, category, comment)
             VALUES (?, ?, ?, ?, ?, ?, ?)
-        """)
+        """
+        )
 
         cursor.execute(
             insert_query,
@@ -99,7 +106,9 @@ async def submit_feedback(
         )
         conn.commit()
 
-    logger.info(f"Feedback submitted by user {user_id}: {feedback.rating} for message {feedback.message_id}")
+    logger.info(
+        f"Feedback submitted by user {user_id}: {feedback.rating} for message {feedback.message_id}"
+    )
 
     return {
         "success": True,
@@ -111,6 +120,7 @@ async def submit_feedback(
 # ============================================================================
 # Admin Monitoring Endpoints
 # ============================================================================
+
 
 @router.get("/stats/global", response_model=UsageStatsResponse)
 @require_admin
@@ -138,26 +148,33 @@ async def get_global_stats(
         cursor = conn.cursor()
 
         # Total sessions and messages
-        cursor.execute("""
+        cursor.execute(
+            """
             SELECT
                 COUNT(DISTINCT cs.id) as total_sessions,
                 COUNT(cm.id) as total_messages
             FROM chat_sessions cs
             LEFT JOIN chat_messages cm ON cs.id = cm.session_id
             WHERE cs.created_at >= ?
-        """, (start_date,))
+        """,
+            (start_date,),
+        )
         session_stats = cursor.fetchone()
 
         # Active users in last 7 days
-        cursor.execute("""
+        cursor.execute(
+            """
             SELECT COUNT(DISTINCT user_id)
             FROM chat_sessions
             WHERE updated_at >= ?
-        """, (datetime.utcnow() - timedelta(days=7),))
+        """,
+            (datetime.utcnow() - timedelta(days=7),),
+        )
         active_users_7d = cursor.fetchone()[0]
 
         # Stats by tier
-        cursor.execute("""
+        cursor.execute(
+            """
             SELECT
                 u.subscription_tier,
                 COUNT(DISTINCT u.id) as user_count,
@@ -171,7 +188,9 @@ async def get_global_stats(
             LEFT JOIN token_usage_logs tul ON u.id = tul.user_id AND tul.created_at >= ?
             WHERE u.subscription_tier IN ('beta', 'premium', 'admin')
             GROUP BY u.subscription_tier
-        """, (start_date,))
+        """,
+            (start_date,),
+        )
         tier_stats = cursor.fetchall()
 
     # Format tier stats
@@ -222,15 +241,19 @@ async def get_cost_projections(
         cursor = conn.cursor()
 
         # Cost so far this month
-        cursor.execute("""
+        cursor.execute(
+            """
             SELECT COALESCE(SUM(cost_usd), 0)
             FROM token_usage_logs
             WHERE created_at >= ?
-        """, (month_start,))
+        """,
+            (month_start,),
+        )
         cost_this_month = cursor.fetchone()[0]
 
         # Average daily cost
-        cursor.execute("""
+        cursor.execute(
+            """
             SELECT
                 DATE(created_at) as date,
                 SUM(cost_usd) as daily_cost
@@ -239,7 +262,9 @@ async def get_cost_projections(
             GROUP BY DATE(created_at)
             ORDER BY date DESC
             LIMIT 7
-        """, (now - timedelta(days=7),))
+        """,
+            (now - timedelta(days=7),),
+        )
         daily_costs = cursor.fetchall()
 
     # Calculate average daily cost
@@ -265,8 +290,7 @@ async def get_cost_projections(
         "daily_average": {
             "last_7_days": round(avg_daily_cost, 6),
             "daily_costs": [
-                {"date": row[0], "cost_usd": round(row[1], 6)}
-                for row in daily_costs
+                {"date": row[0], "cost_usd": round(row[1], 6)} for row in daily_costs
             ],
         },
         "calculated_at": now.isoformat(),
@@ -294,7 +318,8 @@ async def get_provider_stats(
         cursor = conn.cursor()
 
         # Provider usage stats
-        cursor.execute("""
+        cursor.execute(
+            """
             SELECT
                 provider,
                 model,
@@ -308,20 +333,24 @@ async def get_provider_stats(
             WHERE created_at >= ?
             GROUP BY provider, model
             ORDER BY request_count DESC
-        """, (start_date,))
+        """,
+            (start_date,),
+        )
 
         provider_stats = []
         for row in cursor.fetchall():
-            provider_stats.append({
-                "provider": row[0],
-                "model": row[1],
-                "request_count": row[2],
-                "total_tokens": row[3],
-                "input_tokens": row[4],
-                "output_tokens": row[5],
-                "total_cost_usd": round(row[6], 6) if row[6] else 0.0,
-                "avg_tokens_per_request": round(row[7], 2) if row[7] else 0.0,
-            })
+            provider_stats.append(
+                {
+                    "provider": row[0],
+                    "model": row[1],
+                    "request_count": row[2],
+                    "total_tokens": row[3],
+                    "input_tokens": row[4],
+                    "output_tokens": row[5],
+                    "total_cost_usd": round(row[6], 6) if row[6] else 0.0,
+                    "avg_tokens_per_request": round(row[7], 2) if row[7] else 0.0,
+                }
+            )
 
     return {
         "period_days": days,
@@ -349,7 +378,8 @@ async def get_user_stats(
         cursor = conn.cursor()
 
         # Use the view we created in migration
-        cursor.execute("""
+        cursor.execute(
+            """
             SELECT
                 user_id,
                 email,
@@ -362,20 +392,24 @@ async def get_user_stats(
             FROM grapple_user_usage
             ORDER BY total_messages DESC
             LIMIT ?
-        """, (limit,))
+        """,
+            (limit,),
+        )
 
         users = []
         for row in cursor.fetchall():
-            users.append({
-                "user_id": row[0],
-                "email": row[1],
-                "subscription_tier": row[2],
-                "total_sessions": row[3] or 0,
-                "total_messages": row[4] or 0,
-                "total_tokens": row[5] or 0,
-                "total_cost_usd": round(row[6], 6) if row[6] else 0.0,
-                "last_activity": row[7],
-            })
+            users.append(
+                {
+                    "user_id": row[0],
+                    "email": row[1],
+                    "subscription_tier": row[2],
+                    "total_sessions": row[3] or 0,
+                    "total_messages": row[4] or 0,
+                    "total_tokens": row[5] or 0,
+                    "total_cost_usd": round(row[6], 6) if row[6] else 0.0,
+                    "last_activity": row[7],
+                }
+            )
 
     return {
         "users": users,
@@ -428,16 +462,18 @@ async def get_feedback(
 
         feedback_list = []
         for row in cursor.fetchall():
-            feedback_list.append({
-                "id": row[0],
-                "user_id": row[1],
-                "user_email": row[2],
-                "message_id": row[3],
-                "rating": row[4],
-                "category": row[5],
-                "comment": row[6],
-                "created_at": row[7],
-            })
+            feedback_list.append(
+                {
+                    "id": row[0],
+                    "user_id": row[1],
+                    "user_email": row[2],
+                    "message_id": row[3],
+                    "rating": row[4],
+                    "category": row[5],
+                    "comment": row[6],
+                    "created_at": row[7],
+                }
+            )
 
     return {
         "feedback": feedback_list,
@@ -475,11 +511,13 @@ async def get_grapple_health(
     try:
         with get_connection() as conn:
             cursor = conn.cursor()
-            cursor.execute("""
+            cursor.execute(
+                """
                 SELECT table_name
                 FROM information_schema.tables
                 WHERE table_name IN ('chat_sessions', 'chat_messages', 'token_usage_logs', 'grapple_feedback')
-            """)
+            """
+            )
             tables = [row[0] for row in cursor.fetchall()]
             tables_ok = len(tables) == 4
     except Exception:

@@ -1,4 +1,5 @@
 """API routes for activity feed."""
+
 from fastapi import APIRouter, Depends, Query, Request
 from slowapi import Limiter
 from slowapi.util import get_remote_address
@@ -19,7 +20,7 @@ def get_activity_feed(
     cursor: str | None = Query(default=None),
     days_back: int | None = Query(default=30, ge=1, le=365),
     enrich_social: bool = Query(default=False),
-    current_user: dict = Depends(get_current_user)
+    current_user: dict = Depends(get_current_user),
 ):
     """
     Get unified activity feed showing all user activity.
@@ -46,7 +47,7 @@ def get_friends_feed(
     offset: int = Query(default=0, ge=0, le=10000),
     cursor: str | None = Query(default=None),
     days_back: int | None = Query(default=30, ge=1, le=365),
-    current_user: dict = Depends(get_current_user)
+    current_user: dict = Depends(get_current_user),
 ):
     """
     Get activity feed from users that this user follows (contacts feed).

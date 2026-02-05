@@ -1,4 +1,5 @@
 """Default dashboard command - rivaflow with no arguments."""
+
 from datetime import date, timedelta
 
 import typer
@@ -23,6 +24,7 @@ console = Console()
 def get_greeting() -> str:
     """Get time-appropriate greeting."""
     from datetime import datetime
+
     hour = datetime.now().hour
 
     if hour < 12:
@@ -42,32 +44,56 @@ def get_week_summary(user_id: int) -> dict:
         cursor = conn.cursor()
 
         # Sessions count
-        cursor.execute("""
+        cursor.execute(
+            """
             SELECT COUNT(*) FROM sessions
             WHERE user_id = ? AND session_date >= ?
-        """, (user_id, week_start.isoformat(),))
+        """,
+            (
+                user_id,
+                week_start.isoformat(),
+            ),
+        )
         sessions = cursor.fetchone()[0] or 0
 
         # Total hours
-        cursor.execute("""
+        cursor.execute(
+            """
             SELECT SUM(duration_mins) FROM sessions
             WHERE user_id = ? AND session_date >= ?
-        """, (user_id, week_start.isoformat(),))
+        """,
+            (
+                user_id,
+                week_start.isoformat(),
+            ),
+        )
         total_mins = cursor.fetchone()[0] or 0
         hours = round(total_mins / 60, 1)
 
         # Total rolls
-        cursor.execute("""
+        cursor.execute(
+            """
             SELECT SUM(rolls) FROM sessions
             WHERE user_id = ? AND session_date >= ?
-        """, (user_id, week_start.isoformat(),))
+        """,
+            (
+                user_id,
+                week_start.isoformat(),
+            ),
+        )
         rolls = cursor.fetchone()[0] or 0
 
         # Rest days
-        cursor.execute("""
+        cursor.execute(
+            """
             SELECT COUNT(*) FROM daily_checkins
             WHERE user_id = ? AND check_date >= ? AND checkin_type = 'rest'
-        """, (user_id, week_start.isoformat(),))
+        """,
+            (
+                user_id,
+                week_start.isoformat(),
+            ),
+        )
         rest_days = cursor.fetchone()[0] or 0
 
     return {
@@ -99,23 +125,27 @@ def dashboard(ctx: typer.Context = None):
     try:
         with get_connection() as conn:
             cursor = conn.cursor()
-            cursor.execute("SELECT COUNT(*) FROM sessions WHERE user_id = ?", (user_id,))
+            cursor.execute(
+                "SELECT COUNT(*) FROM sessions WHERE user_id = ?", (user_id,)
+            )
             session_count = cursor.fetchone()[0] or 0
 
             if session_count == 0:
                 # First-time user - show welcome message
                 console.print()
-                console.print(Panel(
-                    "[bold white]Welcome to RivaFlow! 🥋[/bold white]\n\n"
-                    "Train with intent. Flow to mastery.\n\n"
-                    "[cyan]Get started:[/cyan]\n"
-                    "  • [bold]rivaflow log[/bold]       → Log your first training session\n"
-                    "  • [bold]rivaflow readiness[/bold] → Check in your readiness\n"
-                    "  • [bold]rivaflow --help[/bold]    → See all commands\n\n"
-                    "[dim]Once you log a session, your dashboard will show training stats and streaks.[/dim]",
-                    border_style="cyan",
-                    padding=(1, 2),
-                ))
+                console.print(
+                    Panel(
+                        "[bold white]Welcome to RivaFlow! 🥋[/bold white]\n\n"
+                        "Train with intent. Flow to mastery.\n\n"
+                        "[cyan]Get started:[/cyan]\n"
+                        "  • [bold]rivaflow log[/bold]       → Log your first training session\n"
+                        "  • [bold]rivaflow readiness[/bold] → Check in your readiness\n"
+                        "  • [bold]rivaflow --help[/bold]    → See all commands\n\n"
+                        "[dim]Once you log a session, your dashboard will show training stats and streaks.[/dim]",
+                        border_style="cyan",
+                        padding=(1, 2),
+                    )
+                )
                 console.print()
                 return
     except Exception:
@@ -133,7 +163,10 @@ def dashboard(ctx: typer.Context = None):
         try:
             with get_connection() as conn:
                 cursor = conn.cursor()
-                cursor.execute("SELECT first_name FROM profile WHERE user_id = ? LIMIT 1", (user_id,))
+                cursor.execute(
+                    "SELECT first_name FROM profile WHERE user_id = ? LIMIT 1",
+                    (user_id,),
+                )
                 row = cursor.fetchone()
                 name = row[0] if row and row[0] else "there"
         except Exception:
@@ -159,7 +192,9 @@ def dashboard(ctx: typer.Context = None):
     if checkin_streak["current_streak"] > 0:
         greeting_text.append("                    ", style="white")
         greeting_text.append("🔥 ", style="bold")
-        greeting_text.append(f"Streak: {checkin_streak['current_streak']} days", style="bold yellow")
+        greeting_text.append(
+            f"Streak: {checkin_streak['current_streak']} days", style="bold yellow"
+        )
 
     console.print(greeting_text)
     console.print()
@@ -180,11 +215,15 @@ def dashboard(ctx: typer.Context = None):
         status_msg = "Not checked in yet"
         status_style = "yellow"
 
-    console.print(f"  [bold]TODAY'S STATUS:[/bold] [{status_style}]{status_icon} {status_msg}[/{status_style}]")
+    console.print(
+        f"  [bold]TODAY'S STATUS:[/bold] [{status_style}]{status_icon} {status_msg}[/{status_style}]"
+    )
     console.print()
 
     # Week summary (already loaded)
-    console.print(f"  [bold]THIS WEEK:[/bold] {summary['sessions']} sessions │ {summary['hours']} hours │ {summary['rolls']} rolls │ {summary['rest_days']} rest days")
+    console.print(
+        f"  [bold]THIS WEEK:[/bold] {summary['sessions']} sessions │ {summary['hours']} hours │ {summary['rolls']} rolls │ {summary['rest_days']} rest days"
+    )
     console.print()
 
     # Quick actions (if not checked in)
@@ -198,11 +237,14 @@ def dashboard(ctx: typer.Context = None):
     # Show insight if checked in today
     if has_checked_in and today_checkin.get("insight_shown"):
         import json
+
         try:
             insight = json.loads(today_checkin["insight_shown"])
-            console.print(f"  [bold]{insight.get('icon', '💡')} {insight.get('title', 'INSIGHT').upper()}:[/bold]")
+            console.print(
+                f"  [bold]{insight.get('icon', '💡')} {insight.get('title', 'INSIGHT').upper()}:[/bold]"
+            )
             console.print(f"  [dim]{insight.get('message', '')}[/dim]")
-            if insight.get('action'):
+            if insight.get("action"):
                 console.print(f"  [dim italic]{insight['action']}[/dim italic]")
             console.print()
         except Exception:
@@ -222,7 +264,9 @@ def dashboard(ctx: typer.Context = None):
         bar = "█" * filled + "░" * (bar_length - filled)
         console.print("  [bold]NEXT MILESTONE:[/bold]")
         console.print(f"  {closest['next_label']}")
-        console.print(f"  [yellow]{bar}[/yellow] {closest['percentage']}% ({closest['remaining']} to go)")
+        console.print(
+            f"  [yellow]{bar}[/yellow] {closest['percentage']}% ({closest['remaining']} to go)"
+        )
         console.print()
 
     # Other commands

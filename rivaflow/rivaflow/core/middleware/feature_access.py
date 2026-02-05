@@ -1,4 +1,5 @@
 """Feature access control middleware for subscription tiers."""
+
 import logging
 from collections.abc import Callable
 from functools import wraps
@@ -14,25 +15,25 @@ class FeatureAccess:
 
     # Define which tiers can access each feature
     FEATURE_TIERS: dict[str, list[str]] = {
-        'grapple': ['beta', 'premium', 'admin'],
-        'advanced_analytics': ['premium', 'admin'],
-        'api_access': ['premium', 'admin'],
+        "grapple": ["beta", "premium", "admin"],
+        "advanced_analytics": ["premium", "admin"],
+        "api_access": ["premium", "admin"],
     }
 
     # Rate limits per tier (messages per hour for Grapple)
     RATE_LIMITS: dict[str, int] = {
-        'free': 0,           # No access
-        'beta': 30,          # 30 messages/hour during beta
-        'premium': 60,       # 60 messages/hour
-        'admin': 9999,       # Effectively unlimited
+        "free": 0,  # No access
+        "beta": 30,  # 30 messages/hour during beta
+        "premium": 60,  # 60 messages/hour
+        "admin": 9999,  # Effectively unlimited
     }
 
     # Cost limits per tier (USD per month)
     COST_LIMITS: dict[str, float] = {
-        'free': 0.0,
-        'beta': 5.0,         # $5/month max during beta (covered by us)
-        'premium': 50.0,     # $50/month max
-        'admin': 9999.0,     # Effectively unlimited
+        "free": 0.0,
+        "beta": 5.0,  # $5/month max during beta (covered by us)
+        "premium": 50.0,  # $50/month max
+        "admin": 9999.0,  # Effectively unlimited
     }
 
     @classmethod
@@ -78,22 +79,23 @@ def require_beta_or_premium(func: Callable) -> Callable:
     Raises:
         HTTPException 403: If user doesn't have required subscription tier
     """
+
     @wraps(func)
     async def wrapper(*args, **kwargs):
         # Extract current_user from kwargs
-        current_user = kwargs.get('current_user')
+        current_user = kwargs.get("current_user")
 
         if not current_user:
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Authentication required"
+                detail="Authentication required",
             )
 
         # Get user's subscription tier (default to 'free' if not set)
-        user_tier = current_user.get('subscription_tier', 'free')
+        user_tier = current_user.get("subscription_tier", "free")
 
         # Check if tier has access to Grapple
-        if not FeatureAccess.check_feature_access('grapple', user_tier):
+        if not FeatureAccess.check_feature_access("grapple", user_tier):
             logger.warning(
                 f"User {current_user.get('id')} (tier: {user_tier}) attempted to access Grapple without permission"
             )
@@ -106,7 +108,7 @@ def require_beta_or_premium(func: Callable) -> Callable:
                     "upgrade_url": "/settings/subscription",
                     "current_tier": user_tier,
                     "required_tiers": ["beta", "premium", "admin"],
-                }
+                },
             )
 
         # User has access - proceed with endpoint
@@ -125,28 +127,28 @@ def require_admin(func: Callable) -> Callable:
         async def admin_stats(current_user: dict = Depends(get_current_user)):
             ...
     """
+
     @wraps(func)
     async def wrapper(*args, **kwargs):
-        current_user = kwargs.get('current_user')
+        current_user = kwargs.get("current_user")
 
         if not current_user:
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Authentication required"
+                detail="Authentication required",
             )
 
         # Check if user is admin
-        is_admin = current_user.get('is_admin', False)
-        user_tier = current_user.get('subscription_tier', 'free')
+        is_admin = current_user.get("is_admin", False)
+        user_tier = current_user.get("subscription_tier", "free")
 
-        if not is_admin and user_tier != 'admin':
+        if not is_admin and user_tier != "admin":
             logger.warning(
                 f"Non-admin user {current_user.get('id')} attempted to access admin endpoint"
             )
 
             raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail="Admin access required"
+                status_code=status.HTTP_403_FORBIDDEN, detail="Admin access required"
             )
 
         return await func(*args, **kwargs)
@@ -164,18 +166,20 @@ def get_user_tier_info(user: dict[str, Any]) -> dict[str, Any]:
     Returns:
         Dict with tier details including features, rate limits, etc.
     """
-    tier = user.get('subscription_tier', 'free')
+    tier = user.get("subscription_tier", "free")
 
     return {
         "tier": tier,
-        "is_beta": user.get('is_beta_user', False),
+        "is_beta": user.get("is_beta_user", False),
         "features": {
-            "grapple": FeatureAccess.check_feature_access('grapple', tier),
-            "advanced_analytics": FeatureAccess.check_feature_access('advanced_analytics', tier),
-            "api_access": FeatureAccess.check_feature_access('api_access', tier),
+            "grapple": FeatureAccess.check_feature_access("grapple", tier),
+            "advanced_analytics": FeatureAccess.check_feature_access(
+                "advanced_analytics", tier
+            ),
+            "api_access": FeatureAccess.check_feature_access("api_access", tier),
         },
         "limits": {
             "grapple_messages_per_hour": FeatureAccess.get_rate_limit(tier),
             "monthly_cost_limit_usd": FeatureAccess.get_cost_limit(tier),
-        }
+        },
     }

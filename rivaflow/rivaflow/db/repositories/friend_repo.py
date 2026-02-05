@@ -1,4 +1,5 @@
 """Repository for friends (training partners and instructors) data access."""
+
 import sqlite3
 
 from rivaflow.core.constants import FRIEND_SORT_OPTIONS
@@ -36,7 +37,10 @@ class FriendRepository:
             )
 
             # Return the created friend
-            cursor.execute(convert_query("SELECT * FROM friends WHERE id = ? AND user_id = ?"), (friend_id, user_id))
+            cursor.execute(
+                convert_query("SELECT * FROM friends WHERE id = ? AND user_id = ?"),
+                (friend_id, user_id),
+            )
             row = cursor.fetchone()
             return FriendRepository._row_to_dict(row)
 
@@ -45,7 +49,10 @@ class FriendRepository:
         """Get a friend by ID."""
         with get_connection() as conn:
             cursor = conn.cursor()
-            cursor.execute(convert_query("SELECT * FROM friends WHERE id = ? AND user_id = ?"), (friend_id, user_id))
+            cursor.execute(
+                convert_query("SELECT * FROM friends WHERE id = ? AND user_id = ?"),
+                (friend_id, user_id),
+            )
             row = cursor.fetchone()
             return FriendRepository._row_to_dict(row) if row else None
 
@@ -54,7 +61,10 @@ class FriendRepository:
         """Get a friend by exact name match."""
         with get_connection() as conn:
             cursor = conn.cursor()
-            cursor.execute(convert_query("SELECT * FROM friends WHERE user_id = ? AND name = ?"), (user_id, name))
+            cursor.execute(
+                convert_query("SELECT * FROM friends WHERE user_id = ? AND name = ?"),
+                (user_id, name),
+            )
             row = cursor.fetchone()
             return FriendRepository._row_to_dict(row) if row else None
 
@@ -67,12 +77,19 @@ class FriendRepository:
 
         with get_connection() as conn:
             cursor = conn.cursor()
-            cursor.execute(convert_query(f"SELECT * FROM friends WHERE user_id = ? ORDER BY {order_by}"), (user_id,))
+            cursor.execute(
+                convert_query(
+                    f"SELECT * FROM friends WHERE user_id = ? ORDER BY {order_by}"
+                ),
+                (user_id,),
+            )
             rows = cursor.fetchall()
             return [FriendRepository._row_to_dict(row) for row in rows]
 
     @staticmethod
-    def list_by_type(user_id: int, friend_type: str, order_by: str = "name ASC") -> list[dict]:
+    def list_by_type(
+        user_id: int, friend_type: str, order_by: str = "name ASC"
+    ) -> list[dict]:
         """Get friends filtered by type."""
         # Whitelist allowed ORDER BY values to prevent SQL injection
         if order_by not in FRIEND_SORT_OPTIONS:
@@ -81,7 +98,9 @@ class FriendRepository:
         with get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(
-                convert_query(f"SELECT * FROM friends WHERE user_id = ? AND friend_type = ? ORDER BY {order_by}"),
+                convert_query(
+                    f"SELECT * FROM friends WHERE user_id = ? AND friend_type = ? ORDER BY {order_by}"
+                ),
                 (user_id, friend_type),
             )
             rows = cursor.fetchall()
@@ -93,7 +112,9 @@ class FriendRepository:
         with get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(
-                convert_query("SELECT * FROM friends WHERE user_id = ? AND name LIKE ? ORDER BY name ASC"),
+                convert_query(
+                    "SELECT * FROM friends WHERE user_id = ? AND name LIKE ? ORDER BY name ASC"
+                ),
                 (user_id, f"%{query}%"),
             )
             rows = cursor.fetchall()
@@ -147,7 +168,9 @@ class FriendRepository:
             updates.append("updated_at = CURRENT_TIMESTAMP")
             params.extend([friend_id, user_id])
 
-            query = f"UPDATE friends SET {', '.join(updates)} WHERE id = ? AND user_id = ?"
+            query = (
+                f"UPDATE friends SET {', '.join(updates)} WHERE id = ? AND user_id = ?"
+            )
             cursor.execute(convert_query(query), params)
 
             if cursor.rowcount == 0:
@@ -160,7 +183,10 @@ class FriendRepository:
         """Delete a friend by ID. Returns True if deleted, False if not found."""
         with get_connection() as conn:
             cursor = conn.cursor()
-            cursor.execute(convert_query("DELETE FROM friends WHERE id = ? AND user_id = ?"), (friend_id, user_id))
+            cursor.execute(
+                convert_query("DELETE FROM friends WHERE id = ? AND user_id = ?"),
+                (friend_id, user_id),
+            )
             return cursor.rowcount > 0
 
     @staticmethod

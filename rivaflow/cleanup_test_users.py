@@ -1,4 +1,5 @@
 """Cleanup test users and their data."""
+
 import sys
 from pathlib import Path
 
@@ -27,7 +28,7 @@ print("\n1. Finding test users...")
 for email in test_emails:
     user = user_repo.get_by_email(email)
     if user:
-        test_user_ids.append(user['id'])
+        test_user_ids.append(user["id"])
         print(f"   ✓ Found {user['first_name']} {user['last_name']} (ID: {user['id']})")
     else:
         print(f"   ⚠️  User {email} not found")
@@ -43,37 +44,58 @@ with get_connection() as conn:
 
     for user_id in test_user_ids:
         # Delete sessions
-        cursor.execute(convert_query("DELETE FROM sessions WHERE user_id = ?"), (user_id,))
+        cursor.execute(
+            convert_query("DELETE FROM sessions WHERE user_id = ?"), (user_id,)
+        )
         session_count = cursor.rowcount
 
         # Delete readiness
-        cursor.execute(convert_query("DELETE FROM readiness WHERE user_id = ?"), (user_id,))
+        cursor.execute(
+            convert_query("DELETE FROM readiness WHERE user_id = ?"), (user_id,)
+        )
         readiness_count = cursor.rowcount
 
         # Delete checkins
-        cursor.execute(convert_query("DELETE FROM daily_checkins WHERE user_id = ?"), (user_id,))
+        cursor.execute(
+            convert_query("DELETE FROM daily_checkins WHERE user_id = ?"), (user_id,)
+        )
         checkin_count = cursor.rowcount
 
         # Delete relationships (both follower and following)
-        cursor.execute(convert_query("DELETE FROM user_relationships WHERE follower_user_id = ? OR following_user_id = ?"), (user_id, user_id))
+        cursor.execute(
+            convert_query(
+                "DELETE FROM user_relationships WHERE follower_user_id = ? OR following_user_id = ?"
+            ),
+            (user_id, user_id),
+        )
         relationship_count = cursor.rowcount
 
         # Delete likes
-        cursor.execute(convert_query("DELETE FROM activity_likes WHERE user_id = ?"), (user_id,))
+        cursor.execute(
+            convert_query("DELETE FROM activity_likes WHERE user_id = ?"), (user_id,)
+        )
         like_count = cursor.rowcount
 
         # Delete comments
-        cursor.execute(convert_query("DELETE FROM activity_comments WHERE user_id = ?"), (user_id,))
+        cursor.execute(
+            convert_query("DELETE FROM activity_comments WHERE user_id = ?"), (user_id,)
+        )
         comment_count = cursor.rowcount
 
         # Delete profile
-        cursor.execute(convert_query("DELETE FROM profile WHERE user_id = ?"), (user_id,))
+        cursor.execute(
+            convert_query("DELETE FROM profile WHERE user_id = ?"), (user_id,)
+        )
 
         # Delete user
         cursor.execute(convert_query("DELETE FROM users WHERE id = ?"), (user_id,))
 
-        print(f"   ✓ User ID {user_id}: {session_count} sessions, {readiness_count} readiness, {checkin_count} checkins")
-        print(f"     {relationship_count} relationships, {like_count} likes, {comment_count} comments")
+        print(
+            f"   ✓ User ID {user_id}: {session_count} sessions, {readiness_count} readiness, {checkin_count} checkins"
+        )
+        print(
+            f"     {relationship_count} relationships, {like_count} likes, {comment_count} comments"
+        )
 
 print("\n" + "=" * 60)
 print("Cleanup Complete!")

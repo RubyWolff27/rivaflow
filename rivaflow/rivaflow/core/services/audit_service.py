@@ -1,4 +1,5 @@
 """Audit logging service for admin actions."""
+
 import json
 import logging
 from typing import Any
@@ -54,7 +55,14 @@ class AuditService:
                 log_id = execute_insert(
                     cursor,
                     query,
-                    (actor_id, action, target_type, target_id, details_json, ip_address),
+                    (
+                        actor_id,
+                        action,
+                        target_type,
+                        target_id,
+                        details_json,
+                        ip_address,
+                    ),
                 )
 
                 logger.info(
@@ -245,13 +253,15 @@ class AuditService:
 
                 # Get most recent action
                 cursor.execute(
-                    convert_query("""
+                    convert_query(
+                        """
                         SELECT action, created_at
                         FROM audit_logs
                         WHERE actor_user_id = ?
                         ORDER BY created_at DESC
                         LIMIT 1
-                    """),
+                    """
+                    ),
                     (user_id,),
                 )
                 recent_row = cursor.fetchone()

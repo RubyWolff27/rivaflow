@@ -1,4 +1,5 @@
 """Rest day routes."""
+
 from datetime import date
 
 from fastapi import APIRouter, Depends
@@ -12,6 +13,7 @@ router = APIRouter(prefix="/rest", tags=["rest"])
 
 class RestDayCreate(BaseModel):
     """Create a rest day check-in."""
+
     rest_type: str | None = None  # active, passive, injury
     rest_note: str | None = None
     check_date: str | None = None  # ISO date string, defaults to today
@@ -21,7 +23,9 @@ class RestDayCreate(BaseModel):
 def log_rest_day(data: RestDayCreate, current_user: dict = Depends(get_current_user)):
     """Log a rest day."""
     repo = CheckinRepository()
-    check_date = date.fromisoformat(data.check_date) if data.check_date else date.today()
+    check_date = (
+        date.fromisoformat(data.check_date) if data.check_date else date.today()
+    )
 
     checkin_id = repo.upsert_checkin(
         user_id=current_user["id"],

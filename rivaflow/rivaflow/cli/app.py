@@ -1,4 +1,5 @@
 """Main CLI application using Typer."""
+
 from datetime import date, datetime
 
 import typer
@@ -53,6 +54,7 @@ def callback(ctx: typer.Context):
     """
     # Show welcome message on first run
     from rivaflow.cli.utils.first_run import maybe_show_welcome
+
     maybe_show_welcome()
 
     if ctx.invoked_subcommand is None:
@@ -161,7 +163,9 @@ def stats():
 
 @app.command()
 def export(
-    output: str | None = typer.Option(None, "--output", "-o", help="Output file path (default: rivaflow_export.json)")
+    output: str | None = typer.Option(
+        None, "--output", "-o", help="Output file path (default: rivaflow_export.json)"
+    )
 ):
     """Export all your data as JSON (GDPR-compliant data portability)."""
     import json
@@ -227,13 +231,19 @@ def export(
         raise TypeError(f"Type {type(obj)} not serializable")
 
     # Determine output file
-    output_file = Path(output) if output else Path(f"rivaflow_export_{user_id}_{date.today()}.json")
+    output_file = (
+        Path(output)
+        if output
+        else Path(f"rivaflow_export_{user_id}_{date.today()}.json")
+    )
 
     # Write to file
     with open(output_file, "w", encoding="utf-8") as f:
         json.dump(data, f, indent=2, default=default_serializer, ensure_ascii=False)
 
-    console.print(f"[green]✓[/green] Data exported successfully to [bold]{output_file}[/bold]")
+    console.print(
+        f"[green]✓[/green] Data exported successfully to [bold]{output_file}[/bold]"
+    )
     console.print()
     console.print("[bold]Export Summary:[/bold]")
     console.print(f"  Sessions: {len(data['sessions'])}")
@@ -243,7 +253,9 @@ def export(
     console.print(f"  Gradings: {len(data['gradings'])}")
     console.print(f"  Friends: {len(data['friends'])}")
     console.print()
-    console.print("[dim]This file contains all your RivaFlow data in JSON format.[/dim]")
+    console.print(
+        "[dim]This file contains all your RivaFlow data in JSON format.[/dim]"
+    )
     console.print("[dim]Keep it safe - it includes personal information.[/dim]")
 
 
@@ -279,7 +291,9 @@ def delete_account(
 
     # Double confirmation
     if not confirm:
-        if not Confirm.ask("[bold]Are you sure you want to delete your account?[/bold]", default=False):
+        if not Confirm.ask(
+            "[bold]Are you sure you want to delete your account?[/bold]", default=False
+        ):
             console.print("[green]Account deletion cancelled.[/green]")
             return
 
@@ -289,12 +303,17 @@ def delete_account(
 
     if user:
         console.print()
-        console.print(f"Please type your email address ([bold]{user.get('email')}[/bold]) to confirm:")
+        console.print(
+            f"Please type your email address ([bold]{user.get('email')}[/bold]) to confirm:"
+        )
         from rich.prompt import Prompt
+
         typed_email = Prompt.ask("Email")
 
         if typed_email != user.get("email"):
-            console.print("[red]Email does not match. Account deletion cancelled.[/red]")
+            console.print(
+                "[red]Email does not match. Account deletion cancelled.[/red]"
+            )
             return
 
     console.print()
@@ -313,13 +332,19 @@ def delete_account(
         console.print()
         console.print("[green]✓[/green] Account deleted successfully.")
         console.print()
-        console.print("[dim]Your account and all associated data have been permanently removed.[/dim]")
-        console.print("[dim]Thank you for using RivaFlow. We hope to see you again someday! 🥋[/dim]")
+        console.print(
+            "[dim]Your account and all associated data have been permanently removed.[/dim]"
+        )
+        console.print(
+            "[dim]Thank you for using RivaFlow. We hope to see you again someday! 🥋[/dim]"
+        )
         console.print()
 
     except Exception as e:
         console.print(f"[red]Error deleting account: {e}[/red]")
-        console.print("[yellow]Please contact support if this problem persists.[/yellow]")
+        console.print(
+            "[yellow]Please contact support if this problem persists.[/yellow]"
+        )
         raise typer.Exit(code=1)
 
 

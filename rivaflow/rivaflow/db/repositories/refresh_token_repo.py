@@ -1,4 +1,5 @@
 """Repository for refresh token data access."""
+
 import sqlite3
 from datetime import datetime
 
@@ -34,7 +35,9 @@ class RefreshTokenRepository:
             )
 
             # Fetch and return the created token
-            cursor.execute(convert_query("SELECT * FROM refresh_tokens WHERE id = ?"), (token_id,))
+            cursor.execute(
+                convert_query("SELECT * FROM refresh_tokens WHERE id = ?"), (token_id,)
+            )
             row = cursor.fetchone()
             return RefreshTokenRepository._row_to_dict(row)
 
@@ -51,7 +54,9 @@ class RefreshTokenRepository:
         """
         with get_connection() as conn:
             cursor = conn.cursor()
-            cursor.execute(convert_query("SELECT * FROM refresh_tokens WHERE token = ?"), (token,))
+            cursor.execute(
+                convert_query("SELECT * FROM refresh_tokens WHERE token = ?"), (token,)
+            )
             row = cursor.fetchone()
             if row:
                 return RefreshTokenRepository._row_to_dict(row)
@@ -71,11 +76,13 @@ class RefreshTokenRepository:
         with get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(
-                convert_query("""
+                convert_query(
+                    """
                 SELECT * FROM refresh_tokens
                 WHERE user_id = ?
                 ORDER BY created_at DESC
-                """),
+                """
+                ),
                 (user_id,),
             )
             rows = cursor.fetchall()
@@ -94,7 +101,9 @@ class RefreshTokenRepository:
         """
         with get_connection() as conn:
             cursor = conn.cursor()
-            cursor.execute(convert_query("DELETE FROM refresh_tokens WHERE token = ?"), (token,))
+            cursor.execute(
+                convert_query("DELETE FROM refresh_tokens WHERE token = ?"), (token,)
+            )
             return cursor.rowcount > 0
 
     @staticmethod
@@ -110,7 +119,10 @@ class RefreshTokenRepository:
         """
         with get_connection() as conn:
             cursor = conn.cursor()
-            cursor.execute(convert_query("DELETE FROM refresh_tokens WHERE user_id = ?"), (user_id,))
+            cursor.execute(
+                convert_query("DELETE FROM refresh_tokens WHERE user_id = ?"),
+                (user_id,),
+            )
             return cursor.rowcount
 
     @staticmethod
