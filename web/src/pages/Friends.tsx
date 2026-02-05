@@ -47,7 +47,9 @@ export default function Friends() {
     setLoading(true);
     try {
       const response = await friendsApi.list();
-      setFriends(response.data);
+      // API returns {friends: [], total: 0}, extract the friends array
+      const data = response.data as any;
+      setFriends(data.friends || data || []);
     } catch (error) {
       console.error('Error loading contacts:', error);
     } finally {
