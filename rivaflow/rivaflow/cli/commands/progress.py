@@ -38,9 +38,7 @@ def get_lifetime_stats(user_id: int) -> dict:
         hours = round(total_mins / 60, 1)
 
         # Sessions
-        cursor.execute(
-            convert_query("SELECT COUNT(*) FROM sessions WHERE user_id = ?"), (user_id,)
-        )
+        cursor.execute(convert_query("SELECT COUNT(*) FROM sessions WHERE user_id = ?"), (user_id,))
         sessions = cursor.fetchone()[0] or 0
 
         # Rolls
@@ -52,18 +50,14 @@ def get_lifetime_stats(user_id: int) -> dict:
 
         # Submissions for
         cursor.execute(
-            convert_query(
-                "SELECT SUM(submissions_for) FROM sessions WHERE user_id = ?"
-            ),
+            convert_query("SELECT SUM(submissions_for) FROM sessions WHERE user_id = ?"),
             (user_id,),
         )
         subs_for = cursor.fetchone()[0] or 0
 
         # Submissions against
         cursor.execute(
-            convert_query(
-                "SELECT SUM(submissions_against) FROM sessions WHERE user_id = ?"
-            ),
+            convert_query("SELECT SUM(submissions_against) FROM sessions WHERE user_id = ?"),
             (user_id,),
         )
         subs_against = cursor.fetchone()[0] or 0
@@ -219,9 +213,7 @@ def progress(ctx: typer.Context):
         }
         unit = unit_map.get(closest["type"], closest["type"])
 
-        console.print(
-            f"  [bold yellow]🎯 NEXT MILESTONE:[/bold yellow] {closest['next_label']}"
-        )
+        console.print(f"  [bold yellow]🎯 NEXT MILESTONE:[/bold yellow] {closest['next_label']}")
         console.print(
             f"  [dim]{closest['remaining']} {unit} away ({closest['percentage']}% complete)[/dim]"
         )
