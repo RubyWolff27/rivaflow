@@ -1,7 +1,8 @@
 """API routes for milestone tracking."""
 from fastapi import APIRouter, Depends
-from rivaflow.core.services.milestone_service import MilestoneService
+
 from rivaflow.core.dependencies import get_current_user
+from rivaflow.core.services.milestone_service import MilestoneService
 
 router = APIRouter(prefix="/milestones", tags=["milestones"])
 

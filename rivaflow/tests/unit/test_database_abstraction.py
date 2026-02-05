@@ -3,7 +3,6 @@ Unit tests for database abstraction layer.
 
 Tests the SQLite/PostgreSQL compatibility layer and query conversion.
 """
-import pytest
 import os
 
 # Set SECRET_KEY for testing
@@ -135,8 +134,9 @@ class TestRowToDictConversion:
 
     def test_dict_conversion_preserves_all_fields(self):
         """Test all fields are preserved in dict conversion."""
-        from rivaflow.db.database import get_connection
         from datetime import date
+
+        from rivaflow.db.database import get_connection
 
         # Create a test session
         with get_connection() as conn:

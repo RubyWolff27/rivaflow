@@ -1,8 +1,10 @@
 """Health check endpoint for monitoring and load balancer checks."""
+import logging
+
 from fastapi import APIRouter, status
 from fastapi.responses import JSONResponse
+
 from rivaflow.db.database import get_connection
-import logging
 
 logger = logging.getLogger(__name__)
 

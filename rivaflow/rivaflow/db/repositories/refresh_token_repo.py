@@ -1,9 +1,8 @@
 """Repository for refresh token data access."""
 import sqlite3
 from datetime import datetime
-from typing import Optional
 
-from rivaflow.db.database import get_connection, convert_query, execute_insert
+from rivaflow.db.database import convert_query, execute_insert, get_connection
 
 
 class RefreshTokenRepository:
@@ -40,7 +39,7 @@ class RefreshTokenRepository:
             return RefreshTokenRepository._row_to_dict(row)
 
     @staticmethod
-    def get_by_token(token: str) -> Optional[dict]:
+    def get_by_token(token: str) -> dict | None:
         """
         Get a refresh token by its token string.
 

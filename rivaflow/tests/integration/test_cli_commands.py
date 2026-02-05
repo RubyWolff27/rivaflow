@@ -4,11 +4,12 @@ Integration tests for CLI commands.
 Tests the complete CLI workflow including user registration,
 session logging, check-ins, and data retrieval.
 """
-import pytest
 import os
-from datetime import date, timedelta
-from typer.testing import CliRunner
+from datetime import date
 from unittest.mock import patch
+
+import pytest
+from typer.testing import CliRunner
 
 # Set SECRET_KEY for testing
 os.environ.setdefault("SECRET_KEY", "test-secret-key-for-cli-integration-tests-minimum-32-chars")

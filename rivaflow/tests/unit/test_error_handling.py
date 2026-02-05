@@ -3,17 +3,18 @@ Unit tests for error handling across the application.
 
 Tests exception handling, validation errors, and error messages.
 """
-import pytest
 import os
 from datetime import date, timedelta
+
+import pytest
 
 # Set SECRET_KEY for testing
 os.environ.setdefault("SECRET_KEY", "test-secret-key-for-error-handling-tests-minimum32chars")
 
-from rivaflow.core.services.session_service import SessionService
 from rivaflow.core.services.auth_service import AuthService
-from rivaflow.db.repositories.session_repo import SessionRepository
+from rivaflow.core.services.session_service import SessionService
 from rivaflow.db.database import get_connection
+from rivaflow.db.repositories.session_repo import SessionRepository
 
 
 class TestSessionValidationErrors:

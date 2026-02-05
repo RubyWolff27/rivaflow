@@ -1,9 +1,8 @@
 """Repository for readiness check-in data access."""
 import sqlite3
 from datetime import date, datetime
-from typing import Optional
 
-from rivaflow.db.database import get_connection, convert_query, execute_insert
+from rivaflow.db.database import convert_query, execute_insert, get_connection
 
 
 class ReadinessRepository:
@@ -17,8 +16,8 @@ class ReadinessRepository:
         stress: int,
         soreness: int,
         energy: int,
-        hotspot_note: Optional[str] = None,
-        weight_kg: Optional[float] = None,
+        hotspot_note: str | None = None,
+        weight_kg: float | None = None,
     ) -> int:
         """Create or update readiness entry for a date. Returns ID."""
         with get_connection() as conn:
@@ -55,7 +54,7 @@ class ReadinessRepository:
                 )
 
     @staticmethod
-    def get_by_date(user_id: int, check_date: date) -> Optional[dict]:
+    def get_by_date(user_id: int, check_date: date) -> dict | None:
         """Get readiness entry for a specific date."""
         with get_connection() as conn:
             cursor = conn.cursor()
@@ -69,7 +68,7 @@ class ReadinessRepository:
             return None
 
     @staticmethod
-    def get_latest(user_id: int) -> Optional[dict]:
+    def get_latest(user_id: int) -> dict | None:
         """Get the most recent readiness entry."""
         with get_connection() as conn:
             cursor = conn.cursor()
@@ -83,7 +82,7 @@ class ReadinessRepository:
             return None
 
     @staticmethod
-    def get_by_id_any_user(readiness_id: int) -> Optional[dict]:
+    def get_by_id_any_user(readiness_id: int) -> dict | None:
         """Get a readiness entry by ID without user scope (for validation/privacy checks)."""
         with get_connection() as conn:
             cursor = conn.cursor()

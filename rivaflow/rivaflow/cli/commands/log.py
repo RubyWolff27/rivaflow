@@ -1,20 +1,26 @@
 """Session logging commands."""
-import typer
 import json
 import random
 from datetime import date
-from typing import Optional
+
+import typer
 from rich.prompt import Prompt
 
 from rivaflow.cli import prompts
-from rivaflow.cli.utils.user_context import get_current_user_id
 from rivaflow.cli.utils.error_handler import handle_error, require_login
+from rivaflow.cli.utils.user_context import get_current_user_id
+from rivaflow.config import (
+    ALL_CLASS_TYPES,
+    DEFAULT_DURATION,
+    DEFAULT_INTENSITY,
+    MILESTONE_QUOTES,
+    TOMORROW_INTENTIONS,
+)
+from rivaflow.core.services.insight_service import InsightService
+from rivaflow.core.services.milestone_service import MilestoneService
 from rivaflow.core.services.session_service import SessionService
 from rivaflow.core.services.streak_service import StreakService
-from rivaflow.core.services.milestone_service import MilestoneService
-from rivaflow.core.services.insight_service import InsightService
-from rivaflow.db.repositories import VideoRepository, CheckinRepository
-from rivaflow.config import ALL_CLASS_TYPES, DEFAULT_DURATION, DEFAULT_INTENSITY, TOMORROW_INTENTIONS, MILESTONE_QUOTES
+from rivaflow.db.repositories import CheckinRepository, VideoRepository
 
 app = typer.Typer(help="Log training sessions")
 
@@ -240,7 +246,7 @@ def _add_engagement_features(session_id: int):
         insight = insight_service.generate_insight(user_id)
         insight_json = json.dumps(insight)
 
-        checkin_id = checkin_repo.upsert_checkin(
+        checkin_repo.upsert_checkin(
             user_id=user_id,
             check_date=today,
             checkin_type="session",

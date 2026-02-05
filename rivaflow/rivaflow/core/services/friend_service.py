@@ -1,5 +1,4 @@
 """Service layer for friends (training partners and instructors) operations."""
-from typing import List, Optional
 
 from rivaflow.db.repositories import FriendRepository
 
@@ -15,12 +14,12 @@ class FriendService:
         user_id: int,
         name: str,
         friend_type: str = "training-partner",
-        belt_rank: Optional[str] = None,
+        belt_rank: str | None = None,
         belt_stripes: int = 0,
-        instructor_certification: Optional[str] = None,
-        phone: Optional[str] = None,
-        email: Optional[str] = None,
-        notes: Optional[str] = None,
+        instructor_certification: str | None = None,
+        phone: str | None = None,
+        email: str | None = None,
+        notes: str | None = None,
     ) -> dict:
         """Create a new friend."""
         return self.repo.create(
@@ -35,31 +34,31 @@ class FriendService:
             notes=notes,
         )
 
-    def get_friend(self, user_id: int, friend_id: int) -> Optional[dict]:
+    def get_friend(self, user_id: int, friend_id: int) -> dict | None:
         """Get a friend by ID."""
         return self.repo.get_by_id(user_id, friend_id)
 
-    def get_friend_by_name(self, user_id: int, name: str) -> Optional[dict]:
+    def get_friend_by_name(self, user_id: int, name: str) -> dict | None:
         """Get a friend by exact name match."""
         return self.repo.get_by_name(user_id, name)
 
-    def list_friends(self, user_id: int, order_by: str = "name ASC") -> List[dict]:
+    def list_friends(self, user_id: int, order_by: str = "name ASC") -> list[dict]:
         """Get all friends."""
         return self.repo.list_all(user_id, order_by=order_by)
 
-    def list_instructors(self, user_id: int) -> List[dict]:
+    def list_instructors(self, user_id: int) -> list[dict]:
         """Get all friends who are instructors."""
         instructors = self.repo.list_by_type(user_id, "instructor", order_by="name ASC")
         both = self.repo.list_by_type(user_id, "both", order_by="name ASC")
         return instructors + both
 
-    def list_training_partners(self, user_id: int) -> List[dict]:
+    def list_training_partners(self, user_id: int) -> list[dict]:
         """Get all friends who are training partners."""
         partners = self.repo.list_by_type(user_id, "training-partner", order_by="name ASC")
         both = self.repo.list_by_type(user_id, "both", order_by="name ASC")
         return partners + both
 
-    def search_friends(self, user_id: int, query: str) -> List[dict]:
+    def search_friends(self, user_id: int, query: str) -> list[dict]:
         """Search friends by name."""
         return self.repo.search(user_id, query)
 
@@ -67,15 +66,15 @@ class FriendService:
         self,
         user_id: int,
         friend_id: int,
-        name: Optional[str] = None,
-        friend_type: Optional[str] = None,
-        belt_rank: Optional[str] = None,
-        belt_stripes: Optional[int] = None,
-        instructor_certification: Optional[str] = None,
-        phone: Optional[str] = None,
-        email: Optional[str] = None,
-        notes: Optional[str] = None,
-    ) -> Optional[dict]:
+        name: str | None = None,
+        friend_type: str | None = None,
+        belt_rank: str | None = None,
+        belt_stripes: int | None = None,
+        instructor_certification: str | None = None,
+        phone: str | None = None,
+        email: str | None = None,
+        notes: str | None = None,
+    ) -> dict | None:
         """Update a friend."""
         return self.repo.update(
             user_id=user_id,

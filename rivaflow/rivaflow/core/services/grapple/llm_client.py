@@ -1,8 +1,8 @@
 """Grapple LLM Client with hybrid provider support and automatic failover."""
-import os
 import logging
-from typing import List, Dict, Any, Optional, AsyncIterator
-from datetime import datetime
+import os
+from typing import Any
+
 import httpx
 
 logger = logging.getLogger(__name__)
@@ -72,7 +72,7 @@ class GrappleLLMClient:
 
         logger.info(f"Grapple LLM initialized with providers: {', '.join(self.providers)}")
 
-    def _detect_available_providers(self) -> List[str]:
+    def _detect_available_providers(self) -> list[str]:
         """Detect which providers are available based on configuration."""
         providers = []
 
@@ -105,12 +105,12 @@ class GrappleLLMClient:
 
     async def chat(
         self,
-        messages: List[Dict[str, str]],
+        messages: list[dict[str, str]],
         user_id: int,
         stream: bool = False,
         temperature: float = 0.7,
         max_tokens: int = 1024,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         Send chat completion request with automatic failover.
 
@@ -154,10 +154,10 @@ class GrappleLLMClient:
 
     async def _call_groq(
         self,
-        messages: List[Dict[str, str]],
+        messages: list[dict[str, str]],
         temperature: float,
         max_tokens: int,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Call Groq API."""
         from groq import AsyncGroq
 
@@ -188,10 +188,10 @@ class GrappleLLMClient:
 
     async def _call_together(
         self,
-        messages: List[Dict[str, str]],
+        messages: list[dict[str, str]],
         temperature: float,
         max_tokens: int,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Call Together AI API."""
         from together import AsyncTogether
 
@@ -222,10 +222,10 @@ class GrappleLLMClient:
 
     async def _call_ollama(
         self,
-        messages: List[Dict[str, str]],
+        messages: list[dict[str, str]],
         temperature: float,
         max_tokens: int,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Call Ollama local API."""
         model = self.MODELS["ollama"]["name"]
 
@@ -268,7 +268,7 @@ class GrappleLLMClient:
         output_cost = (output_tokens / 1000) * config.get("cost_per_1k_output", 0.0)
         return round(input_cost + output_cost, 6)
 
-    def get_provider_status(self) -> Dict[str, Any]:
+    def get_provider_status(self) -> dict[str, Any]:
         """Get status of all providers."""
         return {
             "available_providers": self.providers,

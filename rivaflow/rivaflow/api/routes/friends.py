@@ -1,11 +1,11 @@
 """Contacts (training partners and instructors) endpoints."""
-from fastapi import APIRouter, Query, Depends
-from pydantic import BaseModel
-from typing import Optional
 
-from rivaflow.core.services.friend_service import FriendService
+from fastapi import APIRouter, Depends, Query
+from pydantic import BaseModel
+
 from rivaflow.core.dependencies import get_current_user
 from rivaflow.core.exceptions import NotFoundError
+from rivaflow.core.services.friend_service import FriendService
 
 router = APIRouter()
 service = FriendService()
@@ -15,30 +15,30 @@ class FriendCreate(BaseModel):
     """Contact creation model."""
     name: str
     friend_type: str = "training-partner"
-    belt_rank: Optional[str] = None
+    belt_rank: str | None = None
     belt_stripes: int = 0
-    instructor_certification: Optional[str] = None
-    phone: Optional[str] = None
-    email: Optional[str] = None
-    notes: Optional[str] = None
+    instructor_certification: str | None = None
+    phone: str | None = None
+    email: str | None = None
+    notes: str | None = None
 
 
 class FriendUpdate(BaseModel):
     """Contact update model."""
-    name: Optional[str] = None
-    friend_type: Optional[str] = None
-    belt_rank: Optional[str] = None
-    belt_stripes: Optional[int] = None
-    instructor_certification: Optional[str] = None
-    phone: Optional[str] = None
-    email: Optional[str] = None
-    notes: Optional[str] = None
+    name: str | None = None
+    friend_type: str | None = None
+    belt_rank: str | None = None
+    belt_stripes: int | None = None
+    instructor_certification: str | None = None
+    phone: str | None = None
+    email: str | None = None
+    notes: str | None = None
 
 
 @router.get("/")
 async def list_contacts(
-    search: Optional[str] = Query(None, min_length=2, description="Search by name"),
-    friend_type: Optional[str] = Query(None, description="Filter by friend type"),
+    search: str | None = Query(None, min_length=2, description="Search by name"),
+    friend_type: str | None = Query(None, description="Filter by friend type"),
     limit: int = Query(default=50, ge=1, le=200, description="Max results to return"),
     offset: int = Query(default=0, ge=0, description="Number of results to skip"),
     current_user: dict = Depends(get_current_user),

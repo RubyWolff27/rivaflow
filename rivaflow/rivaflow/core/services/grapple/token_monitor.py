@@ -1,10 +1,10 @@
 """Token usage monitoring and cost tracking for Grapple AI Coach."""
 import logging
 from datetime import datetime, timedelta
-from typing import Dict, Any, List, Optional
-from uuid import UUID, uuid4
+from typing import Any
+from uuid import uuid4
 
-from rivaflow.db.database import get_connection, convert_query
+from rivaflow.db.database import convert_query, get_connection
 
 logger = logging.getLogger(__name__)
 
@@ -28,8 +28,8 @@ class GrappleTokenMonitor:
     def log_usage(
         self,
         user_id: int,
-        session_id: Optional[str],
-        message_id: Optional[str],
+        session_id: str | None,
+        message_id: str | None,
         provider: str,
         model: str,
         input_tokens: int,
@@ -95,9 +95,9 @@ class GrappleTokenMonitor:
     def get_user_usage(
         self,
         user_id: int,
-        start_date: Optional[datetime] = None,
-        end_date: Optional[datetime] = None,
-    ) -> Dict[str, Any]:
+        start_date: datetime | None = None,
+        end_date: datetime | None = None,
+    ) -> dict[str, Any]:
         """
         Get token usage statistics for a user.
 
@@ -194,7 +194,7 @@ class GrappleTokenMonitor:
                 "by_provider": {},
             }
 
-    def get_cost_projection(self, user_id: int) -> Dict[str, Any]:
+    def get_cost_projection(self, user_id: int) -> dict[str, Any]:
         """
         Project costs for the user based on recent usage.
 
@@ -268,7 +268,7 @@ class GrappleTokenMonitor:
             "calculated_at": now.isoformat(),
         }
 
-    def check_cost_limit(self, user_id: int, user_tier: str) -> Dict[str, Any]:
+    def check_cost_limit(self, user_id: int, user_tier: str) -> dict[str, Any]:
         """
         Check if user is approaching or has exceeded their cost limit.
 
@@ -316,9 +316,9 @@ class GrappleTokenMonitor:
 
     def get_global_usage_stats(
         self,
-        start_date: Optional[datetime] = None,
-        end_date: Optional[datetime] = None,
-    ) -> Dict[str, Any]:
+        start_date: datetime | None = None,
+        end_date: datetime | None = None,
+    ) -> dict[str, Any]:
         """
         Get global usage statistics across all users (admin only).
 
@@ -362,7 +362,6 @@ class GrappleTokenMonitor:
                     "total_cost_usd": 0.0,
                 }
 
-                all_users = set()
                 for row in rows:
                     provider = row[5]
                     by_provider[provider] = {

@@ -1,16 +1,16 @@
 """Repository for Grapple chat sessions data access."""
-from typing import List, Dict, Any, Optional
 from datetime import datetime
+from typing import Any
 from uuid import uuid4
 
-from rivaflow.db.database import get_connection, convert_query
+from rivaflow.db.database import convert_query, get_connection
 
 
 class ChatSessionRepository:
     """Repository for managing Grapple AI Coach chat sessions."""
 
     @staticmethod
-    def create(user_id: int, title: Optional[str] = None) -> Dict[str, Any]:
+    def create(user_id: int, title: str | None = None) -> dict[str, Any]:
         """
         Create a new chat session.
 
@@ -56,7 +56,7 @@ class ChatSessionRepository:
             return {}
 
     @staticmethod
-    def get_by_id(session_id: str, user_id: int) -> Optional[Dict[str, Any]]:
+    def get_by_id(session_id: str, user_id: int) -> dict[str, Any] | None:
         """
         Get a session by ID.
 
@@ -98,7 +98,7 @@ class ChatSessionRepository:
             return None
 
     @staticmethod
-    def get_by_user(user_id: int, limit: int = 20, offset: int = 0) -> List[Dict[str, Any]]:
+    def get_by_user(user_id: int, limit: int = 20, offset: int = 0) -> list[dict[str, Any]]:
         """
         Get sessions for a user.
 

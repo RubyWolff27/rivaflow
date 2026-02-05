@@ -3,16 +3,17 @@
 Provides user-friendly error messages and recovery suggestions.
 """
 import typer
+
 from rivaflow.cli import prompts
 from rivaflow.core.exceptions import (
-    ValidationError,
     AuthenticationError,
     AuthorizationError,
-    NotFoundError,
     ConflictError,
     DatabaseError,
-    ServiceError,
+    NotFoundError,
     RivaFlowException,
+    ServiceError,
+    ValidationError,
 )
 
 
@@ -116,7 +117,7 @@ def require_login() -> int:
         if user_id is None:
             raise AuthenticationError("Not logged in")
         return user_id
-    except (FileNotFoundError, KeyError, ValueError) as e:
+    except (FileNotFoundError, KeyError, ValueError):
         prompts.print_error("You must be logged in to use this command")
         prompts.console.print()
         prompts.console.print("[dim]Login with:[/dim]")

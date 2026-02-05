@@ -1,8 +1,7 @@
 """Repository for user relationships (social graph) data access."""
 import sqlite3
-from typing import List, Optional
 
-from rivaflow.db.database import get_connection, convert_query, execute_insert
+from rivaflow.db.database import convert_query, execute_insert, get_connection
 
 
 class UserRelationshipRepository:
@@ -62,7 +61,7 @@ class UserRelationshipRepository:
             return cursor.rowcount > 0
 
     @staticmethod
-    def get_followers(user_id: int) -> List[dict]:
+    def get_followers(user_id: int) -> list[dict]:
         """
         Get all users who follow this user.
 
@@ -94,7 +93,7 @@ class UserRelationshipRepository:
             return [dict(row) for row in rows]
 
     @staticmethod
-    def get_following(user_id: int) -> List[dict]:
+    def get_following(user_id: int) -> list[dict]:
         """
         Get all users that this user follows.
 
@@ -209,7 +208,7 @@ class UserRelationshipRepository:
                 return row[0]
 
     @staticmethod
-    def get_following_user_ids(user_id: int) -> List[int]:
+    def get_following_user_ids(user_id: int) -> list[int]:
         """
         Get list of user IDs that this user follows.
 

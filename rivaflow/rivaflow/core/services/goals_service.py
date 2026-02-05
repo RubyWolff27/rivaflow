@@ -1,11 +1,10 @@
 """Service layer for weekly goals and streak tracking."""
-from datetime import date, timedelta
-from typing import Optional
+from datetime import date
 
+from rivaflow.core.services.analytics_service import AnalyticsService
+from rivaflow.core.services.report_service import ReportService
 from rivaflow.db.repositories import ProfileRepository, SessionRepository
 from rivaflow.db.repositories.goal_progress_repo import GoalProgressRepository
-from rivaflow.core.services.report_service import ReportService
-from rivaflow.core.services.analytics_service import AnalyticsService
 
 
 class GoalsService:
@@ -223,12 +222,12 @@ class GoalsService:
     def update_profile_goals(
         self,
         user_id: int,
-        weekly_sessions_target: Optional[int] = None,
-        weekly_hours_target: Optional[float] = None,
-        weekly_rolls_target: Optional[int] = None,
-        weekly_bjj_sessions_target: Optional[int] = None,
-        weekly_sc_sessions_target: Optional[int] = None,
-        weekly_mobility_sessions_target: Optional[int] = None,
+        weekly_sessions_target: int | None = None,
+        weekly_hours_target: float | None = None,
+        weekly_rolls_target: int | None = None,
+        weekly_bjj_sessions_target: int | None = None,
+        weekly_sc_sessions_target: int | None = None,
+        weekly_mobility_sessions_target: int | None = None,
     ) -> dict:
         """Update weekly goal targets in profile.
 
@@ -255,7 +254,7 @@ class GoalsService:
             return profile
 
         # Update profile
-        from rivaflow.db.database import get_connection, convert_query
+        from rivaflow.db.database import convert_query, get_connection
         with get_connection() as conn:
             cursor = conn.cursor()
             set_clause = ", ".join([f"{k} = ?" for k in updates.keys()])

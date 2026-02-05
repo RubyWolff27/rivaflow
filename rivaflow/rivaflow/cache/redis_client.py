@@ -1,13 +1,13 @@
 """Redis client with connection pooling and graceful fallback."""
 import json
-import os
 import logging
-from typing import Optional, Any
+import os
 from contextlib import contextmanager
+from typing import Any
 
 try:
     import redis
-    from redis.exceptions import RedisError, ConnectionError, TimeoutError
+    from redis.exceptions import ConnectionError, RedisError, TimeoutError
     REDIS_AVAILABLE = True
 except ImportError:
     REDIS_AVAILABLE = False
@@ -28,7 +28,7 @@ class RedisClient:
     succeed but no caching occurs.
     """
 
-    def __init__(self, redis_url: Optional[str] = None):
+    def __init__(self, redis_url: str | None = None):
         """
         Initialize Redis client.
 
@@ -64,7 +64,7 @@ class RedisClient:
             self._client = None
             self._fallback_mode = True
 
-    def get(self, key: str) -> Optional[Any]:
+    def get(self, key: str) -> Any | None:
         """
         Get value from cache.
 
@@ -86,7 +86,7 @@ class RedisClient:
             logger.warning(f"Redis GET error for key '{key}': {e}")
             return None
 
-    def set(self, key: str, value: Any, ttl: Optional[int] = None) -> bool:
+    def set(self, key: str, value: Any, ttl: int | None = None) -> bool:
         """
         Set value in cache.
 
@@ -228,7 +228,7 @@ class RedisClient:
 
 
 # Global Redis client instance
-_redis_client: Optional[RedisClient] = None
+_redis_client: RedisClient | None = None
 
 
 def get_redis_client() -> RedisClient:

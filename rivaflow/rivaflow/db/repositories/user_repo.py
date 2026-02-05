@@ -1,9 +1,8 @@
 """Repository for user data access."""
 import sqlite3
 from datetime import datetime
-from typing import Optional
 
-from rivaflow.db.database import get_connection, convert_query, execute_insert
+from rivaflow.db.database import convert_query, execute_insert, get_connection
 
 
 class UserRepository:
@@ -13,8 +12,8 @@ class UserRepository:
     def create(
         email: str,
         hashed_password: str,
-        first_name: Optional[str] = None,
-        last_name: Optional[str] = None,
+        first_name: str | None = None,
+        last_name: str | None = None,
         is_active: bool = True,
         subscription_tier: str = "free",  # Default to free tier
         is_beta_user: bool = False,  # Beta period ended, new users start as free
@@ -62,7 +61,7 @@ class UserRepository:
             return UserRepository._row_to_dict(row)
 
     @staticmethod
-    def get_by_email(email: str) -> Optional[dict]:
+    def get_by_email(email: str) -> dict | None:
         """
         Get a user by email address.
 
@@ -81,7 +80,7 @@ class UserRepository:
             return None
 
     @staticmethod
-    def get_by_id(user_id: int) -> Optional[dict]:
+    def get_by_id(user_id: int) -> dict | None:
         """
         Get a user by ID.
 
@@ -102,12 +101,12 @@ class UserRepository:
     @staticmethod
     def update(
         user_id: int,
-        email: Optional[str] = None,
-        hashed_password: Optional[str] = None,
-        first_name: Optional[str] = None,
-        last_name: Optional[str] = None,
-        is_active: Optional[bool] = None,
-    ) -> Optional[dict]:
+        email: str | None = None,
+        hashed_password: str | None = None,
+        first_name: str | None = None,
+        last_name: str | None = None,
+        is_active: bool | None = None,
+    ) -> dict | None:
         """
         Update a user's information.
 
@@ -191,7 +190,7 @@ class UserRepository:
             return cursor.rowcount > 0
 
     @staticmethod
-    def update_avatar(user_id: int, avatar_url: Optional[str]) -> bool:
+    def update_avatar(user_id: int, avatar_url: str | None) -> bool:
         """
         Update a user's avatar URL.
 

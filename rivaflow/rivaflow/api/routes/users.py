@@ -1,10 +1,10 @@
 """User profile endpoints for viewing other users."""
-from fastapi import APIRouter, Depends, Query
-from typing import Optional
 
-from rivaflow.core.services.user_service import UserService
+from fastapi import APIRouter, Depends, Query
+
 from rivaflow.core.dependencies import get_current_user
 from rivaflow.core.exceptions import NotFoundError
+from rivaflow.core.services.user_service import UserService
 
 router = APIRouter()
 service = UserService()

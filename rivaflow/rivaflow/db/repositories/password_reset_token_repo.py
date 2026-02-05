@@ -1,10 +1,9 @@
 """Repository for password reset token management."""
-import secrets
 import hashlib
+import secrets
 from datetime import datetime, timedelta
-from typing import Optional
 
-from rivaflow.db.database import get_connection, convert_query
+from rivaflow.db.database import convert_query, get_connection
 
 
 class PasswordResetTokenRepository:
@@ -67,7 +66,7 @@ class PasswordResetTokenRepository:
         return token
 
     @staticmethod
-    def get_by_token(token: str) -> Optional[dict]:
+    def get_by_token(token: str) -> dict | None:
         """
         Get password reset token record by token string.
 
@@ -155,7 +154,7 @@ class PasswordResetTokenRepository:
             return cursor.rowcount > 0
 
     @staticmethod
-    def get_user_id_from_token(token: str) -> Optional[int]:
+    def get_user_id_from_token(token: str) -> int | None:
         """
         Get user ID associated with a valid token.
 

@@ -1,5 +1,6 @@
 """CLI command modules."""
-from . import auth
-from rivaflow.cli.commands import log, readiness, report, suggest, video, technique, setup
+from rivaflow.cli.commands import log, readiness, report, setup, suggest, technique, video
 
-__all__ = ["log", "readiness", "report", "suggest", "video", "technique", "setup"]
+from . import auth
+
+__all__ = ["auth", "log", "readiness", "report", "setup", "suggest", "technique", "video"]

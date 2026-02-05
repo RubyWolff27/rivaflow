@@ -1,14 +1,15 @@
 """Authentication endpoints."""
 import logging
-from fastapi import APIRouter, HTTPException, Depends, status, Request
+
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 from pydantic import BaseModel, EmailStr
 from slowapi import Limiter
 from slowapi.util import get_remote_address
 
-from rivaflow.core.services.auth_service import AuthService
 from rivaflow.core.dependencies import get_current_user
 from rivaflow.core.error_handling import handle_service_error
 from rivaflow.core.exceptions import ValidationError
+from rivaflow.core.services.auth_service import AuthService
 
 logger = logging.getLogger(__name__)
 
@@ -104,7 +105,7 @@ async def login(request: Request, req: LoginRequest):
     try:
         result = service.login(email=req.email, password=req.password)
         return result
-    except ValueError as e:
+    except ValueError:
         # ValueError for auth failures - use generic message to prevent user enumeration
         logger.warning(f"Login attempt failed for {req.email}")
         raise HTTPException(
@@ -135,7 +136,7 @@ async def refresh_token(request: Request, req: RefreshRequest):
     try:
         result = service.refresh_access_token(refresh_token=req.refresh_token)
         return result
-    except ValueError as e:
+    except ValueError:
         logger.warning("Token refresh failed")
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,

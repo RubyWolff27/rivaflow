@@ -1,6 +1,6 @@
 """Unit tests for ReportService calculations."""
-import pytest
-from datetime import date, timedelta
+from datetime import date
+
 from rivaflow.core.services.report_service import ReportService
 
 

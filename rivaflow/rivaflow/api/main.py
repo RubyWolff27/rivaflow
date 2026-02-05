@@ -2,28 +2,58 @@
 import logging
 import os
 from pathlib import Path
-from fastapi import FastAPI, Request
-from fastapi.middleware.cors import CORSMiddleware
-from fastapi.staticfiles import StaticFiles
-from fastapi.responses import FileResponse
-from slowapi import Limiter, _rate_limit_exceeded_handler
-from slowapi.util import get_remote_address
-from slowapi.errors import RateLimitExceeded
-from fastapi.exceptions import RequestValidationError
 
-from rivaflow.api.routes import sessions, readiness, reports, suggestions, techniques, videos, profile, gradings, glossary, friends, analytics, goals, checkins, streaks, milestones, auth, rest, feed, photos, social, users, admin, notifications, gyms, feedback, dashboard, health
+from fastapi import FastAPI
+from fastapi.exceptions import RequestValidationError
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.errors import RateLimitExceeded
+from slowapi.util import get_remote_address
+
+from rivaflow.api.middleware.compression import GzipCompressionMiddleware
+from rivaflow.api.middleware.error_handler import (
+    generic_exception_handler,
+    rivaflow_exception_handler,
+    validation_exception_handler,
+)
+from rivaflow.api.middleware.security_headers import SecurityHeadersMiddleware
+from rivaflow.api.middleware.versioning import VersioningMiddleware
+from rivaflow.api.routes import (
+    admin,
+    analytics,
+    auth,
+    checkins,
+    dashboard,
+    feed,
+    feedback,
+    friends,
+    glossary,
+    goals,
+    gradings,
+    gyms,
+    health,
+    milestones,
+    notifications,
+    photos,
+    profile,
+    readiness,
+    reports,
+    rest,
+    sessions,
+    social,
+    streaks,
+    suggestions,
+    techniques,
+    users,
+    videos,
+)
+
 # AI features temporarily disabled for deployment (large CUDA dependencies)
 # from rivaflow.api.routes import chat, llm_tools, grapple, admin_grapple
 from rivaflow.core.exceptions import RivaFlowException
 from rivaflow.core.settings import settings
-from rivaflow.api.middleware.error_handler import (
-    rivaflow_exception_handler,
-    validation_exception_handler,
-    generic_exception_handler,
-)
-from rivaflow.api.middleware.versioning import VersioningMiddleware
-from rivaflow.api.middleware.compression import GzipCompressionMiddleware
-from rivaflow.api.middleware.security_headers import SecurityHeadersMiddleware
 
 # Configure logging
 logging.basicConfig(

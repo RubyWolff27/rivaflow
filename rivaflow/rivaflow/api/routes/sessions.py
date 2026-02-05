@@ -1,15 +1,15 @@
 """Session management endpoints."""
-from fastapi import APIRouter, Depends, Query, HTTPException, Request
 from datetime import date
-from typing import Optional
+
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from slowapi import Limiter
 from slowapi.util import get_remote_address
 
-from rivaflow.core.services.session_service import SessionService
-from rivaflow.core.services.privacy_service import PrivacyService
-from rivaflow.core.models import SessionCreate, SessionUpdate
 from rivaflow.core.dependencies import get_current_user
-from rivaflow.core.exceptions import ValidationError, NotFoundError, AuthorizationError
+from rivaflow.core.exceptions import AuthorizationError, NotFoundError
+from rivaflow.core.models import SessionCreate, SessionUpdate
+from rivaflow.core.services.privacy_service import PrivacyService
+from rivaflow.core.services.session_service import SessionService
 
 router = APIRouter()
 service = SessionService()

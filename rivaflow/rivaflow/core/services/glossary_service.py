@@ -1,8 +1,7 @@
 """Service layer for movements glossary operations."""
-from typing import List, Optional
 
+from rivaflow.cache import CacheKeys, get_redis_client
 from rivaflow.db.repositories import GlossaryRepository
-from rivaflow.cache import get_redis_client, CacheKeys
 
 
 class GlossaryService:
@@ -15,11 +14,11 @@ class GlossaryService:
     def list_movements(
         self,
         user_id: int,
-        category: Optional[str] = None,
-        search: Optional[str] = None,
+        category: str | None = None,
+        search: str | None = None,
         gi_only: bool = False,
         nogi_only: bool = False,
-    ) -> List[dict]:
+    ) -> list[dict]:
         """Get all movements with optional filtering."""
         # Skip cache for search queries (too many permutations)
         if search:
@@ -55,7 +54,7 @@ class GlossaryService:
 
         return movements
 
-    def get_movement(self, user_id: int, movement_id: int, include_custom_videos: bool = False) -> Optional[dict]:
+    def get_movement(self, user_id: int, movement_id: int, include_custom_videos: bool = False) -> dict | None:
         """Get a specific movement by ID, optionally with custom video links."""
         # Skip cache if custom videos requested (user-specific)
         if include_custom_videos:
@@ -76,7 +75,7 @@ class GlossaryService:
 
         return movement
 
-    def get_movement_by_name(self, user_id: int, name: str) -> Optional[dict]:
+    def get_movement_by_name(self, user_id: int, name: str) -> dict | None:
         """Get a movement by exact name."""
         # Try cache
         cache_key = CacheKeys.movement_by_name(name)
@@ -93,7 +92,7 @@ class GlossaryService:
 
         return movement
 
-    def get_categories(self, user_id: int) -> List[str]:
+    def get_categories(self, user_id: int) -> list[str]:
         """Get list of all movement categories."""
         # Try cache
         cache_key = CacheKeys.MOVEMENTS_GLOSSARY_CATEGORIES
@@ -114,10 +113,10 @@ class GlossaryService:
         user_id: int,
         name: str,
         category: str,
-        subcategory: Optional[str] = None,
+        subcategory: str | None = None,
         points: int = 0,
-        description: Optional[str] = None,
-        aliases: Optional[List[str]] = None,
+        description: str | None = None,
+        aliases: list[str] | None = None,
         gi_applicable: bool = True,
         nogi_applicable: bool = True,
     ) -> dict:
@@ -155,7 +154,7 @@ class GlossaryService:
         user_id: int,
         movement_id: int,
         url: str,
-        title: Optional[str] = None,
+        title: str | None = None,
         video_type: str = "general",
     ) -> dict:
         """Add a custom video link to a movement."""

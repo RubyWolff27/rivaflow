@@ -1,6 +1,5 @@
 """Unit tests for GoalsService."""
-import pytest
-from datetime import date, timedelta
+from datetime import date
 from unittest.mock import Mock, patch
 
 from rivaflow.core.services.goals_service import GoalsService

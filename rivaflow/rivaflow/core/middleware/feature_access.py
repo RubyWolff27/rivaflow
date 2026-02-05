@@ -1,7 +1,9 @@
 """Feature access control middleware for subscription tiers."""
 import logging
+from collections.abc import Callable
 from functools import wraps
-from typing import Callable, List, Dict, Any
+from typing import Any
+
 from fastapi import HTTPException, status
 
 logger = logging.getLogger(__name__)
@@ -11,14 +13,14 @@ class FeatureAccess:
     """Manages feature access based on subscription tiers."""
 
     # Define which tiers can access each feature
-    FEATURE_TIERS: Dict[str, List[str]] = {
+    FEATURE_TIERS: dict[str, list[str]] = {
         'grapple': ['beta', 'premium', 'admin'],
         'advanced_analytics': ['premium', 'admin'],
         'api_access': ['premium', 'admin'],
     }
 
     # Rate limits per tier (messages per hour for Grapple)
-    RATE_LIMITS: Dict[str, int] = {
+    RATE_LIMITS: dict[str, int] = {
         'free': 0,           # No access
         'beta': 30,          # 30 messages/hour during beta
         'premium': 60,       # 60 messages/hour
@@ -26,7 +28,7 @@ class FeatureAccess:
     }
 
     # Cost limits per tier (USD per month)
-    COST_LIMITS: Dict[str, float] = {
+    COST_LIMITS: dict[str, float] = {
         'free': 0.0,
         'beta': 5.0,         # $5/month max during beta (covered by us)
         'premium': 50.0,     # $50/month max
@@ -152,7 +154,7 @@ def require_admin(func: Callable) -> Callable:
     return wrapper
 
 
-def get_user_tier_info(user: Dict[str, Any]) -> Dict[str, Any]:
+def get_user_tier_info(user: dict[str, Any]) -> dict[str, Any]:
     """
     Get comprehensive tier information for a user.
 

@@ -2,9 +2,8 @@
 import json
 import sqlite3
 from datetime import datetime
-from typing import Optional
 
-from rivaflow.db.database import get_connection, convert_query, execute_insert
+from rivaflow.db.database import convert_query, execute_insert, get_connection
 
 
 class VideoRepository:
@@ -13,9 +12,9 @@ class VideoRepository:
     @staticmethod
     def create(
         url: str,
-        title: Optional[str] = None,
-        timestamps: Optional[list[dict]] = None,
-        technique_id: Optional[int] = None,
+        title: str | None = None,
+        timestamps: list[dict] | None = None,
+        technique_id: int | None = None,
     ) -> int:
         """Create a new video and return its ID."""
         with get_connection() as conn:
@@ -35,7 +34,7 @@ class VideoRepository:
             )
 
     @staticmethod
-    def get_by_id(video_id: int) -> Optional[dict]:
+    def get_by_id(video_id: int) -> dict | None:
         """Get a video by ID."""
         with get_connection() as conn:
             cursor = conn.cursor()
@@ -82,9 +81,9 @@ class VideoRepository:
     @staticmethod
     def update(
         video_id: int,
-        title: Optional[str] = None,
-        timestamps: Optional[list[dict]] = None,
-        technique_id: Optional[int] = None,
+        title: str | None = None,
+        timestamps: list[dict] | None = None,
+        technique_id: int | None = None,
     ) -> None:
         """Update video fields."""
         with get_connection() as conn:

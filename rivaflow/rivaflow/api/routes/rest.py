@@ -1,20 +1,20 @@
 """Rest day routes."""
 from datetime import date
-from typing import Optional
+
 from fastapi import APIRouter, Depends
 from pydantic import BaseModel
 
-from rivaflow.db.repositories.checkin_repo import CheckinRepository
 from rivaflow.core.dependencies import get_current_user
+from rivaflow.db.repositories.checkin_repo import CheckinRepository
 
 router = APIRouter(prefix="/rest", tags=["rest"])
 
 
 class RestDayCreate(BaseModel):
     """Create a rest day check-in."""
-    rest_type: Optional[str] = None  # active, passive, injury
-    rest_note: Optional[str] = None
-    check_date: Optional[str] = None  # ISO date string, defaults to today
+    rest_type: str | None = None  # active, passive, injury
+    rest_note: str | None = None
+    check_date: str | None = None  # ISO date string, defaults to today
 
 
 @router.post("/")

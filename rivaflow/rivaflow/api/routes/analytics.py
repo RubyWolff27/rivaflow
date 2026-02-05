@@ -1,13 +1,13 @@
 """Analytics and dashboard endpoints."""
-from fastapi import APIRouter, Query, Depends, HTTPException
-from datetime import date
-from typing import Optional, List
-import traceback
 import logging
+import traceback
+from datetime import date
 
-from rivaflow.core.services.analytics_service import AnalyticsService
+from fastapi import APIRouter, Depends, HTTPException, Query
+
 from rivaflow.core.dependencies import get_current_user
-from rivaflow.core.exceptions import ValidationError, NotFoundError
+from rivaflow.core.exceptions import NotFoundError
+from rivaflow.core.services.analytics_service import AnalyticsService
 from rivaflow.core.utils.cache import cached
 
 logger = logging.getLogger(__name__)
@@ -19,9 +19,9 @@ service = AnalyticsService()
 @cached(ttl_seconds=600, key_prefix="analytics_performance")
 def _get_performance_overview_cached(
     user_id: int,
-    start_date: Optional[date] = None,
-    end_date: Optional[date] = None,
-    types: Optional[List[str]] = None,
+    start_date: date | None = None,
+    end_date: date | None = None,
+    types: list[str] | None = None,
 ):
     """
     Cached helper for performance overview.
@@ -38,9 +38,9 @@ def _get_performance_overview_cached(
 @cached(ttl_seconds=600, key_prefix="analytics_partners")
 def _get_partner_analytics_cached(
     user_id: int,
-    start_date: Optional[date] = None,
-    end_date: Optional[date] = None,
-    types: Optional[List[str]] = None,
+    start_date: date | None = None,
+    end_date: date | None = None,
+    types: list[str] | None = None,
 ):
     """
     Cached helper for partner analytics.
@@ -57,9 +57,9 @@ def _get_partner_analytics_cached(
 @cached(ttl_seconds=600, key_prefix="analytics_techniques")
 def _get_technique_analytics_cached(
     user_id: int,
-    start_date: Optional[date] = None,
-    end_date: Optional[date] = None,
-    types: Optional[List[str]] = None,
+    start_date: date | None = None,
+    end_date: date | None = None,
+    types: list[str] | None = None,
 ):
     """
     Cached helper for technique analytics.
@@ -75,9 +75,9 @@ def _get_technique_analytics_cached(
 
 @router.get("/performance-overview")
 async def get_performance_overview(
-    start_date: Optional[date] = Query(None),
-    end_date: Optional[date] = Query(None),
-    types: Optional[List[str]] = Query(None, description="Filter by class types (e.g., gi, no-gi, s&c)"),
+    start_date: date | None = Query(None),
+    end_date: date | None = Query(None),
+    types: list[str] | None = Query(None, description="Filter by class types (e.g., gi, no-gi, s&c)"),
     current_user: dict = Depends(get_current_user),
 ):
     """Get performance overview dashboard data. Cached for 10 minutes."""
@@ -103,9 +103,9 @@ async def get_performance_overview(
 
 @router.get("/partners/stats")
 async def get_partner_analytics(
-    start_date: Optional[date] = Query(None),
-    end_date: Optional[date] = Query(None),
-    types: Optional[List[str]] = Query(None, description="Filter by class types (e.g., gi, no-gi, s&c)"),
+    start_date: date | None = Query(None),
+    end_date: date | None = Query(None),
+    types: list[str] | None = Query(None, description="Filter by class types (e.g., gi, no-gi, s&c)"),
     current_user: dict = Depends(get_current_user),
 ):
     """Get partner analytics dashboard data. Cached for 10 minutes."""
@@ -140,9 +140,9 @@ async def get_head_to_head(
 
 @router.get("/readiness/trends")
 async def get_readiness_trends(
-    start_date: Optional[date] = Query(None),
-    end_date: Optional[date] = Query(None),
-    types: Optional[List[str]] = Query(None, description="Filter by class types (e.g., gi, no-gi, s&c)"),
+    start_date: date | None = Query(None),
+    end_date: date | None = Query(None),
+    types: list[str] | None = Query(None, description="Filter by class types (e.g., gi, no-gi, s&c)"),
     current_user: dict = Depends(get_current_user),
 ):
     """Get readiness and recovery analytics."""
@@ -151,9 +151,9 @@ async def get_readiness_trends(
 
 @router.get("/whoop/analytics")
 async def get_whoop_analytics(
-    start_date: Optional[date] = Query(None),
-    end_date: Optional[date] = Query(None),
-    types: Optional[List[str]] = Query(None, description="Filter by class types (e.g., gi, no-gi, s&c)"),
+    start_date: date | None = Query(None),
+    end_date: date | None = Query(None),
+    types: list[str] | None = Query(None, description="Filter by class types (e.g., gi, no-gi, s&c)"),
     current_user: dict = Depends(get_current_user),
 ):
     """Get Whoop fitness tracker analytics."""
@@ -162,9 +162,9 @@ async def get_whoop_analytics(
 
 @router.get("/techniques/breakdown")
 async def get_technique_analytics(
-    start_date: Optional[date] = Query(None),
-    end_date: Optional[date] = Query(None),
-    types: Optional[List[str]] = Query(None, description="Filter by class types (e.g., gi, no-gi, s&c)"),
+    start_date: date | None = Query(None),
+    end_date: date | None = Query(None),
+    types: list[str] | None = Query(None, description="Filter by class types (e.g., gi, no-gi, s&c)"),
     current_user: dict = Depends(get_current_user),
 ):
     """Get technique mastery analytics. Cached for 10 minutes."""
@@ -183,9 +183,9 @@ async def get_technique_analytics(
 
 @router.get("/consistency/metrics")
 async def get_consistency_analytics(
-    start_date: Optional[date] = Query(None),
-    end_date: Optional[date] = Query(None),
-    types: Optional[List[str]] = Query(None, description="Filter by class types (e.g., gi, no-gi, s&c)"),
+    start_date: date | None = Query(None),
+    end_date: date | None = Query(None),
+    types: list[str] | None = Query(None, description="Filter by class types (e.g., gi, no-gi, s&c)"),
     current_user: dict = Depends(get_current_user),
 ):
     """Get training consistency analytics."""
@@ -210,9 +210,9 @@ async def get_milestones(current_user: dict = Depends(get_current_user)):
 
 @router.get("/instructors/insights")
 async def get_instructor_analytics(
-    start_date: Optional[date] = Query(None),
-    end_date: Optional[date] = Query(None),
-    types: Optional[List[str]] = Query(None, description="Filter by class types (e.g., gi, no-gi, s&c)"),
+    start_date: date | None = Query(None),
+    end_date: date | None = Query(None),
+    types: list[str] | None = Query(None, description="Filter by class types (e.g., gi, no-gi, s&c)"),
     current_user: dict = Depends(get_current_user),
 ):
     """Get instructor insights analytics."""

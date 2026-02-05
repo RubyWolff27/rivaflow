@@ -1,8 +1,7 @@
 """Repository for activity likes data access."""
 import sqlite3
-from typing import List, Optional
 
-from rivaflow.db.database import get_connection, convert_query, execute_insert
+from rivaflow.db.database import convert_query, execute_insert, get_connection
 
 
 class ActivityLikeRepository:
@@ -119,7 +118,7 @@ class ActivityLikeRepository:
             return cursor.fetchone() is not None
 
     @staticmethod
-    def get_by_activity(activity_type: str, activity_id: int) -> List[dict]:
+    def get_by_activity(activity_type: str, activity_id: int) -> list[dict]:
         """
         Get all likes for an activity with user information.
 
@@ -154,7 +153,7 @@ class ActivityLikeRepository:
             return [dict(row) for row in rows]
 
     @staticmethod
-    def get_by_user(user_id: int, limit: int = 50, offset: int = 0) -> List[dict]:
+    def get_by_user(user_id: int, limit: int = 50, offset: int = 0) -> list[dict]:
         """
         Get all likes by a user.
 

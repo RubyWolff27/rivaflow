@@ -1,9 +1,9 @@
 """Repository for friend suggestions data access."""
-from datetime import datetime, timedelta
-from typing import List, Dict, Any, Optional
 import json
+from datetime import datetime, timedelta
+from typing import Any
 
-from rivaflow.db.database import get_connection, convert_query, execute_insert
+from rivaflow.db.database import convert_query, execute_insert, get_connection
 
 
 class FriendSuggestionsRepository:
@@ -14,9 +14,9 @@ class FriendSuggestionsRepository:
         user_id: int,
         suggested_user_id: int,
         score: float,
-        reasons: List[str],
+        reasons: list[str],
         mutual_friends_count: int = 0,
-        expires_at: Optional[datetime] = None
+        expires_at: datetime | None = None
     ) -> int:
         """Create a new friend suggestion."""
         if expires_at is None:
@@ -44,7 +44,7 @@ class FriendSuggestionsRepository:
             )
 
     @staticmethod
-    def get_active_suggestions(user_id: int, limit: int = 10) -> List[Dict[str, Any]]:
+    def get_active_suggestions(user_id: int, limit: int = 10) -> list[dict[str, Any]]:
         """Get active (non-dismissed, non-expired) suggestions for a user."""
         with get_connection() as conn:
             cursor = conn.cursor()
@@ -133,7 +133,7 @@ class FriendSuggestionsRepository:
             return count > 0
 
     @staticmethod
-    def _row_to_dict(row) -> Dict[str, Any]:
+    def _row_to_dict(row) -> dict[str, Any]:
         """Convert database row to dictionary."""
         if hasattr(row, 'keys'):
             result = dict(row)

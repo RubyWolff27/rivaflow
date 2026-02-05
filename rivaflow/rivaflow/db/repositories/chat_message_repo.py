@@ -1,15 +1,15 @@
 """Repository for Grapple chat messages data access."""
-from typing import List, Dict, Any, Optional
+from typing import Any
 from uuid import uuid4
 
-from rivaflow.db.database import get_connection, convert_query
+from rivaflow.db.database import convert_query, get_connection
 
 
 class ChatMessageRepository:
     """Repository for managing Grapple AI Coach chat messages."""
 
     @staticmethod
-    def _row_to_dict(row) -> Dict[str, Any]:
+    def _row_to_dict(row) -> dict[str, Any]:
         """Convert database row to dictionary (handles both SQLite tuples and PostgreSQL dicts)."""
         if hasattr(row, 'keys'):
             # PostgreSQL - row is already a dict
@@ -38,7 +38,7 @@ class ChatMessageRepository:
         input_tokens: int = 0,
         output_tokens: int = 0,
         cost_usd: float = 0.0,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         Create a new chat message.
 
@@ -75,7 +75,7 @@ class ChatMessageRepository:
             return {}
 
     @staticmethod
-    def get_by_session(session_id: str, limit: int = 100) -> List[Dict[str, Any]]:
+    def get_by_session(session_id: str, limit: int = 100) -> list[dict[str, Any]]:
         """
         Get messages for a session.
 
@@ -102,7 +102,7 @@ class ChatMessageRepository:
             return [ChatMessageRepository._row_to_dict(row) for row in rows]
 
     @staticmethod
-    def get_recent_context(session_id: str, max_messages: int = 10) -> List[Dict[str, str]]:
+    def get_recent_context(session_id: str, max_messages: int = 10) -> list[dict[str, str]]:
         """
         Get recent messages for context (formatted for LLM).
 

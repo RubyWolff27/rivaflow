@@ -4,7 +4,9 @@ Decorators for enforcing tier-based access control on API routes
 """
 
 from functools import wraps
-from fastapi import HTTPException, status, Request
+
+from fastapi import HTTPException, Request, status
+
 from rivaflow.core.services.tier_access_service import TierAccessService
 
 
@@ -22,7 +24,7 @@ def require_feature(feature: str):
         @wraps(func)
         async def wrapper(*args, **kwargs):
             # Extract request and user from kwargs
-            request = kwargs.get('request') or next((arg for arg in args if isinstance(arg, Request)), None)
+            kwargs.get('request') or next((arg for arg in args if isinstance(arg, Request)), None)
             current_user = kwargs.get('current_user')
 
             if not current_user:

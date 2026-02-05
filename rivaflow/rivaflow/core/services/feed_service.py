@@ -1,20 +1,18 @@
 """Feed service for activity feeds (my activities and friends activities)."""
 from datetime import date, timedelta
-from typing import List, Dict, Any, Optional
+from typing import Any
 
+from rivaflow.cache import CacheKeys, get_redis_client
+from rivaflow.core.pagination import paginate_with_cursor
+from rivaflow.core.services.privacy_service import PrivacyService
 from rivaflow.db.repositories import (
-    SessionRepository,
-    ReadinessRepository,
-    UserRelationshipRepository,
-    ActivityLikeRepository,
-    ActivityCommentRepository,
-    UserRepository,
     ActivityPhotoRepository,
+    ReadinessRepository,
+    SessionRepository,
+    UserRelationshipRepository,
+    UserRepository,
 )
 from rivaflow.db.repositories.checkin_repo import CheckinRepository
-from rivaflow.core.services.privacy_service import PrivacyService
-from rivaflow.core.pagination import paginate_with_cursor
-from rivaflow.cache import get_redis_client, CacheKeys
 
 
 class FeedService:
@@ -25,10 +23,10 @@ class FeedService:
         user_id: int,
         limit: int = 50,
         offset: int = 0,
-        cursor: Optional[str] = None,
+        cursor: str | None = None,
         days_back: int = 30,
         enrich_social: bool = False,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         Get user's own activity feed with cursor-based pagination.
 
@@ -158,9 +156,9 @@ class FeedService:
         user_id: int,
         limit: int = 50,
         offset: int = 0,
-        cursor: Optional[str] = None,
+        cursor: str | None = None,
         days_back: int = 30,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         Get activity feed from users that this user follows (friends feed) with cursor-based pagination.
         Only shows activities with visibility_level != 'private' and applies privacy redaction.
@@ -205,7 +203,7 @@ class FeedService:
         return paginate_with_cursor(feed_items, limit, offset, cursor)
 
     @staticmethod
-    def _enrich_with_social_data(user_id: int, feed_items: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    def _enrich_with_social_data(user_id: int, feed_items: list[dict[str, Any]]) -> list[dict[str, Any]]:
         """
         Enrich feed items with social data (like count, comment count, has_liked).
         Also enriches with cached user profiles for feed owners.
@@ -245,8 +243,8 @@ class FeedService:
 
     @staticmethod
     def _batch_load_friend_activities(
-        user_ids: List[int], start_date: date, end_date: date
-    ) -> List[Dict[str, Any]]:
+        user_ids: list[int], start_date: date, end_date: date
+    ) -> list[dict[str, Any]]:
         """
         Batch load activities from multiple users in optimized queries.
 
@@ -258,7 +256,7 @@ class FeedService:
         Returns:
             List of feed items from all users
         """
-        from rivaflow.db.database import get_connection, convert_query
+        from rivaflow.db.database import convert_query, get_connection
 
         if not user_ids:
             return []
@@ -389,7 +387,7 @@ class FeedService:
         return feed_items
 
     @staticmethod
-    def _batch_get_like_counts(feed_items: List[Dict[str, Any]]) -> Dict[tuple, int]:
+    def _batch_get_like_counts(feed_items: list[dict[str, Any]]) -> dict[tuple, int]:
         """
         Batch load like counts for all feed items in a single query.
 
@@ -399,7 +397,7 @@ class FeedService:
         Returns:
             Dictionary mapping (activity_type, activity_id) to like count
         """
-        from rivaflow.db.database import get_connection, convert_query
+        from rivaflow.db.database import convert_query, get_connection
 
         if not feed_items:
             return {}
@@ -433,7 +431,7 @@ class FeedService:
         return like_counts
 
     @staticmethod
-    def _batch_get_comment_counts(feed_items: List[Dict[str, Any]]) -> Dict[tuple, int]:
+    def _batch_get_comment_counts(feed_items: list[dict[str, Any]]) -> dict[tuple, int]:
         """
         Batch load comment counts for all feed items in a single query.
 
@@ -443,7 +441,7 @@ class FeedService:
         Returns:
             Dictionary mapping (activity_type, activity_id) to comment count
         """
-        from rivaflow.db.database import get_connection, convert_query
+        from rivaflow.db.database import convert_query, get_connection
 
         if not feed_items:
             return {}
@@ -477,7 +475,7 @@ class FeedService:
         return comment_counts
 
     @staticmethod
-    def _batch_get_user_likes(user_id: int, feed_items: List[Dict[str, Any]]) -> set:
+    def _batch_get_user_likes(user_id: int, feed_items: list[dict[str, Any]]) -> set:
         """
         Batch load user's likes for all feed items in a single query.
 
@@ -488,7 +486,7 @@ class FeedService:
         Returns:
             Set of (activity_type, activity_id) tuples that the user has liked
         """
-        from rivaflow.db.database import get_connection, convert_query
+        from rivaflow.db.database import convert_query, get_connection
 
         if not feed_items:
             return set()
@@ -525,8 +523,8 @@ class FeedService:
         user_id: int,
         limit: int = 50,
         offset: int = 0,
-        requesting_user_id: Optional[int] = None,
-    ) -> Dict[str, Any]:
+        requesting_user_id: int | None = None,
+    ) -> dict[str, Any]:
         """
         Get a user's public activities (for profile viewing).
 
@@ -642,7 +640,7 @@ class FeedService:
         }
 
     @staticmethod
-    def _batch_get_user_profiles(feed_items: List[Dict[str, Any]]) -> Dict[int, Dict[str, Any]]:
+    def _batch_get_user_profiles(feed_items: list[dict[str, Any]]) -> dict[int, dict[str, Any]]:
         """
         Batch load user profiles for feed item owners with Redis caching.
 
@@ -653,7 +651,7 @@ class FeedService:
             Dictionary mapping user_id to user profile info
         """
         cache = get_redis_client()
-        user_repo = UserRepository()
+        UserRepository()
 
         # Collect unique owner user IDs
         owner_user_ids = set()
@@ -684,7 +682,7 @@ class FeedService:
 
         # Batch load uncached users from database
         if uncached_user_ids:
-            from rivaflow.db.database import get_connection, convert_query
+            from rivaflow.db.database import convert_query, get_connection
 
             with get_connection() as conn:
                 cursor = conn.cursor()

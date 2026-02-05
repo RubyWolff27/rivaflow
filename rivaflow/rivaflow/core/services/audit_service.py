@@ -1,10 +1,9 @@
 """Audit logging service for admin actions."""
 import json
 import logging
-from typing import Optional, List, Dict, Any
-from datetime import datetime
+from typing import Any
 
-from rivaflow.db.database import get_connection, convert_query, execute_insert
+from rivaflow.db.database import convert_query, execute_insert, get_connection
 
 logger = logging.getLogger(__name__)
 
@@ -16,10 +15,10 @@ class AuditService:
     def log(
         actor_id: int,
         action: str,
-        target_type: Optional[str] = None,
-        target_id: Optional[int] = None,
-        details: Optional[Dict[str, Any]] = None,
-        ip_address: Optional[str] = None,
+        target_type: str | None = None,
+        target_id: int | None = None,
+        details: dict[str, Any] | None = None,
+        ip_address: str | None = None,
     ) -> int:
         """
         Log an admin action to the audit log.
@@ -75,11 +74,11 @@ class AuditService:
     def get_logs(
         limit: int = 100,
         offset: int = 0,
-        actor_id: Optional[int] = None,
-        action: Optional[str] = None,
-        target_type: Optional[str] = None,
-        target_id: Optional[int] = None,
-    ) -> List[Dict[str, Any]]:
+        actor_id: int | None = None,
+        action: str | None = None,
+        target_type: str | None = None,
+        target_id: int | None = None,
+    ) -> list[dict[str, Any]]:
         """
         Retrieve audit logs with optional filters.
 
@@ -161,10 +160,10 @@ class AuditService:
 
     @staticmethod
     def get_total_count(
-        actor_id: Optional[int] = None,
-        action: Optional[str] = None,
-        target_type: Optional[str] = None,
-        target_id: Optional[int] = None,
+        actor_id: int | None = None,
+        action: str | None = None,
+        target_type: str | None = None,
+        target_id: int | None = None,
     ) -> int:
         """
         Get total count of audit logs matching filters.
@@ -210,7 +209,7 @@ class AuditService:
             return 0
 
     @staticmethod
-    def get_user_activity_summary(user_id: int, days: int = 30) -> Dict[str, Any]:
+    def get_user_activity_summary(user_id: int, days: int = 30) -> dict[str, Any]:
         """
         Get a summary of a user's activity from audit logs.
 

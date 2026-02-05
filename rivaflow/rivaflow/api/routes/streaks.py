@@ -1,7 +1,8 @@
 """API routes for streak tracking."""
 from fastapi import APIRouter, Depends
-from rivaflow.core.services.streak_service import StreakService
+
 from rivaflow.core.dependencies import get_current_user
+from rivaflow.core.services.streak_service import StreakService
 
 router = APIRouter(prefix="/streaks", tags=["streaks"])
 

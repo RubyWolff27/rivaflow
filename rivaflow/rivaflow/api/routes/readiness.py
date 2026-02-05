@@ -1,11 +1,12 @@
 """Readiness check-in endpoints."""
-from fastapi import APIRouter, Depends
 from datetime import date
 
-from rivaflow.core.services.readiness_service import ReadinessService
-from rivaflow.core.models import ReadinessCreate
+from fastapi import APIRouter, Depends
+
 from rivaflow.core.dependencies import get_current_user
-from rivaflow.core.exceptions import ValidationError, NotFoundError
+from rivaflow.core.exceptions import NotFoundError, ValidationError
+from rivaflow.core.models import ReadinessCreate
+from rivaflow.core.services.readiness_service import ReadinessService
 
 router = APIRouter()
 service = ReadinessService()
@@ -14,7 +15,7 @@ service = ReadinessService()
 @router.post("/")
 async def log_readiness(readiness: ReadinessCreate, current_user: dict = Depends(get_current_user)):
     """Log daily readiness check-in."""
-    readiness_id = service.log_readiness(
+    service.log_readiness(
         user_id=current_user["id"],
         check_date=readiness.check_date,
         sleep=readiness.sleep,
@@ -62,7 +63,7 @@ async def log_weight_only(data: dict, current_user: dict = Depends(get_current_u
         if weight_kg < 30 or weight_kg > 300:
             raise ValidationError("Weight must be between 30 and 300 kg")
 
-        readiness_id = service.log_weight_only(user_id=current_user["id"], check_date=check_date, weight_kg=weight_kg)
+        service.log_weight_only(user_id=current_user["id"], check_date=check_date, weight_kg=weight_kg)
         entry = service.get_readiness(user_id=current_user["id"], check_date=check_date)
         return entry
     except KeyError:

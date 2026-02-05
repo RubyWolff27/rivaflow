@@ -4,11 +4,11 @@ Schema migrations use 'version' column (not 'migration_name').
 """
 import logging
 import sqlite3
+from contextlib import contextmanager
 from pathlib import Path
 from typing import Optional, Union
-from contextlib import contextmanager
 
-from rivaflow.config import APP_DIR, DB_PATH, DATABASE_URL, get_db_type
+from rivaflow.config import APP_DIR, DATABASE_URL, DB_PATH, get_db_type
 
 logger = logging.getLogger(__name__)
 

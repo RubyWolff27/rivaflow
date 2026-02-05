@@ -1,6 +1,6 @@
 """Transparent suggestion rules (not AI)."""
+from collections.abc import Callable
 from dataclasses import dataclass
-from typing import Callable
 
 
 @dataclass

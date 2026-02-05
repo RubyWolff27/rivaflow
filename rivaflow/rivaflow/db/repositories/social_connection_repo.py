@@ -1,8 +1,7 @@
 """Repository for friend connections (requests, friendships, blocking)."""
-from typing import List, Optional, Dict, Any
-from datetime import datetime
+from typing import Any
 
-from rivaflow.db.database import get_connection, convert_query, execute_insert
+from rivaflow.db.database import convert_query, execute_insert, get_connection
 
 
 class SocialConnectionRepository:
@@ -12,9 +11,9 @@ class SocialConnectionRepository:
     def send_friend_request(
         requester_id: int,
         recipient_id: int,
-        connection_source: Optional[str] = None,
-        request_message: Optional[str] = None,
-    ) -> Dict[str, Any]:
+        connection_source: str | None = None,
+        request_message: str | None = None,
+    ) -> dict[str, Any]:
         """
         Send a friend request.
 
@@ -87,7 +86,7 @@ class SocialConnectionRepository:
             return SocialConnectionRepository._row_to_dict(row)
 
     @staticmethod
-    def accept_friend_request(connection_id: int, recipient_id: int) -> Dict[str, Any]:
+    def accept_friend_request(connection_id: int, recipient_id: int) -> dict[str, Any]:
         """
         Accept a friend request (must be the recipient).
 
@@ -136,7 +135,7 @@ class SocialConnectionRepository:
             return SocialConnectionRepository._row_to_dict(row)
 
     @staticmethod
-    def decline_friend_request(connection_id: int, recipient_id: int) -> Dict[str, Any]:
+    def decline_friend_request(connection_id: int, recipient_id: int) -> dict[str, Any]:
         """
         Decline a friend request (must be the recipient).
 
@@ -234,7 +233,7 @@ class SocialConnectionRepository:
             return cursor.rowcount > 0
 
     @staticmethod
-    def get_friends(user_id: int, limit: int = 50, offset: int = 0) -> List[Dict[str, Any]]:
+    def get_friends(user_id: int, limit: int = 50, offset: int = 0) -> list[dict[str, Any]]:
         """
         Get list of accepted friends for a user.
 
@@ -274,7 +273,7 @@ class SocialConnectionRepository:
             return [dict(row) for row in rows]
 
     @staticmethod
-    def get_pending_requests_received(user_id: int) -> List[Dict[str, Any]]:
+    def get_pending_requests_received(user_id: int) -> list[dict[str, Any]]:
         """Get pending friend requests received by user."""
         with get_connection() as conn:
             cursor = conn.cursor()
@@ -299,7 +298,7 @@ class SocialConnectionRepository:
             return [dict(row) for row in rows]
 
     @staticmethod
-    def get_pending_requests_sent(user_id: int) -> List[Dict[str, Any]]:
+    def get_pending_requests_sent(user_id: int) -> list[dict[str, Any]]:
         """Get pending friend requests sent by user."""
         with get_connection() as conn:
             cursor = conn.cursor()
@@ -370,7 +369,7 @@ class SocialConnectionRepository:
             return cursor.fetchone() is not None
 
     @staticmethod
-    def block_user(blocker_id: int, blocked_id: int, reason: Optional[str] = None) -> Dict[str, Any]:
+    def block_user(blocker_id: int, blocked_id: int, reason: str | None = None) -> dict[str, Any]:
         """Block a user."""
         if blocker_id == blocked_id:
             raise ValueError("Cannot block yourself")
@@ -423,7 +422,7 @@ class SocialConnectionRepository:
             return cursor.rowcount > 0
 
     @staticmethod
-    def get_blocked_users(blocker_id: int) -> List[Dict[str, Any]]:
+    def get_blocked_users(blocker_id: int) -> list[dict[str, Any]]:
         """Get list of users blocked by this user."""
         with get_connection() as conn:
             cursor = conn.cursor()
@@ -462,7 +461,7 @@ class SocialConnectionRepository:
             return cursor.fetchone() is not None
 
     @staticmethod
-    def _row_to_dict(row) -> Dict[str, Any]:
+    def _row_to_dict(row) -> dict[str, Any]:
         """Convert database row to dictionary."""
         if not row:
             return {}

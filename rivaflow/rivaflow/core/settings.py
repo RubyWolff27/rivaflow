@@ -5,7 +5,6 @@ including environment variables, API keys, and runtime settings.
 """
 import os
 from pathlib import Path
-from typing import Optional
 
 
 class Settings:
@@ -73,7 +72,7 @@ class Settings:
     # ==============================================================================
 
     @property
-    def DATABASE_URL(self) -> Optional[str]:
+    def DATABASE_URL(self) -> str | None:
         """
         Database connection URL.
 
@@ -106,7 +105,7 @@ class Settings:
     # ==============================================================================
 
     @property
-    def SENDGRID_API_KEY(self) -> Optional[str]:
+    def SENDGRID_API_KEY(self) -> str | None:
         """SendGrid API key for email delivery."""
         return os.getenv("SENDGRID_API_KEY")
 
@@ -121,12 +120,12 @@ class Settings:
         return int(os.getenv("SMTP_PORT", "587"))
 
     @property
-    def SMTP_USER(self) -> Optional[str]:
+    def SMTP_USER(self) -> str | None:
         """SMTP username."""
         return os.getenv("SMTP_USER")
 
     @property
-    def SMTP_PASSWORD(self) -> Optional[str]:
+    def SMTP_PASSWORD(self) -> str | None:
         """SMTP password."""
         return os.getenv("SMTP_PASSWORD")
 
@@ -173,12 +172,12 @@ class Settings:
     # ==============================================================================
 
     @property
-    def GROQ_API_KEY(self) -> Optional[str]:
+    def GROQ_API_KEY(self) -> str | None:
         """Groq API key for LLM features."""
         return os.getenv("GROQ_API_KEY")
 
     @property
-    def TOGETHER_API_KEY(self) -> Optional[str]:
+    def TOGETHER_API_KEY(self) -> str | None:
         """Together AI API key."""
         return os.getenv("TOGETHER_API_KEY")
 
@@ -256,7 +255,7 @@ class Settings:
         return os.getenv("LOG_LEVEL", "INFO" if self.IS_PRODUCTION else "DEBUG")
 
     @property
-    def LOG_FILE(self) -> Optional[Path]:
+    def LOG_FILE(self) -> Path | None:
         """Log file path (None for stdout only)."""
         log_file = os.getenv("LOG_FILE")
         return Path(log_file) if log_file else None
@@ -284,7 +283,7 @@ class Settings:
     # UTILITY METHODS
     # ==============================================================================
 
-    def get(self, key: str, default: Optional[str] = None) -> Optional[str]:
+    def get(self, key: str, default: str | None = None) -> str | None:
         """Get an environment variable with optional default."""
         return os.getenv(key, default)
 

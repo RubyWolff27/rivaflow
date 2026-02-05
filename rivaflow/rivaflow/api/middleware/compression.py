@@ -1,8 +1,9 @@
 """Response compression middleware."""
 import gzip
+
 from fastapi import Request, Response
-from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.datastructures import MutableHeaders
+from starlette.middleware.base import BaseHTTPMiddleware
 
 
 class GzipCompressionMiddleware(BaseHTTPMiddleware):

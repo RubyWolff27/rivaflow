@@ -3,11 +3,10 @@ import os
 import uuid
 from datetime import datetime
 from pathlib import Path
-from typing import Optional, Tuple
 
+from rivaflow.core.exceptions import NotFoundError, ValidationError
 from rivaflow.db.repositories import ProfileRepository
 from rivaflow.db.repositories.user_repo import UserRepository
-from rivaflow.core.exceptions import ValidationError, NotFoundError
 
 
 class ProfileService:
@@ -25,16 +24,17 @@ class ProfileService:
         self.upload_dir = Path(__file__).parent.parent.parent.parent / "uploads" / "avatars"
         self.upload_dir.mkdir(parents=True, exist_ok=True)
 
-    def get_profile(self, user_id: int) -> Optional[dict]:
+    def get_profile(self, user_id: int) -> dict | None:
         """Get the user profile with progress stats since last promotion."""
         profile = self.repo.get(user_id)
         if not profile:
             return None
 
         # Calculate sessions and hours since last belt promotion
+        from datetime import date
+
         from rivaflow.db.repositories.grading_repo import GradingRepository
         from rivaflow.db.repositories.session_repo import SessionRepository
-        from datetime import date
 
         grading_repo = GradingRepository()
         session_repo = SessionRepository()
@@ -77,28 +77,28 @@ class ProfileService:
     def update_profile(
         self,
         user_id: int,
-        first_name: Optional[str] = None,
-        last_name: Optional[str] = None,
-        date_of_birth: Optional[str] = None,
-        sex: Optional[str] = None,
-        city: Optional[str] = None,
-        state: Optional[str] = None,
-        default_gym: Optional[str] = None,
-        default_location: Optional[str] = None,
-        current_grade: Optional[str] = None,
-        current_professor: Optional[str] = None,
-        current_instructor_id: Optional[int] = None,
-        primary_training_type: Optional[str] = None,
-        height_cm: Optional[int] = None,
-        target_weight_kg: Optional[float] = None,
-        weekly_sessions_target: Optional[int] = None,
-        weekly_hours_target: Optional[float] = None,
-        weekly_rolls_target: Optional[int] = None,
-        weekly_bjj_sessions_target: Optional[int] = None,
-        weekly_sc_sessions_target: Optional[int] = None,
-        weekly_mobility_sessions_target: Optional[int] = None,
-        show_streak_on_dashboard: Optional[bool] = None,
-        show_weekly_goals: Optional[bool] = None,
+        first_name: str | None = None,
+        last_name: str | None = None,
+        date_of_birth: str | None = None,
+        sex: str | None = None,
+        city: str | None = None,
+        state: str | None = None,
+        default_gym: str | None = None,
+        default_location: str | None = None,
+        current_grade: str | None = None,
+        current_professor: str | None = None,
+        current_instructor_id: int | None = None,
+        primary_training_type: str | None = None,
+        height_cm: int | None = None,
+        target_weight_kg: float | None = None,
+        weekly_sessions_target: int | None = None,
+        weekly_hours_target: float | None = None,
+        weekly_rolls_target: int | None = None,
+        weekly_bjj_sessions_target: int | None = None,
+        weekly_sc_sessions_target: int | None = None,
+        weekly_mobility_sessions_target: int | None = None,
+        show_streak_on_dashboard: bool | None = None,
+        show_weekly_goals: bool | None = None,
     ) -> dict:
         """Update the user profile. Returns updated profile."""
         return self.repo.update(
@@ -127,12 +127,12 @@ class ProfileService:
             show_weekly_goals=show_weekly_goals,
         )
 
-    def get_default_gym(self, user_id: int) -> Optional[str]:
+    def get_default_gym(self, user_id: int) -> str | None:
         """Get the default gym from profile."""
         profile = self.get_profile(user_id)
         return profile.get("default_gym") if profile else None
 
-    def get_current_professor(self, user_id: int) -> Optional[str]:
+    def get_current_professor(self, user_id: int) -> str | None:
         """Get the current professor from profile."""
         profile = self.get_profile(user_id)
         return profile.get("current_professor") if profile else None

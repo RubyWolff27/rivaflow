@@ -1,19 +1,18 @@
 """Service layer for authentication operations."""
-from typing import Any, Dict, Optional
+from typing import Any
 
 from rivaflow.core.auth import (
-    hash_password,
-    verify_password,
     create_access_token,
     generate_refresh_token,
     get_refresh_token_expiry,
-    decode_access_token,
+    hash_password,
+    verify_password,
 )
 from rivaflow.core.email_validation import validate_email_address
-from rivaflow.core.exceptions import ValidationError, AuthenticationError
-from rivaflow.db.repositories.user_repo import UserRepository
-from rivaflow.db.repositories.refresh_token_repo import RefreshTokenRepository
+from rivaflow.core.exceptions import AuthenticationError, ValidationError
 from rivaflow.db.repositories.profile_repo import ProfileRepository
+from rivaflow.db.repositories.refresh_token_repo import RefreshTokenRepository
+from rivaflow.db.repositories.user_repo import UserRepository
 
 
 class AuthService:
@@ -30,7 +29,7 @@ class AuthService:
         password: str,
         first_name: str,
         last_name: str,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         Register a new user with email and password.
 
@@ -99,8 +98,9 @@ class AuthService:
 
         # Create default profile for user
         try:
-            from rivaflow.db.database import get_connection, convert_query
             import logging
+
+            from rivaflow.db.database import convert_query, get_connection
             logger = logging.getLogger(__name__)
 
             with get_connection() as conn:
@@ -117,7 +117,7 @@ class AuthService:
             logger.error(f"Failed to create profile for user {user['id']}: {e}")
             try:
                 # Attempt to delete the user to maintain consistency
-                from rivaflow.db.database import get_connection, convert_query
+                from rivaflow.db.database import convert_query, get_connection
                 with get_connection() as conn:
                     cursor = conn.cursor()
                     cursor.execute(convert_query("DELETE FROM users WHERE id = ?"), (user["id"],))
@@ -127,7 +127,7 @@ class AuthService:
 
         # Initialize streak records for the new user
         try:
-            from rivaflow.db.database import get_connection, convert_query
+            from rivaflow.db.database import convert_query, get_connection
 
             with get_connection() as conn:
                 cursor = conn.cursor()
@@ -148,7 +148,7 @@ class AuthService:
             logger.error(f"Failed to create streaks for user {user['id']}: {e}")
             try:
                 # Cleanup: delete user (CASCADE will delete profile)
-                from rivaflow.db.database import get_connection, convert_query
+                from rivaflow.db.database import convert_query, get_connection
                 with get_connection() as conn:
                     cursor = conn.cursor()
                     cursor.execute(convert_query("DELETE FROM users WHERE id = ?"), (user["id"],))
@@ -173,7 +173,7 @@ class AuthService:
             "user": self._sanitize_user(user),
         }
 
-    def login(self, email: str, password: str) -> Dict[str, Any]:
+    def login(self, email: str, password: str) -> dict[str, Any]:
         """
         Authenticate a user with email and password.
 
@@ -226,7 +226,7 @@ class AuthService:
             "user": self._sanitize_user(user),
         }
 
-    def refresh_access_token(self, refresh_token: str) -> Dict[str, Any]:
+    def refresh_access_token(self, refresh_token: str) -> dict[str, Any]:
         """
         Generate a new access token using a refresh token.
 
@@ -309,8 +309,9 @@ class AuthService:
             True (always, for security)
         """
         import logging
-        from rivaflow.db.repositories.password_reset_token_repo import PasswordResetTokenRepository
+
         from rivaflow.core.services.email_service import EmailService
+        from rivaflow.db.repositories.password_reset_token_repo import PasswordResetTokenRepository
 
         logger = logging.getLogger(__name__)
 
@@ -365,8 +366,9 @@ class AuthService:
             ValueError: If password validation fails
         """
         import logging
-        from rivaflow.db.repositories.password_reset_token_repo import PasswordResetTokenRepository
+
         from rivaflow.core.services.email_service import EmailService
+        from rivaflow.db.repositories.password_reset_token_repo import PasswordResetTokenRepository
 
         logger = logging.getLogger(__name__)
 
@@ -391,7 +393,7 @@ class AuthService:
 
         # Update user's password
         try:
-            from rivaflow.db.database import get_connection, convert_query
+            from rivaflow.db.database import convert_query, get_connection
 
             with get_connection() as conn:
                 cursor = conn.cursor()
@@ -428,7 +430,7 @@ class AuthService:
             raise
 
     @staticmethod
-    def _sanitize_user(user: Dict[str, Any]) -> Dict[str, Any]:
+    def _sanitize_user(user: dict[str, Any]) -> dict[str, Any]:
         """Remove sensitive fields from user dict."""
         sanitized = user.copy()
         sanitized.pop("hashed_password", None)

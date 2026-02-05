@@ -14,8 +14,6 @@ import json
 import os
 import sys
 from pathlib import Path
-from typing import Optional
-
 
 # Credentials file location
 CREDENTIALS_FILE = Path.home() / ".rivaflow" / "credentials.json"
@@ -40,7 +38,7 @@ def get_current_user_id() -> int:
                 user_id = credentials.get("user_id")
                 if user_id:
                     return int(user_id)
-        except (json.JSONDecodeError, IOError, KeyError):
+        except (OSError, json.JSONDecodeError, KeyError):
             # Credentials file corrupted or invalid - prompt for login
             print("⚠️  Warning: Credentials file is invalid or corrupted", file=sys.stderr)
             print("   Please run: rivaflow auth login", file=sys.stderr)
@@ -89,7 +87,7 @@ def is_authenticated() -> bool:
     return CREDENTIALS_FILE.exists()
 
 
-def get_user_info() -> Optional[dict]:
+def get_user_info() -> dict | None:
     """Get current user's information from credentials.
 
     Returns:
@@ -101,5 +99,5 @@ def get_user_info() -> Optional[dict]:
     try:
         with open(CREDENTIALS_FILE) as f:
             return json.load(f)
-    except (json.JSONDecodeError, IOError):
+    except (OSError, json.JSONDecodeError):
         return None

@@ -1,16 +1,15 @@
 """Repository for user profile data access."""
 import sqlite3
-from datetime import datetime, date
-from typing import Optional
+from datetime import date, datetime
 
-from rivaflow.db.database import get_connection, convert_query
+from rivaflow.db.database import convert_query, get_connection
 
 
 class ProfileRepository:
     """Data access layer for user profile (single row table)."""
 
     @staticmethod
-    def get(user_id: int) -> Optional[dict]:
+    def get(user_id: int) -> dict | None:
         """Get the user profile."""
         with get_connection() as conn:
             cursor = conn.cursor()
@@ -32,28 +31,28 @@ class ProfileRepository:
     @staticmethod
     def update(
         user_id: int,
-        first_name: Optional[str] = None,
-        last_name: Optional[str] = None,
-        date_of_birth: Optional[str] = None,
-        sex: Optional[str] = None,
-        city: Optional[str] = None,
-        state: Optional[str] = None,
-        default_gym: Optional[str] = None,
-        default_location: Optional[str] = None,
-        current_grade: Optional[str] = None,
-        current_professor: Optional[str] = None,
-        current_instructor_id: Optional[int] = None,
-        primary_training_type: Optional[str] = None,
-        height_cm: Optional[int] = None,
-        target_weight_kg: Optional[float] = None,
-        weekly_sessions_target: Optional[int] = None,
-        weekly_hours_target: Optional[float] = None,
-        weekly_rolls_target: Optional[int] = None,
-        weekly_bjj_sessions_target: Optional[int] = None,
-        weekly_sc_sessions_target: Optional[int] = None,
-        weekly_mobility_sessions_target: Optional[int] = None,
-        show_streak_on_dashboard: Optional[bool] = None,
-        show_weekly_goals: Optional[bool] = None,
+        first_name: str | None = None,
+        last_name: str | None = None,
+        date_of_birth: str | None = None,
+        sex: str | None = None,
+        city: str | None = None,
+        state: str | None = None,
+        default_gym: str | None = None,
+        default_location: str | None = None,
+        current_grade: str | None = None,
+        current_professor: str | None = None,
+        current_instructor_id: int | None = None,
+        primary_training_type: str | None = None,
+        height_cm: int | None = None,
+        target_weight_kg: float | None = None,
+        weekly_sessions_target: int | None = None,
+        weekly_hours_target: float | None = None,
+        weekly_rolls_target: int | None = None,
+        weekly_bjj_sessions_target: int | None = None,
+        weekly_sc_sessions_target: int | None = None,
+        weekly_mobility_sessions_target: int | None = None,
+        show_streak_on_dashboard: bool | None = None,
+        show_weekly_goals: bool | None = None,
     ) -> dict:
         """Update the user profile. Creates profile if it doesn't exist. Returns updated profile."""
         with get_connection() as conn:

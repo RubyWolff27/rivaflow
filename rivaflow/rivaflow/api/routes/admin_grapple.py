@@ -1,9 +1,10 @@
 """Admin endpoints for Grapple AI Coach monitoring and management."""
 import logging
-from fastapi import APIRouter, HTTPException, Depends, status
-from pydantic import BaseModel
-from typing import List, Optional, Dict, Any
 from datetime import datetime, timedelta
+from typing import Any
+
+from fastapi import APIRouter, Depends, HTTPException, status
+from pydantic import BaseModel
 
 from rivaflow.core.dependencies import get_current_user
 from rivaflow.core.middleware.feature_access import require_admin
@@ -20,8 +21,8 @@ class FeedbackRequest(BaseModel):
     """User feedback on a Grapple response."""
     message_id: str
     rating: str  # 'positive' or 'negative'
-    category: Optional[str] = None  # 'helpful', 'accurate', 'unclear', etc.
-    comment: Optional[str] = None
+    category: str | None = None  # 'helpful', 'accurate', 'unclear', etc.
+    comment: str | None = None
 
 
 class UsageStatsResponse(BaseModel):
@@ -32,8 +33,8 @@ class UsageStatsResponse(BaseModel):
     total_messages: int
     total_tokens: int
     total_cost_usd: float
-    by_provider: Dict[str, Any]
-    by_tier: Dict[str, Any]
+    by_provider: dict[str, Any]
+    by_tier: dict[str, Any]
 
 
 # ============================================================================
@@ -50,8 +51,9 @@ async def submit_feedback(
 
     Available to all authenticated users (beta/premium/admin).
     """
-    from rivaflow.db.database import get_connection, convert_query
     from uuid import uuid4
+
+    from rivaflow.db.database import convert_query, get_connection
 
     user_id = current_user["id"]
 
@@ -206,9 +208,10 @@ async def get_cost_projections(
 
     Admin only. Projects total costs based on current usage.
     """
-    from rivaflow.db.database import get_connection
-    from datetime import datetime
     import calendar
+    from datetime import datetime
+
+    from rivaflow.db.database import get_connection
 
     logger.info(f"Admin {current_user['id']} fetching cost projections")
 
@@ -384,7 +387,7 @@ async def get_user_stats(
 @require_admin
 async def get_feedback(
     limit: int = 100,
-    rating: Optional[str] = None,
+    rating: str | None = None,
     current_user: dict = Depends(get_current_user),
 ):
     """
@@ -479,7 +482,7 @@ async def get_grapple_health(
             """)
             tables = [row[0] for row in cursor.fetchall()]
             tables_ok = len(tables) == 4
-    except Exception as e:
+    except Exception:
         tables_ok = False
 
     return {

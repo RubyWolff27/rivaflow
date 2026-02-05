@@ -1,12 +1,13 @@
 """Report and analytics endpoints."""
-from fastapi import APIRouter, HTTPException, Depends
-from fastapi.responses import StreamingResponse
-from datetime import date
-import io
 import csv
+import io
+from datetime import date
 
-from rivaflow.core.services.report_service import ReportService
+from fastapi import APIRouter, Depends
+from fastapi.responses import StreamingResponse
+
 from rivaflow.core.dependencies import get_current_user
+from rivaflow.core.services.report_service import ReportService
 
 router = APIRouter()
 service = ReportService()

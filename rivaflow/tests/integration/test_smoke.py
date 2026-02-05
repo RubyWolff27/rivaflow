@@ -4,7 +4,6 @@ Smoke tests for critical system integrity.
 These tests verify that core services can be imported and instantiated.
 Run before deploying to ensure no import errors or critical failures.
 """
-import pytest
 import os
 
 # Set SECRET_KEY for testing (required by auth module)
@@ -14,33 +13,25 @@ os.environ.setdefault("SECRET_KEY", "test-secret-key-for-smoke-tests-only")
 def test_all_core_services_importable():
     """Verify all core services can be imported without errors."""
     # Session and training services
-    from rivaflow.core.services.session_service import SessionService
-    from rivaflow.core.services.readiness_service import ReadinessService
-    from rivaflow.core.services.rest_service import RestService
-
-    # Analytics and reporting
-    from rivaflow.core.services.report_service import ReportService
-    from rivaflow.core.services.analytics_service import AnalyticsService
-    from rivaflow.core.services.goals_service import GoalsService
-    from rivaflow.core.services.streak_service import StreakService
-    from rivaflow.core.services.milestone_service import MilestoneService
-
-    # Social features
-    from rivaflow.core.services.privacy_service import PrivacyService
-    from rivaflow.core.services.social_service import SocialService
-    from rivaflow.core.services.notification_service import NotificationService
-    from rivaflow.core.services.feed_service import FeedService
 
     # User management
     from rivaflow.core.services.auth_service import AuthService
-    from rivaflow.core.services.user_service import UserService
-    from rivaflow.core.services.profile_service import ProfileService
+    from rivaflow.core.services.feed_service import FeedService
 
     # Content and data
-    from rivaflow.core.services.glossary_service import GlossaryService
-    from rivaflow.core.services.technique_service import TechniqueService
-    from rivaflow.core.services.video_service import VideoService
-    from rivaflow.core.services.gym_service import GymService
+    from rivaflow.core.services.goals_service import GoalsService
+    from rivaflow.core.services.milestone_service import MilestoneService
+    from rivaflow.core.services.notification_service import NotificationService
+
+    # Social features
+    from rivaflow.core.services.privacy_service import PrivacyService
+    from rivaflow.core.services.readiness_service import ReadinessService
+
+    # Analytics and reporting
+    from rivaflow.core.services.report_service import ReportService
+    from rivaflow.core.services.session_service import SessionService
+    from rivaflow.core.services.social_service import SocialService
+    from rivaflow.core.services.streak_service import StreakService
 
     # Verify stateful services can be instantiated
     assert SessionService() is not None
@@ -72,13 +63,13 @@ def test_database_connection_available():
 
 def test_repositories_importable():
     """Verify all repositories can be imported."""
-    from rivaflow.db.repositories.session_repo import SessionRepository
-    from rivaflow.db.repositories.readiness_repo import ReadinessRepository
-    from rivaflow.db.repositories.notification_repo import NotificationRepository
+    from rivaflow.db.repositories.activity_comment_repo import ActivityCommentRepository
+    from rivaflow.db.repositories.activity_like_repo import ActivityLikeRepository
     from rivaflow.db.repositories.friend_repo import FriendRepository
     from rivaflow.db.repositories.glossary_repo import GlossaryRepository
-    from rivaflow.db.repositories.activity_like_repo import ActivityLikeRepository
-    from rivaflow.db.repositories.activity_comment_repo import ActivityCommentRepository
+    from rivaflow.db.repositories.notification_repo import NotificationRepository
+    from rivaflow.db.repositories.readiness_repo import ReadinessRepository
+    from rivaflow.db.repositories.session_repo import SessionRepository
 
     # All repositories use static methods, just verify they exist
     assert SessionRepository is not None
@@ -92,14 +83,16 @@ def test_repositories_importable():
 
 def test_api_routes_importable():
     """Verify all API route modules can be imported."""
-    from rivaflow.api.routes import sessions
-    from rivaflow.api.routes import readiness
-    from rivaflow.api.routes import auth
-    from rivaflow.api.routes import profile
-    from rivaflow.api.routes import social
-    from rivaflow.api.routes import notifications
-    from rivaflow.api.routes import glossary
-    from rivaflow.api.routes import admin
+    from rivaflow.api.routes import (
+        admin,
+        auth,
+        glossary,
+        notifications,
+        profile,
+        readiness,
+        sessions,
+        social,
+    )
 
     # Verify routers exist
     assert hasattr(sessions, 'router')

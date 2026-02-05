@@ -1,12 +1,9 @@
 """Service layer for report generation and analytics."""
-from datetime import date, timedelta
-from typing import Optional
-from collections import defaultdict
 import csv
-from pathlib import Path
+from collections import defaultdict
+from datetime import date, timedelta
 
-from rivaflow.db.repositories import SessionRepository, ReadinessRepository
-from rivaflow.core.services.privacy_service import PrivacyService
+from rivaflow.db.repositories import ReadinessRepository, SessionRepository
 
 
 class ReportService:
@@ -16,7 +13,7 @@ class ReportService:
         self.session_repo = SessionRepository()
         self.readiness_repo = ReadinessRepository()
 
-    def get_week_dates(self, target_date: Optional[date] = None) -> tuple[date, date]:
+    def get_week_dates(self, target_date: date | None = None) -> tuple[date, date]:
         """Get Monday-Sunday date range for the week containing target_date."""
         if target_date is None:
             target_date = date.today()
@@ -28,7 +25,7 @@ class ReportService:
 
         return monday, sunday
 
-    def get_month_dates(self, target_date: Optional[date] = None) -> tuple[date, date]:
+    def get_month_dates(self, target_date: date | None = None) -> tuple[date, date]:
         """Get first and last day of the month containing target_date."""
         if target_date is None:
             target_date = date.today()

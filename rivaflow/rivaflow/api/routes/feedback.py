@@ -1,13 +1,13 @@
 """Feedback API endpoints."""
-from fastapi import APIRouter, Depends, Query, Path
-from pydantic import BaseModel, Field
-from typing import Optional
-
-from rivaflow.db.repositories.feedback_repo import FeedbackRepository
-from rivaflow.core.dependencies import get_current_user
-from rivaflow.core.exceptions import ValidationError, NotFoundError
-from rivaflow.core.services.email_service import EmailService
 import logging
+
+from fastapi import APIRouter, Depends, Path, Query
+from pydantic import BaseModel, Field
+
+from rivaflow.core.dependencies import get_current_user
+from rivaflow.core.exceptions import NotFoundError, ValidationError
+from rivaflow.core.services.email_service import EmailService
+from rivaflow.db.repositories.feedback_repo import FeedbackRepository
 
 logger = logging.getLogger(__name__)
 
@@ -18,18 +18,18 @@ class FeedbackCreate(BaseModel):
     """Feedback creation model."""
 
     category: str = Field(..., pattern="^(bug|feature|improvement|question|other)$")
-    subject: Optional[str] = Field(None, max_length=200)
+    subject: str | None = Field(None, max_length=200)
     message: str = Field(..., min_length=10, max_length=2000)
-    platform: Optional[str] = Field(None, pattern="^(web|cli|api)$")
-    version: Optional[str] = Field(None, max_length=20)
-    url: Optional[str] = Field(None, max_length=500)
+    platform: str | None = Field(None, pattern="^(web|cli|api)$")
+    version: str | None = Field(None, max_length=20)
+    url: str | None = Field(None, max_length=500)
 
 
 class FeedbackUpdateStatus(BaseModel):
     """Admin model for updating feedback status."""
 
     status: str = Field(..., pattern="^(new|reviewing|resolved|closed)$")
-    admin_notes: Optional[str] = Field(None, max_length=1000)
+    admin_notes: str | None = Field(None, max_length=1000)
 
 
 @router.post("/")

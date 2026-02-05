@@ -1,16 +1,16 @@
 """Readiness check-in commands."""
-import typer
 import json
 from datetime import date, datetime
-from typing import Optional
+
+import typer
 
 from rivaflow.cli import prompts
-from rivaflow.cli.utils.user_context import get_current_user_id
 from rivaflow.cli.utils.error_handler import handle_error, require_login
+from rivaflow.cli.utils.user_context import get_current_user_id
+from rivaflow.core.services.insight_service import InsightService
+from rivaflow.core.services.milestone_service import MilestoneService
 from rivaflow.core.services.readiness_service import ReadinessService
 from rivaflow.core.services.streak_service import StreakService
-from rivaflow.core.services.milestone_service import MilestoneService
-from rivaflow.core.services.insight_service import InsightService
 from rivaflow.db.repositories.checkin_repo import CheckinRepository
 
 app = typer.Typer(help="Daily readiness check-in")
@@ -18,7 +18,7 @@ app = typer.Typer(help="Daily readiness check-in")
 
 @app.command()
 def readiness(
-    check_date: Optional[str] = typer.Option(
+    check_date: str | None = typer.Option(
         None,
         "--date",
         "-d",
@@ -138,7 +138,7 @@ def _add_engagement_features_readiness(user_id: int, readiness_id: int):
         insight = insight_service.generate_insight(user_id)
         insight_json = json.dumps(insight)
 
-        checkin_id = checkin_repo.upsert_checkin(
+        checkin_repo.upsert_checkin(
             user_id=user_id,
             check_date=today,
             checkin_type="readiness_only" if not existing_checkin else existing_checkin["checkin_type"],
@@ -151,7 +151,7 @@ def _add_engagement_features_readiness(user_id: int, readiness_id: int):
         readiness_streak_info = streak_service.record_readiness_checkin(user_id, today)
 
         # 3. Check for new milestones
-        new_milestones = milestone_service.check_all_milestones(user_id)
+        milestone_service.check_all_milestones(user_id)
 
     # Display streak update
     prompts.console.print()
@@ -174,7 +174,7 @@ def _add_engagement_features_readiness(user_id: int, readiness_id: int):
     engine = SuggestionEngine()
     try:
         result = engine.get_suggestion()
-        prompts.console.print(f"  [bold]TODAY'S RECOMMENDATION:[/bold]")
+        prompts.console.print("  [bold]TODAY'S RECOMMENDATION:[/bold]")
         prompts.console.print(f"  [cyan]{result['suggestion']}[/cyan]")
         prompts.console.print()
     except Exception:

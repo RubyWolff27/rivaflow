@@ -1,12 +1,11 @@
 """Rest day logging."""
 import json
 from datetime import date, timedelta
-from typing import Optional
 
-from rivaflow.db.repositories.checkin_repo import CheckinRepository
-from rivaflow.core.services.streak_service import StreakService
-from rivaflow.core.services.milestone_service import MilestoneService
 from rivaflow.core.services.insight_service import InsightService
+from rivaflow.core.services.milestone_service import MilestoneService
+from rivaflow.core.services.streak_service import StreakService
+from rivaflow.db.repositories.checkin_repo import CheckinRepository
 
 
 class RestService:
@@ -22,9 +21,9 @@ class RestService:
         self,
         user_id: int,
         rest_type: str = "recovery",
-        note: Optional[str] = None,
-        tomorrow_intention: Optional[str] = None,
-        rest_date: Optional[date] = None
+        note: str | None = None,
+        tomorrow_intention: str | None = None,
+        rest_date: date | None = None
     ) -> dict:
         """
         Log a rest day.

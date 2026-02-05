@@ -1,8 +1,7 @@
 """Repository for activity comments data access."""
 import sqlite3
-from typing import List, Optional
 
-from rivaflow.db.database import get_connection, convert_query, execute_insert
+from rivaflow.db.database import convert_query, execute_insert, get_connection
 
 
 class ActivityCommentRepository:
@@ -14,7 +13,7 @@ class ActivityCommentRepository:
         activity_type: str,
         activity_id: int,
         comment_text: str,
-        parent_comment_id: Optional[int] = None,
+        parent_comment_id: int | None = None,
     ) -> dict:
         """
         Create a comment on an activity.
@@ -49,7 +48,7 @@ class ActivityCommentRepository:
             return ActivityCommentRepository._row_to_dict(row)
 
     @staticmethod
-    def get_by_activity(activity_type: str, activity_id: int) -> List[dict]:
+    def get_by_activity(activity_type: str, activity_id: int) -> list[dict]:
         """
         Get all comments for an activity with user information.
 
@@ -87,7 +86,7 @@ class ActivityCommentRepository:
             return [dict(row) for row in rows]
 
     @staticmethod
-    def get_by_id(comment_id: int) -> Optional[dict]:
+    def get_by_id(comment_id: int) -> dict | None:
         """
         Get a comment by ID.
 
@@ -123,7 +122,7 @@ class ActivityCommentRepository:
             return dict(row) if row else None
 
     @staticmethod
-    def update(comment_id: int, user_id: int, comment_text: str) -> Optional[dict]:
+    def update(comment_id: int, user_id: int, comment_text: str) -> dict | None:
         """
         Update a comment (user can only update their own comments).
 
@@ -225,7 +224,7 @@ class ActivityCommentRepository:
                 return row[0]
 
     @staticmethod
-    def get_by_user(user_id: int, limit: int = 50, offset: int = 0) -> List[dict]:
+    def get_by_user(user_id: int, limit: int = 50, offset: int = 0) -> list[dict]:
         """
         Get all comments by a user.
 

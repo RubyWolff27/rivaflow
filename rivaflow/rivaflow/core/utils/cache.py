@@ -1,8 +1,9 @@
 """Simple in-memory cache with TTL support."""
-import time
-from typing import Any, Optional, Callable
-from functools import wraps
 import logging
+import time
+from collections.abc import Callable
+from functools import wraps
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -27,7 +28,7 @@ class SimpleCache:
         self._hits = 0
         self._misses = 0
 
-    def get(self, key: str) -> Optional[Any]:
+    def get(self, key: str) -> Any | None:
         """
         Get value from cache if it exists and hasn't expired.
 

@@ -1,5 +1,5 @@
 """Privacy redaction and sharing controls service."""
-from typing import Optional, List, Dict, Any
+from typing import Any
 
 
 class PrivacyService:
@@ -46,11 +46,11 @@ class PrivacyService:
 
     @staticmethod
     def redact_session(
-        session: Dict[str, Any],
+        session: dict[str, Any],
         visibility: str = "private",
-        audience_scope: Optional[str] = None,
-        share_fields: Optional[List[str]] = None,
-    ) -> Optional[Dict[str, Any]]:
+        audience_scope: str | None = None,
+        share_fields: list[str] | None = None,
+    ) -> dict[str, Any] | None:
         """Redact session based on privacy settings.
 
         Args:
@@ -110,9 +110,9 @@ class PrivacyService:
 
     @staticmethod
     def redact_sessions_list(
-        sessions: List[Dict[str, Any]],
+        sessions: list[dict[str, Any]],
         default_visibility: str = "private",
-    ) -> List[Dict[str, Any]]:
+    ) -> list[dict[str, Any]]:
         """Redact a list of sessions based on their individual visibility settings.
 
         Args:
@@ -152,9 +152,9 @@ class PrivacyService:
 
     @staticmethod
     def enforce_audience_scope(
-        session: Dict[str, Any],
-        viewer_id: Optional[int],
-        viewer_relationships: Optional[Dict[str, bool]] = None,
+        session: dict[str, Any],
+        viewer_id: int | None,
+        viewer_relationships: dict[str, bool] | None = None,
     ) -> bool:
         """Check if viewer is in session's audience scope.
 
@@ -206,7 +206,7 @@ class PrivacyService:
         return False
 
     @staticmethod
-    def validate_share_fields(share_fields: List[str]) -> List[str]:
+    def validate_share_fields(share_fields: list[str]) -> list[str]:
         """Validate and filter share_fields list.
 
         Ensures athletes can't accidentally share sensitive fields
@@ -230,9 +230,9 @@ class PrivacyService:
 
     @staticmethod
     def redact_for_llm(
-        session: Dict[str, Any],
+        session: dict[str, Any],
         include_notes: bool = False,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Redact session for LLM tool consumption.
 
         Returns session data formatted for LLM function calling with:
@@ -297,8 +297,8 @@ class PrivacyService:
 
     @staticmethod
     def get_privacy_recommendation(
-        session: Dict[str, Any],
-    ) -> Dict[str, str]:
+        session: dict[str, Any],
+    ) -> dict[str, str]:
         """Get privacy recommendation for session based on content.
 
         Helps athletes choose appropriate visibility level.
@@ -336,18 +336,18 @@ class PrivacyService:
 
 # Convenience functions for common use cases
 
-def redact_for_export(sessions: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+def redact_for_export(sessions: list[dict[str, Any]]) -> list[dict[str, Any]]:
     """Redact sessions for CSV export (respects individual privacy settings)."""
     return PrivacyService.redact_sessions_list(sessions)
 
 
-def redact_for_feed(session: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+def redact_for_feed(session: dict[str, Any]) -> dict[str, Any] | None:
     """Redact session for activity feed display (future social feature)."""
     visibility = session.get("visibility_level", "private")
     return PrivacyService.redact_session(session, visibility=visibility)
 
 
-def is_shareable(session: Dict[str, Any]) -> bool:
+def is_shareable(session: dict[str, Any]) -> bool:
     """Check if session is shareable (not private)."""
     visibility = session.get("visibility_level", "private")
     return visibility != "private"

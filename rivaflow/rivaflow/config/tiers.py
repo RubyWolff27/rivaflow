@@ -3,16 +3,16 @@ Tier System Configuration
 Defines feature limits and permissions for each subscription tier
 """
 
-from typing import Dict, List, Optional
 from dataclasses import dataclass
+
 
 @dataclass
 class TierConfig:
     """Configuration for a subscription tier"""
     name: str
     display_name: str
-    features: List[str]
-    limits: Dict[str, int]
+    features: list[str]
+    limits: dict[str, int]
     description: str
 
 # Tier definitions
@@ -125,7 +125,7 @@ FEATURE_REQUIREMENTS = {
     'moderate_content': ['admin']
 }
 
-def get_tier_config(tier: str) -> Optional[TierConfig]:
+def get_tier_config(tier: str) -> TierConfig | None:
     """Get configuration for a specific tier"""
     return TIERS.get(tier)
 

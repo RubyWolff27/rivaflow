@@ -4,19 +4,20 @@ Integration tests for session logging workflow.
 Tests the complete session logging flow from creation through
 retrieval, updates, and analytics integration.
 """
-import pytest
 import os
 from datetime import date, timedelta
+
+import pytest
 from fastapi.testclient import TestClient
 
 # Set SECRET_KEY for testing
 os.environ.setdefault("SECRET_KEY", "test-secret-key-for-session-integration-tests-32chars")
 
 from rivaflow.api.main import app
-from rivaflow.db.database import get_connection, init_db
-from rivaflow.core.services.session_service import SessionService
 from rivaflow.core.services.analytics_service import AnalyticsService
+from rivaflow.core.services.session_service import SessionService
 from rivaflow.core.services.streak_service import StreakService
+from rivaflow.db.database import get_connection, init_db
 
 
 @pytest.fixture(scope="module")
@@ -359,7 +360,7 @@ class TestSessionAnalyticsIntegration:
         analytics = AnalyticsService()
 
         # Log a session
-        session = service.create_session(
+        service.create_session(
             user_id=user_id,
             session_date=date.today(),
             class_type="gi",

@@ -1,8 +1,7 @@
 """Repository for goal progress tracking."""
-from typing import Optional
-from datetime import date, datetime
+from datetime import date
 
-from rivaflow.db.database import get_connection, convert_query, execute_insert
+from rivaflow.db.database import convert_query, execute_insert, get_connection
 
 
 class GoalProgressRepository:
@@ -12,7 +11,7 @@ class GoalProgressRepository:
         """Convert database row to dictionary."""
         return dict(row)
 
-    def get_by_week(self, user_id: int, week_start_date: date) -> Optional[dict]:
+    def get_by_week(self, user_id: int, week_start_date: date) -> dict | None:
         """Get goal progress for a specific week."""
         with get_connection() as conn:
             cursor = conn.cursor()
@@ -29,7 +28,7 @@ class GoalProgressRepository:
             row = cursor.fetchone()
             return self._row_to_dict(row) if row else None
 
-    def get_current_week(self, user_id: int, week_start: date) -> Optional[dict]:
+    def get_current_week(self, user_id: int, week_start: date) -> dict | None:
         """Get current week's goal progress."""
         return self.get_by_week(user_id, week_start)
 

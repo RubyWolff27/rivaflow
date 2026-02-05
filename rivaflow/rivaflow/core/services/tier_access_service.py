@@ -3,9 +3,9 @@ Tier Access Service
 Handles tier permission checks and feature usage tracking
 """
 
-from typing import Dict, Optional, Tuple
 from datetime import date, datetime
-from rivaflow.config.tiers import TIERS, get_tier_config, has_feature, get_limit, is_premium_tier
+
+from rivaflow.config.tiers import TIERS, get_limit, get_tier_config, has_feature, is_premium_tier
 from rivaflow.db.database import get_db_connection
 
 
@@ -13,7 +13,7 @@ class TierAccessService:
     """Service for checking tier permissions and managing feature usage"""
 
     @staticmethod
-    def check_tier_access(user_tier: str, required_feature: str) -> Tuple[bool, Optional[str]]:
+    def check_tier_access(user_tier: str, required_feature: str) -> tuple[bool, str | None]:
         """
         Check if a user's tier has access to a feature
 
@@ -30,7 +30,7 @@ class TierAccessService:
         return False, f"This feature requires a Premium subscription. You are currently on {config.display_name}."
 
     @staticmethod
-    def check_usage_limit(user_id: int, user_tier: str, feature: str, increment: bool = False) -> Tuple[bool, Optional[str], int]:
+    def check_usage_limit(user_id: int, user_tier: str, feature: str, increment: bool = False) -> tuple[bool, str | None, int]:
         """
         Check if user has reached their tier limit for a feature
 
@@ -111,7 +111,7 @@ class TierAccessService:
             conn.close()
 
     @staticmethod
-    def get_usage_summary(user_id: int, user_tier: str) -> Dict:
+    def get_usage_summary(user_id: int, user_tier: str) -> dict:
         """
         Get usage summary for all limited features
 
@@ -148,7 +148,7 @@ class TierAccessService:
         return summary
 
     @staticmethod
-    def check_tier_expired(tier_expires_at: Optional[datetime]) -> bool:
+    def check_tier_expired(tier_expires_at: datetime | None) -> bool:
         """Check if user's premium tier has expired"""
         if not tier_expires_at:
             return False  # NULL means never expires

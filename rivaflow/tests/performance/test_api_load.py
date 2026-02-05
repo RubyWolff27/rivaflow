@@ -1,12 +1,12 @@
 """API load testing with concurrent requests."""
 import os
-import pytest
 import time
-import asyncio
-import aiohttp
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from typing import List, Dict
 from datetime import date, timedelta
+
+import pytest
+
+from rivaflow.db.database import convert_query, get_connection
 
 # Set test environment
 os.environ.setdefault("SECRET_KEY", "test-secret-key-for-load-tests-minimum-32-chars")
@@ -111,7 +111,7 @@ class TestAPILoadPerformance:
 
         # Cleanup
         try:
-            from rivaflow.db.database import get_connection, convert_query
+            from rivaflow.db.database import convert_query, get_connection
             with get_connection() as conn:
                 cursor = conn.cursor()
                 for session_id in session_ids:
@@ -176,7 +176,7 @@ class TestAPILoadPerformance:
 
         finally:
             # Cleanup
-            from rivaflow.db.database import get_connection, convert_query
+            from rivaflow.db.database import convert_query, get_connection
             with get_connection() as conn:
                 cursor = conn.cursor()
                 for session_id in session_ids:
@@ -212,7 +212,7 @@ class TestAPILoadPerformance:
                 """Execute a mixed operation."""
                 try:
                     if i % 10 < 6:  # 60% reads
-                        sessions = repo.list_by_user(user_id, limit=10)
+                        repo.list_by_user(user_id, limit=10)
                         return {"type": "read", "success": True}
                     elif i % 10 < 9:  # 30% writes
                         session_id = repo.create(
@@ -264,7 +264,7 @@ class TestAPILoadPerformance:
 
         finally:
             # Cleanup all sessions
-            from rivaflow.db.database import get_connection, convert_query
+            from rivaflow.db.database import convert_query, get_connection
             with get_connection() as conn:
                 cursor = conn.cursor()
                 for session_id in session_ids:
@@ -314,7 +314,7 @@ class TestAPIEndpointPerformance:
 
         finally:
             # Cleanup
-            from rivaflow.db.database import get_connection, convert_query
+            from rivaflow.db.database import convert_query, get_connection
             with get_connection() as conn:
                 cursor = conn.cursor()
                 for session_id in session_ids:
@@ -360,7 +360,7 @@ class TestAPIEndpointPerformance:
 
         finally:
             # Cleanup
-            from rivaflow.db.database import get_connection, convert_query
+            from rivaflow.db.database import convert_query, get_connection
             with get_connection() as conn:
                 cursor = conn.cursor()
                 for session_id in session_ids:

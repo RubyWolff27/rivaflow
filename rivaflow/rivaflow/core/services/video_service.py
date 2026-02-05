@@ -1,8 +1,6 @@
 """Service layer for video management."""
-from typing import Optional
-import json
 
-from rivaflow.db.repositories import VideoRepository, TechniqueRepository
+from rivaflow.db.repositories import TechniqueRepository, VideoRepository
 
 
 class VideoService:
@@ -16,9 +14,9 @@ class VideoService:
         self,
         user_id: int,
         url: str,
-        title: Optional[str] = None,
-        timestamps: Optional[list[dict]] = None,
-        technique_name: Optional[str] = None,
+        title: str | None = None,
+        timestamps: list[dict] | None = None,
+        technique_name: str | None = None,
     ) -> int:
         """
         Add a new video to the library.
@@ -33,7 +31,7 @@ class VideoService:
             user_id=user_id, url=url, title=title, timestamps=timestamps, technique_id=technique_id
         )
 
-    def get_video(self, user_id: int, video_id: int) -> Optional[dict]:
+    def get_video(self, user_id: int, video_id: int) -> dict | None:
         """Get a video by ID."""
         # Videos are a shared resource, not user-specific
         return self.video_repo.get_by_id(video_id)
@@ -75,7 +73,7 @@ class VideoService:
                 lines.append(f"  Technique: {technique['name']}")
 
         if video.get("timestamps"):
-            lines.append(f"  Timestamps:")
+            lines.append("  Timestamps:")
             for ts in video["timestamps"]:
                 lines.append(f"    → {ts['time']} - {ts['label']}")
 

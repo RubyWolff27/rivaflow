@@ -11,8 +11,9 @@ from pathlib import Path
 # Add parent directory to path
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
-from rivaflow.config import get_db_type
 import psycopg2
+
+from rivaflow.config import get_db_type
 
 logger = logging.getLogger(__name__)
 
@@ -81,7 +82,7 @@ def apply_migration(conn, migration_file):
     logger.info(f"Applying migration: {version}")
 
     # Read migration SQL
-    with open(migration_file, 'r') as f:
+    with open(migration_file) as f:
         sql = f.read()
 
     cursor = conn.cursor()

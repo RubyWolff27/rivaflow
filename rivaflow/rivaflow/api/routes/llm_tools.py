@@ -4,10 +4,11 @@ LLM tool contract endpoints - skeletons for future AI features.
 BETA STATUS: These endpoints return placeholder data and are not used in the UI.
 Planned for v0.2+ for AI-powered training insights and recommendations.
 """
-from fastapi import APIRouter, HTTPException, Depends
-from pydantic import BaseModel
 from datetime import date
-from typing import List, Dict, Any
+from typing import Any
+
+from fastapi import APIRouter, Depends
+from pydantic import BaseModel
 
 from rivaflow.core.dependencies import get_current_user
 
@@ -17,12 +18,12 @@ router = APIRouter(prefix="/llm-tools", tags=["llm-tools"])
 class WeekReportResponse(BaseModel):
     """Week report response for LLM consumption."""
     summary: str
-    sessions: List[Dict[str, Any]]
+    sessions: list[dict[str, Any]]
 
 
 class PartnersSummaryResponse(BaseModel):
     """Partners summary response for LLM consumption."""
-    partners: List[Dict[str, Any]]
+    partners: list[dict[str, Any]]
 
 
 @router.get("/report/week", response_model=WeekReportResponse)

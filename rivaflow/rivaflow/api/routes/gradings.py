@@ -1,15 +1,14 @@
 """Grading/belt progression endpoints."""
-from fastapi import APIRouter, Depends, UploadFile, File, HTTPException
-from pydantic import BaseModel
-from typing import Optional
-import os
-from pathlib import Path
 import uuid
 from datetime import datetime
+from pathlib import Path
 
-from rivaflow.core.services.grading_service import GradingService
+from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
+from pydantic import BaseModel
+
 from rivaflow.core.dependencies import get_current_user
-from rivaflow.core.exceptions import ValidationError, NotFoundError
+from rivaflow.core.exceptions import NotFoundError
+from rivaflow.core.services.grading_service import GradingService
 
 router = APIRouter()
 service = GradingService()
@@ -27,20 +26,20 @@ class GradingCreate(BaseModel):
     """Grading creation model."""
     grade: str
     date_graded: str
-    professor: Optional[str] = None
-    instructor_id: Optional[int] = None
-    notes: Optional[str] = None
-    photo_url: Optional[str] = None
+    professor: str | None = None
+    instructor_id: int | None = None
+    notes: str | None = None
+    photo_url: str | None = None
 
 
 class GradingUpdate(BaseModel):
     """Grading update model."""
-    grade: Optional[str] = None
-    date_graded: Optional[str] = None
-    professor: Optional[str] = None
-    instructor_id: Optional[int] = None
-    notes: Optional[str] = None
-    photo_url: Optional[str] = None
+    grade: str | None = None
+    date_graded: str | None = None
+    professor: str | None = None
+    instructor_id: int | None = None
+    notes: str | None = None
+    photo_url: str | None = None
 
 
 @router.get("/")

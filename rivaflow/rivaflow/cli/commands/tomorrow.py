@@ -1,15 +1,14 @@
 """Tomorrow's intention command."""
 from datetime import date, timedelta
+
 import typer
-from typing import Optional
 from rich.console import Console
 from rich.prompt import Prompt
-from rich.panel import Panel
 
 from rivaflow.cli.utils.user_context import get_current_user_id
-from rivaflow.db.repositories.checkin_repo import CheckinRepository
-from rivaflow.db.database import get_connection
 from rivaflow.config import TOMORROW_INTENTIONS
+from rivaflow.db.database import get_connection
+from rivaflow.db.repositories.checkin_repo import CheckinRepository
 
 app = typer.Typer(
     help="Set tomorrow's training intention",
@@ -18,7 +17,7 @@ app = typer.Typer(
 console = Console()
 
 
-def get_tip_based_on_recent_sessions(user_id: int) -> Optional[str]:
+def get_tip_based_on_recent_sessions(user_id: int) -> str | None:
     """Generate contextual tip based on recent training."""
     from rivaflow.db.database import convert_query
 
@@ -62,7 +61,7 @@ def get_tip_based_on_recent_sessions(user_id: int) -> Optional[str]:
 @app.callback(invoke_without_command=True)
 def tomorrow(
     ctx: typer.Context,
-    intention: Optional[str] = typer.Argument(None, help="Intention: train_gi, train_nogi, rest, unsure")
+    intention: str | None = typer.Argument(None, help="Intention: train_gi, train_nogi, rest, unsure")
 ):
     """
     Set or view tomorrow's training intention.
@@ -80,7 +79,7 @@ def tomorrow(
     user_id = get_current_user_id()
     checkin_repo = CheckinRepository()
     today = date.today()
-    tomorrow_date = today + timedelta(days=1)
+    today + timedelta(days=1)
 
     # Check if today's check-in exists
     today_checkin = checkin_repo.get_checkin(user_id, today)

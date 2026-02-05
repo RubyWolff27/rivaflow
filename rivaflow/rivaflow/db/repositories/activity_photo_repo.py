@@ -1,9 +1,6 @@
 """Repository for activity photos data access."""
-import sqlite3
-from typing import Optional, List
-from datetime import datetime
 
-from rivaflow.db.database import get_connection, convert_query, execute_insert
+from rivaflow.db.database import convert_query, execute_insert, get_connection
 
 
 class ActivityPhotoRepository:
@@ -17,9 +14,9 @@ class ActivityPhotoRepository:
         activity_date: str,
         file_path: str,
         file_name: str,
-        file_size: Optional[int] = None,
-        mime_type: Optional[str] = None,
-        caption: Optional[str] = None,
+        file_size: int | None = None,
+        mime_type: str | None = None,
+        caption: str | None = None,
         display_order: int = 1,
     ) -> int:
         """Create a new activity photo record. Returns photo ID."""
@@ -50,7 +47,7 @@ class ActivityPhotoRepository:
     @staticmethod
     def get_by_activity(
         user_id: int, activity_type: str, activity_id: int
-    ) -> List[dict]:
+    ) -> list[dict]:
         """Get all photos for a specific activity."""
         with get_connection() as conn:
             cursor = conn.cursor()
@@ -66,7 +63,7 @@ class ActivityPhotoRepository:
             return [dict(row) for row in rows]
 
     @staticmethod
-    def get_by_date(user_id: int, activity_date: str) -> List[dict]:
+    def get_by_date(user_id: int, activity_date: str) -> list[dict]:
         """Get all photos for a specific date."""
         with get_connection() as conn:
             cursor = conn.cursor()
@@ -82,7 +79,7 @@ class ActivityPhotoRepository:
             return [dict(row) for row in rows]
 
     @staticmethod
-    def get_by_id(user_id: int, photo_id: int) -> Optional[dict]:
+    def get_by_id(user_id: int, photo_id: int) -> dict | None:
         """Get a photo by ID."""
         with get_connection() as conn:
             cursor = conn.cursor()

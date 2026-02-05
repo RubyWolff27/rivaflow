@@ -1,8 +1,8 @@
 """Pydantic models for RivaFlow (web-ready for future API)."""
-from pydantic import BaseModel, Field, field_validator
 from datetime import date, datetime
-from typing import Optional
 from enum import Enum
+
+from pydantic import BaseModel, Field, field_validator
 
 
 class ClassType(str, Enum):
@@ -35,12 +35,12 @@ class SessionRollData(BaseModel):
     """Individual roll data for detailed tracking."""
 
     roll_number: int = 1
-    partner_id: Optional[int] = None
-    partner_name: Optional[str] = None
-    duration_mins: Optional[int] = None
-    submissions_for: Optional[list[int]] = None  # Movement IDs from glossary
-    submissions_against: Optional[list[int]] = None  # Movement IDs from glossary
-    notes: Optional[str] = None
+    partner_id: int | None = None
+    partner_name: str | None = None
+    duration_mins: int | None = None
+    submissions_for: list[int] | None = None  # Movement IDs from glossary
+    submissions_against: list[int] | None = None  # Movement IDs from glossary
+    notes: str | None = None
 
 
 class MediaUrl(BaseModel):
@@ -48,7 +48,7 @@ class MediaUrl(BaseModel):
 
     type: str  # "video" or "image"
     url: str
-    title: Optional[str] = None
+    title: str | None = None
 
 
 class SessionTechniqueCreate(BaseModel):
@@ -56,8 +56,8 @@ class SessionTechniqueCreate(BaseModel):
 
     movement_id: int
     technique_number: int = 1
-    notes: Optional[str] = None
-    media_urls: Optional[list[MediaUrl]] = None
+    notes: str | None = None
+    media_urls: list[MediaUrl] | None = None
 
 
 class SessionCreate(BaseModel):
@@ -66,7 +66,7 @@ class SessionCreate(BaseModel):
     session_date: date = Field(
         description="Date of the training session (cannot be in the future)"
     )
-    class_time: Optional[str] = Field(
+    class_time: str | None = Field(
         default=None,
         pattern=r"^([01]\d|2[0-3]):([0-5]\d)$",
         description="Start time in 24-hour format (HH:MM). Example: 18:30"
@@ -79,7 +79,7 @@ class SessionCreate(BaseModel):
         max_length=100,
         description="Name of the gym or academy. Cannot be empty."
     )
-    location: Optional[str] = Field(
+    location: str | None = Field(
         default=None,
         max_length=200,
         description="Optional location (city, address, or area)"
@@ -111,15 +111,15 @@ class SessionCreate(BaseModel):
         ge=0,
         description="Number of times you were submitted"
     )
-    partners: Optional[list[str]] = Field(
+    partners: list[str] | None = Field(
         default=None,
         description="List of training partner names"
     )
-    techniques: Optional[list[str]] = Field(
+    techniques: list[str] | None = Field(
         default=None,
         description="Techniques worked on during the session"
     )
-    notes: Optional[str] = Field(
+    notes: str | None = Field(
         default=None,
         description="Personal notes about the session"
     )
@@ -127,28 +127,28 @@ class SessionCreate(BaseModel):
         default=VisibilityLevel.PRIVATE,
         description="Who can see this session: private, attendance, summary, or full"
     )
-    instructor_id: Optional[int] = None
-    instructor_name: Optional[str] = None
-    session_rolls: Optional[list[SessionRollData]] = None
-    session_techniques: Optional[list[SessionTechniqueCreate]] = None
-    whoop_strain: Optional[float] = Field(
+    instructor_id: int | None = None
+    instructor_name: str | None = None
+    session_rolls: list[SessionRollData] | None = None
+    session_techniques: list[SessionTechniqueCreate] | None = None
+    whoop_strain: float | None = Field(
         default=None,
         ge=0,
         le=21,
         description="WHOOP strain score (0-21)"
     )
-    whoop_calories: Optional[int] = Field(
+    whoop_calories: int | None = Field(
         default=None,
         ge=0,
         description="Calories burned (from WHOOP or other tracker)"
     )
-    whoop_avg_hr: Optional[int] = Field(
+    whoop_avg_hr: int | None = Field(
         default=None,
         ge=0,
         le=250,
         description="Average heart rate during session"
     )
-    whoop_max_hr: Optional[int] = Field(
+    whoop_max_hr: int | None = Field(
         default=None,
         ge=0,
         le=250,
@@ -179,7 +179,6 @@ class SessionCreate(BaseModel):
         today = date_class.today()
 
         if v > today:
-            from pydantic import ValidationError as PydanticValidationError
             raise ValueError(
                 f"Session date cannot be in the future. "
                 f"You provided {v.strftime('%Y-%m-%d')}, but today is {today.strftime('%Y-%m-%d')}. "
@@ -201,27 +200,27 @@ class SessionCreate(BaseModel):
 class SessionUpdate(BaseModel):
     """Input model for updating a session. All fields optional."""
 
-    session_date: Optional[date] = None
-    class_time: Optional[str] = Field(default=None, pattern=r"^([01]\d|2[0-3]):([0-5]\d)$")
-    class_type: Optional[ClassType] = None
-    gym_name: Optional[str] = Field(default=None, min_length=1, max_length=100)
-    location: Optional[str] = Field(default=None, max_length=200)
-    duration_mins: Optional[int] = Field(default=None, ge=1, le=480)
-    intensity: Optional[int] = Field(default=None, ge=1, le=5)
-    rolls: Optional[int] = Field(default=None, ge=0)
-    submissions_for: Optional[int] = Field(default=None, ge=0)
-    submissions_against: Optional[int] = Field(default=None, ge=0)
-    partners: Optional[list[str]] = None
-    techniques: Optional[list[str]] = None
-    notes: Optional[str] = None
-    visibility_level: Optional[VisibilityLevel] = None
-    instructor_id: Optional[int] = None
-    instructor_name: Optional[str] = None
-    session_techniques: Optional[list[SessionTechniqueCreate]] = None
-    whoop_strain: Optional[float] = Field(default=None, ge=0, le=21)
-    whoop_calories: Optional[int] = Field(default=None, ge=0)
-    whoop_avg_hr: Optional[int] = Field(default=None, ge=0, le=250)
-    whoop_max_hr: Optional[int] = Field(default=None, ge=0, le=250)
+    session_date: date | None = None
+    class_time: str | None = Field(default=None, pattern=r"^([01]\d|2[0-3]):([0-5]\d)$")
+    class_type: ClassType | None = None
+    gym_name: str | None = Field(default=None, min_length=1, max_length=100)
+    location: str | None = Field(default=None, max_length=200)
+    duration_mins: int | None = Field(default=None, ge=1, le=480)
+    intensity: int | None = Field(default=None, ge=1, le=5)
+    rolls: int | None = Field(default=None, ge=0)
+    submissions_for: int | None = Field(default=None, ge=0)
+    submissions_against: int | None = Field(default=None, ge=0)
+    partners: list[str] | None = None
+    techniques: list[str] | None = None
+    notes: str | None = None
+    visibility_level: VisibilityLevel | None = None
+    instructor_id: int | None = None
+    instructor_name: str | None = None
+    session_techniques: list[SessionTechniqueCreate] | None = None
+    whoop_strain: float | None = Field(default=None, ge=0, le=21)
+    whoop_calories: int | None = Field(default=None, ge=0)
+    whoop_avg_hr: int | None = Field(default=None, ge=0, le=250)
+    whoop_max_hr: int | None = Field(default=None, ge=0, le=250)
 
     @field_validator('class_time', 'gym_name', 'location', 'notes', 'instructor_name', mode='before')
     @classmethod
@@ -256,8 +255,8 @@ class ReadinessCreate(BaseModel):
     stress: int = Field(ge=1, le=5)
     soreness: int = Field(ge=1, le=5)
     energy: int = Field(ge=1, le=5)
-    hotspot_note: Optional[str] = None
-    weight_kg: Optional[float] = Field(default=None, ge=30, le=300)
+    hotspot_note: str | None = None
+    weight_kg: float | None = Field(default=None, ge=30, le=300)
 
     @property
     def composite_score(self) -> int:
@@ -277,14 +276,14 @@ class TechniqueCreate(BaseModel):
     """Input model for creating a technique."""
 
     name: str = Field(min_length=1, max_length=100)
-    category: Optional[str] = None
+    category: str | None = None
 
 
 class Technique(TechniqueCreate):
     """Full technique model with database fields."""
 
     id: int
-    last_trained_date: Optional[date] = None
+    last_trained_date: date | None = None
     created_at: datetime
 
 
@@ -299,9 +298,9 @@ class VideoCreate(BaseModel):
     """Input model for creating a video."""
 
     url: str
-    title: Optional[str] = None
-    timestamps: Optional[list[VideoTimestamp]] = None
-    technique_id: Optional[int] = None
+    title: str | None = None
+    timestamps: list[VideoTimestamp] | None = None
+    technique_id: int | None = None
 
 
 class Video(VideoCreate):

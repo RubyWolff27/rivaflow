@@ -1,9 +1,8 @@
 """Input validation utilities for security."""
 from urllib.parse import urlparse
-from typing import Optional
 
 
-def validate_url(url: str, allowed_schemes: Optional[list] = None) -> bool:
+def validate_url(url: str, allowed_schemes: list | None = None) -> bool:
     """
     Validate URL for security.
 

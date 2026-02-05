@@ -1,11 +1,10 @@
 """Milestone detection and celebration."""
 import random
-from typing import Optional
 
+from rivaflow.config import MILESTONE_QUOTES
 from rivaflow.db.database import get_connection
 from rivaflow.db.repositories.milestone_repo import MilestoneRepository
 from rivaflow.db.repositories.streak_repo import StreakRepository
-from rivaflow.config import MILESTONE_QUOTES
 
 
 class MilestoneService:
@@ -162,7 +161,7 @@ class MilestoneService:
         """Public method to get current totals."""
         return self._get_current_totals(user_id)
 
-    def get_closest_milestone(self, user_id: int) -> Optional[dict]:
+    def get_closest_milestone(self, user_id: int) -> dict | None:
         """Get the closest upcoming milestone across all types."""
         progress_list = self.get_progress_to_next(user_id)
 

@@ -1,16 +1,15 @@
 """Report and analytics commands."""
-import typer
-from datetime import date, datetime
-from typing import Optional
+from datetime import datetime
 from pathlib import Path
 
-from rich.console import Console
-from rich.table import Table
-from rich.panel import Panel
+import typer
 from rich import box
+from rich.console import Console
+from rich.panel import Panel
+from rich.table import Table
 
-from rivaflow.core.services.report_service import ReportService
 from rivaflow.cli import prompts
+from rivaflow.core.services.report_service import ReportService
 
 app = typer.Typer(help="Training reports and analytics")
 console = Console()
@@ -19,7 +18,7 @@ console = Console()
 @app.command()
 def week(
     csv: bool = typer.Option(False, "--csv", help="Export to CSV"),
-    output: Optional[str] = typer.Option(None, "--output", "-o", help="CSV output file"),
+    output: str | None = typer.Option(None, "--output", "-o", help="CSV output file"),
 ):
     """
     Show current week training report (Monday-Sunday).
@@ -56,7 +55,7 @@ def week(
 @app.command()
 def month(
     csv: bool = typer.Option(False, "--csv", help="Export to CSV"),
-    output: Optional[str] = typer.Option(None, "--output", "-o", help="CSV output file"),
+    output: str | None = typer.Option(None, "--output", "-o", help="CSV output file"),
 ):
     """
     Show current month training report.
@@ -93,7 +92,7 @@ def range(
     start: str = typer.Argument(..., help="Start date (YYYY-MM-DD)"),
     end: str = typer.Argument(..., help="End date (YYYY-MM-DD)"),
     csv: bool = typer.Option(False, "--csv", help="Export to CSV"),
-    output: Optional[str] = typer.Option(None, "--output", "-o", help="CSV output file"),
+    output: str | None = typer.Option(None, "--output", "-o", help="CSV output file"),
 ):
     """
     Show training report for custom date range.

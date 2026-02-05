@@ -1,18 +1,17 @@
 """Default dashboard command - rivaflow with no arguments."""
 from datetime import date, timedelta
+
 import typer
 from rich.console import Console
 from rich.panel import Panel
-from rich.table import Table
-from rich.columns import Columns
 from rich.text import Text
 
 from rivaflow.cli.utils.user_context import get_current_user_id
-from rivaflow.db.repositories.checkin_repo import CheckinRepository
-from rivaflow.core.services.streak_service import StreakService
-from rivaflow.core.services.milestone_service import MilestoneService
-from rivaflow.db.database import get_connection
 from rivaflow.config import TOMORROW_INTENTIONS
+from rivaflow.core.services.milestone_service import MilestoneService
+from rivaflow.core.services.streak_service import StreakService
+from rivaflow.db.database import get_connection
+from rivaflow.db.repositories.checkin_repo import CheckinRepository
 
 app = typer.Typer(
     help="Dashboard and status overview",
@@ -221,7 +220,7 @@ def dashboard(ctx: typer.Context = None):
         bar_length = 20
         filled = int((closest["percentage"] / 100) * bar_length)
         bar = "█" * filled + "░" * (bar_length - filled)
-        console.print(f"  [bold]NEXT MILESTONE:[/bold]")
+        console.print("  [bold]NEXT MILESTONE:[/bold]")
         console.print(f"  {closest['next_label']}")
         console.print(f"  [yellow]{bar}[/yellow] {closest['percentage']}% ({closest['remaining']} to go)")
         console.print()

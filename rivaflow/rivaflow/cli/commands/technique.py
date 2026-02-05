@@ -1,12 +1,12 @@
 """Technique management commands."""
+
 import typer
-from typing import Optional
 from rich.console import Console
 from rich.table import Table
 
+from rivaflow.cli import prompts
 from rivaflow.cli.utils.user_context import get_current_user_id
 from rivaflow.core.services.technique_service import TechniqueService
-from rivaflow.cli import prompts
 
 app = typer.Typer(help="Technique tracking and management")
 console = Console()
@@ -15,7 +15,7 @@ console = Console()
 @app.command()
 def add(
     name: str = typer.Argument(..., help="Technique name"),
-    category: Optional[str] = typer.Option(
+    category: str | None = typer.Option(
         None,
         "--category",
         "-c",
@@ -114,7 +114,7 @@ def stale(
     console.print(table)
     console.print()
     console.print(
-        f"[dim]💡 Tip: Use 'rivaflow suggest' to get recommendations including stale techniques[/dim]"
+        "[dim]💡 Tip: Use 'rivaflow suggest' to get recommendations including stale techniques[/dim]"
     )
 
 

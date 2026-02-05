@@ -1,16 +1,14 @@
 """Repository for milestone tracking."""
-import sqlite3
-from typing import Optional
 
-from rivaflow.db.database import get_connection, convert_query, execute_insert
-from rivaflow.config import MILESTONES, MILESTONE_LABELS
+from rivaflow.config import MILESTONE_LABELS, MILESTONES
+from rivaflow.db.database import convert_query, execute_insert, get_connection
 
 
 class MilestoneRepository:
     """Data access layer for milestone achievements."""
 
     @staticmethod
-    def check_and_create_milestone(user_id: int, milestone_type: str, current_value: int) -> Optional[dict]:
+    def check_and_create_milestone(user_id: int, milestone_type: str, current_value: int) -> dict | None:
         """
         Check if current value crosses a milestone threshold. Create if new.
         Returns the newly created milestone dict, or None if no new milestone.
@@ -102,7 +100,7 @@ class MilestoneRepository:
             conn.commit()
 
     @staticmethod
-    def get_next_milestone(milestone_type: str, current_value: int) -> Optional[dict]:
+    def get_next_milestone(milestone_type: str, current_value: int) -> dict | None:
         """Get the next milestone target for a type."""
         thresholds = MILESTONES.get(milestone_type, [])
 
@@ -139,7 +137,7 @@ class MilestoneRepository:
             return [dict(row) for row in rows]
 
     @staticmethod
-    def get_highest_achieved(user_id: int, milestone_type: str) -> Optional[int]:
+    def get_highest_achieved(user_id: int, milestone_type: str) -> int | None:
         """Get the highest achieved value for a milestone type."""
         with get_connection() as conn:
             cursor = conn.cursor()

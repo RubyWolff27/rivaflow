@@ -3,10 +3,11 @@
 Provides consistent error responses and logging across all API routes.
 """
 import logging
-from typing import Dict, Any, Optional
+from typing import Any
+
 from fastapi import Request, status
-from fastapi.responses import JSONResponse
 from fastapi.exceptions import RequestValidationError
+from fastapi.responses import JSONResponse
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
 logger = logging.getLogger(__name__)
@@ -16,9 +17,9 @@ def format_error_response(
     error_code: str,
     message: str,
     status_code: int,
-    details: Optional[Dict[str, Any]] = None,
-    request_id: Optional[str] = None
-) -> Dict[str, Any]:
+    details: dict[str, Any] | None = None,
+    request_id: str | None = None
+) -> dict[str, Any]:
     """Format error response in consistent structure.
 
     Args:

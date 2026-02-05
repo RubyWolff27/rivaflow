@@ -4,18 +4,17 @@ Integration tests for PostgreSQL compatibility.
 Tests that the database abstraction layer works correctly with both
 SQLite (development) and PostgreSQL (production).
 """
-import pytest
 import os
 from datetime import date, timedelta
+
+import pytest
 
 # Set SECRET_KEY for testing
 os.environ.setdefault("SECRET_KEY", "test-secret-key-for-postgresql-tests-minimum-32chars")
 
-from rivaflow.db.database import get_connection, init_db, convert_query
-from rivaflow.db.repositories.session_repo import SessionRepository
-from rivaflow.db.repositories.readiness_repo import ReadinessRepository
+from rivaflow.db.database import convert_query, get_connection, init_db
 from rivaflow.db.repositories.checkin_repo import CheckinRepository
-from rivaflow.core.services.session_service import SessionService
+from rivaflow.db.repositories.session_repo import SessionRepository
 
 
 @pytest.fixture(scope="module")
@@ -366,7 +365,7 @@ class TestTransactionHandling:
             pass  # Expected
 
         # Verify rollback - count should not increase
-        sessions = SessionRepository.get_recent(test_user, limit=100)
+        SessionRepository.get_recent(test_user, limit=100)
         # We can't easily verify the exact count, but at least it shouldn't crash
 
 

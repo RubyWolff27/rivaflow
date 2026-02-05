@@ -2,9 +2,8 @@
 import json
 import sqlite3
 from datetime import date, datetime
-from typing import Optional, List
 
-from rivaflow.db.database import get_connection, convert_query, execute_insert
+from rivaflow.db.database import convert_query, execute_insert, get_connection
 from rivaflow.db.repositories.session_technique_repo import SessionTechniqueRepository
 
 
@@ -17,23 +16,23 @@ class SessionRepository:
         session_date: date,
         class_type: str,
         gym_name: str,
-        location: Optional[str] = None,
-        class_time: Optional[str] = None,
+        location: str | None = None,
+        class_time: str | None = None,
         duration_mins: int = 60,
         intensity: int = 4,
         rolls: int = 0,
         submissions_for: int = 0,
         submissions_against: int = 0,
-        partners: Optional[list[str]] = None,
-        techniques: Optional[list[str]] = None,
-        notes: Optional[str] = None,
+        partners: list[str] | None = None,
+        techniques: list[str] | None = None,
+        notes: str | None = None,
         visibility_level: str = "private",
-        instructor_id: Optional[int] = None,
-        instructor_name: Optional[str] = None,
-        whoop_strain: Optional[float] = None,
-        whoop_calories: Optional[int] = None,
-        whoop_avg_hr: Optional[int] = None,
-        whoop_max_hr: Optional[int] = None,
+        instructor_id: int | None = None,
+        instructor_name: str | None = None,
+        whoop_strain: float | None = None,
+        whoop_calories: int | None = None,
+        whoop_avg_hr: int | None = None,
+        whoop_max_hr: int | None = None,
     ) -> int:
         """Create a new session and return its ID."""
         with get_connection() as conn:
@@ -76,7 +75,7 @@ class SessionRepository:
             )
 
     @staticmethod
-    def get_by_id(user_id: int, session_id: int) -> Optional[dict]:
+    def get_by_id(user_id: int, session_id: int) -> dict | None:
         """Get a session by ID with detailed techniques."""
         with get_connection() as conn:
             cursor = conn.cursor()
@@ -113,7 +112,7 @@ class SessionRepository:
             return session
 
     @staticmethod
-    def get_by_id_any_user(session_id: int) -> Optional[dict]:
+    def get_by_id_any_user(session_id: int) -> dict | None:
         """Get a session by ID without user scope (for validation/privacy checks)."""
         with get_connection() as conn:
             cursor = conn.cursor()
@@ -128,7 +127,7 @@ class SessionRepository:
         user_id: int,
         session_id: int,
         **kwargs
-    ) -> Optional[dict]:
+    ) -> dict | None:
         """
         Update a session by ID with flexible field updates.
 
@@ -200,7 +199,7 @@ class SessionRepository:
             return SessionRepository.get_by_id(user_id, session_id)
 
     @staticmethod
-    def get_by_date_range(user_id: int, start_date: date, end_date: date, types: Optional[list[str]] = None) -> list[dict]:
+    def get_by_date_range(user_id: int, start_date: date, end_date: date, types: list[str] | None = None) -> list[dict]:
         """Get all sessions within a date range (inclusive), optionally filtered by class types."""
         with get_connection() as conn:
             cursor = conn.cursor()
@@ -370,7 +369,6 @@ class SessionRepository:
     def delete(user_id: int, session_id: int) -> bool:
         """Delete a session by ID. Returns True if deleted, False if not found."""
         from rivaflow.db.repositories.session_roll_repo import SessionRollRepository
-        from rivaflow.db.repositories.session_technique_repo import SessionTechniqueRepository
 
         with get_connection() as conn:
             cursor = conn.cursor()

@@ -1,11 +1,11 @@
 """Rate limiting for Grapple AI Coach."""
 import logging
 from datetime import datetime, timedelta
-from typing import Dict, Any, Optional
+from typing import Any
 from uuid import uuid4
 
-from rivaflow.db.database import get_connection, convert_query
 from rivaflow.core.middleware.feature_access import FeatureAccess
+from rivaflow.db.database import convert_query, get_connection
 
 logger = logging.getLogger(__name__)
 
@@ -28,7 +28,7 @@ class GrappleRateLimiter:
         """Initialize rate limiter."""
         pass
 
-    def check_rate_limit(self, user_id: int, user_tier: str) -> Dict[str, Any]:
+    def check_rate_limit(self, user_id: int, user_tier: str) -> dict[str, Any]:
         """
         Check if user can send a message based on rate limits.
 
@@ -181,7 +181,7 @@ class GrappleRateLimiter:
         now = datetime.utcnow()
         return now.replace(minute=0, second=0, microsecond=0) + timedelta(hours=1)
 
-    def get_user_usage_stats(self, user_id: int, days: int = 7) -> Dict[str, Any]:
+    def get_user_usage_stats(self, user_id: int, days: int = 7) -> dict[str, Any]:
         """
         Get usage statistics for a user over the past N days.
 

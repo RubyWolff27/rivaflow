@@ -4,17 +4,18 @@ Integration tests for authentication flow.
 Tests the complete authentication workflow including registration,
 login, token refresh, password reset, and access control.
 """
-import pytest
 import os
 from datetime import datetime, timedelta
+
+import pytest
 from fastapi.testclient import TestClient
 
 # Set SECRET_KEY for testing
 os.environ.setdefault("SECRET_KEY", "test-secret-key-for-integration-tests-minimum-32-chars-long")
 
 from rivaflow.api.main import app
-from rivaflow.db.database import get_connection, init_db
 from rivaflow.core.auth import create_access_token, decode_access_token
+from rivaflow.db.database import get_connection, init_db
 
 
 @pytest.fixture(scope="module")
@@ -303,7 +304,7 @@ class TestPasswordReset:
         email = f"test_reset_{datetime.now().timestamp()}@example.com"
         password = "SecurePassword123!"
 
-        response = test_client.post("/api/v1/auth/register", json={
+        test_client.post("/api/v1/auth/register", json={
             "email": email,
             "password": password,
             "first_name": "Test",

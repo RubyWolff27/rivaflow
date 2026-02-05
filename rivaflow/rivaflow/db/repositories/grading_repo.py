@@ -1,10 +1,9 @@
 """Repository for grading/belt progression data access."""
 import sqlite3
-from datetime import datetime, date
-from typing import List, Optional
+from datetime import date, datetime
 
-from rivaflow.db.database import get_connection, convert_query, execute_insert
 from rivaflow.core.constants import GRADING_SORT_OPTIONS
+from rivaflow.db.database import convert_query, execute_insert, get_connection
 
 
 class GradingRepository:
@@ -15,10 +14,10 @@ class GradingRepository:
         user_id: int,
         grade: str,
         date_graded: str,
-        professor: Optional[str] = None,
-        instructor_id: Optional[int] = None,
-        notes: Optional[str] = None,
-        photo_url: Optional[str] = None
+        professor: str | None = None,
+        instructor_id: int | None = None,
+        notes: str | None = None,
+        photo_url: str | None = None
     ) -> dict:
         """Create a new grading entry."""
         with get_connection() as conn:
@@ -38,7 +37,7 @@ class GradingRepository:
             return GradingRepository._row_to_dict(row)
 
     @staticmethod
-    def list_all(user_id: int, order_by: str = "date_graded DESC") -> List[dict]:
+    def list_all(user_id: int, order_by: str = "date_graded DESC") -> list[dict]:
         """Get all gradings, ordered by date (newest first by default)."""
         # Whitelist allowed ORDER BY values to prevent SQL injection
         if order_by not in GRADING_SORT_OPTIONS:
@@ -51,7 +50,7 @@ class GradingRepository:
             return [GradingRepository._row_to_dict(row) for row in rows]
 
     @staticmethod
-    def get_latest(user_id: int) -> Optional[dict]:
+    def get_latest(user_id: int) -> dict | None:
         """Get the most recent grading."""
         with get_connection() as conn:
             cursor = conn.cursor()
@@ -66,13 +65,13 @@ class GradingRepository:
     def update(
         user_id: int,
         grading_id: int,
-        grade: Optional[str] = None,
-        date_graded: Optional[str] = None,
-        professor: Optional[str] = None,
-        instructor_id: Optional[int] = None,
-        notes: Optional[str] = None,
-        photo_url: Optional[str] = None,
-    ) -> Optional[dict]:
+        grade: str | None = None,
+        date_graded: str | None = None,
+        professor: str | None = None,
+        instructor_id: int | None = None,
+        notes: str | None = None,
+        photo_url: str | None = None,
+    ) -> dict | None:
         """Update a grading by ID. Returns updated grading or None if not found."""
         with get_connection() as conn:
             cursor = conn.cursor()

@@ -1,5 +1,4 @@
 """Service layer for grading/belt progression operations."""
-from typing import List, Optional
 
 from rivaflow.db.repositories import GradingRepository, ProfileRepository
 
@@ -16,10 +15,10 @@ class GradingService:
         user_id: int,
         grade: str,
         date_graded: str,
-        professor: Optional[str] = None,
-        instructor_id: Optional[int] = None,
-        notes: Optional[str] = None,
-        photo_url: Optional[str] = None
+        professor: str | None = None,
+        instructor_id: int | None = None,
+        notes: str | None = None,
+        photo_url: str | None = None
     ) -> dict:
         """
         Create a new grading entry and update the profile's current_grade
@@ -44,11 +43,11 @@ class GradingService:
 
         return grading
 
-    def list_gradings(self, user_id: int) -> List[dict]:
+    def list_gradings(self, user_id: int) -> list[dict]:
         """Get all gradings, ordered by date (newest first)."""
         return self.repo.list_all(user_id, order_by="date_graded DESC, id DESC")
 
-    def get_latest_grading(self, user_id: int) -> Optional[dict]:
+    def get_latest_grading(self, user_id: int) -> dict | None:
         """Get the most recent grading."""
         return self.repo.get_latest(user_id)
 
@@ -56,13 +55,13 @@ class GradingService:
         self,
         user_id: int,
         grading_id: int,
-        grade: Optional[str] = None,
-        date_graded: Optional[str] = None,
-        professor: Optional[str] = None,
-        instructor_id: Optional[int] = None,
-        notes: Optional[str] = None,
-        photo_url: Optional[str] = None,
-    ) -> Optional[dict]:
+        grade: str | None = None,
+        date_graded: str | None = None,
+        professor: str | None = None,
+        instructor_id: int | None = None,
+        notes: str | None = None,
+        photo_url: str | None = None,
+    ) -> dict | None:
         """
         Update a grading and refresh the profile's current_grade
         to the most recent grading by date.

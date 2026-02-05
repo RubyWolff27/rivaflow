@@ -1,6 +1,7 @@
 """Repository for gym data access."""
-from typing import List, Dict, Any, Optional
-from rivaflow.db.database import get_connection, execute_insert, convert_query
+from typing import Any
+
+from rivaflow.db.database import convert_query, execute_insert, get_connection
 
 
 class GymRepository:
@@ -9,19 +10,19 @@ class GymRepository:
     @staticmethod
     def create(
         name: str,
-        city: Optional[str] = None,
-        state: Optional[str] = None,
+        city: str | None = None,
+        state: str | None = None,
         country: str = "Australia",
-        address: Optional[str] = None,
-        website: Optional[str] = None,
-        email: Optional[str] = None,
-        phone: Optional[str] = None,
-        head_coach: Optional[str] = None,
-        head_coach_belt: Optional[str] = None,
-        google_maps_url: Optional[str] = None,
+        address: str | None = None,
+        website: str | None = None,
+        email: str | None = None,
+        phone: str | None = None,
+        head_coach: str | None = None,
+        head_coach_belt: str | None = None,
+        google_maps_url: str | None = None,
         verified: bool = False,
-        added_by_user_id: Optional[int] = None,
-    ) -> Dict[str, Any]:
+        added_by_user_id: int | None = None,
+    ) -> dict[str, Any]:
         """Create a new gym."""
         with get_connection() as conn:
             cursor = conn.cursor()
@@ -46,7 +47,7 @@ class GymRepository:
                 return dict(zip(columns, result))
 
     @staticmethod
-    def get_by_id(gym_id: int) -> Optional[Dict[str, Any]]:
+    def get_by_id(gym_id: int) -> dict[str, Any] | None:
         """Get a gym by ID."""
         with get_connection() as conn:
             cursor = conn.cursor()
@@ -63,11 +64,11 @@ class GymRepository:
                 return dict(zip(columns, result))
 
     @staticmethod
-    def list_all(verified_only: bool = False) -> List[Dict[str, Any]]:
+    def list_all(verified_only: bool = False) -> list[dict[str, Any]]:
         """List all gyms."""
         with get_connection() as conn:
             cursor = conn.cursor()
-            
+
             if verified_only:
                 cursor.execute(convert_query(
                     "SELECT * FROM gyms WHERE verified = TRUE ORDER BY name"
@@ -76,9 +77,9 @@ class GymRepository:
                 cursor.execute(convert_query(
                     "SELECT * FROM gyms ORDER BY verified DESC, name"
                 ))
-            
+
             results = cursor.fetchall()
-            
+
             if not results:
                 return []
 
@@ -89,12 +90,12 @@ class GymRepository:
                 return [dict(zip(columns, row)) for row in results]
 
     @staticmethod
-    def search(query: str, verified_only: bool = False) -> List[Dict[str, Any]]:
+    def search(query: str, verified_only: bool = False) -> list[dict[str, Any]]:
         """Search gyms by name or location."""
         with get_connection() as conn:
             cursor = conn.cursor()
             search_term = f"%{query}%"
-            
+
             if verified_only:
                 cursor.execute(convert_query("""
                     SELECT * FROM gyms
@@ -105,14 +106,14 @@ class GymRepository:
                 """), (search_term, search_term, search_term))
             else:
                 cursor.execute(convert_query("""
-                    SELECT * FROM gyms 
+                    SELECT * FROM gyms
                     WHERE name LIKE ? OR city LIKE ? OR state LIKE ?
                     ORDER BY verified DESC, name
                     LIMIT 50
                 """), (search_term, search_term, search_term))
-            
+
             results = cursor.fetchall()
-            
+
             if not results:
                 return []
 
@@ -123,7 +124,7 @@ class GymRepository:
                 return [dict(zip(columns, row)) for row in results]
 
     @staticmethod
-    def update(gym_id: int, **kwargs) -> Optional[Dict[str, Any]]:
+    def update(gym_id: int, **kwargs) -> dict[str, Any] | None:
         """Update a gym."""
         allowed_fields = {'name', 'city', 'state', 'country', 'address', 'website', 'email', 'phone', 'head_coach', 'head_coach_belt', 'google_maps_url', 'verified'}
         update_fields = {k: v for k, v in kwargs.items() if k in allowed_fields}
@@ -133,14 +134,14 @@ class GymRepository:
 
         with get_connection() as conn:
             cursor = conn.cursor()
-            
+
             set_clause = ", ".join([f"{field} = ?" for field in update_fields.keys()])
             values = list(update_fields.values())
             values.append(gym_id)
 
             cursor.execute(
                 convert_query(f"""
-                UPDATE gyms 
+                UPDATE gyms
                 SET {set_clause}, updated_at = CURRENT_TIMESTAMP
                 WHERE id = ?
                 """),
@@ -160,7 +161,7 @@ class GymRepository:
             return cursor.rowcount > 0
 
     @staticmethod
-    def get_pending_gyms() -> List[Dict[str, Any]]:
+    def get_pending_gyms() -> list[dict[str, Any]]:
         """Get all unverified (user-added) gyms."""
         with get_connection() as conn:
             cursor = conn.cursor()
@@ -171,9 +172,9 @@ class GymRepository:
                 WHERE g.verified = FALSE
                 ORDER BY g.created_at DESC
             """))
-            
+
             results = cursor.fetchall()
-            
+
             if not results:
                 return []
 

@@ -1,8 +1,8 @@
 """Repository for app feedback data access."""
 from datetime import datetime
-from typing import List, Dict, Any, Optional
+from typing import Any
 
-from rivaflow.db.database import get_connection, convert_query, execute_insert
+from rivaflow.db.database import convert_query, execute_insert, get_connection
 
 
 class FeedbackRepository:
@@ -13,10 +13,10 @@ class FeedbackRepository:
         user_id: int,
         category: str,
         message: str,
-        subject: Optional[str] = None,
-        platform: Optional[str] = None,
-        version: Optional[str] = None,
-        url: Optional[str] = None,
+        subject: str | None = None,
+        platform: str | None = None,
+        version: str | None = None,
+        url: str | None = None,
     ) -> int:
         """Create a new feedback submission."""
         with get_connection() as conn:
@@ -44,7 +44,7 @@ class FeedbackRepository:
             )
 
     @staticmethod
-    def get_by_id(feedback_id: int) -> Optional[Dict[str, Any]]:
+    def get_by_id(feedback_id: int) -> dict[str, Any] | None:
         """Get a feedback submission by ID."""
         with get_connection() as conn:
             cursor = conn.cursor()
@@ -59,11 +59,11 @@ class FeedbackRepository:
 
     @staticmethod
     def list_all(
-        status: Optional[str] = None,
-        category: Optional[str] = None,
+        status: str | None = None,
+        category: str | None = None,
         limit: int = 100,
         offset: int = 0,
-    ) -> List[Dict[str, Any]]:
+    ) -> list[dict[str, Any]]:
         """List all feedback submissions with optional filtering."""
         with get_connection() as conn:
             cursor = conn.cursor()
@@ -87,7 +87,7 @@ class FeedbackRepository:
             return [FeedbackRepository._row_to_dict(row) for row in rows]
 
     @staticmethod
-    def list_by_user(user_id: int, limit: int = 50) -> List[Dict[str, Any]]:
+    def list_by_user(user_id: int, limit: int = 50) -> list[dict[str, Any]]:
         """Get all feedback submissions from a specific user."""
         with get_connection() as conn:
             cursor = conn.cursor()
@@ -107,7 +107,7 @@ class FeedbackRepository:
     def update_status(
         feedback_id: int,
         status: str,
-        admin_notes: Optional[str] = None,
+        admin_notes: str | None = None,
     ) -> bool:
         """Update the status of a feedback submission."""
         with get_connection() as conn:
@@ -135,7 +135,7 @@ class FeedbackRepository:
             return cursor.rowcount > 0
 
     @staticmethod
-    def get_stats() -> Dict[str, Any]:
+    def get_stats() -> dict[str, Any]:
         """Get feedback statistics."""
         with get_connection() as conn:
             cursor = conn.cursor()
@@ -182,7 +182,7 @@ class FeedbackRepository:
             }
 
     @staticmethod
-    def _row_to_dict(row) -> Dict[str, Any]:
+    def _row_to_dict(row) -> dict[str, Any]:
         """Convert database row to dictionary."""
         if hasattr(row, "keys"):
             return dict(row)

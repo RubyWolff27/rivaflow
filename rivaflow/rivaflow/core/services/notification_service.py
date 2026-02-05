@@ -1,5 +1,5 @@
 """Service layer for notifications."""
-from typing import List, Optional, Dict, Any
+from typing import Any
 
 from rivaflow.db.repositories.notification_repo import NotificationRepository
 
@@ -13,7 +13,7 @@ class NotificationService:
         liker_id: int,
         activity_type: str,
         activity_id: int,
-    ) -> Optional[Dict[str, Any]]:
+    ) -> dict[str, Any] | None:
         """
         Create a notification when someone likes an activity.
 
@@ -52,7 +52,7 @@ class NotificationService:
         activity_type: str,
         activity_id: int,
         comment_id: int,
-    ) -> Optional[Dict[str, Any]]:
+    ) -> dict[str, Any] | None:
         """
         Create a notification when someone comments on an activity.
 
@@ -89,7 +89,7 @@ class NotificationService:
         activity_type: str,
         activity_id: int,
         comment_id: int,
-    ) -> Optional[Dict[str, Any]]:
+    ) -> dict[str, Any] | None:
         """
         Create a notification when someone replies to a comment.
 
@@ -118,7 +118,7 @@ class NotificationService:
         )
 
     @staticmethod
-    def create_follow_notification(followed_user_id: int, follower_id: int) -> Optional[Dict[str, Any]]:
+    def create_follow_notification(followed_user_id: int, follower_id: int) -> dict[str, Any] | None:
         """
         Create a notification when someone follows a user.
 
@@ -143,7 +143,7 @@ class NotificationService:
         )
 
     @staticmethod
-    def get_notification_counts(user_id: int) -> Dict[str, int]:
+    def get_notification_counts(user_id: int) -> dict[str, int]:
         """
         Get notification counts for a user.
 
@@ -166,7 +166,7 @@ class NotificationService:
         limit: int = 50,
         offset: int = 0,
         unread_only: bool = False,
-    ) -> List[Dict[str, Any]]:
+    ) -> list[dict[str, Any]]:
         """Get notifications for a user with pagination."""
         return NotificationRepository.get_by_user(user_id, limit, offset, unread_only)
 

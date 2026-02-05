@@ -1,8 +1,8 @@
 """Repository for notifications data access."""
-from typing import List, Optional, Dict, Any
 from datetime import datetime
+from typing import Any
 
-from rivaflow.db.database import get_connection, convert_query
+from rivaflow.db.database import convert_query, get_connection
 
 
 class NotificationRepository:
@@ -13,11 +13,11 @@ class NotificationRepository:
         user_id: int,
         actor_id: int,
         notification_type: str,
-        activity_type: Optional[str] = None,
-        activity_id: Optional[int] = None,
-        comment_id: Optional[int] = None,
-        message: Optional[str] = None,
-    ) -> Dict[str, Any]:
+        activity_type: str | None = None,
+        activity_id: int | None = None,
+        comment_id: int | None = None,
+        message: str | None = None,
+    ) -> dict[str, Any]:
         """
         Create a new notification.
 
@@ -106,7 +106,7 @@ class NotificationRepository:
         limit: int = 50,
         offset: int = 0,
         unread_only: bool = False,
-    ) -> List[Dict[str, Any]]:
+    ) -> list[dict[str, Any]]:
         """
         Get notifications for a user.
 
@@ -120,7 +120,7 @@ class NotificationRepository:
             List of notifications with actor details
         """
         where_clause = "WHERE n.user_id = ?"
-        params: List[Any] = [user_id]
+        params: list[Any] = [user_id]
 
         if unread_only:
             where_clause += " AND n.is_read = FALSE"
@@ -250,8 +250,8 @@ class NotificationRepository:
         user_id: int,
         actor_id: int,
         notification_type: str,
-        activity_type: Optional[str] = None,
-        activity_id: Optional[int] = None,
+        activity_type: str | None = None,
+        activity_id: int | None = None,
     ) -> bool:
         """
         Check if a similar notification already exists (to prevent spam).

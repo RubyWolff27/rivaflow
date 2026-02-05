@@ -1,9 +1,8 @@
 """Repository for session rolls (detailed roll tracking) data access."""
-import sqlite3
 import json
-from typing import List, Optional
+import sqlite3
 
-from rivaflow.db.database import get_connection, convert_query, execute_insert
+from rivaflow.db.database import convert_query, execute_insert, get_connection
 
 
 class SessionRollRepository:
@@ -14,12 +13,12 @@ class SessionRollRepository:
         session_id: int,
         user_id: int,
         roll_number: int = 1,
-        partner_id: Optional[int] = None,
-        partner_name: Optional[str] = None,
-        duration_mins: Optional[int] = None,
-        submissions_for: Optional[List[int]] = None,
-        submissions_against: Optional[List[int]] = None,
-        notes: Optional[str] = None,
+        partner_id: int | None = None,
+        partner_name: str | None = None,
+        duration_mins: int | None = None,
+        submissions_for: list[int] | None = None,
+        submissions_against: list[int] | None = None,
+        notes: str | None = None,
     ) -> dict:
         """Create a new session roll record.
 
@@ -53,7 +52,7 @@ class SessionRollRepository:
             return SessionRollRepository._row_to_dict(row)
 
     @staticmethod
-    def get_by_id(roll_id: int) -> Optional[dict]:
+    def get_by_id(roll_id: int) -> dict | None:
         """Get a session roll by ID."""
         with get_connection() as conn:
             cursor = conn.cursor()
@@ -62,7 +61,7 @@ class SessionRollRepository:
             return SessionRollRepository._row_to_dict(row) if row else None
 
     @staticmethod
-    def get_by_session_id(user_id: int, session_id: int) -> List[dict]:
+    def get_by_session_id(user_id: int, session_id: int) -> list[dict]:
         """Get all rolls for a specific session.
 
         Note: session_rolls doesn't have user_id column.
@@ -78,7 +77,7 @@ class SessionRollRepository:
             return [SessionRollRepository._row_to_dict(row) for row in rows]
 
     @staticmethod
-    def get_by_session_ids(user_id: int, session_ids: List[int]) -> dict:
+    def get_by_session_ids(user_id: int, session_ids: list[int]) -> dict:
         """
         Get all rolls for multiple sessions in bulk (avoids N+1 queries).
 
@@ -119,7 +118,7 @@ class SessionRollRepository:
             return rolls_by_session
 
     @staticmethod
-    def list_by_partner(user_id: int, partner_id: int) -> List[dict]:
+    def list_by_partner(user_id: int, partner_id: int) -> list[dict]:
         """Get all rolls with a specific partner.
 
         Note: session_rolls doesn't have user_id, filter via sessions JOIN.
@@ -139,7 +138,7 @@ class SessionRollRepository:
             return [SessionRollRepository._row_to_dict(row) for row in rows]
 
     @staticmethod
-    def get_by_partner_id(user_id: int, partner_id: int) -> List[dict]:
+    def get_by_partner_id(user_id: int, partner_id: int) -> list[dict]:
         """Alias for list_by_partner. Get all rolls with a specific partner."""
         return SessionRollRepository.list_by_partner(user_id, partner_id)
 
@@ -189,14 +188,14 @@ class SessionRollRepository:
     @staticmethod
     def update(
         roll_id: int,
-        roll_number: Optional[int] = None,
-        partner_id: Optional[int] = None,
-        partner_name: Optional[str] = None,
-        duration_mins: Optional[int] = None,
-        submissions_for: Optional[List[int]] = None,
-        submissions_against: Optional[List[int]] = None,
-        notes: Optional[str] = None,
-    ) -> Optional[dict]:
+        roll_number: int | None = None,
+        partner_id: int | None = None,
+        partner_name: str | None = None,
+        duration_mins: int | None = None,
+        submissions_for: list[int] | None = None,
+        submissions_against: list[int] | None = None,
+        notes: str | None = None,
+    ) -> dict | None:
         """Update a session roll by ID. Returns updated roll or None if not found."""
         with get_connection() as conn:
             cursor = conn.cursor()

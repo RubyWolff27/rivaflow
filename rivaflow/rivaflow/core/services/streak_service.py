@@ -1,6 +1,5 @@
 """Streak tracking business logic."""
 from datetime import date
-from typing import Optional
 
 from rivaflow.db.repositories.streak_repo import StreakRepository
 
@@ -11,7 +10,7 @@ class StreakService:
     def __init__(self):
         self.streak_repo = StreakRepository()
 
-    def record_checkin(self, user_id: int, checkin_type: str, checkin_date: Optional[date] = None) -> dict:
+    def record_checkin(self, user_id: int, checkin_type: str, checkin_date: date | None = None) -> dict:
         """
         Record a check-in and update relevant streaks.
 
@@ -68,7 +67,7 @@ class StreakService:
 
         return result
 
-    def record_readiness_checkin(self, user_id: int, checkin_date: Optional[date] = None) -> dict:
+    def record_readiness_checkin(self, user_id: int, checkin_date: date | None = None) -> dict:
         """
         Record a readiness check-in and update readiness streak.
 
@@ -115,7 +114,7 @@ class StreakService:
 
         return streaks
 
-    def is_streak_at_risk(self, user_id: int, streak_type: Optional[str] = None) -> bool:
+    def is_streak_at_risk(self, user_id: int, streak_type: str | None = None) -> bool:
         """
         Check if user will lose streak if they don't check in today.
 

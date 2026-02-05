@@ -1,13 +1,13 @@
 """Weekly goals and streak tracking endpoints."""
 import logging
 import traceback
+
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
-from typing import Optional
 
-from rivaflow.core.services.goals_service import GoalsService
 from rivaflow.core.dependencies import get_current_user
-from rivaflow.core.exceptions import ValidationError, NotFoundError
+from rivaflow.core.exceptions import ValidationError
+from rivaflow.core.services.goals_service import GoalsService
 
 logger = logging.getLogger(__name__)
 
@@ -18,9 +18,9 @@ service = GoalsService()
 class GoalTargetsUpdate(BaseModel):
     """Weekly goal targets update."""
 
-    weekly_sessions_target: Optional[int] = None
-    weekly_hours_target: Optional[float] = None
-    weekly_rolls_target: Optional[int] = None
+    weekly_sessions_target: int | None = None
+    weekly_hours_target: float | None = None
+    weekly_rolls_target: int | None = None
 
 
 @router.get("/current-week")

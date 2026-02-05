@@ -1,8 +1,8 @@
 """Seed the movements glossary with comprehensive BJJ techniques."""
-import logging
 import json
+import logging
 
-from rivaflow.db.database import get_connection, convert_query
+from rivaflow.db.database import convert_query, get_connection
 
 logger = logging.getLogger(__name__)
 

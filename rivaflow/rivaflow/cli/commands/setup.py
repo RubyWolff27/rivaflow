@@ -1,16 +1,15 @@
 """Onboarding setup wizard for new users."""
+from datetime import date
+
 import typer
 from rich.console import Console
 from rich.panel import Panel
-from rich.prompt import Prompt, Confirm, IntPrompt
-from rich import box
-from datetime import date
+from rich.prompt import Confirm, IntPrompt, Prompt
 
-from rivaflow.cli.utils.user_context import get_current_user_id
 from rivaflow.cli import prompts
 from rivaflow.cli.utils.logo import LOGO, TAGLINE
-from rivaflow.db.database import get_connection, convert_query
-from rivaflow.config import ALL_CLASS_TYPES
+from rivaflow.cli.utils.user_context import get_current_user_id
+from rivaflow.db.database import convert_query, get_connection
 
 app = typer.Typer(help="First-time setup wizard")
 console = Console()

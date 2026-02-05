@@ -1,14 +1,14 @@
 """Photo routes."""
 import os
 import uuid
-import filetype
-from pathlib import Path
 from datetime import datetime
-from typing import Optional
+from pathlib import Path
 
-from fastapi import APIRouter, Depends, HTTPException, File, UploadFile, Form, Request
+import filetype
+from fastapi import APIRouter, Depends, File, Form, HTTPException, Request, UploadFile
 from slowapi import Limiter
 from slowapi.util import get_remote_address
+
 from rivaflow.core.dependencies import get_current_user
 from rivaflow.db.repositories import ActivityPhotoRepository
 
@@ -32,7 +32,7 @@ MAX_FILE_SIZE = 5 * 1024 * 1024  # 5MB
 MAX_PHOTOS_PER_ACTIVITY = 3
 
 
-def validate_image_content(content: bytes, filename: str) -> Optional[str]:
+def validate_image_content(content: bytes, filename: str) -> str | None:
     """
     Validate that file content is actually an image using magic bytes.
 

@@ -1,11 +1,11 @@
 """User service for user profile management."""
-from typing import List, Optional, Dict, Any
 from datetime import datetime, timedelta
+from typing import Any
 
-from rivaflow.db.repositories import UserRepository, ProfileRepository, UserRelationshipRepository
-from rivaflow.db.repositories.session_repo import SessionRepository
+from rivaflow.cache import CacheKeys, get_redis_client
+from rivaflow.db.repositories import ProfileRepository, UserRelationshipRepository, UserRepository
 from rivaflow.db.repositories.readiness_repo import ReadinessRepository
-from rivaflow.cache import get_redis_client, CacheKeys
+from rivaflow.db.repositories.session_repo import SessionRepository
 
 
 class UserService:
@@ -19,7 +19,7 @@ class UserService:
         self.readiness_repo = ReadinessRepository()
         self.cache = get_redis_client()
 
-    def get_user_by_id(self, user_id: int) -> Optional[Dict[str, Any]]:
+    def get_user_by_id(self, user_id: int) -> dict[str, Any] | None:
         """Get basic user info by ID."""
         # Try cache
         cache_key = CacheKeys.user_basic(user_id)
@@ -36,7 +36,7 @@ class UserService:
 
         return user
 
-    def search_users(self, query: str, limit: int = 20, exclude_user_id: Optional[int] = None) -> List[Dict[str, Any]]:
+    def search_users(self, query: str, limit: int = 20, exclude_user_id: int | None = None) -> list[dict[str, Any]]:
         """
         Search for users by name or email.
 
@@ -58,9 +58,9 @@ class UserService:
 
     def enrich_users_with_social_status(
         self,
-        users: List[Dict[str, Any]],
+        users: list[dict[str, Any]],
         current_user_id: int
-    ) -> List[Dict[str, Any]]:
+    ) -> list[dict[str, Any]]:
         """
         Enrich user list with social relationship status.
 
@@ -97,7 +97,7 @@ class UserService:
         self,
         user_id: int,
         requesting_user_id: int
-    ) -> Optional[Dict[str, Any]]:
+    ) -> dict[str, Any] | None:
         """
         Get a user's public profile.
 
@@ -170,7 +170,7 @@ class UserService:
 
         return public_profile
 
-    def get_user_stats(self, user_id: int) -> Optional[Dict[str, Any]]:
+    def get_user_stats(self, user_id: int) -> dict[str, Any] | None:
         """
         Get user's public statistics.
 
@@ -193,8 +193,8 @@ class UserService:
         # Calculate time periods
         now = datetime.now()
         week_ago = now - timedelta(days=7)
-        month_ago = now - timedelta(days=30)
-        year_ago = now - timedelta(days=365)
+        now - timedelta(days=30)
+        now - timedelta(days=365)
 
         # Get session stats
         all_sessions = self.session_repo.list_by_user(user_id=user_id)

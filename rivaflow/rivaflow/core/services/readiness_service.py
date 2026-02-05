@@ -1,6 +1,5 @@
 """Service layer for readiness check-in operations."""
 from datetime import date
-from typing import Optional
 
 from rivaflow.db.repositories import ReadinessRepository
 from rivaflow.db.repositories.checkin_repo import CheckinRepository
@@ -21,8 +20,8 @@ class ReadinessService:
         stress: int,
         soreness: int,
         energy: int,
-        hotspot_note: Optional[str] = None,
-        weight_kg: Optional[float] = None,
+        hotspot_note: str | None = None,
+        weight_kg: float | None = None,
     ) -> int:
         """
         Log daily readiness check-in (upsert if exists for date).
@@ -49,11 +48,11 @@ class ReadinessService:
 
         return readiness_id
 
-    def get_readiness(self, user_id: int, check_date: date) -> Optional[dict]:
+    def get_readiness(self, user_id: int, check_date: date) -> dict | None:
         """Get readiness entry for a specific date."""
         return self.repo.get_by_date(user_id, check_date)
 
-    def get_latest_readiness(self, user_id: int) -> Optional[dict]:
+    def get_latest_readiness(self, user_id: int) -> dict | None:
         """Get the most recent readiness entry."""
         return self.repo.get_latest(user_id)
 

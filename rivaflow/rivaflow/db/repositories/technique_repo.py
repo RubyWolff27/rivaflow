@@ -1,16 +1,15 @@
 """Repository for technique data access."""
 import sqlite3
 from datetime import date, datetime
-from typing import Optional
 
-from rivaflow.db.database import get_connection, convert_query, execute_insert
+from rivaflow.db.database import convert_query, execute_insert, get_connection
 
 
 class TechniqueRepository:
     """Data access layer for techniques."""
 
     @staticmethod
-    def create(name: str, category: Optional[str] = None) -> int:
+    def create(name: str, category: str | None = None) -> int:
         """Create a new technique and return its ID."""
         with get_connection() as conn:
             cursor = conn.cursor()
@@ -34,7 +33,7 @@ class TechniqueRepository:
                     return row[0]
 
     @staticmethod
-    def get_by_id(technique_id: int) -> Optional[dict]:
+    def get_by_id(technique_id: int) -> dict | None:
         """Get a technique by ID."""
         with get_connection() as conn:
             cursor = conn.cursor()
@@ -45,7 +44,7 @@ class TechniqueRepository:
             return None
 
     @staticmethod
-    def get_by_name(name: str) -> Optional[dict]:
+    def get_by_name(name: str) -> dict | None:
         """Get a technique by name (case-insensitive)."""
         with get_connection() as conn:
             cursor = conn.cursor()
@@ -58,7 +57,7 @@ class TechniqueRepository:
             return None
 
     @staticmethod
-    def get_or_create(name: str, category: Optional[str] = None) -> dict:
+    def get_or_create(name: str, category: str | None = None) -> dict:
         """Get existing technique or create new one. Returns technique dict."""
         existing = TechniqueRepository.get_by_name(name)
         if existing:

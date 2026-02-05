@@ -1,18 +1,17 @@
 """Interactive prompts using Rich."""
-from typing import Optional, Callable
 from rich.console import Console
-from rich.prompt import Prompt, IntPrompt, Confirm
-from rich.table import Table
 from rich.panel import Panel
+from rich.prompt import Confirm, IntPrompt, Prompt
+from rich.table import Table
 
 console = Console()
 
 
 def prompt_text(
     message: str,
-    default: Optional[str] = None,
-    choices: Optional[list[str]] = None,
-    autocomplete: Optional[list[str]] = None,
+    default: str | None = None,
+    choices: list[str] | None = None,
+    autocomplete: list[str] | None = None,
 ) -> str:
     """Prompt for text input with optional autocomplete."""
     if autocomplete and len(autocomplete) > 0:
@@ -23,7 +22,7 @@ def prompt_text(
 
 
 def prompt_int(
-    message: str, default: Optional[int] = None, min_val: int = 0, max_val: int = 999
+    message: str, default: int | None = None, min_val: int = 0, max_val: int = 999
 ) -> int:
     """Prompt for integer input."""
     while True:
@@ -36,9 +35,9 @@ def prompt_int(
 def prompt_list(
     message: str,
     delimiter: str = ",",
-    autocomplete: Optional[list[str]] = None,
+    autocomplete: list[str] | None = None,
     optional: bool = True,
-) -> Optional[list[str]]:
+) -> list[str] | None:
     """Prompt for comma-separated list input."""
     if autocomplete and len(autocomplete) > 0:
         console.print(f"[dim]Known: {', '.join(autocomplete[:8])}[/dim]")
@@ -52,7 +51,7 @@ def prompt_list(
     return items if items else None
 
 
-def prompt_choice(message: str, choices: list[str], default: Optional[str] = None) -> str:
+def prompt_choice(message: str, choices: list[str], default: str | None = None) -> str:
     """Prompt for selection from a list of choices."""
     # Display choices in a more readable format
     for i, choice in enumerate(choices, 1):

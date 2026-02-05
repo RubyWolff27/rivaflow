@@ -1,5 +1,5 @@
 """Cursor-based pagination utilities for efficient pagination of large datasets."""
-from typing import List, Dict, Any, Optional, Tuple
+from typing import Any
 
 
 def encode_cursor(date: str, item_type: str, item_id: int) -> str:
@@ -17,7 +17,7 @@ def encode_cursor(date: str, item_type: str, item_id: int) -> str:
     return f"{date}:{item_type}:{item_id}"
 
 
-def decode_cursor(cursor: str) -> Optional[Tuple[str, str, int]]:
+def decode_cursor(cursor: str) -> tuple[str, str, int] | None:
     """
     Decode pagination cursor to item metadata.
 
@@ -38,11 +38,11 @@ def decode_cursor(cursor: str) -> Optional[Tuple[str, str, int]]:
 
 
 def paginate_with_cursor(
-    items: List[Dict[str, Any]],
+    items: list[dict[str, Any]],
     limit: int,
     offset: int = 0,
-    cursor: Optional[str] = None,
-) -> Dict[str, Any]:
+    cursor: str | None = None,
+) -> dict[str, Any]:
     """
     Apply cursor-based pagination to a list of items.
 

@@ -1,12 +1,11 @@
 """Context builder for Grapple AI Coach - builds personalized prompts from user data."""
 import logging
-from typing import Dict, Any, List
 from datetime import datetime, timedelta
 
-from rivaflow.db.repositories.session_repo import SessionRepository
-from rivaflow.db.repositories.readiness_repo import ReadinessRepository
-from rivaflow.db.repositories.user_repo import UserRepository
 from rivaflow.core.services.privacy_service import PrivacyService
+from rivaflow.db.repositories.readiness_repo import ReadinessRepository
+from rivaflow.db.repositories.session_repo import SessionRepository
+from rivaflow.db.repositories.user_repo import UserRepository
 
 logger = logging.getLogger(__name__)
 
@@ -88,10 +87,10 @@ Now respond to the user's questions using this context. Reference their specific
         # Calculate summary stats
         total_sessions = len(redacted_sessions)
         context_parts = [
-            f"USER PROFILE:",
+            "USER PROFILE:",
             f"Name: {user['first_name']} {user['last_name']}",
             f"Email: {user['email']}",
-            f"",
+            "",
         ]
 
         if total_sessions > 0:
@@ -114,7 +113,7 @@ Now respond to the user's questions using this context. Reference their specific
             ]
 
             context_parts.extend([
-                f"TRAINING SUMMARY:",
+                "TRAINING SUMMARY:",
                 f"Total sessions logged: {total_sessions}",
                 f"Sessions in last 30 days: {len(sessions_last_30_days)}",
                 f"Total training time: {total_duration} minutes ({total_duration / 60:.1f} hours)",
@@ -122,7 +121,7 @@ Now respond to the user's questions using this context. Reference their specific
                 f"Average intensity: {avg_intensity:.1f}/10",
                 f"Gyms trained at: {', '.join(sorted(gyms)) if gyms else 'Not specified'}",
                 f"Techniques practiced: {len(all_techniques)} unique techniques",
-                f"",
+                "",
             ])
 
             # Show last 15 sessions in detail
@@ -183,7 +182,7 @@ Now respond to the user's questions using this context. Reference their specific
         except Exception:
             return datetime.min
 
-    def get_conversation_context(self, recent_messages: List[Dict[str, str]]) -> List[Dict[str, str]]:
+    def get_conversation_context(self, recent_messages: list[dict[str, str]]) -> list[dict[str, str]]:
         """
         Build full conversation context for LLM.
 

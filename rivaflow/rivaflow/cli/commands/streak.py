@@ -2,7 +2,6 @@
 import typer
 from rich.console import Console
 from rich.panel import Panel
-from rich.text import Text
 from rich.table import Table
 
 from rivaflow.cli.utils.user_context import get_current_user_id
@@ -56,15 +55,15 @@ def get_streak_title(streak_days: int, streak_type: str = "streak") -> str:
     elif streak_days < 3:
         return f"Starting {streak_type}"
     elif streak_days < 7:
-        return f"Building momentum"
+        return "Building momentum"
     elif streak_days < 30:
-        return f"On fire!"
+        return "On fire!"
     elif streak_days < 90:
-        return f"Unstoppable!"
+        return "Unstoppable!"
     elif streak_days < 365:
-        return f"Legendary!"
+        return "Legendary!"
     else:
-        return f"🏆 Hall of Fame 🏆"
+        return "🏆 Hall of Fame 🏆"
 
 
 def render_progress_bar(current: int, milestones: list[int], width: int = 30) -> str:
@@ -158,7 +157,7 @@ def streak(ctx: typer.Context):
     console.print()
 
     # Milestones for streaks
-    STREAK_MILESTONES = [7, 30, 90, 365]
+    streak_milestones = [7, 30, 90, 365]
 
     # Check-in streak
     checkin_streak = streaks["checkin"]
@@ -170,11 +169,11 @@ def streak(ctx: typer.Context):
     title_text = get_streak_title(current, "check-in")
 
     console.print(f"  {fire_emoji} [bold white]CHECK-IN STREAK[/bold white] [dim]— {title_text}[/dim]")
-    bar = render_progress_bar(current, STREAK_MILESTONES)
+    bar = render_progress_bar(current, streak_milestones)
     console.print(f"  [{streak_color}]{bar}[/{streak_color}]  [bold]{current} days[/bold]")
 
     if longest > 0 and checkin_streak.get("last_checkin_date"):
-        markers = render_milestone_markers(current, STREAK_MILESTONES)
+        markers = render_milestone_markers(current, streak_milestones)
         console.print(f"  {markers}")
 
     if checkin_streak.get("grace_days_used", 0) > 0:
@@ -192,11 +191,11 @@ def streak(ctx: typer.Context):
     title_text = get_streak_title(current_training, "training")
 
     console.print(f"  {fire_emoji} [bold white]TRAINING STREAK[/bold white] [dim]— {title_text}[/dim]")
-    bar = render_progress_bar(current_training, STREAK_MILESTONES)
+    bar = render_progress_bar(current_training, streak_milestones)
     console.print(f"  [{streak_color}]{bar}[/{streak_color}]  [bold]{current_training} days[/bold]")
 
     if longest_training > 0 and training_streak.get("last_checkin_date"):
-        markers = render_milestone_markers(current_training, STREAK_MILESTONES)
+        markers = render_milestone_markers(current_training, streak_milestones)
         console.print(f"  {markers}")
 
     console.print()
@@ -211,18 +210,18 @@ def streak(ctx: typer.Context):
     title_text = get_streak_title(current_readiness, "readiness")
 
     console.print(f"  {fire_emoji} [bold white]READINESS STREAK[/bold white] [dim]— {title_text}[/dim]")
-    bar = render_progress_bar(current_readiness, STREAK_MILESTONES)
+    bar = render_progress_bar(current_readiness, streak_milestones)
     console.print(f"  [{streak_color}]{bar}[/{streak_color}]  [bold]{current_readiness} days[/bold]")
 
     if longest_readiness > 0 and readiness_streak.get("last_checkin_date"):
-        markers = render_milestone_markers(current_readiness, STREAK_MILESTONES)
+        markers = render_milestone_markers(current_readiness, streak_milestones)
         console.print(f"  {markers}")
 
     console.print()
 
     # Milestone celebration
-    MAJOR_MILESTONES = {365: "1 Year", 730: "2 Years", 1095: "3 Years", 1825: "5 Years"}
-    for milestone_days, milestone_name in MAJOR_MILESTONES.items():
+    major_milestones = {365: "1 Year", 730: "2 Years", 1095: "3 Years", 1825: "5 Years"}
+    for milestone_days, milestone_name in major_milestones.items():
         if current == milestone_days or current_training == milestone_days or current_readiness == milestone_days:
             celebration = Panel(
                 f"[bold yellow]✨ {milestone_name} Streak! ✨[/bold yellow]\n\n"

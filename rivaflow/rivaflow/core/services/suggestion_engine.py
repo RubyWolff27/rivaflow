@@ -1,10 +1,9 @@
 """Service layer for generating training suggestions."""
 from datetime import date
-from typing import Optional
 
-from rivaflow.db.repositories import ReadinessRepository, TechniqueRepository
-from rivaflow.core.services.session_service import SessionService
 from rivaflow.core.rules import RULES, format_explanation
+from rivaflow.core.services.session_service import SessionService
+from rivaflow.db.repositories import ReadinessRepository, TechniqueRepository
 
 
 class SuggestionEngine:
@@ -15,7 +14,7 @@ class SuggestionEngine:
         self.technique_repo = TechniqueRepository()
         self.session_service = SessionService()
 
-    def get_suggestion(self, user_id: int, target_date: Optional[date] = None) -> dict:
+    def get_suggestion(self, user_id: int, target_date: date | None = None) -> dict:
         """
         Get training suggestion for a date.
         Returns dict with suggestion, triggered rules, and readiness snapshot.

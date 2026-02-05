@@ -1,16 +1,16 @@
 """Social features API routes (relationships, likes, comments)."""
-from fastapi import APIRouter, Depends, Path, Body, Request, Query, HTTPException
+
+from fastapi import APIRouter, Body, Depends, HTTPException, Path, Query, Request
 from pydantic import BaseModel, Field
-from typing import Optional
 from slowapi import Limiter
 from slowapi.util import get_remote_address
 
-from rivaflow.core.services.social_service import SocialService
-from rivaflow.core.services.friend_suggestions_service import FriendSuggestionsService
 from rivaflow.core.dependencies import get_current_user
-from rivaflow.db.repositories.user_repo import UserRepository
+from rivaflow.core.exceptions import NotFoundError, ValidationError
+from rivaflow.core.services.friend_suggestions_service import FriendSuggestionsService
+from rivaflow.core.services.social_service import SocialService
 from rivaflow.db.repositories.social_connection_repo import SocialConnectionRepository
-from rivaflow.core.exceptions import ValidationError, NotFoundError
+from rivaflow.db.repositories.user_repo import UserRepository
 
 router = APIRouter(prefix="/social", tags=["social"])
 limiter = Limiter(key_func=get_remote_address)
@@ -37,7 +37,7 @@ class CommentRequest(BaseModel):
     activity_type: str = Field(..., pattern="^(session|readiness|rest)$")
     activity_id: int = Field(..., gt=0)
     comment_text: str = Field(..., min_length=1, max_length=1000)
-    parent_comment_id: Optional[int] = None
+    parent_comment_id: int | None = None
 
 
 class CommentUpdateRequest(BaseModel):
@@ -464,8 +464,8 @@ async def regenerate_friend_suggestions(current_user: dict = Depends(get_current
 # Friend Request System
 class FriendRequestBody(BaseModel):
     """Request body for sending a friend request."""
-    connection_source: Optional[str] = Field(None, description="How they found each other")
-    request_message: Optional[str] = Field(None, max_length=500, description="Optional message with request")
+    connection_source: str | None = Field(None, description="How they found each other")
+    request_message: str | None = Field(None, max_length=500, description="Optional message with request")
 
 
 @router.post("/friend-requests/{user_id}")

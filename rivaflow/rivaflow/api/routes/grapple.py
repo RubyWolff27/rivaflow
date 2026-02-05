@@ -1,14 +1,13 @@
 """Grapple AI Coach API routes - Premium BJJ coaching with cloud LLMs."""
 import logging
-from fastapi import APIRouter, HTTPException, Depends, status
+
+from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel
-from typing import List, Optional
-from datetime import datetime
 
 from rivaflow.core.dependencies import get_current_user
 from rivaflow.core.middleware.feature_access import (
-    require_beta_or_premium,
     get_user_tier_info,
+    require_beta_or_premium,
 )
 
 router = APIRouter(prefix="/grapple", tags=["grapple"])
@@ -28,7 +27,7 @@ class Message(BaseModel):
 class ChatRequest(BaseModel):
     """Request to send a message to Grapple."""
     message: str
-    session_id: Optional[str] = None  # If None, creates new session
+    session_id: str | None = None  # If None, creates new session
 
 
 class ChatResponse(BaseModel):
@@ -43,7 +42,7 @@ class ChatResponse(BaseModel):
 
 class SessionListResponse(BaseModel):
     """List of chat sessions."""
-    sessions: List[dict]
+    sessions: list[dict]
 
 
 class TierInfoResponse(BaseModel):
@@ -142,12 +141,12 @@ async def chat_with_grapple(
     6. Store messages
     7. Update session stats
     """
+    from rivaflow.core.services.grapple.context_builder import GrappleContextBuilder
     from rivaflow.core.services.grapple.llm_client import GrappleLLMClient
     from rivaflow.core.services.grapple.rate_limiter import GrappleRateLimiter
     from rivaflow.core.services.grapple.token_monitor import GrappleTokenMonitor
-    from rivaflow.core.services.grapple.context_builder import GrappleContextBuilder
-    from rivaflow.db.repositories.chat_session_repo import ChatSessionRepository
     from rivaflow.db.repositories.chat_message_repo import ChatMessageRepository
+    from rivaflow.db.repositories.chat_session_repo import ChatSessionRepository
 
     user_id = current_user["id"]
     user_tier = current_user.get("subscription_tier", "free")
@@ -190,7 +189,7 @@ async def chat_with_grapple(
     session_id = session["id"]
 
     # Step 3: Store user message
-    user_message = message_repo.create(
+    message_repo.create(
         session_id=session_id,
         role="user",
         content=request.message,
@@ -305,8 +304,8 @@ async def get_chat_session(
 
     Requires beta, premium, or admin subscription tier.
     """
-    from rivaflow.db.repositories.chat_session_repo import ChatSessionRepository
     from rivaflow.db.repositories.chat_message_repo import ChatMessageRepository
+    from rivaflow.db.repositories.chat_session_repo import ChatSessionRepository
 
     user_id = current_user["id"]
     logger.info(f"Fetching session {session_id} for user {user_id}")
@@ -374,9 +373,9 @@ async def get_usage_stats(
         - Rate limit status
         - Cost projections
     """
-    from rivaflow.core.services.grapple.token_monitor import GrappleTokenMonitor
-    from rivaflow.core.services.grapple.rate_limiter import GrappleRateLimiter
     from rivaflow.core.middleware.feature_access import FeatureAccess
+    from rivaflow.core.services.grapple.rate_limiter import GrappleRateLimiter
+    from rivaflow.core.services.grapple.token_monitor import GrappleTokenMonitor
 
     user_id = current_user["id"]
     user_tier = current_user.get("subscription_tier", "free")

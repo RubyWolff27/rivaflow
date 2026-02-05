@@ -2,14 +2,12 @@
 import json
 import os
 from pathlib import Path
-from typing import Optional
 
 import typer
 from rich.console import Console
 from rich.prompt import Prompt
 
 from rivaflow.core.services.auth_service import AuthService
-
 
 app = typer.Typer(help="Authentication commands")
 console = Console()
@@ -21,8 +19,8 @@ CREDENTIALS_FILE = Path.home() / ".rivaflow" / "credentials.json"
 
 @app.command()
 def login(
-    email: Optional[str] = typer.Option(None, "--email", "-e", help="Email address"),
-    password: Optional[str] = typer.Option(None, "--password", "-p", help="Password (not recommended, use prompt)"),
+    email: str | None = typer.Option(None, "--email", "-e", help="Email address"),
+    password: str | None = typer.Option(None, "--password", "-p", help="Password (not recommended, use prompt)"),
 ):
     """Login to RivaFlow CLI."""
     try:
@@ -108,10 +106,10 @@ def logout():
 
 @app.command()
 def register(
-    email: Optional[str] = typer.Option(None, "--email", "-e", help="Email address"),
-    password: Optional[str] = typer.Option(None, "--password", "-p", help="Password (not recommended, use prompt)"),
-    first_name: Optional[str] = typer.Option(None, "--first-name", "-f", help="First name"),
-    last_name: Optional[str] = typer.Option(None, "--last-name", "-l", help="Last name"),
+    email: str | None = typer.Option(None, "--email", "-e", help="Email address"),
+    password: str | None = typer.Option(None, "--password", "-p", help="Password (not recommended, use prompt)"),
+    first_name: str | None = typer.Option(None, "--first-name", "-f", help="First name"),
+    last_name: str | None = typer.Option(None, "--last-name", "-l", help="Last name"),
 ):
     """Register a new RivaFlow account."""
     try:
@@ -169,7 +167,7 @@ def register(
         # Set secure file permissions (user read/write only)
         os.chmod(CREDENTIALS_FILE, 0o600)
 
-        console.print(f"✅ [green]Account created successfully![/green]")
+        console.print("✅ [green]Account created successfully![/green]")
         console.print(f"   Welcome to RivaFlow, {first_name}!")
         console.print(f"   Your account email: {email}")
 

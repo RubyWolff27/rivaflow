@@ -1,9 +1,8 @@
 """Service layer for technique management."""
-from typing import Optional
 from datetime import date
 
+from rivaflow.cache import CacheKeys, get_redis_client
 from rivaflow.db.repositories import TechniqueRepository
-from rivaflow.cache import get_redis_client, CacheKeys
 
 
 class TechniqueService:
@@ -13,7 +12,7 @@ class TechniqueService:
         self.repo = TechniqueRepository()
         self.cache = get_redis_client()
 
-    def add_technique(self, user_id: int, name: str, category: Optional[str] = None) -> int:
+    def add_technique(self, user_id: int, name: str, category: str | None = None) -> int:
         """
         Add a new technique or get existing one.
         Returns technique ID.
@@ -25,7 +24,7 @@ class TechniqueService:
 
         return technique_id
 
-    def get_technique(self, user_id: int, technique_id: int) -> Optional[dict]:
+    def get_technique(self, user_id: int, technique_id: int) -> dict | None:
         """Get a technique by ID."""
         # Try cache
         cache_key = CacheKeys.technique_by_id(technique_id)
@@ -42,7 +41,7 @@ class TechniqueService:
 
         return technique
 
-    def get_technique_by_name(self, user_id: int, name: str) -> Optional[dict]:
+    def get_technique_by_name(self, user_id: int, name: str) -> dict | None:
         """Get a technique by name."""
         # Try cache
         cache_key = CacheKeys.technique_by_name(name)
@@ -99,7 +98,7 @@ class TechniqueService:
 
         return "\n".join(lines)
 
-    def calculate_days_since_trained(self, technique: dict) -> Optional[int]:
+    def calculate_days_since_trained(self, technique: dict) -> int | None:
         """Calculate days since technique was last trained."""
         if not technique.get("last_trained_date"):
             return None

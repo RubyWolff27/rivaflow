@@ -1,9 +1,8 @@
 """Repository for session techniques (detailed technique tracking) data access."""
-import sqlite3
 import json
-from typing import List, Optional
+import sqlite3
 
-from rivaflow.db.database import get_connection, convert_query, execute_insert
+from rivaflow.db.database import convert_query, execute_insert, get_connection
 
 
 class SessionTechniqueRepository:
@@ -15,8 +14,8 @@ class SessionTechniqueRepository:
         user_id: int,
         movement_id: int,
         technique_number: int = 1,
-        notes: Optional[str] = None,
-        media_urls: Optional[List[dict]] = None,
+        notes: str | None = None,
+        media_urls: list[dict] | None = None,
     ) -> dict:
         """Create a new session technique record.
 
@@ -47,7 +46,7 @@ class SessionTechniqueRepository:
             return SessionTechniqueRepository._row_to_dict(row)
 
     @staticmethod
-    def get_by_id(technique_id: int) -> Optional[dict]:
+    def get_by_id(technique_id: int) -> dict | None:
         """Get a session technique by ID."""
         with get_connection() as conn:
             cursor = conn.cursor()
@@ -56,7 +55,7 @@ class SessionTechniqueRepository:
             return SessionTechniqueRepository._row_to_dict(row) if row else None
 
     @staticmethod
-    def get_by_session_id(user_id: int, session_id: int) -> List[dict]:
+    def get_by_session_id(user_id: int, session_id: int) -> list[dict]:
         """Get all techniques for a specific session."""
         # Note: session_techniques doesn't have user_id column
         # Security is enforced by session_id since sessions belong to users
@@ -70,7 +69,7 @@ class SessionTechniqueRepository:
             return [SessionTechniqueRepository._row_to_dict(row) for row in rows]
 
     @staticmethod
-    def list_by_movement(user_id: int, movement_id: int) -> List[dict]:
+    def list_by_movement(user_id: int, movement_id: int) -> list[dict]:
         """Get all technique records for a specific movement."""
         # Note: session_techniques doesn't have user_id, filter via sessions JOIN
         with get_connection() as conn:
@@ -90,11 +89,11 @@ class SessionTechniqueRepository:
     @staticmethod
     def update(
         technique_id: int,
-        movement_id: Optional[int] = None,
-        technique_number: Optional[int] = None,
-        notes: Optional[str] = None,
-        media_urls: Optional[List[dict]] = None,
-    ) -> Optional[dict]:
+        movement_id: int | None = None,
+        technique_number: int | None = None,
+        notes: str | None = None,
+        media_urls: list[dict] | None = None,
+    ) -> dict | None:
         """Update a session technique by ID. Returns updated technique or None if not found."""
         with get_connection() as conn:
             cursor = conn.cursor()
@@ -146,7 +145,7 @@ class SessionTechniqueRepository:
             return cursor.rowcount
 
     @staticmethod
-    def batch_get_by_session_ids(session_ids: List[int]) -> dict:
+    def batch_get_by_session_ids(session_ids: list[int]) -> dict:
         """
         Batch load techniques for multiple sessions with movement names.
         Returns dict mapping session_id to list of techniques.

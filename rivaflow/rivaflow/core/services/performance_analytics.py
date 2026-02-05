@@ -1,15 +1,15 @@
 """Performance analytics service for training sessions."""
-from datetime import date, datetime, timedelta
-from typing import Optional, List, Dict, Any
-from collections import defaultdict, Counter
 import statistics
+from collections import Counter, defaultdict
+from datetime import date, timedelta
+from typing import Any
 
 from rivaflow.db.repositories import (
+    FriendRepository,
+    GlossaryRepository,
+    GradingRepository,
     SessionRepository,
     SessionRollRepository,
-    FriendRepository,
-    GradingRepository,
-    GlossaryRepository,
 )
 
 
@@ -24,8 +24,8 @@ class PerformanceAnalyticsService:
         self.glossary_repo = GlossaryRepository()
 
     def get_performance_overview(
-        self, user_id: int, start_date: Optional[date] = None, end_date: Optional[date] = None, types: Optional[List[str]] = None
-    ) -> Dict[str, Any]:
+        self, user_id: int, start_date: date | None = None, end_date: date | None = None, types: list[str] | None = None
+    ) -> dict[str, Any]:
         """
         Get performance overview metrics.
 
@@ -152,7 +152,7 @@ class PerformanceAnalyticsService:
             "deltas": deltas,
         }
 
-    def _calculate_period_summary(self, sessions: List[Dict]) -> Dict[str, Any]:
+    def _calculate_period_summary(self, sessions: list[dict]) -> dict[str, Any]:
         """Calculate summary metrics for a period with safe null handling."""
         if not sessions:
             return {
@@ -174,8 +174,8 @@ class PerformanceAnalyticsService:
         }
 
     def _calculate_daily_timeseries(
-        self, sessions: List[Dict], start_date: date, end_date: date
-    ) -> Dict[str, List[float]]:
+        self, sessions: list[dict], start_date: date, end_date: date
+    ) -> dict[str, list[float]]:
         """Calculate daily aggregated time series data for sparklines."""
         # Create a dict for each day in the range
         daily_data = defaultdict(lambda: {
@@ -225,8 +225,8 @@ class PerformanceAnalyticsService:
         }
 
     def _calculate_partner_session_distribution(
-        self, user_id: int, sessions: List[Dict]
-    ) -> List[Dict[str, Any]]:
+        self, user_id: int, sessions: list[dict]
+    ) -> list[dict[str, Any]]:
         """Calculate which partners appear in which sessions."""
         # Get all session IDs
         session_ids = [s["id"] for s in sessions]
@@ -267,8 +267,8 @@ class PerformanceAnalyticsService:
         return distribution
 
     def _calculate_performance_by_belt(
-        self, sessions: List[Dict], gradings: List[Dict]
-    ) -> List[Dict]:
+        self, sessions: list[dict], gradings: list[dict]
+    ) -> list[dict]:
         """Calculate metrics for each belt rank period."""
         if not gradings:
             # No belt data, return overall stats
@@ -312,8 +312,8 @@ class PerformanceAnalyticsService:
         return belt_periods
 
     def get_partner_analytics(
-        self, user_id: int, start_date: Optional[date] = None, end_date: Optional[date] = None, types: Optional[List[str]] = None
-    ) -> Dict[str, Any]:
+        self, user_id: int, start_date: date | None = None, end_date: date | None = None, types: list[str] | None = None
+    ) -> dict[str, Any]:
         """
         Get partner analytics data.
 
@@ -401,7 +401,7 @@ class PerformanceAnalyticsService:
 
     def get_head_to_head(
         self, user_id: int, partner1_id: int, partner2_id: int
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Get head-to-head comparison between two partners."""
         partner1 = self.friend_repo.get_by_id(user_id, partner1_id)
         partner2 = self.friend_repo.get_by_id(user_id, partner2_id)
@@ -431,8 +431,8 @@ class PerformanceAnalyticsService:
         return session["session_date"] if session else date.today()
 
     def get_instructor_analytics(
-        self, user_id: int, start_date: Optional[date] = None, end_date: Optional[date] = None, types: Optional[List[str]] = None
-    ) -> Dict[str, Any]:
+        self, user_id: int, start_date: date | None = None, end_date: date | None = None, types: list[str] | None = None
+    ) -> dict[str, Any]:
         """
         Get instructor insights.
 

@@ -1,10 +1,9 @@
 """Email service for sending transactional emails."""
-import os
 import logging
-from email.mime.text import MIMEText
-from email.mime.multipart import MIMEMultipart
+import os
 import smtplib
-from typing import Optional
+from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
 
 logger = logging.getLogger(__name__)
 
@@ -44,7 +43,7 @@ class EmailService:
         to_email: str,
         subject: str,
         html_content: str,
-        text_content: Optional[str] = None
+        text_content: str | None = None
     ) -> bool:
         """
         Send an email.
@@ -72,12 +71,12 @@ class EmailService:
         to_email: str,
         subject: str,
         html_content: str,
-        text_content: Optional[str] = None
+        text_content: str | None = None
     ) -> bool:
         """Send email via SendGrid HTTP API."""
         try:
             from sendgrid import SendGridAPIClient
-            from sendgrid.helpers.mail import Mail, Email, To, Content
+            from sendgrid.helpers.mail import Content, Email, Mail, To
 
             # Create message
             from_email_obj = Email(self.from_email, self.from_name)
@@ -130,7 +129,7 @@ class EmailService:
         to_email: str,
         subject: str,
         html_content: str,
-        text_content: Optional[str] = None
+        text_content: str | None = None
     ) -> bool:
         """Send email via SMTP (fallback for local development)."""
         try:
@@ -162,7 +161,7 @@ class EmailService:
         self,
         to_email: str,
         reset_token: str,
-        user_name: Optional[str] = None
+        user_name: str | None = None
     ) -> bool:
         """
         Send password reset email with reset link.
@@ -247,7 +246,7 @@ RivaFlow - Training OS for the Mat
     def send_password_changed_confirmation(
         self,
         to_email: str,
-        user_name: Optional[str] = None
+        user_name: str | None = None
     ) -> bool:
         """
         Send confirmation email after password change.
@@ -315,7 +314,7 @@ RivaFlow - Training OS for the Mat
         user_email: str,
         user_name: str,
         platform: str = 'web',
-        url: Optional[str] = None,
+        url: str | None = None,
     ) -> bool:
         """
         Send notification email to admins about new feedback submission.

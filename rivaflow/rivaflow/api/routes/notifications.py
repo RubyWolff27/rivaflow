@@ -1,7 +1,7 @@
 """Notifications API routes."""
 import logging
-from fastapi import APIRouter, Depends, Query, Path, HTTPException, Request, status
-from typing import Optional
+
+from fastapi import APIRouter, Depends, HTTPException, Path, Query, Request, status
 
 from rivaflow.core.dependencies import get_current_user
 from rivaflow.core.services.notification_service import NotificationService
@@ -24,7 +24,7 @@ async def get_notification_counts(request: Request, current_user: dict = Depends
     try:
         counts = NotificationService.get_notification_counts(user_id)
         return counts
-    except Exception as e:
+    except Exception:
         # Return zero counts if table doesn't exist yet (migration not run)
         return {
             "feed_unread": 0,

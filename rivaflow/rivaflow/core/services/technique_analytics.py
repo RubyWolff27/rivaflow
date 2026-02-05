@@ -1,12 +1,12 @@
 """Technique mastery analytics service."""
-from datetime import date, datetime, timedelta
-from typing import Optional, List, Dict, Any
 from collections import Counter
+from datetime import date, timedelta
+from typing import Any
 
 from rivaflow.db.repositories import (
+    GlossaryRepository,
     SessionRepository,
     SessionRollRepository,
-    GlossaryRepository,
 )
 
 
@@ -19,8 +19,8 @@ class TechniqueAnalyticsService:
         self.glossary_repo = GlossaryRepository()
 
     def get_technique_analytics(
-        self, user_id: int, start_date: Optional[date] = None, end_date: Optional[date] = None, types: Optional[List[str]] = None
-    ) -> Dict[str, Any]:
+        self, user_id: int, start_date: date | None = None, end_date: date | None = None, types: list[str] | None = None
+    ) -> dict[str, Any]:
         """
         Get technique mastery analytics.
 

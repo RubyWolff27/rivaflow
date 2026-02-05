@@ -1,12 +1,12 @@
 """Movements glossary endpoints."""
 import logging
-from fastapi import APIRouter, Query, Depends
-from pydantic import BaseModel
-from typing import Optional, List
 
-from rivaflow.core.services.glossary_service import GlossaryService
+from fastapi import APIRouter, Depends, Query
+from pydantic import BaseModel
+
 from rivaflow.core.dependencies import get_current_user
-from rivaflow.core.exceptions import ValidationError, NotFoundError
+from rivaflow.core.exceptions import NotFoundError, ValidationError
+from rivaflow.core.services.glossary_service import GlossaryService
 from rivaflow.core.validation import validate_video_url
 
 logger = logging.getLogger(__name__)
@@ -19,10 +19,10 @@ class MovementCreate(BaseModel):
     """Movement creation model."""
     name: str
     category: str
-    subcategory: Optional[str] = None
+    subcategory: str | None = None
     points: int = 0
-    description: Optional[str] = None
-    aliases: Optional[List[str]] = None
+    description: str | None = None
+    aliases: list[str] | None = None
     gi_applicable: bool = True
     nogi_applicable: bool = True
 
@@ -30,14 +30,14 @@ class MovementCreate(BaseModel):
 class CustomVideoCreate(BaseModel):
     """Custom video link creation model."""
     url: str
-    title: Optional[str] = None
+    title: str | None = None
     video_type: str = "general"  # gi, nogi, or general
 
 
 @router.get("/")
 async def list_movements(
-    category: Optional[str] = Query(None, description="Filter by category"),
-    search: Optional[str] = Query(None, min_length=2, description="Search in name, description, aliases"),
+    category: str | None = Query(None, description="Filter by category"),
+    search: str | None = Query(None, min_length=2, description="Search in name, description, aliases"),
     gi_only: bool = Query(False, description="Only gi-applicable movements"),
     nogi_only: bool = Query(False, description="Only no-gi-applicable movements"),
     limit: int = Query(default=50, ge=1, le=200, description="Max results to return"),

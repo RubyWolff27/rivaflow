@@ -1,10 +1,9 @@
 """Repository for movements glossary data access."""
-import sqlite3
 import json
+import sqlite3
 from datetime import datetime
-from typing import List, Optional
 
-from rivaflow.db.database import get_connection, convert_query, execute_insert
+from rivaflow.db.database import convert_query, execute_insert, get_connection
 
 
 class GlossaryRepository:
@@ -12,11 +11,11 @@ class GlossaryRepository:
 
     @staticmethod
     def list_all(
-        category: Optional[str] = None,
-        search: Optional[str] = None,
+        category: str | None = None,
+        search: str | None = None,
         gi_only: bool = False,
         nogi_only: bool = False,
-    ) -> List[dict]:
+    ) -> list[dict]:
         """Get all movements, with optional filtering."""
         with get_connection() as conn:
             cursor = conn.cursor()
@@ -46,7 +45,7 @@ class GlossaryRepository:
             return [GlossaryRepository._row_to_dict(row) for row in rows]
 
     @staticmethod
-    def get_by_id(movement_id: int, include_custom_videos: bool = False) -> Optional[dict]:
+    def get_by_id(movement_id: int, include_custom_videos: bool = False) -> dict | None:
         """Get a movement by ID, optionally including custom video links."""
         with get_connection() as conn:
             cursor = conn.cursor()
@@ -75,7 +74,7 @@ class GlossaryRepository:
             return movement
 
     @staticmethod
-    def get_by_name(name: str) -> Optional[dict]:
+    def get_by_name(name: str) -> dict | None:
         """Get a movement by exact name."""
         with get_connection() as conn:
             cursor = conn.cursor()
@@ -84,7 +83,7 @@ class GlossaryRepository:
             return GlossaryRepository._row_to_dict(row) if row else None
 
     @staticmethod
-    def get_categories() -> List[str]:
+    def get_categories() -> list[str]:
         """Get list of all categories."""
         with get_connection() as conn:
             cursor = conn.cursor()
@@ -100,10 +99,10 @@ class GlossaryRepository:
     def create_custom(
         name: str,
         category: str,
-        subcategory: Optional[str] = None,
+        subcategory: str | None = None,
         points: int = 0,
-        description: Optional[str] = None,
-        aliases: Optional[List[str]] = None,
+        description: str | None = None,
+        aliases: list[str] | None = None,
         gi_applicable: bool = True,
         nogi_applicable: bool = True,
     ) -> dict:
@@ -142,7 +141,7 @@ class GlossaryRepository:
     def add_custom_video(
         movement_id: int,
         url: str,
-        title: Optional[str] = None,
+        title: str | None = None,
         video_type: str = "general",
     ) -> dict:
         """Add a custom video link for a movement."""
@@ -169,7 +168,7 @@ class GlossaryRepository:
             return cursor.rowcount > 0
 
     @staticmethod
-    def get_custom_videos(movement_id: int) -> List[dict]:
+    def get_custom_videos(movement_id: int) -> list[dict]:
         """Get all custom videos for a movement."""
         with get_connection() as conn:
             cursor = conn.cursor()

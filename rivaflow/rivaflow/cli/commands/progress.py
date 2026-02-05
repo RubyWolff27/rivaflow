@@ -1,8 +1,8 @@
 """Progress and milestones command."""
 import typer
 from rich.console import Console
-from rich.table import Table
 from rich.panel import Panel
+from rich.table import Table
 
 from rivaflow.core.services.milestone_service import MilestoneService
 from rivaflow.db.database import get_connection

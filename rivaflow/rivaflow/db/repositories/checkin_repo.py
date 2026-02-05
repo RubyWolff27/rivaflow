@@ -1,16 +1,14 @@
 """Repository for daily check-in operations."""
-import sqlite3
 from datetime import date
-from typing import Optional
 
-from rivaflow.db.database import get_connection, convert_query, execute_insert
+from rivaflow.db.database import convert_query, execute_insert, get_connection
 
 
 class CheckinRepository:
     """Data access layer for daily check-ins."""
 
     @staticmethod
-    def get_checkin(user_id: int, check_date: date) -> Optional[dict]:
+    def get_checkin(user_id: int, check_date: date) -> dict | None:
         """Get check-in for a specific date."""
         with get_connection() as conn:
             cursor = conn.cursor()
@@ -35,12 +33,12 @@ class CheckinRepository:
         user_id: int,
         check_date: date,
         checkin_type: str,
-        rest_type: Optional[str] = None,
-        rest_note: Optional[str] = None,
-        session_id: Optional[int] = None,
-        readiness_id: Optional[int] = None,
-        tomorrow_intention: Optional[str] = None,
-        insight_shown: Optional[str] = None
+        rest_type: str | None = None,
+        rest_note: str | None = None,
+        session_id: int | None = None,
+        readiness_id: int | None = None,
+        tomorrow_intention: str | None = None,
+        insight_shown: str | None = None
     ) -> int:
         """Create or update daily check-in."""
         with get_connection() as conn:

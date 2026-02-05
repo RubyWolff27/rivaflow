@@ -1,6 +1,5 @@
 """Secure error handling utilities."""
 import logging
-from typing import Optional
 
 logger = logging.getLogger(__name__)
 
@@ -8,8 +7,8 @@ logger = logging.getLogger(__name__)
 def handle_service_error(
     error: Exception,
     user_message: str = "An error occurred",
-    user_id: Optional[int] = None,
-    operation: Optional[str] = None
+    user_id: int | None = None,
+    operation: str | None = None
 ) -> str:
     """
     Handle service errors securely.

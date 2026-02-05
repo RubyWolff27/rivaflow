@@ -1,12 +1,11 @@
 """Daily insight generation."""
 import random
 from datetime import date, timedelta
-from typing import Optional
 
 from rivaflow.config import DB_TYPE
+from rivaflow.core.services.milestone_service import MilestoneService
 from rivaflow.db.database import get_connection
 from rivaflow.db.repositories.streak_repo import StreakRepository
-from rivaflow.core.services.milestone_service import MilestoneService
 
 
 class InsightService:

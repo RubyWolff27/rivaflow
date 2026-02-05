@@ -1,9 +1,8 @@
 """Repository for friends (training partners and instructors) data access."""
 import sqlite3
-from typing import List, Optional
 
-from rivaflow.db.database import get_connection, convert_query, execute_insert
 from rivaflow.core.constants import FRIEND_SORT_OPTIONS
+from rivaflow.db.database import convert_query, execute_insert, get_connection
 
 
 class FriendRepository:
@@ -14,14 +13,14 @@ class FriendRepository:
         user_id: int,
         name: str,
         friend_type: str = "training-partner",
-        belt_rank: Optional[str] = None,
-        gym: Optional[str] = None,
-        notes: Optional[str] = None,
+        belt_rank: str | None = None,
+        gym: str | None = None,
+        notes: str | None = None,
         # Legacy parameters - ignored but kept for API compatibility
         belt_stripes: int = 0,
-        instructor_certification: Optional[str] = None,
-        phone: Optional[str] = None,
-        email: Optional[str] = None,
+        instructor_certification: str | None = None,
+        phone: str | None = None,
+        email: str | None = None,
     ) -> dict:
         """Create a new friend."""
         with get_connection() as conn:
@@ -42,7 +41,7 @@ class FriendRepository:
             return FriendRepository._row_to_dict(row)
 
     @staticmethod
-    def get_by_id(user_id: int, friend_id: int) -> Optional[dict]:
+    def get_by_id(user_id: int, friend_id: int) -> dict | None:
         """Get a friend by ID."""
         with get_connection() as conn:
             cursor = conn.cursor()
@@ -51,7 +50,7 @@ class FriendRepository:
             return FriendRepository._row_to_dict(row) if row else None
 
     @staticmethod
-    def get_by_name(user_id: int, name: str) -> Optional[dict]:
+    def get_by_name(user_id: int, name: str) -> dict | None:
         """Get a friend by exact name match."""
         with get_connection() as conn:
             cursor = conn.cursor()
@@ -60,7 +59,7 @@ class FriendRepository:
             return FriendRepository._row_to_dict(row) if row else None
 
     @staticmethod
-    def list_all(user_id: int, order_by: str = "name ASC") -> List[dict]:
+    def list_all(user_id: int, order_by: str = "name ASC") -> list[dict]:
         """Get all friends, ordered by name alphabetically by default."""
         # Whitelist allowed ORDER BY values to prevent SQL injection
         if order_by not in FRIEND_SORT_OPTIONS:
@@ -73,7 +72,7 @@ class FriendRepository:
             return [FriendRepository._row_to_dict(row) for row in rows]
 
     @staticmethod
-    def list_by_type(user_id: int, friend_type: str, order_by: str = "name ASC") -> List[dict]:
+    def list_by_type(user_id: int, friend_type: str, order_by: str = "name ASC") -> list[dict]:
         """Get friends filtered by type."""
         # Whitelist allowed ORDER BY values to prevent SQL injection
         if order_by not in FRIEND_SORT_OPTIONS:
@@ -89,7 +88,7 @@ class FriendRepository:
             return [FriendRepository._row_to_dict(row) for row in rows]
 
     @staticmethod
-    def search(user_id: int, query: str) -> List[dict]:
+    def search(user_id: int, query: str) -> list[dict]:
         """Search friends by name (case-insensitive partial match)."""
         with get_connection() as conn:
             cursor = conn.cursor()
@@ -104,17 +103,17 @@ class FriendRepository:
     def update(
         user_id: int,
         friend_id: int,
-        name: Optional[str] = None,
-        friend_type: Optional[str] = None,
-        belt_rank: Optional[str] = None,
-        gym: Optional[str] = None,
-        notes: Optional[str] = None,
+        name: str | None = None,
+        friend_type: str | None = None,
+        belt_rank: str | None = None,
+        gym: str | None = None,
+        notes: str | None = None,
         # Legacy parameters - ignored but kept for API compatibility
-        belt_stripes: Optional[int] = None,
-        instructor_certification: Optional[str] = None,
-        phone: Optional[str] = None,
-        email: Optional[str] = None,
-    ) -> Optional[dict]:
+        belt_stripes: int | None = None,
+        instructor_certification: str | None = None,
+        phone: str | None = None,
+        email: str | None = None,
+    ) -> dict | None:
         """Update a friend by ID. Returns updated friend or None if not found."""
         with get_connection() as conn:
             cursor = conn.cursor()

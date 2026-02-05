@@ -1,16 +1,16 @@
 """Rest day logging command."""
+import random
 from datetime import date
+
 import typer
-from typing import Optional
 from rich.console import Console
 from rich.panel import Panel
 from rich.prompt import Prompt
 
 from rivaflow.cli.utils.user_context import get_current_user_id
-from rivaflow.core.services.rest_service import RestService
+from rivaflow.config import MILESTONE_QUOTES, REST_TYPES, TOMORROW_INTENTIONS
 from rivaflow.core.services.milestone_service import MilestoneService
-from rivaflow.config import REST_TYPES, TOMORROW_INTENTIONS, MILESTONE_QUOTES
-import random
+from rivaflow.core.services.rest_service import RestService
 
 app = typer.Typer(
     help="Rest day logging",
@@ -58,8 +58,8 @@ def show_milestone_celebration(milestone: dict, user_id: int):
 def rest(
     ctx: typer.Context,
     rest_type: str = typer.Option("recovery", "--type", "-t", help="Type: recovery, life, injury, travel"),
-    note: Optional[str] = typer.Option(None, "--note", "-n", help="Optional note"),
-    tomorrow: Optional[str] = typer.Option(None, "--tomorrow", help="Tomorrow's intention")
+    note: str | None = typer.Option(None, "--note", "-n", help="Optional note"),
+    tomorrow: str | None = typer.Option(None, "--tomorrow", help="Tomorrow's intention")
 ):
     """
     Log a rest/recovery day to maintain your check-in streak.

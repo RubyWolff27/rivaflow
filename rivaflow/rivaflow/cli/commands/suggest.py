@@ -2,11 +2,9 @@
 import typer
 from rich.console import Console
 from rich.panel import Panel
-from rich.tree import Tree
 
 from rivaflow.cli.utils.user_context import get_current_user_id
 from rivaflow.core.services.suggestion_engine import SuggestionEngine
-from rivaflow.cli import prompts
 
 app = typer.Typer(help="Training suggestions and recommendations")
 console = Console()

@@ -8,11 +8,11 @@ Provides consistent error responses across all API endpoints with:
 """
 import logging
 import os
-from typing import Optional, Dict, Any
+from typing import Any
+
 from fastapi import Request, status
-from fastapi.responses import JSONResponse
 from fastapi.exceptions import RequestValidationError
-from pydantic import ValidationError as PydanticValidationError
+from fastapi.responses import JSONResponse
 
 from rivaflow.core.exceptions import RivaFlowException
 
@@ -23,9 +23,9 @@ def format_error_response(
     error_code: str,
     message: str,
     status_code: int,
-    details: Optional[Dict[str, Any]] = None,
-    request_id: Optional[str] = None
-) -> Dict[str, Any]:
+    details: dict[str, Any] | None = None,
+    request_id: str | None = None
+) -> dict[str, Any]:
     """Format error response in consistent structure.
 
     Args:
@@ -117,7 +117,7 @@ async def validation_exception_handler(
         JSON response with validation errors
     """
     # Sensitive field names that should not have their values exposed
-    SENSITIVE_FIELDS = {
+    sensitive_fields = {
         "password", "password_hash", "secret", "token", "api_key",
         "access_token", "refresh_token", "reset_token", "secret_key"
     }
@@ -130,7 +130,7 @@ async def validation_exception_handler(
         # Check if field is sensitive
         is_sensitive = any(
             sensitive in field_name.lower()
-            for sensitive in SENSITIVE_FIELDS
+            for sensitive in sensitive_fields
         )
 
         # Only include input value in development mode AND for non-sensitive fields

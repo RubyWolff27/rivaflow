@@ -1,6 +1,6 @@
 """Public gym routes for authenticated users."""
+
 from fastapi import APIRouter, Depends, Query, Request
-from typing import Optional
 
 from rivaflow.core.dependencies import get_current_user
 from rivaflow.core.services.gym_service import GymService

@@ -1,17 +1,17 @@
 """Dashboard API endpoints."""
-from fastapi import APIRouter, Depends, Query
 from datetime import date, timedelta
-from typing import Optional, List
 
-from rivaflow.core.services.analytics_service import AnalyticsService
-from rivaflow.core.services.milestone_service import MilestoneService
-from rivaflow.core.services.streak_service import StreakService
-from rivaflow.core.services.goals_service import GoalsService
-from rivaflow.db.repositories.session_repo import SessionRepository
-from rivaflow.db.repositories.readiness_repo import ReadinessRepository
+from fastapi import APIRouter, Depends, Query
+
 from rivaflow.core.dependencies import get_current_user
 from rivaflow.core.exceptions import ValidationError
+from rivaflow.core.services.analytics_service import AnalyticsService
+from rivaflow.core.services.goals_service import GoalsService
+from rivaflow.core.services.milestone_service import MilestoneService
+from rivaflow.core.services.streak_service import StreakService
 from rivaflow.core.utils.cache import cached
+from rivaflow.db.repositories.readiness_repo import ReadinessRepository
+from rivaflow.db.repositories.session_repo import SessionRepository
 
 router = APIRouter(prefix="/dashboard", tags=["dashboard"])
 
@@ -21,7 +21,7 @@ def _get_dashboard_summary_cached(
     user_id: int,
     start_date: date,
     end_date: date,
-    types: Optional[List[str]] = None,
+    types: list[str] | None = None,
 ):
     """
     Cached helper for dashboard summary.
@@ -90,9 +90,9 @@ def _get_dashboard_summary_cached(
 
 @router.get("/summary")
 async def get_dashboard_summary(
-    start_date: Optional[date] = Query(None, description="Start date for analytics"),
-    end_date: Optional[date] = Query(None, description="End date for analytics"),
-    types: Optional[List[str]] = Query(None, description="Filter by class types"),
+    start_date: date | None = Query(None, description="Start date for analytics"),
+    end_date: date | None = Query(None, description="End date for analytics"),
+    types: list[str] | None = Query(None, description="Filter by class types"),
     current_user: dict = Depends(get_current_user),
 ):
     """
@@ -197,7 +197,7 @@ async def get_week_summary(
         week_end = week_start + timedelta(days=6)
 
         session_repo = SessionRepository()
-        goals_service = GoalsService()
+        GoalsService()
 
         # Get sessions for the week
         sessions = session_repo.get_by_date_range(user_id, week_start, week_end)

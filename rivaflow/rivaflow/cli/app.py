@@ -1,22 +1,22 @@
 """Main CLI application using Typer."""
-import typer
-from typing import Optional
 from datetime import date, datetime
+
+import typer
 
 from rivaflow.cli.commands import (
     auth,
+    dashboard,
     log,
+    progress,
     readiness,
     report,
-    suggest,
-    video,
-    technique,
-    dashboard,
     rest,
-    streak,
-    tomorrow,
-    progress,
     setup,
+    streak,
+    suggest,
+    technique,
+    tomorrow,
+    video,
 )
 
 app = typer.Typer(
@@ -74,6 +74,7 @@ def about():
     """Show RivaFlow version and info."""
     from rich.console import Console
     from rich.panel import Panel
+
     from rivaflow.cli.utils.logo import LOGO, TAGLINE
 
     console = Console()
@@ -110,8 +111,14 @@ def stats():
     """Show quick lifetime statistics."""
     from rich.console import Console
     from rich.table import Table
-    from rivaflow.db.repositories import SessionRepository, ReadinessRepository, TechniqueRepository, VideoRepository
+
     from rivaflow.cli.utils.user_context import get_current_user_id
+    from rivaflow.db.repositories import (
+        ReadinessRepository,
+        SessionRepository,
+        TechniqueRepository,
+        VideoRepository,
+    )
 
     console = Console()
     user_id = get_current_user_id()
@@ -154,20 +161,25 @@ def stats():
 
 @app.command()
 def export(
-    output: Optional[str] = typer.Option(None, "--output", "-o", help="Output file path (default: rivaflow_export.json)")
+    output: str | None = typer.Option(None, "--output", "-o", help="Output file path (default: rivaflow_export.json)")
 ):
     """Export all your data as JSON (GDPR-compliant data portability)."""
     import json
     from pathlib import Path
+
     from rich.console import Console
-    from rich.prompt import Confirm
+
     from rivaflow.cli.utils.user_context import get_current_user_id
     from rivaflow.db.repositories import (
-        SessionRepository, ReadinessRepository, TechniqueRepository,
-        VideoRepository, GradingRepository, FriendRepository,
-        UserRepository, ProfileRepository
+        FriendRepository,
+        GradingRepository,
+        ProfileRepository,
+        ReadinessRepository,
+        SessionRepository,
+        TechniqueRepository,
+        UserRepository,
+        VideoRepository,
     )
-    from rivaflow.config import DB_PATH
 
     console = Console()
     user_id = get_current_user_id()
@@ -242,9 +254,10 @@ def delete_account(
     """Delete your account and all associated data (GDPR right to erasure)."""
     from rich.console import Console
     from rich.prompt import Confirm
-    from rivaflow.cli.utils.user_context import get_current_user_id, CREDENTIALS_FILE
+
+    from rivaflow.cli.utils.user_context import CREDENTIALS_FILE, get_current_user_id
+    from rivaflow.db.database import convert_query, get_connection
     from rivaflow.db.repositories import UserRepository
-    from rivaflow.db.database import get_connection, convert_query
 
     console = Console()
     user_id = get_current_user_id()

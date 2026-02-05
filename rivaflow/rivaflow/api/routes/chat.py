@@ -1,16 +1,15 @@
 """Chat API routes - proxy to Ollama LLM with BJJ coaching context."""
-import os
 import logging
-from fastapi import APIRouter, HTTPException, Depends
-from pydantic import BaseModel
+import os
+
 import httpx
-from typing import List
-from datetime import datetime, timedelta
+from fastapi import APIRouter, Depends, HTTPException
+from pydantic import BaseModel
 
 from rivaflow.core.dependencies import get_current_user
+from rivaflow.core.services.privacy_service import PrivacyService
 from rivaflow.db.repositories.session_repo import SessionRepository
 from rivaflow.db.repositories.user_repo import UserRepository
-from rivaflow.core.services.privacy_service import PrivacyService
 
 router = APIRouter(prefix="/chat", tags=["chat"])
 logger = logging.getLogger(__name__)
@@ -30,7 +29,7 @@ class Message(BaseModel):
 
 
 class ChatRequest(BaseModel):
-    messages: List[Message]
+    messages: list[Message]
 
 
 class ChatResponse(BaseModel):
@@ -72,10 +71,10 @@ def build_user_context(user_id: int) -> str:
 
     # Build context string
     context_parts = [
-        f"USER PROFILE:",
+        "USER PROFILE:",
         f"Name: {user['first_name']} {user['last_name']}",
         f"Email: {user['email']}",
-        f"",
+        "",
         f"TRAINING HISTORY: {total_sessions} total sessions",
     ]
 

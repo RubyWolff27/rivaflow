@@ -1,16 +1,16 @@
 """Admin routes for gym and data management."""
-from fastapi import APIRouter, Depends, Path, Body, Request, Query
+
+from fastapi import APIRouter, Body, Depends, Path, Query, Request
 from pydantic import BaseModel, Field
-from typing import Optional
 from slowapi import Limiter
 from slowapi.util import get_remote_address
 
-from rivaflow.db.repositories.gym_repo import GymRepository
-from rivaflow.db.repositories.feedback_repo import FeedbackRepository
-from rivaflow.core.dependencies import get_current_user, get_admin_user
+from rivaflow.core.dependencies import get_admin_user
 from rivaflow.core.exceptions import NotFoundError, ValidationError
 from rivaflow.core.services.audit_service import AuditService
 from rivaflow.core.services.gym_service import GymService
+from rivaflow.db.repositories.feedback_repo import FeedbackRepository
+from rivaflow.db.repositories.gym_repo import GymRepository
 
 router = APIRouter(prefix="/admin", tags=["admin"])
 limiter = Limiter(key_func=get_remote_address)
@@ -20,33 +20,33 @@ limiter = Limiter(key_func=get_remote_address)
 class GymCreateRequest(BaseModel):
     """Request model for creating a gym."""
     name: str = Field(..., min_length=1, max_length=200)
-    city: Optional[str] = Field(None, max_length=100)
-    state: Optional[str] = Field(None, max_length=50)
+    city: str | None = Field(None, max_length=100)
+    state: str | None = Field(None, max_length=50)
     country: str = Field("Australia", max_length=100)
-    address: Optional[str] = Field(None, max_length=500)
-    website: Optional[str] = Field(None, max_length=500)
-    email: Optional[str] = Field(None, max_length=200)
-    phone: Optional[str] = Field(None, max_length=50)
-    head_coach: Optional[str] = Field(None, max_length=200)
-    head_coach_belt: Optional[str] = Field(None, max_length=20)
-    google_maps_url: Optional[str] = Field(None, max_length=1000)
+    address: str | None = Field(None, max_length=500)
+    website: str | None = Field(None, max_length=500)
+    email: str | None = Field(None, max_length=200)
+    phone: str | None = Field(None, max_length=50)
+    head_coach: str | None = Field(None, max_length=200)
+    head_coach_belt: str | None = Field(None, max_length=20)
+    google_maps_url: str | None = Field(None, max_length=1000)
     verified: bool = False
 
 
 class GymUpdateRequest(BaseModel):
     """Request model for updating a gym."""
-    name: Optional[str] = Field(None, min_length=1, max_length=200)
-    city: Optional[str] = Field(None, max_length=100)
-    state: Optional[str] = Field(None, max_length=50)
-    country: Optional[str] = Field(None, max_length=100)
-    address: Optional[str] = Field(None, max_length=500)
-    website: Optional[str] = Field(None, max_length=500)
-    email: Optional[str] = Field(None, max_length=200)
-    phone: Optional[str] = Field(None, max_length=50)
-    head_coach: Optional[str] = Field(None, max_length=200)
-    head_coach_belt: Optional[str] = Field(None, max_length=20)
-    google_maps_url: Optional[str] = Field(None, max_length=1000)
-    verified: Optional[bool] = None
+    name: str | None = Field(None, min_length=1, max_length=200)
+    city: str | None = Field(None, max_length=100)
+    state: str | None = Field(None, max_length=50)
+    country: str | None = Field(None, max_length=100)
+    address: str | None = Field(None, max_length=500)
+    website: str | None = Field(None, max_length=500)
+    email: str | None = Field(None, max_length=200)
+    phone: str | None = Field(None, max_length=50)
+    head_coach: str | None = Field(None, max_length=200)
+    head_coach_belt: str | None = Field(None, max_length=20)
+    google_maps_url: str | None = Field(None, max_length=1000)
+    verified: bool | None = None
 
 
 class GymMergeRequest(BaseModel):
@@ -121,7 +121,7 @@ async def search_gyms(
     """Search gyms by name or location."""
     if not q or len(q) < 2:
         return {"gyms": []}
-    
+
     gym_service = GymService()
     gyms = gym_service.search(q, verified_only=verified_only)
     return {
@@ -282,7 +282,7 @@ async def verify_gym(
 async def reject_gym(
     request: Request,
     gym_id: int = Path(..., gt=0),
-    reason: Optional[str] = Body(None, embed=True),
+    reason: str | None = Body(None, embed=True),
     current_user: dict = Depends(require_admin),
 ):
     """
@@ -382,11 +382,9 @@ async def merge_gyms(
 @limiter.limit("60/minute")
 async def get_dashboard_stats(request: Request, current_user: dict = Depends(require_admin)):
     """Get platform statistics for admin dashboard."""
-    from rivaflow.db.repositories.user_repo import UserRepository
-    from rivaflow.db.repositories.session_repo import SessionRepository
-    from rivaflow.db.repositories.activity_comment_repo import ActivityCommentRepository
-    from rivaflow.db.database import get_connection, convert_query
     from datetime import datetime, timedelta
+
+    from rivaflow.db.database import convert_query, get_connection
 
     with get_connection() as conn:
         cursor = conn.cursor()
@@ -455,25 +453,25 @@ async def get_dashboard_stats(request: Request, current_user: dict = Depends(req
 # User management endpoints
 class UserUpdateRequest(BaseModel):
     """Request model for updating a user."""
-    is_active: Optional[bool] = None
-    is_admin: Optional[bool] = None
-    subscription_tier: Optional[str] = Field(None, pattern="^(free|premium|lifetime_premium|admin)$")
-    is_beta_user: Optional[bool] = None
+    is_active: bool | None = None
+    is_admin: bool | None = None
+    subscription_tier: str | None = Field(None, pattern="^(free|premium|lifetime_premium|admin)$")
+    is_beta_user: bool | None = None
 
 
 @router.get("/users")
 @limiter.limit("60/minute")
 async def list_users(
     request: Request,
-    search: Optional[str] = None,
-    is_active: Optional[bool] = None,
-    is_admin: Optional[bool] = None,
+    search: str | None = None,
+    is_active: bool | None = None,
+    is_admin: bool | None = None,
     limit: int = 50,
     offset: int = 0,
     current_user: dict = Depends(require_admin),
 ):
     """List all users with optional filters (admin only)."""
-    from rivaflow.db.database import get_connection, convert_query
+    from rivaflow.db.database import convert_query, get_connection
 
     with get_connection() as conn:
         cursor = conn.cursor()
@@ -534,9 +532,8 @@ async def get_user_details(
     current_user: dict = Depends(require_admin),
 ):
     """Get detailed user information (admin only)."""
+    from rivaflow.db.database import convert_query, get_connection
     from rivaflow.db.repositories.user_repo import UserRepository
-    from rivaflow.db.repositories.session_repo import SessionRepository
-    from rivaflow.db.database import get_connection, convert_query
 
     user = UserRepository.get_by_id(user_id)
     if not user:
@@ -592,8 +589,8 @@ async def update_user(
     current_user: dict = Depends(require_admin),
 ):
     """Update user (admin only)."""
+    from rivaflow.db.database import convert_query, get_connection
     from rivaflow.db.repositories.user_repo import UserRepository
-    from rivaflow.db.database import get_connection, convert_query
 
     user = UserRepository.get_by_id(user_id)
     if not user:
@@ -655,8 +652,8 @@ async def delete_user(
     current_user: dict = Depends(require_admin),
 ):
     """Delete user (admin only). Cascades to all related data."""
+    from rivaflow.db.database import convert_query, get_connection
     from rivaflow.db.repositories.user_repo import UserRepository
-    from rivaflow.db.database import get_connection, convert_query
 
     if user_id == current_user["id"]:
         raise ValidationError("Cannot delete your own account")
@@ -694,7 +691,7 @@ async def list_all_comments(
     current_user: dict = Depends(require_admin),
 ):
     """List all comments for moderation (admin only)."""
-    from rivaflow.db.database import get_connection, convert_query
+    from rivaflow.db.database import convert_query, get_connection
 
     with get_connection() as conn:
         cursor = conn.cursor()
@@ -757,13 +754,13 @@ async def delete_comment(
 @limiter.limit("60/minute")
 async def list_techniques(
     request: Request,
-    search: Optional[str] = None,
-    category: Optional[str] = None,
+    search: str | None = None,
+    category: str | None = None,
     custom_only: bool = False,
     current_user: dict = Depends(require_admin),
 ):
     """List all techniques for admin management."""
-    from rivaflow.db.database import get_connection, convert_query
+    from rivaflow.db.database import convert_query, get_connection
 
     with get_connection() as conn:
         cursor = conn.cursor()
@@ -805,7 +802,7 @@ async def delete_technique(
     current_user: dict = Depends(require_admin),
 ):
     """Delete a technique (admin only)."""
-    from rivaflow.db.database import get_connection, convert_query
+    from rivaflow.db.database import convert_query, get_connection
 
     # Get technique name before deleting
     technique_name = None
@@ -844,10 +841,10 @@ async def get_audit_logs(
     request: Request,
     limit: int = 100,
     offset: int = 0,
-    actor_id: Optional[int] = None,
-    action: Optional[str] = None,
-    target_type: Optional[str] = None,
-    target_id: Optional[int] = None,
+    actor_id: int | None = None,
+    action: str | None = None,
+    target_type: str | None = None,
+    target_id: int | None = None,
     current_user: dict = Depends(require_admin),
 ):
     """Get audit logs with optional filters (admin only)."""
@@ -879,13 +876,13 @@ async def get_audit_logs(
 class FeedbackUpdateStatusRequest(BaseModel):
     """Admin model for updating feedback status."""
     status: str = Field(..., pattern="^(new|reviewing|resolved|closed)$")
-    admin_notes: Optional[str] = Field(None, max_length=1000)
+    admin_notes: str | None = Field(None, max_length=1000)
 
 
 @router.get("/feedback")
 async def get_all_feedback(
-    status: Optional[str] = Query(None, pattern="^(new|reviewing|resolved|closed)$"),
-    category: Optional[str] = Query(None, pattern="^(bug|feature|improvement|question|other)$"),
+    status: str | None = Query(None, pattern="^(new|reviewing|resolved|closed)$"),
+    category: str | None = Query(None, pattern="^(bug|feature|improvement|question|other)$"),
     limit: int = Query(100, ge=1, le=500),
     offset: int = Query(0, ge=0),
     current_user: dict = Depends(get_admin_user),

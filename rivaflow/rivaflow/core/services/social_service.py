@@ -1,15 +1,15 @@
 """Social features service for relationships, likes, and comments."""
-from typing import List, Optional, Dict, Any
 import sqlite3
+from typing import Any
 
+from rivaflow.core.services.notification_service import NotificationService
 from rivaflow.db.repositories import (
-    UserRelationshipRepository,
-    ActivityLikeRepository,
     ActivityCommentRepository,
+    ActivityLikeRepository,
     SessionRepository,
+    UserRelationshipRepository,
 )
 from rivaflow.db.repositories.readiness_repo import ReadinessRepository
-from rivaflow.core.services.notification_service import NotificationService
 
 
 class SocialService:
@@ -19,7 +19,7 @@ class SocialService:
     VALID_ACTIVITY_TYPES = {"session", "readiness", "rest"}
 
     @staticmethod
-    def follow_user(follower_user_id: int, following_user_id: int) -> Dict[str, Any]:
+    def follow_user(follower_user_id: int, following_user_id: int) -> dict[str, Any]:
         """
         Follow another user.
 
@@ -66,12 +66,12 @@ class SocialService:
         return UserRelationshipRepository.unfollow(follower_user_id, following_user_id)
 
     @staticmethod
-    def get_followers(user_id: int) -> List[Dict[str, Any]]:
+    def get_followers(user_id: int) -> list[dict[str, Any]]:
         """Get all users who follow this user."""
         return UserRelationshipRepository.get_followers(user_id)
 
     @staticmethod
-    def get_following(user_id: int) -> List[Dict[str, Any]]:
+    def get_following(user_id: int) -> list[dict[str, Any]]:
         """Get all users that this user follows."""
         return UserRelationshipRepository.get_following(user_id)
 
@@ -91,7 +91,7 @@ class SocialService:
         return UserRelationshipRepository.get_following_count(user_id)
 
     @staticmethod
-    def like_activity(user_id: int, activity_type: str, activity_id: int) -> Dict[str, Any]:
+    def like_activity(user_id: int, activity_type: str, activity_id: int) -> dict[str, Any]:
         """
         Like an activity.
 
@@ -155,7 +155,7 @@ class SocialService:
         return ActivityLikeRepository.delete(user_id, activity_type, activity_id)
 
     @staticmethod
-    def get_activity_likes(activity_type: str, activity_id: int) -> List[Dict[str, Any]]:
+    def get_activity_likes(activity_type: str, activity_id: int) -> list[dict[str, Any]]:
         """Get all likes for an activity with user information."""
         return ActivityLikeRepository.get_by_activity(activity_type, activity_id)
 
@@ -175,8 +175,8 @@ class SocialService:
         activity_type: str,
         activity_id: int,
         comment_text: str,
-        parent_comment_id: Optional[int] = None,
-    ) -> Dict[str, Any]:
+        parent_comment_id: int | None = None,
+    ) -> dict[str, Any]:
         """
         Add a comment to an activity.
 
@@ -240,7 +240,7 @@ class SocialService:
         return comment
 
     @staticmethod
-    def get_activity_comments(activity_type: str, activity_id: int) -> List[Dict[str, Any]]:
+    def get_activity_comments(activity_type: str, activity_id: int) -> list[dict[str, Any]]:
         """Get all comments for an activity with user information."""
         return ActivityCommentRepository.get_by_activity(activity_type, activity_id)
 
@@ -250,7 +250,7 @@ class SocialService:
         return ActivityCommentRepository.get_comment_count(activity_type, activity_id)
 
     @staticmethod
-    def update_comment(comment_id: int, user_id: int, comment_text: str) -> Optional[Dict[str, Any]]:
+    def update_comment(comment_id: int, user_id: int, comment_text: str) -> dict[str, Any] | None:
         """
         Update a comment (user can only update their own comments).
 
@@ -288,7 +288,7 @@ class SocialService:
         return ActivityCommentRepository.delete(comment_id, user_id)
 
     @staticmethod
-    def _get_activity(activity_type: str, activity_id: int) -> Optional[Dict[str, Any]]:
+    def _get_activity(activity_type: str, activity_id: int) -> dict[str, Any] | None:
         """
         Internal helper to fetch an activity.
 
@@ -310,7 +310,7 @@ class SocialService:
         return None
 
     @staticmethod
-    def get_friend_recommendations(user_id: int) -> List[Dict[str, Any]]:
+    def get_friend_recommendations(user_id: int) -> list[dict[str, Any]]:
         """
         Get friend recommendations based on gym overlap (Strava-style).
 
@@ -326,8 +326,9 @@ class SocialService:
         Returns:
             List of recommended users with context
         """
-        from datetime import date, timedelta
         from collections import Counter
+        from datetime import date, timedelta
+
         from rivaflow.db.repositories.user_repo import UserRepository
 
         # Get current user's sessions (last 90 days for pattern matching)

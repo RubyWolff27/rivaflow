@@ -1,13 +1,13 @@
 """Database performance tests with large datasets."""
 import os
-import pytest
 import time
 from datetime import date, timedelta
-from typing import List
 
-from rivaflow.db.database import get_connection, convert_query
-from rivaflow.db.repositories.session_repo import SessionRepository
+import pytest
+
 from rivaflow.core.services.analytics_service import AnalyticsService
+from rivaflow.db.database import convert_query, get_connection
+from rivaflow.db.repositories.session_repo import SessionRepository
 
 # Set test environment
 os.environ.setdefault("SECRET_KEY", "test-secret-key-for-performance-tests-minimum-32-chars")
@@ -26,7 +26,7 @@ class TestDatabasePerformance:
         sessions_created = []
         start_date = date.today() - timedelta(days=730)  # 2 years of data
 
-        print(f"\nGenerating 10,000 test sessions...")
+        print("\nGenerating 10,000 test sessions...")
         start_time = time.time()
 
         for i in range(10000):
@@ -84,7 +84,7 @@ class TestDatabasePerformance:
         start_date = end_date - timedelta(days=30)
 
         start_time = time.time()
-        recent_sessions = repo.list_by_user(user_id, start_date=start_date, end_date=end_date)
+        repo.list_by_user(user_id, start_date=start_date, end_date=end_date)
         end_time = time.time()
 
         query_time = end_time - start_time
@@ -163,7 +163,7 @@ class TestDatabasePerformance:
         total_time = 0
         for page in range(num_pages):
             start_time = time.time()
-            sessions = repo.list_by_user(user_id, limit=page_size, offset=page * page_size)
+            repo.list_by_user(user_id, limit=page_size, offset=page * page_size)
             end_time = time.time()
 
             page_time = end_time - start_time
@@ -185,7 +185,7 @@ class TestDatabasePerformance:
             cursor.execute("EXPLAIN QUERY PLAN SELECT * FROM sessions WHERE user_id = ?", (user_id,))
             plan = cursor.fetchall()
 
-            print(f"\nQuery plan for user_id filter:")
+            print("\nQuery plan for user_id filter:")
             for row in plan:
                 print(f"  {row}")
 
@@ -250,8 +250,9 @@ class TestMemoryUsage:
 
     def test_streaming_large_results(self):
         """Test that large result sets don't cause excessive memory usage."""
-        import psutil
         import gc
+
+        import psutil
 
         # Force garbage collection before test
         gc.collect()

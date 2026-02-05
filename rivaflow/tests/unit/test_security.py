@@ -4,23 +4,24 @@ Unit tests for security features.
 Tests authentication, authorization, password hashing, token security,
 and protection against common vulnerabilities.
 """
-import pytest
 import os
 import time
-from datetime import datetime, timedelta
+from datetime import timedelta
+
+import pytest
 
 # Set SECRET_KEY for testing
 os.environ.setdefault("SECRET_KEY", "test-secret-key-for-security-tests-minimum-32-characters-long")
 
 from rivaflow.core.auth import (
-    hash_password,
-    verify_password,
     create_access_token,
     decode_access_token,
     generate_refresh_token,
+    hash_password,
+    verify_password,
 )
-from rivaflow.db.repositories.password_reset_token_repo import PasswordResetTokenRepository
 from rivaflow.db.database import get_connection
+from rivaflow.db.repositories.password_reset_token_repo import PasswordResetTokenRepository
 
 
 class TestPasswordHashing:

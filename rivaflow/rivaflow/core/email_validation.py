@@ -5,9 +5,8 @@ This module provides robust email validation beyond basic regex:
 - Disposable email domain blocking
 - Configurable validation strictness
 """
-from typing import Tuple
-from email_validator import validate_email, EmailNotValidError
 
+from email_validator import EmailNotValidError, validate_email
 
 # Common disposable email domains (updated list)
 # Source: https://github.com/disposable-email-domains/disposable-email-domains
@@ -65,7 +64,7 @@ def validate_email_address(
     email: str,
     check_deliverability: bool = False,
     allow_disposable: bool = False
-) -> Tuple[bool, str, dict]:
+) -> tuple[bool, str, dict]:
     """
     Validate an email address with comprehensive checks.
 

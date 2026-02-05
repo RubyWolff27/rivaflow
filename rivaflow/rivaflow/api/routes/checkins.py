@@ -1,12 +1,12 @@
 """API routes for daily check-ins."""
 from datetime import date, timedelta
-from typing import Optional
-from fastapi import APIRouter, HTTPException, Depends
+
+from fastapi import APIRouter, Depends
 from pydantic import BaseModel
 
-from rivaflow.db.repositories.checkin_repo import CheckinRepository
 from rivaflow.core.dependencies import get_current_user
 from rivaflow.core.exceptions import NotFoundError
+from rivaflow.db.repositories.checkin_repo import CheckinRepository
 
 router = APIRouter(prefix="/checkins", tags=["checkins"])
 

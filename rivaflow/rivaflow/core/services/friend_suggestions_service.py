@@ -1,13 +1,11 @@
 """Service for generating friend suggestions based on multiple signals."""
-from datetime import datetime
-from typing import List, Dict, Any, Set
-from collections import defaultdict
+from typing import Any
 
+from rivaflow.db.database import convert_query, get_connection
 from rivaflow.db.repositories.friend_suggestions_repo import FriendSuggestionsRepository
-from rivaflow.db.repositories.user_repo import UserRepository
-from rivaflow.db.repositories.social_connection_repo import SocialConnectionRepository
 from rivaflow.db.repositories.session_repo import SessionRepository
-from rivaflow.db.database import get_connection, convert_query
+from rivaflow.db.repositories.social_connection_repo import SocialConnectionRepository
+from rivaflow.db.repositories.user_repo import UserRepository
 
 
 class FriendSuggestionsService:
@@ -86,7 +84,7 @@ class FriendSuggestionsService:
 
         return created_count
 
-    def get_suggestions(self, user_id: int, limit: int = 10) -> List[Dict[str, Any]]:
+    def get_suggestions(self, user_id: int, limit: int = 10) -> list[dict[str, Any]]:
         """Get active friend suggestions for a user."""
         # Check if we have recent suggestions
         suggestions = self.suggestions_repo.get_active_suggestions(user_id, limit)
@@ -102,7 +100,7 @@ class FriendSuggestionsService:
         """Dismiss a friend suggestion."""
         return self.suggestions_repo.dismiss_suggestion(user_id, suggested_user_id)
 
-    def _get_existing_connection_ids(self, user_id: int) -> Set[int]:
+    def _get_existing_connection_ids(self, user_id: int) -> set[int]:
         """Get IDs of users already connected or with pending requests."""
         existing_ids = set()
 
@@ -134,7 +132,7 @@ class FriendSuggestionsService:
 
         return existing_ids
 
-    def _get_candidate_users(self, user_id: int, exclude_ids: Set[int]) -> List[Dict[str, Any]]:
+    def _get_candidate_users(self, user_id: int, exclude_ids: set[int]) -> list[dict[str, Any]]:
         """Get all users who could be suggested (excluding self and connections)."""
         with get_connection() as conn:
             cursor = conn.cursor()
@@ -180,8 +178,8 @@ class FriendSuggestionsService:
             return candidates
 
     def _calculate_score(
-        self, current_user: Dict[str, Any], candidate: Dict[str, Any], user_id: int
-    ) -> tuple[float, List[str]]:
+        self, current_user: dict[str, Any], candidate: dict[str, Any], user_id: int
+    ) -> tuple[float, list[str]]:
         """
         Calculate suggestion score and reasons.
 
@@ -240,7 +238,7 @@ class FriendSuggestionsService:
         mutual = user1_friends.intersection(user2_friends)
         return len(mutual)
 
-    def _get_friend_ids(self, user_id: int) -> Set[int]:
+    def _get_friend_ids(self, user_id: int) -> set[int]:
         """Get IDs of all accepted friends for a user."""
         friends = self.connections_repo.get_friends(user_id, limit=1000)
         friend_ids = set()
@@ -250,7 +248,7 @@ class FriendSuggestionsService:
 
         return friend_ids
 
-    def _has_partner_name_match(self, user_id: int, candidate: Dict[str, Any]) -> bool:
+    def _has_partner_name_match(self, user_id: int, candidate: dict[str, Any]) -> bool:
         """Check if candidate's name appears in user's session partners."""
         candidate_name = candidate.get("display_name") or candidate.get("username", "")
         if not candidate_name:
@@ -269,7 +267,7 @@ class FriendSuggestionsService:
 
         return False
 
-    def _has_similar_belt(self, user1: Dict[str, Any], user2: Dict[str, Any]) -> bool:
+    def _has_similar_belt(self, user1: dict[str, Any], user2: dict[str, Any]) -> bool:
         """Check if two users have similar belt ranks."""
         belt_order = ["white", "blue", "purple", "brown", "black"]
 

@@ -1,12 +1,11 @@
 """Training consistency and streak analytics service."""
-from datetime import date, datetime, timedelta
-from typing import Optional, List, Dict, Any
-from collections import defaultdict, Counter
-import statistics
+from collections import Counter, defaultdict
+from datetime import date, timedelta
+from typing import Any
 
 from rivaflow.db.repositories import (
-    SessionRepository,
     GradingRepository,
+    SessionRepository,
 )
 
 
@@ -18,8 +17,8 @@ class StreakAnalyticsService:
         self.grading_repo = GradingRepository()
 
     def get_consistency_analytics(
-        self, user_id: int, start_date: Optional[date] = None, end_date: Optional[date] = None, types: Optional[List[str]] = None
-    ) -> Dict[str, Any]:
+        self, user_id: int, start_date: date | None = None, end_date: date | None = None, types: list[str] | None = None
+    ) -> dict[str, Any]:
         """
         Get training consistency analytics.
 
@@ -82,7 +81,7 @@ class StreakAnalyticsService:
             },
         }
 
-    def _calculate_streaks(self, sessions: List[Dict]) -> tuple:
+    def _calculate_streaks(self, sessions: list[dict]) -> tuple:
         """Calculate current and longest training streaks."""
         if not sessions:
             return 0, 0
@@ -119,7 +118,7 @@ class StreakAnalyticsService:
 
         return current_streak, longest_streak
 
-    def get_milestones(self, user_id: int) -> Dict[str, Any]:
+    def get_milestones(self, user_id: int) -> dict[str, Any]:
         """
         Get progression and milestone data.
 

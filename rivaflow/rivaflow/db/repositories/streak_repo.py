@@ -1,10 +1,8 @@
 """Repository for streak tracking."""
-import sqlite3
-from datetime import date, timedelta
-from typing import Optional
+from datetime import date
 
-from rivaflow.db.database import get_connection, convert_query, execute_insert
 from rivaflow.config import STREAK_GRACE_DAYS
+from rivaflow.db.database import convert_query, execute_insert, get_connection
 
 
 class StreakRepository:

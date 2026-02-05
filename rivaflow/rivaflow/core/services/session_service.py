@@ -1,12 +1,12 @@
 """Service layer for training session operations."""
-from datetime import date, datetime
-from typing import Any, Dict, List, Optional
+from datetime import date
+from typing import Any
 
-from rivaflow.db.repositories import SessionRepository, TechniqueRepository, SessionRollRepository
-from rivaflow.db.repositories.session_technique_repo import SessionTechniqueRepository
+from rivaflow.config import SPARRING_CLASS_TYPES
+from rivaflow.db.repositories import SessionRepository, SessionRollRepository, TechniqueRepository
 from rivaflow.db.repositories.checkin_repo import CheckinRepository
 from rivaflow.db.repositories.glossary_repo import GlossaryRepository
-from rivaflow.config import SPARRING_CLASS_TYPES
+from rivaflow.db.repositories.session_technique_repo import SessionTechniqueRepository
 
 
 class SessionService:
@@ -26,25 +26,25 @@ class SessionService:
         session_date: date,
         class_type: str,
         gym_name: str,
-        location: Optional[str] = None,
-        class_time: Optional[str] = None,
+        location: str | None = None,
+        class_time: str | None = None,
         duration_mins: int = 60,
         intensity: int = 4,
         rolls: int = 0,
         submissions_for: int = 0,
         submissions_against: int = 0,
-        partners: Optional[List[str]] = None,
-        techniques: Optional[List[str]] = None,
-        notes: Optional[str] = None,
+        partners: list[str] | None = None,
+        techniques: list[str] | None = None,
+        notes: str | None = None,
         visibility_level: str = "private",
-        instructor_id: Optional[int] = None,
-        instructor_name: Optional[str] = None,
-        session_rolls: Optional[List[Dict[str, Any]]] = None,
-        session_techniques: Optional[List[Dict[str, Any]]] = None,
-        whoop_strain: Optional[float] = None,
-        whoop_calories: Optional[int] = None,
-        whoop_avg_hr: Optional[int] = None,
-        whoop_max_hr: Optional[int] = None,
+        instructor_id: int | None = None,
+        instructor_name: str | None = None,
+        session_rolls: list[dict[str, Any]] | None = None,
+        session_techniques: list[dict[str, Any]] | None = None,
+        whoop_strain: float | None = None,
+        whoop_calories: int | None = None,
+        whoop_avg_hr: int | None = None,
+        whoop_max_hr: int | None = None,
     ) -> int:
         """
         Create a new training session and update technique tracking.
@@ -127,11 +127,11 @@ class SessionService:
 
         return session_id
 
-    def get_session(self, user_id: int, session_id: int) -> Optional[Dict[str, Any]]:
+    def get_session(self, user_id: int, session_id: int) -> dict[str, Any] | None:
         """Get a session by ID."""
         return self.session_repo.get_by_id(user_id, session_id)
 
-    def get_adjacent_sessions(self, user_id: int, session_id: int) -> Dict[str, Any]:
+    def get_adjacent_sessions(self, user_id: int, session_id: int) -> dict[str, Any]:
         """
         Get the previous and next session IDs for navigation.
 
@@ -147,8 +147,8 @@ class SessionService:
         if not current_session:
             return {"previous_session_id": None, "next_session_id": None}
 
-        current_date = current_session["session_date"]
-        current_created_at = current_session.get("created_at")
+        current_session["session_date"]
+        current_session.get("created_at")
 
         # Get all sessions ordered by date DESC, created_at DESC (newest first)
         all_sessions = self.session_repo.get_recent(user_id, limit=10000)
@@ -178,9 +178,9 @@ class SessionService:
         self,
         user_id: int,
         session_id: int,
-        session_techniques: Optional[List[dict]] = None,
+        session_techniques: list[dict] | None = None,
         **kwargs
-    ) -> Optional[dict]:
+    ) -> dict | None:
         """
         Update a training session and refresh technique tracking.
 
@@ -251,15 +251,15 @@ class SessionService:
         """Delete a session by ID. Returns True if deleted, False if not found."""
         return self.session_repo.delete(user_id, session_id)
 
-    def get_sessions_by_date_range(self, user_id: int, start_date: date, end_date: date) -> List[Dict[str, Any]]:
+    def get_sessions_by_date_range(self, user_id: int, start_date: date, end_date: date) -> list[dict[str, Any]]:
         """Get sessions within a date range."""
         return self.session_repo.get_by_date_range(user_id, start_date, end_date)
 
-    def get_recent_sessions(self, user_id: int, limit: int = 10) -> List[Dict[str, Any]]:
+    def get_recent_sessions(self, user_id: int, limit: int = 10) -> list[dict[str, Any]]:
         """Get most recent sessions."""
         return self.session_repo.get_recent(user_id, limit)
 
-    def get_autocomplete_data(self, user_id: int) -> Dict[str, Any]:
+    def get_autocomplete_data(self, user_id: int) -> dict[str, Any]:
         """Get data for autocomplete suggestions."""
         return {
             "gyms": self.session_repo.get_unique_gyms(user_id),
@@ -268,7 +268,7 @@ class SessionService:
             "techniques": self.technique_repo.get_unique_names(),  # Techniques are global
         }
 
-    def get_consecutive_class_type_count(self, user_id: int) -> Dict[str, int]:
+    def get_consecutive_class_type_count(self, user_id: int) -> dict[str, int]:
         """
         Count consecutive sessions of same type from most recent.
         Returns dict with 'gi' and 'no-gi' counts.
@@ -299,7 +299,7 @@ class SessionService:
         """Check if a class type requires sparring/rolls."""
         return class_type in SPARRING_CLASS_TYPES
 
-    def format_session_summary(self, session: Dict[str, Any]) -> str:
+    def format_session_summary(self, session: dict[str, Any]) -> str:
         """Format a session as a human-readable summary."""
         lines = [
             f"Session logged: {session['session_date']}",
@@ -328,7 +328,7 @@ class SessionService:
 
         return "\n".join(lines)
 
-    def get_session_with_rolls(self, user_id: int, session_id: int) -> Optional[Dict[str, Any]]:
+    def get_session_with_rolls(self, user_id: int, session_id: int) -> dict[str, Any] | None:
         """Get a session with detailed roll records included."""
         session = self.session_repo.get_by_id(user_id, session_id)
         if not session:
@@ -340,13 +340,13 @@ class SessionService:
 
         return session
 
-    def get_session_with_details(self, user_id: int, session_id: int) -> Optional[Dict[str, Any]]:
+    def get_session_with_details(self, user_id: int, session_id: int) -> dict[str, Any] | None:
         """
         Get a session with all related data eagerly loaded (rolls, techniques, media, comments, likes).
         This avoids N+1 queries when displaying session detail views.
         """
-        from rivaflow.db.repositories.activity_like_repo import ActivityLikeRepository
         from rivaflow.db.repositories.activity_comment_repo import ActivityCommentRepository
+        from rivaflow.db.repositories.activity_like_repo import ActivityLikeRepository
 
         session = self.session_repo.get_by_id(user_id, session_id)
         if not session:
@@ -365,6 +365,6 @@ class SessionService:
 
         return session
 
-    def get_partner_stats(self, user_id: int, partner_id: int) -> Dict[str, Any]:
+    def get_partner_stats(self, user_id: int, partner_id: int) -> dict[str, Any]:
         """Get analytics for a specific training partner."""
         return self.roll_repo.get_partner_stats(user_id, partner_id)

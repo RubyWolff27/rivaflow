@@ -1,7 +1,8 @@
 """FastAPI dependency injection for authentication."""
 import logging
+
 from fastapi import Depends, HTTPException, status
-from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from jose import JWTError
 
 from rivaflow.core.auth import decode_access_token

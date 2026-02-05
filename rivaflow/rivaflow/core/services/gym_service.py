@@ -1,8 +1,8 @@
 """Service layer for gym management with caching."""
-from typing import List, Dict, Any, Optional
+from typing import Any
 
+from rivaflow.cache import CacheKeys, get_redis_client
 from rivaflow.db.repositories.gym_repo import GymRepository
-from rivaflow.cache import get_redis_client, CacheKeys
 
 
 class GymService:
@@ -15,19 +15,19 @@ class GymService:
     def create(
         self,
         name: str,
-        city: Optional[str] = None,
-        state: Optional[str] = None,
+        city: str | None = None,
+        state: str | None = None,
         country: str = "Australia",
-        address: Optional[str] = None,
-        website: Optional[str] = None,
-        email: Optional[str] = None,
-        phone: Optional[str] = None,
-        head_coach: Optional[str] = None,
-        head_coach_belt: Optional[str] = None,
-        google_maps_url: Optional[str] = None,
+        address: str | None = None,
+        website: str | None = None,
+        email: str | None = None,
+        phone: str | None = None,
+        head_coach: str | None = None,
+        head_coach_belt: str | None = None,
+        google_maps_url: str | None = None,
         verified: bool = False,
-        added_by_user_id: Optional[int] = None,
-    ) -> Dict[str, Any]:
+        added_by_user_id: int | None = None,
+    ) -> dict[str, Any]:
         """Create a new gym."""
         gym = self.repo.create(
             name=name,
@@ -50,7 +50,7 @@ class GymService:
 
         return gym
 
-    def get_by_id(self, gym_id: int) -> Optional[Dict[str, Any]]:
+    def get_by_id(self, gym_id: int) -> dict[str, Any] | None:
         """Get a gym by ID."""
         # Try cache
         cache_key = CacheKeys.gym_by_id(gym_id)
@@ -67,7 +67,7 @@ class GymService:
 
         return gym
 
-    def list_all(self, verified_only: bool = False) -> List[Dict[str, Any]]:
+    def list_all(self, verified_only: bool = False) -> list[dict[str, Any]]:
         """List all gyms."""
         # Try cache
         cache_key = CacheKeys.GYM_DIRECTORY_VERIFIED if verified_only else CacheKeys.GYM_DIRECTORY_ALL
@@ -83,7 +83,7 @@ class GymService:
 
         return gyms
 
-    def search(self, query: str, verified_only: bool = False) -> List[Dict[str, Any]]:
+    def search(self, query: str, verified_only: bool = False) -> list[dict[str, Any]]:
         """Search gyms by name or location."""
         # Try cache
         cache_key = CacheKeys.gym_search(query, verified_only=verified_only)
@@ -99,7 +99,7 @@ class GymService:
 
         return gyms
 
-    def update(self, gym_id: int, **kwargs) -> Optional[Dict[str, Any]]:
+    def update(self, gym_id: int, **kwargs) -> dict[str, Any] | None:
         """Update a gym."""
         gym = self.repo.update(gym_id, **kwargs)
 
@@ -119,7 +119,7 @@ class GymService:
 
         return deleted
 
-    def get_pending_gyms(self) -> List[Dict[str, Any]]:
+    def get_pending_gyms(self) -> list[dict[str, Any]]:
         """Get all unverified (user-added) gyms."""
         # Don't cache pending gyms (changes frequently)
         return self.repo.get_pending_gyms()
@@ -135,7 +135,7 @@ class GymService:
 
         return merged
 
-    def _invalidate_gym_cache(self, gym_id: Optional[int] = None) -> None:
+    def _invalidate_gym_cache(self, gym_id: int | None = None) -> None:
         """
         Invalidate gym-related cache.
 
