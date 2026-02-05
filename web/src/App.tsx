@@ -5,6 +5,7 @@ import { ToastProvider } from './contexts/ToastContext';
 import PrivateRoute from './components/PrivateRoute';
 import Layout from './components/Layout';
 import LoadingSkeleton from './components/LoadingSkeleton';
+import ErrorBoundary from './components/ErrorBoundary';
 
 // Lazy load all route components for code splitting
 const Dashboard = lazy(() => import('./pages/Dashboard'));
@@ -43,10 +44,11 @@ const ResetPassword = lazy(() => import('./pages/ResetPassword'));
 
 function App() {
   return (
-    <Router>
-      <AuthProvider>
-        <ToastProvider>
-          <Suspense fallback={<LoadingSkeleton />}>
+    <ErrorBoundary>
+      <Router>
+        <AuthProvider>
+          <ToastProvider>
+            <Suspense fallback={<LoadingSkeleton />}>
             <Routes>
               <Route path="/login" element={<Login />} />
               <Route path="/register" element={<Register />} />
@@ -99,6 +101,7 @@ function App() {
         </ToastProvider>
       </AuthProvider>
     </Router>
+    </ErrorBoundary>
   );
 }
 
