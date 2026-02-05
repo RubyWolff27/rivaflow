@@ -54,7 +54,6 @@ jobs:
         DISABLE_RATE_LIMITS: "true"
       run: |
         pytest tests/ \
-          --maxfail=5 \
           --tb=short \
           --cov=rivaflow \
           --cov-report=xml \
