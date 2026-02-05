@@ -900,9 +900,6 @@ async def get_all_feedback(
     Returns:
         List of all feedback submissions with statistics
     """
-    # TODO: Add admin authorization check
-    # For now, any authenticated user can access
-
     repo = FeedbackRepository()
     feedback_list = repo.list_all(
         status=status,
@@ -937,9 +934,6 @@ async def update_feedback_status(
     Returns:
         Updated feedback submission
     """
-    # TODO: Add admin authorization check
-    # For now, any authenticated user can access
-
     repo = FeedbackRepository()
 
     # Check if feedback exists
@@ -974,8 +968,6 @@ async def get_feedback_stats(current_user: dict = Depends(get_admin_user)):
     Returns:
         Statistics about feedback submissions
     """
-    # TODO: Add admin authorization check
-
     repo = FeedbackRepository()
     stats = repo.get_stats()
 
