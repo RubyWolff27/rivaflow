@@ -8,6 +8,7 @@ import { JourneyProgress } from '../components/dashboard/JourneyProgress';
 import { WeeklyGoalsBreakdown } from '../components/dashboard/WeeklyGoalsBreakdown';
 import { BetaBadge } from '../components/UpgradePrompt';
 import { useTier } from '../hooks/useTier';
+import { readinessApi } from '../api/client';
 
 export default function Dashboard() {
   const navigate = useNavigate();
@@ -23,20 +24,14 @@ export default function Dashboard() {
   const loadReadinessData = async () => {
     try {
       const today = new Date().toISOString().split('T')[0];
-      const response = await fetch(`/api/v1/readiness?date=${today}`, {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`,
-        },
-      });
+      const response = await readinessApi.getByDate(today);
 
-      if (response.ok) {
-        const data = await response.json();
-        if (data && data.length > 0) {
-          setReadinessScore(data[0].overall_score);
-          setHasCheckedInToday(true);
-        }
+      if (response.data) {
+        setReadinessScore(response.data.overall_score);
+        setHasCheckedInToday(true);
       }
     } catch (error) {
+      // Readiness not found for today is expected - user hasn't logged yet
       console.error('Error loading readiness:', error);
     } finally {
       setLoading(false);
