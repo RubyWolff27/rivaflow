@@ -42,35 +42,47 @@ def temp_db(monkeypatch):
 
         # Initialize database schema and run migrations
         init_db()  # Creates migrations tracking table
-        run_migrations()  # Applies all migrations
-
-        # Clean all tables before tests
         try:
-            with get_connection() as conn:
-                cursor = conn.cursor()
-                # Get all tables
-                cursor.execute("""
-                    SELECT table_name FROM information_schema.tables
-                    WHERE table_schema = 'public' AND table_type = 'BASE TABLE'
-                """)
-                tables = cursor.fetchall()
-
-                if tables:
-                    # Disable foreign key checks temporarily
-                    cursor.execute("SET session_replication_role = 'replica';")
-                    # Truncate each table
-                    for (table_name,) in tables:
-                        cursor.execute(
-                            f'TRUNCATE TABLE "{table_name}" RESTART IDENTITY CASCADE'
-                        )
-                    # Re-enable foreign key checks
-                    cursor.execute("SET session_replication_role = 'origin';")
-                    conn.commit()
+            run_migrations()  # Applies all migrations
         except Exception as e:
-            # If table cleanup fails, just continue
-            print(f"Warning: Table cleanup failed: {e}")
+            # Migrations may already be applied
+            print(f"Note: Migrations may already be applied: {e}")
+
+        # Clean all tables before EACH test
+        def cleanup_tables():
+            try:
+                with get_connection() as conn:
+                    cursor = conn.cursor()
+                    # Get all tables except schema_migrations
+                    cursor.execute("""
+                        SELECT table_name FROM information_schema.tables
+                        WHERE table_schema = 'public'
+                        AND table_type = 'BASE TABLE'
+                        AND table_name != 'schema_migrations'
+                    """)
+                    tables = cursor.fetchall()
+
+                    if tables:
+                        # Disable foreign key checks temporarily
+                        cursor.execute("SET session_replication_role = 'replica';")
+                        # Truncate each table
+                        for (table_name,) in tables:
+                            cursor.execute(
+                                f'TRUNCATE TABLE "{table_name}" RESTART IDENTITY CASCADE'
+                            )
+                        # Re-enable foreign key checks
+                        cursor.execute("SET session_replication_role = 'origin';")
+                        conn.commit()
+            except Exception as e:
+                print(f"Warning: Table cleanup failed: {e}")
+
+        # Clean before test
+        cleanup_tables()
 
         yield database_url
+
+        # Clean after test (for next test)
+        cleanup_tables()
     else:
         # SQLite mode (local development)
         # Create temp directory
