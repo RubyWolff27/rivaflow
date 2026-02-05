@@ -37,29 +37,38 @@ def temp_db(monkeypatch):
 
     if database_url:
         # PostgreSQL mode (CI)
-        # Clean up test database before running tests
         from rivaflow.db.database import get_connection
+        from rivaflow.db.migrate import run_migrations
 
-        # Initialize/reset database schema
-        init_db()
+        # Initialize database schema and run migrations
+        init_db()  # Creates migrations tracking table
+        run_migrations()  # Applies all migrations
 
-        # Clean all tables
-        with get_connection() as conn:
-            cursor = conn.cursor()
-            # Disable foreign key checks temporarily
-            cursor.execute("SET session_replication_role = 'replica';")
-            # Get all tables
-            cursor.execute("""
-                SELECT table_name FROM information_schema.tables
-                WHERE table_schema = 'public' AND table_type = 'BASE TABLE'
-            """)
-            tables = cursor.fetchall()
-            # Truncate each table
-            for (table_name,) in tables:
-                cursor.execute(f'TRUNCATE TABLE "{table_name}" RESTART IDENTITY CASCADE')
-            # Re-enable foreign key checks
-            cursor.execute("SET session_replication_role = 'origin';")
-            conn.commit()
+        # Clean all tables before tests
+        try:
+            with get_connection() as conn:
+                cursor = conn.cursor()
+                # Get all tables
+                cursor.execute("""
+                    SELECT table_name FROM information_schema.tables
+                    WHERE table_schema = 'public' AND table_type = 'BASE TABLE'
+                """)
+                tables = cursor.fetchall()
+
+                if tables:
+                    # Disable foreign key checks temporarily
+                    cursor.execute("SET session_replication_role = 'replica';")
+                    # Truncate each table
+                    for (table_name,) in tables:
+                        cursor.execute(
+                            f'TRUNCATE TABLE "{table_name}" RESTART IDENTITY CASCADE'
+                        )
+                    # Re-enable foreign key checks
+                    cursor.execute("SET session_replication_role = 'origin';")
+                    conn.commit()
+        except Exception as e:
+            # If table cleanup fails, just continue
+            print(f"Warning: Table cleanup failed: {e}")
 
         yield database_url
     else:
