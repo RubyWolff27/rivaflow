@@ -156,14 +156,10 @@ class TestMultiUserInteraction:
 
         # User1 follows User2
         relationship_repo = UserRelationshipRepository()
-        relationship_repo.create_relationship(
-            follower_id=user1_id, following_id=user2_id
-        )
+        relationship_repo.create_relationship(follower_id=user1_id, following_id=user2_id)
 
         # Verify relationship exists
-        is_following = relationship_repo.is_following(
-            follower_id=user1_id, following_id=user2_id
-        )
+        is_following = relationship_repo.is_following(follower_id=user1_id, following_id=user2_id)
 
         assert is_following is True
 
@@ -171,9 +167,7 @@ class TestMultiUserInteraction:
         followers = relationship_repo.get_followers(user_id=user2_id)
         assert len(followers) > 0
 
-    def test_social_feed_workflow(
-        self, temp_db, test_user, test_user2, session_factory
-    ):
+    def test_social_feed_workflow(self, temp_db, test_user, test_user2, session_factory):
         """Test: Users follow each other → view social feed."""
         from rivaflow.db.repositories.user_relationship_repo import (
             UserRelationshipRepository,
@@ -192,9 +186,7 @@ class TestMultiUserInteraction:
         session_factory(user_id=user2_id, gym_name="Gym B")
 
         # Get follower sessions
-        following_ids = [
-            rel["following_id"] for rel in relationship_repo.get_following(user1_id)
-        ]
+        following_ids = [rel["following_id"] for rel in relationship_repo.get_following(user1_id)]
 
         assert user2_id in following_ids
 
@@ -202,9 +194,7 @@ class TestMultiUserInteraction:
 class TestDataExportImport:
     """Test data export and portability."""
 
-    def test_export_user_data(
-        self, temp_db, test_user, session_factory, readiness_factory
-    ):
+    def test_export_user_data(self, temp_db, test_user, session_factory, readiness_factory):
         """Test: User exports all their data."""
         user_id = test_user["id"]
 

@@ -133,11 +133,7 @@ class TestLogCommand:
         )
 
         # Should show error about intensity range
-        assert (
-            result.exit_code != 0
-            or "intensity" in result.output.lower()
-            or "1" in result.output
-        )
+        assert result.exit_code != 0 or "intensity" in result.output.lower() or "1" in result.output
 
     def test_log_creates_database_record(self, temp_db, test_user, monkeypatch):
         """Test that log command creates a session record in database."""
@@ -349,9 +345,7 @@ class TestAuthCommands:
         """Test whoami when not logged in."""
         result = runner.invoke(app, ["auth", "whoami"])
         assert result.exit_code == 0
-        assert (
-            "not logged in" in result.output.lower() or "login" in result.output.lower()
-        )
+        assert "not logged in" in result.output.lower() or "login" in result.output.lower()
 
 
 class TestStatsCommand:
@@ -377,9 +371,7 @@ class TestStatsCommand:
 class TestExportCommand:
     """Tests for data export command."""
 
-    def test_export_creates_file(
-        self, temp_db, test_user, session_factory, monkeypatch
-    ):
+    def test_export_creates_file(self, temp_db, test_user, session_factory, monkeypatch):
         """Test that export creates a JSON file."""
         monkeypatch.setattr(
             "rivaflow.cli.utils.user_context.get_current_user_id",

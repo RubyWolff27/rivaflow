@@ -143,9 +143,7 @@ def test_user2(temp_db):
 @pytest.fixture
 def auth_token(test_user):
     """Generate a valid JWT token for test_user."""
-    return create_access_token(
-        data={"sub": str(test_user["id"])}, expires_delta=timedelta(hours=1)
-    )
+    return create_access_token(data={"sub": str(test_user["id"])}, expires_delta=timedelta(hours=1))
 
 
 @pytest.fixture
