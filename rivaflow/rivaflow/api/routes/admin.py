@@ -103,7 +103,9 @@ async def list_gyms(
 
 @router.get("/gyms/pending")
 @limiter.limit("60/minute")
-async def get_pending_gyms(request: Request, current_user: dict = Depends(require_admin)):
+async def get_pending_gyms(
+    request: Request, current_user: dict = Depends(require_admin)
+):
     """Get all pending (unverified) gyms."""
     gym_service = GymService()
     pending = gym_service.get_pending_gyms()
@@ -355,7 +357,9 @@ async def merge_gyms(
         raise NotFoundError(f"Target gym {merge_data.target_gym_id} not found")
 
     try:
-        success = gym_service.merge_gyms(merge_data.source_gym_id, merge_data.target_gym_id)
+        success = gym_service.merge_gyms(
+            merge_data.source_gym_id, merge_data.target_gym_id
+        )
 
         # Audit log
         AuditService.log(
@@ -383,7 +387,9 @@ async def merge_gyms(
 # Dashboard endpoints
 @router.get("/dashboard/stats")
 @limiter.limit("60/minute")
-async def get_dashboard_stats(request: Request, current_user: dict = Depends(require_admin)):
+async def get_dashboard_stats(
+    request: Request, current_user: dict = Depends(require_admin)
+):
     """Get platform statistics for admin dashboard."""
     from datetime import datetime, timedelta
 
@@ -469,7 +475,9 @@ class UserUpdateRequest(BaseModel):
 
     is_active: bool | None = None
     is_admin: bool | None = None
-    subscription_tier: str | None = Field(None, pattern="^(free|premium|lifetime_premium|admin)$")
+    subscription_tier: str | None = Field(
+        None, pattern="^(free|premium|lifetime_premium|admin)$"
+    )
     is_beta_user: bool | None = None
 
 
@@ -516,7 +524,9 @@ async def list_users(
         count_query = "SELECT COUNT(*) FROM users WHERE 1=1"
         count_params = []
         if search:
-            count_query += " AND (email LIKE ? OR first_name LIKE ? OR last_name LIKE ?)"
+            count_query += (
+                " AND (email LIKE ? OR first_name LIKE ? OR last_name LIKE ?)"
+            )
             count_params.extend([search_term, search_term, search_term])
         if is_active is not None:
             count_query += " AND is_active = ?"
@@ -528,7 +538,9 @@ async def list_users(
         cursor.execute(convert_query(count_query), count_params)
         row = cursor.fetchone()
         # Handle both PostgreSQL (dict) and SQLite (Row) results
-        total_count = list(row.values())[0] if isinstance(row, dict) else (row[0] if row else 0)
+        total_count = (
+            list(row.values())[0] if isinstance(row, dict) else (row[0] if row else 0)
+        )
 
         return {
             "users": [dict(row) for row in users],
@@ -564,7 +576,9 @@ async def get_user_details(
             return list(result.values())[0] if isinstance(result, dict) else result[0]
 
         # Session count
-        cursor.execute(convert_query("SELECT COUNT(*) FROM sessions WHERE user_id = ?"), (user_id,))
+        cursor.execute(
+            convert_query("SELECT COUNT(*) FROM sessions WHERE user_id = ?"), (user_id,)
+        )
         session_count = extract_count(cursor.fetchone())
 
         # Comment count
@@ -744,7 +758,9 @@ async def list_all_comments(
         cursor.execute(convert_query("SELECT COUNT(*) FROM activity_comments"))
         row = cursor.fetchone()
         # Handle both PostgreSQL (dict) and SQLite (Row) results
-        total = list(row.values())[0] if isinstance(row, dict) else (row[0] if row else 0)
+        total = (
+            list(row.values())[0] if isinstance(row, dict) else (row[0] if row else 0)
+        )
 
         return {
             "comments": comments,
@@ -921,7 +937,9 @@ class FeedbackUpdateStatusRequest(BaseModel):
 @router.get("/feedback")
 async def get_all_feedback(
     status: str | None = Query(None, pattern="^(new|reviewing|resolved|closed)$"),
-    category: str | None = Query(None, pattern="^(bug|feature|improvement|question|other)$"),
+    category: str | None = Query(
+        None, pattern="^(bug|feature|improvement|question|other)$"
+    ),
     limit: int = Query(100, ge=1, le=500),
     offset: int = Query(0, ge=0),
     current_user: dict = Depends(get_admin_user),
