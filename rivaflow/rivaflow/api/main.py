@@ -31,8 +31,13 @@ logging.basicConfig(
     datefmt='%Y-%m-%d %H:%M:%S'
 )
 
-# Initialize rate limiter
-limiter = Limiter(key_func=get_remote_address)
+# Initialize rate limiter (disabled in test environment)
+if not settings.IS_TEST:
+    limiter = Limiter(key_func=get_remote_address)
+else:
+    # Create a dummy limiter for test environment that doesn't limit
+    from slowapi import Limiter as DummyLimiter
+    limiter = DummyLimiter(key_func=get_remote_address, enabled=False)
 
 app = FastAPI(
     title="RivaFlow API",
@@ -42,7 +47,8 @@ app = FastAPI(
 
 # Add rate limiter to app state
 app.state.limiter = limiter
-app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+if not settings.IS_TEST:
+    app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 # Register custom error handlers
 app.add_exception_handler(RivaFlowException, rivaflow_exception_handler)
