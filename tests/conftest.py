@@ -11,9 +11,8 @@ import pytest
 
 # Set required environment variables for testing
 os.environ.setdefault("SECRET_KEY", "test-secret-key-for-testing-only-not-production")
-# Don't set DATABASE_URL - let it use SQLite by default
-if "DATABASE_URL" in os.environ:
-    del os.environ["DATABASE_URL"]
+# Use PostgreSQL if DATABASE_URL is set (CI), otherwise use SQLite (local)
+# Do NOT delete DATABASE_URL - let CI use PostgreSQL
 
 from rivaflow.core.auth import create_access_token, hash_password
 from rivaflow.db.database import init_db
@@ -30,26 +29,60 @@ from rivaflow.db.repositories import (
 
 @pytest.fixture(scope="function", autouse=False)
 def temp_db(monkeypatch):
-    """Create a temporary database for testing."""
-    # Create temp directory
-    temp_dir = Path(tempfile.mkdtemp())
-    temp_db_path = temp_dir / "test.db"
+    """Create a temporary database for testing.
 
-    # Patch config module
-    monkeypatch.setattr("rivaflow.config.APP_DIR", temp_dir)
-    monkeypatch.setattr("rivaflow.config.DB_PATH", temp_db_path)
+    Uses PostgreSQL if DATABASE_URL is set (CI), otherwise SQLite (local).
+    """
+    database_url = os.environ.get("DATABASE_URL")
 
-    # Also patch database module
-    monkeypatch.setattr("rivaflow.db.database.DB_PATH", temp_db_path)
-    monkeypatch.setattr("rivaflow.db.database.APP_DIR", temp_dir)
+    if database_url:
+        # PostgreSQL mode (CI)
+        # Clean up test database before running tests
+        from rivaflow.db.database import get_connection
 
-    # Initialize database
-    init_db()
+        # Initialize/reset database schema
+        init_db()
 
-    yield temp_db_path
+        # Clean all tables
+        with get_connection() as conn:
+            cursor = conn.cursor()
+            # Disable foreign key checks temporarily
+            cursor.execute("SET session_replication_role = 'replica';")
+            # Get all tables
+            cursor.execute("""
+                SELECT tablename FROM pg_tables
+                WHERE schemaname = 'public'
+            """)
+            tables = cursor.fetchall()
+            # Truncate each table
+            for (table,) in tables:
+                cursor.execute(f'TRUNCATE TABLE "{table}" CASCADE')
+            # Re-enable foreign key checks
+            cursor.execute("SET session_replication_role = 'origin';")
+            conn.commit()
 
-    # Cleanup
-    shutil.rmtree(temp_dir)
+        yield database_url
+    else:
+        # SQLite mode (local development)
+        # Create temp directory
+        temp_dir = Path(tempfile.mkdtemp())
+        temp_db_path = temp_dir / "test.db"
+
+        # Patch config module
+        monkeypatch.setattr("rivaflow.config.APP_DIR", temp_dir)
+        monkeypatch.setattr("rivaflow.config.DB_PATH", temp_db_path)
+
+        # Also patch database module
+        monkeypatch.setattr("rivaflow.db.database.DB_PATH", temp_db_path)
+        monkeypatch.setattr("rivaflow.db.database.APP_DIR", temp_dir)
+
+        # Initialize database
+        init_db()
+
+        yield temp_db_path
+
+        # Cleanup
+        shutil.rmtree(temp_dir)
 
 
 @pytest.fixture
