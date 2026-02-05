@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Card } from '../ui';
 import { Trophy, Target } from 'lucide-react';
+import { dashboardApi, profileApi } from '../../api/client';
 
 interface Milestone {
   id: number;
@@ -44,20 +45,12 @@ export function JourneyProgress() {
   const loadData = async () => {
     try {
       // Load from dashboard API
-      const dashboardResponse = await fetch('/api/v1/dashboard/summary', {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`,
-        },
-      });
-      const dashboardData = await dashboardResponse.json();
+      const dashboardResponse = await dashboardApi.getSummary();
+      const dashboardData = dashboardResponse.data;
 
       // Load profile
-      const profileResponse = await fetch('/api/v1/profile', {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`,
-        },
-      });
-      const profileData = await profileResponse.json();
+      const profileResponse = await profileApi.get();
+      const profileData = profileResponse.data;
 
       setProfile(profileData);
       if (dashboardData.milestones?.closest) {
