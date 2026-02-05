@@ -134,9 +134,9 @@ async def get_feedback(
     if not feedback:
         raise NotFoundError("Feedback not found")
 
-    # Check ownership (unless admin - add admin check here if needed)
-    if feedback["user_id"] != current_user["id"]:
-        # TODO: Add admin check
+    # Check ownership (users can only view their own feedback unless admin)
+    is_admin = current_user.get("is_admin", False)
+    if feedback["user_id"] != current_user["id"] and not is_admin:
         raise NotFoundError("Feedback not found")
 
     return feedback
