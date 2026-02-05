@@ -15,6 +15,7 @@ from rivaflow.api.routes import sessions, readiness, reports, suggestions, techn
 # AI features temporarily disabled for deployment (large CUDA dependencies)
 # from rivaflow.api.routes import chat, llm_tools, grapple, admin_grapple
 from rivaflow.core.exceptions import RivaFlowException
+from rivaflow.core.settings import settings
 from rivaflow.api.middleware.error_handler import (
     rivaflow_exception_handler,
     validation_exception_handler,
