@@ -3,9 +3,9 @@
 from datetime import date
 from unittest.mock import patch
 
-from rivaflow.core.services.suggestion_engine import SuggestionEngine
 from rivaflow.core.services.readiness_service import ReadinessService
 from rivaflow.core.services.session_service import SessionService
+from rivaflow.core.services.suggestion_engine import SuggestionEngine
 
 
 def test_suggestion_with_high_stress(temp_db, test_user):

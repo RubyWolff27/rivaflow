@@ -1,13 +1,14 @@
 """Integration tests for complete user journeys."""
 
-import pytest
 from datetime import date, timedelta
 
-from rivaflow.core.services.auth_service import AuthService
-from rivaflow.core.services.session_service import SessionService
-from rivaflow.core.services.readiness_service import ReadinessService
+import pytest
+
 from rivaflow.core.services.analytics_service import AnalyticsService
-from rivaflow.db.repositories import SessionRepository, ReadinessRepository
+from rivaflow.core.services.auth_service import AuthService
+from rivaflow.core.services.readiness_service import ReadinessService
+from rivaflow.core.services.session_service import SessionService
+from rivaflow.db.repositories import ReadinessRepository, SessionRepository
 
 
 class TestNewUserJourney:

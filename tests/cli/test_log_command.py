@@ -1,7 +1,8 @@
 """Tests for 'rivaflow log' CLI command."""
 
-from typer.testing import CliRunner
 from datetime import date
+
+from typer.testing import CliRunner
 
 from rivaflow.cli.app import app
 from rivaflow.db.repositories import SessionRepository

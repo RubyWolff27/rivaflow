@@ -1,12 +1,13 @@
 """Pytest fixtures for RivaFlow tests."""
 
 import os
-import pytest
-import tempfile
 import shutil
-from pathlib import Path
+import tempfile
 from datetime import date, timedelta
+from pathlib import Path
 from unittest.mock import patch
+
+import pytest
 
 # Set required environment variables for testing
 os.environ.setdefault("SECRET_KEY", "test-secret-key-for-testing-only-not-production")
@@ -14,17 +15,17 @@ os.environ.setdefault("SECRET_KEY", "test-secret-key-for-testing-only-not-produc
 if "DATABASE_URL" in os.environ:
     del os.environ["DATABASE_URL"]
 
+from rivaflow.core.auth import create_access_token, hash_password
 from rivaflow.db.database import init_db
 from rivaflow.db.repositories import (
-    SessionRepository,
-    ReadinessRepository,
-    TechniqueRepository,
-    VideoRepository,
-    UserRepository,
-    ProfileRepository,
     FriendRepository,
+    ProfileRepository,
+    ReadinessRepository,
+    SessionRepository,
+    TechniqueRepository,
+    UserRepository,
+    VideoRepository,
 )
-from rivaflow.core.auth import create_access_token, hash_password
 
 
 @pytest.fixture(scope="function", autouse=False)
@@ -158,6 +159,7 @@ def auth_headers(auth_token):
 def client(temp_db):
     """FastAPI TestClient with temp database."""
     from fastapi.testclient import TestClient
+
     from rivaflow.api.main import app
 
     return TestClient(app)

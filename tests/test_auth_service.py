@@ -1,12 +1,13 @@
 """Tests for authentication service."""
 
-import pytest
 from datetime import timedelta
 
+import pytest
+
+from rivaflow.core.auth import decode_access_token, verify_password
 from rivaflow.core.services.auth_service import AuthService
-from rivaflow.core.auth import verify_password, decode_access_token
-from rivaflow.db.repositories.user_repo import UserRepository
 from rivaflow.db.repositories.refresh_token_repo import RefreshTokenRepository
+from rivaflow.db.repositories.user_repo import UserRepository
 
 
 class TestAuthServiceRegister:
@@ -65,7 +66,7 @@ class TestAuthServiceRegister:
         )
 
         # Check that streaks were created
-        from rivaflow.db.database import get_connection, convert_query
+        from rivaflow.db.database import convert_query, get_connection
 
         with get_connection() as conn:
             cursor = conn.cursor()
@@ -205,7 +206,7 @@ class TestAuthServiceLogin:
         )
 
         # Mark as inactive
-        from rivaflow.db.database import get_connection, convert_query
+        from rivaflow.db.database import convert_query, get_connection
 
         with get_connection() as conn:
             cursor = conn.cursor()
@@ -357,8 +358,9 @@ class TestJWTTokens:
 
     def test_expired_token_rejection(self, temp_db):
         """Test that expired tokens are rejected."""
-        from rivaflow.core.auth import create_access_token, decode_access_token
         from jose import JWTError
+
+        from rivaflow.core.auth import create_access_token, decode_access_token
 
         # Create token that expires immediately
         token = create_access_token(
@@ -370,8 +372,9 @@ class TestJWTTokens:
 
     def test_invalid_token_rejection(self, temp_db):
         """Test that invalid tokens are rejected."""
-        from rivaflow.core.auth import decode_access_token
         from jose import JWTError
+
+        from rivaflow.core.auth import decode_access_token
 
         with pytest.raises(JWTError):
             decode_access_token("invalid.token.string")
