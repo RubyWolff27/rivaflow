@@ -55,9 +55,7 @@ class AuthService:
         if not is_valid:
             error_code = error.get("code", "INVALID_EMAIL")
             if error_code == "DISPOSABLE_EMAIL":
-                action = (
-                    "Use your personal or work email address instead of temporary email services"
-                )
+                action = "Use your personal or work email address instead of temporary email services"
             else:
                 action = "Please provide a valid email address (e.g., user@example.com)"
 
@@ -127,7 +125,9 @@ class AuthService:
 
                 with get_connection() as conn:
                     cursor = conn.cursor()
-                    cursor.execute(convert_query("DELETE FROM users WHERE id = ?"), (user["id"],))
+                    cursor.execute(
+                        convert_query("DELETE FROM users WHERE id = ?"), (user["id"],)
+                    )
             except Exception:
                 pass  # Best effort cleanup
             raise ValueError("Registration failed - unable to create user profile")
@@ -165,7 +165,9 @@ class AuthService:
 
                 with get_connection() as conn:
                     cursor = conn.cursor()
-                    cursor.execute(convert_query("DELETE FROM users WHERE id = ?"), (user["id"],))
+                    cursor.execute(
+                        convert_query("DELETE FROM users WHERE id = ?"), (user["id"],)
+                    )
             except Exception:
                 pass  # Best effort cleanup
             raise ValueError("Registration failed - unable to initialize user data")
@@ -342,7 +344,9 @@ class AuthService:
             # Check rate limit (max 3 requests per hour)
             recent_requests = token_repo.count_recent_requests(user["id"], hours=1)
             if recent_requests >= 3:
-                logger.warning(f"Password reset rate limit exceeded for user {user['id']}")
+                logger.warning(
+                    f"Password reset rate limit exceeded for user {user['id']}"
+                )
                 # Still return True to not reveal rate limiting
                 return True
 

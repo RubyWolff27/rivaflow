@@ -13,7 +13,9 @@ console = Console()
 
 @app.command()
 def suggest(
-    explain: bool = typer.Option(False, "--explain", "-e", help="Show verbose rule explanations"),
+    explain: bool = typer.Option(
+        False, "--explain", "-e", help="Show verbose rule explanations"
+    ),
 ):
     """Get today's training recommendation."""
     user_id = get_current_user_id()
@@ -48,7 +50,9 @@ def suggest(
         else:
             # Compact mode: just show top 3 rules
             for i, rule in enumerate(result["triggered_rules"][:3]):
-                prefix = "├─" if i < min(len(result["triggered_rules"]), 3) - 1 else "└─"
+                prefix = (
+                    "├─" if i < min(len(result["triggered_rules"]), 3) - 1 else "└─"
+                )
                 icon = _get_priority_icon(rule["priority"])
                 console.print(f"  {prefix} {icon} {rule['explanation']}")
                 if i < min(len(result["triggered_rules"]), 3) - 1:
@@ -66,7 +70,9 @@ def suggest(
         soreness_bar = "█" * r["soreness"] + "░" * (5 - r["soreness"])
         energy_bar = "█" * r["energy"] + "░" * (5 - r["energy"])
 
-        console.print(f"  Sleep: {sleep_bar} {r['sleep']}    Stress: {stress_bar} {r['stress']}")
+        console.print(
+            f"  Sleep: {sleep_bar} {r['sleep']}    Stress: {stress_bar} {r['stress']}"
+        )
         console.print(
             f"  Soreness: {soreness_bar} {r['soreness']}  Energy: {energy_bar} {r['energy']}"
         )

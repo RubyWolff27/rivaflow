@@ -49,7 +49,9 @@ async def list_contacts(
     if search:
         all_friends = service.search_friends(user_id=current_user["id"], query=search)
     elif friend_type:
-        all_friends = service.repo.list_by_type(user_id=current_user["id"], friend_type=friend_type)
+        all_friends = service.repo.list_by_type(
+            user_id=current_user["id"], friend_type=friend_type
+        )
     else:
         all_friends = service.list_friends(user_id=current_user["id"])
 
@@ -84,7 +86,9 @@ async def get_contact(friend_id: int, current_user: dict = Depends(get_current_u
 
 
 @router.post("/")
-async def create_contact(friend: FriendCreate, current_user: dict = Depends(get_current_user)):
+async def create_contact(
+    friend: FriendCreate, current_user: dict = Depends(get_current_user)
+):
     """Create a new friend."""
     # Let exceptions bubble up - global handler will catch them
     created = service.create_friend(
@@ -124,7 +128,9 @@ async def update_contact(
 
 
 @router.delete("/{friend_id}")
-async def delete_contact(friend_id: int, current_user: dict = Depends(get_current_user)):
+async def delete_contact(
+    friend_id: int, current_user: dict = Depends(get_current_user)
+):
     """Delete a friend."""
     deleted = service.delete_friend(user_id=current_user["id"], friend_id=friend_id)
     if not deleted:

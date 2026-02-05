@@ -41,7 +41,9 @@ def setup(ctx: typer.Context):
     if _is_setup_complete(user_id):
         console.print("\n[yellow]⚠️  You've already completed setup.[/yellow]")
         if not Confirm.ask("\nWould you like to update your profile?"):
-            console.print("\n[dim]Run 'rivaflow profile' to update your settings.[/dim]")
+            console.print(
+                "\n[dim]Run 'rivaflow profile' to update your settings.[/dim]"
+            )
             return
 
     # Welcome screen
@@ -83,7 +85,9 @@ def setup(ctx: typer.Context):
     _mark_setup_complete(user_id)
 
     # Show dashboard
-    console.print("\n[bold yellow]🎉 Setup Complete! Here's your dashboard:[/bold yellow]\n")
+    console.print(
+        "\n[bold yellow]🎉 Setup Complete! Here's your dashboard:[/bold yellow]\n"
+    )
 
     from rivaflow.cli.commands.dashboard import dashboard
 
@@ -114,7 +118,9 @@ def _is_setup_complete(user_id: int) -> bool:
 
         # Check if profile exists with basic info
         cursor.execute(
-            convert_query("SELECT first_name, belt_rank FROM profile WHERE user_id = ? LIMIT 1"),
+            convert_query(
+                "SELECT first_name, belt_rank FROM profile WHERE user_id = ? LIMIT 1"
+            ),
             (user_id,),
         )
         profile = cursor.fetchone()
@@ -123,7 +129,9 @@ def _is_setup_complete(user_id: int) -> bool:
             return False
 
         # Check if has logged at least one session
-        cursor.execute(convert_query("SELECT COUNT(*) FROM sessions WHERE user_id = ?"), (user_id,))
+        cursor.execute(
+            convert_query("SELECT COUNT(*) FROM sessions WHERE user_id = ?"), (user_id,)
+        )
         session_count = cursor.fetchone()[0]
 
         return session_count > 0
@@ -135,7 +143,9 @@ def _collect_profile_data(user_id: int) -> dict:
     with get_connection() as conn:
         cursor = conn.cursor()
         cursor.execute(
-            convert_query("SELECT email, first_name, last_name FROM users WHERE id = ? LIMIT 1"),
+            convert_query(
+                "SELECT email, first_name, last_name FROM users WHERE id = ? LIMIT 1"
+            ),
             (user_id,),
         )
         user = cursor.fetchone()
@@ -249,7 +259,9 @@ def _collect_goals_data() -> dict:
     """Collect weekly training goals."""
     console.print("  [dim]How many times per week do you want to train?[/dim]\n")
 
-    bjj_goal = IntPrompt.ask("  [bold]🥋 BJJ/Grappling sessions per week[/bold]", default=3)
+    bjj_goal = IntPrompt.ask(
+        "  [bold]🥋 BJJ/Grappling sessions per week[/bold]", default=3
+    )
 
     sc_goal = IntPrompt.ask("  [bold]🏋️  S&C sessions per week[/bold]", default=2)
 
@@ -309,7 +321,9 @@ def _log_first_session(user_id: int):
     # Class type
     console.print("\n  [bold]Class Type[/bold]")
     console.print("  [dim]1) Gi  2) No-Gi  3) Wrestling  4) S&C  5) Mobility[/dim]")
-    class_choice = Prompt.ask("  Select", choices=["1", "2", "3", "4", "5"], default="1")
+    class_choice = Prompt.ask(
+        "  Select", choices=["1", "2", "3", "4", "5"], default="1"
+    )
 
     class_map = {"1": "gi", "2": "no-gi", "3": "wrestling", "4": "s&c", "5": "mobility"}
     class_type = class_map[class_choice]

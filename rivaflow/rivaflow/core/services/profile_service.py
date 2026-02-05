@@ -22,7 +22,9 @@ class ProfileService:
         self.user_repo = UserRepository()
 
         # Configure upload directory
-        self.upload_dir = Path(__file__).parent.parent.parent.parent / "uploads" / "avatars"
+        self.upload_dir = (
+            Path(__file__).parent.parent.parent.parent / "uploads" / "avatars"
+        )
         self.upload_dir.mkdir(parents=True, exist_ok=True)
 
     def get_profile(self, user_id: int) -> dict | None:
@@ -58,7 +60,9 @@ class ProfileService:
                 grading_date = grading_date_str
 
             today = date.today()
-            sessions_since_promotion = session_repo.get_by_date_range(user_id, grading_date, today)
+            sessions_since_promotion = session_repo.get_by_date_range(
+                user_id, grading_date, today
+            )
 
             total_sessions_since = len(sessions_since_promotion)
             total_hours_since = (
@@ -70,7 +74,9 @@ class ProfileService:
             profile["promotion_date"] = grading_date_str
         else:
             # No promotion yet, count all sessions
-            all_sessions = session_repo.get_by_date_range(user_id, date(2020, 1, 1), date.today())
+            all_sessions = session_repo.get_by_date_range(
+                user_id, date(2020, 1, 1), date.today()
+            )
             profile["sessions_since_promotion"] = len(all_sessions)
             profile["hours_since_promotion"] = round(
                 sum(s.get("duration_mins", 0) for s in all_sessions) / 60, 1
@@ -142,7 +148,9 @@ class ProfileService:
         profile = self.get_profile(user_id)
         return profile.get("current_professor") if profile else None
 
-    def upload_profile_photo(self, user_id: int, file_content: bytes, filename: str) -> dict:
+    def upload_profile_photo(
+        self, user_id: int, file_content: bytes, filename: str
+    ) -> dict:
         """Handle profile photo upload.
 
         Args:

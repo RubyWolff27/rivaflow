@@ -23,7 +23,9 @@ class RestDayCreate(BaseModel):
 def log_rest_day(data: RestDayCreate, current_user: dict = Depends(get_current_user)):
     """Log a rest day."""
     repo = CheckinRepository()
-    check_date = date.fromisoformat(data.check_date) if data.check_date else date.today()
+    check_date = (
+        date.fromisoformat(data.check_date) if data.check_date else date.today()
+    )
 
     checkin_id = repo.upsert_checkin(
         user_id=current_user["id"],

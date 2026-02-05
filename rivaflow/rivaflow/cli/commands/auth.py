@@ -59,7 +59,9 @@ def login(
         # Set secure file permissions (user read/write only)
         os.chmod(CREDENTIALS_FILE, 0o600)
 
-        console.print(f"✅ [green]Logged in successfully as {result['user']['email']}[/green]")
+        console.print(
+            f"✅ [green]Logged in successfully as {result['user']['email']}[/green]"
+        )
         console.print(f"   Welcome back, {result['user'].get('first_name', 'User')}!")
 
     except ValueError as e:
@@ -113,7 +115,9 @@ def register(
     password: str | None = typer.Option(
         None, "--password", "-p", help="Password (not recommended, use prompt)"
     ),
-    first_name: str | None = typer.Option(None, "--first-name", "-f", help="First name"),
+    first_name: str | None = typer.Option(
+        None, "--first-name", "-f", help="First name"
+    ),
     last_name: str | None = typer.Option(None, "--last-name", "-l", help="Last name"),
 ):
     """Register a new RivaFlow account."""
@@ -132,16 +136,22 @@ def register(
             password = Prompt.ask(
                 "[bold cyan]Password (min 8 characters)[/bold cyan]", password=True
             )
-            password_confirm = Prompt.ask("[bold cyan]Confirm password[/bold cyan]", password=True)
+            password_confirm = Prompt.ask(
+                "[bold cyan]Confirm password[/bold cyan]", password=True
+            )
 
             if password != password_confirm:
                 console.print("❌ [red]Passwords do not match[/red]")
-                console.print("[dim]Hint: Make sure both password entries are identical[/dim]")
+                console.print(
+                    "[dim]Hint: Make sure both password entries are identical[/dim]"
+                )
                 raise typer.Exit(code=1)
 
             # Validate password length
             if len(password) < 8:
-                console.print("❌ [red]Password must be at least 8 characters long[/red]")
+                console.print(
+                    "❌ [red]Password must be at least 8 characters long[/red]"
+                )
                 console.print(
                     "[dim]Tip: Use a mix of letters, numbers, and symbols for better security[/dim]"
                 )
@@ -183,7 +193,9 @@ def register(
     except ValueError as e:
         error_msg = str(e)
         if "already exists" in error_msg.lower() or "duplicate" in error_msg.lower():
-            console.print(f"❌ [red]An account with email '{email}' already exists[/red]")
+            console.print(
+                f"❌ [red]An account with email '{email}' already exists[/red]"
+            )
             console.print()
             console.print("[dim]To login instead:[/dim]")
             console.print("  rivaflow auth login")
@@ -215,7 +227,9 @@ def whoami():
             credentials = json.load(f)
 
         console.print("[bold]Current User:[/bold]")
-        console.print(f"  Name: {credentials.get('first_name')} {credentials.get('last_name')}")
+        console.print(
+            f"  Name: {credentials.get('first_name')} {credentials.get('last_name')}"
+        )
         console.print(f"  Email: {credentials.get('email')}")
         console.print(f"  User ID: {credentials.get('user_id')}")
 

@@ -38,7 +38,9 @@ class TechniqueRepository:
         """Get a technique by ID."""
         with get_connection() as conn:
             cursor = conn.cursor()
-            cursor.execute(convert_query("SELECT * FROM techniques WHERE id = ?"), (technique_id,))
+            cursor.execute(
+                convert_query("SELECT * FROM techniques WHERE id = ?"), (technique_id,)
+            )
             row = cursor.fetchone()
             if row:
                 return TechniqueRepository._row_to_dict(row)
@@ -82,7 +84,9 @@ class TechniqueRepository:
         with get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(
-                convert_query("UPDATE techniques SET last_trained_date = ? WHERE id = ?"),
+                convert_query(
+                    "UPDATE techniques SET last_trained_date = ? WHERE id = ?"
+                ),
                 (trained_date.isoformat(), technique_id),
             )
 
@@ -115,7 +119,9 @@ class TechniqueRepository:
         with get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(
-                convert_query("SELECT * FROM techniques WHERE name LIKE ? ORDER BY name"),
+                convert_query(
+                    "SELECT * FROM techniques WHERE name LIKE ? ORDER BY name"
+                ),
                 (f"%{query.lower()}%",),
             )
             return [TechniqueRepository._row_to_dict(row) for row in cursor.fetchall()]

@@ -12,7 +12,9 @@ router = APIRouter(prefix="/notifications", tags=["notifications"])
 
 
 @router.get("/counts")
-async def get_notification_counts(request: Request, current_user: dict = Depends(get_current_user)):
+async def get_notification_counts(
+    request: Request, current_user: dict = Depends(get_current_user)
+):
     """
     Get notification counts for the current user.
 
@@ -55,7 +57,9 @@ async def get_notifications(
     """
     user_id = current_user["id"]
     try:
-        notifications = NotificationService.get_notifications(user_id, limit, offset, unread_only)
+        notifications = NotificationService.get_notifications(
+            user_id, limit, offset, unread_only
+        )
         return {"notifications": notifications, "count": len(notifications)}
     except Exception as e:
         # Gracefully handle if notifications table doesn't exist yet
@@ -96,7 +100,9 @@ async def mark_feed_notifications_as_read(
             )
 
         count = NotificationService.mark_feed_as_read(user_id)
-        logger.info(f"Successfully marked {count} feed notifications as read for user {user_id}")
+        logger.info(
+            f"Successfully marked {count} feed notifications as read for user {user_id}"
+        )
         return {"success": True, "count": count}
     except HTTPException:
         raise
@@ -128,7 +134,9 @@ async def mark_follow_notifications_as_read(
             )
 
         count = NotificationService.mark_follows_as_read(user_id)
-        logger.info(f"Successfully marked {count} follow notifications as read for user {user_id}")
+        logger.info(
+            f"Successfully marked {count} follow notifications as read for user {user_id}"
+        )
         return {"success": True, "count": count}
     except HTTPException:
         raise

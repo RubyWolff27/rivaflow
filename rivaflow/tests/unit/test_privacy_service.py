@@ -35,7 +35,9 @@ class TestPrivacyRedaction:
 
     def test_attendance_includes_only_metadata(self):
         """Verify attendance level includes only gym/date/type/location."""
-        result = PrivacyService.redact_session(self.full_session, visibility="attendance")
+        result = PrivacyService.redact_session(
+            self.full_session, visibility="attendance"
+        )
 
         # Should include attendance fields
         assert "gym_name" in result
@@ -209,7 +211,9 @@ class TestSessionsListRedaction:
         ]
 
         # Default to attendance
-        result = PrivacyService.redact_sessions_list(sessions, default_visibility="attendance")
+        result = PrivacyService.redact_sessions_list(
+            sessions, default_visibility="attendance"
+        )
 
         assert len(result) == 1
         assert "gym_name" in result[0]
@@ -312,7 +316,9 @@ class TestSensitiveFieldsProtection:
 
         # Verify NO sensitive fields present
         for field in PrivacyService.SENSITIVE_FIELDS:
-            assert field not in result, f"Sensitive field '{field}' leaked in attendance mode"
+            assert (
+                field not in result
+            ), f"Sensitive field '{field}' leaked in attendance mode"
 
     def test_sensitive_fields_never_in_summary(self):
         """Verify sensitive fields excluded from summary."""

@@ -17,7 +17,9 @@ async def search_users(
     current_user: dict = Depends(get_current_user),
 ):
     """Search for users by name or email."""
-    users = service.search_users(query=q, limit=limit, exclude_user_id=current_user["id"])
+    users = service.search_users(
+        query=q, limit=limit, exclude_user_id=current_user["id"]
+    )
 
     # Enrich with social status for current user
     enriched_users = service.enrich_users_with_social_status(
@@ -33,7 +35,9 @@ async def get_user_profile(
     current_user: dict = Depends(get_current_user),
 ):
     """Get a user's public profile."""
-    user_profile = service.get_user_profile(user_id=user_id, requesting_user_id=current_user["id"])
+    user_profile = service.get_user_profile(
+        user_id=user_id, requesting_user_id=current_user["id"]
+    )
 
     if not user_profile:
         raise NotFoundError("User not found")

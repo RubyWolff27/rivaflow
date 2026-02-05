@@ -95,7 +95,9 @@ class UserService:
 
         return enriched
 
-    def get_user_profile(self, user_id: int, requesting_user_id: int) -> dict[str, Any] | None:
+    def get_user_profile(
+        self, user_id: int, requesting_user_id: int
+    ) -> dict[str, Any] | None:
         """
         Get a user's public profile.
 
@@ -210,7 +212,8 @@ class UserService:
             s
             for s in (all_sessions or [])
             if s.get("session_date")
-            and datetime.fromisoformat(s["session_date"].replace("Z", "+00:00")) >= week_ago
+            and datetime.fromisoformat(s["session_date"].replace("Z", "+00:00"))
+            >= week_ago
         ]
         sessions_this_week = len(recent_sessions)
 

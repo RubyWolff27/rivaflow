@@ -78,9 +78,13 @@ async def get_performance_overview(
     # Validate date range
     if start_date and end_date:
         if start_date > end_date:
-            raise HTTPException(status_code=400, detail="start_date must be before end_date")
+            raise HTTPException(
+                status_code=400, detail="start_date must be before end_date"
+            )
         if (end_date - start_date).days > 730:  # 2 years max
-            raise HTTPException(status_code=400, detail="Date range cannot exceed 2 years")
+            raise HTTPException(
+                status_code=400, detail="Date range cannot exceed 2 years"
+            )
 
     try:
         return _get_performance_overview_cached(
@@ -219,7 +223,9 @@ async def get_consistency_analytics(
             types=types,
         )
     except Exception as e:
-        logger.error(f"Error in get_consistency_analytics: {type(e).__name__}: {str(e)}")
+        logger.error(
+            f"Error in get_consistency_analytics: {type(e).__name__}: {str(e)}"
+        )
         logger.error(traceback.format_exc())
         raise HTTPException(
             status_code=500, detail=f"Analytics error: {type(e).__name__}: {str(e)}"

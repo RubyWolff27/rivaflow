@@ -67,9 +67,7 @@ def validate_image_content(content: bytes, filename: str) -> str | None:
     normalized_file_ext = "jpeg" if file_ext == "jpg" else file_ext
 
     if normalized_detected != normalized_file_ext:
-        return (
-            f"File extension mismatch. File claims to be .{file_ext} but content is {detected_type}"
-        )
+        return f"File extension mismatch. File claims to be .{file_ext} but content is {detected_type}"
 
     return None
 
@@ -96,7 +94,9 @@ async def upload_photo(
         raise HTTPException(status_code=400, detail="Invalid activity type")
 
     # Check photo count limit
-    photo_count = photo_repo.count_by_activity(current_user["id"], activity_type, activity_id)
+    photo_count = photo_repo.count_by_activity(
+        current_user["id"], activity_type, activity_id
+    )
     if photo_count >= MAX_PHOTOS_PER_ACTIVITY:
         raise HTTPException(
             status_code=400,

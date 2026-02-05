@@ -61,7 +61,9 @@ class UserRepository:
                 raise ValueError(f"Invalid user_id returned: {user_id}")
 
             # Fetch and return the created user
-            cursor.execute(convert_query("SELECT * FROM users WHERE id = ?"), (user_id,))
+            cursor.execute(
+                convert_query("SELECT * FROM users WHERE id = ?"), (user_id,)
+            )
             row = cursor.fetchone()
 
             if not row:
@@ -82,7 +84,9 @@ class UserRepository:
         """
         with get_connection() as conn:
             cursor = conn.cursor()
-            cursor.execute(convert_query("SELECT * FROM users WHERE email = ?"), (email,))
+            cursor.execute(
+                convert_query("SELECT * FROM users WHERE email = ?"), (email,)
+            )
             row = cursor.fetchone()
             if row:
                 return UserRepository._row_to_dict(row)
@@ -101,7 +105,9 @@ class UserRepository:
         """
         with get_connection() as conn:
             cursor = conn.cursor()
-            cursor.execute(convert_query("SELECT * FROM users WHERE id = ?"), (user_id,))
+            cursor.execute(
+                convert_query("SELECT * FROM users WHERE id = ?"), (user_id,)
+            )
             row = cursor.fetchone()
             if row:
                 return UserRepository._row_to_dict(row)
@@ -160,7 +166,9 @@ class UserRepository:
                 cursor.execute(convert_query(query), params)
 
             # Return updated user
-            cursor.execute(convert_query("SELECT * FROM users WHERE id = ?"), (user_id,))
+            cursor.execute(
+                convert_query("SELECT * FROM users WHERE id = ?"), (user_id,)
+            )
             row = cursor.fetchone()
             if row:
                 return UserRepository._row_to_dict(row)

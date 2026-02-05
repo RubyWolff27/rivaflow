@@ -42,7 +42,9 @@ class RedisClient:
         self._fallback_mode = False
 
         if not REDIS_AVAILABLE:
-            logger.warning("Redis library not available. Running in fallback mode (no caching).")
+            logger.warning(
+                "Redis library not available. Running in fallback mode (no caching)."
+            )
             self._fallback_mode = True
         else:
             self._initialize_client()

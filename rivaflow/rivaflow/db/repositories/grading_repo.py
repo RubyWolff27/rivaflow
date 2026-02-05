@@ -58,7 +58,9 @@ class GradingRepository:
         with get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(
-                convert_query(f"SELECT * FROM gradings WHERE user_id = ? ORDER BY {order_by}"),
+                convert_query(
+                    f"SELECT * FROM gradings WHERE user_id = ? ORDER BY {order_by}"
+                ),
                 (user_id,),
             )
             rows = cursor.fetchall()
@@ -119,14 +121,18 @@ class GradingRepository:
             if not updates:
                 # Nothing to update, just return the current grading
                 cursor.execute(
-                    convert_query("SELECT * FROM gradings WHERE id = ? AND user_id = ?"),
+                    convert_query(
+                        "SELECT * FROM gradings WHERE id = ? AND user_id = ?"
+                    ),
                     (grading_id, user_id),
                 )
                 row = cursor.fetchone()
                 return GradingRepository._row_to_dict(row) if row else None
 
             params.extend([grading_id, user_id])
-            query = f"UPDATE gradings SET {', '.join(updates)} WHERE id = ? AND user_id = ?"
+            query = (
+                f"UPDATE gradings SET {', '.join(updates)} WHERE id = ? AND user_id = ?"
+            )
             cursor.execute(convert_query(query), params)
 
             if cursor.rowcount == 0:

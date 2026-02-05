@@ -85,7 +85,9 @@ def grant_admin(user_id: int):
 
         # Check if user exists
         cursor.execute(
-            convert_query("SELECT id, email, first_name, last_name FROM users WHERE id = ?"),
+            convert_query(
+                "SELECT id, email, first_name, last_name FROM users WHERE id = ?"
+            ),
             (user_id,),
         )
         user = cursor.fetchone()
@@ -97,7 +99,9 @@ def grant_admin(user_id: int):
         user_dict = dict(user)
 
         # Grant admin
-        cursor.execute(convert_query("UPDATE users SET is_admin = 1 WHERE id = ?"), (user_id,))
+        cursor.execute(
+            convert_query("UPDATE users SET is_admin = 1 WHERE id = ?"), (user_id,)
+        )
         conn.commit()
 
         print("✅ Admin privileges granted to:")
@@ -117,7 +121,9 @@ def revoke_admin(user_id: int):
 
         # Check if user exists
         cursor.execute(
-            convert_query("SELECT id, email, first_name, last_name FROM users WHERE id = ?"),
+            convert_query(
+                "SELECT id, email, first_name, last_name FROM users WHERE id = ?"
+            ),
             (user_id,),
         )
         user = cursor.fetchone()
@@ -129,7 +135,9 @@ def revoke_admin(user_id: int):
         user_dict = dict(user)
 
         # Revoke admin
-        cursor.execute(convert_query("UPDATE users SET is_admin = 0 WHERE id = ?"), (user_id,))
+        cursor.execute(
+            convert_query("UPDATE users SET is_admin = 0 WHERE id = ?"), (user_id,)
+        )
         conn.commit()
 
         print("✅ Admin privileges revoked from:")
@@ -146,10 +154,18 @@ def main():
         print("\nRivaFlow Admin Management")
         print("=" * 80)
         print("\nUsage:")
-        print("  python rivaflow/scripts/manage_admins.py list         # List all admin users")
-        print("  python rivaflow/scripts/manage_admins.py users        # List all users")
-        print("  python rivaflow/scripts/manage_admins.py grant <id>   # Grant admin to user")
-        print("  python rivaflow/scripts/manage_admins.py revoke <id>  # Revoke admin from user")
+        print(
+            "  python rivaflow/scripts/manage_admins.py list         # List all admin users"
+        )
+        print(
+            "  python rivaflow/scripts/manage_admins.py users        # List all users"
+        )
+        print(
+            "  python rivaflow/scripts/manage_admins.py grant <id>   # Grant admin to user"
+        )
+        print(
+            "  python rivaflow/scripts/manage_admins.py revoke <id>  # Revoke admin from user"
+        )
         print()
         sys.exit(1)
 

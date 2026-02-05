@@ -78,14 +78,18 @@ class FriendRepository:
         with get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(
-                convert_query(f"SELECT * FROM friends WHERE user_id = ? ORDER BY {order_by}"),
+                convert_query(
+                    f"SELECT * FROM friends WHERE user_id = ? ORDER BY {order_by}"
+                ),
                 (user_id,),
             )
             rows = cursor.fetchall()
             return [FriendRepository._row_to_dict(row) for row in rows]
 
     @staticmethod
-    def list_by_type(user_id: int, friend_type: str, order_by: str = "name ASC") -> list[dict]:
+    def list_by_type(
+        user_id: int, friend_type: str, order_by: str = "name ASC"
+    ) -> list[dict]:
         """Get friends filtered by type."""
         # Whitelist allowed ORDER BY values to prevent SQL injection
         if order_by not in FRIEND_SORT_OPTIONS:
@@ -164,7 +168,9 @@ class FriendRepository:
             updates.append("updated_at = CURRENT_TIMESTAMP")
             params.extend([friend_id, user_id])
 
-            query = f"UPDATE friends SET {', '.join(updates)} WHERE id = ? AND user_id = ?"
+            query = (
+                f"UPDATE friends SET {', '.join(updates)} WHERE id = ? AND user_id = ?"
+            )
             cursor.execute(convert_query(query), params)
 
             if cursor.rowcount == 0:

@@ -109,9 +109,13 @@ async def create_custom_movement(
 
 
 @router.delete("/{movement_id}")
-async def delete_custom_movement(movement_id: int, current_user: dict = Depends(get_current_user)):
+async def delete_custom_movement(
+    movement_id: int, current_user: dict = Depends(get_current_user)
+):
     """Delete a custom movement. Can only delete custom movements."""
-    deleted = service.delete_custom_movement(user_id=current_user["id"], movement_id=movement_id)
+    deleted = service.delete_custom_movement(
+        user_id=current_user["id"], movement_id=movement_id
+    )
     if not deleted:
         raise NotFoundError("Movement not found or cannot delete seeded movements")
     return {"message": "Movement deleted successfully"}

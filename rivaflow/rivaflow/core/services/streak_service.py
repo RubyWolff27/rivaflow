@@ -44,13 +44,18 @@ class StreakService:
 
         # Always update check-in streak
         old_checkin_streak = self.streak_repo.get_streak(user_id, "checkin")
-        new_checkin_streak = self.streak_repo.update_streak(user_id, "checkin", checkin_date)
+        new_checkin_streak = self.streak_repo.update_streak(
+            user_id, "checkin", checkin_date
+        )
         result["checkin_streak"] = new_checkin_streak
 
         if new_checkin_streak["current_streak"] > old_checkin_streak["current_streak"]:
             result["streak_extended"] = True
 
-        if new_checkin_streak["grace_days_used"] > old_checkin_streak["grace_days_used"]:
+        if (
+            new_checkin_streak["grace_days_used"]
+            > old_checkin_streak["grace_days_used"]
+        ):
             result["grace_day_used"] = True
 
         if new_checkin_streak["current_streak"] > old_checkin_streak["longest_streak"]:
@@ -59,10 +64,15 @@ class StreakService:
         # Update training streak if session
         if checkin_type == "session":
             old_training_streak = self.streak_repo.get_streak(user_id, "training")
-            new_training_streak = self.streak_repo.update_streak(user_id, "training", checkin_date)
+            new_training_streak = self.streak_repo.update_streak(
+                user_id, "training", checkin_date
+            )
             result["training_streak"] = new_training_streak
 
-            if new_training_streak["current_streak"] > old_training_streak["longest_streak"]:
+            if (
+                new_training_streak["current_streak"]
+                > old_training_streak["longest_streak"]
+            ):
                 result["longest_beaten"] = True
 
         # Update readiness streak if readiness was logged
@@ -70,7 +80,9 @@ class StreakService:
 
         return result
 
-    def record_readiness_checkin(self, user_id: int, checkin_date: date | None = None) -> dict:
+    def record_readiness_checkin(
+        self, user_id: int, checkin_date: date | None = None
+    ) -> dict:
         """
         Record a readiness check-in and update readiness streak.
 
@@ -84,7 +96,9 @@ class StreakService:
             checkin_date = date.today()
 
         old_readiness_streak = self.streak_repo.get_streak(user_id, "readiness")
-        new_readiness_streak = self.streak_repo.update_streak(user_id, "readiness", checkin_date)
+        new_readiness_streak = self.streak_repo.update_streak(
+            user_id, "readiness", checkin_date
+        )
 
         return {
             "readiness_streak": new_readiness_streak,

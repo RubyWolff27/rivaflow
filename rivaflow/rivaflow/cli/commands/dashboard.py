@@ -125,7 +125,9 @@ def dashboard(ctx: typer.Context = None):
     try:
         with get_connection() as conn:
             cursor = conn.cursor()
-            cursor.execute("SELECT COUNT(*) FROM sessions WHERE user_id = ?", (user_id,))
+            cursor.execute(
+                "SELECT COUNT(*) FROM sessions WHERE user_id = ?", (user_id,)
+            )
             session_count = cursor.fetchone()[0] or 0
 
             if session_count == 0:

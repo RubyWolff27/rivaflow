@@ -61,7 +61,9 @@ async def get_profile(current_user: dict = Depends(get_current_user)):
 
 
 @router.put("/")
-async def update_profile(profile: ProfileUpdate, current_user: dict = Depends(get_current_user)):
+async def update_profile(
+    profile: ProfileUpdate, current_user: dict = Depends(get_current_user)
+):
     """Update the user profile."""
     updated = service.update_profile(
         user_id=current_user["id"],

@@ -45,7 +45,9 @@ def create_migrations_table(conn):
 
         if not has_version_column:
             # Table exists but has wrong schema - drop and recreate
-            logger.warning("schema_migrations table exists with incorrect schema. Recreating...")
+            logger.warning(
+                "schema_migrations table exists with incorrect schema. Recreating..."
+            )
             cursor.execute("DROP TABLE IF EXISTS schema_migrations")
             conn.commit()
     except Exception as e:
@@ -95,7 +97,9 @@ def apply_migration(conn, migration_file):
         cursor.execute(sql)
 
         # Record migration
-        cursor.execute("INSERT INTO schema_migrations (version) VALUES (%s)", (version,))
+        cursor.execute(
+            "INSERT INTO schema_migrations (version) VALUES (%s)", (version,)
+        )
 
         conn.commit()
         logger.info(f"✓ Applied: {version}")
@@ -165,5 +169,7 @@ def run_migrations():
 
 if __name__ == "__main__":
     # Configure logging for standalone execution
-    logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
+    logging.basicConfig(
+        level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
+    )
     run_migrations()

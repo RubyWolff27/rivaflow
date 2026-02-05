@@ -289,7 +289,9 @@ async def get_cost_projections(
         },
         "daily_average": {
             "last_7_days": round(avg_daily_cost, 6),
-            "daily_costs": [{"date": row[0], "cost_usd": round(row[1], 6)} for row in daily_costs],
+            "daily_costs": [
+                {"date": row[0], "cost_usd": round(row[1], 6)} for row in daily_costs
+            ],
         },
         "calculated_at": now.isoformat(),
     }

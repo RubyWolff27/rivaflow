@@ -80,7 +80,9 @@ def handle_error(e: Exception, context: str = "") -> None:
     # Service errors
     if isinstance(e, ServiceError):
         prompts.print_error(f"Service error: {e.message}")
-        prompts.console.print("[dim]An internal error occurred. Please try again.[/dim]")
+        prompts.console.print(
+            "[dim]An internal error occurred. Please try again.[/dim]"
+        )
         if context:
             prompts.console.print(f"[dim]Context: {context}[/dim]")
         raise typer.Exit(1)

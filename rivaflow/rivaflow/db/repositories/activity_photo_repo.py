@@ -45,7 +45,9 @@ class ActivityPhotoRepository:
             )
 
     @staticmethod
-    def get_by_activity(user_id: int, activity_type: str, activity_id: int) -> list[dict]:
+    def get_by_activity(
+        user_id: int, activity_type: str, activity_id: int
+    ) -> list[dict]:
         """Get all photos for a specific activity."""
         with get_connection() as conn:
             cursor = conn.cursor()
@@ -86,7 +88,9 @@ class ActivityPhotoRepository:
         with get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(
-                convert_query("SELECT * FROM activity_photos WHERE id = ? AND user_id = ?"),
+                convert_query(
+                    "SELECT * FROM activity_photos WHERE id = ? AND user_id = ?"
+                ),
                 (photo_id, user_id),
             )
             row = cursor.fetchone()
@@ -98,7 +102,9 @@ class ActivityPhotoRepository:
         with get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(
-                convert_query("DELETE FROM activity_photos WHERE id = ? AND user_id = ?"),
+                convert_query(
+                    "DELETE FROM activity_photos WHERE id = ? AND user_id = ?"
+                ),
                 (photo_id, user_id),
             )
             return cursor.rowcount > 0

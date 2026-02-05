@@ -87,7 +87,9 @@ if __name__ == "__main__":
     success = fix_user_tier(user_email)
 
     if success:
-        print(f"\n✨ Success! User {user_email} has been upgraded to lifetime_premium beta status.")
+        print(
+            f"\n✨ Success! User {user_email} has been upgraded to lifetime_premium beta status."
+        )
         print("   Please log out and log back in to see the changes.")
     else:
         print(f"\n❌ Failed to update user {user_email}")

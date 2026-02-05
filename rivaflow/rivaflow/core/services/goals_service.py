@@ -78,13 +78,17 @@ class GoalsService:
 
         # Calculate activity type breakdown
         bjj_sessions = sum(
-            1 for s in sessions if s.get("class_type") in ["gi", "no-gi", "open-mat", "competition"]
+            1
+            for s in sessions
+            if s.get("class_type") in ["gi", "no-gi", "open-mat", "competition"]
         )
         sc_sessions = sum(
             1 for s in sessions if s.get("class_type") in ["s&c", "cardio"]
         )  # Include cardio as S&C
         mobility_sessions = sum(
-            1 for s in sessions if s.get("class_type") in ["mobility", "recovery", "physio"]
+            1
+            for s in sessions
+            if s.get("class_type") in ["mobility", "recovery", "physio"]
         )  # Include physio
 
         logger.info(
@@ -108,10 +112,14 @@ class GoalsService:
                 else 0
             ),
             "hours_pct": (
-                round((actual_hours / targets["hours"] * 100), 1) if targets["hours"] > 0 else 0
+                round((actual_hours / targets["hours"] * 100), 1)
+                if targets["hours"] > 0
+                else 0
             ),
             "rolls_pct": (
-                round((actual_rolls / targets["rolls"] * 100), 1) if targets["rolls"] > 0 else 0
+                round((actual_rolls / targets["rolls"] * 100), 1)
+                if targets["rolls"] > 0
+                else 0
             ),
             "bjj_sessions_pct": (
                 round((bjj_sessions / targets["bjj_sessions"] * 100), 1)
@@ -130,7 +138,8 @@ class GoalsService:
             ),
         }
         progress["overall_pct"] = round(
-            (progress["sessions_pct"] + progress["hours_pct"] + progress["rolls_pct"]) / 3,
+            (progress["sessions_pct"] + progress["hours_pct"] + progress["rolls_pct"])
+            / 3,
             1,
         )
 
@@ -202,7 +211,9 @@ class GoalsService:
 
     def get_recent_weeks_trend(self, user_id: int, weeks: int = 12) -> list[dict]:
         """Get goal completion trend for recent weeks."""
-        progress_records = self.goal_progress_repo.get_recent_weeks(user_id, limit=weeks)
+        progress_records = self.goal_progress_repo.get_recent_weeks(
+            user_id, limit=weeks
+        )
 
         trend = []
         for record in progress_records:

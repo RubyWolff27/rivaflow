@@ -95,14 +95,18 @@ class StreakRepository:
                 new_streak = streak["current_streak"] + 1
                 new_longest = max(new_streak, streak["longest_streak"])
                 grace_days_used = 0  # Reset grace days on consecutive check-in
-                streak_started = streak["streak_started_date"] or checkin_date.isoformat()
+                streak_started = (
+                    streak["streak_started_date"] or checkin_date.isoformat()
+                )
 
             # Missed 1 day - use grace day if available
             elif days_since_last == 2 and streak["grace_days_used"] < STREAK_GRACE_DAYS:
                 new_streak = streak["current_streak"] + 1
                 new_longest = max(new_streak, streak["longest_streak"])
                 grace_days_used = streak["grace_days_used"] + 1
-                streak_started = streak["streak_started_date"] or checkin_date.isoformat()
+                streak_started = (
+                    streak["streak_started_date"] or checkin_date.isoformat()
+                )
 
             # Streak broken - reset
             else:

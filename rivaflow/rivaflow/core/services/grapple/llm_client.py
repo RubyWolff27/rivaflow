@@ -68,10 +68,14 @@ class GrappleLLMClient:
         self.providers = self._detect_available_providers()
 
         if not self.providers:
-            logger.error("No LLM providers available! Configure GROQ_API_KEY or TOGETHER_API_KEY.")
+            logger.error(
+                "No LLM providers available! Configure GROQ_API_KEY or TOGETHER_API_KEY."
+            )
             raise RuntimeError("No LLM providers configured")
 
-        logger.info(f"Grapple LLM initialized with providers: {', '.join(self.providers)}")
+        logger.info(
+            f"Grapple LLM initialized with providers: {', '.join(self.providers)}"
+        )
 
     def _detect_available_providers(self) -> list[str]:
         """Detect which providers are available based on configuration."""
@@ -135,23 +139,31 @@ class GrappleLLMClient:
                 if provider == "groq":
                     result = await self._call_groq(messages, temperature, max_tokens)
                 elif provider == "together":
-                    result = await self._call_together(messages, temperature, max_tokens)
+                    result = await self._call_together(
+                        messages, temperature, max_tokens
+                    )
                 elif provider == "ollama":
                     result = await self._call_ollama(messages, temperature, max_tokens)
                 else:
                     continue
 
                 # Success - return result
-                logger.info(f"Successfully got response from {provider} for user {user_id}")
+                logger.info(
+                    f"Successfully got response from {provider} for user {user_id}"
+                )
                 return result
 
             except Exception as e:
-                logger.warning(f"Provider {provider} failed: {type(e).__name__}: {str(e)}")
+                logger.warning(
+                    f"Provider {provider} failed: {type(e).__name__}: {str(e)}"
+                )
                 last_error = e
                 continue
 
         # All providers failed
-        logger.error(f"All LLM providers failed for user {user_id}. Last error: {last_error}")
+        logger.error(
+            f"All LLM providers failed for user {user_id}. Last error: {last_error}"
+        )
         raise RuntimeError(f"All LLM providers failed: {last_error}")
 
     async def _call_groq(
@@ -263,7 +275,9 @@ class GrappleLLMClient:
             "cost_usd": 0.0,  # Local is free
         }
 
-    def _calculate_cost(self, provider: str, input_tokens: int, output_tokens: int) -> float:
+    def _calculate_cost(
+        self, provider: str, input_tokens: int, output_tokens: int
+    ) -> float:
         """Calculate cost in USD for a request."""
         config = self.MODELS.get(provider, {})
         input_cost = (input_tokens / 1000) * config.get("cost_per_1k_input", 0.0)

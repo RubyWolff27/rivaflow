@@ -55,7 +55,9 @@ class FriendSuggestionsService:
             score, reasons = self._calculate_score(current_user, candidate, user_id)
 
             if score >= 10:  # Minimum threshold
-                mutual_count = len([r for r in reasons if r.startswith("mutual_friends")])
+                mutual_count = len(
+                    [r for r in reasons if r.startswith("mutual_friends")]
+                )
                 scored_candidates.append(
                     {
                         "suggested_user_id": candidate["id"],
@@ -137,7 +139,9 @@ class FriendSuggestionsService:
 
         return existing_ids
 
-    def _get_candidate_users(self, user_id: int, exclude_ids: set[int]) -> list[dict[str, Any]]:
+    def _get_candidate_users(
+        self, user_id: int, exclude_ids: set[int]
+    ) -> list[dict[str, Any]]:
         """Get all users who could be suggested (excluding self and connections)."""
         with get_connection() as conn:
             cursor = conn.cursor()
@@ -218,7 +222,8 @@ class FriendSuggestionsService:
         if (
             current_user.get("location_city")
             and candidate.get("location_city")
-            and current_user["location_city"].lower() == candidate["location_city"].lower()
+            and current_user["location_city"].lower()
+            == candidate["location_city"].lower()
         ):
             score += 15
             reasons.append("same_city")

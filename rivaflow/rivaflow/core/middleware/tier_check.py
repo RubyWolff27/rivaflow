@@ -25,7 +25,9 @@ def require_feature(feature: str):
         @wraps(func)
         async def wrapper(*args, **kwargs):
             # Extract request and user from kwargs
-            kwargs.get("request") or next((arg for arg in args if isinstance(arg, Request)), None)
+            kwargs.get("request") or next(
+                (arg for arg in args if isinstance(arg, Request)), None
+            )
             current_user = kwargs.get("current_user")
 
             if not current_user:
@@ -35,7 +37,9 @@ def require_feature(feature: str):
                 )
 
             user_tier = getattr(current_user, "subscription_tier", "free")
-            has_access, error_msg = TierAccessService.check_tier_access(user_tier, feature)
+            has_access, error_msg = TierAccessService.check_tier_access(
+                user_tier, feature
+            )
 
             if not has_access:
                 raise HTTPException(

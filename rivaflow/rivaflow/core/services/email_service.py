@@ -61,11 +61,15 @@ class EmailService:
             True if sent successfully, False otherwise
         """
         if not self.enabled:
-            logger.error(f"Email service not configured. Cannot send email to {to_email}")
+            logger.error(
+                f"Email service not configured. Cannot send email to {to_email}"
+            )
             return False
 
         if self.method == "sendgrid":
-            return self._send_via_sendgrid(to_email, subject, html_content, text_content)
+            return self._send_via_sendgrid(
+                to_email, subject, html_content, text_content
+            )
         else:
             return self._send_via_smtp(to_email, subject, html_content, text_content)
 
@@ -88,7 +92,11 @@ class EmailService:
             # Use text content as fallback if provided, otherwise use HTML
             plain_text = Content(
                 "text/plain",
-                (text_content if text_content else "Please view this email in HTML format."),
+                (
+                    text_content
+                    if text_content
+                    else "Please view this email in HTML format."
+                ),
             )
             html = Content("text/html", html_content)
 
@@ -108,7 +116,9 @@ class EmailService:
                 logger.info(f"Email sent successfully to {to_email} via SendGrid")
                 return True
             else:
-                logger.error(f"SendGrid returned status {response.status_code} for {to_email}")
+                logger.error(
+                    f"SendGrid returned status {response.status_code} for {to_email}"
+                )
                 return False
 
         except Exception as e:
@@ -126,7 +136,9 @@ class EmailService:
             # Try SMTP fallback if configured
             if self.smtp_user and self.smtp_password:
                 logger.info(f"Attempting SMTP fallback for {to_email}")
-                return self._send_via_smtp(to_email, subject, html_content, text_content)
+                return self._send_via_smtp(
+                    to_email, subject, html_content, text_content
+                )
 
             return False
 

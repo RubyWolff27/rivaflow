@@ -101,7 +101,9 @@ class ChatSessionRepository:
             return None
 
     @staticmethod
-    def get_by_user(user_id: int, limit: int = 20, offset: int = 0) -> list[dict[str, Any]]:
+    def get_by_user(
+        user_id: int, limit: int = 20, offset: int = 0
+    ) -> list[dict[str, Any]]:
         """
         Get sessions for a user.
 

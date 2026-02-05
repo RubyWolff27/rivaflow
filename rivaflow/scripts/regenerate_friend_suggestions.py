@@ -108,7 +108,9 @@ def regenerate_suggestions_for_user(user_id: int, dry_run: bool = False) -> dict
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Regenerate friend suggestions for active users")
+    parser = argparse.ArgumentParser(
+        description="Regenerate friend suggestions for active users"
+    )
     parser.add_argument(
         "--limit",
         type=int,
@@ -150,7 +152,9 @@ def main():
 
         for user in users:
             try:
-                result = regenerate_suggestions_for_user(user["id"], dry_run=args.dry_run)
+                result = regenerate_suggestions_for_user(
+                    user["id"], dry_run=args.dry_run
+                )
                 total_suggestions += result["suggestions_created"]
                 successful += 1
 
@@ -170,7 +174,9 @@ def main():
         logger.info(f"Successful:                 {successful}")
         logger.info(f"Failed:                     {failed}")
         logger.info(f"Total suggestions created:  {total_suggestions}")
-        logger.info(f"Avg per user:               {total_suggestions / max(successful, 1):.1f}")
+        logger.info(
+            f"Avg per user:               {total_suggestions / max(successful, 1):.1f}"
+        )
 
         if args.dry_run:
             logger.info("\n[DRY RUN] No changes were made to the database")

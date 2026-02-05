@@ -18,7 +18,9 @@ console = Console()
 def add(
     url: str = typer.Argument(..., help="Video URL"),
     title: str | None = typer.Option(None, "--title", "-t", help="Video title"),
-    technique: str | None = typer.Option(None, "--technique", help="Technique name to link"),
+    technique: str | None = typer.Option(
+        None, "--technique", help="Technique name to link"
+    ),
     timestamps: str | None = typer.Option(
         None,
         "--timestamps",
@@ -56,7 +58,9 @@ def add(
 
 @app.command()
 def list(
-    technique: str | None = typer.Option(None, "--technique", help="Filter by technique"),
+    technique: str | None = typer.Option(
+        None, "--technique", help="Filter by technique"
+    ),
 ):
     """List all videos or filter by technique."""
     user_id = get_current_user_id()

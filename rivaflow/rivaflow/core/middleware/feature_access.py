@@ -173,7 +173,9 @@ def get_user_tier_info(user: dict[str, Any]) -> dict[str, Any]:
         "is_beta": user.get("is_beta_user", False),
         "features": {
             "grapple": FeatureAccess.check_feature_access("grapple", tier),
-            "advanced_analytics": FeatureAccess.check_feature_access("advanced_analytics", tier),
+            "advanced_analytics": FeatureAccess.check_feature_access(
+                "advanced_analytics", tier
+            ),
             "api_access": FeatureAccess.check_feature_access("api_access", tier),
         },
         "limits": {

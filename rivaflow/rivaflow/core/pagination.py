@@ -89,9 +89,15 @@ def paginate_with_cursor(
 
     # Generate next cursor from last item
     next_cursor = None
-    if paginated_items and len(paginated_items) == limit and start_pos + limit < total_items:
+    if (
+        paginated_items
+        and len(paginated_items) == limit
+        and start_pos + limit < total_items
+    ):
         last_item = paginated_items[-1]
-        next_cursor = encode_cursor(last_item["date"], last_item["type"], last_item["id"])
+        next_cursor = encode_cursor(
+            last_item["date"], last_item["type"], last_item["id"]
+        )
 
     return {
         "items": paginated_items,

@@ -45,7 +45,9 @@ def test_email_config():
     print("\n✅ Email service is enabled!")
 
     # Ask if user wants to send test email
-    test_email = input("\nEnter email address to send test to (or press Enter to skip): ").strip()
+    test_email = input(
+        "\nEnter email address to send test to (or press Enter to skip): "
+    ).strip()
 
     if test_email:
         print(f"\nSending test email to {test_email}...")

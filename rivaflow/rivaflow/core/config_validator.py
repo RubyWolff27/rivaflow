@@ -72,12 +72,15 @@ def validate_environment():
     redis_url = os.getenv("REDIS_URL")
     if env == "production" and not redis_url:
         logger.warning(
-            "REDIS_URL not set. Caching will be disabled. " "Set REDIS_URL for better performance."
+            "REDIS_URL not set. Caching will be disabled. "
+            "Set REDIS_URL for better performance."
         )
 
     sendgrid_key = os.getenv("SENDGRID_API_KEY")
     if env == "production" and not sendgrid_key:
-        logger.warning("SENDGRID_API_KEY not set. Email notifications will be disabled.")
+        logger.warning(
+            "SENDGRID_API_KEY not set. Email notifications will be disabled."
+        )
 
     # If there are errors, fail fast
     if errors:

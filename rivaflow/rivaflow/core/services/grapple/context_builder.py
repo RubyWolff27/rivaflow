@@ -98,7 +98,9 @@ Now respond to the user's questions using this context. Reference their specific
             # Calculate training stats
             total_duration = sum(s.get("duration_mins", 0) for s in redacted_sessions)
             total_rolls = sum(s.get("rolls_count", 0) for s in redacted_sessions)
-            avg_intensity = sum(s.get("intensity", 0) for s in redacted_sessions) / total_sessions
+            avg_intensity = (
+                sum(s.get("intensity", 0) for s in redacted_sessions) / total_sessions
+            )
 
             # Get unique gyms and techniques
             gyms = set(s.get("gym", "") for s in redacted_sessions if s.get("gym"))
@@ -142,7 +144,9 @@ Now respond to the user's questions using this context. Reference their specific
                 techniques = session.get("techniques", [])
                 notes = session.get("notes", "")
 
-                session_summary = f"- {date_str} at {gym}: {duration}min, intensity {intensity}/10"
+                session_summary = (
+                    f"- {date_str} at {gym}: {duration}min, intensity {intensity}/10"
+                )
                 if rolls > 0:
                     session_summary += f", {rolls} rolls"
                 if techniques:

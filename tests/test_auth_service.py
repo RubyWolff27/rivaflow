@@ -76,7 +76,9 @@ class TestAuthServiceRegister:
             streaks = cursor.fetchall()
 
         assert len(streaks) == 3  # checkin, training, readiness
-        streak_types = {row["streak_type"] if isinstance(row, dict) else row[1] for row in streaks}
+        streak_types = {
+            row["streak_type"] if isinstance(row, dict) else row[1] for row in streaks
+        }
         assert "checkin" in streak_types
         assert "training" in streak_types
         assert "readiness" in streak_types
@@ -226,7 +228,9 @@ class TestAuthServiceRefreshToken:
         auth_service = AuthService()
 
         # First login to get refresh token
-        login_result = auth_service.login(email="test@example.com", password="testpass123")
+        login_result = auth_service.login(
+            email="test@example.com", password="testpass123"
+        )
 
         # Refresh access token
         refresh_result = auth_service.refresh_access_token(
@@ -256,7 +260,9 @@ class TestAuthServiceLogout:
         auth_service = AuthService()
 
         # Login first
-        login_result = auth_service.login(email="test@example.com", password="testpass123")
+        login_result = auth_service.login(
+            email="test@example.com", password="testpass123"
+        )
 
         # Logout
         result = auth_service.logout(login_result["refresh_token"])

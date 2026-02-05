@@ -57,7 +57,9 @@ class ReadinessService:
         """Get the most recent readiness entry."""
         return self.repo.get_latest(user_id)
 
-    def get_readiness_range(self, user_id: int, start_date: date, end_date: date) -> list[dict]:
+    def get_readiness_range(
+        self, user_id: int, start_date: date, end_date: date
+    ) -> list[dict]:
         """Get readiness entries within a date range."""
         return self.repo.get_by_date_range(user_id, start_date, end_date)
 

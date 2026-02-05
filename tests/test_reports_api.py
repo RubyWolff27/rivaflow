@@ -8,7 +8,9 @@ class TestAnalyticsAPI:
 
     def test_performance_overview_empty_data(self, client, test_user, auth_headers):
         """Test performance overview with no sessions."""
-        response = client.get("/api/analytics/performance-overview", headers=auth_headers)
+        response = client.get(
+            "/api/analytics/performance-overview", headers=auth_headers
+        )
 
         assert response.status_code == 200
         data = response.json()
@@ -71,7 +73,9 @@ class TestAnalyticsAPI:
             submissions_against=0,
         )
 
-        response = client.get("/api/analytics/performance-overview", headers=auth_headers)
+        response = client.get(
+            "/api/analytics/performance-overview", headers=auth_headers
+        )
 
         assert response.status_code == 200
         data = response.json()
@@ -94,7 +98,9 @@ class TestAnalyticsAPI:
             submissions_against=0,
         )
 
-        response = client.get("/api/analytics/performance-overview", headers=auth_headers)
+        response = client.get(
+            "/api/analytics/performance-overview", headers=auth_headers
+        )
 
         assert response.status_code == 200
         data = response.json()
@@ -143,7 +149,9 @@ class TestAnalyticsAPI:
 
     def test_technique_breakdown_empty_data(self, client, test_user, auth_headers):
         """Test technique breakdown with no data."""
-        response = client.get("/api/analytics/techniques/breakdown", headers=auth_headers)
+        response = client.get(
+            "/api/analytics/techniques/breakdown", headers=auth_headers
+        )
 
         assert response.status_code == 200
         data = response.json()
@@ -159,7 +167,9 @@ class TestAnalyticsAPI:
     ):
         """Test technique breakdown with session data."""
         # Create gi and no-gi sessions
-        session_factory(session_date=date.today(), class_type="gi", intensity=4, rolls=5)
+        session_factory(
+            session_date=date.today(), class_type="gi", intensity=4, rolls=5
+        )
         session_factory(
             session_date=date.today() - timedelta(days=1),
             class_type="no-gi",
@@ -167,7 +177,9 @@ class TestAnalyticsAPI:
             rolls=4,
         )
 
-        response = client.get("/api/analytics/techniques/breakdown", headers=auth_headers)
+        response = client.get(
+            "/api/analytics/techniques/breakdown", headers=auth_headers
+        )
 
         assert response.status_code == 200
         data = response.json()
@@ -182,7 +194,9 @@ class TestAnalyticsAPI:
     def test_date_range_validation(self, client, test_user, auth_headers):
         """Test various date range scenarios."""
         # Test last 7 days (default behavior)
-        response = client.get("/api/analytics/performance-overview", headers=auth_headers)
+        response = client.get(
+            "/api/analytics/performance-overview", headers=auth_headers
+        )
         assert response.status_code == 200
 
         # Test last 30 days
@@ -204,7 +218,9 @@ class TestAnalyticsAPI:
         )
         assert response.status_code == 200
 
-    def test_date_range_no_data_in_range(self, client, test_user, auth_headers, session_factory):
+    def test_date_range_no_data_in_range(
+        self, client, test_user, auth_headers, session_factory
+    ):
         """Test date range with no data in selected range."""
         # Create session in the past
         old_date = date.today() - timedelta(days=100)
@@ -225,7 +241,9 @@ class TestAnalyticsAPI:
         # Should return empty data for this range
         assert data["summary"]["total_sessions"] == 0
 
-    def test_null_value_handling(self, client, test_user, auth_headers, session_factory):
+    def test_null_value_handling(
+        self, client, test_user, auth_headers, session_factory
+    ):
         """Test handling of null/None values in session data."""
         # Create session with minimal data
         session_factory(
@@ -238,7 +256,9 @@ class TestAnalyticsAPI:
             submissions_against=0,
         )
 
-        response = client.get("/api/analytics/performance-overview", headers=auth_headers)
+        response = client.get(
+            "/api/analytics/performance-overview", headers=auth_headers
+        )
 
         assert response.status_code == 200
         data = response.json()
@@ -247,13 +267,19 @@ class TestAnalyticsAPI:
         assert data["summary"]["total_rolls"] == 0
         assert data["summary"]["total_submissions_for"] == 0
 
-    def test_consistency_metrics(self, client, test_user, auth_headers, session_factory):
+    def test_consistency_metrics(
+        self, client, test_user, auth_headers, session_factory
+    ):
         """Test consistency analytics endpoint."""
         # Create multiple sessions
         for i in range(5):
-            session_factory(session_date=date.today() - timedelta(days=i), intensity=4, rolls=5)
+            session_factory(
+                session_date=date.today() - timedelta(days=i), intensity=4, rolls=5
+            )
 
-        response = client.get("/api/analytics/consistency/metrics", headers=auth_headers)
+        response = client.get(
+            "/api/analytics/consistency/metrics", headers=auth_headers
+        )
 
         assert response.status_code == 200
         data = response.json()
@@ -290,17 +316,25 @@ class TestAnalyticsEdgeCases:
     ):
         """Test average intensity calculation with varying intensities."""
         session_factory(session_date=date.today(), intensity=5, rolls=3)
-        session_factory(session_date=date.today() - timedelta(days=1), intensity=1, rolls=2)
-        session_factory(session_date=date.today() - timedelta(days=2), intensity=3, rolls=4)
+        session_factory(
+            session_date=date.today() - timedelta(days=1), intensity=1, rolls=2
+        )
+        session_factory(
+            session_date=date.today() - timedelta(days=2), intensity=3, rolls=4
+        )
 
-        response = client.get("/api/analytics/performance-overview", headers=auth_headers)
+        response = client.get(
+            "/api/analytics/performance-overview", headers=auth_headers
+        )
         assert response.status_code == 200
         data = response.json()
 
         # Average should be (5 + 1 + 3) / 3 = 3.0
         assert data["summary"]["avg_intensity"] == 3.0
 
-    def test_timeseries_completeness(self, client, test_user, auth_headers, session_factory):
+    def test_timeseries_completeness(
+        self, client, test_user, auth_headers, session_factory
+    ):
         """Test that timeseries includes all days in range, even with no data."""
         # Create session only on one day
         session_factory(session_date=date.today(), intensity=4, rolls=5)
@@ -328,9 +362,13 @@ class TestAnalyticsEdgeCases:
     ):
         """Test delta calculation when there's no previous period data."""
         # Only create session today
-        session_factory(session_date=date.today(), intensity=4, rolls=5, submissions_for=2)
+        session_factory(
+            session_date=date.today(), intensity=4, rolls=5, submissions_for=2
+        )
 
-        response = client.get("/api/analytics/performance-overview", headers=auth_headers)
+        response = client.get(
+            "/api/analytics/performance-overview", headers=auth_headers
+        )
         assert response.status_code == 200
         data = response.json()
 

@@ -36,7 +36,9 @@ def test_bcrypt_compatibility():
 
     print("\n3. Testing password verification (wrong password)...")
     is_valid = verify_password("WrongPassword", hashed)
-    print(f"   {'✓' if not is_valid else '✗'} Verification: {is_valid} (should be False)")
+    print(
+        f"   {'✓' if not is_valid else '✗'} Verification: {is_valid} (should be False)"
+    )
 
     return True
 

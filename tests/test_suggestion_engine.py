@@ -26,7 +26,10 @@ def test_suggestion_with_high_stress(temp_db, test_user):
         result = engine.get_suggestion(user_id=test_user["id"])
 
         # Should trigger high_stress_low_energy rule
-        assert "Flow roll" in result["suggestion"] or "drill" in result["suggestion"].lower()
+        assert (
+            "Flow roll" in result["suggestion"]
+            or "drill" in result["suggestion"].lower()
+        )
         assert len(result["triggered_rules"]) > 0
 
 
@@ -48,7 +51,10 @@ def test_suggestion_with_high_soreness(temp_db, test_user):
         result = engine.get_suggestion(user_id=test_user["id"])
 
         # Should trigger high_soreness rule
-        assert "Recovery" in result["suggestion"] or "mobility" in result["suggestion"].lower()
+        assert (
+            "Recovery" in result["suggestion"]
+            or "mobility" in result["suggestion"].lower()
+        )
 
 
 def test_suggestion_with_consecutive_gi(temp_db, test_user):
@@ -79,7 +85,9 @@ def test_suggestion_with_stale_technique(temp_db, test_user):
 
         tech_repo = TechniqueRepository()
         tech = tech_repo.get_or_create(name="armbar", category="submission")
-        tech_repo.update_last_trained(technique_id=tech["id"], trained_date=date(2025, 1, 10))
+        tech_repo.update_last_trained(
+            technique_id=tech["id"], trained_date=date(2025, 1, 10)
+        )
 
         # Mock today as 10+ days later
         with patch("rivaflow.core.services.suggestion_engine.date") as mock_date:

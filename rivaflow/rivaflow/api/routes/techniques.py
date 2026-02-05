@@ -12,14 +12,18 @@ service = TechniqueService()
 
 
 @router.post("/")
-async def add_technique(technique: TechniqueCreate, current_user: dict = Depends(get_current_user)):
+async def add_technique(
+    technique: TechniqueCreate, current_user: dict = Depends(get_current_user)
+):
     """Add a new technique."""
     technique_id = service.add_technique(
         user_id=current_user["id"],
         name=technique.name,
         category=technique.category,
     )
-    created_technique = service.get_technique(user_id=current_user["id"], technique_id=technique_id)
+    created_technique = service.get_technique(
+        user_id=current_user["id"], technique_id=technique_id
+    )
     return created_technique
 
 
@@ -38,7 +42,9 @@ async def list_techniques(
 
 
 @router.get("/stale")
-async def get_stale_techniques(days: int = 7, current_user: dict = Depends(get_current_user)):
+async def get_stale_techniques(
+    days: int = 7, current_user: dict = Depends(get_current_user)
+):
     """Get stale techniques (not trained in N days)."""
     return service.get_stale_techniques(user_id=current_user["id"], days=days)
 
@@ -52,9 +58,13 @@ async def search_techniques(
 
 
 @router.get("/{technique_id}")
-async def get_technique(technique_id: int, current_user: dict = Depends(get_current_user)):
+async def get_technique(
+    technique_id: int, current_user: dict = Depends(get_current_user)
+):
     """Get a technique by ID."""
-    technique = service.get_technique(user_id=current_user["id"], technique_id=technique_id)
+    technique = service.get_technique(
+        user_id=current_user["id"], technique_id=technique_id
+    )
     if not technique:
         raise NotFoundError("Technique not found")
     return technique

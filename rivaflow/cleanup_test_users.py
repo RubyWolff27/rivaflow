@@ -44,15 +44,21 @@ with get_connection() as conn:
 
     for user_id in test_user_ids:
         # Delete sessions
-        cursor.execute(convert_query("DELETE FROM sessions WHERE user_id = ?"), (user_id,))
+        cursor.execute(
+            convert_query("DELETE FROM sessions WHERE user_id = ?"), (user_id,)
+        )
         session_count = cursor.rowcount
 
         # Delete readiness
-        cursor.execute(convert_query("DELETE FROM readiness WHERE user_id = ?"), (user_id,))
+        cursor.execute(
+            convert_query("DELETE FROM readiness WHERE user_id = ?"), (user_id,)
+        )
         readiness_count = cursor.rowcount
 
         # Delete checkins
-        cursor.execute(convert_query("DELETE FROM daily_checkins WHERE user_id = ?"), (user_id,))
+        cursor.execute(
+            convert_query("DELETE FROM daily_checkins WHERE user_id = ?"), (user_id,)
+        )
         checkin_count = cursor.rowcount
 
         # Delete relationships (both follower and following)
@@ -65,15 +71,21 @@ with get_connection() as conn:
         relationship_count = cursor.rowcount
 
         # Delete likes
-        cursor.execute(convert_query("DELETE FROM activity_likes WHERE user_id = ?"), (user_id,))
+        cursor.execute(
+            convert_query("DELETE FROM activity_likes WHERE user_id = ?"), (user_id,)
+        )
         like_count = cursor.rowcount
 
         # Delete comments
-        cursor.execute(convert_query("DELETE FROM activity_comments WHERE user_id = ?"), (user_id,))
+        cursor.execute(
+            convert_query("DELETE FROM activity_comments WHERE user_id = ?"), (user_id,)
+        )
         comment_count = cursor.rowcount
 
         # Delete profile
-        cursor.execute(convert_query("DELETE FROM profile WHERE user_id = ?"), (user_id,))
+        cursor.execute(
+            convert_query("DELETE FROM profile WHERE user_id = ?"), (user_id,)
+        )
 
         # Delete user
         cursor.execute(convert_query("DELETE FROM users WHERE id = ?"), (user_id,))

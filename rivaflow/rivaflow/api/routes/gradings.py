@@ -53,7 +53,9 @@ async def list_gradings(current_user: dict = Depends(get_current_user)):
 
 
 @router.post("/")
-async def create_grading(grading: GradingCreate, current_user: dict = Depends(get_current_user)):
+async def create_grading(
+    grading: GradingCreate, current_user: dict = Depends(get_current_user)
+):
     """Create a new grading and update the profile's current_grade."""
     created = service.create_grading(
         user_id=current_user["id"],
@@ -102,7 +104,9 @@ async def update_grading(
 
 
 @router.delete("/{grading_id}")
-async def delete_grading(grading_id: int, current_user: dict = Depends(get_current_user)):
+async def delete_grading(
+    grading_id: int, current_user: dict = Depends(get_current_user)
+):
     """Delete a grading by ID."""
     deleted = service.delete_grading(user_id=current_user["id"], grading_id=grading_id)
     if not deleted:

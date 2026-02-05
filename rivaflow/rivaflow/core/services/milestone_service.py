@@ -44,7 +44,9 @@ class MilestoneService:
 
             # Hours: sum of duration_mins / 60 from sessions
             cursor.execute(
-                convert_query("SELECT SUM(duration_mins) as total FROM sessions WHERE user_id = ?"),
+                convert_query(
+                    "SELECT SUM(duration_mins) as total FROM sessions WHERE user_id = ?"
+                ),
                 (user_id,),
             )
             result = cursor.fetchone()
@@ -53,7 +55,9 @@ class MilestoneService:
 
             # Sessions: count of sessions
             cursor.execute(
-                convert_query("SELECT COUNT(*) as count FROM sessions WHERE user_id = ?"),
+                convert_query(
+                    "SELECT COUNT(*) as count FROM sessions WHERE user_id = ?"
+                ),
                 (user_id,),
             )
             result = cursor.fetchone()
@@ -61,7 +65,9 @@ class MilestoneService:
 
             # Rolls: sum of rolls from sessions
             cursor.execute(
-                convert_query("SELECT SUM(rolls) as total FROM sessions WHERE user_id = ?"),
+                convert_query(
+                    "SELECT SUM(rolls) as total FROM sessions WHERE user_id = ?"
+                ),
                 (user_id,),
             )
             result = cursor.fetchone()
@@ -153,7 +159,9 @@ class MilestoneService:
         progress_list = []
 
         for milestone_type, current_value in totals.items():
-            next_milestone = self.milestone_repo.get_next_milestone(milestone_type, current_value)
+            next_milestone = self.milestone_repo.get_next_milestone(
+                milestone_type, current_value
+            )
 
             if next_milestone:
                 progress_list.append(

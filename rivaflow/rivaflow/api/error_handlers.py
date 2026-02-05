@@ -86,7 +86,9 @@ async def validation_exception_handler(
     )
 
 
-async def http_exception_handler(request: Request, exc: StarletteHTTPException) -> JSONResponse:
+async def http_exception_handler(
+    request: Request, exc: StarletteHTTPException
+) -> JSONResponse:
     """Handle FastAPI HTTP exceptions consistently.
 
     Args:
@@ -96,7 +98,9 @@ async def http_exception_handler(request: Request, exc: StarletteHTTPException) 
     Returns:
         JSON response with formatted error
     """
-    logger.warning(f"HTTP {exc.status_code}: {exc.detail}", extra={"path": request.url.path})
+    logger.warning(
+        f"HTTP {exc.status_code}: {exc.detail}", extra={"path": request.url.path}
+    )
 
     return JSONResponse(
         status_code=exc.status_code,

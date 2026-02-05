@@ -81,7 +81,9 @@ def display_recall_card(technique_name: str, videos: list[dict]) -> None:
             for ts in video["timestamps"]:
                 lines.append(f"  → {ts['time']} - {ts['label']}")
 
-        panel = Panel("\n".join(lines), border_style="cyan", padding=(0, 1), expand=False)
+        panel = Panel(
+            "\n".join(lines), border_style="cyan", padding=(0, 1), expand=False
+        )
         console.print(panel)
 
 

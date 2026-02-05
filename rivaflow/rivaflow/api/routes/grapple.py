@@ -167,7 +167,9 @@ async def chat_with_grapple(
     rate_check = rate_limiter.check_rate_limit(user_id, user_tier)
 
     if not rate_check["allowed"]:
-        logger.warning(f"Rate limit exceeded for user {user_id}: {rate_check['reason']}")
+        logger.warning(
+            f"Rate limit exceeded for user {user_id}: {rate_check['reason']}"
+        )
         raise HTTPException(
             status_code=status.HTTP_429_TOO_MANY_REQUESTS,
             detail={

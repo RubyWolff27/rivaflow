@@ -78,7 +78,9 @@ class NotificationRepository:
     @staticmethod
     def get_unread_count(user_id: int) -> int:
         """Get count of unread notifications for a user."""
-        query = "SELECT COUNT(*) FROM notifications WHERE user_id = ? AND is_read = FALSE"
+        query = (
+            "SELECT COUNT(*) FROM notifications WHERE user_id = ? AND is_read = FALSE"
+        )
 
         with get_connection() as conn:
             cursor = conn.cursor()

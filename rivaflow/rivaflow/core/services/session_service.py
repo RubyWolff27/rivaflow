@@ -114,7 +114,9 @@ class SessionService:
                     movement = self.glossary_repo.get_by_id(movement_id)
                     if movement:
                         tech = self.technique_repo.get_or_create(movement["name"])
-                        self.technique_repo.update_last_trained(tech["id"], session_date)
+                        self.technique_repo.update_last_trained(
+                            tech["id"], session_date
+                        )
 
         # Update technique last_trained_date (from simple techniques field)
         if techniques:
@@ -170,11 +172,15 @@ class SessionService:
 
         # Previous session is the one after current (older, later in list)
         previous_session_id = (
-            all_sessions[current_index + 1]["id"] if current_index + 1 < len(all_sessions) else None
+            all_sessions[current_index + 1]["id"]
+            if current_index + 1 < len(all_sessions)
+            else None
         )
 
         # Next session is the one before current (newer, earlier in list)
-        next_session_id = all_sessions[current_index - 1]["id"] if current_index > 0 else None
+        next_session_id = (
+            all_sessions[current_index - 1]["id"] if current_index > 0 else None
+        )
 
         return {
             "previous_session_id": previous_session_id,
@@ -209,7 +215,9 @@ class SessionService:
             return None
 
         # Update session (pass all kwargs to repo)
-        updated = self.session_repo.update(user_id=user_id, session_id=session_id, **kwargs)
+        updated = self.session_repo.update(
+            user_id=user_id, session_id=session_id, **kwargs
+        )
 
         if not updated:
             return None
@@ -237,7 +245,9 @@ class SessionService:
                     movement = self.glossary_repo.get_by_id(movement_id)
                     if movement:
                         tech = self.technique_repo.get_or_create(movement["name"])
-                        self.technique_repo.update_last_trained(tech["id"], updated_date)
+                        self.technique_repo.update_last_trained(
+                            tech["id"], updated_date
+                        )
 
         # Update technique last_trained_date if techniques changed (from simple techniques field)
         techniques = kwargs.get("techniques")
@@ -260,7 +270,9 @@ class SessionService:
         """Get sessions within a date range."""
         return self.session_repo.get_by_date_range(user_id, start_date, end_date)
 
-    def get_recent_sessions(self, user_id: int, limit: int = 10) -> list[dict[str, Any]]:
+    def get_recent_sessions(
+        self, user_id: int, limit: int = 10
+    ) -> list[dict[str, Any]]:
         """Get most recent sessions."""
         return self.session_repo.get_recent(user_id, limit)
 
@@ -337,7 +349,9 @@ class SessionService:
 
         return "\n".join(lines)
 
-    def get_session_with_rolls(self, user_id: int, session_id: int) -> dict[str, Any] | None:
+    def get_session_with_rolls(
+        self, user_id: int, session_id: int
+    ) -> dict[str, Any] | None:
         """Get a session with detailed roll records included."""
         session = self.session_repo.get_by_id(user_id, session_id)
         if not session:
@@ -349,7 +363,9 @@ class SessionService:
 
         return session
 
-    def get_session_with_details(self, user_id: int, session_id: int) -> dict[str, Any] | None:
+    def get_session_with_details(
+        self, user_id: int, session_id: int
+    ) -> dict[str, Any] | None:
         """
         Get a session with all related data eagerly loaded (rolls, techniques, media, comments, likes).
         This avoids N+1 queries when displaying session detail views.
@@ -364,15 +380,23 @@ class SessionService:
             return None
 
         # Eagerly load all related data
-        session["detailed_rolls"] = self.roll_repo.get_by_session_id(user_id, session_id)
-        session["detailed_techniques"] = self.technique_detail_repo.get_by_session_id(session_id)
+        session["detailed_rolls"] = self.roll_repo.get_by_session_id(
+            user_id, session_id
+        )
+        session["detailed_techniques"] = self.technique_detail_repo.get_by_session_id(
+            session_id
+        )
 
         # Load social engagement data
         session["likes"] = ActivityLikeRepository.get_by_activity("session", session_id)
-        session["comments"] = ActivityCommentRepository.get_by_activity("session", session_id)
+        session["comments"] = ActivityCommentRepository.get_by_activity(
+            "session", session_id
+        )
         session["like_count"] = len(session["likes"])
         session["comment_count"] = len(session["comments"])
-        session["has_liked"] = ActivityLikeRepository.has_user_liked(user_id, "session", session_id)
+        session["has_liked"] = ActivityLikeRepository.has_user_liked(
+            user_id, "session", session_id
+        )
 
         return session
 

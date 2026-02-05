@@ -24,7 +24,9 @@ class TestCurrentWeekProgress:
         today = date(2026, 1, 22)  # Wednesday
         week_start = date(2026, 1, 19)  # Monday
         week_end = date(2026, 1, 25)  # Sunday
-        service.report_service.get_week_dates = Mock(return_value=(week_start, week_end))
+        service.report_service.get_week_dates = Mock(
+            return_value=(week_start, week_end)
+        )
 
         # Mock profile with targets
         service.profile_repo.get = Mock(
@@ -82,7 +84,9 @@ class TestCurrentWeekProgress:
 
         week_start = date(2026, 1, 19)
         week_end = date(2026, 1, 25)
-        service.report_service.get_week_dates = Mock(return_value=(week_start, week_end))
+        service.report_service.get_week_dates = Mock(
+            return_value=(week_start, week_end)
+        )
 
         service.profile_repo.get = Mock(
             return_value={
@@ -262,9 +266,13 @@ class TestGoalsTrend:
 class TestGoalsSummary:
     """Test comprehensive goals summary."""
 
-    @patch("rivaflow.core.services.goals_service.GoalsService.get_current_week_progress")
+    @patch(
+        "rivaflow.core.services.goals_service.GoalsService.get_current_week_progress"
+    )
     @patch("rivaflow.core.services.goals_service.GoalsService.get_training_streaks")
-    @patch("rivaflow.core.services.goals_service.GoalsService.get_goal_completion_streak")
+    @patch(
+        "rivaflow.core.services.goals_service.GoalsService.get_goal_completion_streak"
+    )
     @patch("rivaflow.core.services.goals_service.GoalsService.get_recent_weeks_trend")
     def test_returns_complete_summary(
         self, mock_trend, mock_goal_streaks, mock_training_streaks, mock_current
