@@ -61,15 +61,14 @@ def temp_db(monkeypatch):
                         AND table_name != 'schema_migrations'
                     """)
                     tables = cursor.fetchall()
-                    print(f"DEBUG: Found tables: {tables}")
 
                     if tables:
                         # Disable foreign key checks temporarily
                         cursor.execute("SET session_replication_role = 'replica';")
                         # Truncate each table
                         for table_row in tables:
-                            table_name = table_row[0] if isinstance(table_row, tuple) else table_row
-                            print(f"DEBUG: Truncating table: {table_name}")
+                            # Handle RealDictRow from psycopg2
+                            table_name = table_row['table_name']
                             cursor.execute(
                                 f'TRUNCATE TABLE "{table_name}" RESTART IDENTITY CASCADE'
                             )
