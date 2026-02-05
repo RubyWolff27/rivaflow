@@ -6,12 +6,11 @@ from pathlib import Path
 # Add parent directory to path
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
-from rivaflow.db.repositories.user_repo import UserRepository
 
 
 def list_admins():
     """List all admin users."""
-    from rivaflow.db.database import get_connection, convert_query
+    from rivaflow.db.database import convert_query, get_connection
 
     with get_connection() as conn:
         cursor = conn.cursor()
@@ -42,7 +41,7 @@ def list_admins():
 
 def list_users():
     """List all users."""
-    from rivaflow.db.database import get_connection, convert_query
+    from rivaflow.db.database import convert_query, get_connection
 
     with get_connection() as conn:
         cursor = conn.cursor()
@@ -70,7 +69,7 @@ def list_users():
 
 def grant_admin(user_id: int):
     """Grant admin privileges to a user."""
-    from rivaflow.db.database import get_connection, convert_query
+    from rivaflow.db.database import convert_query, get_connection
 
     with get_connection() as conn:
         cursor = conn.cursor()
@@ -89,7 +88,7 @@ def grant_admin(user_id: int):
         cursor.execute(convert_query("UPDATE users SET is_admin = 1 WHERE id = ?"), (user_id,))
         conn.commit()
 
-        print(f"✅ Admin privileges granted to:")
+        print("✅ Admin privileges granted to:")
         print(f"   User ID: {user_dict['id']}")
         print(f"   Email: {user_dict['email']}")
         print(f"   Name: {user_dict['first_name']} {user_dict['last_name']}")
@@ -99,7 +98,7 @@ def grant_admin(user_id: int):
 
 def revoke_admin(user_id: int):
     """Revoke admin privileges from a user."""
-    from rivaflow.db.database import get_connection, convert_query
+    from rivaflow.db.database import convert_query, get_connection
 
     with get_connection() as conn:
         cursor = conn.cursor()
@@ -118,7 +117,7 @@ def revoke_admin(user_id: int):
         cursor.execute(convert_query("UPDATE users SET is_admin = 0 WHERE id = ?"), (user_id,))
         conn.commit()
 
-        print(f"✅ Admin privileges revoked from:")
+        print("✅ Admin privileges revoked from:")
         print(f"   User ID: {user_dict['id']}")
         print(f"   Email: {user_dict['email']}")
         print(f"   Name: {user_dict['first_name']} {user_dict['last_name']}")

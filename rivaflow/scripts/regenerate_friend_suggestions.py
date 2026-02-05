@@ -15,15 +15,13 @@ Options:
 import argparse
 import logging
 import sys
-from datetime import datetime, timedelta
 from pathlib import Path
 
 # Add parent directory to path so we can import rivaflow
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from rivaflow.db.database import get_connection, close_connection_pool
-from rivaflow.db.repositories import UserRepository
 from rivaflow.core.services.friend_suggestions_service import FriendSuggestionsService
+from rivaflow.db.database import close_connection_pool, get_connection
 
 logging.basicConfig(
     level=logging.INFO,

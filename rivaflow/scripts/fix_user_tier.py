@@ -10,7 +10,7 @@ from datetime import datetime
 # Add parent directory to path so we can import rivaflow
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from rivaflow.db.database import get_connection, convert_query
+from rivaflow.db.database import convert_query, get_connection
 
 
 def fix_user_tier(user_email: str):
@@ -30,7 +30,7 @@ def fix_user_tier(user_email: str):
             return False
 
         user_dict = dict(user)
-        print(f"\n📋 Current Status:")
+        print("\n📋 Current Status:")
         print(f"   User ID: {user_dict['id']}")
         print(f"   Email: {user_dict['email']}")
         print(f"   Tier: {user_dict.get('subscription_tier', 'NULL')}")
@@ -59,7 +59,7 @@ def fix_user_tier(user_email: str):
         updated_user = cursor.fetchone()
         updated_dict = dict(updated_user)
 
-        print(f"\n✅ Updated Status:")
+        print("\n✅ Updated Status:")
         print(f"   User ID: {updated_dict['id']}")
         print(f"   Email: {updated_dict['email']}")
         print(f"   Tier: {updated_dict.get('subscription_tier')}")

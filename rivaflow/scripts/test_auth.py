@@ -24,15 +24,15 @@ def test_bcrypt_compatibility():
     # Test password hashing and verification
     test_password = "TestPassword123!"
 
-    print(f"\n1. Testing password hashing...")
+    print("\n1. Testing password hashing...")
     hashed = hash_password(test_password)
     print(f"   ✓ Hash created: {hashed[:20]}...")
 
-    print(f"\n2. Testing password verification (same password)...")
+    print("\n2. Testing password verification (same password)...")
     is_valid = verify_password(test_password, hashed)
     print(f"   {'✓' if is_valid else '✗'} Verification: {is_valid}")
 
-    print(f"\n3. Testing password verification (wrong password)...")
+    print("\n3. Testing password verification (wrong password)...")
     is_valid = verify_password("WrongPassword", hashed)
     print(f"   {'✓' if not is_valid else '✗'} Verification: {is_valid} (should be False)")
 
@@ -83,7 +83,7 @@ def test_user_login(email: str, password: str):
         user_repo = UserRepository()
 
         # Get user
-        print(f"\n1. Fetching user by email...")
+        print("\n1. Fetching user by email...")
         user = user_repo.get_by_email(email)
 
         if not user:
@@ -94,25 +94,25 @@ def test_user_login(email: str, password: str):
 
         # Check if active
         if not user.get('is_active'):
-            print(f"   ✗ User account is inactive")
+            print("   ✗ User account is inactive")
             return False
 
         # Verify password
-        print(f"\n2. Verifying password...")
+        print("\n2. Verifying password...")
         hashed_password = user.get('hashed_password')
 
         if not hashed_password:
-            print(f"   ✗ No password hash found for user")
+            print("   ✗ No password hash found for user")
             return False
 
         print(f"   Hash format: {hashed_password[:20]}...")
         is_valid = verify_password(password, hashed_password)
 
         if is_valid:
-            print(f"   ✓ Password verified successfully")
+            print("   ✓ Password verified successfully")
             return True
         else:
-            print(f"   ✗ Password verification failed")
+            print("   ✗ Password verification failed")
             return False
 
     except Exception as e:
@@ -142,7 +142,7 @@ def main():
         print("\n" + "=" * 60)
         print("USAGE FOR SPECIFIC USER TEST")
         print("=" * 60)
-        print(f"\nTo test a specific user login:")
+        print("\nTo test a specific user login:")
         print(f"  python {sys.argv[0]} <email> <password>")
 
     print("\n" + "=" * 60)
