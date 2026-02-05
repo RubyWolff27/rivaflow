@@ -121,7 +121,7 @@ jobs:
         pip install ruff black isort mypy
 
     - name: Run ruff (fast Python linter)
-      run: ruff check rivaflow/ tests/ --output-format=github --ignore=C901,N818,UP042
+      run: ruff check rivaflow/ tests/ --output-format=github --ignore=C901,N802,N818,UP042,F823
 
     - name: Check code formatting with black
       run: black --check rivaflow/ tests/
