@@ -196,13 +196,11 @@ def _save_profile(user_id: int, data: dict):
 
         # Update user table
         cursor.execute(
-            convert_query(
-                """
+            convert_query("""
                 UPDATE users
                 SET first_name = ?, last_name = ?
                 WHERE id = ?
-            """
-            ),
+            """),
             (data["first_name"], data["last_name"], user_id),
         )
 
@@ -216,14 +214,12 @@ def _save_profile(user_id: int, data: dict):
         if profile_exists:
             # Update existing profile
             cursor.execute(
-                convert_query(
-                    """
+                convert_query("""
                     UPDATE profile
                     SET first_name = ?, last_name = ?, email = ?,
                         belt_rank = ?, belt_stripes = ?, gym_name = ?
                     WHERE user_id = ?
-                """
-                ),
+                """),
                 (
                     data["first_name"],
                     data["last_name"],
@@ -237,12 +233,10 @@ def _save_profile(user_id: int, data: dict):
         else:
             # Create new profile
             cursor.execute(
-                convert_query(
-                    """
+                convert_query("""
                     INSERT INTO profile (user_id, first_name, last_name, email, belt_rank, belt_stripes, gym_name)
                     VALUES (?, ?, ?, ?, ?, ?, ?)
-                """
-                ),
+                """),
                 (
                     user_id,
                     data["first_name"],
@@ -282,13 +276,11 @@ def _save_goals(user_id: int, data: dict):
         cursor = conn.cursor()
 
         cursor.execute(
-            convert_query(
-                """
+            convert_query("""
                 UPDATE profile
                 SET weekly_bjj_goal = ?, weekly_sc_goal = ?, weekly_mobility_goal = ?
                 WHERE user_id = ?
-            """
-            ),
+            """),
             (
                 data["bjj_sessions_goal"],
                 data["sc_sessions_goal"],

@@ -16,14 +16,12 @@ class ProfileRepository:
             cursor = conn.cursor()
             # Join with users table to get avatar_url
             cursor.execute(
-                convert_query(
-                    """
+                convert_query("""
                     SELECT p.*, u.avatar_url, u.email, u.primary_gym_id
                     FROM profile p
                     LEFT JOIN users u ON p.user_id = u.id
                     WHERE p.user_id = ?
-                """
-                ),
+                """),
                 (user_id,),
             )
             row = cursor.fetchone()
@@ -70,8 +68,7 @@ class ProfileRepository:
             if not exists:
                 # Create new profile
                 cursor.execute(
-                    convert_query(
-                        """
+                    convert_query("""
                     INSERT INTO profile (
                         user_id, first_name, last_name, date_of_birth, sex, location, state,
                         default_gym, default_location, current_grade, current_professor, current_instructor_id,
@@ -80,8 +77,7 @@ class ProfileRepository:
                         weekly_bjj_sessions_target, weekly_sc_sessions_target, weekly_mobility_sessions_target,
                         show_streak_on_dashboard, show_weekly_goals
                     ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                    """
-                    ),
+                    """),
                     (
                         user_id,
                         first_name,
@@ -210,14 +206,12 @@ class ProfileRepository:
 
             # Return updated profile (join with users table to get avatar_url)
             cursor.execute(
-                convert_query(
-                    """
+                convert_query("""
                     SELECT p.*, u.avatar_url, u.email, u.primary_gym_id
                     FROM profile p
                     LEFT JOIN users u ON p.user_id = u.id
                     WHERE p.user_id = ?
-                """
-                ),
+                """),
                 (user_id,),
             )
             row = cursor.fetchone()

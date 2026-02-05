@@ -29,13 +29,11 @@ class GymRepository:
             cursor = conn.cursor()
             gym_id = execute_insert(
                 cursor,
-                convert_query(
-                    """
+                convert_query("""
                 INSERT INTO gyms
                 (name, city, state, country, address, website, email, phone, head_coach, head_coach_belt, google_maps_url, verified, added_by_user_id)
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                """
-                ),
+                """),
                 (
                     name,
                     city,
@@ -117,27 +115,23 @@ class GymRepository:
 
             if verified_only:
                 cursor.execute(
-                    convert_query(
-                        """
+                    convert_query("""
                     SELECT * FROM gyms
                     WHERE verified = TRUE
                     AND (name LIKE ? OR city LIKE ? OR state LIKE ?)
                     ORDER BY name
                     LIMIT 50
-                """
-                    ),
+                """),
                     (search_term, search_term, search_term),
                 )
             else:
                 cursor.execute(
-                    convert_query(
-                        """
+                    convert_query("""
                     SELECT * FROM gyms
                     WHERE name LIKE ? OR city LIKE ? OR state LIKE ?
                     ORDER BY verified DESC, name
                     LIMIT 50
-                """
-                    ),
+                """),
                     (search_term, search_term, search_term),
                 )
 
@@ -182,13 +176,11 @@ class GymRepository:
             values.append(gym_id)
 
             cursor.execute(
-                convert_query(
-                    f"""
+                convert_query(f"""
                 UPDATE gyms
                 SET {set_clause}, updated_at = CURRENT_TIMESTAMP
                 WHERE id = ?
-                """
-                ),
+                """),
                 values,
             )
             conn.commit()
@@ -209,17 +201,13 @@ class GymRepository:
         """Get all unverified (user-added) gyms."""
         with get_connection() as conn:
             cursor = conn.cursor()
-            cursor.execute(
-                convert_query(
-                    """
+            cursor.execute(convert_query("""
                 SELECT g.*, u.first_name, u.last_name, u.email
                 FROM gyms g
                 LEFT JOIN users u ON g.added_by_user_id = u.id
                 WHERE g.verified = FALSE
                 ORDER BY g.created_at DESC
-            """
-                )
-            )
+            """))
 
             results = cursor.fetchall()
 
@@ -259,11 +247,9 @@ class GymRepository:
             try:
                 # Update users with primary_gym_id = source to target
                 cursor.execute(
-                    convert_query(
-                        """
+                    convert_query("""
                     UPDATE users SET primary_gym_id = ? WHERE primary_gym_id = ?
-                """
-                    ),
+                """),
                     (target_gym_id, source_gym_id),
                 )
 

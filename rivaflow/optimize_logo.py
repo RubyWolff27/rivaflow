@@ -3,6 +3,7 @@
 Logo Optimization Script for RivaFlow
 Reduces logo from 6.6MB to 223.5KB (PNG) and 24.8KB (WebP)
 """
+
 import os
 import sys
 

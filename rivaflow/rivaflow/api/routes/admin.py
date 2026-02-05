@@ -420,12 +420,10 @@ async def get_dashboard_stats(
         # Active users (logged session in last 30 days)
         thirty_days_ago = (datetime.now() - timedelta(days=30)).strftime("%Y-%m-%d")
         cursor.execute(
-            convert_query(
-                """
+            convert_query("""
             SELECT COUNT(DISTINCT user_id) FROM sessions
             WHERE session_date >= ?
-        """
-            ),
+        """),
             (thirty_days_ago,),
         )
         active_users = get_count(cursor.fetchone())
@@ -447,12 +445,10 @@ async def get_dashboard_stats(
         # New users this week
         week_ago = (datetime.now() - timedelta(days=7)).strftime("%Y-%m-%d")
         cursor.execute(
-            convert_query(
-                """
+            convert_query("""
             SELECT COUNT(*) FROM users
             WHERE created_at >= ?
-        """
-            ),
+        """),
             (week_ago,),
         )
         new_users_week = get_count(cursor.fetchone())
@@ -590,22 +586,18 @@ async def get_user_details(
 
         # Followers
         cursor.execute(
-            convert_query(
-                """
+            convert_query("""
             SELECT COUNT(*) FROM user_relationships WHERE following_user_id = ?
-        """
-            ),
+        """),
             (user_id,),
         )
         followers_count = extract_count(cursor.fetchone())
 
         # Following
         cursor.execute(
-            convert_query(
-                """
+            convert_query("""
             SELECT COUNT(*) FROM user_relationships WHERE follower_user_id = ?
-        """
-            ),
+        """),
             (user_id,),
         )
         following_count = extract_count(cursor.fetchone())
@@ -738,8 +730,7 @@ async def list_all_comments(
         cursor = conn.cursor()
 
         cursor.execute(
-            convert_query(
-                """
+            convert_query("""
             SELECT
                 c.id, c.user_id, c.activity_type, c.activity_id,
                 c.comment_text, c.created_at,
@@ -748,8 +739,7 @@ async def list_all_comments(
             LEFT JOIN users u ON c.user_id = u.id
             ORDER BY c.created_at DESC
             LIMIT ? OFFSET ?
-        """
-            ),
+        """),
             (limit, offset),
         )
 

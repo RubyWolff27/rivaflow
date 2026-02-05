@@ -35,14 +35,12 @@ class ReadinessRepository:
             if existing:
                 # Update existing
                 cursor.execute(
-                    convert_query(
-                        """
+                    convert_query("""
                     UPDATE readiness
                     SET sleep = ?, stress = ?, soreness = ?, energy = ?,
                         hotspot_note = ?, weight_kg = ?, updated_at = CURRENT_TIMESTAMP
                     WHERE user_id = ? AND check_date = ?
-                    """
-                    ),
+                    """),
                     (
                         sleep,
                         stress,
@@ -127,13 +125,11 @@ class ReadinessRepository:
         with get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(
-                convert_query(
-                    """
+                convert_query("""
                 SELECT * FROM readiness
                 WHERE user_id = ? AND check_date BETWEEN ? AND ?
                 ORDER BY check_date DESC
-                """
-                ),
+                """),
                 (user_id, start_date.isoformat(), end_date.isoformat()),
             )
             return [ReadinessRepository._row_to_dict(row) for row in cursor.fetchall()]

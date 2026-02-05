@@ -73,28 +73,24 @@ def get_lifetime_stats(user_id: int) -> dict:
 
         # Partners (via JOIN with sessions for user_id filtering)
         cursor.execute(
-            convert_query(
-                """
+            convert_query("""
             SELECT COUNT(DISTINCT sr.partner_id)
             FROM session_rolls sr
             JOIN sessions s ON sr.session_id = s.id
             WHERE sr.partner_id IS NOT NULL AND s.user_id = ?
-        """
-            ),
+        """),
             (user_id,),
         )
         partners = cursor.fetchone()[0] or 0
 
         # Techniques (via JOIN with sessions for user_id filtering)
         cursor.execute(
-            convert_query(
-                """
+            convert_query("""
             SELECT COUNT(DISTINCT st.movement_id)
             FROM session_techniques st
             JOIN sessions s ON st.session_id = s.id
             WHERE s.user_id = ?
-        """
-            ),
+        """),
             (user_id,),
         )
         techniques = cursor.fetchone()[0] or 0

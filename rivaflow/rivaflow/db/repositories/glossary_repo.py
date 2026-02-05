@@ -64,14 +64,12 @@ class GlossaryRepository:
             if include_custom_videos:
                 # Fetch custom videos for this movement
                 cursor.execute(
-                    convert_query(
-                        """
+                    convert_query("""
                     SELECT id, title, url, video_type, created_at
                     FROM movement_videos
                     WHERE movement_id = ?
                     ORDER BY created_at DESC
-                    """
-                    ),
+                    """),
                     (movement_id,),
                 )
                 videos = cursor.fetchall()
@@ -204,14 +202,12 @@ class GlossaryRepository:
         with get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(
-                convert_query(
-                    """
+                convert_query("""
                 SELECT id, title, url, video_type, created_at
                 FROM movement_videos
                 WHERE movement_id = ?
                 ORDER BY created_at DESC
-                """
-                ),
+                """),
                 (movement_id,),
             )
             return [dict(row) for row in cursor.fetchall()]

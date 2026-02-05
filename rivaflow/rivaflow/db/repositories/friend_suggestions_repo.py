@@ -50,8 +50,7 @@ class FriendSuggestionsRepository:
         with get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(
-                convert_query(
-                    """
+                convert_query("""
                     SELECT
                         fs.*,
                         u.username,
@@ -71,8 +70,7 @@ class FriendSuggestionsRepository:
                     AND fs.expires_at > ?
                     ORDER BY fs.score DESC
                     LIMIT ?
-                """
-                ),
+                """),
                 (user_id, datetime.now(), limit),
             )
             rows = cursor.fetchall()
@@ -84,13 +82,11 @@ class FriendSuggestionsRepository:
         with get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(
-                convert_query(
-                    """
+                convert_query("""
                     UPDATE friend_suggestions
                     SET dismissed = TRUE, dismissed_at = ?
                     WHERE user_id = ? AND suggested_user_id = ?
-                """
-                ),
+                """),
                 (datetime.now(), user_id, suggested_user_id),
             )
             return cursor.rowcount > 0
@@ -101,12 +97,10 @@ class FriendSuggestionsRepository:
         with get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(
-                convert_query(
-                    """
+                convert_query("""
                     DELETE FROM friend_suggestions
                     WHERE user_id = ? AND expires_at < ?
-                """
-                ),
+                """),
                 (user_id, datetime.now()),
             )
             return cursor.rowcount
@@ -128,13 +122,11 @@ class FriendSuggestionsRepository:
         with get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(
-                convert_query(
-                    """
+                convert_query("""
                     SELECT COUNT(*) as count FROM friend_suggestions
                     WHERE user_id = ? AND suggested_user_id = ?
                     AND dismissed = FALSE
-                """
-                ),
+                """),
                 (user_id, suggested_user_id),
             )
             row = cursor.fetchone()

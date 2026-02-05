@@ -93,14 +93,12 @@ class FeedbackRepository:
         with get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(
-                convert_query(
-                    """
+                convert_query("""
                     SELECT * FROM app_feedback
                     WHERE user_id = ?
                     ORDER BY created_at DESC
                     LIMIT ?
-                """
-                ),
+                """),
                 (user_id, limit),
             )
             rows = cursor.fetchall()
@@ -118,24 +116,20 @@ class FeedbackRepository:
 
             if status == "resolved":
                 cursor.execute(
-                    convert_query(
-                        """
+                    convert_query("""
                         UPDATE app_feedback
                         SET status = ?, admin_notes = ?, resolved_at = ?, updated_at = ?
                         WHERE id = ?
-                    """
-                    ),
+                    """),
                     (status, admin_notes, datetime.now(), datetime.now(), feedback_id),
                 )
             else:
                 cursor.execute(
-                    convert_query(
-                        """
+                    convert_query("""
                         UPDATE app_feedback
                         SET status = ?, admin_notes = ?, updated_at = ?
                         WHERE id = ?
-                    """
-                    ),
+                    """),
                     (status, admin_notes, datetime.now(), feedback_id),
                 )
 
@@ -153,15 +147,11 @@ class FeedbackRepository:
             total_count = total["count"] if hasattr(total, "keys") else total[0]
 
             # Count by status
-            cursor.execute(
-                convert_query(
-                    """
+            cursor.execute(convert_query("""
                     SELECT status, COUNT(*) as count
                     FROM app_feedback
                     GROUP BY status
-                """
-                )
-            )
+                """))
             status_counts = {}
             for row in cursor.fetchall():
                 if hasattr(row, "keys"):
@@ -170,15 +160,11 @@ class FeedbackRepository:
                     status_counts[row[0]] = row[1]
 
             # Count by category
-            cursor.execute(
-                convert_query(
-                    """
+            cursor.execute(convert_query("""
                     SELECT category, COUNT(*) as count
                     FROM app_feedback
                     GROUP BY category
-                """
-                )
-            )
+                """))
             category_counts = {}
             for row in cursor.fetchall():
                 if hasattr(row, "keys"):

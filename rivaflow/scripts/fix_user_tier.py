@@ -3,6 +3,7 @@
 Fix user tier - manually update user to lifetime premium beta status.
 Run this script to update your user account to lifetime_premium tier.
 """
+
 import os
 import sys
 from datetime import datetime
@@ -40,16 +41,14 @@ def fix_user_tier(user_email: str):
 
         # Update to lifetime premium beta
         cursor.execute(
-            convert_query(
-                """
+            convert_query("""
                 UPDATE users
                 SET subscription_tier = 'lifetime_premium',
                     is_beta_user = TRUE,
                     beta_joined_at = COALESCE(beta_joined_at, ?),
                     tier_expires_at = NULL
                 WHERE email = ?
-            """
-            ),
+            """),
             (datetime.now(), user_email),
         )
 

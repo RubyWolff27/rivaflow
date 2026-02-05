@@ -85,12 +85,10 @@ async def submit_feedback(
 
         # Insert feedback
         feedback_id = str(uuid4())
-        insert_query = convert_query(
-            """
+        insert_query = convert_query("""
             INSERT INTO grapple_feedback (id, user_id, session_id, message_id, rating, category, comment)
             VALUES (?, ?, ?, ?, ?, ?, ?)
-        """
-        )
+        """)
 
         cursor.execute(
             insert_query,
@@ -511,13 +509,11 @@ async def get_grapple_health(
     try:
         with get_connection() as conn:
             cursor = conn.cursor()
-            cursor.execute(
-                """
+            cursor.execute("""
                 SELECT table_name
                 FROM information_schema.tables
                 WHERE table_name IN ('chat_sessions', 'chat_messages', 'token_usage_logs', 'grapple_feedback')
-            """
-            )
+            """)
             tables = [row[0] for row in cursor.fetchall()]
             tables_ok = len(tables) == 4
     except Exception:

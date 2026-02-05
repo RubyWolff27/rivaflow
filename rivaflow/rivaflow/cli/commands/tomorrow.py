@@ -27,14 +27,12 @@ def get_tip_based_on_recent_sessions(user_id: int) -> str | None:
 
         # Get last 3 sessions for this user
         cursor.execute(
-            convert_query(
-                """
+            convert_query("""
             SELECT class_type FROM sessions
             WHERE user_id = ?
             ORDER BY session_date DESC
             LIMIT 3
-        """
-            ),
+        """),
             (user_id,),
         )
         recent_sessions = [row[0] for row in cursor.fetchall()]
@@ -55,12 +53,10 @@ def get_tip_based_on_recent_sessions(user_id: int) -> str | None:
         # Calculate date in Python for database compatibility
         six_days_ago = (date.today() - timedelta(days=6)).isoformat()
         cursor.execute(
-            convert_query(
-                """
+            convert_query("""
             SELECT COUNT(*) FROM sessions
             WHERE user_id = ? AND session_date >= ?
-        """
-            ),
+        """),
             (user_id, six_days_ago),
         )
         recent_count = cursor.fetchone()[0] or 0

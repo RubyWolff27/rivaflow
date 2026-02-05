@@ -3,6 +3,7 @@
 Automatic database migration runner.
 Runs pending migrations on app startup.
 """
+
 import logging
 import os
 import sys
@@ -34,13 +35,11 @@ def create_migrations_table(conn):
 
     # Check if table exists and has correct schema
     try:
-        cursor.execute(
-            """
+        cursor.execute("""
             SELECT column_name
             FROM information_schema.columns
             WHERE table_name = 'schema_migrations' AND column_name = 'version'
-        """
-        )
+        """)
         has_version_column = cursor.fetchone() is not None
 
         if not has_version_column:
@@ -55,14 +54,12 @@ def create_migrations_table(conn):
         conn.rollback()
 
     # Create table with correct schema
-    cursor.execute(
-        """
+    cursor.execute("""
         CREATE TABLE IF NOT EXISTS schema_migrations (
             version TEXT PRIMARY KEY,
             applied_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
         )
-    """
-    )
+    """)
     conn.commit()
     cursor.close()
 

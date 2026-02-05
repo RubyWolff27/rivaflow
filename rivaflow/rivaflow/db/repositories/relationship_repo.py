@@ -56,12 +56,10 @@ class UserRelationshipRepository:
         with get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(
-                convert_query(
-                    """
+                convert_query("""
                 DELETE FROM user_relationships
                 WHERE follower_user_id = ? AND following_user_id = ?
-                """
-                ),
+                """),
                 (follower_user_id, following_user_id),
             )
             return cursor.rowcount > 0
@@ -80,8 +78,7 @@ class UserRelationshipRepository:
         with get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(
-                convert_query(
-                    """
+                convert_query("""
                 SELECT
                     ur.id as relationship_id,
                     ur.follower_user_id,
@@ -93,8 +90,7 @@ class UserRelationshipRepository:
                 JOIN users u ON ur.follower_user_id = u.id
                 WHERE ur.following_user_id = ? AND ur.status = 'active'
                 ORDER BY ur.created_at DESC
-                """
-                ),
+                """),
                 (user_id,),
             )
             rows = cursor.fetchall()
@@ -114,8 +110,7 @@ class UserRelationshipRepository:
         with get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(
-                convert_query(
-                    """
+                convert_query("""
                 SELECT
                     ur.id as relationship_id,
                     ur.following_user_id,
@@ -127,8 +122,7 @@ class UserRelationshipRepository:
                 JOIN users u ON ur.following_user_id = u.id
                 WHERE ur.follower_user_id = ? AND ur.status = 'active'
                 ORDER BY ur.created_at DESC
-                """
-                ),
+                """),
                 (user_id,),
             )
             rows = cursor.fetchall()
@@ -149,12 +143,10 @@ class UserRelationshipRepository:
         with get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(
-                convert_query(
-                    """
+                convert_query("""
                 SELECT 1 FROM user_relationships
                 WHERE follower_user_id = ? AND following_user_id = ? AND status = 'active'
-                """
-                ),
+                """),
                 (follower_user_id, following_user_id),
             )
             return cursor.fetchone() is not None
@@ -173,13 +165,11 @@ class UserRelationshipRepository:
         with get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(
-                convert_query(
-                    """
+                convert_query("""
                 SELECT COUNT(*) as count
                 FROM user_relationships
                 WHERE following_user_id = ? AND status = 'active'
-                """
-                ),
+                """),
                 (user_id,),
             )
             row = cursor.fetchone()
@@ -205,13 +195,11 @@ class UserRelationshipRepository:
         with get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(
-                convert_query(
-                    """
+                convert_query("""
                 SELECT COUNT(*) as count
                 FROM user_relationships
                 WHERE follower_user_id = ? AND status = 'active'
-                """
-                ),
+                """),
                 (user_id,),
             )
             row = cursor.fetchone()
@@ -237,13 +225,11 @@ class UserRelationshipRepository:
         with get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(
-                convert_query(
-                    """
+                convert_query("""
                 SELECT following_user_id
                 FROM user_relationships
                 WHERE follower_user_id = ? AND status = 'active'
-                """
-                ),
+                """),
                 (user_id,),
             )
             rows = cursor.fetchall()

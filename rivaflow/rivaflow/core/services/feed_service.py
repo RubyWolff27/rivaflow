@@ -275,8 +275,7 @@ class FeedService:
             cursor = conn.cursor()
 
             # Batch load sessions from all followed users
-            query = convert_query(
-                f"""
+            query = convert_query(f"""
                 SELECT
                     id, user_id, session_date, class_type, gym_name, location,
                     duration_mins, intensity, rolls, submissions_for, submissions_against,
@@ -286,8 +285,7 @@ class FeedService:
                     AND session_date BETWEEN ? AND ?
                     AND visibility_level != 'private'
                 ORDER BY session_date DESC
-            """
-            )
+            """)
             cursor.execute(query, user_ids + [start_date, end_date])
 
             for row in cursor.fetchall():
@@ -330,8 +328,7 @@ class FeedService:
                 )
 
             # Batch load readiness entries
-            query = convert_query(
-                f"""
+            query = convert_query(f"""
                 SELECT
                     id, user_id, check_date, sleep, stress, soreness, energy,
                     composite_score, hotspot_note, weight_kg
@@ -339,8 +336,7 @@ class FeedService:
                 WHERE user_id IN ({placeholders})
                     AND check_date BETWEEN ? AND ?
                 ORDER BY check_date DESC
-            """
-            )
+            """)
             cursor.execute(query, user_ids + [start_date, end_date])
 
             for row in cursor.fetchall():
@@ -362,8 +358,7 @@ class FeedService:
                 )
 
             # Batch load rest day check-ins
-            query = convert_query(
-                f"""
+            query = convert_query(f"""
                 SELECT
                     id, user_id, check_date, checkin_type, rest_type, rest_note
                 FROM daily_checkins
@@ -371,8 +366,7 @@ class FeedService:
                     AND check_date BETWEEN ? AND ?
                     AND checkin_type = 'rest'
                 ORDER BY check_date DESC
-            """
-            )
+            """)
             cursor.execute(query, user_ids + [start_date, end_date])
 
             for row in cursor.fetchall():
@@ -433,14 +427,12 @@ class FeedService:
                     continue
 
                 placeholders = ",".join("?" * len(activity_ids))
-                query = convert_query(
-                    f"""
+                query = convert_query(f"""
                     SELECT activity_id, COUNT(*) as count
                     FROM activity_likes
                     WHERE activity_type = ? AND activity_id IN ({placeholders})
                     GROUP BY activity_id
-                """
-                )
+                """)
                 cursor.execute(query, [activity_type] + activity_ids)
                 for row in cursor.fetchall():
                     like_counts[(activity_type, row["activity_id"])] = row["count"]
@@ -479,14 +471,12 @@ class FeedService:
                     continue
 
                 placeholders = ",".join("?" * len(activity_ids))
-                query = convert_query(
-                    f"""
+                query = convert_query(f"""
                     SELECT activity_id, COUNT(*) as count
                     FROM activity_comments
                     WHERE activity_type = ? AND activity_id IN ({placeholders})
                     GROUP BY activity_id
-                """
-                )
+                """)
                 cursor.execute(query, [activity_type] + activity_ids)
                 for row in cursor.fetchall():
                     comment_counts[(activity_type, row["activity_id"])] = row["count"]
@@ -526,13 +516,11 @@ class FeedService:
                     continue
 
                 placeholders = ",".join("?" * len(activity_ids))
-                query = convert_query(
-                    f"""
+                query = convert_query(f"""
                     SELECT activity_type, activity_id
                     FROM activity_likes
                     WHERE user_id = ? AND activity_type = ? AND activity_id IN ({placeholders})
-                """
-                )
+                """)
                 cursor.execute(query, [user_id, activity_type] + activity_ids)
                 for row in cursor.fetchall():
                     user_likes.add((row["activity_type"], row["activity_id"]))
@@ -716,13 +704,11 @@ class FeedService:
             with get_connection() as conn:
                 cursor = conn.cursor()
                 placeholders = ",".join("?" * len(uncached_user_ids))
-                query = convert_query(
-                    f"""
+                query = convert_query(f"""
                     SELECT id, first_name, last_name, email
                     FROM users
                     WHERE id IN ({placeholders})
-                """
-                )
+                """)
                 cursor.execute(query, uncached_user_ids)
 
                 for row in cursor.fetchall():

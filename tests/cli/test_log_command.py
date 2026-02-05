@@ -6,7 +6,6 @@ from datetime import date
 from rivaflow.cli.app import app
 from rivaflow.db.repositories import SessionRepository
 
-
 runner = CliRunner()
 
 

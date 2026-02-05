@@ -253,15 +253,13 @@ class AuditService:
 
                 # Get most recent action
                 cursor.execute(
-                    convert_query(
-                        """
+                    convert_query("""
                         SELECT action, created_at
                         FROM audit_logs
                         WHERE actor_user_id = ?
                         ORDER BY created_at DESC
                         LIMIT 1
-                    """
-                    ),
+                    """),
                     (user_id,),
                 )
                 recent_row = cursor.fetchone()

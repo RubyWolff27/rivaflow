@@ -52,13 +52,11 @@ class ActivityPhotoRepository:
         with get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(
-                convert_query(
-                    """
+                convert_query("""
                 SELECT * FROM activity_photos
                 WHERE user_id = ? AND activity_type = ? AND activity_id = ?
                 ORDER BY display_order, created_at
-                """
-                ),
+                """),
                 (user_id, activity_type, activity_id),
             )
             rows = cursor.fetchall()
@@ -70,13 +68,11 @@ class ActivityPhotoRepository:
         with get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(
-                convert_query(
-                    """
+                convert_query("""
                 SELECT * FROM activity_photos
                 WHERE user_id = ? AND activity_date = ?
                 ORDER BY display_order, created_at
-                """
-                ),
+                """),
                 (user_id, activity_date),
             )
             rows = cursor.fetchall()
@@ -115,12 +111,10 @@ class ActivityPhotoRepository:
         with get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(
-                convert_query(
-                    """
+                convert_query("""
                 DELETE FROM activity_photos
                 WHERE user_id = ? AND activity_type = ? AND activity_id = ?
-                """
-                ),
+                """),
                 (user_id, activity_type, activity_id),
             )
 
@@ -130,12 +124,10 @@ class ActivityPhotoRepository:
         with get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(
-                convert_query(
-                    """
+                convert_query("""
                 UPDATE activity_photos SET caption = ?
                 WHERE id = ? AND user_id = ?
-                """
-                ),
+                """),
                 (caption, photo_id, user_id),
             )
             return cursor.rowcount > 0
@@ -146,12 +138,10 @@ class ActivityPhotoRepository:
         with get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(
-                convert_query(
-                    """
+                convert_query("""
                 SELECT COUNT(*) FROM activity_photos
                 WHERE user_id = ? AND activity_type = ? AND activity_id = ?
-                """
-                ),
+                """),
                 (user_id, activity_type, activity_id),
             )
             row = cursor.fetchone()

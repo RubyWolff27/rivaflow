@@ -3,6 +3,7 @@
 Run a specific migration on the production database.
 Usage: python run_migration.py <migration_file>
 """
+
 import sys
 import os
 import psycopg2

@@ -54,14 +54,12 @@ def test_existing_users():
 
         with get_connection() as conn:
             cursor = conn.cursor()
-            cursor.execute(
-                """
+            cursor.execute("""
                 SELECT id, email, first_name, last_name, is_active, created_at
                 FROM users
                 ORDER BY created_at DESC
                 LIMIT 5
-            """
-            )
+            """)
             users = cursor.fetchall()
 
             if not users:

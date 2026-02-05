@@ -92,8 +92,7 @@ class SessionRepository:
 
             # Fetch detailed technique records with movement names in a single JOIN query
             cursor.execute(
-                convert_query(
-                    """
+                convert_query("""
                     SELECT
                         st.id,
                         st.session_id,
@@ -107,8 +106,7 @@ class SessionRepository:
                     LEFT JOIN movements_glossary mg ON st.movement_id = mg.id
                     WHERE st.session_id = ?
                     ORDER BY st.technique_number
-                """
-                ),
+                """),
                 (session_id,),
             )
             techniques = [dict(row) for row in cursor.fetchall()]
@@ -297,15 +295,13 @@ class SessionRepository:
         with get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(
-                convert_query(
-                    """
+                convert_query("""
                     SELECT
                         COUNT(*) as total_sessions,
                         COALESCE(SUM(duration_mins), 0) as total_minutes
                     FROM sessions
                     WHERE user_id = ?
-                """
-                ),
+                """),
                 (user_id,),
             )
             row = cursor.fetchone()
@@ -341,13 +337,11 @@ class SessionRepository:
         with get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(
-                convert_query(
-                    """
+                convert_query("""
                 SELECT DISTINCT location FROM sessions
                 WHERE user_id = ? AND location IS NOT NULL
                 ORDER BY location
-                """
-                ),
+                """),
                 (user_id,),
             )
             rows = cursor.fetchall()
@@ -385,14 +379,12 @@ class SessionRepository:
         with get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(
-                convert_query(
-                    """
+                convert_query("""
                 SELECT class_type FROM sessions
                 WHERE user_id = ?
                 ORDER BY session_date DESC, created_at DESC
                 LIMIT ?
-                """
-                ),
+                """),
                 (user_id, n),
             )
             rows = cursor.fetchall()

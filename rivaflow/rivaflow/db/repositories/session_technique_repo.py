@@ -84,14 +84,12 @@ class SessionTechniqueRepository:
         with get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(
-                convert_query(
-                    """
+                convert_query("""
                 SELECT st.* FROM session_techniques st
                 JOIN sessions s ON st.session_id = s.id
                 WHERE st.movement_id = ? AND s.user_id = ?
                 ORDER BY s.session_date DESC, st.technique_number ASC
-                """
-                ),
+                """),
                 (movement_id, user_id),
             )
             rows = cursor.fetchall()
@@ -175,8 +173,7 @@ class SessionTechniqueRepository:
             cursor = conn.cursor()
             placeholders = ",".join("?" * len(session_ids))
             cursor.execute(
-                convert_query(
-                    f"""
+                convert_query(f"""
                     SELECT
                         st.id,
                         st.session_id,
@@ -190,8 +187,7 @@ class SessionTechniqueRepository:
                     LEFT JOIN movements_glossary mg ON st.movement_id = mg.id
                     WHERE st.session_id IN ({placeholders})
                     ORDER BY st.session_id, st.technique_number
-                """
-                ),
+                """),
                 session_ids,
             )
 

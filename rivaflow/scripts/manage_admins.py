@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Manage admin users for RivaFlow."""
+
 import sys
 from pathlib import Path
 
@@ -13,16 +14,12 @@ def list_admins():
 
     with get_connection() as conn:
         cursor = conn.cursor()
-        cursor.execute(
-            convert_query(
-                """
+        cursor.execute(convert_query("""
             SELECT id, email, first_name, last_name, is_admin, created_at
             FROM users
             WHERE is_admin = 1
             ORDER BY id
-        """
-            )
-        )
+        """))
         admins = cursor.fetchall()
 
     print("\n" + "=" * 80)
@@ -48,15 +45,11 @@ def list_users():
 
     with get_connection() as conn:
         cursor = conn.cursor()
-        cursor.execute(
-            convert_query(
-                """
+        cursor.execute(convert_query("""
             SELECT id, email, first_name, last_name, is_admin, is_active
             FROM users
             ORDER BY id
-        """
-            )
-        )
+        """))
         users = cursor.fetchall()
 
     print("\n" + "=" * 80)

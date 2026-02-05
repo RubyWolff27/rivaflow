@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Test email service configuration."""
+
 import os
 import sys
 

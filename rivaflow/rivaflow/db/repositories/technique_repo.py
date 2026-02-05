@@ -101,14 +101,12 @@ class TechniqueRepository:
         with get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(
-                convert_query(
-                    """
+                convert_query("""
                 SELECT * FROM techniques
                 WHERE last_trained_date IS NULL
                    OR last_trained_date < ?
                 ORDER BY last_trained_date ASC
-                """
-                ),
+                """),
                 (cutoff_date,),
             )
             return [TechniqueRepository._row_to_dict(row) for row in cursor.fetchall()]

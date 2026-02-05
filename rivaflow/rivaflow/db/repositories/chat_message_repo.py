@@ -56,13 +56,11 @@ class ChatMessageRepository:
         """
         message_id = str(uuid4())
 
-        query = convert_query(
-            """
+        query = convert_query("""
             INSERT INTO chat_messages (id, session_id, role, content, input_tokens, output_tokens, cost_usd)
             VALUES (?, ?, ?, ?, ?, ?, ?)
             RETURNING id, session_id, role, content, input_tokens, output_tokens, cost_usd, created_at
-        """
-        )
+        """)
 
         with get_connection() as conn:
             cursor = conn.cursor()
@@ -97,15 +95,13 @@ class ChatMessageRepository:
         Returns:
             List of message dicts ordered by created_at ASC
         """
-        query = convert_query(
-            """
+        query = convert_query("""
             SELECT id, session_id, role, content, input_tokens, output_tokens, cost_usd, created_at
             FROM chat_messages
             WHERE session_id = ?
             ORDER BY created_at ASC
             LIMIT ?
-        """
-        )
+        """)
 
         with get_connection() as conn:
             cursor = conn.cursor()
@@ -128,15 +124,13 @@ class ChatMessageRepository:
         Returns:
             List of dicts with 'role' and 'content' keys
         """
-        query = convert_query(
-            """
+        query = convert_query("""
             SELECT role, content
             FROM chat_messages
             WHERE session_id = ?
             ORDER BY created_at DESC
             LIMIT ?
-        """
-        )
+        """)
 
         with get_connection() as conn:
             cursor = conn.cursor()

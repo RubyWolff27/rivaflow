@@ -76,13 +76,11 @@ class VideoRepository:
         with get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(
-                convert_query(
-                    """
+                convert_query("""
                 SELECT * FROM videos
                 WHERE title LIKE ? OR url LIKE ?
                 ORDER BY created_at DESC
-                """
-                ),
+                """),
                 (f"%{query}%", f"%{query}%"),
             )
             return [VideoRepository._row_to_dict(row) for row in cursor.fetchall()]
@@ -98,15 +96,13 @@ class VideoRepository:
         with get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(
-                convert_query(
-                    """
+                convert_query("""
                 UPDATE videos
                 SET title = COALESCE(?, title),
                     timestamps = COALESCE(?, timestamps),
                     technique_id = COALESCE(?, technique_id)
                 WHERE id = ?
-                """
-                ),
+                """),
                 (
                     title,
                     json.dumps(timestamps) if timestamps else None,

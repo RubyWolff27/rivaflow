@@ -113,13 +113,11 @@ class FriendSuggestionsService:
         with get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(
-                convert_query(
-                    """
+                convert_query("""
                     SELECT requester_id, recipient_id FROM friend_connections
                     WHERE (requester_id = ? OR recipient_id = ?)
                     AND status IN ('accepted', 'pending', 'blocked')
-                """
-                ),
+                """),
                 (user_id, user_id),
             )
             rows = cursor.fetchall()
@@ -151,8 +149,7 @@ class FriendSuggestionsService:
             placeholders = ", ".join("?" * len(exclude_list))
 
             cursor.execute(
-                convert_query(
-                    f"""
+                convert_query(f"""
                     SELECT
                         id, username, display_name, belt_rank, belt_stripes,
                         location_city, location_state, primary_gym_id,
@@ -162,8 +159,7 @@ class FriendSuggestionsService:
                     AND searchable = TRUE
                     AND profile_visibility IN ('public', 'friends')
                     LIMIT 500
-                """
-                ),
+                """),
                 exclude_list,
             )
             rows = cursor.fetchall()

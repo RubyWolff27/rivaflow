@@ -25,13 +25,11 @@ class ChatSessionRepository:
         session_id = str(uuid4())
         session_title = title or "New Chat"
 
-        query = convert_query(
-            """
+        query = convert_query("""
             INSERT INTO chat_sessions (id, user_id, title, message_count, total_tokens, total_cost_usd)
             VALUES (?, ?, ?, 0, 0, 0.0)
             RETURNING id, user_id, title, message_count, total_tokens, total_cost_usd, created_at, updated_at
-        """
-        )
+        """)
 
         with get_connection() as conn:
             cursor = conn.cursor()
@@ -167,16 +165,14 @@ class ChatSessionRepository:
         Returns:
             True if updated
         """
-        query = convert_query(
-            """
+        query = convert_query("""
             UPDATE chat_sessions
             SET message_count = message_count + ?,
                 total_tokens = total_tokens + ?,
                 total_cost_usd = total_cost_usd + ?,
                 updated_at = ?
             WHERE id = ?
-        """
-        )
+        """)
 
         with get_connection() as conn:
             cursor = conn.cursor()
@@ -196,13 +192,11 @@ class ChatSessionRepository:
     @staticmethod
     def update_title(session_id: str, user_id: int, title: str) -> bool:
         """Update session title."""
-        query = convert_query(
-            """
+        query = convert_query("""
             UPDATE chat_sessions
             SET title = ?, updated_at = ?
             WHERE id = ? AND user_id = ?
-        """
-        )
+        """)
 
         with get_connection() as conn:
             cursor = conn.cursor()

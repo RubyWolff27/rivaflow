@@ -38,13 +38,11 @@ class SocialConnectionRepository:
 
             # Check if already connected or pending
             cursor.execute(
-                convert_query(
-                    """
+                convert_query("""
                     SELECT id, status FROM friend_connections
                     WHERE (requester_id = ? AND recipient_id = ?)
                        OR (requester_id = ? AND recipient_id = ?)
-                """
-                ),
+                """),
                 (requester_id, recipient_id, recipient_id, requester_id),
             )
             existing = cursor.fetchone()
@@ -60,13 +58,11 @@ class SocialConnectionRepository:
 
             # Check if either user has blocked the other
             cursor.execute(
-                convert_query(
-                    """
+                convert_query("""
                     SELECT 1 FROM blocked_users
                     WHERE (blocker_id = ? AND blocked_id = ?)
                        OR (blocker_id = ? AND blocked_id = ?)
-                """
-                ),
+                """),
                 (requester_id, recipient_id, recipient_id, requester_id),
             )
             if cursor.fetchone():
@@ -110,12 +106,10 @@ class SocialConnectionRepository:
 
             # Verify user is recipient and status is pending
             cursor.execute(
-                convert_query(
-                    """
+                convert_query("""
                     SELECT * FROM friend_connections
                     WHERE id = ? AND recipient_id = ? AND status = 'pending'
-                """
-                ),
+                """),
                 (connection_id, recipient_id),
             )
             row = cursor.fetchone()
@@ -125,13 +119,11 @@ class SocialConnectionRepository:
 
             # Update to accepted
             cursor.execute(
-                convert_query(
-                    """
+                convert_query("""
                     UPDATE friend_connections
                     SET status = 'accepted', responded_at = CURRENT_TIMESTAMP
                     WHERE id = ?
-                """
-                ),
+                """),
                 (connection_id,),
             )
 
@@ -160,12 +152,10 @@ class SocialConnectionRepository:
 
             # Verify user is recipient and status is pending
             cursor.execute(
-                convert_query(
-                    """
+                convert_query("""
                     SELECT * FROM friend_connections
                     WHERE id = ? AND recipient_id = ? AND status = 'pending'
-                """
-                ),
+                """),
                 (connection_id, recipient_id),
             )
             row = cursor.fetchone()
@@ -175,13 +165,11 @@ class SocialConnectionRepository:
 
             # Update to declined
             cursor.execute(
-                convert_query(
-                    """
+                convert_query("""
                     UPDATE friend_connections
                     SET status = 'declined', responded_at = CURRENT_TIMESTAMP
                     WHERE id = ?
-                """
-                ),
+                """),
                 (connection_id,),
             )
 
@@ -208,13 +196,11 @@ class SocialConnectionRepository:
             cursor = conn.cursor()
 
             cursor.execute(
-                convert_query(
-                    """
+                convert_query("""
                     UPDATE friend_connections
                     SET status = 'cancelled'
                     WHERE id = ? AND requester_id = ? AND status = 'pending'
-                """
-                ),
+                """),
                 (connection_id, requester_id),
             )
 
@@ -236,14 +222,12 @@ class SocialConnectionRepository:
             cursor = conn.cursor()
 
             cursor.execute(
-                convert_query(
-                    """
+                convert_query("""
                     DELETE FROM friend_connections
                     WHERE status = 'accepted'
                       AND ((requester_id = ? AND recipient_id = ?)
                         OR (requester_id = ? AND recipient_id = ?))
-                """
-                ),
+                """),
                 (user_id, friend_user_id, friend_user_id, user_id),
             )
 
@@ -268,8 +252,7 @@ class SocialConnectionRepository:
             cursor = conn.cursor()
 
             cursor.execute(
-                convert_query(
-                    """
+                convert_query("""
                     SELECT
                         u.id, u.username, u.display_name, u.belt_rank, u.belt_stripes,
                         u.profile_photo_url, u.primary_gym_id, u.location_city, u.location_state,
@@ -285,8 +268,7 @@ class SocialConnectionRepository:
                       AND (fc.requester_id = ? OR fc.recipient_id = ?)
                     ORDER BY u.display_name
                     LIMIT ? OFFSET ?
-                """
-                ),
+                """),
                 (user_id, user_id, user_id, user_id, limit, offset),
             )
 
@@ -300,8 +282,7 @@ class SocialConnectionRepository:
             cursor = conn.cursor()
 
             cursor.execute(
-                convert_query(
-                    """
+                convert_query("""
                     SELECT
                         fc.*,
                         u.username as requester_username,
@@ -312,8 +293,7 @@ class SocialConnectionRepository:
                     JOIN users u ON u.id = fc.requester_id
                     WHERE fc.recipient_id = ? AND fc.status = 'pending'
                     ORDER BY fc.requested_at DESC
-                """
-                ),
+                """),
                 (user_id,),
             )
 
@@ -327,8 +307,7 @@ class SocialConnectionRepository:
             cursor = conn.cursor()
 
             cursor.execute(
-                convert_query(
-                    """
+                convert_query("""
                     SELECT
                         fc.*,
                         u.username as recipient_username,
@@ -339,8 +318,7 @@ class SocialConnectionRepository:
                     JOIN users u ON u.id = fc.recipient_id
                     WHERE fc.requester_id = ? AND fc.status = 'pending'
                     ORDER BY fc.requested_at DESC
-                """
-                ),
+                """),
                 (user_id,),
             )
 
@@ -354,8 +332,7 @@ class SocialConnectionRepository:
             cursor = conn.cursor()
 
             cursor.execute(
-                convert_query(
-                    """
+                convert_query("""
                     SELECT COUNT(*) as count
                     FROM friend_connections fc1
                     JOIN friend_connections fc2 ON (
@@ -368,8 +345,7 @@ class SocialConnectionRepository:
                         OR (fc1.recipient_id = ? AND fc1.requester_id != ?))
                       AND ((fc2.requester_id = ? AND fc2.recipient_id != ?)
                         OR (fc2.recipient_id = ? AND fc2.requester_id != ?))
-                """
-                ),
+                """),
                 (
                     user_id,
                     other_user_id,
@@ -392,14 +368,12 @@ class SocialConnectionRepository:
             cursor = conn.cursor()
 
             cursor.execute(
-                convert_query(
-                    """
+                convert_query("""
                     SELECT 1 FROM friend_connections
                     WHERE status = 'accepted'
                       AND ((requester_id = ? AND recipient_id = ?)
                         OR (requester_id = ? AND recipient_id = ?))
-                """
-                ),
+                """),
                 (user_id, other_user_id, other_user_id, user_id),
             )
 
@@ -418,13 +392,11 @@ class SocialConnectionRepository:
 
             # Remove any existing friend connection
             cursor.execute(
-                convert_query(
-                    """
+                convert_query("""
                     DELETE FROM friend_connections
                     WHERE (requester_id = ? AND recipient_id = ?)
                        OR (requester_id = ? AND recipient_id = ?)
-                """
-                ),
+                """),
                 (blocker_id, blocked_id, blocked_id, blocker_id),
             )
 
@@ -452,12 +424,10 @@ class SocialConnectionRepository:
             cursor = conn.cursor()
 
             cursor.execute(
-                convert_query(
-                    """
+                convert_query("""
                     DELETE FROM blocked_users
                     WHERE blocker_id = ? AND blocked_id = ?
-                """
-                ),
+                """),
                 (blocker_id, blocked_id),
             )
 
@@ -470,8 +440,7 @@ class SocialConnectionRepository:
             cursor = conn.cursor()
 
             cursor.execute(
-                convert_query(
-                    """
+                convert_query("""
                     SELECT
                         bu.*,
                         u.username, u.display_name, u.profile_photo_url
@@ -479,8 +448,7 @@ class SocialConnectionRepository:
                     JOIN users u ON u.id = bu.blocked_id
                     WHERE bu.blocker_id = ?
                     ORDER BY bu.blocked_at DESC
-                """
-                ),
+                """),
                 (blocker_id,),
             )
 
@@ -494,13 +462,11 @@ class SocialConnectionRepository:
             cursor = conn.cursor()
 
             cursor.execute(
-                convert_query(
-                    """
+                convert_query("""
                     SELECT 1 FROM blocked_users
                     WHERE (blocker_id = ? AND blocked_id = ?)
                        OR (blocker_id = ? AND blocked_id = ?)
-                """
-                ),
+                """),
                 (user_id, other_user_id, other_user_id, user_id),
             )
 

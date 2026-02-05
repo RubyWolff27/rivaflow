@@ -14,15 +14,13 @@ class CheckinRepository:
         with get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(
-                convert_query(
-                    """
+                convert_query("""
                 SELECT id, check_date, checkin_type, rest_type, rest_note,
                        session_id, readiness_id, tomorrow_intention, insight_shown,
                        created_at
                 FROM daily_checkins
                 WHERE user_id = ? AND check_date = ?
-                """
-                ),
+                """),
                 (user_id, check_date.isoformat()),
             )
             row = cursor.fetchone()
@@ -86,16 +84,14 @@ class CheckinRepository:
         with get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(
-                convert_query(
-                    """
+                convert_query("""
                 SELECT id, check_date, checkin_type, rest_type, rest_note,
                        session_id, readiness_id, tomorrow_intention, insight_shown,
                        created_at
                 FROM daily_checkins
                 WHERE user_id = ? AND check_date >= ? AND check_date <= ?
                 ORDER BY check_date DESC
-                """
-                ),
+                """),
                 (user_id, start_date.isoformat(), end_date.isoformat()),
             )
             rows = cursor.fetchall()
@@ -117,13 +113,11 @@ class CheckinRepository:
         with get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(
-                convert_query(
-                    """
+                convert_query("""
                 UPDATE daily_checkins
                 SET tomorrow_intention = ?
                 WHERE user_id = ? AND check_date = ?
-                """
-                ),
+                """),
                 (intention, user_id, check_date.isoformat()),
             )
             conn.commit()

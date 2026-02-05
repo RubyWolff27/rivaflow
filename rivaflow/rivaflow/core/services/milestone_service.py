@@ -77,14 +77,12 @@ class MilestoneService:
             # Note: This is simplified - in reality we'd need to parse JSON
             # session_rolls doesn't have user_id, need to JOIN with sessions
             cursor.execute(
-                convert_query(
-                    """
+                convert_query("""
                 SELECT COUNT(DISTINCT sr.partner_id) as count
                 FROM session_rolls sr
                 JOIN sessions s ON sr.session_id = s.id
                 WHERE sr.partner_id IS NOT NULL AND s.user_id = ?
-            """
-                ),
+            """),
                 (user_id,),
             )
             result = cursor.fetchone()
@@ -95,14 +93,12 @@ class MilestoneService:
             # For now, use count of unique technique names from session_techniques
             # session_techniques doesn't have user_id, need to JOIN with sessions
             cursor.execute(
-                convert_query(
-                    """
+                convert_query("""
                 SELECT COUNT(DISTINCT st.movement_id) as count
                 FROM session_techniques st
                 JOIN sessions s ON st.session_id = s.id
                 WHERE s.user_id = ?
-            """
-                ),
+            """),
                 (user_id,),
             )
             result = cursor.fetchone()

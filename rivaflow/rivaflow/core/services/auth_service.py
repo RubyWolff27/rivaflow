@@ -108,12 +108,10 @@ class AuthService:
             with get_connection() as conn:
                 cursor = conn.cursor()
                 cursor.execute(
-                    convert_query(
-                        """
+                    convert_query("""
                     INSERT INTO profile (user_id, first_name, last_name, email)
                     VALUES (?, ?, ?, ?)
-                    """
-                    ),
+                    """),
                     (user["id"], first_name, last_name, email),
                 )
         except Exception as e:
@@ -419,13 +417,11 @@ class AuthService:
             with get_connection() as conn:
                 cursor = conn.cursor()
                 cursor.execute(
-                    convert_query(
-                        """
+                    convert_query("""
                     UPDATE users
                     SET hashed_password = ?, updated_at = CURRENT_TIMESTAMP
                     WHERE id = ?
-                    """
-                    ),
+                    """),
                     (hashed_pwd, user_id),
                 )
 

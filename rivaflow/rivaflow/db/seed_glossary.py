@@ -747,16 +747,14 @@ def seed_glossary():
 
             try:
                 cursor.execute(
-                    convert_query(
-                        """
+                    convert_query("""
                     INSERT INTO movements_glossary (
                         name, category, subcategory, points, description,
                         aliases, gi_applicable, nogi_applicable,
                         ibjjf_legal_white, ibjjf_legal_blue, ibjjf_legal_purple,
                         ibjjf_legal_brown, ibjjf_legal_black, custom
                     ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0)
-                """
-                    ),
+                """),
                     (
                         movement["name"],
                         movement["category"],

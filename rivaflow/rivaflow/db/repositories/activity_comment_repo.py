@@ -66,8 +66,7 @@ class ActivityCommentRepository:
         with get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(
-                convert_query(
-                    """
+                convert_query("""
                 SELECT
                     ac.id,
                     ac.user_id,
@@ -84,8 +83,7 @@ class ActivityCommentRepository:
                 JOIN users u ON ac.user_id = u.id
                 WHERE ac.activity_type = ? AND ac.activity_id = ?
                 ORDER BY ac.created_at ASC
-                """
-                ),
+                """),
                 (activity_type, activity_id),
             )
             rows = cursor.fetchall()
@@ -105,8 +103,7 @@ class ActivityCommentRepository:
         with get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(
-                convert_query(
-                    """
+                convert_query("""
                 SELECT
                     ac.id,
                     ac.user_id,
@@ -122,8 +119,7 @@ class ActivityCommentRepository:
                 FROM activity_comments ac
                 JOIN users u ON ac.user_id = u.id
                 WHERE ac.id = ?
-                """
-                ),
+                """),
                 (comment_id,),
             )
             row = cursor.fetchone()
@@ -145,13 +141,11 @@ class ActivityCommentRepository:
         with get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(
-                convert_query(
-                    """
+                convert_query("""
                 UPDATE activity_comments
                 SET comment_text = ?, edited_at = CURRENT_TIMESTAMP
                 WHERE id = ? AND user_id = ?
-                """
-                ),
+                """),
                 (comment_text, comment_id, user_id),
             )
 
@@ -175,12 +169,10 @@ class ActivityCommentRepository:
         with get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(
-                convert_query(
-                    """
+                convert_query("""
                 DELETE FROM activity_comments
                 WHERE id = ? AND user_id = ?
-                """
-                ),
+                """),
                 (comment_id, user_id),
             )
             return cursor.rowcount > 0
@@ -219,13 +211,11 @@ class ActivityCommentRepository:
         with get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(
-                convert_query(
-                    """
+                convert_query("""
                 SELECT COUNT(*) as count
                 FROM activity_comments
                 WHERE activity_type = ? AND activity_id = ?
-                """
-                ),
+                """),
                 (activity_type, activity_id),
             )
             row = cursor.fetchone()
@@ -253,14 +243,12 @@ class ActivityCommentRepository:
         with get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(
-                convert_query(
-                    """
+                convert_query("""
                 SELECT * FROM activity_comments
                 WHERE user_id = ?
                 ORDER BY created_at DESC
                 LIMIT ? OFFSET ?
-                """
-                ),
+                """),
                 (user_id, limit, offset),
             )
             rows = cursor.fetchall()

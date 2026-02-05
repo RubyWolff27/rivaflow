@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """Manually apply pending migrations."""
+
 from rivaflow.db.database import init_db
 
 if __name__ == "__main__":

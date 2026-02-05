@@ -104,13 +104,11 @@ class SessionRollRepository:
             # Note: session_rolls doesn't have user_id column
             # Caller should only pass session_ids that belong to the user
             placeholders = ", ".join(["?"] * len(session_ids))
-            query = convert_query(
-                f"""
+            query = convert_query(f"""
                 SELECT * FROM session_rolls
                 WHERE session_id IN ({placeholders})
                 ORDER BY session_id, roll_number ASC
-            """
-            )
+            """)
 
             cursor.execute(query, session_ids)
             rows = cursor.fetchall()
@@ -135,14 +133,12 @@ class SessionRollRepository:
         with get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(
-                convert_query(
-                    """
+                convert_query("""
                 SELECT sr.* FROM session_rolls sr
                 JOIN sessions s ON sr.session_id = s.id
                 WHERE sr.partner_id = ? AND s.user_id = ?
                 ORDER BY s.session_date DESC, sr.roll_number ASC
-                """
-                ),
+                """),
                 (partner_id, user_id),
             )
             rows = cursor.fetchall()
@@ -164,13 +160,11 @@ class SessionRollRepository:
 
             # Get total rolls count - JOIN with sessions to filter by user_id
             cursor.execute(
-                convert_query(
-                    """
+                convert_query("""
                 SELECT COUNT(*) as count FROM session_rolls sr
                 JOIN sessions s ON sr.session_id = s.id
                 WHERE sr.partner_id = ? AND s.user_id = ?
-                """
-                ),
+                """),
                 (partner_id, user_id),
             )
             result = cursor.fetchone()

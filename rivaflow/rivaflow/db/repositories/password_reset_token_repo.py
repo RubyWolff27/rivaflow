@@ -55,12 +55,10 @@ class PasswordResetTokenRepository:
         with get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(
-                convert_query(
-                    """
+                convert_query("""
                 INSERT INTO password_reset_tokens (user_id, token, expires_at)
                 VALUES (?, ?, ?)
-                """
-                ),
+                """),
                 (user_id, token_hash, expires_at.isoformat()),
             )
 
@@ -85,13 +83,11 @@ class PasswordResetTokenRepository:
         with get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(
-                convert_query(
-                    """
+                convert_query("""
                 SELECT id, user_id, token, expires_at, used_at, created_at
                 FROM password_reset_tokens
                 WHERE token = ?
-                """
-                ),
+                """),
                 (token_hash,),
             )
             row = cursor.fetchone()
@@ -149,13 +145,11 @@ class PasswordResetTokenRepository:
         with get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(
-                convert_query(
-                    """
+                convert_query("""
                 UPDATE password_reset_tokens
                 SET used_at = CURRENT_TIMESTAMP
                 WHERE token = ?
-                """
-                ),
+                """),
                 (token_hash,),
             )
             return cursor.rowcount > 0
@@ -193,13 +187,11 @@ class PasswordResetTokenRepository:
         with get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(
-                convert_query(
-                    """
+                convert_query("""
                 UPDATE password_reset_tokens
                 SET used_at = CURRENT_TIMESTAMP
                 WHERE user_id = ? AND used_at IS NULL
-                """
-                ),
+                """),
                 (user_id,),
             )
             return cursor.rowcount
@@ -220,12 +212,10 @@ class PasswordResetTokenRepository:
         with get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(
-                convert_query(
-                    """
+                convert_query("""
                 DELETE FROM password_reset_tokens
                 WHERE expires_at < ?
-                """
-                ),
+                """),
                 (cutoff.isoformat(),),
             )
             return cursor.rowcount
@@ -249,13 +239,11 @@ class PasswordResetTokenRepository:
         with get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(
-                convert_query(
-                    """
+                convert_query("""
                 SELECT COUNT(*) as count
                 FROM password_reset_tokens
                 WHERE user_id = ? AND created_at > ?
-                """
-                ),
+                """),
                 (user_id, since.isoformat()),
             )
             row = cursor.fetchone()

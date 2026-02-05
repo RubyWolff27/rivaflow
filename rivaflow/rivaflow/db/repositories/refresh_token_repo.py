@@ -76,13 +76,11 @@ class RefreshTokenRepository:
         with get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(
-                convert_query(
-                    """
+                convert_query("""
                 SELECT * FROM refresh_tokens
                 WHERE user_id = ?
                 ORDER BY created_at DESC
-                """
-                ),
+                """),
                 (user_id,),
             )
             rows = cursor.fetchall()

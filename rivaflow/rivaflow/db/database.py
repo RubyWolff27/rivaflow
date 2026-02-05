@@ -150,14 +150,12 @@ def _init_sqlite_db() -> None:
     conn = sqlite3.connect(DB_PATH)
     try:
         # Create migrations tracking table if it doesn't exist
-        conn.execute(
-            """
+        conn.execute("""
             CREATE TABLE IF NOT EXISTS schema_migrations (
                 version TEXT PRIMARY KEY,
                 applied_at TEXT NOT NULL DEFAULT (datetime('now'))
             )
-        """
-        )
+        """)
         conn.commit()
 
         # Get list of already applied migrations
@@ -197,14 +195,12 @@ def _init_postgresql_db() -> None:
 
         # Create migrations tracking table if it doesn't exist
         # migrate.py will populate this table with applied migrations
-        cursor.execute(
-            """
+        cursor.execute("""
             CREATE TABLE IF NOT EXISTS schema_migrations (
                 version TEXT PRIMARY KEY,
                 applied_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
             )
-        """
-        )
+        """)
         conn.commit()
 
         # PostgreSQL migrations are handled by migrate.py
@@ -273,8 +269,7 @@ def _reset_postgresql_sequences(conn) -> None:
 
             # Reset sequence to max(id) + 1
             # Use DO block to handle NULL sequences gracefully
-            cursor.execute(
-                f"""
+            cursor.execute(f"""
                 DO $$
                 DECLARE
                     seq_name TEXT;
@@ -286,8 +281,7 @@ def _reset_postgresql_sequences(conn) -> None:
                         PERFORM setval(seq_name, max_id + 1, false);
                     END IF;
                 END $$;
-            """
-            )
+            """)
             conn.commit()
             logger.info(f"Reset sequence for table: {table}")
         except Exception as e:

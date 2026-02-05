@@ -127,12 +127,10 @@ class TestDatabasePerformance:
 
             # Submissions
             cursor.execute(
-                convert_query(
-                    """
+                convert_query("""
                     SELECT SUM(submissions_for), SUM(submissions_against)
                     FROM sessions WHERE user_id = ?
-                """
-                ),
+                """),
                 (user_id,),
             )
             subs_for, subs_against = cursor.fetchone()

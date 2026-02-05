@@ -56,14 +56,12 @@ class GrappleTokenMonitor:
         log_id = str(uuid4())
         total_tokens = input_tokens + output_tokens
 
-        query = convert_query(
-            """
+        query = convert_query("""
             INSERT INTO token_usage_logs (
                 id, user_id, session_id, message_id, provider, model,
                 input_tokens, output_tokens, total_tokens, cost_usd
             ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        """
-        )
+        """)
 
         try:
             with get_connection() as conn:
