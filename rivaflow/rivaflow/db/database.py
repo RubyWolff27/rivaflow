@@ -420,8 +420,6 @@ def _apply_migrations(conn: Union[sqlite3.Connection, 'psycopg2.extensions.conne
         "052_add_activity_specific_goals.sql",
         "053_add_gradings_instructor_photo.sql",
         "054_fix_streaks_unique_constraint_final.sql",
-        "055_add_missing_indexes.sql",
-        "056_fix_readiness_check_constraint.sql",
         "057_fix_sequences.sql",
     ]
 
