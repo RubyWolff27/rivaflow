@@ -52,9 +52,7 @@ for user_data in test_users:
         # Check if user already exists
         existing = user_repo.get_by_email(user_data["email"])
         if existing:
-            print(
-                f"   ⚠️  User {user_data['email']} already exists (ID: {existing['id']})"
-            )
+            print(f"   ⚠️  User {user_data['email']} already exists (ID: {existing['id']})")
             user_ids.append(existing["id"])
         else:
             result = auth_service.register(
@@ -359,9 +357,7 @@ print("   Users created: 3")
 print(f"   - Alice Anderson (ID: {alice_id}) - alice.bjj@test.com")
 print(f"   - Bob Brown (ID: {bob_id}) - bob.grappler@test.com")
 print(f"   - Charlie Chen (ID: {charlie_id}) - charlie.rolls@test.com")
-print(
-    f"\n   Total sessions: {len(alice_sessions) + len(bob_sessions) + len(charlie_sessions)}"
-)
+print(f"\n   Total sessions: {len(alice_sessions) + len(bob_sessions) + len(charlie_sessions)}")
 print(f"   - Alice: {len(alice_sessions)} sessions (mixed privacy)")
 print(f"   - Bob: {len(bob_sessions)} sessions (mostly shareable)")
 print(f"   - Charlie: {len(charlie_sessions)} sessions (all shareable)")

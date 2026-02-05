@@ -710,9 +710,7 @@ def seed_glossary():
 
         # Check if already seeded
         cursor.execute(
-            convert_query(
-                "SELECT COUNT(*) as count FROM movements_glossary WHERE custom = 0"
-            )
+            convert_query("SELECT COUNT(*) as count FROM movements_glossary WHERE custom = 0")
         )
         result = cursor.fetchone()
         # Handle both tuple (SQLite/raw) and dict (PostgreSQL RealDictCursor) results
@@ -722,9 +720,7 @@ def seed_glossary():
             seeded_count = result[0]
 
         if seeded_count > 0:
-            logger.info(
-                f"Glossary already seeded with {seeded_count} techniques. Skipping."
-            )
+            logger.info(f"Glossary already seeded with {seeded_count} techniques. Skipping.")
             return
 
         # Insert all movements
@@ -788,7 +784,5 @@ def seed_glossary():
 
 if __name__ == "__main__":
     # Configure logging for standalone execution
-    logging.basicConfig(
-        level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
-    )
+    logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
     seed_glossary()

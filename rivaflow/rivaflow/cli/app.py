@@ -231,19 +231,13 @@ def export(
         raise TypeError(f"Type {type(obj)} not serializable")
 
     # Determine output file
-    output_file = (
-        Path(output)
-        if output
-        else Path(f"rivaflow_export_{user_id}_{date.today()}.json")
-    )
+    output_file = Path(output) if output else Path(f"rivaflow_export_{user_id}_{date.today()}.json")
 
     # Write to file
     with open(output_file, "w", encoding="utf-8") as f:
         json.dump(data, f, indent=2, default=default_serializer, ensure_ascii=False)
 
-    console.print(
-        f"[green]✓[/green] Data exported successfully to [bold]{output_file}[/bold]"
-    )
+    console.print(f"[green]✓[/green] Data exported successfully to [bold]{output_file}[/bold]")
     console.print()
     console.print("[bold]Export Summary:[/bold]")
     console.print(f"  Sessions: {len(data['sessions'])}")
@@ -253,9 +247,7 @@ def export(
     console.print(f"  Gradings: {len(data['gradings'])}")
     console.print(f"  Friends: {len(data['friends'])}")
     console.print()
-    console.print(
-        "[dim]This file contains all your RivaFlow data in JSON format.[/dim]"
-    )
+    console.print("[dim]This file contains all your RivaFlow data in JSON format.[/dim]")
     console.print("[dim]Keep it safe - it includes personal information.[/dim]")
 
 
@@ -311,9 +303,7 @@ def delete_account(
         typed_email = Prompt.ask("Email")
 
         if typed_email != user.get("email"):
-            console.print(
-                "[red]Email does not match. Account deletion cancelled.[/red]"
-            )
+            console.print("[red]Email does not match. Account deletion cancelled.[/red]")
             return
 
     console.print()
@@ -342,9 +332,7 @@ def delete_account(
 
     except Exception as e:
         console.print(f"[red]Error deleting account: {e}[/red]")
-        console.print(
-            "[yellow]Please contact support if this problem persists.[/yellow]"
-        )
+        console.print("[yellow]Please contact support if this problem persists.[/yellow]")
         raise typer.Exit(code=1)
 
 

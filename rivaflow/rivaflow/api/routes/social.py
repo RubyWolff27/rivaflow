@@ -186,9 +186,7 @@ async def like_activity(
 
 
 @router.delete("/like")
-async def unlike_activity(
-    request: UnlikeRequest, current_user: dict = Depends(get_current_user)
-):
+async def unlike_activity(request: UnlikeRequest, current_user: dict = Depends(get_current_user)):
     """
     Remove a like from an activity.
 
@@ -286,9 +284,7 @@ async def update_comment(
         500: Database error
     """
     try:
-        comment = SocialService.update_comment(
-            comment_id, current_user["id"], request.comment_text
-        )
+        comment = SocialService.update_comment(comment_id, current_user["id"], request.comment_text)
         if not comment:
             raise NotFoundError("Comment not found or you don't own it")
         return {"success": True, "comment": comment}
@@ -385,9 +381,7 @@ async def search_users(
 
     # Add follow status for each user
     for user in filtered_users:
-        user["is_following"] = SocialService.is_following(
-            current_user["id"], user["id"]
-        )
+        user["is_following"] = SocialService.is_following(current_user["id"], user["id"])
 
     return {
         "users": filtered_users[:20],  # Limit to 20 results
@@ -557,9 +551,7 @@ async def cancel_friend_request(
 @router.get("/friend-requests/received")
 async def get_received_friend_requests(current_user: dict = Depends(get_current_user)):
     """Get pending friend requests received by the current user."""
-    requests = SocialConnectionRepository.get_pending_requests_received(
-        current_user["id"]
-    )
+    requests = SocialConnectionRepository.get_pending_requests_received(current_user["id"])
     return {"requests": requests, "count": len(requests)}
 
 
@@ -605,9 +597,7 @@ async def get_friendship_status(
 
     if not are_friends:
         # Check for pending requests
-        received = SocialConnectionRepository.get_pending_requests_received(
-            current_user["id"]
-        )
+        received = SocialConnectionRepository.get_pending_requests_received(current_user["id"])
         sent = SocialConnectionRepository.get_pending_requests_sent(current_user["id"])
 
         pending_from_them = any(r["requester_id"] == user_id for r in received)

@@ -122,9 +122,7 @@ class SessionRepository:
         """Get a session by ID without user scope (for validation/privacy checks)."""
         with get_connection() as conn:
             cursor = conn.cursor()
-            cursor.execute(
-                convert_query("SELECT * FROM sessions WHERE id = ?"), (session_id,)
-            )
+            cursor.execute(convert_query("SELECT * FROM sessions WHERE id = ?"), (session_id,))
             row = cursor.fetchone()
             if not row:
                 return None
@@ -208,9 +206,7 @@ class SessionRepository:
 
             # Build and execute query
             params.extend([session_id, user_id])
-            query = (
-                f"UPDATE sessions SET {', '.join(updates)} WHERE id = ? AND user_id = ?"
-            )
+            query = f"UPDATE sessions SET {', '.join(updates)} WHERE id = ? AND user_id = ?"
             cursor.execute(convert_query(query), params)
 
             if cursor.rowcount == 0:

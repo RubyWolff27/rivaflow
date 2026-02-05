@@ -52,9 +52,7 @@ class FeedService:
 
         # Get all activity
         sessions = session_repo.get_by_date_range(user_id, start_date, end_date)
-        readiness_entries = readiness_repo.get_by_date_range(
-            user_id, start_date, end_date
-        )
+        readiness_entries = readiness_repo.get_by_date_range(user_id, start_date, end_date)
         checkins = checkin_repo.get_checkins_range(user_id, start_date, end_date)
 
         # Build unified feed
@@ -95,9 +93,7 @@ class FeedService:
                 composite = readiness.get("composite_score", 0)
 
                 # Get photos for this readiness entry
-                photos = photo_repo.get_by_activity(
-                    user_id, "readiness", readiness["id"]
-                )
+                photos = photo_repo.get_by_activity(user_id, "readiness", readiness["id"])
                 thumbnail = photos[0]["file_path"] if photos else None
 
                 feed_items.append(
@@ -314,9 +310,7 @@ class FeedService:
                 if redacted_session.get("rolls") is not None:
                     summary_parts.append(f"{redacted_session['rolls']} rolls")
 
-                summary = (
-                    " • ".join(summary_parts) if summary_parts else "Training session"
-                )
+                summary = " • ".join(summary_parts) if summary_parts else "Training session"
 
                 feed_items.append(
                     {
@@ -568,9 +562,7 @@ class FeedService:
 
         # Get all activity
         sessions = session_repo.get_by_date_range(user_id, start_date, end_date)
-        readiness_entries = readiness_repo.get_by_date_range(
-            user_id, start_date, end_date
-        )
+        readiness_entries = readiness_repo.get_by_date_range(user_id, start_date, end_date)
         checkins = checkin_repo.get_checkins_range(user_id, start_date, end_date)
 
         # Build unified feed
@@ -587,9 +579,7 @@ class FeedService:
                 session_date = session_date.isoformat()
 
             # Apply privacy redaction based on visibility
-            session_data = PrivacyService.redact_session_for_visibility(
-                session, visibility
-            )
+            session_data = PrivacyService.redact_session_for_visibility(session, visibility)
 
             feed_items.append(
                 {
@@ -650,9 +640,7 @@ class FeedService:
 
         # Enrich with social data if requesting user provided
         if requesting_user_id:
-            feed_items = FeedService._enrich_with_social_data(
-                requesting_user_id, feed_items
-            )
+            feed_items = FeedService._enrich_with_social_data(requesting_user_id, feed_items)
 
         # Apply pagination
         total_items = len(feed_items)

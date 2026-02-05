@@ -240,9 +240,7 @@ def _display_report(report: dict, title: str):
     # Weight tracking (if available)
     if report.get("weight_tracking", {}).get("has_data"):
         console.print("[bold cyan]WEIGHT TRACKING[/bold cyan]")
-        weight_table = Table(
-            show_header=True, header_style="bold cyan", box=box.ROUNDED
-        )
+        weight_table = Table(show_header=True, header_style="bold cyan", box=box.ROUNDED)
         weight_table.add_column("Metric", style="dim", width=20)
         weight_table.add_column("Value", style="white", justify="right", width=15)
 
@@ -255,9 +253,7 @@ def _display_report(report: dict, title: str):
             change = wt["weight_change"]
             change_color = "green" if abs(change) < 1 else "yellow"
             sign = "+" if change > 0 else ""
-            weight_table.add_row(
-                "Change", f"[{change_color}]{sign}{change} kg[/{change_color}]"
-            )
+            weight_table.add_row("Change", f"[{change_color}]{sign}{change} kg[/{change_color}]")
         if wt.get("avg_weight"):
             weight_table.add_row("Average", f"{wt['avg_weight']} kg")
 
@@ -267,34 +263,22 @@ def _display_report(report: dict, title: str):
     # Readiness summary (if available)
     if report.get("readiness") and len(report["readiness"]) > 0:
         console.print("[bold cyan]READINESS SUMMARY[/bold cyan]")
-        readiness_table = Table(
-            show_header=True, header_style="bold cyan", box=box.ROUNDED
-        )
+        readiness_table = Table(show_header=True, header_style="bold cyan", box=box.ROUNDED)
         readiness_table.add_column("Metric", style="dim", width=20)
         readiness_table.add_column("Average", justify="right", width=15)
 
         # Calculate averages
         readiness_entries = report["readiness"]
-        avg_sleep = sum(r.get("sleep", 0) for r in readiness_entries) / len(
-            readiness_entries
-        )
-        avg_stress = sum(r.get("stress", 0) for r in readiness_entries) / len(
-            readiness_entries
-        )
-        avg_soreness = sum(r.get("soreness", 0) for r in readiness_entries) / len(
-            readiness_entries
-        )
-        avg_energy = sum(r.get("energy", 0) for r in readiness_entries) / len(
-            readiness_entries
-        )
+        avg_sleep = sum(r.get("sleep", 0) for r in readiness_entries) / len(readiness_entries)
+        avg_stress = sum(r.get("stress", 0) for r in readiness_entries) / len(readiness_entries)
+        avg_soreness = sum(r.get("soreness", 0) for r in readiness_entries) / len(readiness_entries)
+        avg_energy = sum(r.get("energy", 0) for r in readiness_entries) / len(readiness_entries)
         avg_score = sum(r.get("composite_score", 0) for r in readiness_entries) / len(
             readiness_entries
         )
 
         # Color code composite score (good: ≥16, ok: 12-15, low: <12)
-        score_color = (
-            "green" if avg_score >= 16 else "yellow" if avg_score >= 12 else "red"
-        )
+        score_color = "green" if avg_score >= 16 else "yellow" if avg_score >= 12 else "red"
 
         readiness_table.add_row("Sleep", f"{avg_sleep:.1f}/5")
         readiness_table.add_row("Stress", f"{avg_stress:.1f}/5")

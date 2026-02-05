@@ -45,9 +45,7 @@ def get_tip_based_on_recent_sessions(user_id: int) -> str | None:
         # Check if all recent sessions are same type
         if len(recent_sessions) >= 3:
             if all(ct == "gi" for ct in recent_sessions):
-                return (
-                    "💡 TIP: Last 3 sessions were Gi — consider No-Gi to unload grips"
-                )
+                return "💡 TIP: Last 3 sessions were Gi — consider No-Gi to unload grips"
             elif all(ct == "no-gi" for ct in recent_sessions):
                 return "💡 TIP: Last 3 sessions were No-Gi — consider Gi work for grips"
 
@@ -66,9 +64,7 @@ def get_tip_based_on_recent_sessions(user_id: int) -> str | None:
         recent_count = cursor.fetchone()[0] or 0
 
         if recent_count >= 6:
-            return (
-                "💡 TIP: You've trained 6 of the last 7 days — recovery is training too"
-            )
+            return "💡 TIP: You've trained 6 of the last 7 days — recovery is training too"
 
     return None
 
@@ -142,9 +138,7 @@ def tomorrow(
     console.print("    [cyan]8[/cyan] 🤷 Not sure yet")
     console.print()
 
-    choice = Prompt.ask(
-        "  Select", choices=["1", "2", "3", "4", "5", "6", "7", "8"], default="8"
-    )
+    choice = Prompt.ask("  Select", choices=["1", "2", "3", "4", "5", "6", "7", "8"], default="8")
 
     intention_map = {
         "1": "train_gi",

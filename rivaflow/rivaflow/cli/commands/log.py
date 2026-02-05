@@ -28,9 +28,7 @@ app = typer.Typer(help="Log training sessions")
 
 @app.command()
 def log(
-    quick: bool = typer.Option(
-        False, "--quick", "-q", help="Quick mode: minimal inputs only"
-    ),
+    quick: bool = typer.Option(False, "--quick", "-q", help="Quick mode: minimal inputs only"),
 ):
     """
     Log a training session with detailed tracking.
@@ -84,9 +82,7 @@ def _quick_log(service: SessionService, autocomplete: dict):
         prompts.console.print("[bold]Quick Session Log[/bold]\n")
 
         # 1. Gym
-        gym_name = prompts.prompt_text(
-            "Gym name", autocomplete=autocomplete.get("gyms", [])
-        )
+        gym_name = prompts.prompt_text("Gym name", autocomplete=autocomplete.get("gyms", []))
 
         # 2. Class type
         class_type = prompts.prompt_choice(
@@ -127,14 +123,10 @@ def _full_log(service: SessionService, video_repo: VideoRepository, autocomplete
     prompts.console.print("[bold]Session Log[/bold]\n")
 
     # 1. Class type
-    class_type = prompts.prompt_choice(
-        "Class type", choices=sorted(ALL_CLASS_TYPES), default="gi"
-    )
+    class_type = prompts.prompt_choice("Class type", choices=sorted(ALL_CLASS_TYPES), default="gi")
 
     # 2. Gym
-    gym_name = prompts.prompt_text(
-        "Gym name", autocomplete=autocomplete.get("gyms", [])
-    )
+    gym_name = prompts.prompt_text("Gym name", autocomplete=autocomplete.get("gyms", []))
 
     # 3. Location
     location = prompts.prompt_text(
@@ -160,9 +152,7 @@ def _full_log(service: SessionService, video_repo: VideoRepository, autocomplete
     if service.is_sparring_class(class_type):
         rolls = prompts.prompt_int("Rolls", default=0, min_val=0, max_val=50)
         if rolls > 0:
-            subs_for = prompts.prompt_int(
-                "Submissions for", default=0, min_val=0, max_val=50
-            )
+            subs_for = prompts.prompt_int("Submissions for", default=0, min_val=0, max_val=50)
             subs_against = prompts.prompt_int(
                 "Submissions against", default=0, min_val=0, max_val=50
             )
@@ -245,9 +235,7 @@ def _add_engagement_features(session_id: int):
     today = date.today()
 
     # Process engagement features with progress indicator
-    with prompts.console.status(
-        "[cyan]Calculating streaks and milestones...", spinner="dots"
-    ):
+    with prompts.console.status("[cyan]Calculating streaks and milestones...", spinner="dots"):
         # 1. Create check-in record
         insight = insight_service.generate_insight(user_id)
         insight_json = json.dumps(insight)
@@ -340,9 +328,7 @@ def _add_engagement_features(session_id: int):
     )
     prompts.console.print()
 
-    choice = Prompt.ask(
-        "  Select", choices=["1", "2", "3", "4"], default="4", show_default=False
-    )
+    choice = Prompt.ask("  Select", choices=["1", "2", "3", "4"], default="4", show_default=False)
 
     intention_map = {
         "1": "train_gi",

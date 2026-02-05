@@ -44,9 +44,7 @@ class TestReportMetrics:
 
         # Critical assertion: subs_per_class should ONLY count submissions FOR
         assert summary["subs_per_class"] == round(10 / 3, 2)  # 10 sf / 3 classes = 3.33
-        assert summary["subs_per_class"] != round(
-            14 / 3, 2
-        )  # NOT (10 sf + 4 sa) / 3 = 4.67
+        assert summary["subs_per_class"] != round(14 / 3, 2)  # NOT (10 sf + 4 sa) / 3 = 4.67
 
         # Verify other metrics are also correct
         assert summary["total_classes"] == 3

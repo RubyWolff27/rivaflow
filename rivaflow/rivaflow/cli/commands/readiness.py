@@ -62,12 +62,8 @@ def readiness(
             try:
                 target_date = datetime.strptime(check_date, "%Y-%m-%d").date()
             except ValueError:
-                prompts.print_error(
-                    "Invalid date format. Use YYYY-MM-DD (e.g., 2026-02-01)"
-                )
-                prompts.console.print(
-                    "[dim]Example: rivaflow readiness --date 2026-01-31[/dim]"
-                )
+                prompts.print_error("Invalid date format. Use YYYY-MM-DD (e.g., 2026-02-01)")
+                prompts.console.print("[dim]Example: rivaflow readiness --date 2026-01-31[/dim]")
                 raise typer.Exit(1)
 
             # Validate date is not in the future
@@ -89,22 +85,12 @@ def readiness(
         # Prompt for readiness metrics
         prompts.console.print(f"[bold]Readiness Check-in: {target_date}[/bold]\n")
 
-        sleep = prompts.prompt_int(
-            "How did you sleep? (1-5)", default=3, min_val=1, max_val=5
-        )
-        stress = prompts.prompt_int(
-            "Stress level? (1-5)", default=3, min_val=1, max_val=5
-        )
-        soreness = prompts.prompt_int(
-            "Soreness level? (1-5)", default=2, min_val=1, max_val=5
-        )
-        energy = prompts.prompt_int(
-            "Energy level? (1-5)", default=3, min_val=1, max_val=5
-        )
+        sleep = prompts.prompt_int("How did you sleep? (1-5)", default=3, min_val=1, max_val=5)
+        stress = prompts.prompt_int("Stress level? (1-5)", default=3, min_val=1, max_val=5)
+        soreness = prompts.prompt_int("Soreness level? (1-5)", default=2, min_val=1, max_val=5)
+        energy = prompts.prompt_int("Energy level? (1-5)", default=3, min_val=1, max_val=5)
 
-        hotspot_note = prompts.prompt_text(
-            "Any hotspots? (injury/soreness location, optional)"
-        )
+        hotspot_note = prompts.prompt_text("Any hotspots? (injury/soreness location, optional)")
         if not hotspot_note:
             hotspot_note = None
 
@@ -148,9 +134,7 @@ def _add_engagement_features_readiness(user_id: int, readiness_id: int):
         return
 
     # Process engagement features with progress indicator
-    with prompts.console.status(
-        "[cyan]Calculating streaks and milestones...", spinner="dots"
-    ):
+    with prompts.console.status("[cyan]Calculating streaks and milestones...", spinner="dots"):
         # 1. Create/update check-in record
         insight = insight_service.generate_insight(user_id)
         insight_json = json.dumps(insight)
@@ -159,9 +143,7 @@ def _add_engagement_features_readiness(user_id: int, readiness_id: int):
             user_id=user_id,
             check_date=today,
             checkin_type=(
-                "readiness_only"
-                if not existing_checkin
-                else existing_checkin["checkin_type"]
+                "readiness_only" if not existing_checkin else existing_checkin["checkin_type"]
             ),
             readiness_id=readiness_id,
             insight_shown=insight_json,

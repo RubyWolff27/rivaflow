@@ -45,7 +45,9 @@ def show_milestone_celebration(milestone: dict, user_id: int):
     )
 
     if next_ms:
-        celebration += f"\n  Next milestone: {next_ms['milestone_label']} ({next_ms['remaining']} to go)"
+        celebration += (
+            f"\n  Next milestone: {next_ms['milestone_label']} ({next_ms['remaining']} to go)"
+        )
 
     panel = Panel(
         celebration,
@@ -64,9 +66,7 @@ def rest(
         "recovery", "--type", "-t", help="Type: recovery, life, injury, travel"
     ),
     note: str | None = typer.Option(None, "--note", "-n", help="Optional note"),
-    tomorrow: str | None = typer.Option(
-        None, "--tomorrow", help="Tomorrow's intention"
-    ),
+    tomorrow: str | None = typer.Option(None, "--tomorrow", help="Tomorrow's intention"),
 ):
     """
     Log a rest/recovery day to maintain your check-in streak.

@@ -3,9 +3,7 @@
 import os
 
 # Set test environment BEFORE imports
-os.environ.setdefault(
-    "SECRET_KEY", "test-secret-key-for-accessibility-tests-minimum-32-chars"
-)
+os.environ.setdefault("SECRET_KEY", "test-secret-key-for-accessibility-tests-minimum-32-chars")
 
 from typer.testing import CliRunner
 

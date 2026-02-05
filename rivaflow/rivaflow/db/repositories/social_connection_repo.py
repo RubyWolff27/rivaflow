@@ -250,9 +250,7 @@ class SocialConnectionRepository:
             return cursor.rowcount > 0
 
     @staticmethod
-    def get_friends(
-        user_id: int, limit: int = 50, offset: int = 0
-    ) -> list[dict[str, Any]]:
+    def get_friends(user_id: int, limit: int = 50, offset: int = 0) -> list[dict[str, Any]]:
         """
         Get list of accepted friends for a user.
 
@@ -406,9 +404,7 @@ class SocialConnectionRepository:
             return cursor.fetchone() is not None
 
     @staticmethod
-    def block_user(
-        blocker_id: int, blocked_id: int, reason: str | None = None
-    ) -> dict[str, Any]:
+    def block_user(blocker_id: int, blocked_id: int, reason: str | None = None) -> dict[str, Any]:
         """Block a user."""
         if blocker_id == blocked_id:
             raise ValueError("Cannot block yourself")
@@ -439,9 +435,7 @@ class SocialConnectionRepository:
                 (blocker_id, blocked_id, reason),
             )
 
-            cursor.execute(
-                convert_query("SELECT * FROM blocked_users WHERE id = ?"), (block_id,)
-            )
+            cursor.execute(convert_query("SELECT * FROM blocked_users WHERE id = ?"), (block_id,))
             row = cursor.fetchone()
             return SocialConnectionRepository._row_to_dict(row)
 

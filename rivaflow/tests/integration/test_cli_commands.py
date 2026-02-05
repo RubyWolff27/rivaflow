@@ -13,9 +13,7 @@ import pytest
 from typer.testing import CliRunner
 
 # Set SECRET_KEY for testing
-os.environ.setdefault(
-    "SECRET_KEY", "test-secret-key-for-cli-integration-tests-minimum-32-chars"
-)
+os.environ.setdefault("SECRET_KEY", "test-secret-key-for-cli-integration-tests-minimum-32-chars")
 
 from rivaflow.cli.app import app as cli_app
 from rivaflow.db.database import get_connection, init_db
@@ -64,9 +62,7 @@ def mock_user_context():
         conn.commit()
         test_user_id = cursor.lastrowid
 
-    with patch(
-        "rivaflow.cli.utils.user_context.get_current_user_id", return_value=test_user_id
-    ):
+    with patch("rivaflow.cli.utils.user_context.get_current_user_id", return_value=test_user_id):
         yield test_user_id
 
     # Cleanup
@@ -180,9 +176,7 @@ class TestProgressCommands:
         # Should display without error
         assert result.exit_code == 0
         # Should show some progress metrics
-        assert (
-            "sessions" in result.stdout.lower() or "training" in result.stdout.lower()
-        )
+        assert "sessions" in result.stdout.lower() or "training" in result.stdout.lower()
 
     def test_streak_command(self, cli_runner, mock_user_context):
         """Test streak display command."""

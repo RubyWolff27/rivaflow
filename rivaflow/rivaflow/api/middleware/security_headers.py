@@ -28,9 +28,7 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
         env = os.getenv("ENV", "development")
         if env == "production":
             # HSTS: Force HTTPS for 1 year, include subdomains
-            response.headers["Strict-Transport-Security"] = (
-                "max-age=31536000; includeSubDomains"
-            )
+            response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
 
         # Prevent MIME type sniffing
         response.headers["X-Content-Type-Options"] = "nosniff"

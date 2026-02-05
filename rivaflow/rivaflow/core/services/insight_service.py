@@ -271,9 +271,7 @@ class InsightService:
                 previous_rate = 0
 
             if previous_rate > 0 and recent_rate > previous_rate * 1.15:
-                percent_up = round(
-                    ((recent_rate - previous_rate) / previous_rate) * 100
-                )
+                percent_up = round(((recent_rate - previous_rate) / previous_rate) * 100)
                 insights.append(
                     {
                         "type": "trend",

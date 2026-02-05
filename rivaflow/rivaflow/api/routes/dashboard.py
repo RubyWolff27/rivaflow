@@ -37,9 +37,7 @@ def _get_dashboard_summary_cached(
     readiness_repo = ReadinessRepository()
 
     # Fetch data
-    performance = analytics.get_performance_overview(
-        user_id, start_date, end_date, types=types
-    )
+    performance = analytics.get_performance_overview(user_id, start_date, end_date, types=types)
 
     # Get streak data
     session_streak = streak_service.get_streak(user_id, "session")
@@ -62,9 +60,7 @@ def _get_dashboard_summary_cached(
     class_type_distribution = {}
     for session in recent_sessions:
         class_type = session.get("class_type", "unknown")
-        class_type_distribution[class_type] = (
-            class_type_distribution.get(class_type, 0) + 1
-        )
+        class_type_distribution[class_type] = class_type_distribution.get(class_type, 0) + 1
 
     return {
         "performance": {

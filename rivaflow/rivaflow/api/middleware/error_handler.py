@@ -56,9 +56,7 @@ def format_error_response(
     return response
 
 
-async def rivaflow_exception_handler(
-    request: Request, exc: RivaFlowException
-) -> JSONResponse:
+async def rivaflow_exception_handler(request: Request, exc: RivaFlowException) -> JSONResponse:
     """Handle custom RivaFlow exceptions.
 
     Logs the full error details server-side but returns safe message to client.
@@ -138,15 +136,11 @@ async def validation_exception_handler(
         field_name = ".".join(str(loc) for loc in error["loc"])
 
         # Check if field is sensitive
-        is_sensitive = any(
-            sensitive in field_name.lower() for sensitive in sensitive_fields
-        )
+        is_sensitive = any(sensitive in field_name.lower() for sensitive in sensitive_fields)
 
         # Only include input value in development mode AND for non-sensitive fields
         env = os.getenv("ENV", "development")
-        include_input = (
-            env == "development" and not is_sensitive and error.get("input") is not None
-        )
+        include_input = env == "development" and not is_sensitive and error.get("input") is not None
 
         error_dict = {
             "field": field_name,

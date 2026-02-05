@@ -115,9 +115,7 @@ class ChatMessageRepository:
             return [ChatMessageRepository._row_to_dict(row) for row in rows]
 
     @staticmethod
-    def get_recent_context(
-        session_id: str, max_messages: int = 10
-    ) -> list[dict[str, str]]:
+    def get_recent_context(session_id: str, max_messages: int = 10) -> list[dict[str, str]]:
         """
         Get recent messages for context (formatted for LLM).
 
@@ -155,9 +153,7 @@ class ChatMessageRepository:
     @staticmethod
     def count_by_session(session_id: str) -> int:
         """Get message count for a session."""
-        query = convert_query(
-            "SELECT COUNT(*) as count FROM chat_messages WHERE session_id = ?"
-        )
+        query = convert_query("SELECT COUNT(*) as count FROM chat_messages WHERE session_id = ?")
 
         with get_connection() as conn:
             cursor = conn.cursor()

@@ -12,9 +12,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 # Set SECRET_KEY for testing
-os.environ.setdefault(
-    "SECRET_KEY", "test-secret-key-for-integration-tests-minimum-32-chars-long"
-)
+os.environ.setdefault("SECRET_KEY", "test-secret-key-for-integration-tests-minimum-32-chars-long")
 
 from rivaflow.api.main import app
 from rivaflow.core.auth import create_access_token, decode_access_token

@@ -50,9 +50,7 @@ class ReportService:
         """
         # Load sessions with only required columns to reduce data transfer
         sessions = self.session_repo.get_by_date_range(user_id, start_date, end_date)
-        readiness_entries = self.readiness_repo.get_by_date_range(
-            user_id, start_date, end_date
-        )
+        readiness_entries = self.readiness_repo.get_by_date_range(user_id, start_date, end_date)
 
         if not sessions:
             return {
@@ -116,17 +114,11 @@ class ReportService:
         unique_partners = len(partners_set)
 
         # Calculate rates
-        subs_per_class = (
-            round(submissions_for / total_classes, 2) if total_classes > 0 else 0.0
-        )
+        subs_per_class = round(submissions_for / total_classes, 2) if total_classes > 0 else 0.0
 
-        subs_per_roll = (
-            round(submissions_for / total_rolls, 2) if total_rolls > 0 else 0.0
-        )
+        subs_per_roll = round(submissions_for / total_rolls, 2) if total_rolls > 0 else 0.0
 
-        taps_per_roll = (
-            round(submissions_against / total_rolls, 2) if total_rolls > 0 else 0.0
-        )
+        taps_per_roll = round(submissions_against / total_rolls, 2) if total_rolls > 0 else 0.0
 
         sub_ratio = (
             round(submissions_for / submissions_against, 2)
@@ -232,11 +224,7 @@ class ReportService:
 
         # Add summary fields if any session has them
         summary_fields = ["duration_mins", "intensity", "rolls"]
-        if any(
-            field in session
-            for session in redacted_sessions
-            for field in summary_fields
-        ):
+        if any(field in session for session in redacted_sessions for field in summary_fields):
             fieldnames.extend(summary_fields)
 
         # Add full detail fields if any session has them
@@ -247,15 +235,11 @@ class ReportService:
             "techniques",
             "notes",
         ]
-        if any(
-            field in session for session in redacted_sessions for field in full_fields
-        ):
+        if any(field in session for session in redacted_sessions for field in full_fields):
             fieldnames.extend(full_fields)
 
         with open(output_path, "w", newline="", encoding="utf-8") as csvfile:
-            writer = csv.DictWriter(
-                csvfile, fieldnames=fieldnames, extrasaction="ignore"
-            )
+            writer = csv.DictWriter(csvfile, fieldnames=fieldnames, extrasaction="ignore")
             writer.writeheader()
 
             for session in redacted_sessions:
@@ -281,15 +265,11 @@ class ReportService:
                     row["submissions_against"] = session["submissions_against"]
                 if "partners" in session:
                     row["partners"] = (
-                        ", ".join(session["partners"])
-                        if session.get("partners")
-                        else ""
+                        ", ".join(session["partners"]) if session.get("partners") else ""
                     )
                 if "techniques" in session:
                     row["techniques"] = (
-                        ", ".join(session["techniques"])
-                        if session.get("techniques")
-                        else ""
+                        ", ".join(session["techniques"]) if session.get("techniques") else ""
                     )
                 if "notes" in session:
                     row["notes"] = session.get("notes", "")

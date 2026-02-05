@@ -72,9 +72,7 @@ class GymService:
         """List all gyms."""
         # Try cache
         cache_key = (
-            CacheKeys.GYM_DIRECTORY_VERIFIED
-            if verified_only
-            else CacheKeys.GYM_DIRECTORY_ALL
+            CacheKeys.GYM_DIRECTORY_VERIFIED if verified_only else CacheKeys.GYM_DIRECTORY_ALL
         )
         cached = self.cache.get(cache_key)
         if cached is not None:

@@ -229,9 +229,7 @@ class GrappleTokenMonitor:
         hours_remaining_today = 24 - hours_elapsed_today
 
         # Project rest of today based on today's hourly rate
-        hourly_rate_today = (
-            cost_today / hours_elapsed_today if hours_elapsed_today > 0 else 0
-        )
+        hourly_rate_today = cost_today / hours_elapsed_today if hours_elapsed_today > 0 else 0
         projected_today = cost_today + (hourly_rate_today * hours_remaining_today)
 
         # Project this week (use average daily cost)
@@ -240,9 +238,7 @@ class GrappleTokenMonitor:
         usage_this_week = self.get_user_usage(user_id, week_start, now)
         cost_this_week = usage_this_week["totals"]["total_cost_usd"]
         days_remaining_this_week = 7 - now.weekday()
-        projected_this_week = cost_this_week + (
-            avg_daily_cost * days_remaining_this_week
-        )
+        projected_this_week = cost_this_week + (avg_daily_cost * days_remaining_this_week)
 
         # Project this month
         month_start = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
@@ -256,9 +252,7 @@ class GrappleTokenMonitor:
         days_elapsed_this_month = now.day
         days_remaining_this_month = days_in_month - days_elapsed_this_month
 
-        projected_this_month = cost_this_month + (
-            avg_daily_cost * days_remaining_this_month
-        )
+        projected_this_month = cost_this_month + (avg_daily_cost * days_remaining_this_month)
 
         return {
             "user_id": user_id,

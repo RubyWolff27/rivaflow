@@ -42,9 +42,7 @@ class AnalyticsService:
         types: list | None = None,
     ) -> dict[str, Any]:
         """Get performance overview metrics."""
-        return self.performance.get_performance_overview(
-            user_id, start_date, end_date, types
-        )
+        return self.performance.get_performance_overview(user_id, start_date, end_date, types)
 
     def get_partner_analytics(
         self,
@@ -54,13 +52,9 @@ class AnalyticsService:
         types: list | None = None,
     ) -> dict[str, Any]:
         """Get partner analytics data."""
-        return self.performance.get_partner_analytics(
-            user_id, start_date, end_date, types
-        )
+        return self.performance.get_partner_analytics(user_id, start_date, end_date, types)
 
-    def get_head_to_head(
-        self, user_id: int, partner1_id: int, partner2_id: int
-    ) -> dict[str, Any]:
+    def get_head_to_head(self, user_id: int, partner1_id: int, partner2_id: int) -> dict[str, Any]:
         """Get head-to-head comparison between two partners."""
         return self.performance.get_head_to_head(user_id, partner1_id, partner2_id)
 
@@ -72,9 +66,7 @@ class AnalyticsService:
         types: list | None = None,
     ) -> dict[str, Any]:
         """Get instructor insights."""
-        return self.performance.get_instructor_analytics(
-            user_id, start_date, end_date, types
-        )
+        return self.performance.get_instructor_analytics(user_id, start_date, end_date, types)
 
     # ============================================================================
     # READINESS ANALYTICS - Delegate to ReadinessAnalyticsService
@@ -112,9 +104,7 @@ class AnalyticsService:
         types: list | None = None,
     ) -> dict[str, Any]:
         """Get technique mastery analytics."""
-        return self.technique.get_technique_analytics(
-            user_id, start_date, end_date, types
-        )
+        return self.technique.get_technique_analytics(user_id, start_date, end_date, types)
 
     # ============================================================================
     # STREAK/CONSISTENCY ANALYTICS - Delegate to StreakAnalyticsService
@@ -128,9 +118,7 @@ class AnalyticsService:
         types: list | None = None,
     ) -> dict[str, Any]:
         """Get training consistency analytics."""
-        return self.streak.get_consistency_analytics(
-            user_id, start_date, end_date, types
-        )
+        return self.streak.get_consistency_analytics(user_id, start_date, end_date, types)
 
     def get_milestones(self, user_id: int) -> dict[str, Any]:
         """Get progression and milestone data."""

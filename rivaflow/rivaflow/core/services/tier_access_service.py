@@ -19,9 +19,7 @@ class TierAccessService:
     """Service for checking tier permissions and managing feature usage"""
 
     @staticmethod
-    def check_tier_access(
-        user_tier: str, required_feature: str
-    ) -> tuple[bool, str | None]:
+    def check_tier_access(user_tier: str, required_feature: str) -> tuple[bool, str | None]:
         """
         Check if a user's tier has access to a feature
 

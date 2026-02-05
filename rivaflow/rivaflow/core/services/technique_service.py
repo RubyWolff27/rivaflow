@@ -13,9 +13,7 @@ class TechniqueService:
         self.repo = TechniqueRepository()
         self.cache = get_redis_client()
 
-    def add_technique(
-        self, user_id: int, name: str, category: str | None = None
-    ) -> int:
+    def add_technique(self, user_id: int, name: str, category: str | None = None) -> int:
         """
         Add a new technique or get existing one.
         Returns technique ID.

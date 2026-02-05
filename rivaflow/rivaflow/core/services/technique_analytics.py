@@ -46,9 +46,7 @@ class TechniqueAnalyticsService:
         if not end_date:
             end_date = date.today()
 
-        sessions = self.session_repo.get_by_date_range(
-            user_id, start_date, end_date, types=types
-        )
+        sessions = self.session_repo.get_by_date_range(user_id, start_date, end_date, types=types)
         movements = self.glossary_repo.list_all(user_id)
 
         # Category breakdown (count submissions by category)
@@ -78,15 +76,11 @@ class TechniqueAnalyticsService:
         all_movement_ids = {m["id"] for m in movements}
         used_movement_ids = set()
 
-        recent_sessions = self.session_repo.get_by_date_range(
-            user_id, stale_date, date.today()
-        )
+        recent_sessions = self.session_repo.get_by_date_range(user_id, stale_date, date.today())
 
         # Get rolls in bulk to avoid N+1 queries
         recent_session_ids = [session["id"] for session in recent_sessions]
-        recent_rolls_by_session = self.roll_repo.get_by_session_ids(
-            user_id, recent_session_ids
-        )
+        recent_rolls_by_session = self.roll_repo.get_by_session_ids(user_id, recent_session_ids)
 
         for session in recent_sessions:
             rolls = recent_rolls_by_session.get(session["id"], [])

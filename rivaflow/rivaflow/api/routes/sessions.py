@@ -33,9 +33,7 @@ async def create_session(
     # Convert SessionTechniqueCreate models to dicts if present
     session_techniques_dict = None
     if session.session_techniques:
-        session_techniques_dict = [
-            tech.model_dump() for tech in session.session_techniques
-        ]
+        session_techniques_dict = [tech.model_dump() for tech in session.session_techniques]
 
     session_id = service.create_session(
         user_id=current_user["id"],
@@ -62,9 +60,7 @@ async def create_session(
         whoop_avg_hr=session.whoop_avg_hr,
         whoop_max_hr=session.whoop_max_hr,
     )
-    created_session = service.get_session(
-        user_id=current_user["id"], session_id=session_id
-    )
+    created_session = service.get_session(user_id=current_user["id"], session_id=session_id)
     return created_session
 
 
@@ -81,9 +77,7 @@ async def update_session(
         # Convert SessionTechniqueCreate models to dicts if present
         session_techniques_dict = None
         if session.session_techniques is not None:
-            session_techniques_dict = [
-                tech.model_dump() for tech in session.session_techniques
-            ]
+            session_techniques_dict = [tech.model_dump() for tech in session.session_techniques]
 
         updated = service.update_session(
             user_id=current_user["id"],
@@ -101,9 +95,7 @@ async def update_session(
             partners=session.partners,
             techniques=session.techniques,
             notes=session.notes,
-            visibility_level=(
-                session.visibility_level.value if session.visibility_level else None
-            ),
+            visibility_level=(session.visibility_level.value if session.visibility_level else None),
             instructor_id=session.instructor_id,
             instructor_name=session.instructor_name,
             session_techniques=session_techniques_dict,
@@ -184,9 +176,7 @@ async def list_sessions(
     sessions = service.get_recent_sessions(user_id=current_user["id"], limit=limit)
 
     if apply_privacy:
-        sessions = PrivacyService.redact_sessions_list(
-            sessions, default_visibility="private"
-        )
+        sessions = PrivacyService.redact_sessions_list(sessions, default_visibility="private")
 
     return sessions
 
@@ -211,9 +201,7 @@ async def get_sessions_by_range(
     )
 
     if apply_privacy:
-        sessions = PrivacyService.redact_sessions_list(
-            sessions, default_visibility="private"
-        )
+        sessions = PrivacyService.redact_sessions_list(sessions, default_visibility="private")
 
     return sessions
 
@@ -239,9 +227,7 @@ async def get_session_with_rolls(
                       excluded unless visibility is "full".
                       Default False for owner access (current single-user mode).
     """
-    session = service.get_session_with_rolls(
-        user_id=current_user["id"], session_id=session_id
-    )
+    session = service.get_session_with_rolls(user_id=current_user["id"], session_id=session_id)
     if not session:
         raise NotFoundError("Session not found")
 
@@ -255,9 +241,7 @@ async def get_session_with_rolls(
 
 
 @router.get("/partner/{partner_id}/stats")
-async def get_partner_stats(
-    partner_id: int, current_user: dict = Depends(get_current_user)
-):
+async def get_partner_stats(partner_id: int, current_user: dict = Depends(get_current_user)):
     """Get training statistics for a specific partner."""
     stats = service.get_partner_stats(user_id=current_user["id"], partner_id=partner_id)
     return stats

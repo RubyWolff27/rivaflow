@@ -25,9 +25,7 @@ class ReadinessRepository:
             cursor = conn.cursor()
             # Try to get existing entry
             cursor.execute(
-                convert_query(
-                    "SELECT id FROM readiness WHERE user_id = ? AND check_date = ?"
-                ),
+                convert_query("SELECT id FROM readiness WHERE user_id = ? AND check_date = ?"),
                 (user_id, check_date.isoformat()),
             )
             existing = cursor.fetchone()
@@ -82,9 +80,7 @@ class ReadinessRepository:
         with get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(
-                convert_query(
-                    "SELECT * FROM readiness WHERE user_id = ? AND check_date = ?"
-                ),
+                convert_query("SELECT * FROM readiness WHERE user_id = ? AND check_date = ?"),
                 (user_id, check_date.isoformat()),
             )
             row = cursor.fetchone()
@@ -113,9 +109,7 @@ class ReadinessRepository:
         """Get a readiness entry by ID without user scope (for validation/privacy checks)."""
         with get_connection() as conn:
             cursor = conn.cursor()
-            cursor.execute(
-                convert_query("SELECT * FROM readiness WHERE id = ?"), (readiness_id,)
-            )
+            cursor.execute(convert_query("SELECT * FROM readiness WHERE id = ?"), (readiness_id,))
             row = cursor.fetchone()
             if row:
                 return ReadinessRepository._row_to_dict(row)
@@ -144,9 +138,7 @@ class ReadinessRepository:
         with get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(
-                convert_query(
-                    "SELECT * FROM readiness WHERE user_id = ? ORDER BY check_date DESC"
-                ),
+                convert_query("SELECT * FROM readiness WHERE user_id = ? ORDER BY check_date DESC"),
                 (user_id,),
             )
             return [ReadinessRepository._row_to_dict(row) for row in cursor.fetchall()]
@@ -164,9 +156,6 @@ class ReadinessRepository:
             data["updated_at"] = datetime.fromisoformat(data["updated_at"])
         # Calculate composite score
         data["composite_score"] = (
-            data["sleep"]
-            + (6 - data["stress"])
-            + (6 - data["soreness"])
-            + data["energy"]
+            data["sleep"] + (6 - data["stress"]) + (6 - data["soreness"]) + data["energy"]
         )
         return data

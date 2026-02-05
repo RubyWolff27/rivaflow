@@ -48,9 +48,7 @@ class SessionRollRepository:
             )
 
             # Return the created roll
-            cursor.execute(
-                convert_query("SELECT * FROM session_rolls WHERE id = ?"), (roll_id,)
-            )
+            cursor.execute(convert_query("SELECT * FROM session_rolls WHERE id = ?"), (roll_id,))
             row = cursor.fetchone()
             return SessionRollRepository._row_to_dict(row)
 
@@ -59,9 +57,7 @@ class SessionRollRepository:
         """Get a session roll by ID."""
         with get_connection() as conn:
             cursor = conn.cursor()
-            cursor.execute(
-                convert_query("SELECT * FROM session_rolls WHERE id = ?"), (roll_id,)
-            )
+            cursor.execute(convert_query("SELECT * FROM session_rolls WHERE id = ?"), (roll_id,))
             row = cursor.fetchone()
             return SessionRollRepository._row_to_dict(row) if row else None
 
@@ -193,9 +189,7 @@ class SessionRollRepository:
                 "total_rolls": total_rolls,
                 "total_submissions_for": total_subs_for,
                 "total_submissions_against": total_subs_against,
-                "subs_per_roll": (
-                    round(total_subs_for / total_rolls, 2) if total_rolls > 0 else 0
-                ),
+                "subs_per_roll": (round(total_subs_for / total_rolls, 2) if total_rolls > 0 else 0),
                 "taps_per_roll": (
                     round(total_subs_against / total_rolls, 2) if total_rolls > 0 else 0
                 ),
@@ -242,9 +236,7 @@ class SessionRollRepository:
                 params.append(json.dumps(submissions_for) if submissions_for else None)
             if submissions_against is not None:
                 updates.append("submissions_against = ?")
-                params.append(
-                    json.dumps(submissions_against) if submissions_against else None
-                )
+                params.append(json.dumps(submissions_against) if submissions_against else None)
             if notes is not None:
                 updates.append("notes = ?")
                 params.append(notes)
@@ -267,9 +259,7 @@ class SessionRollRepository:
         """Delete a session roll by ID. Returns True if deleted, False if not found."""
         with get_connection() as conn:
             cursor = conn.cursor()
-            cursor.execute(
-                convert_query("DELETE FROM session_rolls WHERE id = ?"), (roll_id,)
-            )
+            cursor.execute(convert_query("DELETE FROM session_rolls WHERE id = ?"), (roll_id,))
             return cursor.rowcount > 0
 
     @staticmethod

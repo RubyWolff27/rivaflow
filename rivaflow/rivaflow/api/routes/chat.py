@@ -61,9 +61,7 @@ def build_user_context(user_id: int) -> str:
     if total_sessions > 0:
         total_duration = sum(s.get("duration_mins", 0) for s in all_sessions)
         total_rolls = sum(s.get("rolls_count", 0) for s in all_sessions)
-        avg_intensity = (
-            sum(s.get("intensity", 0) for s in all_sessions) / total_sessions
-        )
+        avg_intensity = sum(s.get("intensity", 0) for s in all_sessions) / total_sessions
 
         # Get unique gyms and techniques
         gyms = set(s.get("gym", "") for s in all_sessions if s.get("gym"))
@@ -86,9 +84,7 @@ def build_user_context(user_id: int) -> str:
         context_parts.append(f"Total rolls: {total_rolls}")
         context_parts.append(f"Average intensity: {avg_intensity:.1f}/10")
         context_parts.append(f"Gyms trained at: {', '.join(sorted(gyms))}")
-        context_parts.append(
-            f"Techniques practiced: {len(all_techniques)} unique techniques"
-        )
+        context_parts.append(f"Techniques practiced: {len(all_techniques)} unique techniques")
         context_parts.append("")
         context_parts.append("RECENT SESSIONS (most recent 20):")
         context_parts.append("")
@@ -104,9 +100,7 @@ def build_user_context(user_id: int) -> str:
             techniques = session.get("techniques", [])
             notes = session.get("notes", "")
 
-            session_summary = (
-                f"- {date_str} at {gym}: {duration}min, intensity {intensity}/10"
-            )
+            session_summary = f"- {date_str} at {gym}: {duration}min, intensity {intensity}/10"
             if rolls > 0:
                 session_summary += f", {rolls} rolls"
             if techniques:

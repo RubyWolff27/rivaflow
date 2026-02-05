@@ -15,9 +15,7 @@ service = ReportService()
 
 
 @router.get("/week")
-async def get_week_report(
-    target_date: date = None, current_user: dict = Depends(get_current_user)
-):
+async def get_week_report(target_date: date = None, current_user: dict = Depends(get_current_user)):
     """Get current week report."""
     start_date, end_date = service.get_week_dates(target_date)
     report = service.generate_report(
@@ -50,9 +48,7 @@ async def get_range_report(
 
 
 @router.get("/week/csv")
-async def export_week_csv(
-    target_date: date = None, current_user: dict = Depends(get_current_user)
-):
+async def export_week_csv(target_date: date = None, current_user: dict = Depends(get_current_user)):
     """Export week report as CSV."""
     start_date, end_date = service.get_week_dates(target_date)
     report = service.generate_report(

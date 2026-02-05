@@ -30,9 +30,7 @@ class PartnersSummaryResponse(BaseModel):
 
 
 @router.get("/report/week", response_model=WeekReportResponse)
-async def get_week_report_for_llm(
-    week_start: date, current_user: dict = Depends(get_current_user)
-):
+async def get_week_report_for_llm(week_start: date, current_user: dict = Depends(get_current_user)):
     """
     Get week report formatted for LLM tool calling.
 

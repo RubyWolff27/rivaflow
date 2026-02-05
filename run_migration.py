@@ -7,6 +7,7 @@ import sys
 import os
 import psycopg2
 
+
 def run_migration(migration_file: str):
     """Run a migration file on the production database."""
     database_url = os.getenv("DATABASE_URL")
@@ -20,7 +21,7 @@ def run_migration(migration_file: str):
         print(f"ERROR: Migration file not found: {migration_file}")
         sys.exit(1)
 
-    with open(migration_file, 'r') as f:
+    with open(migration_file, "r") as f:
         migration_sql = f.read()
 
     print(f"Running migration: {migration_file}")
@@ -44,10 +45,13 @@ def run_migration(migration_file: str):
         print(f"✗ Migration failed: {e}")
         sys.exit(1)
 
+
 if __name__ == "__main__":
     if len(sys.argv) != 2:
         print("Usage: python run_migration.py <migration_file>")
-        print("Example: python run_migration.py rivaflow/db/migrations/041_create_notifications_pg.sql")
+        print(
+            "Example: python run_migration.py rivaflow/db/migrations/041_create_notifications_pg.sql"
+        )
         sys.exit(1)
 
     run_migration(sys.argv[1])

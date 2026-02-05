@@ -173,18 +173,14 @@ def streak(ctx: typer.Context):
         f"  {fire_emoji} [bold white]CHECK-IN STREAK[/bold white] [dim]— {title_text}[/dim]"
     )
     bar = render_progress_bar(current, streak_milestones)
-    console.print(
-        f"  [{streak_color}]{bar}[/{streak_color}]  [bold]{current} days[/bold]"
-    )
+    console.print(f"  [{streak_color}]{bar}[/{streak_color}]  [bold]{current} days[/bold]")
 
     if longest > 0 and checkin_streak.get("last_checkin_date"):
         markers = render_milestone_markers(current, streak_milestones)
         console.print(f"  {markers}")
 
     if checkin_streak.get("grace_days_used", 0) > 0:
-        console.print(
-            f"  [dim]⏳ Grace days used: {checkin_streak['grace_days_used']}[/dim]"
-        )
+        console.print(f"  [dim]⏳ Grace days used: {checkin_streak['grace_days_used']}[/dim]")
 
     console.print()
 
@@ -201,9 +197,7 @@ def streak(ctx: typer.Context):
         f"  {fire_emoji} [bold white]TRAINING STREAK[/bold white] [dim]— {title_text}[/dim]"
     )
     bar = render_progress_bar(current_training, streak_milestones)
-    console.print(
-        f"  [{streak_color}]{bar}[/{streak_color}]  [bold]{current_training} days[/bold]"
-    )
+    console.print(f"  [{streak_color}]{bar}[/{streak_color}]  [bold]{current_training} days[/bold]")
 
     if longest_training > 0 and training_streak.get("last_checkin_date"):
         markers = render_milestone_markers(current_training, streak_milestones)

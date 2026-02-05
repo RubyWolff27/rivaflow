@@ -55,9 +55,7 @@ async def health_check():
         health_status["status"] = "unhealthy"
         health_status["error"] = str(e)
         health_status["error_type"] = type(e).__name__
-        return JSONResponse(
-            status_code=status.HTTP_503_SERVICE_UNAVAILABLE, content=health_status
-        )
+        return JSONResponse(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, content=health_status)
 
     return JSONResponse(status_code=status.HTTP_200_OK, content=health_status)
 

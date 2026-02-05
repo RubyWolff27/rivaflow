@@ -6,23 +6,25 @@ failed partway through but got marked as "applied".
 Usage on Render:
     python reset_failed_migrations.py
 """
+
 import os
 import sys
 
 # Add project to path
-sys.path.insert(0, '/opt/render/project/src')
+sys.path.insert(0, "/opt/render/project/src")
 
 from rivaflow.db.database import get_connection, get_db_type
+
 
 def reset_migrations():
     """Remove failed migrations from schema_migrations table."""
 
     # Migrations that need to be reset (they failed but got marked as applied)
     failed_migrations = [
-        '030_fix_goal_progress_unique_constraint.sql',
-        '031_fix_readiness_unique_constraint.sql',
-        '032_fix_friends_unique_constraint.sql',
-        '034_fix_movements_glossary_custom.sql',
+        "030_fix_goal_progress_unique_constraint.sql",
+        "031_fix_readiness_unique_constraint.sql",
+        "032_fix_friends_unique_constraint.sql",
+        "034_fix_movements_glossary_custom.sql",
     ]
 
     print("=" * 60)
@@ -38,7 +40,7 @@ def reset_migrations():
             # Check if migration is marked as applied
             cursor.execute(
                 "SELECT migration_name FROM schema_migrations WHERE migration_name = %s",
-                (migration,)
+                (migration,),
             )
             result = cursor.fetchone()
 
@@ -46,7 +48,7 @@ def reset_migrations():
                 print(f"✓ Found {migration} - removing from applied list")
                 cursor.execute(
                     "DELETE FROM schema_migrations WHERE migration_name = %s",
-                    (migration,)
+                    (migration,),
                 )
                 conn.commit()
             else:
@@ -62,6 +64,7 @@ def reset_migrations():
         print("2. Migrations will run again on startup")
         print("3. Check logs to confirm they complete successfully")
         print()
+
 
 if __name__ == "__main__":
     try:

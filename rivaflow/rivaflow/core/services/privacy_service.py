@@ -203,9 +203,7 @@ class PrivacyService:
         if audience_scope == "friends" or audience_scope == "circle":
             try:
                 is_following = SocialRepository.is_following(viewer_id, owner_user_id)
-                is_followed_back = SocialRepository.is_following(
-                    owner_user_id, viewer_id
-                )
+                is_followed_back = SocialRepository.is_following(owner_user_id, viewer_id)
                 return is_following and is_followed_back
             except Exception:
                 return False
@@ -318,9 +316,7 @@ class PrivacyService:
             }
         """
         has_notes = bool(session.get("notes"))
-        has_techniques = bool(
-            session.get("techniques") or session.get("session_techniques")
-        )
+        has_techniques = bool(session.get("techniques") or session.get("session_techniques"))
         has_partners = bool(session.get("partners"))
         has_detailed_rolls = bool(session.get("detailed_rolls"))
 

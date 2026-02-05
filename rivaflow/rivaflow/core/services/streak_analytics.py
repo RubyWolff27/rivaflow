@@ -44,9 +44,7 @@ class StreakAnalyticsService:
         if not end_date:
             end_date = date.today()
 
-        sessions = self.session_repo.get_by_date_range(
-            user_id, start_date, end_date, types=types
-        )
+        sessions = self.session_repo.get_by_date_range(user_id, start_date, end_date, types=types)
 
         # Weekly volume
         weekly_stats = defaultdict(lambda: {"sessions": 0, "hours": 0, "rolls": 0})
@@ -61,20 +59,15 @@ class StreakAnalyticsService:
         # Class type distribution
         class_type_counts = Counter(s["class_type"] for s in sessions)
         class_type_distribution = [
-            {"class_type": ct, "count": count}
-            for ct, count in class_type_counts.items()
+            {"class_type": ct, "count": count} for ct, count in class_type_counts.items()
         ]
 
         # Gym breakdown
         gym_counts = Counter(s["gym_name"] for s in sessions)
-        gym_breakdown = [
-            {"gym": gym, "sessions": count} for gym, count in gym_counts.most_common()
-        ]
+        gym_breakdown = [{"gym": gym, "sessions": count} for gym, count in gym_counts.most_common()]
 
         # Calculate streaks
-        all_sessions = self.session_repo.get_recent(
-            user_id, 1000
-        )  # Get more for streak calc
+        all_sessions = self.session_repo.get_recent(user_id, 1000)  # Get more for streak calc
         current_streak, longest_streak = self._calculate_streaks(all_sessions)
 
         return {
@@ -93,14 +86,10 @@ class StreakAnalyticsService:
             return 0, 0
 
         # Sort by date descending
-        sorted_sessions = sorted(
-            sessions, key=lambda s: s["session_date"], reverse=True
-        )
+        sorted_sessions = sorted(sessions, key=lambda s: s["session_date"], reverse=True)
 
         # Get unique dates
-        session_dates = sorted(
-            list(set(s["session_date"] for s in sorted_sessions)), reverse=True
-        )
+        session_dates = sorted(list(set(s["session_date"] for s in sorted_sessions)), reverse=True)
 
         current_streak = 0
         longest_streak = 0
@@ -156,9 +145,7 @@ class StreakAnalyticsService:
             else:
                 end = date.today()
 
-            period_sessions = [
-                s for s in all_sessions if start <= s["session_date"] < end
-            ]
+            period_sessions = [s for s in all_sessions if start <= s["session_date"] < end]
 
             belt_progression.append(
                 {
@@ -166,17 +153,14 @@ class StreakAnalyticsService:
                     "date": start.isoformat(),
                     "professor": grading.get("professor"),
                     "sessions_at_belt": len(period_sessions),
-                    "hours_at_belt": sum(s["duration_mins"] for s in period_sessions)
-                    / 60,
+                    "hours_at_belt": sum(s["duration_mins"] for s in period_sessions) / 60,
                 }
             )
 
         # Personal records
         personal_records = {
             "most_rolls_session": (
-                max(all_sessions, key=lambda s: s["rolls"])["rolls"]
-                if all_sessions
-                else 0
+                max(all_sessions, key=lambda s: s["rolls"])["rolls"] if all_sessions else 0
             ),
             "longest_session": (
                 max(all_sessions, key=lambda s: s["duration_mins"])["duration_mins"]
@@ -221,9 +205,7 @@ class StreakAnalyticsService:
                 s for s in all_sessions if s["session_date"] >= latest_date
             ]
             current_belt_sessions = len(current_belt_sessions_list)
-            current_belt_hours = (
-                sum(s["duration_mins"] for s in current_belt_sessions_list) / 60
-            )
+            current_belt_hours = sum(s["duration_mins"] for s in current_belt_sessions_list) / 60
 
         # This year stats
         year_start = date(date.today().year, 1, 1)

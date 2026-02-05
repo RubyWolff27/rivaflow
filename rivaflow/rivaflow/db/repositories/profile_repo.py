@@ -62,9 +62,7 @@ class ProfileRepository:
             cursor = conn.cursor()
 
             # Check if profile exists
-            cursor.execute(
-                convert_query("SELECT id FROM profile WHERE user_id = ?"), (user_id,)
-            )
+            cursor.execute(convert_query("SELECT id FROM profile WHERE user_id = ?"), (user_id,))
             exists = cursor.fetchone() is not None
 
             if not exists:
@@ -98,11 +96,7 @@ class ProfileRepository:
                         primary_training_type,
                         height_cm,
                         target_weight_kg,
-                        (
-                            weekly_sessions_target
-                            if weekly_sessions_target is not None
-                            else 3
-                        ),
+                        (weekly_sessions_target if weekly_sessions_target is not None else 3),
                         weekly_hours_target if weekly_hours_target is not None else 4.5,
                         weekly_rolls_target if weekly_rolls_target is not None else 15,
                         (
@@ -110,21 +104,13 @@ class ProfileRepository:
                             if weekly_bjj_sessions_target is not None
                             else 3
                         ),
-                        (
-                            weekly_sc_sessions_target
-                            if weekly_sc_sessions_target is not None
-                            else 1
-                        ),
+                        (weekly_sc_sessions_target if weekly_sc_sessions_target is not None else 1),
                         (
                             weekly_mobility_sessions_target
                             if weekly_mobility_sessions_target is not None
                             else 0
                         ),
-                        (
-                            show_streak_on_dashboard
-                            if show_streak_on_dashboard is not None
-                            else 1
-                        ),
+                        (show_streak_on_dashboard if show_streak_on_dashboard is not None else 1),
                         show_weekly_goals if show_weekly_goals is not None else 1,
                     ),
                 )
@@ -146,9 +132,7 @@ class ProfileRepository:
                     updates.append("sex = ?")
                     params.append(sex)
                 if city is not None:
-                    updates.append(
-                        "location = ?"
-                    )  # Column is named 'location' not 'city'
+                    updates.append("location = ?")  # Column is named 'location' not 'city'
                     params.append(city)
                 if state is not None:
                     updates.append("state = ?")
@@ -248,11 +232,7 @@ class ProfileRepository:
             try:
                 dob = datetime.fromisoformat(data["date_of_birth"]).date()
                 today = date.today()
-                age = (
-                    today.year
-                    - dob.year
-                    - ((today.month, today.day) < (dob.month, dob.day))
-                )
+                age = today.year - dob.year - ((today.month, today.day) < (dob.month, dob.day))
                 data["age"] = age
             except (ValueError, AttributeError):
                 data["age"] = None

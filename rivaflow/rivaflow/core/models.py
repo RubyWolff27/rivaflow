@@ -64,9 +64,7 @@ class SessionTechniqueCreate(BaseModel):
 class SessionCreate(BaseModel):
     """Input model for creating a session."""
 
-    session_date: date = Field(
-        description="Date of the training session (cannot be in the future)"
-    )
+    session_date: date = Field(description="Date of the training session (cannot be in the future)")
     class_time: str | None = Field(
         default=None,
         pattern=r"^([01]\d|2[0-3]):([0-5]\d)$",
@@ -104,15 +102,11 @@ class SessionCreate(BaseModel):
     submissions_against: int = Field(
         default=0, ge=0, description="Number of times you were submitted"
     )
-    partners: list[str] | None = Field(
-        default=None, description="List of training partner names"
-    )
+    partners: list[str] | None = Field(default=None, description="List of training partner names")
     techniques: list[str] | None = Field(
         default=None, description="Techniques worked on during the session"
     )
-    notes: str | None = Field(
-        default=None, description="Personal notes about the session"
-    )
+    notes: str | None = Field(default=None, description="Personal notes about the session")
     visibility_level: VisibilityLevel = Field(
         default=VisibilityLevel.PRIVATE,
         description="Who can see this session: private, attendance, summary, or full",
@@ -134,9 +128,7 @@ class SessionCreate(BaseModel):
         default=None, ge=0, le=250, description="Maximum heart rate during session"
     )
 
-    @field_validator(
-        "class_time", "location", "notes", "instructor_name", mode="before"
-    )
+    @field_validator("class_time", "location", "notes", "instructor_name", mode="before")
     @classmethod
     def empty_str_to_none(cls, v):
         """Convert empty strings to None for optional string fields."""

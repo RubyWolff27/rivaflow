@@ -32,9 +32,7 @@ def handle_service_error(
     if operation:
         log_context["operation"] = operation
 
-    logger.error(
-        f"{user_message}: {type(error).__name__}", exc_info=True, extra=log_context
-    )
+    logger.error(f"{user_message}: {type(error).__name__}", exc_info=True, extra=log_context)
 
     # Return generic message to client
     return user_message

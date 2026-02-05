@@ -45,12 +45,8 @@ class ReadinessAnalyticsService:
         if not end_date:
             end_date = date.today()
 
-        readiness_records = self.readiness_repo.get_by_date_range(
-            user_id, start_date, end_date
-        )
-        sessions = self.session_repo.get_by_date_range(
-            user_id, start_date, end_date, types=types
-        )
+        readiness_records = self.readiness_repo.get_by_date_range(user_id, start_date, end_date)
+        sessions = self.session_repo.get_by_date_range(user_id, start_date, end_date, types=types)
 
         # Readiness over time
         readiness_over_time = []
@@ -71,11 +67,7 @@ class ReadinessAnalyticsService:
         for session in sessions:
             # Find readiness for same day
             matching_readiness = next(
-                (
-                    r
-                    for r in readiness_records
-                    if r["check_date"] == session["session_date"]
-                ),
+                (r for r in readiness_records if r["check_date"] == session["session_date"]),
                 None,
             )
             if matching_readiness:
@@ -125,9 +117,7 @@ class ReadinessAnalyticsService:
         ]
 
         # Weight tracking
-        weight_records = [
-            r for r in readiness_records if r.get("weight_kg") is not None
-        ]
+        weight_records = [r for r in readiness_records if r.get("weight_kg") is not None]
         weight_over_time = []
         for record in weight_records:
             weight_over_time.append(
@@ -197,9 +187,7 @@ class ReadinessAnalyticsService:
         if not end_date:
             end_date = date.today()
 
-        sessions = self.session_repo.get_by_date_range(
-            user_id, start_date, end_date, types=types
-        )
+        sessions = self.session_repo.get_by_date_range(user_id, start_date, end_date, types=types)
         whoop_sessions = [s for s in sessions if s.get("whoop_strain") is not None]
 
         # Strain vs performance
@@ -207,9 +195,7 @@ class ReadinessAnalyticsService:
         for session in whoop_sessions:
             sub_ratio = 0
             if session["submissions_against"] > 0:
-                sub_ratio = round(
-                    session["submissions_for"] / session["submissions_against"], 2
-                )
+                sub_ratio = round(session["submissions_for"] / session["submissions_against"], 2)
 
             strain_vs_performance.append(
                 {
@@ -225,25 +211,17 @@ class ReadinessAnalyticsService:
         hr_by_class = defaultdict(lambda: {"avg_hr": [], "max_hr": []})
         for session in whoop_sessions:
             if session.get("whoop_avg_hr"):
-                hr_by_class[session["class_type"]]["avg_hr"].append(
-                    session["whoop_avg_hr"]
-                )
+                hr_by_class[session["class_type"]]["avg_hr"].append(session["whoop_avg_hr"])
             if session.get("whoop_max_hr"):
-                hr_by_class[session["class_type"]]["max_hr"].append(
-                    session["whoop_max_hr"]
-                )
+                hr_by_class[session["class_type"]]["max_hr"].append(session["whoop_max_hr"])
 
         heart_rate_zones = []
         for class_type, hrs in hr_by_class.items():
             heart_rate_zones.append(
                 {
                     "class_type": class_type,
-                    "avg_hr": (
-                        round(statistics.mean(hrs["avg_hr"])) if hrs["avg_hr"] else 0
-                    ),
-                    "max_hr": (
-                        round(statistics.mean(hrs["max_hr"])) if hrs["max_hr"] else 0
-                    ),
+                    "avg_hr": (round(statistics.mean(hrs["avg_hr"])) if hrs["avg_hr"] else 0),
+                    "max_hr": (round(statistics.mean(hrs["max_hr"])) if hrs["max_hr"] else 0),
                     "sessions": len(hrs["avg_hr"]),
                 }
             )
@@ -255,9 +233,7 @@ class ReadinessAnalyticsService:
                 calorie_analysis[session["class_type"]]["calories"].append(
                     session["whoop_calories"]
                 )
-                calorie_analysis[session["class_type"]]["duration"].append(
-                    session["duration_mins"]
-                )
+                calorie_analysis[session["class_type"]]["duration"].append(session["duration_mins"])
 
         calorie_burn = []
         for class_type, data in calorie_analysis.items():
@@ -268,9 +244,7 @@ class ReadinessAnalyticsService:
                     "class_type": class_type,
                     "total_calories": total_cals,
                     "avg_calories": (
-                        round(statistics.mean(data["calories"]))
-                        if data["calories"]
-                        else 0
+                        round(statistics.mean(data["calories"])) if data["calories"] else 0
                     ),
                     "calories_per_min": (
                         round(total_cals / total_mins, 1) if total_mins > 0 else 0
@@ -280,9 +254,7 @@ class ReadinessAnalyticsService:
             )
 
         # Recovery correlation (Whoop strain vs next day readiness)
-        readiness_records = self.readiness_repo.get_by_date_range(
-            user_id, start_date, end_date
-        )
+        readiness_records = self.readiness_repo.get_by_date_range(user_id, start_date, end_date)
         recovery_correlation = []
 
         for session in whoop_sessions:
@@ -310,19 +282,13 @@ class ReadinessAnalyticsService:
                 "avg_strain": (
                     round(
                         statistics.mean(
-                            [
-                                s["whoop_strain"]
-                                for s in whoop_sessions
-                                if s.get("whoop_strain")
-                            ]
+                            [s["whoop_strain"] for s in whoop_sessions if s.get("whoop_strain")]
                         ),
                         1,
                     )
                     if whoop_sessions
                     else 0
                 ),
-                "total_calories": sum(
-                    s.get("whoop_calories", 0) for s in whoop_sessions
-                ),
+                "total_calories": sum(s.get("whoop_calories", 0) for s in whoop_sessions),
             },
         }

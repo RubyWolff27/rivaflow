@@ -11,9 +11,7 @@ from datetime import date, timedelta
 import pytest
 
 # Set SECRET_KEY for testing
-os.environ.setdefault(
-    "SECRET_KEY", "test-secret-key-for-postgresql-tests-minimum-32chars"
-)
+os.environ.setdefault("SECRET_KEY", "test-secret-key-for-postgresql-tests-minimum-32chars")
 
 from rivaflow.db.database import convert_query, get_connection, init_db
 from rivaflow.db.repositories.checkin_repo import CheckinRepository

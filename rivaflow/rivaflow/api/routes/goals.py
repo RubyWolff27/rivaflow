@@ -42,9 +42,7 @@ async def get_current_week_progress(current_user: dict = Depends(get_current_use
         )
         return result
     except Exception as e:
-        logger.error(
-            f"ERROR in get_current_week_progress for user_id={current_user['id']}"
-        )
+        logger.error(f"ERROR in get_current_week_progress for user_id={current_user['id']}")
         logger.error(f"Exception type: {type(e).__name__}")
         logger.error(f"Exception message: {str(e)}")
         logger.error(f"Full traceback:\n{traceback.format_exc()}")
@@ -79,9 +77,7 @@ async def get_goal_completion_streaks(current_user: dict = Depends(get_current_u
 
 
 @router.get("/trend")
-async def get_recent_trend(
-    weeks: int = 12, current_user: dict = Depends(get_current_user)
-):
+async def get_recent_trend(weeks: int = 12, current_user: dict = Depends(get_current_user)):
     """Get goal completion trend for recent weeks.
 
     Args:

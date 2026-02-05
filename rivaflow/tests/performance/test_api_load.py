@@ -109,12 +109,8 @@ class TestAPILoadPerformance:
         print(f"Throughput: {throughput:.1f} req/s")
 
         # Assertions
-        assert (
-            successful == num_requests
-        ), f"Only {successful}/{num_requests} requests succeeded"
-        assert (
-            total_time < 10.0
-        ), f"Took {total_time:.2f}s, should complete in under 10s"
+        assert successful == num_requests, f"Only {successful}/{num_requests} requests succeeded"
+        assert total_time < 10.0, f"Took {total_time:.2f}s, should complete in under 10s"
         assert throughput > 10, f"Throughput of {throughput:.1f} req/s is too low"
 
         # Cleanup
@@ -183,12 +179,8 @@ class TestAPILoadPerformance:
 
             # Read operations should be fast
             assert successful == num_requests
-            assert (
-                total_time < 5.0
-            ), f"Reads took {total_time:.2f}s, should complete in under 5s"
-            assert (
-                throughput > 20
-            ), f"Read throughput of {throughput:.1f} req/s is too low"
+            assert total_time < 5.0, f"Reads took {total_time:.2f}s, should complete in under 5s"
+            assert throughput > 20, f"Read throughput of {throughput:.1f} req/s is too low"
 
         finally:
             # Cleanup
@@ -260,15 +252,11 @@ class TestAPILoadPerformance:
                 except Exception as e:
                     return {"type": "error", "success": False, "error": str(e)}
 
-            print(
-                f"\n{num_requests} mixed operations (60% read, 30% write, 10% update)..."
-            )
+            print(f"\n{num_requests} mixed operations (60% read, 30% write, 10% update)...")
             start_time = time.time()
 
             with ThreadPoolExecutor(max_workers=20) as executor:
-                futures = [
-                    executor.submit(mixed_operation, i) for i in range(num_requests)
-                ]
+                futures = [executor.submit(mixed_operation, i) for i in range(num_requests)]
                 results = [future.result() for future in as_completed(futures)]
 
             end_time = time.time()
@@ -288,9 +276,7 @@ class TestAPILoadPerformance:
             print(f"Throughput: {throughput:.1f} req/s")
 
             assert successful >= num_requests * 0.95, "At least 95% should succeed"
-            assert (
-                total_time < 15.0
-            ), f"Mixed workload took {total_time:.2f}s, should be under 15s"
+            assert total_time < 15.0, f"Mixed workload took {total_time:.2f}s, should be under 15s"
 
             # Cleanup created sessions
             session_ids.extend(created_sessions)
@@ -348,9 +334,7 @@ class TestAPIEndpointPerformance:
             print(f"\nAnalytics overview with 1000 sessions: {query_time:.3f}s")
 
             assert "total_sessions" in overview
-            assert (
-                query_time < 2.0
-            ), f"Analytics took {query_time:.3f}s, should be under 2s"
+            assert query_time < 2.0, f"Analytics took {query_time:.3f}s, should be under 2s"
 
         finally:
             # Cleanup
@@ -401,9 +385,7 @@ class TestAPIEndpointPerformance:
             print(f"\nMonthly report generation: {query_time:.3f}s")
 
             assert "summary" in report
-            assert (
-                query_time < 1.0
-            ), f"Report generation took {query_time:.3f}s, should be under 1s"
+            assert query_time < 1.0, f"Report generation took {query_time:.3f}s, should be under 1s"
 
         finally:
             # Cleanup

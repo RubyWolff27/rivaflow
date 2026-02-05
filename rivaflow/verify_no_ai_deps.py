@@ -20,9 +20,7 @@ print("VERIFYING NO AI DEPENDENCIES ARE INSTALLED")
 print("=" * 80)
 
 # Check installed packages
-result = subprocess.run(
-    ["pip", "list", "--format=freeze"], capture_output=True, text=True
-)
+result = subprocess.run(["pip", "list", "--format=freeze"], capture_output=True, text=True)
 
 installed = result.stdout.lower()
 

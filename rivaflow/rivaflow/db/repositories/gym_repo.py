@@ -88,14 +88,10 @@ class GymRepository:
 
             if verified_only:
                 cursor.execute(
-                    convert_query(
-                        "SELECT * FROM gyms WHERE verified = TRUE ORDER BY name"
-                    )
+                    convert_query("SELECT * FROM gyms WHERE verified = TRUE ORDER BY name")
                 )
             else:
-                cursor.execute(
-                    convert_query("SELECT * FROM gyms ORDER BY verified DESC, name")
-                )
+                cursor.execute(convert_query("SELECT * FROM gyms ORDER BY verified DESC, name"))
 
             results = cursor.fetchall()
 
@@ -268,9 +264,7 @@ class GymRepository:
                 )
 
                 # Delete the source gym
-                cursor.execute(
-                    convert_query("DELETE FROM gyms WHERE id = ?"), (source_gym_id,)
-                )
+                cursor.execute(convert_query("DELETE FROM gyms WHERE id = ?"), (source_gym_id,))
 
                 # Explicit commit (also happens automatically on context exit)
                 conn.commit()

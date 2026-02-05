@@ -154,9 +154,7 @@ class NotificationService:
             Dict with feed_unread, friend_requests (follows), and total
         """
         feed_unread = NotificationRepository.get_feed_unread_count(user_id)
-        follow_unread = NotificationRepository.get_unread_count_by_type(
-            user_id, "follow"
-        )
+        follow_unread = NotificationRepository.get_unread_count_by_type(user_id, "follow")
         total_unread = NotificationRepository.get_unread_count(user_id)
 
         return {

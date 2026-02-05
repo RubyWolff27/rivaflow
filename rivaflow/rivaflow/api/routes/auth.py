@@ -56,9 +56,7 @@ class AccessTokenResponse(BaseModel):
     token_type: str = "bearer"
 
 
-@router.post(
-    "/register", response_model=TokenResponse, status_code=status.HTTP_201_CREATED
-)
+@router.post("/register", response_model=TokenResponse, status_code=status.HTTP_201_CREATED)
 @limiter.limit("5/minute")
 async def register(request: Request, req: RegisterRequest):
     """
@@ -147,9 +145,7 @@ async def refresh_token(request: Request, req: RefreshRequest):
             headers={"WWW-Authenticate": "Bearer"},
         )
     except Exception as e:
-        error_msg = handle_service_error(
-            e, "Token refresh failed", operation="refresh_token"
-        )
+        error_msg = handle_service_error(e, "Token refresh failed", operation="refresh_token")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=error_msg,
@@ -172,9 +168,7 @@ async def logout(req: RefreshRequest, current_user: dict = Depends(get_current_u
         if success:
             return {"message": "Logged out successfully"}
         else:
-            return {
-                "message": "Logged out successfully"
-            }  # Generic message to prevent info leakage
+            return {"message": "Logged out successfully"}  # Generic message to prevent info leakage
     except Exception as e:
         error_msg = handle_service_error(
             e, "Logout failed", user_id=current_user["id"], operation="logout"
@@ -290,9 +284,7 @@ async def reset_password(request: Request, req: ResetPasswordRequest):
     except ValueError as e:
         raise ValidationError(str(e))
     except Exception as e:
-        error_msg = handle_service_error(
-            e, "Password reset failed", operation="reset_password"
-        )
+        error_msg = handle_service_error(e, "Password reset failed", operation="reset_password")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=error_msg,

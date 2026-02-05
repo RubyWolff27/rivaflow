@@ -35,9 +35,7 @@ class RefreshTokenRepository:
             )
 
             # Fetch and return the created token
-            cursor.execute(
-                convert_query("SELECT * FROM refresh_tokens WHERE id = ?"), (token_id,)
-            )
+            cursor.execute(convert_query("SELECT * FROM refresh_tokens WHERE id = ?"), (token_id,))
             row = cursor.fetchone()
             return RefreshTokenRepository._row_to_dict(row)
 
@@ -54,9 +52,7 @@ class RefreshTokenRepository:
         """
         with get_connection() as conn:
             cursor = conn.cursor()
-            cursor.execute(
-                convert_query("SELECT * FROM refresh_tokens WHERE token = ?"), (token,)
-            )
+            cursor.execute(convert_query("SELECT * FROM refresh_tokens WHERE token = ?"), (token,))
             row = cursor.fetchone()
             if row:
                 return RefreshTokenRepository._row_to_dict(row)
@@ -101,9 +97,7 @@ class RefreshTokenRepository:
         """
         with get_connection() as conn:
             cursor = conn.cursor()
-            cursor.execute(
-                convert_query("DELETE FROM refresh_tokens WHERE token = ?"), (token,)
-            )
+            cursor.execute(convert_query("DELETE FROM refresh_tokens WHERE token = ?"), (token,))
             return cursor.rowcount > 0
 
     @staticmethod
@@ -136,9 +130,7 @@ class RefreshTokenRepository:
         with get_connection() as conn:
             cursor = conn.cursor()
             now = datetime.utcnow().isoformat()
-            cursor.execute(
-                convert_query("DELETE FROM refresh_tokens WHERE expires_at < ?"), (now,)
-            )
+            cursor.execute(convert_query("DELETE FROM refresh_tokens WHERE expires_at < ?"), (now,))
             return cursor.rowcount
 
     @staticmethod

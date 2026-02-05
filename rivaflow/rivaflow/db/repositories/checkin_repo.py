@@ -79,9 +79,7 @@ class CheckinRepository:
             return checkin_id
 
     @staticmethod
-    def get_checkins_range(
-        user_id: int, start_date: date, end_date: date
-    ) -> list[dict]:
+    def get_checkins_range(user_id: int, start_date: date, end_date: date) -> list[dict]:
         """Get all check-ins in date range."""
         with get_connection() as conn:
             cursor = conn.cursor()
@@ -110,9 +108,7 @@ class CheckinRepository:
         return checkin is not None
 
     @staticmethod
-    def update_tomorrow_intention(
-        user_id: int, check_date: date, intention: str
-    ) -> None:
+    def update_tomorrow_intention(user_id: int, check_date: date, intention: str) -> None:
         """Update tomorrow's intention for a specific date."""
         with get_connection() as conn:
             cursor = conn.cursor()
