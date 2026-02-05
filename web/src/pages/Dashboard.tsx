@@ -27,7 +27,7 @@ export default function Dashboard() {
       const response = await readinessApi.getByDate(today);
 
       if (response.data) {
-        setReadinessScore(response.data.overall_score);
+        setReadinessScore(response.data.composite_score);
         setHasCheckedInToday(true);
       }
     } catch (error) {
