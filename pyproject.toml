@@ -79,6 +79,10 @@ target-version = "py311"
 line-length = 88
 target-version = ['py311']
 
+[tool.isort]
+profile = "black"
+line_length = 88
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 addopts = "-v --cov=rivaflow"

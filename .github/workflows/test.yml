@@ -127,7 +127,7 @@ jobs:
       run: black --check rivaflow/ tests/
 
     - name: Check import sorting
-      run: isort --check-only rivaflow/ tests/
+      run: isort --check-only --profile black rivaflow/ tests/
 
     - name: Run mypy type checking
       run: mypy rivaflow/ --ignore-missing-imports || echo "Type hints need improvement"
