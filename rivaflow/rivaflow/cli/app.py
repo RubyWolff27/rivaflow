@@ -1,6 +1,7 @@
 """Main CLI application using Typer."""
 
 from datetime import date, datetime
+from typing import Optional
 
 import typer
 
@@ -163,7 +164,7 @@ def stats():
 
 @app.command()
 def export(
-    output: str | None = typer.Option(
+    output: Optional[str] = typer.Option(
         None, "--output", "-o", help="Output file path (default: rivaflow_export.json)"
     )
 ):

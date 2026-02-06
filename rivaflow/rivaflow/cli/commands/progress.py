@@ -26,6 +26,15 @@ def get_lifetime_stats(user_id: int) -> dict:
     """
     from rivaflow.db.database import convert_query
 
+    def _scalar(row):
+        """Extract scalar value from a row (handles both dict and tuple rows)."""
+        if row is None:
+            return None
+        if hasattr(row, "keys"):
+            # Dict-like row (PostgreSQL RealDictCursor)
+            return list(row.values())[0]
+        return row[0]
+
     with get_connection() as conn:
         cursor = conn.cursor()
 
@@ -34,21 +43,21 @@ def get_lifetime_stats(user_id: int) -> dict:
             convert_query("SELECT SUM(duration_mins) FROM sessions WHERE user_id = ?"),
             (user_id,),
         )
-        total_mins = cursor.fetchone()[0] or 0
+        total_mins = _scalar(cursor.fetchone()) or 0
         hours = round(total_mins / 60, 1)
 
         # Sessions
         cursor.execute(
             convert_query("SELECT COUNT(*) FROM sessions WHERE user_id = ?"), (user_id,)
         )
-        sessions = cursor.fetchone()[0] or 0
+        sessions = _scalar(cursor.fetchone()) or 0
 
         # Rolls
         cursor.execute(
             convert_query("SELECT SUM(rolls) FROM sessions WHERE user_id = ?"),
             (user_id,),
         )
-        rolls = cursor.fetchone()[0] or 0
+        rolls = _scalar(cursor.fetchone()) or 0
 
         # Submissions for
         cursor.execute(
@@ -57,7 +66,7 @@ def get_lifetime_stats(user_id: int) -> dict:
             ),
             (user_id,),
         )
-        subs_for = cursor.fetchone()[0] or 0
+        subs_for = _scalar(cursor.fetchone()) or 0
 
         # Submissions against
         cursor.execute(
@@ -66,7 +75,7 @@ def get_lifetime_stats(user_id: int) -> dict:
             ),
             (user_id,),
         )
-        subs_against = cursor.fetchone()[0] or 0
+        subs_against = _scalar(cursor.fetchone()) or 0
 
         # Sub ratio
         sub_ratio = round(subs_for / subs_against, 2) if subs_against > 0 else subs_for
@@ -81,7 +90,7 @@ def get_lifetime_stats(user_id: int) -> dict:
         """),
             (user_id,),
         )
-        partners = cursor.fetchone()[0] or 0
+        partners = _scalar(cursor.fetchone()) or 0
 
         # Techniques (via JOIN with sessions for user_id filtering)
         cursor.execute(
@@ -93,7 +102,7 @@ def get_lifetime_stats(user_id: int) -> dict:
         """),
             (user_id,),
         )
-        techniques = cursor.fetchone()[0] or 0
+        techniques = _scalar(cursor.fetchone()) or 0
 
     return {
         "hours": hours,

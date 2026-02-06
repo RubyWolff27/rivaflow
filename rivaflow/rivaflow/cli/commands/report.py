@@ -2,6 +2,7 @@
 
 from datetime import datetime
 from pathlib import Path
+from typing import Optional
 
 import typer
 from rich import box
@@ -21,7 +22,9 @@ console = Console()
 @app.command()
 def week(
     csv: bool = typer.Option(False, "--csv", help="Export to CSV"),
-    output: str | None = typer.Option(None, "--output", "-o", help="CSV output file"),
+    output: Optional[str] = typer.Option(
+        None, "--output", "-o", help="CSV output file"
+    ),
 ):
     """
     Show current week training report (Monday-Sunday).
@@ -60,7 +63,9 @@ def week(
 @app.command()
 def month(
     csv: bool = typer.Option(False, "--csv", help="Export to CSV"),
-    output: str | None = typer.Option(None, "--output", "-o", help="CSV output file"),
+    output: Optional[str] = typer.Option(
+        None, "--output", "-o", help="CSV output file"
+    ),
 ):
     """
     Show current month training report.
@@ -99,7 +104,9 @@ def range(
     start: str = typer.Argument(..., help="Start date (YYYY-MM-DD)"),
     end: str = typer.Argument(..., help="End date (YYYY-MM-DD)"),
     csv: bool = typer.Option(False, "--csv", help="Export to CSV"),
-    output: str | None = typer.Option(None, "--output", "-o", help="CSV output file"),
+    output: Optional[str] = typer.Option(
+        None, "--output", "-o", help="CSV output file"
+    ),
 ):
     """
     Show training report for custom date range.

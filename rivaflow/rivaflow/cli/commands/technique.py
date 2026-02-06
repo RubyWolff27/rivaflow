@@ -1,5 +1,7 @@
 """Technique management commands."""
 
+from typing import Optional
+
 import typer
 from rich.console import Console
 from rich.table import Table
@@ -15,7 +17,7 @@ console = Console()
 @app.command()
 def add(
     name: str = typer.Argument(..., help="Technique name"),
-    category: str | None = typer.Option(
+    category: Optional[str] = typer.Option(
         None,
         "--category",
         "-c",

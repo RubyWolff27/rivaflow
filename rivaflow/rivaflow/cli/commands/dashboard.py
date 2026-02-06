@@ -11,7 +11,7 @@ from rivaflow.cli.utils.user_context import get_current_user_id
 from rivaflow.config import TOMORROW_INTENTIONS
 from rivaflow.core.services.milestone_service import MilestoneService
 from rivaflow.core.services.streak_service import StreakService
-from rivaflow.db.database import get_connection
+from rivaflow.db.database import convert_query, get_connection
 from rivaflow.db.repositories.checkin_repo import CheckinRepository
 
 app = typer.Typer(
@@ -40,61 +40,69 @@ def get_week_summary(user_id: int) -> dict:
     today = date.today()
     week_start = today - timedelta(days=today.weekday())
 
+    def _scalar(row):
+        """Extract scalar value from a row (handles both dict and tuple rows)."""
+        if row is None:
+            return None
+        if hasattr(row, "keys"):
+            return list(row.values())[0]
+        return row[0]
+
     with get_connection() as conn:
         cursor = conn.cursor()
 
         # Sessions count
         cursor.execute(
-            """
+            convert_query("""
             SELECT COUNT(*) FROM sessions
             WHERE user_id = ? AND session_date >= ?
-        """,
+        """),
             (
                 user_id,
                 week_start.isoformat(),
             ),
         )
-        sessions = cursor.fetchone()[0] or 0
+        sessions = _scalar(cursor.fetchone()) or 0
 
         # Total hours
         cursor.execute(
-            """
+            convert_query("""
             SELECT SUM(duration_mins) FROM sessions
             WHERE user_id = ? AND session_date >= ?
-        """,
+        """),
             (
                 user_id,
                 week_start.isoformat(),
             ),
         )
-        total_mins = cursor.fetchone()[0] or 0
+        total_mins = _scalar(cursor.fetchone()) or 0
         hours = round(total_mins / 60, 1)
 
         # Total rolls
         cursor.execute(
-            """
+            convert_query("""
             SELECT SUM(rolls) FROM sessions
             WHERE user_id = ? AND session_date >= ?
-        """,
+        """),
             (
                 user_id,
                 week_start.isoformat(),
             ),
         )
-        rolls = cursor.fetchone()[0] or 0
+        rolls = _scalar(cursor.fetchone()) or 0
 
         # Rest days
         cursor.execute(
-            """
+            convert_query("""
             SELECT COUNT(*) FROM daily_checkins
             WHERE user_id = ? AND check_date >= ? AND checkin_type = 'rest'
-        """,
+        """),
             (
                 user_id,
                 week_start.isoformat(),
             ),
         )
-        rest_days = cursor.fetchone()[0] or 0
+        rest_days = _scalar(cursor.fetchone()) or 0
 
     return {
         "sessions": sessions,
@@ -126,9 +134,15 @@ def dashboard(ctx: typer.Context = None):
         with get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(
-                "SELECT COUNT(*) FROM sessions WHERE user_id = ?", (user_id,)
+                convert_query("SELECT COUNT(*) FROM sessions WHERE user_id = ?"),
+                (user_id,),
             )
-            session_count = cursor.fetchone()[0] or 0
+            row = cursor.fetchone()
+            session_count = (
+                (list(row.values())[0] if hasattr(row, "keys") else row[0]) or 0
+                if row
+                else 0
+            )
 
             if session_count == 0:
                 # First-time user - show welcome message
@@ -164,11 +178,17 @@ def dashboard(ctx: typer.Context = None):
             with get_connection() as conn:
                 cursor = conn.cursor()
                 cursor.execute(
-                    "SELECT first_name FROM profile WHERE user_id = ? LIMIT 1",
+                    convert_query(
+                        "SELECT first_name FROM profile WHERE user_id = ? LIMIT 1"
+                    ),
                     (user_id,),
                 )
                 row = cursor.fetchone()
-                name = row[0] if row and row[0] else "there"
+                if row:
+                    val = row["first_name"] if hasattr(row, "keys") else row[0]
+                    name = val if val else "there"
+                else:
+                    name = "there"
         except Exception:
             name = "there"
 

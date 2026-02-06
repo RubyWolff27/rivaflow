@@ -82,7 +82,7 @@ class InsightService:
 
             # Database-specific week formatting
             if DB_TYPE == "postgresql":
-                week_format = "to_char(session_date, 'IYYY-IW')"
+                week_format = "to_char(session_date::date, 'IYYY-IW')"
             else:
                 week_format = "strftime('%Y-%W', session_date)"
 

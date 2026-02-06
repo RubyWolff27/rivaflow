@@ -1,6 +1,7 @@
 """Tomorrow's intention command."""
 
 from datetime import date, timedelta
+from typing import Optional
 
 import typer
 from rich.console import Console
@@ -35,7 +36,10 @@ def get_tip_based_on_recent_sessions(user_id: int) -> str | None:
         """),
             (user_id,),
         )
-        recent_sessions = [row[0] for row in cursor.fetchall()]
+        recent_sessions = [
+            row["class_type"] if hasattr(row, "keys") else row[0]
+            for row in cursor.fetchall()
+        ]
 
         if not recent_sessions:
             return None
@@ -59,7 +63,8 @@ def get_tip_based_on_recent_sessions(user_id: int) -> str | None:
         """),
             (user_id, six_days_ago),
         )
-        recent_count = cursor.fetchone()[0] or 0
+        row = cursor.fetchone()
+        recent_count = (list(row.values())[0] if hasattr(row, "keys") else row[0]) or 0
 
         if recent_count >= 6:
             return (
@@ -72,7 +77,7 @@ def get_tip_based_on_recent_sessions(user_id: int) -> str | None:
 @app.callback(invoke_without_command=True)
 def tomorrow(
     ctx: typer.Context,
-    intention: str | None = typer.Argument(
+    intention: Optional[str] = typer.Argument(
         None, help="Intention: train_gi, train_nogi, rest, unsure"
     ),
 ):

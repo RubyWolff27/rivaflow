@@ -2,6 +2,7 @@
 
 import json
 from datetime import date, datetime
+from typing import Optional
 
 import typer
 
@@ -19,7 +20,7 @@ app = typer.Typer(help="Daily readiness check-in")
 
 @app.command()
 def readiness(
-    check_date: str | None = typer.Option(
+    check_date: Optional[str] = typer.Option(
         None,
         "--date",
         "-d",
