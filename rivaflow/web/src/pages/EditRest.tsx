@@ -1,0 +1,211 @@
+import { useEffect, useState } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
+import { restApi } from '../api/client';
+import { ArrowLeft, Save, Camera } from 'lucide-react';
+import PhotoGallery from '../components/PhotoGallery';
+import PhotoUpload from '../components/PhotoUpload';
+
+interface RestDay {
+  id: number;
+  rest_date: string;
+  rest_type: string;
+  rest_note?: string;
+  tomorrow_intention?: string;
+  created_at: string;
+}
+
+const REST_TYPES = [
+  { value: 'full', label: 'Full Rest Day' },
+  { value: 'active', label: 'Active Recovery' },
+  { value: 'injury', label: 'Injury Recovery' },
+  { value: 'sick', label: 'Sick Day' },
+];
+
+export default function EditRest() {
+  const { date } = useParams<{ date: string }>();
+  const navigate = useNavigate();
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [restId, setRestId] = useState<number | null>(null);
+  const [photoCount, setPhotoCount] = useState(0);
+
+  const [formData, setFormData] = useState({
+    rest_date: date || '',
+    rest_type: 'full',
+    rest_note: '',
+    tomorrow_intention: '',
+  });
+
+  useEffect(() => {
+    loadRestDay();
+  }, [date]);
+
+  const loadRestDay = async () => {
+    setLoading(true);
+    try {
+      // Get all recent rest days and find the one matching the date
+      const response = await restApi.getRecent(365);
+      const found = response.data.find((r: RestDay) => r.rest_date === date);
+      if (found) {
+        setRestId(found.id);
+        setFormData({
+          rest_date: found.rest_date,
+          rest_type: found.rest_type,
+          rest_note: found.rest_note || '',
+          tomorrow_intention: found.tomorrow_intention || '',
+        });
+      } else {
+        throw new Error('Rest day not found');
+      }
+    } catch (error) {
+      console.error('Error loading rest day:', error);
+      alert('Failed to load rest day');
+      navigate('/feed');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSaving(true);
+
+    try {
+      await restApi.logRestDay({
+        rest_date: formData.rest_date,
+        rest_type: formData.rest_type,
+        note: formData.rest_note || undefined,
+        tomorrow_intention: formData.tomorrow_intention || undefined,
+      });
+
+      alert('Rest day updated successfully!');
+      navigate('/feed');
+    } catch (error) {
+      console.error('Error updating rest day:', error);
+      alert('Failed to update rest day');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  if (loading) {
+    return <div className="text-center py-12">Loading...</div>;
+  }
+
+  return (
+    <div className="max-w-2xl mx-auto space-y-6">
+      <div className="flex items-center gap-3">
+        <button
+          onClick={() => navigate(-1)}
+          className="text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white"
+        >
+          <ArrowLeft className="w-6 h-6" />
+        </button>
+        <h1 className="text-3xl font-bold">Edit Rest Day</h1>
+      </div>
+
+      <form onSubmit={handleSubmit} className="card space-y-6">
+        {/* Date */}
+        <div>
+          <label className="label">Date</label>
+          <input
+            type="date"
+            className="input"
+            value={formData.rest_date}
+            onChange={(e) => setFormData({ ...formData, rest_date: e.target.value })}
+            required
+          />
+        </div>
+
+        {/* Rest Type */}
+        <div>
+          <label className="label">Rest Type</label>
+          <select
+            className="input"
+            value={formData.rest_type}
+            onChange={(e) => setFormData({ ...formData, rest_type: e.target.value })}
+            required
+          >
+            {REST_TYPES.map((type) => (
+              <option key={type.value} value={type.value}>
+                {type.label}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        {/* Rest Note */}
+        <div>
+          <label className="label">Notes - Optional</label>
+          <textarea
+            className="input"
+            value={formData.rest_note}
+            onChange={(e) => setFormData({ ...formData, rest_note: e.target.value })}
+            rows={4}
+            placeholder="Why are you taking a rest day? How are you feeling?"
+          />
+        </div>
+
+        {/* Tomorrow's Intention */}
+        <div>
+          <label className="label">Tomorrow's Intention - Optional</label>
+          <input
+            type="text"
+            className="input"
+            value={formData.tomorrow_intention}
+            onChange={(e) => setFormData({ ...formData, tomorrow_intention: e.target.value })}
+            placeholder="e.g., Light drilling session, Full training, Continue resting..."
+          />
+        </div>
+
+        {/* Photos */}
+        {restId && (
+          <div className="border-t border-gray-200 dark:border-gray-700 pt-6">
+            <div className="flex items-center gap-2 mb-4">
+              <Camera className="w-5 h-5 text-gray-600 dark:text-gray-400" />
+              <h3 className="font-semibold text-lg">Photos</h3>
+              <span className="text-sm text-gray-500">({photoCount}/3)</span>
+            </div>
+
+            <div className="space-y-4">
+              <PhotoGallery
+                activityType="rest"
+                activityId={restId}
+                onPhotoCountChange={setPhotoCount}
+              />
+
+              <PhotoUpload
+                activityType="rest"
+                activityId={restId}
+                activityDate={formData.rest_date}
+                currentPhotoCount={photoCount}
+                onUploadSuccess={() => {
+                  setPhotoCount(photoCount + 1);
+                }}
+              />
+            </div>
+          </div>
+        )}
+
+        {/* Action Buttons */}
+        <div className="flex gap-3">
+          <button
+            type="submit"
+            disabled={saving}
+            className="btn-primary flex items-center gap-2 flex-1"
+          >
+            <Save className="w-4 h-4" />
+            {saving ? 'Saving...' : 'Save Changes'}
+          </button>
+          <button
+            type="button"
+            onClick={() => navigate(-1)}
+            className="btn-secondary"
+          >
+            Cancel
+          </button>
+        </div>
+      </form>
+    </div>
+  );
+}

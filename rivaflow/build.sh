@@ -32,6 +32,20 @@ echo "==> Checking for forbidden AI dependencies..."
 python verify_no_ai_deps.py
 
 echo ""
+echo "==> Building frontend..."
+if [ -d "web" ]; then
+    cd web
+    echo "Installing frontend dependencies..."
+    npm install
+    echo "Building frontend..."
+    npm run build
+    echo "✓ Frontend build complete"
+    cd ..
+else
+    echo "⚠ Warning: web directory not found, skipping frontend build"
+fi
+
+echo ""
 echo "==> Initializing database..."
 python -c "from rivaflow.db.database import init_db; init_db()"
 

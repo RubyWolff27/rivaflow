@@ -1,0 +1,598 @@
+import { useState, useEffect } from 'react';
+import { adminApi } from '../api/client';
+import { Search, Plus, Edit2, Trash2, Check, XCircle, MapPin, Globe, Building2, ExternalLink, Map } from 'lucide-react';
+import { Card, PrimaryButton, SecondaryButton } from '../components/ui';
+import AdminNav from '../components/AdminNav';
+import ConfirmDialog from '../components/ConfirmDialog';
+import { useToast } from '../contexts/ToastContext';
+
+interface Gym {
+  id: number;
+  name: string;
+  city?: string;
+  state?: string;
+  country: string;
+  address?: string;
+  website?: string;
+  email?: string;
+  phone?: string;
+  head_coach?: string;
+  head_coach_belt?: string;
+  google_maps_url?: string;
+  verified: boolean;
+  added_by_user_id?: number;
+  created_at: string;
+  updated_at: string;
+  // From pending gyms query (user info)
+  first_name?: string;
+  last_name?: string;
+}
+
+export default function AdminGyms() {
+  const toast = useToast();
+  const [gyms, setGyms] = useState<Gym[]>([]);
+  const [pendingGyms, setPendingGyms] = useState<Gym[]>([]);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [showAddForm, setShowAddForm] = useState(false);
+  const [editingGym, setEditingGym] = useState<Gym | null>(null);
+  const [activeTab, setActiveTab] = useState<'all' | 'pending'>('all');
+  const [confirmDelete, setConfirmDelete] = useState<{ id: number; name: string } | null>(null);
+
+  // Form state
+  const [formData, setFormData] = useState({
+    name: '',
+    city: '',
+    state: '',
+    country: 'Australia',
+    address: '',
+    website: '',
+    email: '',
+    phone: '',
+    head_coach: '',
+    head_coach_belt: '',
+    google_maps_url: '',
+    verified: false,
+  });
+
+  useEffect(() => {
+    loadGyms();
+    loadPendingGyms();
+  }, []);
+
+  useEffect(() => {
+    if (searchQuery.length >= 2) {
+      searchGyms();
+    } else if (searchQuery.length === 0) {
+      loadGyms();
+    }
+  }, [searchQuery]);
+
+  const loadGyms = async () => {
+    setLoading(true);
+    try {
+      const response = await adminApi.listGyms(false);
+      setGyms(response.data.gyms || []);
+    } catch (error) {
+      toast.error('Failed to load gyms. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const loadPendingGyms = async () => {
+    try {
+      const response = await adminApi.getPendingGyms();
+      setPendingGyms(response.data.pending_gyms || []);
+    } catch (error) {
+      toast.error('Failed to load pending gyms. Please try again.');
+    }
+  };
+
+  const searchGyms = async () => {
+    try {
+      const response = await adminApi.searchGyms(searchQuery, false);
+      setGyms(response.data.gyms || []);
+    } catch (error) {
+      toast.error('Failed to search gyms. Please try again.');
+    }
+  };
+
+  const handleCreate = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      await adminApi.createGym(formData);
+      setShowAddForm(false);
+      setFormData({ name: '', city: '', state: '', country: 'Australia', address: '', website: '', email: '', phone: '', head_coach: '', head_coach_belt: '', google_maps_url: '', verified: false });
+      toast.success(`Gym "${formData.name}" created successfully!`);
+      loadGyms();
+      loadPendingGyms();
+    } catch (error) {
+      toast.error('Failed to create gym. Please try again.');
+    }
+  };
+
+  const handleUpdate = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingGym) return;
+    try {
+      await adminApi.updateGym(editingGym.id, formData);
+      setEditingGym(null);
+      setFormData({ name: '', city: '', state: '', country: 'Australia', address: '', website: '', email: '', phone: '', head_coach: '', head_coach_belt: '', google_maps_url: '', verified: false });
+      toast.success(`Gym "${formData.name}" updated successfully!`);
+      loadGyms();
+      loadPendingGyms();
+    } catch (error) {
+      toast.error('Failed to update gym. Please try again.');
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!confirmDelete) return;
+    try {
+      await adminApi.deleteGym(confirmDelete.id);
+      toast.success(`Gym "${confirmDelete.name}" deleted successfully!`);
+      setConfirmDelete(null);
+      loadGyms();
+      loadPendingGyms();
+    } catch (error) {
+      toast.error('Failed to delete gym. Please try again.');
+      setConfirmDelete(null);
+    }
+  };
+
+  const handleVerify = async (gym: Gym) => {
+    try {
+      await adminApi.verifyGym(gym.id);
+      toast.success(`Gym "${gym.name}" verified successfully!`);
+      loadGyms();
+      loadPendingGyms();
+    } catch (error) {
+      toast.error('Failed to verify gym. Please try again.');
+    }
+  };
+
+  const handleReject = async (gym: Gym) => {
+    const reason = prompt(`Reason for rejecting "${gym.name}"?`);
+    if (reason === null) return; // User cancelled
+
+    try {
+      await adminApi.rejectGym(gym.id, reason || undefined);
+      toast.success(`Gym "${gym.name}" rejected`);
+      loadGyms();
+      loadPendingGyms();
+    } catch (error) {
+      toast.error('Failed to reject gym. Please try again.');
+    }
+  };
+
+  const startEdit = (gym: Gym) => {
+    setEditingGym(gym);
+    setFormData({
+      name: gym.name,
+      city: gym.city || '',
+      state: gym.state || '',
+      country: gym.country,
+      address: gym.address || '',
+      website: gym.website || '',
+      email: gym.email || '',
+      phone: gym.phone || '',
+      head_coach: gym.head_coach || '',
+      head_coach_belt: gym.head_coach_belt || '',
+      google_maps_url: gym.google_maps_url || '',
+      verified: gym.verified,
+    });
+    setShowAddForm(false);
+  };
+
+  const cancelEdit = () => {
+    setEditingGym(null);
+    setShowAddForm(false);
+    setFormData({ name: '', city: '', state: '', country: 'Australia', address: '', website: '', email: '', phone: '', head_coach: '', head_coach_belt: '', google_maps_url: '', verified: false });
+  };
+
+  const displayGyms = activeTab === 'pending' ? pendingGyms : gyms;
+
+  return (
+    <div className="space-y-6">
+      <AdminNav />
+
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-semibold" style={{ color: 'var(--text)' }}>
+            Gym Management
+          </h1>
+          <p className="text-sm mt-1" style={{ color: 'var(--muted)' }}>
+            Manage gym database and verify user-added gyms
+          </p>
+        </div>
+        <PrimaryButton onClick={() => { setShowAddForm(true); setEditingGym(null); }} className="flex items-center gap-2">
+          <Plus className="w-4 h-4" />
+          Add Gym
+        </PrimaryButton>
+      </div>
+
+      {/* Tabs */}
+      <div className="flex gap-2" style={{ borderBottom: '1px solid var(--border)' }}>
+        <button
+          onClick={() => setActiveTab('all')}
+          className="px-4 py-2 text-sm font-medium transition-colors"
+          style={{
+            color: activeTab === 'all' ? 'var(--primary)' : 'var(--muted)',
+            borderBottom: activeTab === 'all' ? '2px solid var(--primary)' : '2px solid transparent',
+          }}
+        >
+          All Gyms ({gyms.length})
+        </button>
+        <button
+          onClick={() => setActiveTab('pending')}
+          className="px-4 py-2 text-sm font-medium transition-colors"
+          style={{
+            color: activeTab === 'pending' ? 'var(--primary)' : 'var(--muted)',
+            borderBottom: activeTab === 'pending' ? '2px solid var(--primary)' : '2px solid transparent',
+          }}
+        >
+          Pending Verification ({pendingGyms.length})
+        </button>
+      </div>
+
+      {/* Search */}
+      {activeTab === 'all' && (
+        <Card>
+          <div className="flex items-center gap-3">
+            <Search className="w-5 h-5" style={{ color: 'var(--muted)' }} />
+            <input
+              type="text"
+              placeholder="Search gyms by name or location..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="input flex-1"
+            />
+          </div>
+        </Card>
+      )}
+
+      {/* Add/Edit Form */}
+      {(showAddForm || editingGym) && (
+        <Card>
+          <form onSubmit={editingGym ? handleUpdate : handleCreate} className="space-y-4">
+            <h3 className="text-lg font-semibold" style={{ color: 'var(--text)' }}>
+              {editingGym ? 'Edit Gym' : 'Add New Gym'}
+            </h3>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium mb-1" style={{ color: 'var(--text)' }}>
+                  Name *
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={formData.name}
+                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                  className="input w-full"
+                  placeholder="Gym name"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium mb-1" style={{ color: 'var(--text)' }}>
+                  City
+                </label>
+                <input
+                  type="text"
+                  value={formData.city}
+                  onChange={(e) => setFormData({ ...formData, city: e.target.value })}
+                  className="input w-full"
+                  placeholder="City"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium mb-1" style={{ color: 'var(--text)' }}>
+                  State
+                </label>
+                <input
+                  type="text"
+                  value={formData.state}
+                  onChange={(e) => setFormData({ ...formData, state: e.target.value })}
+                  className="input w-full"
+                  placeholder="State"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium mb-1" style={{ color: 'var(--text)' }}>
+                  Country
+                </label>
+                <input
+                  type="text"
+                  value={formData.country}
+                  onChange={(e) => setFormData({ ...formData, country: e.target.value })}
+                  className="input w-full"
+                  placeholder="Country"
+                />
+              </div>
+
+              <div className="md:col-span-2">
+                <label className="block text-sm font-medium mb-1" style={{ color: 'var(--text)' }}>
+                  Address
+                </label>
+                <input
+                  type="text"
+                  value={formData.address}
+                  onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+                  className="input w-full"
+                  placeholder="Full address"
+                />
+              </div>
+
+              <div className="md:col-span-2">
+                <label className="block text-sm font-medium mb-1" style={{ color: 'var(--text)' }}>
+                  Website
+                </label>
+                <input
+                  type="url"
+                  value={formData.website}
+                  onChange={(e) => setFormData({ ...formData, website: e.target.value })}
+                  className="input w-full"
+                  placeholder="https://..."
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium mb-1" style={{ color: 'var(--text)' }}>
+                  Email
+                </label>
+                <input
+                  type="email"
+                  value={formData.email}
+                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                  className="input w-full"
+                  placeholder="contact@gym.com"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium mb-1" style={{ color: 'var(--text)' }}>
+                  Phone
+                </label>
+                <input
+                  type="tel"
+                  value={formData.phone}
+                  onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                  className="input w-full"
+                  placeholder="+1 (555) 123-4567"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium mb-1" style={{ color: 'var(--text)' }}>
+                  Head Coach
+                </label>
+                <input
+                  type="text"
+                  value={formData.head_coach}
+                  onChange={(e) => setFormData({ ...formData, head_coach: e.target.value })}
+                  className="input w-full"
+                  placeholder="Coach name"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium mb-1" style={{ color: 'var(--text)' }}>
+                  Head Coach Belt
+                </label>
+                <select
+                  value={formData.head_coach_belt}
+                  onChange={(e) => setFormData({ ...formData, head_coach_belt: e.target.value })}
+                  className="input w-full"
+                >
+                  <option value="">Select belt...</option>
+                  <option value="white">White Belt</option>
+                  <option value="blue">Blue Belt</option>
+                  <option value="purple">Purple Belt</option>
+                  <option value="brown">Brown Belt</option>
+                  <option value="black">Black Belt</option>
+                </select>
+              </div>
+
+              <div className="md:col-span-2">
+                <label className="block text-sm font-medium mb-1" style={{ color: 'var(--text)' }}>
+                  Google Maps URL
+                </label>
+                <input
+                  type="url"
+                  value={formData.google_maps_url}
+                  onChange={(e) => setFormData({ ...formData, google_maps_url: e.target.value })}
+                  className="input w-full"
+                  placeholder="https://maps.google.com/..."
+                />
+              </div>
+
+              <div className="md:col-span-2">
+                <label className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    checked={formData.verified}
+                    onChange={(e) => setFormData({ ...formData, verified: e.target.checked })}
+                    className="rounded"
+                  />
+                  <span className="text-sm" style={{ color: 'var(--text)' }}>
+                    Verified gym
+                  </span>
+                </label>
+              </div>
+            </div>
+
+            <div className="flex gap-2">
+              <PrimaryButton type="submit">
+                {editingGym ? 'Update' : 'Create'}
+              </PrimaryButton>
+              <SecondaryButton type="button" onClick={cancelEdit}>
+                Cancel
+              </SecondaryButton>
+            </div>
+          </form>
+        </Card>
+      )}
+
+      {/* Gyms List */}
+      {loading ? (
+        <div className="text-center py-12">Loading...</div>
+      ) : displayGyms.length === 0 ? (
+        <Card>
+          <div className="text-center py-12">
+            <Building2 className="w-12 h-12 mx-auto mb-4" style={{ color: 'var(--muted)' }} />
+            <h3 className="text-lg font-semibold mb-2" style={{ color: 'var(--text)' }}>
+              No Gyms Found
+            </h3>
+            <p className="text-sm" style={{ color: 'var(--muted)' }}>
+              {activeTab === 'pending' ? 'No pending gyms to verify' : 'Start by adding a gym'}
+            </p>
+          </div>
+        </Card>
+      ) : (
+        <div className="space-y-3">
+          {displayGyms.map((gym) => (
+            <Card key={gym.id}>
+              <div className="flex items-start justify-between">
+                <div className="flex-1">
+                  <div className="flex items-center gap-2 mb-1">
+                    <h3 className="font-semibold" style={{ color: 'var(--text)' }}>
+                      {gym.name}
+                    </h3>
+                    {gym.verified && (
+                      <span
+                        className="px-2 py-0.5 text-xs rounded-full"
+                        style={{ backgroundColor: 'var(--success-bg)', color: 'var(--success)' }}
+                      >
+                        Verified
+                      </span>
+                    )}
+                    {!gym.verified && (
+                      <span
+                        className="px-2 py-0.5 text-xs rounded-full"
+                        style={{ backgroundColor: 'var(--warning-bg)', color: 'var(--warning)' }}
+                      >
+                        Pending
+                      </span>
+                    )}
+                  </div>
+
+                  <div className="space-y-1">
+                    {(gym.city || gym.state || gym.country) && (
+                      <div className="flex items-center gap-1 text-sm" style={{ color: 'var(--muted)' }}>
+                        <MapPin className="w-4 h-4" />
+                        <span>
+                          {[gym.city, gym.state, gym.country].filter(Boolean).join(', ')}
+                        </span>
+                      </div>
+                    )}
+
+                    {gym.website && (
+                      <div className="flex items-center gap-1 text-sm" style={{ color: 'var(--muted)' }}>
+                        <Globe className="w-4 h-4" />
+                        <a
+                          href={gym.website}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="hover:underline"
+                          style={{ color: 'var(--primary)' }}
+                        >
+                          {gym.website}
+                        </a>
+                      </div>
+                    )}
+
+                    {gym.google_maps_url && (
+                      <div className="flex items-center gap-1 text-sm" style={{ color: 'var(--muted)' }}>
+                        <Map className="w-4 h-4" />
+                        <a
+                          href={gym.google_maps_url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="hover:underline flex items-center gap-1"
+                          style={{ color: 'var(--primary)' }}
+                        >
+                          View on Google Maps
+                          <ExternalLink className="w-3 h-3" />
+                        </a>
+                      </div>
+                    )}
+
+                    {gym.head_coach && (
+                      <div className="text-sm" style={{ color: 'var(--muted)' }}>
+                        Head Coach: {gym.head_coach}
+                        {gym.head_coach_belt && (
+                          <span className="ml-2 px-2 py-0.5 text-xs rounded-full capitalize" style={{ backgroundColor: 'var(--surfaceElev)', color: 'var(--text)' }}>
+                            {gym.head_coach_belt} belt
+                          </span>
+                        )}
+                      </div>
+                    )}
+
+                    {gym.first_name && gym.last_name && (
+                      <div className="text-xs mt-2" style={{ color: 'var(--muted)' }}>
+                        Added by: {gym.first_name} {gym.last_name} ({gym.email})
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                <div className="flex gap-2">
+                  {!gym.verified && (
+                    <>
+                      <button
+                        onClick={() => handleVerify(gym)}
+                        className="p-2 rounded-lg hover:bg-green-500/10 transition-colors"
+                        title="Verify gym"
+                      >
+                        <Check className="w-4 h-4" style={{ color: 'var(--success)' }} />
+                      </button>
+                      <button
+                        onClick={() => handleReject(gym)}
+                        className="p-2 rounded-lg hover:bg-red-500/10 transition-colors"
+                        title="Reject gym"
+                      >
+                        <XCircle className="w-4 h-4" style={{ color: 'var(--danger)' }} />
+                      </button>
+                    </>
+                  )}
+                  <button
+                    onClick={() => startEdit(gym)}
+                    className="p-2 rounded-lg hover:bg-blue-500/10 transition-colors"
+                    title="Edit gym"
+                  >
+                    <Edit2 className="w-4 h-4" style={{ color: 'var(--primary)' }} />
+                  </button>
+                  <button
+                    onClick={() => setConfirmDelete({ id: gym.id, name: gym.name })}
+                    className="p-2 rounded-lg hover:bg-red-500/10 transition-colors"
+                    title="Delete gym"
+                    aria-label={`Delete ${gym.name}`}
+                  >
+                    <Trash2 className="w-4 h-4" style={{ color: 'var(--danger)' }} />
+                  </button>
+                </div>
+              </div>
+            </Card>
+          ))}
+        </div>
+      )}
+
+      {/* Confirm Delete Dialog */}
+      <ConfirmDialog
+        isOpen={!!confirmDelete}
+        onClose={() => setConfirmDelete(null)}
+        onConfirm={handleDelete}
+        title="Delete Gym"
+        message={`Are you sure you want to delete "${confirmDelete?.name}"? This action cannot be undone.`}
+        confirmText="Delete"
+        cancelText="Cancel"
+        variant="danger"
+      />
+    </div>
+  );
+}
