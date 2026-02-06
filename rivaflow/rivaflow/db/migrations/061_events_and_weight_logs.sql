@@ -20,7 +20,7 @@ CREATE TABLE IF NOT EXISTS weight_logs (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     user_id INTEGER NOT NULL,
     weight REAL NOT NULL,
-    logged_date TEXT NOT NULL DEFAULT (date('now')),
+    logged_date TEXT NOT NULL DEFAULT CURRENT_DATE,
     time_of_day TEXT,
     notes TEXT,
     created_at TEXT DEFAULT CURRENT_TIMESTAMP,

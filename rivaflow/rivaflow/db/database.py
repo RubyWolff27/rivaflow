@@ -351,6 +351,14 @@ def _convert_sqlite_to_postgresql(sql: str) -> str:
         flags=re.IGNORECASE,
     )
 
+    # Replace date('now') with CURRENT_DATE (SQLite date function)
+    sql = re.sub(
+        r"date\s*\(\s*['\"]now['\"]\s*\)",
+        "CURRENT_DATE",
+        sql,
+        flags=re.IGNORECASE,
+    )
+
     # Replace BOOLEAN DEFAULT 1/0 with TRUE/FALSE (handles NOT NULL case too)
     sql = re.sub(
         r"\bBOOLEAN\s+NOT\s+NULL\s+DEFAULT\s+1\b",
