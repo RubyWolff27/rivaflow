@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { Sparkles, Send, Trash2, MessageCircle, AlertCircle, ThumbsUp, ThumbsDown } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
+import ConfirmDialog from '../components/ConfirmDialog';
 import axios from 'axios';
 
 interface Message {
@@ -41,6 +42,7 @@ export default function Grapple() {
   const [loading, setLoading] = useState(false);
   const [tierInfo, setTierInfo] = useState<TierInfo | null>(null);
   const [rateLimit, setRateLimit] = useState<{ remaining: number; limit: number } | null>(null);
+  const [deleteSessionConfirmId, setDeleteSessionConfirmId] = useState<string | null>(null);
 
   useEffect(() => {
     loadTierInfo();
@@ -173,8 +175,6 @@ export default function Grapple() {
   };
 
   const deleteSession = async (sessionId: string) => {
-    if (!confirm('Delete this chat session?')) return;
-
     try {
       const token = localStorage.getItem('access_token');
       await axios.delete(`${getApiBase()}/grapple/sessions/${sessionId}`, {
@@ -182,6 +182,7 @@ export default function Grapple() {
       });
 
       toast.success('Session deleted');
+      setDeleteSessionConfirmId(null);
       loadSessions();
 
       if (currentSessionId === sessionId) {
@@ -269,7 +270,7 @@ export default function Grapple() {
               <button
                 onClick={(e) => {
                   e.stopPropagation();
-                  deleteSession(session.id);
+                  setDeleteSessionConfirmId(session.id);
                 }}
                 className="opacity-0 group-hover:opacity-100 p-1 hover:bg-red-100 dark:hover:bg-red-900/20 rounded"
               >
@@ -390,6 +391,16 @@ export default function Grapple() {
           </button>
         </div>
       </div>
+
+      <ConfirmDialog
+        isOpen={deleteSessionConfirmId !== null}
+        onClose={() => setDeleteSessionConfirmId(null)}
+        onConfirm={() => deleteSessionConfirmId && deleteSession(deleteSessionConfirmId)}
+        title="Delete Chat Session"
+        message="Are you sure you want to delete this chat session? All messages will be lost."
+        confirmText="Delete"
+        variant="danger"
+      />
     </div>
   );
 }

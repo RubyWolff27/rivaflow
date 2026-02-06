@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Plus, Activity } from 'lucide-react';
-import { Card, PrimaryButton, SecondaryButton } from '../components/ui';
+import { Card, PrimaryButton, SecondaryButton, CardSkeleton } from '../components/ui';
 import { WeekAtGlance } from '../components/dashboard/WeekAtGlance';
 import { LastSession } from '../components/dashboard/LastSession';
 import { JourneyProgress } from '../components/dashboard/JourneyProgress';
@@ -52,7 +52,15 @@ export default function Dashboard() {
   };
 
   if (loading) {
-    return <div className="text-center py-12">Loading...</div>;
+    return (
+      <div className="space-y-4">
+        <CardSkeleton lines={2} />
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          <CardSkeleton lines={4} />
+          <CardSkeleton lines={4} />
+        </div>
+      </div>
+    );
   }
 
   return (

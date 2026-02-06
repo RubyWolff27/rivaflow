@@ -4,6 +4,7 @@ import { restApi } from '../api/client';
 import { ArrowLeft, Calendar, Moon, Edit2, Camera } from 'lucide-react';
 import PhotoGallery from '../components/PhotoGallery';
 import PhotoUpload from '../components/PhotoUpload';
+import { useToast } from '../contexts/ToastContext';
 
 interface RestDay {
   id: number;
@@ -17,6 +18,7 @@ interface RestDay {
 export default function RestDetail() {
   const { date } = useParams<{ date: string }>();
   const navigate = useNavigate();
+  const toast = useToast();
   const [restDay, setRestDay] = useState<RestDay | null>(null);
   const [loading, setLoading] = useState(true);
   const [photoCount, setPhotoCount] = useState(0);
@@ -38,7 +40,7 @@ export default function RestDetail() {
       }
     } catch (error) {
       console.error('Error loading rest day:', error);
-      alert('Failed to load rest day');
+      toast.showToast('error', 'Failed to load rest day');
       navigate('/feed');
     } finally {
       setLoading(false);

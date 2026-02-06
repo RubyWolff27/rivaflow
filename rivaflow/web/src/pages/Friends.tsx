@@ -4,6 +4,7 @@ import type { Friend } from '../types';
 import { Users, Plus, Edit2, Trash2, Award, Filter } from 'lucide-react';
 import ConfirmDialog from '../components/ConfirmDialog';
 import { useToast } from '../contexts/ToastContext';
+import { CardSkeleton } from '../components/ui';
 
 const BELT_COLORS: Record<string, string> = {
   white: 'bg-gray-100 text-gray-800 border-gray-300',
@@ -171,7 +172,13 @@ export default function Friends() {
   };
 
   if (loading) {
-    return <div className="text-center py-12">Loading contacts...</div>;
+    return (
+      <div className="space-y-4">
+        {[1, 2, 3].map((i) => (
+          <CardSkeleton key={i} lines={2} />
+        ))}
+      </div>
+    );
   }
 
   return (

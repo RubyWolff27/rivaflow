@@ -2,6 +2,8 @@ import { useState, useEffect, useCallback } from 'react';
 import { Calendar, MapPin, Trophy, Scale, Plus, Edit2, Trash2, ChevronDown, ChevronUp, Clock } from 'lucide-react';
 import { eventsApi, weightLogsApi } from '../api/client';
 import type { CompEvent, WeightLog } from '../types';
+import { useToast } from '../contexts/ToastContext';
+import ConfirmDialog from '../components/ConfirmDialog';
 
 /* ------------------------------------------------------------------ */
 /*  Helpers                                                            */
@@ -336,6 +338,8 @@ export default function Events() {
   const [showForm, setShowForm] = useState(false);
   const [editingEvent, setEditingEvent] = useState<CompEvent | null>(null);
   const [showPast, setShowPast] = useState(false);
+  const [deleteConfirmId, setDeleteConfirmId] = useState<number | null>(null);
+  const toast = useToast();
 
   const fetchAll = useCallback(async () => {
     try {
@@ -372,9 +376,14 @@ export default function Events() {
   };
 
   const handleDelete = async (id: number) => {
-    if (!confirm('Delete this event?')) return;
-    await eventsApi.delete(id);
-    fetchAll();
+    try {
+      await eventsApi.delete(id);
+      setDeleteConfirmId(null);
+      fetchAll();
+    } catch (err) {
+      console.error('Failed to delete event', err);
+      toast.showToast('error', 'Failed to delete event');
+    }
   };
 
   const upcoming = events.filter(
@@ -612,7 +621,7 @@ export default function Events() {
                       <Edit2 className="w-4 h-4" />
                     </button>
                     <button
-                      onClick={() => handleDelete(ev.id)}
+                      onClick={() => setDeleteConfirmId(ev.id)}
                       className="p-2 rounded-lg transition-colors"
                       style={{ color: 'var(--muted)' }}
                       aria-label="Delete event"
@@ -694,7 +703,7 @@ export default function Events() {
                       <Edit2 className="w-4 h-4" />
                     </button>
                     <button
-                      onClick={() => handleDelete(ev.id)}
+                      onClick={() => setDeleteConfirmId(ev.id)}
                       className="p-2 rounded-lg transition-colors"
                       style={{ color: 'var(--muted)' }}
                       aria-label="Delete event"
@@ -708,6 +717,16 @@ export default function Events() {
           )}
         </div>
       )}
+
+      <ConfirmDialog
+        isOpen={deleteConfirmId !== null}
+        onClose={() => setDeleteConfirmId(null)}
+        onConfirm={() => deleteConfirmId && handleDelete(deleteConfirmId)}
+        title="Delete Event"
+        message="Are you sure you want to delete this event? This action cannot be undone."
+        confirmText="Delete"
+        variant="danger"
+      />
     </div>
   );
 }

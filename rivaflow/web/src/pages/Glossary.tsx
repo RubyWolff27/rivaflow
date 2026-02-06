@@ -5,6 +5,7 @@ import type { Movement } from '../types';
 import { Book, Search, Plus, Trash2, Award } from 'lucide-react';
 import ConfirmDialog from '../components/ConfirmDialog';
 import { useToast } from '../contexts/ToastContext';
+import { CardSkeleton } from '../components/ui';
 
 const CATEGORY_LABELS: Record<string, string> = {
   position: 'Positions',
@@ -166,7 +167,13 @@ export default function Glossary() {
   const categoryStats = getCategoryStats();
 
   if (loading) {
-    return <div className="text-center py-12">Loading glossary...</div>;
+    return (
+      <div className="space-y-4">
+        {[1, 2, 3].map((i) => (
+          <CardSkeleton key={i} lines={2} />
+        ))}
+      </div>
+    );
   }
 
   return (

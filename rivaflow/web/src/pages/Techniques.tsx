@@ -2,6 +2,7 @@ import { useState, useEffect, memo, useCallback } from 'react';
 import { techniquesApi } from '../api/client';
 import type { Technique } from '../types';
 import { Book, AlertCircle } from 'lucide-react';
+import { CardSkeleton } from '../components/ui';
 
 // Memoized technique row component
 const TechniqueRow = memo(function TechniqueRow({ tech }: { tech: Technique }) {
@@ -65,7 +66,13 @@ export default function Techniques() {
   }, [newTechnique]);
 
   if (loading) {
-    return <div className="text-center py-12">Loading...</div>;
+    return (
+      <div className="space-y-4">
+        {[1, 2, 3].map((i) => (
+          <CardSkeleton key={i} lines={2} />
+        ))}
+      </div>
+    );
   }
 
   return (

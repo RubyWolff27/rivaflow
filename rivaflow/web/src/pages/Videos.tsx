@@ -2,6 +2,9 @@ import { useState, useEffect } from 'react';
 import { videosApi, techniquesApi } from '../api/client';
 import type { Video, Technique } from '../types';
 import { Video as VideoIcon, ExternalLink, Plus, X } from 'lucide-react';
+import { useToast } from '../contexts/ToastContext';
+import ConfirmDialog from '../components/ConfirmDialog';
+import { CardSkeleton } from '../components/ui';
 
 interface VideoForm {
   url: string;
@@ -11,11 +14,13 @@ interface VideoForm {
 }
 
 export default function Videos() {
+  const toast = useToast();
   const [videos, setVideos] = useState<Video[]>([]);
   const [techniques, setTechniques] = useState<Technique[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [deleteConfirmId, setDeleteConfirmId] = useState<number | null>(null);
   const [formData, setFormData] = useState<VideoForm>({
     url: '',
     title: '',
@@ -62,21 +67,20 @@ export default function Videos() {
       await loadData();
     } catch (error) {
       console.error('Error adding video:', error);
-      alert('Failed to add video. Please try again.');
+      toast.showToast('error', 'Failed to add video. Please try again.');
     } finally {
       setSubmitting(false);
     }
   };
 
   const handleDeleteVideo = async (id: number) => {
-    if (!confirm('Are you sure you want to delete this video?')) return;
-
     try {
       await videosApi.delete(id);
+      setDeleteConfirmId(null);
       await loadData();
     } catch (error) {
       console.error('Error deleting video:', error);
-      alert('Failed to delete video. Please try again.');
+      toast.showToast('error', 'Failed to delete video. Please try again.');
     }
   };
 
@@ -101,7 +105,13 @@ export default function Videos() {
   };
 
   if (loading) {
-    return <div className="text-center py-12">Loading...</div>;
+    return (
+      <div className="space-y-4">
+        {[1, 2].map((i) => (
+          <CardSkeleton key={i} lines={3} />
+        ))}
+      </div>
+    );
   }
 
   return (
@@ -275,7 +285,7 @@ export default function Videos() {
                     <ExternalLink className="w-5 h-5" />
                   </a>
                   <button
-                    onClick={() => handleDeleteVideo(video.id)}
+                    onClick={() => setDeleteConfirmId(video.id)}
                     className="text-red-500 hover:text-red-700"
                   >
                     <X className="w-5 h-5" />
@@ -311,6 +321,16 @@ export default function Videos() {
           ))}
         </div>
       )}
+
+      <ConfirmDialog
+        isOpen={deleteConfirmId !== null}
+        onClose={() => setDeleteConfirmId(null)}
+        onConfirm={() => deleteConfirmId && handleDeleteVideo(deleteConfirmId)}
+        title="Delete Video"
+        message="Are you sure you want to delete this video? This action cannot be undone."
+        confirmText="Delete"
+        variant="danger"
+      />
     </div>
   );
 }

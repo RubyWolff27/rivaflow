@@ -4,6 +4,7 @@ import { sessionsApi, readinessApi, profileApi, friendsApi, glossaryApi, restApi
 import type { Friend, Movement, MediaUrl } from '../types';
 import { CheckCircle, ArrowRight, ArrowLeft, Plus, X, ToggleLeft, ToggleRight, Search, Camera, ChevronDown, ChevronUp, Swords, Shield, Minus } from 'lucide-react';
 import GymSelector from '../components/GymSelector';
+import { useToast } from '../contexts/ToastContext';
 
 const CLASS_TYPES = ['gi', 'no-gi', 'wrestling', 'judo', 'open-mat', 'mma', 's&c', 'mobility', 'yoga', 'rehab', 'physio', 'drilling', 'cardio', 'recovery', 'other'];
 const SPARRING_TYPES = ['gi', 'no-gi', 'mma', 'judo', 'wrestling', 'open-mat'];
@@ -28,6 +29,7 @@ interface TechniqueEntry {
 
 export default function LogSession() {
   const navigate = useNavigate();
+  const toast = useToast();
   const [activityType, setActivityType] = useState<'training' | 'rest'>('training');
   const [step, setStep] = useState(1); // 1 = Readiness, 2 = Session (or Rest form if rest selected)
   const [loading, setLoading] = useState(false);
@@ -397,7 +399,7 @@ export default function LogSession() {
       }
     } catch (error) {
       console.error('Error creating session:', error);
-      alert('Failed to log session. Please try again.');
+      toast.showToast('error', 'Failed to log session. Please try again.');
     } finally {
       setLoading(false);
     }

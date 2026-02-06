@@ -5,6 +5,7 @@ import { Activity, Calendar, Heart, Moon, Zap, Edit2, Eye } from 'lucide-react';
 import FeedToggle from '../components/FeedToggle';
 import ActivitySocialActions from '../components/ActivitySocialActions';
 import CommentSection from '../components/CommentSection';
+import { CardSkeleton } from '../components/ui';
 import { useAuth } from '../contexts/AuthContext';
 import type { FeedItem } from '../types';
 
@@ -442,7 +443,13 @@ export default function Feed() {
   }, [view]);
 
   if (loading) {
-    return <div className="text-center py-12">Loading activity...</div>;
+    return (
+      <div className="space-y-4">
+        {[1, 2, 3].map((i) => (
+          <CardSkeleton key={i} lines={4} />
+        ))}
+      </div>
+    );
   }
 
   return (

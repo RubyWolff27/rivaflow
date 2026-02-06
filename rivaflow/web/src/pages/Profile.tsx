@@ -6,6 +6,7 @@ import GymSelector from '../components/GymSelector';
 import ConfirmDialog from '../components/ConfirmDialog';
 import { useToast } from '../contexts/ToastContext';
 import { useTier } from '../hooks/useTier';
+import { CardSkeleton } from '../components/ui';
 
 const BELT_GRADES = [
   'White',
@@ -497,7 +498,12 @@ export default function Profile() {
   };
 
   if (loading) {
-    return <div className="text-center py-12">Loading...</div>;
+    return (
+      <div className="space-y-4">
+        <CardSkeleton lines={3} />
+        <CardSkeleton lines={5} />
+      </div>
+    );
   }
 
   return (

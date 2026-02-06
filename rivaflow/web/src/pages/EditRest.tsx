@@ -4,6 +4,7 @@ import { restApi } from '../api/client';
 import { ArrowLeft, Save, Camera } from 'lucide-react';
 import PhotoGallery from '../components/PhotoGallery';
 import PhotoUpload from '../components/PhotoUpload';
+import { useToast } from '../contexts/ToastContext';
 
 interface RestDay {
   id: number;
@@ -24,6 +25,7 @@ const REST_TYPES = [
 export default function EditRest() {
   const { date } = useParams<{ date: string }>();
   const navigate = useNavigate();
+  const toast = useToast();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [restId, setRestId] = useState<number | null>(null);
@@ -59,7 +61,7 @@ export default function EditRest() {
       }
     } catch (error) {
       console.error('Error loading rest day:', error);
-      alert('Failed to load rest day');
+      toast.showToast('error', 'Failed to load rest day');
       navigate('/feed');
     } finally {
       setLoading(false);
@@ -78,11 +80,11 @@ export default function EditRest() {
         tomorrow_intention: formData.tomorrow_intention || undefined,
       });
 
-      alert('Rest day updated successfully!');
+      toast.showToast('success', 'Rest day updated!');
       navigate('/feed');
     } catch (error) {
       console.error('Error updating rest day:', error);
-      alert('Failed to update rest day');
+      toast.showToast('error', 'Failed to update rest day');
     } finally {
       setSaving(false);
     }
