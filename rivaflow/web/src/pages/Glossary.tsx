@@ -70,7 +70,8 @@ export default function Glossary() {
         glossaryApi.list(),
         glossaryApi.getCategories(),
       ]);
-      setMovements(movementsRes.data);
+      const movementsData = movementsRes.data as any;
+      setMovements(Array.isArray(movementsData) ? movementsData : movementsData.movements || []);
       setCategories(categoriesRes.data.categories);
     } catch (error) {
       console.error('Error loading glossary:', error);
@@ -94,7 +95,7 @@ export default function Glossary() {
         m.name.toLowerCase().includes(query) ||
         m.description?.toLowerCase().includes(query) ||
         m.subcategory?.toLowerCase().includes(query) ||
-        m.aliases.some(alias => alias.toLowerCase().includes(query))
+        (m.aliases || []).some(alias => alias.toLowerCase().includes(query))
       );
     }
 
@@ -418,9 +419,9 @@ export default function Glossary() {
               )}
             </div>
 
-            {movement.aliases.length > 0 && (
+            {(movement.aliases || []).length > 0 && (
               <div className="text-xs text-gray-500 dark:text-gray-400">
-                <span className="font-medium">Also known as:</span> {movement.aliases.join(', ')}
+                <span className="font-medium">Also known as:</span> {(movement.aliases || []).join(', ')}
               </div>
             )}
           </div>
