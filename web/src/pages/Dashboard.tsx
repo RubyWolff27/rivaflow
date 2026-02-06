@@ -32,7 +32,7 @@ export default function Dashboard() {
       }
     } catch (error) {
       // Readiness not found for today is expected - user hasn't logged yet
-      console.error('Error loading readiness:', error);
+      // Silently handle 404 since it's normal behavior
     } finally {
       setLoading(false);
     }
