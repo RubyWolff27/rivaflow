@@ -198,10 +198,12 @@ app.include_router(dashboard.router, prefix="/api/v1")
 
 
 @app.get("/health")
+@app.head("/health")
 async def health():
     """
     Health check endpoint with database connectivity test.
 
+    Supports both GET and HEAD methods for monitoring services.
     Returns 200 if healthy, 503 if degraded/unhealthy.
     """
     from rivaflow.db.database import get_connection

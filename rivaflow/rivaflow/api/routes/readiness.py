@@ -3,6 +3,7 @@
 from datetime import date
 
 from fastapi import APIRouter, Depends
+from fastapi.responses import JSONResponse
 
 from rivaflow.core.dependencies import get_current_user
 from rivaflow.core.exceptions import NotFoundError, ValidationError
@@ -50,7 +51,11 @@ async def get_readiness(
     """Get readiness for a specific date."""
     entry = service.get_readiness(user_id=current_user["id"], check_date=check_date)
     if not entry:
-        raise NotFoundError("Readiness entry not found")
+        # Return 404 without raising exception to avoid error logging for expected behavior
+        return JSONResponse(
+            status_code=404,
+            content={"detail": "Readiness entry not found"}
+        )
     return entry
 
 
