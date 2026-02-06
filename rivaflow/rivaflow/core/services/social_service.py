@@ -373,7 +373,7 @@ class SocialService:
 
         # Get users already following
         following = UserRelationshipRepository.get_following(user_id)
-        following_ids = {f["id"] for f in following}
+        following_ids = {f["following_user_id"] for f in following}
 
         recommendations = []
 

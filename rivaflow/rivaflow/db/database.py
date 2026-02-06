@@ -462,6 +462,7 @@ def _apply_migrations(
         "060_fight_dynamics.sql",
         "061_events_and_weight_logs.sql",
         "062_groups.sql",
+        "063_social_connections.sql",
     ]
 
     migrations_dir = Path(__file__).parent / "migrations"

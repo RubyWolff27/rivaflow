@@ -146,7 +146,6 @@ class NotificationRepository:
                 n.is_read, n.created_at, n.read_at,
                 u.first_name as actor_first_name,
                 u.last_name as actor_last_name,
-                u.username as actor_username,
                 u.avatar_url as actor_avatar
             FROM notifications n
             JOIN users u ON n.actor_id = u.id
@@ -177,8 +176,7 @@ class NotificationRepository:
                     "actor": {
                         "first_name": row[11],
                         "last_name": row[12],
-                        "username": row[13],
-                        "avatar_url": row[14],
+                        "avatar_url": row[13],
                     },
                 }
                 for row in rows

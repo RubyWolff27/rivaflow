@@ -82,7 +82,7 @@ class UserService:
 
             # Check if current user is following this user
             is_following = self.social_repo.is_following(
-                follower_id=current_user_id, following_id=user_id
+                follower_user_id=current_user_id, following_user_id=user_id
             )
 
             # Get follower count
@@ -120,7 +120,7 @@ class UserService:
             return None
 
         # Get profile data
-        profile = self.profile_repo.get_by_user_id(user_id)
+        profile = self.profile_repo.get(user_id)
 
         # Get social stats
         followers = self.social_repo.get_followers(user_id=user_id)
@@ -130,12 +130,12 @@ class UserService:
 
         # Check if requesting user is following this user
         is_following = self.social_repo.is_following(
-            follower_id=requesting_user_id, following_id=user_id
+            follower_user_id=requesting_user_id, following_user_id=user_id
         )
 
         # Check if this user is following the requester (mutual follow)
         is_followed_by = self.social_repo.is_following(
-            follower_id=user_id, following_id=requesting_user_id
+            follower_user_id=user_id, following_user_id=requesting_user_id
         )
 
         # Build public profile

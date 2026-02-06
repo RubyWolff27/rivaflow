@@ -71,7 +71,7 @@ class VideoRepository:
             return [VideoRepository._row_to_dict(row) for row in cursor.fetchall()]
 
     @staticmethod
-    def search(query: str) -> list[dict]:
+    def search(user_id: int, query: str) -> list[dict]:
         """Search videos by title or URL (case-insensitive)."""
         with get_connection() as conn:
             cursor = conn.cursor()

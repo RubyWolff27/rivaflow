@@ -70,7 +70,7 @@ def update_tomorrow_intention(
     repo.update_tomorrow_intention(
         user_id=current_user["id"],
         check_date=today,
-        tomorrow_intention=data.tomorrow_intention,
+        intention=data.tomorrow_intention,
     )
 
     return {"success": True, "tomorrow_intention": data.tomorrow_intention}

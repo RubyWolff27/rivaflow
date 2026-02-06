@@ -254,19 +254,17 @@ class SocialConnectionRepository:
             cursor.execute(
                 convert_query("""
                     SELECT
-                        u.id, u.username, u.display_name, u.belt_rank, u.belt_stripes,
-                        u.profile_photo_url, u.primary_gym_id, u.location_city, u.location_state,
+                        u.id, u.first_name, u.last_name, u.email,
+                        u.avatar_url, u.display_name,
                         fc.created_at as friends_since, fc.connection_source
                     FROM friend_connections fc
                     JOIN users u ON (
-                        CASE
-                            WHEN fc.requester_id = ? THEN u.id = fc.recipient_id
-                            WHEN fc.recipient_id = ? THEN u.id = fc.requester_id
-                        END
+                        (fc.requester_id = ? AND u.id = fc.recipient_id)
+                        OR (fc.recipient_id = ? AND u.id = fc.requester_id)
                     )
                     WHERE fc.status = 'accepted'
                       AND (fc.requester_id = ? OR fc.recipient_id = ?)
-                    ORDER BY u.display_name
+                    ORDER BY u.first_name, u.last_name
                     LIMIT ? OFFSET ?
                 """),
                 (user_id, user_id, user_id, user_id, limit, offset),
@@ -285,10 +283,10 @@ class SocialConnectionRepository:
                 convert_query("""
                     SELECT
                         fc.*,
-                        u.username as requester_username,
-                        u.display_name as requester_display_name,
-                        u.belt_rank as requester_belt_rank,
-                        u.profile_photo_url as requester_photo_url
+                        u.first_name as requester_first_name,
+                        u.last_name as requester_last_name,
+                        u.email as requester_email,
+                        u.avatar_url as requester_avatar_url
                     FROM friend_connections fc
                     JOIN users u ON u.id = fc.requester_id
                     WHERE fc.recipient_id = ? AND fc.status = 'pending'
@@ -310,10 +308,10 @@ class SocialConnectionRepository:
                 convert_query("""
                     SELECT
                         fc.*,
-                        u.username as recipient_username,
-                        u.display_name as recipient_display_name,
-                        u.belt_rank as recipient_belt_rank,
-                        u.profile_photo_url as recipient_photo_url
+                        u.first_name as recipient_first_name,
+                        u.last_name as recipient_last_name,
+                        u.email as recipient_email,
+                        u.avatar_url as recipient_avatar_url
                     FROM friend_connections fc
                     JOIN users u ON u.id = fc.recipient_id
                     WHERE fc.requester_id = ? AND fc.status = 'pending'
@@ -443,7 +441,7 @@ class SocialConnectionRepository:
                 convert_query("""
                     SELECT
                         bu.*,
-                        u.username, u.display_name, u.profile_photo_url
+                        u.first_name, u.last_name, u.email, u.avatar_url
                     FROM blocked_users bu
                     JOIN users u ON u.id = bu.blocked_id
                     WHERE bu.blocker_id = ?

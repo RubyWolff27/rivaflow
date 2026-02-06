@@ -193,6 +193,35 @@ class UserRepository:
             return [dict(row) for row in rows]
 
     @staticmethod
+    def search(query: str, limit: int = 20) -> list[dict]:
+        """
+        Search users by name or email (case-insensitive).
+
+        Args:
+            query: Search string to match against first_name, last_name, or email
+            limit: Maximum number of results
+
+        Returns:
+            List of matching user dicts (without hashed_password)
+        """
+        with get_connection() as conn:
+            cursor = conn.cursor()
+            like_pattern = f"%{query}%"
+            cursor.execute(
+                convert_query("""
+                    SELECT id, email, first_name, last_name, is_active, created_at, updated_at
+                    FROM users
+                    WHERE is_active = TRUE
+                      AND (first_name LIKE ? OR last_name LIKE ? OR email LIKE ?)
+                    ORDER BY first_name, last_name
+                    LIMIT ?
+                    """),
+                (like_pattern, like_pattern, like_pattern, limit),
+            )
+            rows = cursor.fetchall()
+            return [dict(row) for row in rows]
+
+    @staticmethod
     def delete(user_id: int) -> bool:
         """
         Delete a user (soft delete by setting is_active to False).
