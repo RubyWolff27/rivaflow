@@ -268,7 +268,7 @@ class AuthService:
             raise ValueError("User not found or inactive")
 
         # Generate new access token
-        access_token = create_access_token(data={"sub": user["id"]})
+        access_token = create_access_token(data={"sub": str(user["id"])})
 
         return {
             "access_token": access_token,

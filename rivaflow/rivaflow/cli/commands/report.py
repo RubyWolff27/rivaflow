@@ -10,6 +10,8 @@ from rich.panel import Panel
 from rich.table import Table
 
 from rivaflow.cli import prompts
+from rivaflow.cli.utils.error_handler import require_login
+from rivaflow.cli.utils.user_context import get_current_user_id
 from rivaflow.core.services.report_service import ReportService
 
 app = typer.Typer(help="Training reports and analytics")
@@ -41,11 +43,13 @@ def week(
       $ rivaflow report week --csv
       $ rivaflow report week --output my_week.csv
     """
+    require_login()
+    user_id = get_current_user_id()
     service = ReportService()
     start_date, end_date = service.get_week_dates()
 
     with console.status("[cyan]Generating weekly report...", spinner="dots"):
-        report = service.generate_report(start_date, end_date)
+        report = service.generate_report(user_id, start_date, end_date)
 
     if csv or output:
         _export_csv(service, report, output or "week_report.csv")
@@ -76,11 +80,13 @@ def month(
       # Export month data
       $ rivaflow report month --csv
     """
+    require_login()
+    user_id = get_current_user_id()
     service = ReportService()
     start_date, end_date = service.get_month_dates()
 
     with console.status("[cyan]Generating monthly report...", spinner="dots"):
-        report = service.generate_report(start_date, end_date)
+        report = service.generate_report(user_id, start_date, end_date)
 
     if csv or output:
         _export_csv(service, report, output or "month_report.csv")
@@ -116,6 +122,8 @@ def range(
       # Export belt period
       $ rivaflow report range 2025-06-01 2025-12-31 --csv
     """
+    require_login()
+    user_id = get_current_user_id()
     service = ReportService()
 
     # Parse dates
@@ -131,7 +139,7 @@ def range(
         raise typer.Exit(1)
 
     with console.status("[cyan]Generating custom range report...", spinner="dots"):
-        report = service.generate_report(start_date, end_date)
+        report = service.generate_report(user_id, start_date, end_date)
 
     if csv or output:
         _export_csv(service, report, output or "range_report.csv")

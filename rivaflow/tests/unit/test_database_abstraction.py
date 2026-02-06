@@ -51,7 +51,7 @@ class TestQueryConversion:
     def test_convert_query_handles_update(self):
         """Test UPDATE query conversion."""
         sqlite_query = (
-            "UPDATE sessions SET intensity = ?, notes = ? WHERE session_id = ?"
+            "UPDATE sessions SET intensity = ?, notes = ? WHERE id = ?"
         )
         converted = convert_query(sqlite_query)
 
@@ -62,7 +62,7 @@ class TestQueryConversion:
 
     def test_convert_query_handles_delete(self):
         """Test DELETE query conversion."""
-        sqlite_query = "DELETE FROM sessions WHERE session_id = ?"
+        sqlite_query = "DELETE FROM sessions WHERE id = ?"
         converted = convert_query(sqlite_query)
 
         assert "DELETE" in converted.upper()
@@ -74,7 +74,7 @@ class TestQueryConversion:
         SELECT s.*, p.first_name
         FROM sessions s
         JOIN profile p ON s.user_id = p.user_id
-        WHERE s.session_id = ?
+        WHERE s.id = ?
         """
         converted = convert_query(sqlite_query)
 
@@ -177,22 +177,22 @@ class TestRowToDictConversion:
             session_id = cursor.lastrowid
 
             # Retrieve and convert to dict
-            cursor.execute("SELECT * FROM sessions WHERE session_id = ?", (session_id,))
+            cursor.execute("SELECT * FROM sessions WHERE id = ?", (session_id,))
             row = cursor.fetchone()
 
             # Convert to dict
             row_dict = dict(row)
 
             # Verify fields present
-            assert "session_id" in row_dict
+            assert "id" in row_dict
             assert "user_id" in row_dict
             assert "class_type" in row_dict
             assert "gym_name" in row_dict
             assert "duration_mins" in row_dict
 
             # Cleanup
-            cursor.execute("DELETE FROM sessions WHERE session_id = ?", (session_id,))
-            cursor.execute("DELETE FROM users WHERE user_id = ?", (user_id,))
+            cursor.execute("DELETE FROM sessions WHERE id = ?", (session_id,))
+            cursor.execute("DELETE FROM users WHERE id = ?", (user_id,))
             conn.commit()
 
 
@@ -280,7 +280,7 @@ class TestTransactionIsolation:
             assert count == 0
 
             # Cleanup
-            cursor.execute("DELETE FROM users WHERE user_id = ?", (user_id,))
+            cursor.execute("DELETE FROM users WHERE id = ?", (user_id,))
             conn.commit()
 
     def test_explicit_rollback(self):
@@ -331,7 +331,7 @@ class TestTransactionIsolation:
             assert count == 0
 
             # Cleanup
-            cursor.execute("DELETE FROM users WHERE user_id = ?", (user_id,))
+            cursor.execute("DELETE FROM users WHERE id = ?", (user_id,))
             conn.commit()
 
 
@@ -359,7 +359,7 @@ class TestDatabaseTypes:
             assert user_id > 0
 
             # Cleanup
-            cursor.execute("DELETE FROM users WHERE user_id = ?", (user_id,))
+            cursor.execute("DELETE FROM users WHERE id = ?", (user_id,))
             conn.commit()
 
     def test_string_storage_and_retrieval(self):
@@ -395,7 +395,7 @@ class TestDatabaseTypes:
 
             # Retrieve
             cursor.execute(
-                "SELECT gym_name FROM sessions WHERE session_id = ?", (session_id,)
+                "SELECT gym_name FROM sessions WHERE id = ?", (session_id,)
             )
             row = cursor.fetchone()
             retrieved_string = row[0] if isinstance(row, tuple) else row["gym_name"]
@@ -403,8 +403,8 @@ class TestDatabaseTypes:
             assert retrieved_string == test_string
 
             # Cleanup
-            cursor.execute("DELETE FROM sessions WHERE session_id = ?", (session_id,))
-            cursor.execute("DELETE FROM users WHERE user_id = ?", (user_id,))
+            cursor.execute("DELETE FROM sessions WHERE id = ?", (session_id,))
+            cursor.execute("DELETE FROM users WHERE id = ?", (user_id,))
             conn.commit()
 
     def test_null_value_handling(self):
@@ -438,7 +438,7 @@ class TestDatabaseTypes:
 
             # Retrieve
             cursor.execute(
-                "SELECT notes FROM sessions WHERE session_id = ?", (session_id,)
+                "SELECT notes FROM sessions WHERE id = ?", (session_id,)
             )
             row = cursor.fetchone()
             notes = row[0] if isinstance(row, tuple) else row["notes"]
@@ -446,6 +446,6 @@ class TestDatabaseTypes:
             assert notes is None
 
             # Cleanup
-            cursor.execute("DELETE FROM sessions WHERE session_id = ?", (session_id,))
-            cursor.execute("DELETE FROM users WHERE user_id = ?", (user_id,))
+            cursor.execute("DELETE FROM sessions WHERE id = ?", (session_id,))
+            cursor.execute("DELETE FROM users WHERE id = ?", (user_id,))
             conn.commit()

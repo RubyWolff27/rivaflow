@@ -212,7 +212,7 @@ class TestSessionRetrieval:
                 "rolls": 5,
             },
         )
-        session_id = create_response.json()["session_id"]
+        session_id = create_response.json()["id"]
 
         # Retrieve it
         response = test_client.get(
@@ -221,7 +221,7 @@ class TestSessionRetrieval:
 
         assert response.status_code == 200
         data = response.json()
-        assert data["session_id"] == session_id
+        assert data["id"] == session_id
         assert data["gym_name"] == "Test Gym"
 
     def test_get_session_wrong_user(self, test_client, authenticated_user):
@@ -256,7 +256,7 @@ class TestSessionRetrieval:
                 "rolls": 5,
             },
         )
-        session_id = create_response.json()["session_id"]
+        session_id = create_response.json()["id"]
 
         # User 2 tries to access it
         response = test_client.get(
@@ -269,7 +269,7 @@ class TestSessionRetrieval:
         # Cleanup user 2
         with get_connection() as conn:
             cursor = conn.cursor()
-            cursor.execute("DELETE FROM users WHERE user_id = ?", (user2_id,))
+            cursor.execute("DELETE FROM users WHERE id = ?", (user2_id,))
             conn.commit()
 
 
@@ -291,7 +291,7 @@ class TestSessionUpdate:
                 "rolls": 5,
             },
         )
-        session_id = create_response.json()["session_id"]
+        session_id = create_response.json()["id"]
 
         # Update it
         response = test_client.put(
@@ -341,7 +341,7 @@ class TestSessionDeletion:
                 "rolls": 5,
             },
         )
-        session_id = create_response.json()["session_id"]
+        session_id = create_response.json()["id"]
 
         # Delete it
         response = test_client.delete(

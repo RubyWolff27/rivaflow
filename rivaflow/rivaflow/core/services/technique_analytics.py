@@ -49,7 +49,7 @@ class TechniqueAnalyticsService:
         sessions = self.session_repo.get_by_date_range(
             user_id, start_date, end_date, types=types
         )
-        movements = self.glossary_repo.list_all(user_id)
+        movements = self.glossary_repo.list_all()
 
         # Category breakdown (count submissions by category)
         category_counts = Counter()

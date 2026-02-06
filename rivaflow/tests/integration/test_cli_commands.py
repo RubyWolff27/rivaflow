@@ -72,7 +72,7 @@ def mock_user_context():
     # Cleanup
     with get_connection() as conn:
         cursor = conn.cursor()
-        cursor.execute("DELETE FROM users WHERE user_id = ?", (test_user_id,))
+        cursor.execute("DELETE FROM users WHERE id = ?", (test_user_id,))
         conn.commit()
 
 

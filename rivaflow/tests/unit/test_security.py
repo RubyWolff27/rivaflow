@@ -216,7 +216,7 @@ class TestPasswordResetTokenSecurity:
         finally:
             with get_connection() as conn:
                 cursor = conn.cursor()
-                cursor.execute("DELETE FROM users WHERE user_id = ?", (user_id,))
+                cursor.execute("DELETE FROM users WHERE id = ?", (user_id,))
                 conn.commit()
 
     def test_reset_token_single_use(self):
@@ -255,7 +255,7 @@ class TestPasswordResetTokenSecurity:
         finally:
             with get_connection() as conn:
                 cursor = conn.cursor()
-                cursor.execute("DELETE FROM users WHERE user_id = ?", (user_id,))
+                cursor.execute("DELETE FROM users WHERE id = ?", (user_id,))
                 conn.commit()
 
     def test_reset_token_expires(self):
@@ -294,7 +294,7 @@ class TestPasswordResetTokenSecurity:
         finally:
             with get_connection() as conn:
                 cursor = conn.cursor()
-                cursor.execute("DELETE FROM users WHERE user_id = ?", (user_id,))
+                cursor.execute("DELETE FROM users WHERE id = ?", (user_id,))
                 conn.commit()
 
 
@@ -361,7 +361,7 @@ class TestSQLInjectionPrevention:
 
                 # Retrieve and verify stored correctly
                 cursor.execute(
-                    "SELECT gym_name FROM sessions WHERE session_id = ?", (session_id,)
+                    "SELECT gym_name FROM sessions WHERE id = ?", (session_id,)
                 )
                 row = cursor.fetchone()
                 gym_name = row[0] if isinstance(row, tuple) else row["gym_name"]
@@ -370,13 +370,13 @@ class TestSQLInjectionPrevention:
 
                 # Cleanup
                 cursor.execute(
-                    "DELETE FROM sessions WHERE session_id = ?", (session_id,)
+                    "DELETE FROM sessions WHERE id = ?", (session_id,)
                 )
                 conn.commit()
         finally:
             with get_connection() as conn:
                 cursor = conn.cursor()
-                cursor.execute("DELETE FROM users WHERE user_id = ?", (user_id,))
+                cursor.execute("DELETE FROM users WHERE id = ?", (user_id,))
                 conn.commit()
 
 
@@ -420,13 +420,13 @@ class TestAuthorizationChecks:
                 duration_mins=90,
                 intensity=4,
             )
-            session_id = session["session_id"]
+            session_id = session
 
             # User 2 tries to get User 1's sessions
             user2_sessions = SessionRepository.get_recent(user2_id, limit=10)
 
             # Should be empty (User 2 shouldn't see User 1's sessions)
-            user2_session_ids = [s["session_id"] for s in user2_sessions]
+            user2_session_ids = [s["id"] for s in user2_sessions]
             assert session_id not in user2_session_ids
 
             # Cleanup
@@ -435,7 +435,7 @@ class TestAuthorizationChecks:
             with get_connection() as conn:
                 cursor = conn.cursor()
                 cursor.execute(
-                    "DELETE FROM users WHERE user_id IN (?, ?)", (user1_id, user2_id)
+                    "DELETE FROM users WHERE id IN (?, ?)", (user1_id, user2_id)
                 )
                 conn.commit()
 

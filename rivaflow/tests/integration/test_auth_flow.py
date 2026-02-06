@@ -338,7 +338,7 @@ class TestProtectedEndpoints:
         )
 
         response = test_client.get(
-            "/api/v1/profile/me", headers={"Authorization": f"Bearer {expired_token}"}
+            "/api/v1/auth/me", headers={"Authorization": f"Bearer {expired_token}"}
         )
 
         assert response.status_code == 401

@@ -394,7 +394,7 @@ class TestAPIEndpointPerformance:
             start_date, end_date = service.get_month_dates()
 
             start_time = time.time()
-            report = service.generate_report(start_date, end_date)
+            report = service.generate_report(user_id, start_date, end_date)
             end_time = time.time()
 
             query_time = end_time - start_time

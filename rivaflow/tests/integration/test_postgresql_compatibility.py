@@ -51,7 +51,7 @@ def test_user():
         cursor.execute("DELETE FROM sessions WHERE user_id = ?", (user_id,))
         cursor.execute("DELETE FROM readiness WHERE user_id = ?", (user_id,))
         cursor.execute("DELETE FROM daily_checkins WHERE user_id = ?", (user_id,))
-        cursor.execute("DELETE FROM users WHERE user_id = ?", (user_id,))
+        cursor.execute("DELETE FROM users WHERE id = ?", (user_id,))
         conn.commit()
 
 
@@ -92,7 +92,7 @@ class TestCRUDOperations:
     def test_create_and_read_session(self, test_db, test_user):
         """Test creating and reading a session."""
         # Create
-        session = SessionRepository.create(
+        session_id = SessionRepository.create(
             user_id=test_user,
             session_date=date.today(),
             class_type="gi",
@@ -102,10 +102,10 @@ class TestCRUDOperations:
             rolls=5,
         )
 
-        assert session["session_id"] is not None
+        assert session_id is not None
 
         # Read back
-        retrieved = SessionRepository.get_by_id(session["session_id"])
+        retrieved = SessionRepository.get_by_id(test_user, session_id)
         assert retrieved is not None
         assert retrieved["gym_name"] == "Test Gym"
         assert retrieved["duration_mins"] == 90
@@ -113,7 +113,7 @@ class TestCRUDOperations:
     def test_update_session(self, test_db, test_user):
         """Test updating a session."""
         # Create
-        session = SessionRepository.create(
+        session_id = SessionRepository.create(
             user_id=test_user,
             session_date=date.today(),
             class_type="gi",
@@ -125,7 +125,8 @@ class TestCRUDOperations:
 
         # Update
         updated = SessionRepository.update(
-            session_id=session["session_id"],
+            test_user,
+            session_id=session_id,
             gym_name="Updated Gym",
             duration_mins=120,
         )
@@ -136,7 +137,7 @@ class TestCRUDOperations:
     def test_delete_session(self, test_db, test_user):
         """Test deleting a session."""
         # Create
-        session = SessionRepository.create(
+        session_id = SessionRepository.create(
             user_id=test_user,
             session_date=date.today(),
             class_type="gi",
@@ -146,13 +147,11 @@ class TestCRUDOperations:
             rolls=5,
         )
 
-        session_id = session["session_id"]
-
         # Delete
-        SessionRepository.delete(session_id)
+        SessionRepository.delete(test_user, session_id)
 
         # Verify deletion
-        retrieved = SessionRepository.get_by_id(session_id)
+        retrieved = SessionRepository.get_by_id(test_user, session_id)
         assert retrieved is None
 
 
@@ -163,7 +162,7 @@ class TestDateHandling:
         """Test dates are stored and retrieved correctly."""
         test_date = date(2026, 1, 15)
 
-        session = SessionRepository.create(
+        session_id = SessionRepository.create(
             user_id=test_user,
             session_date=test_date,
             class_type="gi",
@@ -173,7 +172,7 @@ class TestDateHandling:
             rolls=5,
         )
 
-        retrieved = SessionRepository.get_by_id(session["session_id"])
+        retrieved = SessionRepository.get_by_id(test_user, session_id)
         # Date should match (as string or date object)
         retrieved_date = retrieved["session_date"]
         if isinstance(retrieved_date, str):
@@ -210,7 +209,7 @@ class TestTimestampHandling:
 
     def test_created_at_timestamp(self, test_db, test_user):
         """Test created_at timestamp is set correctly."""
-        session = SessionRepository.create(
+        session_id = SessionRepository.create(
             user_id=test_user,
             session_date=date.today(),
             class_type="gi",
@@ -220,14 +219,15 @@ class TestTimestampHandling:
             rolls=5,
         )
 
-        # Should have created_at
+        # Retrieve and check created_at
+        session = SessionRepository.get_by_id(test_user, session_id)
         assert "created_at" in session
         assert session["created_at"] is not None
 
     def test_updated_at_timestamp(self, test_db, test_user):
         """Test updated_at timestamp is updated."""
         # Create
-        session = SessionRepository.create(
+        session_id = SessionRepository.create(
             user_id=test_user,
             session_date=date.today(),
             class_type="gi",
@@ -237,6 +237,7 @@ class TestTimestampHandling:
             rolls=5,
         )
 
+        session = SessionRepository.get_by_id(test_user, session_id)
         original_updated = session.get("updated_at")
 
         # Small delay to ensure timestamp difference
@@ -246,7 +247,8 @@ class TestTimestampHandling:
 
         # Update
         updated = SessionRepository.update(
-            session_id=session["session_id"],
+            test_user,
+            session_id=session_id,
             gym_name="Updated Gym",
         )
 
@@ -264,7 +266,7 @@ class TestJSONFields:
         partners = ["Partner A", "Partner B", "Partner C"]
         techniques = ["armbar", "triangle", "kimura"]
 
-        session = SessionRepository.create(
+        session_id = SessionRepository.create(
             user_id=test_user,
             session_date=date.today(),
             class_type="gi",
@@ -276,7 +278,7 @@ class TestJSONFields:
             techniques=techniques,
         )
 
-        retrieved = SessionRepository.get_by_id(session["session_id"])
+        retrieved = SessionRepository.get_by_id(test_user, session_id)
 
         # Arrays should be preserved
         assert retrieved["partners"] == partners
@@ -284,7 +286,7 @@ class TestJSONFields:
 
     def test_empty_array_handling(self, test_db, test_user):
         """Test empty arrays are handled correctly."""
-        session = SessionRepository.create(
+        session_id = SessionRepository.create(
             user_id=test_user,
             session_date=date.today(),
             class_type="gi",
@@ -296,7 +298,7 @@ class TestJSONFields:
             techniques=[],
         )
 
-        retrieved = SessionRepository.get_by_id(session["session_id"])
+        retrieved = SessionRepository.get_by_id(test_user, session_id)
 
         # Empty arrays should be preserved (not None)
         assert retrieved["partners"] == []
@@ -308,7 +310,7 @@ class TestNullHandling:
 
     def test_optional_fields_can_be_null(self, test_db, test_user):
         """Test optional fields can be NULL."""
-        session = SessionRepository.create(
+        session_id = SessionRepository.create(
             user_id=test_user,
             session_date=date.today(),
             class_type="gi",
@@ -320,9 +322,10 @@ class TestNullHandling:
         )
 
         # Should succeed
-        assert session["session_id"] is not None
+        assert session_id is not None
 
         # Optional fields should be None or empty
+        session = SessionRepository.get_by_id(test_user, session_id)
         assert session.get("notes") in [None, ""]
         assert session.get("location") in [None, ""]
 
@@ -348,7 +351,7 @@ class TestTransactionHandling:
             session_id = cursor.lastrowid
 
         # Verify in separate connection
-        retrieved = SessionRepository.get_by_id(session_id)
+        retrieved = SessionRepository.get_by_id(test_user, session_id)
         assert retrieved is not None
 
     def test_transaction_rollback_on_error(self, test_db, test_user):
@@ -404,7 +407,7 @@ class TestConcurrency:
         with get_connection() as conn2:
             cursor = conn2.cursor()
             cursor.execute(
-                convert_query("SELECT * FROM sessions WHERE session_id = ?"),
+                convert_query("SELECT * FROM sessions WHERE id = ?"),
                 (session_id,),
             )
             row = cursor.fetchone()
@@ -441,7 +444,7 @@ class TestDataIntegrity:
     def test_unique_constraint(self, test_db, test_user):
         """Test unique constraints work (if any)."""
         # Create a check-in for today
-        CheckinRepository.create_or_update(
+        CheckinRepository.upsert_checkin(
             user_id=test_user,
             check_date=date.today(),
             checkin_type="readiness",
@@ -449,7 +452,7 @@ class TestDataIntegrity:
 
         # Try to create another for same day
         # Should update, not create duplicate
-        CheckinRepository.create_or_update(
+        CheckinRepository.upsert_checkin(
             user_id=test_user,
             check_date=date.today(),
             checkin_type="session",

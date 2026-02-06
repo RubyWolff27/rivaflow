@@ -37,7 +37,7 @@ SELECT
 FROM friends;
 
 -- Drop old table
-DROP TABLE IF EXISTS friends CASCADE;
+DROP TABLE IF EXISTS friends;
 
 -- Rename new table
 ALTER TABLE friends_new RENAME TO friends;

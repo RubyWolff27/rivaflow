@@ -5,6 +5,7 @@ from datetime import timedelta
 import pytest
 
 from rivaflow.core.auth import decode_access_token, verify_password
+from rivaflow.core.exceptions import AuthenticationError, ValidationError
 from rivaflow.core.services.auth_service import AuthService
 from rivaflow.db.repositories.refresh_token_repo import RefreshTokenRepository
 from rivaflow.db.repositories.user_repo import UserRepository
@@ -88,7 +89,7 @@ class TestAuthServiceRegister:
         """Test registration with invalid email format."""
         auth_service = AuthService()
 
-        with pytest.raises(ValueError, match="Invalid email format"):
+        with pytest.raises(ValidationError, match="Invalid email"):
             auth_service.register(
                 email="not-an-email",
                 password="securepass123",
@@ -100,7 +101,7 @@ class TestAuthServiceRegister:
         """Test registration with password too short."""
         auth_service = AuthService()
 
-        with pytest.raises(ValueError, match="at least 8 characters"):
+        with pytest.raises(ValidationError, match="at least 8 characters"):
             auth_service.register(
                 email="newuser@example.com",
                 password="short",
@@ -112,7 +113,7 @@ class TestAuthServiceRegister:
         """Test registration with already existing email."""
         auth_service = AuthService()
 
-        with pytest.raises(ValueError, match="Email already registered"):
+        with pytest.raises(ValidationError, match="Email already registered"):
             auth_service.register(
                 email="test@example.com",  # Already exists from test_user fixture
                 password="securepass123",
@@ -159,14 +160,14 @@ class TestAuthServiceLogin:
         """Test login with incorrect password."""
         auth_service = AuthService()
 
-        with pytest.raises(ValueError, match="Invalid email or password"):
+        with pytest.raises(AuthenticationError, match="Invalid email or password"):
             auth_service.login(email="test@example.com", password="wrongpassword")
 
     def test_login_nonexistent_user(self, temp_db):
         """Test login with non-existent email."""
         auth_service = AuthService()
 
-        with pytest.raises(ValueError, match="Invalid email or password"):
+        with pytest.raises(AuthenticationError, match="Invalid email or password"):
             auth_service.login(email="nonexistent@example.com", password="anypassword")
 
     def test_login_generates_valid_jwt(self, temp_db, test_user):
@@ -217,7 +218,7 @@ class TestAuthServiceLogin:
 
         auth_service = AuthService()
 
-        with pytest.raises(ValueError, match="Account is inactive"):
+        with pytest.raises(AuthenticationError, match="Account is inactive"):
             auth_service.login(email="inactive@example.com", password="testpass123")
 
 

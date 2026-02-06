@@ -13,7 +13,7 @@ CREATE TABLE IF NOT EXISTS readiness_new (
     check_date TEXT NOT NULL,
     sleep INTEGER NOT NULL CHECK(sleep >= 1 AND sleep <= 5),
     stress INTEGER NOT NULL CHECK(stress >= 1 AND stress <= 5),
-    soreness INTEGER NOT NULL CHECK(soreness >= 1 AND stress <= 5),
+    soreness INTEGER NOT NULL CHECK(soreness >= 1 AND soreness <= 5),
     energy INTEGER NOT NULL CHECK(energy >= 1 AND energy <= 5),
     hotspot_note TEXT,
     weight_kg REAL,
@@ -34,7 +34,7 @@ SELECT
 FROM readiness;
 
 -- Drop old table
-DROP TABLE IF EXISTS readiness CASCADE;
+DROP TABLE IF EXISTS readiness;
 
 -- Rename new table
 ALTER TABLE readiness_new RENAME TO readiness;

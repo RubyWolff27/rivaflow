@@ -67,7 +67,8 @@ def log(
         video_repo = VideoRepository()
 
         # Get autocomplete data
-        autocomplete = service.get_autocomplete_data()
+        user_id = get_current_user_id()
+        autocomplete = service.get_autocomplete_data(user_id=user_id)
 
         if quick:
             _quick_log(service, autocomplete)

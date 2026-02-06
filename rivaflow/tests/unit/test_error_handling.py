@@ -180,7 +180,7 @@ class TestAuthenticationErrors:
             # Cleanup
             with get_connection() as conn:
                 cursor = conn.cursor()
-                cursor.execute("DELETE FROM users WHERE user_id = ?", (user_id,))
+                cursor.execute("DELETE FROM users WHERE id = ?", (user_id,))
                 conn.commit()
 
     def test_login_nonexistent_user_returns_none(self):
@@ -263,7 +263,7 @@ class TestDatabaseConstraintErrors:
                     conn.commit()
             finally:
                 # Cleanup
-                cursor.execute("DELETE FROM users WHERE user_id = ?", (user1_id,))
+                cursor.execute("DELETE FROM users WHERE id = ?", (user1_id,))
                 conn.commit()
 
 
@@ -313,7 +313,7 @@ class TestInputSanitization:
 
                 # Verify sessions table still exists and data is safe
                 cursor.execute(
-                    "SELECT gym_name FROM sessions WHERE session_id = ?", (session_id,)
+                    "SELECT gym_name FROM sessions WHERE id = ?", (session_id,)
                 )
                 row = cursor.fetchone()
                 gym_name = row[0] if isinstance(row, tuple) else row["gym_name"]
@@ -328,11 +328,11 @@ class TestInputSanitization:
 
                 # Cleanup
                 cursor.execute(
-                    "DELETE FROM sessions WHERE session_id = ?", (session_id,)
+                    "DELETE FROM sessions WHERE id = ?", (session_id,)
                 )
                 conn.commit()
             finally:
-                cursor.execute("DELETE FROM users WHERE user_id = ?", (user_id,))
+                cursor.execute("DELETE FROM users WHERE id = ?", (user_id,))
                 conn.commit()
 
     def test_special_characters_handled(self):
@@ -355,7 +355,7 @@ class TestInputSanitization:
             # Test various special characters
             special_chars_gym = 'Gym\'s "Best" <Place> & More!'
 
-            session = service.create_session(
+            session_id = service.create_session(
                 user_id=user_id,
                 session_date=date.today(),
                 class_type="gi",
@@ -364,14 +364,15 @@ class TestInputSanitization:
                 intensity=4,
             )
 
+            session = service.get_session(user_id, session_id)
             assert session["gym_name"] == special_chars_gym
 
             # Cleanup
-            SessionRepository.delete(session["session_id"])
+            SessionRepository.delete(user_id, session_id)
         finally:
             with get_connection() as conn:
                 cursor = conn.cursor()
-                cursor.execute("DELETE FROM users WHERE user_id = ?", (user_id,))
+                cursor.execute("DELETE FROM users WHERE id = ?", (user_id,))
                 conn.commit()
 
 
@@ -425,7 +426,7 @@ class TestErrorMessages:
         finally:
             with get_connection() as conn:
                 cursor = conn.cursor()
-                cursor.execute("DELETE FROM users WHERE user_id = ?", (user_id,))
+                cursor.execute("DELETE FROM users WHERE id = ?", (user_id,))
                 conn.commit()
 
 
@@ -479,5 +480,5 @@ class TestExceptionRecovery:
             assert count == 0
 
             # Cleanup
-            cursor.execute("DELETE FROM users WHERE user_id = ?", (user_id,))
+            cursor.execute("DELETE FROM users WHERE id = ?", (user_id,))
             conn.commit()
