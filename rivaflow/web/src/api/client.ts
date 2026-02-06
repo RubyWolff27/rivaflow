@@ -412,6 +412,20 @@ export const adminApi = {
   deleteTechnique: (techniqueId: number) =>
     api.delete(`/admin/techniques/${techniqueId}`),
 
+  // Waitlist (v0.2.0)
+  listWaitlist: (params?: { status?: string; search?: string; limit?: number; offset?: number }) =>
+    api.get<{ entries: any[]; total: number; limit: number; offset: number }>('/admin/waitlist', { params }),
+  getWaitlistStats: () =>
+    api.get<{ total: number; waiting: number; invited: number; registered: number; declined: number }>('/admin/waitlist/stats'),
+  inviteWaitlistEntry: (waitlistId: number, tier = 'free') =>
+    api.post(`/admin/waitlist/${waitlistId}/invite`, { tier }),
+  bulkInviteWaitlist: (ids: number[], tier = 'free') =>
+    api.post('/admin/waitlist/bulk-invite', { ids, tier }),
+  declineWaitlistEntry: (waitlistId: number) =>
+    api.post(`/admin/waitlist/${waitlistId}/decline`),
+  updateWaitlistNotes: (waitlistId: number, notes: string) =>
+    api.put(`/admin/waitlist/${waitlistId}/notes`, { notes }),
+
   // Feedback (v0.2.0)
   listFeedback: (params?: { status?: string; category?: string; limit?: number; offset?: number }) =>
     api.get<{ feedback: any[]; count: number; stats: any }>('/admin/feedback', { params }),
@@ -434,6 +448,14 @@ export const feedbackApi = {
     api.get<{ feedback: any[]; count: number }>('/feedback/my', { params: { limit } }),
   getById: (feedbackId: number) =>
     api.get('/feedback/' + feedbackId),
+};
+
+// Waitlist API (v0.2.0)
+export const waitlistApi = {
+  join: (data: { email: string; first_name?: string; gym_name?: string; belt_rank?: string; referral_source?: string }) =>
+    api.post<{ position: number; message: string }>('/waitlist/join', data),
+  getCount: () =>
+    api.get<{ count: number }>('/waitlist/count'),
 };
 
 // Dashboard API (v0.2.0)

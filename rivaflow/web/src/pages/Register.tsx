@@ -1,10 +1,12 @@
 import { useState, FormEvent } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 
 export default function Register() {
   const { register } = useAuth();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const inviteToken = searchParams.get('invite') || undefined;
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -32,7 +34,7 @@ export default function Register() {
     setIsLoading(true);
 
     try {
-      await register(email, password, firstName, lastName);
+      await register(email, password, firstName, lastName, inviteToken);
       navigate('/');
     } catch (err: any) {
       setError(err.message || 'Registration failed');
@@ -44,22 +46,38 @@ export default function Register() {
   return (
     <div className="min-h-screen flex items-center justify-center px-4 py-12" style={{ backgroundColor: 'var(--background)' }}>
       <div className="max-w-md w-full space-y-6">
-        {/* Beta Welcome Banner */}
-        <div
-          className="p-4 rounded-lg border-2"
-          style={{
-            backgroundColor: 'var(--surface)',
-            borderColor: 'var(--accent)',
-          }}
-        >
-          <p className="text-sm text-center leading-relaxed" style={{ color: 'var(--text)' }}>
-            <span className="font-semibold" style={{ color: 'var(--accent)' }}>Welcome to RivaFlow Beta!</span>
-            <br />
-            You're joining early — things might break, features are still cooking, and your feedback shapes what we build next. Log your rolls, track your progress, and let us know what's working (and what's not).
-            <br />
-            <span className="font-medium">OSS! 🤙</span>
-          </p>
-        </div>
+        {/* Invite banner or Beta banner */}
+        {inviteToken ? (
+          <div
+            className="p-4 rounded-lg border-2"
+            style={{
+              backgroundColor: 'var(--surface)',
+              borderColor: 'var(--accent)',
+            }}
+          >
+            <p className="text-sm text-center leading-relaxed" style={{ color: 'var(--text)' }}>
+              <span className="font-semibold" style={{ color: 'var(--accent)' }}>You've been invited!</span>
+              <br />
+              Create your account to get started with RivaFlow. Log your rolls, track your progress, and connect with your gym crew.
+            </p>
+          </div>
+        ) : (
+          <div
+            className="p-4 rounded-lg border-2"
+            style={{
+              backgroundColor: 'var(--surface)',
+              borderColor: 'var(--accent)',
+            }}
+          >
+            <p className="text-sm text-center leading-relaxed" style={{ color: 'var(--text)' }}>
+              <span className="font-semibold" style={{ color: 'var(--accent)' }}>Welcome to RivaFlow Beta!</span>
+              <br />
+              You're joining early — things might break, features are still cooking, and your feedback shapes what we build next. Log your rolls, track your progress, and let us know what's working (and what's not).
+              <br />
+              <span className="font-medium">OSS! 🤙</span>
+            </p>
+          </div>
+        )}
 
         <div>
           <h2 className="mt-6 text-center text-3xl font-extrabold" style={{ color: 'var(--text)' }}>

@@ -19,7 +19,7 @@ interface User {
 interface AuthContextType {
   user: User | null;
   login: (email: string, password: string) => Promise<void>;
-  register: (email: string, password: string, firstName: string, lastName: string) => Promise<void>;
+  register: (email: string, password: string, firstName: string, lastName: string, inviteToken?: string) => Promise<void>;
   logout: () => void;
   isLoading: boolean;
 }
@@ -69,7 +69,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     email: string,
     password: string,
     firstName: string,
-    lastName: string
+    lastName: string,
+    inviteToken?: string
   ) => {
     try {
       const response = await authApi.register({
@@ -77,6 +78,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         password,
         first_name: firstName,
         last_name: lastName,
+        ...(inviteToken ? { invite_token: inviteToken } : {}),
       });
       localStorage.setItem('access_token', response.data.access_token);
       localStorage.setItem('refresh_token', response.data.refresh_token);
