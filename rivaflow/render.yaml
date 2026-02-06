@@ -31,25 +31,6 @@ services:
       - key: REDIS_URL
         sync: false
 
-  # RivaFlow Web Frontend
-  - type: web
-    name: rivaflow-web
-    runtime: node
-    region: oregon
-    plan: free
-    branch: main
-    rootDir: web
-
-    buildCommand: npm install && npm run build
-
-    startCommand: npm run preview -- --host 0.0.0.0 --port $PORT
-
-    envVars:
-      - key: NODE_VERSION
-        value: 18.17.0
-      - key: VITE_API_URL
-        value: https://api.rivaflow.app
-
 databases:
   - name: rivaflow-db
     databaseName: rivaflow
