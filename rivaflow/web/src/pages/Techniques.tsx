@@ -9,10 +9,10 @@ const TechniqueRow = memo(function TechniqueRow({ tech }: { tech: Technique }) {
   return (
     <tr className="border-b border-gray-100 dark:border-gray-700">
       <td className="py-3 px-4 font-medium">{tech.name}</td>
-      <td className="py-3 px-4 text-gray-600 dark:text-gray-400">
+      <td className="py-3 px-4 text-[var(--muted)]">
         {tech.category || '—'}
       </td>
-      <td className="py-3 px-4 text-gray-600 dark:text-gray-400">
+      <td className="py-3 px-4 text-[var(--muted)]">
         {tech.last_trained_date
           ? new Date(tech.last_trained_date).toLocaleDateString()
           : 'Never'}
@@ -154,13 +154,13 @@ export default function Techniques() {
       <div className="card">
         <h2 className="text-xl font-semibold mb-4">All Techniques ({techniques.length})</h2>
         {techniques.length === 0 ? (
-          <p className="text-center text-gray-500 dark:text-gray-400 py-8">
+          <p className="text-center text-[var(--muted)] py-8">
             No techniques tracked yet. Add your first technique above!
           </p>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full">
-              <thead className="border-b border-gray-200 dark:border-gray-700">
+              <thead className="border-b border-[var(--border)]">
                 <tr>
                   <th className="text-left py-3 px-4">Name</th>
                   <th className="text-left py-3 px-4">Category</th>

@@ -90,8 +90,8 @@ export default function Register() {
 
         <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
           {error && (
-            <div className="rounded-md p-4" style={{ backgroundColor: '#FEE2E2' }}>
-              <p className="text-sm" style={{ color: '#991B1B' }}>{error}</p>
+            <div className="rounded-md p-4" style={{ backgroundColor: 'var(--error-bg)' }}>
+              <p className="text-sm" style={{ color: 'var(--error)' }}>{error}</p>
             </div>
           )}
 

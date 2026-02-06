@@ -118,7 +118,7 @@ export default function Videos() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <VideoIcon className="w-8 h-8 text-primary-600" />
+          <VideoIcon className="w-8 h-8 text-[var(--accent)]" />
           <h1 className="text-3xl font-bold">Video Library</h1>
         </div>
         <button
@@ -131,19 +131,19 @@ export default function Videos() {
       </div>
 
       <div className="card">
-        <p className="text-gray-600 dark:text-gray-400">
+        <p className="text-[var(--muted)]">
           Manage your instructional video library. Videos are linked to techniques and appear as recall cards during session logging.
         </p>
       </div>
 
       {/* Add Video Form */}
       {showForm && (
-        <div className="card bg-gray-50 dark:bg-gray-800 border-2 border-primary-200 dark:border-primary-800">
+        <div className="card bg-[var(--surfaceElev)] border-2 border-primary-200 dark:border-primary-800">
           <div className="flex justify-between items-center mb-4">
             <h2 className="text-xl font-semibold">Add New Video</h2>
             <button
               onClick={() => setShowForm(false)}
-              className="text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
+              className="text-[var(--muted)] hover:text-gray-700 dark:hover:text-gray-300"
             >
               <X className="w-5 h-5" />
             </button>
@@ -160,7 +160,7 @@ export default function Videos() {
                 value={formData.url}
                 onChange={(e) => setFormData({ ...formData, url: e.target.value })}
                 placeholder="https://youtube.com/watch?v=..."
-                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 bg-white dark:bg-gray-700"
+                className="w-full px-3 py-2 border border-[var(--border)] rounded-lg focus:ring-2 focus:ring-primary-500 bg-[var(--surface)]"
               />
             </div>
 
@@ -171,7 +171,7 @@ export default function Videos() {
                 value={formData.title}
                 onChange={(e) => setFormData({ ...formData, title: e.target.value })}
                 placeholder="e.g., Armbar from Closed Guard"
-                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 bg-white dark:bg-gray-700"
+                className="w-full px-3 py-2 border border-[var(--border)] rounded-lg focus:ring-2 focus:ring-primary-500 bg-[var(--surface)]"
               />
             </div>
 
@@ -185,7 +185,7 @@ export default function Videos() {
                     technique_id: e.target.value ? parseInt(e.target.value) : null,
                   })
                 }
-                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 bg-white dark:bg-gray-700"
+                className="w-full px-3 py-2 border border-[var(--border)] rounded-lg focus:ring-2 focus:ring-primary-500 bg-[var(--surface)]"
               >
                 <option value="">Select a technique...</option>
                 {techniques.map((technique) => (
@@ -202,7 +202,7 @@ export default function Videos() {
                 <button
                   type="button"
                   onClick={addTimestamp}
-                  className="text-sm text-primary-600 hover:text-primary-700 flex items-center gap-1"
+                  className="text-sm text-[var(--accent)] hover:text-primary-700 flex items-center gap-1"
                 >
                   <Plus className="w-4 h-4" />
                   Add Timestamp
@@ -218,14 +218,14 @@ export default function Videos() {
                         placeholder="0:00"
                         value={ts.time}
                         onChange={(e) => updateTimestamp(idx, 'time', e.target.value)}
-                        className="w-24 px-2 py-1 border border-gray-300 dark:border-gray-600 rounded focus:ring-2 focus:ring-primary-500 bg-white dark:bg-gray-700 text-sm"
+                        className="w-24 px-2 py-1 border border-[var(--border)] rounded focus:ring-2 focus:ring-primary-500 bg-[var(--surface)] text-sm"
                       />
                       <input
                         type="text"
                         placeholder="Description"
                         value={ts.label}
                         onChange={(e) => updateTimestamp(idx, 'label', e.target.value)}
-                        className="flex-1 px-2 py-1 border border-gray-300 dark:border-gray-600 rounded focus:ring-2 focus:ring-primary-500 bg-white dark:bg-gray-700 text-sm"
+                        className="flex-1 px-2 py-1 border border-[var(--border)] rounded focus:ring-2 focus:ring-primary-500 bg-[var(--surface)] text-sm"
                       />
                       <button
                         type="button"
@@ -263,8 +263,8 @@ export default function Videos() {
       {/* Videos List */}
       {videos.length === 0 ? (
         <div className="card text-center py-12">
-          <VideoIcon className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-          <p className="text-gray-500 dark:text-gray-400 mb-4">No videos in your library yet</p>
+          <VideoIcon className="w-12 h-12 text-[var(--muted)] mx-auto mb-4" />
+          <p className="text-[var(--muted)] mb-4">No videos in your library yet</p>
           <p className="text-sm text-gray-400 dark:text-gray-500">
             Click the "Add Video" button above to get started
           </p>
@@ -280,7 +280,7 @@ export default function Videos() {
                     href={video.url}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="text-primary-600 hover:text-primary-700"
+                    className="text-[var(--accent)] hover:text-primary-700"
                   >
                     <ExternalLink className="w-5 h-5" />
                   </a>
@@ -293,25 +293,25 @@ export default function Videos() {
                 </div>
               </div>
 
-              <div className="text-sm text-gray-600 dark:text-gray-400 space-y-1 mb-3">
+              <div className="text-sm text-[var(--muted)] space-y-1 mb-3">
                 <p className="truncate">{video.url}</p>
                 {video.technique_id && (
-                  <p className="text-primary-600">
+                  <p className="text-[var(--accent)]">
                     Linked to: {techniques.find((t) => t.id === video.technique_id)?.name || 'Unknown technique'}
                   </p>
                 )}
               </div>
 
               {video.timestamps && video.timestamps.length > 0 && (
-                <div className="border-t border-gray-200 dark:border-gray-700 pt-3 mt-3">
-                  <p className="text-xs font-semibold text-gray-600 dark:text-gray-400 mb-2">
+                <div className="border-t border-[var(--border)] pt-3 mt-3">
+                  <p className="text-xs font-semibold text-[var(--muted)] mb-2">
                     TIMESTAMPS
                   </p>
                   <div className="space-y-1">
                     {video.timestamps.map((ts, idx) => (
                       <div key={idx} className="text-sm flex gap-2">
-                        <span className="text-primary-600 font-mono">{ts.time}</span>
-                        <span className="text-gray-600 dark:text-gray-400">{ts.label}</span>
+                        <span className="text-[var(--accent)] font-mono">{ts.time}</span>
+                        <span className="text-[var(--muted)]">{ts.label}</span>
                       </div>
                     ))}
                   </div>

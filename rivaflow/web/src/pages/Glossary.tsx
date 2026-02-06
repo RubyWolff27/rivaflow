@@ -184,7 +184,7 @@ export default function Glossary() {
           <Book className="w-8 h-8 text-primary-600" />
           <div>
             <h1 className="text-3xl font-bold">BJJ Glossary</h1>
-            <p className="text-gray-600 dark:text-gray-400">
+            <p className="text-[var(--muted)]">
               Showing {filteredMovements.length} of {movements.length} techniques
             </p>
           </div>
@@ -369,11 +369,11 @@ export default function Glossary() {
           >
             <div className="flex items-start justify-between mb-2">
               <div className="flex-1">
-                <h3 className="font-semibold text-lg text-gray-900 dark:text-white">
+                <h3 className="font-semibold text-lg text-[var(--text)]">
                   {movement.name}
                 </h3>
                 {movement.subcategory && (
-                  <p className="text-sm text-gray-500 dark:text-gray-400 capitalize">
+                  <p className="text-sm text-[var(--muted)] capitalize">
                     {movement.subcategory}
                   </p>
                 )}
@@ -394,7 +394,7 @@ export default function Glossary() {
             </div>
 
             {movement.description && (
-              <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">
+              <p className="text-sm text-[var(--muted)] mb-3">
                 {movement.description}
               </p>
             )}
@@ -427,7 +427,7 @@ export default function Glossary() {
             </div>
 
             {(movement.aliases || []).length > 0 && (
-              <div className="text-xs text-gray-500 dark:text-gray-400">
+              <div className="text-xs text-[var(--muted)]">
                 <span className="font-medium">Also known as:</span> {(movement.aliases || []).join(', ')}
               </div>
             )}
@@ -436,7 +436,7 @@ export default function Glossary() {
       </div>
 
       {filteredMovements.length === 0 && (
-        <div className="text-center py-12 text-gray-500 dark:text-gray-400">
+        <div className="text-center py-12 text-[var(--muted)]">
           No techniques found matching your filters.
         </div>
       )}

@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
 import { friendsApi } from '../api/client';
 import type { Friend } from '../types';
-import { Users, Plus, Edit2, Trash2, Award, Filter } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { Users, Plus, Edit2, Trash2, Award, Filter, Search } from 'lucide-react';
 import ConfirmDialog from '../components/ConfirmDialog';
 import { useToast } from '../contexts/ToastContext';
 import { CardSkeleton } from '../components/ui';
@@ -15,6 +16,7 @@ const BELT_COLORS: Record<string, string> = {
 };
 
 export default function Friends() {
+  const navigate = useNavigate();
   const [friends, setFriends] = useState<Friend[]>([]);
   const [filteredFriends, setFilteredFriends] = useState<Friend[]>([]);
   const [loading, setLoading] = useState(true);
@@ -189,18 +191,27 @@ export default function Friends() {
           <Users className="w-8 h-8 text-primary-600" />
           <div>
             <h1 className="text-3xl font-bold">Friends</h1>
-            <p className="text-gray-600 dark:text-gray-400">
+            <p className="text-[var(--muted)]">
               {filteredFriends.length} of {friends.length} friends
             </p>
           </div>
         </div>
-        <button
-          onClick={() => setShowAddForm(!showAddForm)}
-          className="btn-primary flex items-center gap-2"
-        >
-          <Plus className="w-4 h-4" />
-          {showAddForm ? 'Cancel' : 'Add Friend'}
-        </button>
+        <div className="flex gap-2">
+          <button
+            onClick={() => navigate('/find-friends')}
+            className="btn-secondary flex items-center gap-2"
+          >
+            <Search className="w-4 h-4" />
+            Discover
+          </button>
+          <button
+            onClick={() => setShowAddForm(!showAddForm)}
+            className="btn-primary flex items-center gap-2"
+          >
+            <Plus className="w-4 h-4" />
+            {showAddForm ? 'Cancel' : 'Add Friend'}
+          </button>
+        </div>
       </div>
 
       {/* Add/Edit Form */}
@@ -361,10 +372,10 @@ export default function Friends() {
           <div key={friend.id} className="card hover:shadow-lg transition-shadow">
             <div className="flex items-start justify-between mb-3">
               <div className="flex-1">
-                <h3 className="font-semibold text-lg text-gray-900 dark:text-white">
+                <h3 className="font-semibold text-lg text-[var(--text)]">
                   {friend.name}
                 </h3>
-                <p className="text-sm text-gray-500 dark:text-gray-400 capitalize">
+                <p className="text-sm text-[var(--muted)] capitalize">
                   {friend.friend_type.replace('-', ' ')}
                 </p>
               </div>
@@ -391,26 +402,26 @@ export default function Friends() {
               {renderBeltBadge(friend)}
 
               {friend.instructor_certification && (
-                <div className="flex items-center gap-1 text-sm text-gray-600 dark:text-gray-400">
+                <div className="flex items-center gap-1 text-sm text-[var(--muted)]">
                   <Award className="w-4 h-4" />
                   <span>{friend.instructor_certification}</span>
                 </div>
               )}
 
               {friend.phone && (
-                <p className="text-sm text-gray-600 dark:text-gray-400">
+                <p className="text-sm text-[var(--muted)]">
                   📱 {friend.phone}
                 </p>
               )}
 
               {friend.email && (
-                <p className="text-sm text-gray-600 dark:text-gray-400">
+                <p className="text-sm text-[var(--muted)]">
                   📧 {friend.email}
                 </p>
               )}
 
               {friend.notes && (
-                <p className="text-sm text-gray-500 dark:text-gray-500 italic">
+                <p className="text-sm text-[var(--muted)] italic">
                   {friend.notes}
                 </p>
               )}
@@ -420,7 +431,7 @@ export default function Friends() {
       </div>
 
       {filteredFriends.length === 0 && (
-        <div className="text-center py-12 text-gray-500 dark:text-gray-400">
+        <div className="text-center py-12 text-[var(--muted)]">
           No friends found. Add your first friend to get started!
         </div>
       )}

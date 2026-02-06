@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { sessionsApi } from '../api/client';
 import type { Session } from '../types';
 import { Calendar, MapPin, Clock, Activity, Target, Filter, Search } from 'lucide-react';
+import { CardSkeleton } from '../components/ui';
 
 export default function Sessions() {
   const [sessions, setSessions] = useState<Session[]>([]);
@@ -86,8 +87,14 @@ export default function Sessions() {
 
   if (loading) {
     return (
-      <div className="max-w-6xl mx-auto text-center py-12">
-        <p className="text-gray-600 dark:text-gray-400">Loading sessions...</p>
+      <div className="max-w-6xl mx-auto space-y-4">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          {[1, 2, 3, 4].map(i => <CardSkeleton key={i} lines={1} />)}
+        </div>
+        <CardSkeleton lines={2} />
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {[1, 2, 3, 4].map(i => <CardSkeleton key={i} lines={3} />)}
+        </div>
       </div>
     );
   }
@@ -96,27 +103,27 @@ export default function Sessions() {
     <div className="max-w-6xl mx-auto space-y-6">
       {/* Header */}
       <div>
-        <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2" id="page-title">All Sessions</h1>
-        <p className="text-gray-600 dark:text-gray-400">View and manage your training history</p>
+        <h1 className="text-3xl font-bold text-[var(--text)] mb-2" id="page-title">All Sessions</h1>
+        <p className="text-[var(--muted)]">View and manage your training history</p>
       </div>
 
       {/* Stats Overview */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <div className="card">
-          <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">Total Sessions</p>
-          <p className="text-2xl font-bold text-gray-900 dark:text-white">{stats.total}</p>
+          <p className="text-sm text-[var(--muted)] mb-1">Total Sessions</p>
+          <p className="text-2xl font-bold text-[var(--text)]">{stats.total}</p>
         </div>
         <div className="card">
-          <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">Total Hours</p>
-          <p className="text-2xl font-bold text-gray-900 dark:text-white">{stats.totalHours.toFixed(1)}</p>
+          <p className="text-sm text-[var(--muted)] mb-1">Total Hours</p>
+          <p className="text-2xl font-bold text-[var(--text)]">{stats.totalHours.toFixed(1)}</p>
         </div>
         <div className="card">
-          <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">Total Rolls</p>
-          <p className="text-2xl font-bold text-gray-900 dark:text-white">{stats.totalRolls}</p>
+          <p className="text-sm text-[var(--muted)] mb-1">Total Rolls</p>
+          <p className="text-2xl font-bold text-[var(--text)]">{stats.totalRolls}</p>
         </div>
         <div className="card">
-          <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">Avg Intensity</p>
-          <p className="text-2xl font-bold text-gray-900 dark:text-white">{stats.avgIntensity.toFixed(1)}/5</p>
+          <p className="text-sm text-[var(--muted)] mb-1">Avg Intensity</p>
+          <p className="text-2xl font-bold text-[var(--text)]">{stats.avgIntensity.toFixed(1)}/5</p>
         </div>
       </div>
 
@@ -166,7 +173,7 @@ export default function Sessions() {
       {/* Sessions List */}
       {filteredSessions.length === 0 ? (
         <div className="card text-center py-12">
-          <p className="text-gray-600 dark:text-gray-400">
+          <p className="text-[var(--muted)]">
             {searchTerm || filterType !== 'all'
               ? 'No sessions match your filters'
               : 'No sessions logged yet. Start training!'}
@@ -184,18 +191,18 @@ export default function Sessions() {
               <div className="flex items-start justify-between mb-3">
                 <div className="flex-1">
                   <div className="flex items-center gap-2 mb-1">
-                    <span className="px-2 py-0.5 bg-primary-100 dark:bg-primary-900 text-primary-700 dark:text-primary-300 rounded text-xs font-semibold uppercase">
+                    <span className="px-2 py-0.5 bg-[rgba(var(--accent-rgb),0.12)] text-[var(--accent)] rounded text-xs font-semibold uppercase">
                       {session.class_type}
                     </span>
-                    <span className="text-xs text-gray-500">
+                    <span className="text-xs text-[var(--muted)]">
                       Intensity: {session.intensity}/5
                     </span>
                   </div>
-                  <h3 className="font-semibold text-gray-900 dark:text-white">
+                  <h3 className="font-semibold text-[var(--text)]">
                     {session.gym_name}
                   </h3>
                   {session.location && (
-                    <p className="flex items-center gap-1 text-xs text-gray-600 dark:text-gray-400 mt-1">
+                    <p className="flex items-center gap-1 text-xs text-[var(--muted)] mt-1">
                       <MapPin className="w-3 h-3" />
                       {session.location}
                     </p>
@@ -204,26 +211,26 @@ export default function Sessions() {
               </div>
 
               {/* Stats */}
-              <div className="grid grid-cols-3 gap-3 py-3 border-t border-gray-200 dark:border-gray-700">
+              <div className="grid grid-cols-3 gap-3 py-3 border-t border-[var(--border)]">
                 <div>
-                  <div className="flex items-center gap-1 text-xs text-gray-600 dark:text-gray-400 mb-1">
+                  <div className="flex items-center gap-1 text-xs text-[var(--muted)] mb-1">
                     <Calendar className="w-3 h-3" />
                     Date
                   </div>
                   <p className="text-sm font-semibold">{formatDate(session.session_date)}</p>
                   {session.class_time && (
-                    <p className="text-xs text-gray-500">{session.class_time}</p>
+                    <p className="text-xs text-[var(--muted)]">{session.class_time}</p>
                   )}
                 </div>
                 <div>
-                  <div className="flex items-center gap-1 text-xs text-gray-600 dark:text-gray-400 mb-1">
+                  <div className="flex items-center gap-1 text-xs text-[var(--muted)] mb-1">
                     <Clock className="w-3 h-3" />
                     Duration
                   </div>
                   <p className="text-sm font-semibold">{session.duration_mins} min</p>
                 </div>
                 <div>
-                  <div className="flex items-center gap-1 text-xs text-gray-600 dark:text-gray-400 mb-1">
+                  <div className="flex items-center gap-1 text-xs text-[var(--muted)] mb-1">
                     <Activity className="w-3 h-3" />
                     Rolls
                   </div>
@@ -232,19 +239,19 @@ export default function Sessions() {
               </div>
 
               {/* Submissions */}
-              <div className="flex items-center gap-2 pt-2 border-t border-gray-200 dark:border-gray-700">
-                <Target className="w-4 h-4 text-gray-500" />
-                <span className="text-sm text-gray-600 dark:text-gray-400">
-                  <span className="font-semibold text-green-600">{session.submissions_for}</span>
+              <div className="flex items-center gap-2 pt-2 border-t border-[var(--border)]">
+                <Target className="w-4 h-4 text-[var(--muted)]" />
+                <span className="text-sm text-[var(--muted)]">
+                  <span className="font-semibold text-emerald-500">{session.submissions_for}</span>
                   {' / '}
-                  <span className="font-semibold text-red-600">{session.submissions_against}</span>
+                  <span className="font-semibold text-[var(--error)]">{session.submissions_against}</span>
                   {' '}submissions
                 </span>
               </div>
 
               {/* Notes Preview */}
               {session.notes && (
-                <p className="text-xs text-gray-500 dark:text-gray-400 mt-2 line-clamp-2">
+                <p className="text-xs text-[var(--muted)] dark:text-gray-400 mt-2 line-clamp-2">
                   {session.notes}
                 </p>
               )}

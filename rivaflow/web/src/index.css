@@ -157,6 +157,19 @@
     color: var(--muted);
   }
 
+  /* Accent badge - used for class type pills, technique tags etc */
+  .accent-badge {
+    background-color: rgba(var(--accent-rgb), 0.12);
+    color: var(--accent);
+  }
+
+  /* Stat label - small muted text above a value */
+  .stat-label {
+    font-size: 0.75rem;
+    color: var(--muted);
+    margin-bottom: 0.25rem;
+  }
+
   /* Border utilities */
   .border-default {
     border-color: var(--border);

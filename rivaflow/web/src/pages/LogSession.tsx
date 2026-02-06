@@ -7,6 +7,23 @@ import GymSelector from '../components/GymSelector';
 import { useToast } from '../contexts/ToastContext';
 
 const CLASS_TYPES = ['gi', 'no-gi', 'wrestling', 'judo', 'open-mat', 'mma', 's&c', 'mobility', 'yoga', 'rehab', 'physio', 'drilling', 'cardio', 'recovery', 'other'];
+const CLASS_TYPE_LABELS: Record<string, string> = {
+  'gi': 'Gi',
+  'no-gi': 'No-Gi',
+  'wrestling': 'Wrestling',
+  'judo': 'Judo',
+  'open-mat': 'Open Mat',
+  'mma': 'MMA',
+  's&c': 'S&C',
+  'mobility': 'Mobility',
+  'yoga': 'Yoga',
+  'rehab': 'Rehab',
+  'physio': 'Physio',
+  'drilling': 'Drilling',
+  'cardio': 'Cardio',
+  'recovery': 'Recovery',
+  'other': 'Other',
+};
 const SPARRING_TYPES = ['gi', 'no-gi', 'mma', 'judo', 'wrestling', 'open-mat'];
 
 interface RollEntry {
@@ -121,7 +138,9 @@ export default function LogSession() {
       setAutocomplete(autocompleteRes.data ?? {});
       setInstructors(instructorsRes.data ?? []);
       setPartners(partnersRes.data ?? []);
-      setMovements(movementsRes.data ?? []);
+      // API returns {movements: [...], total: N} — extract the array
+      const movementsData = movementsRes.data as any;
+      setMovements(Array.isArray(movementsData) ? movementsData : movementsData?.movements || []);
 
       // Auto-populate default gym, location, coach, and class type from profile
       const updates: any = {};
@@ -636,7 +655,7 @@ export default function LogSession() {
               required
             >
               {CLASS_TYPES.map((type) => (
-                <option key={type} value={type}>{type}</option>
+                <option key={type} value={type}>{CLASS_TYPE_LABELS[type] || type}</option>
               ))}
             </select>
           </div>
