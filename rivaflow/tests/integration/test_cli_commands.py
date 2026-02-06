@@ -56,7 +56,7 @@ def mock_user_context():
         cursor = conn.cursor()
         cursor.execute(
             """
-            INSERT INTO users (email, password_hash, created_at)
+            INSERT INTO users (email, hashed_password, created_at)
             VALUES (?, ?, CURRENT_TIMESTAMP)
         """,
             ("cli_test_user@example.com", "dummy_hash"),

@@ -84,7 +84,7 @@ class TestPasswordHashing:
         assert verify_password("password123!", hashed) is False
         assert verify_password("PASSWORD123!", hashed) is False
 
-    def test_password_hash_not_reversible(self):
+    def test_hashed_password_not_reversible(self):
         """Test password hashes cannot be reversed."""
         password = "SecretPassword123!"
         hashed = hash_password(password)
@@ -152,9 +152,7 @@ class TestJWTTokenSecurity:
 
     def test_refresh_token_different_from_access(self):
         """Test refresh tokens are different from access tokens."""
-        user_id = 123
-
-        refresh_token = generate_refresh_token(user_id)
+        refresh_token = generate_refresh_token()
 
         # Refresh token should be a random string, not a JWT
         assert not refresh_token.count(".") == 2  # JWTs have 2 dots
@@ -181,7 +179,7 @@ class TestPasswordResetTokenSecurity:
             cursor = conn.cursor()
             cursor.execute(
                 """
-                INSERT INTO users (email, password_hash, created_at)
+                INSERT INTO users (email, hashed_password, created_at)
                 VALUES (?, ?, CURRENT_TIMESTAMP)
             """,
                 ("test_reset_hash@example.com", "hash"),
@@ -227,7 +225,7 @@ class TestPasswordResetTokenSecurity:
             cursor = conn.cursor()
             cursor.execute(
                 """
-                INSERT INTO users (email, password_hash, created_at)
+                INSERT INTO users (email, hashed_password, created_at)
                 VALUES (?, ?, CURRENT_TIMESTAMP)
             """,
                 ("test_single_use@example.com", "hash"),
@@ -266,7 +264,7 @@ class TestPasswordResetTokenSecurity:
             cursor = conn.cursor()
             cursor.execute(
                 """
-                INSERT INTO users (email, password_hash, created_at)
+                INSERT INTO users (email, hashed_password, created_at)
                 VALUES (?, ?, CURRENT_TIMESTAMP)
             """,
                 ("test_expire@example.com", "hash"),
@@ -334,7 +332,7 @@ class TestSQLInjectionPrevention:
             cursor = conn.cursor()
             cursor.execute(
                 """
-                INSERT INTO users (email, password_hash, created_at)
+                INSERT INTO users (email, hashed_password, created_at)
                 VALUES (?, ?, CURRENT_TIMESTAMP)
             """,
                 ("test_special@example.com", "hash"),
@@ -394,7 +392,7 @@ class TestAuthorizationChecks:
             cursor = conn.cursor()
             cursor.execute(
                 """
-                INSERT INTO users (email, password_hash, created_at)
+                INSERT INTO users (email, hashed_password, created_at)
                 VALUES (?, ?, CURRENT_TIMESTAMP)
             """,
                 ("user1@example.com", "hash"),
@@ -404,7 +402,7 @@ class TestAuthorizationChecks:
 
             cursor.execute(
                 """
-                INSERT INTO users (email, password_hash, created_at)
+                INSERT INTO users (email, hashed_password, created_at)
                 VALUES (?, ?, CURRENT_TIMESTAMP)
             """,
                 ("user2@example.com", "hash"),

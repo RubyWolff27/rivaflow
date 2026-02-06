@@ -5,6 +5,7 @@ on:
     branches: [ main, develop ]
   pull_request:
     branches: [ main, develop ]
+  workflow_call:
 
 jobs:
   backend-tests:
@@ -82,7 +83,7 @@ jobs:
     - name: Setup Node.js ${{ matrix.node-version }}
       uses: actions/setup-node@v4
       with:
-        node-version: ${{ matrix.python-version }}
+        node-version: ${{ matrix.node-version }}
         cache: 'npm'
         cache-dependency-path: web/package-lock.json
 

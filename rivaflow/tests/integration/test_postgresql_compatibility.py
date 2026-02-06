@@ -35,7 +35,7 @@ def test_user():
         cursor = conn.cursor()
         cursor.execute(
             """
-            INSERT INTO users (email, password_hash, created_at)
+            INSERT INTO users (email, hashed_password, created_at)
             VALUES (?, ?, CURRENT_TIMESTAMP)
         """,
             ("postgres_test@example.com", "dummy_hash"),
@@ -79,7 +79,7 @@ class TestQueryConversion:
 
     def test_convert_query_insert(self):
         """Test INSERT query conversion."""
-        sqlite_query = "INSERT INTO users (email, password_hash) VALUES (?, ?)"
+        sqlite_query = "INSERT INTO users (email, hashed_password) VALUES (?, ?)"
         converted = convert_query(sqlite_query)
 
         assert "INSERT" in converted

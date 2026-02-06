@@ -164,7 +164,7 @@ class TestAuthenticationErrors:
             cursor = conn.cursor()
             cursor.execute(
                 """
-                INSERT INTO users (email, password_hash, created_at)
+                INSERT INTO users (email, hashed_password, created_at)
                 VALUES (?, ?, CURRENT_TIMESTAMP)
             """,
                 ("test_wrong_pass@example.com", "dummy_hash"),
@@ -242,7 +242,7 @@ class TestDatabaseConstraintErrors:
             # Create first user
             cursor.execute(
                 """
-                INSERT INTO users (email, password_hash, created_at)
+                INSERT INTO users (email, hashed_password, created_at)
                 VALUES (?, ?, CURRENT_TIMESTAMP)
             """,
                 ("duplicate@example.com", "hash1"),
@@ -255,7 +255,7 @@ class TestDatabaseConstraintErrors:
                 with pytest.raises(Exception):  # Database constraint error
                     cursor.execute(
                         """
-                        INSERT INTO users (email, password_hash, created_at)
+                        INSERT INTO users (email, hashed_password, created_at)
                         VALUES (?, ?, CURRENT_TIMESTAMP)
                     """,
                         ("duplicate@example.com", "hash2"),
@@ -278,7 +278,7 @@ class TestInputSanitization:
             # Create test user
             cursor.execute(
                 """
-                INSERT INTO users (email, password_hash, created_at)
+                INSERT INTO users (email, hashed_password, created_at)
                 VALUES (?, ?, CURRENT_TIMESTAMP)
             """,
                 ("test_injection@example.com", "hash"),
@@ -343,7 +343,7 @@ class TestInputSanitization:
             cursor = conn.cursor()
             cursor.execute(
                 """
-                INSERT INTO users (email, password_hash, created_at)
+                INSERT INTO users (email, hashed_password, created_at)
                 VALUES (?, ?, CURRENT_TIMESTAMP)
             """,
                 ("test_special@example.com", "hash"),
@@ -408,7 +408,7 @@ class TestErrorMessages:
             cursor = conn.cursor()
             cursor.execute(
                 """
-                INSERT INTO users (email, password_hash, created_at)
+                INSERT INTO users (email, hashed_password, created_at)
                 VALUES (?, ?, CURRENT_TIMESTAMP)
             """,
                 ("test_secure_msg@example.com", "hash"),
@@ -438,7 +438,7 @@ class TestExceptionRecovery:
             cursor = conn.cursor()
             cursor.execute(
                 """
-                INSERT INTO users (email, password_hash, created_at)
+                INSERT INTO users (email, hashed_password, created_at)
                 VALUES (?, ?, CURRENT_TIMESTAMP)
             """,
                 ("test_recovery@example.com", "hash"),

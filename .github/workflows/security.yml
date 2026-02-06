@@ -5,6 +5,7 @@ on:
     branches: [ main, develop ]
   pull_request:
     branches: [ main, develop ]
+  workflow_call:
   schedule:
     # Run security scan weekly on Mondays at 9am UTC
     - cron: '0 9 * * 1'

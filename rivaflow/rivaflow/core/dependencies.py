@@ -36,6 +36,12 @@ async def get_current_user(
     try:
         # Decode JWT token
         payload = decode_access_token(token)
+        if payload is None:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Could not validate credentials",
+                headers={"WWW-Authenticate": "Bearer"},
+            )
         user_id_str = payload.get("sub")
         user_id: int = int(user_id_str) if user_id_str else None
 

@@ -6,7 +6,7 @@ from fastapi import APIRouter, Depends
 from fastapi.responses import JSONResponse
 
 from rivaflow.core.dependencies import get_current_user
-from rivaflow.core.exceptions import NotFoundError, ValidationError
+from rivaflow.core.exceptions import ValidationError
 from rivaflow.core.models import ReadinessCreate
 from rivaflow.core.services.readiness_service import ReadinessService
 
@@ -15,9 +15,7 @@ service = ReadinessService()
 
 
 @router.post("/")
-async def log_readiness(
-    readiness: ReadinessCreate, current_user: dict = Depends(get_current_user)
-):
+async def log_readiness(readiness: ReadinessCreate, current_user: dict = Depends(get_current_user)):
     """Log daily readiness check-in."""
     service.log_readiness(
         user_id=current_user["id"],
@@ -29,9 +27,7 @@ async def log_readiness(
         hotspot_note=readiness.hotspot_note,
         weight_kg=readiness.weight_kg,
     )
-    entry = service.get_readiness(
-        user_id=current_user["id"], check_date=readiness.check_date
-    )
+    entry = service.get_readiness(user_id=current_user["id"], check_date=readiness.check_date)
     return entry
 
 
@@ -45,17 +41,12 @@ async def get_latest_readiness(current_user: dict = Depends(get_current_user)):
 
 
 @router.get("/{check_date}")
-async def get_readiness(
-    check_date: date, current_user: dict = Depends(get_current_user)
-):
+async def get_readiness(check_date: date, current_user: dict = Depends(get_current_user)):
     """Get readiness for a specific date."""
     entry = service.get_readiness(user_id=current_user["id"], check_date=check_date)
     if not entry:
         # Return 404 without raising exception to avoid error logging for expected behavior
-        return JSONResponse(
-            status_code=404,
-            content={"detail": "Readiness entry not found"}
-        )
+        return JSONResponse(status_code=404, content={"detail": "Readiness entry not found"})
     return entry
 
 
@@ -73,9 +64,7 @@ async def get_readiness_range(
 async def log_weight_only(data: dict, current_user: dict = Depends(get_current_user)):
     """Log weight only for a date (quick logging for rest days)."""
     try:
-        check_date = date.fromisoformat(
-            data.get("check_date", date.today().isoformat())
-        )
+        check_date = date.fromisoformat(data.get("check_date", date.today().isoformat()))
         weight_kg = float(data["weight_kg"])
 
         if weight_kg < 30 or weight_kg > 300:

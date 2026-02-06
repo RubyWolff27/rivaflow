@@ -40,13 +40,13 @@ class TestQueryConversion:
 
     def test_convert_query_handles_insert(self):
         """Test INSERT query conversion."""
-        sqlite_query = "INSERT INTO users (email, password_hash) VALUES (?, ?)"
+        sqlite_query = "INSERT INTO users (email, hashed_password) VALUES (?, ?)"
         converted = convert_query(sqlite_query)
 
         assert "INSERT" in converted.upper()
         assert "users" in converted
         assert "email" in converted
-        assert "password_hash" in converted
+        assert "hashed_password" in converted
 
     def test_convert_query_handles_update(self):
         """Test UPDATE query conversion."""
@@ -154,7 +154,7 @@ class TestRowToDictConversion:
             # First create a test user
             cursor.execute(
                 """
-                INSERT INTO users (email, password_hash, created_at)
+                INSERT INTO users (email, hashed_password, created_at)
                 VALUES (?, ?, CURRENT_TIMESTAMP)
             """,
                 ("test_dict@example.com", "dummy_hash"),
@@ -238,7 +238,7 @@ class TestTransactionIsolation:
             cursor = conn.cursor()
             cursor.execute(
                 """
-                INSERT INTO users (email, password_hash, created_at)
+                INSERT INTO users (email, hashed_password, created_at)
                 VALUES (?, ?, CURRENT_TIMESTAMP)
             """,
                 ("test_rollback@example.com", "dummy_hash"),
@@ -294,7 +294,7 @@ class TestTransactionIsolation:
             cursor = conn.cursor()
             cursor.execute(
                 """
-                INSERT INTO users (email, password_hash, created_at)
+                INSERT INTO users (email, hashed_password, created_at)
                 VALUES (?, ?, CURRENT_TIMESTAMP)
             """,
                 ("test_explicit_rollback@example.com", "dummy_hash"),
@@ -346,7 +346,7 @@ class TestDatabaseTypes:
             cursor = conn.cursor()
             cursor.execute(
                 """
-                INSERT INTO users (email, password_hash, created_at)
+                INSERT INTO users (email, hashed_password, created_at)
                 VALUES (?, ?, CURRENT_TIMESTAMP)
             """,
                 ("test_int@example.com", "hash"),
@@ -372,7 +372,7 @@ class TestDatabaseTypes:
             cursor = conn.cursor()
             cursor.execute(
                 """
-                INSERT INTO users (email, password_hash, created_at)
+                INSERT INTO users (email, hashed_password, created_at)
                 VALUES (?, ?, CURRENT_TIMESTAMP)
             """,
                 ("test_string@example.com", "hash"),
@@ -415,7 +415,7 @@ class TestDatabaseTypes:
             cursor = conn.cursor()
             cursor.execute(
                 """
-                INSERT INTO users (email, password_hash, created_at)
+                INSERT INTO users (email, hashed_password, created_at)
                 VALUES (?, ?, CURRENT_TIMESTAMP)
             """,
                 ("test_null@example.com", "hash"),
