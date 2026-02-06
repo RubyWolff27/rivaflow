@@ -7,11 +7,60 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- Moved frontend (web/) into main repository for proper deployment
+- Improved build.sh with frontend build step and verification
+
+### Fixed
+- Frontend now properly included in repository and deployments
+- Build process verifies frontend build succeeds before deployment
+
+## [0.2.1] - 2026-02-06
+
+### Fixed - Production Hot Fixes
+- **CRITICAL:** Moved web/ directory into repository - was outside git repo causing deployment failures
+- **CRITICAL:** Techniques page crash - API response structure mismatch (TypeError: r.map is not a function)
+- Videos page crash - same API pagination issue
+- Health endpoint now supports HEAD requests for monitoring services (was returning 405)
+- Readiness endpoint no longer logs errors for expected 404 responses
+- Frontend favicon fixed - changed from missing vite.svg to logo.png
+- Dashboard console errors removed for expected readiness 404s
+- ErrorBoundary TypeScript build error - removed unused React import
+
+### Added
+- Frontend build step in build.sh with npm ci and verification
+- PaginatedResponse<T> type for techniques API responses
+- Error handling and fallbacks for techniques/videos data loading
+- Build verification that fails loudly if frontend build fails
+- web/.gitignore for node_modules and dist directories
+
+### Changed
+- Repository cleanup - removed 22 obsolete files (~2.4MB)
+  - Build artifacts (__pycache__, .pyc, build/, .egg-info)
+  - Duplicate documentation (v1, v2 beta reports)
+  - 17 working/process documents from development
+  - Development test scripts and backup files
+- Health endpoint documentation updated to note GET and HEAD support
+- Readiness endpoint returns JSONResponse instead of raising exception
+
+### Documentation
+- Added PRODUCTION_FIXES_FEB6.md - comprehensive post-launch debugging report
+- Updated BETA_COMPLETION_SUMMARY.md with final beta readiness status
+- Updated BETA_READINESS_STATUS.md with completion comparison
+
+See PRODUCTION_FIXES_FEB6.md for detailed root cause analysis and fixes.
+
+## [0.2.0] - 2026-02-06
+
 ### Added
 - Comprehensive README.md with installation, quick start, and feature documentation
 - LICENSE file (MIT)
 - CHANGELOG.md (this file)
 - BETA_READINESS_REPORT.md with comprehensive pre-release audit
+- Security headers middleware with comprehensive policy
+- Admin authorization checks on feedback endpoints
+- CI/CD pipeline with GitHub Actions (test, security, deploy)
+- Auto-deployment to Render.com on main branch push
 
 ### Fixed
 - PostgreSQL compatibility for datetime field handling across all repositories
@@ -21,11 +70,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Validation error logging now includes detailed error messages
 - Photo upload PostgreSQL compatibility in ActivityPhotoRepository
 - Chat session PostgreSQL compatibility
+- Linting violations reduced from 2,470 to 0
+- Version consistency across all components (0.2.0)
+- Documentation URLs updated from placeholders to actual repository
 
 ### Security
 - Enhanced SendGrid error handling with detailed 403 diagnostics
 - Password reset flow improvements
 - Token security verified
+- Security headers enabled (HSTS, X-Frame-Options, CSP, etc.)
 
 ## [0.2.0] - 2026-02-01
 
