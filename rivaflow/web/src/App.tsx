@@ -39,6 +39,13 @@ const AdminGrapple = lazy(() => import('./pages/AdminGrapple'));
 const AdminFeedback = lazy(() => import('./pages/AdminFeedback'));
 const AdminWaitlist = lazy(() => import('./pages/AdminWaitlist'));
 const Waitlist = lazy(() => import('./pages/Waitlist'));
+const Events = lazy(() => import('./pages/Events'));
+const FightDynamics = lazy(() => import('./pages/FightDynamics'));
+const ContactUs = lazy(() => import('./pages/ContactUs'));
+const FAQ = lazy(() => import('./pages/FAQ'));
+const Terms = lazy(() => import('./pages/Terms'));
+const Privacy = lazy(() => import('./pages/Privacy'));
+const Groups = lazy(() => import('./pages/Groups'));
 const Login = lazy(() => import('./pages/Login'));
 const Register = lazy(() => import('./pages/Register'));
 const ForgotPassword = lazy(() => import('./pages/ForgotPassword'));
@@ -94,6 +101,13 @@ function App() {
                           <Route path="/admin/grapple" element={<AdminGrapple />} />
                           <Route path="/admin/feedback" element={<AdminFeedback />} />
                           <Route path="/admin/waitlist" element={<AdminWaitlist />} />
+                          <Route path="/groups" element={<Groups />} />
+                          <Route path="/events" element={<Events />} />
+                          <Route path="/fight-dynamics" element={<FightDynamics />} />
+                          <Route path="/contact" element={<ContactUs />} />
+                          <Route path="/faq" element={<FAQ />} />
+                          <Route path="/terms" element={<Terms />} />
+                          <Route path="/privacy" element={<Privacy />} />
                         </Routes>
                       </Suspense>
                     </Layout>

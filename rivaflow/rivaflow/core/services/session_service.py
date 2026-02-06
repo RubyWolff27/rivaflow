@@ -50,6 +50,10 @@ class SessionService:
         whoop_calories: int | None = None,
         whoop_avg_hr: int | None = None,
         whoop_max_hr: int | None = None,
+        attacks_attempted: int = 0,
+        attacks_successful: int = 0,
+        defenses_attempted: int = 0,
+        defenses_successful: int = 0,
     ) -> int:
         """
         Create a new training session and update technique tracking.
@@ -79,6 +83,10 @@ class SessionService:
             whoop_calories=whoop_calories,
             whoop_avg_hr=whoop_avg_hr,
             whoop_max_hr=whoop_max_hr,
+            attacks_attempted=attacks_attempted,
+            attacks_successful=attacks_successful,
+            defenses_attempted=defenses_attempted,
+            defenses_successful=defenses_successful,
         )
 
         # Create detailed roll records if provided

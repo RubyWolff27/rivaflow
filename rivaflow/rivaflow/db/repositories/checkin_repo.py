@@ -44,37 +44,63 @@ class CheckinRepository:
         """Create or update daily check-in."""
         with get_connection() as conn:
             cursor = conn.cursor()
-            checkin_id = execute_insert(
-                cursor,
-                """
-                INSERT INTO daily_checkins (
-                    user_id, check_date, checkin_type, rest_type, rest_note,
-                    session_id, readiness_id, tomorrow_intention, insight_shown
-                )
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-                ON CONFLICT(user_id, check_date) DO UPDATE SET
-                    checkin_type = excluded.checkin_type,
-                    rest_type = excluded.rest_type,
-                    rest_note = excluded.rest_note,
-                    session_id = excluded.session_id,
-                    readiness_id = excluded.readiness_id,
-                    tomorrow_intention = excluded.tomorrow_intention,
-                    insight_shown = excluded.insight_shown
-                """,
-                (
-                    user_id,
-                    check_date.isoformat(),
-                    checkin_type,
-                    rest_type,
-                    rest_note,
-                    session_id,
-                    readiness_id,
-                    tomorrow_intention,
-                    insight_shown,
+            # Check for existing entry first (avoids SQLite lastrowid=0 on
+            # ON CONFLICT UPDATE path)
+            cursor.execute(
+                convert_query(
+                    "SELECT id FROM daily_checkins"
+                    " WHERE user_id = ? AND check_date = ?"
                 ),
+                (user_id, check_date.isoformat()),
             )
-            conn.commit()
-            return checkin_id
+            existing = cursor.fetchone()
+
+            if existing:
+                cursor.execute(
+                    convert_query("""
+                    UPDATE daily_checkins
+                    SET checkin_type = ?, rest_type = ?, rest_note = ?,
+                        session_id = ?, readiness_id = ?,
+                        tomorrow_intention = ?, insight_shown = ?
+                    WHERE user_id = ? AND check_date = ?
+                    """),
+                    (
+                        checkin_type,
+                        rest_type,
+                        rest_note,
+                        session_id,
+                        readiness_id,
+                        tomorrow_intention,
+                        insight_shown,
+                        user_id,
+                        check_date.isoformat(),
+                    ),
+                )
+                return existing["id"]
+            else:
+                checkin_id = execute_insert(
+                    cursor,
+                    """
+                    INSERT INTO daily_checkins (
+                        user_id, check_date, checkin_type, rest_type,
+                        rest_note, session_id, readiness_id,
+                        tomorrow_intention, insight_shown
+                    )
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    """,
+                    (
+                        user_id,
+                        check_date.isoformat(),
+                        checkin_type,
+                        rest_type,
+                        rest_note,
+                        session_id,
+                        readiness_id,
+                        tomorrow_intention,
+                        insight_shown,
+                    ),
+                )
+                return checkin_id
 
     @staticmethod
     def get_checkins_range(

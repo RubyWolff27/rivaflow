@@ -17,6 +17,7 @@ export default function Readiness() {
     soreness: 2,
     energy: 3,
     hotspot_note: '',
+    weight_kg: '' as string | number,
   });
 
   useEffect(() => {
@@ -39,7 +40,11 @@ export default function Readiness() {
     setLoading(true);
 
     try {
-      await readinessApi.create(formData);
+      const submitData = {
+        ...formData,
+        weight_kg: formData.weight_kg !== '' ? Number(formData.weight_kg) : undefined,
+      };
+      await readinessApi.create(submitData);
       setSuccess(true);
       await loadLatest();
       setTimeout(() => setSuccess(false), 3000);
@@ -73,6 +78,9 @@ export default function Readiness() {
             <div>Soreness: {latest.soreness ?? 0}/5</div>
             <div>Energy: {latest.energy ?? 0}/5</div>
           </div>
+          {latest.weight_kg && (
+            <div className="mt-2">Weight: {latest.weight_kg} kg</div>
+          )}
           {latest.hotspot_note && (
             <p className="mt-3 text-sm">Hotspot: {latest.hotspot_note}</p>
           )}
@@ -126,6 +134,23 @@ export default function Readiness() {
           <div className="p-4 bg-gradient-to-r from-primary-50 to-blue-50 dark:from-primary-900/20 dark:to-blue-900/20 rounded-lg">
             <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">Composite Score</p>
             <p className="text-3xl font-bold text-primary-600">{compositeScore}/20</p>
+          </div>
+
+          {/* Weight */}
+          <div>
+            <label className="label">Body Weight (optional)</label>
+            <div className="relative">
+              <input
+                type="number"
+                step="0.1"
+                min="0"
+                className="input pr-10"
+                value={formData.weight_kg}
+                onChange={(e) => setFormData({ ...formData, weight_kg: e.target.value })}
+                placeholder="e.g., 78.5"
+              />
+              <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-gray-500">kg</span>
+            </div>
           </div>
 
           {/* Hotspot */}

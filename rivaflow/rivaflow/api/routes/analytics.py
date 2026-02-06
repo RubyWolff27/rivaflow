@@ -9,12 +9,14 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from rivaflow.core.dependencies import get_current_user
 from rivaflow.core.exceptions import NotFoundError
 from rivaflow.core.services.analytics_service import AnalyticsService
+from rivaflow.core.services.fight_dynamics_service import FightDynamicsService
 from rivaflow.core.utils.cache import cached
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter()
 service = AnalyticsService()
+fight_dynamics_service = FightDynamicsService()
 
 
 @cached(ttl_seconds=600, key_prefix="analytics_performance")
@@ -267,4 +269,62 @@ async def get_instructor_analytics(
         logger.error(traceback.format_exc())
         raise HTTPException(
             status_code=500, detail=f"Analytics error: {type(e).__name__}: {str(e)}"
+        )
+
+
+@router.get("/fight-dynamics/heatmap")
+async def get_fight_dynamics_heatmap(
+    view: str = Query(
+        default="weekly",
+        pattern="^(weekly|monthly)$",
+        description="View type: weekly or monthly",
+    ),
+    weeks: int = Query(
+        default=8, ge=1, le=52, description="Number of weeks (weekly view)"
+    ),
+    months: int = Query(
+        default=6, ge=1, le=24, description="Number of months (monthly view)"
+    ),
+    current_user: dict = Depends(get_current_user),
+):
+    """Get aggregated attack/defence data for heatmap display."""
+    try:
+        return fight_dynamics_service.get_heatmap_data(
+            user_id=current_user["id"],
+            view=view,
+            weeks=weeks,
+            months=months,
+        )
+    except Exception as e:
+        logger.error(
+            f"Error in get_fight_dynamics_heatmap: {type(e).__name__}: {str(e)}"
+        )
+        logger.error(traceback.format_exc())
+        raise HTTPException(
+            status_code=500,
+            detail=f"Analytics error: {type(e).__name__}: {str(e)}",
+        )
+
+
+@router.get("/fight-dynamics/insights")
+async def get_fight_dynamics_insights(
+    current_user: dict = Depends(get_current_user),
+):
+    """Get auto-generated fight dynamics insights.
+
+    Compares last 4 weeks to previous 4 weeks.
+    Only generates insights when 3+ sessions have fight dynamics data.
+    """
+    try:
+        return fight_dynamics_service.get_insights(
+            user_id=current_user["id"],
+        )
+    except Exception as e:
+        logger.error(
+            f"Error in get_fight_dynamics_insights: {type(e).__name__}: {str(e)}"
+        )
+        logger.error(traceback.format_exc())
+        raise HTTPException(
+            status_code=500,
+            detail=f"Analytics error: {type(e).__name__}: {str(e)}",
         )

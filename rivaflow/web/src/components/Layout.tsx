@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, memo } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { Home, Plus, BarChart3, Book, User, Users, Menu, X, LogOut, Grid, BookOpen, Video, Activity, Shield, Calendar, Sparkles } from 'lucide-react';
+import { Home, Plus, BarChart3, Book, User, Users, Menu, X, LogOut, Grid, BookOpen, Video, Activity, Shield, Calendar, Sparkles, Trophy, HelpCircle, MessageSquare, FileText } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import QuickLog from './QuickLog';
 import { notificationsApi } from '../api/client';
@@ -98,6 +98,12 @@ const Layout = memo(function Layout({ children }: { children: React.ReactNode })
     { name: 'Glossary', href: '/glossary', icon: BookOpen },
     { name: 'Videos', href: '/videos', icon: Video },
     { name: 'Readiness', href: '/readiness', icon: Activity },
+    { name: 'Groups', href: '/groups', icon: Users },
+    { name: 'Events', href: '/events', icon: Trophy },
+    { name: 'FAQ', href: '/faq', icon: HelpCircle },
+    { name: 'Contact', href: '/contact', icon: MessageSquare },
+    { name: 'Terms', href: '/terms', icon: FileText },
+    { name: 'Privacy', href: '/privacy', icon: Shield },
     ...(user?.is_admin ? [{ name: 'Admin', href: '/admin', icon: Shield }] : []),
   ];
 

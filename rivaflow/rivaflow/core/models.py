@@ -3,7 +3,7 @@
 from datetime import date, datetime
 from enum import Enum
 
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field, field_validator, model_validator
 
 
 class ClassType(str, Enum):
@@ -136,6 +136,18 @@ class SessionCreate(BaseModel):
     whoop_max_hr: int | None = Field(
         default=None, ge=0, le=250, description="Maximum heart rate during session"
     )
+    attacks_attempted: int = Field(
+        default=0, ge=0, description="Number of attacks attempted during session"
+    )
+    attacks_successful: int = Field(
+        default=0, ge=0, description="Number of successful attacks during session"
+    )
+    defenses_attempted: int = Field(
+        default=0, ge=0, description="Number of defenses attempted during session"
+    )
+    defenses_successful: int = Field(
+        default=0, ge=0, description="Number of successful defenses during session"
+    )
 
     @field_validator(
         "class_time", "location", "notes", "instructor_name", mode="before"
@@ -181,6 +193,15 @@ class SessionCreate(BaseModel):
             )
         return v.strip()
 
+    @model_validator(mode="after")
+    def validate_fight_dynamics(self):
+        """Validate that successful counts do not exceed attempted counts."""
+        if self.attacks_successful > self.attacks_attempted:
+            raise ValueError("attacks_successful cannot exceed attacks_attempted")
+        if self.defenses_successful > self.defenses_attempted:
+            raise ValueError("defenses_successful cannot exceed defenses_attempted")
+        return self
+
 
 class SessionUpdate(BaseModel):
     """Input model for updating a session. All fields optional."""
@@ -206,6 +227,10 @@ class SessionUpdate(BaseModel):
     whoop_calories: int | None = Field(default=None, ge=0)
     whoop_avg_hr: int | None = Field(default=None, ge=0, le=250)
     whoop_max_hr: int | None = Field(default=None, ge=0, le=250)
+    attacks_attempted: int | None = Field(default=None, ge=0)
+    attacks_successful: int | None = Field(default=None, ge=0)
+    defenses_attempted: int | None = Field(default=None, ge=0)
+    defenses_successful: int | None = Field(default=None, ge=0)
 
     @field_validator(
         "class_time", "gym_name", "location", "notes", "instructor_name", mode="before"
@@ -224,6 +249,23 @@ class SessionUpdate(BaseModel):
         if v is not None and len(v) == 0:
             return None
         return v
+
+    @model_validator(mode="after")
+    def validate_fight_dynamics(self):
+        """Validate that successful counts do not exceed attempted counts."""
+        if (
+            self.attacks_successful is not None
+            and self.attacks_attempted is not None
+            and self.attacks_successful > self.attacks_attempted
+        ):
+            raise ValueError("attacks_successful cannot exceed attacks_attempted")
+        if (
+            self.defenses_successful is not None
+            and self.defenses_attempted is not None
+            and self.defenses_successful > self.defenses_attempted
+        ):
+            raise ValueError("defenses_successful cannot exceed defenses_attempted")
+        return self
 
 
 class Session(SessionCreate):

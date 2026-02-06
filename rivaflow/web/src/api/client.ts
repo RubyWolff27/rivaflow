@@ -1,5 +1,5 @@
 import axios from 'axios';
-import type { Session, Readiness, Report, Suggestion, Technique, Video, Profile, Grading, Movement, Friend, CustomVideo, WeeklyGoalProgress, GoalsSummary, TrainingStreaks, GoalCompletionStreak, DailyCheckin, StreakStatus, Streak, Milestone, MilestoneProgress } from '../types';
+import type { Session, Readiness, Report, Suggestion, Technique, Video, Profile, Grading, Movement, Friend, CustomVideo, WeeklyGoalProgress, GoalsSummary, TrainingStreaks, GoalCompletionStreak, DailyCheckin, StreakStatus, Streak, Milestone, MilestoneProgress, CompEvent, WeightLog, WeightAverage, Group, GroupMember } from '../types';
 
 // Paginated response type
 interface PaginatedResponse<T> {
@@ -214,6 +214,10 @@ export const analyticsApi = {
   milestones: () => api.get('/analytics/milestones'),
   instructorInsights: (params?: { start_date?: string; end_date?: string; types?: string[] }) =>
     api.get('/analytics/instructors/insights', { params }),
+  fightDynamicsHeatmap: (params?: { view?: string; weeks?: number; months?: number }) =>
+    api.get('/analytics/fight-dynamics/heatmap', { params }),
+  fightDynamicsInsights: () =>
+    api.get('/analytics/fight-dynamics/insights'),
 };
 
 export const goalsApi = {
@@ -458,6 +462,29 @@ export const waitlistApi = {
     api.get<{ count: number }>('/waitlist/count'),
 };
 
+
+// Groups API (v0.3)
+export const groupsApi = {
+  create: (data: { name: string; description?: string; group_type?: string; privacy?: string; gym_id?: number; avatar_url?: string }) =>
+    api.post<Group>('/groups/', data),
+  list: () =>
+    api.get<{ groups: Group[]; count: number }>('/groups/'),
+  get: (groupId: number) =>
+    api.get<Group & { members: GroupMember[]; member_count: number; user_role: string | null }>(`/groups/${groupId}`),
+  update: (groupId: number, data: { name?: string; description?: string; group_type?: string; privacy?: string; gym_id?: number; avatar_url?: string }) =>
+    api.put<Group>(`/groups/${groupId}`, data),
+  delete: (groupId: number) =>
+    api.delete(`/groups/${groupId}`),
+  addMember: (groupId: number, userId: number, role = 'member') =>
+    api.post(`/groups/${groupId}/members`, { user_id: userId, role }),
+  removeMember: (groupId: number, userId: number) =>
+    api.delete(`/groups/${groupId}/members/${userId}`),
+  join: (groupId: number) =>
+    api.post(`/groups/${groupId}/join`),
+  leave: (groupId: number) =>
+    api.post(`/groups/${groupId}/leave`),
+};
+
 // Dashboard API (v0.2.0)
 export const dashboardApi = {
   getSummary: (params?: { start_date?: string; end_date?: string; types?: string[] }) =>
@@ -466,4 +493,24 @@ export const dashboardApi = {
     api.get<{ total_sessions: number; total_hours: number; current_streak: number; next_milestone: any }>('/dashboard/quick-stats'),
   getWeekSummary: (weekOffset = 0) =>
     api.get('/dashboard/week-summary', { params: { week_offset: weekOffset } }),
+};
+
+// Events & Competition Prep API (v0.3)
+export const eventsApi = {
+  create: (data: Partial<CompEvent>) => api.post<CompEvent>('/events/', data),
+  list: (status?: string) => api.get<{ events: CompEvent[]; total: number }>('/events/', { params: { status } }),
+  get: (id: number) => api.get<CompEvent>(`/events/${id}`),
+  update: (id: number, data: Partial<CompEvent>) => api.put<CompEvent>(`/events/${id}`, data),
+  delete: (id: number) => api.delete(`/events/${id}`),
+  getNext: () => api.get<{ event: CompEvent | null; days_until: number | null; current_weight: number | null }>('/events/next'),
+};
+
+export const weightLogsApi = {
+  create: (data: { weight: number; logged_date?: string; time_of_day?: string; notes?: string }) =>
+    api.post<{ id: number; message: string }>('/events/weight-logs/', data),
+  list: (params?: { start_date?: string; end_date?: string }) =>
+    api.get<{ logs: WeightLog[]; total: number }>('/events/weight-logs/', { params }),
+  getLatest: () => api.get<WeightLog | { weight: null; logged_date: null }>('/events/weight-logs/latest'),
+  getAverages: (period?: string) =>
+    api.get<{ averages: WeightAverage[]; period: string }>('/events/weight-logs/averages', { params: { period } }),
 };

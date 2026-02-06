@@ -61,6 +61,10 @@ async def create_session(
         whoop_calories=session.whoop_calories,
         whoop_avg_hr=session.whoop_avg_hr,
         whoop_max_hr=session.whoop_max_hr,
+        attacks_attempted=session.attacks_attempted,
+        attacks_successful=session.attacks_successful,
+        defenses_attempted=session.defenses_attempted,
+        defenses_successful=session.defenses_successful,
     )
     created_session = service.get_session(
         user_id=current_user["id"], session_id=session_id
@@ -111,6 +115,10 @@ async def update_session(
             whoop_calories=session.whoop_calories,
             whoop_avg_hr=session.whoop_avg_hr,
             whoop_max_hr=session.whoop_max_hr,
+            attacks_attempted=session.attacks_attempted,
+            attacks_successful=session.attacks_successful,
+            defenses_attempted=session.defenses_attempted,
+            defenses_successful=session.defenses_successful,
         )
         if not updated:
             raise NotFoundError(f"Session {session_id} not found or access denied")

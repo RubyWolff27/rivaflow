@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { sessionsApi, readinessApi, profileApi, friendsApi, glossaryApi, restApi } from '../api/client';
 import type { Friend, Movement, MediaUrl } from '../types';
-import { CheckCircle, ArrowRight, ArrowLeft, Plus, X, ToggleLeft, ToggleRight, Search, Camera } from 'lucide-react';
+import { CheckCircle, ArrowRight, ArrowLeft, Plus, X, ToggleLeft, ToggleRight, Search, Camera, ChevronDown, ChevronUp, Swords, Shield, Minus } from 'lucide-react';
 import GymSelector from '../components/GymSelector';
 
 const CLASS_TYPES = ['gi', 'no-gi', 'wrestling', 'judo', 'open-mat', 'mma', 's&c', 'mobility', 'yoga', 'rehab', 'physio', 'drilling', 'cardio', 'recovery', 'other'];
@@ -43,6 +43,15 @@ export default function LogSession() {
   // New: Roll tracking mode
   const [detailedMode, setDetailedMode] = useState(false);
   const [rolls, setRolls] = useState<RollEntry[]>([]);
+
+  // Fight dynamics state
+  const [showFightDynamics, setShowFightDynamics] = useState(false);
+  const [fightDynamics, setFightDynamics] = useState({
+    attacks_attempted: 0,
+    attacks_successful: 0,
+    defenses_attempted: 0,
+    defenses_successful: 0,
+  });
 
   // Search state for submissions
   const [submissionSearchFor, setSubmissionSearchFor] = useState<{[rollIndex: number]: string}>({});
@@ -325,6 +334,14 @@ export default function LogSession() {
         whoop_avg_hr: sessionData.whoop_avg_hr ? parseInt(sessionData.whoop_avg_hr as string) : undefined,
         whoop_max_hr: sessionData.whoop_max_hr ? parseInt(sessionData.whoop_max_hr as string) : undefined,
       };
+
+      // Add fight dynamics if any data was entered
+      if (fightDynamics.attacks_attempted > 0 || fightDynamics.defenses_attempted > 0) {
+        payload.attacks_attempted = fightDynamics.attacks_attempted;
+        payload.attacks_successful = Math.min(fightDynamics.attacks_successful, fightDynamics.attacks_attempted);
+        payload.defenses_attempted = fightDynamics.defenses_attempted;
+        payload.defenses_successful = Math.min(fightDynamics.defenses_successful, fightDynamics.defenses_attempted);
+      }
 
       // Add instructor
       if (sessionData.instructor_id) {
@@ -1227,6 +1244,139 @@ export default function LogSession() {
               </div>
             </div>
           </div>
+
+          {/* Fight Dynamics (BJJ sessions only) */}
+          {isSparringType && (
+            <div className="border-t border-gray-200 dark:border-gray-700 pt-4">
+              <button
+                type="button"
+                onClick={() => setShowFightDynamics(!showFightDynamics)}
+                className="flex items-center justify-between w-full text-left"
+              >
+                <div>
+                  <h3 className="font-semibold text-lg flex items-center gap-2">
+                    <Swords className="w-5 h-5" style={{ color: 'var(--accent)' }} />
+                    Fight Dynamics
+                    <span className="text-xs font-normal px-2 py-0.5 rounded-full" style={{ backgroundColor: 'var(--surfaceElev)', color: 'var(--muted)' }}>
+                      optional
+                    </span>
+                  </h3>
+                  <p className="text-xs mt-0.5" style={{ color: 'var(--muted)' }}>For comp prep — track attacks and defences</p>
+                </div>
+                {showFightDynamics ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
+              </button>
+
+              {showFightDynamics && (
+                <div className="mt-4 space-y-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    {/* Attack Column */}
+                    <div className="p-3 rounded-lg" style={{ backgroundColor: 'rgba(255, 77, 45, 0.08)', border: '1px solid rgba(255, 77, 45, 0.2)' }}>
+                      <h4 className="text-sm font-semibold mb-3 flex items-center gap-1" style={{ color: 'var(--accent)' }}>
+                        <Swords className="w-4 h-4" />
+                        ATTACK
+                      </h4>
+                      <div className="space-y-3">
+                        <div>
+                          <label className="text-xs font-medium mb-1 block" style={{ color: 'var(--muted)' }}>Attempted</label>
+                          <div className="flex items-center gap-2">
+                            <button type="button" onClick={() => setFightDynamics(fd => ({ ...fd, attacks_attempted: Math.max(0, fd.attacks_attempted - 1) }))} className="w-9 h-9 rounded-lg flex items-center justify-center font-bold" style={{ backgroundColor: 'var(--surfaceElev)', border: '1px solid var(--border)' }}>
+                              <Minus className="w-4 h-4" />
+                            </button>
+                            <input
+                              type="number"
+                              className="input text-center font-bold text-lg flex-1"
+                              value={fightDynamics.attacks_attempted}
+                              onChange={(e) => setFightDynamics({ ...fightDynamics, attacks_attempted: Math.max(0, parseInt(e.target.value) || 0) })}
+                              min="0"
+                            />
+                            <button type="button" onClick={() => setFightDynamics(fd => ({ ...fd, attacks_attempted: fd.attacks_attempted + 1 }))} className="w-9 h-9 rounded-lg flex items-center justify-center font-bold" style={{ backgroundColor: 'var(--accent)', color: '#fff' }}>
+                              <Plus className="w-4 h-4" />
+                            </button>
+                          </div>
+                        </div>
+                        <div>
+                          <label className="text-xs font-medium mb-1 block" style={{ color: 'var(--muted)' }}>Successful</label>
+                          <div className="flex items-center gap-2">
+                            <button type="button" onClick={() => setFightDynamics(fd => ({ ...fd, attacks_successful: Math.max(0, fd.attacks_successful - 1) }))} className="w-9 h-9 rounded-lg flex items-center justify-center font-bold" style={{ backgroundColor: 'var(--surfaceElev)', border: '1px solid var(--border)' }}>
+                              <Minus className="w-4 h-4" />
+                            </button>
+                            <input
+                              type="number"
+                              className="input text-center font-bold text-lg flex-1"
+                              value={fightDynamics.attacks_successful}
+                              onChange={(e) => setFightDynamics({ ...fightDynamics, attacks_successful: Math.min(fightDynamics.attacks_attempted, Math.max(0, parseInt(e.target.value) || 0)) })}
+                              min="0"
+                              max={fightDynamics.attacks_attempted}
+                            />
+                            <button type="button" onClick={() => setFightDynamics(fd => ({ ...fd, attacks_successful: Math.min(fd.attacks_attempted, fd.attacks_successful + 1) }))} className="w-9 h-9 rounded-lg flex items-center justify-center font-bold" style={{ backgroundColor: 'var(--accent)', color: '#fff' }}>
+                              <Plus className="w-4 h-4" />
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                      {fightDynamics.attacks_attempted > 0 && (
+                        <p className="text-xs font-semibold mt-2 text-center" style={{ color: 'var(--accent)' }}>
+                          {Math.round((fightDynamics.attacks_successful / fightDynamics.attacks_attempted) * 100)}% success
+                        </p>
+                      )}
+                    </div>
+
+                    {/* Defence Column */}
+                    <div className="p-3 rounded-lg" style={{ backgroundColor: 'rgba(0, 149, 255, 0.08)', border: '1px solid rgba(0, 149, 255, 0.2)' }}>
+                      <h4 className="text-sm font-semibold mb-3 flex items-center gap-1" style={{ color: '#0095FF' }}>
+                        <Shield className="w-4 h-4" />
+                        DEFENCE
+                      </h4>
+                      <div className="space-y-3">
+                        <div>
+                          <label className="text-xs font-medium mb-1 block" style={{ color: 'var(--muted)' }}>Attempted</label>
+                          <div className="flex items-center gap-2">
+                            <button type="button" onClick={() => setFightDynamics(fd => ({ ...fd, defenses_attempted: Math.max(0, fd.defenses_attempted - 1) }))} className="w-9 h-9 rounded-lg flex items-center justify-center font-bold" style={{ backgroundColor: 'var(--surfaceElev)', border: '1px solid var(--border)' }}>
+                              <Minus className="w-4 h-4" />
+                            </button>
+                            <input
+                              type="number"
+                              className="input text-center font-bold text-lg flex-1"
+                              value={fightDynamics.defenses_attempted}
+                              onChange={(e) => setFightDynamics({ ...fightDynamics, defenses_attempted: Math.max(0, parseInt(e.target.value) || 0) })}
+                              min="0"
+                            />
+                            <button type="button" onClick={() => setFightDynamics(fd => ({ ...fd, defenses_attempted: fd.defenses_attempted + 1 }))} className="w-9 h-9 rounded-lg flex items-center justify-center font-bold" style={{ backgroundColor: '#0095FF', color: '#fff' }}>
+                              <Plus className="w-4 h-4" />
+                            </button>
+                          </div>
+                        </div>
+                        <div>
+                          <label className="text-xs font-medium mb-1 block" style={{ color: 'var(--muted)' }}>Successful</label>
+                          <div className="flex items-center gap-2">
+                            <button type="button" onClick={() => setFightDynamics(fd => ({ ...fd, defenses_successful: Math.max(0, fd.defenses_successful - 1) }))} className="w-9 h-9 rounded-lg flex items-center justify-center font-bold" style={{ backgroundColor: 'var(--surfaceElev)', border: '1px solid var(--border)' }}>
+                              <Minus className="w-4 h-4" />
+                            </button>
+                            <input
+                              type="number"
+                              className="input text-center font-bold text-lg flex-1"
+                              value={fightDynamics.defenses_successful}
+                              onChange={(e) => setFightDynamics({ ...fightDynamics, defenses_successful: Math.min(fightDynamics.defenses_attempted, Math.max(0, parseInt(e.target.value) || 0)) })}
+                              min="0"
+                              max={fightDynamics.defenses_attempted}
+                            />
+                            <button type="button" onClick={() => setFightDynamics(fd => ({ ...fd, defenses_successful: Math.min(fd.defenses_attempted, fd.defenses_successful + 1) }))} className="w-9 h-9 rounded-lg flex items-center justify-center font-bold" style={{ backgroundColor: '#0095FF', color: '#fff' }}>
+                              <Plus className="w-4 h-4" />
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                      {fightDynamics.defenses_attempted > 0 && (
+                        <p className="text-xs font-semibold mt-2 text-center" style={{ color: '#0095FF' }}>
+                          {Math.round((fightDynamics.defenses_successful / fightDynamics.defenses_attempted) * 100)}% success
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Session Details / Notes */}
           <div className={!isSparringType ? 'border-t border-gray-200 dark:border-gray-700 pt-4' : ''}>

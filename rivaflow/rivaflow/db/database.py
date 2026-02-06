@@ -457,6 +457,9 @@ def _apply_migrations(
         "054_fix_streaks_unique_constraint_final.sql",
         "058_set_owner_admin.sql",
         "059_create_waitlist.sql",
+        "060_fight_dynamics.sql",
+        "061_events_and_weight_logs.sql",
+        "062_groups.sql",
     ]
 
     migrations_dir = Path(__file__).parent / "migrations"

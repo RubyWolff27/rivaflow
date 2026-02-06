@@ -34,6 +34,10 @@ class SessionRepository:
         whoop_calories: int | None = None,
         whoop_avg_hr: int | None = None,
         whoop_max_hr: int | None = None,
+        attacks_attempted: int = 0,
+        attacks_successful: int = 0,
+        defenses_attempted: int = 0,
+        defenses_successful: int = 0,
     ) -> int:
         """Create a new session and return its ID."""
         with get_connection() as conn:
@@ -47,8 +51,10 @@ class SessionRepository:
                     submissions_for, submissions_against,
                     partners, techniques, notes, visibility_level,
                     instructor_id, instructor_name,
-                    whoop_strain, whoop_calories, whoop_avg_hr, whoop_max_hr
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    whoop_strain, whoop_calories, whoop_avg_hr, whoop_max_hr,
+                    attacks_attempted, attacks_successful,
+                    defenses_attempted, defenses_successful
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
                     user_id,
@@ -72,6 +78,10 @@ class SessionRepository:
                     whoop_calories,
                     whoop_avg_hr,
                     whoop_max_hr,
+                    attacks_attempted,
+                    attacks_successful,
+                    defenses_attempted,
+                    defenses_successful,
                 ),
             )
 
@@ -181,6 +191,10 @@ class SessionRepository:
                 "whoop_calories",
                 "whoop_avg_hr",
                 "whoop_max_hr",
+                "attacks_attempted",
+                "attacks_successful",
+                "defenses_attempted",
+                "defenses_successful",
             }
 
             # Process each provided field
