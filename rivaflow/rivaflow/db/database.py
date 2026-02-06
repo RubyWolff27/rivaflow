@@ -325,15 +325,9 @@ def _convert_sqlite_to_postgresql(sql: str) -> str:
         flags=re.IGNORECASE,
     )
 
-    # Replace datetime('now') with CURRENT_TIMESTAMP
-    sql = re.sub(
-        r"datetime\s*\(\s*['\"]now['\"]\s*\)",
-        "CURRENT_TIMESTAMP",
-        sql,
-        flags=re.IGNORECASE,
-    )
-
     # Replace TEXT columns with datetime defaults to TIMESTAMP
+    # IMPORTANT: This must run BEFORE the standalone datetime('now') replacement
+    # so the compound pattern can match
     sql = re.sub(
         r"TEXT\s+NOT\s+NULL\s+DEFAULT\s+\(\s*datetime\s*\(\s*['\"]now['\"]\s*\)\s*\)",
         "TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP",
@@ -345,6 +339,14 @@ def _convert_sqlite_to_postgresql(sql: str) -> str:
     sql = re.sub(
         r"DEFAULT\s+\(\s*datetime\s*\(\s*['\"]now['\"]\s*\)\s*\)",
         "DEFAULT CURRENT_TIMESTAMP",
+        sql,
+        flags=re.IGNORECASE,
+    )
+
+    # Replace remaining datetime('now') with CURRENT_TIMESTAMP
+    sql = re.sub(
+        r"datetime\s*\(\s*['\"]now['\"]\s*\)",
+        "CURRENT_TIMESTAMP",
         sql,
         flags=re.IGNORECASE,
     )
