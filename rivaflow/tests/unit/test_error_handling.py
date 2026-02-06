@@ -10,7 +10,9 @@ from datetime import date, timedelta
 import pytest
 
 # Set SECRET_KEY for testing
-os.environ.setdefault("SECRET_KEY", "test-secret-key-for-error-handling-tests-minimum32chars")
+os.environ.setdefault(
+    "SECRET_KEY", "test-secret-key-for-error-handling-tests-minimum32chars"
+)
 
 from rivaflow.core.services.auth_service import AuthService
 from rivaflow.core.services.session_service import SessionService
@@ -53,7 +55,8 @@ class TestSessionValidationErrors:
             )
 
         assert (
-            "class_type" in str(exc_info.value).lower() or "invalid" in str(exc_info.value).lower()
+            "class_type" in str(exc_info.value).lower()
+            or "invalid" in str(exc_info.value).lower()
         )
 
     def test_negative_duration_rejected(self):
@@ -71,7 +74,8 @@ class TestSessionValidationErrors:
             )
 
         assert (
-            "duration" in str(exc_info.value).lower() or "positive" in str(exc_info.value).lower()
+            "duration" in str(exc_info.value).lower()
+            or "positive" in str(exc_info.value).lower()
         )
 
     def test_invalid_intensity_rejected(self):
@@ -114,7 +118,10 @@ class TestSessionValidationErrors:
                 intensity=4,
             )
 
-        assert "gym" in str(exc_info.value).lower() or "empty" in str(exc_info.value).lower()
+        assert (
+            "gym" in str(exc_info.value).lower()
+            or "empty" in str(exc_info.value).lower()
+        )
 
 
 class TestAuthenticationErrors:
@@ -305,7 +312,9 @@ class TestInputSanitization:
                 session_id = cursor.lastrowid
 
                 # Verify sessions table still exists and data is safe
-                cursor.execute("SELECT gym_name FROM sessions WHERE id = ?", (session_id,))
+                cursor.execute(
+                    "SELECT gym_name FROM sessions WHERE id = ?", (session_id,)
+                )
                 row = cursor.fetchone()
                 gym_name = row[0] if isinstance(row, tuple) else row["gym_name"]
 

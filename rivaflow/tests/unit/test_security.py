@@ -12,7 +12,9 @@ from datetime import timedelta
 import pytest
 
 # Set SECRET_KEY for testing
-os.environ.setdefault("SECRET_KEY", "test-secret-key-for-security-tests-minimum-32-characters-long")
+os.environ.setdefault(
+    "SECRET_KEY", "test-secret-key-for-security-tests-minimum-32-characters-long"
+)
 
 from rivaflow.core.auth import (
     create_access_token,
@@ -207,7 +209,9 @@ class TestPasswordResetTokenSecurity:
                 assert len(stored_token) == 64
 
                 # Cleanup
-                cursor.execute("DELETE FROM password_reset_tokens WHERE user_id = ?", (user_id,))
+                cursor.execute(
+                    "DELETE FROM password_reset_tokens WHERE user_id = ?", (user_id,)
+                )
                 conn.commit()
         finally:
             with get_connection() as conn:
@@ -244,7 +248,9 @@ class TestPasswordResetTokenSecurity:
             # Cleanup
             with get_connection() as conn:
                 cursor = conn.cursor()
-                cursor.execute("DELETE FROM password_reset_tokens WHERE user_id = ?", (user_id,))
+                cursor.execute(
+                    "DELETE FROM password_reset_tokens WHERE user_id = ?", (user_id,)
+                )
                 conn.commit()
         finally:
             with get_connection() as conn:
@@ -268,7 +274,9 @@ class TestPasswordResetTokenSecurity:
 
         try:
             # Create token with very short expiry
-            token = PasswordResetTokenRepository.create_token(user_id, expiry_hours=0.0001)
+            token = PasswordResetTokenRepository.create_token(
+                user_id, expiry_hours=0.0001
+            )
 
             # Wait for expiry (0.0001 hours = 0.36 seconds)
             time.sleep(1)
@@ -279,7 +287,9 @@ class TestPasswordResetTokenSecurity:
             # Cleanup
             with get_connection() as conn:
                 cursor = conn.cursor()
-                cursor.execute("DELETE FROM password_reset_tokens WHERE user_id = ?", (user_id,))
+                cursor.execute(
+                    "DELETE FROM password_reset_tokens WHERE user_id = ?", (user_id,)
+                )
                 conn.commit()
         finally:
             with get_connection() as conn:
@@ -350,7 +360,9 @@ class TestSQLInjectionPrevention:
                 session_id = cursor.lastrowid
 
                 # Retrieve and verify stored correctly
-                cursor.execute("SELECT gym_name FROM sessions WHERE id = ?", (session_id,))
+                cursor.execute(
+                    "SELECT gym_name FROM sessions WHERE id = ?", (session_id,)
+                )
                 row = cursor.fetchone()
                 gym_name = row[0] if isinstance(row, tuple) else row["gym_name"]
 
@@ -420,7 +432,9 @@ class TestAuthorizationChecks:
         finally:
             with get_connection() as conn:
                 cursor = conn.cursor()
-                cursor.execute("DELETE FROM users WHERE id IN (?, ?)", (user1_id, user2_id))
+                cursor.execute(
+                    "DELETE FROM users WHERE id IN (?, ?)", (user1_id, user2_id)
+                )
                 conn.commit()
 
 

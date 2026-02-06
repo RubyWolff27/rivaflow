@@ -7,7 +7,9 @@ Tests the SQLite/PostgreSQL compatibility layer and query conversion.
 import os
 
 # Set SECRET_KEY for testing
-os.environ.setdefault("SECRET_KEY", "test-secret-key-for-db-abstraction-tests-min32chars")
+os.environ.setdefault(
+    "SECRET_KEY", "test-secret-key-for-db-abstraction-tests-min32chars"
+)
 
 from rivaflow.db.database import convert_query
 
@@ -28,9 +30,7 @@ class TestQueryConversion:
 
     def test_convert_query_handles_multiple_params(self):
         """Test multiple parameter markers."""
-        sqlite_query = (
-            "SELECT * FROM sessions WHERE user_id = ? AND session_date = ? AND class_type = ?"
-        )
+        sqlite_query = "SELECT * FROM sessions WHERE user_id = ? AND session_date = ? AND class_type = ?"
         converted = convert_query(sqlite_query)
 
         assert "sessions" in converted
@@ -96,7 +96,9 @@ class TestQueryConversion:
 
     def test_convert_query_preserves_current_timestamp(self):
         """Test CURRENT_TIMESTAMP is preserved."""
-        sqlite_query = "INSERT INTO sessions (user_id, created_at) VALUES (?, CURRENT_TIMESTAMP)"
+        sqlite_query = (
+            "INSERT INTO sessions (user_id, created_at) VALUES (?, CURRENT_TIMESTAMP)"
+        )
         converted = convert_query(sqlite_query)
 
         assert "CURRENT_TIMESTAMP" in converted.upper()
@@ -111,7 +113,9 @@ class TestQueryConversion:
 
     def test_convert_query_handles_aggregate(self):
         """Test aggregate function queries."""
-        sqlite_query = "SELECT SUM(duration_mins), AVG(intensity) FROM sessions WHERE user_id = ?"
+        sqlite_query = (
+            "SELECT SUM(duration_mins), AVG(intensity) FROM sessions WHERE user_id = ?"
+        )
         converted = convert_query(sqlite_query)
 
         assert "SUM" in converted.upper()
@@ -204,7 +208,9 @@ class TestParameterBinding:
             cursor = conn.cursor()
 
             # This should safely escape the input
-            cursor.execute("SELECT * FROM sessions WHERE gym_name = ?", (malicious_input,))
+            cursor.execute(
+                "SELECT * FROM sessions WHERE gym_name = ?", (malicious_input,)
+            )
 
             # Should return empty results, not execute injection
             results = cursor.fetchall()
