@@ -318,6 +318,322 @@ RivaFlow - Training OS for the Mat
             text_content=text_content,
         )
 
+    def send_welcome_email(self, email: str, first_name: str | None = None) -> bool:
+        """
+        Send welcome email to a newly registered user.
+
+        Args:
+            email: User's email address
+            first_name: User's first name (optional)
+
+        Returns:
+            True if sent successfully, False otherwise
+        """
+        # Get base URL from environment or use default
+        base_url = os.getenv("APP_BASE_URL", "https://rivaflow.onrender.com")
+
+        greeting = f"Hey {first_name}," if first_name else "Hey there,"
+
+        html_content = f"""
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        body {{
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            color: #e0e0e0;
+            background-color: #1a1a2e;
+            margin: 0;
+            padding: 0;
+        }}
+        .container {{
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 30px 20px;
+            background-color: #1a1a2e;
+        }}
+        .header {{
+            text-align: center;
+            padding-bottom: 20px;
+            border-bottom: 1px solid #2a2a4a;
+            margin-bottom: 30px;
+        }}
+        .header h1 {{
+            color: #ffffff;
+            font-size: 28px;
+            margin: 0;
+        }}
+        .greeting {{
+            font-size: 18px;
+            color: #ffffff;
+            margin-bottom: 10px;
+        }}
+        .welcome-text {{
+            font-size: 16px;
+            color: #c0c0c0;
+            margin-bottom: 30px;
+        }}
+        .step {{
+            background-color: #2a2a4a;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 16px;
+        }}
+        .step-title {{
+            font-size: 14px;
+            font-weight: 700;
+            color: #ff6b35;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin: 0 0 6px 0;
+        }}
+        .step-description {{
+            font-size: 14px;
+            color: #c0c0c0;
+            margin: 0 0 14px 0;
+        }}
+        .button {{
+            display: inline-block;
+            padding: 10px 22px;
+            background-color: #ff6b35;
+            color: #ffffff;
+            text-decoration: none;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 600;
+        }}
+        .signoff {{
+            margin-top: 36px;
+            padding-top: 24px;
+            border-top: 1px solid #2a2a4a;
+            text-align: center;
+        }}
+        .signoff-motto {{
+            font-style: italic;
+            color: #ff6b35;
+            font-size: 15px;
+            margin-bottom: 8px;
+        }}
+        .signoff-team {{
+            color: #888888;
+            font-size: 13px;
+        }}
+        .footer {{
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 1px solid #2a2a4a;
+            font-size: 12px;
+            color: #666;
+            text-align: center;
+        }}
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Welcome to RivaFlow</h1>
+        </div>
+
+        <p class="greeting">{greeting}</p>
+        <p class="welcome-text">Welcome to RivaFlow &mdash; your training OS for the mat.</p>
+
+        <div class="step">
+            <p class="step-title">1. Set Up Your Profile</p>
+            <p class="step-description">Add your belt rank, gym, and photo.</p>
+            <a href="{base_url}/profile" class="button">Set Up Profile</a>
+        </div>
+
+        <div class="step">
+            <p class="step-title">2. Log Your First Session</p>
+            <p class="step-description">It takes less than 30 seconds.</p>
+            <a href="{base_url}/log" class="button">Log Session</a>
+        </div>
+
+        <div class="step">
+            <p class="step-title">3. Find Your Training Partners</p>
+            <p class="step-description">Connect with your gym crew.</p>
+            <a href="{base_url}/find-friends" class="button">Find Partners</a>
+        </div>
+
+        <div class="step">
+            <p class="step-title">4. Track Your Progress</p>
+            <p class="step-description">Analytics and insights build over time.</p>
+        </div>
+
+        <div class="signoff">
+            <p class="signoff-motto">Train with intent. Flow to mastery.</p>
+            <p class="signoff-team">&mdash; The RivaFlow Team</p>
+        </div>
+
+        <div class="footer">
+            <p>RivaFlow - Training OS for the Mat</p>
+            <p>This is an automated email. Please do not reply.</p>
+        </div>
+    </div>
+</body>
+</html>
+"""
+
+        text_content = f"""
+Welcome to RivaFlow
+====================
+
+{greeting}
+
+Welcome to RivaFlow -- your training OS for the mat.
+
+Here's how to get started:
+
+1. SET UP YOUR PROFILE
+   Add your belt rank, gym, and photo.
+   {base_url}/profile
+
+2. LOG YOUR FIRST SESSION
+   It takes less than 30 seconds.
+   {base_url}/log
+
+3. FIND YOUR TRAINING PARTNERS
+   Connect with your gym crew.
+   {base_url}/find-friends
+
+4. TRACK YOUR PROGRESS
+   Analytics and insights build over time.
+
+---
+Train with intent. Flow to mastery.
+-- The RivaFlow Team
+
+---
+RivaFlow - Training OS for the Mat
+"""
+
+        return self.send_email(
+            to_email=email,
+            subject="Welcome to RivaFlow \u2014 Let's Get You Started",
+            html_content=html_content,
+            text_content=text_content,
+        )
+
+    def send_waitlist_invite_email(
+        self,
+        email: str,
+        first_name: str | None = None,
+        invite_token: str = "",
+    ) -> bool:
+        """
+        Send waitlist invite email with registration link.
+
+        Args:
+            email: Recipient email address
+            first_name: Recipient's first name (optional)
+            invite_token: Secure invite token for registration
+
+        Returns:
+            True if sent successfully, False otherwise
+        """
+        base_url = os.getenv("APP_BASE_URL", "https://rivaflow.onrender.com")
+        register_link = f"{base_url}/register?invite={invite_token}"
+
+        greeting = f"Hi {first_name}," if first_name else "Hi,"
+
+        html_content = f"""
+<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        body {{ font-family: Arial, sans-serif; line-height: 1.6; color: #333; }}
+        .container {{ max-width: 600px; margin: 0 auto; padding: 20px; }}
+        .button {{
+            display: inline-block;
+            padding: 14px 28px;
+            background-color: #4F46E5;
+            color: white;
+            text-decoration: none;
+            border-radius: 6px;
+            margin: 20px 0;
+            font-weight: bold;
+            font-size: 16px;
+        }}
+        .footer {{ margin-top: 30px; padding-top: 20px; border-top: 1px solid #ddd; font-size: 12px; color: #666; }}
+        .highlight {{ background: #f0f0ff; padding: 16px; border-radius: 8px; margin: 20px 0; }}
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>You're In &mdash; Your RivaFlow Access is Ready</h2>
+        <p>{greeting}</p>
+        <p>Great news! Your spot on the RivaFlow waitlist has come through. You've been selected to join the platform.</p>
+        <p>RivaFlow is the training OS for the mat &mdash; built to help you track sessions, measure progress, and train with intent.</p>
+
+        <a href="{register_link}" class="button">Create Your Account</a>
+
+        <p>Or copy and paste this link into your browser:</p>
+        <p><a href="{register_link}">{register_link}</a></p>
+
+        <div class="highlight">
+            <strong>Important:</strong> This invite link expires in 7 days. Make sure to register before then to claim your spot.
+        </div>
+
+        <p>Once you're in, you can:</p>
+        <ul>
+            <li>Log training sessions in seconds</li>
+            <li>Track techniques, rolls, and progress</li>
+            <li>Connect with your training partners</li>
+            <li>Get insights into your training patterns</li>
+        </ul>
+
+        <p>See you on the mat.</p>
+        <p><strong>&mdash; The RivaFlow Team</strong></p>
+
+        <div class="footer">
+            <p>RivaFlow - Training OS for the Mat</p>
+            <p>This is an automated email. Please do not reply.</p>
+        </div>
+    </div>
+</body>
+</html>
+"""
+
+        text_content = f"""
+You're In -- Your RivaFlow Access is Ready
+
+{greeting}
+
+Great news! Your spot on the RivaFlow waitlist has come through. You've been
+selected to join the platform.
+
+RivaFlow is the training OS for the mat -- built to help you track sessions,
+measure progress, and train with intent.
+
+Create your account here:
+{register_link}
+
+IMPORTANT: This invite link expires in 7 days. Make sure to register before
+then to claim your spot.
+
+Once you're in, you can:
+- Log training sessions in seconds
+- Track techniques, rolls, and progress
+- Connect with your training partners
+- Get insights into your training patterns
+
+See you on the mat.
+-- The RivaFlow Team
+
+---
+RivaFlow - Training OS for the Mat
+"""
+
+        return self.send_email(
+            to_email=email,
+            subject="You're In \u2014 Your RivaFlow Access is Ready",
+            html_content=html_content,
+            text_content=text_content,
+        )
+
     def send_feedback_notification(
         self,
         feedback_id: int,

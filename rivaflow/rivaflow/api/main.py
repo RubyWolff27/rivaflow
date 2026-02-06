@@ -56,6 +56,7 @@ from rivaflow.api.routes import (
     techniques,
     users,
     videos,
+    waitlist,
 )
 
 # AI features temporarily disabled for deployment (large CUDA dependencies)
@@ -222,6 +223,10 @@ app.include_router(admin.router, prefix="/api/v1")
 app.include_router(gyms.router, prefix="/api/v1")
 app.include_router(feedback.router, prefix="/api/v1")
 app.include_router(dashboard.router, prefix="/api/v1")
+app.include_router(waitlist.router, prefix="/api/v1/waitlist", tags=["waitlist"])
+app.include_router(
+    waitlist.admin_router, prefix="/api/v1/admin/waitlist", tags=["admin-waitlist"]
+)
 
 
 @app.get("/health")

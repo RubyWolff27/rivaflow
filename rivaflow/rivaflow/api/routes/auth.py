@@ -11,6 +11,8 @@ from rivaflow.core.dependencies import get_current_user
 from rivaflow.core.error_handling import handle_service_error
 from rivaflow.core.exceptions import ValidationError
 from rivaflow.core.services.auth_service import AuthService
+from rivaflow.core.settings import settings
+from rivaflow.db.repositories.waitlist_repo import WaitlistRepository
 
 logger = logging.getLogger(__name__)
 
@@ -25,6 +27,7 @@ class RegisterRequest(BaseModel):
     password: str
     first_name: str
     last_name: str
+    invite_token: str | None = None
 
 
 class LoginRequest(BaseModel):
@@ -68,9 +71,33 @@ async def register(request: Request, req: RegisterRequest):
     - **password**: Minimum 8 characters
     - **first_name**: User's first name
     - **last_name**: User's last name
+    - **invite_token**: Waitlist invite token (required in production)
 
     Returns access token, refresh token, and user information.
     """
+    waitlist_repo = WaitlistRepository()
+
+    # In production, require a valid invite token
+    if settings.IS_PRODUCTION:
+        if not req.invite_token:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Registration requires an invite. Join the waitlist at rivaflow.app",
+            )
+
+        if not waitlist_repo.is_invite_valid(req.invite_token):
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Invalid or expired invite token. Please request a new invite.",
+            )
+
+    # If invite_token is provided in non-production, still validate it
+    if req.invite_token and not settings.IS_PRODUCTION:
+        if not waitlist_repo.is_invite_valid(req.invite_token):
+            logger.warning(
+                f"Invalid invite token used in {settings.ENV} for {req.email}"
+            )
+
     service = AuthService()
 
     try:
@@ -80,6 +107,16 @@ async def register(request: Request, req: RegisterRequest):
             first_name=req.first_name,
             last_name=req.last_name,
         )
+
+        # Mark the waitlist entry as registered if an invite token was used
+        if req.invite_token:
+            try:
+                waitlist_repo.mark_registered(req.email)
+            except Exception as e:
+                logger.error(
+                    f"Failed to mark waitlist entry as registered for {req.email}: {e}"
+                )
+
         return result
     except ValueError as e:
         # ValueError contains user-facing validation messages

@@ -1,5 +1,6 @@
 """Service layer for authentication operations."""
 
+import logging
 from typing import Any
 
 from rivaflow.core.auth import (
@@ -14,6 +15,8 @@ from rivaflow.core.exceptions import AuthenticationError, ValidationError
 from rivaflow.db.repositories.profile_repo import ProfileRepository
 from rivaflow.db.repositories.refresh_token_repo import RefreshTokenRepository
 from rivaflow.db.repositories.user_repo import UserRepository
+
+logger = logging.getLogger(__name__)
 
 
 class AuthService:
@@ -179,6 +182,18 @@ class AuthService:
         self.refresh_token_repo.create(
             user_id=user["id"], token=refresh_token, expires_at=expires_at
         )
+
+        # Send welcome email (fire and forget — don't block registration)
+        try:
+            from rivaflow.core.services.email_service import EmailService
+
+            email_service = EmailService()
+            email_service.send_welcome_email(
+                email=email,
+                first_name=first_name,
+            )
+        except Exception as e:
+            logger.warning(f"Failed to send welcome email to {email}: {e}")
 
         return {
             "access_token": access_token,
