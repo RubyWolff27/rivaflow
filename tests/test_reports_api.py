@@ -65,16 +65,21 @@ class TestAnalyticsAPI:
         self, client, test_user, auth_headers, session_factory
     ):
         """Test edge case with only one session."""
+        today = date.today()
         session_factory(
-            session_date=date.today(),
+            session_date=today,
             intensity=5,
             rolls=3,
             submissions_for=2,
             submissions_against=0,
         )
 
+        start_date = (today - timedelta(days=7)).isoformat()
+        end_date = (today + timedelta(days=1)).isoformat()
+
         response = client.get(
-            "/api/v1/analytics/performance-overview", headers=auth_headers
+            f"/api/v1/analytics/performance-overview?start_date={start_date}&end_date={end_date}",
+            headers=auth_headers,
         )
 
         assert response.status_code == 200
@@ -89,17 +94,22 @@ class TestAnalyticsAPI:
         self, client, test_user, auth_headers, session_factory
     ):
         """Test division by zero protection in calculations."""
+        today = date.today()
         # Session with zero submissions against
         session_factory(
-            session_date=date.today(),
+            session_date=today,
             intensity=4,
             rolls=0,  # Zero rolls
             submissions_for=0,
             submissions_against=0,
         )
 
+        start_date = (today - timedelta(days=7)).isoformat()
+        end_date = (today + timedelta(days=1)).isoformat()
+
         response = client.get(
-            "/api/v1/analytics/performance-overview", headers=auth_headers
+            f"/api/v1/analytics/performance-overview?start_date={start_date}&end_date={end_date}",
+            headers=auth_headers,
         )
 
         assert response.status_code == 200
@@ -315,16 +325,17 @@ class TestAnalyticsEdgeCases:
         self, client, test_user, auth_headers, session_factory
     ):
         """Test average intensity calculation with varying intensities."""
-        session_factory(session_date=date.today(), intensity=5, rolls=3)
-        session_factory(
-            session_date=date.today() - timedelta(days=1), intensity=1, rolls=2
-        )
-        session_factory(
-            session_date=date.today() - timedelta(days=2), intensity=3, rolls=4
-        )
+        today = date.today()
+        session_factory(session_date=today, intensity=5, rolls=3)
+        session_factory(session_date=today - timedelta(days=1), intensity=1, rolls=2)
+        session_factory(session_date=today - timedelta(days=2), intensity=3, rolls=4)
+
+        start_date = (today - timedelta(days=7)).isoformat()
+        end_date = (today + timedelta(days=1)).isoformat()
 
         response = client.get(
-            "/api/v1/analytics/performance-overview", headers=auth_headers
+            f"/api/v1/analytics/performance-overview?start_date={start_date}&end_date={end_date}",
+            headers=auth_headers,
         )
         assert response.status_code == 200
         data = response.json()
@@ -361,13 +372,16 @@ class TestAnalyticsEdgeCases:
         self, client, test_user, auth_headers, session_factory
     ):
         """Test delta calculation when there's no previous period data."""
+        today = date.today()
         # Only create session today
-        session_factory(
-            session_date=date.today(), intensity=4, rolls=5, submissions_for=2
-        )
+        session_factory(session_date=today, intensity=4, rolls=5, submissions_for=2)
+
+        start_date = (today - timedelta(days=7)).isoformat()
+        end_date = (today + timedelta(days=1)).isoformat()
 
         response = client.get(
-            "/api/v1/analytics/performance-overview", headers=auth_headers
+            f"/api/v1/analytics/performance-overview?start_date={start_date}&end_date={end_date}",
+            headers=auth_headers,
         )
         assert response.status_code == 200
         data = response.json()

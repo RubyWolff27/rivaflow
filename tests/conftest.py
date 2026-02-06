@@ -9,6 +9,17 @@ from unittest.mock import patch
 
 import pytest
 
+from rivaflow.core.utils.cache import get_cache
+
+
+@pytest.fixture(autouse=True)
+def _clear_analytics_cache():
+    """Clear the in-memory analytics cache before each test to prevent stale data."""
+    get_cache().clear()
+    yield
+    get_cache().clear()
+
+
 # Set required environment variables for testing
 os.environ.setdefault("SECRET_KEY", "test-secret-key-for-testing-only-not-production")
 # Use PostgreSQL if DATABASE_URL is set (CI), otherwise use SQLite (local)

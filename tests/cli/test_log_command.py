@@ -2,12 +2,23 @@
 
 from datetime import date
 
+import pytest
 from typer.testing import CliRunner
 
 from rivaflow.cli.app import app
 from rivaflow.db.repositories import SessionRepository
 
 runner = CliRunner()
+
+
+@pytest.fixture(autouse=True)
+def _bypass_welcome_screen(monkeypatch):
+    """Prevent maybe_show_welcome() from running during CLI tests.
+
+    The welcome screen calls Confirm.ask() which requires interactive input
+    and causes all CLI tests to fail under CliRunner.
+    """
+    monkeypatch.setattr("rivaflow.cli.utils.first_run.maybe_show_welcome", lambda: None)
 
 
 class TestLogCommand:
