@@ -38,10 +38,15 @@ export default function Techniques() {
         techniquesApi.list(),
         techniquesApi.getStale(7),
       ]);
-      setTechniques(techRes.data);
-      setStaleTechniques(staleRes.data);
+      // API returns {techniques: [], total: number} for list endpoint
+      setTechniques(techRes.data.techniques || []);
+      // API returns array directly for stale endpoint
+      setStaleTechniques(staleRes.data || []);
     } catch (error) {
       console.error('Error loading techniques:', error);
+      // Set empty arrays on error to prevent .map crashes
+      setTechniques([]);
+      setStaleTechniques([]);
     } finally {
       setLoading(false);
     }

@@ -1,6 +1,14 @@
 import axios from 'axios';
 import type { Session, Readiness, Report, Suggestion, Technique, Video, Profile, Grading, Movement, Friend, CustomVideo, WeeklyGoalProgress, GoalsSummary, TrainingStreaks, GoalCompletionStreak, DailyCheckin, StreakStatus, Streak, Milestone, MilestoneProgress } from '../types';
 
+// Paginated response type
+interface PaginatedResponse<T> {
+  techniques: T[];
+  total: number;
+  limit: number;
+  offset: number;
+}
+
 // API base URL - use environment variable if set, otherwise default to relative path for production
 // In development, Vite proxy will forward /api requests to localhost:8000
 // In production, API and frontend are served from the same domain
@@ -107,7 +115,7 @@ export const suggestionsApi = {
 
 export const techniquesApi = {
   create: (data: { name: string; category?: string }) => api.post<Technique>('/techniques/', data),
-  list: () => api.get<Technique[]>('/techniques/'),
+  list: () => api.get<PaginatedResponse<Technique>>('/techniques/'),
   getStale: (days = 7) => api.get<Technique[]>(`/techniques/stale?days=${days}`),
   search: (query: string) => api.get<Technique[]>(`/techniques/search?q=${query}`),
   getById: (id: number) => api.get<Technique>(`/techniques/${id}`),

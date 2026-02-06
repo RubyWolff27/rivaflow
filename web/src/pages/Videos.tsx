@@ -35,7 +35,7 @@ export default function Videos() {
         techniquesApi.list(),
       ]);
       setVideos(videosRes.data);
-      setTechniques(techniquesRes.data);
+      setTechniques(techniquesRes.data.techniques || []);
     } catch (error) {
       console.error('Error loading data:', error);
     } finally {
