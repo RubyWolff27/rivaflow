@@ -29,8 +29,18 @@ DEFAULT_INTENSITY = 4
 DEFAULT_ROLLS = 0
 
 # Class types that require rolls input
-SPARRING_CLASS_TYPES = {"gi", "no-gi", "wrestling", "judo", "open-mat"}
-NON_SPARRING_CLASS_TYPES = {"s&c", "mobility", "yoga", "rehab", "physio", "drilling"}
+SPARRING_CLASS_TYPES = {"gi", "no-gi", "wrestling", "judo", "open-mat", "mma"}
+NON_SPARRING_CLASS_TYPES = {
+    "s&c",
+    "mobility",
+    "yoga",
+    "rehab",
+    "physio",
+    "drilling",
+    "cardio",
+    "recovery",
+    "other",
+}
 ALL_CLASS_TYPES = SPARRING_CLASS_TYPES | NON_SPARRING_CLASS_TYPES
 
 # Visibility levels

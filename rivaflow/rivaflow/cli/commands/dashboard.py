@@ -35,18 +35,20 @@ def get_greeting() -> str:
         return "Good evening"
 
 
+def _scalar(row):
+    """Extract scalar value from a row (handles dict, sqlite3.Row, and tuple)."""
+    if row is None:
+        return None
+    if hasattr(row, "keys"):
+        keys = list(row.keys())
+        return row[keys[0]] if keys else None
+    return row[0]
+
+
 def get_week_summary(user_id: int) -> dict:
     """Get this week's training summary."""
     today = date.today()
     week_start = today - timedelta(days=today.weekday())
-
-    def _scalar(row):
-        """Extract scalar value from a row (handles both dict and tuple rows)."""
-        if row is None:
-            return None
-        if hasattr(row, "keys"):
-            return list(row.values())[0]
-        return row[0]
 
     with get_connection() as conn:
         cursor = conn.cursor()
@@ -138,11 +140,7 @@ def dashboard(ctx: typer.Context = None):
                 (user_id,),
             )
             row = cursor.fetchone()
-            session_count = (
-                (list(row.values())[0] if hasattr(row, "keys") else row[0]) or 0
-                if row
-                else 0
-            )
+            session_count = _scalar(row) or 0 if row else 0
 
             if session_count == 0:
                 # First-time user - show welcome message

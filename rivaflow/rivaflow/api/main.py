@@ -4,6 +4,13 @@ import logging
 import os
 from pathlib import Path
 
+try:
+    import sentry_sdk
+
+    SENTRY_AVAILABLE = True
+except ImportError:
+    SENTRY_AVAILABLE = False
+
 from fastapi import FastAPI
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
@@ -62,6 +69,18 @@ logging.basicConfig(
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
     datefmt="%Y-%m-%d %H:%M:%S",
 )
+
+# Initialize Sentry error tracking (only if SDK installed and DSN configured)
+_sentry_dsn = os.getenv("SENTRY_DSN")
+if SENTRY_AVAILABLE and _sentry_dsn:
+    sentry_sdk.init(
+        dsn=_sentry_dsn,
+        environment=os.getenv("ENV", "development"),
+        traces_sample_rate=0.1,
+        profiles_sample_rate=0.1,
+        send_default_pii=False,
+    )
+    logging.info("Sentry error tracking initialized")
 
 # Initialize rate limiter (disabled in test environment)
 if not settings.IS_TEST:
@@ -148,6 +167,14 @@ async def startup_event():
         except Exception as e:
             logging.error(f"Failed to run migrations: {e}")
             raise
+
+        # Seed glossary data if not already present
+        try:
+            from rivaflow.db.seed_glossary import seed_glossary
+
+            seed_glossary()
+        except Exception as e:
+            logging.warning(f"Could not seed glossary: {e}")
 
 
 @app.on_event("shutdown")

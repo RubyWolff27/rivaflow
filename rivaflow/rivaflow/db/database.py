@@ -131,13 +131,21 @@ def close_connection_pool() -> None:
 
 
 def init_db() -> None:
-    """Initialize the database with schema migrations."""
+    """Initialize the database with schema migrations and seed data."""
     if DB_TYPE == "sqlite":
         _init_sqlite_db()
     elif DB_TYPE == "postgresql":
         _init_postgresql_db()
     else:
         raise ValueError(f"Unsupported database type: {DB_TYPE}")
+
+    # Seed glossary data if not already present
+    try:
+        from rivaflow.db.seed_glossary import seed_glossary
+
+        seed_glossary()
+    except Exception as e:
+        logger.warning(f"Could not seed glossary (table may not exist yet): {e}")
 
 
 def _init_sqlite_db() -> None:

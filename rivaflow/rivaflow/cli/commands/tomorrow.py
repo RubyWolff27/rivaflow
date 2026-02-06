@@ -63,7 +63,11 @@ def get_tip_based_on_recent_sessions(user_id: int) -> str | None:
             (user_id, six_days_ago),
         )
         row = cursor.fetchone()
-        recent_count = (list(row.values())[0] if hasattr(row, "keys") else row[0]) or 0
+        if row and hasattr(row, "keys"):
+            keys = list(row.keys())
+            recent_count = (row[keys[0]] if keys else 0) or 0
+        else:
+            recent_count = (row[0] if row else 0) or 0
 
         if recent_count >= 6:
             return (

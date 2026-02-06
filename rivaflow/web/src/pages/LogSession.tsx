@@ -5,8 +5,8 @@ import type { Friend, Movement, MediaUrl } from '../types';
 import { CheckCircle, ArrowRight, ArrowLeft, Plus, X, ToggleLeft, ToggleRight, Search, Camera } from 'lucide-react';
 import GymSelector from '../components/GymSelector';
 
-const CLASS_TYPES = ['gi', 'no-gi', 's&c', 'mobility', 'drilling', 'cardio', 'physio', 'recovery', 'mma', 'judo', 'wrestling', 'other'];
-const SPARRING_TYPES = ['gi', 'no-gi', 'mma', 'judo', 'wrestling'];
+const CLASS_TYPES = ['gi', 'no-gi', 'wrestling', 'judo', 'open-mat', 'mma', 's&c', 'mobility', 'yoga', 'rehab', 'physio', 'drilling', 'cardio', 'recovery', 'other'];
+const SPARRING_TYPES = ['gi', 'no-gi', 'mma', 'judo', 'wrestling', 'open-mat'];
 
 interface RollEntry {
   roll_number: number;
