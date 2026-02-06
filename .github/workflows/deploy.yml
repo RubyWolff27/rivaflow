@@ -28,6 +28,10 @@ jobs:
   security:
     name: Security Checks
     uses: ./.github/workflows/security.yml
+    permissions:
+      actions: read
+      contents: read
+      security-events: write
 
   deploy:
     name: Deploy to Render
