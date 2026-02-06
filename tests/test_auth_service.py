@@ -358,8 +358,6 @@ class TestJWTTokens:
 
     def test_expired_token_rejection(self, temp_db):
         """Test that expired tokens are rejected."""
-        from jose import JWTError
-
         from rivaflow.core.auth import create_access_token, decode_access_token
 
         # Create token that expires immediately
@@ -367,17 +365,15 @@ class TestJWTTokens:
             data={"sub": "123"}, expires_delta=timedelta(seconds=-1)  # Already expired
         )
 
-        with pytest.raises(JWTError):
-            decode_access_token(token)
+        result = decode_access_token(token)
+        assert result is None
 
     def test_invalid_token_rejection(self, temp_db):
         """Test that invalid tokens are rejected."""
-        from jose import JWTError
-
         from rivaflow.core.auth import decode_access_token
 
-        with pytest.raises(JWTError):
-            decode_access_token("invalid.token.string")
+        result = decode_access_token("invalid.token.string")
+        assert result is None
 
 
 class TestEmailValidation:

@@ -6,9 +6,11 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "serve": "serve dist -s"
   },
   "dependencies": {
+    "serve": "^14.2.0",
     "@types/react-window": "^1.8.8",
     "axios": "^1.6.2",
     "date-fns": "^4.1.0",
