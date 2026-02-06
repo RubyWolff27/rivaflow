@@ -36,13 +36,22 @@ echo "==> Building frontend..."
 if [ -d "web" ]; then
     cd web
     echo "Installing frontend dependencies..."
-    npm install
+    npm ci --loglevel=error || npm install
     echo "Building frontend..."
     npm run build
-    echo "✓ Frontend build complete"
+
+    # Verify build succeeded
+    if [ ! -f "dist/index.html" ]; then
+        echo "✗ ERROR: Frontend build failed - dist/index.html not found!"
+        exit 1
+    fi
+
+    echo "✓ Frontend build complete: $(ls -lh dist/index.html)"
     cd ..
 else
-    echo "⚠ Warning: web directory not found, skipping frontend build"
+    echo "✗ ERROR: web directory not found!"
+    ls -la
+    exit 1
 fi
 
 echo ""
