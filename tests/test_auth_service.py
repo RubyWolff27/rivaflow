@@ -49,7 +49,7 @@ class TestAuthServiceRegister:
         from rivaflow.db.repositories.profile_repo import ProfileRepository
 
         profile_repo = ProfileRepository()
-        profile = profile_repo.get_by_user_id(result["user"]["id"])
+        profile = profile_repo.get(result["user"]["id"])
 
         assert profile is not None
         assert profile["first_name"] == "New"
@@ -89,7 +89,7 @@ class TestAuthServiceRegister:
         """Test registration with invalid email format."""
         auth_service = AuthService()
 
-        with pytest.raises(ValidationError, match="Invalid email"):
+        with pytest.raises(ValidationError, match="Email must contain an @ sign"):
             auth_service.register(
                 email="not-an-email",
                 password="securepass123",

@@ -9,7 +9,7 @@ class TestAnalyticsAPI:
     def test_performance_overview_empty_data(self, client, test_user, auth_headers):
         """Test performance overview with no sessions."""
         response = client.get(
-            "/api/analytics/performance-overview", headers=auth_headers
+            "/api/v1/analytics/performance-overview", headers=auth_headers
         )
 
         assert response.status_code == 200
@@ -48,7 +48,7 @@ class TestAnalyticsAPI:
         end_date = today.isoformat()
 
         response = client.get(
-            f"/api/analytics/performance-overview?start_date={start_date}&end_date={end_date}",
+            f"/api/v1/analytics/performance-overview?start_date={start_date}&end_date={end_date}",
             headers=auth_headers,
         )
 
@@ -74,7 +74,7 @@ class TestAnalyticsAPI:
         )
 
         response = client.get(
-            "/api/analytics/performance-overview", headers=auth_headers
+            "/api/v1/analytics/performance-overview", headers=auth_headers
         )
 
         assert response.status_code == 200
@@ -99,7 +99,7 @@ class TestAnalyticsAPI:
         )
 
         response = client.get(
-            "/api/analytics/performance-overview", headers=auth_headers
+            "/api/v1/analytics/performance-overview", headers=auth_headers
         )
 
         assert response.status_code == 200
@@ -111,7 +111,7 @@ class TestAnalyticsAPI:
 
     def test_partner_stats_empty_data(self, client, test_user, auth_headers):
         """Test partner stats with no data."""
-        response = client.get("/api/analytics/partners/stats", headers=auth_headers)
+        response = client.get("/api/v1/analytics/partners/stats", headers=auth_headers)
 
         assert response.status_code == 200
         data = response.json()
@@ -137,7 +137,7 @@ class TestAnalyticsAPI:
         # Create session (note: session factory doesn't link rolls, this is basic test)
         session_factory(session_date=date.today(), intensity=4, rolls=5)
 
-        response = client.get("/api/analytics/partners/stats", headers=auth_headers)
+        response = client.get("/api/v1/analytics/partners/stats", headers=auth_headers)
 
         assert response.status_code == 200
         data = response.json()
@@ -150,7 +150,7 @@ class TestAnalyticsAPI:
     def test_technique_breakdown_empty_data(self, client, test_user, auth_headers):
         """Test technique breakdown with no data."""
         response = client.get(
-            "/api/analytics/techniques/breakdown", headers=auth_headers
+            "/api/v1/analytics/techniques/breakdown", headers=auth_headers
         )
 
         assert response.status_code == 200
@@ -178,7 +178,7 @@ class TestAnalyticsAPI:
         )
 
         response = client.get(
-            "/api/analytics/techniques/breakdown", headers=auth_headers
+            "/api/v1/analytics/techniques/breakdown", headers=auth_headers
         )
 
         assert response.status_code == 200
@@ -195,7 +195,7 @@ class TestAnalyticsAPI:
         """Test various date range scenarios."""
         # Test last 7 days (default behavior)
         response = client.get(
-            "/api/analytics/performance-overview", headers=auth_headers
+            "/api/v1/analytics/performance-overview", headers=auth_headers
         )
         assert response.status_code == 200
 
@@ -204,7 +204,7 @@ class TestAnalyticsAPI:
         end_date = date.today().isoformat()
 
         response = client.get(
-            f"/api/analytics/performance-overview?start_date={start_date}&end_date={end_date}",
+            f"/api/v1/analytics/performance-overview?start_date={start_date}&end_date={end_date}",
             headers=auth_headers,
         )
         assert response.status_code == 200
@@ -213,7 +213,7 @@ class TestAnalyticsAPI:
         start_date = (date.today() - timedelta(days=365)).isoformat()
 
         response = client.get(
-            f"/api/analytics/performance-overview?start_date={start_date}&end_date={end_date}",
+            f"/api/v1/analytics/performance-overview?start_date={start_date}&end_date={end_date}",
             headers=auth_headers,
         )
         assert response.status_code == 200
@@ -231,7 +231,7 @@ class TestAnalyticsAPI:
         end_date = date.today().isoformat()
 
         response = client.get(
-            f"/api/analytics/performance-overview?start_date={start_date}&end_date={end_date}",
+            f"/api/v1/analytics/performance-overview?start_date={start_date}&end_date={end_date}",
             headers=auth_headers,
         )
 
@@ -257,7 +257,7 @@ class TestAnalyticsAPI:
         )
 
         response = client.get(
-            "/api/analytics/performance-overview", headers=auth_headers
+            "/api/v1/analytics/performance-overview", headers=auth_headers
         )
 
         assert response.status_code == 200
@@ -278,7 +278,7 @@ class TestAnalyticsAPI:
             )
 
         response = client.get(
-            "/api/analytics/consistency/metrics", headers=auth_headers
+            "/api/v1/analytics/consistency/metrics", headers=auth_headers
         )
 
         assert response.status_code == 200
@@ -292,12 +292,12 @@ class TestAnalyticsAPI:
 
     def test_unauthorized_access(self, client):
         """Test that endpoints require authentication."""
-        response = client.get("/api/analytics/performance-overview")
+        response = client.get("/api/v1/analytics/performance-overview")
         assert response.status_code == 401
 
     def test_milestones_endpoint(self, client, test_user, auth_headers):
         """Test milestones endpoint."""
-        response = client.get("/api/analytics/milestones", headers=auth_headers)
+        response = client.get("/api/v1/analytics/milestones", headers=auth_headers)
 
         assert response.status_code == 200
         data = response.json()
@@ -324,7 +324,7 @@ class TestAnalyticsEdgeCases:
         )
 
         response = client.get(
-            "/api/analytics/performance-overview", headers=auth_headers
+            "/api/v1/analytics/performance-overview", headers=auth_headers
         )
         assert response.status_code == 200
         data = response.json()
@@ -344,7 +344,7 @@ class TestAnalyticsEdgeCases:
         end_date = date.today().isoformat()
 
         response = client.get(
-            f"/api/analytics/performance-overview?start_date={start_date}&end_date={end_date}",
+            f"/api/v1/analytics/performance-overview?start_date={start_date}&end_date={end_date}",
             headers=auth_headers,
         )
 
@@ -367,7 +367,7 @@ class TestAnalyticsEdgeCases:
         )
 
         response = client.get(
-            "/api/analytics/performance-overview", headers=auth_headers
+            "/api/v1/analytics/performance-overview", headers=auth_headers
         )
         assert response.status_code == 200
         data = response.json()

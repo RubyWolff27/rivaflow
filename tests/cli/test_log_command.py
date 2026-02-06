@@ -345,8 +345,11 @@ class TestAuthCommands:
         # Should succeed even if not logged in
         assert result.exit_code == 0 or "not" in result.output.lower()
 
-    def test_whoami_not_logged_in(self, temp_db):
+    def test_whoami_not_logged_in(self, temp_db, monkeypatch, tmp_path):
         """Test whoami when not logged in."""
+        # Ensure credentials file does not exist so whoami reports "not logged in"
+        fake_creds = tmp_path / "nonexistent_credentials.json"
+        monkeypatch.setattr("rivaflow.cli.commands.auth.CREDENTIALS_FILE", fake_creds)
         result = runner.invoke(app, ["auth", "whoami"])
         assert result.exit_code == 0
         assert (

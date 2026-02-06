@@ -135,8 +135,8 @@ def stats():
 
     # Calculate stats
     total_classes = len(all_sessions)
-    total_rolls = sum(s["rolls"] for s in all_sessions)
-    total_mins = sum(s["duration_mins"] for s in all_sessions)
+    total_rolls = sum(s.get("rolls") or 0 for s in all_sessions)
+    total_mins = sum(s.get("duration_mins") or 0 for s in all_sessions)
     total_hours = round(total_mins / 60, 1)
 
     # Get counts
@@ -202,7 +202,7 @@ def export(
     with console.status("[cyan]Exporting your data...", spinner="dots"):
         # Get user info
         user = user_repo.get_by_id(user_id)
-        profile = profile_repo.get_by_user_id(user_id)
+        profile = profile_repo.get(user_id)
 
         # Collect all data
         data = {
@@ -218,8 +218,8 @@ def export(
             "profile": profile,
             "sessions": session_repo.list_by_user(user_id),
             "readiness": readiness_repo.list_by_user(user_id),
-            "techniques": technique_repo.list_all(user_id),
-            "videos": video_repo.list_all(user_id),
+            "techniques": technique_repo.list_all(),
+            "videos": video_repo.list_all(),
             "gradings": grading_repo.list_all(user_id),
             "friends": friend_repo.list_all(user_id),
         }

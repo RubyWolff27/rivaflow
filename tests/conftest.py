@@ -291,6 +291,6 @@ def readiness_factory(temp_db, test_user):
         }
         defaults.update(kwargs)
         repo = ReadinessRepository()
-        return repo.log_readiness(**defaults)
+        return repo.upsert(**defaults)
 
     return _create_readiness
