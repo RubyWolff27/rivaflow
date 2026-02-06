@@ -376,6 +376,14 @@ def _convert_sqlite_to_postgresql(sql: str) -> str:
         flags=re.IGNORECASE,
     )
 
+    # Add CASCADE to DROP TABLE statements (PostgreSQL needs it for FK deps)
+    sql = re.sub(
+        r"\bDROP\s+TABLE\s+IF\s+EXISTS\s+(\w+)\s*;",
+        r"DROP TABLE IF EXISTS \1 CASCADE;",
+        sql,
+        flags=re.IGNORECASE,
+    )
+
     return sql
 
 
