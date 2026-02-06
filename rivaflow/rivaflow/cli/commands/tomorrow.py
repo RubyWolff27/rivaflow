@@ -1,7 +1,6 @@
 """Tomorrow's intention command."""
 
 from datetime import date, timedelta
-from typing import Optional
 
 import typer
 from rich.console import Console
@@ -77,7 +76,7 @@ def get_tip_based_on_recent_sessions(user_id: int) -> str | None:
 @app.callback(invoke_without_command=True)
 def tomorrow(
     ctx: typer.Context,
-    intention: Optional[str] = typer.Argument(
+    intention: str | None = typer.Argument(
         None, help="Intention: train_gi, train_nogi, rest, unsure"
     ),
 ):

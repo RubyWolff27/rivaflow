@@ -5,7 +5,7 @@ from datetime import date, timedelta
 
 from rivaflow.config import DB_TYPE
 from rivaflow.core.services.milestone_service import MilestoneService
-from rivaflow.db.database import get_connection
+from rivaflow.db.database import convert_query, get_connection
 from rivaflow.db.repositories.streak_repo import StreakRepository
 
 
@@ -67,10 +67,10 @@ class InsightService:
             week_start = today - timedelta(days=today.weekday())
 
             cursor.execute(
-                """
+                convert_query("""
                 SELECT SUM(duration_mins) as total FROM sessions
-                WHERE session_date >= %s AND user_id = %s
-            """,
+                WHERE session_date >= ? AND user_id = ?
+            """),
                 (week_start.isoformat(), user_id),
             )
             result = cursor.fetchone()
@@ -87,14 +87,14 @@ class InsightService:
                 week_format = "strftime('%Y-%W', session_date)"
 
             cursor.execute(
-                f"""
+                convert_query(f"""
                 SELECT AVG(weekly_mins) as avg FROM (
                     SELECT SUM(duration_mins) as weekly_mins
                     FROM sessions
-                    WHERE session_date >= %s AND session_date < %s AND user_id = %s
+                    WHERE session_date >= ? AND session_date < ? AND user_id = ?
                     GROUP BY {week_format}
-                )
-            """,
+                ) subq
+            """),
                 (four_weeks_ago.isoformat(), week_start.isoformat(), user_id),
             )
             result = cursor.fetchone()
@@ -196,10 +196,10 @@ class InsightService:
             # Check consecutive training days
             six_days_ago = date.today() - timedelta(days=6)
             cursor.execute(
-                """
+                convert_query("""
                 SELECT COUNT(*) as count FROM sessions
-                WHERE session_date >= %s AND user_id = %s
-            """,
+                WHERE session_date >= ? AND user_id = ?
+            """),
                 (six_days_ago.isoformat(), user_id),
             )
             result = cursor.fetchone()
@@ -222,19 +222,24 @@ class InsightService:
         """Generate insights about performance trends."""
         insights = []
 
+        # Calculate date boundaries in Python for database compatibility
+        today = date.today()
+        thirty_days_ago = (today - timedelta(days=30)).isoformat()
+        sixty_days_ago = (today - timedelta(days=60)).isoformat()
+
         with get_connection() as conn:
             cursor = conn.cursor()
 
             # Check submission rate trend
             cursor.execute(
-                """
+                convert_query("""
                 SELECT
                     SUM(submissions_for) as subs,
                     COUNT(*) as sessions
                 FROM sessions
-                WHERE session_date >= CURRENT_DATE - INTERVAL '30 days' AND user_id = %s
-            """,
-                (user_id,),
+                WHERE session_date >= ? AND user_id = ?
+            """),
+                (thirty_days_ago, user_id),
             )
             recent = cursor.fetchone()
             if recent:
@@ -248,16 +253,16 @@ class InsightService:
                 recent_rate = 0
 
             cursor.execute(
-                """
+                convert_query("""
                 SELECT
                     SUM(submissions_for) as subs,
                     COUNT(*) as sessions
                 FROM sessions
-                WHERE session_date >= CURRENT_DATE - INTERVAL '60 days'
-                  AND session_date < CURRENT_DATE - INTERVAL '30 days'
-                  AND user_id = %s
-            """,
-                (user_id,),
+                WHERE session_date >= ?
+                  AND session_date < ?
+                  AND user_id = ?
+            """),
+                (sixty_days_ago, thirty_days_ago, user_id),
             )
             previous = cursor.fetchone()
             if previous:

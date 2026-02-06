@@ -3,7 +3,6 @@
 import json
 import os
 from pathlib import Path
-from typing import Optional
 
 import typer
 from rich.console import Console
@@ -21,8 +20,8 @@ CREDENTIALS_FILE = Path.home() / ".rivaflow" / "credentials.json"
 
 @app.command()
 def login(
-    email: Optional[str] = typer.Option(None, "--email", "-e", help="Email address"),
-    password: Optional[str] = typer.Option(
+    email: str | None = typer.Option(None, "--email", "-e", help="Email address"),
+    password: str | None = typer.Option(
         None, "--password", "-p", help="Password (not recommended, use prompt)"
     ),
 ):
@@ -112,16 +111,14 @@ def logout():
 
 @app.command()
 def register(
-    email: Optional[str] = typer.Option(None, "--email", "-e", help="Email address"),
-    password: Optional[str] = typer.Option(
+    email: str | None = typer.Option(None, "--email", "-e", help="Email address"),
+    password: str | None = typer.Option(
         None, "--password", "-p", help="Password (not recommended, use prompt)"
     ),
-    first_name: Optional[str] = typer.Option(
+    first_name: str | None = typer.Option(
         None, "--first-name", "-f", help="First name"
     ),
-    last_name: Optional[str] = typer.Option(
-        None, "--last-name", "-l", help="Last name"
-    ),
+    last_name: str | None = typer.Option(None, "--last-name", "-l", help="Last name"),
 ):
     """Register a new RivaFlow account."""
     try:

@@ -25,9 +25,9 @@ os.environ.setdefault("SECRET_KEY", "test-secret-key-for-testing-only-not-produc
 # Use PostgreSQL if DATABASE_URL is set (CI), otherwise use SQLite (local)
 # Do NOT delete DATABASE_URL - let CI use PostgreSQL
 
-from rivaflow.core.auth import create_access_token, hash_password
-from rivaflow.db.database import init_db
-from rivaflow.db.repositories import (
+from rivaflow.core.auth import create_access_token, hash_password  # noqa: E402
+from rivaflow.db.database import init_db  # noqa: E402
+from rivaflow.db.repositories import (  # noqa: E402
     FriendRepository,
     ProfileRepository,
     ReadinessRepository,

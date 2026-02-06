@@ -2,7 +2,6 @@
 
 import random
 from datetime import date
-from typing import Optional
 
 import typer
 from rich.console import Console
@@ -64,8 +63,8 @@ def rest(
     rest_type: str = typer.Option(
         "recovery", "--type", "-t", help="Type: recovery, life, injury, travel"
     ),
-    note: Optional[str] = typer.Option(None, "--note", "-n", help="Optional note"),
-    tomorrow: Optional[str] = typer.Option(
+    note: str | None = typer.Option(None, "--note", "-n", help="Optional note"),
+    tomorrow: str | None = typer.Option(
         None, "--tomorrow", help="Tomorrow's intention"
     ),
 ):

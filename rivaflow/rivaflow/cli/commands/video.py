@@ -1,7 +1,6 @@
 """Video management commands."""
 
 import json
-from typing import Optional
 
 import typer
 from rich.console import Console
@@ -18,11 +17,11 @@ console = Console()
 @app.command()
 def add(
     url: str = typer.Argument(..., help="Video URL"),
-    title: Optional[str] = typer.Option(None, "--title", "-t", help="Video title"),
-    technique: Optional[str] = typer.Option(
+    title: str | None = typer.Option(None, "--title", "-t", help="Video title"),
+    technique: str | None = typer.Option(
         None, "--technique", help="Technique name to link"
     ),
-    timestamps: Optional[str] = typer.Option(
+    timestamps: str | None = typer.Option(
         None,
         "--timestamps",
         help='Timestamps as JSON: [{"time": "2:30", "label": "entry"}]',
@@ -59,7 +58,7 @@ def add(
 
 @app.command()
 def list(
-    technique: Optional[str] = typer.Option(
+    technique: str | None = typer.Option(
         None, "--technique", help="Filter by technique"
     ),
 ):
