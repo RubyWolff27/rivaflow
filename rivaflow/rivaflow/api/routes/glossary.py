@@ -45,7 +45,7 @@ async def list_movements(
     ),
     gi_only: bool = Query(False, description="Only gi-applicable movements"),
     nogi_only: bool = Query(False, description="Only no-gi-applicable movements"),
-    limit: int = Query(default=50, ge=1, le=200, description="Max results to return"),
+    limit: int = Query(default=50, ge=1, le=1000, description="Max results to return"),
     offset: int = Query(default=0, ge=0, description="Number of results to skip"),
     current_user: dict = Depends(get_current_user),
 ):

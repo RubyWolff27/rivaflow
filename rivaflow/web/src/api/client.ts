@@ -184,8 +184,8 @@ export const gradingsApi = {
 };
 
 export const glossaryApi = {
-  list: (params?: { category?: string; search?: string; gi_only?: boolean; nogi_only?: boolean }) =>
-    api.get<Movement[]>('/glossary/', { params }),
+  list: (params?: { category?: string; search?: string; gi_only?: boolean; nogi_only?: boolean; limit?: number }) =>
+    api.get<Movement[]>('/glossary/', { params: { limit: 1000, ...params } }),
   getCategories: () => api.get<{ categories: string[] }>('/glossary/categories'),
   getById: (id: number, includeVideos = true) => api.get<Movement>(`/glossary/${id}?include_videos=${includeVideos}`),
   create: (data: { name: string; category: string; subcategory?: string; points?: number; description?: string; aliases?: string[]; gi_applicable?: boolean; nogi_applicable?: boolean }) =>
