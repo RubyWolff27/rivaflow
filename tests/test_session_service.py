@@ -33,11 +33,11 @@ def test_create_session(temp_db, test_user):
 
 
 def test_create_session_with_techniques(temp_db, test_user):
-    """Test creating a session with techniques updates technique tracking."""
+    """Test creating a session with techniques creates glossary + session_techniques."""
     with patch("rivaflow.config.DB_PATH", temp_db):
         service = SessionService()
 
-        service.create_session(
+        session_id = service.create_session(
             user_id=test_user["id"],
             session_date=date(2025, 1, 20),
             class_type="gi",
@@ -45,13 +45,23 @@ def test_create_session_with_techniques(temp_db, test_user):
             techniques=["armbar", "triangle"],
         )
 
-        # Verify techniques were created and updated
-        from rivaflow.db.repositories import TechniqueRepository
+        # Verify glossary entries were created
+        from rivaflow.db.repositories.glossary_repo import GlossaryRepository
 
-        tech_repo = TechniqueRepository()
-        armbar = tech_repo.get_by_name(name="armbar")
+        glossary_repo = GlossaryRepository()
+        armbar = glossary_repo.get_by_name("armbar")
         assert armbar is not None
-        assert armbar["last_trained_date"] == date(2025, 1, 20)
+
+        # Verify session_techniques records were created
+        from rivaflow.db.repositories.session_technique_repo import (
+            SessionTechniqueRepository,
+        )
+
+        st_repo = SessionTechniqueRepository()
+        techs = st_repo.get_by_session_id(test_user["id"], session_id)
+        assert len(techs) == 2
+        movement_ids = {t["movement_id"] for t in techs}
+        assert armbar["id"] in movement_ids
 
 
 def test_get_autocomplete_data(temp_db, test_user):
@@ -106,6 +116,40 @@ def test_consecutive_class_type_count(temp_db, test_user):
         counts = service.get_consecutive_class_type_count(user_id=test_user["id"])
         assert counts["gi"] == 3
         assert counts["no-gi"] == 0
+
+
+def test_list_with_training_data(temp_db, test_user):
+    """Test that list_with_training_data returns correct stats."""
+    with patch("rivaflow.config.DB_PATH", temp_db):
+        service = SessionService()
+
+        # Log two sessions with "armbar"
+        service.create_session(
+            user_id=test_user["id"],
+            session_date=date(2025, 1, 20),
+            class_type="gi",
+            gym_name="Test Gym",
+            techniques=["armbar"],
+        )
+        service.create_session(
+            user_id=test_user["id"],
+            session_date=date(2025, 1, 22),
+            class_type="gi",
+            gym_name="Test Gym",
+            techniques=["armbar"],
+        )
+
+        from rivaflow.db.repositories.glossary_repo import GlossaryRepository
+
+        glossary_repo = GlossaryRepository()
+        results = glossary_repo.list_with_training_data(
+            user_id=test_user["id"], trained_only=True
+        )
+
+        armbar_results = [r for r in results if r["name"] == "armbar"]
+        assert len(armbar_results) == 1
+        assert armbar_results[0]["train_count"] == 2
+        assert armbar_results[0]["last_trained_date"] is not None
 
 
 def test_format_session_summary(temp_db, test_user):

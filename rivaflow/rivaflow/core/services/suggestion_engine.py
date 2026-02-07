@@ -4,7 +4,8 @@ from datetime import date
 
 from rivaflow.core.rules import RULES, format_explanation
 from rivaflow.core.services.session_service import SessionService
-from rivaflow.db.repositories import ReadinessRepository, TechniqueRepository
+from rivaflow.db.repositories import ReadinessRepository
+from rivaflow.db.repositories.glossary_repo import GlossaryRepository
 
 
 class SuggestionEngine:
@@ -12,7 +13,7 @@ class SuggestionEngine:
 
     def __init__(self):
         self.readiness_repo = ReadinessRepository()
-        self.technique_repo = TechniqueRepository()
+        self.glossary_repo = GlossaryRepository()
         self.session_service = SessionService()
 
     def get_suggestion(self, user_id: int, target_date: date | None = None) -> dict:
@@ -30,9 +31,7 @@ class SuggestionEngine:
         consecutive_counts = self.session_service.get_consecutive_class_type_count(
             user_id
         )
-        stale_techniques = self.technique_repo.get_stale(
-            days=7
-        )  # Techniques are global, no user_id
+        stale_techniques = self.glossary_repo.get_stale(user_id, days=7)
 
         session_context = {
             "consecutive_gi_sessions": consecutive_counts.get("gi", 0),

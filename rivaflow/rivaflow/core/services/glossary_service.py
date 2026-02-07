@@ -173,6 +173,62 @@ class GlossaryService:
         # Custom videos are global
         return self.repo.delete_custom_video(video_id)
 
+    def list_trained_movements(
+        self,
+        user_id: int,
+        category: str | None = None,
+        search: str | None = None,
+        trained_only: bool = False,
+    ) -> list[dict]:
+        """Get movements with per-user training data."""
+        return self.repo.list_with_training_data(
+            user_id=user_id,
+            category=category,
+            search=search,
+            trained_only=trained_only,
+        )
+
+    def get_stale_movements(self, user_id: int, days: int = 7) -> list[dict]:
+        """Get movements the user has trained but not within N days."""
+        return self.repo.get_stale(user_id=user_id, days=days)
+
+    def get_trained_names(self, user_id: int) -> list[str]:
+        """Get distinct trained movement names for autocomplete."""
+        return self.repo.get_trained_names(user_id=user_id)
+
+    def list_all_videos(
+        self,
+        user_id: int,
+        limit: int = 50,
+        offset: int = 0,
+    ) -> list[dict]:
+        """List all movement videos with linked movement names."""
+        return self.repo.list_all_videos(limit=limit, offset=offset)
+
+    def get_video(self, user_id: int, video_id: int) -> dict | None:
+        """Get a single movement video by ID."""
+        return self.repo.get_video_by_id(video_id)
+
+    def add_video(
+        self,
+        user_id: int,
+        movement_id: int,
+        url: str,
+        title: str | None = None,
+        video_type: str = "general",
+    ) -> dict:
+        """Add a video link to a movement."""
+        return self.repo.add_custom_video(
+            movement_id=movement_id,
+            url=url,
+            title=title,
+            video_type=video_type,
+        )
+
+    def delete_video(self, user_id: int, video_id: int) -> bool:
+        """Delete a movement video."""
+        return self.repo.delete_custom_video(video_id)
+
     def _invalidate_movement_cache(self) -> None:
         """Invalidate all movement-related cache."""
         self.cache.delete_pattern(CacheKeys.PATTERN_ALL_MOVEMENTS)

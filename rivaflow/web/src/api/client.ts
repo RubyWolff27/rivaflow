@@ -1,5 +1,5 @@
 import axios from 'axios';
-import type { Session, Readiness, Report, Suggestion, Technique, Video, Profile, Grading, Movement, Friend, CustomVideo, WeeklyGoalProgress, GoalsSummary, TrainingStreaks, GoalCompletionStreak, DailyCheckin, StreakStatus, Streak, Milestone, MilestoneProgress, CompEvent, WeightLog, WeightAverage, Group, GroupMember } from '../types';
+import type { Session, Readiness, Report, Suggestion, Technique, TrainedMovement, Video, Profile, Grading, Movement, Friend, CustomVideo, WeeklyGoalProgress, GoalsSummary, TrainingStreaks, GoalCompletionStreak, DailyCheckin, StreakStatus, Streak, Milestone, MilestoneProgress, CompEvent, WeightLog, WeightAverage, Group, GroupMember } from '../types';
 
 // Paginated response type
 interface PaginatedResponse<T> {
@@ -140,18 +140,16 @@ export const suggestionsApi = {
 };
 
 export const techniquesApi = {
-  create: (data: { name: string; category?: string }) => api.post<Technique>('/techniques/', data),
-  list: () => api.get<PaginatedResponse<Technique>>('/techniques/'),
-  getStale: (days = 7) => api.get<Technique[]>(`/techniques/stale?days=${days}`),
-  search: (query: string) => api.get<Technique[]>(`/techniques/search?q=${query}`),
-  getById: (id: number) => api.get<Technique>(`/techniques/${id}`),
+  create: (data: { name: string; category: string }) => api.post<TrainedMovement>('/techniques/', data),
+  list: () => api.get<PaginatedResponse<TrainedMovement>>('/techniques/'),
+  getStale: (days = 7) => api.get<TrainedMovement[]>(`/techniques/stale?days=${days}`),
+  search: (query: string) => api.get<TrainedMovement[]>(`/techniques/search?q=${query}`),
+  getById: (id: number) => api.get<TrainedMovement>(`/techniques/${id}`),
 };
 
 export const videosApi = {
-  create: (data: any) => api.post<Video>('/videos/', data),
-  list: () => api.get<Video[]>('/videos/'),
-  getByTechnique: (name: string) => api.get<Video[]>(`/videos/technique/${name}`),
-  search: (query: string) => api.get<Video[]>(`/videos/search?q=${query}`),
+  create: (data: { url: string; title?: string; movement_id?: number; video_type?: string }) => api.post<Video>('/videos/', data),
+  list: () => api.get<{ videos: Video[]; total: number }>('/videos/'),
   delete: (id: number) => api.delete(`/videos/${id}`),
   getById: (id: number) => api.get<Video>(`/videos/${id}`),
 };

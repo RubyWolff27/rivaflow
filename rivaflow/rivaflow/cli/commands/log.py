@@ -177,14 +177,14 @@ def _full_log(service: SessionService, video_repo: VideoRepository, autocomplete
 
     # Show recall cards for techniques with videos
     if techniques_list:
-        from rivaflow.db.repositories import TechniqueRepository
+        from rivaflow.db.repositories.glossary_repo import GlossaryRepository
 
-        tech_repo = TechniqueRepository()
+        glossary_repo = GlossaryRepository()
         prompts.console.print()
         for tech_name in techniques_list:
-            tech = tech_repo.get_by_name(tech_name)
-            if tech:
-                videos = video_repo.get_by_technique(tech["id"])
+            movement = glossary_repo.get_by_name(tech_name)
+            if movement:
+                videos = glossary_repo.get_custom_videos(movement["id"])
                 if videos:
                     prompts.display_recall_card(tech_name, videos)
 

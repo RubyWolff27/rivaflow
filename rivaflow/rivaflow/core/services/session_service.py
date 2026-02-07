@@ -7,7 +7,6 @@ from rivaflow.config import SPARRING_CLASS_TYPES
 from rivaflow.db.repositories import (
     SessionRepository,
     SessionRollRepository,
-    TechniqueRepository,
 )
 from rivaflow.db.repositories.checkin_repo import CheckinRepository
 from rivaflow.db.repositories.glossary_repo import GlossaryRepository
@@ -19,7 +18,6 @@ class SessionService:
 
     def __init__(self):
         self.session_repo = SessionRepository()
-        self.technique_repo = TechniqueRepository()
         self.roll_repo = SessionRollRepository()
         self.technique_detail_repo = SessionTechniqueRepository()
         self.checkin_repo = CheckinRepository()
@@ -116,21 +114,19 @@ class SessionService:
                     media_urls=tech_data.get("media_urls"),
                 )
 
-                # Also update the techniques table with movement name
-                movement_id = tech_data.get("movement_id")
-                if movement_id:
-                    movement = self.glossary_repo.get_by_id(movement_id)
-                    if movement:
-                        tech = self.technique_repo.get_or_create(movement["name"])
-                        self.technique_repo.update_last_trained(
-                            tech["id"], session_date
-                        )
-
-        # Update technique last_trained_date (from simple techniques field)
+        # Create session_techniques records from simple techniques list
         if techniques:
             for tech_name in techniques:
-                tech = self.technique_repo.get_or_create(tech_name)
-                self.technique_repo.update_last_trained(tech["id"], session_date)
+                movement = self.glossary_repo.get_by_name(tech_name)
+                if not movement:
+                    movement = self.glossary_repo.create_custom(
+                        name=tech_name, category="submission"
+                    )
+                self.technique_detail_repo.create(
+                    user_id=user_id,
+                    session_id=session_id,
+                    movement_id=movement["id"],
+                )
 
         # Create check-in record for this session
         self.checkin_repo.upsert_checkin(
@@ -235,8 +231,6 @@ class SessionService:
             # Delete existing technique records
             self.technique_detail_repo.delete_by_session(session_id)
             # Create new technique records
-            # Use the session date from the updated session (which includes any changes from kwargs)
-            updated_date = updated["session_date"]
             for tech_data in session_techniques:
                 self.technique_detail_repo.create(
                     user_id=user_id,
@@ -247,24 +241,23 @@ class SessionService:
                     media_urls=tech_data.get("media_urls"),
                 )
 
-                # Also update the techniques table with movement name
-                movement_id = tech_data.get("movement_id")
-                if movement_id:
-                    movement = self.glossary_repo.get_by_id(movement_id)
-                    if movement:
-                        tech = self.technique_repo.get_or_create(movement["name"])
-                        self.technique_repo.update_last_trained(
-                            tech["id"], updated_date
-                        )
-
-        # Update technique last_trained_date if techniques changed (from simple techniques field)
+        # Create session_techniques records from simple techniques list
         techniques = kwargs.get("techniques")
         if techniques is not None:
-            # Use the session date from the updated session
-            updated_date = updated["session_date"]
+            # Delete old simple-technique records if no detailed techs were provided
+            if session_techniques is None:
+                self.technique_detail_repo.delete_by_session(session_id)
             for tech_name in techniques:
-                tech = self.technique_repo.get_or_create(tech_name)
-                self.technique_repo.update_last_trained(tech["id"], updated_date)
+                movement = self.glossary_repo.get_by_name(tech_name)
+                if not movement:
+                    movement = self.glossary_repo.create_custom(
+                        name=tech_name, category="submission"
+                    )
+                self.technique_detail_repo.create(
+                    user_id=user_id,
+                    session_id=session_id,
+                    movement_id=movement["id"],
+                )
 
         return updated
 
@@ -290,7 +283,7 @@ class SessionService:
             "gyms": self.session_repo.get_unique_gyms(user_id),
             "locations": self.session_repo.get_unique_locations(user_id),
             "partners": self.session_repo.get_unique_partners(user_id),
-            "techniques": self.technique_repo.get_unique_names(),  # Techniques are global
+            "techniques": self.glossary_repo.get_trained_names(user_id),
         }
 
     def get_consecutive_class_type_count(self, user_id: int) -> dict[str, int]:

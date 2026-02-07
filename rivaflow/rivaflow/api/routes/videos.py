@@ -1,43 +1,40 @@
-"""Video library endpoints."""
+"""Video library endpoints — backed by movement_videos table."""
 
 from fastapi import APIRouter, Depends, Query
+from pydantic import BaseModel, Field
 
 from rivaflow.core.dependencies import get_current_user
 from rivaflow.core.exceptions import NotFoundError
-from rivaflow.core.models import VideoCreate
-from rivaflow.core.services.video_service import VideoService
+from rivaflow.core.services.glossary_service import GlossaryService
 
 router = APIRouter()
-service = VideoService()
+service = GlossaryService()
+
+
+class VideoCreateRequest(BaseModel):
+    """Input model for creating a video (writes to movement_videos)."""
+
+    url: str
+    title: str | None = None
+    movement_id: int | None = None
+    video_type: str = Field(default="general")
 
 
 @router.post("/")
-async def add_video(video: VideoCreate, current_user: dict = Depends(get_current_user)):
-    """Add a new video."""
-    # Convert technique_id to technique_name if provided
-    technique_name = None
-    if video.technique_id:
-        from rivaflow.db.repositories import TechniqueRepository
-
-        tech_repo = TechniqueRepository()
-        tech = tech_repo.get_by_id(video.technique_id)
-        if tech:
-            technique_name = tech["name"]
-
-    # Convert timestamps to dict format
-    timestamps = None
-    if video.timestamps:
-        timestamps = [{"time": ts.time, "label": ts.label} for ts in video.timestamps]
-
-    video_id = service.add_video(
+async def add_video(
+    video: VideoCreateRequest,
+    current_user: dict = Depends(get_current_user),
+):
+    """Add a new video linked to a glossary movement."""
+    if not video.movement_id:
+        raise NotFoundError("movement_id is required to link a video to a movement")
+    return service.add_video(
         user_id=current_user["id"],
+        movement_id=video.movement_id,
         url=video.url,
         title=video.title,
-        timestamps=timestamps,
-        technique_name=technique_name,
+        video_type=video.video_type,
     )
-    created_video = service.get_video(user_id=current_user["id"], video_id=video_id)
-    return created_video
 
 
 @router.get("/")
@@ -47,35 +44,23 @@ async def list_videos(
     current_user: dict = Depends(get_current_user),
 ):
     """List all videos with pagination."""
-    all_videos = service.list_all_videos(user_id=current_user["id"])
-    total = len(all_videos)
-    videos = all_videos[offset : offset + limit]
-
-    return {"videos": videos, "total": total, "limit": limit, "offset": offset}
-
-
-@router.get("/technique/{technique_name}")
-async def get_videos_by_technique(
-    technique_name: str, current_user: dict = Depends(get_current_user)
-):
-    """Get videos for a specific technique."""
-    return service.list_videos_by_technique(
-        user_id=current_user["id"], technique_name=technique_name
+    all_videos = service.list_all_videos(
+        user_id=current_user["id"], limit=limit, offset=offset
     )
-
-
-@router.get("/search")
-async def search_videos(
-    q: str = Query(..., min_length=2), current_user: dict = Depends(get_current_user)
-):
-    """Search videos by title or URL."""
-    return service.search_videos(user_id=current_user["id"], query=q)
+    return {
+        "videos": all_videos,
+        "total": len(all_videos),
+        "limit": limit,
+        "offset": offset,
+    }
 
 
 @router.delete("/{video_id}")
 async def delete_video(video_id: int, current_user: dict = Depends(get_current_user)):
     """Delete a video."""
-    service.delete_video(user_id=current_user["id"], video_id=video_id)
+    deleted = service.delete_video(user_id=current_user["id"], video_id=video_id)
+    if not deleted:
+        raise NotFoundError("Video not found")
     return {"status": "deleted", "video_id": video_id}
 
 

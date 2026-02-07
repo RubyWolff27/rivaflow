@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { adminApi, techniquesApi } from '../api/client';
+import { adminApi, glossaryApi } from '../api/client';
 import { Search, Trash2, Plus } from 'lucide-react';
 import { Card, PrimaryButton, SecondaryButton } from '../components/ui';
 import AdminNav from '../components/AdminNav';
@@ -80,9 +80,9 @@ export default function AdminTechniques() {
   const createTechnique = async () => {
     if (!newTechnique.name.trim()) return;
     try {
-      await techniquesApi.create({
+      await glossaryApi.create({
         name: newTechnique.name.trim(),
-        category: newTechnique.category.trim() || undefined,
+        category: newTechnique.category.trim() || 'submission',
       });
       toast.success(`Technique "${newTechnique.name}" created successfully!`);
       setShowCreateModal(false);

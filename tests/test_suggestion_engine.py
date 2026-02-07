@@ -80,17 +80,19 @@ def test_suggestion_with_consecutive_gi(temp_db, test_user):
 def test_suggestion_with_stale_technique(temp_db, test_user):
     """Test suggestion when technique is stale."""
     with patch("rivaflow.config.DB_PATH", temp_db):
-        # Setup: Create a technique and mark it as trained 10 days ago
-        from rivaflow.db.repositories import TechniqueRepository
-
-        tech_repo = TechniqueRepository()
-        tech = tech_repo.get_or_create(name="armbar", category="submission")
-        tech_repo.update_last_trained(
-            technique_id=tech["id"], trained_date=date(2025, 1, 10)
+        # Setup: Create a session with a technique trained 10 days ago
+        # This creates a glossary entry + session_techniques record
+        session_service = SessionService()
+        session_service.create_session(
+            user_id=test_user["id"],
+            session_date=date(2025, 1, 10),
+            class_type="gi",
+            gym_name="Test Gym",
+            techniques=["armbar"],
         )
 
-        # Mock today as 10+ days later
-        with patch("rivaflow.core.services.suggestion_engine.date") as mock_date:
+        # Mock today as 10+ days later so GlossaryRepository.get_stale finds it
+        with patch("rivaflow.db.repositories.glossary_repo.date") as mock_date:
             mock_date.today.return_value = date(2025, 1, 25)
 
             engine = SuggestionEngine()

@@ -118,16 +118,16 @@ def stats():
     from rivaflow.db.repositories import (
         ReadinessRepository,
         SessionRepository,
-        TechniqueRepository,
         VideoRepository,
     )
+    from rivaflow.db.repositories.glossary_repo import GlossaryRepository
 
     console = Console()
     user_id = get_current_user_id()
 
     session_repo = SessionRepository()
     readiness_repo = ReadinessRepository()
-    technique_repo = TechniqueRepository()
+    glossary_repo = GlossaryRepository()
     video_repo = VideoRepository()
 
     # Get all sessions
@@ -141,7 +141,9 @@ def stats():
 
     # Get counts
     readiness_count = len(readiness_repo.list_by_user(user_id))
-    technique_count = len(technique_repo.list_all())
+    technique_count = len(
+        glossary_repo.list_with_training_data(user_id, trained_only=True)
+    )
     video_count = len(video_repo.list_all())
 
     # Display
@@ -180,10 +182,10 @@ def export(
         ProfileRepository,
         ReadinessRepository,
         SessionRepository,
-        TechniqueRepository,
         UserRepository,
         VideoRepository,
     )
+    from rivaflow.db.repositories.glossary_repo import GlossaryRepository
 
     console = Console()
     user_id = get_current_user_id()
@@ -193,7 +195,7 @@ def export(
     profile_repo = ProfileRepository()
     session_repo = SessionRepository()
     readiness_repo = ReadinessRepository()
-    technique_repo = TechniqueRepository()
+    glossary_repo = GlossaryRepository()
     video_repo = VideoRepository()
     grading_repo = GradingRepository()
     friend_repo = FriendRepository()
@@ -218,7 +220,9 @@ def export(
             "profile": profile,
             "sessions": session_repo.list_by_user(user_id),
             "readiness": readiness_repo.list_by_user(user_id),
-            "techniques": technique_repo.list_all(),
+            "techniques": glossary_repo.list_with_training_data(
+                user_id, trained_only=True
+            ),
             "videos": video_repo.list_all(),
             "gradings": grading_repo.list_all(user_id),
             "friends": friend_repo.list_all(user_id),

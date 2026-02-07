@@ -86,17 +86,16 @@ def list(
     table.add_column("Technique", style="cyan", max_width=20)
     table.add_column("Timestamps", style="dim", width=10)
 
-    from rivaflow.db.repositories import TechniqueRepository
-
-    tech_repo = TechniqueRepository()
-
     for video in videos:
-        # Get technique name
-        technique_name = ""
-        if video.get("technique_id"):
-            tech = tech_repo.get_by_id(video["technique_id"])
-            if tech:
-                technique_name = tech["name"]
+        # Get movement name (may already be present from glossary-backed API)
+        technique_name = video.get("movement_name", "")
+        if not technique_name and video.get("technique_id"):
+            from rivaflow.db.repositories.glossary_repo import GlossaryRepository
+
+            glossary_repo = GlossaryRepository()
+            movement = glossary_repo.get_by_id(video["technique_id"])
+            if movement:
+                technique_name = movement["name"]
 
         # Count timestamps
         timestamp_count = len(video.get("timestamps", []))

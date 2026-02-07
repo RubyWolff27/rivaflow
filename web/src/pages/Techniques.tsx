@@ -1,11 +1,16 @@
 import { useState, useEffect, memo, useCallback } from 'react';
 import { techniquesApi } from '../api/client';
-import type { Technique } from '../types';
+import type { TrainedMovement } from '../types';
 import { Book, AlertCircle } from 'lucide-react';
 import { CardSkeleton } from '../components/ui';
 
+const GLOSSARY_CATEGORIES = [
+  'position', 'submission', 'sweep', 'pass', 'takedown',
+  'escape', 'movement', 'concept', 'defense',
+];
+
 // Memoized technique row component
-const TechniqueRow = memo(function TechniqueRow({ tech }: { tech: Technique }) {
+const TechniqueRow = memo(function TechniqueRow({ tech }: { tech: TrainedMovement }) {
   return (
     <tr className="border-b border-[var(--border)]">
       <td className="py-3 px-4 font-medium">{tech.name}</td>
@@ -17,16 +22,19 @@ const TechniqueRow = memo(function TechniqueRow({ tech }: { tech: Technique }) {
           ? new Date(tech.last_trained_date).toLocaleDateString()
           : 'Never'}
       </td>
+      <td className="py-3 px-4 text-[var(--muted)]">
+        {tech.train_count ?? 0}
+      </td>
     </tr>
   );
 });
 
 export default function Techniques() {
-  const [techniques, setTechniques] = useState<Technique[]>([]);
-  const [staleTechniques, setStaleTechniques] = useState<Technique[]>([]);
+  const [techniques, setTechniques] = useState<TrainedMovement[]>([]);
+  const [staleTechniques, setStaleTechniques] = useState<TrainedMovement[]>([]);
   const [loading, setLoading] = useState(true);
   const [showAddForm, setShowAddForm] = useState(false);
-  const [newTechnique, setNewTechnique] = useState({ name: '', category: '' });
+  const [newTechnique, setNewTechnique] = useState({ name: '', category: 'submission' });
 
   useEffect(() => {
     let cancelled = false;
@@ -62,13 +70,10 @@ export default function Techniques() {
         techniquesApi.list(),
         techniquesApi.getStale(7),
       ]);
-      // API returns {techniques: [], total: number} for list endpoint
       setTechniques(techRes.data.techniques || []);
-      // API returns array directly for stale endpoint
       setStaleTechniques(staleRes.data || []);
     } catch (error) {
       console.error('Error loading techniques:', error);
-      // Set empty arrays on error to prevent .map crashes
       setTechniques([]);
       setStaleTechniques([]);
     } finally {
@@ -80,7 +85,7 @@ export default function Techniques() {
     e.preventDefault();
     try {
       await techniquesApi.create(newTechnique);
-      setNewTechnique({ name: '', category: '' });
+      setNewTechnique({ name: '', category: 'submission' });
       setShowAddForm(false);
       await loadTechniques();
     } catch (error) {
@@ -125,20 +130,18 @@ export default function Techniques() {
               />
             </div>
             <div>
-              <label className="label">Category (optional)</label>
+              <label className="label">Category</label>
               <select
                 className="input"
                 value={newTechnique.category}
                 onChange={(e) => setNewTechnique({ ...newTechnique, category: e.target.value })}
+                required
               >
-                <option value="">Select category</option>
-                <option value="guard">Guard</option>
-                <option value="pass">Pass</option>
-                <option value="submission">Submission</option>
-                <option value="sweep">Sweep</option>
-                <option value="takedown">Takedown</option>
-                <option value="escape">Escape</option>
-                <option value="position">Position</option>
+                {GLOSSARY_CATEGORIES.map((cat) => (
+                  <option key={cat} value={cat}>
+                    {cat.charAt(0).toUpperCase() + cat.slice(1)}
+                  </option>
+                ))}
               </select>
             </div>
           </div>
@@ -175,10 +178,10 @@ export default function Techniques() {
 
       {/* Techniques List */}
       <div className="card">
-        <h2 className="text-xl font-semibold mb-4">All Techniques ({techniques.length})</h2>
+        <h2 className="text-xl font-semibold mb-4">Trained Techniques ({techniques.length})</h2>
         {techniques.length === 0 ? (
           <p className="text-center text-[var(--muted)] py-8">
-            No techniques tracked yet. Add your first technique above!
+            No techniques tracked yet. Log a session with techniques to see them here!
           </p>
         ) : (
           <div className="overflow-x-auto">
@@ -188,6 +191,7 @@ export default function Techniques() {
                   <th className="text-left py-3 px-4">Name</th>
                   <th className="text-left py-3 px-4">Category</th>
                   <th className="text-left py-3 px-4">Last Trained</th>
+                  <th className="text-left py-3 px-4">Train Count</th>
                 </tr>
               </thead>
               <tbody>

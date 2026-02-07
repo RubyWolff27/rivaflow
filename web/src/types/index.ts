@@ -55,12 +55,20 @@ export interface Technique {
   created_at: string;
 }
 
+export interface TrainedMovement extends Movement {
+  last_trained_date?: string;
+  train_count?: number;
+}
+
 export interface Video {
   id: number;
   url: string;
   title?: string;
   timestamps?: { time: string; label: string }[];
   technique_id?: number;
+  movement_id?: number;
+  movement_name?: string;
+  video_type?: string;
   created_at: string;
 }
 

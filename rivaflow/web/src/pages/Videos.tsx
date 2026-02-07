@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
-import { videosApi, techniquesApi } from '../api/client';
-import type { Video, Technique } from '../types';
+import { videosApi, glossaryApi } from '../api/client';
+import type { Video, Movement } from '../types';
 import { Video as VideoIcon, ExternalLink, Plus, X } from 'lucide-react';
 import { useToast } from '../contexts/ToastContext';
 import ConfirmDialog from '../components/ConfirmDialog';
@@ -9,23 +9,24 @@ import { CardSkeleton } from '../components/ui';
 interface VideoForm {
   url: string;
   title: string;
-  technique_id: number | null;
-  timestamps: { time: string; label: string }[];
+  movement_id: number | null;
+  video_type: string;
 }
 
 export default function Videos() {
   const toast = useToast();
   const [videos, setVideos] = useState<Video[]>([]);
-  const [techniques, setTechniques] = useState<Technique[]>([]);
+  const [movements, setMovements] = useState<Movement[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [deleteConfirmId, setDeleteConfirmId] = useState<number | null>(null);
+  const [movementSearch, setMovementSearch] = useState('');
   const [formData, setFormData] = useState<VideoForm>({
     url: '',
     title: '',
-    technique_id: null,
-    timestamps: [],
+    movement_id: null,
+    video_type: 'general',
   });
 
   useEffect(() => {
@@ -33,14 +34,14 @@ export default function Videos() {
     const doLoad = async () => {
       setLoading(true);
       try {
-        const [videosRes, techniquesRes] = await Promise.all([
+        const [videosRes, movementsRes] = await Promise.all([
           videosApi.list(),
-          techniquesApi.list(),
+          glossaryApi.list(),
         ]);
         if (!cancelled) {
           const vData = videosRes.data as any;
-      setVideos(Array.isArray(vData) ? vData : vData?.videos || []);
-          setTechniques(techniquesRes.data.techniques || []);
+          setVideos(Array.isArray(vData) ? vData : vData?.videos || []);
+          setMovements(movementsRes.data || []);
         }
       } catch (error) {
         if (!cancelled) console.error('Error loading data:', error);
@@ -55,13 +56,13 @@ export default function Videos() {
   const loadData = async () => {
     setLoading(true);
     try {
-      const [videosRes, techniquesRes] = await Promise.all([
+      const [videosRes, movementsRes] = await Promise.all([
         videosApi.list(),
-        techniquesApi.list(),
+        glossaryApi.list(),
       ]);
       const vData = videosRes.data as any;
       setVideos(Array.isArray(vData) ? vData : vData?.videos || []);
-      setTechniques(techniquesRes.data.techniques || []);
+      setMovements(movementsRes.data || []);
     } catch (error) {
       console.error('Error loading data:', error);
     } finally {
@@ -71,21 +72,22 @@ export default function Videos() {
 
   const handleAddVideo = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formData.url) return;
+    if (!formData.url || !formData.movement_id) return;
 
     setSubmitting(true);
     try {
       await videosApi.create({
         url: formData.url,
         title: formData.title || undefined,
-        technique_id: formData.technique_id || undefined,
-        timestamps: formData.timestamps.length > 0 ? formData.timestamps : undefined,
+        movement_id: formData.movement_id,
+        video_type: formData.video_type,
       });
 
-      // Reset form and reload videos
-      setFormData({ url: '', title: '', technique_id: null, timestamps: [] });
+      setFormData({ url: '', title: '', movement_id: null, video_type: 'general' });
+      setMovementSearch('');
       setShowForm(false);
       await loadData();
+      toast.showToast('success', 'Video added successfully!');
     } catch (error) {
       console.error('Error adding video:', error);
       toast.showToast('error', 'Failed to add video. Please try again.');
@@ -105,25 +107,11 @@ export default function Videos() {
     }
   };
 
-  const addTimestamp = () => {
-    setFormData({
-      ...formData,
-      timestamps: [...formData.timestamps, { time: '', label: '' }],
-    });
-  };
-
-  const removeTimestamp = (index: number) => {
-    setFormData({
-      ...formData,
-      timestamps: formData.timestamps.filter((_, i) => i !== index),
-    });
-  };
-
-  const updateTimestamp = (index: number, field: 'time' | 'label', value: string) => {
-    const newTimestamps = [...formData.timestamps];
-    newTimestamps[index][field] = value;
-    setFormData({ ...formData, timestamps: newTimestamps });
-  };
+  const filteredMovements = movementSearch
+    ? movements.filter((m) =>
+        m.name.toLowerCase().includes(movementSearch.toLowerCase())
+      ).slice(0, 20)
+    : movements.slice(0, 20);
 
   if (loading) {
     return (
@@ -153,7 +141,7 @@ export default function Videos() {
 
       <div className="card">
         <p className="text-[var(--muted)]">
-          Manage your instructional video library. Videos are linked to techniques and appear as recall cards during session logging.
+          Manage your instructional video library. Videos are linked to glossary movements and appear as recall cards during session logging.
         </p>
       </div>
 
@@ -197,74 +185,61 @@ export default function Videos() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium mb-1">Technique (optional)</label>
-              <select
-                value={formData.technique_id || ''}
-                onChange={(e) =>
-                  setFormData({
-                    ...formData,
-                    technique_id: e.target.value ? parseInt(e.target.value) : null,
-                  })
-                }
+              <label className="block text-sm font-medium mb-1">
+                Movement <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="text"
+                value={movementSearch}
+                onChange={(e) => {
+                  setMovementSearch(e.target.value);
+                  if (!e.target.value) setFormData({ ...formData, movement_id: null });
+                }}
+                placeholder="Search movements..."
                 className="w-full px-3 py-2 border border-[var(--border)] rounded-lg focus:ring-2 focus:ring-primary-500 bg-[var(--surface)]"
-              >
-                <option value="">Select a technique...</option>
-                {techniques.map((technique) => (
-                  <option key={technique.id} value={technique.id}>
-                    {technique.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div>
-              <div className="flex justify-between items-center mb-2">
-                <label className="block text-sm font-medium">Timestamps (optional)</label>
-                <button
-                  type="button"
-                  onClick={addTimestamp}
-                  className="text-sm text-[var(--accent)] hover:opacity-80 flex items-center gap-1"
-                >
-                  <Plus className="w-4 h-4" />
-                  Add Timestamp
-                </button>
-              </div>
-
-              {formData.timestamps.length > 0 && (
-                <div className="space-y-2">
-                  {formData.timestamps.map((ts, idx) => (
-                    <div key={idx} className="flex gap-2">
-                      <input
-                        type="text"
-                        placeholder="0:00"
-                        value={ts.time}
-                        onChange={(e) => updateTimestamp(idx, 'time', e.target.value)}
-                        className="w-24 px-2 py-1 border border-[var(--border)] rounded focus:ring-2 focus:ring-primary-500 bg-[var(--surface)] text-sm"
-                      />
-                      <input
-                        type="text"
-                        placeholder="Description"
-                        value={ts.label}
-                        onChange={(e) => updateTimestamp(idx, 'label', e.target.value)}
-                        className="flex-1 px-2 py-1 border border-[var(--border)] rounded focus:ring-2 focus:ring-primary-500 bg-[var(--surface)] text-sm"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => removeTimestamp(idx)}
-                        className="text-red-500 hover:text-red-700"
-                      >
-                        <X className="w-4 h-4" />
-                      </button>
-                    </div>
+              />
+              {movementSearch && !formData.movement_id && (
+                <div className="mt-1 max-h-40 overflow-y-auto border border-[var(--border)] rounded-lg bg-[var(--surface)]">
+                  {filteredMovements.map((m) => (
+                    <button
+                      key={m.id}
+                      type="button"
+                      onClick={() => {
+                        setFormData({ ...formData, movement_id: m.id });
+                        setMovementSearch(m.name);
+                      }}
+                      className="w-full text-left px-3 py-2 hover:bg-[var(--surfaceElev)] text-sm"
+                    >
+                      <span className="font-medium">{m.name}</span>
+                      <span className="text-[var(--muted)] ml-2">{m.category}</span>
+                    </button>
                   ))}
                 </div>
               )}
+              {formData.movement_id && (
+                <p className="text-sm text-[var(--accent)] mt-1">
+                  Selected: {movementSearch}
+                </p>
+              )}
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium mb-1">Video Type</label>
+              <select
+                value={formData.video_type}
+                onChange={(e) => setFormData({ ...formData, video_type: e.target.value })}
+                className="w-full px-3 py-2 border border-[var(--border)] rounded-lg focus:ring-2 focus:ring-primary-500 bg-[var(--surface)]"
+              >
+                <option value="general">General</option>
+                <option value="gi">Gi</option>
+                <option value="nogi">No-Gi</option>
+              </select>
             </div>
 
             <div className="flex gap-3 pt-2">
               <button
                 type="submit"
-                disabled={submitting || !formData.url}
+                disabled={submitting || !formData.url || !formData.movement_id}
                 className="btn btn-primary"
               >
                 {submitting ? 'Adding...' : 'Add Video'}
@@ -316,28 +291,17 @@ export default function Videos() {
 
               <div className="text-sm text-[var(--muted)] space-y-1 mb-3">
                 <p className="truncate">{video.url}</p>
-                {video.technique_id && (
+                {video.movement_name && (
                   <p className="text-[var(--accent)]">
-                    Linked to: {techniques.find((t) => t.id === video.technique_id)?.name || 'Unknown technique'}
+                    Linked to: {video.movement_name}
                   </p>
                 )}
+                {video.video_type && video.video_type !== 'general' && (
+                  <span className="inline-block px-2 py-0.5 text-xs rounded bg-[var(--surfaceElev)]">
+                    {video.video_type}
+                  </span>
+                )}
               </div>
-
-              {video.timestamps && video.timestamps.length > 0 && (
-                <div className="border-t border-[var(--border)] pt-3 mt-3">
-                  <p className="text-xs font-semibold text-[var(--muted)] mb-2">
-                    TIMESTAMPS
-                  </p>
-                  <div className="space-y-1">
-                    {video.timestamps.map((ts, idx) => (
-                      <div key={idx} className="text-sm flex gap-2">
-                        <span className="text-[var(--accent)] font-mono">{ts.time}</span>
-                        <span className="text-[var(--muted)]">{ts.label}</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
             </div>
           ))}
         </div>
