@@ -10,7 +10,6 @@
     "serve": "serve dist -s"
   },
   "dependencies": {
-    "@sentry/react": "^8.45.0",
     "serve": "^14.2.0",
     "@types/react-window": "^1.8.8",
     "axios": "^1.6.2",
