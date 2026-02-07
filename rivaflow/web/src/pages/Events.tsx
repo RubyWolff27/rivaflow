@@ -4,6 +4,7 @@ import { eventsApi, weightLogsApi } from '../api/client';
 import type { CompEvent, WeightLog } from '../types';
 import { useToast } from '../contexts/ToastContext';
 import ConfirmDialog from '../components/ConfirmDialog';
+import PrepChecklist from '../components/events/PrepChecklist';
 
 /* ------------------------------------------------------------------ */
 /*  Helpers                                                            */
@@ -565,12 +566,13 @@ export default function Events() {
               return (
                 <div
                   key={ev.id}
-                  className="rounded-xl p-4 flex items-center justify-between"
+                  className="rounded-xl p-4"
                   style={{
                     backgroundColor: 'var(--surface)',
                     border: '1px solid var(--border)',
                   }}
                 >
+                  <div className="flex items-center justify-between">
                   <div className="flex items-center gap-4">
                     <div
                       className="w-12 h-12 rounded-lg flex flex-col items-center justify-center"
@@ -649,6 +651,8 @@ export default function Events() {
                       <Trash2 className="w-4 h-4" />
                     </button>
                   </div>
+                </div>
+                <PrepChecklist eventId={ev.id} eventType={ev.event_type || 'other'} />
                 </div>
               );
             })}

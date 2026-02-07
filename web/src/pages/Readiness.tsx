@@ -1,13 +1,15 @@
 import { useState, useEffect } from 'react';
-import { readinessApi } from '../api/client';
+import { readinessApi, suggestionsApi } from '../api/client';
 import type { Readiness as ReadinessType } from '../types';
-import { CheckCircle, Activity } from 'lucide-react';
+import { Activity } from 'lucide-react';
 import { useToast } from '../contexts/ToastContext';
+import ReadinessResult from '../components/ReadinessResult';
 
 export default function Readiness() {
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const [latest, setLatest] = useState<ReadinessType | null>(null);
+  const [suggestionData, setSuggestionData] = useState<{ suggestion?: string; triggered_rules?: { name: string; recommendation: string; explanation: string; priority: number }[] } | null>(null);
   const toast = useToast();
 
   const [formData, setFormData] = useState({
@@ -59,7 +61,18 @@ export default function Readiness() {
       await readinessApi.create(submitData);
       setSuccess(true);
       await loadLatest();
-      setTimeout(() => setSuccess(false), 3000);
+      // Fetch suggestion for recommendation display
+      try {
+        const sugRes = await suggestionsApi.getToday();
+        if (sugRes.data) {
+          setSuggestionData({
+            suggestion: sugRes.data.suggestion,
+            triggered_rules: sugRes.data.triggered_rules,
+          });
+        }
+      } catch {
+        // Suggestion not available, still show result
+      }
     } catch (error) {
       console.error('Error logging readiness:', error);
       toast.error('Failed to log readiness. Please try again.');
@@ -99,14 +112,17 @@ export default function Readiness() {
         </div>
       )}
 
+      {/* Result after submission */}
+      {success && (
+        <ReadinessResult
+          compositeScore={compositeScore}
+          suggestion={suggestionData?.suggestion}
+          triggeredRules={suggestionData?.triggered_rules}
+        />
+      )}
+
       {/* Form */}
       <form onSubmit={handleSubmit} className="card">
-        {success && (
-          <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded-lg flex items-center gap-2 text-green-700">
-            <CheckCircle className="w-5 h-5" />
-            Readiness logged successfully!
-          </div>
-        )}
 
         <div className="space-y-6">
           <div>

@@ -79,6 +79,7 @@ function App() {
                           <Route path="/feed" element={<Feed />} />
                           <Route path="/chat" element={<Chat />} />
                           <Route path="/reports" element={<Reports />} />
+                          <Route path="/progress" element={<Reports />} />
                           <Route path="/readiness" element={<Readiness />} />
                           <Route path="/readiness/:date" element={<ReadinessDetail />} />
                           <Route path="/readiness/edit/:date" element={<EditReadiness />} />

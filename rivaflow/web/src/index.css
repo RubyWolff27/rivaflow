@@ -149,6 +149,42 @@
     @apply block text-sm font-medium mb-1;
     color: var(--text);
   }
+
+  /* Interactive card hover state */
+  .card-interactive {
+    cursor: pointer;
+    transition: border-color 200ms ease, box-shadow 200ms ease;
+  }
+
+  .card-interactive:hover {
+    border-color: var(--accent);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  }
+
+  /* Button press states */
+  .btn-primary:active {
+    transform: scale(0.97);
+  }
+
+  .btn-secondary:active {
+    transform: scale(0.97);
+  }
+}
+
+/* Page enter animation */
+@keyframes pageEnter {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.page-enter {
+  animation: pageEnter 200ms ease-out;
 }
 
 @layer utilities {

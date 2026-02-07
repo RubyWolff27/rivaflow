@@ -7,3 +7,6 @@ export { default as MetricTile } from './MetricTile';
 export { default as SectionHeader } from './SectionHeader';
 export { default as LoadingSkeleton, MetricTileSkeleton, CardSkeleton } from './LoadingSkeleton';
 export { default as EmptyState } from './EmptyState';
+export { default as PageHeader } from './PageHeader';
+export { default as ClassTypeChips } from './ClassTypeChips';
+export { default as IntensityChips } from './IntensityChips';

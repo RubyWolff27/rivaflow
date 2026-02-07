@@ -6,6 +6,8 @@ import { Card, Chip, MetricTile, MetricTileSkeleton, CardSkeleton, EmptyState } 
 import { ActivityTypeFilter } from '../components/ActivityTypeFilter';
 import { useFeatureAccess } from '../hooks/useTier';
 import { PremiumBadge, UpgradePrompt } from '../components/UpgradePrompt';
+import ReadinessTab from '../components/analytics/ReadinessTab';
+import TechniqueHeatmap from '../components/analytics/TechniqueHeatmap';
 
 export default function Reports() {
   const { hasAccess: hasAdvancedAnalytics } = useFeatureAccess('advanced_analytics');
@@ -206,6 +208,23 @@ export default function Reports() {
           priority: 6,
         });
       }
+    }
+
+    // Hours insight
+    const totalHours = summary.total_hours ?? 0;
+    if (totalHours > 0) {
+      allInsights.push({
+        text: `${Number(totalHours).toFixed(1)} hours on the mat this period.`,
+        priority: 4,
+      });
+    }
+
+    // Top class type insight
+    if (summary.top_class_type) {
+      allInsights.push({
+        text: `Most trained class type: ${summary.top_class_type}.`,
+        priority: 3,
+      });
     }
 
     // Default insights if no significant changes
@@ -772,6 +791,11 @@ export default function Reports() {
             </Card>
           </div>
 
+          {/* Technique Heatmap */}
+          {techniquesData.all_techniques && Array.isArray(techniquesData.all_techniques) && techniquesData.all_techniques.length > 0 && (
+            <TechniqueHeatmap techniques={techniquesData.all_techniques} />
+          )}
+
           {/* Stale Techniques */}
           {techniquesData.stale_techniques && Array.isArray(techniquesData.stale_techniques) && techniquesData.stale_techniques.length > 0 && (
             <Card>
@@ -797,15 +821,9 @@ export default function Reports() {
         </div>
       )}
 
-      {/* Placeholder for Readiness tab */}
+      {/* Readiness Tab */}
       {activeTab === 'readiness' && (
-        <Card>
-          <EmptyState
-            icon={Activity}
-            title="Readiness Analytics Coming Soon"
-            description="Track your recovery, sleep, and readiness scores to optimize your training schedule and prevent overtraining."
-          />
-        </Card>
+        <ReadinessTab dateRange={dateRange} selectedTypes={selectedTypes} />
       )}
     </div>
   );

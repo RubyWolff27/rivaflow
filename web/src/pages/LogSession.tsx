@@ -4,18 +4,9 @@ import { sessionsApi, readinessApi, profileApi, friendsApi, glossaryApi, restApi
 import type { Friend, Movement, MediaUrl } from '../types';
 import { CheckCircle, ArrowRight, ArrowLeft, Plus, X, ToggleLeft, ToggleRight, Search, Camera, ChevronDown, ChevronUp, Swords, Shield, Minus } from 'lucide-react';
 import GymSelector from '../components/GymSelector';
+import { ClassTypeChips, IntensityChips } from '../components/ui';
 import { useToast } from '../contexts/ToastContext';
 
-const CLASS_TYPES = ['gi', 'no-gi', 'open-mat', 'competition', 's&c', 'cardio', 'mobility'];
-const CLASS_TYPE_LABELS: Record<string, string> = {
-  'gi': 'Gi',
-  'no-gi': 'No-Gi',
-  'open-mat': 'Open Mat',
-  'competition': 'Competition',
-  's&c': 'S&C',
-  'cardio': 'Cardio',
-  'mobility': 'Mobility',
-};
 const SPARRING_TYPES = ['gi', 'no-gi', 'open-mat', 'competition'];
 
 interface RollEntry {
@@ -645,16 +636,10 @@ export default function LogSession() {
           {/* Class Type */}
           <div>
             <label className="label">Class Type</label>
-            <select
-              className="input"
+            <ClassTypeChips
               value={sessionData.class_type}
-              onChange={(e) => setSessionData({ ...sessionData, class_type: e.target.value })}
-              required
-            >
-              {CLASS_TYPES.map((type) => (
-                <option key={type} value={type}>{CLASS_TYPE_LABELS[type] || type}</option>
-              ))}
-            </select>
+              onChange={(val) => setSessionData({ ...sessionData, class_type: val })}
+            />
           </div>
 
           {/* Gym Name */}
@@ -768,28 +753,10 @@ export default function LogSession() {
           {/* Intensity */}
           <div>
             <label className="label">Intensity</label>
-            <div className="flex gap-2" role="group" aria-label="Intensity options">
-              {[1, 2, 3, 4, 5].map((level) => (
-                <button
-                  key={level}
-                  type="button"
-                  onClick={() => setSessionData({ ...sessionData, intensity: level })}
-                  className="flex-1 min-h-[44px] py-3 rounded-lg font-semibold transition-all"
-                  style={{
-                    backgroundColor: sessionData.intensity === level ? 'var(--accent)' : 'var(--surfaceElev)',
-                    color: sessionData.intensity === level ? '#FFFFFF' : 'var(--text)',
-                    border: sessionData.intensity === level ? 'none' : '1px solid var(--border)',
-                  }}
-                  aria-label={`Intensity level ${level} of 5`}
-                  aria-pressed={sessionData.intensity === level}
-                >
-                  {level}
-                </button>
-              ))}
-            </div>
-            <p className="text-xs text-[var(--muted)] mt-1">
-              1 = Light, 3 = Moderate, 5 = Maximum effort
-            </p>
+            <IntensityChips
+              value={sessionData.intensity}
+              onChange={(val) => setSessionData({ ...sessionData, intensity: val })}
+            />
           </div>
 
           {/* Technique Focus */}

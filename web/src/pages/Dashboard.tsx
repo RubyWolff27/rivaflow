@@ -10,6 +10,8 @@ import { BetaBadge } from '../components/UpgradePrompt';
 import { useTier } from '../hooks/useTier';
 import { useToast } from '../contexts/ToastContext';
 import { readinessApi, weightLogsApi } from '../api/client';
+import ReadinessRecommendation from '../components/dashboard/ReadinessRecommendation';
+import NextEvent from '../components/dashboard/NextEvent';
 
 export default function Dashboard() {
   const navigate = useNavigate();
@@ -119,7 +121,7 @@ export default function Dashboard() {
       {/* Readiness Score - Prominent Display with Color Coding */}
       {hasCheckedInToday && readinessScore !== null ? (
         <Link to="/readiness">
-          <Card className="cursor-pointer hover:border-[var(--accent)] transition-colors">
+          <Card interactive>
             <div className="flex items-center justify-between">
               <div className="flex-1">
                 <div className="flex items-center gap-2 mb-1">
@@ -160,6 +162,9 @@ export default function Dashboard() {
         </Card>
       )}
 
+      {/* Readiness Recommendation */}
+      <ReadinessRecommendation />
+
       {/* Quick Weight Log */}
       <Card>
         <div className="flex items-center justify-between">
@@ -195,6 +200,9 @@ export default function Dashboard() {
           </div>
         </div>
       </Card>
+
+      {/* Next Event */}
+      <NextEvent />
 
       {/* Main Grid - Week at Glance and Weekly Goals */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

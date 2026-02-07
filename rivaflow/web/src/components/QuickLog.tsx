@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { X } from 'lucide-react';
 import { sessionsApi, profileApi, restApi } from '../api/client';
-import { PrimaryButton, SecondaryButton } from './ui';
+import { PrimaryButton, SecondaryButton, ClassTypeChips, IntensityChips } from './ui';
 import { useToast } from '../contexts/ToastContext';
 
 interface QuickLogProps {
@@ -19,6 +19,7 @@ export default function QuickLog({ isOpen, onClose, onSuccess }: QuickLogProps) 
 
   // Training session fields
   const [gym, setGym] = useState('');
+  const [classType, setClassType] = useState('gi');
   const [duration, setDuration] = useState(90);
   const [intensity, setIntensity] = useState(3);
 
@@ -33,6 +34,9 @@ export default function QuickLog({ isOpen, onClose, onSuccess }: QuickLogProps) 
       try {
         const profileRes = await profileApi.get();
         if (cancelled) return;
+        if (profileRes.data?.primary_training_type) {
+          setClassType(profileRes.data.primary_training_type);
+        }
         if (profileRes.data?.default_gym) {
           setGym(profileRes.data.default_gym);
           return;
@@ -79,7 +83,7 @@ export default function QuickLog({ isOpen, onClose, onSuccess }: QuickLogProps) 
           session_date: today,
           duration_mins: duration,
           intensity,
-          class_type: 'open-mat',
+          class_type: classType,
           rolls: 0,
         });
         toast.success('Session logged successfully');
@@ -101,7 +105,6 @@ export default function QuickLog({ isOpen, onClose, onSuccess }: QuickLogProps) 
   if (!isOpen) return null;
 
   const durationOptions = [60, 75, 90, 120];
-  const intensityOptions = [1, 2, 3, 4, 5];
 
   return (
     <div
@@ -170,6 +173,14 @@ export default function QuickLog({ isOpen, onClose, onSuccess }: QuickLogProps) 
           {/* Training Session Fields */}
           {activityType === 'training' && (
             <>
+              {/* Class Type */}
+              <div>
+                <label className="block text-sm font-medium mb-2" style={{ color: 'var(--text)' }}>
+                  Class Type
+                </label>
+                <ClassTypeChips value={classType} onChange={setClassType} size="sm" />
+              </div>
+
               {/* Gym */}
               <div>
                 <label htmlFor="quick-log-gym" className="block text-sm font-medium mb-2" style={{ color: 'var(--text)' }}>
@@ -186,54 +197,37 @@ export default function QuickLog({ isOpen, onClose, onSuccess }: QuickLogProps) 
                 />
               </div>
 
-          {/* Duration */}
-          <div>
-            <label className="block text-sm font-medium mb-2" style={{ color: 'var(--text)' }}>
-              Duration (minutes)
-            </label>
-            <div className="flex gap-2" role="group" aria-label="Duration options">
-              {durationOptions.map((mins) => (
-                <button
-                  key={mins}
-                  onClick={() => setDuration(mins)}
-                  className="flex-1 py-3 rounded-lg font-medium text-sm transition-all"
-                  style={{
-                    backgroundColor: duration === mins ? 'var(--accent)' : 'var(--surfaceElev)',
-                    color: duration === mins ? '#FFFFFF' : 'var(--text)',
-                    border: duration === mins ? 'none' : '1px solid var(--border)',
-                  }}
-                  aria-label={`${mins} minutes`}
-                  aria-pressed={duration === mins}
-                >
-                  {mins}m
-                </button>
-              ))}
-            </div>
-          </div>
+              {/* Duration */}
+              <div>
+                <label className="block text-sm font-medium mb-2" style={{ color: 'var(--text)' }}>
+                  Duration (minutes)
+                </label>
+                <div className="flex gap-2" role="group" aria-label="Duration options">
+                  {durationOptions.map((mins) => (
+                    <button
+                      key={mins}
+                      onClick={() => setDuration(mins)}
+                      className="flex-1 py-3 rounded-lg font-medium text-sm transition-all"
+                      style={{
+                        backgroundColor: duration === mins ? 'var(--accent)' : 'var(--surfaceElev)',
+                        color: duration === mins ? '#FFFFFF' : 'var(--text)',
+                        border: duration === mins ? 'none' : '1px solid var(--border)',
+                      }}
+                      aria-label={`${mins} minutes`}
+                      aria-pressed={duration === mins}
+                    >
+                      {mins}m
+                    </button>
+                  ))}
+                </div>
+              </div>
 
               {/* Intensity */}
               <div>
                 <label className="block text-sm font-medium mb-2" style={{ color: 'var(--text)' }}>
                   Intensity
                 </label>
-                <div className="flex gap-2" role="group" aria-label="Intensity options">
-                  {intensityOptions.map((level) => (
-                    <button
-                      key={level}
-                      onClick={() => setIntensity(level)}
-                      className="flex-1 py-3 rounded-lg font-semibold transition-all"
-                      style={{
-                        backgroundColor: intensity === level ? 'var(--accent)' : 'var(--surfaceElev)',
-                        color: intensity === level ? '#FFFFFF' : 'var(--text)',
-                        border: intensity === level ? 'none' : '1px solid var(--border)',
-                      }}
-                      aria-label={`Intensity level ${level} of 5`}
-                      aria-pressed={intensity === level}
-                    >
-                      {level}
-                    </button>
-                  ))}
-                </div>
+                <IntensityChips value={intensity} onChange={setIntensity} size="sm" />
               </div>
             </>
           )}

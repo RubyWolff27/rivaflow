@@ -265,6 +265,7 @@ export default function Feed() {
   const [view, setView] = useState<'my' | 'friends'>('my');
   const [sessionFilter, setSessionFilter] = useState<string>('all');
   const [expandedComments, setExpandedComments] = useState<Set<string>>(new Set());
+  const [loadingMore, setLoadingMore] = useState(false);
 
   const currentUserId = user?.id ?? null;
 
@@ -631,8 +632,44 @@ export default function Feed() {
       )}
 
       {feed && feed.total > 0 && (
-        <div className="text-center text-sm text-[var(--muted)] py-4">
-          Showing {feed.items.length} of {feed.total} activities
+        <div className="text-center py-4 space-y-2">
+          <p className="text-sm text-[var(--muted)]">
+            Showing {feed.items.length} of {feed.total} activities
+          </p>
+          {feed.has_more && (
+            <button
+              onClick={async () => {
+                if (!feed || loadingMore) return;
+                setLoadingMore(true);
+                try {
+                  const fetchFn = view === 'my' ? feedApi.getActivity : feedApi.getFriends;
+                  const params = view === 'my'
+                    ? { limit: 50, offset: feed.items.length, days_back: daysBack, enrich_social: true }
+                    : { limit: 50, offset: feed.items.length, days_back: daysBack };
+                  const res = await fetchFn(params);
+                  if (res.data?.items) {
+                    setFeed({
+                      ...res.data,
+                      items: [...feed.items, ...res.data.items],
+                    });
+                  }
+                } catch (err) {
+                  console.error('Error loading more:', err);
+                } finally {
+                  setLoadingMore(false);
+                }
+              }}
+              disabled={loadingMore}
+              className="px-6 py-2 rounded-[14px] text-sm font-medium transition-colors"
+              style={{
+                backgroundColor: 'var(--surfaceElev)',
+                color: 'var(--text)',
+                border: '1px solid var(--border)',
+              }}
+            >
+              {loadingMore ? 'Loading...' : 'Load More'}
+            </button>
+          )}
         </div>
       )}
     </div>
