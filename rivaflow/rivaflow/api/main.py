@@ -144,6 +144,12 @@ app.add_middleware(
         "OPTIONS",
     ],  # Restrict to necessary methods
     allow_headers=["Content-Type", "Authorization"],  # Only allow necessary headers
+    expose_headers=[
+        "X-RateLimit-Limit",
+        "X-RateLimit-Remaining",
+        "X-RateLimit-Reset",
+        "Retry-After",
+    ],
     max_age=3600,  # Cache preflight requests for 1 hour
 )
 

@@ -61,7 +61,7 @@ class NotesUpdateRequest(BaseModel):
 # ============================================================================
 
 
-@router.post("/join")
+@router.post("/join", status_code=status.HTTP_201_CREATED)
 @limiter.limit("5/minute")
 async def join_waitlist(request: Request, req: WaitlistJoinRequest):
     """

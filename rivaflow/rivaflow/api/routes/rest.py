@@ -2,7 +2,7 @@
 
 from datetime import date
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, status
 from pydantic import BaseModel
 
 from rivaflow.core.dependencies import get_current_user
@@ -19,7 +19,7 @@ class RestDayCreate(BaseModel):
     check_date: str | None = None  # ISO date string, defaults to today
 
 
-@router.post("/")
+@router.post("/", status_code=status.HTTP_201_CREATED)
 def log_rest_day(data: RestDayCreate, current_user: dict = Depends(get_current_user)):
     """Log a rest day."""
     repo = CheckinRepository()

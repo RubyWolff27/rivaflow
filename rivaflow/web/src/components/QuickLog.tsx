@@ -174,10 +174,11 @@ export default function QuickLog({ isOpen, onClose, onSuccess }: QuickLogProps) 
             <>
               {/* Gym */}
               <div>
-                <label className="block text-sm font-medium mb-2" style={{ color: 'var(--text)' }}>
+                <label htmlFor="quick-log-gym" className="block text-sm font-medium mb-2" style={{ color: 'var(--text)' }}>
                   Gym
                 </label>
                 <input
+                  id="quick-log-gym"
                   type="text"
                   value={gym}
                   onChange={(e) => setGym(e.target.value)}

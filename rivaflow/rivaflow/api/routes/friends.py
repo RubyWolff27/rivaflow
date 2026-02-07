@@ -1,6 +1,6 @@
 """Contacts (training partners and instructors) endpoints."""
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, Query, Response, status
 from pydantic import BaseModel
 
 from rivaflow.core.dependencies import get_current_user
@@ -85,7 +85,7 @@ async def get_contact(friend_id: int, current_user: dict = Depends(get_current_u
     return friend
 
 
-@router.post("/")
+@router.post("/", status_code=status.HTTP_201_CREATED)
 async def create_contact(
     friend: FriendCreate, current_user: dict = Depends(get_current_user)
 ):
@@ -135,4 +135,4 @@ async def delete_contact(
     deleted = service.delete_friend(user_id=current_user["id"], friend_id=friend_id)
     if not deleted:
         raise NotFoundError("Friend not found")
-    return {"message": "Friend deleted successfully"}
+    return Response(status_code=status.HTTP_204_NO_CONTENT)

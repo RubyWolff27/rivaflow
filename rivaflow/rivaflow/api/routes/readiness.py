@@ -2,7 +2,7 @@
 
 from datetime import date
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, status
 from fastapi.responses import JSONResponse
 
 from rivaflow.core.dependencies import get_current_user
@@ -14,7 +14,7 @@ router = APIRouter()
 service = ReadinessService()
 
 
-@router.post("/")
+@router.post("/", status_code=status.HTTP_201_CREATED)
 async def log_readiness(
     readiness: ReadinessCreate, current_user: dict = Depends(get_current_user)
 ):

@@ -2,7 +2,7 @@
 
 import logging
 
-from fastapi import APIRouter, Depends, Path, Query
+from fastapi import APIRouter, Depends, Path, Query, status
 from pydantic import BaseModel, Field
 
 from rivaflow.core.dependencies import get_current_user
@@ -33,7 +33,7 @@ class FeedbackUpdateStatus(BaseModel):
     admin_notes: str | None = Field(None, max_length=1000)
 
 
-@router.post("/")
+@router.post("/", status_code=status.HTTP_201_CREATED)
 async def submit_feedback(
     feedback: FeedbackCreate,
     current_user: dict = Depends(get_current_user),

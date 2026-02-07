@@ -240,6 +240,13 @@ class ProfileService:
             filename = avatar_url.replace("/uploads/avatars/", "")
             file_path = self.upload_dir / filename
 
+            # Prevent path traversal attacks
+            if not file_path.resolve().is_relative_to(self.upload_dir.resolve()):
+                logger.warning(
+                    f"Path traversal attempt blocked for user" f" {user_id}: {filename}"
+                )
+                raise ValidationError("Invalid avatar path")
+
             # Delete file if it exists
             if file_path.exists():
                 try:

@@ -1,6 +1,6 @@
 """Repository for notifications data access."""
 
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Any
 
 from rivaflow.db.database import convert_query, get_connection
@@ -76,8 +76,9 @@ class NotificationRepository:
     @staticmethod
     def get_unread_count(user_id: int) -> int:
         """Get count of unread notifications for a user."""
-        query = (
-            "SELECT COUNT(*) FROM notifications WHERE user_id = ? AND is_read = FALSE"
+        query = convert_query(
+            "SELECT COUNT(*) FROM notifications"
+            " WHERE user_id = ? AND is_read = FALSE"
         )
 
         with get_connection() as conn:
@@ -89,7 +90,11 @@ class NotificationRepository:
     @staticmethod
     def get_unread_count_by_type(user_id: int, notification_type: str) -> int:
         """Get count of unread notifications by type for a user."""
-        query = "SELECT COUNT(*) FROM notifications WHERE user_id = ? AND notification_type = ? AND is_read = FALSE"
+        query = convert_query(
+            "SELECT COUNT(*) FROM notifications"
+            " WHERE user_id = ? AND notification_type = ?"
+            " AND is_read = FALSE"
+        )
 
         with get_connection() as conn:
             cursor = conn.cursor()
@@ -100,13 +105,13 @@ class NotificationRepository:
     @staticmethod
     def get_feed_unread_count(user_id: int) -> int:
         """Get count of unread feed notifications (likes and comments on user's activities)."""
-        query = """
+        query = convert_query("""
             SELECT COUNT(*)
             FROM notifications
             WHERE user_id = ?
             AND notification_type IN ('like', 'comment', 'reply')
             AND is_read = FALSE
-        """
+        """)
 
         with get_connection() as conn:
             cursor = conn.cursor()
@@ -133,13 +138,7 @@ class NotificationRepository:
         Returns:
             List of notifications with actor details
         """
-        where_clause = "WHERE n.user_id = ?"
-        params: list[Any] = [user_id]
-
-        if unread_only:
-            where_clause += " AND n.is_read = FALSE"
-
-        query = f"""
+        base_query = """
             SELECT
                 n.id, n.user_id, n.actor_id, n.notification_type,
                 n.activity_type, n.activity_id, n.comment_id, n.message,
@@ -149,11 +148,16 @@ class NotificationRepository:
                 u.avatar_url as actor_avatar
             FROM notifications n
             JOIN users u ON n.actor_id = u.id
-            {where_clause}
-            ORDER BY n.created_at DESC
-            LIMIT ? OFFSET ?
-        """
+            WHERE n.user_id = ?"""
+        params: list[Any] = [user_id]
+
+        if unread_only:
+            base_query += " AND n.is_read = FALSE"
+
+        base_query += " ORDER BY n.created_at DESC LIMIT ? OFFSET ?"
         params.extend([limit, offset])
+
+        query = convert_query(base_query)
 
         with get_connection() as conn:
             cursor = conn.cursor()
@@ -249,7 +253,7 @@ class NotificationRepository:
     @staticmethod
     def delete_by_id(notification_id: int, user_id: int) -> bool:
         """Delete a notification."""
-        query = "DELETE FROM notifications WHERE id = ? AND user_id = ?"
+        query = convert_query("DELETE FROM notifications WHERE id = ? AND user_id = ?")
 
         with get_connection() as conn:
             cursor = conn.cursor()
@@ -269,7 +273,8 @@ class NotificationRepository:
         Check if a similar notification already exists (to prevent spam).
         Returns True if duplicate exists.
         """
-        query = """
+        cutoff = datetime.utcnow() - timedelta(hours=1)
+        query = convert_query("""
             SELECT COUNT(*)
             FROM notifications
             WHERE user_id = ?
@@ -277,8 +282,8 @@ class NotificationRepository:
             AND notification_type = ?
             AND (activity_type = ? OR (activity_type IS NULL AND ? IS NULL))
             AND (activity_id = ? OR (activity_id IS NULL AND ? IS NULL))
-            AND created_at > datetime('now', '-1 hour')
-        """
+            AND created_at > ?
+        """)
 
         with get_connection() as conn:
             cursor = conn.cursor()
@@ -292,6 +297,7 @@ class NotificationRepository:
                     activity_type,
                     activity_id,
                     activity_id,
+                    cutoff,
                 ),
             )
             result = cursor.fetchone()

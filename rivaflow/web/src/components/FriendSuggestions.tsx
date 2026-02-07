@@ -143,7 +143,11 @@ export function FriendSuggestions() {
                   className="w-16 h-16 rounded-full object-cover"
                 />
               ) : (
-                <div className="w-16 h-16 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white text-xl font-bold">
+                <div
+                  className="w-16 h-16 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white text-xl font-bold"
+                  role="img"
+                  aria-label={`${suggestion.display_name || suggestion.username} avatar`}
+                >
                   {suggestion.display_name?.charAt(0) || suggestion.username?.charAt(0) || '?'}
                 </div>
               )}

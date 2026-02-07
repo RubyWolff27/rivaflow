@@ -2,7 +2,7 @@
 
 from datetime import date, datetime
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, Query, Response, status
 from pydantic import BaseModel
 
 from rivaflow.core.dependencies import get_current_user
@@ -78,7 +78,7 @@ async def get_next_event(current_user: dict = Depends(get_current_user)):
     }
 
 
-@router.post("/")
+@router.post("/", status_code=status.HTTP_201_CREATED)
 async def create_event(
     event: EventCreate, current_user: dict = Depends(get_current_user)
 ):
@@ -132,13 +132,16 @@ async def delete_event(event_id: int, current_user: dict = Depends(get_current_u
     deleted = event_repo.delete(user_id=current_user["id"], event_id=event_id)
     if not deleted:
         raise NotFoundError("Event not found")
-    return {"message": "Event deleted successfully"}
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
 # --- Weight log endpoints ---
 
 
-@router.post("/weight-logs/")
+@router.post(
+    "/weight-logs/",
+    status_code=status.HTTP_201_CREATED,
+)
 async def create_weight_log(
     log: WeightLogCreate, current_user: dict = Depends(get_current_user)
 ):

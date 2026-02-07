@@ -1,6 +1,12 @@
 """Groups endpoints for training crews, comp teams, etc."""
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import (
+    APIRouter,
+    Depends,
+    HTTPException,
+    Response,
+    status,
+)
 from pydantic import BaseModel
 
 from rivaflow.core.dependencies import get_current_user
@@ -40,7 +46,7 @@ class MemberAdd(BaseModel):
     role: str = "member"
 
 
-@router.post("/")
+@router.post("/", status_code=status.HTTP_201_CREATED)
 async def create_group(
     group: GroupCreate,
     current_user: dict = Depends(get_current_user),
@@ -119,7 +125,7 @@ async def delete_group(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Only group admins can delete the group",
         )
-    return {"message": "Group deleted successfully"}
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
 @router.post("/{group_id}/members")
@@ -170,7 +176,7 @@ async def remove_member(
     removed = repo.remove_member(group_id=group_id, user_id=user_id)
     if not removed:
         raise NotFoundError("Member not found in group")
-    return {"message": "Member removed successfully"}
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
 @router.post("/{group_id}/join")

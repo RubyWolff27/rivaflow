@@ -2,7 +2,15 @@
 
 from datetime import date
 
-from fastapi import APIRouter, Depends, HTTPException, Query, Request
+from fastapi import (
+    APIRouter,
+    Depends,
+    HTTPException,
+    Query,
+    Request,
+    Response,
+    status,
+)
 from slowapi import Limiter
 from slowapi.util import get_remote_address
 
@@ -17,7 +25,7 @@ service = SessionService()
 limiter = Limiter(key_func=get_remote_address)
 
 
-@router.post("/")
+@router.post("/", status_code=status.HTTP_201_CREATED)
 @limiter.limit("60/minute")
 async def create_session(
     request: Request,
@@ -136,7 +144,7 @@ async def delete_session(
     deleted = service.delete_session(user_id=current_user["id"], session_id=session_id)
     if not deleted:
         raise NotFoundError(f"Session {session_id} not found or access denied")
-    return {"message": "Session deleted successfully"}
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
 @router.get("/{session_id}")

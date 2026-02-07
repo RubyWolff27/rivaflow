@@ -1,17 +1,30 @@
 """Photo routes."""
 
+import logging
 import os
 import uuid
 from datetime import datetime
 from pathlib import Path
 
 import filetype
-from fastapi import APIRouter, Depends, File, Form, HTTPException, Request, UploadFile
+from fastapi import (
+    APIRouter,
+    Depends,
+    File,
+    Form,
+    HTTPException,
+    Request,
+    Response,
+    UploadFile,
+    status,
+)
 from slowapi import Limiter
 from slowapi.util import get_remote_address
 
 from rivaflow.core.dependencies import get_current_user
 from rivaflow.db.repositories import ActivityPhotoRepository
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter()
 photo_repo = ActivityPhotoRepository()
@@ -72,7 +85,10 @@ def validate_image_content(content: bytes, filename: str) -> str | None:
     return None
 
 
-@router.post("/photos/upload")
+@router.post(
+    "/photos/upload",
+    status_code=status.HTTP_201_CREATED,
+)
 @limiter.limit("10/minute")
 async def upload_photo(
     request: Request,
@@ -216,9 +232,9 @@ async def delete_photo(photo_id: int, current_user: dict = Depends(get_current_u
             os.remove(file_path)
     except Exception as e:
         # Log error but don't fail the request - database record is already deleted
-        print(f"Error deleting file {photo['file_name']}: {e}")
+        logger.warning(f"Error deleting file {photo['file_name']}: {e}")
 
-    return {"message": "Photo deleted successfully"}
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
 @router.put("/photos/{photo_id}/caption")

@@ -2,7 +2,16 @@
 
 import logging
 
-from fastapi import APIRouter, Depends, HTTPException, Path, Query, Request, status
+from fastapi import (
+    APIRouter,
+    Depends,
+    HTTPException,
+    Path,
+    Query,
+    Request,
+    Response,
+    status,
+)
 
 from rivaflow.core.dependencies import get_current_user
 from rivaflow.core.services.notification_service import NotificationService
@@ -176,8 +185,13 @@ async def delete_notification(
     user_id = current_user["id"]
     try:
         success = NotificationService.delete_notification(notification_id, user_id)
-        return {"success": success}
+        if not success:
+            return {"success": False}
+        return Response(status_code=status.HTTP_204_NO_CONTENT)
     except Exception as e:
         # Gracefully handle if notifications table doesn't exist yet
-        logger.error(f"Error deleting notification: {e}", exc_info=True)
+        logger.error(
+            f"Error deleting notification: {e}",
+            exc_info=True,
+        )
         return {"success": False}

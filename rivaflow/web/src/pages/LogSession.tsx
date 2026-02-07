@@ -528,6 +528,8 @@ export default function LogSession() {
                 value={readinessData[metric]}
                 onChange={(e) => setReadinessData({ ...readinessData, [metric]: parseInt(e.target.value) })}
                 className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer dark:bg-gray-700"
+                aria-label={metric}
+                aria-valuetext={`${metric}: ${readinessData[metric]} out of 5`}
               />
               <div className="flex justify-between text-xs text-gray-500 mt-1">
                 <span>Low</span>
@@ -559,6 +561,7 @@ export default function LogSession() {
             <label className="label">Weight (kg) (optional)</label>
             <input
               type="number"
+              inputMode="decimal"
               className="input"
               value={readinessData.weight_kg}
               onChange={(e) => setReadinessData({ ...readinessData, weight_kg: e.target.value })}
@@ -1211,6 +1214,7 @@ export default function LogSession() {
                 <label className="label">Activity Strain</label>
                 <input
                   type="number"
+                  inputMode="decimal"
                   className="input"
                   value={sessionData.whoop_strain}
                   onChange={(e) => setSessionData({ ...sessionData, whoop_strain: e.target.value })}

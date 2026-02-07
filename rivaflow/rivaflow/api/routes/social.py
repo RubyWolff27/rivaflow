@@ -1,6 +1,16 @@
 """Social features API routes (relationships, likes, comments)."""
 
-from fastapi import APIRouter, Body, Depends, HTTPException, Path, Query, Request
+from fastapi import (
+    APIRouter,
+    Body,
+    Depends,
+    HTTPException,
+    Path,
+    Query,
+    Request,
+    Response,
+    status,
+)
 from pydantic import BaseModel, Field
 from slowapi import Limiter
 from slowapi.util import get_remote_address
@@ -94,7 +104,9 @@ async def unfollow_user(
         500: Database error
     """
     success = SocialService.unfollow_user(current_user["id"], user_id)
-    return {"success": success}
+    if not success:
+        return {"success": False}
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
 @router.get("/followers")
@@ -199,9 +211,13 @@ async def unlike_activity(
         Success status
     """
     success = SocialService.unlike_activity(
-        current_user["id"], request.activity_type, request.activity_id
+        current_user["id"],
+        request.activity_type,
+        request.activity_id,
     )
-    return {"success": success}
+    if not success:
+        return {"success": False}
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
 @router.get("/likes/{activity_type}/{activity_id}")
@@ -319,7 +335,7 @@ async def delete_comment(
         success = SocialService.delete_comment(comment_id, current_user["id"])
         if not success:
             raise NotFoundError("Comment not found or you don't own it")
-        return {"success": True}
+        return Response(status_code=status.HTTP_204_NO_CONTENT)
     except HTTPException:
         raise
 
@@ -547,11 +563,12 @@ async def cancel_friend_request(
 ):
     """Cancel a sent friend request (must be the requester)."""
     success = SocialConnectionRepository.cancel_friend_request(
-        connection_id=connection_id, requester_id=current_user["id"]
+        connection_id=connection_id,
+        requester_id=current_user["id"],
     )
     if not success:
         raise NotFoundError("Friend request not found or already responded")
-    return {"success": True}
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
 @router.get("/friend-requests/received")
@@ -589,11 +606,12 @@ async def unfriend_user(
 ):
     """Remove a friend connection."""
     success = SocialConnectionRepository.unfriend(
-        user_id=current_user["id"], friend_user_id=user_id
+        user_id=current_user["id"],
+        friend_user_id=user_id,
     )
     if not success:
         raise NotFoundError("Friend connection not found")
-    return {"success": True}
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
 @router.get("/friends/{user_id}/status")

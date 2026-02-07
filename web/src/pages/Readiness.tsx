@@ -122,6 +122,8 @@ export default function Readiness() {
                 value={formData[metric]}
                 onChange={(e) => setFormData({ ...formData, [metric]: parseInt(e.target.value) })}
                 className="w-full h-2 bg-[var(--surfaceElev)] rounded-lg appearance-none cursor-pointer"
+                aria-label={metric}
+                aria-valuetext={`${metric}: ${formData[metric]} out of 5`}
               />
               <div className="flex justify-between text-xs text-[var(--muted)] mt-1">
                 <span>Low</span>
@@ -142,6 +144,7 @@ export default function Readiness() {
             <div className="relative">
               <input
                 type="number"
+                inputMode="decimal"
                 step="0.1"
                 min="0"
                 className="input pr-10"
