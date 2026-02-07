@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { usersApi, socialApi } from '../api/client';
 import { Users, MapPin, Calendar, TrendingUp, Activity, UserCheck, UserPlus } from 'lucide-react';
 import { useToast } from '../contexts/ToastContext';
+import { CardSkeleton } from '../components/ui';
 
 export default function UserProfile() {
   const { userId } = useParams<{ userId: string }>();
@@ -93,11 +94,15 @@ export default function UserProfile() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600 dark:text-gray-400">Loading profile...</p>
+      <div className="max-w-4xl mx-auto px-4 py-8 space-y-6">
+        <CardSkeleton />
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <CardSkeleton />
+          <CardSkeleton />
+          <CardSkeleton />
+          <CardSkeleton />
         </div>
+        <CardSkeleton />
       </div>
     );
   }
@@ -122,14 +127,14 @@ export default function UserProfile() {
   return (
     <div className="max-w-4xl mx-auto px-4 py-8">
       {/* Profile Header */}
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6 mb-6">
+      <div className="bg-[var(--surface)] rounded-lg shadow-sm p-6 mb-6">
         <div className="flex items-start justify-between">
           <div className="flex items-center gap-4">
             {profile.avatar_url ? (
               <img
                 src={profile.avatar_url}
                 alt={`${profile.first_name} ${profile.last_name}`}
-                className="w-20 h-20 rounded-full object-cover border-2 border-gray-200 dark:border-gray-700"
+                className="w-20 h-20 rounded-full object-cover border-2 border-[var(--border)]"
               />
             ) : (
               <div className="w-20 h-20 bg-gradient-to-br from-primary-400 to-primary-600 rounded-full flex items-center justify-center text-white text-2xl font-bold">
@@ -137,10 +142,10 @@ export default function UserProfile() {
               </div>
             )}
             <div>
-              <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
+              <h1 className="text-3xl font-bold text-[var(--text)]">
                 {profile.first_name ?? 'Unknown'} {profile.last_name ?? 'User'}
               </h1>
-              <div className="flex items-center gap-4 mt-2 text-sm text-gray-600 dark:text-gray-400">
+              <div className="flex items-center gap-4 mt-2 text-sm text-[var(--muted)]">
                 {profile.current_grade && (
                   <span className={`px-3 py-1 rounded-full border ${getBeltColor(profile.current_grade)}`}>
                     {profile.current_grade}
@@ -160,14 +165,14 @@ export default function UserProfile() {
                 )}
               </div>
               <div className="flex items-center gap-4 mt-3 text-sm">
-                <span className="text-gray-700 dark:text-gray-300">
+                <span className="text-[var(--text)]">
                   <strong>{profile.follower_count ?? 0}</strong> followers
                 </span>
-                <span className="text-gray-700 dark:text-gray-300">
+                <span className="text-[var(--text)]">
                   <strong>{profile.following_count ?? 0}</strong> following
                 </span>
                 {profile.is_followed_by && (
-                  <span className="text-xs bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 px-2 py-1 rounded">
+                  <span className="text-xs bg-[var(--surfaceElev)] text-[var(--muted)] px-2 py-1 rounded">
                     Follows you
                   </span>
                 )}
@@ -180,7 +185,7 @@ export default function UserProfile() {
             disabled={followLoading}
             className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-colors ${
               profile.is_following
-                ? 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600'
+                ? 'bg-[var(--surfaceElev)] text-[var(--text)] hover:opacity-80'
                 : 'bg-primary-600 text-white hover:bg-primary-700'
             } disabled:opacity-50`}
           >
@@ -207,46 +212,46 @@ export default function UserProfile() {
       {/* Stats Grid */}
       {stats && (
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-4">
-            <div className="flex items-center gap-2 text-gray-600 dark:text-gray-400 mb-1">
+          <div className="bg-[var(--surface)] rounded-lg shadow-sm p-4">
+            <div className="flex items-center gap-2 text-[var(--muted)] mb-1">
               <Activity className="w-4 h-4" />
               <span className="text-sm">Total Sessions</span>
             </div>
-            <p className="text-2xl font-bold text-gray-900 dark:text-white">{stats.total_sessions ?? 0}</p>
+            <p className="text-2xl font-bold text-[var(--text)]">{stats.total_sessions ?? 0}</p>
           </div>
 
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-4">
-            <div className="flex items-center gap-2 text-gray-600 dark:text-gray-400 mb-1">
+          <div className="bg-[var(--surface)] rounded-lg shadow-sm p-4">
+            <div className="flex items-center gap-2 text-[var(--muted)] mb-1">
               <TrendingUp className="w-4 h-4" />
               <span className="text-sm">Total Hours</span>
             </div>
-            <p className="text-2xl font-bold text-gray-900 dark:text-white">{stats.total_hours ?? 0}</p>
+            <p className="text-2xl font-bold text-[var(--text)]">{stats.total_hours ?? 0}</p>
           </div>
 
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-4">
-            <div className="flex items-center gap-2 text-gray-600 dark:text-gray-400 mb-1">
+          <div className="bg-[var(--surface)] rounded-lg shadow-sm p-4">
+            <div className="flex items-center gap-2 text-[var(--muted)] mb-1">
               <Users className="w-4 h-4" />
               <span className="text-sm">Total Rolls</span>
             </div>
-            <p className="text-2xl font-bold text-gray-900 dark:text-white">{stats.total_rolls ?? 0}</p>
+            <p className="text-2xl font-bold text-[var(--text)]">{stats.total_rolls ?? 0}</p>
           </div>
 
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-4">
-            <div className="flex items-center gap-2 text-gray-600 dark:text-gray-400 mb-1">
+          <div className="bg-[var(--surface)] rounded-lg shadow-sm p-4">
+            <div className="flex items-center gap-2 text-[var(--muted)] mb-1">
               <Calendar className="w-4 h-4" />
               <span className="text-sm">This Week</span>
             </div>
-            <p className="text-2xl font-bold text-gray-900 dark:text-white">{stats.sessions_this_week ?? 0}</p>
+            <p className="text-2xl font-bold text-[var(--text)]">{stats.sessions_this_week ?? 0}</p>
           </div>
         </div>
       )}
 
       {/* Recent Activity */}
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6">
-        <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4">Recent Activity</h2>
+      <div className="bg-[var(--surface)] rounded-lg shadow-sm p-6">
+        <h2 className="text-xl font-bold text-[var(--text)] mb-4">Recent Activity</h2>
 
         {activity.length === 0 ? (
-          <p className="text-gray-500 dark:text-gray-400 text-center py-8">
+          <p className="text-[var(--muted)] text-center py-8">
             No public activity to display
           </p>
         ) : (
@@ -258,12 +263,12 @@ export default function UserProfile() {
               >
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm text-gray-500 dark:text-gray-400">
+                    <p className="text-sm text-[var(--muted)]">
                       {formatDate(item.date)}
                     </p>
-                    <p className="text-gray-900 dark:text-white">{item.summary}</p>
+                    <p className="text-[var(--text)]">{item.summary}</p>
                   </div>
-                  <span className="text-xs bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 px-2 py-1 rounded">
+                  <span className="text-xs bg-[var(--surfaceElev)] text-[var(--muted)] px-2 py-1 rounded">
                     {item.type}
                   </span>
                 </div>

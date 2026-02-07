@@ -5,6 +5,7 @@ import type { Movement } from '../types';
 import { Book, Search, Plus, Trash2, Award } from 'lucide-react';
 import ConfirmDialog from '../components/ConfirmDialog';
 import { useToast } from '../contexts/ToastContext';
+import { CardSkeleton } from '../components/ui';
 
 const CATEGORY_LABELS: Record<string, string> = {
   position: 'Positions',
@@ -70,7 +71,8 @@ export default function Glossary() {
         glossaryApi.list(),
         glossaryApi.getCategories(),
       ]);
-      setMovements(movementsRes.data);
+      const movementsData = movementsRes.data as any;
+      setMovements(Array.isArray(movementsData) ? movementsData : movementsData.movements || []);
       setCategories(categoriesRes.data.categories);
     } catch (error) {
       console.error('Error loading glossary:', error);
@@ -94,7 +96,7 @@ export default function Glossary() {
         m.name.toLowerCase().includes(query) ||
         m.description?.toLowerCase().includes(query) ||
         m.subcategory?.toLowerCase().includes(query) ||
-        m.aliases.some(alias => alias.toLowerCase().includes(query))
+        (m.aliases || []).some(alias => alias.toLowerCase().includes(query))
       );
     }
 
@@ -165,7 +167,13 @@ export default function Glossary() {
   const categoryStats = getCategoryStats();
 
   if (loading) {
-    return <div className="text-center py-12">Loading glossary...</div>;
+    return (
+      <div className="space-y-4">
+        {[1, 2, 3].map((i) => (
+          <CardSkeleton key={i} lines={2} />
+        ))}
+      </div>
+    );
   }
 
   return (
@@ -176,7 +184,7 @@ export default function Glossary() {
           <Book className="w-8 h-8 text-primary-600" />
           <div>
             <h1 className="text-3xl font-bold">BJJ Glossary</h1>
-            <p className="text-gray-600 dark:text-gray-400">
+            <p className="text-[var(--muted)]">
               Showing {filteredMovements.length} of {movements.length} techniques
             </p>
           </div>
@@ -361,11 +369,11 @@ export default function Glossary() {
           >
             <div className="flex items-start justify-between mb-2">
               <div className="flex-1">
-                <h3 className="font-semibold text-lg text-gray-900 dark:text-white">
+                <h3 className="font-semibold text-lg text-[var(--text)]">
                   {movement.name}
                 </h3>
                 {movement.subcategory && (
-                  <p className="text-sm text-gray-500 dark:text-gray-400 capitalize">
+                  <p className="text-sm text-[var(--muted)] capitalize">
                     {movement.subcategory}
                   </p>
                 )}
@@ -386,7 +394,7 @@ export default function Glossary() {
             </div>
 
             {movement.description && (
-              <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">
+              <p className="text-sm text-[var(--muted)] mb-3">
                 {movement.description}
               </p>
             )}
@@ -418,9 +426,9 @@ export default function Glossary() {
               )}
             </div>
 
-            {movement.aliases.length > 0 && (
-              <div className="text-xs text-gray-500 dark:text-gray-400">
-                <span className="font-medium">Also known as:</span> {movement.aliases.join(', ')}
+            {(movement.aliases || []).length > 0 && (
+              <div className="text-xs text-[var(--muted)]">
+                <span className="font-medium">Also known as:</span> {(movement.aliases || []).join(', ')}
               </div>
             )}
           </div>
@@ -428,7 +436,7 @@ export default function Glossary() {
       </div>
 
       {filteredMovements.length === 0 && (
-        <div className="text-center py-12 text-gray-500 dark:text-gray-400">
+        <div className="text-center py-12 text-[var(--muted)]">
           No techniques found matching your filters.
         </div>
       )}

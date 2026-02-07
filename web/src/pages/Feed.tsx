@@ -5,6 +5,7 @@ import { Activity, Calendar, Heart, Moon, Zap, Edit2, Eye } from 'lucide-react';
 import FeedToggle from '../components/FeedToggle';
 import ActivitySocialActions from '../components/ActivitySocialActions';
 import CommentSection from '../components/CommentSection';
+import { CardSkeleton } from '../components/ui';
 import { useAuth } from '../contexts/AuthContext';
 import type { FeedItem } from '../types';
 
@@ -58,11 +59,11 @@ const FeedItemComponent = memo(function FeedItemComponent({
     <div>
       {showDateHeader && (
         <div className="flex items-center gap-3 mb-3 mt-6 first:mt-0">
-          <Calendar className="w-4 h-4 text-gray-500" />
-          <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wide">
+          <Calendar className="w-4 h-4 text-[var(--muted)]" />
+          <h3 className="text-sm font-semibold text-[var(--text)] uppercase tracking-wide">
             {formatDate(item.date)}
           </h3>
-          <div className="flex-1 h-px bg-gray-200 dark:bg-gray-700" />
+          <div className="flex-1 h-px bg-[var(--border)]" />
         </div>
       )}
 
@@ -74,12 +75,12 @@ const FeedItemComponent = memo(function FeedItemComponent({
               {item.owner_user_id && currentUserId && item.owner_user_id !== currentUserId ? (
                 <button
                   onClick={() => navigate(`/user/${item.owner_user_id}`)}
-                  className="text-sm font-medium text-gray-900 dark:text-white hover:text-primary-600 dark:hover:text-primary-400 transition-colors text-left"
+                  className="text-sm font-medium text-[var(--text)] hover:text-primary-600 dark:hover:text-primary-400 transition-colors text-left"
                 >
                   {item.summary}
                 </button>
               ) : (
-                <p className="text-sm font-medium text-gray-900 dark:text-white">
+                <p className="text-sm font-medium text-[var(--text)]">
                   {item.summary}
                 </p>
               )}
@@ -93,14 +94,14 @@ const FeedItemComponent = memo(function FeedItemComponent({
                           className="p-1 hover:bg-white/50 dark:hover:bg-black/20 rounded transition-colors"
                           aria-label="View session details"
                         >
-                          <Eye className="w-4 h-4 text-gray-600 dark:text-gray-400" />
+                          <Eye className="w-4 h-4 text-[var(--muted)]" />
                         </button>
                         <button
                           onClick={() => navigate(`/session/edit/${item.id}`)}
                           className="p-1 hover:bg-white/50 dark:hover:bg-black/20 rounded transition-colors"
                           aria-label="Edit session"
                         >
-                          <Edit2 className="w-4 h-4 text-gray-600 dark:text-gray-400" />
+                          <Edit2 className="w-4 h-4 text-[var(--muted)]" />
                         </button>
                       </>
                     )}
@@ -111,14 +112,14 @@ const FeedItemComponent = memo(function FeedItemComponent({
                           className="p-1 hover:bg-white/50 dark:hover:bg-black/20 rounded transition-colors"
                           aria-label="View readiness details"
                         >
-                          <Eye className="w-4 h-4 text-gray-600 dark:text-gray-400" />
+                          <Eye className="w-4 h-4 text-[var(--muted)]" />
                         </button>
                         <button
                           onClick={() => navigate(`/readiness/edit/${item.data?.check_date ?? ''}`)}
                           className="p-1 hover:bg-white/50 dark:hover:bg-black/20 rounded transition-colors"
                           aria-label="Edit readiness"
                         >
-                          <Edit2 className="w-4 h-4 text-gray-600 dark:text-gray-400" />
+                          <Edit2 className="w-4 h-4 text-[var(--muted)]" />
                         </button>
                       </>
                     )}
@@ -129,14 +130,14 @@ const FeedItemComponent = memo(function FeedItemComponent({
                           className="p-1 hover:bg-white/50 dark:hover:bg-black/20 rounded transition-colors"
                           aria-label="View rest day details"
                         >
-                          <Eye className="w-4 h-4 text-gray-600 dark:text-gray-400" />
+                          <Eye className="w-4 h-4 text-[var(--muted)]" />
                         </button>
                         <button
                           onClick={() => navigate(`/rest/edit/${item.data?.rest_date ?? ''}`)}
                           className="p-1 hover:bg-white/50 dark:hover:bg-black/20 rounded transition-colors"
                           aria-label="Edit rest day"
                         >
-                          <Edit2 className="w-4 h-4 text-gray-600 dark:text-gray-400" />
+                          <Edit2 className="w-4 h-4 text-[var(--muted)]" />
                         </button>
                       </>
                     )}
@@ -163,7 +164,7 @@ const FeedItemComponent = memo(function FeedItemComponent({
 
             {/* Session details */}
             {item.type === 'session' && (
-              <div className="mt-2 text-sm text-gray-600 dark:text-gray-400 space-y-1">
+              <div className="mt-2 text-sm text-[var(--muted)] space-y-1">
                 {item.data?.class_time && <div>🕐 {item.data.class_time}</div>}
                 {item.data?.location && <div>📍 {item.data.location}</div>}
                 {item.data?.instructor_name && <div>👨‍🏫 {item.data.instructor_name}</div>}
@@ -174,7 +175,7 @@ const FeedItemComponent = memo(function FeedItemComponent({
                   <div>🎯 Techniques: {item.data.techniques.join(', ')}</div>
                 )}
                 {item.data?.notes && (
-                  <div className="mt-2 text-gray-700 dark:text-gray-300 italic">
+                  <div className="mt-2 text-[var(--text)] italic">
                     "{item.data.notes}"
                   </div>
                 )}
@@ -185,28 +186,28 @@ const FeedItemComponent = memo(function FeedItemComponent({
             {item.type === 'readiness' && (
               <div className="mt-2 grid grid-cols-2 md:grid-cols-4 gap-2 text-xs">
                 <div className="flex items-center gap-1">
-                  <span className="text-gray-500">😴 Sleep:</span>
+                  <span className="text-[var(--muted)]">😴 Sleep:</span>
                   <span className="font-semibold">{item.data?.sleep ?? 0}/5</span>
                 </div>
                 <div className="flex items-center gap-1">
-                  <span className="text-gray-500">😰 Stress:</span>
+                  <span className="text-[var(--muted)]">😰 Stress:</span>
                   <span className="font-semibold">{item.data?.stress ?? 0}/5</span>
                 </div>
                 <div className="flex items-center gap-1">
-                  <span className="text-gray-500">💪 Soreness:</span>
+                  <span className="text-[var(--muted)]">💪 Soreness:</span>
                   <span className="font-semibold">{item.data?.soreness ?? 0}/5</span>
                 </div>
                 <div className="flex items-center gap-1">
-                  <span className="text-gray-500">⚡ Energy:</span>
+                  <span className="text-[var(--muted)]">⚡ Energy:</span>
                   <span className="font-semibold">{item.data?.energy ?? 0}/5</span>
                 </div>
                 {item.data?.hotspot_note && (
-                  <div className="col-span-2 md:col-span-4 text-gray-700 dark:text-gray-300 mt-1">
+                  <div className="col-span-2 md:col-span-4 text-[var(--text)] mt-1">
                     🔥 Hotspot: {item.data.hotspot_note}
                   </div>
                 )}
                 {item.data?.weight_kg && (
-                  <div className="col-span-2 md:col-span-4 text-gray-700 dark:text-gray-300">
+                  <div className="col-span-2 md:col-span-4 text-[var(--text)]">
                     ⚖️ Weight: {item.data.weight_kg} kg
                   </div>
                 )}
@@ -215,13 +216,13 @@ const FeedItemComponent = memo(function FeedItemComponent({
 
             {/* Rest day details */}
             {item.type === 'rest' && item.data?.rest_note && (
-              <div className="mt-2 text-sm text-gray-700 dark:text-gray-300 italic">
+              <div className="mt-2 text-sm text-[var(--text)] italic">
                 "{item.data.rest_note}"
               </div>
             )}
 
             {item.data?.tomorrow_intention && (
-              <div className="mt-2 text-xs text-gray-500 dark:text-gray-400">
+              <div className="mt-2 text-xs text-[var(--muted)]">
                 → Tomorrow: {item.data.tomorrow_intention}
               </div>
             )}
@@ -388,13 +389,13 @@ export default function Feed() {
   const getIcon = useCallback((type: string) => {
     switch (type) {
       case 'session':
-        return <Zap className="w-5 h-5 text-primary-600" />;
+        return <Zap className="w-5 h-5 text-[var(--accent)]" />;
       case 'readiness':
-        return <Heart className="w-5 h-5 text-green-600" />;
+        return <Heart className="w-5 h-5 text-emerald-500" />;
       case 'rest':
         return <Moon className="w-5 h-5 text-purple-600" />;
       default:
-        return <Activity className="w-5 h-5 text-gray-600" />;
+        return <Activity className="w-5 h-5 text-[var(--muted)]" />;
     }
   }, []);
 
@@ -407,7 +408,7 @@ export default function Feed() {
       case 'rest':
         return 'bg-purple-50 dark:bg-purple-900/20 border-purple-200 dark:border-purple-800';
       default:
-        return 'bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700';
+        return 'bg-[var(--surfaceElev)] border-[var(--border)]';
     }
   }, []);
 
@@ -442,13 +443,19 @@ export default function Feed() {
   }, [view]);
 
   if (loading) {
-    return <div className="text-center py-12">Loading activity...</div>;
+    return (
+      <div className="space-y-4">
+        {[1, 2, 3].map((i) => (
+          <CardSkeleton key={i} lines={4} />
+        ))}
+      </div>
+    );
   }
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-bold text-gray-900 dark:text-white flex items-center gap-3">
+        <h1 className="text-3xl font-bold text-[var(--text)] flex items-center gap-3">
           <Activity className="w-8 h-8" />
           Activity Feed
         </h1>
@@ -472,8 +479,8 @@ export default function Feed() {
 
       {feed && feed.items.length === 0 ? (
         <div className="card text-center py-12">
-          <Activity className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-          <p className="text-gray-500 dark:text-gray-400 text-lg">
+          <Activity className="w-16 h-16 text-[var(--muted)] mx-auto mb-4" />
+          <p className="text-[var(--muted)] text-lg">
             {view === 'friends'
               ? "No activity from friends in the last " + daysBack + " days"
               : "No activity in the last " + daysBack + " days"}
@@ -510,7 +517,7 @@ export default function Feed() {
       )}
 
       {feed && feed.total > 0 && (
-        <div className="text-center text-sm text-gray-500 dark:text-gray-400 py-4">
+        <div className="text-center text-sm text-[var(--muted)] py-4">
           Showing {feed.items.length} of {feed.total} activities
         </div>
       )}

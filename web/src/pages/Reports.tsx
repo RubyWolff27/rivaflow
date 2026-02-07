@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams, Link } from 'react-router-dom';
 import { analyticsApi } from '../api/client';
-import { TrendingUp, Users, Activity, Target, Lightbulb, Book, Calendar } from 'lucide-react';
+import { TrendingUp, Users, Activity, Target, Lightbulb, Book, Calendar, Swords } from 'lucide-react';
 import { Card, Chip, MetricTile, MetricTileSkeleton, CardSkeleton, EmptyState } from '../components/ui';
 import { ActivityTypeFilter } from '../components/ActivityTypeFilter';
 import { useFeatureAccess } from '../hooks/useTier';
@@ -231,6 +231,14 @@ export default function Reports() {
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-semibold text-[var(--text)]">Analytics</h1>
         <div className="flex items-center gap-3">
+          <Link
+            to="/fight-dynamics"
+            className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors hover:opacity-80"
+            style={{ backgroundColor: 'var(--surfaceElev)', border: '1px solid var(--border)', color: 'var(--accent)' }}
+          >
+            <Swords className="w-4 h-4" />
+            Fight Dynamics
+          </Link>
           {hasAdvancedAnalytics ? (
             <ActivityTypeFilter selectedTypes={selectedTypes} onChange={setSelectedTypes} />
           ) : (

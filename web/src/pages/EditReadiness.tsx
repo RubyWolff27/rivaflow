@@ -87,7 +87,7 @@ export default function EditReadiness() {
       <div className="flex items-center gap-3">
         <button
           onClick={() => navigate(-1)}
-          className="text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white"
+          className="text-[var(--muted)] hover:text-[var(--text)]"
         >
           <ArrowLeft className="w-6 h-6" />
         </button>
@@ -111,7 +111,7 @@ export default function EditReadiness() {
         <div>
           <label className="label">
             Sleep Quality: {formData.sleep}/5
-            <span className="text-sm font-normal text-gray-500 ml-2">
+            <span className="text-sm font-normal text-[var(--muted)] ml-2">
               (1 = Very Poor, 5 = Excellent)
             </span>
           </label>
@@ -124,7 +124,7 @@ export default function EditReadiness() {
             value={formData.sleep}
             onChange={(e) => setFormData({ ...formData, sleep: parseInt(e.target.value) })}
           />
-          <div className="flex justify-between text-xs text-gray-500 mt-1">
+          <div className="flex justify-between text-xs text-[var(--muted)] mt-1">
             <span>Very Poor</span>
             <span>Poor</span>
             <span>Fair</span>
@@ -137,7 +137,7 @@ export default function EditReadiness() {
         <div>
           <label className="label">
             Stress Level: {formData.stress}/5
-            <span className="text-sm font-normal text-gray-500 ml-2">
+            <span className="text-sm font-normal text-[var(--muted)] ml-2">
               (1 = Very Low, 5 = Very High)
             </span>
           </label>
@@ -150,7 +150,7 @@ export default function EditReadiness() {
             value={formData.stress}
             onChange={(e) => setFormData({ ...formData, stress: parseInt(e.target.value) })}
           />
-          <div className="flex justify-between text-xs text-gray-500 mt-1">
+          <div className="flex justify-between text-xs text-[var(--muted)] mt-1">
             <span>Very Low</span>
             <span>Low</span>
             <span>Moderate</span>
@@ -163,7 +163,7 @@ export default function EditReadiness() {
         <div>
           <label className="label">
             Muscle Soreness: {formData.soreness}/5
-            <span className="text-sm font-normal text-gray-500 ml-2">
+            <span className="text-sm font-normal text-[var(--muted)] ml-2">
               (1 = None, 5 = Extreme)
             </span>
           </label>
@@ -176,7 +176,7 @@ export default function EditReadiness() {
             value={formData.soreness}
             onChange={(e) => setFormData({ ...formData, soreness: parseInt(e.target.value) })}
           />
-          <div className="flex justify-between text-xs text-gray-500 mt-1">
+          <div className="flex justify-between text-xs text-[var(--muted)] mt-1">
             <span>None</span>
             <span>Mild</span>
             <span>Moderate</span>
@@ -189,7 +189,7 @@ export default function EditReadiness() {
         <div>
           <label className="label">
             Energy Level: {formData.energy}/5
-            <span className="text-sm font-normal text-gray-500 ml-2">
+            <span className="text-sm font-normal text-[var(--muted)] ml-2">
               (1 = Very Low, 5 = Very High)
             </span>
           </label>
@@ -202,7 +202,7 @@ export default function EditReadiness() {
             value={formData.energy}
             onChange={(e) => setFormData({ ...formData, energy: parseInt(e.target.value) })}
           />
-          <div className="flex justify-between text-xs text-gray-500 mt-1">
+          <div className="flex justify-between text-xs text-[var(--muted)] mt-1">
             <span>Very Low</span>
             <span>Low</span>
             <span>Moderate</span>
@@ -240,11 +240,11 @@ export default function EditReadiness() {
 
         {/* Photos */}
         {readinessId && (
-          <div className="border-t border-gray-200 dark:border-gray-700 pt-6">
+          <div className="border-t border-[var(--border)] pt-6">
             <div className="flex items-center gap-2 mb-4">
-              <Camera className="w-5 h-5 text-gray-600 dark:text-gray-400" />
+              <Camera className="w-5 h-5 text-[var(--muted)]" />
               <h3 className="font-semibold text-lg">Photos</h3>
-              <span className="text-sm text-gray-500">({photoCount}/3)</span>
+              <span className="text-sm text-[var(--muted)]">({photoCount}/3)</span>
             </div>
 
             <div className="space-y-4">

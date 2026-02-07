@@ -36,7 +36,7 @@ export default function ReadinessDetail() {
   if (loading) {
     return (
       <div className="max-w-3xl mx-auto text-center py-12">
-        <p className="text-gray-600 dark:text-gray-400">Loading readiness...</p>
+        <p className="text-[var(--muted)]">Loading readiness...</p>
       </div>
     );
   }
@@ -44,7 +44,7 @@ export default function ReadinessDetail() {
   if (!readiness) {
     return (
       <div className="max-w-3xl mx-auto text-center py-12">
-        <p className="text-gray-600 dark:text-gray-400">Readiness not found</p>
+        <p className="text-[var(--muted)]">Readiness not found</p>
       </div>
     );
   }
@@ -70,12 +70,12 @@ export default function ReadinessDetail() {
         <div className="flex items-center gap-3">
           <button
             onClick={() => navigate(-1)}
-            className="text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white"
+            className="text-[var(--muted)] hover:text-[var(--text)]"
             aria-label="Go back"
           >
             <ArrowLeft className="w-6 h-6" />
           </button>
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-white" id="page-title">Readiness Check-in</h1>
+          <h1 className="text-3xl font-bold text-[var(--text)]" id="page-title">Readiness Check-in</h1>
         </div>
         <Link
           to={`/readiness/edit/${readiness.check_date}`}
@@ -93,12 +93,12 @@ export default function ReadinessDetail() {
           <div className="flex items-center gap-3">
             <Heart className="w-8 h-8 text-green-600" />
             <div>
-              <p className="text-sm text-gray-600 dark:text-gray-400">Composite Score</p>
+              <p className="text-sm text-[var(--muted)]">Composite Score</p>
               <p className="text-4xl font-bold text-green-600">{readiness.composite_score}/5</p>
             </div>
           </div>
           <div className="text-right">
-            <div className="flex items-center gap-2 text-gray-600 dark:text-gray-400">
+            <div className="flex items-center gap-2 text-[var(--muted)]">
               <Calendar className="w-4 h-4" />
               <p className="text-sm">{formattedDate}</p>
             </div>
@@ -111,25 +111,25 @@ export default function ReadinessDetail() {
         <h2 className="text-xl font-semibold mb-4">Readiness Scores</h2>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
           <div className="text-center">
-            <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">Sleep Quality</p>
+            <p className="text-sm text-[var(--muted)] mb-1">Sleep Quality</p>
             <p className={`text-3xl font-bold ${getScoreColor(readiness.sleep)}`}>
               😴 {readiness.sleep}/5
             </p>
           </div>
           <div className="text-center">
-            <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">Stress Level</p>
+            <p className="text-sm text-[var(--muted)] mb-1">Stress Level</p>
             <p className={`text-3xl font-bold ${getScoreColor(5 - readiness.stress + 1)}`}>
               😰 {readiness.stress}/5
             </p>
           </div>
           <div className="text-center">
-            <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">Soreness</p>
+            <p className="text-sm text-[var(--muted)] mb-1">Soreness</p>
             <p className={`text-3xl font-bold ${getScoreColor(5 - readiness.soreness + 1)}`}>
               💪 {readiness.soreness}/5
             </p>
           </div>
           <div className="text-center">
-            <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">Energy Level</p>
+            <p className="text-sm text-[var(--muted)] mb-1">Energy Level</p>
             <p className={`text-3xl font-bold ${getScoreColor(readiness.energy)}`}>
               ⚡ {readiness.energy}/5
             </p>
@@ -141,7 +141,7 @@ export default function ReadinessDetail() {
       {readiness.weight_kg && (
         <div className="card">
           <h3 className="font-semibold text-lg mb-2">Weight</h3>
-          <p className="text-2xl font-bold text-gray-900 dark:text-white">
+          <p className="text-2xl font-bold text-[var(--text)]">
             ⚖️ {readiness.weight_kg} kg
           </p>
         </div>
@@ -151,7 +151,7 @@ export default function ReadinessDetail() {
       {readiness.hotspot_note && (
         <div className="card">
           <h3 className="font-semibold text-lg mb-2">Injury/Hotspot Note</h3>
-          <p className="text-gray-700 dark:text-gray-300 whitespace-pre-wrap">
+          <p className="text-[var(--text)] whitespace-pre-wrap">
             🔥 {readiness.hotspot_note}
           </p>
         </div>
@@ -160,9 +160,9 @@ export default function ReadinessDetail() {
       {/* Photos */}
       <div className="card">
         <div className="flex items-center gap-2 mb-4">
-          <Camera className="w-5 h-5 text-gray-600 dark:text-gray-400" />
+          <Camera className="w-5 h-5 text-[var(--muted)]" />
           <h3 className="font-semibold text-lg">Photos</h3>
-          <span className="text-sm text-gray-500">({photoCount}/3)</span>
+          <span className="text-sm text-[var(--muted)]">({photoCount}/3)</span>
         </div>
 
         <div className="space-y-4">

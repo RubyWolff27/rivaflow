@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { socialApi } from '../api/client';
-import { UserPlus, UserMinus, Search, X } from 'lucide-react';
+import { UserPlus, UserMinus, Search, X, Users, MapPin, Dumbbell } from 'lucide-react';
 import { Card, PrimaryButton, SecondaryButton } from '../components/ui';
 import { FriendSuggestions } from '../components/FriendSuggestions';
 import { useToast } from '../contexts/ToastContext';
@@ -15,38 +16,83 @@ interface SearchUser {
   connection_id?: number;
 }
 
+interface RecommendedUser {
+  id: number;
+  first_name: string;
+  last_name: string;
+  email: string;
+  reason: string;
+  score: number;
+  friendship_status?: 'none' | 'friends' | 'pending_sent' | 'pending_received';
+}
+
+type DiscoveryTab = 'search' | 'gym' | 'suggestions';
+
 export default function FindFriends() {
+  const navigate = useNavigate();
   const [searchResults, setSearchResults] = useState<SearchUser[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
+  const [activeTab, setActiveTab] = useState<DiscoveryTab>('suggestions');
+  const [recommended, setRecommended] = useState<RecommendedUser[]>([]);
+  const [loadingRecommended, setLoadingRecommended] = useState(false);
   const toast = useToast();
 
   useEffect(() => {
     if (searchQuery.length >= 2) {
+      setActiveTab('search');
       searchUsers();
     } else {
       setSearchResults([]);
+      if (activeTab === 'search') {
+        setActiveTab('suggestions');
+      }
     }
   }, [searchQuery]);
+
+  useEffect(() => {
+    if (activeTab === 'gym' && recommended.length === 0) {
+      loadRecommended();
+    }
+  }, [activeTab]);
+
+  const loadRecommended = async () => {
+    setLoadingRecommended(true);
+    try {
+      const response = await socialApi.getRecommended();
+      const recs = response.data.recommendations || [];
+
+      // Fetch friendship status for each
+      const recsWithStatus = await Promise.all(
+        recs.map(async (user: any) => {
+          try {
+            const statusResponse = await socialApi.getFriendshipStatus(user.id);
+            return { ...user, friendship_status: statusResponse.data.status };
+          } catch {
+            return { ...user, friendship_status: 'none' };
+          }
+        })
+      );
+
+      setRecommended(recsWithStatus);
+    } catch (error) {
+      console.error('Error loading recommendations:', error);
+    } finally {
+      setLoadingRecommended(false);
+    }
+  };
 
   const searchUsers = async () => {
     try {
       const response = await socialApi.searchUsers(searchQuery);
       const users = response.data.users || [];
 
-      // Fetch friendship status for each user
       const usersWithStatus = await Promise.all(
         users.map(async (user: any) => {
           try {
             const statusResponse = await socialApi.getFriendshipStatus(user.id);
-            return {
-              ...user,
-              friendship_status: statusResponse.data.status,
-            };
+            return { ...user, friendship_status: statusResponse.data.status };
           } catch {
-            return {
-              ...user,
-              friendship_status: 'none',
-            };
+            return { ...user, friendship_status: 'none' };
           }
         })
       );
@@ -57,16 +103,11 @@ export default function FindFriends() {
     }
   };
 
-  const handleSendRequest = async (userId: number) => {
+  const handleSendRequest = async (userId: number, source: 'search' | 'recommendation' = 'search') => {
     try {
-      await socialApi.sendFriendRequest(userId, { connection_source: 'search' });
+      await socialApi.sendFriendRequest(userId, { connection_source: source });
       toast.success('Friend request sent');
-      // Update search results
-      setSearchResults((prev) =>
-        prev.map((user) =>
-          user.id === userId ? { ...user, friendship_status: 'pending_sent' } : user
-        )
-      );
+      updateUserStatus(userId, 'pending_sent');
     } catch (error: any) {
       console.error('Error sending friend request:', error);
       toast.error(error.response?.data?.detail || 'Failed to send friend request');
@@ -75,18 +116,13 @@ export default function FindFriends() {
 
   const handleAcceptRequest = async (userId: number) => {
     try {
-      // We need to get the connection ID from received requests
       const receivedResponse = await socialApi.getReceivedRequests();
       const request = receivedResponse.data.requests.find((r: any) => r.requester_id === userId);
 
       if (request) {
         await socialApi.acceptFriendRequest(request.id);
         toast.success('Friend request accepted');
-        setSearchResults((prev) =>
-          prev.map((user) =>
-            user.id === userId ? { ...user, friendship_status: 'friends' } : user
-          )
-        );
+        updateUserStatus(userId, 'friends');
       }
     } catch (error) {
       console.error('Error accepting friend request:', error);
@@ -102,11 +138,7 @@ export default function FindFriends() {
       if (request) {
         await socialApi.declineFriendRequest(request.id);
         toast.success('Friend request declined');
-        setSearchResults((prev) =>
-          prev.map((user) =>
-            user.id === userId ? { ...user, friendship_status: 'none' } : user
-          )
-        );
+        updateUserStatus(userId, 'none');
       }
     } catch (error) {
       console.error('Error declining friend request:', error);
@@ -118,16 +150,68 @@ export default function FindFriends() {
     try {
       await socialApi.unfriend(userId);
       toast.success('Friend removed');
-      setSearchResults((prev) =>
-        prev.map((user) =>
-          user.id === userId ? { ...user, friendship_status: 'none' } : user
-        )
-      );
+      updateUserStatus(userId, 'none');
     } catch (error) {
       console.error('Error removing friend:', error);
       toast.error('Failed to remove friend');
     }
   };
+
+  const updateUserStatus = (userId: number, status: string) => {
+    setSearchResults((prev) =>
+      prev.map((user) =>
+        user.id === userId ? { ...user, friendship_status: status as any } : user
+      )
+    );
+    setRecommended((prev) =>
+      prev.map((user) =>
+        user.id === userId ? { ...user, friendship_status: status as any } : user
+      )
+    );
+  };
+
+  const renderFriendshipActions = (user: { id: number; friendship_status?: string }, source: 'search' | 'recommendation' = 'search') => {
+    if (user.friendship_status === 'friends') {
+      return (
+        <SecondaryButton onClick={() => handleUnfriend(user.id)} className="flex items-center gap-2">
+          <UserMinus className="w-4 h-4" />
+          Unfriend
+        </SecondaryButton>
+      );
+    }
+    if (user.friendship_status === 'pending_sent') {
+      return (
+        <SecondaryButton disabled className="flex items-center gap-2 opacity-60 cursor-not-allowed">
+          <UserPlus className="w-4 h-4" />
+          Request Sent
+        </SecondaryButton>
+      );
+    }
+    if (user.friendship_status === 'pending_received') {
+      return (
+        <div className="flex items-center gap-2">
+          <PrimaryButton onClick={() => handleAcceptRequest(user.id)} className="text-sm px-3 py-1">
+            Accept
+          </PrimaryButton>
+          <SecondaryButton onClick={() => handleDeclineRequest(user.id)} className="text-sm px-3 py-1">
+            <X className="w-4 h-4" />
+          </SecondaryButton>
+        </div>
+      );
+    }
+    return (
+      <PrimaryButton onClick={() => handleSendRequest(user.id, source)} className="flex items-center gap-2">
+        <UserPlus className="w-4 h-4" />
+        Add Friend
+      </PrimaryButton>
+    );
+  };
+
+  const tabs: { key: DiscoveryTab; label: string; icon: React.ReactNode }[] = [
+    { key: 'suggestions', label: 'For You', icon: <Users className="w-4 h-4" /> },
+    { key: 'gym', label: 'At Your Gym', icon: <Dumbbell className="w-4 h-4" /> },
+    { key: 'search', label: 'Search', icon: <Search className="w-4 h-4" /> },
+  ];
 
   return (
     <div className="space-y-6">
@@ -155,13 +239,37 @@ export default function FindFriends() {
         </div>
       </Card>
 
+      {/* Discovery Tabs */}
+      {!searchQuery && (
+        <div className="flex gap-2">
+          {tabs.filter(t => t.key !== 'search').map((tab) => (
+            <button
+              key={tab.key}
+              onClick={() => setActiveTab(tab.key)}
+              className={`flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium transition-colors ${
+                activeTab === tab.key
+                  ? 'text-white'
+                  : 'text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600'
+              }`}
+              style={activeTab === tab.key ? { backgroundColor: 'var(--accent)' } : { backgroundColor: 'var(--surfaceElev)' }}
+            >
+              {tab.icon}
+              {tab.label}
+            </button>
+          ))}
+        </div>
+      )}
+
       {/* Search Results */}
-      {searchResults.length > 0 && (
+      {activeTab === 'search' && searchResults.length > 0 && (
         <Card>
           <div className="mb-4">
             <h2 className="text-lg font-semibold" style={{ color: 'var(--text)' }}>
               Search Results
             </h2>
+            <p className="text-sm" style={{ color: 'var(--muted)' }}>
+              {searchResults.length} result{searchResults.length !== 1 ? 's' : ''} for "{searchQuery}"
+            </p>
           </div>
           <div className="space-y-3">
             {searchResults.map((user) => (
@@ -170,47 +278,97 @@ export default function FindFriends() {
                 className="flex items-center justify-between p-4 rounded-[14px]"
                 style={{ backgroundColor: 'var(--surfaceElev)', border: '1px solid var(--border)' }}
               >
-                <div>
-                  <p className="font-medium" style={{ color: 'var(--text)' }}>
-                    {user.first_name} {user.last_name}
-                  </p>
-                  <p className="text-sm" style={{ color: 'var(--muted)' }}>
-                    {user.email}
-                  </p>
-                </div>
-                {user.friendship_status === 'friends' ? (
-                  <SecondaryButton onClick={() => handleUnfriend(user.id)} className="flex items-center gap-2">
-                    <UserMinus className="w-4 h-4" />
-                    Unfriend
-                  </SecondaryButton>
-                ) : user.friendship_status === 'pending_sent' ? (
-                  <SecondaryButton disabled className="flex items-center gap-2 opacity-60 cursor-not-allowed">
-                    <UserPlus className="w-4 h-4" />
-                    Request Sent
-                  </SecondaryButton>
-                ) : user.friendship_status === 'pending_received' ? (
-                  <div className="flex items-center gap-2">
-                    <PrimaryButton onClick={() => handleAcceptRequest(user.id)} className="text-sm px-3 py-1">
-                      Accept
-                    </PrimaryButton>
-                    <SecondaryButton onClick={() => handleDeclineRequest(user.id)} className="text-sm px-3 py-1">
-                      <X className="w-4 h-4" />
-                    </SecondaryButton>
+                <div
+                  className="flex items-center gap-3 cursor-pointer flex-1"
+                  onClick={() => navigate(`/users/${user.id}`)}
+                >
+                  <div className="w-10 h-10 rounded-full flex items-center justify-center text-white font-bold"
+                    style={{ background: 'linear-gradient(135deg, var(--accent), #FF8C42)' }}
+                  >
+                    {user.first_name?.charAt(0) || '?'}
                   </div>
-                ) : (
-                  <PrimaryButton onClick={() => handleSendRequest(user.id)} className="flex items-center gap-2">
-                    <UserPlus className="w-4 h-4" />
-                    Add Friend
-                  </PrimaryButton>
-                )}
+                  <div>
+                    <p className="font-medium" style={{ color: 'var(--text)' }}>
+                      {user.first_name} {user.last_name}
+                    </p>
+                    <p className="text-sm" style={{ color: 'var(--muted)' }}>
+                      {user.email}
+                    </p>
+                  </div>
+                </div>
+                {renderFriendshipActions(user)}
               </div>
             ))}
           </div>
         </Card>
       )}
 
+      {activeTab === 'search' && searchQuery && searchResults.length === 0 && (
+        <Card className="p-8 text-center">
+          <p style={{ color: 'var(--muted)' }}>No users found matching "{searchQuery}"</p>
+        </Card>
+      )}
+
+      {/* At Your Gym */}
+      {activeTab === 'gym' && (
+        <div className="space-y-4">
+          {loadingRecommended ? (
+            <div className="space-y-3">
+              {[...Array(3)].map((_, i) => (
+                <Card key={i} className="p-4">
+                  <div className="animate-pulse flex items-center space-x-4">
+                    <div className="w-12 h-12 rounded-full" style={{ backgroundColor: 'var(--border)' }} />
+                    <div className="flex-1 space-y-2">
+                      <div className="h-4 rounded w-1/3" style={{ backgroundColor: 'var(--border)' }} />
+                      <div className="h-3 rounded w-1/2" style={{ backgroundColor: 'var(--border)' }} />
+                    </div>
+                  </div>
+                </Card>
+              ))}
+            </div>
+          ) : recommended.length > 0 ? (
+            <div className="space-y-3">
+              {recommended.map((user) => (
+                <Card key={user.id} className="p-4">
+                  <div className="flex items-center justify-between">
+                    <div
+                      className="flex items-center gap-3 cursor-pointer flex-1"
+                      onClick={() => navigate(`/users/${user.id}`)}
+                    >
+                      <div className="w-12 h-12 rounded-full flex items-center justify-center text-white font-bold text-lg"
+                        style={{ background: 'linear-gradient(135deg, var(--accent), #FF8C42)' }}
+                      >
+                        {user.first_name?.charAt(0) || '?'}
+                      </div>
+                      <div>
+                        <p className="font-semibold" style={{ color: 'var(--text)' }}>
+                          {user.first_name} {user.last_name}
+                        </p>
+                        <p className="text-sm flex items-center gap-1" style={{ color: 'var(--muted)' }}>
+                          <MapPin className="w-3 h-3" />
+                          {user.reason}
+                        </p>
+                      </div>
+                    </div>
+                    {renderFriendshipActions(user, 'recommendation')}
+                  </div>
+                </Card>
+              ))}
+            </div>
+          ) : (
+            <Card className="p-8 text-center">
+              <Dumbbell className="w-12 h-12 mx-auto mb-3" style={{ color: 'var(--muted)' }} />
+              <p className="font-medium mb-1" style={{ color: 'var(--text)' }}>No gym recommendations yet</p>
+              <p className="text-sm" style={{ color: 'var(--muted)' }}>
+                Log more sessions to get gym-based friend recommendations
+              </p>
+            </Card>
+          )}
+        </div>
+      )}
+
       {/* Friend Suggestions */}
-      {!searchQuery && (
+      {activeTab === 'suggestions' && (
         <FriendSuggestions />
       )}
     </div>

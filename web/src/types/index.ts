@@ -411,3 +411,65 @@ export interface UserRelationship {
   last_name: string;
   email: string;
 }
+
+
+// Events & Competition Prep (v0.3)
+export interface CompEvent {
+  id: number;
+  name: string;
+  event_type: string;
+  event_date: string;
+  location?: string;
+  weight_class?: string;
+  target_weight?: number;
+  division?: string;
+  notes?: string;
+  status: string;
+  created_at: string;
+}
+
+export interface WeightLog {
+  id: number;
+  weight: number;
+  logged_date: string;
+  time_of_day?: string;
+  notes?: string;
+  created_at?: string;
+}
+
+export interface WeightAverage {
+  period: string;
+  avg_weight: number;
+  min_weight: number;
+  max_weight: number;
+  entries: number;
+}
+
+
+// Groups (v0.3)
+export interface Group {
+  id: number;
+  name: string;
+  description?: string;
+  group_type: 'training_crew' | 'comp_team' | 'study_group' | 'gym_class';
+  privacy: 'open' | 'invite_only';
+  gym_id?: number;
+  created_by: number;
+  avatar_url?: string;
+  created_at: string;
+  member_count?: number;
+  member_role?: string;
+  members?: GroupMember[];
+  user_role?: string;
+}
+
+export interface GroupMember {
+  id: number;
+  group_id: number;
+  user_id: number;
+  role: 'admin' | 'member';
+  joined_at: string;
+  first_name?: string;
+  last_name?: string;
+  email?: string;
+}

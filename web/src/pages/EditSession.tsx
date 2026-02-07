@@ -384,8 +384,8 @@ export default function EditSession() {
   if (loading) {
     return (
       <div className="max-w-2xl mx-auto text-center py-12">
-        <Loader className="w-8 h-8 text-primary-600 animate-spin mx-auto mb-4" />
-        <p className="text-gray-600 dark:text-gray-400">Loading session...</p>
+        <Loader className="w-8 h-8 text-[var(--accent)] animate-spin mx-auto mb-4" />
+        <p className="text-[var(--muted)]">Loading session...</p>
       </div>
     );
   }
@@ -395,7 +395,7 @@ export default function EditSession() {
       <div className="max-w-md mx-auto text-center py-12">
         <CheckCircle className="w-16 h-16 text-green-500 mx-auto mb-4" />
         <h2 className="text-2xl font-bold mb-2">Session Updated!</h2>
-        <p className="text-gray-600 dark:text-gray-400">Redirecting to dashboard...</p>
+        <p className="text-[var(--muted)]">Redirecting to dashboard...</p>
       </div>
     );
   }
@@ -405,7 +405,7 @@ export default function EditSession() {
       <div className="mb-6 flex items-center gap-3">
         <button
           onClick={() => navigate('/')}
-          className="text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white"
+          className="text-[var(--muted)] hover:text-gray-900 dark:hover:text-white"
           aria-label="Back to dashboard"
         >
           <ArrowLeft className="w-6 h-6" />
@@ -547,13 +547,13 @@ export default function EditSession() {
 
         {/* Roll Tracking (Sparring only) */}
         {isSparringType && (
-          <div className="border-t border-gray-200 dark:border-gray-700 pt-4 space-y-4">
+          <div className="border-t border-[var(--border)] pt-4 space-y-4">
             <div className="flex items-center justify-between">
               <h3 className="font-semibold text-lg">Roll Tracking</h3>
               <button
                 type="button"
                 onClick={() => setDetailedMode(!detailedMode)}
-                className="flex items-center gap-2 text-sm text-primary-600 hover:text-primary-700"
+                className="flex items-center gap-2 text-sm text-[var(--accent)] hover:text-primary-700"
               >
                 {detailedMode ? (
                   <>
@@ -610,12 +610,12 @@ export default function EditSession() {
               /* Detailed Mode: Individual roll records */
               <div className="space-y-3">
                 {rolls.length === 0 ? (
-                  <p className="text-sm text-gray-600 dark:text-gray-400">
+                  <p className="text-sm text-[var(--muted)]">
                     Click "Add Roll" to track individual rolls with partners and submissions
                   </p>
                 ) : (
                   rolls.map((roll, index) => (
-                    <div key={index} className="border border-gray-300 dark:border-gray-600 rounded-lg p-4 space-y-3">
+                    <div key={index} className="border border-[var(--border)] rounded-lg p-4 space-y-3">
                       <div className="flex items-center justify-between">
                         <h4 className="font-semibold">Roll #{roll.roll_number}</h4>
                         <button
@@ -676,7 +676,7 @@ export default function EditSession() {
                       <div>
                         <label className="label text-sm">Submissions For ({roll.submissions_for.length})</label>
                         <div className="relative mb-2">
-                          <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+                          <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 w-4 h-4 text-[var(--muted)]" />
                           <input
                             type="text"
                             className="input pl-8 text-sm"
@@ -685,7 +685,7 @@ export default function EditSession() {
                             onChange={(e) => setSubmissionSearchFor({ ...submissionSearchFor, [index]: e.target.value })}
                           />
                         </div>
-                        <div className="max-h-32 overflow-y-auto border border-gray-300 dark:border-gray-600 rounded p-2 space-y-1 mb-2">
+                        <div className="max-h-32 overflow-y-auto border border-[var(--border)] rounded p-2 space-y-1 mb-2">
                           {movements
                             .filter(m => {
                               const search = submissionSearchFor[index]?.toLowerCase() || '';
@@ -733,7 +733,7 @@ export default function EditSession() {
                       <div>
                         <label className="label text-sm">Submissions Against ({roll.submissions_against.length})</label>
                         <div className="relative mb-2">
-                          <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+                          <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 w-4 h-4 text-[var(--muted)]" />
                           <input
                             type="text"
                             className="input pl-8 text-sm"
@@ -742,7 +742,7 @@ export default function EditSession() {
                             onChange={(e) => setSubmissionSearchAgainst({ ...submissionSearchAgainst, [index]: e.target.value })}
                           />
                         </div>
-                        <div className="max-h-32 overflow-y-auto border border-gray-300 dark:border-gray-600 rounded p-2 space-y-1 mb-2">
+                        <div className="max-h-32 overflow-y-auto border border-[var(--border)] rounded p-2 space-y-1 mb-2">
                           {movements
                             .filter(m => {
                               const search = submissionSearchAgainst[index]?.toLowerCase() || '';
@@ -814,7 +814,7 @@ export default function EditSession() {
         )}
 
         {/* Technique Focus */}
-        <div className="space-y-4 border-t border-gray-200 dark:border-gray-700 pt-4">
+        <div className="space-y-4 border-t border-[var(--border)] pt-4">
           <div className="flex items-center justify-between">
             <h3 className="font-semibold text-lg">Technique of the Day</h3>
             <button
@@ -828,13 +828,13 @@ export default function EditSession() {
           </div>
 
           {techniques.length === 0 ? (
-            <p className="text-sm text-gray-600 dark:text-gray-400">
+            <p className="text-sm text-[var(--muted)]">
               Click "Add Technique" to track techniques you focused on
             </p>
           ) : (
             <div className="space-y-4">
               {techniques.map((tech, index) => (
-                <div key={index} className="border border-gray-300 dark:border-gray-600 rounded-lg p-4 space-y-3">
+                <div key={index} className="border border-[var(--border)] rounded-lg p-4 space-y-3">
                   <div className="flex items-center justify-between">
                     <h4 className="font-semibold">Technique #{tech.technique_number}</h4>
                     <button
@@ -851,7 +851,7 @@ export default function EditSession() {
                   <div>
                     <label className="label text-sm">Movement</label>
                     <div className="relative mb-2">
-                      <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+                      <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 w-4 h-4 text-[var(--muted)]" />
                       <input
                         type="text"
                         className="input pl-8 text-sm"
@@ -860,7 +860,7 @@ export default function EditSession() {
                         onChange={(e) => setTechniqueSearch({ ...techniqueSearch, [index]: e.target.value })}
                       />
                     </div>
-                    <div className="max-h-48 overflow-y-auto border border-gray-300 dark:border-gray-600 rounded p-2 space-y-1">
+                    <div className="max-h-48 overflow-y-auto border border-[var(--border)] rounded p-2 space-y-1">
                       {movements
                         .filter(m => {
                           const search = techniqueSearch[index]?.toLowerCase() || '';
@@ -902,11 +902,11 @@ export default function EditSession() {
                                m.subcategory?.toLowerCase().includes(search) ||
                                m.aliases.some(alias => alias.toLowerCase().includes(search));
                       }).length === 0 && (
-                        <p className="text-xs text-gray-500 text-center py-2">No movements found</p>
+                        <p className="text-xs text-[var(--muted)] text-center py-2">No movements found</p>
                       )}
                     </div>
                     {tech.movement_id && (
-                      <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                      <p className="text-sm text-[var(--muted)] mt-1">
                         Selected: <span className="font-medium">{tech.movement_name}</span>
                       </p>
                     )}
@@ -931,18 +931,18 @@ export default function EditSession() {
                       <button
                         type="button"
                         onClick={() => handleAddMediaUrl(index)}
-                        className="text-xs text-primary-600 hover:text-primary-700 flex items-center gap-1"
+                        className="text-xs text-[var(--accent)] hover:text-primary-700 flex items-center gap-1"
                       >
                         <Plus className="w-3 h-3" />
                         Add Link
                       </button>
                     </div>
                     {tech.media_urls.length === 0 ? (
-                      <p className="text-xs text-gray-500">No media links added</p>
+                      <p className="text-xs text-[var(--muted)]">No media links added</p>
                     ) : (
                       <div className="space-y-2">
                         {tech.media_urls.map((media, mediaIndex) => (
-                          <div key={mediaIndex} className="border border-gray-200 dark:border-gray-700 rounded p-2 space-y-2">
+                          <div key={mediaIndex} className="border border-[var(--border)] rounded p-2 space-y-2">
                             <div className="flex items-center justify-between">
                               <select
                                 className="input-sm text-xs"
@@ -1056,10 +1056,10 @@ export default function EditSession() {
         </div>
 
         {/* Session Details / Notes */}
-        <div className={!isSparringType ? 'border-t border-gray-200 dark:border-gray-700 pt-4' : ''}>
+        <div className={!isSparringType ? 'border-t border-[var(--border)] pt-4' : ''}>
           <label className="label">
             {!isSparringType ? 'Session Details' : 'Notes'}
-            {!isSparringType && <span className="text-sm font-normal text-gray-500 ml-2">(Workout details, exercises, distances, times, etc.)</span>}
+            {!isSparringType && <span className="text-sm font-normal text-[var(--muted)] ml-2">(Workout details, exercises, distances, times, etc.)</span>}
           </label>
           <textarea
             className="input"
@@ -1075,11 +1075,11 @@ export default function EditSession() {
         </div>
 
         {/* Photos */}
-        <div className="border-t border-gray-200 dark:border-gray-700 pt-6">
+        <div className="border-t border-[var(--border)] pt-6">
           <div className="flex items-center gap-2 mb-4">
-            <Camera className="w-5 h-5 text-gray-600 dark:text-gray-400" />
+            <Camera className="w-5 h-5 text-[var(--muted)]" />
             <h3 className="font-semibold text-lg">Photos</h3>
-            <span className="text-sm text-gray-500">({photoCount}/3)</span>
+            <span className="text-sm text-[var(--muted)]">({photoCount}/3)</span>
           </div>
 
           <div className="space-y-4">

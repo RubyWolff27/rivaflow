@@ -5,6 +5,7 @@ import type { Movement } from '../types';
 import { ArrowLeft, Award, Plus, Trash2, ExternalLink, Video as VideoIcon } from 'lucide-react';
 import ConfirmDialog from '../components/ConfirmDialog';
 import { useToast } from '../contexts/ToastContext';
+import { CardSkeleton } from '../components/ui';
 
 const CATEGORY_LABELS: Record<string, string> = {
   position: 'Position',
@@ -129,7 +130,7 @@ export default function MovementDetail() {
         href={url}
         target="_blank"
         rel="noopener noreferrer"
-        className="flex items-center gap-2 text-primary-600 hover:text-primary-700 dark:text-primary-400"
+        className="flex items-center gap-2 text-[var(--accent)] hover:opacity-80"
       >
         <ExternalLink className="w-4 h-4" />
         {title || url}
@@ -138,13 +139,18 @@ export default function MovementDetail() {
   };
 
   if (loading) {
-    return <div className="text-center py-12">Loading movement...</div>;
+    return (
+      <div className="max-w-5xl mx-auto space-y-4">
+        <CardSkeleton lines={2} />
+        <CardSkeleton lines={4} />
+      </div>
+    );
   }
 
   if (!movement) {
     return (
       <div className="text-center py-12">
-        <p className="text-gray-500 dark:text-gray-400 mb-4">Movement not found</p>
+        <p className="text-[var(--muted)] mb-4">Movement not found</p>
         <button onClick={() => navigate('/glossary')} className="btn-secondary">
           Back to Glossary
         </button>
@@ -166,7 +172,7 @@ export default function MovementDetail() {
         <div className="flex-1">
           <h1 className="text-3xl font-bold">{movement.name}</h1>
           {movement.subcategory && (
-            <p className="text-gray-600 dark:text-gray-400 capitalize">
+            <p className="text-[var(--muted)] capitalize">
               {movement.subcategory}
             </p>
           )}
@@ -194,56 +200,56 @@ export default function MovementDetail() {
 
         {movement.description && (
           <div>
-            <h3 className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase mb-1">Description</h3>
-            <p className="text-gray-700 dark:text-gray-300">{movement.description}</p>
+            <h3 className="text-sm font-semibold text-[var(--muted)] uppercase mb-1">Description</h3>
+            <p className="text-[var(--text)]">{movement.description}</p>
           </div>
         )}
 
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <h3 className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase mb-1">Gi Applicable</h3>
-            <p className="text-gray-700 dark:text-gray-300">{movement.gi_applicable ? 'Yes' : 'No'}</p>
+            <h3 className="text-sm font-semibold text-[var(--muted)] uppercase mb-1">Gi Applicable</h3>
+            <p className="text-[var(--text)]">{movement.gi_applicable ? 'Yes' : 'No'}</p>
           </div>
           <div>
-            <h3 className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase mb-1">No-Gi Applicable</h3>
-            <p className="text-gray-700 dark:text-gray-300">{movement.nogi_applicable ? 'Yes' : 'No'}</p>
+            <h3 className="text-sm font-semibold text-[var(--muted)] uppercase mb-1">No-Gi Applicable</h3>
+            <p className="text-[var(--text)]">{movement.nogi_applicable ? 'Yes' : 'No'}</p>
           </div>
         </div>
 
         {movement.aliases && movement.aliases.length > 0 && (
           <div>
-            <h3 className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase mb-1">Also Known As</h3>
-            <p className="text-gray-700 dark:text-gray-300">{movement.aliases.join(', ')}</p>
+            <h3 className="text-sm font-semibold text-[var(--muted)] uppercase mb-1">Also Known As</h3>
+            <p className="text-[var(--text)]">{movement.aliases.join(', ')}</p>
           </div>
         )}
 
         <div className="grid grid-cols-2 md:grid-cols-5 gap-2">
           <div className="text-center">
-            <h3 className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase mb-1">White</h3>
+            <h3 className="text-xs font-semibold text-[var(--muted)] uppercase mb-1">White</h3>
             <p className={movement.ibjjf_legal_white ? 'text-green-600' : 'text-red-600'}>
               {movement.ibjjf_legal_white ? 'Legal' : 'Illegal'}
             </p>
           </div>
           <div className="text-center">
-            <h3 className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase mb-1">Blue</h3>
+            <h3 className="text-xs font-semibold text-[var(--muted)] uppercase mb-1">Blue</h3>
             <p className={movement.ibjjf_legal_blue ? 'text-green-600' : 'text-red-600'}>
               {movement.ibjjf_legal_blue ? 'Legal' : 'Illegal'}
             </p>
           </div>
           <div className="text-center">
-            <h3 className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase mb-1">Purple</h3>
+            <h3 className="text-xs font-semibold text-[var(--muted)] uppercase mb-1">Purple</h3>
             <p className={movement.ibjjf_legal_purple ? 'text-green-600' : 'text-red-600'}>
               {movement.ibjjf_legal_purple ? 'Legal' : 'Illegal'}
             </p>
           </div>
           <div className="text-center">
-            <h3 className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase mb-1">Brown</h3>
+            <h3 className="text-xs font-semibold text-[var(--muted)] uppercase mb-1">Brown</h3>
             <p className={movement.ibjjf_legal_brown ? 'text-green-600' : 'text-red-600'}>
               {movement.ibjjf_legal_brown ? 'Legal' : 'Illegal'}
             </p>
           </div>
           <div className="text-center">
-            <h3 className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase mb-1">Black</h3>
+            <h3 className="text-xs font-semibold text-[var(--muted)] uppercase mb-1">Black</h3>
             <p className={movement.ibjjf_legal_black ? 'text-green-600' : 'text-red-600'}>
               {movement.ibjjf_legal_black ? 'Legal' : 'Illegal'}
             </p>
@@ -261,14 +267,14 @@ export default function MovementDetail() {
 
           {movement.gi_video_url && (
             <div>
-              <h3 className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase mb-2">Gi Version</h3>
+              <h3 className="text-sm font-semibold text-[var(--muted)] uppercase mb-2">Gi Version</h3>
               {renderVideo(movement.gi_video_url, `${movement.name} - Gi`)}
             </div>
           )}
 
           {movement.nogi_video_url && (
             <div>
-              <h3 className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase mb-2">No-Gi Version</h3>
+              <h3 className="text-sm font-semibold text-[var(--muted)] uppercase mb-2">No-Gi Version</h3>
               {renderVideo(movement.nogi_video_url, `${movement.name} - No-Gi`)}
             </div>
           )}
@@ -293,7 +299,7 @@ export default function MovementDetail() {
 
         {/* Add Video Form */}
         {showAddVideo && (
-          <form onSubmit={handleAddVideo} className="bg-gray-50 dark:bg-gray-800 p-4 rounded-lg space-y-3">
+          <form onSubmit={handleAddVideo} className="bg-[var(--surfaceElev)] p-4 rounded-lg space-y-3">
             <div>
               <label className="label">Video URL</label>
               <input
@@ -344,12 +350,12 @@ export default function MovementDetail() {
         {movement.custom_videos && movement.custom_videos.length > 0 ? (
           <div className="space-y-4">
             {movement.custom_videos.map((video) => (
-              <div key={video.id} className="border border-gray-200 dark:border-gray-700 rounded-lg p-4 space-y-3">
+              <div key={video.id} className="border border-[var(--border)] rounded-lg p-4 space-y-3">
                 <div className="flex items-start justify-between">
                   <div className="flex-1">
                     <div className="flex items-center gap-2 mb-1">
                       {video.title && (
-                        <h4 className="font-semibold text-gray-900 dark:text-white">{video.title}</h4>
+                        <h4 className="font-semibold text-[var(--text)]">{video.title}</h4>
                       )}
                       <span className={`px-2 py-0.5 rounded text-xs font-medium ${
                         video.video_type === 'gi' ? 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300' :
@@ -374,7 +380,7 @@ export default function MovementDetail() {
             ))}
           </div>
         ) : (
-          <p className="text-gray-500 dark:text-gray-400 text-sm">
+          <p className="text-[var(--muted)] text-sm">
             No custom videos yet. Add your preferred instructional videos above.
           </p>
         )}

@@ -17,6 +17,7 @@ export default function Readiness() {
     soreness: 2,
     energy: 3,
     hotspot_note: '',
+    weight_kg: '' as string | number,
   });
 
   useEffect(() => {
@@ -39,7 +40,11 @@ export default function Readiness() {
     setLoading(true);
 
     try {
-      await readinessApi.create(formData);
+      const submitData = {
+        ...formData,
+        weight_kg: formData.weight_kg !== '' ? Number(formData.weight_kg) : undefined,
+      };
+      await readinessApi.create(submitData);
       setSuccess(true);
       await loadLatest();
       setTimeout(() => setSuccess(false), 3000);
@@ -56,7 +61,7 @@ export default function Readiness() {
   return (
     <div className="max-w-2xl mx-auto space-y-6">
       <div className="flex items-center gap-3">
-        <Activity className="w-8 h-8 text-primary-600" />
+        <Activity className="w-8 h-8 text-[var(--accent)]" />
         <h1 className="text-3xl font-bold">Daily Readiness</h1>
       </div>
 
@@ -64,7 +69,7 @@ export default function Readiness() {
       {latest && (
         <div className="card bg-primary-50 dark:bg-primary-900/20 border-primary-200 dark:border-primary-800">
           <h3 className="font-semibold mb-2">Latest Check-in</h3>
-          <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">
+          <p className="text-sm text-[var(--muted)] mb-3">
             {new Date(latest.check_date ?? new Date()).toLocaleDateString()} • Score: {latest.composite_score ?? 0}/20
           </p>
           <div className="grid grid-cols-2 gap-3 text-sm">
@@ -73,6 +78,9 @@ export default function Readiness() {
             <div>Soreness: {latest.soreness ?? 0}/5</div>
             <div>Energy: {latest.energy ?? 0}/5</div>
           </div>
+          {latest.weight_kg && (
+            <div className="mt-2">Weight: {latest.weight_kg} kg</div>
+          )}
           {latest.hotspot_note && (
             <p className="mt-3 text-sm">Hotspot: {latest.hotspot_note}</p>
           )}
@@ -113,9 +121,9 @@ export default function Readiness() {
                 max="5"
                 value={formData[metric]}
                 onChange={(e) => setFormData({ ...formData, [metric]: parseInt(e.target.value) })}
-                className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer dark:bg-gray-700"
+                className="w-full h-2 bg-[var(--surfaceElev)] rounded-lg appearance-none cursor-pointer"
               />
-              <div className="flex justify-between text-xs text-gray-500 mt-1">
+              <div className="flex justify-between text-xs text-[var(--muted)] mt-1">
                 <span>Low</span>
                 <span>High</span>
               </div>
@@ -124,8 +132,25 @@ export default function Readiness() {
 
           {/* Composite Score */}
           <div className="p-4 bg-gradient-to-r from-primary-50 to-blue-50 dark:from-primary-900/20 dark:to-blue-900/20 rounded-lg">
-            <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">Composite Score</p>
-            <p className="text-3xl font-bold text-primary-600">{compositeScore}/20</p>
+            <p className="text-sm text-[var(--muted)] mb-1">Composite Score</p>
+            <p className="text-3xl font-bold text-[var(--accent)]">{compositeScore}/20</p>
+          </div>
+
+          {/* Weight */}
+          <div>
+            <label className="label">Body Weight (optional)</label>
+            <div className="relative">
+              <input
+                type="number"
+                step="0.1"
+                min="0"
+                className="input pr-10"
+                value={formData.weight_kg}
+                onChange={(e) => setFormData({ ...formData, weight_kg: e.target.value })}
+                placeholder="e.g., 78.5"
+              />
+              <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-[var(--muted)]">kg</span>
+            </div>
           </div>
 
           {/* Hotspot */}

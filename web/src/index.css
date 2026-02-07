@@ -24,6 +24,9 @@
     --danger-bg: rgba(239, 68, 68, 0.1);
     --warning: #F59E0B;
     --warning-bg: rgba(245, 158, 11, 0.1);
+    --error: #EF4444;
+    --error-bg: rgba(239, 68, 68, 0.1);
+    --accent-rgb: 255, 77, 45;
   }
 
   @media (prefers-color-scheme: dark) {
@@ -47,6 +50,9 @@
       --danger-bg: rgba(239, 68, 68, 0.1);
       --warning: #F59E0B;
       --warning-bg: rgba(245, 158, 11, 0.1);
+      --error: #EF4444;
+      --error-bg: rgba(239, 68, 68, 0.1);
+      --accent-rgb: 255, 77, 45;
     }
   }
 
@@ -149,6 +155,19 @@
   /* Text utilities */
   .text-muted {
     color: var(--muted);
+  }
+
+  /* Accent badge - used for class type pills, technique tags etc */
+  .accent-badge {
+    background-color: rgba(var(--accent-rgb), 0.12);
+    color: var(--accent);
+  }
+
+  /* Stat label - small muted text above a value */
+  .stat-label {
+    font-size: 0.75rem;
+    color: var(--muted);
+    margin-bottom: 0.25rem;
   }
 
   /* Border utilities */

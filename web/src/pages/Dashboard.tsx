@@ -1,25 +1,58 @@
 import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Plus, Activity } from 'lucide-react';
-import { Card, PrimaryButton, SecondaryButton } from '../components/ui';
+import { Plus, Activity, Scale } from 'lucide-react';
+import { Card, PrimaryButton, SecondaryButton, CardSkeleton } from '../components/ui';
 import { WeekAtGlance } from '../components/dashboard/WeekAtGlance';
 import { LastSession } from '../components/dashboard/LastSession';
 import { JourneyProgress } from '../components/dashboard/JourneyProgress';
 import { WeeklyGoalsBreakdown } from '../components/dashboard/WeeklyGoalsBreakdown';
 import { BetaBadge } from '../components/UpgradePrompt';
 import { useTier } from '../hooks/useTier';
-import { readinessApi } from '../api/client';
+import { useToast } from '../contexts/ToastContext';
+import { readinessApi, weightLogsApi } from '../api/client';
 
 export default function Dashboard() {
   const navigate = useNavigate();
   const tierInfo = useTier();
+  const toast = useToast();
   const [readinessScore, setReadinessScore] = useState<number | null>(null);
   const [hasCheckedInToday, setHasCheckedInToday] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [weightInput, setWeightInput] = useState('');
+  const [lastWeight, setLastWeight] = useState<number | null>(null);
+  const [savingWeight, setSavingWeight] = useState(false);
 
   useEffect(() => {
     loadReadinessData();
+    loadLatestWeight();
   }, []);
+
+  const loadLatestWeight = async () => {
+    try {
+      const response = await weightLogsApi.getLatest();
+      if (response.data?.weight) {
+        setLastWeight(response.data.weight);
+      }
+    } catch {
+      // No weight logged yet — expected
+    }
+  };
+
+  const handleQuickWeight = async () => {
+    const weight = parseFloat(weightInput);
+    if (!weight || weight < 20 || weight > 300) return;
+    setSavingWeight(true);
+    try {
+      await weightLogsApi.create({ weight });
+      setLastWeight(weight);
+      setWeightInput('');
+      toast.success(`Weight logged: ${weight} kg`);
+    } catch {
+      toast.error('Failed to log weight.');
+    } finally {
+      setSavingWeight(false);
+    }
+  };
 
   const loadReadinessData = async () => {
     try {
@@ -52,7 +85,15 @@ export default function Dashboard() {
   };
 
   if (loading) {
-    return <div className="text-center py-12">Loading...</div>;
+    return (
+      <div className="space-y-4">
+        <CardSkeleton lines={2} />
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          <CardSkeleton lines={4} />
+          <CardSkeleton lines={4} />
+        </div>
+      </div>
+    );
   }
 
   return (
@@ -120,6 +161,42 @@ export default function Dashboard() {
           </div>
         </Card>
       )}
+
+      {/* Quick Weight Log */}
+      <Card>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <Scale className="w-5 h-5" style={{ color: 'var(--accent)' }} />
+            <div>
+              <h3 className="text-sm font-semibold" style={{ color: 'var(--text)' }}>Quick Weight Log</h3>
+              {lastWeight && (
+                <p className="text-xs" style={{ color: 'var(--muted)' }}>Last: {lastWeight} kg</p>
+              )}
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <input
+              type="number"
+              className="input w-24 text-sm"
+              placeholder="kg"
+              value={weightInput}
+              onChange={(e) => setWeightInput(e.target.value)}
+              step="0.1"
+              min="20"
+              max="300"
+              onKeyDown={(e) => e.key === 'Enter' && handleQuickWeight()}
+            />
+            <button
+              onClick={handleQuickWeight}
+              disabled={savingWeight || !weightInput}
+              className="px-3 py-2 rounded-lg text-sm font-medium transition-colors disabled:opacity-50"
+              style={{ backgroundColor: 'var(--accent)', color: '#FFFFFF' }}
+            >
+              {savingWeight ? '...' : 'Log'}
+            </button>
+          </div>
+        </div>
+      </Card>
 
       {/* Main Grid - Week at Glance and Weekly Goals */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, memo } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { Home, Plus, BarChart3, Book, User, Users, Menu, X, LogOut, Grid, BookOpen, Video, Activity, Shield, Calendar, Sparkles } from 'lucide-react';
+import { Home, Plus, BarChart3, Book, User, Users, Menu, X, LogOut, Grid, BookOpen, Video, Activity, Shield, Calendar, Sparkles, Trophy, HelpCircle, MessageSquare, FileText } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import QuickLog from './QuickLog';
 import { notificationsApi } from '../api/client';
@@ -90,16 +90,48 @@ const Layout = memo(function Layout({ children }: { children: React.ReactNode })
     { name: 'Friends', href: '/friends', icon: Users, badge: notificationCounts.friend_requests },
   ];
 
-  // Secondary navigation - accessible via More menu
-  const moreNavigation = [
-    { name: 'Grapple AI', href: '/grapple', icon: Sparkles },
-    { name: 'Sessions', href: '/sessions', icon: Calendar },
-    { name: 'Techniques', href: '/techniques', icon: Book },
-    { name: 'Glossary', href: '/glossary', icon: BookOpen },
-    { name: 'Videos', href: '/videos', icon: Video },
-    { name: 'Readiness', href: '/readiness', icon: Activity },
-    ...(user?.is_admin ? [{ name: 'Admin', href: '/admin', icon: Shield }] : []),
+  // Secondary navigation - organized into sections
+  const moreNavSections = [
+    {
+      label: 'Training',
+      items: [
+        { name: 'Sessions', href: '/sessions', icon: Calendar },
+        { name: 'Readiness', href: '/readiness', icon: Activity },
+        { name: 'Events', href: '/events', icon: Trophy },
+        { name: 'Grapple AI', href: '/grapple', icon: Sparkles },
+      ],
+    },
+    {
+      label: 'Library',
+      items: [
+        { name: 'Techniques', href: '/techniques', icon: Book },
+        { name: 'Glossary', href: '/glossary', icon: BookOpen },
+        { name: 'Videos', href: '/videos', icon: Video },
+      ],
+    },
+    {
+      label: 'Community',
+      items: [
+        { name: 'Groups', href: '/groups', icon: Users },
+      ],
+    },
+    {
+      label: 'Support',
+      items: [
+        { name: 'FAQ', href: '/faq', icon: HelpCircle },
+        { name: 'Contact', href: '/contact', icon: MessageSquare },
+      ],
+    },
+    ...(user?.is_admin ? [{
+      label: 'Admin',
+      items: [
+        { name: 'Admin Panel', href: '/admin', icon: Shield },
+      ],
+    }] : []),
   ];
+
+  // Flat list for mobile and active state detection
+  const moreNavigation = moreNavSections.flatMap(s => s.items);
 
   return (
     <div className="min-h-screen app-bg">
@@ -189,7 +221,7 @@ const Layout = memo(function Layout({ children }: { children: React.ReactNode })
                 {/* Dropdown */}
                 {moreMenuOpen && (
                   <div
-                    className="absolute top-full mt-2 right-0 rounded-[14px] shadow-lg py-2 min-w-[180px]"
+                    className="absolute top-full mt-2 right-0 rounded-[14px] shadow-lg py-2 min-w-[200px]"
                     style={{
                       backgroundColor: 'var(--surface)',
                       border: '1px solid var(--border)',
@@ -198,25 +230,37 @@ const Layout = memo(function Layout({ children }: { children: React.ReactNode })
                     role="menu"
                     aria-label="More options"
                   >
-                    {moreNavigation.map((item) => {
-                      const isActive = location.pathname === item.href;
-                      const Icon = item.icon;
-                      return (
-                        <Link
-                          key={item.name}
-                          to={item.href}
-                          onClick={() => setMoreMenuOpen(false)}
-                          className="flex items-center gap-3 px-4 py-2 text-sm font-medium transition-colors"
-                          style={{
-                            color: isActive ? 'var(--accent)' : 'var(--text)',
-                            backgroundColor: isActive ? 'var(--surfaceElev)' : 'transparent',
-                          }}
-                        >
-                          <Icon className="w-4 h-4" />
-                          {item.name}
-                        </Link>
-                      );
-                    })}
+                    {moreNavSections.map((section, sectionIndex) => (
+                      <div key={section.label}>
+                        {sectionIndex > 0 && (
+                          <div className="my-1 mx-3" style={{ borderTop: '1px solid var(--border)' }} />
+                        )}
+                        <div className="px-4 pt-2 pb-1">
+                          <span className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: 'var(--muted)' }}>
+                            {section.label}
+                          </span>
+                        </div>
+                        {section.items.map((item) => {
+                          const isActive = location.pathname === item.href;
+                          const Icon = item.icon;
+                          return (
+                            <Link
+                              key={item.name}
+                              to={item.href}
+                              onClick={() => setMoreMenuOpen(false)}
+                              className="flex items-center gap-3 px-4 py-2 text-sm font-medium transition-colors"
+                              style={{
+                                color: isActive ? 'var(--accent)' : 'var(--text)',
+                                backgroundColor: isActive ? 'var(--surfaceElev)' : 'transparent',
+                              }}
+                            >
+                              <Icon className="w-4 h-4" />
+                              {item.name}
+                            </Link>
+                          );
+                        })}
+                      </div>
+                    ))}
                   </div>
                 )}
               </div>
@@ -306,33 +350,35 @@ const Layout = memo(function Layout({ children }: { children: React.ReactNode })
                 );
               })}
 
-              {/* More Navigation for mobile */}
-              <div className="pt-3 mt-3" style={{ borderTop: '1px solid var(--border)' }}>
-                <div className="px-3 pb-2">
-                  <span className="text-xs font-medium uppercase tracking-wide" style={{ color: 'var(--muted)' }}>
-                    More
-                  </span>
+              {/* More Navigation for mobile - organized by section */}
+              {moreNavSections.map((section) => (
+                <div key={section.label} className="pt-3 mt-3" style={{ borderTop: '1px solid var(--border)' }}>
+                  <div className="px-3 pb-2">
+                    <span className="text-xs font-medium uppercase tracking-wide" style={{ color: 'var(--muted)' }}>
+                      {section.label}
+                    </span>
+                  </div>
+                  {section.items.map((item) => {
+                    const isActive = location.pathname === item.href;
+                    const Icon = item.icon;
+                    return (
+                      <Link
+                        key={item.name}
+                        to={item.href}
+                        onClick={() => setMobileMenuOpen(false)}
+                        className="flex items-center gap-3 px-3 py-2 rounded-lg text-base font-medium"
+                        style={{
+                          color: isActive ? 'var(--accent)' : 'var(--text)',
+                          backgroundColor: isActive ? 'var(--surfaceElev)' : 'transparent',
+                        }}
+                      >
+                        <Icon className="w-5 h-5" />
+                        {item.name}
+                      </Link>
+                    );
+                  })}
                 </div>
-                {moreNavigation.map((item) => {
-                  const isActive = location.pathname === item.href;
-                  const Icon = item.icon;
-                  return (
-                    <Link
-                      key={item.name}
-                      to={item.href}
-                      onClick={() => setMobileMenuOpen(false)}
-                      className="flex items-center gap-3 px-3 py-2 rounded-lg text-base font-medium"
-                      style={{
-                        color: isActive ? 'var(--accent)' : 'var(--text)',
-                        backgroundColor: isActive ? 'var(--surfaceElev)' : 'transparent',
-                      }}
-                    >
-                      <Icon className="w-5 h-5" />
-                      {item.name}
-                    </Link>
-                  );
-                })}
-              </div>
+              ))}
 
               {/* Quick Actions for mobile */}
               <div className="pt-3 mt-3" style={{ borderTop: '1px solid var(--border)' }}>
@@ -389,6 +435,19 @@ const Layout = memo(function Layout({ children }: { children: React.ReactNode })
       >
         {children}
       </main>
+
+      {/* Footer */}
+      <footer className="mt-12 py-6 px-4 text-center" style={{ borderTop: '1px solid var(--border)' }}>
+        <div className="flex items-center justify-center gap-4 text-xs" style={{ color: 'var(--muted)' }}>
+          <span>RIVAFLOW</span>
+          <span>·</span>
+          <Link to="/terms" className="hover:underline" style={{ color: 'var(--muted)' }}>Terms</Link>
+          <span>·</span>
+          <Link to="/privacy" className="hover:underline" style={{ color: 'var(--muted)' }}>Privacy</Link>
+          <span>·</span>
+          <Link to="/contact" className="hover:underline" style={{ color: 'var(--muted)' }}>Contact</Link>
+        </div>
+      </footer>
 
       {/* Quick Log Modal */}
       <QuickLog
