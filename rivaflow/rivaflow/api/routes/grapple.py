@@ -3,6 +3,7 @@
 import logging
 
 from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 
 from rivaflow.core.dependencies import get_current_user
@@ -150,6 +151,31 @@ async def chat_with_grapple(
     6. Store messages
     7. Update session stats
     """
+    user_id = current_user["id"]
+    user_tier = current_user.get("subscription_tier", "free")
+
+    logger.info(f"Grapple chat request from user {user_id} (tier: {user_tier})")
+
+    # Top-level try/except ensures we ALWAYS return a proper JSON response
+    # (never an unhandled exception that strips CORS headers)
+    try:
+        return await _handle_chat(request, user_id, user_tier)
+    except HTTPException:
+        raise  # Let FastAPI handle these normally (they keep CORS headers)
+    except Exception as e:
+        logger.exception(f"Unhandled error in grapple chat for user {user_id}")
+        return JSONResponse(
+            status_code=500,
+            content={
+                "detail": f"Chat error: {type(e).__name__}: {str(e)}",
+            },
+        )
+
+
+async def _handle_chat(
+    request: ChatRequest, user_id: int, user_tier: str
+) -> ChatResponse:
+    """Inner chat handler with step-by-step error reporting."""
     from rivaflow.core.services.grapple.context_builder import GrappleContextBuilder
     from rivaflow.core.services.grapple.llm_client import GrappleLLMClient
     from rivaflow.core.services.grapple.rate_limiter import GrappleRateLimiter
@@ -157,18 +183,19 @@ async def chat_with_grapple(
     from rivaflow.db.repositories.chat_message_repo import ChatMessageRepository
     from rivaflow.db.repositories.chat_session_repo import ChatSessionRepository
 
-    user_id = current_user["id"]
-    user_tier = current_user.get("subscription_tier", "free")
-
-    logger.info(f"Grapple chat request from user {user_id} (tier: {user_tier})")
-
     # Step 1: Check rate limit
-    rate_limiter = GrappleRateLimiter()
-    rate_check = rate_limiter.check_rate_limit(user_id, user_tier)
+    try:
+        rate_limiter = GrappleRateLimiter()
+        rate_check = rate_limiter.check_rate_limit(user_id, user_tier)
+    except Exception as e:
+        logger.error(f"Rate limit check failed for user {user_id}: {e}", exc_info=True)
+        # Fail open — allow the request if rate limiting is broken
+        rate_check = {"allowed": True, "remaining": 99, "limit": 99}
 
     if not rate_check["allowed"]:
-        logger.warning(
-            f"Rate limit exceeded for user {user_id}: {rate_check['reason']}"
+        reset_at = rate_check.get("reset_at")
+        reset_str = (
+            reset_at.isoformat() if hasattr(reset_at, "isoformat") else str(reset_at)
         )
         raise HTTPException(
             status_code=status.HTTP_429_TOO_MANY_REQUESTS,
@@ -177,43 +204,60 @@ async def chat_with_grapple(
                 "message": rate_check["reason"],
                 "limit": rate_check["limit"],
                 "remaining": rate_check["remaining"],
-                "reset_at": rate_check["reset_at"].isoformat(),
+                "reset_at": reset_str,
             },
         )
 
     # Step 2: Get or create session
-    session_repo = ChatSessionRepository()
-    message_repo = ChatMessageRepository()
+    try:
+        session_repo = ChatSessionRepository()
+        message_repo = ChatMessageRepository()
 
-    if request.session_id:
-        # Use existing session
-        session = session_repo.get_by_id(request.session_id, user_id)
-        if not session:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Session not found or access denied",
-            )
-    else:
-        # Create new session
-        session = session_repo.create(user_id, title="New Chat")
+        if request.session_id:
+            session = session_repo.get_by_id(request.session_id, user_id)
+            if not session:
+                raise HTTPException(
+                    status_code=status.HTTP_404_NOT_FOUND,
+                    detail="Session not found or access denied",
+                )
+        else:
+            session = session_repo.create(user_id, title="New Chat")
 
-    session_id = session["id"]
+        session_id = session["id"]
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Session create/get failed: {e}", exc_info=True)
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to create chat session: {type(e).__name__}: {e}",
+        )
 
     # Step 3: Store user message
-    message_repo.create(
-        session_id=session_id,
-        role="user",
-        content=request.message,
-    )
+    try:
+        message_repo.create(
+            session_id=session_id,
+            role="user",
+            content=request.message,
+        )
+    except Exception as e:
+        logger.error(f"Failed to store user message: {e}", exc_info=True)
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to store message: {type(e).__name__}: {e}",
+        )
 
     # Step 4: Build context
-    context_builder = GrappleContextBuilder(user_id)
-
-    # Get recent messages for conversation context
-    recent_messages = message_repo.get_recent_context(session_id, max_messages=10)
-
-    # Build full message list (system prompt + history + new message)
-    messages = context_builder.get_conversation_context(recent_messages)
+    try:
+        context_builder = GrappleContextBuilder(user_id)
+        recent_messages = message_repo.get_recent_context(session_id, max_messages=10)
+        messages = context_builder.get_conversation_context(recent_messages)
+    except Exception as e:
+        logger.error(f"Context build failed: {e}", exc_info=True)
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to build context: {type(e).__name__}: {e}",
+        )
 
     # Step 5: Call LLM
     try:
@@ -228,46 +272,57 @@ async def chat_with_grapple(
         logger.error(f"LLM call failed for user {user_id}: {e}", exc_info=True)
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail="AI service temporarily unavailable. Please try again in a moment.",
+            detail=f"AI service unavailable: {type(e).__name__}: {e}",
         )
 
-    # Step 6: Store assistant message
-    assistant_message = message_repo.create(
-        session_id=session_id,
-        role="assistant",
-        content=llm_response["content"],
-        input_tokens=llm_response["input_tokens"],
-        output_tokens=llm_response["output_tokens"],
-        cost_usd=llm_response["cost_usd"],
-    )
+    # Steps 6-9: Post-LLM bookkeeping (non-fatal — don't fail the response)
+    try:
+        assistant_message = message_repo.create(
+            session_id=session_id,
+            role="assistant",
+            content=llm_response["content"],
+            input_tokens=llm_response["input_tokens"],
+            output_tokens=llm_response["output_tokens"],
+            cost_usd=llm_response["cost_usd"],
+        )
+    except Exception as e:
+        logger.error(f"Failed to store assistant message: {e}", exc_info=True)
+        assistant_message = {"id": "unknown"}
 
-    # Step 7: Log token usage
-    token_monitor = GrappleTokenMonitor()
-    token_monitor.log_usage(
-        user_id=user_id,
-        session_id=session_id,
-        message_id=assistant_message["id"],
-        provider=llm_response["provider"],
-        model=llm_response["model"],
-        input_tokens=llm_response["input_tokens"],
-        output_tokens=llm_response["output_tokens"],
-        cost_usd=llm_response["cost_usd"],
-    )
+    try:
+        token_monitor = GrappleTokenMonitor()
+        token_monitor.log_usage(
+            user_id=user_id,
+            session_id=session_id,
+            message_id=assistant_message["id"],
+            provider=llm_response["provider"],
+            model=llm_response["model"],
+            input_tokens=llm_response["input_tokens"],
+            output_tokens=llm_response["output_tokens"],
+            cost_usd=llm_response["cost_usd"],
+        )
+    except Exception as e:
+        logger.error(f"Failed to log token usage: {e}", exc_info=True)
 
-    # Step 8: Update session stats
-    session_repo.update_stats(
-        session_id=session_id,
-        message_count_delta=2,  # user + assistant
-        tokens_delta=llm_response["total_tokens"],
-        cost_delta=llm_response["cost_usd"],
-    )
+    try:
+        session_repo.update_stats(
+            session_id=session_id,
+            message_count_delta=2,
+            tokens_delta=llm_response["total_tokens"],
+            cost_delta=llm_response["cost_usd"],
+        )
+    except Exception as e:
+        logger.error(f"Failed to update session stats: {e}", exc_info=True)
 
-    # Step 9: Record message for rate limiting
-    rate_limiter.record_message(user_id)
+    try:
+        rate_limiter.record_message(user_id)
+    except Exception as e:
+        logger.error(f"Failed to record rate limit: {e}", exc_info=True)
 
     # Step 10: Return response
     logger.info(
-        f"Grapple response for user {user_id}: {llm_response['total_tokens']} tokens, "
+        f"Grapple response for user {user_id}: "
+        f"{llm_response['total_tokens']} tokens, "
         f"${llm_response['cost_usd']:.6f} via {llm_response['provider']}"
     )
 
@@ -277,7 +332,7 @@ async def chat_with_grapple(
         reply=llm_response["content"],
         tokens_used=llm_response["total_tokens"],
         cost_usd=llm_response["cost_usd"],
-        rate_limit_remaining=rate_check["remaining"] - 1,
+        rate_limit_remaining=max(0, rate_check.get("remaining", 1) - 1),
     )
 
 
