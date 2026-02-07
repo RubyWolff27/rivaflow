@@ -567,6 +567,13 @@ export const gamePlansApi = {
 // Enhanced Grapple API
 export const grappleApi = {
   getInfo: () => api.get('/grapple/info'),
+  getSessions: () => api.get('/grapple/sessions'),
+  getSession: (sessionId: string) => api.get(`/grapple/sessions/${sessionId}`),
+  deleteSession: (sessionId: string) => api.delete(`/grapple/sessions/${sessionId}`),
+  chat: (data: { message: string; session_id: string | null }) =>
+    api.post('/grapple/chat', data),
+  submitFeedback: (data: { message_id: string; rating: string }) =>
+    api.post('/admin/grapple/feedback', data),
   extractSession: (text: string) =>
     api.post('/grapple/extract-session', { text }),
   saveExtractedSession: (data: Record<string, unknown>) =>

@@ -4,7 +4,6 @@ import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
 import { grappleApi, getErrorMessage } from '../api/client';
 import ConfirmDialog from '../components/ConfirmDialog';
-import axios from 'axios';
 import type { AIInsight, ExtractedSession } from '../types';
 
 interface Message {
@@ -381,14 +380,9 @@ export default function Grapple() {
     let cancelled = false;
     const doLoad = async () => {
       try {
-        const token = localStorage.getItem('access_token');
         const [tierRes, sessionsRes] = await Promise.all([
-          axios.get(`${getApiBase()}/grapple/info`, {
-            headers: { Authorization: `Bearer ${token}` },
-          }),
-          axios.get(`${getApiBase()}/grapple/sessions`, {
-            headers: { Authorization: `Bearer ${token}` },
-          }),
+          grappleApi.getInfo(),
+          grappleApi.getSessions(),
         ]);
         if (!cancelled) {
           setTierInfo(tierRes.data);
@@ -407,10 +401,7 @@ export default function Grapple() {
     let cancelled = false;
     const doLoad = async () => {
       try {
-        const token = localStorage.getItem('access_token');
-        const response = await axios.get(`${getApiBase()}/grapple/sessions/${currentSessionId}`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
+        const response = await grappleApi.getSession(currentSessionId);
         if (!cancelled) setMessages(response.data.messages || []);
       } catch (error) {
         if (!cancelled) {
@@ -431,14 +422,9 @@ export default function Grapple() {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
 
-  const getApiBase = () => import.meta.env.VITE_API_URL || '/api/v1';
-
   const loadSessions = async () => {
     try {
-      const token = localStorage.getItem('access_token');
-      const response = await axios.get(`${getApiBase()}/grapple/sessions`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const response = await grappleApi.getSessions();
       setSessions(response.data.sessions);
     } catch (error) {
       console.error('Failed to load sessions:', error);
@@ -464,15 +450,10 @@ export default function Grapple() {
     setLoading(true);
 
     try {
-      const token = localStorage.getItem('access_token');
-      const response = await axios.post(
-        `${getApiBase()}/grapple/chat`,
-        {
-          message: userMessage.content,
-          session_id: currentSessionId,
-        },
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
+      const response = await grappleApi.chat({
+        message: userMessage.content,
+        session_id: currentSessionId,
+      });
 
       const assistantMessage: Message = {
         id: response.data.message_id,
@@ -519,10 +500,7 @@ export default function Grapple() {
 
   const deleteSession = async (sessionId: string) => {
     try {
-      const token = localStorage.getItem('access_token');
-      await axios.delete(`${getApiBase()}/grapple/sessions/${sessionId}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      await grappleApi.deleteSession(sessionId);
 
       toast.success('Session deleted');
       setDeleteSessionConfirmId(null);
@@ -539,12 +517,7 @@ export default function Grapple() {
 
   const submitFeedback = async (messageId: string, rating: 'positive' | 'negative') => {
     try {
-      const token = localStorage.getItem('access_token');
-      await axios.post(
-        `${getApiBase()}/admin/grapple/feedback`,
-        { message_id: messageId, rating },
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
+      await grappleApi.submitFeedback({ message_id: messageId, rating });
       toast.success('Thank you for your feedback!');
     } catch (error) {
       console.error('Failed to submit feedback:', error);
