@@ -6,25 +6,17 @@ import { CheckCircle, ArrowRight, ArrowLeft, Plus, X, ToggleLeft, ToggleRight, S
 import GymSelector from '../components/GymSelector';
 import { useToast } from '../contexts/ToastContext';
 
-const CLASS_TYPES = ['gi', 'no-gi', 'wrestling', 'judo', 'open-mat', 'mma', 's&c', 'mobility', 'yoga', 'rehab', 'physio', 'drilling', 'cardio', 'recovery', 'other'];
+const CLASS_TYPES = ['gi', 'no-gi', 'open-mat', 'competition', 's&c', 'cardio', 'mobility'];
 const CLASS_TYPE_LABELS: Record<string, string> = {
   'gi': 'Gi',
   'no-gi': 'No-Gi',
-  'wrestling': 'Wrestling',
-  'judo': 'Judo',
   'open-mat': 'Open Mat',
-  'mma': 'MMA',
+  'competition': 'Competition',
   's&c': 'S&C',
-  'mobility': 'Mobility',
-  'yoga': 'Yoga',
-  'rehab': 'Rehab',
-  'physio': 'Physio',
-  'drilling': 'Drilling',
   'cardio': 'Cardio',
-  'recovery': 'Recovery',
-  'other': 'Other',
+  'mobility': 'Mobility',
 };
-const SPARRING_TYPES = ['gi', 'no-gi', 'mma', 'judo', 'wrestling', 'open-mat'];
+const SPARRING_TYPES = ['gi', 'no-gi', 'open-mat', 'competition'];
 
 interface RollEntry {
   roll_number: number;

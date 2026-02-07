@@ -9,10 +9,11 @@ interface ActivityTypeFilterProps {
 const ACTIVITY_TYPES = [
   { value: 'gi', label: 'Gi', color: '#3B82F6' },
   { value: 'no-gi', label: 'No-Gi', color: '#8B5CF6' },
-  { value: 's&c', label: 'S&C', color: '#EF4444' },
-  { value: 'drilling', label: 'Drilling', color: '#F59E0B' },
   { value: 'open-mat', label: 'Open Mat', color: '#10B981' },
   { value: 'competition', label: 'Competition', color: '#EC4899' },
+  { value: 's&c', label: 'S&C', color: '#EF4444' },
+  { value: 'cardio', label: 'Cardio', color: '#F59E0B' },
+  { value: 'mobility', label: 'Mobility', color: '#14B8A6' },
 ];
 
 export function ActivityTypeFilter({ selectedTypes, onChange }: ActivityTypeFilterProps) {

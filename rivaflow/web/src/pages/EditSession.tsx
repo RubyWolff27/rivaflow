@@ -8,8 +8,17 @@ import PhotoUpload from '../components/PhotoUpload';
 import ConfirmDialog from '../components/ConfirmDialog';
 import { useToast } from '../contexts/ToastContext';
 
-const CLASS_TYPES = ['gi', 'no-gi', 'wrestling', 'judo', 'open-mat', 's&c', 'mobility', 'yoga', 'rehab', 'physio', 'drilling', 'cardio'];
-const SPARRING_TYPES = ['gi', 'no-gi', 'wrestling', 'judo', 'open-mat'];
+const CLASS_TYPES = ['gi', 'no-gi', 'open-mat', 'competition', 's&c', 'cardio', 'mobility'];
+const CLASS_TYPE_LABELS: Record<string, string> = {
+  'gi': 'Gi',
+  'no-gi': 'No-Gi',
+  'open-mat': 'Open Mat',
+  'competition': 'Competition',
+  's&c': 'S&C',
+  'cardio': 'Cardio',
+  'mobility': 'Mobility',
+};
+const SPARRING_TYPES = ['gi', 'no-gi', 'open-mat', 'competition'];
 
 interface RollEntry {
   roll_number: number;
@@ -452,7 +461,7 @@ export default function EditSession() {
             required
           >
             {CLASS_TYPES.map((type) => (
-              <option key={type} value={type}>{type}</option>
+              <option key={type} value={type}>{CLASS_TYPE_LABELS[type] || type}</option>
             ))}
           </select>
         </div>

@@ -11,19 +11,11 @@ class ClassType(str, Enum):
 
     GI = "gi"
     NO_GI = "no-gi"
-    WRESTLING = "wrestling"
-    JUDO = "judo"
     OPEN_MAT = "open-mat"
-    MMA = "mma"
+    COMPETITION = "competition"
     STRENGTH_CONDITIONING = "s&c"
-    MOBILITY = "mobility"
-    YOGA = "yoga"
-    REHAB = "rehab"
-    PHYSIO = "physio"
-    DRILLING = "drilling"
     CARDIO = "cardio"
-    RECOVERY = "recovery"
-    OTHER = "other"
+    MOBILITY = "mobility"
 
 
 class VisibilityLevel(str, Enum):

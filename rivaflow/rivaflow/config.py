@@ -29,17 +29,11 @@ DEFAULT_INTENSITY = 4
 DEFAULT_ROLLS = 0
 
 # Class types that require rolls input
-SPARRING_CLASS_TYPES = {"gi", "no-gi", "wrestling", "judo", "open-mat", "mma"}
+SPARRING_CLASS_TYPES = {"gi", "no-gi", "open-mat", "competition"}
 NON_SPARRING_CLASS_TYPES = {
     "s&c",
-    "mobility",
-    "yoga",
-    "rehab",
-    "physio",
-    "drilling",
     "cardio",
-    "recovery",
-    "other",
+    "mobility",
 }
 ALL_CLASS_TYPES = SPARRING_CLASS_TYPES | NON_SPARRING_CLASS_TYPES
 

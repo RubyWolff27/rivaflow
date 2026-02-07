@@ -263,6 +263,7 @@ export default function Feed() {
   const [loading, setLoading] = useState(true);
   const [daysBack, setDaysBack] = useState(30);
   const [view, setView] = useState<'my' | 'friends'>('my');
+  const [sessionFilter, setSessionFilter] = useState<string>('all');
   const [expandedComments, setExpandedComments] = useState<Set<string>>(new Set());
 
   const currentUserId = user?.id ?? null;
@@ -442,6 +443,50 @@ export default function Feed() {
     return view === 'my';
   }, [view]);
 
+  const sessionFilters = [
+    { key: 'all', label: 'All' },
+    { key: 'comp', label: '\u{1F94B} Comp Prep' },
+    { key: 'hard', label: '\u{1F525} Hard' },
+    { key: 'technical', label: '\u{1F9E0} Technical' },
+    { key: 'smashed', label: '\u{1F480} Smashed' },
+  ];
+
+  const matchesSessionFilter = useCallback((item: FeedItem): boolean => {
+    if (item.type !== 'session') return true; // pass through non-session items
+    if (sessionFilter === 'all') return true;
+    const d = item.data ?? {};
+    switch (sessionFilter) {
+      case 'comp':
+        return d.class_type === 'competition';
+      case 'hard':
+        return (d.intensity ?? 0) >= 4;
+      case 'technical':
+        return (d.intensity ?? 5) <= 2;
+      case 'smashed':
+        return (d.submissions_against ?? 0) > (d.submissions_for ?? 0) && (d.submissions_against ?? 0) > 0;
+      default:
+        return true;
+    }
+  }, [sessionFilter]);
+
+  const getFilterCount = useCallback((filterKey: string): number => {
+    if (!feed) return 0;
+    if (filterKey === 'all') return feed.items.filter(i => i.type === 'session').length;
+    return feed.items.filter(i => {
+      if (i.type !== 'session') return false;
+      const d = i.data ?? {};
+      switch (filterKey) {
+        case 'comp': return d.class_type === 'competition';
+        case 'hard': return (d.intensity ?? 0) >= 4;
+        case 'technical': return (d.intensity ?? 5) <= 2;
+        case 'smashed': return (d.submissions_against ?? 0) > (d.submissions_for ?? 0) && (d.submissions_against ?? 0) > 0;
+        default: return false;
+      }
+    }).length;
+  }, [feed]);
+
+  const filteredItems = feed?.items.filter(matchesSessionFilter) ?? [];
+
   if (loading) {
     return (
       <div className="space-y-4">
@@ -477,6 +522,39 @@ export default function Feed() {
       {/* Feed toggle */}
       <FeedToggle view={view} onChange={setView} />
 
+      {/* Session filters */}
+      <div className="flex gap-2 overflow-x-auto pb-1">
+        {sessionFilters.map((f) => {
+          const count = getFilterCount(f.key);
+          const isActive = sessionFilter === f.key;
+          return (
+            <button
+              key={f.key}
+              onClick={() => setSessionFilter(f.key)}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium whitespace-nowrap transition-all"
+              style={{
+                backgroundColor: isActive ? 'var(--accent)' : 'var(--surfaceElev)',
+                color: isActive ? '#FFFFFF' : 'var(--text)',
+                border: isActive ? 'none' : '1px solid var(--border)',
+              }}
+            >
+              {f.label}
+              {f.key !== 'all' && count > 0 && (
+                <span
+                  className="text-xs px-1.5 py-0.5 rounded-full font-semibold"
+                  style={{
+                    backgroundColor: isActive ? 'rgba(255,255,255,0.2)' : 'var(--border)',
+                    color: isActive ? '#FFFFFF' : 'var(--muted)',
+                  }}
+                >
+                  {count}
+                </span>
+              )}
+            </button>
+          );
+        })}
+      </div>
+
       {feed && feed.items.length === 0 ? (
         <div className="card text-center py-12">
           <Activity className="w-16 h-16 text-[var(--muted)] mx-auto mb-4" />
@@ -491,13 +569,24 @@ export default function Feed() {
               : "Log a session, readiness check-in, or rest day to see it here!"}
           </p>
         </div>
+      ) : filteredItems.length === 0 && sessionFilter !== 'all' ? (
+        <div className="card text-center py-12">
+          <p className="text-[var(--muted)] text-lg">No sessions match this filter</p>
+          <button
+            onClick={() => setSessionFilter('all')}
+            className="text-sm mt-2 underline"
+            style={{ color: 'var(--accent)' }}
+          >
+            Clear filter
+          </button>
+        </div>
       ) : (
         <div className="space-y-4">
-          {feed?.items.map((item, index) => (
+          {filteredItems.map((item, index) => (
             <FeedItemComponent
               key={`${item.type}-${item.id}`}
               item={item}
-              prevItem={index > 0 ? feed.items[index - 1] : null}
+              prevItem={index > 0 ? filteredItems[index - 1] : null}
               view={view}
               currentUserId={currentUserId}
               navigate={navigate}

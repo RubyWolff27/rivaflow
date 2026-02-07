@@ -81,7 +81,7 @@ export default function QuickLog({ isOpen, onClose, onSuccess }: QuickLogProps) 
           session_date: today,
           duration_mins: duration,
           intensity,
-          class_type: 'Open Mat',
+          class_type: 'open-mat',
           rolls: 0,
         });
         toast.success('Session logged successfully');
