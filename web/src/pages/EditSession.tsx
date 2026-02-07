@@ -340,7 +340,7 @@ export default function EditSession() {
 
       // Add detailed rolls
       if (detailedMode && rolls.length > 0) {
-        payload.detailed_rolls = rolls.map(roll => ({
+        payload.session_rolls = rolls.map(roll => ({
           roll_number: roll.roll_number,
           partner_id: roll.partner_id || undefined,
           partner_name: roll.partner_name || undefined,
