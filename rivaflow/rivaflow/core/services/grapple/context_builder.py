@@ -1,7 +1,7 @@
 """Context builder for Grapple AI Coach - builds personalized prompts from user data."""
 
 import logging
-from datetime import datetime, timedelta
+from datetime import date, datetime, timedelta
 
 from rivaflow.core.services.privacy_service import PrivacyService
 from rivaflow.db.repositories.readiness_repo import ReadinessRepository
@@ -160,8 +160,6 @@ Now respond to the user's questions using this context. Reference their specific
                 context_parts.append(session_summary)
 
             # Add recent readiness data if available (last 7 days)
-            from datetime import date, timedelta
-
             end_date = date.today()
             start_date = end_date - timedelta(days=7)
             recent_readiness = self.readiness_repo.get_by_date_range(
