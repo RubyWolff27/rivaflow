@@ -95,9 +95,7 @@ class GlossaryRepository:
         with get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(
-                convert_query(
-                    "SELECT DISTINCT category FROM movements_glossary ORDER BY category"
-                )
+                convert_query("SELECT DISTINCT category FROM movements_glossary ORDER BY category")
             )
             rows = cursor.fetchall()
             # Handle both dict (PostgreSQL RealDictCursor) and tuple (SQLite) results
@@ -155,9 +153,7 @@ class GlossaryRepository:
         with get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(
-                convert_query(
-                    "DELETE FROM movements_glossary WHERE id = ? AND custom = 1"
-                ),
+                convert_query("DELETE FROM movements_glossary WHERE id = ? AND custom = 1"),
                 (movement_id,),
             )
             return cursor.rowcount > 0
@@ -180,9 +176,7 @@ class GlossaryRepository:
                 """,
                 (movement_id, title, url, video_type),
             )
-            cursor.execute(
-                convert_query("SELECT * FROM movement_videos WHERE id = ?"), (video_id,)
-            )
+            cursor.execute(convert_query("SELECT * FROM movement_videos WHERE id = ?"), (video_id,))
             row = cursor.fetchone()
             return dict(row)
 
@@ -191,9 +185,7 @@ class GlossaryRepository:
         """Delete a custom video link."""
         with get_connection() as conn:
             cursor = conn.cursor()
-            cursor.execute(
-                convert_query("DELETE FROM movement_videos WHERE id = ?"), (video_id,)
-            )
+            cursor.execute(convert_query("DELETE FROM movement_videos WHERE id = ?"), (video_id,))
             return cursor.rowcount > 0
 
     @staticmethod
@@ -239,17 +231,14 @@ class GlossaryRepository:
                 params.append(category)
 
             if search:
-                query += (
-                    " AND (mg.name LIKE ? OR mg.description LIKE ?"
-                    " OR mg.aliases LIKE ?)"
-                )
+                query += " AND (mg.name LIKE ? OR mg.description LIKE ?" " OR mg.aliases LIKE ?)"
                 search_param = f"%{search}%"
                 params.extend([search_param, search_param, search_param])
 
             query += " GROUP BY mg.id"
 
             if trained_only:
-                query += " HAVING COUNT(DISTINCT st.session_id) > 0"
+                query += " HAVING COUNT(DISTINCT st.session_id) > 0" " OR mg.custom = 1"
 
             query += " ORDER BY mg.category, mg.name"
 

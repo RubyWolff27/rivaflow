@@ -141,8 +141,8 @@ export default function EditSession() {
               partner_id: roll.partner_id || null,
               partner_name: roll.partner_name || '',
               duration_mins: roll.duration_mins || 5,
-              submissions_for: roll.submissions_for || [],
-              submissions_against: roll.submissions_against || [],
+              submissions_for: Array.isArray(roll.submissions_for) ? roll.submissions_for : [],
+              submissions_against: Array.isArray(roll.submissions_against) ? roll.submissions_against : [],
               notes: roll.notes || '',
             }))
           );
@@ -156,7 +156,7 @@ export default function EditSession() {
               movement_id: tech.movement_id,
               movement_name: tech.movement_name || '',
               notes: tech.notes || '',
-              media_urls: tech.media_urls || [],
+              media_urls: Array.isArray(tech.media_urls) ? tech.media_urls : [],
             }))
           );
         }
@@ -883,7 +883,7 @@ export default function EditSession() {
                           return m.name.toLowerCase().includes(search) ||
                                  m.category?.toLowerCase().includes(search) ||
                                  m.subcategory?.toLowerCase().includes(search) ||
-                                 m.aliases.some(alias => alias.toLowerCase().includes(search));
+                                 (m.aliases ?? []).some(alias => alias.toLowerCase().includes(search));
                         })
                         .map(movement => (
                           <button
@@ -916,7 +916,7 @@ export default function EditSession() {
                         return m.name.toLowerCase().includes(search) ||
                                m.category?.toLowerCase().includes(search) ||
                                m.subcategory?.toLowerCase().includes(search) ||
-                               m.aliases.some(alias => alias.toLowerCase().includes(search));
+                               (m.aliases ?? []).some(alias => alias.toLowerCase().includes(search));
                       }).length === 0 && (
                         <p className="text-xs text-[var(--muted)] text-center py-2">No movements found</p>
                       )}

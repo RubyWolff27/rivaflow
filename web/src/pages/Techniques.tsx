@@ -1,13 +1,8 @@
-import { useState, useEffect, memo, useCallback } from 'react';
+import { useState, useEffect, memo } from 'react';
 import { techniquesApi } from '../api/client';
 import type { TrainedMovement } from '../types';
 import { Book, AlertCircle } from 'lucide-react';
 import { CardSkeleton } from '../components/ui';
-
-const GLOSSARY_CATEGORIES = [
-  'position', 'submission', 'sweep', 'pass', 'takedown',
-  'escape', 'movement', 'concept', 'defense',
-];
 
 // Memoized technique row component
 const TechniqueRow = memo(function TechniqueRow({ tech }: { tech: TrainedMovement }) {
@@ -33,8 +28,6 @@ export default function Techniques() {
   const [techniques, setTechniques] = useState<TrainedMovement[]>([]);
   const [staleTechniques, setStaleTechniques] = useState<TrainedMovement[]>([]);
   const [loading, setLoading] = useState(true);
-  const [showAddForm, setShowAddForm] = useState(false);
-  const [newTechnique, setNewTechnique] = useState({ name: '', category: 'submission' });
 
   useEffect(() => {
     let cancelled = false;
@@ -63,36 +56,6 @@ export default function Techniques() {
     return () => { cancelled = true; };
   }, []);
 
-  const loadTechniques = async () => {
-    setLoading(true);
-    try {
-      const [techRes, staleRes] = await Promise.all([
-        techniquesApi.list(),
-        techniquesApi.getStale(7),
-      ]);
-      setTechniques(techRes.data.techniques || []);
-      setStaleTechniques(staleRes.data || []);
-    } catch (error) {
-      console.error('Error loading techniques:', error);
-      setTechniques([]);
-      setStaleTechniques([]);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleAdd = useCallback(async (e: React.FormEvent) => {
-    e.preventDefault();
-    try {
-      await techniquesApi.create(newTechnique);
-      setNewTechnique({ name: '', category: 'submission' });
-      setShowAddForm(false);
-      await loadTechniques();
-    } catch (error) {
-      console.error('Error adding technique:', error);
-    }
-  }, [newTechnique]);
-
   if (loading) {
     return (
       <div className="space-y-4">
@@ -105,54 +68,10 @@ export default function Techniques() {
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <div className="flex items-center gap-3">
-          <Book className="w-8 h-8 text-[var(--accent)]" />
-          <h1 className="text-3xl font-bold">Techniques</h1>
-        </div>
-        <button onClick={() => setShowAddForm(!showAddForm)} className="btn-primary">
-          Add Technique
-        </button>
+      <div className="flex items-center gap-3">
+        <Book className="w-8 h-8 text-[var(--accent)]" />
+        <h1 className="text-3xl font-bold">Techniques</h1>
       </div>
-
-      {/* Add Form */}
-      {showAddForm && (
-        <form onSubmit={handleAdd} className="card">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="label">Technique Name</label>
-              <input
-                type="text"
-                className="input"
-                value={newTechnique.name}
-                onChange={(e) => setNewTechnique({ ...newTechnique, name: e.target.value })}
-                required
-              />
-            </div>
-            <div>
-              <label className="label">Category</label>
-              <select
-                className="input"
-                value={newTechnique.category}
-                onChange={(e) => setNewTechnique({ ...newTechnique, category: e.target.value })}
-                required
-              >
-                {GLOSSARY_CATEGORIES.map((cat) => (
-                  <option key={cat} value={cat}>
-                    {cat.charAt(0).toUpperCase() + cat.slice(1)}
-                  </option>
-                ))}
-              </select>
-            </div>
-          </div>
-          <div className="flex gap-2 mt-4">
-            <button type="submit" className="btn-primary">Add</button>
-            <button type="button" onClick={() => setShowAddForm(false)} className="btn-secondary">
-              Cancel
-            </button>
-          </div>
-        </form>
-      )}
 
       {/* Stale Techniques Alert */}
       {staleTechniques.length > 0 && (
@@ -181,7 +100,8 @@ export default function Techniques() {
         <h2 className="text-xl font-semibold mb-4">Trained Techniques ({techniques.length})</h2>
         {techniques.length === 0 ? (
           <p className="text-center text-[var(--muted)] py-8">
-            No techniques tracked yet. Log a session with techniques to see them here!
+            No techniques tracked yet. Log a session with techniques to see them here,
+            or add custom movements in the Glossary.
           </p>
         ) : (
           <div className="overflow-x-auto">
