@@ -28,7 +28,6 @@ class VideoService:
             technique_id = technique["id"]
 
         return self.video_repo.create(
-            user_id=user_id,
             url=url,
             title=title,
             timestamps=timestamps,
@@ -51,7 +50,7 @@ class VideoService:
         if not technique:
             return []
 
-        return self.video_repo.get_by_technique(user_id, technique["id"])
+        return self.video_repo.get_by_technique(technique["id"])
 
     def search_videos(self, user_id: int, query: str) -> list[dict]:
         """Search videos by title or URL."""
@@ -59,7 +58,7 @@ class VideoService:
 
     def delete_video(self, user_id: int, video_id: int) -> None:
         """Delete a video by ID."""
-        self.video_repo.delete(user_id, video_id)
+        self.video_repo.delete(video_id)
 
     def format_video_summary(self, video: dict) -> str:
         """Format a video as a human-readable summary."""
