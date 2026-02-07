@@ -102,10 +102,13 @@ export default function EditSession() {
         if (cancelled) return;
 
         const sessionData = sessionRes.data;
-        setInstructors(instructorsRes.data);
-        setPartners(partnersRes.data);
+        const iData = instructorsRes.data as any;
+        setInstructors(Array.isArray(iData) ? iData : iData?.friends || []);
+        const pData = partnersRes.data as any;
+        setPartners(Array.isArray(pData) ? pData : pData?.friends || []);
         setAutocomplete(autocompleteRes.data);
-        setMovements(movementsRes.data);
+        const mData = movementsRes.data as any;
+        setMovements(Array.isArray(mData) ? mData : mData?.movements || []);
 
         // Populate form
         setFormData({
