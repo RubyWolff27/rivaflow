@@ -135,11 +135,11 @@ class GrappleRateLimiter:
         window_start = datetime.utcnow().replace(minute=0, second=0, microsecond=0)
         window_end = window_start + timedelta(hours=1)
 
-        query = """
+        query = convert_query("""
             SELECT message_count, window_end
             FROM grapple_rate_limits
             WHERE user_id = ? AND window_start = ?
-        """
+        """)
 
         try:
             with get_connection() as conn:
@@ -149,6 +149,8 @@ class GrappleRateLimiter:
                 cursor.close()
 
                 if row:
+                    if hasattr(row, "keys"):
+                        return row["message_count"], row["window_end"]
                     return row[0], row[1]
                 else:
                     return 0, window_end
@@ -160,11 +162,11 @@ class GrappleRateLimiter:
         """Get total message count across all users in current hour."""
         window_start = datetime.utcnow().replace(minute=0, second=0, microsecond=0)
 
-        query = """
+        query = convert_query("""
             SELECT COALESCE(SUM(message_count), 0)
             FROM grapple_rate_limits
             WHERE window_start = ?
-        """
+        """)
 
         try:
             with get_connection() as conn:
@@ -172,7 +174,11 @@ class GrappleRateLimiter:
                 cursor.execute(query, (window_start,))
                 row = cursor.fetchone()
                 cursor.close()
-                return row[0] if row else 0
+                if row:
+                    if hasattr(row, "keys"):
+                        return list(row.values())[0] or 0
+                    return row[0] or 0
+                return 0
         except Exception as e:
             logger.error(f"Failed to get global message count: {e}")
             return 0
@@ -195,7 +201,7 @@ class GrappleRateLimiter:
         """
         start_date = datetime.utcnow() - timedelta(days=days)
 
-        query = """
+        query = convert_query("""
             SELECT
                 COUNT(*) as window_count,
                 SUM(message_count) as total_messages,
@@ -203,7 +209,7 @@ class GrappleRateLimiter:
                 AVG(message_count) as avg_hourly_usage
             FROM grapple_rate_limits
             WHERE user_id = ? AND window_start >= ?
-        """
+        """)
 
         try:
             with get_connection() as conn:
@@ -251,7 +257,7 @@ class GrappleRateLimiter:
         """
         cutoff_date = datetime.utcnow() - timedelta(days=days_to_keep)
 
-        query = "DELETE FROM grapple_rate_limits WHERE window_start < ?"
+        query = convert_query("DELETE FROM grapple_rate_limits WHERE window_start < ?")
 
         try:
             with get_connection() as conn:

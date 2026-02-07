@@ -115,7 +115,7 @@ class GrappleTokenMonitor:
         if not end_date:
             end_date = datetime.utcnow()
 
-        query = """
+        query = convert_query("""
             SELECT
                 COUNT(*) as request_count,
                 SUM(total_tokens) as total_tokens,
@@ -127,7 +127,7 @@ class GrappleTokenMonitor:
             FROM token_usage_logs
             WHERE user_id = ? AND created_at >= ? AND created_at <= ?
             GROUP BY provider
-        """
+        """)
 
         try:
             with get_connection() as conn:
@@ -342,7 +342,7 @@ class GrappleTokenMonitor:
         if not end_date:
             end_date = datetime.utcnow()
 
-        query = """
+        query = convert_query("""
             SELECT
                 COUNT(DISTINCT user_id) as unique_users,
                 COUNT(*) as total_requests,
@@ -353,7 +353,7 @@ class GrappleTokenMonitor:
             FROM token_usage_logs
             WHERE created_at >= ? AND created_at <= ?
             GROUP BY provider
-        """
+        """)
 
         try:
             with get_connection() as conn:
@@ -385,11 +385,11 @@ class GrappleTokenMonitor:
                     totals["total_cost_usd"] += row[3]
 
                 # Get unique users across all providers
-                user_query = """
+                user_query = convert_query("""
                     SELECT COUNT(DISTINCT user_id)
                     FROM token_usage_logs
                     WHERE created_at >= ? AND created_at <= ?
-                """
+                """)
                 cursor = conn.cursor()
                 cursor.execute(user_query, (start_date, end_date))
                 totals["unique_users"] = cursor.fetchone()[0]

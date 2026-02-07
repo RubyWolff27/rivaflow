@@ -77,3 +77,4 @@ CREATE TABLE IF NOT EXISTS grapple_rate_limits (
 );
 
 CREATE INDEX IF NOT EXISTS idx_grapple_rate_limits_user_id ON grapple_rate_limits(user_id);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_grapple_rate_limits_user_window ON grapple_rate_limits(user_id, window_start);
