@@ -187,7 +187,7 @@ async def _handle_chat(
     try:
         rate_limiter = GrappleRateLimiter()
         rate_check = rate_limiter.check_rate_limit(user_id, user_tier)
-    except Exception as e:
+    except (ConnectionError, OSError) as e:
         logger.error(f"Rate limit check failed for user {user_id}: {e}", exc_info=True)
         # Fail open — allow the request if rate limiting is broken
         rate_check = {"allowed": True, "remaining": 99, "limit": 99}
@@ -226,7 +226,7 @@ async def _handle_chat(
         session_id = session["id"]
     except HTTPException:
         raise
-    except Exception as e:
+    except (ConnectionError, OSError, KeyError) as e:
         logger.error(f"Session create/get failed: {e}", exc_info=True)
         raise HTTPException(
             status_code=500,
@@ -240,7 +240,7 @@ async def _handle_chat(
             role="user",
             content=request.message,
         )
-    except Exception as e:
+    except (ConnectionError, OSError, KeyError) as e:
         logger.error(f"Failed to store user message: {e}", exc_info=True)
         raise HTTPException(
             status_code=500,
@@ -252,7 +252,7 @@ async def _handle_chat(
         context_builder = GrappleContextBuilder(user_id)
         recent_messages = message_repo.get_recent_context(session_id, max_messages=10)
         messages = context_builder.get_conversation_context(recent_messages)
-    except Exception as e:
+    except (ConnectionError, OSError, KeyError) as e:
         logger.error(f"Context build failed: {e}", exc_info=True)
         raise HTTPException(
             status_code=500,
@@ -268,7 +268,7 @@ async def _handle_chat(
             temperature=0.7,
             max_tokens=1024,
         )
-    except Exception as e:
+    except (ConnectionError, OSError, TimeoutError, RuntimeError) as e:
         logger.error(f"LLM call failed for user {user_id}: {e}", exc_info=True)
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
@@ -285,7 +285,7 @@ async def _handle_chat(
             output_tokens=llm_response["output_tokens"],
             cost_usd=llm_response["cost_usd"],
         )
-    except Exception as e:
+    except (ConnectionError, OSError) as e:
         logger.error(f"Failed to store assistant message: {e}", exc_info=True)
         assistant_message = {"id": "unknown"}
 
@@ -301,7 +301,7 @@ async def _handle_chat(
             output_tokens=llm_response["output_tokens"],
             cost_usd=llm_response["cost_usd"],
         )
-    except Exception as e:
+    except (ConnectionError, OSError) as e:
         logger.error(f"Failed to log token usage: {e}", exc_info=True)
 
     try:
@@ -311,12 +311,12 @@ async def _handle_chat(
             tokens_delta=llm_response["total_tokens"],
             cost_delta=llm_response["cost_usd"],
         )
-    except Exception as e:
+    except (ConnectionError, OSError) as e:
         logger.error(f"Failed to update session stats: {e}", exc_info=True)
 
     try:
         rate_limiter.record_message(user_id)
-    except Exception as e:
+    except (ConnectionError, OSError) as e:
         logger.error(f"Failed to record rate limit: {e}", exc_info=True)
 
     # Step 10: Return response

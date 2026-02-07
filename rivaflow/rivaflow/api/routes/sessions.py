@@ -93,9 +93,7 @@ async def update_session(
         # Convert SessionRollData models to dicts if present
         session_rolls_dict = None
         if session.session_rolls is not None:
-            session_rolls_dict = [
-                roll.model_dump() for roll in session.session_rolls
-            ]
+            session_rolls_dict = [roll.model_dump() for roll in session.session_rolls]
 
         # Convert SessionTechniqueCreate models to dicts if present
         session_techniques_dict = None

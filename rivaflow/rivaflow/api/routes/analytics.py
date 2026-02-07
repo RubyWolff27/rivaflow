@@ -97,7 +97,7 @@ async def get_performance_overview(
         )
     except (RivaFlowException, HTTPException):
         raise
-    except Exception as e:
+    except (ValueError, KeyError, TypeError) as e:
         logger.error(f"Error in get_performance_overview: {type(e).__name__}: {str(e)}")
         logger.error(traceback.format_exc())
         raise HTTPException(
@@ -124,7 +124,7 @@ async def get_partner_analytics(
         )
     except (RivaFlowException, HTTPException):
         raise
-    except Exception as e:
+    except (ValueError, KeyError, TypeError) as e:
         logger.error(f"Error in get_partner_analytics: {type(e).__name__}: {str(e)}")
         logger.error(traceback.format_exc())
         raise HTTPException(
@@ -205,7 +205,7 @@ async def get_technique_analytics(
         )
     except (RivaFlowException, HTTPException):
         raise
-    except Exception as e:
+    except (ValueError, KeyError, TypeError) as e:
         logger.error(f"Error in get_technique_analytics: {type(e).__name__}: {str(e)}")
         logger.error(traceback.format_exc())
         raise HTTPException(
@@ -232,7 +232,7 @@ async def get_consistency_analytics(
         )
     except (RivaFlowException, HTTPException):
         raise
-    except Exception as e:
+    except (ValueError, KeyError, TypeError) as e:
         logger.error(
             f"Error in get_consistency_analytics: {type(e).__name__}: {str(e)}"
         )
@@ -249,7 +249,7 @@ async def get_milestones(current_user: dict = Depends(get_current_user)):
         return service.get_milestones(user_id=current_user["id"])
     except (RivaFlowException, HTTPException):
         raise
-    except Exception as e:
+    except (ValueError, KeyError, TypeError) as e:
         logger.error(f"Error in get_milestones: {type(e).__name__}: {str(e)}")
         logger.error(traceback.format_exc())
         raise HTTPException(
@@ -276,7 +276,7 @@ async def get_instructor_analytics(
         )
     except (RivaFlowException, HTTPException):
         raise
-    except Exception as e:
+    except (ValueError, KeyError, TypeError) as e:
         logger.error(f"Error in get_instructor_analytics: {type(e).__name__}: {str(e)}")
         logger.error(traceback.format_exc())
         raise HTTPException(
@@ -309,7 +309,7 @@ async def get_fight_dynamics_heatmap(
         )
     except (RivaFlowException, HTTPException):
         raise
-    except Exception as e:
+    except (ValueError, KeyError, TypeError) as e:
         logger.error(
             f"Error in get_fight_dynamics_heatmap: {type(e).__name__}: {str(e)}"
         )
@@ -335,7 +335,7 @@ async def get_fight_dynamics_insights(
         )
     except (RivaFlowException, HTTPException):
         raise
-    except Exception as e:
+    except (ValueError, KeyError, TypeError) as e:
         logger.error(
             f"Error in get_fight_dynamics_insights: {type(e).__name__}: {str(e)}"
         )

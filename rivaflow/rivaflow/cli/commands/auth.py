@@ -72,7 +72,7 @@ def login(
         console.print("  • Passwords are case-sensitive")
         console.print("  • If you don't have an account: rivaflow auth register")
         raise typer.Exit(code=1)
-    except Exception as e:
+    except (ConnectionError, OSError, ValueError) as e:
         console.print(f"❌ [red]Login error: {e}[/red]")
         console.print("[dim]If this persists, please report it at:[/dim]")
         console.print("  https://github.com/RubyWolff27/rivaflow/issues")
@@ -95,7 +95,7 @@ def logout():
         # Invalidate refresh token on server
         try:
             auth_service.logout(credentials.get("refresh_token", ""))
-        except Exception:
+        except (ConnectionError, OSError):
             # Even if server logout fails, remove local credentials
             pass
 
@@ -104,7 +104,7 @@ def logout():
 
         console.print("✅ [green]Logged out successfully[/green]")
 
-    except Exception as e:
+    except (ConnectionError, OSError, ValueError) as e:
         console.print(f"❌ [red]Logout error: {e}[/red]")
         raise typer.Exit(code=1)
 
@@ -202,7 +202,7 @@ def register(
         else:
             console.print(f"❌ [red]Registration failed: {e}[/red]")
         raise typer.Exit(code=1)
-    except Exception as e:
+    except (ConnectionError, OSError, ValueError) as e:
         console.print(f"❌ [red]Registration error: {e}[/red]")
         console.print("[dim]If this persists, please report it at:[/dim]")
         console.print("  https://github.com/RubyWolff27/rivaflow/issues")
@@ -233,7 +233,7 @@ def whoami():
         console.print(f"  Email: {credentials.get('email')}")
         console.print(f"  User ID: {credentials.get('user_id')}")
 
-    except Exception as e:
+    except (ConnectionError, OSError, ValueError) as e:
         console.print(f"❌ [red]Error reading user info: {e}[/red]")
         console.print(
             "[dim]Hint: Your credentials file may be corrupted. Try logging in again.[/dim]"

@@ -97,7 +97,7 @@ class AuthService:
                 first_name=first_name,
                 last_name=last_name,
             )
-        except Exception as e:
+        except (ConnectionError, OSError, ValueError) as e:
             raise ValueError(f"Failed to create user: {str(e)}")
 
         # Create default profile for user
@@ -117,7 +117,7 @@ class AuthService:
                     """),
                     (user["id"], first_name, last_name, email),
                 )
-        except Exception as e:
+        except (ConnectionError, OSError, ValueError) as e:
             # Profile creation failed - delete the user and fail registration
             logger.error(f"Failed to create profile for user {user['id']}: {e}")
             try:
@@ -129,7 +129,7 @@ class AuthService:
                     cursor.execute(
                         convert_query("DELETE FROM users WHERE id = ?"), (user["id"],)
                     )
-            except Exception:
+            except (ConnectionError, OSError):
                 pass  # Best effort cleanup
             raise ValueError("Registration failed - unable to create user profile")
 
@@ -157,7 +157,7 @@ class AuthService:
                     ),
                     ("readiness", 0, 0, user["id"]),
                 )
-        except Exception as e:
+        except (ConnectionError, OSError, ValueError) as e:
             # Streaks creation failed - delete user and profile, fail registration
             logger.error(f"Failed to create streaks for user {user['id']}: {e}")
             try:
@@ -169,7 +169,7 @@ class AuthService:
                     cursor.execute(
                         convert_query("DELETE FROM users WHERE id = ?"), (user["id"],)
                     )
-            except Exception:
+            except (ConnectionError, OSError):
                 pass  # Best effort cleanup
             raise ValueError("Registration failed - unable to initialize user data")
 
@@ -192,7 +192,7 @@ class AuthService:
                 email=email,
                 first_name=first_name,
             )
-        except Exception as e:
+        except (ConnectionError, OSError, RuntimeError) as e:
             logger.warning(f"Failed to send welcome email to {email}: {e}")
 
         return {

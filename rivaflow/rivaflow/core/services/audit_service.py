@@ -72,7 +72,7 @@ class AuditService:
 
                 return log_id
 
-        except Exception as e:
+        except (ConnectionError, OSError) as e:
             logger.error(f"Failed to create audit log: {e}")
             # Don't raise - we don't want audit logging failures to break operations
             # But log the error for monitoring
@@ -162,7 +162,7 @@ class AuditService:
 
                 return logs
 
-        except Exception as e:
+        except (ConnectionError, OSError) as e:
             logger.error(f"Failed to retrieve audit logs: {e}")
             return []
 
@@ -212,7 +212,7 @@ class AuditService:
                 row = cursor.fetchone()
                 return row[0] if row else 0
 
-        except Exception as e:
+        except (ConnectionError, OSError) as e:
             logger.error(f"Failed to count audit logs: {e}")
             return 0
 
@@ -273,7 +273,7 @@ class AuditService:
                     "most_recent_action": most_recent_action,
                 }
 
-        except Exception as e:
+        except (ConnectionError, OSError) as e:
             logger.error(f"Failed to get user activity summary: {e}")
             return {
                 "user_id": user_id,

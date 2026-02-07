@@ -89,7 +89,7 @@ class GrappleTokenMonitor:
                 )
                 return log_id
 
-        except Exception as e:
+        except (ConnectionError, OSError) as e:
             logger.error(f"Failed to log token usage for user {user_id}: {e}")
             raise
 
@@ -179,7 +179,7 @@ class GrappleTokenMonitor:
                     "by_provider": by_provider,
                 }
 
-        except Exception as e:
+        except (ConnectionError, OSError) as e:
             logger.error(f"Failed to get usage for user {user_id}: {e}")
             return {
                 "user_id": user_id,
@@ -404,7 +404,7 @@ class GrappleTokenMonitor:
                     "by_provider": by_provider,
                 }
 
-        except Exception as e:
+        except (ConnectionError, OSError) as e:
             logger.error(f"Failed to get global usage stats: {e}")
             return {
                 "start_date": start_date.isoformat(),

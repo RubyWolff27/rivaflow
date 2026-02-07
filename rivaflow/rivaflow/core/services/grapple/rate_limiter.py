@@ -121,7 +121,7 @@ class GrappleRateLimiter:
                 cursor.execute(query, (str(uuid4()), user_id, window_start, window_end))
                 conn.commit()
                 cursor.close()
-        except Exception as e:
+        except (ConnectionError, OSError) as e:
             logger.error(f"Failed to record message for user {user_id}: {e}")
             # Don't fail the request if we can't record - just log it
 
@@ -154,7 +154,7 @@ class GrappleRateLimiter:
                     return row[0], row[1]
                 else:
                     return 0, window_end
-        except Exception as e:
+        except (ConnectionError, OSError) as e:
             logger.error(f"Failed to get message count for user {user_id}: {e}")
             return 0, window_end
 
@@ -179,7 +179,7 @@ class GrappleRateLimiter:
                         return list(row.values())[0] or 0
                     return row[0] or 0
                 return 0
-        except Exception as e:
+        except (ConnectionError, OSError) as e:
             logger.error(f"Failed to get global message count: {e}")
             return 0
 
@@ -234,7 +234,7 @@ class GrappleRateLimiter:
                         "avg_hourly_usage": 0,
                         "days_analyzed": days,
                     }
-        except Exception as e:
+        except (ConnectionError, OSError) as e:
             logger.error(f"Failed to get usage stats for user {user_id}: {e}")
             return {
                 "active_hours": 0,
@@ -268,6 +268,6 @@ class GrappleRateLimiter:
                 cursor.close()
                 logger.info(f"Cleaned up {deleted_count} old rate limit records")
                 return deleted_count
-        except Exception as e:
+        except (ConnectionError, OSError) as e:
             logger.error(f"Failed to cleanup old rate limit records: {e}")
             return 0

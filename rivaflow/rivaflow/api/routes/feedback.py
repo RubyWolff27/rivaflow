@@ -83,7 +83,7 @@ async def submit_feedback(
                 platform=feedback.platform or "web",
                 url=feedback.url,
             )
-        except Exception as e:
+        except (ConnectionError, OSError, RuntimeError) as e:
             # Log but don't fail the request if email fails
             logger.warning(f"Failed to send feedback notification email: {str(e)}")
 
@@ -91,7 +91,7 @@ async def submit_feedback(
             "success": True,
             "feedback": created,
         }
-    except Exception as e:
+    except (ConnectionError, OSError, ValueError) as e:
         raise ValidationError(f"Failed to submit feedback: {str(e)}")
 
 

@@ -87,7 +87,7 @@ async def generate_post_session_insight(user_id: int, session_id: int) -> dict |
             temperature=0.7,
             max_tokens=256,
         )
-    except Exception as e:
+    except (ConnectionError, OSError, TimeoutError, RuntimeError) as e:
         logger.error(f"Insight generation failed: {e}")
         return None
 
@@ -167,7 +167,7 @@ async def generate_weekly_insight(
             temperature=0.7,
             max_tokens=256,
         )
-    except Exception as e:
+    except (ConnectionError, OSError, TimeoutError, RuntimeError) as e:
         logger.error(f"Weekly insight failed: {e}")
         return None
 

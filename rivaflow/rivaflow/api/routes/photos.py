@@ -230,7 +230,7 @@ async def delete_photo(photo_id: int, current_user: dict = Depends(get_current_u
         file_path = UPLOAD_DIR / photo["file_name"]
         if file_path.exists():
             os.remove(file_path)
-    except Exception as e:
+    except OSError as e:
         # Log error but don't fail the request - database record is already deleted
         logger.warning(f"Error deleting file {photo['file_name']}: {e}")
 

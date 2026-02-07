@@ -251,7 +251,7 @@ class ProfileService:
             if file_path.exists():
                 try:
                     os.remove(file_path)
-                except Exception as e:
+                except OSError as e:
                     # Log error but continue to clear database entry
                     # In production, this should use proper logging
                     logger.warning(f"Error deleting avatar file {file_path}: {e}")

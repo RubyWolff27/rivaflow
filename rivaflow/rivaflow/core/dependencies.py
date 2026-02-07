@@ -85,7 +85,7 @@ async def get_current_user(
     except HTTPException:
         # Re-raise HTTP exceptions as-is
         raise
-    except Exception as e:
+    except (ValueError, KeyError, TypeError) as e:
         # Log unexpected errors and return generic 401
         logger.error(f"Authentication error: {e}")
         raise HTTPException(

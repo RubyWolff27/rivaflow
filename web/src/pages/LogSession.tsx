@@ -159,20 +159,20 @@ export default function LogSession() {
     return () => { cancelled = true; };
   }, []);
 
-  const handleNextStep = () => {
+  const handleNextStep = useCallback(() => {
     if (step === 1) {
       setStep(2);
     }
-  };
+  }, [step]);
 
-  const handleSkipReadiness = () => {
+  const handleSkipReadiness = useCallback(() => {
     setSkippedReadiness(true);
     setStep(2);
-  };
+  }, []);
 
-  const handleBackStep = () => {
+  const handleBackStep = useCallback(() => {
     setStep(1);
-  };
+  }, []);
 
   const handleAddRoll = useCallback(() => {
     setRolls(prev => [
@@ -444,6 +444,55 @@ export default function LogSession() {
     () => movements.filter(m => m.category === 'submission'),
     [movements]
   );
+
+  // Fight dynamics handlers
+  const handleFightDynamicsIncrement = useCallback((field: keyof typeof fightDynamics) => {
+    setFightDynamics(fd => {
+      if (field === 'attacks_successful') {
+        return { ...fd, [field]: Math.min(fd.attacks_attempted, fd[field] + 1) };
+      }
+      if (field === 'defenses_successful') {
+        return { ...fd, [field]: Math.min(fd.defenses_attempted, fd[field] + 1) };
+      }
+      return { ...fd, [field]: fd[field] + 1 };
+    });
+  }, []);
+
+  const handleFightDynamicsDecrement = useCallback((field: keyof typeof fightDynamics) => {
+    setFightDynamics(fd => ({ ...fd, [field]: Math.max(0, fd[field] - 1) }));
+  }, []);
+
+  const handleFightDynamicsChange = useCallback((field: keyof typeof fightDynamics, value: number) => {
+    setFightDynamics(fd => {
+      const clamped = Math.max(0, value);
+      if (field === 'attacks_successful') {
+        return { ...fd, [field]: Math.min(fd.attacks_attempted, clamped) };
+      }
+      if (field === 'defenses_successful') {
+        return { ...fd, [field]: Math.min(fd.defenses_attempted, clamped) };
+      }
+      return { ...fd, [field]: clamped };
+    });
+  }, []);
+
+  const filterMovements = useCallback((search: string) => {
+    const s = search.toLowerCase();
+    return movements.filter(m =>
+      m.name?.toLowerCase().includes(s) ||
+      m.category?.toLowerCase().includes(s) ||
+      m.subcategory?.toLowerCase().includes(s) ||
+      (m.aliases ?? []).some(alias => alias.toLowerCase().includes(s))
+    );
+  }, [movements]);
+
+  const filterSubmissions = useCallback((search: string) => {
+    const s = search.toLowerCase();
+    return submissionMovements.filter(m =>
+      m.name?.toLowerCase().includes(s) ||
+      m.subcategory?.toLowerCase().includes(s) ||
+      (m.aliases ?? []).some(alias => alias.toLowerCase().includes(s))
+    );
+  }, [submissionMovements]);
 
   if (success) {
     return (
@@ -834,49 +883,37 @@ export default function LogSession() {
                         />
                       </div>
                       <div className="max-h-48 overflow-y-auto border border-[var(--border)] rounded p-2 space-y-1">
-                        {movements
-                          .filter(m => {
-                            const search = techniqueSearch[index]?.toLowerCase() ?? '';
-                            return m.name?.toLowerCase().includes(search) ||
-                                   m.category?.toLowerCase().includes(search) ||
-                                   m.subcategory?.toLowerCase().includes(search) ||
-                                   (m.aliases ?? []).some(alias => alias.toLowerCase().includes(search));
-                          })
-                          .map(movement => (
-                            <button
-                              key={movement.id}
-                              type="button"
-                              onClick={() => {
-                                const updated = [...techniques];
-                                updated[index] = {
-                                  ...updated[index],
-                                  movement_id: movement.id,
-                                  movement_name: movement.name ?? ''
-                                };
-                                setTechniques(updated);
-                              }}
-                              className={`w-full text-left px-2 py-2 min-h-[44px] rounded text-sm ${
-                                tech.movement_id === movement.id
-                                  ? 'bg-[var(--accent)] text-white'
-                                  : 'hover:bg-[var(--surfaceElev)]'
-                              }`}
-                            >
-                              <span className="font-medium">{movement.name ?? 'Unknown'}</span>
-                              <span className="text-xs ml-2 opacity-75">
-                                {movement.category ?? 'N/A'}
-                                {movement.subcategory && ` - ${movement.subcategory}`}
-                              </span>
-                            </button>
-                          ))}
-                        {movements.filter(m => {
-                          const search = techniqueSearch[index]?.toLowerCase() ?? '';
-                          return m.name?.toLowerCase().includes(search) ||
-                                 m.category?.toLowerCase().includes(search) ||
-                                 m.subcategory?.toLowerCase().includes(search) ||
-                                 (m.aliases ?? []).some(alias => alias.toLowerCase().includes(search));
-                        }).length === 0 && (
-                          <p className="text-xs text-[var(--muted)] text-center py-2">No movements found</p>
-                        )}
+                        {(() => {
+                          const filtered = filterMovements(techniqueSearch[index] ?? '');
+                          return filtered.length === 0
+                            ? <p className="text-xs text-[var(--muted)] text-center py-2">No movements found</p>
+                            : filtered.map(movement => (
+                              <button
+                                key={movement.id}
+                                type="button"
+                                onClick={() => {
+                                  const updated = [...techniques];
+                                  updated[index] = {
+                                    ...updated[index],
+                                    movement_id: movement.id,
+                                    movement_name: movement.name ?? ''
+                                  };
+                                  setTechniques(updated);
+                                }}
+                                className={`w-full text-left px-2 py-2 min-h-[44px] rounded text-sm ${
+                                  tech.movement_id === movement.id
+                                    ? 'bg-[var(--accent)] text-white'
+                                    : 'hover:bg-[var(--surfaceElev)]'
+                                }`}
+                              >
+                                <span className="font-medium">{movement.name ?? 'Unknown'}</span>
+                                <span className="text-xs ml-2 opacity-75">
+                                  {movement.category ?? 'N/A'}
+                                  {movement.subcategory && ` - ${movement.subcategory}`}
+                                </span>
+                              </button>
+                            ));
+                        })()}
                       </div>
                       {tech.movement_id && (
                         <p className="text-sm text-[var(--muted)] mt-1">
@@ -1088,32 +1125,22 @@ export default function LogSession() {
                           />
                         </div>
                         <div className="max-h-32 overflow-y-auto border border-[var(--border)] rounded p-2 space-y-1">
-                          {submissionMovements
-                            .filter(m => {
-                              const search = submissionSearchFor[index]?.toLowerCase() ?? '';
-                              return m.name?.toLowerCase().includes(search) ||
-                                     m.subcategory?.toLowerCase().includes(search) ||
-                                     (m.aliases ?? []).some(alias => alias.toLowerCase().includes(search));
-                            })
-                            .map(movement => (
-                              <label key={movement.id} className="flex items-center gap-2 text-sm cursor-pointer hover:bg-[var(--surfaceElev)] p-1 rounded">
-                                <input
-                                  type="checkbox"
-                                  checked={roll.submissions_for.includes(movement.id)}
-                                  onChange={() => handleToggleSubmission(index, movement.id, 'for')}
-                                  className="w-4 h-4"
-                                />
-                                <span>{movement.name ?? 'Unknown'}</span>
-                              </label>
-                            ))}
-                          {submissionMovements.filter(m => {
-                            const search = submissionSearchFor[index]?.toLowerCase() ?? '';
-                            return m.name?.toLowerCase().includes(search) ||
-                                   m.subcategory?.toLowerCase().includes(search) ||
-                                   (m.aliases ?? []).some(alias => alias.toLowerCase().includes(search));
-                          }).length === 0 && (
-                            <p className="text-xs text-[var(--muted)] text-center py-2">No submissions found</p>
-                          )}
+                          {(() => {
+                            const filtered = filterSubmissions(submissionSearchFor[index] ?? '');
+                            return filtered.length === 0
+                              ? <p className="text-xs text-[var(--muted)] text-center py-2">No submissions found</p>
+                              : filtered.map(movement => (
+                                <label key={movement.id} className="flex items-center gap-2 text-sm cursor-pointer hover:bg-[var(--surfaceElev)] p-1 rounded">
+                                  <input
+                                    type="checkbox"
+                                    checked={roll.submissions_for.includes(movement.id)}
+                                    onChange={() => handleToggleSubmission(index, movement.id, 'for')}
+                                    className="w-4 h-4"
+                                  />
+                                  <span>{movement.name ?? 'Unknown'}</span>
+                                </label>
+                              ));
+                          })()}
                         </div>
                       </div>
 
@@ -1131,32 +1158,22 @@ export default function LogSession() {
                           />
                         </div>
                         <div className="max-h-32 overflow-y-auto border border-[var(--border)] rounded p-2 space-y-1">
-                          {submissionMovements
-                            .filter(m => {
-                              const search = submissionSearchAgainst[index]?.toLowerCase() ?? '';
-                              return m.name?.toLowerCase().includes(search) ||
-                                     m.subcategory?.toLowerCase().includes(search) ||
-                                     (m.aliases ?? []).some(alias => alias.toLowerCase().includes(search));
-                            })
-                            .map(movement => (
-                              <label key={movement.id} className="flex items-center gap-2 text-sm cursor-pointer hover:bg-[var(--surfaceElev)] p-1 rounded">
-                                <input
-                                  type="checkbox"
-                                  checked={roll.submissions_against.includes(movement.id)}
-                                  onChange={() => handleToggleSubmission(index, movement.id, 'against')}
-                                  className="w-4 h-4"
-                                />
-                                <span>{movement.name ?? 'Unknown'}</span>
-                              </label>
-                            ))}
-                          {submissionMovements.filter(m => {
-                            const search = submissionSearchAgainst[index]?.toLowerCase() ?? '';
-                            return m.name?.toLowerCase().includes(search) ||
-                                   m.subcategory?.toLowerCase().includes(search) ||
-                                   (m.aliases ?? []).some(alias => alias.toLowerCase().includes(search));
-                          }).length === 0 && (
-                            <p className="text-xs text-[var(--muted)] text-center py-2">No submissions found</p>
-                          )}
+                          {(() => {
+                            const filtered = filterSubmissions(submissionSearchAgainst[index] ?? '');
+                            return filtered.length === 0
+                              ? <p className="text-xs text-[var(--muted)] text-center py-2">No submissions found</p>
+                              : filtered.map(movement => (
+                                <label key={movement.id} className="flex items-center gap-2 text-sm cursor-pointer hover:bg-[var(--surfaceElev)] p-1 rounded">
+                                  <input
+                                    type="checkbox"
+                                    checked={roll.submissions_against.includes(movement.id)}
+                                    onChange={() => handleToggleSubmission(index, movement.id, 'against')}
+                                    className="w-4 h-4"
+                                  />
+                                  <span>{movement.name ?? 'Unknown'}</span>
+                                </label>
+                              ));
+                          })()}
                         </div>
                       </div>
 
@@ -1291,17 +1308,17 @@ export default function LogSession() {
                         <div>
                           <label className="text-xs font-medium mb-1 block" style={{ color: 'var(--muted)' }}>Attempted</label>
                           <div className="flex items-center gap-2">
-                            <button type="button" onClick={() => setFightDynamics(fd => ({ ...fd, attacks_attempted: Math.max(0, fd.attacks_attempted - 1) }))} className="w-9 h-9 rounded-lg flex items-center justify-center font-bold" style={{ backgroundColor: 'var(--surfaceElev)', border: '1px solid var(--border)' }}>
+                            <button type="button" onClick={() => handleFightDynamicsDecrement('attacks_attempted')} className="w-9 h-9 rounded-lg flex items-center justify-center font-bold" style={{ backgroundColor: 'var(--surfaceElev)', border: '1px solid var(--border)' }}>
                               <Minus className="w-4 h-4" />
                             </button>
                             <input
                               type="number"
                               className="input text-center font-bold text-lg flex-1"
                               value={fightDynamics.attacks_attempted}
-                              onChange={(e) => setFightDynamics({ ...fightDynamics, attacks_attempted: Math.max(0, parseInt(e.target.value) || 0) })}
+                              onChange={(e) => handleFightDynamicsChange('attacks_attempted', parseInt(e.target.value) || 0)}
                               min="0"
                             />
-                            <button type="button" onClick={() => setFightDynamics(fd => ({ ...fd, attacks_attempted: fd.attacks_attempted + 1 }))} className="w-9 h-9 rounded-lg flex items-center justify-center font-bold" style={{ backgroundColor: 'var(--accent)', color: '#fff' }}>
+                            <button type="button" onClick={() => handleFightDynamicsIncrement('attacks_attempted')} className="w-9 h-9 rounded-lg flex items-center justify-center font-bold" style={{ backgroundColor: 'var(--accent)', color: '#fff' }}>
                               <Plus className="w-4 h-4" />
                             </button>
                           </div>
@@ -1309,18 +1326,18 @@ export default function LogSession() {
                         <div>
                           <label className="text-xs font-medium mb-1 block" style={{ color: 'var(--muted)' }}>Successful</label>
                           <div className="flex items-center gap-2">
-                            <button type="button" onClick={() => setFightDynamics(fd => ({ ...fd, attacks_successful: Math.max(0, fd.attacks_successful - 1) }))} className="w-9 h-9 rounded-lg flex items-center justify-center font-bold" style={{ backgroundColor: 'var(--surfaceElev)', border: '1px solid var(--border)' }}>
+                            <button type="button" onClick={() => handleFightDynamicsDecrement('attacks_successful')} className="w-9 h-9 rounded-lg flex items-center justify-center font-bold" style={{ backgroundColor: 'var(--surfaceElev)', border: '1px solid var(--border)' }}>
                               <Minus className="w-4 h-4" />
                             </button>
                             <input
                               type="number"
                               className="input text-center font-bold text-lg flex-1"
                               value={fightDynamics.attacks_successful}
-                              onChange={(e) => setFightDynamics({ ...fightDynamics, attacks_successful: Math.min(fightDynamics.attacks_attempted, Math.max(0, parseInt(e.target.value) || 0)) })}
+                              onChange={(e) => handleFightDynamicsChange('attacks_successful', parseInt(e.target.value) || 0)}
                               min="0"
                               max={fightDynamics.attacks_attempted}
                             />
-                            <button type="button" onClick={() => setFightDynamics(fd => ({ ...fd, attacks_successful: Math.min(fd.attacks_attempted, fd.attacks_successful + 1) }))} className="w-9 h-9 rounded-lg flex items-center justify-center font-bold" style={{ backgroundColor: 'var(--accent)', color: '#fff' }}>
+                            <button type="button" onClick={() => handleFightDynamicsIncrement('attacks_successful')} className="w-9 h-9 rounded-lg flex items-center justify-center font-bold" style={{ backgroundColor: 'var(--accent)', color: '#fff' }}>
                               <Plus className="w-4 h-4" />
                             </button>
                           </div>
@@ -1343,17 +1360,17 @@ export default function LogSession() {
                         <div>
                           <label className="text-xs font-medium mb-1 block" style={{ color: 'var(--muted)' }}>Attempted</label>
                           <div className="flex items-center gap-2">
-                            <button type="button" onClick={() => setFightDynamics(fd => ({ ...fd, defenses_attempted: Math.max(0, fd.defenses_attempted - 1) }))} className="w-9 h-9 rounded-lg flex items-center justify-center font-bold" style={{ backgroundColor: 'var(--surfaceElev)', border: '1px solid var(--border)' }}>
+                            <button type="button" onClick={() => handleFightDynamicsDecrement('defenses_attempted')} className="w-9 h-9 rounded-lg flex items-center justify-center font-bold" style={{ backgroundColor: 'var(--surfaceElev)', border: '1px solid var(--border)' }}>
                               <Minus className="w-4 h-4" />
                             </button>
                             <input
                               type="number"
                               className="input text-center font-bold text-lg flex-1"
                               value={fightDynamics.defenses_attempted}
-                              onChange={(e) => setFightDynamics({ ...fightDynamics, defenses_attempted: Math.max(0, parseInt(e.target.value) || 0) })}
+                              onChange={(e) => handleFightDynamicsChange('defenses_attempted', parseInt(e.target.value) || 0)}
                               min="0"
                             />
-                            <button type="button" onClick={() => setFightDynamics(fd => ({ ...fd, defenses_attempted: fd.defenses_attempted + 1 }))} className="w-9 h-9 rounded-lg flex items-center justify-center font-bold" style={{ backgroundColor: '#0095FF', color: '#fff' }}>
+                            <button type="button" onClick={() => handleFightDynamicsIncrement('defenses_attempted')} className="w-9 h-9 rounded-lg flex items-center justify-center font-bold" style={{ backgroundColor: '#0095FF', color: '#fff' }}>
                               <Plus className="w-4 h-4" />
                             </button>
                           </div>
@@ -1361,18 +1378,18 @@ export default function LogSession() {
                         <div>
                           <label className="text-xs font-medium mb-1 block" style={{ color: 'var(--muted)' }}>Successful</label>
                           <div className="flex items-center gap-2">
-                            <button type="button" onClick={() => setFightDynamics(fd => ({ ...fd, defenses_successful: Math.max(0, fd.defenses_successful - 1) }))} className="w-9 h-9 rounded-lg flex items-center justify-center font-bold" style={{ backgroundColor: 'var(--surfaceElev)', border: '1px solid var(--border)' }}>
+                            <button type="button" onClick={() => handleFightDynamicsDecrement('defenses_successful')} className="w-9 h-9 rounded-lg flex items-center justify-center font-bold" style={{ backgroundColor: 'var(--surfaceElev)', border: '1px solid var(--border)' }}>
                               <Minus className="w-4 h-4" />
                             </button>
                             <input
                               type="number"
                               className="input text-center font-bold text-lg flex-1"
                               value={fightDynamics.defenses_successful}
-                              onChange={(e) => setFightDynamics({ ...fightDynamics, defenses_successful: Math.min(fightDynamics.defenses_attempted, Math.max(0, parseInt(e.target.value) || 0)) })}
+                              onChange={(e) => handleFightDynamicsChange('defenses_successful', parseInt(e.target.value) || 0)}
                               min="0"
                               max={fightDynamics.defenses_attempted}
                             />
-                            <button type="button" onClick={() => setFightDynamics(fd => ({ ...fd, defenses_successful: Math.min(fd.defenses_attempted, fd.defenses_successful + 1) }))} className="w-9 h-9 rounded-lg flex items-center justify-center font-bold" style={{ backgroundColor: '#0095FF', color: '#fff' }}>
+                            <button type="button" onClick={() => handleFightDynamicsIncrement('defenses_successful')} className="w-9 h-9 rounded-lg flex items-center justify-center font-bold" style={{ backgroundColor: '#0095FF', color: '#fff' }}>
                               <Plus className="w-4 h-4" />
                             </button>
                           </div>

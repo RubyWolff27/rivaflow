@@ -116,7 +116,7 @@ async def register(request: Request, req: RegisterRequest):
         if req.invite_token:
             try:
                 waitlist_repo.mark_registered(req.email)
-            except Exception as e:
+            except (ConnectionError, OSError) as e:
                 logger.error(
                     f"Failed to mark waitlist entry as registered for {req.email}: {e}"
                 )
@@ -127,7 +127,7 @@ async def register(request: Request, req: RegisterRequest):
         raise ValidationError(str(e))
     except RivaFlowException:
         raise
-    except Exception as e:
+    except (ValueError, KeyError) as e:
         error_msg = handle_service_error(e, "Registration failed", operation="register")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -159,7 +159,7 @@ async def login(request: Request, req: LoginRequest):
             detail="Invalid email or password",
             headers={"WWW-Authenticate": "Bearer"},
         )
-    except Exception as e:
+    except (ValueError, KeyError) as e:
         error_msg = handle_service_error(e, "Login failed", operation="login")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -191,7 +191,7 @@ async def refresh_token(request: Request, req: RefreshRequest):
         )
     except RivaFlowException:
         raise
-    except Exception as e:
+    except (ValueError, KeyError) as e:
         error_msg = handle_service_error(
             e, "Token refresh failed", operation="refresh_token"
         )
@@ -222,7 +222,7 @@ async def logout(req: RefreshRequest, current_user: dict = Depends(get_current_u
             }  # Generic message to prevent info leakage
     except RivaFlowException:
         raise
-    except Exception as e:
+    except (ValueError, KeyError) as e:
         error_msg = handle_service_error(
             e, "Logout failed", user_id=current_user["id"], operation="logout"
         )
@@ -246,7 +246,7 @@ async def logout_all_devices(current_user: dict = Depends(get_current_user)):
         return {"message": f"Logged out from {count} device(s)"}
     except RivaFlowException:
         raise
-    except Exception as e:
+    except (ValueError, KeyError) as e:
         error_msg = handle_service_error(
             e, "Logout failed", user_id=current_user["id"], operation="logout_all"
         )
@@ -300,7 +300,7 @@ async def forgot_password(request: Request, req: ForgotPasswordRequest):
         return {
             "message": "If an account exists with this email, you will receive a password reset link."
         }
-    except Exception as e:
+    except (ConnectionError, OSError, RuntimeError) as e:
         logger.error(f"Forgot password error for {req.email}: {e}")
         # Still return success to prevent info leakage
         return {
@@ -329,7 +329,7 @@ async def reset_password(request: Request, req: ResetPasswordRequest):
         raise ValidationError(str(e))
     except HTTPException:
         raise
-    except Exception as e:
+    except (ValueError, KeyError) as e:
         error_msg = handle_service_error(
             e, "Password reset failed", operation="reset_password"
         )

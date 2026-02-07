@@ -121,7 +121,7 @@ class EmailService:
                 )
                 return False
 
-        except Exception as e:
+        except (ConnectionError, OSError, RuntimeError) as e:
             error_msg = str(e)
             if "403" in error_msg or "Forbidden" in error_msg:
                 logger.error(
@@ -171,7 +171,7 @@ class EmailService:
             logger.info(f"Email sent successfully to {to_email} via SMTP")
             return True
 
-        except Exception as e:
+        except (ConnectionError, OSError, smtplib.SMTPException) as e:
             logger.error(f"Failed to send email via SMTP to {to_email}: {e}")
             return False
 

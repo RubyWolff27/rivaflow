@@ -189,7 +189,7 @@ async def startup_event():
             from rivaflow.db.seed_glossary import seed_glossary
 
             seed_glossary()
-        except Exception as e:
+        except (OSError, ConnectionError, ValueError) as e:
             logging.warning(f"Could not seed glossary: {e}")
 
 

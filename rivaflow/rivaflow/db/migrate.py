@@ -4,6 +4,7 @@ Automatic database migration runner.
 Runs pending migrations on app startup.
 """
 
+import hashlib
 import logging
 import os
 import sys
@@ -17,6 +18,9 @@ import psycopg2
 from rivaflow.config import get_db_type
 
 logger = logging.getLogger(__name__)
+
+# Advisory lock key for PostgreSQL (stable hash of "rivaflow_migrations")
+_PG_LOCK_KEY = int(hashlib.md5(b"rivaflow_migrations").hexdigest()[:15], 16) % (2**31)
 
 
 def get_migration_files():
@@ -49,7 +53,7 @@ def create_migrations_table(conn):
             )
             cursor.execute("DROP TABLE IF EXISTS schema_migrations")
             conn.commit()
-    except Exception as e:
+    except psycopg2.Error as e:
         logger.warning(f"Error checking schema_migrations table: {e}")
         conn.rollback()
 
@@ -72,7 +76,7 @@ def get_applied_migrations(conn):
         applied = [row[0] for row in cursor.fetchall()]
         cursor.close()
         return set(applied)
-    except Exception as e:
+    except psycopg2.Error as e:
         logger.error(f"Error getting applied migrations: {e}")
         cursor.close()
         return set()  # Return empty set if table doesn't exist or has issues
@@ -102,7 +106,7 @@ def apply_migration(conn, migration_file):
         logger.info(f"✓ Applied: {version}")
         return True
 
-    except Exception as e:
+    except psycopg2.Error as e:
         conn.rollback()
         logger.error(f"✗ Failed to apply {version}: {e}", exc_info=True)
         return False
@@ -131,30 +135,53 @@ def run_migrations():
     # Connect to database
     try:
         conn = psycopg2.connect(database_url)
-    except Exception as e:
+    except psycopg2.Error as e:
         logger.error(f"ERROR: Could not connect to database: {e}", exc_info=True)
         raise RuntimeError(f"Could not connect to database: {e}") from e
 
-    # Create migrations tracking table
-    create_migrations_table(conn)
-
-    # Get applied migrations
-    applied = get_applied_migrations(conn)
-    logger.info(f"Already applied: {len(applied)} migrations")
-
-    # Use database.py's _apply_migrations which handles SQLite-to-PostgreSQL conversion
+    # Acquire advisory lock to prevent concurrent migrations
     try:
+        cursor = conn.cursor()
+        cursor.execute("SELECT pg_try_advisory_lock(%s)", (_PG_LOCK_KEY,))
+        acquired = cursor.fetchone()[0]
+        cursor.close()
+
+        if not acquired:
+            logger.info("Another process is running migrations, skipping.")
+            conn.close()
+            return
+
+        logger.info("Acquired migration advisory lock")
+    except psycopg2.Error as e:
+        logger.warning(f"Could not acquire advisory lock, proceeding anyway: {e}")
+
+    try:
+        # Create migrations tracking table
+        create_migrations_table(conn)
+
+        # Get applied migrations
+        applied = get_applied_migrations(conn)
+        logger.info(f"Already applied: {len(applied)} migrations")
+
+        # Use database.py's _apply_migrations which handles SQLite-to-PG conversion
         from rivaflow.db.database import _apply_migrations
 
         _apply_migrations(conn, applied, "postgresql")
         logger.info("=" * 60)
         logger.info("✓ All migrations applied successfully")
         logger.info("=" * 60)
-    except Exception as e:
+    except psycopg2.Error as e:
         logger.error(f"Migration failed: {e}", exc_info=True)
-        conn.close()
         raise RuntimeError(f"Database migration failed: {e}") from e
     finally:
+        # Release advisory lock
+        try:
+            cursor = conn.cursor()
+            cursor.execute("SELECT pg_advisory_unlock(%s)", (_PG_LOCK_KEY,))
+            cursor.close()
+            logger.info("Released migration advisory lock")
+        except psycopg2.Error:
+            pass
         conn.close()
 
     # Reset connection pool after migrations to ensure clean state

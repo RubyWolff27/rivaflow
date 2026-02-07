@@ -74,7 +74,7 @@ def log(
             _quick_log(service, autocomplete)
         else:
             _full_log(service, video_repo, autocomplete)
-    except Exception as e:
+    except (ConnectionError, OSError, ValueError) as e:
         handle_error(e, context="logging training session")
 
 
@@ -118,7 +118,7 @@ def _quick_log(service: SessionService, autocomplete: dict):
 
         # Engagement features (v0.2)
         _add_engagement_features(session_id)
-    except Exception as e:
+    except (ConnectionError, OSError, ValueError) as e:
         handle_error(e, context="saving quick session")
 
 

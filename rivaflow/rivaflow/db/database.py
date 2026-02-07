@@ -305,7 +305,7 @@ def _reset_postgresql_sequences(conn) -> None:
 
             conn.commit()
             logger.info(f"Reset sequence for table: {table}")
-        except Exception as e:
+        except (OSError, ConnectionError) as e:
             # Rollback this table's transaction and continue with next table
             conn.rollback()
             logger.debug(f"Skipped sequence reset for table {table}: {e}")

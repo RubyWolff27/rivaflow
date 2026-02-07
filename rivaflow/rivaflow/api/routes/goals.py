@@ -43,7 +43,7 @@ async def get_current_week_progress(current_user: dict = Depends(get_current_use
         return result
     except (RivaFlowException, HTTPException):
         raise
-    except Exception as e:
+    except (ValueError, KeyError, TypeError) as e:
         logger.error(
             f"ERROR in get_current_week_progress for user_id={current_user['id']}"
         )

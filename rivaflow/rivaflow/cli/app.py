@@ -344,7 +344,7 @@ def delete_account(
         )
         console.print()
 
-    except Exception as e:
+    except (ConnectionError, OSError) as e:
         console.print(f"[red]Error deleting account: {e}[/red]")
         console.print(
             "[yellow]Please contact support if this problem persists.[/yellow]"

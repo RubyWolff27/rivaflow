@@ -83,7 +83,7 @@ class GrappleLLMClient:
             with httpx.Client(timeout=2.0) as client:
                 resp = client.get(f"{self.ollama_url}/api/tags")
                 return resp.status_code == 200
-        except Exception:
+        except (ConnectionError, OSError):
             return False
 
     async def chat(
@@ -116,7 +116,13 @@ class GrappleLLMClient:
                     "Successfully got response from " f"{provider} for user {user_id}"
                 )
                 return result
-            except Exception as e:
+            except (
+                ConnectionError,
+                OSError,
+                TimeoutError,
+                RuntimeError,
+                httpx.HTTPStatusError,
+            ) as e:
                 logger.warning(
                     f"Provider {provider} failed: " f"{type(e).__name__}: {str(e)}"
                 )

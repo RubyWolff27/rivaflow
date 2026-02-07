@@ -188,7 +188,7 @@ Now respond to the user's questions using this context. Reference their specific
             if isinstance(date_str, datetime):
                 return date_str
             return datetime.fromisoformat(str(date_str).replace("Z", "+00:00"))
-        except Exception:
+        except (ValueError, TypeError):
             return datetime.min
 
     def get_conversation_context(

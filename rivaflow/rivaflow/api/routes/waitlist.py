@@ -207,7 +207,7 @@ async def invite_entry(
             first_name=entry.get("first_name"),
             invite_token=token,
         )
-    except Exception as e:
+    except (ConnectionError, OSError, RuntimeError) as e:
         logger.error(f"Failed to send invite email to {entry['email']}: {e}")
 
     logger.info(
@@ -246,7 +246,7 @@ async def bulk_invite_entries(
                 first_name=first_name,
                 invite_token=token,
             )
-        except Exception as e:
+        except (ConnectionError, OSError, RuntimeError) as e:
             logger.error(f"Failed to send invite email to {email}: {e}")
 
     logger.info(
