@@ -36,6 +36,32 @@ api.interceptors.request.use(
   }
 );
 
+/**
+ * Extract a human-readable error message from an API error response.
+ * Handles both structured format: { error: { message: "..." } }
+ * and FastAPI format: { detail: "..." }
+ */
+export function getErrorMessage(error: unknown): string {
+  if (error && typeof error === 'object' && 'response' in error) {
+    const resp = (error as { response?: { data?: unknown } }).response;
+    const data = resp?.data;
+    if (data && typeof data === 'object') {
+      // Structured error format: { error: { message: "..." } }
+      if ('error' in data) {
+        const errObj = (data as { error: { message?: string } }).error;
+        if (errObj?.message) return errObj.message;
+      }
+      // FastAPI HTTPException format: { detail: "..." }
+      if ('detail' in data) {
+        const detail = (data as { detail: unknown }).detail;
+        if (typeof detail === 'string') return detail;
+      }
+    }
+  }
+  if (error instanceof Error) return error.message;
+  return 'An unexpected error occurred. Please try again.';
+}
+
 // Response interceptor - handle 401 and refresh token
 api.interceptors.response.use(
   (response) => response,

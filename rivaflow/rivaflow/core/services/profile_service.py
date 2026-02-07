@@ -1,13 +1,18 @@
 """Service layer for user profile operations."""
 
+import logging
 import os
 import uuid
 from datetime import datetime
 from pathlib import Path
 
+import filetype
+
 from rivaflow.core.exceptions import NotFoundError, ValidationError
 from rivaflow.db.repositories import ProfileRepository
 from rivaflow.db.repositories.user_repo import UserRepository
+
+logger = logging.getLogger(__name__)
 
 
 class ProfileService:
@@ -179,6 +184,16 @@ class ProfileService:
                 details={"max_size_mb": self.MAX_FILE_SIZE // (1024 * 1024)},
             )
 
+        # Validate actual file content (magic bytes check)
+        kind = filetype.guess(file_content)
+        allowed_types = {"jpg", "jpeg", "png", "webp", "gif"}
+        if kind is None or kind.extension not in allowed_types:
+            detected = kind.extension if kind else "unknown"
+            raise ValidationError(
+                f"File content is not a valid image (detected: {detected}). "
+                f"Allowed types: {', '.join(self.ALLOWED_EXTENSIONS)}",
+            )
+
         # Generate unique filename: user_{user_id}_{timestamp}_{uuid}.{ext}
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         unique_id = str(uuid.uuid4())[:8]
@@ -232,7 +247,7 @@ class ProfileService:
                 except Exception as e:
                     # Log error but continue to clear database entry
                     # In production, this should use proper logging
-                    print(f"Warning: Error deleting file {file_path}: {e}")
+                    logger.warning(f"Error deleting avatar file {file_path}: {e}")
 
         # Clear avatar_url in database
         self.user_repo.update_avatar(user_id, None)

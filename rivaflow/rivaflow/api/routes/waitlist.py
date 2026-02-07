@@ -8,6 +8,7 @@ from slowapi import Limiter
 from slowapi.util import get_remote_address
 
 from rivaflow.core.dependencies import get_admin_user
+from rivaflow.core.exceptions import RivaFlowException
 from rivaflow.core.services.email_service import EmailService
 from rivaflow.db.repositories.waitlist_repo import WaitlistRepository
 
@@ -96,6 +97,8 @@ async def join_waitlist(request: Request, req: WaitlistJoinRequest):
             "position": entry["position"],
             "message": "You've been added to the waitlist! We'll notify you when it's your turn.",
         }
+    except (RivaFlowException, HTTPException):
+        raise
     except Exception as e:
         logger.error(f"Failed to add {req.email} to waitlist: {e}")
         raise HTTPException(

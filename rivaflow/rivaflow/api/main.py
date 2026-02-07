@@ -94,10 +94,17 @@ else:
 
     limiter = DummyLimiter(key_func=get_remote_address, enabled=False)
 
+_docs_url = None if settings.IS_PRODUCTION else "/docs"
+_redoc_url = None if settings.IS_PRODUCTION else "/redoc"
+_openapi_url = None if settings.IS_PRODUCTION else "/openapi.json"
+
 app = FastAPI(
     title="RivaFlow API",
     description="Training OS for the mat — Web API",
     version="0.2.0",
+    docs_url=_docs_url,
+    redoc_url=_redoc_url,
+    openapi_url=_openapi_url,
 )
 
 # Add rate limiter to app state

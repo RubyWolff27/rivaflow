@@ -9,7 +9,11 @@ from slowapi.util import get_remote_address
 
 from rivaflow.core.dependencies import get_current_user
 from rivaflow.core.error_handling import handle_service_error
-from rivaflow.core.exceptions import ValidationError
+from rivaflow.core.exceptions import (
+    AuthenticationError,
+    RivaFlowException,
+    ValidationError,
+)
 from rivaflow.core.services.auth_service import AuthService
 from rivaflow.core.settings import settings
 from rivaflow.db.repositories.waitlist_repo import WaitlistRepository
@@ -121,6 +125,8 @@ async def register(request: Request, req: RegisterRequest):
     except ValueError as e:
         # ValueError contains user-facing validation messages
         raise ValidationError(str(e))
+    except RivaFlowException:
+        raise
     except Exception as e:
         error_msg = handle_service_error(e, "Registration failed", operation="register")
         raise HTTPException(
@@ -145,8 +151,8 @@ async def login(request: Request, req: LoginRequest):
     try:
         result = service.login(email=req.email, password=req.password)
         return result
-    except ValueError:
-        # ValueError for auth failures - use generic message to prevent user enumeration
+    except (ValueError, AuthenticationError):
+        # Auth failures - use generic message to prevent user enumeration
         logger.warning(f"Login attempt failed for {req.email}")
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -183,6 +189,8 @@ async def refresh_token(request: Request, req: RefreshRequest):
             detail="Invalid or expired refresh token",
             headers={"WWW-Authenticate": "Bearer"},
         )
+    except RivaFlowException:
+        raise
     except Exception as e:
         error_msg = handle_service_error(
             e, "Token refresh failed", operation="refresh_token"
@@ -212,6 +220,8 @@ async def logout(req: RefreshRequest, current_user: dict = Depends(get_current_u
             return {
                 "message": "Logged out successfully"
             }  # Generic message to prevent info leakage
+    except RivaFlowException:
+        raise
     except Exception as e:
         error_msg = handle_service_error(
             e, "Logout failed", user_id=current_user["id"], operation="logout"
@@ -234,6 +244,8 @@ async def logout_all_devices(current_user: dict = Depends(get_current_user)):
     try:
         count = service.logout_all_devices(user_id=current_user["id"])
         return {"message": f"Logged out from {count} device(s)"}
+    except RivaFlowException:
+        raise
     except Exception as e:
         error_msg = handle_service_error(
             e, "Logout failed", user_id=current_user["id"], operation="logout_all"
@@ -313,19 +325,10 @@ async def reset_password(request: Request, req: ResetPasswordRequest):
 
     try:
         success = service.reset_password(token=req.token, new_password=req.new_password)
-
-        if success:
-            return {
-                "message": "Password reset successfully. You can now log in with your new password."
-            }
-        else:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Invalid or expired reset token",
-            )
-
     except ValueError as e:
         raise ValidationError(str(e))
+    except HTTPException:
+        raise
     except Exception as e:
         error_msg = handle_service_error(
             e, "Password reset failed", operation="reset_password"
@@ -333,4 +336,14 @@ async def reset_password(request: Request, req: ResetPasswordRequest):
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=error_msg,
+        )
+
+    if success:
+        return {
+            "message": "Password reset successfully. You can now log in with your new password."
+        }
+    else:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid or expired reset token",
         )

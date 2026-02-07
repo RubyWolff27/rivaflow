@@ -7,7 +7,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 
 from rivaflow.core.dependencies import get_current_user
-from rivaflow.core.exceptions import ValidationError
+from rivaflow.core.exceptions import RivaFlowException, ValidationError
 from rivaflow.core.services.goals_service import GoalsService
 
 logger = logging.getLogger(__name__)
@@ -41,6 +41,8 @@ async def get_current_week_progress(current_user: dict = Depends(get_current_use
             f"Successfully retrieved current week progress for user_id={current_user['id']}"
         )
         return result
+    except (RivaFlowException, HTTPException):
+        raise
     except Exception as e:
         logger.error(
             f"ERROR in get_current_week_progress for user_id={current_user['id']}"

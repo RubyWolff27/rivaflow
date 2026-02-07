@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { authApi } from '../api/auth';
+import { getErrorMessage } from '../api/client';
 
 interface User {
   id: number;
@@ -60,8 +61,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       localStorage.setItem('refresh_token', response.data.refresh_token);
       localStorage.setItem('user', JSON.stringify(response.data.user));
       setUser(response.data.user);
-    } catch (error: any) {
-      throw new Error(error.response?.data?.detail || 'Login failed');
+    } catch (error: unknown) {
+      throw new Error(getErrorMessage(error));
     }
   };
 
@@ -84,8 +85,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       localStorage.setItem('refresh_token', response.data.refresh_token);
       localStorage.setItem('user', JSON.stringify(response.data.user));
       setUser(response.data.user);
-    } catch (error: any) {
-      throw new Error(error.response?.data?.detail || 'Registration failed');
+    } catch (error: unknown) {
+      throw new Error(getErrorMessage(error));
     }
   };
 

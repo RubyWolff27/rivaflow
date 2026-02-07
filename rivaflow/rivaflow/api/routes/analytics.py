@@ -7,7 +7,7 @@ from datetime import date
 from fastapi import APIRouter, Depends, HTTPException, Query
 
 from rivaflow.core.dependencies import get_current_user
-from rivaflow.core.exceptions import NotFoundError
+from rivaflow.core.exceptions import NotFoundError, RivaFlowException
 from rivaflow.core.services.analytics_service import AnalyticsService
 from rivaflow.core.services.fight_dynamics_service import FightDynamicsService
 from rivaflow.core.utils.cache import cached
@@ -95,6 +95,8 @@ async def get_performance_overview(
             end_date=end_date,
             types=types,
         )
+    except (RivaFlowException, HTTPException):
+        raise
     except Exception as e:
         logger.error(f"Error in get_performance_overview: {type(e).__name__}: {str(e)}")
         logger.error(traceback.format_exc())
@@ -120,6 +122,8 @@ async def get_partner_analytics(
             end_date=end_date,
             types=types,
         )
+    except (RivaFlowException, HTTPException):
+        raise
     except Exception as e:
         logger.error(f"Error in get_partner_analytics: {type(e).__name__}: {str(e)}")
         logger.error(traceback.format_exc())
@@ -199,6 +203,8 @@ async def get_technique_analytics(
             end_date=end_date,
             types=types,
         )
+    except (RivaFlowException, HTTPException):
+        raise
     except Exception as e:
         logger.error(f"Error in get_technique_analytics: {type(e).__name__}: {str(e)}")
         logger.error(traceback.format_exc())
@@ -224,6 +230,8 @@ async def get_consistency_analytics(
             end_date=end_date,
             types=types,
         )
+    except (RivaFlowException, HTTPException):
+        raise
     except Exception as e:
         logger.error(
             f"Error in get_consistency_analytics: {type(e).__name__}: {str(e)}"
@@ -239,6 +247,8 @@ async def get_milestones(current_user: dict = Depends(get_current_user)):
     """Get progression and milestone data."""
     try:
         return service.get_milestones(user_id=current_user["id"])
+    except (RivaFlowException, HTTPException):
+        raise
     except Exception as e:
         logger.error(f"Error in get_milestones: {type(e).__name__}: {str(e)}")
         logger.error(traceback.format_exc())
@@ -264,6 +274,8 @@ async def get_instructor_analytics(
             end_date=end_date,
             types=types,
         )
+    except (RivaFlowException, HTTPException):
+        raise
     except Exception as e:
         logger.error(f"Error in get_instructor_analytics: {type(e).__name__}: {str(e)}")
         logger.error(traceback.format_exc())
@@ -295,6 +307,8 @@ async def get_fight_dynamics_heatmap(
             weeks=weeks,
             months=months,
         )
+    except (RivaFlowException, HTTPException):
+        raise
     except Exception as e:
         logger.error(
             f"Error in get_fight_dynamics_heatmap: {type(e).__name__}: {str(e)}"
@@ -319,6 +333,8 @@ async def get_fight_dynamics_insights(
         return fight_dynamics_service.get_insights(
             user_id=current_user["id"],
         )
+    except (RivaFlowException, HTTPException):
+        raise
     except Exception as e:
         logger.error(
             f"Error in get_fight_dynamics_insights: {type(e).__name__}: {str(e)}"

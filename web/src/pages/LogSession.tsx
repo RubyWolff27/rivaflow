@@ -616,7 +616,7 @@ export default function LogSession() {
                   key={time.value}
                   type="button"
                   onClick={() => setSessionData({ ...sessionData, class_time: time.value })}
-                  className="flex-1 py-2 rounded-lg font-medium text-sm transition-all"
+                  className="flex-1 min-h-[44px] py-2 rounded-lg font-medium text-sm transition-all"
                   style={{
                     backgroundColor: sessionData.class_time === time.value ? 'var(--accent)' : 'var(--surfaceElev)',
                     color: sessionData.class_time === time.value ? '#FFFFFF' : 'var(--text)',
@@ -736,7 +736,7 @@ export default function LogSession() {
                   key={mins}
                   type="button"
                   onClick={() => setSessionData({ ...sessionData, duration_mins: mins })}
-                  className="flex-1 py-3 rounded-lg font-medium text-sm transition-all"
+                  className="flex-1 min-h-[44px] py-3 rounded-lg font-medium text-sm transition-all"
                   style={{
                     backgroundColor: sessionData.duration_mins === mins ? 'var(--accent)' : 'var(--surfaceElev)',
                     color: sessionData.duration_mins === mins ? '#FFFFFF' : 'var(--text)',
@@ -769,7 +769,7 @@ export default function LogSession() {
                   key={level}
                   type="button"
                   onClick={() => setSessionData({ ...sessionData, intensity: level })}
-                  className="flex-1 py-3 rounded-lg font-semibold transition-all"
+                  className="flex-1 min-h-[44px] py-3 rounded-lg font-semibold transition-all"
                   style={{
                     backgroundColor: sessionData.intensity === level ? 'var(--accent)' : 'var(--surfaceElev)',
                     color: sessionData.intensity === level ? '#FFFFFF' : 'var(--text)',
@@ -794,7 +794,7 @@ export default function LogSession() {
               <button
                 type="button"
                 onClick={handleAddTechnique}
-                className="flex items-center gap-2 px-3 py-1 bg-primary-600 text-white rounded-md hover:bg-primary-700 text-sm"
+                className="flex items-center gap-2 px-3 py-1 min-h-[44px] bg-primary-600 text-white rounded-md hover:bg-primary-700 text-sm"
               >
                 <Plus className="w-4 h-4" />
                 Add Technique
@@ -855,7 +855,7 @@ export default function LogSession() {
                                 };
                                 setTechniques(updated);
                               }}
-                              className={`w-full text-left px-2 py-1 rounded text-sm ${
+                              className={`w-full text-left px-2 py-2 min-h-[44px] rounded text-sm ${
                                 tech.movement_id === movement.id
                                   ? 'bg-primary-600 text-white'
                                   : 'hover:bg-gray-100 dark:hover:bg-gray-700'

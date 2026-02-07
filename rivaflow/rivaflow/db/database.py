@@ -276,20 +276,28 @@ def _reset_postgresql_sequences(conn) -> None:
                 continue
 
             # Reset sequence to max(id) + 1
-            # Use DO block to handle NULL sequences gracefully
-            cursor.execute(f"""
-                DO $$
-                DECLARE
-                    seq_name TEXT;
-                    max_id INTEGER;
-                BEGIN
-                    seq_name := pg_get_serial_sequence('{table}', 'id');
-                    IF seq_name IS NOT NULL THEN
-                        SELECT COALESCE(MAX(id), 0) INTO max_id FROM {table};
-                        PERFORM setval(seq_name, max_id + 1, false);
-                    END IF;
-                END $$;
-            """)
+            # Use parameterized identifier quoting via psycopg2.sql
+            from psycopg2 import sql
+
+            tbl = sql.Identifier(table)
+            cursor.execute(
+                sql.SQL("SELECT pg_get_serial_sequence({lit}, 'id')").format(
+                    lit=sql.Literal(table)
+                )
+            )
+            row = cursor.fetchone()
+            seq_name = row[0] if row else None
+
+            if seq_name:
+                cursor.execute(
+                    sql.SQL("SELECT COALESCE(MAX(id), 0) FROM {tbl}").format(tbl=tbl)
+                )
+                max_id = cursor.fetchone()[0]
+                cursor.execute(
+                    "SELECT setval(%s, %s, false)",
+                    (seq_name, max_id + 1),
+                )
+
             conn.commit()
             logger.info(f"Reset sequence for table: {table}")
         except Exception as e:
@@ -625,7 +633,8 @@ def get_last_insert_id(cursor, table_name: str = None) -> int:
         # This is a fallback that queries the sequence
         if table_name:
             cursor.execute(
-                f"SELECT currval(pg_get_serial_sequence('{table_name}', 'id'))"
+                "SELECT currval(pg_get_serial_sequence(%s, 'id'))",
+                (table_name,),
             )
             return cursor.fetchone()[0]
         else:
