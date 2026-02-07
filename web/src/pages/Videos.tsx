@@ -41,7 +41,8 @@ export default function Videos() {
         if (!cancelled) {
           const vData = videosRes.data as any;
           setVideos(Array.isArray(vData) ? vData : vData?.videos || []);
-          setMovements(movementsRes.data || []);
+          const mData = movementsRes.data as any;
+          setMovements(Array.isArray(mData) ? mData : mData?.movements || []);
         }
       } catch (error) {
         if (!cancelled) console.error('Error loading data:', error);
@@ -62,7 +63,8 @@ export default function Videos() {
       ]);
       const vData = videosRes.data as any;
       setVideos(Array.isArray(vData) ? vData : vData?.videos || []);
-      setMovements(movementsRes.data || []);
+      const mData = movementsRes.data as any;
+      setMovements(Array.isArray(mData) ? mData : mData?.movements || []);
     } catch (error) {
       console.error('Error loading data:', error);
     } finally {
