@@ -195,23 +195,22 @@ class SessionService:
         self,
         user_id: int,
         session_id: int,
+        session_rolls: list[dict] | None = None,
         session_techniques: list[dict] | None = None,
         **kwargs,
     ) -> dict | None:
         """
-        Update a training session and refresh technique tracking.
+        Update a training session and refresh roll/technique tracking.
 
         Args:
             user_id: User ID for authorization
             session_id: Session ID to update
+            session_rolls: Optional list of roll detail dicts
             session_techniques: Optional list of technique detail dicts
             **kwargs: Session fields to update (session_date, class_type, intensity, etc.)
 
         Returns:
             Updated session dict or None if not found
-
-        Example:
-            update_session(user_id=1, session_id=123, intensity=5, notes="Great!")
         """
         # Get original session to compare techniques
         original = self.session_repo.get_by_id(user_id, session_id)
@@ -225,6 +224,22 @@ class SessionService:
 
         if not updated:
             return None
+
+        # Update detailed roll records if provided
+        if session_rolls is not None:
+            self.roll_repo.delete_by_session(session_id)
+            for roll_data in session_rolls:
+                self.roll_repo.create(
+                    user_id=user_id,
+                    session_id=session_id,
+                    roll_number=roll_data.get("roll_number", 1),
+                    partner_id=roll_data.get("partner_id"),
+                    partner_name=roll_data.get("partner_name"),
+                    duration_mins=roll_data.get("duration_mins"),
+                    submissions_for=roll_data.get("submissions_for"),
+                    submissions_against=roll_data.get("submissions_against"),
+                    notes=roll_data.get("notes"),
+                )
 
         # Update detailed technique records if provided
         if session_techniques is not None:

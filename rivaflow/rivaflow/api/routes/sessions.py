@@ -90,6 +90,13 @@ async def update_session(
 ):
     """Update an existing training session."""
     try:
+        # Convert SessionRollData models to dicts if present
+        session_rolls_dict = None
+        if session.session_rolls is not None:
+            session_rolls_dict = [
+                roll.model_dump() for roll in session.session_rolls
+            ]
+
         # Convert SessionTechniqueCreate models to dicts if present
         session_techniques_dict = None
         if session.session_techniques is not None:
@@ -118,6 +125,7 @@ async def update_session(
             ),
             instructor_id=session.instructor_id,
             instructor_name=session.instructor_name,
+            session_rolls=session_rolls_dict,
             session_techniques=session_techniques_dict,
             whoop_strain=session.whoop_strain,
             whoop_calories=session.whoop_calories,

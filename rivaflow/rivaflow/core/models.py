@@ -214,6 +214,7 @@ class SessionUpdate(BaseModel):
     visibility_level: VisibilityLevel | None = None
     instructor_id: int | None = None
     instructor_name: str | None = None
+    session_rolls: list[SessionRollData] | None = None
     session_techniques: list[SessionTechniqueCreate] | None = None
     whoop_strain: float | None = Field(default=None, ge=0, le=21)
     whoop_calories: int | None = Field(default=None, ge=0)
