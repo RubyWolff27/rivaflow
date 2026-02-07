@@ -169,12 +169,12 @@ Now respond to the user's questions using this context. Reference their specific
                 context_parts.append("")
                 context_parts.append("RECENT READINESS (last 7 days):")
                 for r in recent_readiness:
-                    date = r.get("date", "Unknown")
+                    r_date = r.get("date", "Unknown")
                     energy = r.get("energy_level", 0)
                     soreness = r.get("soreness_level", 0)
                     sleep = r.get("sleep_quality", 0)
                     context_parts.append(
-                        f"- {date}: Energy {energy}/10, Soreness {soreness}/10, Sleep {sleep}/10"
+                        f"- {r_date}: Energy {energy}/10, Soreness {soreness}/10, Sleep {sleep}/10"
                     )
 
         else:
