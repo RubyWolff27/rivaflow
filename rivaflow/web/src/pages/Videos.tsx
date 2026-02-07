@@ -38,7 +38,8 @@ export default function Videos() {
           techniquesApi.list(),
         ]);
         if (!cancelled) {
-          setVideos(videosRes.data);
+          const vData = videosRes.data as any;
+      setVideos(Array.isArray(vData) ? vData : vData?.videos || []);
           setTechniques(techniquesRes.data.techniques || []);
         }
       } catch (error) {
@@ -58,7 +59,8 @@ export default function Videos() {
         videosApi.list(),
         techniquesApi.list(),
       ]);
-      setVideos(videosRes.data);
+      const vData = videosRes.data as any;
+      setVideos(Array.isArray(vData) ? vData : vData?.videos || []);
       setTechniques(techniquesRes.data.techniques || []);
     } catch (error) {
       console.error('Error loading data:', error);
