@@ -1,0 +1,114 @@
+{
+  "title": "Blue Belt - Guard Player",
+  "belt_level": "blue",
+  "archetype": "guard_player",
+  "nodes": [
+    {
+      "name": "Closed Guard",
+      "node_type": "position",
+      "linked_glossary_names": ["Closed Guard"],
+      "children": [
+        {
+          "name": "Triangle Choke",
+          "node_type": "submission",
+          "linked_glossary_names": ["Triangle Choke"]
+        },
+        {
+          "name": "Armbar",
+          "node_type": "submission",
+          "linked_glossary_names": ["Armbar"]
+        },
+        {
+          "name": "Omoplata",
+          "node_type": "submission",
+          "linked_glossary_names": ["Omoplata"]
+        },
+        {
+          "name": "Flower Sweep",
+          "node_type": "sweep",
+          "linked_glossary_names": ["Flower Sweep"]
+        }
+      ]
+    },
+    {
+      "name": "Open Guard",
+      "node_type": "position",
+      "linked_glossary_names": [],
+      "children": [
+        {
+          "name": "Spider Guard",
+          "node_type": "position",
+          "linked_glossary_names": ["Spider Guard"],
+          "children": [
+            {
+              "name": "Triangle from Spider",
+              "node_type": "submission",
+              "linked_glossary_names": ["Triangle Choke"]
+            },
+            {
+              "name": "Sweep to Mount",
+              "node_type": "sweep",
+              "linked_glossary_names": []
+            }
+          ]
+        },
+        {
+          "name": "De La Riva Guard",
+          "node_type": "position",
+          "linked_glossary_names": ["De La Riva Guard"],
+          "children": [
+            {
+              "name": "DLR Sweep",
+              "node_type": "sweep",
+              "linked_glossary_names": []
+            },
+            {
+              "name": "Berimbolo",
+              "node_type": "technique",
+              "linked_glossary_names": ["Berimbolo"]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Half Guard",
+      "node_type": "position",
+      "linked_glossary_names": ["Half Guard"],
+      "children": [
+        {
+          "name": "Lockdown",
+          "node_type": "technique",
+          "linked_glossary_names": []
+        },
+        {
+          "name": "Deep Half Sweep",
+          "node_type": "sweep",
+          "linked_glossary_names": []
+        },
+        {
+          "name": "Kimura from Half",
+          "node_type": "submission",
+          "linked_glossary_names": ["Kimura"]
+        }
+      ]
+    },
+    {
+      "name": "Back Control",
+      "node_type": "position",
+      "linked_glossary_names": ["Back Control"],
+      "children": [
+        {
+          "name": "Rear Naked Choke",
+          "node_type": "submission",
+          "linked_glossary_names": ["Rear Naked Choke"]
+        },
+        {
+          "name": "Bow and Arrow Choke",
+          "node_type": "submission",
+          "linked_glossary_names": ["Bow and Arrow Choke"]
+        }
+      ]
+    }
+  ]
+}

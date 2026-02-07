@@ -1,0 +1,80 @@
+{
+  "title": "White Belt - Top Passer",
+  "belt_level": "white",
+  "archetype": "top_passer",
+  "nodes": [
+    {
+      "name": "Standing Pass",
+      "node_type": "pass",
+      "linked_glossary_names": [],
+      "children": [
+        {
+          "name": "Torreando Pass",
+          "node_type": "pass",
+          "linked_glossary_names": ["Toreando Pass"]
+        },
+        {
+          "name": "Double Under Pass",
+          "node_type": "pass",
+          "linked_glossary_names": ["Double Under Pass"]
+        }
+      ]
+    },
+    {
+      "name": "Side Control",
+      "node_type": "position",
+      "linked_glossary_names": ["Side Control"],
+      "children": [
+        {
+          "name": "Americana",
+          "node_type": "submission",
+          "linked_glossary_names": ["Americana"]
+        },
+        {
+          "name": "Kimura from Side",
+          "node_type": "submission",
+          "linked_glossary_names": ["Kimura"]
+        },
+        {
+          "name": "Mount Transition",
+          "node_type": "technique",
+          "linked_glossary_names": []
+        }
+      ]
+    },
+    {
+      "name": "Mount",
+      "node_type": "position",
+      "linked_glossary_names": ["Mount"],
+      "children": [
+        {
+          "name": "Cross Collar Choke",
+          "node_type": "submission",
+          "linked_glossary_names": ["Cross Collar Choke"]
+        },
+        {
+          "name": "Armbar from Mount",
+          "node_type": "submission",
+          "linked_glossary_names": ["Armbar"]
+        }
+      ]
+    },
+    {
+      "name": "Takedown",
+      "node_type": "technique",
+      "linked_glossary_names": [],
+      "children": [
+        {
+          "name": "Double Leg",
+          "node_type": "technique",
+          "linked_glossary_names": ["Double Leg Takedown"]
+        },
+        {
+          "name": "Body Lock Takedown",
+          "node_type": "technique",
+          "linked_glossary_names": []
+        }
+      ]
+    }
+  ]
+}

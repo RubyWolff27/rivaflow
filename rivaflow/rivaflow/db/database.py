@@ -255,6 +255,11 @@ def _reset_postgresql_sequences(conn) -> None:
         "refresh_tokens",
         "gyms",
         "audit_logs",
+        "game_plans",
+        "game_plan_nodes",
+        "game_plan_edges",
+        "session_events",
+        "ai_insights",
     ]
 
     for table in tables_with_serials:
@@ -479,6 +484,8 @@ def _apply_migrations(
         "061_events_and_weight_logs.sql",
         "062_groups.sql",
         "063_social_connections.sql",
+        "064_game_plans.sql",
+        "065_enhanced_grapple.sql",
     ]
 
     migrations_dir = Path(__file__).parent / "migrations"

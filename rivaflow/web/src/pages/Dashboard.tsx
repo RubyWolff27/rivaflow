@@ -12,6 +12,8 @@ import { useToast } from '../contexts/ToastContext';
 import { readinessApi, weightLogsApi } from '../api/client';
 import ReadinessRecommendation from '../components/dashboard/ReadinessRecommendation';
 import NextEvent from '../components/dashboard/NextEvent';
+import MyGameWidget from '../components/dashboard/MyGameWidget';
+import LatestInsightWidget from '../components/dashboard/LatestInsightWidget';
 
 export default function Dashboard() {
   const navigate = useNavigate();
@@ -200,6 +202,12 @@ export default function Dashboard() {
           </div>
         </div>
       </Card>
+
+      {/* My Game + AI Insight */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <MyGameWidget />
+        <LatestInsightWidget />
+      </div>
 
       {/* Next Event */}
       <NextEvent />

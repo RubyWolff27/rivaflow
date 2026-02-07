@@ -540,3 +540,41 @@ export const weightLogsApi = {
   getAverages: (period?: string) =>
     api.get<{ averages: WeightAverage[]; period: string }>('/events/weight-logs/averages', { params: { period } }),
 };
+
+// Game Plans API (My Game)
+export const gamePlansApi = {
+  generate: (data: { belt_level: string; archetype: string; style?: string }) =>
+    api.post('/game-plans/generate', data),
+  getCurrent: () => api.get('/game-plans/'),
+  getById: (id: number) => api.get(`/game-plans/${id}`),
+  update: (id: number, data: Record<string, unknown>) =>
+    api.patch(`/game-plans/${id}`, data),
+  delete: (id: number) => api.delete(`/game-plans/${id}`),
+  addNode: (planId: number, data: { name: string; node_type?: string; parent_id?: number; glossary_id?: number }) =>
+    api.post(`/game-plans/${planId}/nodes`, data),
+  updateNode: (planId: number, nodeId: number, data: Record<string, unknown>) =>
+    api.patch(`/game-plans/${planId}/nodes/${nodeId}`, data),
+  deleteNode: (planId: number, nodeId: number) =>
+    api.delete(`/game-plans/${planId}/nodes/${nodeId}`),
+  addEdge: (planId: number, data: { from_node_id: number; to_node_id: number; edge_type?: string; label?: string }) =>
+    api.post(`/game-plans/${planId}/edges`, data),
+  deleteEdge: (planId: number, edgeId: number) =>
+    api.delete(`/game-plans/${planId}/edges/${edgeId}`),
+  setFocus: (planId: number, nodeIds: number[]) =>
+    api.post(`/game-plans/${planId}/focus`, { node_ids: nodeIds }),
+};
+
+// Enhanced Grapple API
+export const grappleApi = {
+  getInfo: () => api.get('/grapple/info'),
+  extractSession: (text: string) =>
+    api.post('/grapple/extract-session', { text }),
+  saveExtractedSession: (data: Record<string, unknown>) =>
+    api.post('/grapple/save-extracted-session', data),
+  getInsights: (params?: { limit?: number; insight_type?: string }) =>
+    api.get('/grapple/insights', { params }),
+  generateInsight: (data: { insight_type: string; session_id?: number }) =>
+    api.post('/grapple/insights/generate', data),
+  techniqueQA: (question: string) =>
+    api.post('/grapple/technique-qa', { question }),
+};

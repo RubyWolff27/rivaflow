@@ -465,3 +465,89 @@ export interface GroupMember {
   last_name?: string;
   email?: string;
 }
+
+// Game Plans (My Game)
+export interface GamePlan {
+  id: number;
+  user_id: number;
+  belt_level: string;
+  archetype: string;
+  style: string;
+  title?: string;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+  nodes?: GamePlanNode[];
+  flat_nodes?: GamePlanNode[];
+  edges?: GamePlanEdge[];
+  focus_nodes?: GamePlanNode[];
+}
+
+export interface GamePlanNode {
+  id: number;
+  plan_id: number;
+  parent_id?: number;
+  name: string;
+  node_type: string;
+  glossary_id?: number;
+  confidence: number;
+  priority: string;
+  is_focus: boolean;
+  attempts: number;
+  successes: number;
+  last_used_date?: string;
+  sort_order: number;
+  notes?: string;
+  children?: GamePlanNode[];
+  created_at: string;
+  updated_at: string;
+}
+
+export interface GamePlanEdge {
+  id: number;
+  plan_id: number;
+  from_node_id: number;
+  to_node_id: number;
+  edge_type: string;
+  label?: string;
+  created_at: string;
+}
+
+// AI Insights
+export interface AIInsight {
+  id: number;
+  user_id: number;
+  session_id?: number;
+  insight_type: string;
+  title: string;
+  content: string;
+  category: string;
+  data?: Record<string, unknown>;
+  is_read: boolean;
+  created_at: string;
+}
+
+// Extracted Session
+export interface ExtractedSession {
+  session_date?: string;
+  class_type?: string;
+  gym_name?: string;
+  duration_mins?: number;
+  intensity?: number;
+  rolls?: number;
+  submissions_for?: number;
+  submissions_against?: number;
+  partners?: string[];
+  techniques?: string[];
+  notes?: string;
+  events?: ExtractedEvent[];
+  parse_error?: boolean;
+}
+
+export interface ExtractedEvent {
+  event_type: string;
+  technique_name?: string;
+  position?: string;
+  outcome?: string;
+  partner_name?: string;
+}

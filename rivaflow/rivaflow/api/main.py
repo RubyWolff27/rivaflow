@@ -38,9 +38,11 @@ from rivaflow.api.routes import (
     feed,
     feedback,
     friends,
+    game_plans,
     glossary,
     goals,
     gradings,
+    grapple,
     groups,
     gyms,
     health,
@@ -60,9 +62,6 @@ from rivaflow.api.routes import (
     videos,
     waitlist,
 )
-
-# AI features temporarily disabled for deployment (large CUDA dependencies)
-# from rivaflow.api.routes import chat, llm_tools, grapple, admin_grapple
 from rivaflow.core.exceptions import RivaFlowException
 from rivaflow.core.settings import settings
 
@@ -229,11 +228,9 @@ app.include_router(streaks.router, prefix="/api/v1")
 app.include_router(milestones.router, prefix="/api/v1")
 app.include_router(photos.router, prefix="/api/v1")
 app.include_router(social.router, prefix="/api/v1")
-# AI features temporarily disabled for deployment (large CUDA dependencies)
-# app.include_router(chat.router, prefix="/api/v1")
-# app.include_router(grapple.router, prefix="/api/v1")
-# app.include_router(admin_grapple.router, prefix="/api/v1")
-# app.include_router(llm_tools.router, prefix="/api/v1")
+# AI features (Grapple + Game Plans)
+app.include_router(grapple.router, prefix="/api/v1")
+app.include_router(game_plans.router, prefix="/api/v1")
 app.include_router(notifications.router, prefix="/api/v1")
 app.include_router(admin.router, prefix="/api/v1")
 app.include_router(gyms.router, prefix="/api/v1")

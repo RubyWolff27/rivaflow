@@ -1,0 +1,80 @@
+{
+  "title": "White Belt - Guard Player",
+  "belt_level": "white",
+  "archetype": "guard_player",
+  "nodes": [
+    {
+      "name": "Closed Guard",
+      "node_type": "position",
+      "linked_glossary_names": ["Closed Guard"],
+      "children": [
+        {
+          "name": "Cross Collar Choke",
+          "node_type": "submission",
+          "linked_glossary_names": ["Cross Collar Choke"]
+        },
+        {
+          "name": "Armbar from Guard",
+          "node_type": "submission",
+          "linked_glossary_names": ["Armbar"]
+        },
+        {
+          "name": "Hip Bump Sweep",
+          "node_type": "sweep",
+          "linked_glossary_names": ["Hip Bump Sweep"]
+        },
+        {
+          "name": "Scissor Sweep",
+          "node_type": "sweep",
+          "linked_glossary_names": ["Scissor Sweep"]
+        }
+      ]
+    },
+    {
+      "name": "Half Guard",
+      "node_type": "position",
+      "linked_glossary_names": ["Half Guard"],
+      "children": [
+        {
+          "name": "Underhook Sweep",
+          "node_type": "sweep",
+          "linked_glossary_names": []
+        },
+        {
+          "name": "Back Take from Half",
+          "node_type": "technique",
+          "linked_glossary_names": []
+        }
+      ]
+    },
+    {
+      "name": "Mount Escape",
+      "node_type": "escape",
+      "linked_glossary_names": [],
+      "children": [
+        {
+          "name": "Trap and Roll",
+          "node_type": "escape",
+          "linked_glossary_names": ["Trap and Roll"]
+        },
+        {
+          "name": "Elbow-Knee Escape",
+          "node_type": "escape",
+          "linked_glossary_names": []
+        }
+      ]
+    },
+    {
+      "name": "Side Control Escape",
+      "node_type": "escape",
+      "linked_glossary_names": [],
+      "children": [
+        {
+          "name": "Frame and Reguard",
+          "node_type": "escape",
+          "linked_glossary_names": []
+        }
+      ]
+    }
+  ]
+}

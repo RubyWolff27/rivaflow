@@ -424,3 +424,205 @@ async def get_usage_stats(
             "monthly_cost_limit_usd": FeatureAccess.get_cost_limit(user_tier),
         },
     }
+
+
+# ============================================================================
+# Request/Response Models for Enhanced Grapple
+# ============================================================================
+
+
+class ExtractSessionRequest(BaseModel):
+    """Request to extract session data from text."""
+
+    text: str
+
+
+class SaveExtractedSessionRequest(BaseModel):
+    """Confirm and save an extracted session."""
+
+    session_date: str
+    class_type: str = "gi"
+    gym_name: str = ""
+    duration_mins: int = 60
+    intensity: int = 3
+    rolls: int = 0
+    submissions_for: int = 0
+    submissions_against: int = 0
+    partners: list[str] = []
+    techniques: list[str] = []
+    notes: str = ""
+    events: list[dict] = []
+
+
+class GenerateInsightRequest(BaseModel):
+    """Request to generate an AI insight."""
+
+    insight_type: str = "post_session"
+    session_id: int | None = None
+
+
+class TechniqueQARequest(BaseModel):
+    """Request for technique Q&A."""
+
+    question: str
+
+
+# ============================================================================
+# Enhanced Grapple Endpoints
+# ============================================================================
+
+
+@router.post("/extract-session")
+@require_beta_or_premium
+async def extract_session(
+    request: ExtractSessionRequest,
+    current_user: dict = Depends(get_current_user),
+):
+    """Parse natural language into structured session data."""
+    from rivaflow.core.services.grapple.session_extraction_service import (
+        extract_session_from_text,
+    )
+
+    user_id = current_user["id"]
+    try:
+        result = await extract_session_from_text(request.text, user_id)
+        return result
+    except RuntimeError as e:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail=str(e),
+        )
+
+
+@router.post("/save-extracted-session")
+@require_beta_or_premium
+async def save_extracted_session(
+    request: SaveExtractedSessionRequest,
+    current_user: dict = Depends(get_current_user),
+):
+    """Save a previously extracted session."""
+    from datetime import date
+
+    from rivaflow.db.repositories.session_event_repo import (
+        SessionEventRepository,
+    )
+    from rivaflow.db.repositories.session_repo import (
+        SessionRepository,
+    )
+
+    user_id = current_user["id"]
+
+    session_id = SessionRepository.create(
+        user_id=user_id,
+        session_date=date.fromisoformat(request.session_date),
+        class_type=request.class_type,
+        gym_name=request.gym_name,
+        duration_mins=request.duration_mins,
+        intensity=request.intensity,
+        rolls=request.rolls,
+        submissions_for=request.submissions_for,
+        submissions_against=request.submissions_against,
+        partners=request.partners,
+        techniques=request.techniques,
+        notes=request.notes,
+    )
+
+    # Save events if present
+    if request.events:
+        events = []
+        for i, evt in enumerate(request.events):
+            events.append(
+                {
+                    "session_id": session_id,
+                    "user_id": user_id,
+                    "event_type": evt.get("event_type", "technique"),
+                    "technique_name": evt.get("technique_name"),
+                    "position": evt.get("position"),
+                    "outcome": evt.get("outcome"),
+                    "partner_name": evt.get("partner_name"),
+                    "event_order": i,
+                }
+            )
+        SessionEventRepository.bulk_create(events)
+
+    return {
+        "session_id": session_id,
+        "message": "Session saved successfully",
+    }
+
+
+@router.get("/insights")
+@require_beta_or_premium
+async def list_insights(
+    current_user: dict = Depends(get_current_user),
+    limit: int = 20,
+    insight_type: str | None = None,
+):
+    """List user's AI insights."""
+    from rivaflow.db.repositories.ai_insight_repo import (
+        AIInsightRepository,
+    )
+
+    user_id = current_user["id"]
+    insights = AIInsightRepository.list_by_user(
+        user_id, limit=limit, insight_type=insight_type
+    )
+    return {
+        "insights": insights,
+        "count": len(insights),
+    }
+
+
+@router.post("/insights/generate")
+@require_beta_or_premium
+async def generate_insight(
+    request: GenerateInsightRequest,
+    current_user: dict = Depends(get_current_user),
+):
+    """Generate a new AI insight."""
+    from rivaflow.core.services.grapple.ai_insight_service import (
+        generate_post_session_insight,
+        generate_weekly_insight,
+    )
+
+    user_id = current_user["id"]
+
+    if request.insight_type == "post_session" and request.session_id:
+        insight = await generate_post_session_insight(user_id, request.session_id)
+    elif request.insight_type == "weekly":
+        insight = await generate_weekly_insight(user_id)
+    else:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=("Invalid insight_type or missing" " session_id"),
+        )
+
+    if not insight:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Could not generate insight",
+        )
+
+    return insight
+
+
+@router.post("/technique-qa")
+@require_beta_or_premium
+async def technique_qa_endpoint(
+    request: TechniqueQARequest,
+    current_user: dict = Depends(get_current_user),
+):
+    """Glossary-grounded technique Q&A."""
+    from rivaflow.core.services.grapple.glossary_rag_service import (
+        technique_qa,
+    )
+
+    user_id = current_user["id"]
+    try:
+        result = await technique_qa(request.question, user_id)
+        return result
+    except RuntimeError as e:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail=str(e),
+        )

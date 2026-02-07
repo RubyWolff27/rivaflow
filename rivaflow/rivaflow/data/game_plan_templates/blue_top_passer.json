@@ -1,0 +1,117 @@
+{
+  "title": "Blue Belt - Top Passer",
+  "belt_level": "blue",
+  "archetype": "top_passer",
+  "nodes": [
+    {
+      "name": "Pressure Passing",
+      "node_type": "pass",
+      "linked_glossary_names": [],
+      "children": [
+        {
+          "name": "Over-Under Pass",
+          "node_type": "pass",
+          "linked_glossary_names": ["Over Under Pass"]
+        },
+        {
+          "name": "Knee Slice",
+          "node_type": "pass",
+          "linked_glossary_names": ["Knee Slice Pass"]
+        },
+        {
+          "name": "Smash Pass",
+          "node_type": "pass",
+          "linked_glossary_names": []
+        }
+      ]
+    },
+    {
+      "name": "Speed Passing",
+      "node_type": "pass",
+      "linked_glossary_names": [],
+      "children": [
+        {
+          "name": "Torreando Pass",
+          "node_type": "pass",
+          "linked_glossary_names": ["Toreando Pass"]
+        },
+        {
+          "name": "Leg Drag",
+          "node_type": "pass",
+          "linked_glossary_names": ["Leg Drag"]
+        }
+      ]
+    },
+    {
+      "name": "Side Control",
+      "node_type": "position",
+      "linked_glossary_names": ["Side Control"],
+      "children": [
+        {
+          "name": "Kimura",
+          "node_type": "submission",
+          "linked_glossary_names": ["Kimura"]
+        },
+        {
+          "name": "North-South Choke",
+          "node_type": "submission",
+          "linked_glossary_names": ["North South Choke"]
+        },
+        {
+          "name": "Mount Transition",
+          "node_type": "technique",
+          "linked_glossary_names": []
+        },
+        {
+          "name": "Back Take",
+          "node_type": "technique",
+          "linked_glossary_names": []
+        }
+      ]
+    },
+    {
+      "name": "Mount",
+      "node_type": "position",
+      "linked_glossary_names": ["Mount"],
+      "children": [
+        {
+          "name": "Arm Triangle",
+          "node_type": "submission",
+          "linked_glossary_names": ["Arm Triangle"]
+        },
+        {
+          "name": "Ezekiel Choke",
+          "node_type": "submission",
+          "linked_glossary_names": ["Ezekiel Choke"]
+        },
+        {
+          "name": "S-Mount Armbar",
+          "node_type": "submission",
+          "linked_glossary_names": ["Armbar"]
+        }
+      ]
+    },
+    {
+      "name": "Takedowns",
+      "node_type": "technique",
+      "linked_glossary_names": [],
+      "children": [
+        {
+          "name": "Double Leg",
+          "node_type": "technique",
+          "linked_glossary_names": ["Double Leg Takedown"]
+        },
+        {
+          "name": "Single Leg",
+          "node_type": "technique",
+          "linked_glossary_names": ["Single Leg Takedown"]
+        },
+        {
+          "name": "Ankle Pick",
+          "node_type": "technique",
+          "linked_glossary_names": ["Ankle Pick"]
+        }
+      ]
+    }
+  ]
+}
