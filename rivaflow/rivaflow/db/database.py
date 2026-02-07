@@ -486,6 +486,8 @@ def _apply_migrations(
         "063_social_connections.sql",
         "064_game_plans.sql",
         "065_enhanced_grapple.sql",
+        "066_add_check_constraints.sql",
+        "067_create_grapple_tables.sql",
     ]
 
     migrations_dir = Path(__file__).parent / "migrations"
