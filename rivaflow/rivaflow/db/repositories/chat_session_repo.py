@@ -68,11 +68,11 @@ class ChatSessionRepository:
         Returns:
             Session dict or None
         """
-        query = """
+        query = convert_query("""
             SELECT id, user_id, title, message_count, total_tokens, total_cost_usd, created_at, updated_at
             FROM chat_sessions
             WHERE id = ? AND user_id = ?
-        """
+        """)
 
         with get_connection() as conn:
             cursor = conn.cursor()
@@ -113,13 +113,13 @@ class ChatSessionRepository:
         Returns:
             List of session dicts
         """
-        query = """
+        query = convert_query("""
             SELECT id, user_id, title, message_count, total_tokens, total_cost_usd, created_at, updated_at
             FROM chat_sessions
             WHERE user_id = ?
             ORDER BY updated_at DESC
             LIMIT ? OFFSET ?
-        """
+        """)
 
         with get_connection() as conn:
             cursor = conn.cursor()
@@ -216,7 +216,7 @@ class ChatSessionRepository:
         Returns:
             True if deleted
         """
-        query = "DELETE FROM chat_sessions WHERE id = ? AND user_id = ?"
+        query = convert_query("DELETE FROM chat_sessions WHERE id = ? AND user_id = ?")
 
         with get_connection() as conn:
             cursor = conn.cursor()
