@@ -44,10 +44,10 @@ class GamePlanRepository:
             cursor.execute(
                 convert_query(
                     "SELECT * FROM game_plans"
-                    " WHERE user_id = ? AND is_active = 1"
+                    " WHERE user_id = ? AND is_active = ?"
                     " ORDER BY updated_at DESC LIMIT 1"
                 ),
-                (user_id,),
+                (user_id, True),
             )
             row = cursor.fetchone()
             return dict(row) if row else None

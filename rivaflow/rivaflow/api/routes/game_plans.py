@@ -180,9 +180,7 @@ async def add_node(
     current_user: dict = Depends(get_current_user),
 ):
     """Add a node to a game plan."""
-    from rivaflow.core.services.game_plan_service import (
-        add_node as svc_add_node,
-    )
+    from rivaflow.core.services.game_plan_service import add_node as svc_add_node
 
     user_id = current_user["id"]
     node = svc_add_node(
@@ -209,9 +207,7 @@ async def update_node(
     current_user: dict = Depends(get_current_user),
 ):
     """Update a node."""
-    from rivaflow.core.services.game_plan_service import (
-        update_node as svc_update_node,
-    )
+    from rivaflow.core.services.game_plan_service import update_node as svc_update_node
 
     user_id = current_user["id"]
     updates = request.model_dump(exclude_none=True)
@@ -237,9 +233,7 @@ async def delete_node(
     current_user: dict = Depends(get_current_user),
 ):
     """Delete a node."""
-    from rivaflow.core.services.game_plan_service import (
-        delete_node as svc_delete_node,
-    )
+    from rivaflow.core.services.game_plan_service import delete_node as svc_delete_node
 
     user_id = current_user["id"]
     deleted = svc_delete_node(plan_id, user_id, node_id)
@@ -258,9 +252,7 @@ async def add_edge(
     current_user: dict = Depends(get_current_user),
 ):
     """Add an edge between nodes."""
-    from rivaflow.core.services.game_plan_service import (
-        add_edge as svc_add_edge,
-    )
+    from rivaflow.core.services.game_plan_service import add_edge as svc_add_edge
 
     user_id = current_user["id"]
     edge_id = svc_add_edge(
@@ -286,9 +278,7 @@ async def delete_edge(
     current_user: dict = Depends(get_current_user),
 ):
     """Delete an edge."""
-    from rivaflow.core.services.game_plan_service import (
-        delete_edge as svc_delete_edge,
-    )
+    from rivaflow.core.services.game_plan_service import delete_edge as svc_delete_edge
 
     user_id = current_user["id"]
     deleted = svc_delete_edge(plan_id, user_id, edge_id)

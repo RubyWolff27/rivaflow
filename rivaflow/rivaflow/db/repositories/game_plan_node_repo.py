@@ -102,10 +102,10 @@ class GamePlanNodeRepository:
             cursor.execute(
                 convert_query(
                     "SELECT * FROM game_plan_nodes"
-                    " WHERE plan_id = ? AND is_focus = 1"
+                    " WHERE plan_id = ? AND is_focus = ?"
                     " ORDER BY sort_order"
                 ),
-                (plan_id,),
+                (plan_id, True),
             )
             return [dict(row) for row in cursor.fetchall()]
 
@@ -195,20 +195,20 @@ class GamePlanNodeRepository:
             cursor.execute(
                 convert_query(
                     "UPDATE game_plan_nodes"
-                    " SET is_focus = 0,"
+                    " SET is_focus = ?,"
                     " updated_at = CURRENT_TIMESTAMP"
                     " WHERE plan_id = ?"
                 ),
-                (plan_id,),
+                (False, plan_id),
             )
             # Set new focus (max 5)
             for nid in node_ids[:5]:
                 cursor.execute(
                     convert_query(
                         "UPDATE game_plan_nodes"
-                        " SET is_focus = 1,"
+                        " SET is_focus = ?,"
                         " updated_at = CURRENT_TIMESTAMP"
                         " WHERE id = ? AND plan_id = ?"
                     ),
-                    (nid, plan_id),
+                    (True, nid, plan_id),
                 )
