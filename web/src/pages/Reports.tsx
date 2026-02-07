@@ -46,38 +46,41 @@ export default function Reports() {
   }, [activeTab, selectedTypes]);
 
   useEffect(() => {
+    let cancelled = false;
     if (dateRange.start && dateRange.end) {
-      loadData();
-    }
-  }, [dateRange, activeTab, selectedTypes]);
+      const doLoad = async () => {
+        setLoading(true);
+        setError(null);
+        try {
+          const params = {
+            start_date: dateRange.start,
+            end_date: dateRange.end,
+            types: selectedTypes.length > 0 ? selectedTypes : undefined,
+          };
 
-  const loadData = async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const params = {
-        start_date: dateRange.start,
-        end_date: dateRange.end,
-        types: selectedTypes.length > 0 ? selectedTypes : undefined,
+          if (activeTab === 'overview') {
+            const perfRes = await analyticsApi.performanceOverview(params);
+            if (!cancelled) setPerformanceData(perfRes.data ?? null);
+          } else if (activeTab === 'partners') {
+            const partnersRes = await analyticsApi.partnerStats(params);
+            if (!cancelled) setPartnersData(partnersRes.data ?? null);
+          } else if (activeTab === 'techniques') {
+            const techRes = await analyticsApi.techniqueBreakdown(params);
+            if (!cancelled) setTechniquesData(techRes.data ?? null);
+          }
+        } catch (error) {
+          if (!cancelled) {
+            console.error('Error loading analytics:', error);
+            setError('Failed to load analytics data. Please try again.');
+          }
+        } finally {
+          if (!cancelled) setLoading(false);
+        }
       };
-
-      if (activeTab === 'overview') {
-        const perfRes = await analyticsApi.performanceOverview(params);
-        setPerformanceData(perfRes.data ?? null);
-      } else if (activeTab === 'partners') {
-        const partnersRes = await analyticsApi.partnerStats(params);
-        setPartnersData(partnersRes.data ?? null);
-      } else if (activeTab === 'techniques') {
-        const techRes = await analyticsApi.techniqueBreakdown(params);
-        setTechniquesData(techRes.data ?? null);
-      }
-    } catch (error) {
-      console.error('Error loading analytics:', error);
-      setError('Failed to load analytics data. Please try again.');
-    } finally {
-      setLoading(false);
+      doLoad();
     }
-  };
+    return () => { cancelled = true; };
+  }, [dateRange, activeTab, selectedTypes]);
 
   const handleDateRangeChange = (start: string, end: string) => {
     setDateRange({ start, end });
@@ -440,8 +443,8 @@ export default function Reports() {
                       <Chip>{chipLabel}</Chip>
                     </div>
                     <ul className="space-y-2">
-                      {quickInsights.map((insight, index) => (
-                        <li key={index} className="text-sm text-[var(--muted)] flex items-start gap-2">
+                      {quickInsights.map((insight) => (
+                        <li key={insight} className="text-sm text-[var(--muted)] flex items-start gap-2">
                           <span className="text-[var(--accent)] font-bold">•</span>
                           <span>{insight}</span>
                         </li>
@@ -723,9 +726,9 @@ export default function Reports() {
 
               {techniquesData.gi_top_techniques && Array.isArray(techniquesData.gi_top_techniques) && techniquesData.gi_top_techniques.length > 0 ? (
                 <div className="space-y-2">
-                  {techniquesData.gi_top_techniques.slice(0, 5).map((tech: any, index: number) => (
+                  {techniquesData.gi_top_techniques.slice(0, 5).map((tech: any) => (
                     <div
-                      key={index}
+                      key={tech.name ?? tech.id}
                       className="flex items-center justify-between p-3 rounded-lg"
                       style={{ backgroundColor: 'var(--surfaceElev)' }}
                     >
@@ -750,9 +753,9 @@ export default function Reports() {
 
               {techniquesData.nogi_top_techniques && Array.isArray(techniquesData.nogi_top_techniques) && techniquesData.nogi_top_techniques.length > 0 ? (
                 <div className="space-y-2">
-                  {techniquesData.nogi_top_techniques.slice(0, 5).map((tech: any, index: number) => (
+                  {techniquesData.nogi_top_techniques.slice(0, 5).map((tech: any) => (
                     <div
-                      key={index}
+                      key={tech.name ?? tech.id}
                       className="flex items-center justify-between p-3 rounded-lg"
                       style={{ backgroundColor: 'var(--surfaceElev)' }}
                     >

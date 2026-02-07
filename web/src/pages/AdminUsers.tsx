@@ -49,7 +49,25 @@ export default function AdminUsers() {
   const [selectedTier, setSelectedTier] = useState<string>('free');
 
   useEffect(() => {
-    loadUsers();
+    let cancelled = false;
+    const doLoad = async () => {
+      setLoading(true);
+      try {
+        const response = await adminApi.listUsers({
+          search: searchQuery || undefined,
+          is_active: filterActive,
+          is_admin: filterAdmin,
+          limit: 100,
+        });
+        if (!cancelled) setUsers(response.data.users || []);
+      } catch (error) {
+        if (!cancelled) toast.error('Failed to load users. Please try again.');
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    };
+    doLoad();
+    return () => { cancelled = true; };
   }, [searchQuery, filterActive, filterAdmin]);
 
   const loadUsers = async () => {
@@ -155,11 +173,11 @@ export default function AdminUsers() {
 
   const getTierColor = (tier?: string) => {
     switch (tier) {
-      case 'lifetime_premium': return 'text-purple-600 dark:text-purple-400 bg-purple-500/20';
-      case 'premium': return 'text-blue-600 dark:text-blue-400 bg-blue-500/20';
-      case 'admin': return 'text-red-600 dark:text-red-400 bg-red-500/20';
+      case 'lifetime_premium': return 'text-purple-600 bg-purple-500/20';
+      case 'premium': return 'text-blue-600 bg-blue-500/20';
+      case 'admin': return 'text-red-600 bg-red-500/20';
       case 'free':
-      default: return 'text-gray-600 dark:text-gray-400 bg-gray-500/20';
+      default: return 'text-[var(--muted)] bg-[var(--surfaceElev)]';
     }
   };
 
@@ -196,8 +214,8 @@ export default function AdminUsers() {
               onClick={() => setFilterActive(filterActive === true ? undefined : true)}
               className={`px-3 py-1.5 rounded-lg text-sm transition-colors ${
                 filterActive === true
-                  ? 'bg-green-500/20 text-green-600 dark:text-green-400'
-                  : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400'
+                  ? 'bg-green-500/20 text-green-600'
+                  : 'bg-[var(--surfaceElev)] text-[var(--muted)]'
               }`}
             >
               Active Only
@@ -206,8 +224,8 @@ export default function AdminUsers() {
               onClick={() => setFilterActive(filterActive === false ? undefined : false)}
               className={`px-3 py-1.5 rounded-lg text-sm transition-colors ${
                 filterActive === false
-                  ? 'bg-red-500/20 text-red-600 dark:text-red-400'
-                  : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400'
+                  ? 'bg-red-500/20 text-red-600'
+                  : 'bg-[var(--surfaceElev)] text-[var(--muted)]'
               }`}
             >
               Inactive Only
@@ -216,8 +234,8 @@ export default function AdminUsers() {
               onClick={() => setFilterAdmin(filterAdmin === true ? undefined : true)}
               className={`px-3 py-1.5 rounded-lg text-sm transition-colors ${
                 filterAdmin === true
-                  ? 'bg-purple-500/20 text-purple-600 dark:text-purple-400'
-                  : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400'
+                  ? 'bg-purple-500/20 text-purple-600'
+                  : 'bg-[var(--surfaceElev)] text-[var(--muted)]'
               }`}
             >
               Admins Only
@@ -249,7 +267,7 @@ export default function AdminUsers() {
                       {getTierDisplayName(user.subscription_tier)}
                     </span>
                     {user.is_beta_user && (
-                      <span className="px-2 py-0.5 text-xs rounded-full bg-primary-100 text-primary-800 dark:bg-primary-900/40 dark:text-primary-300">
+                      <span className="px-2 py-0.5 text-xs rounded-full bg-primary-100 text-primary-800">
                         Beta
                       </span>
                     )}
@@ -353,7 +371,7 @@ export default function AdminUsers() {
                     {getTierDisplayName(selectedUser.subscription_tier)}
                   </span>
                   {selectedUser.is_beta_user && (
-                    <span className="px-3 py-1 text-xs rounded-full bg-primary-100 text-primary-800 dark:bg-primary-900/40 dark:text-primary-300">
+                    <span className="px-3 py-1 text-xs rounded-full bg-primary-100 text-primary-800">
                       Beta User
                     </span>
                   )}

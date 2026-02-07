@@ -27,30 +27,28 @@ export default function QuickLog({ isOpen, onClose, onSuccess }: QuickLogProps) 
   const [restNote, setRestNote] = useState('');
 
   useEffect(() => {
-    if (isOpen) {
-      loadDefaultGym();
-    }
+    if (!isOpen) return;
+    let cancelled = false;
+    const doLoad = async () => {
+      try {
+        const profileRes = await profileApi.get();
+        if (cancelled) return;
+        if (profileRes.data?.default_gym) {
+          setGym(profileRes.data.default_gym);
+          return;
+        }
+        const res = await sessionsApi.list(1);
+        if (!cancelled && res.data && res.data.length > 0) {
+          const last = res.data[0].gym_name || '';
+          setGym(last);
+        }
+      } catch (error) {
+        if (!cancelled) console.error('Error loading gym:', error);
+      }
+    };
+    doLoad();
+    return () => { cancelled = true; };
   }, [isOpen]);
-
-  const loadDefaultGym = async () => {
-    try {
-      // First try to get home gym from profile
-      const profileRes = await profileApi.get();
-      if (profileRes.data?.default_gym) {
-        setGym(profileRes.data.default_gym);
-        return;
-      }
-
-      // Fall back to last session's gym if no home gym set
-      const res = await sessionsApi.list(1);
-      if (res.data && res.data.length > 0) {
-        const last = res.data[0].gym_name || '';
-        setGym(last);
-      }
-    } catch (error) {
-      console.error('Error loading gym:', error);
-    }
-  };
 
   const handleQuickLog = async () => {
     setLoading(true);

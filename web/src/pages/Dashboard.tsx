@@ -23,20 +23,35 @@ export default function Dashboard() {
   const [savingWeight, setSavingWeight] = useState(false);
 
   useEffect(() => {
-    loadReadinessData();
-    loadLatestWeight();
-  }, []);
+    let cancelled = false;
 
-  const loadLatestWeight = async () => {
-    try {
-      const response = await weightLogsApi.getLatest();
-      if (response.data?.weight) {
-        setLastWeight(response.data.weight);
+    const loadAll = async () => {
+      try {
+        const today = new Date().toISOString().split('T')[0];
+        const response = await readinessApi.getByDate(today);
+        if (!cancelled && response.data) {
+          setReadinessScore(response.data.composite_score);
+          setHasCheckedInToday(true);
+        }
+      } catch {
+        // Readiness not found for today is expected
+      } finally {
+        if (!cancelled) setLoading(false);
       }
-    } catch {
-      // No weight logged yet — expected
-    }
-  };
+
+      try {
+        const response = await weightLogsApi.getLatest();
+        if (!cancelled && response.data?.weight) {
+          setLastWeight(response.data.weight);
+        }
+      } catch {
+        // No weight logged yet — expected
+      }
+    };
+
+    loadAll();
+    return () => { cancelled = true; };
+  }, []);
 
   const handleQuickWeight = async () => {
     const weight = parseFloat(weightInput);
@@ -51,23 +66,6 @@ export default function Dashboard() {
       toast.error('Failed to log weight.');
     } finally {
       setSavingWeight(false);
-    }
-  };
-
-  const loadReadinessData = async () => {
-    try {
-      const today = new Date().toISOString().split('T')[0];
-      const response = await readinessApi.getByDate(today);
-
-      if (response.data) {
-        setReadinessScore(response.data.composite_score);
-        setHasCheckedInToday(true);
-      }
-    } catch (error) {
-      // Readiness not found for today is expected - user hasn't logged yet
-      // Silently handle 404 since it's normal behavior
-    } finally {
-      setLoading(false);
     }
   };
 

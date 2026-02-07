@@ -28,7 +28,24 @@ export default function AdminTechniques() {
   const [confirmDelete, setConfirmDelete] = useState<{ id: number; name: string } | null>(null);
 
   useEffect(() => {
-    loadTechniques();
+    let cancelled = false;
+    const doLoad = async () => {
+      setLoading(true);
+      try {
+        const response = await adminApi.listTechniques({
+          search: searchQuery || undefined,
+          category: categoryFilter,
+          custom_only: customOnlyFilter || undefined,
+        });
+        if (!cancelled) setTechniques(response.data.techniques || []);
+      } catch (error) {
+        if (!cancelled) toast.error('Failed to load techniques. Please try again.');
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    };
+    doLoad();
+    return () => { cancelled = true; };
   }, [searchQuery, categoryFilter, customOnlyFilter]);
 
   const loadTechniques = async () => {
@@ -117,8 +134,8 @@ export default function AdminTechniques() {
               onClick={() => setCustomOnlyFilter(!customOnlyFilter)}
               className={`px-3 py-1.5 rounded-lg text-sm transition-colors ${
                 customOnlyFilter
-                  ? 'bg-blue-500/20 text-blue-600 dark:text-blue-400'
-                  : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400'
+                  ? 'bg-blue-500/20 text-blue-600'
+                  : 'bg-[var(--surfaceElev)] text-[var(--muted)]'
               }`}
             >
               Custom Only
@@ -130,8 +147,8 @@ export default function AdminTechniques() {
                   onClick={() => setCategoryFilter(undefined)}
                   className={`px-3 py-1.5 rounded-lg text-sm transition-colors ${
                     !categoryFilter
-                      ? 'bg-purple-500/20 text-purple-600 dark:text-purple-400'
-                      : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400'
+                      ? 'bg-purple-500/20 text-purple-600'
+                      : 'bg-[var(--surfaceElev)] text-[var(--muted)]'
                   }`}
                 >
                   All Categories
@@ -142,8 +159,8 @@ export default function AdminTechniques() {
                     onClick={() => setCategoryFilter(categoryFilter === cat ? undefined : cat)}
                     className={`px-3 py-1.5 rounded-lg text-sm transition-colors ${
                       categoryFilter === cat
-                        ? 'bg-purple-500/20 text-purple-600 dark:text-purple-400'
-                        : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400'
+                        ? 'bg-purple-500/20 text-purple-600'
+                        : 'bg-[var(--surfaceElev)] text-[var(--muted)]'
                     }`}
                   >
                     {cat}

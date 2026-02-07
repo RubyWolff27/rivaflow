@@ -12,8 +12,8 @@ export default function FeedToggle({ view, onChange }: FeedToggleProps) {
         onClick={() => onChange('my')}
         className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all ${
           view === 'my'
-            ? 'bg-primary-600 text-white shadow-sm'
-            : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700'
+            ? 'bg-[var(--accent)] text-white shadow-sm'
+            : 'bg-[var(--surface)] text-[var(--text)] border border-[var(--border)] hover:bg-[var(--surfaceElev)]'
         }`}
       >
         <User className="w-4 h-4" />
@@ -24,8 +24,8 @@ export default function FeedToggle({ view, onChange }: FeedToggleProps) {
         onClick={() => onChange('friends')}
         className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all ${
           view === 'friends'
-            ? 'bg-primary-600 text-white shadow-sm'
-            : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700'
+            ? 'bg-[var(--accent)] text-white shadow-sm'
+            : 'bg-[var(--surface)] text-[var(--text)] border border-[var(--border)] hover:bg-[var(--surfaceElev)]'
         }`}
       >
         <Users className="w-4 h-4" />

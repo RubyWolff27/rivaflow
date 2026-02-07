@@ -39,34 +39,37 @@ export default function EditRest() {
   });
 
   useEffect(() => {
-    loadRestDay();
-  }, [date]);
-
-  const loadRestDay = async () => {
-    setLoading(true);
-    try {
-      // Get all recent rest days and find the one matching the date
-      const response = await restApi.getRecent(365);
-      const found = response.data.find((r: RestDay) => r.rest_date === date);
-      if (found) {
-        setRestId(found.id);
-        setFormData({
-          rest_date: found.rest_date,
-          rest_type: found.rest_type,
-          rest_note: found.rest_note || '',
-          tomorrow_intention: found.tomorrow_intention || '',
-        });
-      } else {
-        throw new Error('Rest day not found');
+    let cancelled = false;
+    const doLoad = async () => {
+      setLoading(true);
+      try {
+        const response = await restApi.getRecent(365);
+        if (cancelled) return;
+        const found = response.data.find((r: RestDay) => r.rest_date === date);
+        if (found) {
+          setRestId(found.id);
+          setFormData({
+            rest_date: found.rest_date,
+            rest_type: found.rest_type,
+            rest_note: found.rest_note || '',
+            tomorrow_intention: found.tomorrow_intention || '',
+          });
+        } else {
+          throw new Error('Rest day not found');
+        }
+      } catch (error) {
+        if (!cancelled) {
+          console.error('Error loading rest day:', error);
+          toast.showToast('error', 'Failed to load rest day');
+          navigate('/feed');
+        }
+      } finally {
+        if (!cancelled) setLoading(false);
       }
-    } catch (error) {
-      console.error('Error loading rest day:', error);
-      toast.showToast('error', 'Failed to load rest day');
-      navigate('/feed');
-    } finally {
-      setLoading(false);
-    }
-  };
+    };
+    doLoad();
+    return () => { cancelled = true; };
+  }, [date]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -99,7 +102,7 @@ export default function EditRest() {
       <div className="flex items-center gap-3">
         <button
           onClick={() => navigate(-1)}
-          className="text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white"
+          className="text-[var(--muted)] hover:text-[var(--text)]"
         >
           <ArrowLeft className="w-6 h-6" />
         </button>
@@ -162,11 +165,11 @@ export default function EditRest() {
 
         {/* Photos */}
         {restId && (
-          <div className="border-t border-gray-200 dark:border-gray-700 pt-6">
+          <div className="border-t border-[var(--border)] pt-6">
             <div className="flex items-center gap-2 mb-4">
-              <Camera className="w-5 h-5 text-gray-600 dark:text-gray-400" />
+              <Camera className="w-5 h-5 text-[var(--muted)]" />
               <h3 className="font-semibold text-lg">Photos</h3>
-              <span className="text-sm text-gray-500">({photoCount}/3)</span>
+              <span className="text-sm text-[var(--muted)]">({photoCount}/3)</span>
             </div>
 
             <div className="space-y-4">

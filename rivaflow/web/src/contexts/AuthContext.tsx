@@ -33,25 +33,31 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   // Load user from localStorage on mount
   useEffect(() => {
+    let cancelled = false;
     const loadUser = async () => {
       const token = localStorage.getItem('access_token');
       if (token) {
         try {
           const response = await authApi.getCurrentUser();
-          setUser(response.data);
-          localStorage.setItem('user', JSON.stringify(response.data));
+          if (!cancelled) {
+            setUser(response.data);
+            localStorage.setItem('user', JSON.stringify(response.data));
+          }
         } catch (error) {
-          console.error('Failed to load user:', error);
-          // Clear invalid tokens
-          localStorage.removeItem('access_token');
-          localStorage.removeItem('refresh_token');
-          localStorage.removeItem('user');
+          if (!cancelled) {
+            console.error('Failed to load user:', error);
+            // Clear invalid tokens
+            localStorage.removeItem('access_token');
+            localStorage.removeItem('refresh_token');
+            localStorage.removeItem('user');
+          }
         }
       }
-      setIsLoading(false);
+      if (!cancelled) setIsLoading(false);
     };
 
     loadUser();
+    return () => { cancelled = true; };
   }, []);
 
   const login = async (email: string, password: string) => {

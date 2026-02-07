@@ -38,70 +38,69 @@ export default function FindFriends() {
   const toast = useToast();
 
   useEffect(() => {
+    let cancelled = false;
     if (searchQuery.length >= 2) {
       setActiveTab('search');
-      searchUsers();
+      const doSearch = async () => {
+        try {
+          const response = await socialApi.searchUsers(searchQuery);
+          if (cancelled) return;
+          const users = response.data.users || [];
+          const usersWithStatus = await Promise.all(
+            users.map(async (user: any) => {
+              try {
+                const statusResponse = await socialApi.getFriendshipStatus(user.id);
+                return { ...user, friendship_status: statusResponse.data.status };
+              } catch {
+                return { ...user, friendship_status: 'none' };
+              }
+            })
+          );
+          if (!cancelled) setSearchResults(usersWithStatus);
+        } catch (error) {
+          if (!cancelled) console.error('Error searching users:', error);
+        }
+      };
+      doSearch();
     } else {
       setSearchResults([]);
       if (activeTab === 'search') {
         setActiveTab('suggestions');
       }
     }
+    return () => { cancelled = true; };
   }, [searchQuery]);
 
   useEffect(() => {
+    let cancelled = false;
     if (activeTab === 'gym' && recommended.length === 0) {
-      loadRecommended();
+      const doLoad = async () => {
+        setLoadingRecommended(true);
+        try {
+          const response = await socialApi.getRecommended();
+          if (cancelled) return;
+          const recs = response.data.recommendations || [];
+          const recsWithStatus = await Promise.all(
+            recs.map(async (user: any) => {
+              try {
+                const statusResponse = await socialApi.getFriendshipStatus(user.id);
+                return { ...user, friendship_status: statusResponse.data.status };
+              } catch {
+                return { ...user, friendship_status: 'none' };
+              }
+            })
+          );
+          if (!cancelled) setRecommended(recsWithStatus);
+        } catch (error) {
+          if (!cancelled) console.error('Error loading recommendations:', error);
+        } finally {
+          if (!cancelled) setLoadingRecommended(false);
+        }
+      };
+      doLoad();
     }
+    return () => { cancelled = true; };
   }, [activeTab]);
-
-  const loadRecommended = async () => {
-    setLoadingRecommended(true);
-    try {
-      const response = await socialApi.getRecommended();
-      const recs = response.data.recommendations || [];
-
-      // Fetch friendship status for each
-      const recsWithStatus = await Promise.all(
-        recs.map(async (user: any) => {
-          try {
-            const statusResponse = await socialApi.getFriendshipStatus(user.id);
-            return { ...user, friendship_status: statusResponse.data.status };
-          } catch {
-            return { ...user, friendship_status: 'none' };
-          }
-        })
-      );
-
-      setRecommended(recsWithStatus);
-    } catch (error) {
-      console.error('Error loading recommendations:', error);
-    } finally {
-      setLoadingRecommended(false);
-    }
-  };
-
-  const searchUsers = async () => {
-    try {
-      const response = await socialApi.searchUsers(searchQuery);
-      const users = response.data.users || [];
-
-      const usersWithStatus = await Promise.all(
-        users.map(async (user: any) => {
-          try {
-            const statusResponse = await socialApi.getFriendshipStatus(user.id);
-            return { ...user, friendship_status: statusResponse.data.status };
-          } catch {
-            return { ...user, friendship_status: 'none' };
-          }
-        })
-      );
-
-      setSearchResults(usersWithStatus);
-    } catch (error) {
-      console.error('Error searching users:', error);
-    }
-  };
 
   const handleSendRequest = async (userId: number, source: 'search' | 'recommendation' = 'search') => {
     try {
@@ -249,7 +248,7 @@ export default function FindFriends() {
               className={`flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium transition-colors ${
                 activeTab === tab.key
                   ? 'text-white'
-                  : 'text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600'
+                  : 'text-[var(--text)] hover:bg-[var(--surfaceElev)]'
               }`}
               style={activeTab === tab.key ? { backgroundColor: 'var(--accent)' } : { backgroundColor: 'var(--surfaceElev)' }}
             >

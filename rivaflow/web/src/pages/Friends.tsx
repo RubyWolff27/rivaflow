@@ -8,7 +8,7 @@ import { useToast } from '../contexts/ToastContext';
 import { CardSkeleton } from '../components/ui';
 
 const BELT_COLORS: Record<string, string> = {
-  white: 'bg-gray-100 text-gray-800 border-gray-300',
+  white: 'bg-[var(--surfaceElev)] text-[var(--text)] border-[var(--border)]',
   blue: 'bg-blue-100 text-blue-800 border-blue-300',
   purple: 'bg-purple-100 text-purple-800 border-purple-300',
   brown: 'bg-amber-100 text-amber-800 border-amber-300',
@@ -39,7 +39,23 @@ export default function Friends() {
   });
 
   useEffect(() => {
-    loadFriends();
+    let cancelled = false;
+    const doLoad = async () => {
+      setLoading(true);
+      try {
+        const response = await friendsApi.list();
+        if (!cancelled) {
+          const data = response.data as any;
+          setFriends(data.friends || data || []);
+        }
+      } catch (error) {
+        if (!cancelled) console.error('Error loading contacts:', error);
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    };
+    doLoad();
+    return () => { cancelled = true; };
   }, []);
 
   useEffect(() => {
@@ -188,7 +204,7 @@ export default function Friends() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <Users className="w-8 h-8 text-primary-600" />
+          <Users className="w-8 h-8 text-[var(--accent)]" />
           <div>
             <h1 className="text-3xl font-bold">Friends</h1>
             <p className="text-[var(--muted)]">
@@ -216,7 +232,7 @@ export default function Friends() {
 
       {/* Add/Edit Form */}
       {showAddForm && (
-        <form onSubmit={handleSubmit} className="card bg-gray-50 dark:bg-gray-800 space-y-4">
+        <form onSubmit={handleSubmit} className="card bg-[var(--surfaceElev)] space-y-4">
           <h3 className="text-lg font-semibold">
             {editingFriend ? 'Edit Friend' : 'Add New Friend'}
           </h3>
@@ -330,14 +346,14 @@ export default function Friends() {
       {/* Filters */}
       <div className="card">
         <div className="flex items-center gap-2">
-          <Filter className="w-5 h-5 text-gray-500" />
+          <Filter className="w-5 h-5 text-[var(--muted)]" />
           <div className="flex gap-2">
             <button
               onClick={() => setSelectedFilter('all')}
               className={`px-3 py-1 rounded-full text-sm font-medium transition-colors ${
                 selectedFilter === 'all'
-                  ? 'bg-primary-600 text-white'
-                  : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600'
+                  ? 'bg-[var(--accent)] text-white'
+                  : 'bg-[var(--surfaceElev)] text-[var(--text)] hover:opacity-80'
               }`}
             >
               All ({friends.length})
@@ -346,8 +362,8 @@ export default function Friends() {
               onClick={() => setSelectedFilter('instructors')}
               className={`px-3 py-1 rounded-full text-sm font-medium transition-colors ${
                 selectedFilter === 'instructors'
-                  ? 'bg-primary-600 text-white'
-                  : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600'
+                  ? 'bg-[var(--accent)] text-white'
+                  : 'bg-[var(--surfaceElev)] text-[var(--text)] hover:opacity-80'
               }`}
             >
               Instructors ({friends.filter(c => c.friend_type === 'instructor' || c.friend_type === 'both').length})
@@ -356,8 +372,8 @@ export default function Friends() {
               onClick={() => setSelectedFilter('partners')}
               className={`px-3 py-1 rounded-full text-sm font-medium transition-colors ${
                 selectedFilter === 'partners'
-                  ? 'bg-primary-600 text-white'
-                  : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600'
+                  ? 'bg-[var(--accent)] text-white'
+                  : 'bg-[var(--surfaceElev)] text-[var(--text)] hover:opacity-80'
               }`}
             >
               Training Partners ({friends.filter(c => c.friend_type === 'training-partner' || c.friend_type === 'both').length})
@@ -382,14 +398,14 @@ export default function Friends() {
               <div className="flex gap-2">
                 <button
                   onClick={() => handleEdit(friend)}
-                  className="text-blue-600 hover:text-blue-700 dark:text-blue-400"
+                  className="text-[var(--accent)] hover:opacity-80"
                   title="Edit friend"
                 >
                   <Edit2 className="w-4 h-4" />
                 </button>
                 <button
                   onClick={() => setFriendToDelete(friend.id)}
-                  className="text-red-600 hover:text-red-700 dark:text-red-400"
+                  className="text-[var(--error)] hover:opacity-80"
                   title="Delete friend"
                   aria-label="Delete friend"
                 >

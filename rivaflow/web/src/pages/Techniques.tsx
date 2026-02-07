@@ -7,7 +7,7 @@ import { CardSkeleton } from '../components/ui';
 // Memoized technique row component
 const TechniqueRow = memo(function TechniqueRow({ tech }: { tech: Technique }) {
   return (
-    <tr className="border-b border-gray-100 dark:border-gray-700">
+    <tr className="border-b border-[var(--border)]">
       <td className="py-3 px-4 font-medium">{tech.name}</td>
       <td className="py-3 px-4 text-[var(--muted)]">
         {tech.category || '—'}
@@ -29,7 +29,30 @@ export default function Techniques() {
   const [newTechnique, setNewTechnique] = useState({ name: '', category: '' });
 
   useEffect(() => {
-    loadTechniques();
+    let cancelled = false;
+    const doLoad = async () => {
+      setLoading(true);
+      try {
+        const [techRes, staleRes] = await Promise.all([
+          techniquesApi.list(),
+          techniquesApi.getStale(7),
+        ]);
+        if (!cancelled) {
+          setTechniques(techRes.data.techniques || []);
+          setStaleTechniques(staleRes.data || []);
+        }
+      } catch (error) {
+        if (!cancelled) {
+          console.error('Error loading techniques:', error);
+          setTechniques([]);
+          setStaleTechniques([]);
+        }
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    };
+    doLoad();
+    return () => { cancelled = true; };
   }, []);
 
   const loadTechniques = async () => {
@@ -79,7 +102,7 @@ export default function Techniques() {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <div className="flex items-center gap-3">
-          <Book className="w-8 h-8 text-primary-600" />
+          <Book className="w-8 h-8 text-[var(--accent)]" />
           <h1 className="text-3xl font-bold">Techniques</h1>
         </div>
         <button onClick={() => setShowAddForm(!showAddForm)} className="btn-primary">
@@ -130,7 +153,7 @@ export default function Techniques() {
 
       {/* Stale Techniques Alert */}
       {staleTechniques.length > 0 && (
-        <div className="card bg-yellow-50 dark:bg-yellow-900/20 border-yellow-200 dark:border-yellow-800">
+        <div className="card bg-yellow-50 border-yellow-200">
           <div className="flex items-start gap-3">
             <AlertCircle className="w-5 h-5 text-yellow-600 mt-0.5" />
             <div>
@@ -139,7 +162,7 @@ export default function Techniques() {
                 {staleTechniques.map((tech) => (
                   <span
                     key={tech.id}
-                    className="px-2 py-1 bg-yellow-100 dark:bg-yellow-900 text-yellow-800 dark:text-yellow-200 rounded text-sm"
+                    className="px-2 py-1 bg-yellow-100 text-yellow-800 rounded text-sm"
                   >
                     {tech.name}
                   </span>

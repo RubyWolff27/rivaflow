@@ -92,19 +92,66 @@ export default function Profile() {
   const [gymHeadCoach, setGymHeadCoach] = useState<string | null>(null);
 
   useEffect(() => {
-    loadData();
+    let cancelled = false;
+    const doLoad = async () => {
+      setLoading(true);
+      try {
+        const [profileRes, gradingsRes, instructorsRes] = await Promise.all([
+          profileApi.get(),
+          gradingsApi.list(),
+          friendsApi.listInstructors(),
+        ]);
+        if (!cancelled) {
+          setProfile(profileRes.data ?? null);
+          setGradings(gradingsRes.data ?? []);
+          setInstructors(instructorsRes.data ?? []);
+          setFormData({
+            first_name: profileRes.data?.first_name ?? '',
+            last_name: profileRes.data?.last_name ?? '',
+            date_of_birth: profileRes.data?.date_of_birth ?? '',
+            sex: profileRes.data?.sex ?? '',
+            city: profileRes.data?.city ?? '',
+            state: profileRes.data?.state ?? '',
+            default_gym: profileRes.data?.default_gym ?? '',
+            default_location: profileRes.data?.default_location ?? '',
+            current_professor: profileRes.data?.current_professor ?? '',
+            current_instructor_id: profileRes.data?.current_instructor_id ?? null,
+            primary_training_type: profileRes.data?.primary_training_type ?? 'gi',
+            height_cm: profileRes.data?.height_cm?.toString() ?? '',
+            target_weight_kg: profileRes.data?.target_weight_kg?.toString() ?? '',
+            weekly_sessions_target: profileRes.data?.weekly_sessions_target ?? 3,
+            weekly_hours_target: profileRes.data?.weekly_hours_target ?? 4.5,
+            weekly_rolls_target: profileRes.data?.weekly_rolls_target ?? 15,
+            weekly_bjj_sessions_target: profileRes.data?.weekly_bjj_sessions_target ?? 3,
+            weekly_sc_sessions_target: profileRes.data?.weekly_sc_sessions_target ?? 1,
+            weekly_mobility_sessions_target: profileRes.data?.weekly_mobility_sessions_target ?? 0,
+            show_streak_on_dashboard: profileRes.data?.show_streak_on_dashboard ?? true,
+            show_weekly_goals: profileRes.data?.show_weekly_goals ?? true,
+            avatar_url: profileRes.data?.avatar_url ?? '',
+          });
+        }
+      } catch (error) {
+        if (!cancelled) console.error('Error loading data:', error);
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    };
+    doLoad();
+    return () => { cancelled = true; };
   }, []);
 
   // Fetch gym head coach when gym is selected
   useEffect(() => {
+    let cancelled = false;
     const fetchGymHeadCoach = async () => {
       if (!formData.default_gym) {
-        setGymHeadCoach(null);
+        if (!cancelled) setGymHeadCoach(null);
         return;
       }
 
       try {
         const response = await gymsApi.search(formData.default_gym, false);
+        if (cancelled) return;
         const data = response.data;
 
         if (data && data.length > 0) {
@@ -116,12 +163,15 @@ export default function Profile() {
           }
         }
       } catch (error) {
-        console.error('Error fetching gym details:', error);
-        setGymHeadCoach(null);
+        if (!cancelled) {
+          console.error('Error fetching gym details:', error);
+          setGymHeadCoach(null);
+        }
       }
     };
 
     fetchGymHeadCoach();
+    return () => { cancelled = true; };
   }, [formData.default_gym]);
 
   const loadData = async () => {
@@ -509,7 +559,7 @@ export default function Profile() {
   return (
     <div className="max-w-2xl mx-auto space-y-6">
       <div className="flex items-center gap-3">
-        <User className="w-8 h-8 text-primary-600" />
+        <User className="w-8 h-8 text-[var(--accent)]" />
         <h1 className="text-3xl font-bold">Profile</h1>
       </div>
 
@@ -518,15 +568,15 @@ export default function Profile() {
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             {tierInfo.isPremium ? (
-              <Crown className="w-6 h-6 text-primary-600" />
+              <Crown className="w-6 h-6 text-[var(--accent)]" />
             ) : (
-              <Star className="w-6 h-6 text-gray-400" />
+              <Star className="w-6 h-6 text-[var(--muted)]" />
             )}
             <div>
               <h2 className="text-lg font-semibold">Subscription Tier</h2>
-              <p className="text-2xl font-bold text-primary-600">{tierInfo.displayName}</p>
+              <p className="text-2xl font-bold text-[var(--accent)]">{tierInfo.displayName}</p>
               {tierInfo.isBeta && (
-                <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-primary-100 text-primary-800 dark:bg-primary-900/40 dark:text-primary-300 mt-1">
+                <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-primary-100 text-primary-800 mt-1">
                   Beta User
                 </span>
               )}
@@ -538,7 +588,7 @@ export default function Profile() {
             </button>
           )}
         </div>
-        <div className="mt-3 text-sm text-gray-600 dark:text-gray-400">
+        <div className="mt-3 text-sm text-[var(--muted)]">
           {tierInfo.isPremium ? (
             <p>You have access to all premium features. Thank you for your support!</p>
           ) : (
@@ -551,7 +601,7 @@ export default function Profile() {
       <form onSubmit={handleSubmit} className="card">
         <h2 className="text-xl font-semibold mb-4">Personal Information</h2>
         {success && (
-          <div className="mb-4 p-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg flex items-center gap-2 text-green-700 dark:text-green-400">
+          <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded-lg flex items-center gap-2 text-green-700">
             <CheckCircle className="w-5 h-5" />
             Profile updated successfully!
           </div>
@@ -559,20 +609,20 @@ export default function Profile() {
 
         <div className="space-y-6">
           {/* Profile Photo */}
-          <div className="flex items-center gap-6 pb-6 border-b border-gray-200 dark:border-gray-700">
+          <div className="flex items-center gap-6 pb-6 border-b border-[var(--border)]">
             <div className="flex-shrink-0">
               {photoPreview || formData.avatar_url ? (
                 <img
                   src={photoPreview || formData.avatar_url}
                   alt="Profile"
-                  className="w-24 h-24 rounded-full object-cover border-4 border-gray-200 dark:border-gray-700"
+                  className="w-24 h-24 rounded-full object-cover border-4 border-[var(--border)]"
                   onError={(e) => {
                     e.currentTarget.src = 'https://ui-avatars.com/api/?name=' + encodeURIComponent(formData.first_name + '+' + formData.last_name) + '&size=200&background=random';
                   }}
                 />
               ) : (
-                <div className="w-24 h-24 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center">
-                  <User className="w-12 h-12 text-gray-400 dark:text-gray-500" />
+                <div className="w-24 h-24 rounded-full bg-[var(--surfaceElev)] flex items-center justify-center">
+                  <User className="w-12 h-12 text-[var(--muted)]" />
                 </div>
               )}
             </div>
@@ -599,7 +649,7 @@ export default function Profile() {
                   </button>
                 )}
               </div>
-              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+              <p className="text-xs text-[var(--muted)] mt-1">
                 Upload a JPG, PNG, WebP, or GIF image (max 5MB)
               </p>
             </div>
@@ -642,7 +692,7 @@ export default function Profile() {
               max={new Date().toISOString().split('T')[0]}
             />
             {profile?.age != null && (
-              <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+              <p className="text-sm text-[var(--muted)] mt-1">
                 Age: {profile.age} years old
               </p>
             )}
@@ -760,7 +810,7 @@ export default function Profile() {
                 </div>
               </div>
             )}
-            <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+            <p className="text-sm text-[var(--muted)] mt-1">
               Select from existing gyms or add a new one for verification
             </p>
           </div>
@@ -775,7 +825,7 @@ export default function Profile() {
               onChange={(e) => setFormData({ ...formData, default_location: e.target.value })}
               placeholder="e.g., Sydney, NSW"
             />
-            <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+            <p className="text-sm text-[var(--muted)] mt-1">
               This will auto-populate when logging sessions
             </p>
           </div>
@@ -819,7 +869,7 @@ export default function Profile() {
                 </option>
               ))}
             </select>
-            <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+            <p className="text-sm text-[var(--muted)] mt-1">
               {gymHeadCoach
                 ? `Head coach from your selected gym is available, or add other instructors in Contacts.`
                 : 'This will auto-populate when logging sessions. Add instructors in Contacts first.'}
@@ -847,7 +897,7 @@ export default function Profile() {
               <option value="wrestling">Wrestling</option>
               <option value="other">Other</option>
             </select>
-            <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+            <p className="text-sm text-[var(--muted)] mt-1">
               This will be the default class type when logging sessions
             </p>
           </div>
@@ -869,16 +919,16 @@ export default function Profile() {
           <h2 className="text-xl font-semibold">Weekly Goals</h2>
         </div>
 
-        <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+        <p className="text-sm text-[var(--muted)] mb-4">
           Set your weekly training targets. These will be tracked on your dashboard.
         </p>
 
         {/* Activity Goals Explanation */}
-        <div className="mb-6 p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
-          <h3 className="text-sm font-semibold text-blue-900 dark:text-blue-300 mb-2">
+        <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+          <h3 className="text-sm font-semibold text-blue-900 mb-2">
             How Activity Goals Work
           </h3>
-          <div className="text-xs text-blue-800 dark:text-blue-400 space-y-1">
+          <div className="text-xs text-blue-800 space-y-1">
             <p>Set specific goals for each training type:</p>
             <ul className="list-disc list-inside ml-2 mt-1 space-y-0.5">
               <li><strong>BJJ:</strong> Gi, No-Gi, Open Mat, Competition sessions</li>
@@ -902,7 +952,7 @@ export default function Profile() {
                 min="0"
                 max="20"
               />
-              <p className="text-xs text-gray-500 dark:text-gray-500 mt-1">Gi, No-Gi, Open Mat</p>
+              <p className="text-xs text-[var(--muted)] mt-1">Gi, No-Gi, Open Mat</p>
             </div>
 
             <div>
@@ -915,7 +965,7 @@ export default function Profile() {
                 min="0"
                 max="20"
               />
-              <p className="text-xs text-gray-500 dark:text-gray-500 mt-1">Strength & Conditioning</p>
+              <p className="text-xs text-[var(--muted)] mt-1">Strength & Conditioning</p>
             </div>
 
             <div>
@@ -928,7 +978,7 @@ export default function Profile() {
                 min="0"
                 max="20"
               />
-              <p className="text-xs text-gray-500 dark:text-gray-500 mt-1">Mobility, Recovery</p>
+              <p className="text-xs text-[var(--muted)] mt-1">Mobility, Recovery</p>
             </div>
           </div>
 
@@ -945,7 +995,7 @@ export default function Profile() {
                 max="40"
                 step="0.5"
               />
-              <p className="text-xs text-gray-500 dark:text-gray-500 mt-1">Total training time</p>
+              <p className="text-xs text-[var(--muted)] mt-1">Total training time</p>
             </div>
 
             <div>
@@ -958,7 +1008,7 @@ export default function Profile() {
                 min="0"
                 max="100"
               />
-              <p className="text-xs text-gray-500 dark:text-gray-500 mt-1">Live sparring rounds</p>
+              <p className="text-xs text-[var(--muted)] mt-1">Live sparring rounds</p>
             </div>
           </div>
 
@@ -998,7 +1048,7 @@ export default function Profile() {
       <div className="card">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-3">
-            <Award className="w-6 h-6 text-primary-600" />
+            <Award className="w-6 h-6 text-[var(--accent)]" />
             <h2 className="text-xl font-semibold">Belt Progression</h2>
           </div>
           <button
@@ -1015,14 +1065,14 @@ export default function Profile() {
           const { beltColor, beltName, stripes } = parseBeltGrade(profile.current_grade);
           return (
             <div className="mb-6 p-4 bg-gradient-to-r from-primary-50 to-blue-50 dark:from-primary-900/20 dark:to-blue-900/20 rounded-lg">
-              <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">Current Grade</p>
+              <p className="text-sm text-[var(--muted)] mb-3">Current Grade</p>
               <div className="flex items-center gap-4">
                 <div
                   className="w-16 h-10 rounded border-2 flex-shrink-0"
                   style={{ backgroundColor: beltColor, borderColor: 'var(--border)' }}
                 />
                 <div>
-                  <p className="text-2xl font-bold text-primary-600">{beltName} Belt</p>
+                  <p className="text-2xl font-bold text-[var(--accent)]">{beltName} Belt</p>
                   <div className="flex items-center gap-1 mt-1">
                     {[...Array(4)].map((_, i) => (
                       <div
@@ -1042,7 +1092,7 @@ export default function Profile() {
 
         {/* Add/Edit Grading Form */}
         {(showAddGrading || editingGrading) && (
-          <form onSubmit={editingGrading ? handleUpdateGrading : handleAddGrading} className="mb-6 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg space-y-4">
+          <form onSubmit={editingGrading ? handleUpdateGrading : handleAddGrading} className="mb-6 p-4 bg-[var(--surfaceElev)] rounded-lg space-y-4">
             <h3 className="font-semibold text-lg">{editingGrading ? 'Edit Grading' : 'Add New Grading'}</h3>
 
             <div>
@@ -1098,8 +1148,8 @@ export default function Profile() {
                   </option>
                 ))}
               </select>
-              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                Select from your instructor list. <a href="/friends" className="text-primary-600 hover:underline">Add instructors in Friends</a>
+              <p className="text-xs text-[var(--muted)] mt-1">
+                Select from your instructor list. <a href="/friends" className="text-[var(--accent)] hover:underline">Add instructors in Friends</a>
               </p>
             </div>
 
@@ -1110,7 +1160,7 @@ export default function Profile() {
                   <img
                     src={gradingPhotoPreview || gradingForm.photo_url}
                     alt="Grading"
-                    className="w-full max-w-sm rounded-lg border border-gray-300 dark:border-gray-600"
+                    className="w-full max-w-sm rounded-lg border border-[var(--border)]"
                   />
                   <button
                     type="button"
@@ -1131,7 +1181,7 @@ export default function Profile() {
                 />
                 {uploadingGradingPhoto ? 'Uploading...' : gradingForm.photo_url ? 'Change Photo' : 'Upload Photo'}
               </label>
-              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+              <p className="text-xs text-[var(--muted)] mt-1">
                 Upload a photo of your belt certificate or grading (max 5MB)
               </p>
             </div>
@@ -1165,13 +1215,13 @@ export default function Profile() {
         {/* Grading History */}
         {gradings.length > 0 ? (
           <div className="space-y-3">
-            <h3 className="text-sm font-semibold text-gray-600 dark:text-gray-400 uppercase">History</h3>
+            <h3 className="text-sm font-semibold text-[var(--muted)] uppercase">History</h3>
             {gradings.map((grading) => {
               const { beltColor, stripes } = parseBeltGrade(grading.grade);
               return (
                 <div
                   key={grading.id}
-                  className="flex items-start justify-between p-3 bg-gray-50 dark:bg-gray-800 rounded-lg"
+                  className="flex items-start justify-between p-3 bg-[var(--surfaceElev)] rounded-lg"
                 >
                   <div className="flex-1">
                     <div className="flex items-center gap-3 mb-2">
@@ -1180,7 +1230,7 @@ export default function Profile() {
                         style={{ backgroundColor: beltColor, borderColor: 'var(--border)' }}
                       />
                       <div>
-                        <p className="font-semibold text-gray-900 dark:text-white">{grading.grade}</p>
+                        <p className="font-semibold text-[var(--text)]">{grading.grade}</p>
                         <div className="flex items-center gap-1">
                           {[...Array(4)].map((_, i) => (
                             <div
@@ -1194,16 +1244,16 @@ export default function Profile() {
                         </div>
                       </div>
                     </div>
-                    <p className="text-sm text-gray-600 dark:text-gray-400">
+                    <p className="text-sm text-[var(--muted)]">
                       {formatDate(grading.date_graded)}
                     </p>
                   {grading.professor && (
-                    <p className="text-sm text-gray-600 dark:text-gray-400">
+                    <p className="text-sm text-[var(--muted)]">
                       Professor: {grading.professor}
                     </p>
                   )}
                   {grading.notes && (
-                    <p className="text-sm text-gray-500 dark:text-gray-500 mt-1 italic">
+                    <p className="text-sm text-[var(--muted)] mt-1 italic">
                       {grading.notes}
                     </p>
                   )}
@@ -1212,7 +1262,7 @@ export default function Profile() {
                       <img
                         src={grading.photo_url}
                         alt={`${grading.grade} certificate`}
-                        className="rounded-lg border border-gray-300 dark:border-gray-600 max-w-xs cursor-pointer hover:opacity-90"
+                        className="rounded-lg border border-[var(--border)] max-w-xs cursor-pointer hover:opacity-90"
                         onClick={() => window.open(grading.photo_url, '_blank')}
                       />
                     </div>
@@ -1221,14 +1271,14 @@ export default function Profile() {
                 <div className="flex gap-2">
                   <button
                     onClick={() => handleEditGrading(grading)}
-                    className="text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
+                    className="text-[var(--accent)] hover:opacity-80"
                     title="Edit grading"
                   >
                     <Edit2 className="w-4 h-4" />
                   </button>
                   <button
                     onClick={() => setGradingToDelete(grading.id)}
-                    className="text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300"
+                    className="text-[var(--error)] hover:opacity-80"
                     title="Delete grading"
                     aria-label="Delete grading"
                   >
@@ -1240,16 +1290,16 @@ export default function Profile() {
             })}
           </div>
         ) : (
-          <p className="text-gray-500 dark:text-gray-400 text-center py-6">
+          <p className="text-[var(--muted)] text-center py-6">
             No gradings recorded yet. Click "Add Grading" to track your belt progression.
           </p>
         )}
       </div>
 
       {/* Info Card */}
-      <div className="card bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800">
+      <div className="card bg-blue-50 border-blue-200">
         <h3 className="font-semibold mb-2">About Your Profile</h3>
-        <ul className="text-sm text-gray-600 dark:text-gray-400 space-y-1">
+        <ul className="text-sm text-[var(--muted)] space-y-1">
           <li>• Your profile data is stored locally on your device</li>
           <li>• Default gym will pre-fill session logging forms</li>
           <li>• Belt progression tracks your BJJ journey over time</li>

@@ -14,24 +14,25 @@ export default function Sessions() {
   const [sortBy, setSortBy] = useState<'date' | 'duration' | 'intensity'>('date');
 
   useEffect(() => {
-    loadSessions();
+    let cancelled = false;
+    const doLoad = async () => {
+      setLoading(true);
+      try {
+        const response = await sessionsApi.list(1000);
+        if (!cancelled) setSessions(response.data ?? []);
+      } catch (error) {
+        if (!cancelled) console.error('Error loading sessions:', error);
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    };
+    doLoad();
+    return () => { cancelled = true; };
   }, []);
 
   useEffect(() => {
     filterAndSortSessions();
   }, [sessions, searchTerm, filterType, sortBy]);
-
-  const loadSessions = async () => {
-    setLoading(true);
-    try {
-      const response = await sessionsApi.list(1000); // Get all sessions
-      setSessions(response.data ?? []);
-    } catch (error) {
-      console.error('Error loading sessions:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const filterAndSortSessions = () => {
     let filtered = [...sessions];
@@ -132,7 +133,7 @@ export default function Sessions() {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {/* Search */}
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--muted)]" />
             <input
               type="text"
               placeholder="Search by gym, location, notes..."
@@ -144,7 +145,7 @@ export default function Sessions() {
 
           {/* Filter by Type */}
           <div className="relative">
-            <Filter className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+            <Filter className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--muted)]" />
             <select
               value={filterType}
               onChange={(e) => setFilterType(e.target.value)}
@@ -251,7 +252,7 @@ export default function Sessions() {
 
               {/* Notes Preview */}
               {session.notes && (
-                <p className="text-xs text-[var(--muted)] dark:text-gray-400 mt-2 line-clamp-2">
+                <p className="text-xs text-[var(--muted)] mt-2 line-clamp-2">
                   {session.notes}
                 </p>
               )}

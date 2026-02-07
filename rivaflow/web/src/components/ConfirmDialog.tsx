@@ -138,7 +138,7 @@ export default function ConfirmDialog({
           </div>
           <button
             onClick={onClose}
-            className="p-1 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+            className="p-1 rounded-lg hover:bg-[var(--surfaceElev)] transition-colors"
             style={{ color: 'var(--muted)' }}
             aria-label="Close dialog"
           >

@@ -32,28 +32,29 @@ export function WeeklyGoalsBreakdown() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    loadGoals();
+    let cancelled = false;
+    const doLoad = async () => {
+      try {
+        const response = await goalsApi.getCurrentWeek();
+        if (!cancelled) setGoals(response.data);
+      } catch (error) {
+        if (!cancelled) console.error('Failed to load weekly goals:', error);
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    };
+    doLoad();
+    return () => { cancelled = true; };
   }, []);
-
-  const loadGoals = async () => {
-    try {
-      const response = await goalsApi.getCurrentWeek();
-      setGoals(response.data);
-    } catch (error) {
-      console.error('Failed to load weekly goals:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   if (loading) {
     return (
       <Card className="p-6">
         <div className="animate-pulse">
-          <div className="h-6 bg-gray-700 rounded w-1/2 mb-4"></div>
+          <div className="h-6 bg-[var(--surfaceElev)] rounded w-1/2 mb-4"></div>
           <div className="space-y-3">
-            <div className="h-4 bg-gray-700 rounded w-full"></div>
-            <div className="h-4 bg-gray-700 rounded w-2/3"></div>
+            <div className="h-4 bg-[var(--surfaceElev)] rounded w-full"></div>
+            <div className="h-4 bg-[var(--surfaceElev)] rounded w-2/3"></div>
           </div>
         </div>
       </Card>

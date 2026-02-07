@@ -34,7 +34,20 @@ export default function Groups() {
   });
 
   useEffect(() => {
-    loadGroups();
+    let cancelled = false;
+    const doLoad = async () => {
+      setLoading(true);
+      try {
+        const response = await groupsApi.list();
+        if (!cancelled) setGroups(response.data.groups || []);
+      } catch {
+        if (!cancelled) console.error('Error loading groups');
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    };
+    doLoad();
+    return () => { cancelled = true; };
   }, []);
 
   const loadGroups = async () => {

@@ -19,8 +19,50 @@ export default function SessionDetail() {
   const toast = useToast();
 
   useEffect(() => {
-    loadSession();
-    loadAdjacentSessions();
+    let cancelled = false;
+
+    const doLoad = async () => {
+      setLoading(true);
+      try {
+        const response = await sessionsApi.getById(parseInt(id ?? '0'));
+        if (!cancelled) setSession(response.data ?? null);
+      } catch (error) {
+        if (!cancelled) {
+          console.error('Error loading session:', error);
+          toast.error('Failed to load session');
+          navigate('/feed');
+        }
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    };
+
+    const doLoadAdjacent = async () => {
+      try {
+        const response = await sessionsApi.list(1000);
+        if (cancelled) return;
+        const sessions = response.data || [];
+        const currentIndex = sessions.findIndex(s => s.id === parseInt(id ?? '0'));
+        if (currentIndex !== -1) {
+          if (currentIndex < sessions.length - 1) {
+            setPrevSessionId(sessions[currentIndex + 1].id);
+          } else {
+            setPrevSessionId(null);
+          }
+          if (currentIndex > 0) {
+            setNextSessionId(sessions[currentIndex - 1].id);
+          } else {
+            setNextSessionId(null);
+          }
+        }
+      } catch (error) {
+        if (!cancelled) console.error('Error loading adjacent sessions:', error);
+      }
+    };
+
+    doLoad();
+    doLoadAdjacent();
+    return () => { cancelled = true; };
   }, [id]);
 
   // Keyboard navigation
@@ -36,44 +78,6 @@ export default function SessionDetail() {
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [prevSessionId, nextSessionId, navigate]);
-
-  const loadSession = async () => {
-    setLoading(true);
-    try {
-      const response = await sessionsApi.getById(parseInt(id ?? '0'));
-      setSession(response.data ?? null);
-    } catch (error) {
-      console.error('Error loading session:', error);
-      toast.error('Failed to load session');
-      navigate('/feed');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const loadAdjacentSessions = async () => {
-    try {
-      // Fetch all sessions (or a large limit) to find adjacent ones
-      const response = await sessionsApi.list(1000);
-      const sessions = response.data || [];
-
-      // Sessions are typically ordered by date descending (newest first)
-      const currentIndex = sessions.findIndex(s => s.id === parseInt(id ?? '0'));
-
-      if (currentIndex !== -1) {
-        // Previous session is older (higher index)
-        if (currentIndex < sessions.length - 1) {
-          setPrevSessionId(sessions[currentIndex + 1].id);
-        }
-        // Next session is newer (lower index)
-        if (currentIndex > 0) {
-          setNextSessionId(sessions[currentIndex - 1].id);
-        }
-      }
-    } catch (error) {
-      console.error('Error loading adjacent sessions:', error);
-    }
-  };
 
   if (loading) {
     return (
@@ -241,9 +245,9 @@ export default function SessionDetail() {
             <h3 className="font-semibold text-lg">Training Partners</h3>
           </div>
           <div className="flex flex-wrap gap-2">
-            {session.partners.map((partner, index) => (
+            {session.partners.map((partner) => (
               <span
-                key={index}
+                key={partner}
                 className="px-3 py-1 bg-[var(--surfaceElev)] text-[var(--text)] rounded-full text-sm"
               >
                 {partner}
@@ -261,9 +265,9 @@ export default function SessionDetail() {
             <h3 className="font-semibold text-lg">Techniques Practiced</h3>
           </div>
           <div className="flex flex-wrap gap-2">
-            {session.techniques.map((technique, index) => (
+            {session.techniques.map((technique) => (
               <span
-                key={index}
+                key={technique}
                 className="px-3 py-1 bg-[rgba(var(--accent-rgb),0.1)] text-[var(--accent)] rounded-full text-sm font-medium"
               >
                 {technique}
@@ -278,14 +282,14 @@ export default function SessionDetail() {
         <div className="card">
           <h3 className="font-semibold text-lg mb-4">Technique Details</h3>
           <div className="space-y-4">
-            {session.session_techniques.map((tech: any, index: number) => (
-              <div key={index} className="border border-[var(--border)] rounded-lg p-4">
+            {session.session_techniques.map((tech: any) => (
+              <div key={tech.technique_number ?? tech.movement_name} className="border border-[var(--border)] rounded-lg p-4">
                 <div className="flex items-start justify-between mb-2">
                   <h4 className="font-semibold text-[var(--accent)]">
-                    {tech.movement_name ?? `Technique #${tech.technique_number ?? index + 1}`}
+                    {tech.movement_name ?? `Technique #${tech.technique_number ?? '?'}`}
                   </h4>
                   <span className="text-xs px-2 py-1 bg-[var(--surfaceElev)] rounded">
-                    #{tech.technique_number ?? index + 1}
+                    #{tech.technique_number ?? '?'}
                   </span>
                 </div>
                 {tech.notes && (
@@ -296,9 +300,9 @@ export default function SessionDetail() {
                 {tech.media_urls && Array.isArray(tech.media_urls) && tech.media_urls.length > 0 && (
                   <div className="mt-3 space-y-2">
                     <p className="text-xs font-semibold text-[var(--muted)]">Reference Media:</p>
-                    {tech.media_urls.map((media: any, mediaIndex: number) => (
+                    {tech.media_urls.map((media: any) => (
                       <a
-                        key={mediaIndex}
+                        key={media.url}
                         href={media.url}
                         target="_blank"
                         rel="noopener noreferrer"

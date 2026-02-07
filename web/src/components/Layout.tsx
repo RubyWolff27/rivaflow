@@ -29,12 +29,13 @@ const Layout = memo(function Layout({ children }: { children: React.ReactNode })
 
   // Fetch notification counts
   useEffect(() => {
+    let cancelled = false;
     const fetchNotifications = async () => {
       try {
         const response = await notificationsApi.getCounts();
-        setNotificationCounts(response.data);
+        if (!cancelled) setNotificationCounts(response.data);
       } catch (error) {
-        console.error('Error fetching notifications:', error);
+        if (!cancelled) console.error('Error fetching notifications:', error);
       }
     };
 
@@ -42,30 +43,32 @@ const Layout = memo(function Layout({ children }: { children: React.ReactNode })
 
     // Refresh every 60 seconds
     const interval = setInterval(fetchNotifications, 60000);
-    return () => clearInterval(interval);
+    return () => { cancelled = true; clearInterval(interval); };
   }, []);
 
   // Mark notifications as read when navigating to Feed or Friends
   useEffect(() => {
+    let cancelled = false;
     const markNotificationsRead = async () => {
       try {
         if (location.pathname === '/feed') {
           await notificationsApi.markFeedAsRead();
-          // Refresh counts after marking as read
+          if (cancelled) return;
           const response = await notificationsApi.getCounts();
-          setNotificationCounts(response.data);
+          if (!cancelled) setNotificationCounts(response.data);
         } else if (location.pathname === '/friends') {
           await notificationsApi.markFollowsAsRead();
-          // Refresh counts after marking as read
+          if (cancelled) return;
           const response = await notificationsApi.getCounts();
-          setNotificationCounts(response.data);
+          if (!cancelled) setNotificationCounts(response.data);
         }
       } catch (error) {
-        console.error('Error marking notifications as read:', error);
+        if (!cancelled) console.error('Error marking notifications as read:', error);
       }
     };
 
     markNotificationsRead();
+    return () => { cancelled = true; };
   }, [location.pathname]);
 
   // Close more menu when clicking outside

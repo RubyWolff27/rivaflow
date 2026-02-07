@@ -82,7 +82,7 @@ export default function Toast({ type, message, onClose }: ToastProps) {
       {/* Close Button */}
       <button
         onClick={handleClose}
-        className="p-1 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors flex-shrink-0"
+        className="p-1 rounded-lg hover:bg-[var(--surfaceElev)] transition-colors flex-shrink-0"
         style={{ color: 'var(--muted)' }}
         aria-label="Dismiss notification"
       >

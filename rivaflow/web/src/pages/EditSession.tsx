@@ -88,84 +88,88 @@ export default function EditSession() {
   });
 
   useEffect(() => {
-    loadData();
+    let cancelled = false;
+    const doLoad = async () => {
+      setLoading(true);
+      try {
+        const [sessionRes, instructorsRes, partnersRes, autocompleteRes, movementsRes] = await Promise.all([
+          sessionsApi.getById(parseInt(id!)),
+          friendsApi.listInstructors(),
+          friendsApi.listPartners(),
+          sessionsApi.getAutocomplete(),
+          glossaryApi.list(),
+        ]);
+        if (cancelled) return;
+
+        const sessionData = sessionRes.data;
+        setInstructors(instructorsRes.data);
+        setPartners(partnersRes.data);
+        setAutocomplete(autocompleteRes.data);
+        setMovements(movementsRes.data);
+
+        // Populate form
+        setFormData({
+          session_date: sessionData.session_date,
+          class_time: sessionData.class_time || '',
+          class_type: sessionData.class_type,
+          gym_name: sessionData.gym_name,
+          location: sessionData.location || '',
+          duration_mins: sessionData.duration_mins,
+          intensity: sessionData.intensity,
+          instructor_id: sessionData.instructor_id || null,
+          rolls: sessionData.rolls,
+          submissions_for: sessionData.submissions_for,
+          submissions_against: sessionData.submissions_against,
+          partners: sessionData.partners?.join(', ') || '',
+          techniques: sessionData.techniques?.join(', ') || '',
+          notes: sessionData.notes || '',
+          whoop_strain: sessionData.whoop_strain?.toString() || '',
+          whoop_calories: sessionData.whoop_calories?.toString() || '',
+          whoop_avg_hr: sessionData.whoop_avg_hr?.toString() || '',
+          whoop_max_hr: sessionData.whoop_max_hr?.toString() || '',
+        });
+
+        // Load detailed_rolls if present
+        if (sessionData.detailed_rolls && sessionData.detailed_rolls.length > 0) {
+          setDetailedMode(true);
+          setRolls(
+            sessionData.detailed_rolls.map((roll: any) => ({
+              roll_number: roll.roll_number,
+              partner_id: roll.partner_id || null,
+              partner_name: roll.partner_name || '',
+              duration_mins: roll.duration_mins || 5,
+              submissions_for: roll.submissions_for || [],
+              submissions_against: roll.submissions_against || [],
+              notes: roll.notes || '',
+            }))
+          );
+        }
+
+        // Load session_techniques if present
+        if (sessionData.session_techniques && sessionData.session_techniques.length > 0) {
+          setTechniques(
+            sessionData.session_techniques.map((tech: any) => ({
+              technique_number: tech.technique_number,
+              movement_id: tech.movement_id,
+              movement_name: tech.movement_name || '',
+              notes: tech.notes || '',
+              media_urls: tech.media_urls || [],
+            }))
+          );
+        }
+      } catch (error) {
+        if (!cancelled) {
+          console.error('Error loading session:', error);
+          toast.error('Failed to load session. Redirecting to dashboard.');
+          navigate('/');
+        }
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    };
+    doLoad();
+    return () => { cancelled = true; };
   }, [id]);
-
-  const loadData = async () => {
-    setLoading(true);
-    try {
-      const [sessionRes, instructorsRes, partnersRes, autocompleteRes, movementsRes] = await Promise.all([
-        sessionsApi.getById(parseInt(id!)),
-        friendsApi.listInstructors(),
-        friendsApi.listPartners(),
-        sessionsApi.getAutocomplete(),
-        glossaryApi.list(),
-      ]);
-
-      const sessionData = sessionRes.data;
-      setInstructors(instructorsRes.data);
-      setPartners(partnersRes.data);
-      setAutocomplete(autocompleteRes.data);
-      setMovements(movementsRes.data);
-
-      // Populate form
-      setFormData({
-        session_date: sessionData.session_date,
-        class_time: sessionData.class_time || '',
-        class_type: sessionData.class_type,
-        gym_name: sessionData.gym_name,
-        location: sessionData.location || '',
-        duration_mins: sessionData.duration_mins,
-        intensity: sessionData.intensity,
-        instructor_id: sessionData.instructor_id || null,
-        rolls: sessionData.rolls,
-        submissions_for: sessionData.submissions_for,
-        submissions_against: sessionData.submissions_against,
-        partners: sessionData.partners?.join(', ') || '',
-        techniques: sessionData.techniques?.join(', ') || '',
-        notes: sessionData.notes || '',
-        whoop_strain: sessionData.whoop_strain?.toString() || '',
-        whoop_calories: sessionData.whoop_calories?.toString() || '',
-        whoop_avg_hr: sessionData.whoop_avg_hr?.toString() || '',
-        whoop_max_hr: sessionData.whoop_max_hr?.toString() || '',
-      });
-
-      // Load detailed_rolls if present
-      if (sessionData.detailed_rolls && sessionData.detailed_rolls.length > 0) {
-        setDetailedMode(true);
-        setRolls(
-          sessionData.detailed_rolls.map((roll: any) => ({
-            roll_number: roll.roll_number,
-            partner_id: roll.partner_id || null,
-            partner_name: roll.partner_name || '',
-            duration_mins: roll.duration_mins || 5,
-            submissions_for: roll.submissions_for || [],
-            submissions_against: roll.submissions_against || [],
-            notes: roll.notes || '',
-          }))
-        );
-      }
-
-      // Load session_techniques if present
-      if (sessionData.session_techniques && sessionData.session_techniques.length > 0) {
-        setTechniques(
-          sessionData.session_techniques.map((tech: any) => ({
-            technique_number: tech.technique_number,
-            movement_id: tech.movement_id,
-            movement_name: tech.movement_name || '',
-            notes: tech.notes || '',
-            media_urls: tech.media_urls || [],
-          }))
-        );
-      }
-    } catch (error) {
-      console.error('Error loading session:', error);
-      toast.error('Failed to load session. Redirecting to dashboard.');
-      navigate('/');
-    } finally {
-      setLoading(false);
-    }
-  };
 
   // Roll handlers
   const handleAddRoll = () => {
@@ -414,7 +418,7 @@ export default function EditSession() {
       <div className="mb-6 flex items-center gap-3">
         <button
           onClick={() => navigate('/')}
-          className="text-[var(--muted)] hover:text-gray-900 dark:hover:text-white"
+          className="text-[var(--muted)] hover:text-[var(--text)]"
           aria-label="Back to dashboard"
         >
           <ArrowLeft className="w-6 h-6" />
@@ -562,7 +566,7 @@ export default function EditSession() {
               <button
                 type="button"
                 onClick={() => setDetailedMode(!detailedMode)}
-                className="flex items-center gap-2 text-sm text-[var(--accent)] hover:text-primary-700"
+                className="flex items-center gap-2 text-sm text-[var(--accent)] hover:opacity-80"
               >
                 {detailedMode ? (
                   <>
@@ -708,7 +712,7 @@ export default function EditSession() {
                                 key={movement.id}
                                 type="button"
                                 onClick={() => handleAddSubmission(index, movement.id, true)}
-                                className="w-full text-left px-2 py-1 rounded text-sm hover:bg-gray-100 dark:hover:bg-gray-700"
+                                className="w-full text-left px-2 py-1 rounded text-sm hover:bg-[var(--surfaceElev)]"
                                 disabled={roll.submissions_for.includes(movement.id)}
                               >
                                 {movement.name} {roll.submissions_for.includes(movement.id) && '✓'}
@@ -721,7 +725,7 @@ export default function EditSession() {
                             return movement ? (
                               <span
                                 key={movementId}
-                                className="text-xs px-2 py-1 bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-300 rounded flex items-center gap-1"
+                                className="text-xs px-2 py-1 bg-green-100 text-green-700 rounded flex items-center gap-1"
                               >
                                 {movement.name}
                                 <button
@@ -765,7 +769,7 @@ export default function EditSession() {
                                 key={movement.id}
                                 type="button"
                                 onClick={() => handleAddSubmission(index, movement.id, false)}
-                                className="w-full text-left px-2 py-1 rounded text-sm hover:bg-gray-100 dark:hover:bg-gray-700"
+                                className="w-full text-left px-2 py-1 rounded text-sm hover:bg-[var(--surfaceElev)]"
                                 disabled={roll.submissions_against.includes(movement.id)}
                               >
                                 {movement.name} {roll.submissions_against.includes(movement.id) && '✓'}
@@ -778,7 +782,7 @@ export default function EditSession() {
                             return movement ? (
                               <span
                                 key={movementId}
-                                className="text-xs px-2 py-1 bg-red-100 dark:bg-red-900 text-red-700 dark:text-red-300 rounded flex items-center gap-1"
+                                className="text-xs px-2 py-1 bg-red-100 text-red-700 rounded flex items-center gap-1"
                               >
                                 {movement.name}
                                 <button
@@ -829,7 +833,7 @@ export default function EditSession() {
             <button
               type="button"
               onClick={handleAddTechnique}
-              className="flex items-center gap-2 px-3 py-1 bg-primary-600 text-white rounded-md hover:bg-primary-700 text-sm"
+              className="flex items-center gap-2 px-3 py-1 bg-[var(--accent)] text-white rounded-md hover:opacity-90 text-sm"
             >
               <Plus className="w-4 h-4" />
               Add Technique
@@ -893,8 +897,8 @@ export default function EditSession() {
                             }}
                             className={`w-full text-left px-2 py-1 rounded text-sm ${
                               tech.movement_id === movement.id
-                                ? 'bg-primary-600 text-white'
-                                : 'hover:bg-gray-100 dark:hover:bg-gray-700'
+                                ? 'bg-[var(--accent)] text-white'
+                                : 'hover:bg-[var(--surfaceElev)]'
                             }`}
                           >
                             <span className="font-medium">{movement.name}</span>
@@ -940,7 +944,7 @@ export default function EditSession() {
                       <button
                         type="button"
                         onClick={() => handleAddMediaUrl(index)}
-                        className="text-xs text-[var(--accent)] hover:text-primary-700 flex items-center gap-1"
+                        className="text-xs text-[var(--accent)] hover:opacity-80 flex items-center gap-1"
                       >
                         <Plus className="w-3 h-3" />
                         Add Link

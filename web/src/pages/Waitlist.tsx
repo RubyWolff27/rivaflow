@@ -16,7 +16,11 @@ export default function Waitlist() {
   const [waitlistCount, setWaitlistCount] = useState<number | null>(null);
 
   useEffect(() => {
-    waitlistApi.getCount().then(res => setWaitlistCount(res.data.count)).catch(() => {});
+    let cancelled = false;
+    waitlistApi.getCount().then(res => {
+      if (!cancelled) setWaitlistCount(res.data.count);
+    }).catch(() => {});
+    return () => { cancelled = true; };
   }, []);
 
   const handleSubmit = async (e: FormEvent) => {

@@ -36,11 +36,38 @@ export default function GymSelector({ value, onChange, onCreateGym, onGymSelecte
   }, [value]);
 
   useEffect(() => {
-    if (searchQuery.length >= 2) {
-      searchGyms();
-    } else if (searchQuery.length === 0) {
-      loadGyms();
-    }
+    let cancelled = false;
+    const doSearch = async () => {
+      if (searchQuery.length >= 2) {
+        setLoading(true);
+        try {
+          const response = await gymsApi.search(searchQuery, true);
+          if (!cancelled) setGyms(response.data.gyms || []);
+        } catch (error) {
+          if (!cancelled) {
+            console.error('Error searching gyms:', error);
+            setGyms([]);
+          }
+        } finally {
+          if (!cancelled) setLoading(false);
+        }
+      } else if (searchQuery.length === 0) {
+        setLoading(true);
+        try {
+          const response = await gymsApi.list(true);
+          if (!cancelled) setGyms(response.data.gyms || []);
+        } catch (error) {
+          if (!cancelled) {
+            console.error('Error loading gyms:', error);
+            setGyms([]);
+          }
+        } finally {
+          if (!cancelled) setLoading(false);
+        }
+      }
+    };
+    doSearch();
+    return () => { cancelled = true; };
   }, [searchQuery]);
 
   // Close dropdown when clicking outside
@@ -61,19 +88,6 @@ export default function GymSelector({ value, onChange, onCreateGym, onGymSelecte
       setGyms(response.data.gyms || []);
     } catch (error) {
       console.error('Error loading gyms:', error);
-      setGyms([]);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const searchGyms = async () => {
-    setLoading(true);
-    try {
-      const response = await gymsApi.search(searchQuery, true);
-      setGyms(response.data.gyms || []);
-    } catch (error) {
-      console.error('Error searching gyms:', error);
       setGyms([]);
     } finally {
       setLoading(false);
@@ -156,7 +170,7 @@ export default function GymSelector({ value, onChange, onCreateGym, onGymSelecte
                 <button
                   key={gym.id}
                   onClick={() => handleSelectGym(gym)}
-                  className="w-full text-left px-4 py-3 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors flex items-start justify-between"
+                  className="w-full text-left px-4 py-3 hover:bg-[var(--surfaceElev)] transition-colors flex items-start justify-between"
                   role="option"
                   aria-selected={searchQuery === gym.name}
                 >
@@ -189,7 +203,7 @@ export default function GymSelector({ value, onChange, onCreateGym, onGymSelecte
           {!showCustomInput ? (
             <button
               onClick={() => setShowCustomInput(true)}
-              className="w-full text-left px-4 py-3 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors flex items-center gap-2"
+              className="w-full text-left px-4 py-3 hover:bg-[var(--surfaceElev)] transition-colors flex items-center gap-2"
               style={{ color: 'var(--primary)' }}
             >
               <Plus className="w-4 h-4" />

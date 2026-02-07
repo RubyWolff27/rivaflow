@@ -20,15 +20,15 @@ const CATEGORY_LABELS: Record<string, string> = {
 };
 
 const CATEGORY_COLORS: Record<string, string> = {
-  position: 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300',
-  submission: 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300',
-  sweep: 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300',
-  pass: 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-300',
-  takedown: 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-300',
-  escape: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300',
-  movement: 'bg-indigo-100 text-indigo-800 dark:bg-indigo-900 dark:text-indigo-300',
-  concept: 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300',
-  defense: 'bg-pink-100 text-pink-800 dark:bg-pink-900 dark:text-pink-300',
+  position: 'bg-blue-100 text-blue-800',
+  submission: 'bg-red-100 text-red-800',
+  sweep: 'bg-green-100 text-green-800',
+  pass: 'bg-purple-100 text-purple-800',
+  takedown: 'bg-orange-100 text-orange-800',
+  escape: 'bg-yellow-100 text-yellow-800',
+  movement: 'bg-indigo-100 text-indigo-800',
+  concept: 'bg-[var(--surfaceElev)] text-[var(--text)]',
+  defense: 'bg-pink-100 text-pink-800',
 };
 
 export default function Glossary() {
@@ -57,7 +57,27 @@ export default function Glossary() {
   });
 
   useEffect(() => {
-    loadData();
+    let cancelled = false;
+    const doLoad = async () => {
+      setLoading(true);
+      try {
+        const [movementsRes, categoriesRes] = await Promise.all([
+          glossaryApi.list(),
+          glossaryApi.getCategories(),
+        ]);
+        if (!cancelled) {
+          const movementsData = movementsRes.data as any;
+          setMovements(Array.isArray(movementsData) ? movementsData : movementsData.movements || []);
+          setCategories(categoriesRes.data.categories);
+        }
+      } catch (error) {
+        if (!cancelled) console.error('Error loading glossary:', error);
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    };
+    doLoad();
+    return () => { cancelled = true; };
   }, []);
 
   useEffect(() => {
@@ -181,7 +201,7 @@ export default function Glossary() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <Book className="w-8 h-8 text-primary-600" />
+          <Book className="w-8 h-8 text-[var(--accent)]" />
           <div>
             <h1 className="text-3xl font-bold">BJJ Glossary</h1>
             <p className="text-[var(--muted)]">
@@ -200,7 +220,7 @@ export default function Glossary() {
 
       {/* Add Custom Form */}
       {showAddCustom && (
-        <form onSubmit={handleAddCustom} className="card bg-gray-50 dark:bg-gray-800 space-y-4">
+        <form onSubmit={handleAddCustom} className="card bg-[var(--surfaceElev)] space-y-4">
           <h3 className="text-lg font-semibold">Add Custom Technique</h3>
 
           <div className="grid grid-cols-2 gap-4">
@@ -299,7 +319,7 @@ export default function Glossary() {
       <div className="card space-y-4">
         {/* Search */}
         <div className="relative">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-[var(--muted)]" />
           <input
             type="text"
             className="input pl-10"
@@ -315,8 +335,8 @@ export default function Glossary() {
             onClick={() => setSelectedCategory('all')}
             className={`px-3 py-1 rounded-full text-sm font-medium transition-colors ${
               selectedCategory === 'all'
-                ? 'bg-primary-600 text-white'
-                : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600'
+                ? 'bg-[var(--accent)] text-white'
+                : 'bg-[var(--surfaceElev)] text-[var(--text)] hover:opacity-80'
             }`}
           >
             All ({movements.length})
@@ -327,8 +347,8 @@ export default function Glossary() {
               onClick={() => setSelectedCategory(category)}
               className={`px-3 py-1 rounded-full text-sm font-medium transition-colors ${
                 selectedCategory === category
-                  ? 'bg-primary-600 text-white'
-                  : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600'
+                  ? 'bg-[var(--accent)] text-white'
+                  : 'bg-[var(--surfaceElev)] text-[var(--text)] hover:opacity-80'
               }`}
             >
               {CATEGORY_LABELS[category] || category} ({categoryStats[category] || 0})
@@ -384,7 +404,7 @@ export default function Glossary() {
                     e.stopPropagation();
                     setMovementToDelete(movement.id);
                   }}
-                  className="text-red-600 hover:text-red-700 dark:text-red-400"
+                  className="text-[var(--error)] hover:opacity-80"
                   title="Delete custom technique"
                   aria-label="Delete custom technique"
                 >
@@ -404,23 +424,23 @@ export default function Glossary() {
                 {CATEGORY_LABELS[movement.category] || movement.category}
               </span>
               {movement.points > 0 && (
-                <span className="px-2 py-1 rounded text-xs font-medium bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-300 flex items-center gap-1">
+                <span className="px-2 py-1 rounded text-xs font-medium bg-amber-100 text-amber-800 flex items-center gap-1">
                   <Award className="w-3 h-3" />
                   {movement.points} pts
                 </span>
               )}
               {!movement.gi_applicable && (
-                <span className="px-2 py-1 rounded text-xs font-medium bg-gray-200 text-gray-600 dark:bg-gray-700 dark:text-gray-400">
+                <span className="px-2 py-1 rounded text-xs font-medium bg-[var(--surfaceElev)] text-[var(--muted)]">
                   No-Gi Only
                 </span>
               )}
               {!movement.nogi_applicable && (
-                <span className="px-2 py-1 rounded text-xs font-medium bg-gray-200 text-gray-600 dark:bg-gray-700 dark:text-gray-400">
+                <span className="px-2 py-1 rounded text-xs font-medium bg-[var(--surfaceElev)] text-[var(--muted)]">
                   Gi Only
                 </span>
               )}
               {movement.custom && (
-                <span className="px-2 py-1 rounded text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300">
+                <span className="px-2 py-1 rounded text-xs font-medium bg-blue-100 text-blue-800">
                   Custom
                 </span>
               )}

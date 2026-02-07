@@ -16,22 +16,25 @@ export default function ReadinessDetail() {
   const toast = useToast();
 
   useEffect(() => {
-    loadReadiness();
+    let cancelled = false;
+    const doLoad = async () => {
+      setLoading(true);
+      try {
+        const response = await readinessApi.getByDate(date!);
+        if (!cancelled) setReadiness(response.data);
+      } catch (error) {
+        if (!cancelled) {
+          console.error('Error loading readiness:', error);
+          toast.error('Failed to load readiness check-in');
+          navigate('/feed');
+        }
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    };
+    doLoad();
+    return () => { cancelled = true; };
   }, [date]);
-
-  const loadReadiness = async () => {
-    setLoading(true);
-    try {
-      const response = await readinessApi.getByDate(date!);
-      setReadiness(response.data);
-    } catch (error) {
-      console.error('Error loading readiness:', error);
-      toast.error('Failed to load readiness check-in');
-      navigate('/feed');
-    } finally {
-      setLoading(false);
-    }
-  };
 
   if (loading) {
     return (
@@ -58,9 +61,9 @@ export default function ReadinessDetail() {
   });
 
   const getScoreColor = (score: number) => {
-    if (score >= 4) return 'text-green-600 dark:text-green-400';
-    if (score >= 3) return 'text-yellow-600 dark:text-yellow-400';
-    return 'text-red-600 dark:text-red-400';
+    if (score >= 4) return 'text-green-600';
+    if (score >= 3) return 'text-yellow-600';
+    return 'text-red-600';
   };
 
   return (

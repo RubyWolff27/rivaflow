@@ -92,7 +92,7 @@ export default function PhotoUpload({
 
   if (!canUpload) {
     return (
-      <div className="text-center py-4 text-gray-500 dark:text-gray-400">
+      <div className="text-center py-4 text-[var(--muted)]">
         Maximum {maxPhotos} photos reached for this activity
       </div>
     );
@@ -102,16 +102,16 @@ export default function PhotoUpload({
     <div className="space-y-4">
       {!selectedFile ? (
         <div>
-          <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg cursor-pointer hover:border-purple-500 dark:hover:border-purple-400 transition-colors">
+          <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-[var(--border)] rounded-lg cursor-pointer hover:border-purple-500 transition-colors">
             <div className="flex flex-col items-center justify-center pt-5 pb-6">
-              <Camera className="w-8 h-8 mb-2 text-gray-400" />
-              <p className="text-sm text-gray-600 dark:text-gray-400">
+              <Camera className="w-8 h-8 mb-2 text-[var(--muted)]" />
+              <p className="text-sm text-[var(--muted)]">
                 <span className="font-semibold">Click to upload</span> or drag and drop
               </p>
-              <p className="text-xs text-gray-500 dark:text-gray-500">
+              <p className="text-xs text-[var(--muted)]">
                 JPG, PNG, GIF, WebP (max 10MB)
               </p>
-              <p className="text-xs text-gray-500 dark:text-gray-500 mt-1">
+              <p className="text-xs text-[var(--muted)] mt-1">
                 {currentPhotoCount}/{maxPhotos} photos uploaded
               </p>
             </div>

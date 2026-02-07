@@ -114,48 +114,50 @@ export default function LogSession() {
   });
 
   useEffect(() => {
-    loadData();
+    let cancelled = false;
+    const doLoad = async () => {
+      try {
+        const [autocompleteRes, profileRes, instructorsRes, partnersRes, movementsRes] = await Promise.all([
+          sessionsApi.getAutocomplete(),
+          profileApi.get(),
+          friendsApi.listInstructors(),
+          friendsApi.listPartners(),
+          glossaryApi.list(),
+        ]);
+        if (cancelled) return;
+
+        setAutocomplete(autocompleteRes.data ?? {});
+        setInstructors(instructorsRes.data ?? []);
+        setPartners(partnersRes.data ?? []);
+        // API returns {movements: [...], total: N} -- extract the array
+        const movementsData = movementsRes.data as any;
+        setMovements(Array.isArray(movementsData) ? movementsData : movementsData?.movements || []);
+
+        // Auto-populate default gym, location, coach, and class type from profile
+        const updates: any = {};
+        if (profileRes.data?.default_gym) {
+          updates.gym_name = profileRes.data.default_gym;
+        }
+        if (profileRes.data?.default_location) {
+          updates.location = profileRes.data.default_location;
+        }
+        if (profileRes.data?.current_instructor_id) {
+          updates.instructor_id = profileRes.data.current_instructor_id;
+          updates.instructor_name = profileRes.data?.current_professor ?? '';
+        }
+        if (profileRes.data?.primary_training_type) {
+          updates.class_type = profileRes.data.primary_training_type;
+        }
+        if (Object.keys(updates).length > 0) {
+          setSessionData(prev => ({ ...prev, ...updates }));
+        }
+      } catch (error) {
+        if (!cancelled) console.error('Error loading data:', error);
+      }
+    };
+    doLoad();
+    return () => { cancelled = true; };
   }, []);
-
-  const loadData = async () => {
-    try {
-      const [autocompleteRes, profileRes, instructorsRes, partnersRes, movementsRes] = await Promise.all([
-        sessionsApi.getAutocomplete(),
-        profileApi.get(),
-        friendsApi.listInstructors(),
-        friendsApi.listPartners(),
-        glossaryApi.list(),
-      ]);
-
-      setAutocomplete(autocompleteRes.data ?? {});
-      setInstructors(instructorsRes.data ?? []);
-      setPartners(partnersRes.data ?? []);
-      // API returns {movements: [...], total: N} — extract the array
-      const movementsData = movementsRes.data as any;
-      setMovements(Array.isArray(movementsData) ? movementsData : movementsData?.movements || []);
-
-      // Auto-populate default gym, location, coach, and class type from profile
-      const updates: any = {};
-      if (profileRes.data?.default_gym) {
-        updates.gym_name = profileRes.data.default_gym;
-      }
-      if (profileRes.data?.default_location) {
-        updates.location = profileRes.data.default_location;
-      }
-      if (profileRes.data?.current_instructor_id) {
-        updates.instructor_id = profileRes.data.current_instructor_id;
-        updates.instructor_name = profileRes.data?.current_professor ?? '';
-      }
-      if (profileRes.data?.primary_training_type) {
-        updates.class_type = profileRes.data.primary_training_type;
-      }
-      if (Object.keys(updates).length > 0) {
-        setSessionData(prev => ({ ...prev, ...updates }));
-      }
-    } catch (error) {
-      console.error('Error loading data:', error);
-    }
-  };
 
   const handleNextStep = () => {
     if (step === 1) {
@@ -424,8 +426,8 @@ export default function LogSession() {
       <div className="max-w-md mx-auto text-center py-12">
         <CheckCircle className="w-16 h-16 text-green-500 mx-auto mb-4" />
         <h2 className="text-2xl font-bold mb-2">{activityType === 'rest' ? 'Rest Day Logged!' : 'Session Logged!'}</h2>
-        <p className="text-gray-600 dark:text-gray-400">{activityType === 'rest' ? 'Redirecting to home...' : 'Redirecting to session details...'}</p>
-        {activityType === 'training' && <p className="text-sm text-gray-500 dark:text-gray-500 mt-2">You can add photos on the next page</p>}
+        <p className="text-[var(--muted)]">{activityType === 'rest' ? 'Redirecting to home...' : 'Redirecting to session details...'}</p>
+        {activityType === 'training' && <p className="text-sm text-[var(--muted)] mt-2">You can add photos on the next page</p>}
       </div>
     );
   }
@@ -442,7 +444,7 @@ export default function LogSession() {
               setActivityType('training');
               setStep(1);
             }}
-            className="flex-1 py-3 rounded-lg font-medium text-sm transition-all"
+            className="flex-1 py-3 rounded-lg font-medium text-sm transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-2"
             style={{
               backgroundColor: activityType === 'training' ? 'var(--accent)' : 'var(--surfaceElev)',
               color: activityType === 'training' ? '#FFFFFF' : 'var(--text)',
@@ -458,7 +460,7 @@ export default function LogSession() {
               setActivityType('rest');
               setStep(2); // Skip readiness for rest days
             }}
-            className="flex-1 py-3 rounded-lg font-medium text-sm transition-all"
+            className="flex-1 py-3 rounded-lg font-medium text-sm transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-2"
             style={{
               backgroundColor: activityType === 'rest' ? 'var(--accent)' : 'var(--surfaceElev)',
               color: activityType === 'rest' ? '#FFFFFF' : 'var(--text)',
@@ -477,23 +479,23 @@ export default function LogSession() {
         <div className="flex items-center justify-center gap-2">
           <div className={`w-8 h-8 rounded-full flex items-center justify-center font-semibold ${
             step === 1
-              ? 'bg-primary-600 text-white'
+              ? 'bg-[var(--accent)] text-white'
               : skippedReadiness
-                ? 'bg-gray-300 dark:bg-gray-600 text-gray-500 line-through'
+                ? 'bg-[var(--surfaceElev)] text-[var(--muted)] line-through'
                 : 'bg-green-500 text-white'
           }`}>
             1
           </div>
-          <div className="w-16 h-1 bg-gray-300 dark:bg-gray-600"></div>
-          <div className={`w-8 h-8 rounded-full flex items-center justify-center font-semibold ${step === 2 ? 'bg-primary-600 text-white' : 'bg-gray-300 dark:bg-gray-600 text-gray-600'}`}>
+          <div className="w-16 h-1 bg-[var(--surfaceElev)]"></div>
+          <div className={`w-8 h-8 rounded-full flex items-center justify-center font-semibold ${step === 2 ? 'bg-[var(--accent)] text-white' : 'bg-[var(--surfaceElev)] text-[var(--muted)]'}`}>
             2
           </div>
         </div>
         <div className="flex justify-between mt-2 text-sm">
-          <span className={`${step === 1 ? 'font-semibold' : skippedReadiness ? 'text-gray-400 line-through' : 'text-gray-500'}`}>
+          <span className={`${step === 1 ? 'font-semibold' : skippedReadiness ? 'text-[var(--muted)] line-through' : 'text-[var(--muted)]'}`}>
             Readiness Check {skippedReadiness && '(skipped)'}
           </span>
-          <span className={step === 2 ? 'font-semibold' : 'text-gray-500'}>Session Details</span>
+          <span className={step === 2 ? 'font-semibold' : 'text-[var(--muted)]'}>Session Details</span>
         </div>
       </div>
       )}
@@ -510,7 +512,7 @@ export default function LogSession() {
       {/* Step 1: Readiness (only for training) */}
       {activityType === 'training' && step === 1 && (
         <div className="card space-y-6">
-          <p className="text-gray-600 dark:text-gray-400">
+          <p className="text-[var(--muted)]">
             Let's check your readiness before logging today's session.
           </p>
 
@@ -527,21 +529,21 @@ export default function LogSession() {
                 max="5"
                 value={readinessData[metric]}
                 onChange={(e) => setReadinessData({ ...readinessData, [metric]: parseInt(e.target.value) })}
-                className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer dark:bg-gray-700"
+                className="w-full h-2 bg-[var(--surfaceElev)] rounded-lg appearance-none cursor-pointer"
                 aria-label={metric}
                 aria-valuetext={`${metric}: ${readinessData[metric]} out of 5`}
               />
-              <div className="flex justify-between text-xs text-gray-500 mt-1">
-                <span>Low</span>
-                <span>High</span>
+              <div className="flex justify-between text-xs text-[var(--muted)] mt-1">
+                <span>{metric === 'sleep' ? 'Poor' : metric === 'soreness' ? 'None' : 'Low'}</span>
+                <span>{metric === 'sleep' ? 'Great' : metric === 'soreness' ? 'Severe' : 'High'}</span>
               </div>
             </div>
           ))}
 
           {/* Composite Score */}
           <div className="p-4 bg-gradient-to-r from-primary-50 to-blue-50 dark:from-primary-900/20 dark:to-blue-900/20 rounded-lg">
-            <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">Readiness Score</p>
-            <p className="text-3xl font-bold text-primary-600">{compositeScore}/20</p>
+            <p className="text-sm text-[var(--muted)] mb-1">Readiness Score</p>
+            <p className="text-3xl font-bold text-[var(--accent)]">{compositeScore}/20</p>
           </div>
 
           {/* Hotspot */}
@@ -582,7 +584,7 @@ export default function LogSession() {
             <button
               type="button"
               onClick={handleSkipReadiness}
-              className="text-xs text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 underline"
+              className="text-xs text-[var(--muted)] hover:opacity-80 underline"
             >
               Skip readiness check
             </button>
@@ -675,7 +677,7 @@ export default function LogSession() {
                 }
               }}
             />
-            <p className="text-xs text-gray-500 mt-1">
+            <p className="text-xs text-[var(--muted)] mt-1">
               Select from verified gyms or add a new one. Head coach will auto-populate if available.
             </p>
           </div>
@@ -705,8 +707,8 @@ export default function LogSession() {
                 </option>
               ))}
             </select>
-            <p className="text-xs text-gray-500 mt-1">
-              Select from your list. <a href="/friends" className="text-primary-600 hover:underline">Manage instructors in Friends</a>
+            <p className="text-xs text-[var(--muted)] mt-1">
+              Select from your list. <a href="/friends" className="text-[var(--accent)] hover:underline">Manage instructors in Friends</a>
             </p>
           </div>
 
@@ -785,19 +787,19 @@ export default function LogSession() {
                 </button>
               ))}
             </div>
-            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+            <p className="text-xs text-[var(--muted)] mt-1">
               1 = Light, 3 = Moderate, 5 = Maximum effort
             </p>
           </div>
 
           {/* Technique Focus */}
-          <div className="space-y-4 border-t border-gray-200 dark:border-gray-700 pt-4">
+          <div className="space-y-4 border-t border-[var(--border)] pt-4">
             <div className="flex items-center justify-between">
               <h3 className="font-semibold text-lg">Technique of the Day</h3>
               <button
                 type="button"
                 onClick={handleAddTechnique}
-                className="flex items-center gap-2 px-3 py-1 min-h-[44px] bg-primary-600 text-white rounded-md hover:bg-primary-700 text-sm"
+                className="flex items-center gap-2 px-3 py-1 min-h-[44px] bg-[var(--accent)] text-white rounded-md hover:opacity-90 text-sm"
               >
                 <Plus className="w-4 h-4" />
                 Add Technique
@@ -805,13 +807,13 @@ export default function LogSession() {
             </div>
 
             {techniques.length === 0 ? (
-              <p className="text-sm text-gray-600 dark:text-gray-400">
+              <p className="text-sm text-[var(--muted)]">
                 Click "Add Technique" to track techniques you focused on today
               </p>
             ) : (
               <div className="space-y-4">
                 {techniques.map((tech, index) => (
-                  <div key={index} className="border border-gray-300 dark:border-gray-600 rounded-lg p-4 space-y-3">
+                  <div key={index} className="border border-[var(--border)] rounded-lg p-4 space-y-3">
                     <div className="flex items-center justify-between">
                       <h4 className="font-semibold">Technique #{tech.technique_number}</h4>
                       <button
@@ -827,7 +829,7 @@ export default function LogSession() {
                     <div>
                       <label className="label text-sm">Movement</label>
                       <div className="relative mb-2">
-                        <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+                        <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 w-4 h-4 text-[var(--muted)]" />
                         <input
                           type="text"
                           className="input pl-8 text-sm"
@@ -836,7 +838,7 @@ export default function LogSession() {
                           onChange={(e) => setTechniqueSearch({ ...techniqueSearch, [index]: e.target.value })}
                         />
                       </div>
-                      <div className="max-h-48 overflow-y-auto border border-gray-300 dark:border-gray-600 rounded p-2 space-y-1">
+                      <div className="max-h-48 overflow-y-auto border border-[var(--border)] rounded p-2 space-y-1">
                         {movements
                           .filter(m => {
                             const search = techniqueSearch[index]?.toLowerCase() ?? '';
@@ -860,8 +862,8 @@ export default function LogSession() {
                               }}
                               className={`w-full text-left px-2 py-2 min-h-[44px] rounded text-sm ${
                                 tech.movement_id === movement.id
-                                  ? 'bg-primary-600 text-white'
-                                  : 'hover:bg-gray-100 dark:hover:bg-gray-700'
+                                  ? 'bg-[var(--accent)] text-white'
+                                  : 'hover:bg-[var(--surfaceElev)]'
                               }`}
                             >
                               <span className="font-medium">{movement.name ?? 'Unknown'}</span>
@@ -878,11 +880,11 @@ export default function LogSession() {
                                  m.subcategory?.toLowerCase().includes(search) ||
                                  (m.aliases ?? []).some(alias => alias.toLowerCase().includes(search));
                         }).length === 0 && (
-                          <p className="text-xs text-gray-500 text-center py-2">No movements found</p>
+                          <p className="text-xs text-[var(--muted)] text-center py-2">No movements found</p>
                         )}
                       </div>
                       {tech.movement_id && (
-                        <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                        <p className="text-sm text-[var(--muted)] mt-1">
                           Selected: <span className="font-medium">{tech.movement_name}</span>
                         </p>
                       )}
@@ -907,18 +909,18 @@ export default function LogSession() {
                         <button
                           type="button"
                           onClick={() => handleAddMediaUrl(index)}
-                          className="text-xs text-primary-600 hover:text-primary-700 flex items-center gap-1"
+                          className="text-xs text-[var(--accent)] hover:opacity-80 flex items-center gap-1"
                         >
                           <Plus className="w-3 h-3" />
                           Add Link
                         </button>
                       </div>
                       {tech.media_urls.length === 0 ? (
-                        <p className="text-xs text-gray-500">No media links added</p>
+                        <p className="text-xs text-[var(--muted)]">No media links added</p>
                       ) : (
                         <div className="space-y-2">
                           {tech.media_urls.map((media, mediaIndex) => (
-                            <div key={mediaIndex} className="border border-gray-200 dark:border-gray-700 rounded p-2 space-y-2">
+                            <div key={mediaIndex} className="border border-[var(--border)] rounded p-2 space-y-2">
                               <div className="flex items-center justify-between">
                                 <select
                                   className="input-sm text-xs"
@@ -963,13 +965,13 @@ export default function LogSession() {
 
           {/* Sparring Details */}
           {isSparringType && (
-            <div className="space-y-4 border-t border-gray-200 dark:border-gray-700 pt-4">
+            <div className="space-y-4 border-t border-[var(--border)] pt-4">
               <div className="flex items-center justify-between">
                 <h3 className="font-semibold text-lg">Roll Tracking</h3>
                 <button
                   type="button"
                   onClick={() => setDetailedMode(!detailedMode)}
-                  className="flex items-center gap-2 text-sm text-primary-600 hover:text-primary-700"
+                  className="flex items-center gap-2 text-sm text-[var(--accent)] hover:opacity-80"
                 >
                   {detailedMode ? (
                     <>
@@ -1025,12 +1027,12 @@ export default function LogSession() {
               ) : (
                 // Detailed Mode: Individual rolls
                 <div className="space-y-4">
-                  <p className="text-sm text-gray-600 dark:text-gray-400">
+                  <p className="text-sm text-[var(--muted)]">
                     Track each roll with partner and submissions from glossary
                   </p>
 
                   {rolls.map((roll, index) => (
-                    <div key={index} className="border border-gray-300 dark:border-gray-600 rounded-lg p-4 space-y-3">
+                    <div key={index} className="border border-[var(--border)] rounded-lg p-4 space-y-3">
                       <div className="flex items-center justify-between">
                         <h4 className="font-semibold">Roll #{roll.roll_number}</h4>
                         <button
@@ -1081,7 +1083,7 @@ export default function LogSession() {
                       <div>
                         <label className="label text-sm">Submissions You Got</label>
                         <div className="relative mb-2">
-                          <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+                          <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 w-4 h-4 text-[var(--muted)]" />
                           <input
                             type="text"
                             className="input pl-8 text-sm"
@@ -1090,7 +1092,7 @@ export default function LogSession() {
                             onChange={(e) => setSubmissionSearchFor({ ...submissionSearchFor, [index]: e.target.value })}
                           />
                         </div>
-                        <div className="max-h-32 overflow-y-auto border border-gray-300 dark:border-gray-600 rounded p-2 space-y-1">
+                        <div className="max-h-32 overflow-y-auto border border-[var(--border)] rounded p-2 space-y-1">
                           {movements
                             .filter(m => m.category === 'submission')
                             .filter(m => {
@@ -1100,7 +1102,7 @@ export default function LogSession() {
                                      (m.aliases ?? []).some(alias => alias.toLowerCase().includes(search));
                             })
                             .map(movement => (
-                              <label key={movement.id} className="flex items-center gap-2 text-sm cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 p-1 rounded">
+                              <label key={movement.id} className="flex items-center gap-2 text-sm cursor-pointer hover:bg-[var(--surfaceElev)] p-1 rounded">
                                 <input
                                   type="checkbox"
                                   checked={roll.submissions_for.includes(movement.id)}
@@ -1116,7 +1118,7 @@ export default function LogSession() {
                                    m.subcategory?.toLowerCase().includes(search) ||
                                    (m.aliases ?? []).some(alias => alias.toLowerCase().includes(search));
                           }).length === 0 && (
-                            <p className="text-xs text-gray-500 text-center py-2">No submissions found</p>
+                            <p className="text-xs text-[var(--muted)] text-center py-2">No submissions found</p>
                           )}
                         </div>
                       </div>
@@ -1125,7 +1127,7 @@ export default function LogSession() {
                       <div>
                         <label className="label text-sm">Submissions They Got</label>
                         <div className="relative mb-2">
-                          <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+                          <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 w-4 h-4 text-[var(--muted)]" />
                           <input
                             type="text"
                             className="input pl-8 text-sm"
@@ -1134,7 +1136,7 @@ export default function LogSession() {
                             onChange={(e) => setSubmissionSearchAgainst({ ...submissionSearchAgainst, [index]: e.target.value })}
                           />
                         </div>
-                        <div className="max-h-32 overflow-y-auto border border-gray-300 dark:border-gray-600 rounded p-2 space-y-1">
+                        <div className="max-h-32 overflow-y-auto border border-[var(--border)] rounded p-2 space-y-1">
                           {movements
                             .filter(m => m.category === 'submission')
                             .filter(m => {
@@ -1144,7 +1146,7 @@ export default function LogSession() {
                                      (m.aliases ?? []).some(alias => alias.toLowerCase().includes(search));
                             })
                             .map(movement => (
-                              <label key={movement.id} className="flex items-center gap-2 text-sm cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 p-1 rounded">
+                              <label key={movement.id} className="flex items-center gap-2 text-sm cursor-pointer hover:bg-[var(--surfaceElev)] p-1 rounded">
                                 <input
                                   type="checkbox"
                                   checked={roll.submissions_against.includes(movement.id)}
@@ -1160,7 +1162,7 @@ export default function LogSession() {
                                    m.subcategory?.toLowerCase().includes(search) ||
                                    (m.aliases ?? []).some(alias => alias.toLowerCase().includes(search));
                           }).length === 0 && (
-                            <p className="text-xs text-gray-500 text-center py-2">No submissions found</p>
+                            <p className="text-xs text-[var(--muted)] text-center py-2">No submissions found</p>
                           )}
                         </div>
                       </div>
@@ -1264,7 +1266,7 @@ export default function LogSession() {
 
           {/* Fight Dynamics (BJJ sessions only) */}
           {isSparringType && (
-            <div className="border-t border-gray-200 dark:border-gray-700 pt-4">
+            <div className="border-t border-[var(--border)] pt-4">
               <button
                 type="button"
                 onClick={() => setShowFightDynamics(!showFightDynamics)}
@@ -1396,10 +1398,10 @@ export default function LogSession() {
           )}
 
           {/* Session Details / Notes */}
-          <div className={!isSparringType ? 'border-t border-gray-200 dark:border-gray-700 pt-4' : ''}>
+          <div className={!isSparringType ? 'border-t border-[var(--border)] pt-4' : ''}>
             <label className="label">
               {!isSparringType ? 'Session Details' : 'Notes'}
-              {!isSparringType && <span className="text-sm font-normal text-gray-500 ml-2">(Workout details, exercises, distances, times, etc.)</span>}
+              {!isSparringType && <span className="text-sm font-normal text-[var(--muted)] ml-2">(Workout details, exercises, distances, times, etc.)</span>}
             </label>
             <textarea
               className="input"
@@ -1415,9 +1417,9 @@ export default function LogSession() {
           </div>
 
           {/* Photo Upload Info */}
-          <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-3 flex items-start gap-2">
-            <Camera className="w-5 h-5 text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" />
-            <div className="text-sm text-blue-900 dark:text-blue-100">
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 flex items-start gap-2">
+            <Camera className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
+            <div className="text-sm text-blue-900">
               <span className="font-semibold">Want to add photos?</span> Save the session first, then you can upload up to 3 photos on the next page.
             </div>
           </div>
@@ -1467,7 +1469,7 @@ export default function LogSession() {
                   key={type}
                   type="button"
                   onClick={() => setRestData({ ...restData, rest_type: type })}
-                  className="flex-1 py-3 rounded-lg font-medium text-sm transition-all capitalize"
+                  className="flex-1 py-3 rounded-lg font-medium text-sm transition-all capitalize focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-2"
                   style={{
                     backgroundColor: restData.rest_type === type ? 'var(--accent)' : 'var(--surfaceElev)',
                     color: restData.rest_type === type ? '#FFFFFF' : 'var(--text)',
@@ -1479,7 +1481,7 @@ export default function LogSession() {
                 </button>
               ))}
             </div>
-            <p className="text-xs text-gray-500 mt-2">
+            <p className="text-xs text-[var(--muted)] mt-2">
               <span className="font-semibold">Active:</span> Light activity, stretching, mobility work.
               <span className="font-semibold ml-3">Passive:</span> Complete rest, no training.
               <span className="font-semibold ml-3">Injury:</span> Recovering from injury.

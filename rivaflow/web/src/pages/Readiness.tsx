@@ -21,7 +21,19 @@ export default function Readiness() {
   });
 
   useEffect(() => {
-    loadLatest();
+    let cancelled = false;
+    const doLoad = async () => {
+      try {
+        const res = await readinessApi.getLatest();
+        if (!cancelled && res.data) {
+          setLatest(res.data ?? null);
+        }
+      } catch (error) {
+        if (!cancelled) console.error('Error loading readiness:', error);
+      }
+    };
+    doLoad();
+    return () => { cancelled = true; };
   }, []);
 
   const loadLatest = async () => {
@@ -90,7 +102,7 @@ export default function Readiness() {
       {/* Form */}
       <form onSubmit={handleSubmit} className="card">
         {success && (
-          <div className="mb-4 p-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg flex items-center gap-2 text-green-700 dark:text-green-400">
+          <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded-lg flex items-center gap-2 text-green-700">
             <CheckCircle className="w-5 h-5" />
             Readiness logged successfully!
           </div>
@@ -126,8 +138,8 @@ export default function Readiness() {
                 aria-valuetext={`${metric}: ${formData[metric]} out of 5`}
               />
               <div className="flex justify-between text-xs text-[var(--muted)] mt-1">
-                <span>Low</span>
-                <span>High</span>
+                <span>{metric === 'sleep' ? 'Poor' : metric === 'soreness' ? 'None' : 'Low'}</span>
+                <span>{metric === 'sleep' ? 'Great' : metric === 'soreness' ? 'Severe' : 'High'}</span>
               </div>
             </div>
           ))}

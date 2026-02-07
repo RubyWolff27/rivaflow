@@ -359,7 +359,27 @@ export default function Events() {
   }, []);
 
   useEffect(() => {
-    fetchAll();
+    let cancelled = false;
+    const doLoad = async () => {
+      try {
+        const [evRes, nextRes, wlRes] = await Promise.all([
+          eventsApi.list(),
+          eventsApi.getNext(),
+          weightLogsApi.list(),
+        ]);
+        if (!cancelled) {
+          setEvents(evRes.data.events);
+          setNextEvent(nextRes.data);
+          setWeightLogs(wlRes.data.logs);
+        }
+      } catch (err) {
+        if (!cancelled) console.error('Failed to load events data', err);
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    };
+    doLoad();
+    return () => { cancelled = true; };
   }, [fetchAll]);
 
   const handleCreate = async (data: Record<string, unknown>) => {

@@ -31,7 +31,37 @@ export default function PhotoGallery({
   const toast = useToast();
 
   useEffect(() => {
-    loadPhotos();
+    let cancelled = false;
+    const doLoad = async () => {
+      setLoading(true);
+      try {
+        const response = await photosApi.getByActivity(activityType, activityId);
+        if (cancelled) return;
+        // Handle both array response (from stub endpoint) and object response (from real endpoint)
+        if (Array.isArray(response.data)) {
+          setPhotos(response.data);
+          onPhotoCountChange?.(response.data.length);
+        } else if (response.data.photos) {
+          setPhotos(response.data.photos);
+          onPhotoCountChange?.(response.data.count);
+        } else {
+          // Handle error or unexpected response format gracefully
+          setPhotos([]);
+          onPhotoCountChange?.(0);
+        }
+      } catch (error) {
+        if (!cancelled) {
+          console.error('Error loading photos:', error);
+          // Gracefully handle errors - set empty photos instead of crashing
+          setPhotos([]);
+          onPhotoCountChange?.(0);
+        }
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    };
+    doLoad();
+    return () => { cancelled = true; };
   }, [activityType, activityId]);
 
   const loadPhotos = async () => {
@@ -127,7 +157,7 @@ export default function PhotoGallery({
           <div className="relative max-w-4xl max-h-full">
             <button
               onClick={() => setSelectedPhoto(null)}
-              className="absolute -top-10 right-0 text-white hover:text-gray-300"
+              className="absolute -top-10 right-0 text-white hover:opacity-80"
               aria-label="Close photo viewer"
             >
               <X className="w-8 h-8" />

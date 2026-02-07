@@ -39,38 +39,37 @@ export function JourneyProgress() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    loadData();
-  }, []);
-
-  const loadData = async () => {
-    try {
-      // Load from dashboard API
-      const dashboardResponse = await dashboardApi.getSummary();
-      const dashboardData = dashboardResponse.data;
-
-      // Load profile
-      const profileResponse = await profileApi.get();
-      const profileData = profileResponse.data;
-
-      setProfile(profileData);
-      if (dashboardData.milestones?.closest) {
-        setClosestMilestone(dashboardData.milestones.closest);
+    let cancelled = false;
+    const doLoad = async () => {
+      try {
+        const [dashboardResponse, profileResponse] = await Promise.all([
+          dashboardApi.getSummary(),
+          profileApi.get(),
+        ]);
+        if (!cancelled) {
+          setProfile(profileResponse.data);
+          if (dashboardResponse.data.milestones?.closest) {
+            setClosestMilestone(dashboardResponse.data.milestones.closest);
+          }
+        }
+      } catch (error) {
+        if (!cancelled) console.error('Failed to load journey progress:', error);
+      } finally {
+        if (!cancelled) setLoading(false);
       }
-    } catch (error) {
-      console.error('Failed to load journey progress:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
+    };
+    doLoad();
+    return () => { cancelled = true; };
+  }, []);
 
   if (loading) {
     return (
       <Card className="p-6">
         <div className="animate-pulse">
-          <div className="h-6 bg-gray-700 rounded w-1/2 mb-4"></div>
+          <div className="h-6 bg-[var(--surfaceElev)] rounded w-1/2 mb-4"></div>
           <div className="space-y-3">
-            <div className="h-4 bg-gray-700 rounded w-full"></div>
-            <div className="h-4 bg-gray-700 rounded w-2/3"></div>
+            <div className="h-4 bg-[var(--surfaceElev)] rounded w-full"></div>
+            <div className="h-4 bg-[var(--surfaceElev)] rounded w-2/3"></div>
           </div>
         </div>
       </Card>

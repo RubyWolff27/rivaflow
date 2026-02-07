@@ -34,14 +34,14 @@ const ActivitySocialActions = memo(function ActivitySocialActions({
   };
 
   return (
-    <div className="flex items-center gap-4 pt-3 border-t border-gray-200 dark:border-gray-700" role="group" aria-label="Activity actions">
+    <div className="flex items-center gap-4 pt-3 border-t border-[var(--border)]" role="group" aria-label="Activity actions">
       <button
         onClick={handleLikeClick}
         disabled={disabled}
         className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${
           hasLiked
-            ? 'bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400'
-            : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-600'
+            ? 'bg-red-50 text-red-600'
+            : 'bg-[var(--surfaceElev)] text-[var(--muted)] hover:opacity-80'
         } ${disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
         aria-label={hasLiked ? `Unlike (${likeCount} likes)` : `Like (${likeCount} likes)`}
         aria-pressed={hasLiked}
@@ -52,7 +52,7 @@ const ActivitySocialActions = memo(function ActivitySocialActions({
 
       <button
         onClick={onToggleComments}
-        className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-600 transition-all"
+        className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium bg-[var(--surfaceElev)] text-[var(--muted)] hover:opacity-80 transition-all"
         aria-label={`View comments (${commentCount} comments)`}
       >
         <MessageCircle className="w-4 h-4" />

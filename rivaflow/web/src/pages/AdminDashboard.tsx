@@ -23,20 +23,21 @@ export default function AdminDashboard() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    loadStats();
+    let cancelled = false;
+    const doLoad = async () => {
+      setLoading(true);
+      try {
+        const response = await adminApi.getDashboardStats();
+        if (!cancelled) setStats(response.data);
+      } catch (error) {
+        if (!cancelled) toast.error('Failed to load dashboard statistics. Please try again.');
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    };
+    doLoad();
+    return () => { cancelled = true; };
   }, []);
-
-  const loadStats = async () => {
-    setLoading(true);
-    try {
-      const response = await adminApi.getDashboardStats();
-      setStats(response.data);
-    } catch (error) {
-      toast.error('Failed to load dashboard statistics. Please try again.');
-    } finally {
-      setLoading(false);
-    }
-  };
 
   if (loading) {
     return <div className="text-center py-12">Loading...</div>;
@@ -153,7 +154,7 @@ export default function AdminDashboard() {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
           <Link
             to="/admin/users"
-            className="p-4 rounded-lg border transition-colors hover:bg-gray-50 dark:hover:bg-gray-800"
+            className="p-4 rounded-lg border transition-colors hover:bg-[var(--surfaceElev)]"
             style={{ borderColor: 'var(--border)' }}
           >
             <Users className="w-5 h-5 mb-2" style={{ color: 'var(--primary)' }} />
@@ -163,7 +164,7 @@ export default function AdminDashboard() {
 
           <Link
             to="/admin/gyms"
-            className="p-4 rounded-lg border transition-colors hover:bg-gray-50 dark:hover:bg-gray-800"
+            className="p-4 rounded-lg border transition-colors hover:bg-[var(--surfaceElev)]"
             style={{ borderColor: 'var(--border)' }}
           >
             <Building2 className="w-5 h-5 mb-2" style={{ color: 'var(--primary)' }} />
@@ -175,7 +176,7 @@ export default function AdminDashboard() {
 
           <Link
             to="/admin/content"
-            className="p-4 rounded-lg border transition-colors hover:bg-gray-50 dark:hover:bg-gray-800"
+            className="p-4 rounded-lg border transition-colors hover:bg-[var(--surfaceElev)]"
             style={{ borderColor: 'var(--border)' }}
           >
             <MessageSquare className="w-5 h-5 mb-2" style={{ color: 'var(--primary)' }} />
@@ -185,7 +186,7 @@ export default function AdminDashboard() {
 
           <Link
             to="/admin/techniques"
-            className="p-4 rounded-lg border transition-colors hover:bg-gray-50 dark:hover:bg-gray-800"
+            className="p-4 rounded-lg border transition-colors hover:bg-[var(--surfaceElev)]"
             style={{ borderColor: 'var(--border)' }}
           >
             <Activity className="w-5 h-5 mb-2" style={{ color: 'var(--primary)' }} />

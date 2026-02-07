@@ -23,30 +23,33 @@ export default function UserProfile() {
       return;
     }
 
-    loadUserProfile();
+    let cancelled = false;
+    const doLoad = async () => {
+      try {
+        setLoading(true);
+        setError('');
+        const [profileRes, statsRes, activityRes] = await Promise.all([
+          usersApi.getProfile(parseInt(userId!)),
+          usersApi.getStats(parseInt(userId!)),
+          usersApi.getActivity(parseInt(userId!)),
+        ]);
+        if (!cancelled) {
+          setProfile(profileRes.data);
+          setStats(statsRes.data);
+          setActivity(activityRes.data?.items || []);
+        }
+      } catch (err: any) {
+        if (!cancelled) {
+          console.error('Error loading user profile:', err);
+          setError(err.response?.data?.detail || 'Failed to load user profile');
+        }
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    };
+    doLoad();
+    return () => { cancelled = true; };
   }, [userId]);
-
-  const loadUserProfile = async () => {
-    try {
-      setLoading(true);
-      setError('');
-
-      const [profileRes, statsRes, activityRes] = await Promise.all([
-        usersApi.getProfile(parseInt(userId!)),
-        usersApi.getStats(parseInt(userId!)),
-        usersApi.getActivity(parseInt(userId!), { limit: 20 }),
-      ]);
-
-      setProfile(profileRes.data ?? null);
-      setStats(statsRes.data ?? null);
-      setActivity(activityRes.data?.items ?? []);
-    } catch (err: any) {
-      console.error('Failed to load user profile:', err);
-      setError(err.response?.data?.error || 'Failed to load user profile');
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const handleFollowToggle = async () => {
     if (!profile) return;
@@ -71,11 +74,11 @@ export default function UserProfile() {
 
   const getBeltColor = (grade: string) => {
     const beltColors: Record<string, string> = {
-      white: 'bg-gray-100 text-gray-800 border-gray-300',
+      white: 'bg-[var(--surfaceElev)] text-[var(--text)] border-[var(--border)]',
       blue: 'bg-blue-100 text-blue-800 border-blue-300',
       purple: 'bg-purple-100 text-purple-800 border-purple-300',
       brown: 'bg-amber-100 text-amber-800 border-amber-300',
-      black: 'bg-gray-900 text-white border-gray-700',
+      black: 'bg-gray-900 text-white border-gray-700',  // intentional literal color
     };
 
     for (const [belt, colorClass] of Object.entries(beltColors)) {
@@ -84,7 +87,7 @@ export default function UserProfile() {
       }
     }
 
-    return 'bg-gray-100 text-gray-600 border-gray-200';
+    return 'bg-[var(--surfaceElev)] text-[var(--muted)] border-[var(--border)]';
   };
 
   const formatDate = (dateStr: string) => {
@@ -110,7 +113,7 @@ export default function UserProfile() {
   if (error || !profile) {
     return (
       <div className="max-w-4xl mx-auto px-4 py-8">
-        <div className="bg-red-50 dark:bg-red-900/20 text-red-800 dark:text-red-200 p-4 rounded-lg">
+        <div className="bg-red-50 text-red-800 p-4 rounded-lg">
           <p className="font-semibold">Error</p>
           <p>{error || 'User not found'}</p>
           <button
@@ -186,7 +189,7 @@ export default function UserProfile() {
             className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-colors ${
               profile.is_following
                 ? 'bg-[var(--surfaceElev)] text-[var(--text)] hover:opacity-80'
-                : 'bg-primary-600 text-white hover:bg-primary-700'
+                : 'bg-[var(--accent)] text-white hover:opacity-90'
             } disabled:opacity-50`}
           >
             {followLoading ? (

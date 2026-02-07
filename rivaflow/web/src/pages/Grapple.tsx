@@ -45,14 +45,49 @@ export default function Grapple() {
   const [deleteSessionConfirmId, setDeleteSessionConfirmId] = useState<string | null>(null);
 
   useEffect(() => {
-    loadTierInfo();
-    loadSessions();
+    let cancelled = false;
+    const doLoad = async () => {
+      try {
+        const token = localStorage.getItem('access_token');
+        const [tierRes, sessionsRes] = await Promise.all([
+          axios.get(`${getApiBase()}/grapple/info`, {
+            headers: { Authorization: `Bearer ${token}` },
+          }),
+          axios.get(`${getApiBase()}/grapple/sessions`, {
+            headers: { Authorization: `Bearer ${token}` },
+          }),
+        ]);
+        if (!cancelled) {
+          setTierInfo(tierRes.data);
+          setSessions(sessionsRes.data.sessions);
+        }
+      } catch (error) {
+        if (!cancelled) console.error('Failed to load grapple data:', error);
+      }
+    };
+    doLoad();
+    return () => { cancelled = true; };
   }, []);
 
   useEffect(() => {
-    if (currentSessionId) {
-      loadSession(currentSessionId);
-    }
+    if (!currentSessionId) return;
+    let cancelled = false;
+    const doLoad = async () => {
+      try {
+        const token = localStorage.getItem('access_token');
+        const response = await axios.get(`${getApiBase()}/grapple/sessions/${currentSessionId}`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (!cancelled) setMessages(response.data.messages || []);
+      } catch (error) {
+        if (!cancelled) {
+          console.error('Failed to load session:', error);
+          toast.error('Failed to load chat session');
+        }
+      }
+    };
+    doLoad();
+    return () => { cancelled = true; };
   }, [currentSessionId]);
 
   useEffect(() => {
@@ -65,18 +100,6 @@ export default function Grapple() {
 
   const getApiBase = () => import.meta.env.VITE_API_URL || '/api/v1';
 
-  const loadTierInfo = async () => {
-    try {
-      const token = localStorage.getItem('access_token');
-      const response = await axios.get(`${getApiBase()}/grapple/info`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      setTierInfo(response.data);
-    } catch (error) {
-      console.error('Failed to load tier info:', error);
-    }
-  };
-
   const loadSessions = async () => {
     try {
       const token = localStorage.getItem('access_token');
@@ -86,19 +109,6 @@ export default function Grapple() {
       setSessions(response.data.sessions);
     } catch (error) {
       console.error('Failed to load sessions:', error);
-    }
-  };
-
-  const loadSession = async (sessionId: string) => {
-    try {
-      const token = localStorage.getItem('access_token');
-      const response = await axios.get(`${getApiBase()}/grapple/sessions/${sessionId}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      setMessages(response.data.messages || []);
-    } catch (error) {
-      console.error('Failed to load session:', error);
-      toast.error('Failed to load chat session');
     }
   };
 
@@ -218,15 +228,15 @@ export default function Grapple() {
   if (!tierInfo.features.grapple) {
     return (
       <div className="max-w-2xl mx-auto text-center py-12">
-        <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-8">
-          <AlertCircle className="w-16 h-16 text-yellow-600 dark:text-yellow-400 mx-auto mb-4" />
-          <h2 className="text-2xl font-bold mb-2 text-gray-900 dark:text-white">
+        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-8">
+          <AlertCircle className="w-16 h-16 text-yellow-600 mx-auto mb-4" />
+          <h2 className="text-2xl font-bold mb-2 text-[var(--text)]">
             Grapple AI Coach
           </h2>
-          <p className="text-gray-600 dark:text-gray-400 mb-4">
+          <p className="text-[var(--muted)] mb-4">
             Get personalized BJJ coaching powered by AI. Upgrade to Premium to unlock Grapple.
           </p>
-          <p className="text-sm text-gray-500 dark:text-gray-500">
+          <p className="text-sm text-[var(--muted)]">
             Current tier: {tierInfo.tier}
           </p>
         </div>
@@ -237,12 +247,12 @@ export default function Grapple() {
   return (
     <div className="h-[calc(100vh-8rem)] flex gap-4">
       {/* Sidebar - Sessions */}
-      <div className="w-64 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4 flex flex-col">
+      <div className="w-64 bg-[var(--surface)] rounded-lg border border-[var(--border)] p-4 flex flex-col">
         <div className="flex items-center justify-between mb-4">
-          <h2 className="font-semibold text-gray-900 dark:text-white">Chats</h2>
+          <h2 className="font-semibold text-[var(--text)]">Chats</h2>
           <button
             onClick={newChat}
-            className="text-sm px-3 py-1 bg-primary-600 text-white rounded hover:bg-primary-700"
+            className="text-sm px-3 py-1 bg-[var(--accent)] text-white rounded hover:opacity-90"
           >
             New
           </button>
@@ -255,15 +265,15 @@ export default function Grapple() {
               className={`flex items-center justify-between p-2 rounded cursor-pointer group ${
                 currentSessionId === session.id
                   ? 'bg-primary-50 dark:bg-primary-900/20'
-                  : 'hover:bg-gray-100 dark:hover:bg-gray-700'
+                  : 'hover:bg-[var(--surfaceElev)]'
               }`}
               onClick={() => setCurrentSessionId(session.id)}
             >
               <div className="flex-1 min-w-0">
-                <div className="text-sm font-medium truncate text-gray-900 dark:text-white">
+                <div className="text-sm font-medium truncate text-[var(--text)]">
                   {session.title}
                 </div>
-                <div className="text-xs text-gray-500 dark:text-gray-400">
+                <div className="text-xs text-[var(--muted)]">
                   {session.message_count} messages
                 </div>
               </div>
@@ -272,7 +282,7 @@ export default function Grapple() {
                   e.stopPropagation();
                   setDeleteSessionConfirmId(session.id);
                 }}
-                className="opacity-0 group-hover:opacity-100 p-1 hover:bg-red-100 dark:hover:bg-red-900/20 rounded"
+                className="opacity-0 group-hover:opacity-100 p-1 hover:bg-red-100 rounded"
               >
                 <Trash2 className="w-4 h-4 text-red-600" />
               </button>
@@ -281,9 +291,9 @@ export default function Grapple() {
         </div>
 
         {tierInfo.is_beta && (
-          <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
-            <div className="text-xs text-gray-500 dark:text-gray-400">
-              <span className="inline-block px-2 py-1 bg-yellow-100 dark:bg-yellow-900/20 text-yellow-800 dark:text-yellow-400 rounded font-medium">
+          <div className="mt-4 pt-4 border-t border-[var(--border)]">
+            <div className="text-xs text-[var(--muted)]">
+              <span className="inline-block px-2 py-1 bg-yellow-100 text-yellow-800 rounded font-medium">
                 BETA
               </span>
               <p className="mt-2">
@@ -299,18 +309,18 @@ export default function Grapple() {
       {/* Main Chat Area */}
       <div className="flex-1 flex flex-col">
         <div className="flex items-center gap-3 mb-4">
-          <Sparkles className="w-8 h-8 text-primary-600" />
+          <Sparkles className="w-8 h-8 text-[var(--accent)]" />
           <div>
-            <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Grapple AI Coach</h1>
-            <p className="text-sm text-gray-500 dark:text-gray-400">
+            <h1 className="text-3xl font-bold text-[var(--text)]">Grapple AI Coach</h1>
+            <p className="text-sm text-[var(--muted)]">
               Your personalized BJJ training advisor
             </p>
           </div>
         </div>
 
-        <div className="flex-1 overflow-y-auto bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4 space-y-4">
+        <div className="flex-1 overflow-y-auto bg-[var(--surface)] rounded-lg border border-[var(--border)] p-4 space-y-4">
           {messages.length === 0 && (
-            <div className="text-center text-gray-500 dark:text-gray-400 py-12">
+            <div className="text-center text-[var(--muted)] py-12">
               <MessageCircle className="w-16 h-16 mx-auto mb-4 opacity-20" />
               <p className="text-lg font-medium mb-2">Start a conversation with Grapple</p>
               <p className="text-sm">
@@ -328,8 +338,8 @@ export default function Grapple() {
                 <div
                   className={`rounded-lg px-4 py-3 ${
                     msg.role === 'user'
-                      ? 'bg-primary-600 text-white'
-                      : 'bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-gray-100'
+                      ? 'bg-[var(--accent)] text-white'
+                      : 'bg-[var(--surfaceElev)] text-[var(--text)]'
                   }`}
                 >
                   <div className="text-sm whitespace-pre-wrap">{msg.content}</div>
@@ -339,14 +349,14 @@ export default function Grapple() {
                   <div className="flex gap-2 mt-1 ml-2">
                     <button
                       onClick={() => submitFeedback(msg.id, 'positive')}
-                      className="text-gray-400 hover:text-green-600 dark:hover:text-green-400"
+                      className="text-[var(--muted)] hover:text-green-600"
                       title="Helpful"
                     >
                       <ThumbsUp className="w-4 h-4" />
                     </button>
                     <button
                       onClick={() => submitFeedback(msg.id, 'negative')}
-                      className="text-gray-400 hover:text-red-600 dark:hover:text-red-400"
+                      className="text-[var(--muted)] hover:text-red-600"
                       title="Not helpful"
                     >
                       <ThumbsDown className="w-4 h-4" />
@@ -359,10 +369,10 @@ export default function Grapple() {
 
           {loading && (
             <div className="flex justify-start">
-              <div className="bg-gray-100 dark:bg-gray-700 rounded-lg px-4 py-3">
+              <div className="bg-[var(--surfaceElev)] rounded-lg px-4 py-3">
                 <div className="flex items-center gap-2">
                   <div className="animate-bounce">💭</div>
-                  <div className="text-sm text-gray-600 dark:text-gray-400">Grapple is thinking...</div>
+                  <div className="text-sm text-[var(--muted)]">Grapple is thinking...</div>
                 </div>
               </div>
             </div>
@@ -379,12 +389,12 @@ export default function Grapple() {
             onKeyPress={(e) => e.key === 'Enter' && !e.shiftKey && sendMessage()}
             placeholder="Ask about techniques, training, recovery..."
             disabled={loading}
-            className="flex-1 px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 disabled:opacity-50 focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+            className="flex-1 px-4 py-3 border border-[var(--border)] rounded-lg bg-[var(--surface)] text-[var(--text)] placeholder-[var(--muted)] disabled:opacity-50 focus:ring-2 focus:ring-[var(--accent)] focus:border-transparent"
           />
           <button
             onClick={sendMessage}
             disabled={!input.trim() || loading}
-            className="px-6 py-3 bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center gap-2 font-medium"
+            className="px-6 py-3 bg-[var(--accent)] text-white rounded-lg hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center gap-2 font-medium"
           >
             <Send className="w-5 h-5" />
             Send

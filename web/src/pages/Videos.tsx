@@ -29,7 +29,26 @@ export default function Videos() {
   });
 
   useEffect(() => {
-    loadData();
+    let cancelled = false;
+    const doLoad = async () => {
+      setLoading(true);
+      try {
+        const [videosRes, techniquesRes] = await Promise.all([
+          videosApi.list(),
+          techniquesApi.list(),
+        ]);
+        if (!cancelled) {
+          setVideos(videosRes.data);
+          setTechniques(techniquesRes.data.techniques || []);
+        }
+      } catch (error) {
+        if (!cancelled) console.error('Error loading data:', error);
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    };
+    doLoad();
+    return () => { cancelled = true; };
   }, []);
 
   const loadData = async () => {
@@ -138,12 +157,12 @@ export default function Videos() {
 
       {/* Add Video Form */}
       {showForm && (
-        <div className="card bg-[var(--surfaceElev)] border-2 border-primary-200 dark:border-primary-800">
+        <div className="card bg-[var(--surfaceElev)] border-2 border-primary-200">
           <div className="flex justify-between items-center mb-4">
             <h2 className="text-xl font-semibold">Add New Video</h2>
             <button
               onClick={() => setShowForm(false)}
-              className="text-[var(--muted)] hover:text-gray-700 dark:hover:text-gray-300"
+              className="text-[var(--muted)] hover:text-[var(--text)]"
             >
               <X className="w-5 h-5" />
             </button>
@@ -202,7 +221,7 @@ export default function Videos() {
                 <button
                   type="button"
                   onClick={addTimestamp}
-                  className="text-sm text-[var(--accent)] hover:text-primary-700 flex items-center gap-1"
+                  className="text-sm text-[var(--accent)] hover:opacity-80 flex items-center gap-1"
                 >
                   <Plus className="w-4 h-4" />
                   Add Timestamp
@@ -265,7 +284,7 @@ export default function Videos() {
         <div className="card text-center py-12">
           <VideoIcon className="w-12 h-12 text-[var(--muted)] mx-auto mb-4" />
           <p className="text-[var(--muted)] mb-4">No videos in your library yet</p>
-          <p className="text-sm text-gray-400 dark:text-gray-500">
+          <p className="text-sm text-[var(--muted)]">
             Click the "Add Video" button above to get started
           </p>
         </div>
@@ -280,7 +299,7 @@ export default function Videos() {
                     href={video.url}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="text-[var(--accent)] hover:text-primary-700"
+                    className="text-[var(--accent)] hover:opacity-80"
                   >
                     <ExternalLink className="w-5 h-5" />
                   </a>

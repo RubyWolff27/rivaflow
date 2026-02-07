@@ -48,12 +48,12 @@ export default function Chat() {
     <div className="flex flex-col h-[calc(100vh-8rem)]">
       <div className="flex items-center gap-3 mb-4">
         <MessageCircle className="w-8 h-8" />
-        <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Chat</h1>
+        <h1 className="text-3xl font-bold text-[var(--text)]">Chat</h1>
       </div>
 
-      <div className="flex-1 overflow-y-auto bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4 mb-4 space-y-4">
+      <div className="flex-1 overflow-y-auto bg-[var(--surface)] rounded-lg border border-[var(--border)] p-4 mb-4 space-y-4">
         {messages.length === 0 && (
-          <div className="text-center text-gray-500 dark:text-gray-400 py-12">
+          <div className="text-center text-[var(--muted)] py-12">
             Ask me anything about your training!
           </div>
         )}
@@ -66,8 +66,8 @@ export default function Chat() {
             <div
               className={`max-w-[80%] rounded-lg px-4 py-2 ${
                 msg.role === 'user'
-                  ? 'bg-primary-600 text-white'
-                  : 'bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-gray-100'
+                  ? 'bg-[var(--accent)] text-white'
+                  : 'bg-[var(--surfaceElev)] text-[var(--text)]'
               }`}
             >
               <div className="text-sm whitespace-pre-wrap">{msg.content}</div>
@@ -77,8 +77,8 @@ export default function Chat() {
 
         {loading && (
           <div className="flex justify-start">
-            <div className="bg-gray-100 dark:bg-gray-700 rounded-lg px-4 py-2">
-              <div className="text-sm text-gray-600 dark:text-gray-400">Thinking...</div>
+            <div className="bg-[var(--surfaceElev)] rounded-lg px-4 py-2">
+              <div className="text-sm text-[var(--muted)]">Thinking...</div>
             </div>
           </div>
         )}
@@ -92,12 +92,12 @@ export default function Chat() {
           onKeyPress={(e) => e.key === 'Enter' && sendMessage()}
           placeholder="Type your message..."
           disabled={loading}
-          className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 disabled:opacity-50"
+          className="flex-1 px-4 py-2 border border-[var(--border)] rounded-lg bg-[var(--surface)] text-[var(--text)] placeholder-[var(--muted)] disabled:opacity-50"
         />
         <button
           onClick={sendMessage}
           disabled={!input.trim() || loading}
-          className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center gap-2"
+          className="px-4 py-2 bg-[var(--accent)] text-white rounded-lg hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center gap-2"
         >
           <Send className="w-4 h-4" />
           Send

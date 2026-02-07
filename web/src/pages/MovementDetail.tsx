@@ -20,15 +20,15 @@ const CATEGORY_LABELS: Record<string, string> = {
 };
 
 const CATEGORY_COLORS: Record<string, string> = {
-  position: 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300',
-  submission: 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300',
-  sweep: 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300',
-  pass: 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-300',
-  takedown: 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-300',
-  escape: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300',
-  movement: 'bg-indigo-100 text-indigo-800 dark:bg-indigo-900 dark:text-indigo-300',
-  concept: 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300',
-  defense: 'bg-pink-100 text-pink-800 dark:bg-pink-900 dark:text-pink-300',
+  position: 'bg-blue-100 text-blue-800',
+  submission: 'bg-red-100 text-red-800',
+  sweep: 'bg-green-100 text-green-800',
+  pass: 'bg-purple-100 text-purple-800',
+  takedown: 'bg-orange-100 text-orange-800',
+  escape: 'bg-yellow-100 text-yellow-800',
+  movement: 'bg-indigo-100 text-indigo-800',
+  concept: 'bg-[var(--surfaceElev)] text-[var(--text)]',
+  defense: 'bg-pink-100 text-pink-800',
 };
 
 export default function MovementDetail() {
@@ -46,7 +46,21 @@ export default function MovementDetail() {
   });
 
   useEffect(() => {
-    loadMovement();
+    let cancelled = false;
+    const doLoad = async () => {
+      if (!id) return;
+      setLoading(true);
+      try {
+        const response = await glossaryApi.getById(parseInt(id), true);
+        if (!cancelled) setMovement(response.data);
+      } catch (error) {
+        if (!cancelled) console.error('Error loading movement:', error);
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    };
+    doLoad();
+    return () => { cancelled = true; };
   }, [id]);
 
   const loadMovement = async () => {
@@ -186,13 +200,13 @@ export default function MovementDetail() {
             {CATEGORY_LABELS[movement.category] || movement.category}
           </span>
           {movement.points > 0 && (
-            <span className="px-3 py-1 rounded-full text-sm font-medium bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-300 flex items-center gap-1">
+            <span className="px-3 py-1 rounded-full text-sm font-medium bg-amber-100 text-amber-800 flex items-center gap-1">
               <Award className="w-4 h-4" />
               {movement.points} points
             </span>
           )}
           {movement.custom && (
-            <span className="px-3 py-1 rounded-full text-sm font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300">
+            <span className="px-3 py-1 rounded-full text-sm font-medium bg-blue-100 text-blue-800">
               Custom
             </span>
           )}
@@ -358,9 +372,9 @@ export default function MovementDetail() {
                         <h4 className="font-semibold text-[var(--text)]">{video.title}</h4>
                       )}
                       <span className={`px-2 py-0.5 rounded text-xs font-medium ${
-                        video.video_type === 'gi' ? 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300' :
-                        video.video_type === 'nogi' ? 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-300' :
-                        'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300'
+                        video.video_type === 'gi' ? 'bg-blue-100 text-blue-800' :
+                        video.video_type === 'nogi' ? 'bg-purple-100 text-purple-800' :
+                        'bg-[var(--surfaceElev)] text-[var(--text)]'
                       }`}>
                         {video.video_type === 'gi' ? 'Gi' : video.video_type === 'nogi' ? 'No-Gi' : 'General'}
                       </span>
@@ -368,7 +382,7 @@ export default function MovementDetail() {
                   </div>
                   <button
                     onClick={() => setVideoToDelete(video.id)}
-                    className="text-red-600 hover:text-red-700 dark:text-red-400"
+                    className="text-[var(--error)] hover:opacity-80"
                     title="Delete video"
                     aria-label="Delete video"
                   >

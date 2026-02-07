@@ -28,9 +28,21 @@ const CommentSection = memo(function CommentSection({
   const toast = useToast();
 
   useEffect(() => {
-    if (isOpen) {
-      loadComments();
-    }
+    if (!isOpen) return;
+    let cancelled = false;
+    const doLoad = async () => {
+      setLoading(true);
+      try {
+        const response = await socialApi.getComments(activityType, activityId);
+        if (!cancelled) setComments(response.data?.comments ?? []);
+      } catch (error) {
+        if (!cancelled) console.error('Error loading comments:', error);
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    };
+    doLoad();
+    return () => { cancelled = true; };
   }, [isOpen, activityType, activityId]);
 
   const loadComments = async () => {
@@ -115,13 +127,13 @@ const CommentSection = memo(function CommentSection({
   if (!isOpen) return null;
 
   return (
-    <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
-      <h4 className="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-3">
+    <div className="mt-4 pt-4 border-t border-[var(--border)]">
+      <h4 className="text-sm font-semibold text-[var(--text)] mb-3">
         Comments ({comments.length})
       </h4>
 
       {loading ? (
-        <div className="text-sm text-gray-500 dark:text-gray-400">Loading comments...</div>
+        <div className="text-sm text-[var(--muted)]">Loading comments...</div>
       ) : (
         <>
           {/* Comment list */}
@@ -129,14 +141,14 @@ const CommentSection = memo(function CommentSection({
             {comments.map((comment) => (
               <div
                 key={comment.id}
-                className="bg-gray-50 dark:bg-gray-800 rounded-lg p-3"
+                className="bg-[var(--surfaceElev)] rounded-lg p-3"
               >
                 <div className="flex items-start justify-between mb-1">
                   <div className="flex-1">
-                    <span className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                    <span className="text-sm font-medium text-[var(--text)]">
                       {comment.first_name ?? 'Unknown'} {comment.last_name ?? 'User'}
                     </span>
-                    <span className="text-xs text-gray-500 dark:text-gray-400 ml-2">
+                    <span className="text-xs text-[var(--muted)] ml-2">
                       {formatDate(comment.created_at ?? new Date().toISOString())}
                       {comment.edited_at && ' (edited)'}
                     </span>
@@ -146,13 +158,13 @@ const CommentSection = memo(function CommentSection({
                     <div className="flex gap-1">
                       <button
                         onClick={() => handleEdit(comment)}
-                        className="p-1 text-gray-400 hover:text-primary-600 dark:hover:text-primary-400"
+                        className="p-1 text-[var(--muted)] hover:text-[var(--accent)]"
                       >
                         <Edit2 className="w-3.5 h-3.5" />
                       </button>
                       <button
                         onClick={() => setCommentToDelete(comment.id)}
-                        className="p-1 text-gray-400 hover:text-red-600 dark:hover:text-red-400"
+                        className="p-1 text-[var(--muted)] hover:text-[var(--error)]"
                         aria-label="Delete comment"
                       >
                         <Trash2 className="w-3.5 h-3.5" />
@@ -166,7 +178,7 @@ const CommentSection = memo(function CommentSection({
                     <textarea
                       value={editingText}
                       onChange={(e) => setEditingText(e.target.value)}
-                      className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100"
+                      className="w-full px-3 py-2 text-sm border border-[var(--border)] rounded-lg bg-[var(--surface)] text-[var(--text)]"
                       rows={2}
                       maxLength={1000}
                     />
@@ -174,7 +186,7 @@ const CommentSection = memo(function CommentSection({
                       <button
                         onClick={() => handleUpdate(comment.id)}
                         disabled={submitting}
-                        className="px-3 py-1 text-sm bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-50"
+                        className="px-3 py-1 text-sm bg-[var(--accent)] text-white rounded-lg hover:opacity-90 disabled:opacity-50"
                       >
                         Save
                       </button>
@@ -183,14 +195,14 @@ const CommentSection = memo(function CommentSection({
                           setEditingCommentId(null);
                           setEditingText('');
                         }}
-                        className="px-3 py-1 text-sm bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600"
+                        className="px-3 py-1 text-sm bg-[var(--surfaceElev)] text-[var(--text)] rounded-lg hover:opacity-80"
                       >
                         Cancel
                       </button>
                     </div>
                   </div>
                 ) : (
-                  <p className="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap">
+                  <p className="text-sm text-[var(--text)] whitespace-pre-wrap">
                     {comment.comment_text}
                   </p>
                 )}
@@ -198,7 +210,7 @@ const CommentSection = memo(function CommentSection({
             ))}
 
             {comments.length === 0 && (
-              <p className="text-sm text-gray-500 dark:text-gray-400 italic">
+              <p className="text-sm text-[var(--muted)] italic">
                 No comments yet. Be the first to comment!
               </p>
             )}
@@ -211,13 +223,13 @@ const CommentSection = memo(function CommentSection({
               value={newComment}
               onChange={(e) => setNewComment(e.target.value)}
               placeholder="Add a comment..."
-              className="flex-1 px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500"
+              className="flex-1 px-3 py-2 text-sm border border-[var(--border)] rounded-lg bg-[var(--surface)] text-[var(--text)] placeholder-[var(--muted)]"
               maxLength={1000}
             />
             <button
               type="submit"
               disabled={!newComment.trim() || submitting}
-              className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+              className="px-4 py-2 bg-[var(--accent)] text-white rounded-lg hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
             >
               <Send className="w-4 h-4" />
             </button>

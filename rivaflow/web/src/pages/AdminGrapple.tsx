@@ -81,37 +81,40 @@ export default function AdminGrapple() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    loadAllStats();
+    let cancelled = false;
+    const doLoad = async () => {
+      setLoading(true);
+      try {
+        const token = localStorage.getItem('access_token');
+        const headers = { Authorization: `Bearer ${token}` };
+        const apiBase = import.meta.env.VITE_API_URL || '/api/v1';
+
+        const [global, projection, providers, users, feedbackData] = await Promise.all([
+          axios.get(`${apiBase}/admin/grapple/stats/global?days=30`, { headers }),
+          axios.get(`${apiBase}/admin/grapple/stats/projections`, { headers }),
+          axios.get(`${apiBase}/admin/grapple/stats/providers?days=7`, { headers }),
+          axios.get(`${apiBase}/admin/grapple/stats/users?limit=10`, { headers }),
+          axios.get(`${apiBase}/admin/grapple/feedback?limit=20`, { headers }),
+        ]);
+        if (!cancelled) {
+          setGlobalStats(global.data);
+          setCostProjection(projection.data);
+          setProviderStats(providers.data.providers);
+          setTopUsers(users.data.users);
+          setFeedback(feedbackData.data.feedback);
+        }
+      } catch (error: any) {
+        if (!cancelled) {
+          console.error('Failed to load stats:', error);
+          toast.error('Failed to load Grapple statistics');
+        }
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    };
+    doLoad();
+    return () => { cancelled = true; };
   }, []);
-
-  const getApiBase = () => import.meta.env.VITE_API_URL || '/api/v1';
-
-  const loadAllStats = async () => {
-    setLoading(true);
-    try {
-      const token = localStorage.getItem('access_token');
-      const headers = { Authorization: `Bearer ${token}` };
-
-      const [global, projection, providers, users, feedbackData] = await Promise.all([
-        axios.get(`${getApiBase()}/admin/grapple/stats/global?days=30`, { headers }),
-        axios.get(`${getApiBase()}/admin/grapple/stats/projections`, { headers }),
-        axios.get(`${getApiBase()}/admin/grapple/stats/providers?days=7`, { headers }),
-        axios.get(`${getApiBase()}/admin/grapple/stats/users?limit=10`, { headers }),
-        axios.get(`${getApiBase()}/admin/grapple/feedback?limit=20`, { headers }),
-      ]);
-
-      setGlobalStats(global.data);
-      setCostProjection(projection.data);
-      setProviderStats(providers.data.providers);
-      setTopUsers(users.data.users);
-      setFeedback(feedbackData.data.feedback);
-    } catch (error: any) {
-      console.error('Failed to load stats:', error);
-      toast.error('Failed to load Grapple statistics');
-    } finally {
-      setLoading(false);
-    }
-  };
 
   if (loading) {
     return <div className="text-center py-12">Loading Grapple Analytics...</div>;
@@ -189,8 +192,8 @@ export default function AdminGrapple() {
       <AdminNav />
 
       <div className="flex items-center gap-3">
-        <Sparkles className="w-8 h-8 text-primary-600" />
-        <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Grapple Analytics</h1>
+        <Sparkles className="w-8 h-8 text-[var(--accent)]" />
+        <h1 className="text-3xl font-bold text-[var(--text)]">Grapple Analytics</h1>
       </div>
 
       {/* Main Stats */}
@@ -199,9 +202,9 @@ export default function AdminGrapple() {
           <Card key={stat.title} className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-500 dark:text-gray-400">{stat.title}</p>
-                <p className="text-2xl font-bold text-gray-900 dark:text-white mt-1">{stat.value}</p>
-                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">{stat.subtitle}</p>
+                <p className="text-sm font-medium text-[var(--muted)]">{stat.title}</p>
+                <p className="text-2xl font-bold text-[var(--text)] mt-1">{stat.value}</p>
+                <p className="text-xs text-[var(--muted)] mt-1">{stat.subtitle}</p>
               </div>
               <stat.icon className="w-10 h-10" style={{ color: stat.color }} />
             </div>
@@ -211,15 +214,15 @@ export default function AdminGrapple() {
 
       {/* Cost Projections */}
       <Card className="p-6">
-        <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4">Cost Projections</h2>
+        <h2 className="text-xl font-bold text-[var(--text)] mb-4">Cost Projections</h2>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
           {costStats.map((stat) => (
-            <div key={stat.title} className="flex items-center gap-4 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
+            <div key={stat.title} className="flex items-center gap-4 p-4 bg-[var(--surfaceElev)] rounded-lg">
               <stat.icon className="w-8 h-8" style={{ color: stat.color }} />
               <div>
-                <p className="text-sm font-medium text-gray-500 dark:text-gray-400">{stat.title}</p>
-                <p className="text-xl font-bold text-gray-900 dark:text-white">{stat.value}</p>
-                <p className="text-xs text-gray-500 dark:text-gray-400">{stat.subtitle}</p>
+                <p className="text-sm font-medium text-[var(--muted)]">{stat.title}</p>
+                <p className="text-xl font-bold text-[var(--text)]">{stat.value}</p>
+                <p className="text-xs text-[var(--muted)]">{stat.subtitle}</p>
               </div>
             </div>
           ))}
@@ -227,13 +230,13 @@ export default function AdminGrapple() {
 
         {/* Daily Cost Chart */}
         <div className="space-y-2">
-          <p className="text-sm font-medium text-gray-700 dark:text-gray-300">Daily Costs (Last 7 Days)</p>
+          <p className="text-sm font-medium text-[var(--text)]">Daily Costs (Last 7 Days)</p>
           {costProjection.daily_average.daily_costs.map((day) => (
             <div key={day.date} className="flex items-center gap-3">
-              <span className="text-xs text-gray-500 dark:text-gray-400 w-24">{day.date}</span>
-              <div className="flex-1 bg-gray-200 dark:bg-gray-700 rounded-full h-6 overflow-hidden">
+              <span className="text-xs text-[var(--muted)] w-24">{day.date}</span>
+              <div className="flex-1 bg-[var(--surfaceElev)] rounded-full h-6 overflow-hidden">
                 <div
-                  className="bg-primary-600 h-full flex items-center justify-end px-2"
+                  className="bg-[var(--accent)] h-full flex items-center justify-end px-2"
                   style={{
                     width: `${(day.cost_usd / Math.max(...costProjection.daily_average.daily_costs.map((d) => d.cost_usd))) * 100}%`,
                   }}
@@ -249,31 +252,31 @@ export default function AdminGrapple() {
       {/* Provider Stats */}
       <Card className="p-6">
         <div className="flex items-center gap-2 mb-4">
-          <Cpu className="w-6 h-6 text-primary-600" />
-          <h2 className="text-xl font-bold text-gray-900 dark:text-white">LLM Provider Performance</h2>
+          <Cpu className="w-6 h-6 text-[var(--accent)]" />
+          <h2 className="text-xl font-bold text-[var(--text)]">LLM Provider Performance</h2>
         </div>
 
         <div className="overflow-x-auto">
           <table className="w-full">
-            <thead className="bg-gray-50 dark:bg-gray-800">
+            <thead className="bg-[var(--surfaceElev)]">
               <tr>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Provider</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Model</th>
-                <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Requests</th>
-                <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Tokens</th>
-                <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Avg Tokens</th>
-                <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Cost</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-[var(--muted)] uppercase">Provider</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-[var(--muted)] uppercase">Model</th>
+                <th className="px-4 py-3 text-right text-xs font-medium text-[var(--muted)] uppercase">Requests</th>
+                <th className="px-4 py-3 text-right text-xs font-medium text-[var(--muted)] uppercase">Tokens</th>
+                <th className="px-4 py-3 text-right text-xs font-medium text-[var(--muted)] uppercase">Avg Tokens</th>
+                <th className="px-4 py-3 text-right text-xs font-medium text-[var(--muted)] uppercase">Cost</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
+            <tbody className="divide-y divide-[var(--border)]">
               {providerStats.map((stat, idx) => (
                 <tr key={idx}>
-                  <td className="px-4 py-3 text-sm font-medium text-gray-900 dark:text-white capitalize">{stat.provider}</td>
-                  <td className="px-4 py-3 text-sm text-gray-600 dark:text-gray-400">{stat.model}</td>
-                  <td className="px-4 py-3 text-sm text-right text-gray-900 dark:text-white">{stat.request_count.toLocaleString()}</td>
-                  <td className="px-4 py-3 text-sm text-right text-gray-900 dark:text-white">{(stat.total_tokens / 1000).toFixed(1)}k</td>
-                  <td className="px-4 py-3 text-sm text-right text-gray-600 dark:text-gray-400">{stat.avg_tokens_per_request.toFixed(0)}</td>
-                  <td className="px-4 py-3 text-sm text-right font-medium text-gray-900 dark:text-white">${stat.total_cost_usd.toFixed(4)}</td>
+                  <td className="px-4 py-3 text-sm font-medium text-[var(--text)] capitalize">{stat.provider}</td>
+                  <td className="px-4 py-3 text-sm text-[var(--muted)]">{stat.model}</td>
+                  <td className="px-4 py-3 text-sm text-right text-[var(--text)]">{stat.request_count.toLocaleString()}</td>
+                  <td className="px-4 py-3 text-sm text-right text-[var(--text)]">{(stat.total_tokens / 1000).toFixed(1)}k</td>
+                  <td className="px-4 py-3 text-sm text-right text-[var(--muted)]">{stat.avg_tokens_per_request.toFixed(0)}</td>
+                  <td className="px-4 py-3 text-sm text-right font-medium text-[var(--text)]">${stat.total_cost_usd.toFixed(4)}</td>
                 </tr>
               ))}
             </tbody>
@@ -283,26 +286,26 @@ export default function AdminGrapple() {
 
       {/* Tier Breakdown */}
       <Card className="p-6">
-        <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4">Usage by Subscription Tier</h2>
+        <h2 className="text-xl font-bold text-[var(--text)] mb-4">Usage by Subscription Tier</h2>
         <div className="space-y-4">
           {Object.entries(globalStats.by_tier).map(([tier, stats]) => (
-            <div key={tier} className="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
+            <div key={tier} className="border border-[var(--border)] rounded-lg p-4">
               <div className="flex items-center justify-between mb-3">
-                <span className="text-sm font-medium text-gray-900 dark:text-white uppercase">{tier}</span>
-                <span className="text-xs text-gray-500 dark:text-gray-400">{stats.users} users</span>
+                <span className="text-sm font-medium text-[var(--text)] uppercase">{tier}</span>
+                <span className="text-xs text-[var(--muted)]">{stats.users} users</span>
               </div>
               <div className="grid grid-cols-3 gap-4 text-sm">
                 <div>
-                  <p className="text-gray-500 dark:text-gray-400">Messages</p>
-                  <p className="font-medium text-gray-900 dark:text-white">{stats.messages.toLocaleString()}</p>
+                  <p className="text-[var(--muted)]">Messages</p>
+                  <p className="font-medium text-[var(--text)]">{stats.messages.toLocaleString()}</p>
                 </div>
                 <div>
-                  <p className="text-gray-500 dark:text-gray-400">Tokens</p>
-                  <p className="font-medium text-gray-900 dark:text-white">{(stats.tokens / 1000).toFixed(1)}k</p>
+                  <p className="text-[var(--muted)]">Tokens</p>
+                  <p className="font-medium text-[var(--text)]">{(stats.tokens / 1000).toFixed(1)}k</p>
                 </div>
                 <div>
-                  <p className="text-gray-500 dark:text-gray-400">Cost</p>
-                  <p className="font-medium text-gray-900 dark:text-white">${stats.cost_usd.toFixed(2)}</p>
+                  <p className="text-[var(--muted)]">Cost</p>
+                  <p className="font-medium text-[var(--text)]">${stats.cost_usd.toFixed(2)}</p>
                 </div>
               </div>
             </div>
@@ -313,35 +316,35 @@ export default function AdminGrapple() {
       {/* Top Users */}
       <Card className="p-6">
         <div className="flex items-center gap-2 mb-4">
-          <Users className="w-6 h-6 text-primary-600" />
-          <h2 className="text-xl font-bold text-gray-900 dark:text-white">Top Users by Usage</h2>
+          <Users className="w-6 h-6 text-[var(--accent)]" />
+          <h2 className="text-xl font-bold text-[var(--text)]">Top Users by Usage</h2>
         </div>
 
         <div className="overflow-x-auto">
           <table className="w-full">
-            <thead className="bg-gray-50 dark:bg-gray-800">
+            <thead className="bg-[var(--surfaceElev)]">
               <tr>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">User</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Tier</th>
-                <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Messages</th>
-                <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Sessions</th>
-                <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Cost</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Last Active</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-[var(--muted)] uppercase">User</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-[var(--muted)] uppercase">Tier</th>
+                <th className="px-4 py-3 text-right text-xs font-medium text-[var(--muted)] uppercase">Messages</th>
+                <th className="px-4 py-3 text-right text-xs font-medium text-[var(--muted)] uppercase">Sessions</th>
+                <th className="px-4 py-3 text-right text-xs font-medium text-[var(--muted)] uppercase">Cost</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-[var(--muted)] uppercase">Last Active</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
+            <tbody className="divide-y divide-[var(--border)]">
               {topUsers.map((user) => (
                 <tr key={user.user_id}>
-                  <td className="px-4 py-3 text-sm text-gray-900 dark:text-white">{user.email}</td>
+                  <td className="px-4 py-3 text-sm text-[var(--text)]">{user.email}</td>
                   <td className="px-4 py-3">
                     <span className="inline-block px-2 py-1 text-xs font-medium rounded-full bg-primary-100 dark:bg-primary-900/20 text-primary-700 dark:text-primary-400 uppercase">
                       {user.subscription_tier}
                     </span>
                   </td>
-                  <td className="px-4 py-3 text-sm text-right text-gray-900 dark:text-white">{user.total_messages}</td>
-                  <td className="px-4 py-3 text-sm text-right text-gray-600 dark:text-gray-400">{user.total_sessions}</td>
-                  <td className="px-4 py-3 text-sm text-right font-medium text-gray-900 dark:text-white">${user.total_cost_usd.toFixed(4)}</td>
-                  <td className="px-4 py-3 text-sm text-gray-600 dark:text-gray-400">
+                  <td className="px-4 py-3 text-sm text-right text-[var(--text)]">{user.total_messages}</td>
+                  <td className="px-4 py-3 text-sm text-right text-[var(--muted)]">{user.total_sessions}</td>
+                  <td className="px-4 py-3 text-sm text-right font-medium text-[var(--text)]">${user.total_cost_usd.toFixed(4)}</td>
+                  <td className="px-4 py-3 text-sm text-[var(--muted)]">
                     {user.last_activity ? new Date(user.last_activity).toLocaleDateString() : 'Never'}
                   </td>
                 </tr>
@@ -355,18 +358,18 @@ export default function AdminGrapple() {
       <Card className="p-6">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">
-            <h2 className="text-xl font-bold text-gray-900 dark:text-white">User Feedback</h2>
+            <h2 className="text-xl font-bold text-[var(--text)]">User Feedback</h2>
           </div>
           <div className="flex items-center gap-4 text-sm">
             <div className="flex items-center gap-2">
               <ThumbsUp className="w-4 h-4 text-green-600" />
-              <span className="text-gray-900 dark:text-white font-medium">{positiveFeedback}</span>
+              <span className="text-[var(--text)] font-medium">{positiveFeedback}</span>
             </div>
             <div className="flex items-center gap-2">
               <ThumbsDown className="w-4 h-4 text-red-600" />
-              <span className="text-gray-900 dark:text-white font-medium">{negativeFeedback}</span>
+              <span className="text-[var(--text)] font-medium">{negativeFeedback}</span>
             </div>
-            <div className="text-gray-500 dark:text-gray-400">
+            <div className="text-[var(--muted)]">
               {satisfactionRate.toFixed(0)}% positive
             </div>
           </div>
@@ -374,7 +377,7 @@ export default function AdminGrapple() {
 
         <div className="space-y-3">
           {feedback.slice(0, 10).map((item) => (
-            <div key={item.id} className="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
+            <div key={item.id} className="border border-[var(--border)] rounded-lg p-4">
               <div className="flex items-center justify-between mb-2">
                 <div className="flex items-center gap-3">
                   {item.rating === 'positive' ? (
@@ -382,17 +385,17 @@ export default function AdminGrapple() {
                   ) : (
                     <ThumbsDown className="w-4 h-4 text-red-600" />
                   )}
-                  <span className="text-sm text-gray-600 dark:text-gray-400">{item.user_email}</span>
+                  <span className="text-sm text-[var(--muted)]">{item.user_email}</span>
                   {item.category && (
-                    <span className="text-xs px-2 py-1 bg-gray-100 dark:bg-gray-800 rounded">{item.category}</span>
+                    <span className="text-xs px-2 py-1 bg-[var(--surfaceElev)] rounded">{item.category}</span>
                   )}
                 </div>
-                <span className="text-xs text-gray-500 dark:text-gray-400">
+                <span className="text-xs text-[var(--muted)]">
                   {new Date(item.created_at).toLocaleDateString()}
                 </span>
               </div>
               {item.comment && (
-                <p className="text-sm text-gray-700 dark:text-gray-300">{item.comment}</p>
+                <p className="text-sm text-[var(--text)]">{item.comment}</p>
               )}
             </div>
           ))}

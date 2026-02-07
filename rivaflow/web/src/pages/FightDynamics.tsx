@@ -70,26 +70,31 @@ export default function FightDynamics() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    loadData();
+    let cancelled = false;
+    const doLoad = async () => {
+      setLoading(true);
+      setError(null);
+      try {
+        const [heatmapRes, insightsRes] = await Promise.all([
+          analyticsApi.fightDynamicsHeatmap({ view }),
+          analyticsApi.fightDynamicsInsights(),
+        ]);
+        if (!cancelled) {
+          setHeatmapData(heatmapRes.data ?? []);
+          setInsights(insightsRes.data ?? null);
+        }
+      } catch (err) {
+        if (!cancelled) {
+          console.error('Error loading fight dynamics:', err);
+          setError('Failed to load fight dynamics data.');
+        }
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    };
+    doLoad();
+    return () => { cancelled = true; };
   }, [view]);
-
-  const loadData = async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const [heatmapRes, insightsRes] = await Promise.all([
-        analyticsApi.fightDynamicsHeatmap({ view }),
-        analyticsApi.fightDynamicsInsights(),
-      ]);
-      setHeatmapData(heatmapRes.data ?? []);
-      setInsights(insightsRes.data ?? null);
-    } catch (err) {
-      console.error('Error loading fight dynamics:', err);
-      setError('Failed to load fight dynamics data.');
-    } finally {
-      setLoading(false);
-    }
-  };
 
   // Calculate max values for color intensity scaling
   const maxAttackVolume = Math.max(...heatmapData.map(p => p.attacks_attempted), 1);

@@ -34,29 +34,31 @@ export function WeekAtGlance() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    loadData();
+    let cancelled = false;
+    const doLoad = async () => {
+      try {
+        const [current, previous] = await Promise.all([
+          dashboardApi.getWeekSummary(0),
+          dashboardApi.getWeekSummary(-1),
+        ]);
+        if (!cancelled) {
+          setCurrentWeek(current.data.stats);
+          setPreviousWeek(previous.data.stats);
+        }
+      } catch (error) {
+        if (!cancelled) console.error('Failed to load week summary:', error);
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    };
+    doLoad();
+    return () => { cancelled = true; };
   }, []);
-
-  const loadData = async () => {
-    try {
-      const [current, previous] = await Promise.all([
-        dashboardApi.getWeekSummary(0),
-        dashboardApi.getWeekSummary(-1),
-      ]);
-
-      setCurrentWeek(current.data.stats);
-      setPreviousWeek(previous.data.stats);
-    } catch (error) {
-      console.error('Failed to load week summary:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const getTrendIcon = (current: number, previous: number) => {
     if (current > previous) return <TrendingUp className="w-4 h-4 text-green-500" />;
     if (current < previous) return <TrendingDown className="w-4 h-4 text-red-500" />;
-    return <Minus className="w-4 h-4 text-gray-500" />;
+    return <Minus className="w-4 h-4 text-[var(--muted)]" />;
   };
 
   const getTrendText = (current: number, previous: number) => {
@@ -70,11 +72,11 @@ export function WeekAtGlance() {
     return (
       <Card className="p-6">
         <div className="animate-pulse">
-          <div className="h-6 bg-gray-700 rounded w-1/3 mb-4"></div>
+          <div className="h-6 bg-[var(--surfaceElev)] rounded w-1/3 mb-4"></div>
           <div className="space-y-3">
-            <div className="h-4 bg-gray-700 rounded w-full"></div>
-            <div className="h-4 bg-gray-700 rounded w-full"></div>
-            <div className="h-4 bg-gray-700 rounded w-2/3"></div>
+            <div className="h-4 bg-[var(--surfaceElev)] rounded w-full"></div>
+            <div className="h-4 bg-[var(--surfaceElev)] rounded w-full"></div>
+            <div className="h-4 bg-[var(--surfaceElev)] rounded w-2/3"></div>
           </div>
         </div>
       </Card>

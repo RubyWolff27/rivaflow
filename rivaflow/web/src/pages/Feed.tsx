@@ -75,7 +75,7 @@ const FeedItemComponent = memo(function FeedItemComponent({
               {item.owner_user_id && currentUserId && item.owner_user_id !== currentUserId ? (
                 <button
                   onClick={() => navigate(`/user/${item.owner_user_id}`)}
-                  className="text-sm font-medium text-[var(--text)] hover:text-primary-600 dark:hover:text-primary-400 transition-colors text-left"
+                  className="text-sm font-medium text-[var(--text)] hover:text-[var(--accent)] transition-colors text-left"
                 >
                   {item.summary}
                 </button>
@@ -269,7 +269,32 @@ export default function Feed() {
   const currentUserId = user?.id ?? null;
 
   useEffect(() => {
-    loadFeed();
+    let cancelled = false;
+    const doLoad = async () => {
+      setLoading(true);
+      try {
+        if (view === 'my') {
+          const response = await feedApi.getActivity({
+            limit: 100,
+            days_back: daysBack,
+            enrich_social: true,
+          });
+          if (!cancelled) setFeed(response.data ?? null);
+        } else {
+          const response = await feedApi.getFriends({
+            limit: 100,
+            days_back: daysBack,
+          });
+          if (!cancelled) setFeed(response.data ?? null);
+        }
+      } catch (error) {
+        if (!cancelled) console.error('Error loading feed:', error);
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    };
+    doLoad();
+    return () => { cancelled = true; };
   }, [daysBack, view]);
 
   const loadFeed = async () => {
@@ -563,7 +588,7 @@ export default function Feed() {
               ? "No activity from friends in the last " + daysBack + " days"
               : "No activity in the last " + daysBack + " days"}
           </p>
-          <p className="text-gray-400 dark:text-gray-500 text-sm mt-2">
+          <p className="text-[var(--muted)] text-sm mt-2">
             {view === 'friends'
               ? "Follow other users to see their activity here!"
               : "Log a session, readiness check-in, or rest day to see it here!"}

@@ -49,7 +49,23 @@ export function FriendSuggestions() {
   };
 
   useEffect(() => {
-    loadSuggestions();
+    let cancelled = false;
+    const doLoad = async () => {
+      try {
+        setLoading(true);
+        const response = await socialApi.getFriendSuggestions(10);
+        if (!cancelled) setSuggestions(response.data.suggestions);
+      } catch (error) {
+        if (!cancelled) {
+          console.error('Failed to load friend suggestions:', error);
+          toast.error('Failed to load suggestions');
+        }
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    };
+    doLoad();
+    return () => { cancelled = true; };
   }, []);
 
   const handleDismiss = async (suggestedUserId: number) => {
@@ -98,10 +114,10 @@ export function FriendSuggestions() {
           <Card key={i} className="p-4">
             <div className="animate-pulse">
               <div className="flex items-center space-x-4">
-                <div className="w-16 h-16 bg-gray-700 rounded-full"></div>
+                <div className="w-16 h-16 bg-[var(--surfaceElev)] rounded-full"></div>
                 <div className="flex-1 space-y-2">
-                  <div className="h-4 bg-gray-700 rounded w-1/4"></div>
-                  <div className="h-3 bg-gray-700 rounded w-1/2"></div>
+                  <div className="h-4 bg-[var(--surfaceElev)] rounded w-1/4"></div>
+                  <div className="h-3 bg-[var(--surfaceElev)] rounded w-1/2"></div>
                 </div>
               </div>
             </div>
@@ -114,7 +130,7 @@ export function FriendSuggestions() {
   if (suggestions.length === 0) {
     return (
       <Card className="p-8 text-center">
-        <p className="text-gray-400 mb-4">No friend suggestions available</p>
+        <p className="text-[var(--muted)] mb-4">No friend suggestions available</p>
         <PrimaryButton onClick={handleRegenerate} disabled={regenerating}>
           {regenerating ? 'Generating...' : 'Generate Suggestions'}
         </PrimaryButton>
@@ -132,7 +148,7 @@ export function FriendSuggestions() {
       </div>
 
       {suggestions.map((suggestion) => (
-        <Card key={suggestion.id} className="p-4 hover:bg-gray-800/50 transition-colors">
+        <Card key={suggestion.id} className="p-4 hover:bg-[var(--surfaceElev)] transition-colors">
           <div className="flex items-start space-x-4">
             {/* Profile Photo */}
             <div className="flex-shrink-0">
@@ -159,20 +175,20 @@ export function FriendSuggestions() {
                 <h4 className="text-white font-semibold truncate">
                   {suggestion.display_name || suggestion.username}
                 </h4>
-                <span className="text-xs text-gray-400 ml-2">
+                <span className="text-xs text-[var(--muted)] ml-2">
                   {suggestion.score.toFixed(0)} match score
                 </span>
               </div>
 
               {suggestion.belt_rank && (
-                <p className="text-sm text-gray-300 mb-1">
+                <p className="text-sm text-[var(--text)] mb-1">
                   {suggestion.belt_rank.charAt(0).toUpperCase() + suggestion.belt_rank.slice(1)} Belt
                   {suggestion.belt_stripes > 0 && ` • ${suggestion.belt_stripes} stripe${suggestion.belt_stripes > 1 ? 's' : ''}`}
                 </p>
               )}
 
               {(suggestion.location_city || suggestion.primary_gym_name) && (
-                <p className="text-sm text-gray-400 mb-2">
+                <p className="text-sm text-[var(--muted)] mb-2">
                   {suggestion.primary_gym_name && (
                     <span>{suggestion.primary_gym_name}</span>
                   )}

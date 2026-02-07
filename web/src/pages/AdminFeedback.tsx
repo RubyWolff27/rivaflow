@@ -52,8 +52,33 @@ export default function AdminFeedback() {
   const [updatingStatus, setUpdatingStatus] = useState(false);
 
   useEffect(() => {
-    loadFeedback();
-    loadStats();
+    let cancelled = false;
+    const doLoad = async () => {
+      setLoading(true);
+      try {
+        const params: any = { limit: 100 };
+        if (filterStatus !== 'all') params.status = filterStatus;
+        if (filterCategory !== 'all') params.category = filterCategory;
+
+        const [feedbackRes, statsRes] = await Promise.all([
+          adminApi.listFeedback(params),
+          adminApi.getFeedbackStats(),
+        ]);
+        if (!cancelled) {
+          setFeedback(feedbackRes.data.feedback || []);
+          setStats(statsRes.data);
+        }
+      } catch (error) {
+        if (!cancelled) {
+          console.error('Failed to load feedback:', error);
+          toast.error('Failed to load feedback. Please try again.');
+        }
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    };
+    doLoad();
+    return () => { cancelled = true; };
   }, [filterStatus, filterCategory]);
 
   const loadFeedback = async () => {

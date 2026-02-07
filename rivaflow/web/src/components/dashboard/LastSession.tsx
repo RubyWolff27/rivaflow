@@ -29,30 +29,31 @@ export function LastSession() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    loadLastSession();
-  }, []);
-
-  const loadLastSession = async () => {
-    try {
-      const response = await sessionsApi.list(1);
-      if (response.data && response.data.length > 0) {
-        setSession(response.data[0]);
+    let cancelled = false;
+    const doLoad = async () => {
+      try {
+        const response = await sessionsApi.list(1);
+        if (!cancelled && response.data && response.data.length > 0) {
+          setSession(response.data[0]);
+        }
+      } catch (error) {
+        if (!cancelled) console.error('Failed to load last session:', error);
+      } finally {
+        if (!cancelled) setLoading(false);
       }
-    } catch (error) {
-      console.error('Failed to load last session:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
+    };
+    doLoad();
+    return () => { cancelled = true; };
+  }, []);
 
   if (loading) {
     return (
       <Card className="p-6">
         <div className="animate-pulse">
-          <div className="h-6 bg-gray-700 rounded w-1/2 mb-4"></div>
+          <div className="h-6 bg-[var(--surfaceElev)] rounded w-1/2 mb-4"></div>
           <div className="space-y-3">
-            <div className="h-4 bg-gray-700 rounded w-full"></div>
-            <div className="h-4 bg-gray-700 rounded w-2/3"></div>
+            <div className="h-4 bg-[var(--surfaceElev)] rounded w-full"></div>
+            <div className="h-4 bg-[var(--surfaceElev)] rounded w-2/3"></div>
           </div>
         </div>
       </Card>

@@ -26,7 +26,23 @@ export default function AdminContent() {
   const [confirmDelete, setConfirmDelete] = useState<{ id: number; text: string } | null>(null);
 
   useEffect(() => {
-    loadComments();
+    let cancelled = false;
+    const doLoad = async () => {
+      setLoading(true);
+      try {
+        const response = await adminApi.listComments({ limit: 100 });
+        if (!cancelled) {
+          setComments(response.data.comments || []);
+          setTotal(response.data.total || 0);
+        }
+      } catch (error) {
+        if (!cancelled) toast.error('Failed to load comments. Please try again.');
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    };
+    doLoad();
+    return () => { cancelled = true; };
   }, []);
 
   const loadComments = async () => {

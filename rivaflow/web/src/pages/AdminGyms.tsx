@@ -56,16 +56,52 @@ export default function AdminGyms() {
   });
 
   useEffect(() => {
-    loadGyms();
-    loadPendingGyms();
+    let cancelled = false;
+    const doLoad = async () => {
+      setLoading(true);
+      try {
+        const [gymsRes, pendingRes] = await Promise.all([
+          adminApi.listGyms(false),
+          adminApi.getPendingGyms(),
+        ]);
+        if (!cancelled) {
+          setGyms(gymsRes.data.gyms || []);
+          setPendingGyms(pendingRes.data.pending_gyms || []);
+        }
+      } catch (error) {
+        if (!cancelled) toast.error('Failed to load gyms. Please try again.');
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    };
+    doLoad();
+    return () => { cancelled = true; };
   }, []);
 
   useEffect(() => {
-    if (searchQuery.length >= 2) {
-      searchGyms();
-    } else if (searchQuery.length === 0) {
-      loadGyms();
-    }
+    let cancelled = false;
+    const doSearch = async () => {
+      if (searchQuery.length >= 2) {
+        try {
+          const response = await adminApi.searchGyms(searchQuery, false);
+          if (!cancelled) setGyms(response.data.gyms || []);
+        } catch (error) {
+          if (!cancelled) toast.error('Failed to search gyms. Please try again.');
+        }
+      } else if (searchQuery.length === 0) {
+        try {
+          setLoading(true);
+          const response = await adminApi.listGyms(false);
+          if (!cancelled) setGyms(response.data.gyms || []);
+        } catch (error) {
+          if (!cancelled) toast.error('Failed to load gyms. Please try again.');
+        } finally {
+          if (!cancelled) setLoading(false);
+        }
+      }
+    };
+    doSearch();
+    return () => { cancelled = true; };
   }, [searchQuery]);
 
   const loadGyms = async () => {
@@ -86,15 +122,6 @@ export default function AdminGyms() {
       setPendingGyms(response.data.pending_gyms || []);
     } catch (error) {
       toast.error('Failed to load pending gyms. Please try again.');
-    }
-  };
-
-  const searchGyms = async () => {
-    try {
-      const response = await adminApi.searchGyms(searchQuery, false);
-      setGyms(response.data.gyms || []);
-    } catch (error) {
-      toast.error('Failed to search gyms. Please try again.');
     }
   };
 

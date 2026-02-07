@@ -26,32 +26,37 @@ export default function EditReadiness() {
   });
 
   useEffect(() => {
-    loadReadiness();
+    let cancelled = false;
+    const doLoad = async () => {
+      setLoading(true);
+      try {
+        const response = await readinessApi.getByDate(date!);
+        if (!cancelled) {
+          const readiness = response.data;
+          setReadinessId(readiness.id);
+          setFormData({
+            check_date: readiness.check_date,
+            sleep: readiness.sleep,
+            stress: readiness.stress,
+            soreness: readiness.soreness,
+            energy: readiness.energy,
+            hotspot_note: readiness.hotspot_note || '',
+            weight_kg: readiness.weight_kg?.toString() || '',
+          });
+        }
+      } catch (error) {
+        if (!cancelled) {
+          console.error('Error loading readiness:', error);
+          toast.error('Failed to load readiness check-in');
+          navigate('/feed');
+        }
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    };
+    doLoad();
+    return () => { cancelled = true; };
   }, [date]);
-
-  const loadReadiness = async () => {
-    setLoading(true);
-    try {
-      const response = await readinessApi.getByDate(date!);
-      const readiness = response.data;
-      setReadinessId(readiness.id);
-      setFormData({
-        check_date: readiness.check_date,
-        sleep: readiness.sleep,
-        stress: readiness.stress,
-        soreness: readiness.soreness,
-        energy: readiness.energy,
-        hotspot_note: readiness.hotspot_note || '',
-        weight_kg: readiness.weight_kg?.toString() || '',
-      });
-    } catch (error) {
-      console.error('Error loading readiness:', error);
-      toast.error('Failed to load readiness check-in');
-      navigate('/feed');
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

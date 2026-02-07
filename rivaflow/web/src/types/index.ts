@@ -237,14 +237,6 @@ export interface SessionTechnique {
   created_at?: string;
 }
 
-export interface CustomVideo {
-  id: number;
-  movement_id: number;
-  title?: string;
-  url: string;
-  video_type: 'gi' | 'nogi' | 'general';
-  created_at: string;
-}
 export interface WeeklyGoalProgress {
   week_start: string;
   week_end: string;
@@ -394,7 +386,7 @@ export interface FeedItem {
   type: 'session' | 'readiness' | 'rest';
   date: string;
   id: number;
-  data: any;
+  data: any;  // eslint-disable-line @typescript-eslint/no-explicit-any
   summary: string;
   like_count?: number;
   comment_count?: number;

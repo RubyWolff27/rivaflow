@@ -79,16 +79,43 @@ export default function AdminWaitlist() {
   };
 
   useEffect(() => {
-    loadEntries();
-    loadStats();
+    let cancelled = false;
+    const doLoad = async () => {
+      setLoading(true);
+      try {
+        const [entriesRes, statsRes] = await Promise.all([
+          adminApi.listWaitlist({
+            status: statusFilter || undefined,
+            search: search || undefined,
+            limit,
+            offset: page * limit,
+          }),
+          adminApi.getWaitlistStats(),
+        ]);
+        if (!cancelled) {
+          setEntries(entriesRes.data.entries);
+          setTotal(entriesRes.data.total);
+          setStats(statsRes.data);
+        }
+      } catch {
+        if (!cancelled) toast.error('Failed to load waitlist');
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    };
+    doLoad();
+    return () => { cancelled = true; };
   }, [statusFilter, page]);
 
   useEffect(() => {
+    let cancelled = false;
     const timer = setTimeout(() => {
-      setPage(0);
-      loadEntries();
+      if (!cancelled) {
+        setPage(0);
+        loadEntries();
+      }
     }, 300);
-    return () => clearTimeout(timer);
+    return () => { cancelled = true; clearTimeout(timer); };
   }, [search]);
 
   const handleInvite = async (entry: WaitlistEntry) => {

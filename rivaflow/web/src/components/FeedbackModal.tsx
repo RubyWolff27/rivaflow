@@ -74,7 +74,7 @@ export default function FeedbackModal({ isOpen, onClose }: FeedbackModalProps) {
           </h2>
           <button
             onClick={onClose}
-            className="p-1 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+            className="p-1 rounded-lg hover:bg-[var(--surfaceElev)] transition-colors"
             aria-label="Close feedback form"
           >
             <X className="w-5 h-5" style={{ color: 'var(--muted)' }} />
