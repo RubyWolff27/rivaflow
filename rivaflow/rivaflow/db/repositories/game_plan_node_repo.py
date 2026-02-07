@@ -157,7 +157,7 @@ class GamePlanNodeRepository:
                         "UPDATE game_plan_nodes"
                         " SET attempts = attempts + 1,"
                         " successes = successes + 1,"
-                        " last_used_date = date('now'),"
+                        " last_used_date = CURRENT_DATE,"
                         " updated_at = CURRENT_TIMESTAMP"
                         " WHERE id = ? AND plan_id = ?"
                     ),
@@ -168,7 +168,7 @@ class GamePlanNodeRepository:
                     convert_query(
                         "UPDATE game_plan_nodes"
                         " SET attempts = attempts + 1,"
-                        " last_used_date = date('now'),"
+                        " last_used_date = CURRENT_DATE,"
                         " updated_at = CURRENT_TIMESTAMP"
                         " WHERE id = ? AND plan_id = ?"
                     ),

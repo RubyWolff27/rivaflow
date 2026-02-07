@@ -1,6 +1,7 @@
 """Repository for events data access."""
 
 import sqlite3
+from datetime import date
 
 from rivaflow.db.database import convert_query, execute_insert, get_connection
 
@@ -122,16 +123,17 @@ class EventRepository:
     @staticmethod
     def get_next_upcoming(user_id: int) -> dict | None:
         """Get the next upcoming event for a user."""
+        today = date.today().isoformat()
         with get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(
                 convert_query(
                     "SELECT * FROM events "
                     "WHERE user_id = ? AND status = 'upcoming' "
-                    "AND event_date >= date('now') "
+                    "AND event_date >= ? "
                     "ORDER BY event_date ASC LIMIT 1"
                 ),
-                (user_id,),
+                (user_id, today),
             )
             row = cursor.fetchone()
             return EventRepository._row_to_dict(row) if row else None
