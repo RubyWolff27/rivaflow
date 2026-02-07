@@ -1,0 +1,4 @@
+-- 066_add_check_constraints.sql (SQLite)
+-- CHECK constraints cannot be added via ALTER TABLE in SQLite.
+-- These constraints are enforced at the application level.
+-- See 066_add_check_constraints_pg.sql for the PostgreSQL version.

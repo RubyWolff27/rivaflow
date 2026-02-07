@@ -108,11 +108,11 @@ def _get_connection_pool() -> "psycopg2.pool.SimpleConnectionPool":
         if not DATABASE_URL:
             raise ValueError("DATABASE_URL environment variable is required")
 
-        # Create connection pool with min=1, max=20 connections
-        # minconn=1: Keep at least 1 connection alive
-        # maxconn=20: Allow up to 20 concurrent connections
+        # Create connection pool with min=2, max=40 connections
+        # minconn=2: Keep 2 warm connections ready
+        # maxconn=40: Allow up to 40 concurrent connections
         _connection_pool = psycopg2.pool.SimpleConnectionPool(
-            minconn=1, maxconn=20, dsn=DATABASE_URL
+            minconn=2, maxconn=40, dsn=DATABASE_URL
         )
 
     return _connection_pool

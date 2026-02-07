@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { sessionsApi, readinessApi, profileApi, friendsApi, glossaryApi, restApi } from '../api/client';
 import type { Friend, Movement, MediaUrl } from '../types';
@@ -8,6 +8,15 @@ import { ClassTypeChips, IntensityChips } from '../components/ui';
 import { useToast } from '../contexts/ToastContext';
 
 const SPARRING_TYPES = ['gi', 'no-gi', 'open-mat', 'competition'];
+
+const TIME_QUICK_SELECT = [
+  { label: '6:30am', value: '06:30' },
+  { label: '12pm', value: '12:00' },
+  { label: '5:30pm', value: '17:30' },
+  { label: '7pm', value: '19:00' },
+] as const;
+
+const DURATION_QUICK_SELECT = [60, 75, 90, 120] as const;
 
 interface RollEntry {
   roll_number: number;
@@ -165,11 +174,11 @@ export default function LogSession() {
     setStep(1);
   };
 
-  const handleAddRoll = () => {
-    setRolls([
-      ...rolls,
+  const handleAddRoll = useCallback(() => {
+    setRolls(prev => [
+      ...prev,
       {
-        roll_number: rolls.length + 1,
+        roll_number: prev.length + 1,
         partner_id: null,
         partner_name: '',
         duration_mins: 5,
@@ -178,126 +187,139 @@ export default function LogSession() {
         notes: '',
       },
     ]);
-  };
+  }, []);
 
-  const handleRemoveRoll = (index: number) => {
-    const updated = rolls.filter((_, i) => i !== index);
-    // Renumber rolls
-    updated.forEach((roll, i) => {
-      roll.roll_number = i + 1;
+  const handleRemoveRoll = useCallback((index: number) => {
+    setRolls(prev => {
+      const updated = prev.filter((_, i) => i !== index);
+      updated.forEach((roll, i) => {
+        roll.roll_number = i + 1;
+      });
+      return updated;
     });
-    setRolls(updated);
 
     // Clean up search state for removed roll and reindex remaining
-    const newSearchFor: {[key: number]: string} = {};
-    const newSearchAgainst: {[key: number]: string} = {};
-
-    Object.keys(submissionSearchFor).forEach(key => {
-      const idx = parseInt(key);
-      if (idx < index) {
-        newSearchFor[idx] = submissionSearchFor[idx];
-      } else if (idx > index) {
-        newSearchFor[idx - 1] = submissionSearchFor[idx];
-      }
+    setSubmissionSearchFor(prev => {
+      const result: {[key: number]: string} = {};
+      Object.keys(prev).forEach(key => {
+        const idx = parseInt(key);
+        if (idx < index) result[idx] = prev[idx];
+        else if (idx > index) result[idx - 1] = prev[idx];
+      });
+      return result;
     });
 
-    Object.keys(submissionSearchAgainst).forEach(key => {
-      const idx = parseInt(key);
-      if (idx < index) {
-        newSearchAgainst[idx] = submissionSearchAgainst[idx];
-      } else if (idx > index) {
-        newSearchAgainst[idx - 1] = submissionSearchAgainst[idx];
-      }
+    setSubmissionSearchAgainst(prev => {
+      const result: {[key: number]: string} = {};
+      Object.keys(prev).forEach(key => {
+        const idx = parseInt(key);
+        if (idx < index) result[idx] = prev[idx];
+        else if (idx > index) result[idx - 1] = prev[idx];
+      });
+      return result;
     });
+  }, []);
 
-    setSubmissionSearchFor(newSearchFor);
-    setSubmissionSearchAgainst(newSearchAgainst);
-  };
+  const handleRollChange = useCallback((index: number, field: keyof RollEntry, value: any) => {
+    setRolls(prev => {
+      const updated = [...prev];
+      updated[index] = { ...updated[index], [field]: value };
+      return updated;
+    });
+  }, []);
 
-  const handleRollChange = (index: number, field: keyof RollEntry, value: any) => {
-    const updated = [...rolls];
-    updated[index] = { ...updated[index], [field]: value };
-    setRolls(updated);
-  };
+  const handleToggleSubmission = useCallback((rollIndex: number, movementId: number, type: 'for' | 'against') => {
+    setRolls(prev => {
+      const updated = [...prev];
+      const field = type === 'for' ? 'submissions_for' : 'submissions_against';
+      const current = updated[rollIndex][field];
 
-  const handleToggleSubmission = (rollIndex: number, movementId: number, type: 'for' | 'against') => {
-    const updated = [...rolls];
-    const field = type === 'for' ? 'submissions_for' : 'submissions_against';
-    const current = updated[rollIndex][field];
+      if (current.includes(movementId)) {
+        updated[rollIndex][field] = current.filter(id => id !== movementId);
+      } else {
+        updated[rollIndex][field] = [...current, movementId];
+      }
 
-    if (current.includes(movementId)) {
-      updated[rollIndex][field] = current.filter(id => id !== movementId);
-    } else {
-      updated[rollIndex][field] = [...current, movementId];
-    }
-
-    setRolls(updated);
-  };
+      return updated;
+    });
+  }, []);
 
   // Technique handlers
-  const handleAddTechnique = () => {
-    setTechniques([
-      ...techniques,
+  const handleAddTechnique = useCallback(() => {
+    setTechniques(prev => [
+      ...prev,
       {
-        technique_number: techniques.length + 1,
+        technique_number: prev.length + 1,
         movement_id: null,
         movement_name: '',
         notes: '',
         media_urls: [],
       },
     ]);
-  };
+  }, []);
 
-  const handleRemoveTechnique = (index: number) => {
-    const updated = techniques.filter((_, i) => i !== index);
-    // Renumber techniques
-    updated.forEach((tech, i) => {
-      tech.technique_number = i + 1;
+  const handleRemoveTechnique = useCallback((index: number) => {
+    setTechniques(prev => {
+      const updated = prev.filter((_, i) => i !== index);
+      updated.forEach((tech, i) => {
+        tech.technique_number = i + 1;
+      });
+      return updated;
     });
-    setTechniques(updated);
 
-    // Clean up search state for removed technique and reindex remaining
-    const newSearch: {[key: number]: string} = {};
-    Object.keys(techniqueSearch).forEach(key => {
-      const idx = parseInt(key);
-      if (idx < index) {
-        newSearch[idx] = techniqueSearch[idx];
-      } else if (idx > index) {
-        newSearch[idx - 1] = techniqueSearch[idx];
-      }
+    setTechniqueSearch(prev => {
+      const result: {[key: number]: string} = {};
+      Object.keys(prev).forEach(key => {
+        const idx = parseInt(key);
+        if (idx < index) result[idx] = prev[idx];
+        else if (idx > index) result[idx - 1] = prev[idx];
+      });
+      return result;
     });
-    setTechniqueSearch(newSearch);
-  };
+  }, []);
 
-  const handleTechniqueChange = (index: number, field: keyof TechniqueEntry, value: any) => {
-    const updated = [...techniques];
-    updated[index] = { ...updated[index], [field]: value };
-    setTechniques(updated);
-  };
+  const handleTechniqueChange = useCallback((index: number, field: keyof TechniqueEntry, value: any) => {
+    setTechniques(prev => {
+      const updated = [...prev];
+      updated[index] = { ...updated[index], [field]: value };
+      return updated;
+    });
+  }, []);
 
-  const handleAddMediaUrl = (techIndex: number) => {
-    const updated = [...techniques];
-    updated[techIndex].media_urls = [
-      ...updated[techIndex].media_urls,
-      { type: 'video', url: '', title: '' },
-    ];
-    setTechniques(updated);
-  };
+  const handleAddMediaUrl = useCallback((techIndex: number) => {
+    setTechniques(prev => {
+      const updated = [...prev];
+      updated[techIndex] = {
+        ...updated[techIndex],
+        media_urls: [
+          ...updated[techIndex].media_urls,
+          { type: 'video', url: '', title: '' },
+        ],
+      };
+      return updated;
+    });
+  }, []);
 
-  const handleRemoveMediaUrl = (techIndex: number, mediaIndex: number) => {
-    const updated = [...techniques];
-    updated[techIndex].media_urls = updated[techIndex].media_urls.filter((_, i) => i !== mediaIndex);
-    setTechniques(updated);
-  };
+  const handleRemoveMediaUrl = useCallback((techIndex: number, mediaIndex: number) => {
+    setTechniques(prev => {
+      const updated = [...prev];
+      updated[techIndex] = {
+        ...updated[techIndex],
+        media_urls: updated[techIndex].media_urls.filter((_, i) => i !== mediaIndex),
+      };
+      return updated;
+    });
+  }, []);
 
-  const handleMediaUrlChange = (techIndex: number, mediaIndex: number, field: keyof MediaUrl, value: any) => {
-    const updated = [...techniques];
-    updated[techIndex].media_urls[mediaIndex] = {
-      ...updated[techIndex].media_urls[mediaIndex],
-      [field]: value,
-    };
-    setTechniques(updated);
-  };
+  const handleMediaUrlChange = useCallback((techIndex: number, mediaIndex: number, field: keyof MediaUrl, value: any) => {
+    setTechniques(prev => {
+      const updated = [...prev];
+      const mediaUrls = [...updated[techIndex].media_urls];
+      mediaUrls[mediaIndex] = { ...mediaUrls[mediaIndex], [field]: value };
+      updated[techIndex] = { ...updated[techIndex], media_urls: mediaUrls };
+      return updated;
+    });
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -409,8 +431,19 @@ export default function LogSession() {
     }
   };
 
-  const compositeScore = readinessData.sleep + (6 - readinessData.stress) + (6 - readinessData.soreness) + readinessData.energy;
-  const isSparringType = SPARRING_TYPES.includes(sessionData.class_type);
+  const compositeScore = useMemo(
+    () => readinessData.sleep + (6 - readinessData.stress) + (6 - readinessData.soreness) + readinessData.energy,
+    [readinessData.sleep, readinessData.stress, readinessData.soreness, readinessData.energy]
+  );
+  const isSparringType = useMemo(
+    () => SPARRING_TYPES.includes(sessionData.class_type),
+    [sessionData.class_type]
+  );
+
+  const submissionMovements = useMemo(
+    () => movements.filter(m => m.category === 'submission'),
+    [movements]
+  );
 
   if (success) {
     return (
@@ -602,12 +635,7 @@ export default function LogSession() {
           <div>
             <label className="label">Class Time (optional)</label>
             <div className="flex gap-2 mb-2" role="group" aria-label="Common class times">
-              {[
-                { label: '6:30am', value: '06:30' },
-                { label: '12pm', value: '12:00' },
-                { label: '5:30pm', value: '17:30' },
-                { label: '7pm', value: '19:00' },
-              ].map((time) => (
+              {TIME_QUICK_SELECT.map((time) => (
                 <button
                   key={time.value}
                   type="button"
@@ -721,7 +749,7 @@ export default function LogSession() {
           <div>
             <label className="label">Duration (minutes)</label>
             <div className="flex gap-2 mb-2" role="group" aria-label="Duration options">
-              {[60, 75, 90, 120].map((mins) => (
+              {DURATION_QUICK_SELECT.map((mins) => (
                 <button
                   key={mins}
                   type="button"
@@ -1060,8 +1088,7 @@ export default function LogSession() {
                           />
                         </div>
                         <div className="max-h-32 overflow-y-auto border border-[var(--border)] rounded p-2 space-y-1">
-                          {movements
-                            .filter(m => m.category === 'submission')
+                          {submissionMovements
                             .filter(m => {
                               const search = submissionSearchFor[index]?.toLowerCase() ?? '';
                               return m.name?.toLowerCase().includes(search) ||
@@ -1079,7 +1106,7 @@ export default function LogSession() {
                                 <span>{movement.name ?? 'Unknown'}</span>
                               </label>
                             ))}
-                          {movements.filter(m => m.category === 'submission').filter(m => {
+                          {submissionMovements.filter(m => {
                             const search = submissionSearchFor[index]?.toLowerCase() ?? '';
                             return m.name?.toLowerCase().includes(search) ||
                                    m.subcategory?.toLowerCase().includes(search) ||
@@ -1104,8 +1131,7 @@ export default function LogSession() {
                           />
                         </div>
                         <div className="max-h-32 overflow-y-auto border border-[var(--border)] rounded p-2 space-y-1">
-                          {movements
-                            .filter(m => m.category === 'submission')
+                          {submissionMovements
                             .filter(m => {
                               const search = submissionSearchAgainst[index]?.toLowerCase() ?? '';
                               return m.name?.toLowerCase().includes(search) ||
@@ -1123,7 +1149,7 @@ export default function LogSession() {
                                 <span>{movement.name ?? 'Unknown'}</span>
                               </label>
                             ))}
-                          {movements.filter(m => m.category === 'submission').filter(m => {
+                          {submissionMovements.filter(m => {
                             const search = submissionSearchAgainst[index]?.toLowerCase() ?? '';
                             return m.name?.toLowerCase().includes(search) ||
                                    m.subcategory?.toLowerCase().includes(search) ||
