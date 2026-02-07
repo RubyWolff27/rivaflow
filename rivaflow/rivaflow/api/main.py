@@ -30,6 +30,7 @@ from rivaflow.api.middleware.security_headers import SecurityHeadersMiddleware
 from rivaflow.api.middleware.versioning import VersioningMiddleware
 from rivaflow.api.routes import (
     admin,
+    admin_grapple,
     analytics,
     auth,
     checkins,
@@ -233,6 +234,7 @@ app.include_router(grapple.router, prefix="/api/v1")
 app.include_router(game_plans.router, prefix="/api/v1")
 app.include_router(notifications.router, prefix="/api/v1")
 app.include_router(admin.router, prefix="/api/v1")
+app.include_router(admin_grapple.router, prefix="/api/v1")
 app.include_router(gyms.router, prefix="/api/v1")
 app.include_router(feedback.router, prefix="/api/v1")
 app.include_router(dashboard.router, prefix="/api/v1")
