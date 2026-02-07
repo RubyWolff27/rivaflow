@@ -57,18 +57,19 @@ class FeedService:
         )
         checkins = checkin_repo.get_checkins_range(user_id, start_date, end_date)
 
-        # Build unified feed
+        # Build unified feed items (without photos first)
         feed_items = []
 
-        # Add sessions with photos
+        # Collect all activity keys for batch photo loading
+        photo_keys: list[tuple[str, int]] = []
+
+        # Add sessions
         for session in sessions:
             session_date = session["session_date"]
             if hasattr(session_date, "isoformat"):
                 session_date = session_date.isoformat()
 
-            # Get photos for this session
-            photos = photo_repo.get_by_activity(user_id, "session", session["id"])
-            thumbnail = photos[0]["file_path"] if photos else None
+            photo_keys.append(("session", session["id"]))
 
             feed_items.append(
                 {
@@ -77,8 +78,8 @@ class FeedService:
                     "id": session["id"],
                     "data": session,
                     "summary": f"{session['class_type']} at {session['gym_name']} • {session['duration_mins']}min • {session['rolls']} rolls",
-                    "thumbnail": thumbnail,
-                    "photo_count": len(photos),
+                    "thumbnail": None,
+                    "photo_count": 0,
                 }
             )
 
@@ -94,11 +95,7 @@ class FeedService:
             if readiness_date not in session_dates and readiness_date not in rest_dates:
                 composite = readiness.get("composite_score", 0)
 
-                # Get photos for this readiness entry
-                photos = photo_repo.get_by_activity(
-                    user_id, "readiness", readiness["id"]
-                )
-                thumbnail = photos[0]["file_path"] if photos else None
+                photo_keys.append(("readiness", readiness["id"]))
 
                 feed_items.append(
                     {
@@ -107,8 +104,8 @@ class FeedService:
                         "id": readiness["id"],
                         "data": readiness,
                         "summary": f"Readiness check-in • Score: {composite}/20 • Sleep: {readiness['sleep']}/5",
-                        "thumbnail": thumbnail,
-                        "photo_count": len(photos),
+                        "thumbnail": None,
+                        "photo_count": 0,
                     }
                 )
 
@@ -130,9 +127,7 @@ class FeedService:
                 if checkin.get("rest_note"):
                     summary += f" • {checkin['rest_note']}"
 
-                # Get photos for this rest day
-                photos = photo_repo.get_by_activity(user_id, "rest", checkin["id"])
-                thumbnail = photos[0]["file_path"] if photos else None
+                photo_keys.append(("rest", checkin["id"]))
 
                 feed_items.append(
                     {
@@ -141,10 +136,18 @@ class FeedService:
                         "id": checkin["id"],
                         "data": checkin,
                         "summary": summary,
-                        "thumbnail": thumbnail,
-                        "photo_count": len(photos),
+                        "thumbnail": None,
+                        "photo_count": 0,
                     }
                 )
+
+        # Batch load all photos in a single query per activity type
+        if photo_keys:
+            photos_map = photo_repo.batch_get_by_activities(user_id, photo_keys)
+            for item in feed_items:
+                photos = photos_map.get((item["type"], item["id"]), [])
+                item["thumbnail"] = photos[0]["file_path"] if photos else None
+                item["photo_count"] = len(photos)
 
         # Sort by date descending, then by type and id for consistent ordering
         feed_items.sort(key=lambda x: (x["date"], x["type"], x["id"]), reverse=True)

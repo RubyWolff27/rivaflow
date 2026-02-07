@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { sessionsApi, friendsApi, glossaryApi } from '../api/client';
-import type { Friend, Movement, MediaUrl } from '../types';
+import type { Friend, Movement, MediaUrl, Session, SessionRoll, SessionTechnique } from '../types';
 import { CheckCircle, ArrowLeft, Save, Loader, Plus, X, Search, Trash2, ToggleLeft, ToggleRight, Camera } from 'lucide-react';
 import PhotoGallery from '../components/PhotoGallery';
 import PhotoUpload from '../components/PhotoUpload';
@@ -49,7 +49,7 @@ export default function EditSession() {
 
   const [instructors, setInstructors] = useState<Friend[]>([]);
   const [partners, setPartners] = useState<Friend[]>([]);
-  const [autocomplete, setAutocomplete] = useState<any>({});
+  const [autocomplete, setAutocomplete] = useState<{ gyms?: string[]; locations?: string[]; partners?: string[]; techniques?: string[] }>({});
   const [movements, setMovements] = useState<Movement[]>([]);
 
   // Roll tracking
@@ -88,7 +88,7 @@ export default function EditSession() {
   });
 
   useEffect(() => {
-    let cancelled = false;
+    const controller = new AbortController();
     const doLoad = async () => {
       setLoading(true);
       try {
@@ -99,15 +99,15 @@ export default function EditSession() {
           sessionsApi.getAutocomplete(),
           glossaryApi.list(),
         ]);
-        if (cancelled) return;
+        if (controller.signal.aborted) return;
 
         const sessionData = sessionRes.data;
-        const iData = instructorsRes.data as any;
+        const iData = instructorsRes.data as Friend[] | { friends: Friend[] };
         setInstructors(Array.isArray(iData) ? iData : iData?.friends || []);
-        const pData = partnersRes.data as any;
+        const pData = partnersRes.data as Friend[] | { friends: Friend[] };
         setPartners(Array.isArray(pData) ? pData : pData?.friends || []);
         setAutocomplete(autocompleteRes.data);
-        const mData = movementsRes.data as any;
+        const mData = movementsRes.data as Movement[] | { movements: Movement[] };
         setMovements(Array.isArray(mData) ? mData : mData?.movements || []);
 
         // Populate form
@@ -136,7 +136,7 @@ export default function EditSession() {
         if (sessionData.detailed_rolls && sessionData.detailed_rolls.length > 0) {
           setDetailedMode(true);
           setRolls(
-            sessionData.detailed_rolls.map((roll: any) => ({
+            sessionData.detailed_rolls.map((roll: SessionRoll) => ({
               roll_number: roll.roll_number,
               partner_id: roll.partner_id || null,
               partner_name: roll.partner_name || '',
@@ -151,7 +151,7 @@ export default function EditSession() {
         // Load session_techniques if present
         if (sessionData.session_techniques && sessionData.session_techniques.length > 0) {
           setTechniques(
-            sessionData.session_techniques.map((tech: any) => ({
+            sessionData.session_techniques.map((tech: SessionTechnique) => ({
               technique_number: tech.technique_number,
               movement_id: tech.movement_id,
               movement_name: tech.movement_name || '',
@@ -161,17 +161,17 @@ export default function EditSession() {
           );
         }
       } catch (error) {
-        if (!cancelled) {
+        if (!controller.signal.aborted) {
           console.error('Error loading session:', error);
           toast.error('Failed to load session. Redirecting to dashboard.');
           navigate('/');
         }
       } finally {
-        if (!cancelled) setLoading(false);
+        if (!controller.signal.aborted) setLoading(false);
       }
     };
     doLoad();
-    return () => { cancelled = true; };
+    return () => { controller.abort(); };
   }, [id]);
 
   // Roll handlers
@@ -219,7 +219,7 @@ export default function EditSession() {
     setSubmissionSearchAgainst(newSearchAgainst);
   };
 
-  const handleRollChange = (index: number, field: keyof RollEntry, value: any) => {
+  const handleRollChange = (index: number, field: keyof RollEntry, value: RollEntry[keyof RollEntry]) => {
     const updated = [...rolls];
     updated[index] = { ...updated[index], [field]: value };
     setRolls(updated);
@@ -282,7 +282,7 @@ export default function EditSession() {
     setTechniqueSearch(newSearch);
   };
 
-  const handleTechniqueChange = (index: number, field: keyof TechniqueEntry, value: any) => {
+  const handleTechniqueChange = (index: number, field: keyof TechniqueEntry, value: TechniqueEntry[keyof TechniqueEntry]) => {
     const updated = [...techniques];
     updated[index] = { ...updated[index], [field]: value };
     setTechniques(updated);
@@ -303,7 +303,7 @@ export default function EditSession() {
     setTechniques(updated);
   };
 
-  const handleMediaUrlChange = (techIndex: number, mediaIndex: number, field: keyof MediaUrl, value: any) => {
+  const handleMediaUrlChange = (techIndex: number, mediaIndex: number, field: keyof MediaUrl, value: string) => {
     const updated = [...techniques];
     updated[techIndex].media_urls[mediaIndex] = {
       ...updated[techIndex].media_urls[mediaIndex],
@@ -317,7 +317,7 @@ export default function EditSession() {
     setSaving(true);
 
     try {
-      const payload: any = {
+      const payload: Partial<Session> & Record<string, unknown> = {
         session_date: formData.session_date,
         class_time: formData.class_time || undefined,
         class_type: formData.class_type,

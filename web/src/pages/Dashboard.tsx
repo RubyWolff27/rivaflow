@@ -27,25 +27,25 @@ export default function Dashboard() {
   const [savingWeight, setSavingWeight] = useState(false);
 
   useEffect(() => {
-    let cancelled = false;
+    const controller = new AbortController();
 
     const loadAll = async () => {
       try {
         const today = new Date().toISOString().split('T')[0];
         const response = await readinessApi.getByDate(today);
-        if (!cancelled && response.data) {
+        if (!controller.signal.aborted && response.data) {
           setReadinessScore(response.data.composite_score);
           setHasCheckedInToday(true);
         }
       } catch {
         // Readiness not found for today is expected
       } finally {
-        if (!cancelled) setLoading(false);
+        if (!controller.signal.aborted) setLoading(false);
       }
 
       try {
         const response = await weightLogsApi.getLatest();
-        if (!cancelled && response.data?.weight) {
+        if (!controller.signal.aborted && response.data?.weight) {
           setLastWeight(response.data.weight);
         }
       } catch {
@@ -54,7 +54,7 @@ export default function Dashboard() {
     };
 
     loadAll();
-    return () => { cancelled = true; };
+    return () => { controller.abort(); };
   }, []);
 
   const handleQuickWeight = async () => {

@@ -133,6 +133,48 @@ class ActivityPhotoRepository:
             return cursor.rowcount > 0
 
     @staticmethod
+    def batch_get_by_activities(
+        user_id: int, activity_keys: list[tuple[str, int]]
+    ) -> dict[tuple[str, int], list[dict]]:
+        """Batch load photos for multiple activities in a single query per type.
+
+        Args:
+            user_id: The user who owns the photos
+            activity_keys: List of (activity_type, activity_id) tuples
+
+        Returns:
+            Dict mapping (activity_type, activity_id) to list of photo dicts
+        """
+        if not activity_keys:
+            return {}
+
+        # Group by activity_type for efficient querying
+        by_type: dict[str, list[int]] = {}
+        for atype, aid in activity_keys:
+            by_type.setdefault(atype, []).append(aid)
+
+        result: dict[tuple[str, int], list[dict]] = {}
+        with get_connection() as conn:
+            cursor = conn.cursor()
+            for atype, aids in by_type.items():
+                placeholders = ",".join("?" * len(aids))
+                cursor.execute(
+                    convert_query(f"""
+                    SELECT * FROM activity_photos
+                    WHERE user_id = ? AND activity_type = ?
+                        AND activity_id IN ({placeholders})
+                    ORDER BY activity_id, display_order, created_at
+                    """),
+                    [user_id, atype] + aids,
+                )
+                for row in cursor.fetchall():
+                    photo = dict(row)
+                    key = (atype, photo["activity_id"])
+                    result.setdefault(key, []).append(photo)
+
+        return result
+
+    @staticmethod
     def count_by_activity(user_id: int, activity_type: str, activity_id: int) -> int:
         """Count photos for a specific activity."""
         with get_connection() as conn:

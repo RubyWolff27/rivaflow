@@ -270,7 +270,7 @@ export default function Feed() {
   const currentUserId = user?.id ?? null;
 
   useEffect(() => {
-    let cancelled = false;
+    const controller = new AbortController();
     const doLoad = async () => {
       setLoading(true);
       try {
@@ -280,22 +280,22 @@ export default function Feed() {
             days_back: daysBack,
             enrich_social: true,
           });
-          if (!cancelled) setFeed(response.data ?? null);
+          if (!controller.signal.aborted) setFeed(response.data ?? null);
         } else {
           const response = await feedApi.getFriends({
             limit: 100,
             days_back: daysBack,
           });
-          if (!cancelled) setFeed(response.data ?? null);
+          if (!controller.signal.aborted) setFeed(response.data ?? null);
         }
       } catch (error) {
-        if (!cancelled) console.error('Error loading feed:', error);
+        if (!controller.signal.aborted) console.error('Error loading feed:', error);
       } finally {
-        if (!cancelled) setLoading(false);
+        if (!controller.signal.aborted) setLoading(false);
       }
     };
     doLoad();
-    return () => { cancelled = true; };
+    return () => { controller.abort(); };
   }, [daysBack, view]);
 
   const loadFeed = async () => {

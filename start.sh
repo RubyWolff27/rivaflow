@@ -20,21 +20,17 @@ fi
 
 echo "==> PORT: $PORT"
 
-# Initialize database (skip if already initialized)
+# Initialize database
 echo "==> Initializing database..."
 python -c "
-try:
-    from rivaflow.db.database import init_db
-    init_db()
-    print('Database initialized successfully')
-except Exception as e:
-    print(f'Database initialization: {e}')
-    print('Continuing with startup...')
-" || echo "Database init skipped, continuing..."
+from rivaflow.db.database import init_db
+init_db()
+print('Database initialized successfully')
+"
 
-# Run migrations (skip if already applied)
+# Run migrations
 echo "==> Running database migrations..."
-python rivaflow/db/migrate.py || echo "Migrations skipped or already applied, continuing..."
+python rivaflow/db/migrate.py
 
 # Start uvicorn server
 echo "==> Starting uvicorn server on 0.0.0.0:${PORT}..."

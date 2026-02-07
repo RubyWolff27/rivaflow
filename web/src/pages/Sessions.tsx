@@ -14,20 +14,20 @@ export default function Sessions() {
   const [sortBy, setSortBy] = useState<'date' | 'duration' | 'intensity'>('date');
 
   useEffect(() => {
-    let cancelled = false;
+    const controller = new AbortController();
     const doLoad = async () => {
       setLoading(true);
       try {
         const response = await sessionsApi.list(1000);
-        if (!cancelled) setSessions(response.data ?? []);
+        if (!controller.signal.aborted) setSessions(response.data ?? []);
       } catch (error) {
-        if (!cancelled) console.error('Error loading sessions:', error);
+        if (!controller.signal.aborted) console.error('Error loading sessions:', error);
       } finally {
-        if (!cancelled) setLoading(false);
+        if (!controller.signal.aborted) setLoading(false);
       }
     };
     doLoad();
-    return () => { cancelled = true; };
+    return () => { controller.abort(); };
   }, []);
 
   useEffect(() => {

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { profileApi, gradingsApi, friendsApi, adminApi, gymsApi } from '../api/client';
+import { profileApi, gradingsApi, friendsApi, adminApi, gymsApi, getErrorMessage } from '../api/client';
 import type { Profile as ProfileType, Grading, Friend } from '../types';
 import { User, CheckCircle, Award, Plus, Trash2, Edit2, Target, AlertCircle, Crown, Star } from 'lucide-react';
 import GymSelector from '../components/GymSelector';
@@ -92,7 +92,7 @@ export default function Profile() {
   const [gymHeadCoach, setGymHeadCoach] = useState<string | null>(null);
 
   useEffect(() => {
-    let cancelled = false;
+    const controller = new AbortController();
     const doLoad = async () => {
       setLoading(true);
       try {
@@ -101,7 +101,7 @@ export default function Profile() {
           gradingsApi.list(),
           friendsApi.listInstructors(),
         ]);
-        if (!cancelled) {
+        if (!controller.signal.aborted) {
           setProfile(profileRes.data ?? null);
           setGradings(gradingsRes.data ?? []);
           setInstructors(instructorsRes.data ?? []);
@@ -131,31 +131,31 @@ export default function Profile() {
           });
         }
       } catch (error) {
-        if (!cancelled) console.error('Error loading data:', error);
+        if (!controller.signal.aborted) console.error('Error loading data:', error);
       } finally {
-        if (!cancelled) setLoading(false);
+        if (!controller.signal.aborted) setLoading(false);
       }
     };
     doLoad();
-    return () => { cancelled = true; };
+    return () => { controller.abort(); };
   }, []);
 
   // Fetch gym head coach when gym is selected
   useEffect(() => {
-    let cancelled = false;
+    const controller = new AbortController();
     const fetchGymHeadCoach = async () => {
       if (!formData.default_gym) {
-        if (!cancelled) setGymHeadCoach(null);
+        if (!controller.signal.aborted) setGymHeadCoach(null);
         return;
       }
 
       try {
         const response = await gymsApi.search(formData.default_gym, false);
-        if (cancelled) return;
+        if (controller.signal.aborted) return;
         const data = response.data;
 
         if (data && data.length > 0) {
-          const gym = data.find((g: any) => g.name === formData.default_gym);
+          const gym = data.find((g: { name: string; head_coach?: string }) => g.name === formData.default_gym);
           if (gym && gym.head_coach) {
             setGymHeadCoach(gym.head_coach);
           } else {
@@ -163,7 +163,7 @@ export default function Profile() {
           }
         }
       } catch (error) {
-        if (!cancelled) {
+        if (!controller.signal.aborted) {
           console.error('Error fetching gym details:', error);
           setGymHeadCoach(null);
         }
@@ -171,7 +171,7 @@ export default function Profile() {
     };
 
     fetchGymHeadCoach();
-    return () => { cancelled = true; };
+    return () => { controller.abort(); };
   }, [formData.default_gym]);
 
   const loadData = async () => {
@@ -254,9 +254,9 @@ export default function Profile() {
 
       toast.success('Profile photo uploaded successfully!');
       await loadData(); // Refresh profile data
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error uploading photo:', error);
-      toast.error(error.response?.data?.detail || 'Failed to upload photo. Please try again.');
+      toast.error(getErrorMessage(error));
       setPhotoPreview(null);
     } finally {
       setUploadingPhoto(false);
@@ -270,9 +270,9 @@ export default function Profile() {
       setPhotoPreview(null);
       toast.success('Profile photo deleted successfully!');
       await loadData();
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error deleting photo:', error);
-      toast.error(error.response?.data?.detail || 'Failed to delete photo.');
+      toast.error(getErrorMessage(error));
     }
   };
 
@@ -313,9 +313,9 @@ export default function Profile() {
       setGradingForm(prev => ({ ...prev, photo_url: response.data.photo_url }));
 
       toast.success('Photo uploaded successfully!');
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error uploading grading photo:', error);
-      toast.error(error.response?.data?.detail || 'Failed to upload photo. Please try again.');
+      toast.error(getErrorMessage(error));
       setGradingPhotoPreview(null);
     } finally {
       setUploadingGradingPhoto(false);

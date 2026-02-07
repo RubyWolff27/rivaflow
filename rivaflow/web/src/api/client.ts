@@ -1,5 +1,5 @@
 import axios from 'axios';
-import type { Session, Readiness, Report, Suggestion, TrainedMovement, Video, Profile, Grading, Movement, Friend, CustomVideo, WeeklyGoalProgress, GoalsSummary, TrainingStreaks, GoalCompletionStreak, DailyCheckin, StreakStatus, Streak, Milestone, MilestoneProgress, CompEvent, WeightLog, WeightAverage, Group, GroupMember } from '../types';
+import type { Session, Readiness, Report, Suggestion, TrainedMovement, Video, Profile, Grading, Movement, Friend, CustomVideo, WeeklyGoalProgress, GoalsSummary, TrainingStreaks, GoalCompletionStreak, DailyCheckin, StreakStatus, Streak, Milestone, MilestoneProgress, CompEvent, WeightLog, WeightAverage, Group, GroupMember, UserBasic } from '../types';
 
 // Paginated response type
 interface PaginatedResponse<T> {
@@ -102,10 +102,10 @@ api.interceptors.response.use(
 );
 
 export const sessionsApi = {
-  create: (data: any) => api.post<Session>('/sessions/', data),
+  create: (data: Partial<Session> & Record<string, unknown>) => api.post<Session>('/sessions/', data),
   list: (limit = 10) => api.get<Session[]>(`/sessions/?limit=${limit}`),
   getById: (id: number) => api.get<Session>(`/sessions/${id}`),
-  update: (id: number, data: any) => api.put<Session>(`/sessions/${id}`, data),
+  update: (id: number, data: Partial<Session> & Record<string, unknown>) => api.put<Session>(`/sessions/${id}`, data),
   delete: (id: number) => api.delete(`/sessions/${id}`),
   getByRange: (startDate: string, endDate: string) =>
     api.get<Session[]>(`/sessions/range/${startDate}/${endDate}`),
@@ -113,7 +113,7 @@ export const sessionsApi = {
 };
 
 export const readinessApi = {
-  create: (data: any) => api.post<Readiness>('/readiness/', data),
+  create: (data: Partial<Readiness> & Record<string, unknown>) => api.post<Readiness>('/readiness/', data),
   getLatest: () => api.get<Readiness | null>('/readiness/latest'),
   getByDate: (date: string) => api.get<Readiness>(`/readiness/${date}`),
   getByRange: (startDate: string, endDate: string) =>
@@ -260,7 +260,7 @@ export const goalsApi = {
 // Engagement features (v0.2)
 export const checkinsApi = {
   getToday: () => api.get<DailyCheckin & { checked_in: boolean }>('/checkins/today'),
-  getWeek: () => api.get<{ week_start: string; checkins: any[] }>('/checkins/week'),
+  getWeek: () => api.get<{ week_start: string; checkins: DailyCheckin[] }>('/checkins/week'),
   updateTomorrow: (data: { tomorrow_intention: string }) => api.put('/checkins/today/tomorrow', data),
 };
 
@@ -296,7 +296,7 @@ export const socialApi = {
 
   // Friend suggestions (v0.2.0)
   getFriendSuggestions: (limit = 10) =>
-    api.get<{ suggestions: any[]; count: number }>('/social/friend-suggestions', { params: { limit } }),
+    api.get('/social/friend-suggestions', { params: { limit } }),
   dismissSuggestion: (suggestedUserId: number) =>
     api.post(`/social/friend-suggestions/${suggestedUserId}/dismiss`),
   regenerateSuggestions: () =>
@@ -312,11 +312,11 @@ export const socialApi = {
   cancelFriendRequest: (connectionId: number) =>
     api.delete(`/social/friend-requests/${connectionId}`),
   getReceivedRequests: () =>
-    api.get<{ requests: any[]; count: number }>('/social/friend-requests/received'),
+    api.get<{ requests: (UserBasic & { status: string; requested_at: string })[]; count: number }>('/social/friend-requests/received'),
   getSentRequests: () =>
-    api.get<{ requests: any[]; count: number }>('/social/friend-requests/sent'),
+    api.get<{ requests: (UserBasic & { status: string; requested_at: string })[]; count: number }>('/social/friend-requests/sent'),
   getFriends: (params?: { limit?: number; offset?: number }) =>
-    api.get<{ friends: any[]; count: number }>('/social/friends', { params }),
+    api.get<{ friends: UserBasic[]; count: number }>('/social/friends', { params }),
   unfriend: (userId: number) =>
     api.delete(`/social/friends/${userId}`),
   getFriendshipStatus: (userId: number) =>
@@ -378,7 +378,7 @@ export const photosApi = {
 export const notificationsApi = {
   getCounts: () => api.get<{ feed_unread: number; friend_requests: number; total: number }>('/notifications/counts'),
   getAll: (params?: { limit?: number; offset?: number; unread_only?: boolean }) =>
-    api.get<{ notifications: any[]; count: number }>('/notifications/', { params }),
+    api.get<{ notifications: Record<string, unknown>[]; count: number }>('/notifications/', { params }),
   markAsRead: (notificationId: number) => api.post(`/notifications/${notificationId}/read`),
   markAllAsRead: () => api.post('/notifications/read-all'),
   markFeedAsRead: () => api.post('/notifications/feed/read'),
@@ -442,7 +442,7 @@ export const adminApi = {
 
   // Waitlist (v0.2.0)
   listWaitlist: (params?: { status?: string; search?: string; limit?: number; offset?: number }) =>
-    api.get<{ entries: any[]; total: number; limit: number; offset: number }>('/admin/waitlist', { params }),
+    api.get('/admin/waitlist', { params }),
   getWaitlistStats: () =>
     api.get<{ total: number; waiting: number; invited: number; registered: number; declined: number }>('/admin/waitlist/stats'),
   inviteWaitlistEntry: (waitlistId: number, tier = 'free') =>
@@ -456,11 +456,11 @@ export const adminApi = {
 
   // Feedback (v0.2.0)
   listFeedback: (params?: { status?: string; category?: string; limit?: number; offset?: number }) =>
-    api.get<{ feedback: any[]; count: number; stats: any }>('/admin/feedback', { params }),
+    api.get('/admin/feedback', { params }),
   updateFeedbackStatus: (feedbackId: number, status: string, adminNotes?: string) =>
     api.put(`/admin/feedback/${feedbackId}/status`, { status, admin_notes: adminNotes }),
   getFeedbackStats: () =>
-    api.get<{ total: number; by_status: any; by_category: any }>('/admin/feedback/stats'),
+    api.get('/admin/feedback/stats'),
 };
 
 // Feedback API (v0.2.0)
@@ -471,9 +471,9 @@ export const feedbackApi = {
     message: string;
     platform?: 'web' | 'cli' | 'api';
     url?: string;
-  }) => api.post<{ success: boolean; feedback: any }>('/feedback/', data),
+  }) => api.post('/feedback/', data),
   getMy: (limit = 50) =>
-    api.get<{ feedback: any[]; count: number }>('/feedback/my', { params: { limit } }),
+    api.get('/feedback/my', { params: { limit } }),
   getById: (feedbackId: number) =>
     api.get('/feedback/' + feedbackId),
 };
@@ -514,7 +514,7 @@ export const dashboardApi = {
   getSummary: (params?: { start_date?: string; end_date?: string; types?: string[] }) =>
     api.get('/dashboard/summary', { params }),
   getQuickStats: () =>
-    api.get<{ total_sessions: number; total_hours: number; current_streak: number; next_milestone: any }>('/dashboard/quick-stats'),
+    api.get<{ total_sessions: number; total_hours: number; current_streak: number; next_milestone: MilestoneProgress | null }>('/dashboard/quick-stats'),
   getWeekSummary: (weekOffset = 0) =>
     api.get('/dashboard/week-summary', { params: { week_offset: weekOffset } }),
 };

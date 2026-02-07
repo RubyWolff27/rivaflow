@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { sessionsApi, readinessApi, profileApi, friendsApi, glossaryApi, restApi } from '../api/client';
-import type { Friend, Movement, MediaUrl } from '../types';
+import type { Friend, Movement, MediaUrl, Readiness } from '../types';
 import { CheckCircle, ArrowRight, ArrowLeft, Plus, X, ToggleLeft, ToggleRight, Search, Camera, ChevronDown, ChevronUp, Swords, Shield, Minus } from 'lucide-react';
 import GymSelector from '../components/GymSelector';
 import { ClassTypeChips, IntensityChips } from '../components/ui';
@@ -44,7 +44,7 @@ export default function LogSession() {
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const [skippedReadiness, setSkippedReadiness] = useState(false);
-  const [autocomplete, setAutocomplete] = useState<any>({});
+  const [autocomplete, setAutocomplete] = useState<{ gyms?: string[]; locations?: string[]; partners?: string[]; techniques?: string[] }>({});
 
   // New: Contacts and glossary data
   const [instructors, setInstructors] = useState<Friend[]>([]);
@@ -114,7 +114,7 @@ export default function LogSession() {
   });
 
   useEffect(() => {
-    let cancelled = false;
+    const controller = new AbortController();
     const doLoad = async () => {
       try {
         const [autocompleteRes, profileRes, instructorsRes, partnersRes, movementsRes] = await Promise.all([
@@ -124,17 +124,17 @@ export default function LogSession() {
           friendsApi.listPartners(),
           glossaryApi.list(),
         ]);
-        if (cancelled) return;
+        if (controller.signal.aborted) return;
 
         setAutocomplete(autocompleteRes.data ?? {});
         setInstructors(instructorsRes.data ?? []);
         setPartners(partnersRes.data ?? []);
         // API returns {movements: [...], total: N} -- extract the array
-        const movementsData = movementsRes.data as any;
+        const movementsData = movementsRes.data as Movement[] | { movements: Movement[] };
         setMovements(Array.isArray(movementsData) ? movementsData : movementsData?.movements || []);
 
         // Auto-populate default gym, location, coach, and class type from profile
-        const updates: any = {};
+        const updates: Partial<typeof sessionData> = {};
         if (profileRes.data?.default_gym) {
           updates.gym_name = profileRes.data.default_gym;
         }
@@ -152,11 +152,11 @@ export default function LogSession() {
           setSessionData(prev => ({ ...prev, ...updates }));
         }
       } catch (error) {
-        if (!cancelled) console.error('Error loading data:', error);
+        if (!controller.signal.aborted) console.error('Error loading data:', error);
       }
     };
     doLoad();
-    return () => { cancelled = true; };
+    return () => { controller.abort(); };
   }, []);
 
   const handleNextStep = useCallback(() => {
@@ -220,7 +220,7 @@ export default function LogSession() {
     });
   }, []);
 
-  const handleRollChange = useCallback((index: number, field: keyof RollEntry, value: any) => {
+  const handleRollChange = useCallback((index: number, field: keyof RollEntry, value: RollEntry[keyof RollEntry]) => {
     setRolls(prev => {
       const updated = [...prev];
       updated[index] = { ...updated[index], [field]: value };
@@ -278,7 +278,7 @@ export default function LogSession() {
     });
   }, []);
 
-  const handleTechniqueChange = useCallback((index: number, field: keyof TechniqueEntry, value: any) => {
+  const handleTechniqueChange = useCallback((index: number, field: keyof TechniqueEntry, value: TechniqueEntry[keyof TechniqueEntry]) => {
     setTechniques(prev => {
       const updated = [...prev];
       updated[index] = { ...updated[index], [field]: value };
@@ -311,7 +311,7 @@ export default function LogSession() {
     });
   }, []);
 
-  const handleMediaUrlChange = useCallback((techIndex: number, mediaIndex: number, field: keyof MediaUrl, value: any) => {
+  const handleMediaUrlChange = useCallback((techIndex: number, mediaIndex: number, field: keyof MediaUrl, value: string) => {
     setTechniques(prev => {
       const updated = [...prev];
       const mediaUrls = [...updated[techIndex].media_urls];
@@ -341,7 +341,7 @@ export default function LogSession() {
       // Handle training session submission
       // Save readiness first (only if not skipped)
       if (!skippedReadiness) {
-        const readinessPayload: any = {
+        const readinessPayload: Partial<Readiness> & Record<string, unknown> = {
           ...readinessData,
           weight_kg: readinessData.weight_kg ? parseFloat(readinessData.weight_kg as string) : undefined,
         };
@@ -349,7 +349,7 @@ export default function LogSession() {
       }
 
       // Build session payload
-      const payload: any = {
+      const payload: Record<string, unknown> = {
         ...sessionData,
         class_time: sessionData.class_time || undefined,
         location: sessionData.location || undefined,
