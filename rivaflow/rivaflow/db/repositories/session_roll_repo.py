@@ -150,6 +150,28 @@ class SessionRollRepository:
         return SessionRollRepository.list_by_partner(user_id, partner_id)
 
     @staticmethod
+    def list_by_partner_name(user_id: int, partner_name: str) -> list[dict]:
+        """Get rolls where partner_id is NULL but partner_name matches.
+
+        Finds unlinked rolls (e.g. from quick-log before friend was added).
+        """
+        with get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                convert_query("""
+                SELECT sr.* FROM session_rolls sr
+                JOIN sessions s ON sr.session_id = s.id
+                WHERE sr.partner_id IS NULL
+                AND LOWER(sr.partner_name) = LOWER(?)
+                AND s.user_id = ?
+                ORDER BY s.session_date DESC, sr.roll_number ASC
+                """),
+                (partner_name, user_id),
+            )
+            rows = cursor.fetchall()
+            return [SessionRollRepository._row_to_dict(row) for row in rows]
+
+    @staticmethod
     def get_partner_stats(user_id: int, partner_id: int) -> dict:
         """Get analytics for a specific partner.
 

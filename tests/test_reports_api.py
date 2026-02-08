@@ -127,7 +127,7 @@ class TestAnalyticsAPI:
         data = response.json()
 
         # Verify empty partner data
-        assert data["diversity_metrics"]["unique_partners"] == 0
+        assert data["diversity_metrics"]["active_partners"] == 0
         assert data["summary"]["total_rolls"] == 0
         assert len(data["top_partners"]) == 0
 

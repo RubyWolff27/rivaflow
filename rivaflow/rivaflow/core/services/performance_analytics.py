@@ -424,7 +424,7 @@ class PerformanceAnalyticsService:
         for partner in partners:
             stats = self.roll_repo.get_partner_stats(user_id, partner["id"])
 
-            # Count detailed rolls in date range
+            # Count detailed rolls in date range (linked by partner_id)
             rolls_in_range = self.roll_repo.get_by_partner_id(user_id, partner["id"])
             rolls_in_range = [
                 r
@@ -434,6 +434,19 @@ class PerformanceAnalyticsService:
                 <= end_date
             ]
             detailed_count = len(rolls_in_range)
+
+            # Also count unlinked rolls (partner_id IS NULL, matched by name)
+            unlinked_rolls = self.roll_repo.list_by_partner_name(
+                user_id, partner["name"]
+            )
+            unlinked_in_range = [
+                r
+                for r in unlinked_rolls
+                if start_date
+                <= self._get_session_date(user_id, r["session_id"])
+                <= end_date
+            ]
+            detailed_count += len(unlinked_in_range)
 
             # Count simple-mode mentions by partner name
             simple_count = simple_partner_counts.get(partner["name"].strip().lower(), 0)
@@ -484,7 +497,7 @@ class PerformanceAnalyticsService:
             "top_partners": top_partners,
             "session_distribution": session_distribution,
             "diversity_metrics": {
-                "unique_partners": unique_partners,
+                "active_partners": unique_partners,
                 "new_partners": new_partners,
                 "recurring_partners": recurring_partners,
             },
