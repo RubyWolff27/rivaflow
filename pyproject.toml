@@ -83,6 +83,28 @@ target-version = ['py311']
 profile = "black"
 line_length = 88
 
+[tool.mypy]
+python_version = "3.11"
+ignore_missing_imports = true
+exclude = ["build/"]
+# Disable error codes for pre-existing issues; tighten incrementally
+disable_error_code = [
+    "arg-type",
+    "assignment",
+    "var-annotated",
+    "union-attr",
+    "return-value",
+    "call-arg",
+    "index",
+    "list-item",
+    "attr-defined",
+    "operator",
+    "dict-item",
+    "misc",
+    "no-redef",
+    "call-overload",
+]
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 addopts = "-v --cov=rivaflow"

@@ -30,7 +30,9 @@ jobs:
         pip install -r rivaflow/requirements.txt
 
     - name: Scan Python dependencies for CVEs
-      run: pip-audit -r rivaflow/requirements.txt
+      run: |
+        # CVE-2024-23342 (ecdsa): no upstream fix available, transitive dep of python-jose
+        pip-audit -r rivaflow/requirements.txt --ignore-vuln CVE-2024-23342
 
     - name: Setup Node.js
       uses: actions/setup-node@v6
