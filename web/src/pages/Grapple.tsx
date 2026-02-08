@@ -450,12 +450,29 @@ export default function Grapple() {
   }, [toast]);
   const { isRecording, isTranscribing, hasSpeechApi, toggleRecording } = useSpeechRecognition({ onTranscript, onError: onSpeechError });
 
-  // Handle ?session= query param (e.g. from insight click-through)
+  // Handle query params: ?session= (insight click-through), ?panel= (dashboard deep link)
   useEffect(() => {
     const sessionParam = searchParams.get('session');
+    const panelParam = searchParams.get('panel');
+    let changed = false;
     if (sessionParam) {
       setCurrentSessionId(sessionParam);
       setActivePanel('chat');
+      changed = true;
+    }
+    if (panelParam) {
+      const panelMap: Record<string, ActivePanel> = {
+        chat: 'chat',
+        extract: 'extract',
+        technique: 'technique-qa',
+        insights: 'insights',
+      };
+      if (panelMap[panelParam]) {
+        setActivePanel(panelMap[panelParam]);
+        changed = true;
+      }
+    }
+    if (changed) {
       setSearchParams({}, { replace: true });
     }
   }, [searchParams, setSearchParams]);
