@@ -27,7 +27,7 @@ limiter = Limiter(key_func=get_remote_address)
 
 @router.post("/", status_code=status.HTTP_201_CREATED)
 @limiter.limit("60/minute")
-async def create_session(
+def create_session(
     request: Request,
     session: SessionCreate,
     current_user: dict = Depends(get_current_user),
@@ -82,7 +82,7 @@ async def create_session(
 
 @router.put("/{session_id}")
 @limiter.limit("60/minute")
-async def update_session(
+def update_session(
     request: Request,
     session_id: int,
     session: SessionUpdate,
@@ -143,7 +143,7 @@ async def update_session(
 
 @router.delete("/{session_id}")
 @limiter.limit("60/minute")
-async def delete_session(
+def delete_session(
     request: Request, session_id: int, current_user: dict = Depends(get_current_user)
 ):
     """Delete a training session."""
@@ -154,7 +154,7 @@ async def delete_session(
 
 
 @router.get("/{session_id}")
-async def get_session(
+def get_session(
     session_id: int,
     apply_privacy: bool = False,
     include_navigation: bool = Query(
@@ -191,7 +191,7 @@ async def get_session(
 
 
 @router.get("/")
-async def list_sessions(
+def list_sessions(
     limit: int = Query(default=10, ge=1, le=1000),
     apply_privacy: bool = False,
     current_user: dict = Depends(get_current_user),
@@ -214,7 +214,7 @@ async def list_sessions(
 
 
 @router.get("/range/{start_date}/{end_date}")
-async def get_sessions_by_range(
+def get_sessions_by_range(
     start_date: date,
     end_date: date,
     apply_privacy: bool = False,
@@ -241,13 +241,13 @@ async def get_sessions_by_range(
 
 
 @router.get("/autocomplete/data")
-async def get_autocomplete_data(current_user: dict = Depends(get_current_user)):
+def get_autocomplete_data(current_user: dict = Depends(get_current_user)):
     """Get data for autocomplete suggestions."""
     return service.get_autocomplete_data(user_id=current_user["id"])
 
 
 @router.get("/{session_id}/insights")
-async def get_session_insights(
+def get_session_insights(
     session_id: int,
     current_user: dict = Depends(get_current_user),
 ):
@@ -266,7 +266,7 @@ async def get_session_insights(
 
 
 @router.get("/{session_id}/with-rolls")
-async def get_session_with_rolls(
+def get_session_with_rolls(
     session_id: int,
     apply_privacy: bool = False,
     current_user: dict = Depends(get_current_user),
@@ -296,9 +296,7 @@ async def get_session_with_rolls(
 
 
 @router.get("/partner/{partner_id}/stats")
-async def get_partner_stats(
-    partner_id: int, current_user: dict = Depends(get_current_user)
-):
+def get_partner_stats(partner_id: int, current_user: dict = Depends(get_current_user)):
     """Get training statistics for a specific partner."""
     stats = service.get_partner_stats(user_id=current_user["id"], partner_id=partner_id)
     return stats

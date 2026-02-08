@@ -3,8 +3,10 @@
 import logging
 import traceback
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel
+from slowapi import Limiter
+from slowapi.util import get_remote_address
 
 from rivaflow.core.dependencies import get_current_user
 from rivaflow.core.exceptions import RivaFlowException, ValidationError
@@ -13,6 +15,7 @@ from rivaflow.core.services.goals_service import GoalsService
 logger = logging.getLogger(__name__)
 
 router = APIRouter()
+limiter = Limiter(key_func=get_remote_address)
 service = GoalsService()
 
 
@@ -25,7 +28,10 @@ class GoalTargetsUpdate(BaseModel):
 
 
 @router.get("/current-week")
-async def get_current_week_progress(current_user: dict = Depends(get_current_user)):
+@limiter.limit("120/minute")
+def get_current_week_progress(
+    request: Request, current_user: dict = Depends(get_current_user)
+):
     """Get current week's goal progress.
 
     Returns progress toward weekly targets:
@@ -56,7 +62,8 @@ async def get_current_week_progress(current_user: dict = Depends(get_current_use
 
 
 @router.get("/summary")
-async def get_goals_summary(current_user: dict = Depends(get_current_user)):
+@limiter.limit("120/minute")
+def get_goals_summary(request: Request, current_user: dict = Depends(get_current_user)):
     """Get comprehensive goals and streaks overview.
 
     Returns:
@@ -69,20 +76,27 @@ async def get_goals_summary(current_user: dict = Depends(get_current_user)):
 
 
 @router.get("/streaks/training")
-async def get_training_streaks(current_user: dict = Depends(get_current_user)):
+@limiter.limit("120/minute")
+def get_training_streaks(
+    request: Request, current_user: dict = Depends(get_current_user)
+):
     """Get training session streaks (consecutive days trained)."""
     return service.get_training_streaks(user_id=current_user["id"])
 
 
 @router.get("/streaks/goals")
-async def get_goal_completion_streaks(current_user: dict = Depends(get_current_user)):
+@limiter.limit("120/minute")
+def get_goal_completion_streaks(
+    request: Request, current_user: dict = Depends(get_current_user)
+):
     """Get weekly goal completion streaks."""
     return service.get_goal_completion_streak(user_id=current_user["id"])
 
 
 @router.get("/trend")
-async def get_recent_trend(
-    weeks: int = 12, current_user: dict = Depends(get_current_user)
+@limiter.limit("120/minute")
+def get_recent_trend(
+    request: Request, weeks: int = 12, current_user: dict = Depends(get_current_user)
 ):
     """Get goal completion trend for recent weeks.
 
@@ -98,8 +112,11 @@ async def get_recent_trend(
 
 
 @router.put("/targets")
-async def update_goal_targets(
-    targets: GoalTargetsUpdate, current_user: dict = Depends(get_current_user)
+@limiter.limit("30/minute")
+def update_goal_targets(
+    request: Request,
+    targets: GoalTargetsUpdate,
+    current_user: dict = Depends(get_current_user),
 ):
     """Update weekly goal targets in profile.
 

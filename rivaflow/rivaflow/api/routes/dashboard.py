@@ -2,7 +2,9 @@
 
 from datetime import date, timedelta
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, Query, Request
+from slowapi import Limiter
+from slowapi.util import get_remote_address
 
 from rivaflow.core.dependencies import get_current_user
 from rivaflow.core.exceptions import ValidationError
@@ -15,6 +17,7 @@ from rivaflow.db.repositories.readiness_repo import ReadinessRepository
 from rivaflow.db.repositories.session_repo import SessionRepository
 
 router = APIRouter(prefix="/dashboard", tags=["dashboard"])
+limiter = Limiter(key_func=get_remote_address)
 
 
 @cached(ttl_seconds=300, key_prefix="dashboard_summary")
@@ -92,7 +95,9 @@ def _get_dashboard_summary_cached(
 
 
 @router.get("/summary")
-async def get_dashboard_summary(
+@limiter.limit("60/minute")
+def get_dashboard_summary(
+    request: Request,
     start_date: date | None = Query(None, description="Start date for analytics"),
     end_date: date | None = Query(None, description="End date for analytics"),
     types: list[str] | None = Query(None, description="Filter by class types"),
@@ -131,7 +136,9 @@ async def get_dashboard_summary(
 
 
 @router.get("/quick-stats")
-async def get_quick_stats(
+@limiter.limit("60/minute")
+def get_quick_stats(
+    request: Request,
     current_user: dict = Depends(get_current_user),
 ):
     """
@@ -174,7 +181,9 @@ async def get_quick_stats(
 
 
 @router.get("/week-summary")
-async def get_week_summary(
+@limiter.limit("60/minute")
+def get_week_summary(
+    request: Request,
     week_offset: int = Query(
         0,
         ge=-52,

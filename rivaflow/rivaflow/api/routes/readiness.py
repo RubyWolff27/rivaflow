@@ -2,8 +2,10 @@
 
 from datetime import date
 
-from fastapi import APIRouter, Depends, status
+from fastapi import APIRouter, Depends, Request, status
 from fastapi.responses import JSONResponse
+from slowapi import Limiter
+from slowapi.util import get_remote_address
 
 from rivaflow.core.dependencies import get_current_user
 from rivaflow.core.exceptions import ValidationError
@@ -11,12 +13,16 @@ from rivaflow.core.models import ReadinessCreate
 from rivaflow.core.services.readiness_service import ReadinessService
 
 router = APIRouter()
+limiter = Limiter(key_func=get_remote_address)
 service = ReadinessService()
 
 
 @router.post("/", status_code=status.HTTP_201_CREATED)
-async def log_readiness(
-    readiness: ReadinessCreate, current_user: dict = Depends(get_current_user)
+@limiter.limit("30/minute")
+def log_readiness(
+    request: Request,
+    readiness: ReadinessCreate,
+    current_user: dict = Depends(get_current_user),
 ):
     """Log daily readiness check-in."""
     service.log_readiness(
@@ -36,7 +42,10 @@ async def log_readiness(
 
 
 @router.get("/latest")
-async def get_latest_readiness(current_user: dict = Depends(get_current_user)):
+@limiter.limit("120/minute")
+def get_latest_readiness(
+    request: Request, current_user: dict = Depends(get_current_user)
+):
     """Get the most recent readiness entry."""
     entry = service.get_latest_readiness(user_id=current_user["id"])
     if not entry:
@@ -45,8 +54,9 @@ async def get_latest_readiness(current_user: dict = Depends(get_current_user)):
 
 
 @router.get("/{check_date}")
-async def get_readiness(
-    check_date: date, current_user: dict = Depends(get_current_user)
+@limiter.limit("120/minute")
+def get_readiness(
+    request: Request, check_date: date, current_user: dict = Depends(get_current_user)
 ):
     """Get readiness for a specific date."""
     entry = service.get_readiness(user_id=current_user["id"], check_date=check_date)
@@ -59,8 +69,12 @@ async def get_readiness(
 
 
 @router.get("/range/{start_date}/{end_date}")
-async def get_readiness_range(
-    start_date: date, end_date: date, current_user: dict = Depends(get_current_user)
+@limiter.limit("120/minute")
+def get_readiness_range(
+    request: Request,
+    start_date: date,
+    end_date: date,
+    current_user: dict = Depends(get_current_user),
 ):
     """Get readiness entries within a date range."""
     return service.get_readiness_range(
@@ -69,7 +83,10 @@ async def get_readiness_range(
 
 
 @router.post("/weight")
-async def log_weight_only(data: dict, current_user: dict = Depends(get_current_user)):
+@limiter.limit("30/minute")
+def log_weight_only(
+    request: Request, data: dict, current_user: dict = Depends(get_current_user)
+):
     """Log weight only for a date (quick logging for rest days)."""
     try:
         check_date = date.fromisoformat(

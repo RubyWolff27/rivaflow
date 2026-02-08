@@ -47,7 +47,7 @@ class UsageStatsResponse(BaseModel):
 
 
 @router.post("/feedback")
-async def submit_feedback(
+def submit_feedback(
     feedback: FeedbackRequest,
     current_user: dict = Depends(get_current_user),
 ):
@@ -122,7 +122,7 @@ async def submit_feedback(
 
 @router.get("/stats/global", response_model=UsageStatsResponse)
 @require_admin
-async def get_global_stats(
+def get_global_stats(
     days: int = 30,
     current_user: dict = Depends(get_current_user),
 ):
@@ -217,7 +217,7 @@ async def get_global_stats(
 
 @router.get("/stats/projections")
 @require_admin
-async def get_cost_projections(
+def get_cost_projections(
     current_user: dict = Depends(get_current_user),
 ):
     """
@@ -297,7 +297,7 @@ async def get_cost_projections(
 
 @router.get("/stats/providers")
 @require_admin
-async def get_provider_stats(
+def get_provider_stats(
     days: int = 7,
     current_user: dict = Depends(get_current_user),
 ):
@@ -359,7 +359,7 @@ async def get_provider_stats(
 
 @router.get("/stats/users")
 @require_admin
-async def get_user_stats(
+def get_user_stats(
     limit: int = 50,
     current_user: dict = Depends(get_current_user),
 ):
@@ -417,7 +417,7 @@ async def get_user_stats(
 
 @router.get("/feedback")
 @require_admin
-async def get_feedback(
+def get_feedback(
     limit: int = 100,
     rating: str | None = None,
     current_user: dict = Depends(get_current_user),
@@ -481,7 +481,7 @@ async def get_feedback(
 
 @router.get("/health")
 @require_admin
-async def get_grapple_health(
+def get_grapple_health(
     current_user: dict = Depends(get_current_user),
 ):
     """

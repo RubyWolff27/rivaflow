@@ -4,19 +4,25 @@ import csv
 import io
 from datetime import date
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Request
 from fastapi.responses import StreamingResponse
+from slowapi import Limiter
+from slowapi.util import get_remote_address
 
 from rivaflow.core.dependencies import get_current_user
 from rivaflow.core.services.report_service import ReportService
 
 router = APIRouter()
+limiter = Limiter(key_func=get_remote_address)
 service = ReportService()
 
 
 @router.get("/week")
-async def get_week_report(
-    target_date: date = None, current_user: dict = Depends(get_current_user)
+@limiter.limit("60/minute")
+def get_week_report(
+    request: Request,
+    target_date: date = None,
+    current_user: dict = Depends(get_current_user),
 ):
     """Get current week report."""
     start_date, end_date = service.get_week_dates(target_date)
@@ -27,8 +33,11 @@ async def get_week_report(
 
 
 @router.get("/month")
-async def get_month_report(
-    target_date: date = None, current_user: dict = Depends(get_current_user)
+@limiter.limit("60/minute")
+def get_month_report(
+    request: Request,
+    target_date: date = None,
+    current_user: dict = Depends(get_current_user),
 ):
     """Get current month report."""
     start_date, end_date = service.get_month_dates(target_date)
@@ -39,8 +48,12 @@ async def get_month_report(
 
 
 @router.get("/range/{start_date}/{end_date}")
-async def get_range_report(
-    start_date: date, end_date: date, current_user: dict = Depends(get_current_user)
+@limiter.limit("60/minute")
+def get_range_report(
+    request: Request,
+    start_date: date,
+    end_date: date,
+    current_user: dict = Depends(get_current_user),
 ):
     """Get report for custom date range."""
     report = service.generate_report(
@@ -50,8 +63,11 @@ async def get_range_report(
 
 
 @router.get("/week/csv")
-async def export_week_csv(
-    target_date: date = None, current_user: dict = Depends(get_current_user)
+@limiter.limit("60/minute")
+def export_week_csv(
+    request: Request,
+    target_date: date = None,
+    current_user: dict = Depends(get_current_user),
 ):
     """Export week report as CSV."""
     start_date, end_date = service.get_week_dates(target_date)

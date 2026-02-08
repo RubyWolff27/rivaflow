@@ -1,7 +1,6 @@
 """Service layer for user profile operations."""
 
 import logging
-import os
 import uuid
 from datetime import datetime
 from pathlib import Path
@@ -25,12 +24,6 @@ class ProfileService:
     def __init__(self):
         self.repo = ProfileRepository()
         self.user_repo = UserRepository()
-
-        # Configure upload directory
-        self.upload_dir = (
-            Path(__file__).parent.parent.parent.parent / "uploads" / "avatars"
-        )
-        self.upload_dir.mkdir(parents=True, exist_ok=True)
 
     def get_profile(self, user_id: int) -> dict | None:
         """Get the user profile with progress stats since last promotion."""
@@ -195,20 +188,17 @@ class ProfileService:
             )
 
         # Generate unique filename: user_{user_id}_{timestamp}_{uuid}.{ext}
+        from rivaflow.core.services.storage_service import get_storage
+
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         unique_id = str(uuid.uuid4())[:8]
         new_filename = f"user_{user_id}_{timestamp}_{unique_id}{file_ext}"
-        file_path = self.upload_dir / new_filename
 
-        # Save file to disk
-        with open(file_path, "wb") as f:
-            f.write(file_content)
-
-        # Set secure file permissions (user read/write only)
-        os.chmod(file_path, 0o600)
+        # Upload via storage service (local or S3/R2)
+        storage = get_storage()
+        avatar_url = storage.upload("avatars", new_filename, file_content)
 
         # Update user's avatar_url in database
-        avatar_url = f"/uploads/avatars/{new_filename}"
         self.user_repo.update_avatar(user_id, avatar_url)
 
         return {
@@ -235,26 +225,16 @@ class ProfileService:
 
         avatar_url = user["avatar_url"]
 
-        # Extract filename from URL (format: /uploads/avatars/filename.jpg)
-        if avatar_url.startswith("/uploads/avatars/"):
-            filename = avatar_url.replace("/uploads/avatars/", "")
-            file_path = self.upload_dir / filename
+        # Delete file from storage
+        from rivaflow.core.services.storage_service import get_storage
 
-            # Prevent path traversal attacks
-            if not file_path.resolve().is_relative_to(self.upload_dir.resolve()):
-                logger.warning(
-                    f"Path traversal attempt blocked for user" f" {user_id}: {filename}"
-                )
-                raise ValidationError("Invalid avatar path")
-
-            # Delete file if it exists
-            if file_path.exists():
-                try:
-                    os.remove(file_path)
-                except OSError as e:
-                    # Log error but continue to clear database entry
-                    # In production, this should use proper logging
-                    logger.warning(f"Error deleting avatar file {file_path}: {e}")
+        # Extract filename from URL
+        filename = avatar_url.rsplit("/", 1)[-1]
+        try:
+            storage = get_storage()
+            storage.delete("avatars", filename)
+        except Exception as e:
+            logger.warning(f"Error deleting avatar file {filename}: {e}")
 
         # Clear avatar_url in database
         self.user_repo.update_avatar(user_id, None)

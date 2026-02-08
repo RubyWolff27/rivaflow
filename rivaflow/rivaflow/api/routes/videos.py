@@ -1,13 +1,16 @@
 """Video library endpoints — backed by movement_videos table."""
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, Query, Request
 from pydantic import BaseModel, Field
+from slowapi import Limiter
+from slowapi.util import get_remote_address
 
 from rivaflow.core.dependencies import get_current_user
 from rivaflow.core.exceptions import NotFoundError
 from rivaflow.core.services.glossary_service import GlossaryService
 
 router = APIRouter()
+limiter = Limiter(key_func=get_remote_address)
 service = GlossaryService()
 
 
@@ -21,7 +24,9 @@ class VideoCreateRequest(BaseModel):
 
 
 @router.post("/")
-async def add_video(
+@limiter.limit("120/minute")
+def add_video(
+    request: Request,
     video: VideoCreateRequest,
     current_user: dict = Depends(get_current_user),
 ):
@@ -38,7 +43,9 @@ async def add_video(
 
 
 @router.get("/")
-async def list_videos(
+@limiter.limit("120/minute")
+def list_videos(
+    request: Request,
     limit: int = Query(default=50, ge=1, le=200, description="Max results to return"),
     offset: int = Query(default=0, ge=0, description="Number of results to skip"),
     current_user: dict = Depends(get_current_user),
@@ -56,7 +63,10 @@ async def list_videos(
 
 
 @router.delete("/{video_id}")
-async def delete_video(video_id: int, current_user: dict = Depends(get_current_user)):
+@limiter.limit("120/minute")
+def delete_video(
+    request: Request, video_id: int, current_user: dict = Depends(get_current_user)
+):
     """Delete a video."""
     deleted = service.delete_video(user_id=current_user["id"], video_id=video_id)
     if not deleted:
@@ -65,7 +75,10 @@ async def delete_video(video_id: int, current_user: dict = Depends(get_current_u
 
 
 @router.get("/{video_id}")
-async def get_video(video_id: int, current_user: dict = Depends(get_current_user)):
+@limiter.limit("120/minute")
+def get_video(
+    request: Request, video_id: int, current_user: dict = Depends(get_current_user)
+):
     """Get a video by ID."""
     video = service.get_video(user_id=current_user["id"], video_id=video_id)
     if not video:

@@ -652,9 +652,9 @@ export default function Grapple() {
   ];
 
   return (
-    <div className="h-[calc(100vh-8rem)] flex gap-4">
-      {/* Sidebar - Sessions */}
-      <div className="w-64 hidden md:flex flex-col rounded-[14px] p-4" style={{ backgroundColor: 'var(--surface)', border: '1px solid var(--border)' }}>
+    <div className="h-[calc(100vh-8rem)] md:h-[calc(100vh-8rem)] flex flex-col md:flex-row gap-4">
+      {/* Sidebar - Sessions (hidden on mobile) */}
+      <div className="w-64 hidden md:flex flex-col rounded-[14px] p-4 shrink-0" style={{ backgroundColor: 'var(--surface)', border: '1px solid var(--border)' }}>
         <div className="flex items-center justify-between mb-4">
           <h2 className="font-semibold" style={{ color: 'var(--text)' }}>Chats</h2>
           <button
@@ -806,12 +806,12 @@ export default function Grapple() {
             </div>
 
             {/* Chat Input */}
-            <div className="flex gap-2 mt-4">
+            <div className="flex gap-2 mt-4 pb-16 md:pb-0">
               <input
                 type="text"
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
-                onKeyPress={(e) => e.key === 'Enter' && !e.shiftKey && sendMessage()}
+                onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); } }}
                 placeholder="Ask about techniques, training, recovery..."
                 disabled={loading}
                 className="flex-1 px-4 py-3 rounded-lg border text-sm disabled:opacity-50"
@@ -846,7 +846,7 @@ export default function Grapple() {
                 style={{ backgroundColor: 'var(--accent)' }}
               >
                 <Send className="w-5 h-5" />
-                Send
+                <span className="hidden sm:inline">Send</span>
               </button>
             </div>
           </>

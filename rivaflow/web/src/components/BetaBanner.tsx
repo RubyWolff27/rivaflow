@@ -3,7 +3,9 @@ import { MessageSquare, X } from 'lucide-react';
 import FeedbackModal from './FeedbackModal';
 
 export default function BetaBanner() {
-  const [isVisible, setIsVisible] = useState(true);
+  const [isVisible, setIsVisible] = useState(() => {
+    return localStorage.getItem('betaBannerDismissed') !== 'true';
+  });
   const [feedbackOpen, setFeedbackOpen] = useState(false);
 
   if (!isVisible) return null;
@@ -33,7 +35,7 @@ export default function BetaBanner() {
           Give Feedback
         </button>
         <button
-          onClick={() => setIsVisible(false)}
+          onClick={() => { localStorage.setItem('betaBannerDismissed', 'true'); setIsVisible(false); }}
           className="ml-2 p-1 rounded hover:opacity-80 transition-opacity"
           aria-label="Dismiss banner"
         >

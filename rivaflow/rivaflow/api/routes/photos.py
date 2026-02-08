@@ -1,7 +1,6 @@
 """Photo routes."""
 
 import logging
-import os
 import uuid
 from datetime import datetime
 from pathlib import Path
@@ -22,6 +21,7 @@ from slowapi import Limiter
 from slowapi.util import get_remote_address
 
 from rivaflow.core.dependencies import get_current_user
+from rivaflow.core.services.storage_service import get_storage
 from rivaflow.db.repositories import ActivityPhotoRepository
 
 logger = logging.getLogger(__name__)
@@ -29,10 +29,6 @@ logger = logging.getLogger(__name__)
 router = APIRouter()
 photo_repo = ActivityPhotoRepository()
 limiter = Limiter(key_func=get_remote_address)
-
-# Configure upload directory
-UPLOAD_DIR = Path(__file__).parent.parent.parent.parent / "uploads" / "activities"
-UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
 
 # Allowed file extensions and MIME types
 ALLOWED_EXTENSIONS = {".jpg", ".jpeg", ".png", ".webp", ".gif"}
@@ -153,17 +149,9 @@ async def upload_photo(
     unique_id = str(uuid.uuid4())
     filename = f"{activity_type}_{current_user['id']}_{timestamp}_{unique_id}{file_ext}"
 
-    # Security: Ensure filename doesn't escape upload directory
-    file_path = UPLOAD_DIR / filename
-    if not file_path.resolve().is_relative_to(UPLOAD_DIR.resolve()):
-        raise HTTPException(status_code=400, detail="Invalid filename")
-
-    # Save file
-    with open(file_path, "wb") as f:
-        f.write(content)
-
-    # Create database record
-    photo_url = f"/uploads/activities/{filename}"
+    # Upload via storage service (local or S3/R2)
+    storage = get_storage()
+    photo_url = storage.upload("activities", filename, content)
     photo_id = photo_repo.create(
         user_id=current_user["id"],
         activity_type=activity_type,
@@ -187,7 +175,7 @@ async def upload_photo(
 
 
 @router.get("/photos/activity/{activity_type}/{activity_id}")
-async def get_activity_photos(
+def get_activity_photos(
     activity_type: str,
     activity_id: int,
     current_user: dict = Depends(get_current_user),
@@ -200,7 +188,7 @@ async def get_activity_photos(
 
 
 @router.get("/photos/{photo_id}")
-async def get_photo(photo_id: int, current_user: dict = Depends(get_current_user)):
+def get_photo(photo_id: int, current_user: dict = Depends(get_current_user)):
     """
     Get photo by ID.
     """
@@ -211,7 +199,7 @@ async def get_photo(photo_id: int, current_user: dict = Depends(get_current_user
 
 
 @router.delete("/photos/{photo_id}")
-async def delete_photo(photo_id: int, current_user: dict = Depends(get_current_user)):
+def delete_photo(photo_id: int, current_user: dict = Depends(get_current_user)):
     """
     Delete a photo.
     """
@@ -225,12 +213,11 @@ async def delete_photo(photo_id: int, current_user: dict = Depends(get_current_u
     if not deleted:
         raise HTTPException(status_code=404, detail="Photo not found")
 
-    # Delete file from filesystem
+    # Delete file from storage
     try:
-        file_path = UPLOAD_DIR / photo["file_name"]
-        if file_path.exists():
-            os.remove(file_path)
-    except OSError as e:
+        storage = get_storage()
+        storage.delete("activities", photo["file_name"])
+    except Exception as e:
         # Log error but don't fail the request - database record is already deleted
         logger.warning(f"Error deleting file {photo['file_name']}: {e}")
 
@@ -238,7 +225,7 @@ async def delete_photo(photo_id: int, current_user: dict = Depends(get_current_u
 
 
 @router.put("/photos/{photo_id}/caption")
-async def update_caption(
+def update_caption(
     photo_id: int,
     caption: str = Form(...),
     current_user: dict = Depends(get_current_user),

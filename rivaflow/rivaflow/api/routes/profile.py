@@ -1,12 +1,15 @@
 """Profile management endpoints."""
 
-from fastapi import APIRouter, Depends, File, UploadFile
+from fastapi import APIRouter, Depends, File, Request, UploadFile
 from pydantic import BaseModel
+from slowapi import Limiter
+from slowapi.util import get_remote_address
 
 from rivaflow.core.dependencies import get_current_user
 from rivaflow.core.services.profile_service import ProfileService
 
 router = APIRouter()
+limiter = Limiter(key_func=get_remote_address)
 service = ProfileService()
 
 
@@ -39,7 +42,8 @@ class ProfileUpdate(BaseModel):
 
 
 @router.get("/")
-async def get_profile(current_user: dict = Depends(get_current_user)):
+@limiter.limit("120/minute")
+def get_profile(request: Request, current_user: dict = Depends(get_current_user)):
     """Get the user profile."""
     profile = service.get_profile(user_id=current_user["id"])
     if not profile:
@@ -61,8 +65,11 @@ async def get_profile(current_user: dict = Depends(get_current_user)):
 
 
 @router.put("/")
-async def update_profile(
-    profile: ProfileUpdate, current_user: dict = Depends(get_current_user)
+@limiter.limit("30/minute")
+def update_profile(
+    request: Request,
+    profile: ProfileUpdate,
+    current_user: dict = Depends(get_current_user),
 ):
     """Update the user profile."""
     updated = service.update_profile(
@@ -94,8 +101,11 @@ async def update_profile(
 
 
 @router.post("/photo")
+@limiter.limit("30/minute")
 async def upload_profile_photo(
-    file: UploadFile = File(...), current_user: dict = Depends(get_current_user)
+    request: Request,
+    file: UploadFile = File(...),
+    current_user: dict = Depends(get_current_user),
 ):
     """
     Upload a profile photo.
@@ -117,7 +127,10 @@ async def upload_profile_photo(
 
 
 @router.delete("/photo")
-async def delete_profile_photo(current_user: dict = Depends(get_current_user)):
+@limiter.limit("30/minute")
+def delete_profile_photo(
+    request: Request, current_user: dict = Depends(get_current_user)
+):
     """
     Delete the current profile photo.
 

@@ -69,7 +69,7 @@ class AccessTokenResponse(BaseModel):
     "/register", response_model=TokenResponse, status_code=status.HTTP_201_CREATED
 )
 @limiter.limit("5/minute")
-async def register(request: Request, req: RegisterRequest):
+def register(request: Request, req: RegisterRequest):
     """
     Register a new user account.
 
@@ -141,7 +141,7 @@ async def register(request: Request, req: RegisterRequest):
 
 @router.post("/login", response_model=TokenResponse)
 @limiter.limit("5/minute")
-async def login(request: Request, req: LoginRequest):
+def login(request: Request, req: LoginRequest):
     """
     Login with email and password.
 
@@ -173,7 +173,7 @@ async def login(request: Request, req: LoginRequest):
 
 @router.post("/refresh", response_model=AccessTokenResponse)
 @limiter.limit("10/minute")
-async def refresh_token(request: Request, req: RefreshRequest):
+def refresh_token(request: Request, req: RefreshRequest):
     """
     Refresh access token using a refresh token.
 
@@ -206,7 +206,7 @@ async def refresh_token(request: Request, req: RefreshRequest):
 
 
 @router.post("/logout")
-async def logout(req: RefreshRequest, current_user: dict = Depends(get_current_user)):
+def logout(req: RefreshRequest, current_user: dict = Depends(get_current_user)):
     """
     Logout by invalidating the refresh token.
 
@@ -237,7 +237,7 @@ async def logout(req: RefreshRequest, current_user: dict = Depends(get_current_u
 
 
 @router.post("/logout-all")
-async def logout_all_devices(current_user: dict = Depends(get_current_user)):
+def logout_all_devices(current_user: dict = Depends(get_current_user)):
     """
     Logout from all devices by invalidating all refresh tokens.
 
@@ -261,7 +261,7 @@ async def logout_all_devices(current_user: dict = Depends(get_current_user)):
 
 
 @router.get("/me")
-async def get_current_user_info(current_user: dict = Depends(get_current_user)):
+def get_current_user_info(current_user: dict = Depends(get_current_user)):
     """
     Get current authenticated user information.
 
@@ -285,7 +285,7 @@ class ResetPasswordRequest(BaseModel):
 
 @router.post("/forgot-password")
 @limiter.limit("3/hour")
-async def forgot_password(request: Request, req: ForgotPasswordRequest):
+def forgot_password(request: Request, req: ForgotPasswordRequest):
     """
     Request a password reset email.
 
@@ -314,7 +314,7 @@ async def forgot_password(request: Request, req: ForgotPasswordRequest):
 
 @router.post("/reset-password")
 @limiter.limit("5/hour")
-async def reset_password(request: Request, req: ResetPasswordRequest):
+def reset_password(request: Request, req: ResetPasswordRequest):
     """
     Reset password using reset token.
 

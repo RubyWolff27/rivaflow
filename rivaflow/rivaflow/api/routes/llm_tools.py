@@ -8,12 +8,15 @@ Planned for v0.2+ for AI-powered training insights and recommendations.
 from datetime import date
 from typing import Any
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Request
 from pydantic import BaseModel
+from slowapi import Limiter
+from slowapi.util import get_remote_address
 
 from rivaflow.core.dependencies import get_current_user
 
 router = APIRouter(prefix="/llm-tools", tags=["llm-tools"])
+limiter = Limiter(key_func=get_remote_address)
 
 
 class WeekReportResponse(BaseModel):
@@ -30,8 +33,9 @@ class PartnersSummaryResponse(BaseModel):
 
 
 @router.get("/report/week", response_model=WeekReportResponse)
-async def get_week_report_for_llm(
-    week_start: date, current_user: dict = Depends(get_current_user)
+@limiter.limit("20/minute")
+def get_week_report_for_llm(
+    request: Request, week_start: date, current_user: dict = Depends(get_current_user)
 ):
     """
     Get week report formatted for LLM tool calling.
@@ -65,8 +69,12 @@ async def get_week_report_for_llm(
 
 
 @router.get("/partners/summary", response_model=PartnersSummaryResponse)
-async def get_partners_summary_for_llm(
-    start: date, end: date, current_user: dict = Depends(get_current_user)
+@limiter.limit("20/minute")
+def get_partners_summary_for_llm(
+    request: Request,
+    start: date,
+    end: date,
+    current_user: dict = Depends(get_current_user),
 ):
     """
     Get training partners summary for date range, formatted for LLM.

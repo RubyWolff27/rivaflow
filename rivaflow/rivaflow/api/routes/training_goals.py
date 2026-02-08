@@ -35,7 +35,7 @@ class UpdateTrainingGoal(BaseModel):
 
 
 @router.post("/")
-async def create_goal(
+def create_goal(
     body: CreateTrainingGoal,
     current_user: dict = Depends(get_current_user),
 ):
@@ -55,7 +55,7 @@ async def create_goal(
 
 
 @router.get("/")
-async def list_goals(
+def list_goals(
     month: str | None = None,
     current_user: dict = Depends(get_current_user),
 ):
@@ -69,7 +69,7 @@ async def list_goals(
 
 
 @router.get("/{goal_id}")
-async def get_goal(
+def get_goal(
     goal_id: int,
     current_user: dict = Depends(get_current_user),
 ):
@@ -83,7 +83,7 @@ async def get_goal(
 
 
 @router.put("/{goal_id}")
-async def update_goal(
+def update_goal(
     goal_id: int,
     body: UpdateTrainingGoal,
     current_user: dict = Depends(get_current_user),
@@ -103,7 +103,7 @@ async def update_goal(
 
 
 @router.delete("/{goal_id}")
-async def delete_goal(
+def delete_goal(
     goal_id: int,
     current_user: dict = Depends(get_current_user),
 ):

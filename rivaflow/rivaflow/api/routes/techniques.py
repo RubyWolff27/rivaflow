@@ -1,13 +1,16 @@
 """Technique management endpoints — backed by movements glossary."""
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, Query, Request
 from pydantic import BaseModel, Field
+from slowapi import Limiter
+from slowapi.util import get_remote_address
 
 from rivaflow.core.dependencies import get_current_user
 from rivaflow.core.exceptions import NotFoundError
 from rivaflow.core.services.glossary_service import GlossaryService
 
 router = APIRouter()
+limiter = Limiter(key_func=get_remote_address)
 service = GlossaryService()
 
 
@@ -19,7 +22,9 @@ class TechniqueCreateRequest(BaseModel):
 
 
 @router.post("/")
-async def add_technique(
+@limiter.limit("120/minute")
+def add_technique(
+    request: Request,
     technique: TechniqueCreateRequest,
     current_user: dict = Depends(get_current_user),
 ):
@@ -32,7 +37,9 @@ async def add_technique(
 
 
 @router.get("/")
-async def list_techniques(
+@limiter.limit("120/minute")
+def list_techniques(
+    request: Request,
     limit: int = Query(default=50, ge=1, le=200, description="Max results to return"),
     offset: int = Query(default=0, ge=0, description="Number of results to skip"),
     current_user: dict = Depends(get_current_user),
@@ -53,15 +60,18 @@ async def list_techniques(
 
 
 @router.get("/stale")
-async def get_stale_techniques(
-    days: int = 7, current_user: dict = Depends(get_current_user)
+@limiter.limit("120/minute")
+def get_stale_techniques(
+    request: Request, days: int = 7, current_user: dict = Depends(get_current_user)
 ):
     """Get stale techniques (trained but not within N days)."""
     return service.get_stale_movements(user_id=current_user["id"], days=days)
 
 
 @router.get("/search")
-async def search_techniques(
+@limiter.limit("120/minute")
+def search_techniques(
+    request: Request,
     q: str = Query(..., min_length=2),
     current_user: dict = Depends(get_current_user),
 ):
@@ -70,8 +80,9 @@ async def search_techniques(
 
 
 @router.get("/{technique_id}")
-async def get_technique(
-    technique_id: int, current_user: dict = Depends(get_current_user)
+@limiter.limit("120/minute")
+def get_technique(
+    request: Request, technique_id: int, current_user: dict = Depends(get_current_user)
 ):
     """Get a technique by ID (reads from glossary)."""
     movement = service.get_movement(

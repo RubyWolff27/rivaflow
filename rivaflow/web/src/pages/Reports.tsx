@@ -438,7 +438,7 @@ export default function Reports() {
                     : "Start logging your training sessions to see performance analytics, trends, and insights."
                 }
                 actionLabel={selectedTypes.length > 0 ? undefined : "Log First Session"}
-                actionPath={selectedTypes.length > 0 ? undefined : "/log-session"}
+                actionPath={selectedTypes.length > 0 ? undefined : "/log"}
               />
             </Card>
           ) : (
@@ -661,7 +661,7 @@ export default function Reports() {
                     : "Start logging rolls with training partners to see analytics on your training relationships and performance with different partners."
                 }
                 actionLabel={selectedTypes.length > 0 ? undefined : "Log Session with Partners"}
-                actionPath={selectedTypes.length > 0 ? undefined : "/log-session"}
+                actionPath={selectedTypes.length > 0 ? undefined : "/log"}
               />
             </Card>
           ) : (
@@ -850,7 +850,7 @@ export default function Reports() {
                     : "Start logging submissions and techniques during your rolls to see analytics on your technique usage and proficiency."
                 }
                 actionLabel={selectedTypes.length > 0 ? undefined : "Log Session"}
-                actionPath={selectedTypes.length > 0 ? undefined : "/log-session"}
+                actionPath={selectedTypes.length > 0 ? undefined : "/log"}
               />
             </Card>
           ) : (

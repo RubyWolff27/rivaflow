@@ -28,7 +28,9 @@ class SuggestionEngine:
         readiness = self.readiness_repo.get_latest(user_id)
 
         # Get session context
-        consecutive_counts = self.session_service.get_consecutive_class_type_count(user_id)
+        consecutive_counts = self.session_service.get_consecutive_class_type_count(
+            user_id
+        )
         stale_techniques = self.glossary_repo.get_stale(user_id, days=7)
 
         session_context = {

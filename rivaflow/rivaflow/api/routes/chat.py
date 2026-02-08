@@ -4,8 +4,10 @@ import logging
 import os
 
 import httpx
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel
+from slowapi import Limiter
+from slowapi.util import get_remote_address
 
 from rivaflow.core.dependencies import get_current_user
 from rivaflow.core.services.privacy_service import PrivacyService
@@ -13,6 +15,7 @@ from rivaflow.db.repositories.session_repo import SessionRepository
 from rivaflow.db.repositories.user_repo import UserRepository
 
 router = APIRouter(prefix="/chat", tags=["chat"])
+limiter = Limiter(key_func=get_remote_address)
 logger = logging.getLogger(__name__)
 
 # Configuration from environment variables with fallback
@@ -148,12 +151,18 @@ Now respond to the user's questions using this context. Reference their specific
 
 
 @router.post("/", response_model=ChatResponse)
-async def chat(request: ChatRequest, current_user: dict = Depends(get_current_user)):
+@limiter.limit("20/minute")
+async def chat(
+    request: Request,
+    chat_request: ChatRequest,
+    current_user: dict = Depends(get_current_user),
+):
     """
     Chat endpoint with BJJ coaching context.
 
     Args:
-        request: Chat messages from user
+        request: FastAPI request object (used by rate limiter)
+        chat_request: Chat messages from user
         current_user: Authenticated user
 
     Returns:
@@ -173,7 +182,7 @@ async def chat(request: ChatRequest, current_user: dict = Depends(get_current_us
 
         # Prepend system message to conversation
         messages = [{"role": "system", "content": system_prompt}] + [
-            msg.model_dump() for msg in request.messages
+            msg.model_dump() for msg in chat_request.messages
         ]
 
         # Call Ollama with full context

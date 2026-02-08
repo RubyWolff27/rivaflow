@@ -1,17 +1,22 @@
 """User profile endpoints for viewing other users."""
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, Query, Request
+from slowapi import Limiter
+from slowapi.util import get_remote_address
 
 from rivaflow.core.dependencies import get_current_user
 from rivaflow.core.exceptions import NotFoundError
 from rivaflow.core.services.user_service import UserService
 
 router = APIRouter()
+limiter = Limiter(key_func=get_remote_address)
 service = UserService()
 
 
 @router.get("/search")
-async def search_users(
+@limiter.limit("120/minute")
+def search_users(
+    request: Request,
     q: str = Query(..., min_length=1, description="Search query (name or email)"),
     limit: int = Query(20, ge=1, le=100),
     current_user: dict = Depends(get_current_user),
@@ -30,7 +35,9 @@ async def search_users(
 
 
 @router.get("/{user_id}")
-async def get_user_profile(
+@limiter.limit("120/minute")
+def get_user_profile(
+    request: Request,
     user_id: int,
     current_user: dict = Depends(get_current_user),
 ):
@@ -46,7 +53,9 @@ async def get_user_profile(
 
 
 @router.get("/{user_id}/stats")
-async def get_user_stats(
+@limiter.limit("120/minute")
+def get_user_stats(
+    request: Request,
     user_id: int,
     current_user: dict = Depends(get_current_user),
 ):
@@ -60,7 +69,9 @@ async def get_user_stats(
 
 
 @router.get("/{user_id}/activity")
-async def get_user_activity(
+@limiter.limit("120/minute")
+def get_user_activity(
+    request: Request,
     user_id: int,
     limit: int = Query(20, ge=1, le=100),
     offset: int = Query(0, ge=0),

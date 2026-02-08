@@ -4,16 +4,20 @@ from fastapi import (
     APIRouter,
     Depends,
     HTTPException,
+    Request,
     Response,
     status,
 )
 from pydantic import BaseModel
+from slowapi import Limiter
+from slowapi.util import get_remote_address
 
 from rivaflow.core.dependencies import get_current_user
 from rivaflow.core.exceptions import NotFoundError
 from rivaflow.db.repositories.groups_repo import GroupsRepository
 
 router = APIRouter()
+limiter = Limiter(key_func=get_remote_address)
 repo = GroupsRepository()
 
 
@@ -47,7 +51,9 @@ class MemberAdd(BaseModel):
 
 
 @router.post("/", status_code=status.HTTP_201_CREATED)
-async def create_group(
+@limiter.limit("30/minute")
+def create_group(
+    request: Request,
     group: GroupCreate,
     current_user: dict = Depends(get_current_user),
 ):
@@ -61,7 +67,9 @@ async def create_group(
 
 
 @router.get("/")
-async def list_groups(
+@limiter.limit("120/minute")
+def list_groups(
+    request: Request,
     current_user: dict = Depends(get_current_user),
 ):
     """List groups the current user belongs to."""
@@ -73,7 +81,9 @@ async def list_groups(
 
 
 @router.get("/{group_id}")
-async def get_group(
+@limiter.limit("120/minute")
+def get_group(
+    request: Request,
     group_id: int,
     current_user: dict = Depends(get_current_user),
 ):
@@ -94,7 +104,9 @@ async def get_group(
 
 
 @router.put("/{group_id}")
-async def update_group(
+@limiter.limit("30/minute")
+def update_group(
+    request: Request,
     group_id: int,
     group: GroupUpdate,
     current_user: dict = Depends(get_current_user),
@@ -114,7 +126,9 @@ async def update_group(
 
 
 @router.delete("/{group_id}")
-async def delete_group(
+@limiter.limit("30/minute")
+def delete_group(
+    request: Request,
     group_id: int,
     current_user: dict = Depends(get_current_user),
 ):
@@ -129,7 +143,9 @@ async def delete_group(
 
 
 @router.post("/{group_id}/members")
-async def add_member(
+@limiter.limit("30/minute")
+def add_member(
+    request: Request,
     group_id: int,
     member: MemberAdd,
     current_user: dict = Depends(get_current_user),
@@ -160,7 +176,9 @@ async def add_member(
 
 
 @router.delete("/{group_id}/members/{user_id}")
-async def remove_member(
+@limiter.limit("30/minute")
+def remove_member(
+    request: Request,
     group_id: int,
     user_id: int,
     current_user: dict = Depends(get_current_user),
@@ -180,7 +198,9 @@ async def remove_member(
 
 
 @router.post("/{group_id}/join")
-async def join_group(
+@limiter.limit("30/minute")
+def join_group(
+    request: Request,
     group_id: int,
     current_user: dict = Depends(get_current_user),
 ):
@@ -205,7 +225,9 @@ async def join_group(
 
 
 @router.post("/{group_id}/leave")
-async def leave_group(
+@limiter.limit("30/minute")
+def leave_group(
+    request: Request,
     group_id: int,
     current_user: dict = Depends(get_current_user),
 ):

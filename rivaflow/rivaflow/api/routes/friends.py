@@ -1,13 +1,16 @@
 """Contacts (training partners and instructors) endpoints."""
 
-from fastapi import APIRouter, Depends, Query, Response, status
+from fastapi import APIRouter, Depends, Query, Request, Response, status
 from pydantic import BaseModel
+from slowapi import Limiter
+from slowapi.util import get_remote_address
 
 from rivaflow.core.dependencies import get_current_user
 from rivaflow.core.exceptions import NotFoundError
 from rivaflow.core.services.friend_service import FriendService
 
 router = APIRouter()
+limiter = Limiter(key_func=get_remote_address)
 service = FriendService()
 
 
@@ -38,7 +41,9 @@ class FriendUpdate(BaseModel):
 
 
 @router.get("/")
-async def list_contacts(
+@limiter.limit("120/minute")
+def list_contacts(
+    request: Request,
     search: str | None = Query(None, min_length=2, description="Search by name"),
     friend_type: str | None = Query(None, description="Filter by friend type"),
     limit: int = Query(default=50, ge=1, le=200, description="Max results to return"),
@@ -63,21 +68,28 @@ async def list_contacts(
 
 
 @router.get("/instructors")
-async def list_instructors(current_user: dict = Depends(get_current_user)):
+@limiter.limit("120/minute")
+def list_instructors(request: Request, current_user: dict = Depends(get_current_user)):
     """Get all friends who are instructors."""
     instructors = service.list_instructors(user_id=current_user["id"])
     return instructors
 
 
 @router.get("/partners")
-async def list_training_partners(current_user: dict = Depends(get_current_user)):
+@limiter.limit("120/minute")
+def list_training_partners(
+    request: Request, current_user: dict = Depends(get_current_user)
+):
     """Get all friends who are training partners."""
     partners = service.list_training_partners(user_id=current_user["id"])
     return partners
 
 
 @router.get("/{friend_id}")
-async def get_contact(friend_id: int, current_user: dict = Depends(get_current_user)):
+@limiter.limit("120/minute")
+def get_contact(
+    request: Request, friend_id: int, current_user: dict = Depends(get_current_user)
+):
     """Get a specific friend by ID."""
     friend = service.get_friend(user_id=current_user["id"], friend_id=friend_id)
     if not friend:
@@ -86,8 +98,11 @@ async def get_contact(friend_id: int, current_user: dict = Depends(get_current_u
 
 
 @router.post("/", status_code=status.HTTP_201_CREATED)
-async def create_contact(
-    friend: FriendCreate, current_user: dict = Depends(get_current_user)
+@limiter.limit("30/minute")
+def create_contact(
+    request: Request,
+    friend: FriendCreate,
+    current_user: dict = Depends(get_current_user),
 ):
     """Create a new friend."""
     # Let exceptions bubble up - global handler will catch them
@@ -106,8 +121,12 @@ async def create_contact(
 
 
 @router.put("/{friend_id}")
-async def update_contact(
-    friend_id: int, friend: FriendUpdate, current_user: dict = Depends(get_current_user)
+@limiter.limit("30/minute")
+def update_contact(
+    request: Request,
+    friend_id: int,
+    friend: FriendUpdate,
+    current_user: dict = Depends(get_current_user),
 ):
     """Update a friend."""
     updated = service.update_friend(
@@ -128,8 +147,9 @@ async def update_contact(
 
 
 @router.delete("/{friend_id}")
-async def delete_contact(
-    friend_id: int, current_user: dict = Depends(get_current_user)
+@limiter.limit("30/minute")
+def delete_contact(
+    request: Request, friend_id: int, current_user: dict = Depends(get_current_user)
 ):
     """Delete a friend."""
     deleted = service.delete_friend(user_id=current_user["id"], friend_id=friend_id)

@@ -158,49 +158,35 @@ class SessionService:
         """
         Get the previous and next session IDs for navigation.
 
-        Args:
-            user_id: User ID
-            session_id: Current session ID
-
-        Returns:
-            Dict with previous_session_id and next_session_id (or None if at boundaries)
+        Uses SQL LAG/LEAD window functions to fetch only adjacent rows
+        instead of loading all sessions into memory.
         """
-        # Get current session to find its date
-        current_session = self.session_repo.get_by_id(user_id, session_id)
-        if not current_session:
+        from rivaflow.db.database import convert_query, get_connection
+
+        query = convert_query("""
+            WITH ranked AS (
+                SELECT
+                    id,
+                    LAG(id) OVER (ORDER BY session_date DESC, id DESC) AS next_id,
+                    LEAD(id) OVER (ORDER BY session_date DESC, id DESC) AS prev_id
+                FROM sessions
+                WHERE user_id = ?
+            )
+            SELECT next_id, prev_id
+            FROM ranked
+            WHERE id = ?
+            """)
+        with get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(query, (user_id, session_id))
+            row = cursor.fetchone()
+
+        if not row:
             return {"previous_session_id": None, "next_session_id": None}
-
-        current_session["session_date"]
-        current_session.get("created_at")
-
-        # Get all sessions ordered by date DESC, created_at DESC (newest first)
-        all_sessions = self.session_repo.get_recent(user_id, limit=10000)
-
-        # Find current session index
-        current_index = None
-        for i, session in enumerate(all_sessions):
-            if session["id"] == session_id:
-                current_index = i
-                break
-
-        if current_index is None:
-            return {"previous_session_id": None, "next_session_id": None}
-
-        # Previous session is the one after current (older, later in list)
-        previous_session_id = (
-            all_sessions[current_index + 1]["id"]
-            if current_index + 1 < len(all_sessions)
-            else None
-        )
-
-        # Next session is the one before current (newer, earlier in list)
-        next_session_id = (
-            all_sessions[current_index - 1]["id"] if current_index > 0 else None
-        )
 
         return {
-            "previous_session_id": previous_session_id,
-            "next_session_id": next_session_id,
+            "previous_session_id": row["prev_id"],
+            "next_session_id": row["next_id"],
         }
 
     def update_session(

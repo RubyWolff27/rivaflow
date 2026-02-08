@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { Link } from 'react-router-dom';
 import { X, Mic, MicOff } from 'lucide-react';
 import { sessionsApi, profileApi, restApi, friendsApi } from '../api/client';
 import { PrimaryButton, SecondaryButton, ClassTypeChips, IntensityChips } from './ui';
@@ -472,9 +473,9 @@ export default function QuickLog({ isOpen, onClose, onSuccess }: QuickLogProps) 
         {/* Full log link */}
         <p className="text-xs text-center" style={{ color: 'var(--muted)' }}>
           Need more details?{' '}
-          <a href="/log" className="underline" style={{ color: 'var(--accent)' }}>
+          <Link to="/log" className="underline" style={{ color: 'var(--accent)' }}>
             Use full form
-          </a>
+          </Link>
         </p>
       </div>
     </div>

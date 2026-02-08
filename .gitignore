@@ -68,3 +68,6 @@ uploads/
 
 # Database backups
 backups/
+
+# Data export files
+rivaflow_export_*.json

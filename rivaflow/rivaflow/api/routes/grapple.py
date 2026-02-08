@@ -67,7 +67,7 @@ class TierInfoResponse(BaseModel):
 
 
 @router.get("/info", response_model=TierInfoResponse)
-async def get_grapple_info(current_user: dict = Depends(get_current_user)):
+def get_grapple_info(current_user: dict = Depends(get_current_user)):
     """
     Get information about Grapple AI Coach and user's access level.
 
@@ -85,7 +85,7 @@ async def get_grapple_info(current_user: dict = Depends(get_current_user)):
 
 
 @router.get("/teaser")
-async def get_grapple_teaser(current_user: dict = Depends(get_current_user)):
+def get_grapple_teaser(current_user: dict = Depends(get_current_user)):
     """
     Teaser endpoint showing free users what they're missing.
 
@@ -338,7 +338,7 @@ async def _handle_chat(
 
 @router.get("/sessions", response_model=SessionListResponse)
 @require_beta_or_premium
-async def get_chat_sessions(
+def get_chat_sessions(
     current_user: dict = Depends(get_current_user),
     limit: int = 20,
     offset: int = 0,
@@ -361,7 +361,7 @@ async def get_chat_sessions(
 
 @router.get("/sessions/{session_id}")
 @require_beta_or_premium
-async def get_chat_session(
+def get_chat_session(
     session_id: str,
     current_user: dict = Depends(get_current_user),
 ):
@@ -398,7 +398,7 @@ async def get_chat_session(
 
 @router.delete("/sessions/{session_id}")
 @require_beta_or_premium
-async def delete_chat_session(
+def delete_chat_session(
     session_id: str,
     current_user: dict = Depends(get_current_user),
 ):
@@ -426,7 +426,7 @@ async def delete_chat_session(
 
 @router.get("/usage")
 @require_beta_or_premium
-async def get_usage_stats(
+def get_usage_stats(
     current_user: dict = Depends(get_current_user),
 ):
     """
@@ -551,7 +551,7 @@ async def extract_session(
 
 @router.post("/save-extracted-session")
 @require_beta_or_premium
-async def save_extracted_session(
+def save_extracted_session(
     request: SaveExtractedSessionRequest,
     current_user: dict = Depends(get_current_user),
 ):
@@ -608,7 +608,7 @@ async def save_extracted_session(
 
 @router.get("/insights")
 @require_beta_or_premium
-async def list_insights(
+def list_insights(
     current_user: dict = Depends(get_current_user),
     limit: int = 20,
     insight_type: str | None = None,

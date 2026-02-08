@@ -63,7 +63,7 @@ class NotesUpdateRequest(BaseModel):
 
 @router.post("/join", status_code=status.HTTP_201_CREATED)
 @limiter.limit("5/minute")
-async def join_waitlist(request: Request, req: WaitlistJoinRequest):
+def join_waitlist(request: Request, req: WaitlistJoinRequest):
     """
     Join the RivaFlow waitlist.
 
@@ -108,7 +108,7 @@ async def join_waitlist(request: Request, req: WaitlistJoinRequest):
 
 
 @router.get("/count")
-async def get_waitlist_count():
+def get_waitlist_count():
     """
     Get the number of people currently waiting on the waitlist.
 
@@ -125,7 +125,7 @@ async def get_waitlist_count():
 
 
 @admin_router.get("/")
-async def list_waitlist(
+def list_waitlist(
     status: str | None = None,
     search: str | None = None,
     limit: int = 50,
@@ -154,7 +154,7 @@ async def list_waitlist(
 
 
 @admin_router.post("/{waitlist_id}/invite")
-async def invite_entry(
+def invite_entry(
     waitlist_id: int = Path(..., gt=0),
     req: InviteRequest = None,
     current_user: dict = Depends(get_admin_user),
@@ -219,7 +219,7 @@ async def invite_entry(
 
 
 @admin_router.post("/bulk-invite")
-async def bulk_invite_entries(
+def bulk_invite_entries(
     req: BulkInviteRequest,
     current_user: dict = Depends(get_admin_user),
 ):
@@ -258,7 +258,7 @@ async def bulk_invite_entries(
 
 
 @admin_router.post("/{waitlist_id}/decline")
-async def decline_entry(
+def decline_entry(
     waitlist_id: int = Path(..., gt=0),
     current_user: dict = Depends(get_admin_user),
 ):
@@ -292,7 +292,7 @@ async def decline_entry(
 
 
 @admin_router.put("/{waitlist_id}/notes")
-async def update_entry_notes(
+def update_entry_notes(
     req: NotesUpdateRequest,
     waitlist_id: int = Path(..., gt=0),
     current_user: dict = Depends(get_admin_user),
@@ -320,7 +320,7 @@ async def update_entry_notes(
 
 
 @admin_router.get("/stats")
-async def get_waitlist_stats(
+def get_waitlist_stats(
     current_user: dict = Depends(get_admin_user),
 ):
     """

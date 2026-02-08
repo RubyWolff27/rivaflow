@@ -9,22 +9,23 @@ from fastapi import (
     Depends,
     File,
     HTTPException,
+    Request,
     Response,
     UploadFile,
     status,
 )
 from pydantic import BaseModel
+from slowapi import Limiter
+from slowapi.util import get_remote_address
 
 from rivaflow.core.dependencies import get_current_user
 from rivaflow.core.exceptions import NotFoundError
 from rivaflow.core.services.grading_service import GradingService
+from rivaflow.core.services.storage_service import get_storage
 
 router = APIRouter()
+limiter = Limiter(key_func=get_remote_address)
 service = GradingService()
-
-# Configure upload directory
-UPLOAD_DIR = Path(__file__).parent.parent.parent.parent / "uploads" / "gradings"
-UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
 
 # Allowed file extensions
 ALLOWED_EXTENSIONS = {".jpg", ".jpeg", ".png", ".webp", ".gif"}
@@ -54,15 +55,19 @@ class GradingUpdate(BaseModel):
 
 
 @router.get("/")
-async def list_gradings(current_user: dict = Depends(get_current_user)):
+@limiter.limit("120/minute")
+def list_gradings(request: Request, current_user: dict = Depends(get_current_user)):
     """Get all gradings, ordered by date (newest first)."""
     gradings = service.list_gradings(user_id=current_user["id"])
     return gradings
 
 
 @router.post("/", status_code=status.HTTP_201_CREATED)
-async def create_grading(
-    grading: GradingCreate, current_user: dict = Depends(get_current_user)
+@limiter.limit("30/minute")
+def create_grading(
+    request: Request,
+    grading: GradingCreate,
+    current_user: dict = Depends(get_current_user),
 ):
     """Create a new grading and update the profile's current_grade."""
     created = service.create_grading(
@@ -78,7 +83,10 @@ async def create_grading(
 
 
 @router.get("/latest")
-async def get_latest_grading(current_user: dict = Depends(get_current_user)):
+@limiter.limit("120/minute")
+def get_latest_grading(
+    request: Request, current_user: dict = Depends(get_current_user)
+):
     """Get the most recent grading."""
     grading = service.get_latest_grading(user_id=current_user["id"])
     if not grading:
@@ -87,7 +95,9 @@ async def get_latest_grading(current_user: dict = Depends(get_current_user)):
 
 
 @router.put("/{grading_id}")
-async def update_grading(
+@limiter.limit("30/minute")
+def update_grading(
+    request: Request,
     grading_id: int,
     grading: GradingUpdate,
     current_user: dict = Depends(get_current_user),
@@ -112,8 +122,9 @@ async def update_grading(
 
 
 @router.delete("/{grading_id}")
-async def delete_grading(
-    grading_id: int, current_user: dict = Depends(get_current_user)
+@limiter.limit("30/minute")
+def delete_grading(
+    request: Request, grading_id: int, current_user: dict = Depends(get_current_user)
 ):
     """Delete a grading by ID."""
     deleted = service.delete_grading(
@@ -126,8 +137,11 @@ async def delete_grading(
 
 
 @router.post("/photo", status_code=status.HTTP_201_CREATED)
+@limiter.limit("30/minute")
 async def upload_grading_photo(
-    file: UploadFile = File(...), current_user: dict = Depends(get_current_user)
+    request: Request,
+    file: UploadFile = File(...),
+    current_user: dict = Depends(get_current_user),
 ):
     """
     Upload a grading photo (belt certificate, etc.).
@@ -155,14 +169,10 @@ async def upload_grading_photo(
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     unique_id = str(uuid.uuid4())[:8]
     filename = f"grading_{current_user['id']}_{timestamp}_{unique_id}{file_ext}"
-    file_path = UPLOAD_DIR / filename
 
-    # Save file
-    with open(file_path, "wb") as f:
-        f.write(content)
-
-    # Return photo URL
-    photo_url = f"/uploads/gradings/{filename}"
+    # Upload via storage service (local or S3/R2)
+    storage = get_storage()
+    photo_url = storage.upload("gradings", filename, content)
 
     return {
         "photo_url": photo_url,

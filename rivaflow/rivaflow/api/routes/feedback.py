@@ -2,8 +2,10 @@
 
 import logging
 
-from fastapi import APIRouter, Depends, Path, Query, status
+from fastapi import APIRouter, Depends, Path, Query, Request, status
 from pydantic import BaseModel, Field
+from slowapi import Limiter
+from slowapi.util import get_remote_address
 
 from rivaflow.core.dependencies import get_current_user
 from rivaflow.core.exceptions import NotFoundError, ValidationError
@@ -13,6 +15,7 @@ from rivaflow.db.repositories.feedback_repo import FeedbackRepository
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/feedback", tags=["feedback"])
+limiter = Limiter(key_func=get_remote_address)
 
 
 class FeedbackCreate(BaseModel):
@@ -34,7 +37,9 @@ class FeedbackUpdateStatus(BaseModel):
 
 
 @router.post("/", status_code=status.HTTP_201_CREATED)
-async def submit_feedback(
+@limiter.limit("30/minute")
+def submit_feedback(
+    request: Request,
     feedback: FeedbackCreate,
     current_user: dict = Depends(get_current_user),
 ):
@@ -96,7 +101,9 @@ async def submit_feedback(
 
 
 @router.get("/my")
-async def get_my_feedback(
+@limiter.limit("30/minute")
+def get_my_feedback(
+    request: Request,
     limit: int = Query(50, ge=1, le=100),
     current_user: dict = Depends(get_current_user),
 ):
@@ -116,7 +123,9 @@ async def get_my_feedback(
 
 
 @router.get("/{feedback_id}")
-async def get_feedback(
+@limiter.limit("30/minute")
+def get_feedback(
+    request: Request,
     feedback_id: int = Path(..., gt=0),
     current_user: dict = Depends(get_current_user),
 ):

@@ -2,8 +2,10 @@
 
 import logging
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, Query, Request
 from pydantic import BaseModel
+from slowapi import Limiter
+from slowapi.util import get_remote_address
 
 from rivaflow.core.dependencies import get_current_user
 from rivaflow.core.exceptions import NotFoundError, ValidationError
@@ -13,6 +15,7 @@ from rivaflow.core.validation import validate_video_url
 logger = logging.getLogger(__name__)
 
 router = APIRouter()
+limiter = Limiter(key_func=get_remote_address)
 service = GlossaryService()
 
 
@@ -38,7 +41,9 @@ class CustomVideoCreate(BaseModel):
 
 
 @router.get("/")
-async def list_movements(
+@limiter.limit("120/minute")
+def list_movements(
+    request: Request,
     category: str | None = Query(None, description="Filter by category"),
     search: str | None = Query(
         None, min_length=2, description="Search in name, description, aliases"
@@ -66,14 +71,17 @@ async def list_movements(
 
 
 @router.get("/categories")
-async def get_categories(current_user: dict = Depends(get_current_user)):
+@limiter.limit("120/minute")
+def get_categories(request: Request, current_user: dict = Depends(get_current_user)):
     """Get list of all movement categories."""
     categories = service.get_categories(user_id=current_user["id"])
     return {"categories": categories}
 
 
 @router.get("/{movement_id}")
-async def get_movement(
+@limiter.limit("120/minute")
+def get_movement(
+    request: Request,
     movement_id: int,
     include_videos: bool = Query(True, description="Include custom video links"),
     current_user: dict = Depends(get_current_user),
@@ -90,8 +98,11 @@ async def get_movement(
 
 
 @router.post("/")
-async def create_custom_movement(
-    movement: MovementCreate, current_user: dict = Depends(get_current_user)
+@limiter.limit("120/minute")
+def create_custom_movement(
+    request: Request,
+    movement: MovementCreate,
+    current_user: dict = Depends(get_current_user),
 ):
     """Create a custom user-added movement."""
     created = service.create_custom_movement(
@@ -109,8 +120,9 @@ async def create_custom_movement(
 
 
 @router.delete("/{movement_id}")
-async def delete_custom_movement(
-    movement_id: int, current_user: dict = Depends(get_current_user)
+@limiter.limit("120/minute")
+def delete_custom_movement(
+    request: Request, movement_id: int, current_user: dict = Depends(get_current_user)
 ):
     """Delete a custom movement. Can only delete custom movements."""
     deleted = service.delete_custom_movement(
@@ -122,7 +134,9 @@ async def delete_custom_movement(
 
 
 @router.post("/{movement_id}/videos")
-async def add_custom_video(
+@limiter.limit("120/minute")
+def add_custom_video(
+    request: Request,
     movement_id: int,
     video: CustomVideoCreate,
     current_user: dict = Depends(get_current_user),
@@ -145,8 +159,12 @@ async def add_custom_video(
 
 
 @router.delete("/{movement_id}/videos/{video_id}")
-async def delete_custom_video(
-    movement_id: int, video_id: int, current_user: dict = Depends(get_current_user)
+@limiter.limit("120/minute")
+def delete_custom_video(
+    request: Request,
+    movement_id: int,
+    video_id: int,
+    current_user: dict = Depends(get_current_user),
 ):
     """Delete a custom video link."""
     deleted = service.delete_custom_video(user_id=current_user["id"], video_id=video_id)

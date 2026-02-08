@@ -87,7 +87,7 @@ def get_client_ip(request: Request) -> str:
 # Gym management endpoints
 @router.get("/gyms")
 @limiter.limit("60/minute")
-async def list_gyms(
+def list_gyms(
     request: Request,
     verified_only: bool = False,
     current_user: dict = Depends(require_admin),
@@ -103,9 +103,7 @@ async def list_gyms(
 
 @router.get("/gyms/pending")
 @limiter.limit("60/minute")
-async def get_pending_gyms(
-    request: Request, current_user: dict = Depends(require_admin)
-):
+def get_pending_gyms(request: Request, current_user: dict = Depends(require_admin)):
     """Get all pending (unverified) gyms."""
     gym_service = GymService()
     pending = gym_service.get_pending_gyms()
@@ -117,7 +115,7 @@ async def get_pending_gyms(
 
 @router.get("/gyms/search")
 @limiter.limit("60/minute")
-async def search_gyms(
+def search_gyms(
     request: Request,
     q: str = "",
     verified_only: bool = False,
@@ -137,7 +135,7 @@ async def search_gyms(
 
 @router.post("/gyms")
 @limiter.limit("30/minute")
-async def create_gym(
+def create_gym(
     request: Request,
     gym_data: GymCreateRequest = Body(...),
     current_user: dict = Depends(require_admin),
@@ -175,7 +173,7 @@ async def create_gym(
 
 @router.put("/gyms/{gym_id}")
 @limiter.limit("30/minute")
-async def update_gym(
+def update_gym(
     request: Request,
     gym_id: int = Path(..., gt=0),
     gym_data: GymUpdateRequest = Body(...),
@@ -207,7 +205,7 @@ async def update_gym(
 
 @router.delete("/gyms/{gym_id}")
 @limiter.limit("10/minute")
-async def delete_gym(
+def delete_gym(
     request: Request,
     gym_id: int = Path(..., gt=0),
     current_user: dict = Depends(require_admin),
@@ -237,7 +235,7 @@ async def delete_gym(
 
 @router.post("/gyms/{gym_id}/verify")
 @limiter.limit("30/minute")
-async def verify_gym(
+def verify_gym(
     request: Request,
     gym_id: int = Path(..., gt=0),
     current_user: dict = Depends(require_admin),
@@ -284,7 +282,7 @@ async def verify_gym(
 
 @router.post("/gyms/{gym_id}/reject")
 @limiter.limit("30/minute")
-async def reject_gym(
+def reject_gym(
     request: Request,
     gym_id: int = Path(..., gt=0),
     reason: str | None = Body(None, embed=True),
@@ -336,7 +334,7 @@ async def reject_gym(
 
 @router.post("/gyms/merge")
 @limiter.limit("10/minute")
-async def merge_gyms(
+def merge_gyms(
     request: Request,
     merge_data: GymMergeRequest = Body(...),
     current_user: dict = Depends(require_admin),
@@ -387,9 +385,7 @@ async def merge_gyms(
 # Dashboard endpoints
 @router.get("/dashboard/stats")
 @limiter.limit("60/minute")
-async def get_dashboard_stats(
-    request: Request, current_user: dict = Depends(require_admin)
-):
+def get_dashboard_stats(request: Request, current_user: dict = Depends(require_admin)):
     """Get platform statistics for admin dashboard."""
     from datetime import datetime, timedelta
 
@@ -479,7 +475,7 @@ class UserUpdateRequest(BaseModel):
 
 @router.get("/users")
 @limiter.limit("60/minute")
-async def list_users(
+def list_users(
     request: Request,
     search: str | None = None,
     is_active: bool | None = None,
@@ -548,7 +544,7 @@ async def list_users(
 
 @router.get("/users/{user_id}")
 @limiter.limit("60/minute")
-async def get_user_details(
+def get_user_details(
     request: Request,
     user_id: int = Path(..., gt=0),
     current_user: dict = Depends(require_admin),
@@ -615,7 +611,7 @@ async def get_user_details(
 
 @router.put("/users/{user_id}")
 @limiter.limit("30/minute")
-async def update_user(
+def update_user(
     request: Request,
     user_id: int = Path(..., gt=0),
     user_data: UserUpdateRequest = Body(...),
@@ -682,7 +678,7 @@ async def update_user(
 
 @router.delete("/users/{user_id}")
 @limiter.limit("10/minute")
-async def delete_user(
+def delete_user(
     request: Request,
     user_id: int = Path(..., gt=0),
     current_user: dict = Depends(require_admin),
@@ -720,7 +716,7 @@ async def delete_user(
 # Content moderation endpoints
 @router.get("/comments")
 @limiter.limit("60/minute")
-async def list_all_comments(
+def list_all_comments(
     request: Request,
     limit: int = 100,
     offset: int = 0,
@@ -765,7 +761,7 @@ async def list_all_comments(
 
 @router.delete("/comments/{comment_id}")
 @limiter.limit("10/minute")
-async def delete_comment(
+def delete_comment(
     request: Request,
     comment_id: int = Path(..., gt=0),
     current_user: dict = Depends(require_admin),
@@ -793,7 +789,7 @@ async def delete_comment(
 # Technique management endpoints
 @router.get("/techniques")
 @limiter.limit("60/minute")
-async def list_techniques(
+def list_techniques(
     request: Request,
     search: str | None = None,
     category: str | None = None,
@@ -837,7 +833,7 @@ async def list_techniques(
 
 @router.delete("/techniques/{technique_id}")
 @limiter.limit("10/minute")
-async def delete_technique(
+def delete_technique(
     request: Request,
     technique_id: int = Path(..., gt=0),
     current_user: dict = Depends(require_admin),
@@ -884,7 +880,7 @@ async def delete_technique(
 # Audit log endpoints
 @router.get("/audit-logs")
 @limiter.limit("60/minute")
-async def get_audit_logs(
+def get_audit_logs(
     request: Request,
     limit: int = 100,
     offset: int = 0,
@@ -928,7 +924,7 @@ class FeedbackUpdateStatusRequest(BaseModel):
 
 
 @router.get("/feedback")
-async def get_all_feedback(
+def get_all_feedback(
     status: str | None = Query(None, pattern="^(new|reviewing|resolved|closed)$"),
     category: str | None = Query(
         None, pattern="^(bug|feature|improvement|question|other)$"
@@ -964,7 +960,7 @@ async def get_all_feedback(
 
 
 @router.put("/feedback/{feedback_id}/status")
-async def update_feedback_status(
+def update_feedback_status(
     feedback_id: int = Path(..., gt=0),
     request: FeedbackUpdateStatusRequest = Body(...),
     current_user: dict = Depends(get_admin_user),
@@ -1008,7 +1004,7 @@ async def update_feedback_status(
 
 
 @router.get("/feedback/stats")
-async def get_feedback_stats(current_user: dict = Depends(get_admin_user)):
+def get_feedback_stats(current_user: dict = Depends(get_admin_user)):
     """
     Get feedback statistics (admin endpoint).
 

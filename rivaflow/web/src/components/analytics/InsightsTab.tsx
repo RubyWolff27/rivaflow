@@ -99,7 +99,7 @@ export default function InsightsTab({ dateRange }: InsightsTabProps) {
           title="No Insights Available"
           description="Log more training sessions with readiness check-ins, techniques, and rolls to unlock deep insights."
           actionLabel="Log Session"
-          actionPath="/log-session"
+          actionPath="/log"
         />
       </Card>
     );

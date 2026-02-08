@@ -261,6 +261,25 @@ class Settings:
         return upload_dir
 
     # ==============================================================================
+    # S3 / CLOUDFLARE R2 STORAGE
+    # ==============================================================================
+
+    @property
+    def S3_BUCKET_NAME(self) -> str | None:
+        """S3-compatible bucket name. If unset, local filesystem is used."""
+        return os.getenv("S3_BUCKET_NAME")
+
+    @property
+    def S3_PUBLIC_URL(self) -> str | None:
+        """Public URL prefix for S3 objects (e.g. R2 custom domain)."""
+        return os.getenv("S3_PUBLIC_URL")
+
+    @property
+    def STORAGE_BACKEND(self) -> str:
+        """Active storage backend: 's3' or 'local'."""
+        return "s3" if self.S3_BUCKET_NAME else "local"
+
+    # ==============================================================================
     # LOGGING
     # ==============================================================================
 

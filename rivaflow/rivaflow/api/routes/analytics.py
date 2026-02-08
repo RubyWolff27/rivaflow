@@ -4,7 +4,9 @@ import logging
 import traceback
 from datetime import date
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
+from slowapi import Limiter
+from slowapi.util import get_remote_address
 
 from rivaflow.core.dependencies import get_current_user
 from rivaflow.core.exceptions import NotFoundError, RivaFlowException
@@ -15,6 +17,7 @@ from rivaflow.core.utils.cache import cached
 logger = logging.getLogger(__name__)
 
 router = APIRouter()
+limiter = Limiter(key_func=get_remote_address)
 service = AnalyticsService()
 fight_dynamics_service = FightDynamicsService()
 
@@ -68,7 +71,9 @@ def _get_technique_analytics_cached(
 
 
 @router.get("/performance-overview")
-async def get_performance_overview(
+@limiter.limit("60/minute")
+def get_performance_overview(
+    request: Request,
     start_date: date | None = Query(None),
     end_date: date | None = Query(None),
     types: list[str] | None = Query(
@@ -106,7 +111,9 @@ async def get_performance_overview(
 
 
 @router.get("/partners/stats")
-async def get_partner_analytics(
+@limiter.limit("60/minute")
+def get_partner_analytics(
+    request: Request,
     start_date: date | None = Query(None),
     end_date: date | None = Query(None),
     types: list[str] | None = Query(
@@ -133,7 +140,9 @@ async def get_partner_analytics(
 
 
 @router.get("/partners/head-to-head")
-async def get_head_to_head(
+@limiter.limit("60/minute")
+def get_head_to_head(
+    request: Request,
     partner1_id: int = Query(...),
     partner2_id: int = Query(...),
     current_user: dict = Depends(get_current_user),
@@ -151,7 +160,9 @@ async def get_head_to_head(
 
 
 @router.get("/readiness/trends")
-async def get_readiness_trends(
+@limiter.limit("60/minute")
+def get_readiness_trends(
+    request: Request,
     start_date: date | None = Query(None),
     end_date: date | None = Query(None),
     types: list[str] | None = Query(
@@ -169,7 +180,9 @@ async def get_readiness_trends(
 
 
 @router.get("/whoop/analytics")
-async def get_whoop_analytics(
+@limiter.limit("60/minute")
+def get_whoop_analytics(
+    request: Request,
     start_date: date | None = Query(None),
     end_date: date | None = Query(None),
     types: list[str] | None = Query(
@@ -187,7 +200,9 @@ async def get_whoop_analytics(
 
 
 @router.get("/techniques/breakdown")
-async def get_technique_analytics(
+@limiter.limit("60/minute")
+def get_technique_analytics(
+    request: Request,
     start_date: date | None = Query(None),
     end_date: date | None = Query(None),
     types: list[str] | None = Query(
@@ -214,7 +229,9 @@ async def get_technique_analytics(
 
 
 @router.get("/consistency/metrics")
-async def get_consistency_analytics(
+@limiter.limit("60/minute")
+def get_consistency_analytics(
+    request: Request,
     start_date: date | None = Query(None),
     end_date: date | None = Query(None),
     types: list[str] | None = Query(
@@ -243,7 +260,8 @@ async def get_consistency_analytics(
 
 
 @router.get("/milestones")
-async def get_milestones(current_user: dict = Depends(get_current_user)):
+@limiter.limit("60/minute")
+def get_milestones(request: Request, current_user: dict = Depends(get_current_user)):
     """Get progression and milestone data."""
     try:
         return service.get_milestones(user_id=current_user["id"])
@@ -258,7 +276,9 @@ async def get_milestones(current_user: dict = Depends(get_current_user)):
 
 
 @router.get("/instructors/insights")
-async def get_instructor_analytics(
+@limiter.limit("60/minute")
+def get_instructor_analytics(
+    request: Request,
     start_date: date | None = Query(None),
     end_date: date | None = Query(None),
     types: list[str] | None = Query(
@@ -367,7 +387,9 @@ def _get_partner_belt_distribution_cached(user_id: int):
 
 
 @router.get("/duration/trends")
-async def get_duration_analytics(
+@limiter.limit("60/minute")
+def get_duration_analytics(
+    request: Request,
     start_date: date | None = Query(None),
     end_date: date | None = Query(None),
     types: list[str] | None = Query(
@@ -394,7 +416,9 @@ async def get_duration_analytics(
 
 
 @router.get("/time-of-day/patterns")
-async def get_time_of_day_patterns(
+@limiter.limit("60/minute")
+def get_time_of_day_patterns(
+    request: Request,
     start_date: date | None = Query(None),
     end_date: date | None = Query(None),
     types: list[str] | None = Query(
@@ -421,7 +445,9 @@ async def get_time_of_day_patterns(
 
 
 @router.get("/gyms/comparison")
-async def get_gym_comparison(
+@limiter.limit("60/minute")
+def get_gym_comparison(
+    request: Request,
     start_date: date | None = Query(None),
     end_date: date | None = Query(None),
     types: list[str] | None = Query(
@@ -448,7 +474,9 @@ async def get_gym_comparison(
 
 
 @router.get("/class-types/effectiveness")
-async def get_class_type_effectiveness(
+@limiter.limit("60/minute")
+def get_class_type_effectiveness(
+    request: Request,
     start_date: date | None = Query(None),
     end_date: date | None = Query(None),
     current_user: dict = Depends(get_current_user),
@@ -473,7 +501,9 @@ async def get_class_type_effectiveness(
 
 
 @router.get("/weight/trend")
-async def get_weight_trend(
+@limiter.limit("60/minute")
+def get_weight_trend(
+    request: Request,
     start_date: date | None = Query(None),
     end_date: date | None = Query(None),
     current_user: dict = Depends(get_current_user),
@@ -496,7 +526,9 @@ async def get_weight_trend(
 
 
 @router.get("/training-calendar")
-async def get_training_calendar(
+@limiter.limit("60/minute")
+def get_training_calendar(
+    request: Request,
     start_date: date | None = Query(None),
     end_date: date | None = Query(None),
     types: list[str] | None = Query(
@@ -523,7 +555,9 @@ async def get_training_calendar(
 
 
 @router.get("/partners/belt-distribution")
-async def get_partner_belt_distribution(
+@limiter.limit("60/minute")
+def get_partner_belt_distribution(
+    request: Request,
     current_user: dict = Depends(get_current_user),
 ):
     """Get partner belt rank distribution. Cached for 10 minutes."""
@@ -615,7 +649,9 @@ def _get_recovery_insights_cached(user_id: int, days: int = 90):
 
 
 @router.get("/insights/summary")
-async def get_insights_summary(
+@limiter.limit("60/minute")
+def get_insights_summary(
+    request: Request,
     current_user: dict = Depends(get_current_user),
 ):
     """Get insights dashboard summary. Cached for 5 minutes."""
@@ -632,7 +668,9 @@ async def get_insights_summary(
 
 
 @router.get("/insights/readiness-correlation")
-async def get_readiness_correlation(
+@limiter.limit("60/minute")
+def get_readiness_correlation(
+    request: Request,
     start_date: date | None = Query(None),
     end_date: date | None = Query(None),
     current_user: dict = Depends(get_current_user),
@@ -657,7 +695,9 @@ async def get_readiness_correlation(
 
 
 @router.get("/insights/training-load")
-async def get_training_load(
+@limiter.limit("60/minute")
+def get_training_load(
+    request: Request,
     days: int = Query(default=90, ge=7, le=365),
     current_user: dict = Depends(get_current_user),
 ):
@@ -675,7 +715,9 @@ async def get_training_load(
 
 
 @router.get("/insights/technique-effectiveness")
-async def get_technique_effectiveness_insights(
+@limiter.limit("60/minute")
+def get_technique_effectiveness_insights(
+    request: Request,
     start_date: date | None = Query(None),
     end_date: date | None = Query(None),
     current_user: dict = Depends(get_current_user),
@@ -700,7 +742,9 @@ async def get_technique_effectiveness_insights(
 
 
 @router.get("/insights/partner-progression/{partner_id}")
-async def get_partner_progression(
+@limiter.limit("60/minute")
+def get_partner_progression(
+    request: Request,
     partner_id: int,
     current_user: dict = Depends(get_current_user),
 ):
@@ -720,7 +764,9 @@ async def get_partner_progression(
 
 
 @router.get("/insights/session-quality")
-async def get_session_quality(
+@limiter.limit("60/minute")
+def get_session_quality(
+    request: Request,
     start_date: date | None = Query(None),
     end_date: date | None = Query(None),
     current_user: dict = Depends(get_current_user),
@@ -743,7 +789,9 @@ async def get_session_quality(
 
 
 @router.get("/insights/overtraining-risk")
-async def get_overtraining_risk(
+@limiter.limit("60/minute")
+def get_overtraining_risk(
+    request: Request,
     current_user: dict = Depends(get_current_user),
 ):
     """Get overtraining risk assessment. Cached for 5 minutes."""
@@ -760,7 +808,9 @@ async def get_overtraining_risk(
 
 
 @router.get("/insights/recovery")
-async def get_recovery_insights(
+@limiter.limit("60/minute")
+def get_recovery_insights(
+    request: Request,
     days: int = Query(default=90, ge=7, le=365),
     current_user: dict = Depends(get_current_user),
 ):
@@ -778,7 +828,9 @@ async def get_recovery_insights(
 
 
 @router.get("/fight-dynamics/heatmap")
-async def get_fight_dynamics_heatmap(
+@limiter.limit("60/minute")
+def get_fight_dynamics_heatmap(
+    request: Request,
     view: str = Query(
         default="weekly",
         pattern="^(weekly|monthly)$",
@@ -814,7 +866,9 @@ async def get_fight_dynamics_heatmap(
 
 
 @router.get("/fight-dynamics/insights")
-async def get_fight_dynamics_insights(
+@limiter.limit("60/minute")
+def get_fight_dynamics_insights(
+    request: Request,
     current_user: dict = Depends(get_current_user),
 ):
     """Get auto-generated fight dynamics insights.

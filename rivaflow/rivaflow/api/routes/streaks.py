@@ -1,15 +1,19 @@
 """API routes for streak tracking."""
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Request
+from slowapi import Limiter
+from slowapi.util import get_remote_address
 
 from rivaflow.core.dependencies import get_current_user
 from rivaflow.core.services.streak_service import StreakService
 
 router = APIRouter(prefix="/streaks", tags=["streaks"])
+limiter = Limiter(key_func=get_remote_address)
 
 
 @router.get("/status")
-def get_streak_status(current_user: dict = Depends(get_current_user)):
+@limiter.limit("120/minute")
+def get_streak_status(request: Request, current_user: dict = Depends(get_current_user)):
     """Get all streak status (checkin, training, readiness)."""
     service = StreakService()
     status = service.get_streak_status(user_id=current_user["id"])
@@ -23,7 +27,10 @@ def get_streak_status(current_user: dict = Depends(get_current_user)):
 
 
 @router.get("/{streak_type}")
-def get_streak(streak_type: str, current_user: dict = Depends(get_current_user)):
+@limiter.limit("120/minute")
+def get_streak(
+    request: Request, streak_type: str, current_user: dict = Depends(get_current_user)
+):
     """Get specific streak details."""
     if streak_type not in ["checkin", "training", "readiness"]:
         return {"error": "Invalid streak type"}, 400

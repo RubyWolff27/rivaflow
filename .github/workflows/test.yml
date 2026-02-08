@@ -93,11 +93,11 @@ jobs:
 
     - name: Run TypeScript type check
       working-directory: ./web
-      run: npm run type-check || echo "Type check not configured yet"
+      run: npm run type-check
 
     - name: Run frontend tests
       working-directory: ./web
-      run: npm test || echo "No frontend tests configured yet"
+      run: npm test
 
     - name: Verify web/ directories are in sync
       run: |
@@ -136,4 +136,4 @@ jobs:
       run: isort --check-only --profile black rivaflow/ tests/
 
     - name: Run mypy type checking
-      run: mypy rivaflow/ --ignore-missing-imports || echo "Type hints need improvement"
+      run: mypy rivaflow/ --ignore-missing-imports

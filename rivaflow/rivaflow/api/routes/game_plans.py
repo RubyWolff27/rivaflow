@@ -2,12 +2,15 @@
 
 import logging
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 from pydantic import BaseModel, Field
+from slowapi import Limiter
+from slowapi.util import get_remote_address
 
 from rivaflow.core.dependencies import get_current_user
 
 router = APIRouter(prefix="/game-plans", tags=["game-plans"])
+limiter = Limiter(key_func=get_remote_address)
 logger = logging.getLogger(__name__)
 
 
@@ -63,8 +66,10 @@ class SetFocusRequest(BaseModel):
 
 
 @router.post("/generate")
-async def generate_plan(
-    request: GeneratePlanRequest,
+@limiter.limit("20/minute")
+def generate_plan(
+    request: Request,
+    body: GeneratePlanRequest,
     current_user: dict = Depends(get_current_user),
 ):
     """Generate a game plan from a template."""
@@ -76,9 +81,9 @@ async def generate_plan(
     try:
         plan = generate_plan_from_template(
             user_id=user_id,
-            belt_level=request.belt_level,
-            archetype=request.archetype,
-            style=request.style,
+            belt_level=body.belt_level,
+            archetype=body.archetype,
+            style=body.style,
         )
     except FileNotFoundError:
         raise HTTPException(
@@ -90,7 +95,9 @@ async def generate_plan(
 
 
 @router.get("/")
-async def get_current_plan(
+@limiter.limit("60/minute")
+def get_current_plan(
+    request: Request,
     current_user: dict = Depends(get_current_user),
 ):
     """Get user's active game plan with full tree."""
@@ -106,7 +113,9 @@ async def get_current_plan(
 
 
 @router.get("/{plan_id}")
-async def get_plan(
+@limiter.limit("60/minute")
+def get_plan(
+    request: Request,
     plan_id: int,
     current_user: dict = Depends(get_current_user),
 ):
@@ -126,9 +135,11 @@ async def get_plan(
 
 
 @router.patch("/{plan_id}")
-async def update_plan(
+@limiter.limit("30/minute")
+def update_plan(
+    request: Request,
     plan_id: int,
-    request: UpdatePlanRequest,
+    body: UpdatePlanRequest,
     current_user: dict = Depends(get_current_user),
 ):
     """Update plan metadata."""
@@ -137,7 +148,7 @@ async def update_plan(
     )
 
     user_id = current_user["id"]
-    updates = request.model_dump(exclude_none=True)
+    updates = body.model_dump(exclude_none=True)
     if not updates:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -154,7 +165,9 @@ async def update_plan(
 
 
 @router.delete("/{plan_id}")
-async def delete_plan(
+@limiter.limit("30/minute")
+def delete_plan(
+    request: Request,
     plan_id: int,
     current_user: dict = Depends(get_current_user),
 ):
@@ -174,9 +187,11 @@ async def delete_plan(
 
 
 @router.post("/{plan_id}/nodes")
-async def add_node(
+@limiter.limit("20/minute")
+def add_node(
+    request: Request,
     plan_id: int,
-    request: AddNodeRequest,
+    body: AddNodeRequest,
     current_user: dict = Depends(get_current_user),
 ):
     """Add a node to a game plan."""
@@ -186,10 +201,10 @@ async def add_node(
     node = svc_add_node(
         plan_id=plan_id,
         user_id=user_id,
-        name=request.name,
-        node_type=request.node_type,
-        parent_id=request.parent_id,
-        glossary_id=request.glossary_id,
+        name=body.name,
+        node_type=body.node_type,
+        parent_id=body.parent_id,
+        glossary_id=body.glossary_id,
     )
     if not node:
         raise HTTPException(
@@ -200,17 +215,19 @@ async def add_node(
 
 
 @router.patch("/{plan_id}/nodes/{node_id}")
-async def update_node(
+@limiter.limit("30/minute")
+def update_node(
+    request: Request,
     plan_id: int,
     node_id: int,
-    request: UpdateNodeRequest,
+    body: UpdateNodeRequest,
     current_user: dict = Depends(get_current_user),
 ):
     """Update a node."""
     from rivaflow.core.services.game_plan_service import update_node as svc_update_node
 
     user_id = current_user["id"]
-    updates = request.model_dump(exclude_none=True)
+    updates = body.model_dump(exclude_none=True)
     if not updates:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -227,7 +244,9 @@ async def update_node(
 
 
 @router.delete("/{plan_id}/nodes/{node_id}")
-async def delete_node(
+@limiter.limit("30/minute")
+def delete_node(
+    request: Request,
     plan_id: int,
     node_id: int,
     current_user: dict = Depends(get_current_user),
@@ -246,9 +265,11 @@ async def delete_node(
 
 
 @router.post("/{plan_id}/edges")
-async def add_edge(
+@limiter.limit("20/minute")
+def add_edge(
+    request: Request,
     plan_id: int,
-    request: AddEdgeRequest,
+    body: AddEdgeRequest,
     current_user: dict = Depends(get_current_user),
 ):
     """Add an edge between nodes."""
@@ -258,10 +279,10 @@ async def add_edge(
     edge_id = svc_add_edge(
         plan_id=plan_id,
         user_id=user_id,
-        from_node_id=request.from_node_id,
-        to_node_id=request.to_node_id,
-        edge_type=request.edge_type,
-        label=request.label,
+        from_node_id=body.from_node_id,
+        to_node_id=body.to_node_id,
+        edge_type=body.edge_type,
+        label=body.label,
     )
     if edge_id is None:
         raise HTTPException(
@@ -272,7 +293,9 @@ async def add_edge(
 
 
 @router.delete("/{plan_id}/edges/{edge_id}")
-async def delete_edge(
+@limiter.limit("30/minute")
+def delete_edge(
+    request: Request,
     plan_id: int,
     edge_id: int,
     current_user: dict = Depends(get_current_user),
@@ -291,9 +314,11 @@ async def delete_edge(
 
 
 @router.post("/{plan_id}/focus")
-async def set_focus(
+@limiter.limit("20/minute")
+def set_focus(
+    request: Request,
     plan_id: int,
-    request: SetFocusRequest,
+    body: SetFocusRequest,
     current_user: dict = Depends(get_current_user),
 ):
     """Set focus nodes (max 5)."""
@@ -302,5 +327,5 @@ async def set_focus(
     )
 
     user_id = current_user["id"]
-    focus = set_focus_nodes(plan_id, user_id, request.node_ids)
+    focus = set_focus_nodes(plan_id, user_id, body.node_ids)
     return {"focus_nodes": focus}

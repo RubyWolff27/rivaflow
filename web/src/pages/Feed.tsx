@@ -75,7 +75,7 @@ const FeedItemComponent = memo(function FeedItemComponent({
             <div className="flex items-start justify-between gap-2 mb-1">
               {item.owner_user_id && currentUserId && item.owner_user_id !== currentUserId ? (
                 <button
-                  onClick={() => navigate(`/user/${item.owner_user_id}`)}
+                  onClick={() => navigate(`/users/${item.owner_user_id}`)}
                   className="text-sm font-medium text-[var(--text)] hover:text-[var(--accent)] transition-colors text-left"
                 >
                   {item.summary}

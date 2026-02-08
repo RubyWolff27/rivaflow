@@ -2,14 +2,17 @@
 
 from datetime import date, timedelta
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Request
 from pydantic import BaseModel
+from slowapi import Limiter
+from slowapi.util import get_remote_address
 
 from rivaflow.core.dependencies import get_current_user
 from rivaflow.core.exceptions import NotFoundError
 from rivaflow.db.repositories.checkin_repo import CheckinRepository
 
 router = APIRouter(prefix="/checkins", tags=["checkins"])
+limiter = Limiter(key_func=get_remote_address)
 
 
 class TomorrowIntentionUpdate(BaseModel):
@@ -19,7 +22,8 @@ class TomorrowIntentionUpdate(BaseModel):
 
 
 @router.get("/today")
-def get_today_checkin(current_user: dict = Depends(get_current_user)):
+@limiter.limit("60/minute")
+def get_today_checkin(request: Request, current_user: dict = Depends(get_current_user)):
     """Get today's check-in status."""
     repo = CheckinRepository()
     today = date.today()
@@ -32,7 +36,8 @@ def get_today_checkin(current_user: dict = Depends(get_current_user)):
 
 
 @router.get("/week")
-def get_week_checkins(current_user: dict = Depends(get_current_user)):
+@limiter.limit("60/minute")
+def get_week_checkins(request: Request, current_user: dict = Depends(get_current_user)):
     """Get this week's check-ins."""
     repo = CheckinRepository()
     today = date.today()
@@ -54,8 +59,11 @@ def get_week_checkins(current_user: dict = Depends(get_current_user)):
 
 
 @router.put("/today/tomorrow")
+@limiter.limit("60/minute")
 def update_tomorrow_intention(
-    data: TomorrowIntentionUpdate, current_user: dict = Depends(get_current_user)
+    request: Request,
+    data: TomorrowIntentionUpdate,
+    current_user: dict = Depends(get_current_user),
 ):
     """Update tomorrow's intention for today's check-in."""
     repo = CheckinRepository()

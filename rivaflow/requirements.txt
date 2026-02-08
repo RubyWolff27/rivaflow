@@ -42,6 +42,9 @@ sendgrid==6.12.5
 # File type detection (Python 3.13+ compatibility - replaces deprecated imghdr)
 filetype==1.2.0
 
+# Cloud storage (S3 / Cloudflare R2)
+boto3==1.36.14
+
 # AI/ML dependencies (Grapple AI Coach)
 # TEMPORARILY DISABLED: Large CUDA dependencies cause deployment failures
 # Re-enable when migrating AI features to separate microservice or using CPU-only torch
