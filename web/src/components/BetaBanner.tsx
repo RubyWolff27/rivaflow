@@ -19,7 +19,7 @@ export default function BetaBanner() {
         }}
       >
         <span className="font-medium">
-          Beta v0.2.0 — Testing in progress
+          Beta v0.4.0 — Testing in progress
         </span>
         <button
           onClick={() => setFeedbackOpen(true)}

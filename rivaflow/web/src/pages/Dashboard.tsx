@@ -80,15 +80,15 @@ export default function Dashboard() {
   };
 
   const getReadinessColor = (score: number): string => {
-    if (score >= 80) return '#10B981'; // Green
-    if (score >= 60) return '#F59E0B'; // Yellow
+    if (score >= 16) return '#10B981'; // Green
+    if (score >= 12) return '#F59E0B'; // Yellow
     return '#EF4444'; // Red
   };
 
   const getReadinessLabel = (score: number): string => {
-    if (score >= 80) return 'Excellent';
-    if (score >= 60) return 'Good';
-    if (score >= 40) return 'Fair';
+    if (score >= 16) return 'Excellent';
+    if (score >= 12) return 'Good';
+    if (score >= 8) return 'Fair';
     return 'Low';
   };
 
@@ -148,7 +148,7 @@ export default function Dashboard() {
                   <span className="text-4xl font-bold" style={{ color: getReadinessColor(readinessScore) }}>
                     {readinessScore}
                   </span>
-                  <span className="text-sm" style={{ color: 'var(--text)' }}>/ 100</span>
+                  <span className="text-sm" style={{ color: 'var(--text)' }}>/ 20</span>
                 </div>
               </div>
               <div className="flex items-center gap-2">
