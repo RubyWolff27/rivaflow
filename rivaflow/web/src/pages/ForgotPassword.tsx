@@ -32,7 +32,7 @@ export default function ForgotPassword() {
             <h2 className="mt-6 text-center text-3xl font-extrabold" style={{ color: 'var(--text)' }}>
               Check Your Email
             </h2>
-            <div className="mt-6 p-6 bg-green-50 border border-green-200 rounded-lg">
+            <div className="mt-6 p-6 rounded-lg" style={{ backgroundColor: 'var(--surface)', border: '1px solid var(--border)' }}>
               <p className="text-center text-sm" style={{ color: 'var(--text)' }}>
                 If an account exists with <strong>{email}</strong>, you will receive a password reset link shortly.
               </p>
