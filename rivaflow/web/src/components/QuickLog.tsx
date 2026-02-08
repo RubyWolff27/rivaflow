@@ -1,10 +1,11 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { X, Mic, MicOff } from 'lucide-react';
 import { sessionsApi, profileApi, restApi, friendsApi } from '../api/client';
 import { PrimaryButton, SecondaryButton, ClassTypeChips, IntensityChips } from './ui';
 import { useToast } from '../contexts/ToastContext';
 import { getLocalDateString } from '../utils/date';
 import { triggerInsightRefresh } from '../hooks/useInsightRefresh';
+import { useSpeechRecognition } from '../hooks/useSpeechRecognition';
 import type { Friend } from '../types';
 
 const TIME_OPTIONS = [
@@ -42,10 +43,10 @@ export default function QuickLog({ isOpen, onClose, onSuccess }: QuickLogProps) 
   const [selectedPartnerIds, setSelectedPartnerIds] = useState<Set<number>>(new Set());
 
   // Voice-to-text
-  const [isRecording, setIsRecording] = useState(false);
-  const recognitionRef = useRef<any>(null);
-  const hasSpeechApi = typeof window !== 'undefined' &&
-    ('SpeechRecognition' in window || 'webkitSpeechRecognition' in window);
+  const onTranscript = useCallback((transcript: string) => {
+    setNotes(prev => prev ? `${prev} ${transcript}` : transcript);
+  }, []);
+  const { isRecording, hasSpeechApi, toggleRecording } = useSpeechRecognition({ onTranscript });
 
   // Rest day fields
   const [restType, setRestType] = useState('active');
@@ -84,15 +85,6 @@ export default function QuickLog({ isOpen, onClose, onSuccess }: QuickLogProps) 
     return () => { cancelled = true; };
   }, [isOpen]);
 
-  // Cleanup speech recognition on unmount
-  useEffect(() => {
-    return () => {
-      if (recognitionRef.current) {
-        recognitionRef.current.abort();
-      }
-    };
-  }, []);
-
   const togglePartner = (id: number) => {
     setSelectedPartnerIds(prev => {
       const next = new Set(prev);
@@ -103,33 +95,6 @@ export default function QuickLog({ isOpen, onClose, onSuccess }: QuickLogProps) 
       }
       return next;
     });
-  };
-
-  const toggleRecording = () => {
-    if (isRecording && recognitionRef.current) {
-      recognitionRef.current.stop();
-      setIsRecording(false);
-      return;
-    }
-
-    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
-    if (!SpeechRecognition) return;
-
-    const recognition = new SpeechRecognition();
-    recognition.continuous = false;
-    recognition.interimResults = false;
-    recognition.lang = 'en-US';
-
-    recognition.onresult = (event: any) => {
-      const transcript = event.results[0][0].transcript;
-      setNotes(prev => prev ? `${prev} ${transcript}` : transcript);
-    };
-    recognition.onend = () => setIsRecording(false);
-    recognition.onerror = () => setIsRecording(false);
-
-    recognitionRef.current = recognition;
-    recognition.start();
-    setIsRecording(true);
   };
 
   const handleQuickLog = async () => {

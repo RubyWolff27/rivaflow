@@ -9,6 +9,7 @@ from rivaflow.db.repositories import (
     SessionRollRepository,
 )
 from rivaflow.db.repositories.checkin_repo import CheckinRepository
+from rivaflow.db.repositories.friend_repo import FriendRepository
 from rivaflow.db.repositories.glossary_repo import GlossaryRepository
 from rivaflow.db.repositories.session_technique_repo import SessionTechniqueRepository
 
@@ -100,6 +101,17 @@ class SessionService:
                     submissions_for=roll_data.get("submissions_for"),
                     submissions_against=roll_data.get("submissions_against"),
                     notes=roll_data.get("notes"),
+                )
+        elif partners and not session_rolls:
+            for i, partner_name in enumerate(partners, start=1):
+                friend = FriendRepository.get_by_name(user_id, partner_name)
+                partner_id = friend["id"] if friend else None
+                self.roll_repo.create(
+                    user_id=user_id,
+                    session_id=session_id,
+                    roll_number=i,
+                    partner_id=partner_id,
+                    partner_name=partner_name,
                 )
 
         # Create detailed technique records if provided

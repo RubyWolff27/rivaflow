@@ -3,11 +3,12 @@ import { getLocalDateString } from '../utils/date';
 import { useNavigate } from 'react-router-dom';
 import { sessionsApi, readinessApi, profileApi, friendsApi, glossaryApi, restApi } from '../api/client';
 import type { Friend, Movement, MediaUrl, Readiness } from '../types';
-import { CheckCircle, ArrowRight, ArrowLeft, Plus, X, ToggleLeft, ToggleRight, Search, Camera, ChevronDown, ChevronUp, Swords, Shield, Minus } from 'lucide-react';
+import { CheckCircle, ArrowRight, ArrowLeft, Plus, X, ToggleLeft, ToggleRight, Search, Camera, ChevronDown, ChevronUp, Swords, Shield, Minus, Mic, MicOff } from 'lucide-react';
 import GymSelector from '../components/GymSelector';
 import { ClassTypeChips, IntensityChips } from '../components/ui';
 import { useToast } from '../contexts/ToastContext';
 import { triggerInsightRefresh } from '../hooks/useInsightRefresh';
+import { useSpeechRecognition } from '../hooks/useSpeechRecognition';
 
 const SPARRING_TYPES = ['gi', 'no-gi', 'open-mat', 'competition'];
 
@@ -114,6 +115,15 @@ export default function LogSession() {
     rest_type: 'active',
     rest_note: '',
   });
+
+  // Voice-to-text for notes
+  const onTranscript = useCallback((transcript: string) => {
+    setSessionData(prev => ({
+      ...prev,
+      notes: prev.notes ? `${prev.notes} ${transcript}` : transcript,
+    }));
+  }, []);
+  const { isRecording, hasSpeechApi, toggleRecording } = useSpeechRecognition({ onTranscript });
 
   useEffect(() => {
     const controller = new AbortController();
@@ -1417,17 +1427,33 @@ export default function LogSession() {
               {!isSparringType ? 'Session Details' : 'Notes'}
               {!isSparringType && <span className="text-sm font-normal text-[var(--muted)] ml-2">(Workout details, exercises, distances, times, etc.)</span>}
             </label>
-            <textarea
-              className="input"
-              value={sessionData.notes}
-              onChange={(e) => setSessionData({ ...sessionData, notes: e.target.value })}
-              rows={!isSparringType ? 5 : 3}
-              placeholder={
-                !isSparringType
-                  ? "e.g., 5km run in 30 mins, Deadlifts 3x8 @ 100kg, Squats 3x10 @ 80kg, or Yoga flow focusing on hip mobility..."
-                  : "Any notes about today's training..."
-              }
-            />
+            <div className="relative">
+              <textarea
+                className="input"
+                value={sessionData.notes}
+                onChange={(e) => setSessionData({ ...sessionData, notes: e.target.value })}
+                rows={!isSparringType ? 5 : 3}
+                placeholder={
+                  !isSparringType
+                    ? "e.g., 5km run in 30 mins, Deadlifts 3x8 @ 100kg, Squats 3x10 @ 80kg, or Yoga flow focusing on hip mobility..."
+                    : "Any notes about today's training..."
+                }
+              />
+              {hasSpeechApi && (
+                <button
+                  type="button"
+                  onClick={toggleRecording}
+                  className="absolute bottom-2 right-2 p-1.5 rounded-lg transition-all"
+                  style={{
+                    backgroundColor: isRecording ? 'var(--error)' : 'var(--surfaceElev)',
+                    color: isRecording ? '#FFFFFF' : 'var(--muted)',
+                  }}
+                  aria-label={isRecording ? 'Stop recording' : 'Start voice input'}
+                >
+                  {isRecording ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
+                </button>
+              )}
+            </div>
           </div>
 
           {/* Photo Upload Info */}
