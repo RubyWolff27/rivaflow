@@ -38,7 +38,7 @@ RULES = [
     ),
     Rule(
         name="hotspot_active",
-        condition=lambda r, s: r and r.get("hotspot_note") is not None,
+        condition=lambda r, s: r and bool(r.get("hotspot_note")),
         recommendation="Protect {hotspot} — avoid positions that stress it",
         explanation="Active hotspot: {hotspot}",
         priority=2,
@@ -86,7 +86,7 @@ def format_explanation(explanation: str, readiness: dict, session_context: dict)
                 "energy": readiness["energy"],
                 "soreness": readiness["soreness"],
                 "score": readiness["composite_score"],
-                "hotspot": readiness.get("hotspot_note", ""),
+                "hotspot": readiness.get("hotspot_note") or "the affected area",
             }
         )
 

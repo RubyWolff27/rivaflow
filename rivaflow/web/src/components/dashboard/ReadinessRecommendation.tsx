@@ -12,6 +12,10 @@ interface TriggeredRule {
   priority: number;
 }
 
+/** Strip unresolved {placeholder} tokens from suggestion text. */
+const sanitizeSuggestion = (text: string) =>
+  text.replace(/\{[a-z_]+\}/gi, '').replace(/\s{2,}/g, ' ').trim();
+
 const RULE_LABELS: Record<string, string> = {
   high_stress_low_energy: 'Stress / Low Energy',
   high_soreness: 'High Soreness',
@@ -112,7 +116,7 @@ export default function ReadinessRecommendation() {
             </div>
             {suggestion?.suggestion ? (
               <p className="text-sm" style={{ color: 'var(--muted)' }}>
-                {suggestion.suggestion}
+                {sanitizeSuggestion(suggestion.suggestion)}
               </p>
             ) : (
               <p className="text-sm" style={{ color: 'var(--muted)' }}>
