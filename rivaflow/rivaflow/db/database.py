@@ -213,7 +213,9 @@ def _init_postgresql_db() -> None:
 
         # PostgreSQL migrations are handled by migrate.py
         # Skip _apply_migrations() to avoid conflicts with migrate.py
-        logger.info("PostgreSQL database initialized. Migrations will be handled by migrate.py")
+        logger.info(
+            "PostgreSQL database initialized. Migrations will be handled by migrate.py"
+        )
 
         # Reset sequences for tables with SERIAL primary keys
         try:
@@ -284,13 +286,17 @@ def _reset_postgresql_sequences(conn) -> None:
 
             tbl = sql.Identifier(table)
             cursor.execute(
-                sql.SQL("SELECT pg_get_serial_sequence({lit}, 'id')").format(lit=sql.Literal(table))
+                sql.SQL("SELECT pg_get_serial_sequence({lit}, 'id')").format(
+                    lit=sql.Literal(table)
+                )
             )
             row = cursor.fetchone()
             seq_name = row[0] if row else None
 
             if seq_name:
-                cursor.execute(sql.SQL("SELECT COALESCE(MAX(id), 0) FROM {tbl}").format(tbl=tbl))
+                cursor.execute(
+                    sql.SQL("SELECT COALESCE(MAX(id), 0) FROM {tbl}").format(tbl=tbl)
+                )
                 max_id = cursor.fetchone()[0]
                 cursor.execute(
                     "SELECT setval(%s, %s, false)",
@@ -319,7 +325,9 @@ def _convert_sqlite_to_postgresql(sql: str) -> str:
     )
 
     # Replace INSERT OR IGNORE with INSERT ... ON CONFLICT DO NOTHING
-    sql = re.sub(r"\bINSERT\s+OR\s+IGNORE\s+INTO\b", "INSERT INTO", sql, flags=re.IGNORECASE)
+    sql = re.sub(
+        r"\bINSERT\s+OR\s+IGNORE\s+INTO\b", "INSERT INTO", sql, flags=re.IGNORECASE
+    )
     # Add ON CONFLICT DO NOTHING at the end of INSERT statements that were INSERT OR IGNORE
     # This is a bit tricky - we need to add it before the semicolon or end of statement
     # For now, we'll handle simple cases: INSERT INTO table (...) VALUES (...)
@@ -377,8 +385,12 @@ def _convert_sqlite_to_postgresql(sql: str) -> str:
         sql,
         flags=re.IGNORECASE,
     )
-    sql = re.sub(r"\bBOOLEAN\s+DEFAULT\s+1\b", "BOOLEAN DEFAULT TRUE", sql, flags=re.IGNORECASE)
-    sql = re.sub(r"\bBOOLEAN\s+DEFAULT\s+0\b", "BOOLEAN DEFAULT FALSE", sql, flags=re.IGNORECASE)
+    sql = re.sub(
+        r"\bBOOLEAN\s+DEFAULT\s+1\b", "BOOLEAN DEFAULT TRUE", sql, flags=re.IGNORECASE
+    )
+    sql = re.sub(
+        r"\bBOOLEAN\s+DEFAULT\s+0\b", "BOOLEAN DEFAULT FALSE", sql, flags=re.IGNORECASE
+    )
 
     # Replace integer literals used as boolean values in SELECT/INSERT
     # Pattern: "1 as column_name" where column_name suggests boolean (is_*, has_*, etc)
@@ -499,7 +511,9 @@ def _apply_migrations(
                     original_sql = sql
                     sql = _convert_sqlite_to_postgresql(sql)
                     if "AUTOINCREMENT" in original_sql.upper():
-                        logger.debug(f"Converted SQLite syntax to PostgreSQL for {migration}")
+                        logger.debug(
+                            f"Converted SQLite syntax to PostgreSQL for {migration}"
+                        )
 
                     # Split on semicolons and execute separately
                     statements = [s.strip() for s in sql.split(";") if s.strip()]

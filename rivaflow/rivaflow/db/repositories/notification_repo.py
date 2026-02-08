@@ -67,7 +67,8 @@ class NotificationRepository:
     def get_unread_count(user_id: int) -> int:
         """Get count of unread notifications for a user."""
         query = convert_query(
-            "SELECT COUNT(*) as cnt FROM notifications" " WHERE user_id = ? AND is_read = FALSE"
+            "SELECT COUNT(*) as cnt FROM notifications"
+            " WHERE user_id = ? AND is_read = FALSE"
         )
 
         with get_connection() as conn:

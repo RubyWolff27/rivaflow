@@ -47,7 +47,9 @@ class TechniqueAnalyticsService:
         if not end_date:
             end_date = date.today()
 
-        sessions = self.session_repo.get_by_date_range(user_id, start_date, end_date, types=types)
+        sessions = self.session_repo.get_by_date_range(
+            user_id, start_date, end_date, types=types
+        )
 
         # Build movement lookup
         movements = self.glossary_repo.list_all()
@@ -127,7 +129,9 @@ class TechniqueAnalyticsService:
         stale_threshold_days = 30
         stale_date = date.today() - timedelta(days=stale_threshold_days)
 
-        recent_sessions = self.session_repo.get_by_date_range(user_id, stale_date, date.today())
+        recent_sessions = self.session_repo.get_by_date_range(
+            user_id, stale_date, date.today()
+        )
         recent_ids = [s["id"] for s in recent_sessions]
         recent_techs = self.technique_repo.batch_get_by_session_ids(recent_ids)
 
