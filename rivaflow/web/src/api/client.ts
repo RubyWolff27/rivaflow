@@ -1,5 +1,5 @@
 import axios from 'axios';
-import type { Session, Readiness, Report, Suggestion, TrainedMovement, Video, Profile, Grading, Movement, Friend, CustomVideo, WeeklyGoalProgress, GoalsSummary, TrainingStreaks, GoalCompletionStreak, DailyCheckin, StreakStatus, Streak, Milestone, MilestoneProgress, CompEvent, WeightLog, WeightAverage, Group, GroupMember, UserBasic } from '../types';
+import type { Session, Readiness, Report, Suggestion, TrainedMovement, Video, Profile, Grading, Movement, Friend, CustomVideo, WeeklyGoalProgress, GoalsSummary, TrainingStreaks, GoalCompletionStreak, DailyCheckin, StreakStatus, Streak, Milestone, MilestoneProgress, CompEvent, WeightLog, WeightAverage, Group, GroupMember, UserBasic, TrainingGoal } from '../types';
 
 // Paginated response type
 interface PaginatedResponse<T> {
@@ -291,6 +291,22 @@ export const goalsApi = {
     weekly_hours_target?: number;
     weekly_rolls_target?: number;
   }) => api.put<Profile>('/goals/targets', data),
+};
+
+export const trainingGoalsApi = {
+  list: (month?: string) => api.get<TrainingGoal[]>('/training-goals/', { params: month ? { month } : {} }),
+  get: (id: number) => api.get<TrainingGoal>(`/training-goals/${id}`),
+  create: (data: {
+    goal_type: string;
+    metric: string;
+    target_value: number;
+    month: string;
+    movement_id?: number | null;
+    class_type_filter?: string | null;
+  }) => api.post<TrainingGoal>('/training-goals/', data),
+  update: (id: number, data: { target_value?: number; is_active?: boolean }) =>
+    api.put<TrainingGoal>(`/training-goals/${id}`, data),
+  delete: (id: number) => api.delete(`/training-goals/${id}`),
 };
 
 // Engagement features (v0.2)

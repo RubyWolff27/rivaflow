@@ -25,6 +25,7 @@ from rivaflow.db.repositories.session_repo import SessionRepository
 from rivaflow.db.repositories.session_roll_repo import SessionRollRepository
 from rivaflow.db.repositories.streak_repo import StreakRepository
 from rivaflow.db.repositories.technique_repo import TechniqueRepository
+from rivaflow.db.repositories.training_goal_repo import TrainingGoalRepository
 from rivaflow.db.repositories.user_repo import UserRepository
 from rivaflow.db.repositories.video_repo import VideoRepository
 
@@ -53,6 +54,7 @@ __all__ = [
     "SessionRollRepository",
     "StreakRepository",
     "TechniqueRepository",
+    "TrainingGoalRepository",
     "UserRelationshipRepository",
     "UserRepository",
     "VideoRepository",

@@ -59,6 +59,7 @@ from rivaflow.api.routes import (
     streaks,
     suggestions,
     techniques,
+    training_goals,
     transcribe,
     users,
     videos,
@@ -225,6 +226,11 @@ app.include_router(groups.router, prefix="/api/v1/groups", tags=["groups"])
 app.include_router(users.router, prefix="/api/v1/users", tags=["users"])
 app.include_router(analytics.router, prefix="/api/v1/analytics", tags=["analytics"])
 app.include_router(goals.router, prefix="/api/v1/goals", tags=["goals"])
+app.include_router(
+    training_goals.router,
+    prefix="/api/v1/training-goals",
+    tags=["training-goals"],
+)
 app.include_router(checkins.router, prefix="/api/v1")
 app.include_router(streaks.router, prefix="/api/v1")
 app.include_router(milestones.router, prefix="/api/v1")
@@ -286,10 +292,11 @@ async def health():
     )
 
 
-# Serve uploaded files (avatars, etc.)
-uploads_path = Path(__file__).parent.parent.parent / "uploads"
-uploads_path.mkdir(parents=True, exist_ok=True)
-app.mount("/uploads", StaticFiles(directory=str(uploads_path)), name="uploads")
+# Serve uploaded files locally (only when S3 is not configured)
+if not os.getenv("S3_BUCKET_NAME"):
+    uploads_path = Path(__file__).parent.parent.parent / "uploads"
+    uploads_path.mkdir(parents=True, exist_ok=True)
+    app.mount("/uploads", StaticFiles(directory=str(uploads_path)), name="uploads")
 
 # Serve static files from the React build (for production)
 # This allows serving both API and frontend from the same domain

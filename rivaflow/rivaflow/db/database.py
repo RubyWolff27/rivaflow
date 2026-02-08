@@ -94,10 +94,10 @@ except ImportError:
     PSYCOPG2_AVAILABLE = False
 
 # Global connection pool for PostgreSQL (initialized on first use)
-_connection_pool: Optional["psycopg2.pool.SimpleConnectionPool"] = None
+_connection_pool: Optional["psycopg2.pool.ThreadedConnectionPool"] = None
 
 
-def _get_connection_pool() -> "psycopg2.pool.SimpleConnectionPool":
+def _get_connection_pool() -> "psycopg2.pool.ThreadedConnectionPool":
     """Get or create the PostgreSQL connection pool."""
     global _connection_pool
 
@@ -108,10 +108,10 @@ def _get_connection_pool() -> "psycopg2.pool.SimpleConnectionPool":
         if not DATABASE_URL:
             raise ValueError("DATABASE_URL environment variable is required")
 
-        # Create connection pool with min=2, max=40 connections
+        # Create thread-safe connection pool with min=2, max=40 connections
         # minconn=2: Keep 2 warm connections ready
         # maxconn=40: Allow up to 40 concurrent connections
-        _connection_pool = psycopg2.pool.SimpleConnectionPool(
+        _connection_pool = psycopg2.pool.ThreadedConnectionPool(
             minconn=2, maxconn=40, dsn=DATABASE_URL
         )
 
@@ -490,6 +490,7 @@ def _apply_migrations(
         "067_create_grapple_tables.sql",
         "071_deduplicate_glossary.sql",
         "072_fix_rate_limits_unique_index.sql",
+        "073_create_training_goals.sql",
     ]
 
     migrations_dir = Path(__file__).parent / "migrations"

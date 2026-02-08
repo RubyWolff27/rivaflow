@@ -160,6 +160,26 @@ class SessionTechniqueRepository:
             return cursor.rowcount
 
     @staticmethod
+    def count_by_movement_in_sessions(movement_id: int, session_ids: list[int]) -> int:
+        """Count technique records for a movement across given sessions."""
+        if not session_ids:
+            return 0
+
+        with get_connection() as conn:
+            cursor = conn.cursor()
+            placeholders = ",".join("?" * len(session_ids))
+            cursor.execute(
+                convert_query(f"""
+                    SELECT COUNT(*) as cnt
+                    FROM session_techniques
+                    WHERE movement_id = ? AND session_id IN ({placeholders})
+                """),
+                [movement_id, *session_ids],
+            )
+            row = cursor.fetchone()
+            return dict(row)["cnt"] if row else 0
+
+    @staticmethod
     def batch_get_by_session_ids(session_ids: list[int]) -> dict:
         """
         Batch load techniques for multiple sessions with movement names.

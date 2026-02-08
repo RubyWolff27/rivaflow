@@ -521,6 +521,22 @@ export interface GamePlanEdge {
   created_at: string;
 }
 
+// Monthly Training Goals
+export interface TrainingGoal {
+  id: number;
+  goal_type: 'frequency' | 'technique';
+  metric: 'sessions' | 'hours' | 'rolls' | 'submissions' | 'technique_count';
+  target_value: number;
+  month: string;
+  movement_id: number | null;
+  movement_name?: string;
+  class_type_filter: string | null;
+  is_active: boolean;
+  actual_value: number;
+  progress_pct: number;
+  completed: boolean;
+}
+
 // AI Insights
 export interface AIInsight {
   id: number;
