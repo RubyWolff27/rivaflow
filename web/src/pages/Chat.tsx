@@ -1,6 +1,8 @@
-import { useState } from 'react';
-import { MessageCircle, Send } from 'lucide-react';
+import { useState, useCallback } from 'react';
+import { MessageCircle, Send, Mic, MicOff } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
+import { useToast } from '../contexts/ToastContext';
+import { useSpeechRecognition } from '../hooks/useSpeechRecognition';
 import axios from 'axios';
 
 interface Message {
@@ -10,9 +12,18 @@ interface Message {
 
 export default function Chat() {
   const { user: _user } = useAuth();
+  const toast = useToast();
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
+
+  const onTranscript = useCallback((transcript: string) => {
+    setInput(prev => prev ? `${prev} ${transcript}` : transcript);
+  }, []);
+  const onSpeechError = useCallback((message: string) => {
+    toast.error(message);
+  }, [toast]);
+  const { isRecording, isTranscribing, hasSpeechApi, toggleRecording } = useSpeechRecognition({ onTranscript, onError: onSpeechError });
 
   const sendMessage = async () => {
     if (!input.trim() || loading) return;
@@ -94,6 +105,28 @@ export default function Chat() {
           disabled={loading}
           className="flex-1 px-4 py-2 border border-[var(--border)] rounded-lg bg-[var(--surface)] text-[var(--text)] placeholder-[var(--muted)] disabled:opacity-50"
         />
+        {hasSpeechApi && (
+          <button
+            type="button"
+            onClick={toggleRecording}
+            disabled={isTranscribing || loading}
+            className="px-3 py-2 rounded-lg transition-all"
+            style={{
+              backgroundColor: isRecording ? 'var(--error)' : 'var(--surfaceElev)',
+              color: isRecording ? '#FFFFFF' : 'var(--muted)',
+              opacity: isTranscribing ? 0.6 : 1,
+            }}
+            aria-label={isTranscribing ? 'Transcribing...' : isRecording ? 'Stop recording' : 'Voice input'}
+          >
+            {isTranscribing ? (
+              <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
+            ) : isRecording ? (
+              <MicOff className="w-4 h-4" />
+            ) : (
+              <Mic className="w-4 h-4" />
+            )}
+          </button>
+        )}
         <button
           onClick={sendMessage}
           disabled={!input.trim() || loading}

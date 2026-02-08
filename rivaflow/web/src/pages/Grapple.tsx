@@ -1,10 +1,11 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { getLocalDateString } from '../utils/date';
 import { useSearchParams } from 'react-router-dom';
-import { Sparkles, Send, Trash2, MessageCircle, AlertCircle, ThumbsUp, ThumbsDown, Zap, Brain, BookOpen } from 'lucide-react';
+import { Sparkles, Send, Trash2, MessageCircle, AlertCircle, ThumbsUp, ThumbsDown, Zap, Brain, BookOpen, Mic, MicOff } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
 import { grappleApi, getErrorMessage } from '../api/client';
+import { useSpeechRecognition } from '../hooks/useSpeechRecognition';
 import ConfirmDialog from '../components/ConfirmDialog';
 import type { AIInsight, ExtractedSession } from '../types';
 
@@ -77,6 +78,14 @@ function SessionExtractionPanel() {
   const [saving, setSaving] = useState(false);
   const toast = useToast();
 
+  const onTranscript = useCallback((transcript: string) => {
+    setText(prev => prev ? `${prev} ${transcript}` : transcript);
+  }, []);
+  const onSpeechError = useCallback((message: string) => {
+    toast.error(message);
+  }, [toast]);
+  const { isRecording, isTranscribing, hasSpeechApi, toggleRecording } = useSpeechRecognition({ onTranscript, onError: onSpeechError });
+
   const handleExtract = async () => {
     if (!text.trim()) return;
     setLoading(true);
@@ -125,14 +134,38 @@ function SessionExtractionPanel() {
         <label className="block text-sm font-medium mb-2" style={{ color: 'var(--text)' }}>
           Describe your training session
         </label>
-        <textarea
-          value={text}
-          onChange={(e) => setText(e.target.value)}
-          placeholder="e.g. Did a gi class today at my gym. Worked on closed guard sweeps. Got 2 subs, got tapped once by armbar. Rolled with Mike and Sarah for 5 rounds..."
-          rows={4}
-          className="w-full px-4 py-3 rounded-[14px] border text-sm"
-          style={{ borderColor: 'var(--border)', backgroundColor: 'var(--surface)', color: 'var(--text)' }}
-        />
+        <div className="relative">
+          <textarea
+            value={text}
+            onChange={(e) => setText(e.target.value)}
+            placeholder="e.g. Did a gi class today at my gym. Worked on closed guard sweeps. Got 2 subs, got tapped once by armbar. Rolled with Mike and Sarah for 5 rounds..."
+            rows={4}
+            className="w-full px-4 py-3 rounded-[14px] border text-sm"
+            style={{ borderColor: 'var(--border)', backgroundColor: 'var(--surface)', color: 'var(--text)' }}
+          />
+          {hasSpeechApi && (
+            <button
+              type="button"
+              onClick={toggleRecording}
+              disabled={isTranscribing}
+              className="absolute bottom-2 right-2 p-1.5 rounded-lg transition-all"
+              style={{
+                backgroundColor: isRecording ? 'var(--error)' : 'var(--surfaceElev)',
+                color: isRecording ? '#FFFFFF' : 'var(--muted)',
+                opacity: isTranscribing ? 0.6 : 1,
+              }}
+              aria-label={isTranscribing ? 'Transcribing audio...' : isRecording ? 'Stop recording' : 'Start voice input'}
+            >
+              {isTranscribing ? (
+                <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
+              ) : isRecording ? (
+                <MicOff className="w-4 h-4" />
+              ) : (
+                <Mic className="w-4 h-4" />
+              )}
+            </button>
+          )}
+        </div>
         <button
           onClick={handleExtract}
           disabled={loading || !text.trim()}
@@ -292,6 +325,14 @@ function TechniqueQAPanel() {
   const [loading, setLoading] = useState(false);
   const toast = useToast();
 
+  const onTranscript = useCallback((transcript: string) => {
+    setQuestion(prev => prev ? `${prev} ${transcript}` : transcript);
+  }, []);
+  const onSpeechError = useCallback((message: string) => {
+    toast.error(message);
+  }, [toast]);
+  const { isRecording: qaRecording, isTranscribing: qaTranscribing, hasSpeechApi: qaHasSpeech, toggleRecording: qaToggle } = useSpeechRecognition({ onTranscript, onError: onSpeechError });
+
   const handleAsk = async () => {
     if (!question.trim()) return;
     setLoading(true);
@@ -320,6 +361,28 @@ function TechniqueQAPanel() {
             style={{ borderColor: 'var(--border)', backgroundColor: 'var(--surface)', color: 'var(--text)' }}
             onKeyDown={(e) => e.key === 'Enter' && handleAsk()}
           />
+          {qaHasSpeech && (
+            <button
+              type="button"
+              onClick={qaToggle}
+              disabled={qaTranscribing}
+              className="p-2 rounded-lg transition-all"
+              style={{
+                backgroundColor: qaRecording ? 'var(--error)' : 'var(--surfaceElev)',
+                color: qaRecording ? '#FFFFFF' : 'var(--muted)',
+                opacity: qaTranscribing ? 0.6 : 1,
+              }}
+              aria-label={qaTranscribing ? 'Transcribing...' : qaRecording ? 'Stop recording' : 'Voice input'}
+            >
+              {qaTranscribing ? (
+                <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
+              ) : qaRecording ? (
+                <MicOff className="w-4 h-4" />
+              ) : (
+                <Mic className="w-4 h-4" />
+              )}
+            </button>
+          )}
           <button
             onClick={handleAsk}
             disabled={loading || !question.trim()}
@@ -378,6 +441,14 @@ export default function Grapple() {
   const [deleteSessionConfirmId, setDeleteSessionConfirmId] = useState<string | null>(null);
   const [activePanel, setActivePanel] = useState<ActivePanel>('chat');
   const [searchParams, setSearchParams] = useSearchParams();
+
+  const onTranscript = useCallback((transcript: string) => {
+    setInput(prev => prev ? `${prev} ${transcript}` : transcript);
+  }, []);
+  const onSpeechError = useCallback((message: string) => {
+    toast.error(message);
+  }, [toast]);
+  const { isRecording, isTranscribing, hasSpeechApi, toggleRecording } = useSpeechRecognition({ onTranscript, onError: onSpeechError });
 
   // Handle ?session= query param (e.g. from insight click-through)
   useEffect(() => {
@@ -729,6 +800,28 @@ export default function Grapple() {
                 className="flex-1 px-4 py-3 rounded-lg border text-sm disabled:opacity-50"
                 style={{ borderColor: 'var(--border)', backgroundColor: 'var(--surface)', color: 'var(--text)' }}
               />
+              {hasSpeechApi && (
+                <button
+                  type="button"
+                  onClick={toggleRecording}
+                  disabled={isTranscribing || loading}
+                  className="px-3 py-3 rounded-lg transition-all"
+                  style={{
+                    backgroundColor: isRecording ? 'var(--error)' : 'var(--surfaceElev)',
+                    color: isRecording ? '#FFFFFF' : 'var(--muted)',
+                    opacity: isTranscribing ? 0.6 : 1,
+                  }}
+                  aria-label={isTranscribing ? 'Transcribing...' : isRecording ? 'Stop recording' : 'Voice input'}
+                >
+                  {isTranscribing ? (
+                    <div className="w-5 h-5 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                  ) : isRecording ? (
+                    <MicOff className="w-5 h-5" />
+                  ) : (
+                    <Mic className="w-5 h-5" />
+                  )}
+                </button>
+              )}
               <button
                 onClick={sendMessage}
                 disabled={!input.trim() || loading}
