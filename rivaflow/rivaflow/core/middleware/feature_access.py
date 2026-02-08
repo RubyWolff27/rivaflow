@@ -1,5 +1,6 @@
 """Feature access control middleware for subscription tiers."""
 
+import asyncio
 import logging
 from collections.abc import Callable
 from functools import wraps
@@ -112,7 +113,9 @@ def require_beta_or_premium(func: Callable) -> Callable:
             )
 
         # User has access - proceed with endpoint
-        return await func(*args, **kwargs)
+        if asyncio.iscoroutinefunction(func):
+            return await func(*args, **kwargs)
+        return func(*args, **kwargs)
 
     return wrapper
 
@@ -151,7 +154,9 @@ def require_admin(func: Callable) -> Callable:
                 status_code=status.HTTP_403_FORBIDDEN, detail="Admin access required"
             )
 
-        return await func(*args, **kwargs)
+        if asyncio.iscoroutinefunction(func):
+            return await func(*args, **kwargs)
+        return func(*args, **kwargs)
 
     return wrapper
 
