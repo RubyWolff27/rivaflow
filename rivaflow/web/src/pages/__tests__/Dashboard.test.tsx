@@ -3,6 +3,9 @@ import { BrowserRouter } from 'react-router-dom'
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
 vi.mock('../../api/client', () => ({
+  profileApi: {
+    update: vi.fn(() => Promise.resolve({ data: {} })),
+  },
   readinessApi: {
     getByDate: vi.fn(() => Promise.resolve({ data: null })),
   },
@@ -28,6 +31,11 @@ vi.mock('../../contexts/ToastContext', () => ({
     success: vi.fn(),
     error: vi.fn(),
   }),
+}))
+
+vi.mock('../../hooks/useInsightRefresh', () => ({
+  refreshIfStale: vi.fn(),
+  triggerInsightRefresh: vi.fn(),
 }))
 
 // Mock child components that make their own API calls

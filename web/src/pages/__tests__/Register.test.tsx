@@ -91,7 +91,7 @@ describe('Register', () => {
     fireEvent.click(screen.getByRole('button', { name: /create account/i }))
 
     await waitFor(() => {
-      expect(mockRegister).toHaveBeenCalledWith('john@test.com', 'password123', 'John', 'Doe', undefined)
+      expect(mockRegister).toHaveBeenCalledWith('john@test.com', 'password123', 'John', 'Doe', undefined, undefined, undefined)
     })
   })
 
