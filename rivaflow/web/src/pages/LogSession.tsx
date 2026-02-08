@@ -126,7 +126,7 @@ export default function LogSession() {
   const onSpeechError = useCallback((message: string) => {
     toast.showToast('error', message);
   }, [toast]);
-  const { isRecording, hasSpeechApi, toggleRecording } = useSpeechRecognition({ onTranscript, onError: onSpeechError });
+  const { isRecording, isTranscribing, hasSpeechApi, toggleRecording } = useSpeechRecognition({ onTranscript, onError: onSpeechError });
 
   useEffect(() => {
     const controller = new AbortController();
@@ -1446,14 +1446,22 @@ export default function LogSession() {
                 <button
                   type="button"
                   onClick={toggleRecording}
+                  disabled={isTranscribing}
                   className="absolute bottom-2 right-2 p-1.5 rounded-lg transition-all"
                   style={{
                     backgroundColor: isRecording ? 'var(--error)' : 'var(--surfaceElev)',
                     color: isRecording ? '#FFFFFF' : 'var(--muted)',
+                    opacity: isTranscribing ? 0.6 : 1,
                   }}
-                  aria-label={isRecording ? 'Stop recording' : 'Start voice input'}
+                  aria-label={isTranscribing ? 'Transcribing audio...' : isRecording ? 'Stop recording' : 'Start voice input'}
                 >
-                  {isRecording ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
+                  {isTranscribing ? (
+                    <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                  ) : isRecording ? (
+                    <MicOff className="w-4 h-4" />
+                  ) : (
+                    <Mic className="w-4 h-4" />
+                  )}
                 </button>
               )}
             </div>

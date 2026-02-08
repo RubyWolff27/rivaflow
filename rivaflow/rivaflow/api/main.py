@@ -59,6 +59,7 @@ from rivaflow.api.routes import (
     streaks,
     suggestions,
     techniques,
+    transcribe,
     users,
     videos,
     waitlist,
@@ -238,6 +239,7 @@ app.include_router(admin_grapple.router, prefix="/api/v1")
 app.include_router(gyms.router, prefix="/api/v1")
 app.include_router(feedback.router, prefix="/api/v1")
 app.include_router(dashboard.router, prefix="/api/v1")
+app.include_router(transcribe.router, prefix="/api/v1")
 app.include_router(events.router, prefix="/api/v1/events", tags=["events"])
 app.include_router(waitlist.router, prefix="/api/v1/waitlist", tags=["waitlist"])
 app.include_router(

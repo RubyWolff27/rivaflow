@@ -192,6 +192,11 @@ class Settings:
         return os.getenv("TOGETHER_API_KEY")
 
     @property
+    def OPENAI_API_KEY(self) -> str | None:
+        """OpenAI API key for Whisper transcription."""
+        return os.getenv("OPENAI_API_KEY")
+
+    @property
     def OLLAMA_URL(self) -> str:
         """Ollama server URL for local LLM."""
         return os.getenv("OLLAMA_URL", "http://localhost:11434")

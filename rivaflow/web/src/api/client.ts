@@ -598,6 +598,15 @@ export const gamePlansApi = {
     api.post(`/game-plans/${planId}/focus`, { node_ids: nodeIds }),
 };
 
+// Transcription API (Whisper)
+export const transcribeApi = {
+  transcribe: (formData: FormData) =>
+    api.post<{ transcript: string }>('/transcribe/', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+      timeout: 60000,
+    }),
+};
+
 // Enhanced Grapple API
 export const grappleApi = {
   getInfo: () => api.get('/grapple/info'),
