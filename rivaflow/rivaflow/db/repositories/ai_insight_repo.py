@@ -122,6 +122,19 @@ class AIInsightRepository:
             return result
 
     @staticmethod
+    def update_data(insight_id: int, user_id: int, data: dict) -> bool:
+        """Update the data JSON field of an insight."""
+        with get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                convert_query(
+                    "UPDATE ai_insights SET data = ?" " WHERE id = ? AND user_id = ?"
+                ),
+                (json.dumps(data), insight_id, user_id),
+            )
+            return cursor.rowcount > 0
+
+    @staticmethod
     def mark_as_read(insight_id: int, user_id: int) -> bool:
         with get_connection() as conn:
             cursor = conn.cursor()

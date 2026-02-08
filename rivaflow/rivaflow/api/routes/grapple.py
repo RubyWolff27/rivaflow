@@ -661,6 +661,64 @@ async def generate_insight(
     return insight
 
 
+@router.post("/insights/{insight_id}/chat")
+@require_beta_or_premium
+async def create_insight_chat(
+    insight_id: int,
+    current_user: dict = Depends(get_current_user),
+):
+    """Create a chat session seeded with an insight's content."""
+    from rivaflow.db.repositories.ai_insight_repo import AIInsightRepository
+    from rivaflow.db.repositories.chat_message_repo import ChatMessageRepository
+    from rivaflow.db.repositories.chat_session_repo import ChatSessionRepository
+
+    user_id = current_user["id"]
+
+    insight = AIInsightRepository.get_by_id(insight_id, user_id)
+    if not insight:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Insight not found",
+        )
+
+    # If already has a chat session, return it (idempotent)
+    existing_id = (insight.get("data") or {}).get("chat_session_id")
+    if existing_id:
+        session_repo = ChatSessionRepository()
+        existing = session_repo.get_by_id(existing_id, user_id)
+        if existing:
+            return {"chat_session_id": existing_id, "insight": insight}
+
+    # Create new chat session seeded with the insight
+    session_repo = ChatSessionRepository()
+    message_repo = ChatMessageRepository()
+
+    title = f"Insight: {insight['title']}"
+    session = session_repo.create(user_id, title=title)
+    session_id = session["id"]
+
+    seed_content = f"**{insight['title']}**\n\n{insight['content']}"
+    message_repo.create(
+        session_id=session_id,
+        role="assistant",
+        content=seed_content,
+    )
+    session_repo.update_stats(
+        session_id=session_id,
+        message_count_delta=1,
+    )
+
+    # Store chat_session_id in insight data
+    data = insight.get("data") or {}
+    data["chat_session_id"] = session_id
+    AIInsightRepository.update_data(insight_id, user_id, data)
+
+    # Mark insight as read
+    AIInsightRepository.mark_as_read(insight_id, user_id)
+
+    return {"chat_session_id": session_id, "insight": insight}
+
+
 @router.post("/technique-qa")
 @require_beta_or_premium
 async def technique_qa_endpoint(

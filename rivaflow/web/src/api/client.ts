@@ -582,6 +582,8 @@ export const grappleApi = {
     api.get('/grapple/insights', { params }),
   generateInsight: (data: { insight_type: string; session_id?: number }) =>
     api.post('/grapple/insights/generate', data),
+  createInsightChat: (insightId: number) =>
+    api.post<{ chat_session_id: string }>(`/grapple/insights/${insightId}/chat`),
   techniqueQA: (question: string) =>
     api.post('/grapple/technique-qa', { question }),
 };

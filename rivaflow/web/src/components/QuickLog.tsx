@@ -4,6 +4,7 @@ import { sessionsApi, profileApi, restApi, friendsApi } from '../api/client';
 import { PrimaryButton, SecondaryButton, ClassTypeChips, IntensityChips } from './ui';
 import { useToast } from '../contexts/ToastContext';
 import { getLocalDateString } from '../utils/date';
+import { triggerInsightRefresh } from '../hooks/useInsightRefresh';
 import type { Friend } from '../types';
 
 const TIME_OPTIONS = [
@@ -176,6 +177,7 @@ export default function QuickLog({ isOpen, onClose, onSuccess }: QuickLogProps) 
           notes: notes || undefined,
         });
         toast.success('Session logged successfully');
+        triggerInsightRefresh(response.data?.id);
         // Reset training form
         setDuration(90);
         setIntensity(3);

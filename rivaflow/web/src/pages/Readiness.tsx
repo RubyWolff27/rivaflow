@@ -4,6 +4,7 @@ import { readinessApi, suggestionsApi } from '../api/client';
 import type { Readiness as ReadinessType } from '../types';
 import { Activity } from 'lucide-react';
 import { useToast } from '../contexts/ToastContext';
+import { triggerInsightRefresh } from '../hooks/useInsightRefresh';
 import ReadinessResult from '../components/ReadinessResult';
 
 export default function Readiness() {
@@ -61,6 +62,7 @@ export default function Readiness() {
       };
       await readinessApi.create(submitData);
       setSuccess(true);
+      triggerInsightRefresh();
       await loadLatest();
       // Fetch suggestion for recommendation display
       try {

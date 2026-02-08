@@ -7,6 +7,7 @@ import { CheckCircle, ArrowRight, ArrowLeft, Plus, X, ToggleLeft, ToggleRight, S
 import GymSelector from '../components/GymSelector';
 import { ClassTypeChips, IntensityChips } from '../components/ui';
 import { useToast } from '../contexts/ToastContext';
+import { triggerInsightRefresh } from '../hooks/useInsightRefresh';
 
 const SPARRING_TYPES = ['gi', 'no-gi', 'open-mat', 'competition'];
 
@@ -418,10 +419,12 @@ export default function LogSession() {
 
       const response = await sessionsApi.create(payload);
       setSuccess(true);
-      // Redirect to session detail page after creation so user can add photos
+      // Trigger AI insight generation for the new session
       if (response.data?.id) {
+        triggerInsightRefresh(response.data.id);
         setTimeout(() => navigate(`/session/${response.data.id}`), 1500);
       } else {
+        triggerInsightRefresh();
         setTimeout(() => navigate('/'), 1500);
       }
     } catch (error) {

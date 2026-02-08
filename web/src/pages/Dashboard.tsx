@@ -11,6 +11,7 @@ import { BetaBadge } from '../components/UpgradePrompt';
 import { useTier } from '../hooks/useTier';
 import { useToast } from '../contexts/ToastContext';
 import { readinessApi, weightLogsApi } from '../api/client';
+import { refreshIfStale, triggerInsightRefresh } from '../hooks/useInsightRefresh';
 import ReadinessRecommendation from '../components/dashboard/ReadinessRecommendation';
 import NextEvent from '../components/dashboard/NextEvent';
 import MyGameWidget from '../components/dashboard/MyGameWidget';
@@ -52,6 +53,9 @@ export default function Dashboard() {
       } catch {
         // No weight logged yet — expected
       }
+
+      // Fire-and-forget staleness check for AI insights
+      refreshIfStale();
     };
 
     loadAll();
@@ -67,6 +71,7 @@ export default function Dashboard() {
       setLastWeight(weight);
       setWeightInput('');
       toast.success(`Weight logged: ${weight} kg`);
+      triggerInsightRefresh();
     } catch {
       toast.error('Failed to log weight.');
     } finally {
@@ -120,6 +125,9 @@ export default function Dashboard() {
           </PrimaryButton>
         </div>
       </Card>
+
+      {/* Latest AI Insight — prominent placement */}
+      <LatestInsightWidget />
 
       {/* Readiness Score - Prominent Display with Color Coding */}
       {hasCheckedInToday && readinessScore !== null ? (
@@ -204,11 +212,8 @@ export default function Dashboard() {
         </div>
       </Card>
 
-      {/* My Game + AI Insight */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <MyGameWidget />
-        <LatestInsightWidget />
-      </div>
+      {/* My Game */}
+      <MyGameWidget />
 
       {/* Next Event */}
       <NextEvent />

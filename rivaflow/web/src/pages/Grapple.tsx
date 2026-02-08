@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { getLocalDateString } from '../utils/date';
+import { useSearchParams } from 'react-router-dom';
 import { Sparkles, Send, Trash2, MessageCircle, AlertCircle, ThumbsUp, ThumbsDown, Zap, Brain, BookOpen } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
@@ -376,6 +377,17 @@ export default function Grapple() {
   const [rateLimit, setRateLimit] = useState<{ remaining: number; limit: number } | null>(null);
   const [deleteSessionConfirmId, setDeleteSessionConfirmId] = useState<string | null>(null);
   const [activePanel, setActivePanel] = useState<ActivePanel>('chat');
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  // Handle ?session= query param (e.g. from insight click-through)
+  useEffect(() => {
+    const sessionParam = searchParams.get('session');
+    if (sessionParam) {
+      setCurrentSessionId(sessionParam);
+      setActivePanel('chat');
+      setSearchParams({}, { replace: true });
+    }
+  }, [searchParams, setSearchParams]);
 
   useEffect(() => {
     let cancelled = false;

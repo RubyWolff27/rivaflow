@@ -1,13 +1,15 @@
 import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
-import { Brain, ChevronRight } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { Brain, ChevronRight, Loader2 } from 'lucide-react';
 import { grappleApi } from '../../api/client';
 import { Card } from '../ui';
 import type { AIInsight } from '../../types';
 
 export default function LatestInsightWidget() {
+  const navigate = useNavigate();
   const [insight, setInsight] = useState<AIInsight | null>(null);
   const [loading, setLoading] = useState(true);
+  const [opening, setOpening] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -38,8 +40,18 @@ export default function LatestInsightWidget() {
   };
   const color = categoryColors[insight.category] || '#6B7280';
 
+  const handleClick = async () => {
+    setOpening(true);
+    try {
+      const res = await grappleApi.createInsightChat(insight.id);
+      navigate(`/grapple?session=${res.data.chat_session_id}`);
+    } catch {
+      navigate('/grapple');
+    }
+  };
+
   return (
-    <Link to="/grapple">
+    <div onClick={handleClick} className="cursor-pointer">
       <Card interactive>
         <div className="flex items-center justify-between mb-2">
           <div className="flex items-center gap-2">
@@ -52,7 +64,11 @@ export default function LatestInsightWidget() {
               {insight.category}
             </span>
           </div>
-          <ChevronRight className="w-4 h-4" style={{ color: 'var(--muted)' }} />
+          {opening ? (
+            <Loader2 className="w-4 h-4 animate-spin" style={{ color: 'var(--muted)' }} />
+          ) : (
+            <ChevronRight className="w-4 h-4" style={{ color: 'var(--muted)' }} />
+          )}
         </div>
         <p className="text-sm font-medium mb-1" style={{ color: 'var(--text)' }}>
           {insight.title}
@@ -61,6 +77,6 @@ export default function LatestInsightWidget() {
           {insight.content}
         </p>
       </Card>
-    </Link>
+    </div>
   );
 }
