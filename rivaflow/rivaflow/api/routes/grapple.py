@@ -668,11 +668,27 @@ async def create_insight_chat(
     current_user: dict = Depends(get_current_user),
 ):
     """Create a chat session seeded with an insight's content."""
+    user_id = current_user["id"]
+
+    try:
+        return await _handle_insight_chat(insight_id, user_id)
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.exception(f"Unhandled error in insight chat for user {user_id}")
+        return JSONResponse(
+            status_code=500,
+            content={
+                "detail": f"Chat error: {type(e).__name__}: {str(e)}",
+            },
+        )
+
+
+async def _handle_insight_chat(insight_id: int, user_id: int):
+    """Inner handler for insight chat creation."""
     from rivaflow.db.repositories.ai_insight_repo import AIInsightRepository
     from rivaflow.db.repositories.chat_message_repo import ChatMessageRepository
     from rivaflow.db.repositories.chat_session_repo import ChatSessionRepository
-
-    user_id = current_user["id"]
 
     insight = AIInsightRepository.get_by_id(insight_id, user_id)
     if not insight:

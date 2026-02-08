@@ -118,7 +118,15 @@ class GrappleRateLimiter:
         try:
             with get_connection() as conn:
                 cursor = conn.cursor()
-                cursor.execute(query, (str(uuid4()), user_id, window_start, window_end))
+                cursor.execute(
+                    query,
+                    (
+                        str(uuid4()),
+                        user_id,
+                        window_start.isoformat(),
+                        window_end.isoformat(),
+                    ),
+                )
                 conn.commit()
                 cursor.close()
         except (ConnectionError, OSError) as e:
@@ -144,7 +152,7 @@ class GrappleRateLimiter:
         try:
             with get_connection() as conn:
                 cursor = conn.cursor()
-                cursor.execute(query, (user_id, window_start))
+                cursor.execute(query, (user_id, window_start.isoformat()))
                 row = cursor.fetchone()
                 cursor.close()
 
@@ -171,7 +179,7 @@ class GrappleRateLimiter:
         try:
             with get_connection() as conn:
                 cursor = conn.cursor()
-                cursor.execute(query, (window_start,))
+                cursor.execute(query, (window_start.isoformat(),))
                 row = cursor.fetchone()
                 cursor.close()
                 if row:
@@ -214,7 +222,7 @@ class GrappleRateLimiter:
         try:
             with get_connection() as conn:
                 cursor = conn.cursor()
-                cursor.execute(query, (user_id, start_date))
+                cursor.execute(query, (user_id, start_date.isoformat()))
                 row = cursor.fetchone()
                 cursor.close()
 
@@ -262,7 +270,7 @@ class GrappleRateLimiter:
         try:
             with get_connection() as conn:
                 cursor = conn.cursor()
-                cursor.execute(query, (cutoff_date,))
+                cursor.execute(query, (cutoff_date.isoformat(),))
                 deleted_count = cursor.rowcount
                 conn.commit()
                 cursor.close()
