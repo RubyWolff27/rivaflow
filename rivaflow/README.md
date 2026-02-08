@@ -16,14 +16,17 @@ RivaFlow is a comprehensive training tracker built specifically for Brazilian Ji
 
 ### Key Features
 
-- 📊 **Session Logging** — Track gi, no-gi, drilling, wrestling, and more
-- 📈 **Analytics & Reports** — Weekly/monthly reports, submission ratios, training volume
+- 📊 **Session Logging** — Track gi, no-gi, drilling, wrestling, and more with Quick Log or Full Log
+- 📈 **Advanced Analytics** — ACWR training load, overtraining risk, technique quadrants, session quality scoring
+- 🧠 **Insights Engine** — Readiness-performance correlation, recovery analysis, partner progression tracking
+- 🤖 **Grapple AI Coach** — Chat with AI powered by your deep training analytics
 - 🎯 **Goals & Streaks** — Set weekly goals, track training consistency
 - 🏆 **Belt Progression** — Log gradings and track rank history
-- 💪 **Readiness Tracking** — Monitor sleep, stress, soreness, energy
-- 🎥 **Technique Library** — Save techniques with video references
-- 🤖 **AI Insights (Grapple)** — Chat with AI about your training data
-- 👥 **Social Features** — Follow training partners, share sessions, activity feed
+- 💪 **Readiness Tracking** — Monitor sleep, stress, soreness, energy with performance correlation
+- 🎥 **Technique Library** — Unified glossary with video references
+- 🗺️ **Game Plans** — Structured position flows and drill sequences
+- 👥 **Social Features** — Follow training partners, groups, share sessions, activity feed
+- 🎙️ **Speech-to-Text** — Voice input for session notes
 - 🔒 **Privacy First** — Local-first with granular privacy controls
 - 🌐 **Dual Interface** — CLI for power users, web app for everyone
 
@@ -221,17 +224,20 @@ Granular privacy settings for social sharing:
 - **Summary:** Shows stats (rolls, duration) but not specifics
 - **Full:** Everything is visible
 
-### Analytics
+### Analytics & Insights
 
-Comprehensive reports and insights:
+Comprehensive reports and deep analytics:
 
-- Training volume (hours, sessions per week/month)
-- Submission success rates (for/against ratios)
-- Technique breakdown and frequency
-- Partner statistics
-- Training calendar heatmap
-- Belt rank progression
-- Streaks and consistency metrics
+- **Standard Analytics** — Training volume, submission rates, technique breakdown, partner stats, streaks
+- **Training Calendar** — GitHub-style heatmap of your activity
+- **ACWR Training Load** — Acute:Chronic Workload Ratio with zone bands (undertrained / sweet spot / caution / danger)
+- **Overtraining Risk** — Composite score (0-100) from ACWR spikes, readiness decline, hotspots, intensity creep
+- **Technique Quadrants** — Money moves, developing, natural talent, untested (via Shannon entropy)
+- **Session Quality** — Composite scoring (intensity + submissions + techniques + volume)
+- **Recovery Insights** — Sleep-performance correlation, optimal rest day analysis
+- **Partner Progression** — Rolling sub rate trends against specific partners
+- **Gym & Class Type Comparison** — Performance breakdown across gyms and session types
+- **Time-of-Day Patterns** — Best training windows based on your data
 
 ### AI Training Assistant (Grapple)
 
@@ -244,7 +250,7 @@ Chat with AI about your training:
 "Suggest drills for half guard retention"
 ```
 
-Grapple analyzes your training history and provides personalized insights.
+Grapple analyses your training history, ACWR load, overtraining risk, technique effectiveness, and recovery patterns to provide personalised coaching insights. Post-session insights are automatically generated after logging.
 
 ---
 
@@ -342,28 +348,28 @@ RivaFlow is **GDPR-compliant** and respects your data rights:
 
 ## Roadmap
 
-### Current Version (Beta)
+### Current Version (v0.4.0-beta)
 
-- ✅ Session logging (all class types)
-- ✅ Analytics and reports
-- ✅ Goals and streaks
-- ✅ Social features (following, feed, likes)
-- ✅ AI insights (Grapple)
-- ✅ Technique library
+- ✅ Session logging (all class types) with Quick Log and Full Log
+- ✅ Advanced analytics & insights engine (ACWR, risk, quality, recovery)
+- ✅ Grapple AI Coach with deep analytics integration
+- ✅ Game Plans with position flows and drill sequences
+- ✅ Goals, streaks, and milestones
+- ✅ Social features (following, groups, feed, likes, comments)
+- ✅ Unified technique glossary with video references
 - ✅ Belt progression tracking
-- ✅ Privacy controls
+- ✅ Privacy controls (private/attendance/summary/full)
+- ✅ Speech-to-text for session notes
+- ✅ Post-session AI-generated insights
 - ✅ Web + CLI interfaces
 
 ### Coming Soon
 
 - [ ] Mobile app (iOS/Android)
-- [ ] Competition tracking
-- [ ] Gym/academy management
-- [ ] Team features (coach dashboards)
+- [ ] Competition tracking and comp prep tools
+- [ ] Gym/academy management dashboards
 - [ ] More wearable integrations (Garmin, Apple Watch)
 - [ ] Video analysis integration
-- [ ] Injury tracking and recovery
-- [ ] Nutrition logging
 
 ---
 

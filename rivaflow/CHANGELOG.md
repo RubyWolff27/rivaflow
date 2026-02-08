@@ -7,13 +7,42 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Changed
-- Moved frontend (web/) into main repository for proper deployment
-- Improved build.sh with frontend build step and verification
+### Coming Soon
+- Mobile app (iOS/Android)
+- Competition tracking and comp prep tools
 
-### Fixed
-- Frontend now properly included in repository and deployments
-- Build process verifies frontend build succeeds before deployment
+## [0.4.0-beta] - 2026-02-08
+
+### Advanced Analytics & Insights Engine
+
+#### Added
+- Insights tab with ACWR training load, readiness-performance correlation, technique quadrants, session quality scoring, overtraining risk, recovery insights, and partner progression
+- Enhanced analytics: training calendar heatmap, duration trends, time-of-day patterns, gym comparison, class type effectiveness, belt distribution, weight SMA
+- Grapple AI integration with deep analytics context (ACWR, risk, quality, recovery)
+- Post-session AI insights enriched with training load and risk data
+- Pure Python math engine: Pearson r, EWMA, Shannon entropy, linear slope
+- 15 new cached API endpoints, 7 new SVG chart components
+- InsightsAnalyticsService backend tests (30 tests)
+- FAQ updated for Insights, Grapple AI, Quick Log, speech-to-text
+
+## [0.3.1-beta] - 2026-02-07
+
+### Session Workflow Overhaul
+
+#### Added
+- Quick Log with auto-roll creation from selected partners
+- Speech-to-text for session notes
+- Post-session AI-generated insights
+- Grapple AI Coach with full training data context
+- Game Plans with position flows and drill sequences
+- Glossary unification (migrations 068-069)
+- Social groups, friend suggestions, self-friend constraint (migration 070)
+- Signup onboarding flow
+
+#### Fixed
+- Session edit bugs, partner analytics, technique analytics deduplication
+- Grapple AI datetime-to-text SQL mismatch, CORS, rate_limits index
+- SendGrid crash, dark mode text, timezone localisation
 
 ## [0.2.1] - 2026-02-06
 

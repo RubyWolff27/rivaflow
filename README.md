@@ -11,10 +11,12 @@ A local-first training tracker for BJJ/grappling with both **CLI** and **Web App
 - 📚 **BJJ Glossary** — 82 pre-loaded techniques across 8 categories (positions, submissions, sweeps, passes, takedowns, escapes, movements, concepts)
 - 🎯 **Detailed roll tracking** — Log individual rolls with partner, submissions from glossary, duration, and notes
 - 🔄 **Flexible entry modes** — Simple mode (quick totals) or Detailed mode (roll-by-roll analytics)
-- 📊 **Analytics** — Weekly/monthly reports with submission rates, intensity trends, partner-specific stats
-- 🧠 **Smart suggestions** — Rules-based recommendations (not AI fluff)
+- 📊 **Advanced Analytics** — ACWR training load, overtraining risk, technique quadrants, session quality, recovery insights
+- 🤖 **Grapple AI Coach** — LLM-powered coaching with deep training data context
+- 🗺️ **Game Plans** — Structured position flows and drill sequences
+- 🎙️ **Speech-to-Text** — Voice input for session notes
 - 📹 **Video recall** — Link instructionals to techniques, surface during logging
-- 🔒 **Privacy-first** — All data stays on your machine
+- 🔒 **Privacy-first** — Granular privacy controls (private/attendance/summary/full)
 
 ## Install
 
@@ -60,6 +62,9 @@ cd web && npm install && cd ..
 - **Glossary** — Browse, search, and filter 82 BJJ techniques by category and gi/no-gi applicability
 - **Detailed Roll Tracking** — Log individual rolls with partner selection and submission tracking from glossary
 - **Reports** — Weekly/monthly analytics with breakdown by class type and gym
+- **Insights** — ACWR training load, overtraining risk, technique quadrants, session quality, recovery analysis
+- **Grapple AI** — Chat with AI coach powered by your training data
+- **Game Plans** — Build and review position flow charts
 - **Profile** — Manage your information, default gym, and belt progression history
 
 See [WEB_README.md](WEB_README.md) for full web app documentation.
@@ -503,22 +508,24 @@ RivaFlow is built on these principles:
 
 ## Roadmap
 
-Current version: **v0.2.0**
+Current version: **v0.4.0-beta**
 
 **Completed:**
 - ✅ CLI tool with session logging, readiness tracking, and reports
 - ✅ Web dashboard (FastAPI + React)
-- ✅ Contacts management with belt rank tracking
-- ✅ BJJ glossary with 82 techniques
+- ✅ Quick Log and Full Log with speech-to-text
+- ✅ Unified BJJ glossary with 82+ techniques
 - ✅ Detailed roll tracking with partner-specific analytics
+- ✅ Advanced analytics & insights engine (ACWR, risk, quality, recovery)
+- ✅ Grapple AI Coach with deep analytics integration
+- ✅ Game Plans with position flows and drill sequences
+- ✅ Social features (groups, friends, feed, likes, comments)
 - ✅ Profile management with belt progression history
 
 **Upcoming:**
-- Partner analytics dashboard (submission rates, roll stats by partner)
-- Technique heatmaps and progression tracking
-- Team/gym sharing features
-- Mobile companion app
-- Advanced visualizations and trend analysis
+- Mobile companion app (iOS/Android)
+- Competition tracking and comp prep tools
+- Gym/academy management dashboards
 
 ## 🧪 Beta Status
 

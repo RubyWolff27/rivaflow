@@ -9,10 +9,85 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Coming Soon
 - Mobile app (iOS/Android)
-- Advanced analytics dashboards
-- Training partner matching
-- Competition tracking
-- Video technique library expansion
+- Competition tracking and comp prep tools
+- Gym/academy management dashboards
+- More wearable integrations (Garmin, Apple Watch)
+
+---
+
+## [0.4.0-beta] - 2026-02-08
+
+### Advanced Analytics & Insights Engine
+
+#### Added
+- **Insights Tab** — New data-science-driven analytics tab on Reports page
+  - ACWR (Acute:Chronic Workload Ratio) training load management with zone bands
+  - Readiness x Performance correlation scatter plot with optimal zone detection
+  - Technique effectiveness 2x2 quadrant (money moves / developing / natural / untested)
+  - Session quality composite scoring (0-100) with weekly trend
+  - Overtraining risk gauge (0-100) with factor breakdown and recommendations
+  - Recovery insights — sleep-performance correlation and optimal rest day analysis
+  - Partner progression tracking — rolling sub rate over time per partner
+
+- **Enhanced Existing Analytics**
+  - Training frequency heatmap (GitHub-style calendar) on overview tab
+  - Duration analytics — trends, by class type and gym
+  - Time-of-day performance patterns
+  - Gym comparison analytics
+  - Class type effectiveness breakdown
+  - Partner belt rank distribution chart
+  - Weight trend with 7-day simple moving average
+
+- **Grapple AI Deep Analytics Integration**
+  - AI coach now accesses ACWR, overtraining risk, session quality, technique effectiveness, and recovery data
+  - Post-session insights enriched with training load and risk context
+  - System prompt updated with deep analytics guidelines
+
+- **Pure Python Math Engine** (no numpy dependency)
+  - Pearson r correlation
+  - Exponentially Weighted Moving Average (EWMA)
+  - Shannon entropy for game breadth scoring
+  - Linear regression slope for trend detection
+
+- **15 New API Endpoints** under `/api/v1/analytics/`
+  - Phase 1: duration/trends, time-of-day/patterns, gyms/comparison, class-types/effectiveness, weight/trend, training-calendar, partners/belt-distribution
+  - Phase 2: insights/summary, insights/readiness-correlation, insights/training-load, insights/technique-effectiveness, insights/partner-progression/{id}, insights/session-quality, insights/overtraining-risk, insights/recovery
+
+- **7 New Frontend Visualization Components** (custom SVG, no charting library)
+  - ACWRChart, CorrelationScatter, TechniqueQuadrant, QualityTrend, RiskGauge, PartnerProgressionChart, TrainingCalendar
+
+- **Backend Tests** for InsightsAnalyticsService — math helpers and edge cases (30 tests)
+
+- **FAQ Updated** with Insights, Grapple AI, Quick Log, and speech-to-text documentation
+
+---
+
+## [0.3.1-beta] - 2026-02-07
+
+### Session Workflow Overhaul & Quick Log Improvements
+
+#### Added
+- **Quick Log** — Auto-creates rolls from selected partners for fast session logging
+- **Speech-to-Text** — Microphone input for session notes in Full Log
+- **Session Insights** — Post-session AI-generated insights after logging
+- **Glossary Unification** — Merged techniques and movements into single unified glossary (migrations 068-069)
+- **Grapple AI Coach** — LLM-powered training assistant with full training data context
+- **Game Plans** — Structured position flows and drill sequences
+- **Social Features** — Groups, friend suggestions, self-friend constraint (migration 070)
+- **Signup Onboarding** — Guided first-run experience for new users
+- **Error Feedback** — Speech recognition mic button shows errors
+- **Timezone Fix** — Session dates correctly localised
+
+#### Fixed
+- Session edit bugs (class time, partner linking)
+- Partner analytics: active_partners key mismatch and unlinked roll counting
+- Technique analytics: use session_techniques table and deduplicate glossary
+- Social route tests failing on PostgreSQL (KeyError: 0)
+- Grapple AI chat errors: datetime-to-text SQL mismatch and CORS on insight chat
+- Grapple rate_limits unique index migration
+- SendGrid errors crashing endpoints
+- Dark mode text on forgot-password success screen
+- Black formatting consistency (line-length=88)
 
 ---
 
@@ -274,11 +349,15 @@ Thank you for being an early adopter! 🥋
 
 ## Version History Summary
 
+- **v0.4.0-beta** (2026-02-08) - Advanced analytics & insights engine, Grapple AI deep integration
+- **v0.3.1-beta** (2026-02-07) - Session workflow overhaul, Quick Log, Grapple AI, Game Plans
 - **v0.3.0-beta** (2026-02-01) - Beta release with security & testing
 - **v0.2.0** (2026-01-30) - Social features & analytics improvements
 - **v0.1.0** (2026-01-15) - Initial release
 
-[unreleased]: https://github.com/RubyWolff27/rivaflow/compare/v0.3.0-beta...HEAD
+[unreleased]: https://github.com/RubyWolff27/rivaflow/compare/v0.4.0-beta...HEAD
+[0.4.0-beta]: https://github.com/RubyWolff27/rivaflow/compare/v0.3.1-beta...v0.4.0-beta
+[0.3.1-beta]: https://github.com/RubyWolff27/rivaflow/compare/v0.3.0-beta...v0.3.1-beta
 [0.3.0-beta]: https://github.com/RubyWolff27/rivaflow/compare/v0.2.0...v0.3.0-beta
 [0.2.0]: https://github.com/RubyWolff27/rivaflow/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/RubyWolff27/rivaflow/releases/tag/v0.1.0
