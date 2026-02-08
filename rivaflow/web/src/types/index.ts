@@ -146,6 +146,7 @@ export interface Profile {
   weekly_mobility_sessions_target?: number;
   show_streak_on_dashboard?: boolean;
   show_weekly_goals?: boolean;
+  timezone?: string;
   avatar_url?: string;
   // Journey progress fields
   belt_rank?: string; // Deprecated, use current_grade

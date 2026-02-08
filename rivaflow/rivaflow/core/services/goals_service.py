@@ -18,7 +18,7 @@ class GoalsService:
         self.report_service = ReportService()
         self.analytics_service = AnalyticsService()
 
-    def get_current_week_progress(self, user_id: int) -> dict:
+    def get_current_week_progress(self, user_id: int, tz: str | None = None) -> dict:
         """Get current week's goal progress vs targets.
 
         Returns:
@@ -49,9 +49,15 @@ class GoalsService:
 
         logger = logging.getLogger(__name__)
 
+        # Resolve timezone: param > profile > UTC
+        if not tz:
+            profile_tz = self.profile_repo.get(user_id).get("timezone")
+            if profile_tz:
+                tz = profile_tz
+
         # Get current week date range (Monday-Sunday)
-        week_start, week_end = self.report_service.get_week_dates()
-        logger.info(f"[DEBUG] Week range: {week_start} to {week_end}")
+        week_start, week_end = self.report_service.get_week_dates(tz=tz)
+        logger.info(f"[DEBUG] Week range: {week_start} to {week_end} (tz={tz})")
 
         # Get profile targets
         profile = self.profile_repo.get(user_id)
@@ -144,7 +150,9 @@ class GoalsService:
         )
 
         # Calculate days remaining in week
-        today = date.today()
+        from rivaflow.core.services.report_service import today_in_tz
+
+        today = today_in_tz(tz)
         days_remaining = (week_end - today).days
         if days_remaining < 0:
             days_remaining = 0
@@ -263,18 +271,20 @@ class GoalsService:
         """Get current and longest weekly goal completion streaks."""
         return self.goal_progress_repo.get_completion_streak(user_id)
 
-    def get_training_streaks(self, user_id: int) -> dict:
+    def get_training_streaks(self, user_id: int, tz: str | None = None) -> dict:
         """Get training session streaks (consecutive days trained).
 
         Uses existing AnalyticsService streak calculation.
         """
+        from rivaflow.core.services.report_service import today_in_tz
+
         # Get consistency analytics which includes streak data
         consistency = self.analytics_service.get_consistency_analytics(user_id)
 
         return {
             "current_streak": consistency["streaks"]["current"],
             "longest_streak": consistency["streaks"]["longest"],
-            "last_updated": date.today().isoformat(),
+            "last_updated": today_in_tz(tz).isoformat(),
         }
 
     def update_profile_goals(
@@ -340,7 +350,7 @@ class GoalsService:
 
         return self.profile_repo.get(user_id)
 
-    def get_goals_summary(self, user_id: int) -> dict:
+    def get_goals_summary(self, user_id: int, tz: str | None = None) -> dict:
         """Get comprehensive goals and streaks overview.
 
         Returns:
@@ -352,8 +362,8 @@ class GoalsService:
             }
         """
         return {
-            "current_week": self.get_current_week_progress(user_id),
-            "training_streaks": self.get_training_streaks(user_id),
+            "current_week": self.get_current_week_progress(user_id, tz=tz),
+            "training_streaks": self.get_training_streaks(user_id, tz=tz),
             "goal_streaks": self.get_goal_completion_streak(user_id),
             "recent_trend": self.get_recent_weeks_trend(user_id, weeks=12),
         }

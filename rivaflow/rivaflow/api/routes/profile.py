@@ -38,6 +38,7 @@ class ProfileUpdate(BaseModel):
     weekly_mobility_sessions_target: int | None = None
     show_streak_on_dashboard: bool | None = None
     show_weekly_goals: bool | None = None
+    timezone: str | None = None
     avatar_url: str | None = None
 
 
@@ -96,6 +97,7 @@ def update_profile(
         weekly_mobility_sessions_target=profile.weekly_mobility_sessions_target,
         show_streak_on_dashboard=profile.show_streak_on_dashboard,
         show_weekly_goals=profile.show_weekly_goals,
+        timezone=profile.timezone,
     )
     return updated
 

@@ -10,7 +10,7 @@ import { WeeklyGoalsBreakdown } from '../components/dashboard/WeeklyGoalsBreakdo
 import { BetaBadge } from '../components/UpgradePrompt';
 import { useTier } from '../hooks/useTier';
 import { useToast } from '../contexts/ToastContext';
-import { readinessApi, weightLogsApi } from '../api/client';
+import { profileApi, readinessApi, weightLogsApi } from '../api/client';
 import { refreshIfStale, triggerInsightRefresh } from '../hooks/useInsightRefresh';
 import ReadinessRecommendation from '../components/dashboard/ReadinessRecommendation';
 import NextEvent from '../components/dashboard/NextEvent';
@@ -27,6 +27,16 @@ export default function Dashboard() {
   const [weightInput, setWeightInput] = useState('');
   const [lastWeight, setLastWeight] = useState<number | null>(null);
   const [savingWeight, setSavingWeight] = useState(false);
+
+  // Auto-sync browser timezone to profile (once per session)
+  useEffect(() => {
+    const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    const synced = sessionStorage.getItem('tz_synced');
+    if (!synced && tz) {
+      profileApi.update({ timezone: tz }).catch(() => {});
+      sessionStorage.setItem('tz_synced', '1');
+    }
+  }, []);
 
   useEffect(() => {
     const controller = new AbortController();

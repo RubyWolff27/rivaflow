@@ -108,6 +108,7 @@ class ProfileService:
         weekly_mobility_sessions_target: int | None = None,
         show_streak_on_dashboard: bool | None = None,
         show_weekly_goals: bool | None = None,
+        timezone: str | None = None,
     ) -> dict:
         """Update the user profile. Returns updated profile."""
         return self.repo.update(
@@ -134,6 +135,7 @@ class ProfileService:
             weekly_mobility_sessions_target=weekly_mobility_sessions_target,
             show_streak_on_dashboard=show_streak_on_dashboard,
             show_weekly_goals=show_weekly_goals,
+            timezone=timezone,
         )
 
     def get_default_gym(self, user_id: int) -> str | None:

@@ -3,7 +3,7 @@
 import logging
 import traceback
 
-from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from pydantic import BaseModel
 from slowapi import Limiter
 from slowapi.util import get_remote_address
@@ -30,7 +30,9 @@ class GoalTargetsUpdate(BaseModel):
 @router.get("/current-week")
 @limiter.limit("120/minute")
 def get_current_week_progress(
-    request: Request, current_user: dict = Depends(get_current_user)
+    request: Request,
+    tz: str | None = Query(None, description="IANA timezone, e.g. Australia/Sydney"),
+    current_user: dict = Depends(get_current_user),
 ):
     """Get current week's goal progress.
 
@@ -42,7 +44,7 @@ def get_current_week_progress(
     """
     try:
         logger.info(f"Getting current week progress for user_id={current_user['id']}")
-        result = service.get_current_week_progress(user_id=current_user["id"])
+        result = service.get_current_week_progress(user_id=current_user["id"], tz=tz)
         logger.info(
             f"Successfully retrieved current week progress for user_id={current_user['id']}"
         )
@@ -63,7 +65,11 @@ def get_current_week_progress(
 
 @router.get("/summary")
 @limiter.limit("120/minute")
-def get_goals_summary(request: Request, current_user: dict = Depends(get_current_user)):
+def get_goals_summary(
+    request: Request,
+    tz: str | None = Query(None, description="IANA timezone, e.g. Australia/Sydney"),
+    current_user: dict = Depends(get_current_user),
+):
     """Get comprehensive goals and streaks overview.
 
     Returns:
@@ -72,7 +78,7 @@ def get_goals_summary(request: Request, current_user: dict = Depends(get_current
     - Goal completion streaks (consecutive weeks)
     - Recent 12-week trend
     """
-    return service.get_goals_summary(user_id=current_user["id"])
+    return service.get_goals_summary(user_id=current_user["id"], tz=tz)
 
 
 @router.get("/streaks/training")

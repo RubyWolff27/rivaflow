@@ -2,9 +2,23 @@
 
 import csv
 from collections import defaultdict
-from datetime import date, timedelta
+from datetime import UTC, date, datetime, timedelta
+from zoneinfo import ZoneInfo
 
 from rivaflow.db.repositories import ReadinessRepository, SessionRepository
+
+
+def today_in_tz(tz: str | None = None) -> date:
+    """Get today's date in the given IANA timezone (e.g. 'Australia/Sydney').
+
+    Falls back to UTC if tz is None or invalid.
+    """
+    if tz:
+        try:
+            return datetime.now(ZoneInfo(tz)).date()
+        except (KeyError, ValueError):
+            pass
+    return datetime.now(UTC).date()
 
 
 class ReportService:
@@ -14,10 +28,12 @@ class ReportService:
         self.session_repo = SessionRepository()
         self.readiness_repo = ReadinessRepository()
 
-    def get_week_dates(self, target_date: date | None = None) -> tuple[date, date]:
+    def get_week_dates(
+        self, target_date: date | None = None, tz: str | None = None
+    ) -> tuple[date, date]:
         """Get Monday-Sunday date range for the week containing target_date."""
         if target_date is None:
-            target_date = date.today()
+            target_date = today_in_tz(tz)
 
         # Find Monday of this week (0 = Monday, 6 = Sunday)
         days_since_monday = target_date.weekday()

@@ -26,6 +26,7 @@ def _get_dashboard_summary_cached(
     start_date: date,
     end_date: date,
     types: list[str] | None = None,
+    tz: str | None = None,
 ):
     """
     Cached helper for dashboard summary.
@@ -56,7 +57,7 @@ def _get_dashboard_summary_cached(
     milestone_progress = milestone_service.get_progress_to_next(user_id)
 
     # Get weekly goals progress
-    weekly_goals = goals_service.get_current_week_progress(user_id)
+    weekly_goals = goals_service.get_current_week_progress(user_id, tz=tz)
 
     # Get latest readiness
     latest_readiness = readiness_repo.get_latest(user_id)
@@ -101,6 +102,7 @@ def get_dashboard_summary(
     start_date: date | None = Query(None, description="Start date for analytics"),
     end_date: date | None = Query(None, description="End date for analytics"),
     types: list[str] | None = Query(None, description="Filter by class types"),
+    tz: str | None = Query(None, description="IANA timezone, e.g. Australia/Sydney"),
     current_user: dict = Depends(get_current_user),
 ):
     """
@@ -119,16 +121,19 @@ def get_dashboard_summary(
     """
     user_id = current_user["id"]
 
-    # Set default date range
+    # Set default date range using timezone-aware today
+    from rivaflow.core.services.report_service import today_in_tz
+
+    _today = today_in_tz(tz)
     if not start_date:
-        start_date = date.today() - timedelta(days=30)
+        start_date = _today - timedelta(days=30)
     if not end_date:
-        end_date = date.today()
+        end_date = _today
 
     try:
         # Use cached function (5-minute TTL)
         return _get_dashboard_summary_cached(
-            user_id, start_date, end_date, types=types if types else None
+            user_id, start_date, end_date, types=types if types else None, tz=tz
         )
 
     except Exception as e:
@@ -190,6 +195,7 @@ def get_week_summary(
         le=0,
         description="Weeks back from current week (0 = this week, -1 = last week)",
     ),
+    tz: str | None = Query(None, description="IANA timezone, e.g. Australia/Sydney"),
     current_user: dict = Depends(get_current_user),
 ):
     """
@@ -205,7 +211,9 @@ def get_week_summary(
 
     try:
         # Calculate week start/end
-        today = date.today()
+        from rivaflow.core.services.report_service import today_in_tz
+
+        today = today_in_tz(tz)
         current_week_start = today - timedelta(days=today.weekday())
         week_start = current_week_start + timedelta(weeks=week_offset)
         week_end = week_start + timedelta(days=6)

@@ -280,9 +280,11 @@ export const analyticsApi = {
     api.get('/analytics/insights/recovery', { params }),
 };
 
+const userTz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+
 export const goalsApi = {
-  getCurrentWeek: () => api.get<WeeklyGoalProgress>('/goals/current-week'),
-  getSummary: () => api.get<GoalsSummary>('/goals/summary'),
+  getCurrentWeek: () => api.get<WeeklyGoalProgress>('/goals/current-week', { params: { tz: userTz } }),
+  getSummary: () => api.get<GoalsSummary>('/goals/summary', { params: { tz: userTz } }),
   getTrainingStreaks: () => api.get<TrainingStreaks>('/goals/streaks/training'),
   getGoalStreaks: () => api.get<GoalCompletionStreak>('/goals/streaks/goals'),
   getTrend: (weeks = 12) => api.get('/goals/trend', { params: { weeks } }),
@@ -564,11 +566,11 @@ export const groupsApi = {
 // Dashboard API (v0.2.0)
 export const dashboardApi = {
   getSummary: (params?: { start_date?: string; end_date?: string; types?: string[] }) =>
-    api.get('/dashboard/summary', { params }),
+    api.get('/dashboard/summary', { params: { ...params, tz: userTz } }),
   getQuickStats: () =>
     api.get<{ total_sessions: number; total_hours: number; current_streak: number; next_milestone: MilestoneProgress | null }>('/dashboard/quick-stats'),
   getWeekSummary: (weekOffset = 0) =>
-    api.get('/dashboard/week-summary', { params: { week_offset: weekOffset } }),
+    api.get('/dashboard/week-summary', { params: { week_offset: weekOffset, tz: userTz } }),
 };
 
 // Events & Competition Prep API (v0.3)

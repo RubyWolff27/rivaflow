@@ -54,6 +54,7 @@ class ProfileRepository:
         weekly_mobility_sessions_target: int | None = None,
         show_streak_on_dashboard: bool | None = None,
         show_weekly_goals: bool | None = None,
+        timezone: str | None = None,
     ) -> dict:
         """Update the user profile. Creates profile if it doesn't exist. Returns updated profile."""
         with get_connection() as conn:
@@ -75,8 +76,8 @@ class ProfileRepository:
                         primary_training_type, height_cm, target_weight_kg,
                         weekly_sessions_target, weekly_hours_target, weekly_rolls_target,
                         weekly_bjj_sessions_target, weekly_sc_sessions_target, weekly_mobility_sessions_target,
-                        show_streak_on_dashboard, show_weekly_goals
-                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                        show_streak_on_dashboard, show_weekly_goals, timezone
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                     """),
                     (
                         user_id,
@@ -122,6 +123,7 @@ class ProfileRepository:
                             else 1
                         ),
                         show_weekly_goals if show_weekly_goals is not None else 1,
+                        timezone if timezone is not None else "UTC",
                     ),
                 )
             else:
@@ -197,6 +199,9 @@ class ProfileRepository:
                 if show_weekly_goals is not None:
                     updates.append("show_weekly_goals = ?")
                     params.append(show_weekly_goals)
+                if timezone is not None:
+                    updates.append("timezone = ?")
+                    params.append(timezone)
 
                 if updates:
                     updates.append("updated_at = CURRENT_TIMESTAMP")
