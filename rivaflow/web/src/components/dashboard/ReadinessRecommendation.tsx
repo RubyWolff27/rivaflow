@@ -12,6 +12,16 @@ interface TriggeredRule {
   priority: number;
 }
 
+const RULE_LABELS: Record<string, string> = {
+  high_stress_low_energy: 'Stress / Low Energy',
+  high_soreness: 'High Soreness',
+  hotspot_active: 'Injury Hotspot',
+  consecutive_gi: 'Consecutive Gi',
+  consecutive_nogi: 'Consecutive No-Gi',
+  green_light: 'All Clear',
+  stale_technique: 'Stale Technique',
+};
+
 interface SuggestionData {
   suggestion: string;
   triggered_rules: TriggeredRule[];
@@ -117,7 +127,7 @@ export default function ReadinessRecommendation() {
                     className="text-xs px-2 py-0.5 rounded-full"
                     style={{ backgroundColor: 'var(--surfaceElev)', color: 'var(--muted)', border: '1px solid var(--border)' }}
                   >
-                    {rule.name}
+                    {RULE_LABELS[rule.name] || rule.name.replace(/_/g, ' ')}
                   </span>
                 ))}
               </div>

@@ -58,7 +58,8 @@ export default function LogSession() {
   const [detailedMode, setDetailedMode] = useState(false);
   const [rolls, setRolls] = useState<RollEntry[]>([]);
 
-  // Fight dynamics state
+  // Collapsible sections
+  const [showWhoop, setShowWhoop] = useState(false);
   const [showFightDynamics, setShowFightDynamics] = useState(false);
   const [fightDynamics, setFightDynamics] = useState({
     attacks_attempted: 0,
@@ -1235,60 +1236,69 @@ export default function LogSession() {
             </div>
           )}
 
-          {/* Whoop Stats (Optional) */}
-          <div className="border-t pt-4">
-            <h3 className="text-lg font-semibold mb-3">Whoop Stats (optional)</h3>
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="label">Activity Strain</label>
-                <input
-                  type="number"
-                  inputMode="decimal"
-                  className="input"
-                  value={sessionData.whoop_strain}
-                  onChange={(e) => setSessionData({ ...sessionData, whoop_strain: e.target.value })}
-                  placeholder="0-21"
-                  min="0"
-                  max="21"
-                  step="0.1"
-                />
+          {/* Whoop Stats (Optional — collapsed by default) */}
+          <div className="border-t border-[var(--border)] pt-4">
+            <button
+              type="button"
+              onClick={() => setShowWhoop(!showWhoop)}
+              className="flex items-center justify-between w-full text-left"
+            >
+              <h3 className="font-semibold text-lg">Whoop Stats <span className="text-sm font-normal" style={{ color: 'var(--muted)' }}>optional</span></h3>
+              {showWhoop ? <ChevronUp className="w-5 h-5" style={{ color: 'var(--muted)' }} /> : <ChevronDown className="w-5 h-5" style={{ color: 'var(--muted)' }} />}
+            </button>
+            {showWhoop && (
+              <div className="grid grid-cols-2 gap-4 mt-3">
+                <div>
+                  <label className="label">Activity Strain</label>
+                  <input
+                    type="number"
+                    inputMode="decimal"
+                    className="input"
+                    value={sessionData.whoop_strain}
+                    onChange={(e) => setSessionData({ ...sessionData, whoop_strain: e.target.value })}
+                    placeholder="0-21"
+                    min="0"
+                    max="21"
+                    step="0.1"
+                  />
+                </div>
+                <div>
+                  <label className="label">Calories</label>
+                  <input
+                    type="number"
+                    className="input"
+                    value={sessionData.whoop_calories}
+                    onChange={(e) => setSessionData({ ...sessionData, whoop_calories: e.target.value })}
+                    placeholder="e.g., 500"
+                    min="0"
+                  />
+                </div>
+                <div>
+                  <label className="label">Avg HR (bpm)</label>
+                  <input
+                    type="number"
+                    className="input"
+                    value={sessionData.whoop_avg_hr}
+                    onChange={(e) => setSessionData({ ...sessionData, whoop_avg_hr: e.target.value })}
+                    placeholder="e.g., 140"
+                    min="0"
+                    max="250"
+                  />
+                </div>
+                <div>
+                  <label className="label">Max HR (bpm)</label>
+                  <input
+                    type="number"
+                    className="input"
+                    value={sessionData.whoop_max_hr}
+                    onChange={(e) => setSessionData({ ...sessionData, whoop_max_hr: e.target.value })}
+                    placeholder="e.g., 185"
+                    min="0"
+                    max="250"
+                  />
+                </div>
               </div>
-              <div>
-                <label className="label">Calories</label>
-                <input
-                  type="number"
-                  className="input"
-                  value={sessionData.whoop_calories}
-                  onChange={(e) => setSessionData({ ...sessionData, whoop_calories: e.target.value })}
-                  placeholder="e.g., 500"
-                  min="0"
-                />
-              </div>
-              <div>
-                <label className="label">Avg HR (bpm)</label>
-                <input
-                  type="number"
-                  className="input"
-                  value={sessionData.whoop_avg_hr}
-                  onChange={(e) => setSessionData({ ...sessionData, whoop_avg_hr: e.target.value })}
-                  placeholder="e.g., 140"
-                  min="0"
-                  max="250"
-                />
-              </div>
-              <div>
-                <label className="label">Max HR (bpm)</label>
-                <input
-                  type="number"
-                  className="input"
-                  value={sessionData.whoop_max_hr}
-                  onChange={(e) => setSessionData({ ...sessionData, whoop_max_hr: e.target.value })}
-                  placeholder="e.g., 185"
-                  min="0"
-                  max="250"
-                />
-              </div>
-            </div>
+            )}
           </div>
 
           {/* Fight Dynamics (BJJ sessions only) */}
