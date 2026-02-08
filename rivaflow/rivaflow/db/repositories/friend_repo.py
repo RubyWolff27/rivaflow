@@ -136,29 +136,37 @@ class FriendRepository:
         email: str | None = None,
     ) -> dict | None:
         """Update a friend by ID. Returns updated friend or None if not found."""
+        # Valid fields that can be updated (whitelist for SQL safety)
+        valid_update_fields = {
+            "name",
+            "friend_type",
+            "belt_rank",
+            "gym",
+            "notes",
+        }
+
         with get_connection() as conn:
             cursor = conn.cursor()
 
-            # Build dynamic update query
+            # Build dynamic update query — all field names validated against whitelist
             updates = []
             params = []
 
-            if name is not None:
-                updates.append("name = ?")
-                params.append(name)
-            if friend_type is not None:
-                updates.append("friend_type = ?")
-                params.append(friend_type)
-            if belt_rank is not None:
-                updates.append("belt_rank = ?")
-                params.append(belt_rank)
-            if gym is not None:
-                updates.append("gym = ?")
-                params.append(gym)
-            if notes is not None:
-                updates.append("notes = ?")
-                params.append(notes)
+            field_values = {
+                "name": name,
+                "friend_type": friend_type,
+                "belt_rank": belt_rank,
+                "gym": gym,
+                "notes": notes,
+            }
             # Legacy parameters ignored (belt_stripes, instructor_certification, phone, email)
+
+            for field, value in field_values.items():
+                if field not in valid_update_fields:
+                    raise ValueError(f"Invalid field: {field}")
+                if value is not None:
+                    updates.append(f"{field} = ?")
+                    params.append(value)
 
             if not updates:
                 # No updates provided, just return current record

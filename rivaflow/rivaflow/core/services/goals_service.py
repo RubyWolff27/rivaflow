@@ -311,7 +311,19 @@ class GoalsService:
         if not updates:
             return profile
 
-        # Update profile
+        # Update profile — whitelist validation BEFORE building query
+        valid_goal_fields = {
+            "weekly_sessions_target",
+            "weekly_hours_target",
+            "weekly_rolls_target",
+            "weekly_bjj_sessions_target",
+            "weekly_sc_sessions_target",
+            "weekly_mobility_sessions_target",
+        }
+        for key in updates:
+            if key not in valid_goal_fields:
+                raise ValueError(f"Invalid field: {key}")
+
         from rivaflow.db.database import convert_query, get_connection
 
         with get_connection() as conn:

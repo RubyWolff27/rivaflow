@@ -136,28 +136,36 @@ class UserRepository:
         Returns:
             Updated user dictionary or None if user not found
         """
+        # Valid fields that can be updated (whitelist for SQL safety)
+        valid_update_fields = {
+            "email",
+            "hashed_password",
+            "first_name",
+            "last_name",
+            "is_active",
+        }
+
         with get_connection() as conn:
             cursor = conn.cursor()
 
-            # Build dynamic update query
+            # Build dynamic update query from hardcoded fields only
             updates = []
             params = []
 
-            if email is not None:
-                updates.append("email = ?")
-                params.append(email)
-            if hashed_password is not None:
-                updates.append("hashed_password = ?")
-                params.append(hashed_password)
-            if first_name is not None:
-                updates.append("first_name = ?")
-                params.append(first_name)
-            if last_name is not None:
-                updates.append("last_name = ?")
-                params.append(last_name)
-            if is_active is not None:
-                updates.append("is_active = ?")
-                params.append(is_active)
+            field_values = {
+                "email": email,
+                "hashed_password": hashed_password,
+                "first_name": first_name,
+                "last_name": last_name,
+                "is_active": is_active,
+            }
+
+            for field, value in field_values.items():
+                if field not in valid_update_fields:
+                    raise ValueError(f"Invalid field: {field}")
+                if value is not None:
+                    updates.append(f"{field} = ?")
+                    params.append(value)
 
             if updates:
                 updates.append("updated_at = CURRENT_TIMESTAMP")

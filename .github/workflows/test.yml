@@ -99,6 +99,12 @@ jobs:
       working-directory: ./web
       run: npm test || echo "No frontend tests configured yet"
 
+    - name: Verify web/ directories are in sync
+      run: |
+        diff -r rivaflow/web/src web/src || { echo "ERROR: rivaflow/web/src and web/src are out of sync. Run: rsync -a --delete rivaflow/web/ web/"; exit 1; }
+        diff rivaflow/web/package.json web/package.json || { echo "ERROR: package.json out of sync"; exit 1; }
+        echo "web/ directories are in sync"
+
     - name: Build frontend
       working-directory: ./web
       run: npm run build

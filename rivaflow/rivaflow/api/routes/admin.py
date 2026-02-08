@@ -629,31 +629,34 @@ async def update_user(
     if not user:
         raise NotFoundError(f"User {user_id} not found")
 
+    # Valid fields that can be updated (whitelist for SQL safety)
+    valid_admin_update_fields = {
+        "is_active",
+        "is_admin",
+        "subscription_tier",
+        "is_beta_user",
+    }
+
     changes = {}
     with get_connection() as conn:
         cursor = conn.cursor()
         updates = []
         params = []
 
-        if user_data.is_active is not None:
-            updates.append("is_active = ?")
-            params.append(user_data.is_active)
-            changes["is_active"] = user_data.is_active
+        field_values = {
+            "is_active": user_data.is_active,
+            "is_admin": user_data.is_admin,
+            "subscription_tier": user_data.subscription_tier,
+            "is_beta_user": user_data.is_beta_user,
+        }
 
-        if user_data.is_admin is not None:
-            updates.append("is_admin = ?")
-            params.append(user_data.is_admin)
-            changes["is_admin"] = user_data.is_admin
-
-        if user_data.subscription_tier is not None:
-            updates.append("subscription_tier = ?")
-            params.append(user_data.subscription_tier)
-            changes["subscription_tier"] = user_data.subscription_tier
-
-        if user_data.is_beta_user is not None:
-            updates.append("is_beta_user = ?")
-            params.append(user_data.is_beta_user)
-            changes["is_beta_user"] = user_data.is_beta_user
+        for field, value in field_values.items():
+            if field not in valid_admin_update_fields:
+                raise ValueError(f"Invalid field: {field}")
+            if value is not None:
+                updates.append(f"{field} = ?")
+                params.append(value)
+                changes[field] = value
 
         if updates:
             query = f"UPDATE users SET {', '.join(updates)} WHERE id = ?"

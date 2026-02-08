@@ -204,10 +204,10 @@ class SessionRepository:
                 "defenses_successful",
             }
 
-            # Process each provided field
+            # Process each provided field — validate BEFORE building query
             for field, value in kwargs.items():
                 if field not in valid_fields:
-                    continue  # Skip invalid fields
+                    raise ValueError(f"Invalid field: {field}")
 
                 # For list fields, allow empty list as explicit "clear"
                 if field in clearable_list_fields:

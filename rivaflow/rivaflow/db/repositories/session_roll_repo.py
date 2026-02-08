@@ -234,36 +234,45 @@ class SessionRollRepository:
         notes: str | None = None,
     ) -> dict | None:
         """Update a session roll by ID. Returns updated roll or None if not found."""
+        # Valid fields that can be updated (whitelist for SQL safety)
+        valid_update_fields = {
+            "roll_number",
+            "partner_id",
+            "partner_name",
+            "duration_mins",
+            "submissions_for",
+            "submissions_against",
+            "notes",
+        }
+
         with get_connection() as conn:
             cursor = conn.cursor()
 
-            # Build dynamic update query
+            # Build dynamic update query — all field names validated against whitelist
             updates = []
             params = []
 
-            if roll_number is not None:
-                updates.append("roll_number = ?")
-                params.append(roll_number)
-            if partner_id is not None:
-                updates.append("partner_id = ?")
-                params.append(partner_id)
-            if partner_name is not None:
-                updates.append("partner_name = ?")
-                params.append(partner_name)
-            if duration_mins is not None:
-                updates.append("duration_mins = ?")
-                params.append(duration_mins)
-            if submissions_for is not None:
-                updates.append("submissions_for = ?")
-                params.append(json.dumps(submissions_for) if submissions_for else None)
-            if submissions_against is not None:
-                updates.append("submissions_against = ?")
-                params.append(
-                    json.dumps(submissions_against) if submissions_against else None
-                )
-            if notes is not None:
-                updates.append("notes = ?")
-                params.append(notes)
+            field_values = {
+                "roll_number": roll_number,
+                "partner_id": partner_id,
+                "partner_name": partner_name,
+                "duration_mins": duration_mins,
+                "submissions_for": submissions_for,
+                "submissions_against": submissions_against,
+                "notes": notes,
+            }
+
+            for field, value in field_values.items():
+                if field not in valid_update_fields:
+                    raise ValueError(f"Invalid field: {field}")
+                if value is not None:
+                    if field == "submissions_for":
+                        params.append(json.dumps(value) if value else None)
+                    elif field == "submissions_against":
+                        params.append(json.dumps(value) if value else None)
+                    else:
+                        params.append(value)
+                    updates.append(f"{field} = ?")
 
             if not updates:
                 # No updates provided, just return current record

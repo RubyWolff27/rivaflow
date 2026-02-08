@@ -92,31 +92,38 @@ class GradingRepository:
         photo_url: str | None = None,
     ) -> dict | None:
         """Update a grading by ID. Returns updated grading or None if not found."""
+        # Valid fields that can be updated (whitelist for SQL safety)
+        valid_update_fields = {
+            "grade",
+            "date_graded",
+            "professor",
+            "instructor_id",
+            "notes",
+            "photo_url",
+        }
+
         with get_connection() as conn:
             cursor = conn.cursor()
 
-            # Build dynamic update query
+            # Build dynamic update query — all field names validated against whitelist
             updates = []
             params = []
 
-            if grade is not None:
-                updates.append("grade = ?")
-                params.append(grade)
-            if date_graded is not None:
-                updates.append("date_graded = ?")
-                params.append(date_graded)
-            if professor is not None:
-                updates.append("professor = ?")
-                params.append(professor)
-            if instructor_id is not None:
-                updates.append("instructor_id = ?")
-                params.append(instructor_id)
-            if notes is not None:
-                updates.append("notes = ?")
-                params.append(notes)
-            if photo_url is not None:
-                updates.append("photo_url = ?")
-                params.append(photo_url)
+            field_values = {
+                "grade": grade,
+                "date_graded": date_graded,
+                "professor": professor,
+                "instructor_id": instructor_id,
+                "notes": notes,
+                "photo_url": photo_url,
+            }
+
+            for field, value in field_values.items():
+                if field not in valid_update_fields:
+                    raise ValueError(f"Invalid field: {field}")
+                if value is not None:
+                    updates.append(f"{field} = ?")
+                    params.append(value)
 
             if not updates:
                 # Nothing to update, just return the current grading

@@ -24,14 +24,13 @@ jobs:
       with:
         python-version: '3.11'
 
-    - name: Install pip-audit
-      run: pip install pip-audit
+    - name: Install dependencies and pip-audit
+      run: |
+        pip install pip-audit
+        pip install -r rivaflow/requirements.txt
 
     - name: Scan Python dependencies for CVEs
-      run: |
-        pip-audit --require-hashes --no-deps || true
-        echo "⚠️  Note: 34 known CVEs detected (see Agent 12 report)"
-        echo "   Priority fixes: urllib3, werkzeug, protobuf"
+      run: pip-audit -r rivaflow/requirements.txt
 
     - name: Setup Node.js
       uses: actions/setup-node@v6
@@ -44,7 +43,7 @@ jobs:
 
     - name: Scan npm dependencies
       working-directory: ./web
-      run: npm audit --audit-level=moderate || true
+      run: npm audit --audit-level=high
 
   secret-scan:
     name: Secret Detection
