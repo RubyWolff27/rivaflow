@@ -235,14 +235,6 @@ class SessionUpdate(BaseModel):
             return None
         return v
 
-    @field_validator("partners", "techniques", mode="before")
-    @classmethod
-    def empty_list_to_none(cls, v):
-        """Convert empty lists to None for optional list fields."""
-        if v is not None and len(v) == 0:
-            return None
-        return v
-
     @model_validator(mode="after")
     def validate_fight_dynamics(self):
         """Validate that successful counts do not exceed attempted counts."""

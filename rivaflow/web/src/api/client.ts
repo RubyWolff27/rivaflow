@@ -105,6 +105,8 @@ export const sessionsApi = {
   create: (data: Partial<Session> & Record<string, unknown>) => api.post<Session>('/sessions/', data),
   list: (limit = 10) => api.get<Session[]>(`/sessions/?limit=${limit}`),
   getById: (id: number) => api.get<Session>(`/sessions/${id}`),
+  getWithRolls: (id: number) => api.get<Session>(`/sessions/${id}/with-rolls`),
+  getInsights: (id: number) => api.get<{ insights: { type: string; title: string; description: string; icon: string }[] }>(`/sessions/${id}/insights`),
   update: (id: number, data: Partial<Session> & Record<string, unknown>) => api.put<Session>(`/sessions/${id}`, data),
   delete: (id: number) => api.delete(`/sessions/${id}`),
   getByRange: (startDate: string, endDate: string) =>

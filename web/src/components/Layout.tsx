@@ -182,9 +182,10 @@ const Layout = memo(function Layout({ children }: { children: React.ReactNode })
       <QuickLog
         isOpen={quickLogOpen}
         onClose={() => setQuickLogOpen(false)}
-        onSuccess={() => {
-          // Refresh if on dashboard
-          if (location.pathname === '/') {
+        onSuccess={(sessionId?: number) => {
+          if (sessionId) {
+            navigate(`/session/${sessionId}`);
+          } else if (location.pathname === '/') {
             navigate(0); // Force re-render without full page reload
           }
         }}

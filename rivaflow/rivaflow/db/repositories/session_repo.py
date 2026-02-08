@@ -161,9 +161,16 @@ class SessionRepository:
             # Most fields pass through directly, but some need transformation
             field_processors = {
                 "session_date": lambda v: v.isoformat() if v else None,
-                "partners": lambda v: json.dumps(v) if v else None,
-                "techniques": lambda v: json.dumps(v) if v else None,
+                "partners": lambda v: (
+                    json.dumps(v) if v is not None else json.dumps([])
+                ),
+                "techniques": lambda v: (
+                    json.dumps(v) if v is not None else json.dumps([])
+                ),
             }
+
+            # List fields that can be explicitly cleared with []
+            clearable_list_fields = {"partners", "techniques"}
 
             # Build update query dynamically from provided kwargs
             updates = []
@@ -202,7 +209,12 @@ class SessionRepository:
                 if field not in valid_fields:
                     continue  # Skip invalid fields
 
-                if value is not None:  # Only update if value provided
+                # For list fields, allow empty list as explicit "clear"
+                if field in clearable_list_fields:
+                    if value is not None:
+                        updates.append(f"{field} = ?")
+                        params.append(field_processors[field](value))
+                elif value is not None:
                     updates.append(f"{field} = ?")
 
                     # Apply processor if field has special handling

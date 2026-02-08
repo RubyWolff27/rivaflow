@@ -93,7 +93,7 @@ export default function EditSession() {
       setLoading(true);
       try {
         const [sessionRes, instructorsRes, partnersRes, autocompleteRes, movementsRes] = await Promise.all([
-          sessionsApi.getById(parseInt(id!)),
+          sessionsApi.getWithRolls(parseInt(id!)),
           friendsApi.listInstructors(),
           friendsApi.listPartners(),
           sessionsApi.getAutocomplete(),
@@ -329,8 +329,8 @@ export default function EditSession() {
         rolls: formData.rolls,
         submissions_for: formData.submissions_for,
         submissions_against: formData.submissions_against,
-        partners: formData.partners ? formData.partners.split(',').map(p => p.trim()) : undefined,
-        techniques: formData.techniques ? formData.techniques.split(',').map(t => t.trim()) : undefined,
+        partners: formData.partners ? formData.partners.split(',').map(p => p.trim()).filter(p => p !== '') : [],
+        techniques: formData.techniques ? formData.techniques.split(',').map(t => t.trim()).filter(t => t !== '') : [],
         notes: formData.notes || undefined,
         whoop_strain: formData.whoop_strain ? parseFloat(formData.whoop_strain) : undefined,
         whoop_calories: formData.whoop_calories ? parseInt(formData.whoop_calories) : undefined,
@@ -338,8 +338,8 @@ export default function EditSession() {
         whoop_max_hr: formData.whoop_max_hr ? parseInt(formData.whoop_max_hr) : undefined,
       };
 
-      // Add detailed rolls
-      if (detailedMode && rolls.length > 0) {
+      // Add detailed rolls (send even if empty to clear old rolls)
+      if (detailedMode) {
         payload.session_rolls = rolls.map(roll => ({
           roll_number: roll.roll_number,
           partner_id: roll.partner_id || undefined,
@@ -373,7 +373,7 @@ export default function EditSession() {
 
       await sessionsApi.update(parseInt(id!), payload);
       setSuccess(true);
-      setTimeout(() => navigate('/'), 1500);
+      setTimeout(() => navigate(`/session/${id}`), 1500);
     } catch (error) {
       console.error('Error updating session:', error);
       toast.error('Failed to update session. Please try again.');
@@ -411,7 +411,7 @@ export default function EditSession() {
       <div className="max-w-md mx-auto text-center py-12">
         <CheckCircle className="w-16 h-16 text-green-500 mx-auto mb-4" />
         <h2 className="text-2xl font-bold mb-2">Session Updated!</h2>
-        <p className="text-[var(--muted)]">Redirecting to dashboard...</p>
+        <p className="text-[var(--muted)]">Redirecting to session...</p>
       </div>
     );
   }
@@ -420,9 +420,9 @@ export default function EditSession() {
     <div className="max-w-2xl mx-auto">
       <div className="mb-6 flex items-center gap-3">
         <button
-          onClick={() => navigate('/')}
+          onClick={() => navigate(`/session/${id}`)}
           className="text-[var(--muted)] hover:text-[var(--text)]"
-          aria-label="Back to dashboard"
+          aria-label="Back to session"
         >
           <ArrowLeft className="w-6 h-6" />
         </button>
@@ -1121,7 +1121,7 @@ export default function EditSession() {
         <div className="flex gap-2">
           <button
             type="button"
-            onClick={() => navigate('/')}
+            onClick={() => navigate(`/session/${id}`)}
             className="btn-secondary flex items-center gap-2"
           >
             <ArrowLeft className="w-4 h-4" />

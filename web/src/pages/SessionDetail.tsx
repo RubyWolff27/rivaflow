@@ -2,9 +2,10 @@ import { useEffect, useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { sessionsApi } from '../api/client';
 import type { Session } from '../types';
-import { ArrowLeft, Calendar, Clock, Zap, Users, MapPin, User, Book, Edit2, Activity, Target, Camera, ChevronLeft, ChevronRight } from 'lucide-react';
+import { ArrowLeft, Calendar, Clock, Zap, Users, MapPin, User, Book, Edit2, Activity, Target, Camera, ChevronLeft, ChevronRight, Plus } from 'lucide-react';
 import PhotoGallery from '../components/PhotoGallery';
 import PhotoUpload from '../components/PhotoUpload';
+import SessionInsights from '../components/SessionInsights';
 import { useToast } from '../contexts/ToastContext';
 import { CardSkeleton } from '../components/ui';
 
@@ -24,7 +25,7 @@ export default function SessionDetail() {
     const doLoad = async () => {
       setLoading(true);
       try {
-        const response = await sessionsApi.getById(parseInt(id ?? '0'));
+        const response = await sessionsApi.getWithRolls(parseInt(id ?? '0'));
         if (!cancelled) setSession(response.data ?? null);
       } catch (error) {
         if (!cancelled) {
@@ -226,6 +227,32 @@ export default function SessionDetail() {
         </div>
       </div>
 
+      {/* Session Insights */}
+      <SessionInsights sessionId={session.id} />
+
+      {/* Add Details CTA for incomplete sessions */}
+      {['gi', 'no-gi', 'open-mat', 'competition'].includes(session.class_type) &&
+        (session.rolls ?? 0) === 0 &&
+        (!session.session_techniques || session.session_techniques.length === 0) && (
+        <div className="card" style={{ borderColor: 'var(--accent)', borderWidth: '2px' }}>
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="font-semibold text-lg" style={{ color: 'var(--text)' }}>Add Roll Details</h3>
+              <p className="text-sm" style={{ color: 'var(--muted)' }}>
+                Add partners, rolls, and techniques to unlock insights
+              </p>
+            </div>
+            <Link
+              to={`/session/edit/${session.id}`}
+              className="btn-primary flex items-center gap-2"
+            >
+              <Plus className="w-4 h-4" />
+              Add Details
+            </Link>
+          </div>
+        </div>
+      )}
+
       {/* Instructor */}
       {session.instructor_name && (
         <div className="card">
@@ -252,6 +279,46 @@ export default function SessionDetail() {
               >
                 {partner}
               </span>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Detailed Rolls */}
+      {session.detailed_rolls && Array.isArray(session.detailed_rolls) && session.detailed_rolls.length > 0 && (
+        <div className="card">
+          <div className="flex items-center gap-2 mb-3">
+            <Activity className="w-5 h-5 text-[var(--muted)]" />
+            <h3 className="font-semibold text-lg">Roll Details</h3>
+          </div>
+          <div className="space-y-3">
+            {session.detailed_rolls.map((roll: any) => (
+              <div
+                key={roll.roll_number ?? roll.id}
+                className="flex items-center gap-4 p-3 rounded-lg"
+                style={{ backgroundColor: 'var(--surfaceElev)' }}
+              >
+                <div className="flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold" style={{ backgroundColor: 'var(--accent)', color: '#fff' }}>
+                  {roll.roll_number ?? '?'}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="font-medium text-sm" style={{ color: 'var(--text)' }}>
+                    {roll.partner_name || 'Unknown partner'}
+                  </p>
+                  <div className="flex items-center gap-3 text-xs" style={{ color: 'var(--muted)' }}>
+                    {roll.duration_mins && <span>{roll.duration_mins} min</span>}
+                    {roll.submissions_for && Array.isArray(roll.submissions_for) && roll.submissions_for.length > 0 && (
+                      <span className="text-green-500">+{roll.submissions_for.length} sub</span>
+                    )}
+                    {roll.submissions_against && Array.isArray(roll.submissions_against) && roll.submissions_against.length > 0 && (
+                      <span className="text-red-400">-{roll.submissions_against.length} sub</span>
+                    )}
+                  </div>
+                  {roll.notes && (
+                    <p className="text-xs mt-1" style={{ color: 'var(--muted)' }}>{roll.notes}</p>
+                  )}
+                </div>
+              </div>
             ))}
           </div>
         </div>

@@ -7,7 +7,7 @@ import { useToast } from '../contexts/ToastContext';
 interface QuickLogProps {
   isOpen: boolean;
   onClose: () => void;
-  onSuccess?: () => void;
+  onSuccess?: (sessionId?: number) => void;
 }
 
 export default function QuickLog({ isOpen, onClose, onSuccess }: QuickLogProps) {
@@ -22,6 +22,8 @@ export default function QuickLog({ isOpen, onClose, onSuccess }: QuickLogProps) 
   const [classType, setClassType] = useState('gi');
   const [duration, setDuration] = useState(90);
   const [intensity, setIntensity] = useState(3);
+  const [quickPartners, setQuickPartners] = useState('');
+  const [quickRolls, setQuickRolls] = useState(0);
 
   // Rest day fields
   const [restType, setRestType] = useState('active');
@@ -78,18 +80,29 @@ export default function QuickLog({ isOpen, onClose, onSuccess }: QuickLogProps) 
           return;
         }
 
-        await sessionsApi.create({
+        const partnersList = quickPartners
+          ? quickPartners.split(',').map(p => p.trim()).filter(p => p !== '')
+          : undefined;
+
+        const response = await sessionsApi.create({
           gym_name: gym,
           session_date: today,
           duration_mins: duration,
           intensity,
           class_type: classType,
-          rolls: 0,
+          rolls: quickRolls,
+          partners: partnersList && partnersList.length > 0 ? partnersList : undefined,
         });
         toast.success('Session logged successfully');
         // Reset training form
         setDuration(90);
         setIntensity(3);
+        setQuickPartners('');
+        setQuickRolls(0);
+
+        if (onSuccess) onSuccess(response.data?.id);
+        onClose();
+        return;
       }
 
       if (onSuccess) onSuccess();
@@ -228,6 +241,37 @@ export default function QuickLog({ isOpen, onClose, onSuccess }: QuickLogProps) 
                   Intensity
                 </label>
                 <IntensityChips value={intensity} onChange={setIntensity} size="sm" />
+              </div>
+
+              {/* Rolls */}
+              {['gi', 'no-gi', 'open-mat', 'competition'].includes(classType) && (
+                <div>
+                  <label className="block text-sm font-medium mb-2" style={{ color: 'var(--text)' }}>
+                    Rolls
+                  </label>
+                  <input
+                    type="number"
+                    value={quickRolls}
+                    onChange={(e) => setQuickRolls(parseInt(e.target.value) || 0)}
+                    className="input w-full"
+                    placeholder="0"
+                    min="0"
+                  />
+                </div>
+              )}
+
+              {/* Partners */}
+              <div>
+                <label className="block text-sm font-medium mb-2" style={{ color: 'var(--text)' }}>
+                  Partners <span className="font-normal" style={{ color: 'var(--muted)' }}>(optional)</span>
+                </label>
+                <input
+                  type="text"
+                  value={quickPartners}
+                  onChange={(e) => setQuickPartners(e.target.value)}
+                  className="input w-full"
+                  placeholder="e.g., Alex, Sarah"
+                />
               </div>
             </>
           )}

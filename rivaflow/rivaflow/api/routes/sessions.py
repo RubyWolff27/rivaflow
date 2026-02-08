@@ -246,6 +246,25 @@ async def get_autocomplete_data(current_user: dict = Depends(get_current_user)):
     return service.get_autocomplete_data(user_id=current_user["id"])
 
 
+@router.get("/{session_id}/insights")
+async def get_session_insights(
+    session_id: int,
+    current_user: dict = Depends(get_current_user),
+):
+    """Get Strava-like insights for a specific session."""
+    from rivaflow.core.services.session_insight_service import (
+        SessionInsightService,
+    )
+
+    insight_service = SessionInsightService()
+    result = insight_service.get_session_insights(
+        user_id=current_user["id"], session_id=session_id
+    )
+    if not result.get("insights") and result.get("insights") is None:
+        raise NotFoundError(f"Session {session_id} not found")
+    return result
+
+
 @router.get("/{session_id}/with-rolls")
 async def get_session_with_rolls(
     session_id: int,
