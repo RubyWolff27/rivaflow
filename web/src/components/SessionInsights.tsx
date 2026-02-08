@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { sessionsApi } from '../api/client';
-import { Star, Trophy, Users, Flame, Target, Zap } from 'lucide-react';
+import { Star, Trophy, Users, Flame, Target, Zap, UserPlus } from 'lucide-react';
 
 interface Insight {
   type: string;
@@ -28,6 +29,7 @@ const ICON_COLORS: Record<string, string> = {
 };
 
 export default function SessionInsights({ sessionId }: { sessionId: number }) {
+  const navigate = useNavigate();
   const [insights, setInsights] = useState<Insight[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -70,6 +72,16 @@ export default function SessionInsights({ sessionId }: { sessionId: number }) {
             <p className="text-xs" style={{ color: 'var(--muted)' }}>
               {insight.description}
             </p>
+            {insight.type === 'partner_milestone' && (
+              <button
+                onClick={() => navigate('/friends')}
+                className="flex items-center gap-1 mt-2 text-xs font-medium"
+                style={{ color: 'var(--accent)' }}
+              >
+                <UserPlus className="w-3.5 h-3.5" />
+                Add Friend
+              </button>
+            )}
           </div>
         );
       })}

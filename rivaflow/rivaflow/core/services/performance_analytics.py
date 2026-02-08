@@ -51,9 +51,7 @@ class PerformanceAnalyticsService:
         if not end_date:
             end_date = date.today()
 
-        sessions = self.session_repo.get_by_date_range(
-            user_id, start_date, end_date, types=types
-        )
+        sessions = self.session_repo.get_by_date_range(user_id, start_date, end_date, types=types)
 
         # Submission success over time (monthly)
         monthly_stats = defaultdict(lambda: {"for": 0, "against": 0, "ratio": 0})
@@ -134,27 +132,20 @@ class PerformanceAnalyticsService:
         belt_performance = self._calculate_performance_by_belt(sessions, gradings)
 
         # Daily time series for sparklines
-        daily_timeseries = self._calculate_daily_timeseries(
-            sessions, start_date, end_date
-        )
+        daily_timeseries = self._calculate_daily_timeseries(sessions, start_date, end_date)
 
         # Previous period comparison for deltas
         period_length = (end_date - start_date).days
         prev_start = start_date - timedelta(days=period_length)
         prev_end = start_date - timedelta(days=1)
-        prev_sessions = self.session_repo.get_by_date_range(
-            user_id, prev_start, prev_end
-        )
+        prev_sessions = self.session_repo.get_by_date_range(user_id, prev_start, prev_end)
         prev_summary = self._calculate_period_summary(prev_sessions)
         current_summary = self._calculate_period_summary(sessions)
 
         # Calculate deltas
         deltas = {
-            "sessions": current_summary["total_sessions"]
-            - prev_summary["total_sessions"],
-            "intensity": round(
-                current_summary["avg_intensity"] - prev_summary["avg_intensity"], 1
-            ),
+            "sessions": current_summary["total_sessions"] - prev_summary["total_sessions"],
+            "intensity": round(current_summary["avg_intensity"] - prev_summary["avg_intensity"], 1),
             "rolls": current_summary["total_rolls"] - prev_summary["total_rolls"],
             "submissions": current_summary["total_submissions_for"]
             - prev_summary["total_submissions_for"],
@@ -186,9 +177,7 @@ class PerformanceAnalyticsService:
 
         return {
             "total_sessions": len(sessions),
-            "total_submissions_for": sum(
-                s.get("submissions_for", 0) or 0 for s in sessions
-            ),
+            "total_submissions_for": sum(s.get("submissions_for", 0) or 0 for s in sessions),
             "total_submissions_against": sum(
                 s.get("submissions_against", 0) or 0 for s in sessions
             ),
@@ -240,9 +229,7 @@ class PerformanceAnalyticsService:
 
             # Avg intensity for the day (if any sessions)
             if data["sessions"] > 0:
-                intensity_series.append(
-                    round(data["total_intensity"] / data["sessions"], 1)
-                )
+                intensity_series.append(round(data["total_intensity"] / data["sessions"], 1))
             else:
                 intensity_series.append(0)
 
@@ -272,20 +259,39 @@ class PerformanceAnalyticsService:
         partner_session_count = defaultdict(int)
         partner_names = {}
 
+        # Build name→id lookup from friends for matching simple partners
+        all_partners = self.friend_repo.list_by_type(user_id, "training-partner")
+        name_to_id: dict[str, int] = {}
+        for p in all_partners:
+            name_to_id[p["name"].strip().lower()] = p["id"]
+            partner_names[p["id"]] = p["name"]
+
         for session in sessions:
             rolls = rolls_by_session.get(session["id"], [])
-            partners_in_session = set()
+            partners_in_session: set[int] = set()
 
+            # Detailed rolls
             for roll in rolls:
                 if roll.get("partner_id"):
                     partners_in_session.add(roll["partner_id"])
 
+            # Simple-mode partners from sessions.partners JSON
+            import json
+
+            raw = session.get("partners")
+            if raw:
+                try:
+                    plist = json.loads(raw) if isinstance(raw, str) else raw
+                    if isinstance(plist, list):
+                        for name in plist:
+                            pid = name_to_id.get(name.strip().lower())
+                            if pid:
+                                partners_in_session.add(pid)
+                except (json.JSONDecodeError, TypeError):
+                    pass
+
             for partner_id in partners_in_session:
                 partner_session_count[partner_id] += 1
-                if partner_id not in partner_names:
-                    partner = self.friend_repo.get_by_id(user_id, partner_id)
-                    if partner:
-                        partner_names[partner_id] = partner["name"]
 
         # Build distribution list
         distribution = []
@@ -342,9 +348,7 @@ class PerformanceAnalyticsService:
                     "end_date": end.isoformat(),
                     "sessions": len(period_sessions),
                     "subs_for": sum(s["submissions_for"] for s in period_sessions),
-                    "subs_against": sum(
-                        s["submissions_against"] for s in period_sessions
-                    ),
+                    "subs_against": sum(s["submissions_against"] for s in period_sessions),
                 }
             )
 
@@ -375,26 +379,47 @@ class PerformanceAnalyticsService:
         if not end_date:
             end_date = date.today()
 
-        sessions = self.session_repo.get_by_date_range(
-            user_id, start_date, end_date, types=types
-        )
+        sessions = self.session_repo.get_by_date_range(user_id, start_date, end_date, types=types)
 
         # Get all partners from contacts
         partners = self.friend_repo.list_by_type(user_id, "training-partner")
+
+        # Count simple-mode partner mentions from sessions.partners JSON
+        import json
+
+        simple_partner_counts: dict[str, int] = {}
+        for s in sessions:
+            raw = s.get("partners")
+            if not raw:
+                continue
+            try:
+                plist = json.loads(raw) if isinstance(raw, str) else raw
+                if isinstance(plist, list):
+                    for name in plist:
+                        name_lower = name.strip().lower()
+                        simple_partner_counts[name_lower] = (
+                            simple_partner_counts.get(name_lower, 0) + 1
+                        )
+            except (json.JSONDecodeError, TypeError):
+                pass
 
         partner_matrix = []
         for partner in partners:
             stats = self.roll_repo.get_partner_stats(user_id, partner["id"])
 
-            # Filter by date range
+            # Count detailed rolls in date range
             rolls_in_range = self.roll_repo.get_by_partner_id(user_id, partner["id"])
             rolls_in_range = [
                 r
                 for r in rolls_in_range
-                if start_date
-                <= self._get_session_date(user_id, r["session_id"])
-                <= end_date
+                if start_date <= self._get_session_date(user_id, r["session_id"]) <= end_date
             ]
+            detailed_count = len(rolls_in_range)
+
+            # Count simple-mode mentions by partner name
+            simple_count = simple_partner_counts.get(partner["name"].strip().lower(), 0)
+
+            total_rolls = detailed_count + simple_count
 
             partner_matrix.append(
                 {
@@ -402,7 +427,7 @@ class PerformanceAnalyticsService:
                     "name": partner["name"],
                     "belt_rank": partner.get("belt_rank"),
                     "belt_stripes": partner.get("belt_stripes", 0),
-                    "total_rolls": len(rolls_in_range),
+                    "total_rolls": total_rolls,
                     "submissions_for": stats.get("total_submissions_for", 0),
                     "submissions_against": stats.get("total_submissions_against", 0),
                     "sub_ratio": stats.get("sub_ratio", 0),
@@ -421,14 +446,10 @@ class PerformanceAnalyticsService:
         recurring_partners = len([p for p in active_partners if p["total_rolls"] > 3])
 
         # Top partners summary (top 5)
-        top_partners = (
-            partner_matrix[:5] if len(partner_matrix) >= 5 else partner_matrix
-        )
+        top_partners = partner_matrix[:5] if len(partner_matrix) >= 5 else partner_matrix
 
         # Calculate session distribution by partner
-        session_distribution = self._calculate_partner_session_distribution(
-            user_id, sessions
-        )
+        session_distribution = self._calculate_partner_session_distribution(user_id, sessions)
 
         # Overall partner stats
         total_rolls_all_partners = sum(p["total_rolls"] for p in partner_matrix)
@@ -453,9 +474,7 @@ class PerformanceAnalyticsService:
             },
         }
 
-    def get_head_to_head(
-        self, user_id: int, partner1_id: int, partner2_id: int
-    ) -> dict[str, Any]:
+    def get_head_to_head(self, user_id: int, partner1_id: int, partner2_id: int) -> dict[str, Any]:
         """Get head-to-head comparison between two partners."""
         partner1 = self.friend_repo.get_by_id(user_id, partner1_id)
         partner2 = self.friend_repo.get_by_id(user_id, partner2_id)
@@ -509,9 +528,7 @@ class PerformanceAnalyticsService:
         if not end_date:
             end_date = date.today()
 
-        sessions = self.session_repo.get_by_date_range(
-            user_id, start_date, end_date, types=types
-        )
+        sessions = self.session_repo.get_by_date_range(user_id, start_date, end_date, types=types)
         instructors = self.friend_repo.list_by_type(user_id, "instructor")
 
         performance_by_instructor = []
@@ -525,13 +542,9 @@ class PerformanceAnalyticsService:
 
             # Calculate metrics
             total_sessions = len(instructor_sessions)
-            avg_intensity = statistics.mean(
-                [s["intensity"] for s in instructor_sessions]
-            )
+            avg_intensity = statistics.mean([s["intensity"] for s in instructor_sessions])
             total_subs_for = sum(s["submissions_for"] for s in instructor_sessions)
-            total_subs_against = sum(
-                s["submissions_against"] for s in instructor_sessions
-            )
+            total_subs_against = sum(s["submissions_against"] for s in instructor_sessions)
 
             # Analyze techniques taught
             techniques_taught = Counter()

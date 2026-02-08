@@ -445,17 +445,36 @@ export default function EditSession() {
         {/* Class Time */}
         <div>
           <label className="label">Class Time (optional)</label>
-          <select
-            className="input"
+          <div className="flex gap-2 mb-2" role="group" aria-label="Common class times">
+            {[
+              { label: '6:30am', value: '06:30' },
+              { label: '12pm', value: '12:00' },
+              { label: '5:30pm', value: '17:30' },
+              { label: '7pm', value: '19:00' },
+            ].map((time) => (
+              <button
+                key={time.value}
+                type="button"
+                onClick={() => setFormData({ ...formData, class_time: time.value })}
+                className="flex-1 min-h-[44px] py-2 rounded-lg font-medium text-sm transition-all"
+                style={{
+                  backgroundColor: formData.class_time === time.value ? 'var(--accent)' : 'var(--surfaceElev)',
+                  color: formData.class_time === time.value ? '#FFFFFF' : 'var(--text)',
+                  border: formData.class_time === time.value ? 'none' : '1px solid var(--border)',
+                }}
+                aria-pressed={formData.class_time === time.value}
+              >
+                {time.label}
+              </button>
+            ))}
+          </div>
+          <input
+            type="text"
+            className="input text-sm"
             value={formData.class_time}
             onChange={(e) => setFormData({ ...formData, class_time: e.target.value })}
-          >
-            <option value="">Not specified</option>
-            <option value="06:30">06:30 - Early Morning</option>
-            <option value="12:00">12:00 - Midday</option>
-            <option value="17:30">17:30 - Evening</option>
-            <option value="19:00">19:00 - Night</option>
-          </select>
+            placeholder="Or type custom time (e.g., 18:30, morning)"
+          />
         </div>
 
         {/* Class Type */}
