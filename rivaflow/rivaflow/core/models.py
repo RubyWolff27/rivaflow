@@ -162,12 +162,13 @@ class SessionCreate(BaseModel):
     @field_validator("session_date")
     @classmethod
     def validate_session_date(cls, v):
-        """Validate session date is not in the future."""
+        """Validate session date is not in the future (with 1-day timezone tolerance)."""
         from datetime import date as date_class
+        from datetime import timedelta
 
         today = date_class.today()
 
-        if v > today:
+        if v > today + timedelta(days=1):
             raise ValueError(
                 f"Session date cannot be in the future. "
                 f"You provided {v.strftime('%Y-%m-%d')}, but today is {today.strftime('%Y-%m-%d')}. "

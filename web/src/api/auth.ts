@@ -17,6 +17,8 @@ export interface RegisterRequest {
   first_name: string;
   last_name: string;
   invite_token?: string;
+  default_gym?: string;
+  current_grade?: string;
 }
 
 export interface LoginRequest {

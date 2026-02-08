@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { getLocalDateString } from '../utils/date';
 import { Sparkles, Send, Trash2, MessageCircle, AlertCircle, ThumbsUp, ThumbsDown, Zap, Brain, BookOpen } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
@@ -92,7 +93,7 @@ function SessionExtractionPanel() {
     if (!extracted) return;
     setSaving(true);
     try {
-      const today = new Date().toISOString().split('T')[0];
+      const today = getLocalDateString();
       await grappleApi.saveExtractedSession({
         session_date: extracted.session_date || today,
         class_type: extracted.class_type || 'gi',

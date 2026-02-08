@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { getLocalDateString } from '../../utils/date';
 import { Link } from 'react-router-dom';
 import { Sparkles } from 'lucide-react';
 import { suggestionsApi, readinessApi } from '../../api/client';
@@ -36,7 +37,7 @@ export default function ReadinessRecommendation() {
       } catch {
         // Fallback: try to get readiness score directly
         try {
-          const today = new Date().toISOString().split('T')[0];
+          const today = getLocalDateString();
           const readRes = await readinessApi.getByDate(today);
           if (!cancelled && readRes.data?.composite_score != null) {
             setCompositeScore(readRes.data.composite_score);

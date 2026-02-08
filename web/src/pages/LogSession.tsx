@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
+import { getLocalDateString } from '../utils/date';
 import { useNavigate } from 'react-router-dom';
 import { sessionsApi, readinessApi, profileApi, friendsApi, glossaryApi, restApi } from '../api/client';
 import type { Friend, Movement, MediaUrl, Readiness } from '../types';
@@ -74,7 +75,7 @@ export default function LogSession() {
 
   // Readiness data (Step 1)
   const [readinessData, setReadinessData] = useState({
-    check_date: new Date().toISOString().split('T')[0],
+    check_date: getLocalDateString(),
     sleep: 3,
     stress: 3,
     soreness: 2,
@@ -85,7 +86,7 @@ export default function LogSession() {
 
   // Session data (Step 2)
   const [sessionData, setSessionData] = useState({
-    session_date: new Date().toISOString().split('T')[0],
+    session_date: getLocalDateString(),
     class_time: '',
     class_type: 'gi',
     gym_name: '',
@@ -108,7 +109,7 @@ export default function LogSession() {
 
   // Rest day data
   const [restData, setRestData] = useState({
-    rest_date: new Date().toISOString().split('T')[0],
+    rest_date: getLocalDateString(),
     rest_type: 'active',
     rest_note: '',
   });

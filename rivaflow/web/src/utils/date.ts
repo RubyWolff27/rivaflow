@@ -1,0 +1,7 @@
+/** Returns a date in YYYY-MM-DD format using the browser's local timezone. */
+export function getLocalDateString(d: Date = new Date()): string {
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}

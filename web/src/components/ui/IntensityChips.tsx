@@ -1,9 +1,9 @@
 const LEVELS = [
-  { value: 1, label: '1 Light', color: '#10B981' },
-  { value: 2, label: '2 Easy', color: '#34D399' },
-  { value: 3, label: '3 Moderate', color: '#F59E0B' },
-  { value: 4, label: '4 Hard', color: '#F97316' },
-  { value: 5, label: '5 War', color: '#EF4444' },
+  { value: 1, label: '1 Light', emoji: '\u{1F9D8}', color: '#10B981' },
+  { value: 2, label: '2 Easy', emoji: '\u{1F60A}', color: '#34D399' },
+  { value: 3, label: '3 Moderate', emoji: '\u{1F4AA}', color: '#F59E0B' },
+  { value: 4, label: '4 Hard', emoji: '\u{1F525}', color: '#F97316' },
+  { value: 5, label: '5 War', emoji: '\u{2620}\u{FE0F}', color: '#EF4444' },
 ];
 
 interface IntensityChipsProps {
@@ -33,7 +33,7 @@ export default function IntensityChips({ value, onChange, size = 'md' }: Intensi
             aria-label={`Intensity level ${level.value} of 5: ${level.label}`}
             aria-pressed={selected}
           >
-            {level.label}
+            {level.emoji} {level.label}
           </button>
         );
       })}

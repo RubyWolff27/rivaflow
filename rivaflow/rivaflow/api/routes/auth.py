@@ -32,6 +32,8 @@ class RegisterRequest(BaseModel):
     first_name: str
     last_name: str
     invite_token: str | None = None
+    default_gym: str | None = None
+    current_grade: str | None = None
 
 
 class LoginRequest(BaseModel):
@@ -110,6 +112,8 @@ async def register(request: Request, req: RegisterRequest):
             password=req.password,
             first_name=req.first_name,
             last_name=req.last_name,
+            default_gym=req.default_gym,
+            current_grade=req.current_grade,
         )
 
         # Mark the waitlist entry as registered if an invite token was used

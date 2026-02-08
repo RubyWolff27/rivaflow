@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { getLocalDateString } from '../utils/date';
 import { Link, useNavigate } from 'react-router-dom';
 import { Plus, Activity, Scale } from 'lucide-react';
 import { Card, PrimaryButton, SecondaryButton, CardSkeleton } from '../components/ui';
@@ -31,7 +32,7 @@ export default function Dashboard() {
 
     const loadAll = async () => {
       try {
-        const today = new Date().toISOString().split('T')[0];
+        const today = getLocalDateString();
         const response = await readinessApi.getByDate(today);
         if (!controller.signal.aborted && response.data) {
           setReadinessScore(response.data.composite_score);

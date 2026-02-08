@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { getLocalDateString } from '../utils/date';
 import { useSearchParams, Link } from 'react-router-dom';
 import { analyticsApi } from '../api/client';
 import { TrendingUp, Users, Activity, Target, Lightbulb, Book, Calendar, Swords } from 'lucide-react';
@@ -33,8 +34,8 @@ export default function Reports() {
     const start = new Date();
     start.setDate(start.getDate() - 7);
     setDateRange({
-      start: start.toISOString().split('T')[0],
-      end: end.toISOString().split('T')[0],
+      start: getLocalDateString(start),
+      end: getLocalDateString(end),
     });
   }, []);
 
@@ -94,8 +95,8 @@ export default function Reports() {
     const start = new Date();
     start.setDate(start.getDate() - days);
     setDateRange({
-      start: start.toISOString().split('T')[0],
-      end: end.toISOString().split('T')[0],
+      start: getLocalDateString(start),
+      end: getLocalDateString(end),
     });
     setHasUserChangedRange(false);
   };
@@ -328,8 +329,8 @@ export default function Reports() {
               const start = new Date();
               start.setDate(start.getDate() - range.days);
               const isActive = !hasUserChangedRange &&
-                dateRange.start === start.toISOString().split('T')[0] &&
-                dateRange.end === end.toISOString().split('T')[0];
+                dateRange.start === getLocalDateString(start) &&
+                dateRange.end === getLocalDateString(end);
 
               return (
                 <button

@@ -1,4 +1,6 @@
 import { useState, useEffect } from 'react';
+import { getLocalDateString } from '../utils/date';
+import { BELT_GRADES } from '../constants/belts';
 import { profileApi, gradingsApi, friendsApi, adminApi, gymsApi, getErrorMessage } from '../api/client';
 import type { Profile as ProfileType, Grading, Friend } from '../types';
 import { User, CheckCircle, Award, Plus, Trash2, Edit2, Target, AlertCircle, Crown, Star } from 'lucide-react';
@@ -8,34 +10,6 @@ import { useToast } from '../contexts/ToastContext';
 import { useTier } from '../hooks/useTier';
 import { CardSkeleton } from '../components/ui';
 
-const BELT_GRADES = [
-  'White',
-  'Blue',
-  'Purple',
-  'Brown',
-  'Black',
-  'White (1 stripe)',
-  'White (2 stripes)',
-  'White (3 stripes)',
-  'White (4 stripes)',
-  'Blue (1 stripe)',
-  'Blue (2 stripes)',
-  'Blue (3 stripes)',
-  'Blue (4 stripes)',
-  'Purple (1 stripe)',
-  'Purple (2 stripes)',
-  'Purple (3 stripes)',
-  'Purple (4 stripes)',
-  'Brown (1 stripe)',
-  'Brown (2 stripes)',
-  'Brown (3 stripes)',
-  'Brown (4 stripes)',
-  'Black (1st degree)',
-  'Black (2nd degree)',
-  'Black (3rd degree)',
-  'Black (4th degree)',
-  'Black (5th degree)',
-];
 
 export default function Profile() {
   const [profile, setProfile] = useState<ProfileType | null>(null);
@@ -81,7 +55,7 @@ export default function Profile() {
 
   const [gradingForm, setGradingForm] = useState({
     grade: '',
-    date_graded: new Date().toISOString().split('T')[0],
+    date_graded: getLocalDateString(),
     professor: '',
     instructor_id: null as number | null,
     notes: '',
@@ -395,7 +369,7 @@ export default function Profile() {
   const handleOpenAddGrading = () => {
     setGradingForm({
       grade: '',
-      date_graded: new Date().toISOString().split('T')[0],
+      date_graded: getLocalDateString(),
       professor: profile?.current_professor ?? '',
       instructor_id: profile?.current_instructor_id ?? null,
       notes: '',
@@ -424,7 +398,7 @@ export default function Profile() {
       });
       setGradingForm({
         grade: '',
-        date_graded: new Date().toISOString().split('T')[0],
+        date_graded: getLocalDateString(),
         professor: '',
         instructor_id: null,
         notes: '',
@@ -444,7 +418,7 @@ export default function Profile() {
     setEditingGrading(grading);
     setGradingForm({
       grade: grading.grade ?? '',
-      date_graded: grading.date_graded ?? new Date().toISOString().split('T')[0],
+      date_graded: grading.date_graded ?? getLocalDateString(),
       professor: grading.professor ?? '',
       instructor_id: grading.instructor_id ?? null,
       notes: grading.notes ?? '',
@@ -474,7 +448,7 @@ export default function Profile() {
       });
       setGradingForm({
         grade: '',
-        date_graded: new Date().toISOString().split('T')[0],
+        date_graded: getLocalDateString(),
         professor: '',
         instructor_id: null,
         notes: '',
@@ -494,7 +468,7 @@ export default function Profile() {
     setEditingGrading(null);
     setGradingForm({
       grade: '',
-      date_graded: new Date().toISOString().split('T')[0],
+      date_graded: getLocalDateString(),
       professor: '',
       instructor_id: null,
       notes: '',
@@ -689,7 +663,7 @@ export default function Profile() {
               className="input"
               value={formData.date_of_birth}
               onChange={(e) => setFormData({ ...formData, date_of_birth: e.target.value })}
-              max={new Date().toISOString().split('T')[0]}
+              max={getLocalDateString()}
             />
             {profile?.age != null && (
               <p className="text-sm text-[var(--muted)] mt-1">
@@ -1119,7 +1093,7 @@ export default function Profile() {
                 className="input"
                 value={gradingForm.date_graded}
                 onChange={(e) => setGradingForm({ ...gradingForm, date_graded: e.target.value })}
-                max={new Date().toISOString().split('T')[0]}
+                max={getLocalDateString()}
                 required
               />
             </div>

@@ -1,6 +1,7 @@
 import { useState, FormEvent } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import { BELT_GRADES } from '../constants/belts';
 
 export default function Register() {
   const { register } = useAuth();
@@ -13,6 +14,8 @@ export default function Register() {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
+  const [defaultGym, setDefaultGym] = useState('');
+  const [beltGrade, setBeltGrade] = useState('');
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
@@ -34,7 +37,7 @@ export default function Register() {
     setIsLoading(true);
 
     try {
-      await register(email, password, firstName, lastName, inviteToken);
+      await register(email, password, firstName, lastName, inviteToken, defaultGym || undefined, beltGrade || undefined);
       navigate('/');
     } catch (err: any) {
       setError(err.message || 'Registration failed');
@@ -207,6 +210,50 @@ export default function Register() {
                 }}
                 placeholder="Re-enter password"
               />
+            </div>
+
+            <div>
+              <label htmlFor="defaultGym" className="block text-sm font-medium mb-1" style={{ color: 'var(--text)' }}>
+                Gym <span className="font-normal" style={{ color: 'var(--muted)' }}>(optional)</span>
+              </label>
+              <input
+                id="defaultGym"
+                name="defaultGym"
+                type="text"
+                autoComplete="organization"
+                value={defaultGym}
+                onChange={(e) => setDefaultGym(e.target.value)}
+                className="appearance-none rounded-md relative block w-full px-3 py-2 border focus:outline-none focus:ring-2 sm:text-sm"
+                style={{
+                  borderColor: 'var(--border)',
+                  backgroundColor: 'var(--surface)',
+                  color: 'var(--text)',
+                }}
+                placeholder="Your gym or academy"
+              />
+            </div>
+
+            <div>
+              <label htmlFor="beltGrade" className="block text-sm font-medium mb-1" style={{ color: 'var(--text)' }}>
+                Belt <span className="font-normal" style={{ color: 'var(--muted)' }}>(optional)</span>
+              </label>
+              <select
+                id="beltGrade"
+                name="beltGrade"
+                value={beltGrade}
+                onChange={(e) => setBeltGrade(e.target.value)}
+                className="appearance-none rounded-md relative block w-full px-3 py-2 border focus:outline-none focus:ring-2 sm:text-sm"
+                style={{
+                  borderColor: 'var(--border)',
+                  backgroundColor: 'var(--surface)',
+                  color: beltGrade ? 'var(--text)' : 'var(--muted)',
+                }}
+              >
+                <option value="">Select your belt</option>
+                {BELT_GRADES.map((grade) => (
+                  <option key={grade} value={grade}>{grade}</option>
+                ))}
+              </select>
             </div>
           </div>
 

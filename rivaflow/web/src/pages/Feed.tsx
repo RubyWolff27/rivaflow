@@ -1,4 +1,5 @@
 import { useEffect, useState, memo, useCallback } from 'react';
+import { getLocalDateString } from '../utils/date';
 import { useNavigate } from 'react-router-dom';
 import { feedApi, socialApi, sessionsApi } from '../api/client';
 import { Activity, Calendar, Heart, Moon, Zap, Edit2, Eye } from 'lucide-react';
@@ -445,9 +446,9 @@ export default function Feed() {
     const yesterday = new Date(today);
     yesterday.setDate(yesterday.getDate() - 1);
 
-    const dateOnly = date.toISOString().split('T')[0];
-    const todayOnly = today.toISOString().split('T')[0];
-    const yesterdayOnly = yesterday.toISOString().split('T')[0];
+    const dateOnly = getLocalDateString(date);
+    const todayOnly = getLocalDateString(today);
+    const yesterdayOnly = getLocalDateString(yesterday);
 
     if (dateOnly === todayOnly) return 'Today';
     if (dateOnly === yesterdayOnly) return 'Yesterday';

@@ -33,6 +33,8 @@ class AuthService:
         password: str,
         first_name: str,
         last_name: str,
+        default_gym: str | None = None,
+        current_grade: str | None = None,
     ) -> dict[str, Any]:
         """
         Register a new user with email and password.
@@ -172,6 +174,17 @@ class AuthService:
             except (ConnectionError, OSError):
                 pass  # Best effort cleanup
             raise ValueError("Registration failed - unable to initialize user data")
+
+        # Update profile with gym/belt if provided during registration
+        if default_gym or current_grade:
+            try:
+                self.profile_repo.update(
+                    user_id=user["id"],
+                    default_gym=default_gym,
+                    current_grade=current_grade,
+                )
+            except (ConnectionError, OSError, ValueError) as e:
+                logger.warning(f"Failed to set gym/belt for user {user['id']}: {e}")
 
         # Generate tokens (sub must be string for JWT)
         access_token = create_access_token(data={"sub": str(user["id"])})

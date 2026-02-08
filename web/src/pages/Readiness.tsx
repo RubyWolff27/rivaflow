@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { getLocalDateString } from '../utils/date';
 import { readinessApi, suggestionsApi } from '../api/client';
 import type { Readiness as ReadinessType } from '../types';
 import { Activity } from 'lucide-react';
@@ -13,7 +14,7 @@ export default function Readiness() {
   const toast = useToast();
 
   const [formData, setFormData] = useState({
-    check_date: new Date().toISOString().split('T')[0],
+    check_date: getLocalDateString(),
     sleep: 3,
     stress: 3,
     soreness: 2,
