@@ -15,6 +15,14 @@ router = APIRouter(prefix="/transcribe", tags=["transcribe"])
 logger = logging.getLogger(__name__)
 limiter = Limiter(key_func=get_remote_address)
 
+CLEANUP_PROMPT = (
+    "Clean up this voice transcript for BJJ training session notes. "
+    "Fix punctuation and capitalization. Remove filler words "
+    "(um, uh, like, you know, so yeah, basically). "
+    "Keep the original wording and meaning — do not rephrase, "
+    "summarize, or add anything. Return only the cleaned text."
+)
+
 ALLOWED_MIME_TYPES = {
     "audio/webm",
     "audio/mp4",
@@ -116,6 +124,35 @@ async def transcribe_audio(
                 status_code=200,
                 content={"transcript": ""},
             )
+
+        # Clean up transcript with gpt-4o-mini
+        try:
+            async with httpx.AsyncClient(timeout=15.0) as client:
+                cleanup_resp = await client.post(
+                    "https://api.openai.com/v1/chat/completions",
+                    headers={"Authorization": f"Bearer {api_key}"},
+                    json={
+                        "model": "gpt-4o-mini",
+                        "messages": [
+                            {"role": "system", "content": CLEANUP_PROMPT},
+                            {"role": "user", "content": transcript},
+                        ],
+                        "temperature": 0,
+                        "max_tokens": 1024,
+                    },
+                )
+            if cleanup_resp.status_code == 200:
+                cleaned = (
+                    cleanup_resp.json()
+                    .get("choices", [{}])[0]
+                    .get("message", {})
+                    .get("content", "")
+                    .strip()
+                )
+                if cleaned:
+                    transcript = cleaned
+        except Exception:
+            logger.debug("Transcript cleanup failed, using raw Whisper output")
 
         return JSONResponse(
             status_code=200,
