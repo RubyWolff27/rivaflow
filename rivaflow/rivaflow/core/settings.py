@@ -39,6 +39,15 @@ class Settings:
         """Check if running in test environment."""
         return self.ENV == "test"
 
+    @property
+    def WAITLIST_ENABLED(self) -> bool:
+        """Whether new signups require a waitlist invite token.
+
+        Set to 'true' to gate registration behind the waitlist.
+        Defaults to false (open signups) during beta.
+        """
+        return os.getenv("WAITLIST_ENABLED", "false").lower() == "true"
+
     # ==============================================================================
     # SECURITY
     # ==============================================================================

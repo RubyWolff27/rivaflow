@@ -83,12 +83,12 @@ async def register(request: Request, req: RegisterRequest):
     """
     waitlist_repo = WaitlistRepository()
 
-    # In production, require a valid invite token
-    if settings.IS_PRODUCTION:
+    # When waitlist is enabled, require a valid invite token
+    if settings.WAITLIST_ENABLED:
         if not req.invite_token:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
-                detail="Registration requires an invite. Join the waitlist at rivaflow.app",
+                detail="Registration requires an invite. Join the waitlist at rivaflow.app/waitlist",
             )
 
         if not waitlist_repo.is_invite_valid(req.invite_token):
@@ -97,8 +97,8 @@ async def register(request: Request, req: RegisterRequest):
                 detail="Invalid or expired invite token. Please request a new invite.",
             )
 
-    # If invite_token is provided in non-production, still validate it
-    if req.invite_token and not settings.IS_PRODUCTION:
+    # If invite_token is provided but waitlist is not enforced, still validate
+    if req.invite_token and not settings.WAITLIST_ENABLED:
         if not waitlist_repo.is_invite_valid(req.invite_token):
             logger.warning(
                 f"Invalid invite token used in {settings.ENV} for {req.email}"

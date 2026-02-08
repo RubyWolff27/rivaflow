@@ -29,6 +29,18 @@ services:
           property: connectionString
       - key: ENV
         value: production
+      - key: WAITLIST_ENABLED
+        value: "false"
+      - key: APP_BASE_URL
+        value: https://rivaflow.app
+      - key: SENDGRID_API_KEY
+        sync: false
+      - key: FROM_EMAIL
+        value: support@rivaflow.app
+      - key: FROM_NAME
+        value: RivaFlow
+      - key: ADMIN_EMAILS
+        sync: false
     autoDeploy: true
 
 databases:

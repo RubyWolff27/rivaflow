@@ -190,7 +190,7 @@ class EmailService:
             True if sent successfully, False otherwise
         """
         # Get base URL from environment or use default
-        base_url = os.getenv("APP_BASE_URL", "https://rivaflow.onrender.com")
+        base_url = os.getenv("APP_BASE_URL", "https://rivaflow.app")
         reset_link = f"{base_url}/reset-password?token={reset_token}"
 
         greeting = f"Hi {user_name}," if user_name else "Hi,"
@@ -330,7 +330,7 @@ RivaFlow - Training OS for the Mat
             True if sent successfully, False otherwise
         """
         # Get base URL from environment or use default
-        base_url = os.getenv("APP_BASE_URL", "https://rivaflow.onrender.com")
+        base_url = os.getenv("APP_BASE_URL", "https://rivaflow.app")
 
         greeting = f"Hey {first_name}," if first_name else "Hey there,"
 
@@ -534,7 +534,7 @@ RivaFlow - Training OS for the Mat
         Returns:
             True if sent successfully, False otherwise
         """
-        base_url = os.getenv("APP_BASE_URL", "https://rivaflow.onrender.com")
+        base_url = os.getenv("APP_BASE_URL", "https://rivaflow.app")
         register_link = f"{base_url}/register?invite={invite_token}"
 
         greeting = f"Hi {first_name}," if first_name else "Hi,"
@@ -672,7 +672,7 @@ RivaFlow - Training OS for the Mat
         admin_emails = [email.strip() for email in admin_emails_str.split(",")]
 
         # Get base URL for admin panel link
-        base_url = os.getenv("APP_BASE_URL", "https://rivaflow.onrender.com")
+        base_url = os.getenv("APP_BASE_URL", "https://rivaflow.app")
         admin_url = f"{base_url}/admin/feedback"
 
         # Build HTML email
