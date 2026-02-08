@@ -46,7 +46,10 @@ export default function QuickLog({ isOpen, onClose, onSuccess }: QuickLogProps) 
   const onTranscript = useCallback((transcript: string) => {
     setNotes(prev => prev ? `${prev} ${transcript}` : transcript);
   }, []);
-  const { isRecording, hasSpeechApi, toggleRecording } = useSpeechRecognition({ onTranscript });
+  const onSpeechError = useCallback((message: string) => {
+    toast.error(message);
+  }, [toast]);
+  const { isRecording, hasSpeechApi, toggleRecording } = useSpeechRecognition({ onTranscript, onError: onSpeechError });
 
   // Rest day fields
   const [restType, setRestType] = useState('active');

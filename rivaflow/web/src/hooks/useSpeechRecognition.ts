@@ -2,10 +2,11 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 
 interface UseSpeechRecognitionOptions {
   onTranscript: (transcript: string) => void;
+  onError?: (message: string) => void;
   lang?: string;
 }
 
-export function useSpeechRecognition({ onTranscript, lang = 'en-US' }: UseSpeechRecognitionOptions) {
+export function useSpeechRecognition({ onTranscript, onError, lang = 'en-US' }: UseSpeechRecognitionOptions) {
   const [isRecording, setIsRecording] = useState(false);
   const recognitionRef = useRef<any>(null);
 
@@ -42,12 +43,28 @@ export function useSpeechRecognition({ onTranscript, lang = 'en-US' }: UseSpeech
       onTranscript(transcript);
     };
     recognition.onend = () => setIsRecording(false);
-    recognition.onerror = () => setIsRecording(false);
+    recognition.onerror = (event: any) => {
+      setIsRecording(false);
+      const error = event.error;
+      if (error === 'not-allowed') {
+        onError?.('Microphone access denied. Please allow microphone in your browser settings.');
+      } else if (error === 'no-speech') {
+        onError?.('No speech detected. Please try again.');
+      } else if (error === 'network') {
+        onError?.('Network error. Speech recognition requires an internet connection.');
+      } else {
+        onError?.(`Speech recognition failed: ${error || 'unknown error'}`);
+      }
+    };
 
     recognitionRef.current = recognition;
-    recognition.start();
-    setIsRecording(true);
-  }, [isRecording, lang, onTranscript]);
+    try {
+      recognition.start();
+      setIsRecording(true);
+    } catch (e) {
+      onError?.('Could not start speech recognition. Your browser may not fully support this feature.');
+    }
+  }, [isRecording, lang, onTranscript, onError]);
 
   return { isRecording, hasSpeechApi, toggleRecording };
 }

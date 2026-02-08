@@ -123,7 +123,10 @@ export default function LogSession() {
       notes: prev.notes ? `${prev.notes} ${transcript}` : transcript,
     }));
   }, []);
-  const { isRecording, hasSpeechApi, toggleRecording } = useSpeechRecognition({ onTranscript });
+  const onSpeechError = useCallback((message: string) => {
+    toast.showToast('error', message);
+  }, [toast]);
+  const { isRecording, hasSpeechApi, toggleRecording } = useSpeechRecognition({ onTranscript, onError: onSpeechError });
 
   useEffect(() => {
     const controller = new AbortController();
