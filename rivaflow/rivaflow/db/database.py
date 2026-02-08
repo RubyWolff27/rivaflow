@@ -476,9 +476,6 @@ def _apply_migrations(
         "065_enhanced_grapple.sql",
         "066_add_check_constraints.sql",
         "067_create_grapple_tables.sql",
-        "068_migrate_techniques_to_glossary.sql",
-        "069_migrate_legacy_videos.sql",
-        "070_add_self_friend_constraint.sql",
         "071_deduplicate_glossary.sql",
     ]
 
