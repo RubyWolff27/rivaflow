@@ -69,13 +69,22 @@ rivaflow auth delete-account
 
 Both are tracked separately in analytics.
 
+### What is Quick Log vs Full Log?
+
+- **Quick Log** - Capture the essentials fast. Pick partners and it auto-creates rolls for each one.
+- **Full Log** - Complete control with techniques, fight dynamics, notes, and speech-to-text input.
+
+### Can I use voice to log sessions?
+
+Yes! Full Log supports speech-to-text for the notes field. Tap the microphone icon to dictate instead of typing.
+
 ### Can I log sessions in the past?
 
 Yes! When logging a session, you can specify any past date. You cannot log future sessions.
 
 ### What if I train at multiple gyms?
 
-Log each session separately with the appropriate gym name. Analytics will show your most-visited gyms.
+Log each session separately with the appropriate gym name. Analytics will show your most-visited gyms and compare performance across them.
 
 ### Do I have to log every single session?
 
@@ -254,15 +263,20 @@ Or via web: `POST /api/v1/grapple/chat`
 
 ### What can Grapple help with?
 
-- Technique questions
-- Strategy advice
-- Training planning
-- Progress analysis
-- Motivation
+- Technique questions and strategy advice
+- Training load management and periodisation
+- Game plan creation and drill suggestions
+- Progress analysis using your deep analytics
+- Post-session personalised insights
+- Recovery and overtraining guidance
 
 ### Does Grapple have access to my data?
 
-Only if you grant permission. Grapple can analyze your sessions to give personalized insights.
+Only if you grant permission. Grapple can analyse your sessions, readiness trends, ACWR training load, overtraining risk, technique effectiveness, session quality, and recovery patterns to give personalised advice.
+
+### Does Grapple give post-session insights?
+
+Yes! After logging a session, Grapple generates a personalised insight that considers your current training load (ACWR), overtraining risk, and session quality alongside the session details.
 
 ### Is Grapple always right?
 
@@ -333,6 +347,61 @@ rivaflow analytics year   # Year view
 rivaflow analytics all    # All time
 rivaflow progress         # Lifetime stats
 ```
+
+---
+
+## Advanced Insights
+
+### What is the Insights tab?
+
+The Insights tab provides deep, data-science-driven analytics beyond basic counts and averages. It includes ACWR training load management, readiness-performance correlation, technique effectiveness quadrants, session quality scoring, overtraining risk assessment, and recovery analysis. It unlocks as you log more sessions.
+
+### What is ACWR?
+
+Acute:Chronic Workload Ratio compares your recent 7-day training load (acute) to your 28-day average (chronic) using exponentially weighted moving averages. Zones:
+- **< 0.8** - Undertrained
+- **0.8 - 1.3** - Sweet spot
+- **1.3 - 1.5** - Caution
+- **> 1.5** - Danger zone
+
+This helps prevent injuries from sudden training spikes.
+
+### How does overtraining risk work?
+
+RivaFlow scores overtraining risk (0-100) based on four factors, each worth up to 25 points:
+1. **ACWR spike** - Sudden training load increase
+2. **Readiness decline** - Downward trend in readiness scores over 14 days
+3. **Hotspot mentions** - Injury or soreness mentions in recent check-ins
+4. **Intensity creep** - Gradual increase in training intensity
+
+Levels: Green (< 30), Yellow (30-60), Red (> 60). Each level includes specific recommendations.
+
+### What are money moves?
+
+The technique effectiveness quadrant maps your techniques on two axes: training frequency and success rate in rolls. The four quadrants are:
+- **Money moves** - High frequency, high success (your bread and butter)
+- **Developing** - High frequency, lower success (keep drilling)
+- **Natural talent** - Low frequency, high success (hidden gems)
+- **Untested** - Low frequency, low success (explore or discard)
+
+### How does session quality scoring work?
+
+Each session receives a composite quality score (0-100) based on four equally weighted components:
+- **Intensity** (25 pts) - Training intensity level
+- **Submissions** (25 pts) - Submission ratio in rolls
+- **Techniques** (25 pts) - Number of techniques practised
+- **Volume** (25 pts) - Number of rolls and training duration
+
+### How does recovery analysis work?
+
+Recovery insights analyse:
+- **Sleep-performance correlation** - Pearson r between sleep quality and next-day performance
+- **Optimal rest days** - Groups sessions by days since last training, compares sub rates to find your ideal recovery window
+- **Rest day analysis** - Breakdown of performance by rest interval
+
+### Does readiness affect my insights?
+
+Yes! The Insights tab shows a scatter plot correlating your readiness scores with session performance. It identifies your optimal readiness zone — the score range where you perform best.
 
 ---
 
