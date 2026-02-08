@@ -489,6 +489,7 @@ def _apply_migrations(
         "066_add_check_constraints.sql",
         "067_create_grapple_tables.sql",
         "071_deduplicate_glossary.sql",
+        "072_fix_rate_limits_unique_index.sql",
     ]
 
     migrations_dir = Path(__file__).parent / "migrations"
