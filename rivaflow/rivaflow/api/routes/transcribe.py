@@ -3,13 +3,17 @@
 import logging
 
 import httpx
-from fastapi import APIRouter, Request, UploadFile
+from fastapi import APIRouter, Depends, Request, UploadFile
 from fastapi.responses import JSONResponse
+from slowapi import Limiter
+from slowapi.util import get_remote_address
 
+from rivaflow.core.dependencies import get_current_user
 from rivaflow.core.settings import settings
 
 router = APIRouter(prefix="/transcribe", tags=["transcribe"])
 logger = logging.getLogger(__name__)
+limiter = Limiter(key_func=get_remote_address)
 
 ALLOWED_MIME_TYPES = {
     "audio/webm",
@@ -37,16 +41,17 @@ MIME_TO_EXT = {
 
 
 @router.post("/")
-async def transcribe_audio(request: Request, file: UploadFile):
+@limiter.limit("20/minute")
+async def transcribe_audio(
+    request: Request,
+    file: UploadFile,
+    current_user: dict = Depends(get_current_user),
+):
     """Transcribe uploaded audio using OpenAI Whisper API.
 
     Accepts audio files (webm, mp4, mp3, wav, ogg) up to 25MB.
     Returns the transcribed text.
     """
-    # Rate limit: 20/minute
-    limiter = request.app.state.limiter
-    await limiter.check("20/minute", request)
-
     api_key = settings.OPENAI_API_KEY
     if not api_key:
         return JSONResponse(
