@@ -6,6 +6,9 @@ import logging
 from rivaflow.core.services.grapple.llm_client import (
     GrappleLLMClient,
 )
+from rivaflow.core.services.insights_analytics import (
+    InsightsAnalyticsService,
+)
 from rivaflow.db.repositories.ai_insight_repo import (
     AIInsightRepository,
 )
@@ -62,6 +65,18 @@ async def generate_post_session_insight(user_id: int, session_id: int) -> dict |
     if recent:
         avg_intensity = sum(s.get("intensity", 3) for s in recent) / len(recent)
         context += f"Avg intensity: {avg_intensity:.1f}/5. "
+
+    # Enrich with deep analytics
+    try:
+        insights_svc = InsightsAnalyticsService()
+        load = insights_svc.get_training_load_management(user_id, days=90)
+        context += f"ACWR: {load['current_acwr']} ({load['current_zone']}). "
+        risk = insights_svc.get_overtraining_risk(user_id)
+        context += f"Overtraining risk: {risk['risk_score']}/100 ({risk['level']}). "
+        quality = insights_svc.get_session_quality_scores(user_id)
+        context += f"Avg session quality: {quality['avg_quality']}/100. "
+    except Exception:
+        pass
 
     try:
         client = GrappleLLMClient(environment="production")

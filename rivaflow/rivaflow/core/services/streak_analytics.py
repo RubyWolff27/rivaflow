@@ -128,6 +128,61 @@ class StreakAnalyticsService:
 
         return current_streak, longest_streak
 
+    def get_training_frequency_heatmap(
+        self,
+        user_id: int,
+        start_date: date | None = None,
+        end_date: date | None = None,
+        types: list[str] | None = None,
+    ) -> dict[str, Any]:
+        """GitHub-style calendar data (date -> session count + intensity)."""
+        if not start_date:
+            start_date = date.today() - timedelta(days=365)
+        if not end_date:
+            end_date = date.today()
+
+        sessions = self.session_repo.get_by_date_range(
+            user_id, start_date, end_date, types=types
+        )
+
+        # Aggregate by day
+        daily: dict[str, dict] = defaultdict(lambda: {"count": 0, "total_intensity": 0})
+        for s in sessions:
+            day_key = s["session_date"].isoformat()
+            daily[day_key]["count"] += 1
+            daily[day_key]["total_intensity"] += s.get("intensity", 0) or 0
+
+        # Build full calendar grid
+        calendar = []
+        current = start_date
+        while current <= end_date:
+            day_key = current.isoformat()
+            entry = daily.get(day_key)
+            if entry and entry["count"] > 0:
+                avg_intensity = round(entry["total_intensity"] / entry["count"], 1)
+                calendar.append(
+                    {
+                        "date": day_key,
+                        "count": entry["count"],
+                        "intensity": avg_intensity,
+                    }
+                )
+            else:
+                calendar.append({"date": day_key, "count": 0, "intensity": 0})
+            current += timedelta(days=1)
+
+        total_active_days = sum(1 for d in calendar if d["count"] > 0)
+        total_days = len(calendar)
+
+        return {
+            "calendar": calendar,
+            "total_active_days": total_active_days,
+            "total_days": total_days,
+            "activity_rate": (
+                round(total_active_days / total_days * 100, 1) if total_days > 0 else 0
+            ),
+        }
+
     def get_milestones(self, user_id: int) -> dict[str, Any]:
         """
         Get progression and milestone data.

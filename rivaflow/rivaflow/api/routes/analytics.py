@@ -284,6 +284,499 @@ async def get_instructor_analytics(
         )
 
 
+@cached(ttl_seconds=600, key_prefix="analytics_duration")
+def _get_duration_analytics_cached(
+    user_id: int,
+    start_date: date | None = None,
+    end_date: date | None = None,
+    types: list[str] | None = None,
+):
+    """Cached helper for duration analytics. Cache TTL: 10 minutes."""
+    return service.get_duration_analytics(
+        user_id=user_id, start_date=start_date, end_date=end_date, types=types
+    )
+
+
+@cached(ttl_seconds=600, key_prefix="analytics_time_of_day")
+def _get_time_of_day_cached(
+    user_id: int,
+    start_date: date | None = None,
+    end_date: date | None = None,
+    types: list[str] | None = None,
+):
+    """Cached helper for time of day patterns. Cache TTL: 10 minutes."""
+    return service.get_time_of_day_patterns(
+        user_id=user_id, start_date=start_date, end_date=end_date, types=types
+    )
+
+
+@cached(ttl_seconds=600, key_prefix="analytics_gym_comparison")
+def _get_gym_comparison_cached(
+    user_id: int,
+    start_date: date | None = None,
+    end_date: date | None = None,
+    types: list[str] | None = None,
+):
+    """Cached helper for gym comparison. Cache TTL: 10 minutes."""
+    return service.get_gym_comparison(
+        user_id=user_id, start_date=start_date, end_date=end_date, types=types
+    )
+
+
+@cached(ttl_seconds=600, key_prefix="analytics_class_type")
+def _get_class_type_effectiveness_cached(
+    user_id: int,
+    start_date: date | None = None,
+    end_date: date | None = None,
+):
+    """Cached helper for class type effectiveness. Cache TTL: 10 minutes."""
+    return service.get_class_type_effectiveness(
+        user_id=user_id, start_date=start_date, end_date=end_date
+    )
+
+
+@cached(ttl_seconds=600, key_prefix="analytics_weight")
+def _get_weight_trend_cached(
+    user_id: int,
+    start_date: date | None = None,
+    end_date: date | None = None,
+):
+    """Cached helper for weight trend. Cache TTL: 10 minutes."""
+    return service.get_weight_trend(
+        user_id=user_id, start_date=start_date, end_date=end_date
+    )
+
+
+@cached(ttl_seconds=600, key_prefix="analytics_calendar")
+def _get_training_calendar_cached(
+    user_id: int,
+    start_date: date | None = None,
+    end_date: date | None = None,
+    types: list[str] | None = None,
+):
+    """Cached helper for training calendar. Cache TTL: 10 minutes."""
+    return service.get_training_frequency_heatmap(
+        user_id=user_id, start_date=start_date, end_date=end_date, types=types
+    )
+
+
+@cached(ttl_seconds=600, key_prefix="analytics_belt_dist")
+def _get_partner_belt_distribution_cached(user_id: int):
+    """Cached helper for partner belt distribution. Cache TTL: 10 minutes."""
+    return service.get_partner_belt_distribution(user_id=user_id)
+
+
+@router.get("/duration/trends")
+async def get_duration_analytics(
+    start_date: date | None = Query(None),
+    end_date: date | None = Query(None),
+    types: list[str] | None = Query(
+        None, description="Filter by class types (e.g., gi, no-gi, s&c)"
+    ),
+    current_user: dict = Depends(get_current_user),
+):
+    """Get duration analytics with trends. Cached for 10 minutes."""
+    try:
+        return _get_duration_analytics_cached(
+            user_id=current_user["id"],
+            start_date=start_date,
+            end_date=end_date,
+            types=types,
+        )
+    except (RivaFlowException, HTTPException):
+        raise
+    except (ValueError, KeyError, TypeError) as e:
+        logger.error(f"Error in get_duration_analytics: {type(e).__name__}: {str(e)}")
+        logger.error(traceback.format_exc())
+        raise HTTPException(
+            status_code=500, detail=f"Analytics error: {type(e).__name__}: {str(e)}"
+        )
+
+
+@router.get("/time-of-day/patterns")
+async def get_time_of_day_patterns(
+    start_date: date | None = Query(None),
+    end_date: date | None = Query(None),
+    types: list[str] | None = Query(
+        None, description="Filter by class types (e.g., gi, no-gi, s&c)"
+    ),
+    current_user: dict = Depends(get_current_user),
+):
+    """Get time of day performance patterns. Cached for 10 minutes."""
+    try:
+        return _get_time_of_day_cached(
+            user_id=current_user["id"],
+            start_date=start_date,
+            end_date=end_date,
+            types=types,
+        )
+    except (RivaFlowException, HTTPException):
+        raise
+    except (ValueError, KeyError, TypeError) as e:
+        logger.error(f"Error in get_time_of_day_patterns: {type(e).__name__}: {str(e)}")
+        logger.error(traceback.format_exc())
+        raise HTTPException(
+            status_code=500, detail=f"Analytics error: {type(e).__name__}: {str(e)}"
+        )
+
+
+@router.get("/gyms/comparison")
+async def get_gym_comparison(
+    start_date: date | None = Query(None),
+    end_date: date | None = Query(None),
+    types: list[str] | None = Query(
+        None, description="Filter by class types (e.g., gi, no-gi, s&c)"
+    ),
+    current_user: dict = Depends(get_current_user),
+):
+    """Get gym comparison metrics. Cached for 10 minutes."""
+    try:
+        return _get_gym_comparison_cached(
+            user_id=current_user["id"],
+            start_date=start_date,
+            end_date=end_date,
+            types=types,
+        )
+    except (RivaFlowException, HTTPException):
+        raise
+    except (ValueError, KeyError, TypeError) as e:
+        logger.error(f"Error in get_gym_comparison: {type(e).__name__}: {str(e)}")
+        logger.error(traceback.format_exc())
+        raise HTTPException(
+            status_code=500, detail=f"Analytics error: {type(e).__name__}: {str(e)}"
+        )
+
+
+@router.get("/class-types/effectiveness")
+async def get_class_type_effectiveness(
+    start_date: date | None = Query(None),
+    end_date: date | None = Query(None),
+    current_user: dict = Depends(get_current_user),
+):
+    """Get class type effectiveness metrics. Cached for 10 minutes."""
+    try:
+        return _get_class_type_effectiveness_cached(
+            user_id=current_user["id"],
+            start_date=start_date,
+            end_date=end_date,
+        )
+    except (RivaFlowException, HTTPException):
+        raise
+    except (ValueError, KeyError, TypeError) as e:
+        logger.error(
+            f"Error in get_class_type_effectiveness: {type(e).__name__}: {str(e)}"
+        )
+        logger.error(traceback.format_exc())
+        raise HTTPException(
+            status_code=500, detail=f"Analytics error: {type(e).__name__}: {str(e)}"
+        )
+
+
+@router.get("/weight/trend")
+async def get_weight_trend(
+    start_date: date | None = Query(None),
+    end_date: date | None = Query(None),
+    current_user: dict = Depends(get_current_user),
+):
+    """Get weight trend with 7-day SMA. Cached for 10 minutes."""
+    try:
+        return _get_weight_trend_cached(
+            user_id=current_user["id"],
+            start_date=start_date,
+            end_date=end_date,
+        )
+    except (RivaFlowException, HTTPException):
+        raise
+    except (ValueError, KeyError, TypeError) as e:
+        logger.error(f"Error in get_weight_trend: {type(e).__name__}: {str(e)}")
+        logger.error(traceback.format_exc())
+        raise HTTPException(
+            status_code=500, detail=f"Analytics error: {type(e).__name__}: {str(e)}"
+        )
+
+
+@router.get("/training-calendar")
+async def get_training_calendar(
+    start_date: date | None = Query(None),
+    end_date: date | None = Query(None),
+    types: list[str] | None = Query(
+        None, description="Filter by class types (e.g., gi, no-gi, s&c)"
+    ),
+    current_user: dict = Depends(get_current_user),
+):
+    """Get training frequency calendar data. Cached for 10 minutes."""
+    try:
+        return _get_training_calendar_cached(
+            user_id=current_user["id"],
+            start_date=start_date,
+            end_date=end_date,
+            types=types,
+        )
+    except (RivaFlowException, HTTPException):
+        raise
+    except (ValueError, KeyError, TypeError) as e:
+        logger.error(f"Error in get_training_calendar: {type(e).__name__}: {str(e)}")
+        logger.error(traceback.format_exc())
+        raise HTTPException(
+            status_code=500, detail=f"Analytics error: {type(e).__name__}: {str(e)}"
+        )
+
+
+@router.get("/partners/belt-distribution")
+async def get_partner_belt_distribution(
+    current_user: dict = Depends(get_current_user),
+):
+    """Get partner belt rank distribution. Cached for 10 minutes."""
+    try:
+        return _get_partner_belt_distribution_cached(
+            user_id=current_user["id"],
+        )
+    except (RivaFlowException, HTTPException):
+        raise
+    except (ValueError, KeyError, TypeError) as e:
+        logger.error(
+            f"Error in get_partner_belt_distribution: {type(e).__name__}: {str(e)}"
+        )
+        logger.error(traceback.format_exc())
+        raise HTTPException(
+            status_code=500, detail=f"Analytics error: {type(e).__name__}: {str(e)}"
+        )
+
+
+# ============================================================================
+# INSIGHTS ENGINE (Phase 2) - Deep analytics endpoints
+# ============================================================================
+
+
+@cached(ttl_seconds=300, key_prefix="insights_summary")
+def _get_insights_summary_cached(user_id: int):
+    """Cached helper for insights summary. Cache TTL: 5 minutes."""
+    return service.get_insights_summary(user_id=user_id)
+
+
+@cached(ttl_seconds=600, key_prefix="insights_readiness_corr")
+def _get_readiness_correlation_cached(
+    user_id: int,
+    start_date: date | None = None,
+    end_date: date | None = None,
+):
+    """Cached helper for readiness correlation. Cache TTL: 10 minutes."""
+    return service.get_readiness_performance_correlation(
+        user_id=user_id, start_date=start_date, end_date=end_date
+    )
+
+
+@cached(ttl_seconds=600, key_prefix="insights_training_load")
+def _get_training_load_cached(user_id: int, days: int = 90):
+    """Cached helper for training load. Cache TTL: 10 minutes."""
+    return service.get_training_load_management(user_id=user_id, days=days)
+
+
+@cached(ttl_seconds=600, key_prefix="insights_technique_eff")
+def _get_technique_effectiveness_cached(
+    user_id: int,
+    start_date: date | None = None,
+    end_date: date | None = None,
+):
+    """Cached helper for technique effectiveness. Cache TTL: 10 minutes."""
+    return service.get_technique_effectiveness(
+        user_id=user_id, start_date=start_date, end_date=end_date
+    )
+
+
+@cached(ttl_seconds=600, key_prefix="insights_partner_prog")
+def _get_partner_progression_cached(user_id: int, partner_id: int):
+    """Cached helper for partner progression. Cache TTL: 10 minutes."""
+    return service.get_partner_progression(user_id=user_id, partner_id=partner_id)
+
+
+@cached(ttl_seconds=600, key_prefix="insights_quality")
+def _get_session_quality_cached(
+    user_id: int,
+    start_date: date | None = None,
+    end_date: date | None = None,
+):
+    """Cached helper for session quality. Cache TTL: 10 minutes."""
+    return service.get_session_quality_scores(
+        user_id=user_id, start_date=start_date, end_date=end_date
+    )
+
+
+@cached(ttl_seconds=300, key_prefix="insights_risk")
+def _get_overtraining_risk_cached(user_id: int):
+    """Cached helper for overtraining risk. Cache TTL: 5 minutes."""
+    return service.get_overtraining_risk(user_id=user_id)
+
+
+@cached(ttl_seconds=600, key_prefix="insights_recovery")
+def _get_recovery_insights_cached(user_id: int, days: int = 90):
+    """Cached helper for recovery insights. Cache TTL: 10 minutes."""
+    return service.get_recovery_insights(user_id=user_id, days=days)
+
+
+@router.get("/insights/summary")
+async def get_insights_summary(
+    current_user: dict = Depends(get_current_user),
+):
+    """Get insights dashboard summary. Cached for 5 minutes."""
+    try:
+        return _get_insights_summary_cached(user_id=current_user["id"])
+    except (RivaFlowException, HTTPException):
+        raise
+    except (ValueError, KeyError, TypeError) as e:
+        logger.error(f"Error in get_insights_summary: {type(e).__name__}: {str(e)}")
+        logger.error(traceback.format_exc())
+        raise HTTPException(
+            status_code=500, detail=f"Analytics error: {type(e).__name__}: {str(e)}"
+        )
+
+
+@router.get("/insights/readiness-correlation")
+async def get_readiness_correlation(
+    start_date: date | None = Query(None),
+    end_date: date | None = Query(None),
+    current_user: dict = Depends(get_current_user),
+):
+    """Get readiness × performance correlation. Cached for 10 minutes."""
+    try:
+        return _get_readiness_correlation_cached(
+            user_id=current_user["id"],
+            start_date=start_date,
+            end_date=end_date,
+        )
+    except (RivaFlowException, HTTPException):
+        raise
+    except (ValueError, KeyError, TypeError) as e:
+        logger.error(
+            f"Error in get_readiness_correlation: {type(e).__name__}: {str(e)}"
+        )
+        logger.error(traceback.format_exc())
+        raise HTTPException(
+            status_code=500, detail=f"Analytics error: {type(e).__name__}: {str(e)}"
+        )
+
+
+@router.get("/insights/training-load")
+async def get_training_load(
+    days: int = Query(default=90, ge=7, le=365),
+    current_user: dict = Depends(get_current_user),
+):
+    """Get ACWR training load management. Cached for 10 minutes."""
+    try:
+        return _get_training_load_cached(user_id=current_user["id"], days=days)
+    except (RivaFlowException, HTTPException):
+        raise
+    except (ValueError, KeyError, TypeError) as e:
+        logger.error(f"Error in get_training_load: {type(e).__name__}: {str(e)}")
+        logger.error(traceback.format_exc())
+        raise HTTPException(
+            status_code=500, detail=f"Analytics error: {type(e).__name__}: {str(e)}"
+        )
+
+
+@router.get("/insights/technique-effectiveness")
+async def get_technique_effectiveness_insights(
+    start_date: date | None = Query(None),
+    end_date: date | None = Query(None),
+    current_user: dict = Depends(get_current_user),
+):
+    """Get technique effectiveness with quadrant analysis. Cached for 10 minutes."""
+    try:
+        return _get_technique_effectiveness_cached(
+            user_id=current_user["id"],
+            start_date=start_date,
+            end_date=end_date,
+        )
+    except (RivaFlowException, HTTPException):
+        raise
+    except (ValueError, KeyError, TypeError) as e:
+        logger.error(
+            f"Error in get_technique_effectiveness: {type(e).__name__}: {str(e)}"
+        )
+        logger.error(traceback.format_exc())
+        raise HTTPException(
+            status_code=500, detail=f"Analytics error: {type(e).__name__}: {str(e)}"
+        )
+
+
+@router.get("/insights/partner-progression/{partner_id}")
+async def get_partner_progression(
+    partner_id: int,
+    current_user: dict = Depends(get_current_user),
+):
+    """Get rolling progression against a specific partner. Cached for 10 minutes."""
+    try:
+        return _get_partner_progression_cached(
+            user_id=current_user["id"], partner_id=partner_id
+        )
+    except (RivaFlowException, HTTPException):
+        raise
+    except (ValueError, KeyError, TypeError) as e:
+        logger.error(f"Error in get_partner_progression: {type(e).__name__}: {str(e)}")
+        logger.error(traceback.format_exc())
+        raise HTTPException(
+            status_code=500, detail=f"Analytics error: {type(e).__name__}: {str(e)}"
+        )
+
+
+@router.get("/insights/session-quality")
+async def get_session_quality(
+    start_date: date | None = Query(None),
+    end_date: date | None = Query(None),
+    current_user: dict = Depends(get_current_user),
+):
+    """Get session quality scores. Cached for 10 minutes."""
+    try:
+        return _get_session_quality_cached(
+            user_id=current_user["id"],
+            start_date=start_date,
+            end_date=end_date,
+        )
+    except (RivaFlowException, HTTPException):
+        raise
+    except (ValueError, KeyError, TypeError) as e:
+        logger.error(f"Error in get_session_quality: {type(e).__name__}: {str(e)}")
+        logger.error(traceback.format_exc())
+        raise HTTPException(
+            status_code=500, detail=f"Analytics error: {type(e).__name__}: {str(e)}"
+        )
+
+
+@router.get("/insights/overtraining-risk")
+async def get_overtraining_risk(
+    current_user: dict = Depends(get_current_user),
+):
+    """Get overtraining risk assessment. Cached for 5 minutes."""
+    try:
+        return _get_overtraining_risk_cached(user_id=current_user["id"])
+    except (RivaFlowException, HTTPException):
+        raise
+    except (ValueError, KeyError, TypeError) as e:
+        logger.error(f"Error in get_overtraining_risk: {type(e).__name__}: {str(e)}")
+        logger.error(traceback.format_exc())
+        raise HTTPException(
+            status_code=500, detail=f"Analytics error: {type(e).__name__}: {str(e)}"
+        )
+
+
+@router.get("/insights/recovery")
+async def get_recovery_insights(
+    days: int = Query(default=90, ge=7, le=365),
+    current_user: dict = Depends(get_current_user),
+):
+    """Get recovery insights. Cached for 10 minutes."""
+    try:
+        return _get_recovery_insights_cached(user_id=current_user["id"], days=days)
+    except (RivaFlowException, HTTPException):
+        raise
+    except (ValueError, KeyError, TypeError) as e:
+        logger.error(f"Error in get_recovery_insights: {type(e).__name__}: {str(e)}")
+        logger.error(traceback.format_exc())
+        raise HTTPException(
+            status_code=500, detail=f"Analytics error: {type(e).__name__}: {str(e)}"
+        )
+
+
 @router.get("/fight-dynamics/heatmap")
 async def get_fight_dynamics_heatmap(
     view: str = Query(

@@ -170,6 +170,71 @@ class ReadinessAnalyticsService:
             "weight_stats": weight_stats,
         }
 
+    def get_weight_trend(
+        self,
+        user_id: int,
+        start_date: date | None = None,
+        end_date: date | None = None,
+    ) -> dict[str, Any]:
+        """Raw weight points + 7-day simple moving average + stats."""
+        if not start_date:
+            start_date = date.today() - timedelta(days=90)
+        if not end_date:
+            end_date = date.today()
+
+        readiness_records = self.readiness_repo.get_by_date_range(
+            user_id, start_date, end_date
+        )
+
+        weight_records = [
+            r for r in readiness_records if r.get("weight_kg") is not None
+        ]
+
+        if not weight_records:
+            return {
+                "raw_points": [],
+                "sma_7day": [],
+                "stats": {"has_data": False},
+            }
+
+        raw_points = [
+            {
+                "date": r["check_date"].isoformat(),
+                "weight_kg": round(r["weight_kg"], 1),
+            }
+            for r in weight_records
+        ]
+
+        # 7-day simple moving average
+        weights = [r["weight_kg"] for r in weight_records]
+        sma_7day = []
+        for i in range(len(weights)):
+            window_start = max(0, i - 6)
+            window = weights[window_start : i + 1]
+            sma_7day.append(
+                {
+                    "date": weight_records[i]["check_date"].isoformat(),
+                    "sma": round(statistics.mean(window), 1),
+                }
+            )
+
+        weight_stats = {
+            "has_data": True,
+            "start_weight": round(weights[0], 1),
+            "end_weight": round(weights[-1], 1),
+            "weight_change": round(weights[-1] - weights[0], 2),
+            "min_weight": round(min(weights), 1),
+            "max_weight": round(max(weights), 1),
+            "avg_weight": round(statistics.mean(weights), 1),
+            "data_points": len(weights),
+        }
+
+        return {
+            "raw_points": raw_points,
+            "sma_7day": sma_7day,
+            "stats": weight_stats,
+        }
+
     def get_whoop_analytics(
         self,
         user_id: int,

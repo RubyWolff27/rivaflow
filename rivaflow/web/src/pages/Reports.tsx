@@ -2,13 +2,15 @@ import { useState, useEffect } from 'react';
 import { getLocalDateString } from '../utils/date';
 import { useSearchParams, Link } from 'react-router-dom';
 import { analyticsApi } from '../api/client';
-import { TrendingUp, Users, Activity, Target, Lightbulb, Book, Calendar, Swords } from 'lucide-react';
+import { TrendingUp, Users, Activity, Target, Lightbulb, Book, Calendar, Swords, Brain, ChevronDown, ChevronUp } from 'lucide-react';
 import { Card, Chip, MetricTile, MetricTileSkeleton, CardSkeleton, EmptyState } from '../components/ui';
 import { ActivityTypeFilter } from '../components/ActivityTypeFilter';
 import { useFeatureAccess } from '../hooks/useTier';
 import { PremiumBadge, UpgradePrompt } from '../components/UpgradePrompt';
 import ReadinessTab from '../components/analytics/ReadinessTab';
 import TechniqueHeatmap from '../components/analytics/TechniqueHeatmap';
+import TrainingCalendar from '../components/analytics/TrainingCalendar';
+import InsightsTab from '../components/analytics/InsightsTab';
 
 export default function Reports() {
   const { hasAccess: hasAdvancedAnalytics } = useFeatureAccess('advanced_analytics');
@@ -27,6 +29,13 @@ export default function Reports() {
   const [performanceData, setPerformanceData] = useState<any>(null);
   const [partnersData, setPartnersData] = useState<any>(null);
   const [techniquesData, setTechniquesData] = useState<any>(null);
+  const [calendarData, setCalendarData] = useState<any>(null);
+  const [durationData, setDurationData] = useState<any>(null);
+  const [timeOfDayData, setTimeOfDayData] = useState<any>(null);
+  const [gymData, setGymData] = useState<any>(null);
+  const [classTypeData, setClassTypeData] = useState<any>(null);
+  const [beltDistData, setBeltDistData] = useState<any>(null);
+  const [expandedCards, setExpandedCards] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
     // Set default date range (last 7 days)
@@ -62,11 +71,31 @@ export default function Reports() {
           };
 
           if (activeTab === 'overview') {
-            const perfRes = await analyticsApi.performanceOverview(params);
-            if (!cancelled) setPerformanceData(perfRes.data ?? null);
+            const [perfRes, calRes, durRes, todRes, gymRes, ctRes] = await Promise.all([
+              analyticsApi.performanceOverview(params),
+              analyticsApi.trainingCalendar({ start_date: params.start_date, end_date: params.end_date, types: params.types }),
+              analyticsApi.durationTrends(params).catch(() => ({ data: null })),
+              analyticsApi.timeOfDayPatterns(params).catch(() => ({ data: null })),
+              analyticsApi.gymComparison(params).catch(() => ({ data: null })),
+              analyticsApi.classTypeEffectiveness(params).catch(() => ({ data: null })),
+            ]);
+            if (!cancelled) {
+              setPerformanceData(perfRes.data ?? null);
+              setCalendarData(calRes.data ?? null);
+              setDurationData(durRes.data ?? null);
+              setTimeOfDayData(todRes.data ?? null);
+              setGymData(gymRes.data ?? null);
+              setClassTypeData(ctRes.data ?? null);
+            }
           } else if (activeTab === 'partners') {
-            const partnersRes = await analyticsApi.partnerStats(params);
-            if (!cancelled) setPartnersData(partnersRes.data ?? null);
+            const [partnersRes, beltRes] = await Promise.all([
+              analyticsApi.partnerStats(params),
+              analyticsApi.partnerBeltDistribution().catch(() => ({ data: null })),
+            ]);
+            if (!cancelled) {
+              setPartnersData(partnersRes.data ?? null);
+              setBeltDistData(beltRes.data ?? null);
+            }
           } else if (activeTab === 'techniques') {
             const techRes = await analyticsApi.techniqueBreakdown(params);
             if (!cancelled) setTechniquesData(techRes.data ?? null);
@@ -105,11 +134,14 @@ export default function Reports() {
   const isBJJActivity = selectedTypes.length === 0 || selectedTypes.some(t => ['gi', 'no-gi', 'drilling', 'open-mat', 'competition'].includes(t));
   const isOnlySC = selectedTypes.length > 0 && selectedTypes.every(t => t === 's&c');
 
+  const toggleCard = (key: string) => setExpandedCards(prev => ({ ...prev, [key]: !prev[key] }));
+
   const allTabs = [
     { id: 'overview', name: 'Performance', icon: TrendingUp },
     { id: 'partners', name: 'Partners', icon: Users, bjjOnly: true },
     { id: 'readiness', name: 'Readiness', icon: Activity },
     { id: 'techniques', name: 'Techniques', icon: Target, bjjOnly: true },
+    { id: 'insights', name: 'Insights', icon: Brain, bjjOnly: true },
   ];
 
   // Filter tabs based on activity selection
@@ -473,6 +505,125 @@ export default function Reports() {
                   </div>
                 </div>
               </Card>
+
+              {/* Training Calendar */}
+              {calendarData && calendarData.calendar && (
+                <TrainingCalendar
+                  calendar={calendarData.calendar}
+                  totalActiveDays={calendarData.total_active_days ?? 0}
+                  activityRate={calendarData.activity_rate ?? 0}
+                />
+              )}
+
+              {/* Duration Analytics */}
+              {durationData && durationData.overall_avg > 0 && (
+                <Card>
+                  <button className="w-full flex items-center justify-between" onClick={() => toggleCard('duration')}>
+                    <div>
+                      <h3 className="text-lg font-semibold" style={{ color: 'var(--text)' }}>Duration Analytics</h3>
+                      <p className="text-xs mt-1" style={{ color: 'var(--muted)' }}>Avg: {durationData.overall_avg} min</p>
+                    </div>
+                    {expandedCards.duration ? <ChevronUp className="w-5 h-5" style={{ color: 'var(--muted)' }} /> : <ChevronDown className="w-5 h-5" style={{ color: 'var(--muted)' }} />}
+                  </button>
+                  {expandedCards.duration && (
+                    <div className="mt-4 space-y-3">
+                      {durationData.by_class_type?.map((ct: any) => (
+                        <div key={ct.class_type} className="flex justify-between items-center p-3 rounded-lg" style={{ backgroundColor: 'var(--surfaceElev)' }}>
+                          <span className="text-sm font-medium" style={{ color: 'var(--text)' }}>{ct.class_type}</span>
+                          <span className="text-sm" style={{ color: 'var(--muted)' }}>{ct.avg_duration} min avg ({ct.sessions} sessions)</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </Card>
+              )}
+
+              {/* Time of Day */}
+              {timeOfDayData?.patterns && timeOfDayData.patterns.some((p: any) => p.sessions > 0) && (
+                <Card>
+                  <button className="w-full flex items-center justify-between" onClick={() => toggleCard('timeOfDay')}>
+                    <div>
+                      <h3 className="text-lg font-semibold" style={{ color: 'var(--text)' }}>Time of Day</h3>
+                      <p className="text-xs mt-1" style={{ color: 'var(--muted)' }}>Performance by training time</p>
+                    </div>
+                    {expandedCards.timeOfDay ? <ChevronUp className="w-5 h-5" style={{ color: 'var(--muted)' }} /> : <ChevronDown className="w-5 h-5" style={{ color: 'var(--muted)' }} />}
+                  </button>
+                  {expandedCards.timeOfDay && (
+                    <div className="mt-4 grid grid-cols-3 gap-3">
+                      {timeOfDayData.patterns.map((p: any) => (
+                        <div key={p.time_slot} className="p-3 rounded-[14px] text-center" style={{ backgroundColor: 'var(--surfaceElev)', border: '1px solid var(--border)' }}>
+                          <p className="text-xs font-medium uppercase tracking-wide mb-2" style={{ color: 'var(--muted)' }}>{p.time_slot}</p>
+                          <p className="text-xl font-semibold" style={{ color: 'var(--text)' }}>{p.sessions}</p>
+                          <p className="text-xs mt-1" style={{ color: 'var(--muted)' }}>sessions</p>
+                          {p.sessions > 0 && (
+                            <p className="text-xs mt-1" style={{ color: 'var(--accent)' }}>Intensity: {p.avg_intensity}/5</p>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </Card>
+              )}
+
+              {/* Gym Comparison */}
+              {gymData?.gyms && gymData.gyms.length > 1 && (
+                <Card>
+                  <button className="w-full flex items-center justify-between" onClick={() => toggleCard('gym')}>
+                    <div>
+                      <h3 className="text-lg font-semibold" style={{ color: 'var(--text)' }}>Gym Comparison</h3>
+                      <p className="text-xs mt-1" style={{ color: 'var(--muted)' }}>{gymData.gyms.length} gyms trained at</p>
+                    </div>
+                    {expandedCards.gym ? <ChevronUp className="w-5 h-5" style={{ color: 'var(--muted)' }} /> : <ChevronDown className="w-5 h-5" style={{ color: 'var(--muted)' }} />}
+                  </button>
+                  {expandedCards.gym && (
+                    <div className="mt-4 space-y-3">
+                      {gymData.gyms.map((g: any) => (
+                        <div key={g.gym} className="p-3 rounded-lg flex items-center justify-between" style={{ backgroundColor: 'var(--surfaceElev)' }}>
+                          <div>
+                            <p className="text-sm font-medium" style={{ color: 'var(--text)' }}>{g.gym}</p>
+                            <p className="text-xs" style={{ color: 'var(--muted)' }}>{g.sessions} sessions, {g.avg_duration} min avg</p>
+                          </div>
+                          <div className="text-right">
+                            <p className="text-sm font-semibold" style={{ color: 'var(--accent)' }}>{g.avg_intensity}/5</p>
+                            <p className="text-xs" style={{ color: 'var(--muted)' }}>intensity</p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </Card>
+              )}
+
+              {/* Class Type Effectiveness */}
+              {classTypeData?.class_types && classTypeData.class_types.length > 1 && (
+                <Card>
+                  <button className="w-full flex items-center justify-between" onClick={() => toggleCard('classType')}>
+                    <div>
+                      <h3 className="text-lg font-semibold" style={{ color: 'var(--text)' }}>Class Type Effectiveness</h3>
+                      <p className="text-xs mt-1" style={{ color: 'var(--muted)' }}>Sub rate by class type</p>
+                    </div>
+                    {expandedCards.classType ? <ChevronUp className="w-5 h-5" style={{ color: 'var(--muted)' }} /> : <ChevronDown className="w-5 h-5" style={{ color: 'var(--muted)' }} />}
+                  </button>
+                  {expandedCards.classType && (
+                    <div className="mt-4 space-y-3">
+                      {classTypeData.class_types.map((ct: any) => (
+                        <div key={ct.class_type} className="p-3 rounded-lg flex items-center justify-between" style={{ backgroundColor: 'var(--surfaceElev)' }}>
+                          <div>
+                            <p className="text-sm font-medium" style={{ color: 'var(--text)' }}>{ct.class_type}</p>
+                            <p className="text-xs" style={{ color: 'var(--muted)' }}>{ct.sessions} sessions, {ct.avg_rolls} avg rolls</p>
+                          </div>
+                          <div className="text-right">
+                            <p className="text-sm font-semibold" style={{ color: ct.sub_rate >= 1 ? 'var(--accent)' : 'var(--text)' }}>
+                              {ct.sub_rate.toFixed(2)} ratio
+                            </p>
+                            <p className="text-xs" style={{ color: 'var(--muted)' }}>{ct.total_subs_for}:{ct.total_subs_against} subs</p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </Card>
+              )}
             </>
           )}
         </div>
@@ -627,6 +778,39 @@ export default function Reports() {
               </p>
             )}
           </Card>
+
+          {/* Belt Distribution */}
+          {beltDistData?.distribution && beltDistData.distribution.length > 0 && (
+            <Card>
+              <div className="mb-4">
+                <h3 className="text-lg font-semibold" style={{ color: 'var(--text)' }}>Belt Distribution</h3>
+                <p className="text-xs mt-1" style={{ color: 'var(--muted)' }}>{beltDistData.total_partners} total partners</p>
+              </div>
+              <div className="space-y-2">
+                {beltDistData.distribution.map((b: any) => {
+                  const maxCount = Math.max(...beltDistData.distribution.map((d: any) => d.count));
+                  const beltColors: Record<string, string> = {
+                    white: '#FFFFFF', blue: '#0066CC', purple: '#8B3FC0',
+                    brown: '#8B4513', black: '#1a1a1a', unranked: 'var(--muted)',
+                  };
+                  return (
+                    <div key={b.belt}>
+                      <div className="flex items-center justify-between mb-1">
+                        <div className="flex items-center gap-2">
+                          <div className="w-3 h-3 rounded-full border" style={{ backgroundColor: beltColors[b.belt] || 'var(--muted)', borderColor: 'var(--border)' }} />
+                          <span className="text-sm font-medium capitalize" style={{ color: 'var(--text)' }}>{b.belt}</span>
+                        </div>
+                        <span className="text-sm" style={{ color: 'var(--muted)' }}>{b.count}</span>
+                      </div>
+                      <div className="w-full rounded-full h-2" style={{ backgroundColor: 'var(--border)' }}>
+                        <div className="h-2 rounded-full transition-all" style={{ width: `${(b.count / maxCount) * 100}%`, backgroundColor: beltColors[b.belt] || 'var(--accent)' }} />
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </Card>
+          )}
             </>
           )}
         </div>
@@ -825,6 +1009,11 @@ export default function Reports() {
       {/* Readiness Tab */}
       {activeTab === 'readiness' && (
         <ReadinessTab dateRange={dateRange} selectedTypes={selectedTypes} />
+      )}
+
+      {/* Insights Tab */}
+      {activeTab === 'insights' && (
+        <InsightsTab dateRange={dateRange} />
       )}
     </div>
   );

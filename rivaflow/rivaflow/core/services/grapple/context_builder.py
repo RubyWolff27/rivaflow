@@ -3,6 +3,7 @@
 import logging
 from datetime import date, datetime, timedelta
 
+from rivaflow.core.services.insights_analytics import InsightsAnalyticsService
 from rivaflow.core.services.privacy_service import PrivacyService
 from rivaflow.db.repositories.readiness_repo import ReadinessRepository
 from rivaflow.db.repositories.session_repo import SessionRepository
@@ -29,6 +30,7 @@ class GrappleContextBuilder:
         self.session_repo = SessionRepository()
         self.readiness_repo = ReadinessRepository()
         self.user_repo = UserRepository()
+        self.insights = InsightsAnalyticsService()
 
     def build_system_prompt(self) -> str:
         """
@@ -53,6 +55,9 @@ Guidelines:
 - Always prioritize safety and proper technique over ego or intensity
 - Consider training frequency, intensity, and recovery in your advice
 - Reference specific sessions or patterns when giving feedback
+- Use the DEEP ANALYTICS INSIGHTS section to provide data-driven advice:
+  ACWR (training load ratio), overtraining risk, session quality scores,
+  game breadth, money moves, sleep-performance correlation, and recovery data
 - Be concise but thorough (aim for 2-4 paragraphs per response)
 - If medical advice is needed, recommend seeing a doctor or physiotherapist
 - Use BJJ terminology appropriately but explain when needed
@@ -177,10 +182,98 @@ Now respond to the user's questions using this context. Reference their specific
                         f"- {r_date}: Energy {energy}/10, Soreness {soreness}/10, Sleep {sleep}/10"
                     )
 
+            # ── Deep analytics context ──
+            try:
+                deep = self._build_deep_analytics_context()
+                if deep:
+                    context_parts.append("")
+                    context_parts.append(deep)
+            except Exception:
+                logger.debug("Deep analytics context unavailable", exc_info=True)
+
         else:
             context_parts.append("No training sessions logged yet.")
 
         return "\n".join(context_parts)
+
+    def _build_deep_analytics_context(self) -> str:
+        """Build deep analytics context from InsightsAnalyticsService."""
+        parts = ["DEEP ANALYTICS INSIGHTS:"]
+
+        # Training load (ACWR)
+        try:
+            load = self.insights.get_training_load_management(self.user_id, days=90)
+            parts.append(
+                f"Training Load: ACWR={load['current_acwr']} "
+                f"({load['current_zone']})"
+            )
+        except Exception:
+            pass
+
+        # Overtraining risk
+        try:
+            risk = self.insights.get_overtraining_risk(self.user_id)
+            parts.append(
+                f"Overtraining Risk: {risk['risk_score']}/100 " f"({risk['level']})"
+            )
+            if risk["recommendations"]:
+                parts.append(
+                    f"Recommendations: {'; '.join(risk['recommendations'][:2])}"
+                )
+        except Exception:
+            pass
+
+        # Session quality
+        try:
+            quality = self.insights.get_session_quality_scores(self.user_id)
+            parts.append(f"Avg Session Quality: {quality['avg_quality']}/100")
+        except Exception:
+            pass
+
+        # Technique effectiveness
+        try:
+            tech = self.insights.get_technique_effectiveness(self.user_id)
+            parts.append(f"Game Breadth: {tech['game_breadth']}/100")
+            if tech.get("money_moves"):
+                names = ", ".join(t["name"] for t in tech["money_moves"][:3])
+                parts.append(f"Money Moves: {names}")
+        except Exception:
+            pass
+
+        # Recovery insights
+        try:
+            recovery = self.insights.get_recovery_insights(self.user_id, days=90)
+            if recovery.get("optimal_rest_days"):
+                parts.append(
+                    f"Optimal Rest: {recovery['optimal_rest_days']} "
+                    f"day(s) between sessions"
+                )
+            if (
+                recovery.get("sleep_correlation")
+                and abs(recovery["sleep_correlation"]) >= 0.2
+            ):
+                parts.append(
+                    f"Sleep-Performance Correlation: "
+                    f"r={recovery['sleep_correlation']}"
+                )
+        except Exception:
+            pass
+
+        # Readiness correlation
+        try:
+            corr = self.insights.get_readiness_performance_correlation(self.user_id)
+            if corr.get("optimal_zone"):
+                parts.append(
+                    f"Best Performance Zone: readiness {corr['optimal_zone']} "
+                    f"(r={corr['r_value']})"
+                )
+        except Exception:
+            pass
+
+        if len(parts) <= 1:
+            return ""
+
+        return "\n".join(parts)
 
     def _parse_date(self, date_str: str) -> datetime:
         """Parse date string to datetime."""

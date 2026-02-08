@@ -244,6 +244,40 @@ export const analyticsApi = {
     api.get('/analytics/fight-dynamics/heatmap', { params }),
   fightDynamicsInsights: () =>
     api.get('/analytics/fight-dynamics/insights'),
+
+  // Phase 1: Enhanced analytics
+  durationTrends: (params?: { start_date?: string; end_date?: string; types?: string[] }) =>
+    api.get('/analytics/duration/trends', { params }),
+  timeOfDayPatterns: (params?: { start_date?: string; end_date?: string; types?: string[] }) =>
+    api.get('/analytics/time-of-day/patterns', { params }),
+  gymComparison: (params?: { start_date?: string; end_date?: string; types?: string[] }) =>
+    api.get('/analytics/gyms/comparison', { params }),
+  classTypeEffectiveness: (params?: { start_date?: string; end_date?: string }) =>
+    api.get('/analytics/class-types/effectiveness', { params }),
+  weightTrend: (params?: { start_date?: string; end_date?: string }) =>
+    api.get('/analytics/weight/trend', { params }),
+  trainingCalendar: (params?: { start_date?: string; end_date?: string; types?: string[] }) =>
+    api.get('/analytics/training-calendar', { params }),
+  partnerBeltDistribution: () =>
+    api.get('/analytics/partners/belt-distribution'),
+
+  // Phase 2: Insights engine
+  insightsSummary: () =>
+    api.get('/analytics/insights/summary'),
+  readinessCorrelation: (params?: { start_date?: string; end_date?: string }) =>
+    api.get('/analytics/insights/readiness-correlation', { params }),
+  trainingLoad: (params?: { days?: number }) =>
+    api.get('/analytics/insights/training-load', { params }),
+  techniqueEffectiveness: (params?: { start_date?: string; end_date?: string }) =>
+    api.get('/analytics/insights/technique-effectiveness', { params }),
+  partnerProgression: (partnerId: number) =>
+    api.get(`/analytics/insights/partner-progression/${partnerId}`),
+  sessionQuality: (params?: { start_date?: string; end_date?: string }) =>
+    api.get('/analytics/insights/session-quality', { params }),
+  overtTrainingRisk: () =>
+    api.get('/analytics/insights/overtraining-risk'),
+  recoveryInsights: (params?: { days?: number }) =>
+    api.get('/analytics/insights/recovery', { params }),
 };
 
 export const goalsApi = {
