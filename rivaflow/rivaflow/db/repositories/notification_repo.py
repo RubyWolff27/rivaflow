@@ -58,40 +58,31 @@ class NotificationRepository:
             conn.commit()
 
             if row:
-                return {
-                    "id": row[0],
-                    "user_id": row[1],
-                    "actor_id": row[2],
-                    "notification_type": row[3],
-                    "activity_type": row[4],
-                    "activity_id": row[5],
-                    "comment_id": row[6],
-                    "message": row[7],
-                    "is_read": bool(row[8]),
-                    "created_at": row[9],
-                    "read_at": row[10],
-                }
+                d = dict(row)
+                d["is_read"] = bool(d.get("is_read"))
+                return d
             return {}
 
     @staticmethod
     def get_unread_count(user_id: int) -> int:
         """Get count of unread notifications for a user."""
         query = convert_query(
-            "SELECT COUNT(*) FROM notifications"
-            " WHERE user_id = ? AND is_read = FALSE"
+            "SELECT COUNT(*) as cnt FROM notifications" " WHERE user_id = ? AND is_read = FALSE"
         )
 
         with get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(query, (user_id,))
             result = cursor.fetchone()
-            return result[0] if result else 0
+            if not result:
+                return 0
+            return dict(result).get("cnt", 0)
 
     @staticmethod
     def get_unread_count_by_type(user_id: int, notification_type: str) -> int:
         """Get count of unread notifications by type for a user."""
         query = convert_query(
-            "SELECT COUNT(*) FROM notifications"
+            "SELECT COUNT(*) as cnt FROM notifications"
             " WHERE user_id = ? AND notification_type = ?"
             " AND is_read = FALSE"
         )
@@ -100,13 +91,15 @@ class NotificationRepository:
             cursor = conn.cursor()
             cursor.execute(query, (user_id, notification_type))
             result = cursor.fetchone()
-            return result[0] if result else 0
+            if not result:
+                return 0
+            return dict(result).get("cnt", 0)
 
     @staticmethod
     def get_feed_unread_count(user_id: int) -> int:
         """Get count of unread feed notifications (likes and comments on user's activities)."""
         query = convert_query("""
-            SELECT COUNT(*)
+            SELECT COUNT(*) as cnt
             FROM notifications
             WHERE user_id = ?
             AND notification_type IN ('like', 'comment', 'reply')
@@ -117,7 +110,9 @@ class NotificationRepository:
             cursor = conn.cursor()
             cursor.execute(query, (user_id,))
             result = cursor.fetchone()
-            return result[0] if result else 0
+            if not result:
+                return 0
+            return dict(result).get("cnt", 0)
 
     @staticmethod
     def get_by_user(
@@ -164,27 +159,30 @@ class NotificationRepository:
             cursor.execute(query, params)
             rows = cursor.fetchall()
 
-            return [
-                {
-                    "id": row[0],
-                    "user_id": row[1],
-                    "actor_id": row[2],
-                    "notification_type": row[3],
-                    "activity_type": row[4],
-                    "activity_id": row[5],
-                    "comment_id": row[6],
-                    "message": row[7],
-                    "is_read": bool(row[8]),
-                    "created_at": row[9],
-                    "read_at": row[10],
-                    "actor": {
-                        "first_name": row[11],
-                        "last_name": row[12],
-                        "avatar_url": row[13],
-                    },
-                }
-                for row in rows
-            ]
+            results = []
+            for row in rows:
+                d = dict(row)
+                results.append(
+                    {
+                        "id": d["id"],
+                        "user_id": d["user_id"],
+                        "actor_id": d["actor_id"],
+                        "notification_type": d["notification_type"],
+                        "activity_type": d.get("activity_type"),
+                        "activity_id": d.get("activity_id"),
+                        "comment_id": d.get("comment_id"),
+                        "message": d.get("message"),
+                        "is_read": bool(d.get("is_read")),
+                        "created_at": d.get("created_at"),
+                        "read_at": d.get("read_at"),
+                        "actor": {
+                            "first_name": d.get("actor_first_name"),
+                            "last_name": d.get("actor_last_name"),
+                            "avatar_url": d.get("actor_avatar"),
+                        },
+                    }
+                )
+            return results
 
     @staticmethod
     def mark_as_read(notification_id: int, user_id: int) -> bool:
@@ -275,7 +273,7 @@ class NotificationRepository:
         """
         cutoff = datetime.utcnow() - timedelta(hours=1)
         query = convert_query("""
-            SELECT COUNT(*)
+            SELECT COUNT(*) as cnt
             FROM notifications
             WHERE user_id = ?
             AND actor_id = ?
@@ -301,4 +299,6 @@ class NotificationRepository:
                 ),
             )
             result = cursor.fetchone()
-            return (result[0] if result else 0) > 0
+            if not result:
+                return False
+            return dict(result).get("cnt", 0) > 0

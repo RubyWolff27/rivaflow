@@ -12,6 +12,13 @@ from rivaflow.db.repositories import (
 )
 from rivaflow.db.repositories.readiness_repo import ReadinessRepository
 
+try:
+    import psycopg2
+
+    _PG_INTEGRITY_ERROR = psycopg2.IntegrityError
+except ImportError:
+    _PG_INTEGRITY_ERROR = type(None)
+
 
 class SocialService:
     """Business logic for social features: relationships, likes, and comments."""
@@ -41,18 +48,14 @@ class SocialService:
 
         # Create the relationship
         try:
-            relationship = UserRelationshipRepository.follow(
-                follower_user_id, following_user_id
-            )
+            relationship = UserRelationshipRepository.follow(follower_user_id, following_user_id)
 
             # Create notification for the followed user
-            NotificationService.create_follow_notification(
-                following_user_id, follower_user_id
-            )
+            NotificationService.create_follow_notification(following_user_id, follower_user_id)
 
             return relationship
-        except sqlite3.IntegrityError as e:
-            if "UNIQUE constraint failed" in str(e):
+        except (sqlite3.IntegrityError, _PG_INTEGRITY_ERROR) as e:
+            if "UNIQUE constraint failed" in str(e) or "duplicate key" in str(e):
                 raise ValueError("Already following this user")
             raise
 
@@ -83,9 +86,7 @@ class SocialService:
     @staticmethod
     def is_following(follower_user_id: int, following_user_id: int) -> bool:
         """Check if follower_user_id follows following_user_id."""
-        return UserRelationshipRepository.is_following(
-            follower_user_id, following_user_id
-        )
+        return UserRelationshipRepository.is_following(follower_user_id, following_user_id)
 
     @staticmethod
     def get_follower_count(user_id: int) -> int:
@@ -98,9 +99,7 @@ class SocialService:
         return UserRelationshipRepository.get_following_count(user_id)
 
     @staticmethod
-    def like_activity(
-        user_id: int, activity_type: str, activity_id: int
-    ) -> dict[str, Any]:
+    def like_activity(user_id: int, activity_type: str, activity_id: int) -> dict[str, Any]:
         """
         Like an activity.
 
@@ -143,8 +142,8 @@ class SocialService:
                 )
 
             return like
-        except sqlite3.IntegrityError as e:
-            if "UNIQUE constraint failed" in str(e):
+        except (sqlite3.IntegrityError, _PG_INTEGRITY_ERROR) as e:
+            if "UNIQUE constraint failed" in str(e) or "duplicate key" in str(e):
                 raise ValueError("Already liked this activity")
             raise
 
@@ -164,9 +163,7 @@ class SocialService:
         return ActivityLikeRepository.delete(user_id, activity_type, activity_id)
 
     @staticmethod
-    def get_activity_likes(
-        activity_type: str, activity_id: int
-    ) -> list[dict[str, Any]]:
+    def get_activity_likes(activity_type: str, activity_id: int) -> list[dict[str, Any]]:
         """Get all likes for an activity with user information."""
         return ActivityLikeRepository.get_by_activity(activity_type, activity_id)
 
@@ -178,9 +175,7 @@ class SocialService:
     @staticmethod
     def has_user_liked(user_id: int, activity_type: str, activity_id: int) -> bool:
         """Check if user has liked an activity."""
-        return ActivityLikeRepository.has_user_liked(
-            user_id, activity_type, activity_id
-        )
+        return ActivityLikeRepository.has_user_liked(user_id, activity_type, activity_id)
 
     @staticmethod
     def add_comment(
@@ -257,9 +252,7 @@ class SocialService:
         return comment
 
     @staticmethod
-    def get_activity_comments(
-        activity_type: str, activity_id: int
-    ) -> list[dict[str, Any]]:
+    def get_activity_comments(activity_type: str, activity_id: int) -> list[dict[str, Any]]:
         """Get all comments for an activity with user information."""
         return ActivityCommentRepository.get_by_activity(activity_type, activity_id)
 
@@ -269,9 +262,7 @@ class SocialService:
         return ActivityCommentRepository.get_comment_count(activity_type, activity_id)
 
     @staticmethod
-    def update_comment(
-        comment_id: int, user_id: int, comment_text: str
-    ) -> dict[str, Any] | None:
+    def update_comment(comment_id: int, user_id: int, comment_text: str) -> dict[str, Any] | None:
         """
         Update a comment (user can only update their own comments).
 
@@ -292,9 +283,7 @@ class SocialService:
         if len(comment_text) > 1000:
             raise ValueError("Comment text cannot exceed 1000 characters")
 
-        return ActivityCommentRepository.update(
-            comment_id, user_id, comment_text.strip()
-        )
+        return ActivityCommentRepository.update(comment_id, user_id, comment_text.strip())
 
     @staticmethod
     def delete_comment(comment_id: int, user_id: int) -> bool:
@@ -357,14 +346,10 @@ class SocialService:
         # Get current user's sessions (last 90 days for pattern matching)
         start_date = date.today() - timedelta(days=90)
         end_date = date.today()
-        user_sessions = SessionRepository.get_by_date_range(
-            user_id, start_date, end_date
-        )
+        user_sessions = SessionRepository.get_by_date_range(user_id, start_date, end_date)
 
         # Find user's most frequent gym
-        gym_counts = Counter(
-            [s.get("gym_name") for s in user_sessions if s.get("gym_name")]
-        )
+        gym_counts = Counter([s.get("gym_name") for s in user_sessions if s.get("gym_name")])
         user_primary_gym = gym_counts.most_common(1)[0][0] if gym_counts else None
 
         # Get all users except current user
@@ -395,19 +380,13 @@ class SocialService:
             other_gym_counts = Counter(
                 [s.get("gym_name") for s in other_sessions if s.get("gym_name")]
             )
-            other_primary_gym = (
-                other_gym_counts.most_common(1)[0][0] if other_gym_counts else None
-            )
+            other_primary_gym = other_gym_counts.most_common(1)[0][0] if other_gym_counts else None
 
             reason = None
             score = 0
 
             # Check for same primary gym
-            if (
-                user_primary_gym
-                and other_primary_gym
-                and user_primary_gym == other_primary_gym
-            ):
+            if user_primary_gym and other_primary_gym and user_primary_gym == other_primary_gym:
                 reason = f"Trains at {user_primary_gym}"
                 score = 100
 
@@ -425,9 +404,7 @@ class SocialService:
                     s.get("gym_name") for s in user_recent_sessions if s.get("gym_name")
                 }
                 other_recent_gyms = {
-                    s.get("gym_name")
-                    for s in other_recent_sessions
-                    if s.get("gym_name")
+                    s.get("gym_name") for s in other_recent_sessions if s.get("gym_name")
                 }
 
                 overlap_gyms = user_recent_gyms & other_recent_gyms
