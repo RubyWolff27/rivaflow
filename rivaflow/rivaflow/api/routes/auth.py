@@ -304,7 +304,7 @@ async def forgot_password(request: Request, req: ForgotPasswordRequest):
         return {
             "message": "If an account exists with this email, you will receive a password reset link."
         }
-    except (ConnectionError, OSError, RuntimeError) as e:
+    except Exception as e:
         logger.error(f"Forgot password error for {req.email}: {e}")
         # Still return success to prevent info leakage
         return {

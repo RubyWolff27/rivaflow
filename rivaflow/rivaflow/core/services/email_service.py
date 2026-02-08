@@ -121,14 +121,21 @@ class EmailService:
                 )
                 return False
 
-        except (ConnectionError, OSError, RuntimeError) as e:
+        except Exception as e:
             error_msg = str(e)
             if "403" in error_msg or "Forbidden" in error_msg:
                 logger.error(
                     f"SendGrid 403 Forbidden error. "
-                    f"This usually means the sender email '{self.from_email}' is not verified in SendGrid. "
-                    f"Please verify the sender email in SendGrid dashboard or check API key permissions. "
+                    f"This usually means the sender email '{self.from_email}' "
+                    f"is not verified in SendGrid. "
+                    f"Please verify the sender in SendGrid dashboard. "
                     f"Error: {e}"
+                )
+            elif "400" in error_msg or "Bad Request" in error_msg:
+                logger.error(
+                    f"SendGrid 400 Bad Request. "
+                    f"Check sender verification for '{self.from_email}' "
+                    f"and API key permissions. Error: {e}"
                 )
             else:
                 logger.error(f"Failed to send email via SendGrid to {to_email}: {e}")
