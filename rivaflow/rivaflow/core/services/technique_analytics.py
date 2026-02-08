@@ -7,8 +7,8 @@ from typing import Any
 from rivaflow.db.repositories import (
     GlossaryRepository,
     SessionRepository,
-    SessionRollRepository,
 )
+from rivaflow.db.repositories.session_technique_repo import SessionTechniqueRepository
 
 
 class TechniqueAnalyticsService:
@@ -16,8 +16,8 @@ class TechniqueAnalyticsService:
 
     def __init__(self):
         self.session_repo = SessionRepository()
-        self.roll_repo = SessionRollRepository()
         self.glossary_repo = GlossaryRepository()
+        self.technique_repo = SessionTechniqueRepository()
 
     def get_technique_analytics(
         self,
@@ -33,115 +33,127 @@ class TechniqueAnalyticsService:
             user_id: User ID
             start_date: Start date for filtering (default: 90 days ago)
             end_date: End date for filtering (default: today)
-            types: Optional list of class types to filter by (e.g., ["gi", "no-gi"])
+            types: Optional list of class types to filter by
 
         Returns:
-            - category_breakdown: Time spent on each technique category
+            - category_breakdown: Techniques used by category
+            - all_techniques: All techniques with counts (for heatmap)
             - stale_techniques: Techniques not trained recently
-            - success_heatmap: Technique success rates over time
-            - gi_vs_nogi: Technique applicability comparison
+            - gi_top_techniques / nogi_top_techniques: Gi vs no-gi split
+            - summary: Aggregate counts
         """
         if not start_date:
             start_date = date.today() - timedelta(days=90)
         if not end_date:
             end_date = date.today()
 
-        sessions = self.session_repo.get_by_date_range(
-            user_id, start_date, end_date, types=types
-        )
+        sessions = self.session_repo.get_by_date_range(user_id, start_date, end_date, types=types)
+
+        # Build movement lookup
         movements = self.glossary_repo.list_all()
+        movement_map = {m["id"]: m for m in movements}
 
-        # Category breakdown (count submissions by category)
-        category_counts = Counter()
+        # Get session_techniques in bulk
+        session_ids = [s["id"] for s in sessions]
+        techs_by_session = self.technique_repo.batch_get_by_session_ids(session_ids)
 
-        # Get rolls in bulk to avoid N+1 queries
-        session_ids = [session["id"] for session in sessions]
-        rolls_by_session = self.roll_repo.get_by_session_ids(user_id, session_ids)
+        # Build session lookup for class_type filtering
+        session_map = {s["id"]: s for s in sessions}
 
-        for session in sessions:
-            rolls = rolls_by_session.get(session["id"], [])
-            for roll in rolls:
-                if roll.get("submissions_for"):
-                    for movement_id in roll["submissions_for"]:
-                        movement = self.glossary_repo.get_by_id(movement_id)
-                        if movement:
-                            category_counts[movement["category"]] += 1
+        # Count techniques by category and movement
+        category_counts: Counter = Counter()
+        technique_counts: Counter = Counter()
+        gi_techniques: Counter = Counter()
+        nogi_techniques: Counter = Counter()
+        used_movement_ids: set[int] = set()
 
+        for session_id, techs in techs_by_session.items():
+            session = session_map.get(session_id)
+            if not session:
+                continue
+
+            class_type = session.get("class_type", "")
+
+            for tech in techs:
+                mid = tech.get("movement_id")
+                if not mid:
+                    continue
+
+                movement = movement_map.get(mid)
+                if not movement:
+                    continue
+
+                used_movement_ids.add(mid)
+                technique_counts[mid] += 1
+                category_counts[movement.get("category", "other")] += 1
+
+                if class_type == "gi":
+                    gi_techniques[mid] += 1
+                elif class_type == "no-gi":
+                    nogi_techniques[mid] += 1
+
+        # Category breakdown
         category_breakdown = [
             {"category": cat, "count": count} for cat, count in category_counts.items()
         ]
 
-        # Stale techniques (movements from glossary not used in X days)
-        stale_threshold_days = 30
-        stale_date = date.today() - timedelta(days=stale_threshold_days)
+        # All techniques (for heatmap)
+        all_techniques = []
+        for mid, count in technique_counts.most_common():
+            movement = movement_map.get(mid)
+            if movement:
+                all_techniques.append(
+                    {
+                        "name": movement["name"],
+                        "category": movement.get("category", "other"),
+                        "count": count,
+                    }
+                )
 
-        all_movement_ids = {m["id"] for m in movements}
-        used_movement_ids = set()
-
-        recent_sessions = self.session_repo.get_by_date_range(
-            user_id, stale_date, date.today()
-        )
-
-        # Get rolls in bulk to avoid N+1 queries
-        recent_session_ids = [session["id"] for session in recent_sessions]
-        recent_rolls_by_session = self.roll_repo.get_by_session_ids(
-            user_id, recent_session_ids
-        )
-
-        for session in recent_sessions:
-            rolls = recent_rolls_by_session.get(session["id"], [])
-            for roll in rolls:
-                if roll.get("submissions_for"):
-                    used_movement_ids.update(roll["submissions_for"])
-                if roll.get("submissions_against"):
-                    used_movement_ids.update(roll["submissions_against"])
-
-        stale_movement_ids = all_movement_ids - used_movement_ids
-        stale_techniques = [
-            {
-                "id": m["id"],
-                "name": m["name"],
-                "category": m["category"],
-            }
-            for m in movements
-            if m["id"] in stale_movement_ids
-        ]
-
-        # Gi vs No-Gi comparison
-        gi_sessions = [s for s in sessions if s["class_type"] == "gi"]
-        nogi_sessions = [s for s in sessions if s["class_type"] == "no-gi"]
-
-        gi_techniques = Counter()
-        nogi_techniques = Counter()
-
-        # Use already-loaded rolls from bulk query above
-        for session in gi_sessions:
-            rolls = rolls_by_session.get(session["id"], [])
-            for roll in rolls:
-                if roll.get("submissions_for"):
-                    gi_techniques.update(roll["submissions_for"])
-
-        for session in nogi_sessions:
-            rolls = rolls_by_session.get(session["id"], [])
-            for roll in rolls:
-                if roll.get("submissions_for"):
-                    nogi_techniques.update(roll["submissions_for"])
-
-        # Get top 10 from each
+        # Gi vs No-Gi top techniques
         gi_top = []
-        for movement_id, count in gi_techniques.most_common(10):
-            movement = self.glossary_repo.get_by_id(movement_id)
+        for mid, count in gi_techniques.most_common(10):
+            movement = movement_map.get(mid)
             if movement:
                 gi_top.append({"name": movement["name"], "count": count})
 
         nogi_top = []
-        for movement_id, count in nogi_techniques.most_common(10):
-            movement = self.glossary_repo.get_by_id(movement_id)
+        for mid, count in nogi_techniques.most_common(10):
+            movement = movement_map.get(mid)
             if movement:
                 nogi_top.append({"name": movement["name"], "count": count})
 
+        # Stale techniques (trained before but not in last 30 days)
+        stale_threshold_days = 30
+        stale_date = date.today() - timedelta(days=stale_threshold_days)
+
+        recent_sessions = self.session_repo.get_by_date_range(user_id, stale_date, date.today())
+        recent_ids = [s["id"] for s in recent_sessions]
+        recent_techs = self.technique_repo.batch_get_by_session_ids(recent_ids)
+
+        recently_used: set[int] = set()
+        for techs in recent_techs.values():
+            for tech in techs:
+                mid = tech.get("movement_id")
+                if mid:
+                    recently_used.add(mid)
+
+        # Stale = ever trained but not recently
+        all_ever_trained = set(technique_counts.keys())
+        stale_ids = all_ever_trained - recently_used
+        stale_techniques = [
+            {
+                "id": mid,
+                "name": movement_map[mid]["name"],
+                "category": movement_map[mid].get("category", "other"),
+            }
+            for mid in stale_ids
+            if mid in movement_map
+        ]
+
         return {
             "category_breakdown": category_breakdown,
+            "all_techniques": all_techniques,
             "stale_techniques": stale_techniques,
             "gi_top_techniques": gi_top,
             "nogi_top_techniques": nogi_top,
