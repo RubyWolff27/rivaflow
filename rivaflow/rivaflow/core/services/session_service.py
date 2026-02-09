@@ -216,7 +216,7 @@ class SessionService:
             return None
 
         # Any edit implies the user has reviewed the session
-        if "needs_review" not in kwargs:
+        if kwargs.get("needs_review") is None:
             kwargs["needs_review"] = False
 
         # Update session (pass all kwargs to repo)

@@ -631,7 +631,14 @@ export interface WhoopSessionContext {
     sws_pct: number | null;
   } | null;
   workout: {
-    zone_durations: Record<string, number>;
+    zone_durations: Record<string, number> | null;
+    score_state?: string | null;
+    strain?: number | null;
+    avg_heart_rate?: number | null;
+    max_heart_rate?: number | null;
+    calories?: number | null;
+    kilojoules?: number | null;
+    sport_name?: string | null;
   } | null;
 }
 

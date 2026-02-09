@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { getLocalDateString } from '../utils/date';
 import { Link, useNavigate } from 'react-router-dom';
-import { Plus, Activity, Scale, Sparkles, MessageCircle, Mic, BookOpen, Heart, Waves } from 'lucide-react';
+import { Plus, Activity, Scale, Sparkles, MessageCircle, Mic, BookOpen, Heart, Waves, RefreshCw } from 'lucide-react';
 import { Card, PrimaryButton, SecondaryButton, CardSkeleton } from '../components/ui';
 import { WeekAtGlance } from '../components/dashboard/WeekAtGlance';
 import { LastSession } from '../components/dashboard/LastSession';
@@ -28,6 +28,7 @@ export default function Dashboard() {
   const [lastWeight, setLastWeight] = useState<number | null>(null);
   const [savingWeight, setSavingWeight] = useState(false);
   const [whoopRecovery, setWhoopRecovery] = useState<{ recovery_score: number | null; hrv_ms: number | null; resting_hr: number | null; sleep_performance: number | null; synced_at?: string } | null>(null);
+  const [syncing, setSyncing] = useState(false);
 
   // Auto-sync browser timezone to profile (once per session)
   useEffect(() => {
@@ -97,6 +98,23 @@ export default function Dashboard() {
       toast.error('Failed to log weight.');
     } finally {
       setSavingWeight(false);
+    }
+  };
+
+  const handleWhoopSync = async () => {
+    setSyncing(true);
+    try {
+      await whoopApi.sync();
+      await whoopApi.syncRecovery();
+      const whoopRes = await whoopApi.getLatestRecovery();
+      if (whoopRes.data?.recovery_score != null) {
+        setWhoopRecovery(whoopRes.data);
+      }
+      toast.success('WHOOP data synced');
+    } catch {
+      toast.error('Sync failed');
+    } finally {
+      setSyncing(false);
     }
   };
 
@@ -296,11 +314,22 @@ export default function Dashboard() {
                     <p>Sleep</p>
                   </div>
                 )}
+                <button
+                  onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleWhoopSync(); }}
+                  disabled={syncing}
+                  className="p-1.5 rounded-lg transition-colors hover:bg-[var(--surfaceElev)] disabled:opacity-50"
+                  title="Sync WHOOP"
+                >
+                  <RefreshCw className={`w-3.5 h-3.5 ${syncing ? 'animate-spin' : ''}`} style={{ color: 'var(--accent)' }} />
+                </button>
               </div>
             </div>
           </Card>
         </Link>
       )}
+
+      {/* Last Session */}
+      <LastSession />
 
       {/* Quick Weight Log */}
       <Card>
@@ -350,11 +379,8 @@ export default function Dashboard() {
         <WeeklyGoalsBreakdown />
       </div>
 
-      {/* Journey Progress and Last Session */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <JourneyProgress />
-        <LastSession />
-      </div>
+      {/* Journey Progress */}
+      <JourneyProgress />
 
       {/* Quick Links */}
       <Card>

@@ -413,6 +413,9 @@ def get_session_context(
             "strain": wo.get("strain"),
             "avg_heart_rate": wo.get("avg_heart_rate"),
             "max_heart_rate": wo.get("max_heart_rate"),
+            "calories": wo.get("calories"),
+            "kilojoules": wo.get("kilojoules"),
+            "sport_name": wo.get("sport_name"),
         }
         logger.info(
             "Session %s context: workout=%s score_state=%s "

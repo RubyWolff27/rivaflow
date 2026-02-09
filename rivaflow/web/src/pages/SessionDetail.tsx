@@ -546,8 +546,8 @@ export default function SessionDetail() {
       )}
 
       {/* HR Zone Distribution */}
-      {whoopCtx?.workout?.zone_durations && Object.keys(whoopCtx.workout.zone_durations).length > 0 && (() => {
-        const zones = whoopCtx.workout!.zone_durations;
+      {whoopCtx?.workout && (() => {
+        const zones = whoopCtx.workout.zone_durations;
         const zoneConfig = [
           { key: 'zone_one_milli', label: 'Zone 1 (Recovery)', color: '#93C5FD' },
           { key: 'zone_two_milli', label: 'Zone 2 (Light)', color: '#34D399' },
@@ -555,37 +555,50 @@ export default function SessionDetail() {
           { key: 'zone_four_milli', label: 'Zone 4 (Hard)', color: '#F97316' },
           { key: 'zone_five_milli', label: 'Zone 5 (Max)', color: '#EF4444' },
         ];
-        const totalMs = zoneConfig.reduce((sum, z) => sum + (zones[z.key] || 0), 0);
-        if (totalMs <= 0) return null;
+        const totalMs = zones ? zoneConfig.reduce((sum, z) => sum + (zones[z.key] || 0), 0) : 0;
+        const hasZones = zones && totalMs > 0;
+        if (!hasZones && !whoopCtx.workout.score_state) return null;
         return (
           <div className="card">
             <h3 className="font-semibold text-lg mb-4">HR Zone Distribution</h3>
-            {/* Stacked bar */}
-            <div className="flex rounded-full overflow-hidden h-4 mb-3">
-              {zoneConfig.map(z => {
-                const ms = zones[z.key] || 0;
-                const pct = (ms / totalMs) * 100;
-                if (pct < 1) return null;
-                return <div key={z.key} style={{ width: `${pct}%`, backgroundColor: z.color }} title={`${z.label}: ${Math.round(ms / 60000)} min`} />;
-              })}
-            </div>
-            <div className="space-y-2">
-              {zoneConfig.map(z => {
-                const ms = zones[z.key] || 0;
-                if (ms <= 0) return null;
-                const mins = Math.round(ms / 60000);
-                const pct = ((ms / totalMs) * 100).toFixed(0);
-                return (
-                  <div key={z.key} className="flex items-center justify-between text-sm">
-                    <div className="flex items-center gap-2">
-                      <span className="inline-block w-3 h-3 rounded-sm" style={{ backgroundColor: z.color }} />
-                      <span style={{ color: 'var(--text)' }}>{z.label}</span>
-                    </div>
-                    <span style={{ color: 'var(--muted)' }}>{mins} min ({pct}%)</span>
-                  </div>
-                );
-              })}
-            </div>
+            {hasZones ? (
+              <>
+                {/* Stacked bar */}
+                <div className="flex rounded-full overflow-hidden h-4 mb-3">
+                  {zoneConfig.map(z => {
+                    const ms = zones![z.key] || 0;
+                    const pct = (ms / totalMs) * 100;
+                    if (pct < 1) return null;
+                    return <div key={z.key} style={{ width: `${pct}%`, backgroundColor: z.color }} title={`${z.label}: ${Math.round(ms / 60000)} min`} />;
+                  })}
+                </div>
+                <div className="space-y-2">
+                  {zoneConfig.map(z => {
+                    const ms = zones![z.key] || 0;
+                    if (ms <= 0) return null;
+                    const mins = Math.round(ms / 60000);
+                    const pct = ((ms / totalMs) * 100).toFixed(0);
+                    return (
+                      <div key={z.key} className="flex items-center justify-between text-sm">
+                        <div className="flex items-center gap-2">
+                          <span className="inline-block w-3 h-3 rounded-sm" style={{ backgroundColor: z.color }} />
+                          <span style={{ color: 'var(--text)' }}>{z.label}</span>
+                        </div>
+                        <span style={{ color: 'var(--muted)' }}>{mins} min ({pct}%)</span>
+                      </div>
+                    );
+                  })}
+                </div>
+              </>
+            ) : (
+              <p className="text-sm" style={{ color: 'var(--muted)' }}>
+                {whoopCtx.workout.score_state === 'PENDING_STRAIN'
+                  ? 'HR zone data is still processing on WHOOP. Try syncing again later.'
+                  : whoopCtx.workout.score_state === 'UNSCORABLE'
+                    ? 'This workout could not be scored by WHOOP.'
+                    : 'HR zone data not available. Try syncing your WHOOP data.'}
+              </p>
+            )}
           </div>
         );
       })()}
