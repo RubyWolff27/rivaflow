@@ -18,7 +18,7 @@
     "lucide-react": "^0.563.0",
     "react": "^19.2.4",
     "react-dom": "^18.2.0",
-    "react-router-dom": "^6.20.0",
+    "react-router-dom": "^7.13.0",
     "react-window": "^2.2.6",
     "recharts": "^2.15.4",
     "serve": "^14.2.0"
