@@ -360,6 +360,41 @@ def get_session_context(
                 zones = score.get("zone_duration")
                 if zones:
                     zone_source = "raw_data"
+        # Auto-refresh from WHOOP API if zone data is missing
+        if not zones and wo.get("whoop_workout_id"):
+            try:
+                token = service.get_valid_access_token(user_id)
+                fresh = service.client.get_workout_by_id(token, wo["whoop_workout_id"])
+                fresh_score = fresh.get("score") or {}
+                zones = fresh_score.get("zone_duration")
+                if zones:
+                    zone_source = "api_refresh"
+                    # Update cache for future requests
+                    import json
+
+                    from rivaflow.db.database import convert_query, get_connection
+
+                    with get_connection() as conn:
+                        cursor = conn.cursor()
+                        cursor.execute(
+                            convert_query(
+                                "UPDATE whoop_workout_cache "
+                                "SET zone_durations = ?, raw_data = ?, "
+                                "score_state = ? WHERE id = ?"
+                            ),
+                            (
+                                json.dumps(zones),
+                                json.dumps(fresh),
+                                fresh.get("score_state"),
+                                wo["id"],
+                            ),
+                        )
+            except Exception:
+                logger.debug(
+                    "Auto-refresh failed for workout %s",
+                    wo.get("whoop_workout_id"),
+                    exc_info=True,
+                )
         if zones:
             workout_data = {
                 "zone_durations": zones,
