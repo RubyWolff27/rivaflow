@@ -110,9 +110,7 @@ class WhoopWorkoutCacheRepository:
                 )
 
     @staticmethod
-    def get_by_user_and_time_range(
-        user_id: int, start_dt: str, end_dt: str
-    ) -> list[dict]:
+    def get_by_user_and_time_range(user_id: int, start_dt: str, end_dt: str) -> list[dict]:
         """Get cached workouts for a user within a time range."""
         with get_connection() as conn:
             cursor = conn.cursor()
@@ -126,10 +124,7 @@ class WhoopWorkoutCacheRepository:
                     """),
                 (user_id, start_dt, end_dt),
             )
-            return [
-                WhoopWorkoutCacheRepository._row_to_dict(row)
-                for row in cursor.fetchall()
-            ]
+            return [WhoopWorkoutCacheRepository._row_to_dict(row) for row in cursor.fetchall()]
 
     @staticmethod
     def link_to_session(workout_cache_id: int, session_id: int) -> bool:
@@ -191,21 +186,22 @@ class WhoopWorkoutCacheRepository:
 
     @staticmethod
     def get_unlinked_bjj_workouts(user_id: int) -> list[dict]:
-        """Get BJJ workouts (sport_id=76) not yet linked to a session."""
+        """Get BJJ/Jiu Jitsu workouts not yet linked to a session."""
         with get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(
                 convert_query("""
                     SELECT * FROM whoop_workout_cache
-                    WHERE user_id = ? AND sport_id = 76 AND session_id IS NULL
+                    WHERE user_id = ?
+                      AND (sport_id = 76
+                           OR LOWER(sport_name) LIKE '%jiu jitsu%'
+                           OR LOWER(sport_name) LIKE '%jiu-jitsu%')
+                      AND session_id IS NULL
                     ORDER BY start_time DESC
                     """),
                 (user_id,),
             )
-            return [
-                WhoopWorkoutCacheRepository._row_to_dict(row)
-                for row in cursor.fetchall()
-            ]
+            return [WhoopWorkoutCacheRepository._row_to_dict(row) for row in cursor.fetchall()]
 
     @staticmethod
     def _row_to_dict(row) -> dict:
