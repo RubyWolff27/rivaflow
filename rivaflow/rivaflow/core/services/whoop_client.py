@@ -13,9 +13,7 @@ logger = logging.getLogger(__name__)
 WHOOP_AUTH_URL = "https://api.prod.whoop.com/oauth/oauth2/auth"
 WHOOP_TOKEN_URL = "https://api.prod.whoop.com/oauth/oauth2/token"
 WHOOP_API_BASE = "https://api.prod.whoop.com/developer/v2"
-WHOOP_SCOPES = (
-    "read:workout read:recovery read:sleep read:cycles read:body_measurement read:profile offline"
-)
+WHOOP_SCOPES = "read:workout read:recovery read:sleep read:cycles read:body_measurement read:profile offline"
 
 TIMEOUT = 15.0
 
@@ -52,7 +50,9 @@ class WhoopClient:
             return response.json()
         except httpx.HTTPStatusError as e:
             logger.error(f"WHOOP token exchange failed: {e.response.text}")
-            raise ExternalServiceError("Failed to exchange WHOOP authorization code") from e
+            raise ExternalServiceError(
+                "Failed to exchange WHOOP authorization code"
+            ) from e
         except httpx.TimeoutException as e:
             raise ExternalServiceError("WHOOP API timed out") from e
 

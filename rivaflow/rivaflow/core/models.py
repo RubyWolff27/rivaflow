@@ -225,6 +225,7 @@ class SessionUpdate(BaseModel):
     attacks_successful: int | None = Field(default=None, ge=0)
     defenses_attempted: int | None = Field(default=None, ge=0)
     defenses_successful: int | None = Field(default=None, ge=0)
+    needs_review: bool | None = None
 
     @field_validator(
         "class_time", "gym_name", "location", "notes", "instructor_name", mode="before"

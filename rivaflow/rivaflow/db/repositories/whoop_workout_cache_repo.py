@@ -110,7 +110,9 @@ class WhoopWorkoutCacheRepository:
                 )
 
     @staticmethod
-    def get_by_user_and_time_range(user_id: int, start_dt: str, end_dt: str) -> list[dict]:
+    def get_by_user_and_time_range(
+        user_id: int, start_dt: str, end_dt: str
+    ) -> list[dict]:
         """Get cached workouts for a user within a time range."""
         with get_connection() as conn:
             cursor = conn.cursor()
@@ -124,7 +126,10 @@ class WhoopWorkoutCacheRepository:
                     """),
                 (user_id, start_dt, end_dt),
             )
-            return [WhoopWorkoutCacheRepository._row_to_dict(row) for row in cursor.fetchall()]
+            return [
+                WhoopWorkoutCacheRepository._row_to_dict(row)
+                for row in cursor.fetchall()
+            ]
 
     @staticmethod
     def link_to_session(workout_cache_id: int, session_id: int) -> bool:
@@ -197,7 +202,10 @@ class WhoopWorkoutCacheRepository:
                     """),
                 (user_id,),
             )
-            return [WhoopWorkoutCacheRepository._row_to_dict(row) for row in cursor.fetchall()]
+            return [
+                WhoopWorkoutCacheRepository._row_to_dict(row)
+                for row in cursor.fetchall()
+            ]
 
     @staticmethod
     def _row_to_dict(row) -> dict:

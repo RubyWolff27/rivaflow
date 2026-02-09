@@ -133,6 +133,7 @@ def update_session(
             attacks_successful=session.attacks_successful,
             defenses_attempted=session.defenses_attempted,
             defenses_successful=session.defenses_successful,
+            needs_review=session.needs_review,
         )
         if not updated:
             raise NotFoundError(f"Session {session_id} not found or access denied")

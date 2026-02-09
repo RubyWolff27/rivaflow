@@ -3,6 +3,7 @@
 import logging
 import secrets
 from datetime import UTC, datetime, timedelta
+from datetime import timezone as tz
 
 from rivaflow.core.exceptions import NotFoundError, ValidationError
 from rivaflow.core.services.whoop_client import WHOOP_SCOPES, WhoopClient
@@ -23,6 +24,20 @@ from rivaflow.db.repositories.whoop_workout_cache_repo import (
 )
 
 logger = logging.getLogger(__name__)
+
+
+def _parse_tz_offset(offset_str: str | None) -> tz | None:
+    """Parse a timezone offset string like '+11:00' into a timezone."""
+    if not offset_str:
+        return None
+    try:
+        sign = 1 if offset_str.startswith("+") else -1
+        parts = offset_str.lstrip("+-").split(":")
+        hours = int(parts[0])
+        mins = int(parts[1]) if len(parts) > 1 else 0
+        return tz(timedelta(hours=sign * hours, minutes=sign * mins))
+    except (ValueError, IndexError):
+        return None
 
 
 class WhoopService:
@@ -64,7 +79,9 @@ class WhoopService:
         access_token = token_data["access_token"]
         refresh_token = token_data["refresh_token"]
         expires_in = token_data.get("expires_in", 3600)
-        token_expires_at = (datetime.now(UTC) + timedelta(seconds=expires_in)).isoformat()
+        token_expires_at = (
+            datetime.now(UTC) + timedelta(seconds=expires_in)
+        ).isoformat()
         scopes = token_data.get("scope", "")
 
         # Get WHOOP user profile
@@ -113,7 +130,8 @@ class WhoopService:
             new_access = token_data["access_token"]
             new_refresh = token_data.get("refresh_token", refresh_token)
             new_expires = (
-                datetime.now(UTC) + timedelta(seconds=token_data.get("expires_in", 3600))
+                datetime.now(UTC)
+                + timedelta(seconds=token_data.get("expires_in", 3600))
             ).isoformat()
 
             self.connection_repo.update_tokens(
@@ -228,11 +246,19 @@ class WhoopService:
             logger.warning("Auto-create sessions failed", exc_info=True)
             auto_created = []
 
+        # Fix timezone on existing auto-created sessions
+        tz_fixed = 0
+        try:
+            tz_fixed = self.backfill_session_timezones(user_id)
+        except Exception:
+            logger.warning("Timezone backfill failed", exc_info=True)
+
         return {
             "total_fetched": len(all_workouts),
             "created": created,
             "updated": updated,
             "auto_sessions_created": len(auto_created),
+            "tz_fixed": tz_fixed,
         }
 
     # =========================================================================
@@ -251,7 +277,9 @@ class WhoopService:
 
         # Paginate through cycles
         while True:
-            data = self.client.get_cycles(access_token, start=start, end=end, next_token=next_token)
+            data = self.client.get_cycles(
+                access_token, start=start, end=end, next_token=next_token
+            )
             records = data.get("records", [])
             all_cycles.extend(records)
             next_token = data.get("next_token")
@@ -275,7 +303,9 @@ class WhoopService:
         all_sleep = []
         next_token = None
         while True:
-            data = self.client.get_sleep(access_token, start=start, end=end, next_token=next_token)
+            data = self.client.get_sleep(
+                access_token, start=start, end=end, next_token=next_token
+            )
             records = data.get("records", [])
             all_sleep.extend(records)
             next_token = data.get("next_token")
@@ -531,8 +561,12 @@ class WhoopService:
 
         for workout in candidates:
             try:
-                w_start = datetime.fromisoformat(str(workout["start_time"]).replace("Z", "+00:00"))
-                w_end = datetime.fromisoformat(str(workout["end_time"]).replace("Z", "+00:00"))
+                w_start = datetime.fromisoformat(
+                    str(workout["start_time"]).replace("Z", "+00:00")
+                )
+                w_end = datetime.fromisoformat(
+                    str(workout["end_time"]).replace("Z", "+00:00")
+                )
             except (ValueError, TypeError):
                 continue
 
@@ -615,8 +649,12 @@ class WhoopService:
 
         for workout in candidates:
             try:
-                w_start = datetime.fromisoformat(str(workout["start_time"]).replace("Z", "+00:00"))
-                w_end = datetime.fromisoformat(str(workout["end_time"]).replace("Z", "+00:00"))
+                w_start = datetime.fromisoformat(
+                    str(workout["start_time"]).replace("Z", "+00:00")
+                )
+                w_end = datetime.fromisoformat(
+                    str(workout["end_time"]).replace("Z", "+00:00")
+                )
             except (ValueError, TypeError):
                 continue
 
@@ -711,7 +749,9 @@ class WhoopService:
         default_class_type = "no-gi"
         if profile:
             default_gym = profile.get("default_gym") or default_gym
-            default_class_type = profile.get("primary_training_type") or default_class_type
+            default_class_type = (
+                profile.get("primary_training_type") or default_class_type
+            )
 
         unlinked = self.workout_cache_repo.get_unlinked_workouts(user_id)
         logger.info(
@@ -733,26 +773,10 @@ class WhoopService:
                 end_dt = datetime.fromisoformat(end_str.replace("Z", "+00:00"))
 
                 # Convert to local time using WHOOP timezone offset
-                tz_offset = workout.get("timezone_offset")
-                if tz_offset:
-                    try:
-                        from datetime import timezone as tz
-
-                        # Parse offset like "+11:00" or "-05:00"
-                        sign = 1 if tz_offset.startswith("+") else -1
-                        parts = tz_offset.lstrip("+-").split(":")
-                        offset_hours = int(parts[0])
-                        offset_mins = int(parts[1]) if len(parts) > 1 else 0
-                        local_tz = tz(
-                            timedelta(
-                                hours=sign * offset_hours,
-                                minutes=sign * offset_mins,
-                            )
-                        )
-                        start_dt = start_dt.astimezone(local_tz)
-                        end_dt = end_dt.astimezone(local_tz)
-                    except (ValueError, IndexError):
-                        pass
+                local_tz = _parse_tz_offset(workout.get("timezone_offset"))
+                if local_tz:
+                    start_dt = start_dt.astimezone(local_tz)
+                    end_dt = end_dt.astimezone(local_tz)
 
                 session_date = start_dt.date()
                 class_time = start_dt.strftime("%H:%M")
@@ -793,6 +817,66 @@ class WhoopService:
                 )
 
         return created_ids
+
+    def backfill_session_timezones(self, user_id: int) -> int:
+        """Fix UTC times on existing auto-created sessions.
+
+        Looks up linked WHOOP workouts, applies timezone_offset to
+        recalculate class_time and session_date. Returns count fixed.
+        """
+        from rivaflow.db.database import convert_query, get_connection
+
+        fixed = 0
+        with get_connection() as conn:
+            cursor = conn.cursor()
+            # Find auto-created sessions with linked workouts
+            cursor.execute(
+                convert_query(
+                    "SELECT wc.session_id, wc.start_time, "
+                    "wc.timezone_offset "
+                    "FROM whoop_workout_cache wc "
+                    "WHERE wc.user_id = ? AND wc.session_id IS NOT NULL "
+                    "AND wc.timezone_offset IS NOT NULL"
+                ),
+                (user_id,),
+            )
+            rows = cursor.fetchall()
+
+        for row in rows:
+            row_d = (
+                dict(row)
+                if hasattr(row, "keys")
+                else {
+                    "session_id": row[0],
+                    "start_time": row[1],
+                    "timezone_offset": row[2],
+                }
+            )
+            local_tz = _parse_tz_offset(row_d["timezone_offset"])
+            if not local_tz or not row_d["start_time"]:
+                continue
+            try:
+                start_str = str(row_d["start_time"])
+                start_dt = datetime.fromisoformat(start_str.replace("Z", "+00:00"))
+                local_dt = start_dt.astimezone(local_tz)
+                new_date = local_dt.date().isoformat()
+                new_time = local_dt.strftime("%H:%M")
+                self.session_repo.update(
+                    user_id=user_id,
+                    session_id=row_d["session_id"],
+                    session_date=new_date,
+                    class_time=new_time,
+                )
+                fixed += 1
+            except Exception:
+                logger.debug(
+                    "Timezone backfill failed for session %s",
+                    row_d["session_id"],
+                    exc_info=True,
+                )
+        if fixed:
+            logger.info("Timezone backfill: user=%s fixed=%d", user_id, fixed)
+        return fixed
 
     def set_auto_create_sessions(self, user_id: int, enabled: bool) -> dict:
         """Toggle auto-create and backfill if enabling."""
