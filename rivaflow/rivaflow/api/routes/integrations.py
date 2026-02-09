@@ -319,9 +319,30 @@ def get_session_context(
             ),
         }
 
-    # Find workout linked to session
+    # Find workout linked to session (or fall back to date match)
     workout_data = None
     wo = WhoopWorkoutCacheRepository.get_by_session_id(session_id)
+    if not wo:
+        # Fall back: find workout on same day
+        from datetime import timedelta
+
+        try:
+            from datetime import date as date_cls
+
+            d = date_cls.fromisoformat(s_date[:10])
+            day_start = d.isoformat() + "T00:00:00"
+            day_end = (d + timedelta(days=1)).isoformat() + "T00:00:00"
+            candidates = WhoopWorkoutCacheRepository.get_by_user_and_time_range(
+                user_id, day_start, day_end
+            )
+            if candidates:
+                wo = candidates[0]
+                # Link it for future lookups
+                if wo.get("id"):
+                    WhoopWorkoutCacheRepository.link_to_session(wo["id"], session_id)
+        except (ValueError, TypeError):
+            pass
+
     if wo and wo.get("zone_durations"):
         workout_data = {
             "zone_durations": wo["zone_durations"],
