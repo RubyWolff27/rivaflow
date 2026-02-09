@@ -732,6 +732,28 @@ class WhoopService:
                 start_dt = datetime.fromisoformat(start_str.replace("Z", "+00:00"))
                 end_dt = datetime.fromisoformat(end_str.replace("Z", "+00:00"))
 
+                # Convert to local time using WHOOP timezone offset
+                tz_offset = workout.get("timezone_offset")
+                if tz_offset:
+                    try:
+                        from datetime import timezone as tz
+
+                        # Parse offset like "+11:00" or "-05:00"
+                        sign = 1 if tz_offset.startswith("+") else -1
+                        parts = tz_offset.lstrip("+-").split(":")
+                        offset_hours = int(parts[0])
+                        offset_mins = int(parts[1]) if len(parts) > 1 else 0
+                        local_tz = tz(
+                            timedelta(
+                                hours=sign * offset_hours,
+                                minutes=sign * offset_mins,
+                            )
+                        )
+                        start_dt = start_dt.astimezone(local_tz)
+                        end_dt = end_dt.astimezone(local_tz)
+                    except (ValueError, IndexError):
+                        pass
+
                 session_date = start_dt.date()
                 class_time = start_dt.strftime("%H:%M")
                 duration_secs = (end_dt - start_dt).total_seconds()
@@ -742,6 +764,10 @@ class WhoopService:
                 if not calories and kj:
                     calories = round(kj / 4.184)
 
+                strain = workout.get("strain")
+                if strain is not None:
+                    strain = round(strain, 1)
+
                 session_id = self.session_repo.create(
                     user_id=user_id,
                     session_date=session_date,
@@ -749,7 +775,7 @@ class WhoopService:
                     gym_name=default_gym,
                     class_time=class_time,
                     duration_mins=duration_mins,
-                    whoop_strain=workout.get("strain"),
+                    whoop_strain=strain,
                     whoop_calories=calories,
                     whoop_avg_hr=workout.get("avg_heart_rate"),
                     whoop_max_hr=workout.get("max_heart_rate"),

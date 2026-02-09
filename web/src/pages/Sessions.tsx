@@ -81,9 +81,12 @@ export default function Sessions() {
     total: sessions.length,
     totalHours: sessions.reduce((sum, s) => sum + (s.duration_mins ?? 0), 0) / 60,
     totalRolls: sessions.reduce((sum, s) => sum + (s.rolls ?? 0), 0),
-    avgIntensity: sessions.length > 0
-      ? sessions.reduce((sum, s) => sum + (s.intensity ?? 0), 0) / sessions.length
-      : 0,
+    avgIntensity: (() => {
+      const rated = sessions.filter(s => (s.intensity ?? 0) > 0);
+      return rated.length > 0
+        ? rated.reduce((sum, s) => sum + (s.intensity ?? 0), 0) / rated.length
+        : 0;
+    })(),
   };
 
   if (loading) {
@@ -200,9 +203,11 @@ export default function Sessions() {
                         Review
                       </span>
                     )}
-                    <span className="text-xs text-[var(--muted)]">
-                      Intensity: {session.intensity}/5
-                    </span>
+                    {session.intensity > 0 && (
+                      <span className="text-xs text-[var(--muted)]">
+                        Intensity: {session.intensity}/5
+                      </span>
+                    )}
                   </div>
                   <h3 className="font-semibold text-[var(--text)]">
                     {session.gym_name}

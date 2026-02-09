@@ -184,10 +184,12 @@ export default function SessionDetail() {
                 style={{ backgroundColor: 'rgba(var(--accent-rgb), 0.12)', color: 'var(--accent)' }}>
                 {session.class_type}
               </span>
-              <span className="flex items-center gap-1 text-sm">
-                <Zap className="w-4 h-4" />
-                Intensity: {session.intensity}/5
-              </span>
+              {session.intensity > 0 && (
+                <span className="flex items-center gap-1 text-sm">
+                  <Zap className="w-4 h-4" />
+                  Intensity: {session.intensity}/5
+                </span>
+              )}
             </div>
             <h2 className="text-2xl font-bold text-[var(--text)] mb-1">
               {session.gym_name ?? 'Unknown Gym'}
@@ -493,7 +495,7 @@ export default function SessionDetail() {
             <div className="mb-4">
               <div className="flex items-center justify-between mb-1">
                 <span className="text-sm text-[var(--muted)]">Activity Strain</span>
-                <span className="text-2xl font-bold">{session.whoop_strain}</span>
+                <span className="text-2xl font-bold">{Number(session.whoop_strain).toFixed(1)}</span>
               </div>
               <div className="h-2.5 rounded-full overflow-hidden" style={{ backgroundColor: 'var(--surfaceElev)' }}>
                 <div

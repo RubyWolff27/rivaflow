@@ -390,7 +390,7 @@ def get_session_context(
                             ),
                         )
             except Exception:
-                logger.debug(
+                logger.warning(
                     "Auto-refresh failed for workout %s",
                     wo.get("whoop_workout_id"),
                     exc_info=True,
