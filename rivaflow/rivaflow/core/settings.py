@@ -234,11 +234,6 @@ class Settings:
         )
 
     @property
-    def WHOOP_WEBHOOK_SECRET(self) -> str | None:
-        """WHOOP webhook secret for verifying signature on incoming events."""
-        return os.getenv("WHOOP_WEBHOOK_SECRET")
-
-    @property
     def WHOOP_ENCRYPTION_KEY(self) -> str | None:
         """Fernet encryption key for WHOOP tokens (32-byte base64)."""
         return os.getenv("WHOOP_ENCRYPTION_KEY")
