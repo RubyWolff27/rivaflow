@@ -17,7 +17,7 @@ A local-first training tracker for BJJ/grappling with both **CLI** and **Web App
 - 🎙️ **Speech-to-Text** — Voice input for session notes
 - 📹 **Video recall** — Link instructionals to techniques, surface during logging
 - 🎯 **Monthly Goals** — User-defined monthly training goals with auto-tracked progress
-- ⌚ **WHOOP Integration** — Connect your WHOOP band for strain, HR, and calorie overlay on sessions
+- ⌚ **WHOOP Integration** — Connect your WHOOP band for strain, HR, calorie overlay, recovery-aware AI coaching, and sport science analytics (recovery-performance correlation, strain efficiency, HRV predictor, sleep impact, cardiovascular drift)
 - 🔒 **Privacy-first** — Granular privacy controls (private/attendance/summary/full)
 
 ## Install
@@ -64,11 +64,12 @@ cd web && npm install && cd ..
 - **Glossary** — Browse, search, and filter 82 BJJ techniques by category and gi/no-gi applicability
 - **Detailed Roll Tracking** — Log individual rolls with partner selection and submission tracking from glossary
 - **Reports** — Weekly/monthly analytics with breakdown by class type and gym
-- **Insights** — ACWR training load, overtraining risk, technique quadrants, session quality, recovery analysis
+- **Insights** — ACWR training load, overtraining risk (6 factors incl. WHOOP HRV/recovery), technique quadrants, session quality, recovery analysis
+- **Performance Science** — WHOOP-powered sport analytics: recovery-performance correlation, strain efficiency, HRV predictor, sleep impact, cardiovascular drift
 - **Grapple AI** — Chat with AI coach powered by your training data
 - **Game Plans** — Build and review position flow charts
 - **Monthly Goals** — Set and auto-track frequency and technique goals each month
-- **WHOOP Sync** — Connect WHOOP band, overlay strain/HR/calories on sessions
+- **WHOOP Sync** — Connect WHOOP band, overlay strain/HR/calories, recovery context per session, Performance Science charts
 - **Profile** — Manage your information, default gym, belt progression, and WHOOP connection
 
 See [WEB_README.md](WEB_README.md) for full web app documentation.
@@ -526,7 +527,7 @@ Current version: **v0.5.0-beta**
 - ✅ Social features (groups, friends, feed, likes, comments)
 - ✅ Profile management with belt progression history
 - ✅ Monthly training goals with auto-tracked progress
-- ✅ WHOOP wearable integration (OAuth, workout sync, biometric overlay)
+- ✅ WHOOP wearable integration (OAuth, workout sync, biometric overlay, recovery sync, sport science analytics, recovery-aware AI)
 
 **Upcoming:**
 - Mobile companion app (iOS/Android)

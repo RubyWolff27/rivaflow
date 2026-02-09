@@ -287,7 +287,7 @@ You can view past month goals using the month selector (prev/next arrows), but y
 
 ### What is the WHOOP integration?
 
-RivaFlow can connect to your WHOOP wearable to overlay biometric data (strain, calories, heart rate) on your training sessions. This gives you objective performance data alongside your subjective session logs.
+RivaFlow can connect to your WHOOP wearable to overlay biometric data (strain, calories, heart rate) on your training sessions, provide recovery-aware AI coaching, and unlock sport science analytics that correlate your physiology with BJJ performance.
 
 ### How do I connect my WHOOP?
 
@@ -295,14 +295,40 @@ Go to **Profile** and click "Connect WHOOP" in the integrations section. You'll 
 
 ### What data does RivaFlow pull from WHOOP?
 
-- **Strain** — WHOOP's proprietary cardiovascular load metric (0-21 scale)
-- **Calories** — Total calories burned during the workout
-- **Average Heart Rate** — Mean HR during the matched workout
-- **Max Heart Rate** — Peak HR during the matched workout
+- **Workout data** — Strain, calories, average HR, max HR, HR zone durations
+- **Recovery data** — Recovery score (%), HRV (ms), resting heart rate, SpO2
+- **Sleep data** — Sleep performance (%), total duration, REM%, SWS%, sleep debt
 
 ### How does session-workout matching work?
 
 When you log a session with a date and class time, RivaFlow finds WHOOP workouts that overlap with your session window. If there's a single strong match (90%+ overlap), data is synced automatically. If there are multiple potential matches, you'll see a modal to pick the right one.
+
+### What are the Performance Science analytics?
+
+When you connect WHOOP, a "Performance Science" section appears on the Readiness tab with five analytics:
+
+1. **Recovery-Performance Correlation** — Scatter plot of recovery score vs next-day submission rate, with red/yellow/green zone bands
+2. **Strain Efficiency** — How many submissions you score per unit of strain, broken down by class type and gym
+3. **HRV Performance Predictor** — Correlates your pre-session HRV with session quality to find your optimal HRV threshold
+4. **Sleep Impact Analysis** — Shows how REM%, SWS%, and total sleep hours correlate with next-day performance
+5. **Cardiovascular Drift** — Tracks your weekly resting HR trend to detect improving fitness or accumulated fatigue
+
+### Does WHOOP data affect Grapple AI?
+
+Yes. If you have WHOOP connected, Grapple AI receives your latest recovery score, HRV, RHR, sleep data, HRV trend, and average recovery. Post-session insights also include WHOOP recovery and workout strain. Weekly insights factor in 7-day average recovery, HRV, and sleep performance.
+
+### Does WHOOP data affect overtraining risk?
+
+Yes. With WHOOP connected, the overtraining risk gauge uses 6 factors instead of 4:
+- ACWR spike, readiness decline, hotspot mentions, intensity creep (original 4)
+- **HRV decline** — Detects sustained HRV downtrend over 14 days
+- **Low recovery streak** — Flags consecutive days with recovery below 34%
+
+Non-WHOOP users are unaffected; the two new factors default to 0.
+
+### Can I see my recovery on a session detail page?
+
+Yes. Each session detail page shows a "Recovery Going In" card (recovery score gauge, HRV, sleep performance, sleep composition bar) and an "HR Zone Distribution" chart showing time spent in each heart rate zone during that session.
 
 ### Can I manually enter WHOOP data?
 
@@ -310,7 +336,7 @@ Yes. If automatic matching doesn't find a workout, you can manually enter strain
 
 ### Is my WHOOP data secure?
 
-Yes. OAuth tokens are encrypted at rest. RivaFlow only requests read access to your workout data. You can disconnect at any time from your Profile page.
+Yes. OAuth tokens are encrypted at rest. RivaFlow only requests read access to your workout and recovery data. You can disconnect at any time from your Profile page.
 
 ### Do I need a WHOOP subscription?
 
@@ -439,11 +465,15 @@ This helps prevent injuries from sudden training spikes.
 
 ### How does overtraining risk work?
 
-RivaFlow scores overtraining risk (0-100) based on four factors, each worth up to 25 points:
-1. **ACWR spike** - Sudden training load increase
-2. **Readiness decline** - Downward trend in readiness scores over 14 days
-3. **Hotspot mentions** - Injury or soreness mentions in recent check-ins
-4. **Intensity creep** - Gradual increase in training intensity
+RivaFlow scores overtraining risk (0-100) based on six factors:
+1. **ACWR spike** (max 20) — Sudden training load increase
+2. **Readiness decline** (max 20) — Downward trend in readiness scores over 14 days
+3. **Hotspot mentions** (max 15) — Injury or soreness mentions in recent check-ins
+4. **Intensity creep** (max 15) — Gradual increase in training intensity
+5. **HRV decline** (max 15) — Sustained HRV downtrend from WHOOP data (requires WHOOP)
+6. **Low recovery streak** (max 15) — Consecutive days with recovery below 34% (requires WHOOP)
+
+Factors 5 and 6 only activate with a connected WHOOP band; without it they score 0.
 
 Levels: Green (< 30), Yellow (30-60), Red (> 60). Each level includes specific recommendations.
 

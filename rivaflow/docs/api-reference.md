@@ -18,6 +18,7 @@
 - [Feed](#feed)
 - [Goals](#goals)
 - [Grapple AI](#grapple-ai)
+- [WHOOP Analytics](#whoop-analytics)
 - [Error Handling](#error-handling)
 - [Rate Limiting](#rate-limiting)
 
@@ -592,6 +593,150 @@ Log daily readiness check-in.
   }
 ]
 ```
+
+---
+
+## WHOOP Analytics
+
+### Performance Correlation
+
+Recovery-performance correlation and HRV predictor.
+
+**Endpoint:** `GET /analytics/whoop/performance-correlation`
+**Auth Required:** Yes
+
+**Query Parameters:**
+- `days` (integer, default: 90) — Lookback period
+
+**Response:** `200 OK`
+```json
+{
+  "recovery_correlation": {
+    "r_value": 0.42,
+    "scatter": [{"recovery": 72, "sub_rate": 0.4, "date": "2026-02-01"}, ...],
+    "zones": {
+      "red": {"avg_sub_rate": 0.2, "count": 3},
+      "yellow": {"avg_sub_rate": 0.35, "count": 8},
+      "green": {"avg_sub_rate": 0.5, "count": 12}
+    },
+    "optimal_zone": "green",
+    "insight": "You perform best on green recovery days..."
+  },
+  "hrv_predictor": {
+    "r_value": 0.38,
+    "scatter": [{"hrv": 45, "quality": 72}, ...],
+    "hrv_threshold": 42,
+    "quality_above": 75.3,
+    "quality_below": 58.1,
+    "insight": "Sessions with HRV above 42ms show 29% higher quality..."
+  }
+}
+```
+
+**Note:** Requires WHOOP connection. Returns empty data for non-WHOOP users.
+
+**Cache:** 10 minutes
+
+---
+
+### Efficiency
+
+Strain efficiency and sleep-performance analysis.
+
+**Endpoint:** `GET /analytics/whoop/efficiency`
+**Auth Required:** Yes
+
+**Query Parameters:**
+- `days` (integer, default: 90)
+
+**Response:** `200 OK`
+```json
+{
+  "strain_efficiency": {
+    "overall_efficiency": 0.25,
+    "by_class_type": {"gi": {"efficiency": 0.28, "count": 15}, ...},
+    "by_gym": {"TestGym": {"efficiency": 0.22, "count": 10}, ...},
+    "top_sessions": [...],
+    "insight": "Your gi sessions are 27% more efficient than no-gi..."
+  },
+  "sleep_analysis": {
+    "rem_r": 0.31,
+    "sws_r": 0.22,
+    "total_sleep_r": 0.45,
+    "scatter": [...],
+    "optimal_rem_pct": 23,
+    "optimal_sws_pct": 19,
+    "insight": "Total sleep duration has the strongest impact on your performance..."
+  }
+}
+```
+
+**Cache:** 10 minutes
+
+---
+
+### Cardiovascular Drift
+
+Weekly resting HR trend for fitness/fatigue detection.
+
+**Endpoint:** `GET /analytics/whoop/cardiovascular`
+**Auth Required:** Yes
+
+**Query Parameters:**
+- `days` (integer, default: 90)
+
+**Response:** `200 OK`
+```json
+{
+  "cardiovascular": {
+    "weekly_rhr": [{"week": "2026-W01", "avg_rhr": 54}, ...],
+    "slope": -0.3,
+    "trend": "improving",
+    "current_rhr": 52,
+    "baseline_rhr": 55,
+    "insight": "Your resting HR is declining, indicating improving cardiovascular fitness..."
+  }
+}
+```
+
+**Trend values:** `improving` (declining RHR), `stable`, `rising` (possible fatigue), `insufficient_data`
+
+**Cache:** 10 minutes
+
+---
+
+### Session WHOOP Context
+
+Recovery and workout data for a specific session.
+
+**Endpoint:** `GET /integrations/whoop/session/{session_id}/context`
+**Auth Required:** Yes
+
+**Response:** `200 OK`
+```json
+{
+  "recovery": {
+    "score": 72,
+    "hrv_ms": 45,
+    "resting_hr": 52,
+    "sleep_performance": 85,
+    "sleep_duration_hours": 7.2,
+    "rem_pct": 23,
+    "sws_pct": 19
+  },
+  "workout": {
+    "zone_durations": {
+      "zone1": 300,
+      "zone2": 600,
+      "zone3": 1200,
+      "zone4": 900,
+      "zone5": 180
+    }
+  }
+}
+```
+
+**Note:** Returns `null` for recovery/workout if no matching data found.
 
 ---
 

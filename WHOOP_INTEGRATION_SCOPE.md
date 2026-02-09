@@ -1,8 +1,10 @@
 # WHOOP Integration — Scoping Document
 
 **Date:** February 2026
-**Status:** Research & Scoping Only — DO NOT BUILD YET
-**Author:** Claude Opus 4.6 (AI-generated, verify API details before implementation)
+**Status:** IMPLEMENTED (Phases 1-3 complete, deployed on main)
+**Author:** Claude Opus 4.6
+
+> **Note:** This document was originally a scoping/research doc. All phases have been implemented and deployed as of 2026-02-09. See CHANGELOG.md for release details.
 
 ---
 
@@ -300,22 +302,39 @@ WHOOP_WEBHOOK_SECRET=...
 
 ---
 
-## 10. Recommendation
+## 10. Implementation Status
 
-**Defer until 500+ active users.** The WHOOP integration is compelling but:
+**All phases implemented and deployed (2026-02-09):**
 
-1. Development cost is high (~28 hours)
-2. Small overlap between WHOOP users and early RivaFlow users
-3. Manual readiness entry works well enough for beta
-4. Better to focus on core features and user acquisition first
+| Phase | Status | Description |
+|-------|--------|-------------|
+| Phase 1 | Done | OAuth + workout sync + session overlay |
+| Phase 2 | Done | Recovery sync, webhooks, readiness auto-fill, HRV/RHR trends |
+| Phase 3 | Done | Recovery-aware AI coaching, 6-factor overtraining, sport science analytics engine, session WHOOP context, Performance Science frontend charts |
 
-**When to build:**
-- Signal: 10+ users requesting WHOOP integration
-- Signal: WHOOP approaches as potential partner
-- Signal: Competitor launches WHOOP integration and users mention it
+### Phase 3 Details (latest)
 
-**Quick win alternative:** Allow manual entry of WHOOP data (already supported via `whoop_strain`, `whoop_calories`, `whoop_avg_hr`, `whoop_max_hr` fields in session logging). Could add a "WHOOP Data" section to readiness logging for HRV and recovery score — no API integration needed.
+**Sport Science Analytics Engine** (`whoop_analytics_engine.py`):
+- Recovery-Performance Correlation (Pearson r + zone bucketing)
+- Strain Efficiency (submissions/strain by class type and gym)
+- HRV Performance Predictor (optimal HRV threshold detection)
+- Sleep Impact Analysis (REM/SWS/total sleep correlation)
+- Cardiovascular Drift (weekly RHR trend classification)
+
+**Recovery-Aware AI**: Grapple AI system prompt includes WHOOP recovery data, HRV trends, sleep metrics. Post-session and weekly insights enriched with biometrics.
+
+**Enhanced Overtraining Detection**: 6 factors (was 4) — added HRV decline (max 15) and low recovery streak (max 15). Non-WHOOP users unaffected.
+
+**Session Detail**: Recovery Context Card + HR Zone Distribution per session.
+
+**Frontend**: 5 Performance Science chart components on Readiness tab.
+
+**API Endpoints**:
+- `GET /analytics/whoop/performance-correlation`
+- `GET /analytics/whoop/efficiency`
+- `GET /analytics/whoop/cardiovascular`
+- `GET /integrations/whoop/session/{id}/context`
 
 ---
 
-*This document is for planning purposes. Verify WHOOP API details at https://developer.whoop.com before implementation.*
+*Implementation verified with 298 passing tests, full CI green (black, ruff, tsc, pytest).*

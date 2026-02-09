@@ -99,11 +99,42 @@ data = performance.get_performance_overview(user_id=1)
 - Unclear separation of concerns
 
 ### After Refactoring
-- **5 files, ~1100 lines total** - Better organized
+- **7 files, ~2500 lines total** - Better organized
 - Clear domain boundaries
 - Each service can be tested independently
 - Easier to extend with new analytics features
 - Maintains backward compatibility via facade pattern
+
+### 5. InsightsAnalyticsService
+**File:** `rivaflow/core/services/insights_analytics.py`
+**Responsibilities:** Data-science-driven insights — ACWR, overtraining risk, session quality, technique effectiveness, recovery analysis
+
+**Key Methods:**
+- `get_training_load_management()` — ACWR with EWMA
+- `get_overtraining_risk()` — 6-factor risk scoring (ACWR spike, readiness decline, hotspot mentions, intensity creep, HRV decline, low recovery streak)
+- `get_session_quality_scores()` — Composite 0-100 quality scoring
+- `get_technique_effectiveness()` — Money moves / developing / natural / untested quadrant
+- `get_recovery_insights()` — Sleep-performance correlation, optimal rest days
+- `get_readiness_performance_correlation()` — Readiness score vs session performance
+
+**Pure Python Math Helpers:**
+- `_pearson_r()` — Pearson correlation coefficient
+- `_ewma()` — Exponentially weighted moving average
+- `_shannon_entropy()` — Game breadth scoring
+- `_linear_slope()` — Linear regression slope for trend detection
+
+### 6. WhoopAnalyticsEngine
+**File:** `rivaflow/core/services/whoop_analytics_engine.py`
+**Responsibilities:** Sport science analytics correlating WHOOP physiology with BJJ performance
+
+**Methods:**
+- `get_recovery_performance_correlation()` — Pearson r(recovery_score, sub_rate) with red/yellow/green zone bucketing
+- `get_strain_efficiency()` — Submissions per unit of strain, aggregated by class type and gym
+- `get_hrv_performance_predictor()` — Correlate pre-session HRV with session quality, find optimal threshold
+- `get_sleep_performance_analysis()` — REM%, SWS%, total sleep correlated with next-day performance
+- `get_cardiovascular_drift()` — Weekly avg RHR with slope classification (improving/stable/rising/insufficient_data)
+
+**Dependencies:** Reuses `_pearson_r` and `_linear_slope` from `insights_analytics.py`. Uses `WhoopRecoveryCacheRepository`, `WhoopWorkoutCacheRepository`, `SessionRepository`.
 
 ## File Structure
 
@@ -113,7 +144,9 @@ rivaflow/core/services/
 ├── performance_analytics.py       # Performance & partner analytics
 ├── readiness_analytics.py         # Readiness & WHOOP analytics
 ├── technique_analytics.py         # Technique mastery analytics
-└── streak_analytics.py            # Consistency & milestone analytics
+├── streak_analytics.py            # Consistency & milestone analytics
+├── insights_analytics.py          # Data-science insights (ACWR, risk, quality)
+└── whoop_analytics_engine.py      # WHOOP sport science analytics
 ```
 
 ## Usage in API Routes
@@ -158,5 +191,5 @@ No migration needed - the facade pattern ensures all existing code continues to 
 
 ---
 
-**Last Updated:** 2026-02-02
+**Last Updated:** 2026-02-09
 **Related:** Task #8 from BETA_READINESS_REPORT.md

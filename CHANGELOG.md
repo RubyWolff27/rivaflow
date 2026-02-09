@@ -39,7 +39,36 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Workout match modal for manual selection when multiple matches found
   - WHOOP sync on both LogSession and EditSession pages
   - Encrypted token storage for OAuth credentials
+  - Recovery sync with webhooks, readiness auto-fill, HRV/RHR trend charts
   - Database migration 075 (SQLite + PostgreSQL)
+
+- **WHOOP Sport Science Analytics** — Deep performance correlations powered by WHOOP biometrics
+  - Recovery-Performance Correlation — Pearson r between recovery score and next-day submission rate, with red/yellow/green zone bucketing
+  - Strain Efficiency — Submissions per unit of strain, aggregated by class type and gym
+  - HRV Performance Predictor — Correlate pre-session HRV with session quality, find your optimal HRV threshold
+  - Sleep Impact Analysis — REM%, SWS%, and total sleep correlated with next-day performance
+  - Cardiovascular Drift — Weekly resting HR trend line to detect improving fitness or accumulated fatigue
+  - 3 new API endpoints under `/api/v1/analytics/whoop/`
+  - 5 new Performance Science chart components (scatter plots, bar charts, trend lines)
+
+- **Recovery-Aware AI Coaching** — Grapple AI now uses WHOOP biometrics for personalised advice
+  - System prompt includes latest recovery score, HRV, RHR, sleep data, and 7-day trends
+  - Post-session insights enriched with WHOOP recovery and workout strain context
+  - Weekly insights include 7-day average recovery, HRV, and sleep performance
+
+- **Enhanced Overtraining Detection** — Expanded from 4 to 6 risk factors (max 100 points)
+  - ACWR spike (max 20), readiness decline (max 20), hotspot mentions (max 15), intensity creep (max 15)
+  - NEW: HRV decline (max 15) — detects sustained HRV downtrend from WHOOP data
+  - NEW: Low recovery streak (max 15) — consecutive days with recovery below 34%
+  - RiskGauge component now supports dynamic factor count
+  - Non-WHOOP users unaffected (new factors default to 0)
+
+- **Session Detail WHOOP Context** — See your recovery going into each session
+  - Recovery Context Card: recovery score gauge, HRV, sleep performance, sleep composition bar
+  - HR Zone Distribution: stacked bar chart showing time in each heart rate zone
+  - New endpoint: `GET /api/v1/integrations/whoop/session/{id}/context`
+
+- **New Suggestion Rule** — `whoop_hrv_sustained_decline` fires when 5-day HRV slope < -0.5
 
 #### Fixed
 - **Async/sync decorator bug** — `require_beta_or_premium` and `require_admin` decorators now correctly handle both sync and async endpoints (was causing 500 errors on Grapple AI endpoints in production)
