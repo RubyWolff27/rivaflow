@@ -215,6 +215,10 @@ class SessionService:
         if not original:
             return None
 
+        # Any edit implies the user has reviewed the session
+        if "needs_review" not in kwargs:
+            kwargs["needs_review"] = False
+
         # Update session (pass all kwargs to repo)
         updated = self.session_repo.update(
             user_id=user_id, session_id=session_id, **kwargs
