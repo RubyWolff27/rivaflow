@@ -546,11 +546,11 @@ export default function SessionDetail() {
       {whoopCtx?.workout?.zone_durations && Object.keys(whoopCtx.workout.zone_durations).length > 0 && (() => {
         const zones = whoopCtx.workout!.zone_durations;
         const zoneConfig = [
-          { key: 'zone_one_ms', label: 'Zone 1 (Recovery)', color: '#93C5FD' },
-          { key: 'zone_two_ms', label: 'Zone 2 (Light)', color: '#34D399' },
-          { key: 'zone_three_ms', label: 'Zone 3 (Moderate)', color: '#FBBF24' },
-          { key: 'zone_four_ms', label: 'Zone 4 (Hard)', color: '#F97316' },
-          { key: 'zone_five_ms', label: 'Zone 5 (Max)', color: '#EF4444' },
+          { key: 'zone_one_milli', label: 'Zone 1 (Recovery)', color: '#93C5FD' },
+          { key: 'zone_two_milli', label: 'Zone 2 (Light)', color: '#34D399' },
+          { key: 'zone_three_milli', label: 'Zone 3 (Moderate)', color: '#FBBF24' },
+          { key: 'zone_four_milli', label: 'Zone 4 (Hard)', color: '#F97316' },
+          { key: 'zone_five_milli', label: 'Zone 5 (Max)', color: '#EF4444' },
         ];
         const totalMs = zoneConfig.reduce((sum, z) => sum + (zones[z.key] || 0), 0);
         if (totalMs <= 0) return null;
