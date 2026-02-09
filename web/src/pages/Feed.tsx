@@ -1,4 +1,4 @@
-import { useEffect, useState, memo, useCallback } from 'react';
+import React, { useEffect, useState, memo, useCallback } from 'react';
 import { getLocalDateString } from '../utils/date';
 import { useNavigate } from 'react-router-dom';
 import { feedApi, socialApi, sessionsApi } from '../api/client';
@@ -45,7 +45,7 @@ const FeedItemComponent = memo(function FeedItemComponent({
   handleLike: (type: string, id: number) => void;
   handleUnlike: (type: string, id: number) => void;
   toggleComments: (type: string, id: number) => void;
-  getIcon: (type: string) => JSX.Element;
+  getIcon: (type: string) => React.JSX.Element;
   getBackgroundColor: (type: string) => string;
   formatDate: (date: string) => string;
   shouldShowSocialActions: (item: FeedItem) => boolean;
