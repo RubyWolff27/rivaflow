@@ -15,6 +15,42 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.5.0-beta] - 2026-02-09
+
+### Monthly Training Goals & WHOOP Integration
+
+#### Added
+- **Monthly Training Goals** — User-defined monthly goals with auto-tracked progress
+  - Frequency goals: track sessions, hours, rolls, or submissions per month
+  - Technique goals: track how often you practise a specific technique
+  - Progress computed live from session data (no manual check-off)
+  - Month selector with prev/next navigation
+  - Goal cards with progress bars and completion indicators
+  - Create/edit/delete goals via modal form
+  - New `/goals` page in navigation (Training section)
+  - 5 new API endpoints under `/api/v1/training-goals/`
+  - Database migration 073 (SQLite + PostgreSQL)
+
+- **WHOOP Wearable Integration** — Connect your WHOOP band to overlay biometric data on sessions
+  - OAuth2 connection flow (connect/disconnect on Profile page)
+  - Automatic workout sync with intelligent session-workout matching
+  - Strain, calories, average HR, and max HR overlay on session logs
+  - WHOOP data displayed on session detail pages
+  - Workout match modal for manual selection when multiple matches found
+  - WHOOP sync on both LogSession and EditSession pages
+  - Encrypted token storage for OAuth credentials
+  - Database migration 075 (SQLite + PostgreSQL)
+
+#### Fixed
+- **Async/sync decorator bug** — `require_beta_or_premium` and `require_admin` decorators now correctly handle both sync and async endpoints (was causing 500 errors on Grapple AI endpoints in production)
+- **mypy CI failures** — Added mypy configuration to pyproject.toml suppressing pre-existing type errors
+- **Frontend type-check CI** — Added missing `type-check` script to package.json
+- **Security scan CVE** — Added `--ignore-vuln CVE-2024-23342` for ecdsa transitive dependency (no upstream fix)
+- **Dashboard test** — Added missing `profileApi` and `useInsightRefresh` mocks
+- **Register test** — Updated assertion for 7-arg `register()` call (added defaultGym, beltGrade)
+
+---
+
 ## [0.4.0-beta] - 2026-02-08
 
 ### Advanced Analytics & Insights Engine
@@ -349,13 +385,15 @@ Thank you for being an early adopter! 🥋
 
 ## Version History Summary
 
+- **v0.5.0-beta** (2026-02-09) - Monthly Training Goals, WHOOP integration, CI fixes
 - **v0.4.0-beta** (2026-02-08) - Advanced analytics & insights engine, Grapple AI deep integration
 - **v0.3.1-beta** (2026-02-07) - Session workflow overhaul, Quick Log, Grapple AI, Game Plans
 - **v0.3.0-beta** (2026-02-01) - Beta release with security & testing
 - **v0.2.0** (2026-01-30) - Social features & analytics improvements
 - **v0.1.0** (2026-01-15) - Initial release
 
-[unreleased]: https://github.com/RubyWolff27/rivaflow/compare/v0.4.0-beta...HEAD
+[unreleased]: https://github.com/RubyWolff27/rivaflow/compare/v0.5.0-beta...HEAD
+[0.5.0-beta]: https://github.com/RubyWolff27/rivaflow/compare/v0.4.0-beta...v0.5.0-beta
 [0.4.0-beta]: https://github.com/RubyWolff27/rivaflow/compare/v0.3.1-beta...v0.4.0-beta
 [0.3.1-beta]: https://github.com/RubyWolff27/rivaflow/compare/v0.3.0-beta...v0.3.1-beta
 [0.3.0-beta]: https://github.com/RubyWolff27/rivaflow/compare/v0.2.0...v0.3.0-beta

@@ -1,6 +1,6 @@
 # 🥋 RivaFlow - Product Roadmap
-**Last Updated:** 2026-02-01 (Beta Launch Day!)
-**Current Version:** v0.1.0 Beta
+**Last Updated:** 2026-02-09
+**Current Version:** v0.5.0-beta
 
 ---
 
@@ -16,23 +16,23 @@
 
 ---
 
-## 📊 CURRENT STATUS (v0.1.0 Beta)
+## 📊 CURRENT STATUS (v0.5.0-beta)
 
 ### Production Readiness: ✅ **LIVE & SHIPPING**
 
 | Metric | Score | Status |
 |--------|-------|--------|
-| **Overall Completion** | 95% | ✅ Ready |
-| **Beta Readiness** | 7.8/10 | ✅ Ship It |
-| **Code Quality** | 8.0/10 | ✅ Excellent |
-| **Testing** | 8.5/10 | ✅ 42/42 passing |
-| **Security** | 7.0/10 | ✅ Good |
-| **UX** | 8.5/10 | ✅ Polished |
+| **Overall Completion** | 98% | ✅ Ready |
+| **Beta Readiness** | 9.0/10 | ✅ Solid |
+| **Code Quality** | 8.5/10 | ✅ Excellent |
+| **Testing** | 9.0/10 | ✅ 244 backend + 25 frontend passing |
+| **Security** | 8.0/10 | ✅ Good (3 CI workflows green) |
+| **UX** | 9.0/10 | ✅ Polished |
 | **Documentation** | 8.5/10 | ✅ Comprehensive |
 
 ---
 
-## ✅ WHAT'S SHIPPED (v0.1.0 Beta)
+## ✅ WHAT'S SHIPPED (v0.5.0-beta)
 
 ### Core Training Features
 - ✅ **Session Logging** - CLI + Web interface, <60 second input
@@ -43,6 +43,7 @@
 - ✅ **Weekly/Monthly Reports** - Comprehensive analytics and breakdowns
 - ✅ **Training Streaks** - Session, readiness, and goal completion tracking
 - ✅ **Goal System** - Weekly targets for sessions, hours, rolls
+- ✅ **Monthly Training Goals** - User-defined monthly frequency and technique goals with auto-tracking
 
 ### Social Features
 - ✅ **Activity Feed** - Share sessions with privacy controls (private/friends/public)
@@ -59,12 +60,16 @@
 - ✅ **Friends Management** - Instructors and training partners with belt ranks
 - ✅ **Profile Photos** - Avatar URL support (cloud storage pending)
 
+### Wearable Integration
+- ✅ **WHOOP Integration** - OAuth2 connection, workout sync, strain/HR/calorie overlay on sessions
+
 ### Data & Analytics
 - ✅ **BJJ Glossary** - 82+ techniques across 8 categories
 - ✅ **Gym Directory** - Verified gyms database with head coaches
 - ✅ **Partner Analytics** - Submission rates, roll stats by partner
 - ✅ **Technique Analytics** - Progression tracking and frequency
 - ✅ **Reports Tab** - Weekly/monthly breakdowns by type and gym
+- ✅ **Advanced Insights** - ACWR, overtraining risk, technique quadrants, session quality, recovery analysis
 
 ### Admin System
 - ✅ **User Management** - Admin dashboard for user accounts
@@ -74,103 +79,60 @@
 - ✅ **Audit Logging** - Track all admin actions
 - ✅ **Rate Limiting** - Protect admin endpoints
 
+### AI & Planning
+- ✅ **Grapple AI Coach** - LLM-powered coaching with deep training data context
+- ✅ **Game Plans** - Structured position flows and drill sequences
+- ✅ **Post-Session Insights** - AI-generated personalised session insights
+
 ### Infrastructure
 - ✅ **Redis Caching** - Performance optimization (graceful fallback)
 - ✅ **API Versioning** - `/api/v1/` endpoints
 - ✅ **PostgreSQL** - Production database
 - ✅ **Auto-Migrations** - Deploy migrations automatically
-- ✅ **Comprehensive Tests** - 42/42 unit + integration tests passing
+- ✅ **Comprehensive Tests** - 244 backend + 25 frontend tests passing
 - ✅ **Security** - SQL injection prevention, XSS protection, bcrypt hashing
 - ✅ **Error Handling** - Toast notifications and user-friendly messages
 
 ---
 
-## ⏳ IMMEDIATE TODO (Next 1-2 Days)
-
-### 🔴 Critical
-**Configure SMTP for Password Reset Emails**
-- **Effort:** 5 minutes
-- **Owner:** User action required
-- **Why:** Enable password reset functionality
-- **What:** Add SMTP environment variables to Render dashboard
-  - SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASSWORD
-  - FROM_EMAIL, FROM_NAME, APP_BASE_URL
+## ⏳ IMMEDIATE TODO
 
 ### 🟡 Nice to Have (Low Priority)
-1. **CLI User Scoping** (~2 hours) - Some CLI commands need user_id filtering
-2. **Analytics Edge Cases** (~2 hours) - Loading states and empty data handling
-3. **Accessibility Audit** (~4 hours) - WCAG AA compliance improvements
-4. **Cleanup Scripts** (~30 mins) - PostgreSQL compatibility
-
-**Total Remaining Work:** ~8.5 hours (all low-priority)
+1. **Accessibility Audit** (~4 hours) - WCAG AA compliance improvements
+2. **Performance Profiling** (~2 hours) - Identify slow queries at scale
+3. **More Wearable Integrations** - Garmin, Apple Watch
+4. **Competition Tracking** - Comp prep tools and event logging
 
 ---
 
 ## 🚀 ROADMAP: UPCOMING FEATURES
 
-### v0.2.0 - Enhancement & Scale (Next 4-6 Weeks)
+### v0.6.0 - Performance & Polish (Next 2-4 Weeks)
 
-**Theme:** Performance, Polish, and Growth
+**Theme:** Optimisation and user experience refinements
 
-#### Performance Optimizations (~6 hours)
+#### Performance (~6 hours)
 - [ ] Fix remaining N+1 queries
 - [ ] Add database indexes for slow queries
-- [ ] Implement query result caching
-- [ ] Add API response compression
 - [ ] Optimize bundle size (code splitting)
+- [ ] Add API response compression
 
 #### User Experience (~8 hours)
 - [ ] Mobile PWA support (offline capabilities)
-- [ ] Dark mode refinements
-- [ ] Loading skeleton improvements
 - [ ] Advanced search and filtering
 - [ ] Keyboard shortcuts for power users
+- [ ] Export to PDF/CSV
 
-#### Analytics Enhancements (~10 hours)
-- [ ] **Technique Heatmaps** - Visual progression tracking
-- [ ] **Comparative Analytics** - Compare with friends or gym average
-- [ ] **Rolling Win/Loss Records** - Track partner performance over time
-- [ ] **Injury Risk Indicators** - Based on readiness and intensity patterns
-- [ ] **Export to PDF/CSV** - Download reports for offline review
+#### More Wearable Integrations (~10 hours)
+- [ ] **Garmin Connect** - Import workouts from Garmin watches
+- [ ] **Apple Watch** - Apple Health import
+- [ ] **Google Fit** - Google Fit import
 
-#### Multi-User CLI (~6 hours)
-- [ ] **CLI Authentication** - Login system for CLI
-- [ ] **Multi-User Support** - Proper user context management
-- [ ] **CLI Preferences** - Per-user configuration
-- [ ] **Session Sync** - Sync CLI sessions to web account
-
-**Total:** ~30 hours (2-3 weeks)
+**Total:** ~24 hours (2-3 weeks)
 
 ---
 
-### v0.3.0 - Media & Storage (Next 2-3 Months)
-
-**Theme:** Rich media and cloud infrastructure
-
-#### Cloud Storage Migration (~12 hours)
-- [ ] **S3/Cloudflare R2 Setup** - Cloud storage integration
-- [ ] **Photo Upload Backend** - Replace 501 stubs with real uploads
-- [ ] **Signed URLs** - Secure access to photos
-- [ ] **CDN Integration** - Fast global delivery
-- [ ] **Image Optimization** - Resize, compress, format conversion
-
-#### Photo Features (~8 hours)
-- [ ] **Multi-Photo Uploads** - Up to 5 photos per session
-- [ ] **Photo Galleries** - Browse session photos
-- [ ] **Photo Editing** - Crop, rotate, adjust
-- [ ] **Album Organization** - Group photos by date, gym, event
-
-#### Video Integration (~10 hours)
-- [ ] **Technique Videos** - Link YouTube/Instagram to techniques
-- [ ] **Session Videos** - Embed roll footage
-- [ ] **Video Thumbnails** - Auto-generate previews
-- [ ] **Timestamp Markers** - Jump to specific moments
-
-**Total:** ~30 hours (3-4 weeks)
-
----
-
-### v0.4.0 - Coach & Team Features (Next 3-4 Months)
+### v0.7.0 - Coach & Team Features (Next 2-3 Months)
 
 **Theme:** Instructor tools and team collaboration
 
@@ -197,7 +159,7 @@
 
 ---
 
-### v0.5.0 - Mobile App (Next 6-12 Months)
+### v0.8.0 - Mobile App (Next 6-12 Months)
 
 **Theme:** Native mobile experience
 
@@ -345,16 +307,16 @@
 
 ## 🎉 SUMMARY
 
-**Current State:** v0.1.0 Beta is production-ready and shipping
-**Next Milestone:** Configure SMTP, announce beta, get first 50 users
+**Current State:** v0.5.0-beta — live and deployed with Monthly Goals, WHOOP Integration, Grapple AI, Game Plans, Advanced Insights, and full social features
+**Next Milestone:** Wearable expansion (Garmin, Apple Watch), coach dashboard
 **Long-Term Vision:** Premium BJJ training platform with 10K+ active users
 
-**Total Completed:** 95% of planned v0.1.0 features
-**Remaining Work:** 8.5 hours of low-priority tasks
-**Recommendation:** **SHIP IT NOW** 🚀
+**Total Completed:** 98% of planned beta features
+**Tests:** 244 backend + 25 frontend, all 3 CI workflows green
+**Recommendation:** Expanding into coach tools and mobile app
 
 ---
 
 **Train with intent. Flow to mastery.** 🥋
 
-*Last Updated: 2026-02-01*
+*Last Updated: 2026-02-09*

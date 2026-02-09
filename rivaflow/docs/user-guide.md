@@ -16,6 +16,8 @@ This guide will help you get the most out of RivaFlow, from logging your first s
 - [Progress Tracking](#progress-tracking)
 - [Streaks & Milestones](#streaks--milestones)
 - [Goals](#goals)
+- [Monthly Training Goals](#monthly-training-goals)
+- [WHOOP Integration](#whoop-integration)
 - [Social Features](#social-features)
 - [Grapple AI Coach](#grapple-ai-coach)
 - [Privacy & Settings](#privacy--settings)
@@ -359,6 +361,79 @@ rivaflow goals completed   # Achieved goals
 ```bash
 rivaflow goals complete <goal_id>
 ```
+
+---
+
+## Monthly Training Goals
+
+Set custom monthly goals and track them automatically from your logged sessions.
+
+### Navigate to Goals
+
+Click **Goals** in the Training section of the sidebar, or go to `/goals`.
+
+### Creating a Goal
+
+Click **Add Goal** to open the goal creation modal.
+
+**Frequency goals** — Track a training metric for the month:
+- Sessions (e.g., "Train 12 times this month")
+- Hours (e.g., "20 hours on the mat")
+- Rolls (e.g., "50 rounds of sparring")
+- Submissions (e.g., "Score 15 subs")
+
+You can optionally filter by class type (e.g., only count no-gi sessions).
+
+**Technique goals** — Track how often you practise a specific technique:
+- Search the glossary to pick a technique
+- Set a target count (e.g., "Drill triangle choke 10 times")
+
+### Viewing Progress
+
+Each goal shows a progress bar, fraction (e.g., "8 / 12"), and completion status. Progress updates automatically whenever you log a session.
+
+### Navigating Months
+
+Use the left/right arrows on the month selector to view goals for different months.
+
+### Editing and Deleting
+
+Click the edit icon on a goal card to change the target value. Click the delete icon to remove a goal.
+
+---
+
+## WHOOP Integration
+
+Connect your WHOOP wearable to overlay biometric data on training sessions.
+
+### Connecting WHOOP
+
+1. Go to **Profile**
+2. Scroll to the Integrations section
+3. Click **Connect WHOOP**
+4. Authorise RivaFlow on the WHOOP OAuth page
+5. You'll be redirected back to your profile with WHOOP connected
+
+### Automatic Sync
+
+When logging a session with a date and class time, RivaFlow automatically searches for matching WHOOP workouts:
+- **Single strong match (90%+ overlap)** — Data syncs automatically
+- **Multiple matches** — A modal appears for you to pick the right workout
+- **No match** — You can enter values manually
+
+### WHOOP Data on Sessions
+
+After syncing, your session shows:
+- **Strain** — WHOOP's cardiovascular load metric
+- **Calories** — Total calories burned
+- **Avg HR** — Average heart rate during the workout
+- **Max HR** — Peak heart rate
+
+This data appears on LogSession, EditSession, and SessionDetail pages.
+
+### Disconnecting
+
+Go to **Profile** and click **Disconnect** in the WHOOP section to revoke access.
 
 ---
 

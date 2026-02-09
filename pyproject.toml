@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "rivaflow"
-version = "0.2.0"
+version = "0.5.0"
 description = "Training OS for the mat — log, analyze, improve"
 readme = "README.md"
 license = "MIT"

@@ -16,6 +16,8 @@ A local-first training tracker for BJJ/grappling with both **CLI** and **Web App
 - 🗺️ **Game Plans** — Structured position flows and drill sequences
 - 🎙️ **Speech-to-Text** — Voice input for session notes
 - 📹 **Video recall** — Link instructionals to techniques, surface during logging
+- 🎯 **Monthly Goals** — User-defined monthly training goals with auto-tracked progress
+- ⌚ **WHOOP Integration** — Connect your WHOOP band for strain, HR, and calorie overlay on sessions
 - 🔒 **Privacy-first** — Granular privacy controls (private/attendance/summary/full)
 
 ## Install
@@ -65,7 +67,9 @@ cd web && npm install && cd ..
 - **Insights** — ACWR training load, overtraining risk, technique quadrants, session quality, recovery analysis
 - **Grapple AI** — Chat with AI coach powered by your training data
 - **Game Plans** — Build and review position flow charts
-- **Profile** — Manage your information, default gym, and belt progression history
+- **Monthly Goals** — Set and auto-track frequency and technique goals each month
+- **WHOOP Sync** — Connect WHOOP band, overlay strain/HR/calories on sessions
+- **Profile** — Manage your information, default gym, belt progression, and WHOOP connection
 
 See [WEB_README.md](WEB_README.md) for full web app documentation.
 
@@ -508,7 +512,7 @@ RivaFlow is built on these principles:
 
 ## Roadmap
 
-Current version: **v0.4.0-beta**
+Current version: **v0.5.0-beta**
 
 **Completed:**
 - ✅ CLI tool with session logging, readiness tracking, and reports
@@ -521,15 +525,18 @@ Current version: **v0.4.0-beta**
 - ✅ Game Plans with position flows and drill sequences
 - ✅ Social features (groups, friends, feed, likes, comments)
 - ✅ Profile management with belt progression history
+- ✅ Monthly training goals with auto-tracked progress
+- ✅ WHOOP wearable integration (OAuth, workout sync, biometric overlay)
 
 **Upcoming:**
 - Mobile companion app (iOS/Android)
 - Competition tracking and comp prep tools
 - Gym/academy management dashboards
+- More wearable integrations (Garmin, Apple Watch)
 
 ## 🧪 Beta Status
 
-RivaFlow is currently in **beta testing** (v0.3.0-beta). Here's what to expect:
+RivaFlow is currently in **beta testing** (v0.5.0-beta). Here's what to expect:
 
 **Working Well:**
 - ✅ Multi-user authentication (CLI and web)

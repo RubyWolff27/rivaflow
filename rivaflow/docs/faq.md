@@ -12,7 +12,7 @@ RivaFlow is a local-first BJJ training tracker that helps you log sessions, trac
 
 ### Is RivaFlow free?
 
-Yes! RivaFlow is open source (MIT License) and free to use. You can self-host it or use our hosted version at rivaflow.onrender.com.
+Yes! RivaFlow is open source (MIT License) and free to use. You can self-host it or use our hosted version at rivaflow.app.
 
 ### Do I need to be online to use RivaFlow?
 
@@ -244,6 +244,77 @@ Yes:
 ```bash
 rivaflow goals delete <goal_id>
 ```
+
+---
+
+## Monthly Training Goals
+
+### What are monthly training goals?
+
+Monthly goals let you set specific targets for each calendar month. Unlike weekly goals (which track sessions/hours/rolls against profile defaults), monthly goals are user-defined and support both frequency and technique tracking.
+
+### What types of goals can I set?
+
+**Frequency goals:**
+- Sessions per month (e.g., "Train 12x this month")
+- Hours per month (e.g., "Log 20 hours on the mat")
+- Rolls per month (e.g., "Get 50 rounds of sparring")
+- Submissions per month (e.g., "Score 15 subs")
+
+**Technique goals:**
+- Track how often you practise a specific technique (e.g., "Drill triangle 10 times")
+- Technique goals link to the glossary for accurate tracking
+
+### How is progress tracked?
+
+Progress is computed automatically from your logged sessions. When you log a session, your goal progress updates instantly. No manual check-off needed.
+
+### Can I filter goals by class type?
+
+Yes! Frequency goals support an optional class type filter. For example, you can set a goal to "Train no-gi 8 times this month" which only counts no-gi sessions.
+
+### Where do I find monthly goals?
+
+Navigate to **Goals** in the Training section of the sidebar, or go directly to `/goals`.
+
+### Can I have goals for past months?
+
+You can view past month goals using the month selector (prev/next arrows), but you can only create goals for the current or future months.
+
+---
+
+## WHOOP Integration
+
+### What is the WHOOP integration?
+
+RivaFlow can connect to your WHOOP wearable to overlay biometric data (strain, calories, heart rate) on your training sessions. This gives you objective performance data alongside your subjective session logs.
+
+### How do I connect my WHOOP?
+
+Go to **Profile** and click "Connect WHOOP" in the integrations section. You'll be redirected to WHOOP's OAuth flow to authorise RivaFlow.
+
+### What data does RivaFlow pull from WHOOP?
+
+- **Strain** — WHOOP's proprietary cardiovascular load metric (0-21 scale)
+- **Calories** — Total calories burned during the workout
+- **Average Heart Rate** — Mean HR during the matched workout
+- **Max Heart Rate** — Peak HR during the matched workout
+
+### How does session-workout matching work?
+
+When you log a session with a date and class time, RivaFlow finds WHOOP workouts that overlap with your session window. If there's a single strong match (90%+ overlap), data is synced automatically. If there are multiple potential matches, you'll see a modal to pick the right one.
+
+### Can I manually enter WHOOP data?
+
+Yes. If automatic matching doesn't find a workout, you can manually enter strain, calories, and heart rate values on the session form.
+
+### Is my WHOOP data secure?
+
+Yes. OAuth tokens are encrypted at rest. RivaFlow only requests read access to your workout data. You can disconnect at any time from your Profile page.
+
+### Do I need a WHOOP subscription?
+
+Yes. You need an active WHOOP membership and a WHOOP device to use the integration. RivaFlow connects via WHOOP's official API.
 
 ---
 
