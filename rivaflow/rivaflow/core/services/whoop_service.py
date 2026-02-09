@@ -713,11 +713,12 @@ class WhoopService:
             default_gym = profile.get("default_gym") or default_gym
             default_class_type = profile.get("primary_training_type") or default_class_type
 
-        unlinked = self.workout_cache_repo.get_unlinked_bjj_workouts(user_id)
+        unlinked = self.workout_cache_repo.get_unlinked_workouts(user_id)
         logger.info(
-            "Auto-create: user=%s unlinked_bjj=%d",
+            "Auto-create: user=%s unlinked=%d sports=%s",
             user_id,
             len(unlinked),
+            [w.get("sport_name") for w in unlinked],
         )
         created_ids = []
 

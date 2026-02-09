@@ -185,18 +185,14 @@ class WhoopWorkoutCacheRepository:
             return cursor.rowcount
 
     @staticmethod
-    def get_unlinked_bjj_workouts(user_id: int) -> list[dict]:
-        """Get BJJ/Jiu Jitsu workouts not yet linked to a session."""
+    def get_unlinked_workouts(user_id: int) -> list[dict]:
+        """Get all workouts not yet linked to a session."""
         with get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(
                 convert_query("""
                     SELECT * FROM whoop_workout_cache
-                    WHERE user_id = ?
-                      AND (sport_id = 76
-                           OR LOWER(sport_name) LIKE '%jiu jitsu%'
-                           OR LOWER(sport_name) LIKE '%jiu-jitsu%')
-                      AND session_id IS NULL
+                    WHERE user_id = ? AND session_id IS NULL
                     ORDER BY start_time DESC
                     """),
                 (user_id,),

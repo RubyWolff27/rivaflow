@@ -95,8 +95,8 @@ class TestAutoCreateFromBjjWorkout:
         assert session["duration_mins"] == 90
         assert session["class_time"] == "10:00"
 
-    def test_skips_non_bjj_workouts(self, temp_db):
-        """Workouts with sport_id != 76 are not auto-created."""
+    def test_creates_from_any_sport(self, temp_db):
+        """All workout types create sessions (user classifies on review)."""
         from rivaflow.core.services.whoop_service import WhoopService
 
         user = _create_test_user(temp_db)
@@ -115,7 +115,7 @@ class TestAutoCreateFromBjjWorkout:
 
         service = WhoopService()
         created = service.auto_create_sessions_for_workouts(uid)
-        assert len(created) == 0
+        assert len(created) == 1
 
     def test_skips_already_linked(self, temp_db):
         """Workouts already linked to a session are skipped."""
