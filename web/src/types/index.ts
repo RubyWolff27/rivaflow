@@ -43,6 +43,12 @@ export interface Readiness {
   energy: number;
   hotspot_note?: string;
   weight_kg?: number;
+  hrv_ms?: number;
+  resting_hr?: number;
+  spo2?: number;
+  whoop_recovery_score?: number;
+  whoop_sleep_score?: number;
+  data_source?: string;
   composite_score: number;
   created_at: string;
 }
@@ -579,6 +585,35 @@ export interface WhoopWorkout {
 
 export interface WhoopWorkoutMatch extends WhoopWorkout {
   overlap_pct: number;
+}
+
+export interface WhoopRecovery {
+  recovery_score: number | null;
+  resting_hr: number | null;
+  hrv_ms: number | null;
+  spo2: number | null;
+  sleep_performance: number | null;
+  sleep_duration_ms: number | null;
+  cycle_start: string;
+  cycle_end?: string;
+}
+
+export interface WhoopScopeCheck {
+  current_scopes: string[];
+  required_scopes: string[];
+  needs_reauth: boolean;
+  missing_scopes: string[];
+}
+
+export interface WhoopReadinessAutoFill {
+  sleep: number;
+  energy: number;
+  hrv_ms: number | null;
+  resting_hr: number | null;
+  spo2: number | null;
+  whoop_recovery_score: number | null;
+  whoop_sleep_score: number | null;
+  data_source: string;
 }
 
 // Extracted Session

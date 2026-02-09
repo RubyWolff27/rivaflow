@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { getLocalDateString } from '../utils/date';
 import { Link, useNavigate } from 'react-router-dom';
-import { Plus, Activity, Scale, Sparkles, MessageCircle, Mic, BookOpen } from 'lucide-react';
+import { Plus, Activity, Scale, Sparkles, MessageCircle, Mic, BookOpen, Heart, Waves } from 'lucide-react';
 import { Card, PrimaryButton, SecondaryButton, CardSkeleton } from '../components/ui';
 import { WeekAtGlance } from '../components/dashboard/WeekAtGlance';
 import { LastSession } from '../components/dashboard/LastSession';
@@ -10,7 +10,7 @@ import { WeeklyGoalsBreakdown } from '../components/dashboard/WeeklyGoalsBreakdo
 import { BetaBadge } from '../components/UpgradePrompt';
 import { useTier } from '../hooks/useTier';
 import { useToast } from '../contexts/ToastContext';
-import { profileApi, readinessApi, weightLogsApi } from '../api/client';
+import { profileApi, readinessApi, weightLogsApi, whoopApi } from '../api/client';
 import { refreshIfStale, triggerInsightRefresh } from '../hooks/useInsightRefresh';
 import ReadinessRecommendation from '../components/dashboard/ReadinessRecommendation';
 import NextEvent from '../components/dashboard/NextEvent';
@@ -27,6 +27,7 @@ export default function Dashboard() {
   const [weightInput, setWeightInput] = useState('');
   const [lastWeight, setLastWeight] = useState<number | null>(null);
   const [savingWeight, setSavingWeight] = useState(false);
+  const [whoopRecovery, setWhoopRecovery] = useState<{ recovery_score: number | null; hrv_ms: number | null; resting_hr: number | null; sleep_performance: number | null; synced_at?: string } | null>(null);
 
   // Auto-sync browser timezone to profile (once per session)
   useEffect(() => {
@@ -62,6 +63,16 @@ export default function Dashboard() {
         }
       } catch {
         // No weight logged yet — expected
+      }
+
+      // Try loading WHOOP recovery
+      try {
+        const whoopRes = await whoopApi.getLatestRecovery();
+        if (!controller.signal.aborted && whoopRes.data?.recovery_score != null) {
+          setWhoopRecovery(whoopRes.data);
+        }
+      } catch {
+        // WHOOP not connected — expected
       }
 
       // Fire-and-forget staleness check for AI insights
@@ -229,6 +240,67 @@ export default function Dashboard() {
 
       {/* Readiness Recommendation */}
       <ReadinessRecommendation />
+
+      {/* WHOOP Recovery Card */}
+      {whoopRecovery && whoopRecovery.recovery_score != null && (
+        <Link to="/readiness">
+          <Card interactive>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-full bg-black flex items-center justify-center">
+                  <span className="text-white font-bold text-sm">W</span>
+                </div>
+                <div>
+                  <p className="text-xs font-medium uppercase tracking-wide" style={{ color: 'var(--muted)' }}>WHOOP Recovery</p>
+                  <div className="flex items-center gap-2 mt-0.5">
+                    <span className="text-2xl font-bold" style={{
+                      color: whoopRecovery.recovery_score >= 67 ? '#10B981'
+                        : whoopRecovery.recovery_score >= 34 ? '#F59E0B'
+                        : '#EF4444'
+                    }}>
+                      {Math.round(whoopRecovery.recovery_score)}%
+                    </span>
+                    <span
+                      className="text-xs font-semibold px-2 py-0.5 rounded"
+                      style={{
+                        backgroundColor: whoopRecovery.recovery_score >= 67 ? '#10B981'
+                          : whoopRecovery.recovery_score >= 34 ? '#F59E0B'
+                          : '#EF4444',
+                        color: 'white'
+                      }}
+                    >
+                      {whoopRecovery.recovery_score >= 67 ? 'Green' : whoopRecovery.recovery_score >= 34 ? 'Yellow' : 'Red'}
+                    </span>
+                  </div>
+                </div>
+              </div>
+              <div className="flex items-center gap-4 text-xs" style={{ color: 'var(--muted)' }}>
+                {whoopRecovery.hrv_ms != null && (
+                  <div className="text-center">
+                    <Waves className="w-3.5 h-3.5 mx-auto mb-0.5" style={{ color: 'var(--accent)' }} />
+                    <p className="font-semibold" style={{ color: 'var(--text)' }}>{Math.round(whoopRecovery.hrv_ms)}</p>
+                    <p>HRV</p>
+                  </div>
+                )}
+                {whoopRecovery.resting_hr != null && (
+                  <div className="text-center">
+                    <Heart className="w-3.5 h-3.5 mx-auto mb-0.5" style={{ color: 'var(--accent)' }} />
+                    <p className="font-semibold" style={{ color: 'var(--text)' }}>{Math.round(whoopRecovery.resting_hr)}</p>
+                    <p>RHR</p>
+                  </div>
+                )}
+                {whoopRecovery.sleep_performance != null && (
+                  <div className="text-center">
+                    <Activity className="w-3.5 h-3.5 mx-auto mb-0.5" style={{ color: 'var(--accent)' }} />
+                    <p className="font-semibold" style={{ color: 'var(--text)' }}>{Math.round(whoopRecovery.sleep_performance)}%</p>
+                    <p>Sleep</p>
+                  </div>
+                )}
+              </div>
+            </div>
+          </Card>
+        </Link>
+      )}
 
       {/* Quick Weight Log */}
       <Card>

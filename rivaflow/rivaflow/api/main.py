@@ -65,6 +65,7 @@ from rivaflow.api.routes import (
     users,
     videos,
     waitlist,
+    webhooks,
 )
 from rivaflow.core.exceptions import RivaFlowException
 from rivaflow.core.settings import settings
@@ -249,6 +250,7 @@ app.include_router(dashboard.router, prefix="/api/v1")
 app.include_router(transcribe.router, prefix="/api/v1")
 app.include_router(events.router, prefix="/api/v1/events", tags=["events"])
 app.include_router(integrations.router, prefix="/api/v1", tags=["integrations"])
+app.include_router(webhooks.router, prefix="/api/v1", tags=["webhooks"])
 app.include_router(waitlist.router, prefix="/api/v1/waitlist", tags=["waitlist"])
 app.include_router(
     waitlist.admin_router, prefix="/api/v1/admin/waitlist", tags=["admin-waitlist"]

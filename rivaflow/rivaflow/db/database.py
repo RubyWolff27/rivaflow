@@ -492,6 +492,7 @@ def _apply_migrations(
         "072_fix_rate_limits_unique_index.sql",
         "073_create_training_goals.sql",
         "075_whoop_integration.sql",
+        "076_whoop_recovery.sql",
     ]
 
     migrations_dir = Path(__file__).parent / "migrations"

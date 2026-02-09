@@ -70,6 +70,7 @@ export default function Profile() {
   const [whoopLoading, setWhoopLoading] = useState(false);
   const [whoopSyncing, setWhoopSyncing] = useState(false);
   const [showDisconnectConfirm, setShowDisconnectConfirm] = useState(false);
+  const [whoopNeedsReauth, setWhoopNeedsReauth] = useState(false);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -84,7 +85,20 @@ export default function Profile() {
         // Load WHOOP status (best-effort, don't fail the page)
         try {
           const whoopRes = await whoopApi.getStatus();
-          if (!controller.signal.aborted) setWhoopStatus(whoopRes.data);
+          if (!controller.signal.aborted) {
+            setWhoopStatus(whoopRes.data);
+            // Check if re-auth is needed for expanded scopes
+            if (whoopRes.data?.connected) {
+              try {
+                const scopeRes = await whoopApi.checkScopes();
+                if (!controller.signal.aborted && scopeRes.data?.needs_reauth) {
+                  setWhoopNeedsReauth(true);
+                }
+              } catch {
+                // Scope check not available — that's fine
+              }
+            }
+          }
         } catch {
           // Feature flag off or not available — that's fine
         }
@@ -1141,6 +1155,32 @@ export default function Profile() {
                 </button>
               )}
             </div>
+
+            {whoopStatus.connected && whoopNeedsReauth && (
+              <div className="mt-3 p-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <AlertCircle className="w-4 h-4 text-amber-600 dark:text-amber-400 flex-shrink-0" />
+                    <div>
+                      <p className="text-sm font-medium text-amber-800 dark:text-amber-300">
+                        Additional permissions needed
+                      </p>
+                      <p className="text-xs text-amber-700 dark:text-amber-400 mt-0.5">
+                        WHOOP needs recovery &amp; sleep permissions for auto-fill and HRV trends.
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={handleWhoopConnect}
+                    disabled={whoopLoading}
+                    className="text-sm font-medium px-3 py-1.5 rounded-lg whitespace-nowrap"
+                    style={{ backgroundColor: 'var(--accent)', color: '#FFFFFF' }}
+                  >
+                    {whoopLoading ? 'Redirecting...' : 'Re-authorize'}
+                  </button>
+                </div>
+              </div>
+            )}
 
             {whoopStatus.connected && whoopStatus.last_synced_at && (
               <p className="text-xs text-[var(--muted)] mt-2">

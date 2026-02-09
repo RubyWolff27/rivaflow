@@ -5,7 +5,7 @@ import secrets
 from datetime import UTC, datetime, timedelta
 
 from rivaflow.core.exceptions import NotFoundError, ValidationError
-from rivaflow.core.services.whoop_client import WhoopClient
+from rivaflow.core.services.whoop_client import WHOOP_SCOPES, WhoopClient
 from rivaflow.core.utils.encryption import decrypt_token, encrypt_token
 from rivaflow.db.repositories.session_repo import SessionRepository
 from rivaflow.db.repositories.whoop_connection_repo import (
@@ -13,6 +13,9 @@ from rivaflow.db.repositories.whoop_connection_repo import (
 )
 from rivaflow.db.repositories.whoop_oauth_state_repo import (
     WhoopOAuthStateRepository,
+)
+from rivaflow.db.repositories.whoop_recovery_cache_repo import (
+    WhoopRecoveryCacheRepository,
 )
 from rivaflow.db.repositories.whoop_workout_cache_repo import (
     WhoopWorkoutCacheRepository,
@@ -28,6 +31,7 @@ class WhoopService:
         self.connection_repo = WhoopConnectionRepository()
         self.state_repo = WhoopOAuthStateRepository()
         self.workout_cache_repo = WhoopWorkoutCacheRepository()
+        self.recovery_cache_repo = WhoopRecoveryCacheRepository()
         self.session_repo = SessionRepository()
         self.client = WhoopClient()
 
@@ -208,6 +212,237 @@ class WhoopService:
             "total_fetched": len(all_workouts),
             "created": created,
             "updated": updated,
+        }
+
+    # =========================================================================
+    # Recovery sync
+    # =========================================================================
+
+    def sync_recovery(self, user_id: int, days_back: int = 7) -> dict:
+        """Fetch recovery/sleep data from WHOOP and cache locally."""
+        access_token = self.get_valid_access_token(user_id)
+
+        start = (datetime.now(UTC) - timedelta(days=days_back)).isoformat()
+        end = datetime.now(UTC).isoformat()
+
+        all_cycles = []
+        next_token = None
+
+        # Paginate through cycles
+        while True:
+            data = self.client.get_cycles(
+                access_token, start=start, end=end, next_token=next_token
+            )
+            records = data.get("records", [])
+            all_cycles.extend(records)
+            next_token = data.get("next_token")
+            if not next_token or len(records) == 0:
+                break
+
+        # Fetch recovery data (separate endpoint)
+        all_recovery = []
+        next_token = None
+        while True:
+            data = self.client.get_recovery(
+                access_token, start=start, end=end, next_token=next_token
+            )
+            records = data.get("records", [])
+            all_recovery.extend(records)
+            next_token = data.get("next_token")
+            if not next_token or len(records) == 0:
+                break
+
+        # Fetch sleep data
+        all_sleep = []
+        next_token = None
+        while True:
+            data = self.client.get_sleep(
+                access_token, start=start, end=end, next_token=next_token
+            )
+            records = data.get("records", [])
+            all_sleep.extend(records)
+            next_token = data.get("next_token")
+            if not next_token or len(records) == 0:
+                break
+
+        # Build lookup maps
+        recovery_by_cycle = {str(r.get("cycle_id")): r for r in all_recovery}
+        sleep_by_cycle = {str(s.get("cycle_id", s.get("id"))): s for s in all_sleep}
+
+        created = 0
+        updated = 0
+
+        for cycle in all_cycles:
+            cycle_id = str(cycle.get("id", ""))
+            cycle_start = cycle.get("start", "")
+            cycle_end = cycle.get("end")
+
+            recovery = recovery_by_cycle.get(cycle_id, {})
+            rec_score = recovery.get("score", {}) or {}
+            sleep = sleep_by_cycle.get(cycle_id, {})
+            sleep_score = sleep.get("score", {}) or {}
+
+            # Check if exists for tracking created vs updated
+            existing = None
+            try:
+                from rivaflow.db.database import convert_query, get_connection
+
+                with get_connection() as conn_db:
+                    cursor = conn_db.cursor()
+                    cursor.execute(
+                        convert_query(
+                            "SELECT id FROM whoop_recovery_cache "
+                            "WHERE user_id = ? AND whoop_cycle_id = ?"
+                        ),
+                        (user_id, cycle_id),
+                    )
+                    existing = cursor.fetchone()
+            except Exception:
+                pass
+
+            self.recovery_cache_repo.upsert(
+                user_id=user_id,
+                whoop_cycle_id=cycle_id,
+                recovery_score=rec_score.get("recovery_score"),
+                resting_hr=rec_score.get("resting_heart_rate"),
+                hrv_ms=rec_score.get("hrv_rmssd_milli"),
+                spo2=rec_score.get("spo2_percentage"),
+                skin_temp=rec_score.get("skin_temp_celsius"),
+                sleep_performance=sleep_score.get("sleep_performance_percentage"),
+                sleep_duration_ms=sleep_score.get("total_in_bed_time_milli"),
+                sleep_need_ms=sleep_score.get("sleep_needed_baseline_milli"),
+                sleep_debt_ms=sleep_score.get("sleep_debt_milli"),
+                light_sleep_ms=sleep_score.get("total_light_sleep_time_milli"),
+                slow_wave_ms=sleep_score.get("total_slow_wave_sleep_time_milli"),
+                rem_sleep_ms=sleep_score.get("total_rem_sleep_time_milli"),
+                awake_ms=sleep_score.get("total_awake_time_milli"),
+                cycle_start=cycle_start,
+                cycle_end=cycle_end,
+                raw_data={
+                    "cycle": cycle,
+                    "recovery": recovery,
+                    "sleep": sleep,
+                },
+            )
+
+            if existing:
+                updated += 1
+            else:
+                created += 1
+
+        self.connection_repo.update_last_synced(user_id)
+
+        return {
+            "total_fetched": len(all_cycles),
+            "created": created,
+            "updated": updated,
+        }
+
+    def get_latest_recovery(self, user_id: int) -> dict | None:
+        """Get latest recovery data, syncing if cache is stale (>4hrs)."""
+        latest = self.recovery_cache_repo.get_latest(user_id)
+
+        if latest:
+            synced_at = latest.get("synced_at", "")
+            if isinstance(synced_at, str) and synced_at:
+                try:
+                    synced_dt = datetime.fromisoformat(synced_at.replace("Z", "+00:00"))
+                    if synced_dt.tzinfo is None:
+                        synced_dt = synced_dt.replace(tzinfo=UTC)
+                    if synced_dt > datetime.now(UTC) - timedelta(hours=4):
+                        return latest
+                except (ValueError, TypeError):
+                    pass
+
+        # Cache empty or stale — sync recent data
+        try:
+            self.sync_recovery(user_id, days_back=2)
+        except Exception:
+            logger.warning("Auto recovery sync failed", exc_info=True)
+
+        return self.recovery_cache_repo.get_latest(user_id)
+
+    def apply_recovery_to_readiness(self, user_id: int, check_date: str) -> dict | None:
+        """Map WHOOP recovery to readiness auto-fill values.
+
+        Returns suggested readiness fields or None if no data available.
+        Does NOT auto-save — the frontend controls when to save.
+        """
+        # Look for recovery matching the check_date or the day before
+        # (WHOOP cycles are overnight, so today's recovery is from
+        # last night's sleep)
+        from datetime import date as date_cls
+
+        target = date_cls.fromisoformat(check_date)
+        day_before = (target - timedelta(days=1)).isoformat()
+
+        records = self.recovery_cache_repo.get_by_date_range(
+            user_id, day_before, check_date + "T23:59:59"
+        )
+        if not records:
+            # Try syncing recent data
+            try:
+                self.sync_recovery(user_id, days_back=2)
+                records = self.recovery_cache_repo.get_by_date_range(
+                    user_id, day_before, check_date + "T23:59:59"
+                )
+            except Exception:
+                logger.warning("Recovery sync for auto-fill failed")
+                return None
+
+        if not records:
+            return None
+
+        # Use most recent record
+        rec = records[0]
+        score = rec.get("recovery_score")
+        if score is None:
+            return None
+
+        # Map WHOOP recovery % to RivaFlow 1-5 scales
+        if score >= 90:
+            sleep_val, energy_val = 5, 5
+        elif score >= 67:
+            sleep_val, energy_val = 4, 4
+        elif score >= 50:
+            sleep_val, energy_val = 3, 3
+        elif score >= 34:
+            sleep_val, energy_val = 2, 2
+        else:
+            sleep_val, energy_val = 1, 1
+
+        return {
+            "sleep": sleep_val,
+            "energy": energy_val,
+            "hrv_ms": rec.get("hrv_ms"),
+            "resting_hr": rec.get("resting_hr"),
+            "spo2": rec.get("spo2"),
+            "whoop_recovery_score": score,
+            "whoop_sleep_score": rec.get("sleep_performance"),
+            "data_source": "whoop",
+        }
+
+    def check_scope_compatibility(self, user_id: int) -> dict:
+        """Compare stored scopes with current required scopes."""
+        conn = self.connection_repo.get_by_user_id(user_id)
+        if not conn:
+            return {
+                "current_scopes": [],
+                "required_scopes": WHOOP_SCOPES.split(),
+                "needs_reauth": True,
+                "missing_scopes": WHOOP_SCOPES.split(),
+            }
+
+        current_str = conn.get("scopes", "") or ""
+        current = set(current_str.split())
+        required = set(WHOOP_SCOPES.split())
+        missing = required - current
+
+        return {
+            "current_scopes": sorted(current),
+            "required_scopes": sorted(required),
+            "needs_reauth": len(missing) > 0,
+            "missing_scopes": sorted(missing),
         }
 
     # =========================================================================
@@ -471,8 +706,9 @@ class WhoopService:
             except Exception:
                 logger.warning("Token revocation failed (best-effort)")
 
-        # Delete cached workouts
+        # Delete cached workouts and recovery data
         self.workout_cache_repo.delete_by_user(user_id)
+        self.recovery_cache_repo.delete_by_user(user_id)
 
         # Delete connection
         self.connection_repo.delete(user_id)

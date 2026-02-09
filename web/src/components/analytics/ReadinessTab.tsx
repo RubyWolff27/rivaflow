@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Activity } from 'lucide-react';
+import { Activity, Heart, Waves } from 'lucide-react';
 import { analyticsApi } from '../../api/client';
 import { Card, MetricTile, MetricTileSkeleton, CardSkeleton, EmptyState } from '../ui';
 import ReadinessTrendChart from './ReadinessTrendChart';
@@ -13,6 +13,7 @@ export default function ReadinessTab({ dateRange, selectedTypes }: ReadinessTabP
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [data, setData] = useState<any>(null);
+  const [whoopData, setWhoopData] = useState<any>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -27,8 +28,14 @@ export default function ReadinessTab({ dateRange, selectedTypes }: ReadinessTabP
           end_date: dateRange.end,
           types: selectedTypes.length > 0 ? selectedTypes : undefined,
         };
-        const res = await analyticsApi.readinessTrends(params);
-        if (!cancelled) setData(res.data ?? null);
+        const [readinessRes, whoopRes] = await Promise.allSettled([
+          analyticsApi.readinessTrends(params),
+          analyticsApi.whoopAnalytics(params),
+        ]);
+        if (!cancelled) {
+          if (readinessRes.status === 'fulfilled') setData(readinessRes.value.data ?? null);
+          if (whoopRes.status === 'fulfilled') setWhoopData(whoopRes.value.data ?? null);
+        }
       } catch (err) {
         if (!cancelled) {
           console.error('Error loading readiness trends:', err);
@@ -144,6 +151,307 @@ export default function ReadinessTab({ dateRange, selectedTypes }: ReadinessTabP
           </div>
         </Card>
       )}
+
+      {/* WHOOP Trends */}
+      {whoopData && (whoopData.hrv_trend?.length > 0 || whoopData.recovery_over_time?.length > 0) && (
+        <>
+          {/* WHOOP Summary Tiles */}
+          {whoopData.summary && (
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+              {whoopData.summary.avg_hrv != null && (
+                <MetricTile label="Avg HRV" value={Number(whoopData.summary.avg_hrv).toFixed(0)} chipLabel="ms" />
+              )}
+              {whoopData.summary.avg_rhr != null && (
+                <MetricTile label="Avg RHR" value={Number(whoopData.summary.avg_rhr).toFixed(0)} chipLabel="bpm" />
+              )}
+              {whoopData.summary.avg_recovery != null && (
+                <MetricTile label="Avg Recovery" value={Number(whoopData.summary.avg_recovery).toFixed(0)} chipLabel="%" />
+              )}
+            </div>
+          )}
+
+          {/* HRV Trend */}
+          {whoopData.hrv_trend?.length > 0 && (
+            <Card>
+              <div className="mb-4">
+                <div className="flex items-center gap-2">
+                  <Waves className="w-4 h-4" style={{ color: 'var(--accent)' }} />
+                  <h3 className="text-lg font-semibold" style={{ color: 'var(--text)' }}>HRV Trend</h3>
+                </div>
+                <p className="text-xs mt-1" style={{ color: 'var(--muted)' }}>Heart rate variability (ms) with 7-day moving average</p>
+              </div>
+              <WhoopLineChart
+                data={whoopData.hrv_trend}
+                valueKey="hrv_ms"
+                avgKey="7day_avg"
+                color="#8B5CF6"
+                avgColor="#C4B5FD"
+                unit="ms"
+              />
+            </Card>
+          )}
+
+          {/* RHR Trend */}
+          {whoopData.rhr_trend?.length > 0 && (
+            <Card>
+              <div className="mb-4">
+                <div className="flex items-center gap-2">
+                  <Heart className="w-4 h-4" style={{ color: '#EF4444' }} />
+                  <h3 className="text-lg font-semibold" style={{ color: 'var(--text)' }}>Resting Heart Rate</h3>
+                </div>
+                <p className="text-xs mt-1" style={{ color: 'var(--muted)' }}>RHR (bpm) with 7-day moving average</p>
+              </div>
+              <WhoopLineChart
+                data={whoopData.rhr_trend}
+                valueKey="resting_hr"
+                avgKey="7day_avg"
+                color="#EF4444"
+                avgColor="#FCA5A5"
+                unit="bpm"
+              />
+            </Card>
+          )}
+
+          {/* Recovery Score Trend */}
+          {whoopData.recovery_over_time?.length > 0 && (
+            <Card>
+              <div className="mb-4">
+                <h3 className="text-lg font-semibold" style={{ color: 'var(--text)' }}>Recovery Score</h3>
+                <p className="text-xs mt-1" style={{ color: 'var(--muted)' }}>
+                  Daily WHOOP recovery percentage — Green (&ge;67%), Yellow (34-66%), Red (&lt;34%)
+                </p>
+              </div>
+              <RecoveryBarChart data={whoopData.recovery_over_time} />
+            </Card>
+          )}
+
+          {/* Sleep Composition */}
+          {whoopData.sleep_breakdown?.length > 0 && (
+            <Card>
+              <div className="mb-4">
+                <h3 className="text-lg font-semibold" style={{ color: 'var(--text)' }}>Sleep Composition</h3>
+                <p className="text-xs mt-1" style={{ color: 'var(--muted)' }}>Sleep stage breakdown over time</p>
+              </div>
+              <SleepStackedChart data={whoopData.sleep_breakdown} />
+            </Card>
+          )}
+        </>
+      )}
     </div>
+  );
+}
+
+/* ---- WHOOP Chart Components ---- */
+
+function WhoopLineChart({ data, valueKey, avgKey, color, avgColor, unit }: {
+  data: { date: string; [key: string]: any }[];
+  valueKey: string;
+  avgKey: string;
+  color: string;
+  avgColor: string;
+  unit: string;
+}) {
+  if (data.length === 0) return null;
+
+  const width = 600;
+  const height = 180;
+  const pad = { top: 15, right: 20, bottom: 30, left: 45 };
+  const plotW = width - pad.left - pad.right;
+  const plotH = height - pad.top - pad.bottom;
+
+  const values = data.map((d) => d[valueKey]).filter((v: any) => v != null) as number[];
+  if (values.length === 0) return null;
+
+  const minV = Math.floor(Math.min(...values) * 0.9);
+  const maxV = Math.ceil(Math.max(...values) * 1.1);
+  const range = maxV - minV || 1;
+
+  const xScale = (i: number) => pad.left + (i / Math.max(data.length - 1, 1)) * plotW;
+  const yScale = (v: number) => pad.top + plotH - ((v - minV) / range) * plotH;
+
+  const buildPath = (key: string) =>
+    data
+      .map((d, i) => (d[key] != null ? `${i === 0 || data[i - 1]?.[key] == null ? 'M' : 'L'} ${xScale(i)} ${yScale(d[key])}` : ''))
+      .filter(Boolean)
+      .join(' ');
+
+  const labelIndices = data.length <= 3
+    ? data.map((_, i) => i)
+    : [0, Math.floor(data.length / 2), data.length - 1];
+
+  const gridValues = (() => {
+    const step = Math.max(Math.round(range / 4), 1);
+    const vals: number[] = [];
+    for (let v = minV; v <= maxV; v += step) vals.push(v);
+    return vals;
+  })();
+
+  return (
+    <svg viewBox={`0 0 ${width} ${height}`} className="w-full" style={{ maxHeight: 180 }}>
+      {gridValues.map((v) => (
+        <g key={v}>
+          <line x1={pad.left} y1={yScale(v)} x2={width - pad.right} y2={yScale(v)} stroke="var(--border)" strokeWidth={1} />
+          <text x={pad.left - 6} y={yScale(v) + 4} textAnchor="end" fontSize={10} fill="var(--muted)">{v}</text>
+        </g>
+      ))}
+      {/* 7-day avg line */}
+      <path d={buildPath(avgKey)} fill="none" stroke={avgColor} strokeWidth={2} strokeDasharray="4 3" />
+      {/* Main line */}
+      <path d={buildPath(valueKey)} fill="none" stroke={color} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
+      {/* Points */}
+      {data.map((d, i) =>
+        d[valueKey] != null ? (
+          <circle key={i} cx={xScale(i)} cy={yScale(d[valueKey])} r={2.5} fill={color}>
+            <title>{d.date}: {Number(d[valueKey]).toFixed(0)} {unit}</title>
+          </circle>
+        ) : null
+      )}
+      {/* X labels */}
+      {labelIndices.map((i) => (
+        <text key={i} x={xScale(i)} y={height - 5} textAnchor="middle" fontSize={10} fill="var(--muted)">
+          {new Date(data[i].date + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+        </text>
+      ))}
+    </svg>
+  );
+}
+
+function RecoveryBarChart({ data }: { data: { date: string; recovery_score: number | null; sleep_performance: number | null }[] }) {
+  if (data.length === 0) return null;
+
+  const width = 600;
+  const height = 180;
+  const pad = { top: 15, right: 20, bottom: 30, left: 45 };
+  const plotW = width - pad.left - pad.right;
+  const plotH = height - pad.top - pad.bottom;
+
+  const barW = Math.max(2, Math.min(12, plotW / data.length - 2));
+
+  const yScale = (v: number) => pad.top + plotH - (v / 100) * plotH;
+
+  const getBarColor = (score: number | null) => {
+    if (score == null) return 'var(--border)';
+    if (score >= 67) return '#10B981';
+    if (score >= 34) return '#F59E0B';
+    return '#EF4444';
+  };
+
+  const labelIndices = data.length <= 5
+    ? data.map((_, i) => i)
+    : [0, Math.floor(data.length / 4), Math.floor(data.length / 2), Math.floor(data.length * 3 / 4), data.length - 1];
+
+  return (
+    <svg viewBox={`0 0 ${width} ${height}`} className="w-full" style={{ maxHeight: 180 }}>
+      {[0, 25, 50, 75, 100].map((v) => (
+        <g key={v}>
+          <line x1={pad.left} y1={yScale(v)} x2={width - pad.right} y2={yScale(v)} stroke="var(--border)" strokeWidth={1} />
+          <text x={pad.left - 6} y={yScale(v) + 4} textAnchor="end" fontSize={10} fill="var(--muted)">{v}%</text>
+        </g>
+      ))}
+      {/* Zone bands */}
+      <rect x={pad.left} y={yScale(100)} width={plotW} height={yScale(67) - yScale(100)} fill="rgba(16, 185, 129, 0.06)" />
+      <rect x={pad.left} y={yScale(67)} width={plotW} height={yScale(34) - yScale(67)} fill="rgba(245, 158, 11, 0.06)" />
+      <rect x={pad.left} y={yScale(34)} width={plotW} height={yScale(0) - yScale(34)} fill="rgba(239, 68, 68, 0.06)" />
+      {/* Bars */}
+      {data.map((d, i) => {
+        const x = pad.left + (i / Math.max(data.length - 1, 1)) * plotW - barW / 2;
+        const score = d.recovery_score ?? 0;
+        return (
+          <rect
+            key={i}
+            x={x}
+            y={yScale(score)}
+            width={barW}
+            height={Math.max(0, yScale(0) - yScale(score))}
+            fill={getBarColor(d.recovery_score)}
+            rx={1}
+          >
+            <title>{d.date}: {d.recovery_score != null ? Math.round(d.recovery_score) + '%' : 'N/A'}</title>
+          </rect>
+        );
+      })}
+      {/* X labels */}
+      {labelIndices.map((i) => (
+        <text key={i} x={pad.left + (i / Math.max(data.length - 1, 1)) * plotW} y={height - 5} textAnchor="middle" fontSize={10} fill="var(--muted)">
+          {new Date(data[i].date + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+        </text>
+      ))}
+    </svg>
+  );
+}
+
+function SleepStackedChart({ data }: { data: { date: string; light_pct: number; sws_pct: number; rem_pct: number; awake_pct: number }[] }) {
+  if (data.length === 0) return null;
+
+  const width = 600;
+  const height = 180;
+  const pad = { top: 15, right: 20, bottom: 30, left: 45 };
+  const plotW = width - pad.left - pad.right;
+  const plotH = height - pad.top - pad.bottom;
+
+  const barW = Math.max(2, Math.min(12, plotW / data.length - 2));
+
+  const stages = [
+    { key: 'rem_pct' as const, color: '#8B5CF6', label: 'REM' },
+    { key: 'sws_pct' as const, color: '#3B82F6', label: 'Deep' },
+    { key: 'light_pct' as const, color: '#60A5FA', label: 'Light' },
+    { key: 'awake_pct' as const, color: '#D1D5DB', label: 'Awake' },
+  ];
+
+  const yScale = (v: number) => pad.top + plotH - (v / 100) * plotH;
+
+  const labelIndices = data.length <= 5
+    ? data.map((_, i) => i)
+    : [0, Math.floor(data.length / 2), data.length - 1];
+
+  return (
+    <svg viewBox={`0 0 ${width} ${height}`} className="w-full" style={{ maxHeight: 180 }}>
+      {[0, 25, 50, 75, 100].map((v) => (
+        <g key={v}>
+          <line x1={pad.left} y1={yScale(v)} x2={width - pad.right} y2={yScale(v)} stroke="var(--border)" strokeWidth={1} />
+          <text x={pad.left - 6} y={yScale(v) + 4} textAnchor="end" fontSize={10} fill="var(--muted)">{v}%</text>
+        </g>
+      ))}
+      {/* Stacked bars */}
+      {data.map((d, i) => {
+        const x = pad.left + (i / Math.max(data.length - 1, 1)) * plotW - barW / 2;
+        let cumY = 0;
+        return (
+          <g key={i}>
+            {stages.map((stage) => {
+              const pct = d[stage.key] ?? 0;
+              const y0 = cumY;
+              cumY += pct;
+              return (
+                <rect
+                  key={stage.key}
+                  x={x}
+                  y={yScale(cumY)}
+                  width={barW}
+                  height={Math.max(0, yScale(y0) - yScale(cumY))}
+                  fill={stage.color}
+                  rx={0}
+                >
+                  <title>{d.date}: {stage.label} {pct.toFixed(0)}%</title>
+                </rect>
+              );
+            })}
+          </g>
+        );
+      })}
+      {/* X labels */}
+      {labelIndices.map((i) => (
+        <text key={i} x={pad.left + (i / Math.max(data.length - 1, 1)) * plotW} y={height - 5} textAnchor="middle" fontSize={10} fill="var(--muted)">
+          {new Date(data[i].date + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+        </text>
+      ))}
+      {/* Legend */}
+      {stages.map((stage, i) => (
+        <g key={stage.key} transform={`translate(${pad.left + i * 70}, ${pad.top - 10})`}>
+          <rect width={8} height={8} fill={stage.color} rx={1} />
+          <text x={12} y={8} fontSize={9} fill="var(--muted)">{stage.label}</text>
+        </g>
+      ))}
+    </svg>
   );
 }

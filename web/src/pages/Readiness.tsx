@@ -1,17 +1,30 @@
 import { useState, useEffect } from 'react';
 import { getLocalDateString } from '../utils/date';
-import { readinessApi, suggestionsApi } from '../api/client';
+import { readinessApi, suggestionsApi, whoopApi } from '../api/client';
 import type { Readiness as ReadinessType } from '../types';
-import { Activity } from 'lucide-react';
+import { Activity, Heart, Waves, Wind } from 'lucide-react';
 import { useToast } from '../contexts/ToastContext';
 import { triggerInsightRefresh } from '../hooks/useInsightRefresh';
 import ReadinessResult from '../components/ReadinessResult';
+
+interface WhoopAutoFill {
+  sleep: number;
+  energy: number;
+  hrv_ms: number | null;
+  resting_hr: number | null;
+  spo2: number | null;
+  whoop_recovery_score: number | null;
+  whoop_sleep_score: number | null;
+  data_source: string;
+}
 
 export default function Readiness() {
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const [latest, setLatest] = useState<ReadinessType | null>(null);
   const [suggestionData, setSuggestionData] = useState<{ suggestion?: string; triggered_rules?: { name: string; recommendation: string; explanation: string; priority: number }[] } | null>(null);
+  const [whoopAutoFill, setWhoopAutoFill] = useState<WhoopAutoFill | null>(null);
+  const [whoopApplied, setWhoopApplied] = useState(false);
   const toast = useToast();
 
   const [formData, setFormData] = useState({
@@ -22,6 +35,12 @@ export default function Readiness() {
     energy: 3,
     hotspot_note: '',
     weight_kg: '' as string | number,
+    data_source: 'manual' as string,
+    hrv_ms: null as number | null,
+    resting_hr: null as number | null,
+    spo2: null as number | null,
+    whoop_recovery_score: null as number | null,
+    whoop_sleep_score: null as number | null,
   });
 
   useEffect(() => {
@@ -34,6 +53,31 @@ export default function Readiness() {
         }
       } catch (error) {
         if (!cancelled) console.error('Error loading readiness:', error);
+      }
+
+      // Try WHOOP auto-fill
+      try {
+        const today = getLocalDateString();
+        const autoRes = await whoopApi.getReadinessAutoFill(today);
+        if (!cancelled && autoRes.data?.auto_fill) {
+          const af = autoRes.data.auto_fill as WhoopAutoFill;
+          setWhoopAutoFill(af);
+          // Pre-fill sleep and energy from WHOOP
+          setFormData(prev => ({
+            ...prev,
+            sleep: af.sleep,
+            energy: af.energy,
+            data_source: 'whoop',
+            hrv_ms: af.hrv_ms,
+            resting_hr: af.resting_hr,
+            spo2: af.spo2,
+            whoop_recovery_score: af.whoop_recovery_score,
+            whoop_sleep_score: af.whoop_sleep_score,
+          }));
+          setWhoopApplied(true);
+        }
+      } catch {
+        // WHOOP not connected or no data — that's fine
       }
     };
     doLoad();
@@ -57,8 +101,19 @@ export default function Readiness() {
 
     try {
       const submitData = {
-        ...formData,
+        check_date: formData.check_date,
+        sleep: formData.sleep,
+        stress: formData.stress,
+        soreness: formData.soreness,
+        energy: formData.energy,
+        hotspot_note: formData.hotspot_note || undefined,
         weight_kg: formData.weight_kg !== '' ? Number(formData.weight_kg) : undefined,
+        hrv_ms: formData.hrv_ms ?? undefined,
+        resting_hr: formData.resting_hr ?? undefined,
+        spo2: formData.spo2 ?? undefined,
+        whoop_recovery_score: formData.whoop_recovery_score ?? undefined,
+        whoop_sleep_score: formData.whoop_sleep_score ?? undefined,
+        data_source: formData.data_source || undefined,
       };
       await readinessApi.create(submitData);
       setSuccess(true);
@@ -124,6 +179,41 @@ export default function Readiness() {
         />
       )}
 
+      {/* WHOOP auto-fill banner */}
+      {whoopApplied && whoopAutoFill && (
+        <div className="card bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800">
+          <div className="flex items-center gap-2 mb-2">
+            <Heart className="w-4 h-4 text-green-600" />
+            <p className="text-sm font-semibold text-green-800 dark:text-green-300">
+              Pre-filled from WHOOP recovery (score: {whoopAutoFill.whoop_recovery_score}%)
+            </p>
+          </div>
+          <p className="text-xs text-green-700 dark:text-green-400 mb-3">
+            Sleep and energy have been set based on your WHOOP data. Adjust stress and soreness manually.
+          </p>
+          <div className="flex gap-3 flex-wrap">
+            {whoopAutoFill.hrv_ms != null && (
+              <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-green-100 dark:bg-green-900/40 text-xs font-medium text-green-800 dark:text-green-300">
+                <Waves className="w-3 h-3" />
+                HRV: {Math.round(whoopAutoFill.hrv_ms)} ms
+              </div>
+            )}
+            {whoopAutoFill.resting_hr != null && (
+              <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-green-100 dark:bg-green-900/40 text-xs font-medium text-green-800 dark:text-green-300">
+                <Heart className="w-3 h-3" />
+                RHR: {Math.round(whoopAutoFill.resting_hr)} bpm
+              </div>
+            )}
+            {whoopAutoFill.spo2 != null && (
+              <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-green-100 dark:bg-green-900/40 text-xs font-medium text-green-800 dark:text-green-300">
+                <Wind className="w-3 h-3" />
+                SpO2: {Math.round(whoopAutoFill.spo2)}%
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* Form */}
       <form onSubmit={handleSubmit} className="card">
 
@@ -151,7 +241,15 @@ export default function Readiness() {
                 min="1"
                 max="5"
                 value={formData[metric]}
-                onChange={(e) => setFormData({ ...formData, [metric]: parseInt(e.target.value) })}
+                onChange={(e) => {
+                  const newVal = parseInt(e.target.value);
+                  const update: Record<string, unknown> = { [metric]: newVal };
+                  // If user modifies WHOOP-prefilled values, mark as whoop+manual
+                  if (whoopApplied && (metric === 'sleep' || metric === 'energy') && formData.data_source === 'whoop') {
+                    update.data_source = 'whoop+manual';
+                  }
+                  setFormData(prev => ({ ...prev, ...update }));
+                }}
                 className="w-full h-2 bg-[var(--surfaceElev)] rounded-lg appearance-none cursor-pointer"
                 aria-label={metric}
                 aria-valuetext={`${metric}: ${formData[metric]} out of 5`}

@@ -65,11 +65,42 @@ RULES = [
         priority=4,
     ),
     Rule(
+        name="whoop_low_recovery",
+        condition=lambda r, s: (
+            r
+            and r.get("whoop_recovery_score") is not None
+            and r["whoop_recovery_score"] < 34
+        ),
+        recommendation="WHOOP shows low recovery ({whoop_recovery}%). Consider a light session.",
+        explanation="WHOOP recovery score is {whoop_recovery}% — body needs rest",
+        priority=2,
+    ),
+    Rule(
+        name="whoop_hrv_drop",
+        condition=lambda r, s: (
+            s.get("hrv_drop_pct") is not None and s["hrv_drop_pct"] > 20
+        ),
+        recommendation="Your HRV has dropped significantly. Listen to your body today.",
+        explanation="HRV is {hrv_drop_pct}% below your 7-day average",
+        priority=3,
+    ),
+    Rule(
         name="stale_technique",
         condition=lambda r, s: len(s.get("stale_techniques", [])) > 0,
         recommendation="Revisit: {techniques}",
         explanation="Not trained in 7+ days: {techniques}",
         priority=5,
+    ),
+    Rule(
+        name="whoop_green_recovery",
+        condition=lambda r, s: (
+            r
+            and r.get("whoop_recovery_score") is not None
+            and r["whoop_recovery_score"] >= 90
+        ),
+        recommendation="WHOOP shows peak recovery ({whoop_recovery}%). Great day to push hard!",
+        explanation="WHOOP recovery at {whoop_recovery}% — fully recovered",
+        priority=8,
     ),
 ]
 
@@ -87,6 +118,7 @@ def format_explanation(explanation: str, readiness: dict, session_context: dict)
                 "soreness": readiness["soreness"],
                 "score": readiness["composite_score"],
                 "hotspot": readiness.get("hotspot_note") or "the affected area",
+                "whoop_recovery": readiness.get("whoop_recovery_score", ""),
             }
         )
 
@@ -94,6 +126,7 @@ def format_explanation(explanation: str, readiness: dict, session_context: dict)
         {
             "consecutive_gi": session_context.get("consecutive_gi_sessions", 0),
             "consecutive_nogi": session_context.get("consecutive_nogi_sessions", 0),
+            "hrv_drop_pct": session_context.get("hrv_drop_pct", ""),
         }
     )
 

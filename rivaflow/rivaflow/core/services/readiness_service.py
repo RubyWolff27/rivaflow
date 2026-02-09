@@ -23,6 +23,12 @@ class ReadinessService:
         energy: int,
         hotspot_note: str | None = None,
         weight_kg: float | None = None,
+        hrv_ms: float | None = None,
+        resting_hr: int | None = None,
+        spo2: float | None = None,
+        whoop_recovery_score: float | None = None,
+        whoop_sleep_score: float | None = None,
+        data_source: str | None = None,
     ) -> int:
         """
         Log daily readiness check-in (upsert if exists for date).
@@ -37,6 +43,12 @@ class ReadinessService:
             energy=energy,
             hotspot_note=hotspot_note,
             weight_kg=weight_kg,
+            hrv_ms=hrv_ms,
+            resting_hr=resting_hr,
+            spo2=spo2,
+            whoop_recovery_score=whoop_recovery_score,
+            whoop_sleep_score=whoop_sleep_score,
+            data_source=data_source,
         )
 
         # Create check-in record for this readiness entry

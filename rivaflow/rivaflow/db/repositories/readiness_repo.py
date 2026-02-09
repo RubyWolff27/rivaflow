@@ -19,6 +19,12 @@ class ReadinessRepository:
         energy: int,
         hotspot_note: str | None = None,
         weight_kg: float | None = None,
+        hrv_ms: float | None = None,
+        resting_hr: int | None = None,
+        spo2: float | None = None,
+        whoop_recovery_score: float | None = None,
+        whoop_sleep_score: float | None = None,
+        data_source: str | None = None,
     ) -> int:
         """Create or update readiness entry for a date. Returns ID."""
         with get_connection() as conn:
@@ -38,7 +44,11 @@ class ReadinessRepository:
                     convert_query("""
                     UPDATE readiness
                     SET sleep = ?, stress = ?, soreness = ?, energy = ?,
-                        hotspot_note = ?, weight_kg = ?, updated_at = CURRENT_TIMESTAMP
+                        hotspot_note = ?, weight_kg = ?,
+                        hrv_ms = ?, resting_hr = ?, spo2 = ?,
+                        whoop_recovery_score = ?, whoop_sleep_score = ?,
+                        data_source = ?,
+                        updated_at = CURRENT_TIMESTAMP
                     WHERE user_id = ? AND check_date = ?
                     """),
                     (
@@ -48,6 +58,12 @@ class ReadinessRepository:
                         energy,
                         hotspot_note,
                         weight_kg,
+                        hrv_ms,
+                        resting_hr,
+                        spo2,
+                        whoop_recovery_score,
+                        whoop_sleep_score,
+                        data_source,
                         user_id,
                         check_date.isoformat(),
                     ),
@@ -59,8 +75,11 @@ class ReadinessRepository:
                     cursor,
                     """
                     INSERT INTO readiness (
-                        user_id, check_date, sleep, stress, soreness, energy, hotspot_note, weight_kg
-                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                        user_id, check_date, sleep, stress, soreness, energy,
+                        hotspot_note, weight_kg,
+                        hrv_ms, resting_hr, spo2,
+                        whoop_recovery_score, whoop_sleep_score, data_source
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                     """,
                     (
                         user_id,
@@ -71,6 +90,12 @@ class ReadinessRepository:
                         energy,
                         hotspot_note,
                         weight_kg,
+                        hrv_ms,
+                        resting_hr,
+                        spo2,
+                        whoop_recovery_score,
+                        whoop_sleep_score,
+                        data_source,
                     ),
                 )
 

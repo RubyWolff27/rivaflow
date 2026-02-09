@@ -9,6 +9,9 @@ from rivaflow.db.repositories import (
     ReadinessRepository,
     SessionRepository,
 )
+from rivaflow.db.repositories.whoop_recovery_cache_repo import (
+    WhoopRecoveryCacheRepository,
+)
 
 
 class ReadinessAnalyticsService:
@@ -17,6 +20,7 @@ class ReadinessAnalyticsService:
     def __init__(self):
         self.session_repo = SessionRepository()
         self.readiness_repo = ReadinessRepository()
+        self.recovery_cache_repo = WhoopRecoveryCacheRepository()
 
     def get_readiness_trends(
         self,
@@ -365,11 +369,128 @@ class ReadinessAnalyticsService:
                         }
                     )
 
+        # ---- Phase 2 recovery trends from whoop_recovery_cache ----
+        recovery_records = self.recovery_cache_repo.get_by_date_range(
+            user_id, start_date.isoformat(), end_date.isoformat() + "T23:59:59"
+        )
+
+        # HRV trend (daily values + 7-day moving average)
+        hrv_trend = []
+        hrv_values_window: list[float] = []
+        for rec in reversed(recovery_records):  # oldest first
+            hrv = rec.get("hrv_ms")
+            if hrv is not None:
+                hrv_values_window.append(hrv)
+                window = hrv_values_window[-7:]
+                hrv_trend.append(
+                    {
+                        "date": rec["cycle_start"][:10],
+                        "hrv_ms": round(hrv, 1),
+                        "7day_avg": round(statistics.mean(window), 1),
+                    }
+                )
+
+        # RHR trend
+        rhr_trend = []
+        rhr_values_window: list[float] = []
+        for rec in reversed(recovery_records):
+            rhr = rec.get("resting_hr")
+            if rhr is not None:
+                rhr_values_window.append(rhr)
+                window = rhr_values_window[-7:]
+                rhr_trend.append(
+                    {
+                        "date": rec["cycle_start"][:10],
+                        "resting_hr": round(rhr, 1),
+                        "7day_avg": round(statistics.mean(window), 1),
+                    }
+                )
+
+        # Recovery over time
+        recovery_over_time = []
+        for rec in reversed(recovery_records):
+            recovery_over_time.append(
+                {
+                    "date": rec["cycle_start"][:10],
+                    "recovery_score": rec.get("recovery_score"),
+                    "sleep_performance": rec.get("sleep_performance"),
+                }
+            )
+
+        # Strain vs recovery (join workout cache + recovery cache by date)
+        from rivaflow.db.repositories.whoop_workout_cache_repo import (
+            WhoopWorkoutCacheRepository,
+        )
+
+        workout_cache = WhoopWorkoutCacheRepository()
+        cached_workouts = workout_cache.get_by_user_and_time_range(
+            user_id, start_date.isoformat(), end_date.isoformat() + "T23:59:59"
+        )
+        rec_by_date = {}
+        for rec in recovery_records:
+            d = rec["cycle_start"][:10]
+            rec_by_date[d] = rec
+
+        strain_vs_recovery = []
+        for w in cached_workouts:
+            w_date = str(w.get("start_time", ""))[:10]
+            matched_rec = rec_by_date.get(w_date)
+            if matched_rec and w.get("strain") is not None:
+                strain_vs_recovery.append(
+                    {
+                        "date": w_date,
+                        "strain": w["strain"],
+                        "recovery_score": matched_rec.get("recovery_score"),
+                    }
+                )
+
+        # Sleep composition breakdown
+        sleep_breakdown = []
+        for rec in reversed(recovery_records):
+            total_ms = (
+                (rec.get("light_sleep_ms") or 0)
+                + (rec.get("slow_wave_ms") or 0)
+                + (rec.get("rem_sleep_ms") or 0)
+                + (rec.get("awake_ms") or 0)
+            )
+            if total_ms > 0:
+                sleep_breakdown.append(
+                    {
+                        "date": rec["cycle_start"][:10],
+                        "light_pct": round(
+                            (rec.get("light_sleep_ms") or 0) / total_ms * 100, 1
+                        ),
+                        "sws_pct": round(
+                            (rec.get("slow_wave_ms") or 0) / total_ms * 100, 1
+                        ),
+                        "rem_pct": round(
+                            (rec.get("rem_sleep_ms") or 0) / total_ms * 100, 1
+                        ),
+                        "awake_pct": round(
+                            (rec.get("awake_ms") or 0) / total_ms * 100, 1
+                        ),
+                    }
+                )
+
+        # Summary averages
+        hrv_all = [r.get("hrv_ms") for r in recovery_records if r.get("hrv_ms")]
+        rhr_all = [r.get("resting_hr") for r in recovery_records if r.get("resting_hr")]
+        rec_all = [
+            r.get("recovery_score")
+            for r in recovery_records
+            if r.get("recovery_score") is not None
+        ]
+
         return {
             "strain_vs_performance": strain_vs_performance,
             "heart_rate_zones": heart_rate_zones,
             "calorie_burn": calorie_burn,
             "recovery_correlation": recovery_correlation,
+            "hrv_trend": hrv_trend,
+            "rhr_trend": rhr_trend,
+            "recovery_over_time": recovery_over_time,
+            "strain_vs_recovery": strain_vs_recovery,
+            "sleep_breakdown": sleep_breakdown,
             "summary": {
                 "total_whoop_sessions": len(whoop_sessions),
                 "avg_strain": (
@@ -388,6 +509,11 @@ class ReadinessAnalyticsService:
                 ),
                 "total_calories": sum(
                     s.get("whoop_calories", 0) for s in whoop_sessions
+                ),
+                "avg_hrv": (round(statistics.mean(hrv_all), 1) if hrv_all else None),
+                "avg_rhr": (round(statistics.mean(rhr_all), 1) if rhr_all else None),
+                "avg_recovery": (
+                    round(statistics.mean(rec_all), 1) if rec_all else None
                 ),
             },
         }

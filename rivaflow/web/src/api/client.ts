@@ -1,5 +1,5 @@
 import axios from 'axios';
-import type { Session, Readiness, Report, Suggestion, TrainedMovement, Video, Profile, Grading, Movement, Friend, CustomVideo, WeeklyGoalProgress, GoalsSummary, TrainingStreaks, GoalCompletionStreak, DailyCheckin, StreakStatus, Streak, Milestone, MilestoneProgress, CompEvent, WeightLog, WeightAverage, Group, GroupMember, UserBasic, TrainingGoal, WhoopConnectionStatus, WhoopWorkoutMatch } from '../types';
+import type { Session, Readiness, Report, Suggestion, TrainedMovement, Video, Profile, Grading, Movement, Friend, CustomVideo, WeeklyGoalProgress, GoalsSummary, TrainingStreaks, GoalCompletionStreak, DailyCheckin, StreakStatus, Streak, Milestone, MilestoneProgress, CompEvent, WeightLog, WeightAverage, Group, GroupMember, UserBasic, TrainingGoal, WhoopConnectionStatus, WhoopWorkoutMatch, WhoopRecovery, WhoopScopeCheck, WhoopReadinessAutoFill } from '../types';
 
 // Paginated response type
 interface PaginatedResponse<T> {
@@ -639,6 +639,14 @@ export const whoopApi = {
     api.post('/integrations/whoop/match', data),
   disconnect: () =>
     api.delete<{ disconnected: boolean }>('/integrations/whoop'),
+  syncRecovery: () =>
+    api.post<{ total_fetched: number; created: number; updated: number }>('/integrations/whoop/sync-recovery'),
+  getLatestRecovery: () =>
+    api.get<WhoopRecovery>('/integrations/whoop/recovery/latest'),
+  checkScopes: () =>
+    api.get<WhoopScopeCheck>('/integrations/whoop/scope-check'),
+  getReadinessAutoFill: (date: string) =>
+    api.get<{ auto_fill: WhoopReadinessAutoFill | null }>('/integrations/whoop/readiness/auto-fill', { params: { date } }),
 };
 
 // Enhanced Grapple API

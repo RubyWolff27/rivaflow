@@ -182,6 +182,79 @@ def match_workout(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
 
 
+@router.post("/whoop/sync-recovery")
+def sync_recovery(
+    request: Request,
+    current_user: dict = Depends(get_current_user),
+):
+    """Trigger a recovery/sleep data sync from WHOOP."""
+    _require_whoop_enabled()
+    try:
+        result = service.sync_recovery(current_user["id"])
+        return result
+    except NotFoundError:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="WHOOP not connected",
+        )
+    except ExternalServiceError as e:
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail=str(e),
+        )
+
+
+@router.get("/whoop/recovery/latest")
+def get_latest_recovery(
+    request: Request,
+    current_user: dict = Depends(get_current_user),
+):
+    """Get the latest WHOOP recovery data."""
+    _require_whoop_enabled()
+    try:
+        data = service.get_latest_recovery(current_user["id"])
+        return data or {"message": "No recovery data available"}
+    except NotFoundError:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="WHOOP not connected",
+        )
+
+
+@router.get("/whoop/scope-check")
+def scope_check(
+    request: Request,
+    current_user: dict = Depends(get_current_user),
+):
+    """Check if the user's WHOOP scopes need re-authorization."""
+    _require_whoop_enabled()
+    return service.check_scope_compatibility(current_user["id"])
+
+
+@router.get("/whoop/readiness/auto-fill")
+def readiness_auto_fill(
+    request: Request,
+    date: str = Query(None, description="Date in YYYY-MM-DD format"),
+    current_user: dict = Depends(get_current_user),
+):
+    """Get auto-fill readiness values from WHOOP recovery data."""
+    _require_whoop_enabled()
+    if not date:
+        from datetime import date as date_cls
+
+        date = date_cls.today().isoformat()
+    try:
+        result = service.apply_recovery_to_readiness(current_user["id"], date)
+        if result is None:
+            return {"auto_fill": None, "message": "No WHOOP data for this date"}
+        return {"auto_fill": result}
+    except NotFoundError:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="WHOOP not connected",
+        )
+
+
 @router.delete("/whoop")
 def disconnect(
     request: Request,

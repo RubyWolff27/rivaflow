@@ -13,7 +13,7 @@ logger = logging.getLogger(__name__)
 WHOOP_AUTH_URL = "https://api.prod.whoop.com/oauth/oauth2/auth"
 WHOOP_TOKEN_URL = "https://api.prod.whoop.com/oauth/oauth2/token"
 WHOOP_API_BASE = "https://api.prod.whoop.com/developer/v2"
-WHOOP_SCOPES = "read:workout read:profile offline"
+WHOOP_SCOPES = "read:workout read:recovery read:sleep read:cycles read:body_measurement read:profile offline"
 
 TIMEOUT = 15.0
 
@@ -50,7 +50,9 @@ class WhoopClient:
             return response.json()
         except httpx.HTTPStatusError as e:
             logger.error(f"WHOOP token exchange failed: {e.response.text}")
-            raise ExternalServiceError("Failed to exchange WHOOP authorization code") from e
+            raise ExternalServiceError(
+                "Failed to exchange WHOOP authorization code"
+            ) from e
         except httpx.TimeoutException as e:
             raise ExternalServiceError("WHOOP API timed out") from e
 
@@ -98,6 +100,76 @@ class WhoopClient:
             f"{WHOOP_API_BASE}/activity/workout",
             access_token,
             params=params,
+        )
+
+    def get_recovery(
+        self,
+        access_token: str,
+        start: str | None = None,
+        end: str | None = None,
+        next_token: str | None = None,
+    ) -> dict:
+        """Get recovery data with optional time range and pagination."""
+        params: dict = {}
+        if start:
+            params["start"] = start
+        if end:
+            params["end"] = end
+        if next_token:
+            params["nextToken"] = next_token
+        return self._get(
+            f"{WHOOP_API_BASE}/recovery",
+            access_token,
+            params=params,
+        )
+
+    def get_sleep(
+        self,
+        access_token: str,
+        start: str | None = None,
+        end: str | None = None,
+        next_token: str | None = None,
+    ) -> dict:
+        """Get sleep data with optional time range and pagination."""
+        params: dict = {}
+        if start:
+            params["start"] = start
+        if end:
+            params["end"] = end
+        if next_token:
+            params["nextToken"] = next_token
+        return self._get(
+            f"{WHOOP_API_BASE}/activity/sleep",
+            access_token,
+            params=params,
+        )
+
+    def get_cycles(
+        self,
+        access_token: str,
+        start: str | None = None,
+        end: str | None = None,
+        next_token: str | None = None,
+    ) -> dict:
+        """Get physiological cycles with optional time range and pagination."""
+        params: dict = {}
+        if start:
+            params["start"] = start
+        if end:
+            params["end"] = end
+        if next_token:
+            params["nextToken"] = next_token
+        return self._get(
+            f"{WHOOP_API_BASE}/cycle",
+            access_token,
+            params=params,
+        )
+
+    def get_body_measurement(self, access_token: str) -> dict:
+        """Get the latest body measurement."""
+        return self._get(
+            f"{WHOOP_API_BASE}/body_measurement",
+            access_token,
         )
 
     def revoke_access(self, access_token: str) -> bool:
