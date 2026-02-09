@@ -326,6 +326,7 @@ def get_session_context(
     # Find workout linked to session (or fall back to date match)
     workout_data = None
     wo = WhoopWorkoutCacheRepository.get_by_session_id(session_id)
+    wo_source = "linked" if wo else None
     if not wo:
         # Fall back: find workout on same day
         from datetime import timedelta
@@ -341,6 +342,7 @@ def get_session_context(
             )
             if candidates:
                 wo = candidates[0]
+                wo_source = "date_match"
                 # Link it for future lookups
                 if wo.get("id"):
                     WhoopWorkoutCacheRepository.link_to_session(wo["id"], session_id)
@@ -349,16 +351,33 @@ def get_session_context(
 
     if wo:
         zones = wo.get("zone_durations")
+        zone_source = "cache" if zones else None
         # Fallback: extract zone_duration from raw_data if not cached directly
         if not zones and wo.get("raw_data"):
             raw = wo["raw_data"]
             if isinstance(raw, dict):
                 score = raw.get("score") or {}
                 zones = score.get("zone_duration")
+                if zones:
+                    zone_source = "raw_data"
         if zones:
             workout_data = {
                 "zone_durations": zones,
             }
+        logger.info(
+            "Session %s context: workout=%s score_state=%s " "zone_source=%s has_raw=%s",
+            session_id,
+            wo_source,
+            wo.get("score_state"),
+            zone_source,
+            bool(wo.get("raw_data")),
+        )
+    else:
+        logger.info(
+            "Session %s context: no workout found (date=%s)",
+            session_id,
+            s_date,
+        )
 
     return {"recovery": recovery_data, "workout": workout_data}
 

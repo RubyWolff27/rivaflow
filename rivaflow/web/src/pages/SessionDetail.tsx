@@ -65,9 +65,10 @@ export default function SessionDetail() {
     const doLoadWhoopCtx = async () => {
       try {
         const res = await whoopApi.sessionContext(parseInt(id ?? '0'));
+        console.log('[WHOOP context]', id, res.data);
         if (!cancelled) setWhoopCtx(res.data ?? null);
-      } catch {
-        // WHOOP context is optional
+      } catch (err) {
+        console.log('[WHOOP context] error', id, err);
       }
     };
 
