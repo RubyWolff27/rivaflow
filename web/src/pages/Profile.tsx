@@ -553,7 +553,11 @@ export default function Profile() {
     setWhoopSyncing(true);
     try {
       const res = await whoopApi.sync();
-      toast.success(`Synced ${res.data.total_fetched} workouts from WHOOP`);
+      const { total_fetched, auto_sessions_created } = res.data;
+      const msg = auto_sessions_created
+        ? `Synced ${total_fetched} workouts — ${auto_sessions_created} session(s) auto-created`
+        : `Synced ${total_fetched} workouts from WHOOP`;
+      toast.success(msg);
       const statusRes = await whoopApi.getStatus();
       setWhoopStatus(statusRes.data);
     } catch (error: unknown) {

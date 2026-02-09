@@ -64,9 +64,7 @@ class WhoopService:
         access_token = token_data["access_token"]
         refresh_token = token_data["refresh_token"]
         expires_in = token_data.get("expires_in", 3600)
-        token_expires_at = (
-            datetime.now(UTC) + timedelta(seconds=expires_in)
-        ).isoformat()
+        token_expires_at = (datetime.now(UTC) + timedelta(seconds=expires_in)).isoformat()
         scopes = token_data.get("scope", "")
 
         # Get WHOOP user profile
@@ -115,8 +113,7 @@ class WhoopService:
             new_access = token_data["access_token"]
             new_refresh = token_data.get("refresh_token", refresh_token)
             new_expires = (
-                datetime.now(UTC)
-                + timedelta(seconds=token_data.get("expires_in", 3600))
+                datetime.now(UTC) + timedelta(seconds=token_data.get("expires_in", 3600))
             ).isoformat()
 
             self.connection_repo.update_tokens(
@@ -210,6 +207,20 @@ class WhoopService:
 
         self.connection_repo.update_last_synced(user_id)
 
+        # Log sport breakdown for debugging
+        sport_counts: dict[str, int] = {}
+        for w in all_workouts:
+            key = f"{w.get('sport_id')}:{w.get('sport_name', '?')}"
+            sport_counts[key] = sport_counts.get(key, 0) + 1
+        logger.info(
+            "Sync user=%s fetched=%d created=%d updated=%d sports=%s",
+            user_id,
+            len(all_workouts),
+            created,
+            updated,
+            sport_counts,
+        )
+
         # Auto-create sessions for BJJ workouts if enabled
         try:
             auto_created = self.auto_create_sessions_for_workouts(user_id)
@@ -240,9 +251,7 @@ class WhoopService:
 
         # Paginate through cycles
         while True:
-            data = self.client.get_cycles(
-                access_token, start=start, end=end, next_token=next_token
-            )
+            data = self.client.get_cycles(access_token, start=start, end=end, next_token=next_token)
             records = data.get("records", [])
             all_cycles.extend(records)
             next_token = data.get("next_token")
@@ -266,9 +275,7 @@ class WhoopService:
         all_sleep = []
         next_token = None
         while True:
-            data = self.client.get_sleep(
-                access_token, start=start, end=end, next_token=next_token
-            )
+            data = self.client.get_sleep(access_token, start=start, end=end, next_token=next_token)
             records = data.get("records", [])
             all_sleep.extend(records)
             next_token = data.get("next_token")
@@ -524,12 +531,8 @@ class WhoopService:
 
         for workout in candidates:
             try:
-                w_start = datetime.fromisoformat(
-                    str(workout["start_time"]).replace("Z", "+00:00")
-                )
-                w_end = datetime.fromisoformat(
-                    str(workout["end_time"]).replace("Z", "+00:00")
-                )
+                w_start = datetime.fromisoformat(str(workout["start_time"]).replace("Z", "+00:00"))
+                w_end = datetime.fromisoformat(str(workout["end_time"]).replace("Z", "+00:00"))
             except (ValueError, TypeError):
                 continue
 
@@ -612,12 +615,8 @@ class WhoopService:
 
         for workout in candidates:
             try:
-                w_start = datetime.fromisoformat(
-                    str(workout["start_time"]).replace("Z", "+00:00")
-                )
-                w_end = datetime.fromisoformat(
-                    str(workout["end_time"]).replace("Z", "+00:00")
-                )
+                w_start = datetime.fromisoformat(str(workout["start_time"]).replace("Z", "+00:00"))
+                w_end = datetime.fromisoformat(str(workout["end_time"]).replace("Z", "+00:00"))
             except (ValueError, TypeError):
                 continue
 
@@ -699,6 +698,11 @@ class WhoopService:
         """
         conn = self.connection_repo.get_by_user_id(user_id)
         if not conn or not conn.get("auto_create_sessions"):
+            logger.info(
+                "Auto-create skipped: user=%s auto_create=%s",
+                user_id,
+                conn.get("auto_create_sessions") if conn else "no_conn",
+            )
             return []
 
         # Load profile for defaults
@@ -707,11 +711,14 @@ class WhoopService:
         default_class_type = "no-gi"
         if profile:
             default_gym = profile.get("default_gym") or default_gym
-            default_class_type = (
-                profile.get("primary_training_type") or default_class_type
-            )
+            default_class_type = profile.get("primary_training_type") or default_class_type
 
         unlinked = self.workout_cache_repo.get_unlinked_bjj_workouts(user_id)
+        logger.info(
+            "Auto-create: user=%s unlinked_bjj=%d",
+            user_id,
+            len(unlinked),
+        )
         created_ids = []
 
         for workout in unlinked:
