@@ -584,3 +584,236 @@ class WhoopAnalyticsEngine:
             "baseline_rhr": baseline_rhr,
             "insight": insight,
         }
+
+    # ------------------------------------------------------------------
+    # 6. Sleep Debt Tracker
+    # ------------------------------------------------------------------
+
+    def get_sleep_debt_tracker(
+        self,
+        user_id: int,
+        days: int = 90,
+    ) -> dict[str, Any]:
+        """Weekly sleep debt vs training volume."""
+        end = date.today()
+        start = end - timedelta(days=days)
+
+        start_dt = start.isoformat()
+        end_dt = end.isoformat() + "T23:59:59"
+
+        recs = WhoopRecoveryCacheRepository.get_by_date_range(user_id, start_dt, end_dt)
+        sessions = self.session_repo.get_by_date_range(user_id, start, end)
+
+        if not recs:
+            return {
+                "weekly": [],
+                "insight": "Not enough sleep data.",
+            }
+
+        # Group by week
+        weekly_debt: dict[str, list[float]] = defaultdict(list)
+        weekly_hours: dict[str, list[float]] = defaultdict(list)
+        for r in recs:
+            cs = r.get("cycle_start", "")
+            if not cs:
+                continue
+            try:
+                d = date.fromisoformat(cs[:10])
+            except ValueError:
+                continue
+            wk = d.strftime("%Y-W%U")
+            debt_ms = r.get("sleep_debt_ms")
+            dur_ms = r.get("sleep_duration_ms")
+            if debt_ms is not None:
+                weekly_debt[wk].append(debt_ms / 3_600_000)
+            if dur_ms is not None:
+                weekly_hours[wk].append(dur_ms / 3_600_000)
+
+        # Training volume by week
+        weekly_sessions: dict[str, int] = defaultdict(int)
+        weekly_train_hrs: dict[str, float] = defaultdict(float)
+        for s in sessions:
+            try:
+                d = s["session_date"]
+                if isinstance(d, str):
+                    d = date.fromisoformat(d)
+                wk = d.strftime("%Y-W%U")
+            except (ValueError, TypeError):
+                continue
+            weekly_sessions[wk] += 1
+            weekly_train_hrs[wk] += (s.get("duration_mins", 60) or 60) / 60
+
+        all_weeks = sorted(set(list(weekly_debt.keys()) + list(weekly_sessions.keys())))
+        result = []
+        for wk in all_weeks:
+            debts = weekly_debt.get(wk, [])
+            hours = weekly_hours.get(wk, [])
+            result.append(
+                {
+                    "week": wk,
+                    "avg_debt_hrs": (
+                        round(statistics.mean(debts), 1) if debts else None
+                    ),
+                    "avg_sleep_hrs": (
+                        round(statistics.mean(hours), 1) if hours else None
+                    ),
+                    "sessions": weekly_sessions.get(wk, 0),
+                    "training_hours": round(weekly_train_hrs.get(wk, 0), 1),
+                }
+            )
+
+        # Insight
+        recent_debts = [
+            r["avg_debt_hrs"] for r in result[-4:] if r["avg_debt_hrs"] is not None
+        ]
+        if recent_debts and statistics.mean(recent_debts) > 1.0:
+            insight = (
+                f"Accumulating sleep debt (avg"
+                f" {statistics.mean(recent_debts):.1f}h/week)."
+                f" Consider reducing training load."
+            )
+        elif recent_debts:
+            insight = (
+                f"Sleep debt well managed (avg"
+                f" {statistics.mean(recent_debts):.1f}h/week)."
+            )
+        else:
+            insight = "Not enough sleep debt data."
+
+        return {"weekly": result, "insight": insight}
+
+    # ------------------------------------------------------------------
+    # 7. Recovery Readiness Model
+    # ------------------------------------------------------------------
+
+    def get_recovery_readiness_model(
+        self,
+        user_id: int,
+        days: int = 90,
+    ) -> dict[str, Any]:
+        """Sessions grouped by recovery zone with outcome comparison."""
+        end = date.today()
+        start = end - timedelta(days=days)
+
+        start_dt = start.isoformat()
+        end_dt = end.isoformat() + "T23:59:59"
+
+        recs = WhoopRecoveryCacheRepository.get_by_date_range(user_id, start_dt, end_dt)
+        sessions = self.session_repo.get_by_date_range(user_id, start, end)
+
+        if not recs or not sessions:
+            return {
+                "zones": {},
+                "insight": "Not enough data for readiness model.",
+            }
+
+        # Index recovery by date
+        rec_by_date: dict[str, dict] = {}
+        for r in recs:
+            cs = r.get("cycle_start", "")
+            if cs:
+                rec_by_date[cs[:10]] = r
+
+        # Classify sessions
+        zone_sessions: dict[str, list[dict]] = {
+            "green": [],
+            "yellow": [],
+            "red": [],
+        }
+
+        for s in sessions:
+            s_date = s["session_date"]
+            if isinstance(s_date, date):
+                s_date_str = s_date.isoformat()
+            else:
+                s_date_str = str(s_date)
+
+            rec = rec_by_date.get(s_date_str)
+            if not rec:
+                try:
+                    d = date.fromisoformat(s_date_str[:10])
+                    prev = (d - timedelta(days=1)).isoformat()
+                    rec = rec_by_date.get(prev)
+                except (ValueError, TypeError):
+                    pass
+            if not rec:
+                continue
+
+            rs = rec.get("recovery_score")
+            if rs is None:
+                continue
+
+            zone = "green" if rs >= 67 else "yellow" if rs >= 34 else "red"
+            zone_sessions[zone].append(
+                {
+                    "recovery_score": rs,
+                    "intensity": s.get("intensity", 0) or 0,
+                    "rolls": s.get("rolls", 0) or 0,
+                    "subs_for": s.get("submissions_for", 0) or 0,
+                    "subs_against": (s.get("submissions_against", 0) or 0),
+                    "duration": s.get("duration_mins", 0) or 0,
+                }
+            )
+
+        zones = {}
+        for zone, sess_list in zone_sessions.items():
+            if not sess_list:
+                zones[zone] = {
+                    "sessions": 0,
+                    "avg_intensity": 0,
+                    "avg_rolls": 0,
+                    "avg_subs_for": 0,
+                    "avg_subs_against": 0,
+                    "avg_duration": 0,
+                    "sub_rate": 0,
+                }
+                continue
+            total_for = sum(s["subs_for"] for s in sess_list)
+            total_against = sum(s["subs_against"] for s in sess_list)
+            zones[zone] = {
+                "sessions": len(sess_list),
+                "avg_intensity": round(
+                    statistics.mean(s["intensity"] for s in sess_list),
+                    1,
+                ),
+                "avg_rolls": round(
+                    statistics.mean(s["rolls"] for s in sess_list),
+                    1,
+                ),
+                "avg_subs_for": round(
+                    statistics.mean(s["subs_for"] for s in sess_list),
+                    1,
+                ),
+                "avg_subs_against": round(
+                    statistics.mean(s["subs_against"] for s in sess_list),
+                    1,
+                ),
+                "avg_duration": round(
+                    statistics.mean(s["duration"] for s in sess_list),
+                    0,
+                ),
+                "sub_rate": (
+                    round(total_for / total_against, 2)
+                    if total_against > 0
+                    else float(total_for)
+                ),
+            }
+
+        # Insight
+        best_zone = ""
+        best_rate = -1.0
+        for z, info in zones.items():
+            if info["sessions"] >= 2 and info["sub_rate"] > best_rate:
+                best_rate = info["sub_rate"]
+                best_zone = z
+        total_matched = sum(z["sessions"] for z in zones.values())
+        if best_zone:
+            insight = (
+                f"Best performance in {best_zone} recovery zone"
+                f" ({best_rate} sub ratio). {total_matched} sessions"
+                f" matched to recovery data."
+            )
+        else:
+            insight = f"{total_matched} sessions matched to recovery."
+
+        return {"zones": zones, "insight": insight}

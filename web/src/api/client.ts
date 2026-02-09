@@ -286,6 +286,10 @@ export const analyticsApi = {
     api.get('/analytics/whoop/efficiency', { params }),
   whoopCardiovascular: (params?: { days?: number }) =>
     api.get('/analytics/whoop/cardiovascular', { params }),
+  whoopSleepDebt: (params?: { days?: number }) =>
+    api.get('/analytics/whoop/sleep-debt', { params }),
+  whoopReadinessModel: (params?: { days?: number }) =>
+    api.get('/analytics/whoop/readiness-model', { params }),
 };
 
 const userTz = Intl.DateTimeFormat().resolvedOptions().timeZone;

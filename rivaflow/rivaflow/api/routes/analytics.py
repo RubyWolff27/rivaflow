@@ -986,3 +986,55 @@ def get_whoop_cardiovascular(
             status_code=500,
             detail=f"Analytics error: {type(e).__name__}: {str(e)}",
         )
+
+
+@cached(ttl_seconds=600, key_prefix="whoop_sleep_debt")
+def _get_whoop_sleep_debt_cached(user_id: int, days: int = 90):
+    return whoop_analytics.get_sleep_debt_tracker(user_id, days)
+
+
+@cached(ttl_seconds=600, key_prefix="whoop_readiness_model")
+def _get_whoop_readiness_model_cached(user_id: int, days: int = 90):
+    return whoop_analytics.get_recovery_readiness_model(user_id, days)
+
+
+@router.get("/whoop/sleep-debt")
+@limiter.limit("60/minute")
+def get_whoop_sleep_debt(
+    request: Request,
+    days: int = Query(default=90, ge=7, le=365),
+    current_user: dict = Depends(get_current_user),
+):
+    """Sleep debt vs training volume. Cached 10 min."""
+    try:
+        return _get_whoop_sleep_debt_cached(user_id=current_user["id"], days=days)
+    except (RivaFlowException, HTTPException):
+        raise
+    except (ValueError, KeyError, TypeError) as e:
+        logger.error(f"Error in whoop sleep debt: {type(e).__name__}: {str(e)}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Analytics error: {type(e).__name__}: {str(e)}",
+        )
+
+
+@router.get("/whoop/readiness-model")
+@limiter.limit("60/minute")
+def get_whoop_readiness_model(
+    request: Request,
+    days: int = Query(default=90, ge=7, le=365),
+    current_user: dict = Depends(get_current_user),
+):
+    """Recovery readiness model. Cached 10 min."""
+    try:
+        return _get_whoop_readiness_model_cached(user_id=current_user["id"], days=days)
+    except (RivaFlowException, HTTPException):
+        raise
+    except (ValueError, KeyError, TypeError) as e:
+        logger.error(
+            f"Error in whoop readiness model:" f" {type(e).__name__}: {str(e)}"
+        )
+        raise HTTPException(
+            status_code=500,
+            detail=f"Analytics error: {type(e).__name__}: {str(e)}",
+        )

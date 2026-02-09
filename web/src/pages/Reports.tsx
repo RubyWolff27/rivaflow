@@ -11,6 +11,7 @@ import ReadinessTab from '../components/analytics/ReadinessTab';
 import TechniqueHeatmap from '../components/analytics/TechniqueHeatmap';
 import TrainingCalendar from '../components/analytics/TrainingCalendar';
 import InsightsTab from '../components/analytics/InsightsTab';
+import WhoopAnalyticsTab from '../components/analytics/WhoopAnalyticsTab';
 import MiniZoneBar from '../components/MiniZoneBar';
 
 export default function Reports() {
@@ -166,6 +167,7 @@ export default function Reports() {
     { id: 'readiness', name: 'Readiness', icon: Activity },
     { id: 'techniques', name: 'Techniques', icon: Target, bjjOnly: true },
     { id: 'insights', name: 'Insights', icon: Brain, bjjOnly: true },
+    { id: 'whoop', name: 'WHOOP', icon: Heart },
   ];
 
   // Filter tabs based on activity selection
@@ -1106,6 +1108,11 @@ export default function Reports() {
       {/* Insights Tab */}
       {activeTab === 'insights' && (
         <InsightsTab dateRange={dateRange} />
+      )}
+
+      {/* WHOOP Tab */}
+      {activeTab === 'whoop' && (
+        <WhoopAnalyticsTab />
       )}
     </div>
   );
