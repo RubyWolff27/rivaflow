@@ -241,8 +241,29 @@ export default function SessionDetail() {
       {/* Session Insights */}
       <SessionInsights sessionId={session.id} />
 
-      {/* Add Details CTA for incomplete sessions */}
-      {['gi', 'no-gi', 'open-mat', 'competition'].includes(session.class_type) &&
+      {/* Review auto-created session or add details CTA */}
+      {session.needs_review ? (
+        <div className="card" style={{ borderColor: '#f59e0b', borderWidth: '2px' }}>
+          <div className="flex items-center justify-between">
+            <div>
+              <div className="flex items-center gap-2 mb-1">
+                <Activity className="w-5 h-5 text-amber-500" />
+                <h3 className="font-semibold text-lg" style={{ color: 'var(--text)' }}>Review Auto-Created Session</h3>
+              </div>
+              <p className="text-sm" style={{ color: 'var(--muted)' }}>
+                Created from WHOOP BJJ workout. Review details and add rolls/techniques.
+              </p>
+            </div>
+            <Link
+              to={`/session/edit/${session.id}`}
+              className="btn-primary flex items-center gap-2"
+            >
+              <Edit2 className="w-4 h-4" />
+              Review & Edit
+            </Link>
+          </div>
+        </div>
+      ) : ['gi', 'no-gi', 'open-mat', 'competition'].includes(session.class_type) &&
         (session.rolls ?? 0) === 0 &&
         (!session.session_techniques || session.session_techniques.length === 0) && (
         <div className="card" style={{ borderColor: 'var(--accent)', borderWidth: '2px' }}>

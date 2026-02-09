@@ -42,6 +42,10 @@ class MatchRequest(BaseModel):
     workout_cache_id: int
 
 
+class AutoCreateRequest(BaseModel):
+    enabled: bool
+
+
 # ============================================================================
 # Endpoints
 # ============================================================================
@@ -79,14 +83,18 @@ def callback(
         return RedirectResponse(f"{frontend_url}/profile?whoop=error&reason={error}")
 
     if not code or not state:
-        return RedirectResponse(f"{frontend_url}/profile?whoop=error&reason=missing_params")
+        return RedirectResponse(
+            f"{frontend_url}/profile?whoop=error&reason=missing_params"
+        )
 
     try:
         service.handle_callback(code, state)
         return RedirectResponse(f"{frontend_url}/profile?whoop=connected")
     except Exception as e:
         logger.error(f"WHOOP callback failed: {e}", exc_info=True)
-        return RedirectResponse(f"{frontend_url}/profile?whoop=error&reason=callback_failed")
+        return RedirectResponse(
+            f"{frontend_url}/profile?whoop=error&reason=callback_failed"
+        )
 
 
 @router.get("/whoop/status")
@@ -153,7 +161,9 @@ def get_workouts(
 
             end = datetime.now(UTC).isoformat()
             start = (datetime.now(UTC) - timedelta(days=7)).isoformat()
-            matches = service.workout_cache_repo.get_by_user_and_time_range(user_id, start, end)
+            matches = service.workout_cache_repo.get_by_user_and_time_range(
+                user_id, start, end
+            )
 
         return {"workouts": matches, "count": len(matches)}
     except NotFoundError as e:
@@ -282,7 +292,9 @@ def get_session_context(
 
     # Find recovery for session date (or day before)
     recovery_data = None
-    recs = WhoopRecoveryCacheRepository.get_by_date_range(user_id, s_date, s_date + "T23:59:59")
+    recs = WhoopRecoveryCacheRepository.get_by_date_range(
+        user_id, s_date, s_date + "T23:59:59"
+    )
     if not recs:
         # Try day before
         from datetime import timedelta
@@ -292,7 +304,9 @@ def get_session_context(
 
             d = date_cls.fromisoformat(s_date[:10])
             prev = (d - timedelta(days=1)).isoformat()
-            recs = WhoopRecoveryCacheRepository.get_by_date_range(user_id, prev, prev + "T23:59:59")
+            recs = WhoopRecoveryCacheRepository.get_by_date_range(
+                user_id, prev, prev + "T23:59:59"
+            )
         except (ValueError, TypeError):
             pass
 
@@ -306,7 +320,9 @@ def get_session_context(
             "hrv_ms": rec.get("hrv_ms"),
             "resting_hr": rec.get("resting_hr"),
             "sleep_performance": rec.get("sleep_performance"),
-            "sleep_duration_hours": (round(dur_ms / 3_600_000, 1) if dur_ms is not None else None),
+            "sleep_duration_hours": (
+                round(dur_ms / 3_600_000, 1) if dur_ms is not None else None
+            ),
             "rem_pct": (
                 round(rem_ms / dur_ms * 100, 1)
                 if rem_ms is not None and dur_ms and dur_ms > 0
@@ -349,6 +365,16 @@ def get_session_context(
         }
 
     return {"recovery": recovery_data, "workout": workout_data}
+
+
+@router.post("/whoop/auto-create-sessions")
+def set_auto_create(
+    body: AutoCreateRequest,
+    current_user: dict = Depends(get_current_user),
+):
+    """Toggle auto-creation of sessions from WHOOP BJJ workouts."""
+    _require_whoop_enabled()
+    return service.set_auto_create_sessions(current_user["id"], body.enabled)
 
 
 @router.delete("/whoop")

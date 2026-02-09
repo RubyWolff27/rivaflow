@@ -7,6 +7,7 @@ from datetime import UTC, datetime, timedelta
 from rivaflow.core.exceptions import NotFoundError, ValidationError
 from rivaflow.core.services.whoop_client import WHOOP_SCOPES, WhoopClient
 from rivaflow.core.utils.encryption import decrypt_token, encrypt_token
+from rivaflow.db.repositories.profile_repo import ProfileRepository
 from rivaflow.db.repositories.session_repo import SessionRepository
 from rivaflow.db.repositories.whoop_connection_repo import (
     WhoopConnectionRepository,
@@ -33,6 +34,7 @@ class WhoopService:
         self.workout_cache_repo = WhoopWorkoutCacheRepository()
         self.recovery_cache_repo = WhoopRecoveryCacheRepository()
         self.session_repo = SessionRepository()
+        self.profile_repo = ProfileRepository()
         self.client = WhoopClient()
 
     # =========================================================================
@@ -208,10 +210,18 @@ class WhoopService:
 
         self.connection_repo.update_last_synced(user_id)
 
+        # Auto-create sessions for BJJ workouts if enabled
+        try:
+            auto_created = self.auto_create_sessions_for_workouts(user_id)
+        except Exception:
+            logger.warning("Auto-create sessions failed", exc_info=True)
+            auto_created = []
+
         return {
             "total_fetched": len(all_workouts),
             "created": created,
             "updated": updated,
+            "auto_sessions_created": len(auto_created),
         }
 
     # =========================================================================
@@ -679,6 +689,92 @@ class WhoopService:
         return self.session_repo.get_by_id(user_id, session_id)
 
     # =========================================================================
+    # Auto-create sessions
+    # =========================================================================
+
+    def auto_create_sessions_for_workouts(self, user_id: int) -> list[int]:
+        """Auto-create sessions from unlinked BJJ WHOOP workouts.
+
+        Returns list of created session IDs.
+        """
+        conn = self.connection_repo.get_by_user_id(user_id)
+        if not conn or not conn.get("auto_create_sessions"):
+            return []
+
+        # Load profile for defaults
+        profile = self.profile_repo.get(user_id)
+        default_gym = "(Set in Profile)"
+        default_class_type = "no-gi"
+        if profile:
+            default_gym = profile.get("default_gym") or default_gym
+            default_class_type = (
+                profile.get("primary_training_type") or default_class_type
+            )
+
+        unlinked = self.workout_cache_repo.get_unlinked_bjj_workouts(user_id)
+        created_ids = []
+
+        for workout in unlinked:
+            try:
+                start_str = str(workout.get("start_time", ""))
+                end_str = str(workout.get("end_time", ""))
+                if not start_str or not end_str:
+                    continue
+
+                start_dt = datetime.fromisoformat(start_str.replace("Z", "+00:00"))
+                end_dt = datetime.fromisoformat(end_str.replace("Z", "+00:00"))
+
+                session_date = start_dt.date()
+                class_time = start_dt.strftime("%H:%M")
+                duration_secs = (end_dt - start_dt).total_seconds()
+                duration_mins = max(1, round(duration_secs / 60))
+
+                kj = workout.get("kilojoules")
+                calories = workout.get("calories")
+                if not calories and kj:
+                    calories = round(kj / 4.184)
+
+                session_id = self.session_repo.create(
+                    user_id=user_id,
+                    session_date=session_date,
+                    class_type=default_class_type,
+                    gym_name=default_gym,
+                    class_time=class_time,
+                    duration_mins=duration_mins,
+                    whoop_strain=workout.get("strain"),
+                    whoop_calories=calories,
+                    whoop_avg_hr=workout.get("avg_heart_rate"),
+                    whoop_max_hr=workout.get("max_heart_rate"),
+                    source="whoop",
+                    needs_review=True,
+                )
+
+                self.workout_cache_repo.link_to_session(workout["id"], session_id)
+                created_ids.append(session_id)
+            except Exception:
+                logger.warning(
+                    "Failed to auto-create session for workout %s",
+                    workout.get("id"),
+                    exc_info=True,
+                )
+
+        return created_ids
+
+    def set_auto_create_sessions(self, user_id: int, enabled: bool) -> dict:
+        """Toggle auto-create and backfill if enabling."""
+        self.connection_repo.update_auto_create(user_id, enabled)
+
+        backfilled = 0
+        if enabled:
+            created_ids = self.auto_create_sessions_for_workouts(user_id)
+            backfilled = len(created_ids)
+
+        return {
+            "auto_create_sessions": enabled,
+            "backfilled": backfilled,
+        }
+
+    # =========================================================================
     # Connection management
     # =========================================================================
 
@@ -693,6 +789,7 @@ class WhoopService:
             "whoop_user_id": conn.get("whoop_user_id"),
             "connected_at": conn.get("connected_at"),
             "last_synced_at": conn.get("last_synced_at"),
+            "auto_create_sessions": bool(conn.get("auto_create_sessions")),
         }
 
     def disconnect(self, user_id: int) -> bool:

@@ -195,6 +195,11 @@ export default function Sessions() {
                     <span className="px-2 py-0.5 bg-[rgba(var(--accent-rgb),0.12)] text-[var(--accent)] rounded text-xs font-semibold uppercase">
                       {session.class_type}
                     </span>
+                    {session.needs_review && (
+                      <span className="px-2 py-0.5 bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 rounded text-xs font-semibold">
+                        Review
+                      </span>
+                    )}
                     <span className="text-xs text-[var(--muted)]">
                       Intensity: {session.intensity}/5
                     </span>

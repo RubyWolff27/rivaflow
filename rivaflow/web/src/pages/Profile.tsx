@@ -1188,6 +1188,38 @@ export default function Profile() {
               </p>
             )}
 
+            {whoopStatus.connected && (
+              <div className="mt-3 flex items-center justify-between p-3 rounded-lg bg-[var(--surfaceElev)]">
+                <div>
+                  <p className="font-medium text-sm">Auto-log BJJ sessions</p>
+                  <p className="text-xs text-[var(--muted)]">
+                    Auto-create sessions when WHOOP detects BJJ training
+                  </p>
+                </div>
+                <button
+                  onClick={async () => {
+                    try {
+                      const newVal = !whoopStatus.auto_create_sessions;
+                      await whoopApi.setAutoCreate(newVal);
+                      setWhoopStatus({ ...whoopStatus, auto_create_sessions: newVal });
+                      toast.success(newVal ? 'Auto-create enabled' : 'Auto-create disabled');
+                    } catch (err) {
+                      toast.error(getErrorMessage(err));
+                    }
+                  }}
+                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                    whoopStatus.auto_create_sessions ? 'bg-[var(--accent)]' : 'bg-gray-300 dark:bg-gray-600'
+                  }`}
+                >
+                  <span
+                    className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                      whoopStatus.auto_create_sessions ? 'translate-x-6' : 'translate-x-1'
+                    }`}
+                  />
+                </button>
+              </div>
+            )}
+
             {!whoopStatus.connected && (
               <p className="text-xs text-[var(--muted)] mt-3">
                 Connect your WHOOP to auto-sync strain, heart rate, and calorie data to your sessions.

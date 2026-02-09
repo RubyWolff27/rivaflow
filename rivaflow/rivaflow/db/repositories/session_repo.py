@@ -38,6 +38,8 @@ class SessionRepository:
         attacks_successful: int = 0,
         defenses_attempted: int = 0,
         defenses_successful: int = 0,
+        source: str = "manual",
+        needs_review: bool = False,
     ) -> int:
         """Create a new session and return its ID."""
         with get_connection() as conn:
@@ -53,8 +55,9 @@ class SessionRepository:
                     instructor_id, instructor_name,
                     whoop_strain, whoop_calories, whoop_avg_hr, whoop_max_hr,
                     attacks_attempted, attacks_successful,
-                    defenses_attempted, defenses_successful
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    defenses_attempted, defenses_successful,
+                    source, needs_review
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
                     user_id,
@@ -82,6 +85,8 @@ class SessionRepository:
                     attacks_successful,
                     defenses_attempted,
                     defenses_successful,
+                    source,
+                    1 if needs_review else 0,
                 ),
             )
 
@@ -202,6 +207,8 @@ class SessionRepository:
                 "attacks_successful",
                 "defenses_attempted",
                 "defenses_successful",
+                "source",
+                "needs_review",
             }
 
             # Process each provided field — validate BEFORE building query
@@ -465,4 +472,6 @@ class SessionRepository:
         if data.get("updated_at"):
             if isinstance(data["updated_at"], str):
                 data["updated_at"] = datetime.fromisoformat(data["updated_at"])
+        # Convert needs_review to bool (SQLite stores as INTEGER)
+        data["needs_review"] = bool(data.get("needs_review", 0))
         return data

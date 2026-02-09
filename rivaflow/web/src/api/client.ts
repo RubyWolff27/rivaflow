@@ -657,6 +657,8 @@ export const whoopApi = {
     api.get<{ auto_fill: WhoopReadinessAutoFill | null }>('/integrations/whoop/readiness/auto-fill', { params: { date } }),
   sessionContext: (sessionId: number) =>
     api.get<WhoopSessionContext>(`/integrations/whoop/session/${sessionId}/context`),
+  setAutoCreate: (enabled: boolean) =>
+    api.post('/integrations/whoop/auto-create-sessions', { enabled }),
 };
 
 // Enhanced Grapple API

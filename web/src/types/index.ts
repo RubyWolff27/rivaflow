@@ -31,6 +31,8 @@ export interface Session {
   whoop_calories?: number;
   whoop_avg_hr?: number;
   whoop_max_hr?: number;
+  source?: 'manual' | 'whoop';
+  needs_review?: boolean;
   created_at: string;
 }
 
@@ -564,6 +566,7 @@ export interface WhoopConnectionStatus {
   whoop_user_id?: string;
   connected_at?: string;
   last_synced_at?: string;
+  auto_create_sessions?: boolean;
 }
 
 export interface WhoopWorkout {

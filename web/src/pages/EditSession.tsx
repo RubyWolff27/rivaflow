@@ -418,6 +418,7 @@ export default function EditSession() {
         whoop_calories: formData.whoop_calories ? parseInt(formData.whoop_calories) : undefined,
         whoop_avg_hr: formData.whoop_avg_hr ? parseInt(formData.whoop_avg_hr) : undefined,
         whoop_max_hr: formData.whoop_max_hr ? parseInt(formData.whoop_max_hr) : undefined,
+        needs_review: false,
       };
 
       // Add detailed rolls (send even if empty to clear old rolls)
