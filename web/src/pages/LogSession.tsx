@@ -1,9 +1,10 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { getLocalDateString } from '../utils/date';
 import { useNavigate } from 'react-router-dom';
-import { sessionsApi, readinessApi, profileApi, friendsApi, glossaryApi, restApi } from '../api/client';
-import type { Friend, Movement, MediaUrl, Readiness } from '../types';
-import { CheckCircle, ArrowRight, ArrowLeft, Plus, X, ToggleLeft, ToggleRight, Search, Camera, ChevronDown, ChevronUp, Swords, Shield, Minus, Mic, MicOff } from 'lucide-react';
+import { sessionsApi, readinessApi, profileApi, friendsApi, glossaryApi, restApi, whoopApi, getErrorMessage } from '../api/client';
+import type { Friend, Movement, MediaUrl, Readiness, WhoopWorkoutMatch } from '../types';
+import { CheckCircle, ArrowRight, ArrowLeft, Plus, X, ToggleLeft, ToggleRight, Search, Camera, ChevronDown, ChevronUp, Swords, Shield, Minus, Mic, MicOff, RefreshCw } from 'lucide-react';
+import WhoopMatchModal from '../components/WhoopMatchModal';
 import GymSelector from '../components/GymSelector';
 import { ClassTypeChips, IntensityChips } from '../components/ui';
 import { useToast } from '../contexts/ToastContext';
@@ -57,6 +58,14 @@ export default function LogSession() {
   // New: Roll tracking mode
   const [detailedMode, setDetailedMode] = useState(false);
   const [rolls, setRolls] = useState<RollEntry[]>([]);
+
+  // WHOOP integration state
+  const [whoopConnected, setWhoopConnected] = useState(false);
+  const [whoopSyncing, setWhoopSyncing] = useState(false);
+  const [whoopSynced, setWhoopSynced] = useState(false);
+  const [whoopMatches, setWhoopMatches] = useState<WhoopWorkoutMatch[]>([]);
+  const [showWhoopModal, setShowWhoopModal] = useState(false);
+  const [whoopManualMode, setWhoopManualMode] = useState(false);
 
   // Collapsible sections
   const [showWhoop, setShowWhoop] = useState(false);
@@ -166,6 +175,16 @@ export default function LogSession() {
         }
         if (Object.keys(updates).length > 0) {
           setSessionData(prev => ({ ...prev, ...updates }));
+        }
+
+        // Check WHOOP connection status (best-effort)
+        try {
+          const whoopRes = await whoopApi.getStatus();
+          if (!controller.signal.aborted && whoopRes.data?.connected) {
+            setWhoopConnected(true);
+          }
+        } catch {
+          // Feature flag off or not available
         }
       } catch (error) {
         if (!controller.signal.aborted) console.error('Error loading data:', error);
@@ -491,6 +510,68 @@ export default function LogSession() {
       }
       return { ...fd, [field]: clamped };
     });
+  }, []);
+
+  const handleWhoopSync = useCallback(async () => {
+    if (!sessionData.session_date || !sessionData.class_time) return;
+    setWhoopSyncing(true);
+    try {
+      const res = await whoopApi.getWorkouts({
+        session_date: sessionData.session_date,
+        class_time: sessionData.class_time,
+        duration_mins: sessionData.duration_mins,
+      });
+      const matches = res.data.workouts || [];
+      if (matches.length === 0) {
+        toast.showToast('warning', 'No matching WHOOP workouts found');
+      } else if (matches.length === 1 && matches[0].overlap_pct >= 90) {
+        // Auto-populate
+        const w = matches[0];
+        setSessionData(prev => ({
+          ...prev,
+          whoop_strain: w.strain?.toString() || '',
+          whoop_calories: w.calories?.toString() || '',
+          whoop_avg_hr: w.avg_heart_rate?.toString() || '',
+          whoop_max_hr: w.max_heart_rate?.toString() || '',
+        }));
+        setWhoopSynced(true);
+        toast.showToast('success', 'WHOOP data synced automatically');
+      } else {
+        setWhoopMatches(matches);
+        setShowWhoopModal(true);
+      }
+    } catch (error: unknown) {
+      toast.showToast('error', getErrorMessage(error));
+    } finally {
+      setWhoopSyncing(false);
+    }
+  }, [sessionData.session_date, sessionData.class_time, sessionData.duration_mins, toast]);
+
+  const handleWhoopMatchSelect = useCallback((workoutCacheId: number) => {
+    const workout = whoopMatches.find(w => w.id === workoutCacheId);
+    if (workout) {
+      setSessionData(prev => ({
+        ...prev,
+        whoop_strain: workout.strain?.toString() || '',
+        whoop_calories: workout.calories?.toString() || '',
+        whoop_avg_hr: workout.avg_heart_rate?.toString() || '',
+        whoop_max_hr: workout.max_heart_rate?.toString() || '',
+      }));
+      setWhoopSynced(true);
+      setShowWhoopModal(false);
+      toast.showToast('success', 'WHOOP data applied');
+    }
+  }, [whoopMatches, toast]);
+
+  const handleWhoopClear = useCallback(() => {
+    setSessionData(prev => ({
+      ...prev,
+      whoop_strain: '',
+      whoop_calories: '',
+      whoop_avg_hr: '',
+      whoop_max_hr: '',
+    }));
+    setWhoopSynced(false);
   }, []);
 
   const filterMovements = useCallback((search: string) => {
@@ -1236,68 +1317,152 @@ export default function LogSession() {
             </div>
           )}
 
-          {/* Whoop Stats (Optional — collapsed by default) */}
+          {/* Whoop Stats */}
           <div className="border-t border-[var(--border)] pt-4">
-            <button
-              type="button"
-              onClick={() => setShowWhoop(!showWhoop)}
-              className="flex items-center justify-between w-full text-left"
-            >
-              <h3 className="font-semibold text-lg">Whoop Stats <span className="text-sm font-normal" style={{ color: 'var(--muted)' }}>optional</span></h3>
-              {showWhoop ? <ChevronUp className="w-5 h-5" style={{ color: 'var(--muted)' }} /> : <ChevronDown className="w-5 h-5" style={{ color: 'var(--muted)' }} />}
-            </button>
-            {showWhoop && (
-              <div className="grid grid-cols-2 gap-4 mt-3">
-                <div>
-                  <label className="label">Activity Strain</label>
-                  <input
-                    type="number"
-                    inputMode="decimal"
-                    className="input"
-                    value={sessionData.whoop_strain}
-                    onChange={(e) => setSessionData({ ...sessionData, whoop_strain: e.target.value })}
-                    placeholder="0-21"
-                    min="0"
-                    max="21"
-                    step="0.1"
-                  />
+            {whoopConnected && !whoopManualMode ? (
+              <>
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="font-semibold text-lg">WHOOP Stats</h3>
+                  <button
+                    type="button"
+                    onClick={() => { setWhoopManualMode(true); setShowWhoop(true); }}
+                    className="text-xs text-[var(--accent)] hover:opacity-80"
+                  >
+                    Enter manually
+                  </button>
                 </div>
-                <div>
-                  <label className="label">Calories</label>
-                  <input
-                    type="number"
-                    className="input"
-                    value={sessionData.whoop_calories}
-                    onChange={(e) => setSessionData({ ...sessionData, whoop_calories: e.target.value })}
-                    placeholder="e.g., 500"
-                    min="0"
-                  />
-                </div>
-                <div>
-                  <label className="label">Avg HR (bpm)</label>
-                  <input
-                    type="number"
-                    className="input"
-                    value={sessionData.whoop_avg_hr}
-                    onChange={(e) => setSessionData({ ...sessionData, whoop_avg_hr: e.target.value })}
-                    placeholder="e.g., 140"
-                    min="0"
-                    max="250"
-                  />
-                </div>
-                <div>
-                  <label className="label">Max HR (bpm)</label>
-                  <input
-                    type="number"
-                    className="input"
-                    value={sessionData.whoop_max_hr}
-                    onChange={(e) => setSessionData({ ...sessionData, whoop_max_hr: e.target.value })}
-                    placeholder="e.g., 185"
-                    min="0"
-                    max="250"
-                  />
-                </div>
-              </div>
+
+                {whoopSynced ? (
+                  <div className="space-y-3">
+                    <div className="flex items-center gap-2 mb-2">
+                      <span className="inline-flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full bg-green-100 text-green-700">
+                        <CheckCircle className="w-3 h-3" /> Synced from WHOOP
+                      </span>
+                      <button type="button" onClick={handleWhoopClear} className="text-xs text-[var(--muted)] hover:opacity-80 underline">
+                        Clear
+                      </button>
+                    </div>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                      {sessionData.whoop_strain && (
+                        <div className="p-2 bg-[var(--surfaceElev)] rounded-lg text-center">
+                          <p className="text-xs text-[var(--muted)]">Strain</p>
+                          <p className="text-lg font-bold">{sessionData.whoop_strain}</p>
+                        </div>
+                      )}
+                      {sessionData.whoop_calories && (
+                        <div className="p-2 bg-[var(--surfaceElev)] rounded-lg text-center">
+                          <p className="text-xs text-[var(--muted)]">Calories</p>
+                          <p className="text-lg font-bold">{sessionData.whoop_calories}</p>
+                        </div>
+                      )}
+                      {sessionData.whoop_avg_hr && (
+                        <div className="p-2 bg-[var(--surfaceElev)] rounded-lg text-center">
+                          <p className="text-xs text-[var(--muted)]">Avg HR</p>
+                          <p className="text-lg font-bold">{sessionData.whoop_avg_hr}</p>
+                        </div>
+                      )}
+                      {sessionData.whoop_max_hr && (
+                        <div className="p-2 bg-[var(--surfaceElev)] rounded-lg text-center">
+                          <p className="text-xs text-[var(--muted)]">Max HR</p>
+                          <p className="text-lg font-bold">{sessionData.whoop_max_hr}</p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ) : (
+                  <div>
+                    {sessionData.class_time ? (
+                      <button
+                        type="button"
+                        onClick={handleWhoopSync}
+                        disabled={whoopSyncing}
+                        className="w-full py-3 rounded-lg font-medium text-sm transition-all flex items-center justify-center gap-2"
+                        style={{ backgroundColor: 'var(--accent)', color: '#fff' }}
+                      >
+                        <RefreshCw className={`w-4 h-4 ${whoopSyncing ? 'animate-spin' : ''}`} />
+                        {whoopSyncing ? 'Syncing from WHOOP...' : 'Sync from WHOOP'}
+                      </button>
+                    ) : (
+                      <div className="text-center py-3 text-sm text-[var(--muted)]">
+                        Add a class time above to sync from WHOOP
+                      </div>
+                    )}
+                  </div>
+                )}
+              </>
+            ) : (
+              <>
+                <button
+                  type="button"
+                  onClick={() => setShowWhoop(!showWhoop)}
+                  className="flex items-center justify-between w-full text-left"
+                >
+                  <h3 className="font-semibold text-lg">Whoop Stats <span className="text-sm font-normal" style={{ color: 'var(--muted)' }}>optional</span></h3>
+                  {showWhoop ? <ChevronUp className="w-5 h-5" style={{ color: 'var(--muted)' }} /> : <ChevronDown className="w-5 h-5" style={{ color: 'var(--muted)' }} />}
+                </button>
+                {showWhoop && (
+                  <div className="grid grid-cols-2 gap-4 mt-3">
+                    <div>
+                      <label className="label">Activity Strain</label>
+                      <input
+                        type="number"
+                        inputMode="decimal"
+                        className="input"
+                        value={sessionData.whoop_strain}
+                        onChange={(e) => setSessionData({ ...sessionData, whoop_strain: e.target.value })}
+                        placeholder="0-21"
+                        min="0"
+                        max="21"
+                        step="0.1"
+                      />
+                    </div>
+                    <div>
+                      <label className="label">Calories</label>
+                      <input
+                        type="number"
+                        className="input"
+                        value={sessionData.whoop_calories}
+                        onChange={(e) => setSessionData({ ...sessionData, whoop_calories: e.target.value })}
+                        placeholder="e.g., 500"
+                        min="0"
+                      />
+                    </div>
+                    <div>
+                      <label className="label">Avg HR (bpm)</label>
+                      <input
+                        type="number"
+                        className="input"
+                        value={sessionData.whoop_avg_hr}
+                        onChange={(e) => setSessionData({ ...sessionData, whoop_avg_hr: e.target.value })}
+                        placeholder="e.g., 140"
+                        min="0"
+                        max="250"
+                      />
+                    </div>
+                    <div>
+                      <label className="label">Max HR (bpm)</label>
+                      <input
+                        type="number"
+                        className="input"
+                        value={sessionData.whoop_max_hr}
+                        onChange={(e) => setSessionData({ ...sessionData, whoop_max_hr: e.target.value })}
+                        placeholder="e.g., 185"
+                        min="0"
+                        max="250"
+                      />
+                    </div>
+                  </div>
+                )}
+                {whoopConnected && whoopManualMode && (
+                  <button
+                    type="button"
+                    onClick={() => setWhoopManualMode(false)}
+                    className="text-xs text-[var(--accent)] hover:opacity-80 mt-2"
+                  >
+                    Switch to WHOOP sync
+                  </button>
+                )}
+              </>
             )}
           </div>
 
@@ -1505,6 +1670,19 @@ export default function LogSession() {
           </div>
         </form>
       )}
+
+      {/* WHOOP Match Modal */}
+      <WhoopMatchModal
+        isOpen={showWhoopModal}
+        onClose={() => setShowWhoopModal(false)}
+        matches={whoopMatches}
+        onSelect={handleWhoopMatchSelect}
+        onManual={() => {
+          setShowWhoopModal(false);
+          setWhoopManualMode(true);
+          setShowWhoop(true);
+        }}
+      />
 
       {/* Rest Day Form */}
       {activityType === 'rest' && step === 2 && (

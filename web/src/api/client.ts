@@ -1,5 +1,5 @@
 import axios from 'axios';
-import type { Session, Readiness, Report, Suggestion, TrainedMovement, Video, Profile, Grading, Movement, Friend, CustomVideo, WeeklyGoalProgress, GoalsSummary, TrainingStreaks, GoalCompletionStreak, DailyCheckin, StreakStatus, Streak, Milestone, MilestoneProgress, CompEvent, WeightLog, WeightAverage, Group, GroupMember, UserBasic, TrainingGoal } from '../types';
+import type { Session, Readiness, Report, Suggestion, TrainedMovement, Video, Profile, Grading, Movement, Friend, CustomVideo, WeeklyGoalProgress, GoalsSummary, TrainingStreaks, GoalCompletionStreak, DailyCheckin, StreakStatus, Streak, Milestone, MilestoneProgress, CompEvent, WeightLog, WeightAverage, Group, GroupMember, UserBasic, TrainingGoal, WhoopConnectionStatus, WhoopWorkoutMatch } from '../types';
 
 // Paginated response type
 interface PaginatedResponse<T> {
@@ -623,6 +623,22 @@ export const transcribeApi = {
       headers: { 'Content-Type': 'multipart/form-data' },
       timeout: 60000,
     }),
+};
+
+// WHOOP Integration API
+export const whoopApi = {
+  getStatus: () =>
+    api.get<WhoopConnectionStatus>('/integrations/whoop/status'),
+  getAuthorizeUrl: () =>
+    api.get<{ authorization_url: string }>('/integrations/whoop/authorize'),
+  sync: () =>
+    api.post<{ total_fetched: number; created: number; updated: number }>('/integrations/whoop/sync'),
+  getWorkouts: (params?: { session_id?: number; session_date?: string; class_time?: string; duration_mins?: number }) =>
+    api.get<{ workouts: WhoopWorkoutMatch[]; count: number }>('/integrations/whoop/workouts', { params }),
+  matchWorkout: (data: { session_id: number; workout_cache_id: number }) =>
+    api.post('/integrations/whoop/match', data),
+  disconnect: () =>
+    api.delete<{ disconnected: boolean }>('/integrations/whoop'),
 };
 
 // Enhanced Grapple API

@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react';
 import { getLocalDateString } from '../utils/date';
 import { BELT_GRADES } from '../constants/belts';
-import { profileApi, gradingsApi, friendsApi, adminApi, gymsApi, getErrorMessage } from '../api/client';
-import type { Profile as ProfileType, Grading, Friend } from '../types';
-import { User, CheckCircle, Award, Plus, Trash2, Edit2, Target, AlertCircle, Crown, Star } from 'lucide-react';
+import { profileApi, gradingsApi, friendsApi, adminApi, gymsApi, whoopApi, getErrorMessage } from '../api/client';
+import type { Profile as ProfileType, Grading, Friend, WhoopConnectionStatus } from '../types';
+import { User, CheckCircle, Award, Plus, Trash2, Edit2, Target, AlertCircle, Crown, Star, Link2, RefreshCw, Unlink } from 'lucide-react';
 import GymSelector from '../components/GymSelector';
 import ConfirmDialog from '../components/ConfirmDialog';
 import { useToast } from '../contexts/ToastContext';
@@ -65,6 +65,12 @@ export default function Profile() {
   const [gradingPhotoPreview, setGradingPhotoPreview] = useState<string | null>(null);
   const [gymHeadCoach, setGymHeadCoach] = useState<string | null>(null);
 
+  // WHOOP integration state
+  const [whoopStatus, setWhoopStatus] = useState<WhoopConnectionStatus | null>(null);
+  const [whoopLoading, setWhoopLoading] = useState(false);
+  const [whoopSyncing, setWhoopSyncing] = useState(false);
+  const [showDisconnectConfirm, setShowDisconnectConfirm] = useState(false);
+
   useEffect(() => {
     const controller = new AbortController();
     const doLoad = async () => {
@@ -75,6 +81,14 @@ export default function Profile() {
           gradingsApi.list(),
           friendsApi.listInstructors(),
         ]);
+        // Load WHOOP status (best-effort, don't fail the page)
+        try {
+          const whoopRes = await whoopApi.getStatus();
+          if (!controller.signal.aborted) setWhoopStatus(whoopRes.data);
+        } catch {
+          // Feature flag off or not available — that's fine
+        }
+
         if (!controller.signal.aborted) {
           setProfile(profileRes.data ?? null);
           setGradings(gradingsRes.data ?? []);
@@ -489,6 +503,61 @@ export default function Profile() {
       toast.error('Failed to delete grading.');
     } finally {
       setGradingToDelete(null);
+    }
+  };
+
+  // Handle WHOOP OAuth redirect params
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const whoopParam = params.get('whoop');
+    if (whoopParam === 'connected') {
+      toast.success('WHOOP connected successfully!');
+      // Refresh status
+      whoopApi.getStatus().then(r => setWhoopStatus(r.data)).catch(() => {});
+      // Clean URL
+      window.history.replaceState({}, '', '/profile');
+    } else if (whoopParam === 'error') {
+      const reason = params.get('reason') || 'unknown';
+      toast.error(`WHOOP connection failed: ${reason}`);
+      window.history.replaceState({}, '', '/profile');
+    }
+  }, []);
+
+  const handleWhoopConnect = async () => {
+    setWhoopLoading(true);
+    try {
+      const res = await whoopApi.getAuthorizeUrl();
+      window.open(res.data.authorization_url, '_blank');
+    } catch (error: unknown) {
+      toast.error(getErrorMessage(error));
+    } finally {
+      setWhoopLoading(false);
+    }
+  };
+
+  const handleWhoopSync = async () => {
+    setWhoopSyncing(true);
+    try {
+      const res = await whoopApi.sync();
+      toast.success(`Synced ${res.data.total_fetched} workouts from WHOOP`);
+      const statusRes = await whoopApi.getStatus();
+      setWhoopStatus(statusRes.data);
+    } catch (error: unknown) {
+      toast.error(getErrorMessage(error));
+    } finally {
+      setWhoopSyncing(false);
+    }
+  };
+
+  const handleWhoopDisconnect = async () => {
+    try {
+      await whoopApi.disconnect();
+      setWhoopStatus({ connected: false });
+      toast.success('WHOOP disconnected');
+    } catch (error: unknown) {
+      toast.error(getErrorMessage(error));
+    } finally {
+      setShowDisconnectConfirm(false);
     }
   };
 
@@ -1018,6 +1087,76 @@ export default function Profile() {
         </div>
       </form>
 
+      {/* Connected Devices */}
+      {whoopStatus !== null && (
+        <div className="card">
+          <div className="flex items-center gap-3 mb-4">
+            <Link2 className="w-6 h-6 text-[var(--accent)]" />
+            <h2 className="text-xl font-semibold">Connected Devices</h2>
+          </div>
+
+          <div className="p-4 bg-[var(--surfaceElev)] rounded-lg">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-full bg-black flex items-center justify-center">
+                  <span className="text-white font-bold text-sm">W</span>
+                </div>
+                <div>
+                  <p className="font-semibold">WHOOP</p>
+                  {whoopStatus.connected ? (
+                    <p className="text-sm text-green-600 flex items-center gap-1">
+                      <CheckCircle className="w-3.5 h-3.5" /> Connected
+                    </p>
+                  ) : (
+                    <p className="text-sm text-[var(--muted)]">Not connected</p>
+                  )}
+                </div>
+              </div>
+
+              {whoopStatus.connected ? (
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={handleWhoopSync}
+                    disabled={whoopSyncing}
+                    className="btn-secondary flex items-center gap-1.5 text-sm"
+                  >
+                    <RefreshCw className={`w-3.5 h-3.5 ${whoopSyncing ? 'animate-spin' : ''}`} />
+                    {whoopSyncing ? 'Syncing...' : 'Sync'}
+                  </button>
+                  <button
+                    onClick={() => setShowDisconnectConfirm(true)}
+                    className="text-sm text-[var(--error)] hover:opacity-80 flex items-center gap-1"
+                  >
+                    <Unlink className="w-3.5 h-3.5" />
+                    Disconnect
+                  </button>
+                </div>
+              ) : (
+                <button
+                  onClick={handleWhoopConnect}
+                  disabled={whoopLoading}
+                  className="btn-primary text-sm"
+                >
+                  {whoopLoading ? 'Connecting...' : 'Connect WHOOP'}
+                </button>
+              )}
+            </div>
+
+            {whoopStatus.connected && whoopStatus.last_synced_at && (
+              <p className="text-xs text-[var(--muted)] mt-2">
+                Last synced: {new Date(whoopStatus.last_synced_at).toLocaleString()}
+              </p>
+            )}
+
+            {!whoopStatus.connected && (
+              <p className="text-xs text-[var(--muted)] mt-3">
+                Connect your WHOOP to auto-sync strain, heart rate, and calorie data to your sessions.
+              </p>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* Belt Progression Section */}
       <div className="card">
         <div className="flex items-center justify-between mb-4">
@@ -1288,6 +1427,17 @@ export default function Profile() {
         title="Delete Grading"
         message="Are you sure you want to delete this grading? This action cannot be undone."
         confirmText="Delete"
+        cancelText="Cancel"
+        variant="danger"
+      />
+
+      <ConfirmDialog
+        isOpen={showDisconnectConfirm}
+        onClose={() => setShowDisconnectConfirm(false)}
+        onConfirm={handleWhoopDisconnect}
+        title="Disconnect WHOOP"
+        message="This will remove your WHOOP connection and clear all synced workout data from your sessions. You can reconnect at any time."
+        confirmText="Disconnect"
         cancelText="Cancel"
         variant="danger"
       />

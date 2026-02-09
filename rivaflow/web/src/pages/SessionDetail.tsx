@@ -389,30 +389,57 @@ export default function SessionDetail() {
       {/* Whoop Stats */}
       {(session.whoop_strain || session.whoop_calories || session.whoop_avg_hr || session.whoop_max_hr) && (
         <div className="card">
-          <h3 className="font-semibold text-lg mb-4">Whoop Stats</h3>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            {session.whoop_strain && (
-              <div>
-                <p className="text-sm mb-1">Strain</p>
-                <p className="text-xl font-bold">{session.whoop_strain}</p>
+          <h3 className="font-semibold text-lg mb-4">WHOOP Stats</h3>
+
+          {/* Strain gauge */}
+          {session.whoop_strain != null && (
+            <div className="mb-4">
+              <div className="flex items-center justify-between mb-1">
+                <span className="text-sm text-[var(--muted)]">Activity Strain</span>
+                <span className="text-2xl font-bold">{session.whoop_strain}</span>
               </div>
-            )}
-            {session.whoop_calories && (
-              <div>
-                <p className="text-sm mb-1">Calories</p>
+              <div className="h-2.5 rounded-full overflow-hidden" style={{ backgroundColor: 'var(--surfaceElev)' }}>
+                <div
+                  className="h-full rounded-full transition-all"
+                  style={{
+                    width: `${Math.min(100, (session.whoop_strain / 21) * 100)}%`,
+                    background: session.whoop_strain <= 7
+                      ? 'linear-gradient(90deg, #22c55e, #86efac)'
+                      : session.whoop_strain <= 14
+                        ? 'linear-gradient(90deg, #eab308, #facc15)'
+                        : session.whoop_strain <= 18
+                          ? 'linear-gradient(90deg, #f97316, #fb923c)'
+                          : 'linear-gradient(90deg, #ef4444, #f87171)',
+                  }}
+                />
+              </div>
+              <div className="flex justify-between text-xs text-[var(--muted)] mt-1">
+                <span>0</span>
+                <span>Light</span>
+                <span>Moderate</span>
+                <span>Hard</span>
+                <span>21</span>
+              </div>
+            </div>
+          )}
+
+          <div className="grid grid-cols-3 gap-4">
+            {session.whoop_calories != null && (
+              <div className="p-3 bg-[var(--surfaceElev)] rounded-lg text-center">
+                <p className="text-xs text-[var(--muted)] mb-1">Calories</p>
                 <p className="text-xl font-bold">{session.whoop_calories}</p>
               </div>
             )}
-            {session.whoop_avg_hr && (
-              <div>
-                <p className="text-sm mb-1">Avg HR</p>
-                <p className="text-xl font-bold">{session.whoop_avg_hr} bpm</p>
+            {session.whoop_avg_hr != null && (
+              <div className="p-3 bg-[var(--surfaceElev)] rounded-lg text-center">
+                <p className="text-xs text-[var(--muted)] mb-1">Avg HR</p>
+                <p className="text-xl font-bold">{session.whoop_avg_hr} <span className="text-xs font-normal">bpm</span></p>
               </div>
             )}
-            {session.whoop_max_hr && (
-              <div>
-                <p className="text-sm mb-1">Max HR</p>
-                <p className="text-xl font-bold">{session.whoop_max_hr} bpm</p>
+            {session.whoop_max_hr != null && (
+              <div className="p-3 bg-[var(--surfaceElev)] rounded-lg text-center">
+                <p className="text-xs text-[var(--muted)] mb-1">Max HR</p>
+                <p className="text-xl font-bold">{session.whoop_max_hr} <span className="text-xs font-normal">bpm</span></p>
               </div>
             )}
           </div>

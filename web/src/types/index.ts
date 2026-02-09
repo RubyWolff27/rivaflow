@@ -552,6 +552,35 @@ export interface AIInsight {
   created_at: string;
 }
 
+// WHOOP Integration
+export interface WhoopConnectionStatus {
+  connected: boolean;
+  whoop_user_id?: string;
+  connected_at?: string;
+  last_synced_at?: string;
+}
+
+export interface WhoopWorkout {
+  id: number;
+  whoop_workout_id: string;
+  sport_id?: number;
+  sport_name?: string;
+  start_time: string;
+  end_time: string;
+  strain?: number;
+  avg_heart_rate?: number;
+  max_heart_rate?: number;
+  kilojoules?: number;
+  calories?: number;
+  score_state?: string;
+  zone_durations?: Record<string, number>;
+  session_id?: number;
+}
+
+export interface WhoopWorkoutMatch extends WhoopWorkout {
+  overlap_pct: number;
+}
+
 // Extracted Session
 export interface ExtractedSession {
   session_date?: string;

@@ -216,6 +216,29 @@ class Settings:
         return os.getenv("ENABLE_WHOOP_INTEGRATION", "false").lower() == "true"
 
     @property
+    def WHOOP_CLIENT_ID(self) -> str | None:
+        """WHOOP OAuth client ID from developer.whoop.com."""
+        return os.getenv("WHOOP_CLIENT_ID")
+
+    @property
+    def WHOOP_CLIENT_SECRET(self) -> str | None:
+        """WHOOP OAuth client secret from developer.whoop.com."""
+        return os.getenv("WHOOP_CLIENT_SECRET")
+
+    @property
+    def WHOOP_REDIRECT_URI(self) -> str:
+        """WHOOP OAuth redirect URI."""
+        return os.getenv(
+            "WHOOP_REDIRECT_URI",
+            f"{self.API_BASE_URL}/api/v1/integrations/whoop/callback",
+        )
+
+    @property
+    def WHOOP_ENCRYPTION_KEY(self) -> str | None:
+        """Fernet encryption key for WHOOP tokens (32-byte base64)."""
+        return os.getenv("WHOOP_ENCRYPTION_KEY")
+
+    @property
     def ENABLE_SOCIAL_FEATURES(self) -> bool:
         """Enable social features (friends, likes, comments)."""
         return os.getenv("ENABLE_SOCIAL_FEATURES", "true").lower() == "true"

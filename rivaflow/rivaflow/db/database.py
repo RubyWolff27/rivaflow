@@ -491,6 +491,7 @@ def _apply_migrations(
         "071_deduplicate_glossary.sql",
         "072_fix_rate_limits_unique_index.sql",
         "073_create_training_goals.sql",
+        "075_whoop_integration.sql",
     ]
 
     migrations_dir = Path(__file__).parent / "migrations"
