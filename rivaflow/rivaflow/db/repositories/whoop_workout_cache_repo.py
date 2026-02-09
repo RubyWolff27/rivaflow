@@ -1,6 +1,7 @@
 """Repository for cached WHOOP workout data."""
 
 import json
+from datetime import UTC, datetime
 
 from rivaflow.db.database import convert_query, execute_insert, get_connection
 
@@ -56,7 +57,7 @@ class WhoopWorkoutCacheRepository:
                             avg_heart_rate = ?, max_heart_rate = ?,
                             kilojoules = ?, calories = ?, score_state = ?,
                             zone_durations = ?, raw_data = ?,
-                            synced_at = datetime('now')
+                            synced_at = ?
                         WHERE id = ?
                         """),
                     (
@@ -73,6 +74,7 @@ class WhoopWorkoutCacheRepository:
                         score_state,
                         zone_durations_str,
                         raw_data_str,
+                        datetime.now(UTC).isoformat(),
                         row_id,
                     ),
                 )
@@ -108,9 +110,7 @@ class WhoopWorkoutCacheRepository:
                 )
 
     @staticmethod
-    def get_by_user_and_time_range(
-        user_id: int, start_dt: str, end_dt: str
-    ) -> list[dict]:
+    def get_by_user_and_time_range(user_id: int, start_dt: str, end_dt: str) -> list[dict]:
         """Get cached workouts for a user within a time range."""
         with get_connection() as conn:
             cursor = conn.cursor()
@@ -124,10 +124,7 @@ class WhoopWorkoutCacheRepository:
                     """),
                 (user_id, start_dt, end_dt),
             )
-            return [
-                WhoopWorkoutCacheRepository._row_to_dict(row)
-                for row in cursor.fetchall()
-            ]
+            return [WhoopWorkoutCacheRepository._row_to_dict(row) for row in cursor.fetchall()]
 
     @staticmethod
     def link_to_session(workout_cache_id: int, session_id: int) -> bool:

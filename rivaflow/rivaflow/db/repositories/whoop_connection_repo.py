@@ -1,6 +1,12 @@
 """Repository for WHOOP OAuth connection storage."""
 
+from datetime import UTC, datetime
+
 from rivaflow.db.database import convert_query, execute_insert, get_connection
+
+
+def _now_iso() -> str:
+    return datetime.now(UTC).isoformat()
 
 
 class WhoopConnectionRepository:
@@ -66,13 +72,14 @@ class WhoopConnectionRepository:
                     SET access_token_encrypted = ?,
                         refresh_token_encrypted = ?,
                         token_expires_at = ?,
-                        updated_at = datetime('now')
+                        updated_at = ?
                     WHERE user_id = ?
                     """),
                 (
                     access_token_encrypted,
                     refresh_token_encrypted,
                     token_expires_at,
+                    _now_iso(),
                     user_id,
                 ),
             )
@@ -86,11 +93,11 @@ class WhoopConnectionRepository:
             cursor.execute(
                 convert_query("""
                     UPDATE whoop_connections
-                    SET last_synced_at = datetime('now'),
-                        updated_at = datetime('now')
+                    SET last_synced_at = ?,
+                        updated_at = ?
                     WHERE user_id = ?
                     """),
-                (user_id,),
+                (_now_iso(), _now_iso(), user_id),
             )
             return cursor.rowcount > 0
 
@@ -122,10 +129,10 @@ class WhoopConnectionRepository:
                             SET whoop_user_id = COALESCE(?, whoop_user_id),
                                 scopes = COALESCE(?, scopes),
                                 is_active = 1,
-                                updated_at = datetime('now')
+                                updated_at = ?
                             WHERE user_id = ?
                             """),
-                        (whoop_user_id, scopes, user_id),
+                        (whoop_user_id, scopes, _now_iso(), user_id),
                     )
             return existing["id"]
         return WhoopConnectionRepository.create(
