@@ -436,6 +436,107 @@ def get_session_context(
     return {"recovery": recovery_data, "workout": workout_data}
 
 
+@router.get("/whoop/zones/batch")
+def get_zones_batch(
+    request: Request,
+    session_ids: str = Query(..., description="Comma-separated session IDs"),
+    current_user: dict = Depends(get_current_user),
+):
+    """Get HR zone data for multiple sessions at once."""
+    _require_whoop_enabled()
+
+    from rivaflow.db.repositories.whoop_workout_cache_repo import (
+        WhoopWorkoutCacheRepository,
+    )
+
+    ids = [int(s.strip()) for s in session_ids.split(",") if s.strip().isdigit()][
+        :50
+    ]  # cap at 50
+
+    result: dict[str, dict | None] = {}
+    for sid in ids:
+        wo = WhoopWorkoutCacheRepository.get_by_session_id(sid)
+        if not wo:
+            result[str(sid)] = None
+            continue
+        zones = wo.get("zone_durations")
+        if not zones and wo.get("raw_data"):
+            raw = wo["raw_data"]
+            if isinstance(raw, dict):
+                score = raw.get("score") or {}
+                zones = score.get("zone_duration")
+        result[str(sid)] = (
+            {
+                "zone_durations": zones,
+                "strain": wo.get("strain"),
+                "calories": wo.get("calories"),
+                "score_state": wo.get("score_state"),
+            }
+            if zones or wo.get("score_state")
+            else None
+        )
+
+    return {"zones": result}
+
+
+@router.get("/whoop/zones/weekly")
+def get_zones_weekly(
+    request: Request,
+    week_offset: int = Query(0, ge=-52, le=0, description="Weeks back (0=current)"),
+    tz: str | None = Query(None, description="IANA timezone"),
+    current_user: dict = Depends(get_current_user),
+):
+    """Get aggregated HR zone totals for a week."""
+    _require_whoop_enabled()
+    user_id = current_user["id"]
+
+    from datetime import timedelta
+
+    from rivaflow.core.services.report_service import today_in_tz
+    from rivaflow.db.repositories.session_repo import SessionRepository
+    from rivaflow.db.repositories.whoop_workout_cache_repo import (
+        WhoopWorkoutCacheRepository,
+    )
+
+    today = today_in_tz(tz)
+    week_start = today - timedelta(days=today.weekday()) + timedelta(weeks=week_offset)
+    week_end = week_start + timedelta(days=6)
+
+    sessions = SessionRepository.get_by_date_range(user_id, week_start, week_end)
+
+    zone_keys = [
+        "zone_one_milli",
+        "zone_two_milli",
+        "zone_three_milli",
+        "zone_four_milli",
+        "zone_five_milli",
+    ]
+    totals = {k: 0 for k in zone_keys}
+    session_count = 0
+
+    for s in sessions:
+        wo = WhoopWorkoutCacheRepository.get_by_session_id(s["id"])
+        if not wo:
+            continue
+        zones = wo.get("zone_durations")
+        if not zones and wo.get("raw_data"):
+            raw = wo["raw_data"]
+            if isinstance(raw, dict):
+                score = raw.get("score") or {}
+                zones = score.get("zone_duration")
+        if zones:
+            session_count += 1
+            for k in zone_keys:
+                totals[k] += zones.get(k, 0)
+
+    return {
+        "totals": totals,
+        "session_count": session_count,
+        "week_start": week_start.isoformat(),
+        "week_end": week_end.isoformat(),
+    }
+
+
 @router.post("/whoop/auto-create-sessions")
 def set_auto_create(
     body: AutoCreateRequest,

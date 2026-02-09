@@ -659,6 +659,10 @@ export const whoopApi = {
     api.get<WhoopSessionContext>(`/integrations/whoop/session/${sessionId}/context`),
   setAutoCreate: (enabled: boolean) =>
     api.post('/integrations/whoop/auto-create-sessions', { enabled }),
+  getZonesBatch: (sessionIds: number[]) =>
+    api.get<{ zones: Record<string, { zone_durations: Record<string, number> | null; strain: number | null; calories: number | null; score_state: string | null } | null> }>('/integrations/whoop/zones/batch', { params: { session_ids: sessionIds.join(',') } }),
+  getZonesWeekly: (weekOffset = 0, tz?: string) =>
+    api.get<{ totals: Record<string, number>; session_count: number; week_start: string; week_end: string }>('/integrations/whoop/zones/weekly', { params: { week_offset: weekOffset, tz } }),
 };
 
 // Enhanced Grapple API

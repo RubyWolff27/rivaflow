@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
 import { getLocalDateString } from '../utils/date';
 import { useSearchParams, Link } from 'react-router-dom';
-import { analyticsApi } from '../api/client';
-import { TrendingUp, Users, Activity, Target, Lightbulb, Book, Calendar, Swords, Brain, ChevronDown, ChevronUp } from 'lucide-react';
+import { analyticsApi, sessionsApi, whoopApi } from '../api/client';
+import { TrendingUp, Users, Activity, Target, Lightbulb, Book, Calendar, Swords, Brain, ChevronDown, ChevronUp, Heart } from 'lucide-react';
 import { Card, Chip, MetricTile, MetricTileSkeleton, CardSkeleton, EmptyState } from '../components/ui';
 import { ActivityTypeFilter } from '../components/ActivityTypeFilter';
 import { useFeatureAccess } from '../hooks/useTier';
@@ -11,6 +11,7 @@ import ReadinessTab from '../components/analytics/ReadinessTab';
 import TechniqueHeatmap from '../components/analytics/TechniqueHeatmap';
 import TrainingCalendar from '../components/analytics/TrainingCalendar';
 import InsightsTab from '../components/analytics/InsightsTab';
+import MiniZoneBar from '../components/MiniZoneBar';
 
 export default function Reports() {
   const { hasAccess: hasAdvancedAnalytics } = useFeatureAccess('advanced_analytics');
@@ -35,6 +36,7 @@ export default function Reports() {
   const [gymData, setGymData] = useState<any>(null);
   const [classTypeData, setClassTypeData] = useState<any>(null);
   const [beltDistData, setBeltDistData] = useState<any>(null);
+  const [zoneTrendsData, setZoneTrendsData] = useState<Array<{ session_id: number; date: string; zones: Record<string, number> }> | null>(null);
   const [expandedCards, setExpandedCards] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
@@ -87,6 +89,28 @@ export default function Reports() {
               setGymData(gymRes.data ?? null);
               setClassTypeData(ctRes.data ?? null);
             }
+            // Fetch zone trends for sessions in this range
+            try {
+              const sessRes = await sessionsApi.list(50);
+              const rangeSessions = (sessRes.data || []).filter((s: any) =>
+                s.session_date >= params.start_date && s.session_date <= params.end_date
+              );
+              const ids = rangeSessions.map((s: any) => s.id);
+              if (ids.length > 0) {
+                const zRes = await whoopApi.getZonesBatch(ids);
+                if (!cancelled && zRes.data?.zones) {
+                  const trends: Array<{ session_id: number; date: string; zones: Record<string, number> }> = [];
+                  for (const s of rangeSessions) {
+                    const zd = zRes.data.zones[String(s.id)];
+                    if (zd?.zone_durations) {
+                      trends.push({ session_id: s.id, date: s.session_date, zones: zd.zone_durations });
+                    }
+                  }
+                  trends.sort((a, b) => a.date.localeCompare(b.date));
+                  setZoneTrendsData(trends.length > 0 ? trends : null);
+                }
+              }
+            } catch { /* WHOOP not connected */ }
           } else if (activeTab === 'partners') {
             const [partnersRes, beltRes] = await Promise.all([
               analyticsApi.partnerStats(params),
@@ -618,6 +642,74 @@ export default function Reports() {
                             </p>
                             <p className="text-xs" style={{ color: 'var(--muted)' }}>{ct.total_subs_for}:{ct.total_subs_against} subs</p>
                           </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </Card>
+              )}
+
+              {/* HR Zone Trends */}
+              {zoneTrendsData && zoneTrendsData.length > 0 && (
+                <Card>
+                  <button className="w-full flex items-center justify-between" onClick={() => toggleCard('zonesTrend')}>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <Heart className="w-5 h-5" style={{ color: '#EF4444' }} />
+                        <h3 className="text-lg font-semibold" style={{ color: 'var(--text)' }}>HR Zone Trends</h3>
+                      </div>
+                      <p className="text-xs mt-1" style={{ color: 'var(--muted)' }}>{zoneTrendsData.length} sessions with WHOOP data</p>
+                    </div>
+                    {expandedCards.zonesTrend ? <ChevronUp className="w-5 h-5" style={{ color: 'var(--muted)' }} /> : <ChevronDown className="w-5 h-5" style={{ color: 'var(--muted)' }} />}
+                  </button>
+                  {expandedCards.zonesTrend && (
+                    <div className="mt-4 space-y-3">
+                      {/* Aggregate summary */}
+                      {(() => {
+                        const zoneKeys = ['zone_one_milli', 'zone_two_milli', 'zone_three_milli', 'zone_four_milli', 'zone_five_milli'];
+                        const zoneLabels = ['Recovery', 'Light', 'Moderate', 'Hard', 'Max'];
+                        const zoneColors = ['#93C5FD', '#34D399', '#FBBF24', '#F97316', '#EF4444'];
+                        const agg: Record<string, number> = {};
+                        zoneKeys.forEach(k => { agg[k] = 0; });
+                        zoneTrendsData.forEach(s => {
+                          zoneKeys.forEach(k => { agg[k] += s.zones[k] || 0; });
+                        });
+                        const totalMs = zoneKeys.reduce((sum, k) => sum + agg[k], 0);
+                        if (totalMs <= 0) return null;
+                        return (
+                          <div className="p-4 rounded-lg" style={{ backgroundColor: 'var(--surfaceElev)' }}>
+                            <p className="text-sm font-medium mb-3" style={{ color: 'var(--text)' }}>Period Totals</p>
+                            <MiniZoneBar zones={agg} height="h-4" />
+                            <div className="grid grid-cols-5 gap-2 mt-3">
+                              {zoneKeys.map((k, i) => {
+                                const mins = Math.round(agg[k] / 60000);
+                                const pct = ((agg[k] / totalMs) * 100).toFixed(0);
+                                return (
+                                  <div key={k} className="text-center">
+                                    <div className="w-3 h-3 rounded-sm mx-auto mb-1" style={{ backgroundColor: zoneColors[i] }} />
+                                    <p className="text-xs font-medium" style={{ color: 'var(--text)' }}>{mins}m</p>
+                                    <p className="text-xs" style={{ color: 'var(--muted)' }}>{pct}%</p>
+                                    <p className="text-xs" style={{ color: 'var(--muted)' }}>{zoneLabels[i]}</p>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        );
+                      })()}
+                      {/* Per-session bars */}
+                      <p className="text-sm font-medium" style={{ color: 'var(--text)' }}>Per Session</p>
+                      {zoneTrendsData.map(s => (
+                        <div key={s.session_id}>
+                          <div className="flex items-center justify-between mb-1">
+                            <span className="text-xs" style={{ color: 'var(--muted)' }}>
+                              {new Date(s.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                            </span>
+                            <span className="text-xs" style={{ color: 'var(--muted)' }}>
+                              {Math.round(Object.values(s.zones).reduce((a, b) => a + b, 0) / 60000)} min
+                            </span>
+                          </div>
+                          <MiniZoneBar zones={s.zones} height="h-2.5" />
                         </div>
                       ))}
                     </div>

@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { sessionsApi } from '../../api/client';
+import { sessionsApi, whoopApi } from '../../api/client';
 import { Calendar, Clock, TrendingUp, Award } from 'lucide-react';
 import { Card } from '../ui';
+import MiniZoneBar from '../MiniZoneBar';
 
 interface Session {
   id: number;
@@ -27,6 +28,7 @@ const ACTIVITY_COLORS: Record<string, string> = {
 export function LastSession() {
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
+  const [zones, setZones] = useState<Record<string, number> | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -34,7 +36,14 @@ export function LastSession() {
       try {
         const response = await sessionsApi.list(1);
         if (!cancelled && response.data && response.data.length > 0) {
-          setSession(response.data[0]);
+          const s = response.data[0];
+          setSession(s);
+          try {
+            const zRes = await whoopApi.getZonesBatch([s.id]);
+            if (!cancelled && zRes.data?.zones?.[String(s.id)]?.zone_durations) {
+              setZones(zRes.data.zones[String(s.id)]!.zone_durations!);
+            }
+          } catch { /* WHOOP not connected */ }
         }
       } catch (error) {
         if (!cancelled) console.error('Failed to load last session:', error);
@@ -142,6 +151,9 @@ export function LastSession() {
               </div>
             )}
           </div>
+
+          {/* HR Zone Bar */}
+          {zones && <MiniZoneBar zones={zones} height="h-2.5" />}
 
           {/* Notes Preview */}
           {session.notes && (

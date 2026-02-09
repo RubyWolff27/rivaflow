@@ -1,9 +1,12 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { sessionsApi } from '../api/client';
+import { sessionsApi, whoopApi } from '../api/client';
 import type { Session } from '../types';
 import { Calendar, MapPin, Clock, Activity, Target, Filter, Search } from 'lucide-react';
 import { CardSkeleton } from '../components/ui';
+import MiniZoneBar from '../components/MiniZoneBar';
+
+type ZoneData = { zone_durations: Record<string, number> | null; strain: number | null; calories: number | null; score_state: string | null };
 
 export default function Sessions() {
   const [sessions, setSessions] = useState<Session[]>([]);
@@ -12,6 +15,7 @@ export default function Sessions() {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterType, setFilterType] = useState<string>('all');
   const [sortBy, setSortBy] = useState<'date' | 'duration' | 'intensity'>('date');
+  const [zoneMap, setZoneMap] = useState<Record<string, ZoneData | null>>({});
 
   useEffect(() => {
     const controller = new AbortController();
@@ -19,7 +23,20 @@ export default function Sessions() {
       setLoading(true);
       try {
         const response = await sessionsApi.list(1000);
-        if (!controller.signal.aborted) setSessions(response.data ?? []);
+        if (!controller.signal.aborted) {
+          const loaded = response.data ?? [];
+          setSessions(loaded);
+          // Fetch zone data for first 50 sessions
+          const ids = loaded.slice(0, 50).map(s => s.id);
+          if (ids.length > 0) {
+            try {
+              const zRes = await whoopApi.getZonesBatch(ids);
+              if (!controller.signal.aborted && zRes.data?.zones) {
+                setZoneMap(zRes.data.zones);
+              }
+            } catch { /* WHOOP not connected */ }
+          }
+        }
       } catch (error) {
         if (!controller.signal.aborted) console.error('Error loading sessions:', error);
       } finally {
@@ -259,6 +276,13 @@ export default function Sessions() {
                   {' '}submissions
                 </span>
               </div>
+
+              {/* HR Zone Mini Bar */}
+              {zoneMap[String(session.id)]?.zone_durations && (
+                <div className="pt-2 border-t border-[var(--border)]">
+                  <MiniZoneBar zones={zoneMap[String(session.id)]!.zone_durations!} />
+                </div>
+              )}
 
               {/* Notes Preview */}
               {session.notes && (

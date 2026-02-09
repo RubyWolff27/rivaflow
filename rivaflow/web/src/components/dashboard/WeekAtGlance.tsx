@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
-import { dashboardApi } from '../../api/client';
+import { dashboardApi, whoopApi } from '../../api/client';
 import { TrendingUp, TrendingDown, Minus } from 'lucide-react';
 import { Card } from '../ui';
+import MiniZoneBar from '../MiniZoneBar';
 
 interface WeekStats {
   total_sessions: number;
@@ -32,6 +33,8 @@ export function WeekAtGlance() {
   const [currentWeek, setCurrentWeek] = useState<WeekStats | null>(null);
   const [previousWeek, setPreviousWeek] = useState<WeekStats | null>(null);
   const [loading, setLoading] = useState(true);
+  const [weeklyZones, setWeeklyZones] = useState<Record<string, number> | null>(null);
+  const [weeklyZoneCount, setWeeklyZoneCount] = useState(0);
 
   useEffect(() => {
     let cancelled = false;
@@ -45,6 +48,15 @@ export function WeekAtGlance() {
           setCurrentWeek(current.data.stats);
           setPreviousWeek(previous.data.stats);
         }
+        // Fetch weekly zone data
+        try {
+          const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+          const zRes = await whoopApi.getZonesWeekly(0, tz);
+          if (!cancelled && zRes.data?.session_count > 0) {
+            setWeeklyZones(zRes.data.totals);
+            setWeeklyZoneCount(zRes.data.session_count);
+          }
+        } catch { /* WHOOP not connected */ }
       } catch (error) {
         if (!cancelled) console.error('Failed to load week summary:', error);
       } finally {
@@ -182,6 +194,32 @@ export function WeekAtGlance() {
           </div>
         </div>
       )}
+
+      {/* Weekly HR Zones */}
+      {weeklyZones && weeklyZoneCount > 0 && (() => {
+        const totalMs = Object.values(weeklyZones).reduce((a, b) => a + b, 0);
+        if (totalMs <= 0) return null;
+        const highIntensityMs = (weeklyZones.zone_four_milli || 0) + (weeklyZones.zone_five_milli || 0);
+        const highIntensityMins = Math.round(highIntensityMs / 60000);
+        const totalMins = Math.round(totalMs / 60000);
+        return (
+          <div className="mt-6 pt-4" style={{ borderTop: '1px solid var(--border)' }}>
+            <div className="flex items-center justify-between mb-2">
+              <p className="text-sm font-medium" style={{ color: 'var(--text)' }}>
+                HR Zones
+              </p>
+              <p className="text-xs" style={{ color: 'var(--muted)' }}>
+                {weeklyZoneCount} sessions
+              </p>
+            </div>
+            <MiniZoneBar zones={weeklyZones} height="h-3" />
+            <div className="flex justify-between mt-1.5 text-xs" style={{ color: 'var(--muted)' }}>
+              <span>{totalMins} min total</span>
+              <span>{highIntensityMins} min high intensity</span>
+            </div>
+          </div>
+        );
+      })()}
     </Card>
   );
 }
