@@ -150,3 +150,51 @@ class TestWhoopRules:
         explanation = "High stress ({stress}/5)"
         result = format_explanation(explanation, readiness, session_ctx)
         assert "4" in result
+
+    # --- whoop_hrv_sustained_decline ---
+
+    def test_whoop_hrv_sustained_decline_fires(self):
+        rule = self._get_rule("whoop_hrv_sustained_decline")
+        readiness = {
+            "sleep": 3,
+            "stress": 3,
+            "soreness": 2,
+            "energy": 3,
+        }
+        session_ctx = {"hrv_slope_5d": -0.8}
+        assert rule.condition(readiness, session_ctx) is True
+
+    def test_whoop_hrv_sustained_decline_skipped(self):
+        rule = self._get_rule("whoop_hrv_sustained_decline")
+        readiness = {
+            "sleep": 3,
+            "stress": 3,
+            "soreness": 2,
+            "energy": 3,
+        }
+        session_ctx = {"hrv_slope_5d": 0.2}  # Improving, not declining
+        assert rule.condition(readiness, session_ctx) is False
+
+    def test_whoop_hrv_sustained_decline_no_data(self):
+        rule = self._get_rule("whoop_hrv_sustained_decline")
+        readiness = {
+            "sleep": 3,
+            "stress": 3,
+            "soreness": 2,
+            "energy": 3,
+        }
+        session_ctx = {}  # No hrv_slope_5d
+        assert rule.condition(readiness, session_ctx) is False
+
+    def test_format_explanation_hrv_slope(self):
+        readiness = {
+            "sleep": 3,
+            "stress": 3,
+            "soreness": 2,
+            "energy": 3,
+            "composite_score": 14,
+        }
+        session_ctx = {"hrv_slope_5d": -0.75}
+        explanation = "HRV slope over last 5+ days is {hrv_slope_5d}"
+        result = format_explanation(explanation, readiness, session_ctx)
+        assert "-0.75" in result

@@ -6,14 +6,18 @@ interface Factor {
 interface RiskGaugeProps {
   riskScore: number;
   level: string;
-  factors: {
-    acwr_spike: Factor;
-    readiness_decline: Factor;
-    hotspot_mentions: Factor;
-    intensity_creep: Factor;
-  };
+  factors: Record<string, Factor>;
   recommendations: string[];
 }
+
+const labelMap: Record<string, string> = {
+  acwr_spike: 'ACWR Spike',
+  readiness_decline: 'Readiness Decline',
+  hotspot_mentions: 'Injury Hotspots',
+  intensity_creep: 'Intensity Creep',
+  hrv_decline: 'HRV Decline',
+  recovery_decline: 'Low Recovery',
+};
 
 export default function RiskGauge({ riskScore, level, factors, recommendations }: RiskGaugeProps) {
   const levelColors: Record<string, string> = {
@@ -39,12 +43,11 @@ export default function RiskGauge({ riskScore, level, factors, recommendations }
   const arcPath = `M ${cx - radius} ${cy} A ${radius} ${radius} 0 ${largeArc} 1 ${arcX} ${arcY}`;
   const fullArcPath = `M ${cx - radius} ${cy} A ${radius} ${radius} 0 1 1 ${cx + radius} ${cy}`;
 
-  const factorList = [
-    { key: 'acwr_spike', label: 'ACWR Spike', ...factors.acwr_spike },
-    { key: 'readiness_decline', label: 'Readiness Decline', ...factors.readiness_decline },
-    { key: 'hotspot_mentions', label: 'Injury Hotspots', ...factors.hotspot_mentions },
-    { key: 'intensity_creep', label: 'Intensity Creep', ...factors.intensity_creep },
-  ];
+  const factorList = Object.entries(factors).map(([key, f]) => ({
+    key,
+    label: labelMap[key] || key,
+    ...f,
+  }));
 
   return (
     <div>
@@ -83,7 +86,7 @@ export default function RiskGauge({ riskScore, level, factors, recommendations }
           <div key={f.key}>
             <div className="flex items-center justify-between mb-1">
               <span className="text-xs" style={{ color: 'var(--text)' }}>{f.label}</span>
-              <span className="text-xs font-medium" style={{ color: f.score >= 15 ? '#EF4444' : 'var(--muted)' }}>
+              <span className="text-xs font-medium" style={{ color: f.score >= f.max * 0.6 ? '#EF4444' : 'var(--muted)' }}>
                 {f.score}/{f.max}
               </span>
             </div>
@@ -92,7 +95,7 @@ export default function RiskGauge({ riskScore, level, factors, recommendations }
                 className="h-1.5 rounded-full"
                 style={{
                   width: `${(f.score / f.max) * 100}%`,
-                  backgroundColor: f.score >= 15 ? '#EF4444' : f.score >= 5 ? '#EAB308' : '#22C55E',
+                  backgroundColor: f.score >= f.max * 0.6 ? '#EF4444' : f.score >= f.max * 0.2 ? '#EAB308' : '#22C55E',
                 }}
               />
             </div>

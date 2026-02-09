@@ -3,7 +3,10 @@
 import logging
 from datetime import date, datetime, timedelta
 
-from rivaflow.core.services.insights_analytics import InsightsAnalyticsService
+from rivaflow.core.services.insights_analytics import (
+    InsightsAnalyticsService,
+    _linear_slope,
+)
 from rivaflow.core.services.privacy_service import PrivacyService
 from rivaflow.db.repositories.readiness_repo import ReadinessRepository
 from rivaflow.db.repositories.session_repo import SessionRepository
@@ -191,6 +194,15 @@ Now respond to the user's questions using this context. Reference their specific
             except Exception:
                 logger.debug("Deep analytics context unavailable", exc_info=True)
 
+            # ── WHOOP recovery context ──
+            try:
+                whoop = self._build_whoop_context()
+                if whoop:
+                    context_parts.append("")
+                    context_parts.append(whoop)
+            except Exception:
+                logger.debug("WHOOP context unavailable", exc_info=True)
+
         else:
             context_parts.append("No training sessions logged yet.")
 
@@ -269,6 +281,95 @@ Now respond to the user's questions using this context. Reference their specific
                 )
         except Exception:
             pass
+
+        if len(parts) <= 1:
+            return ""
+
+        return "\n".join(parts)
+
+    def _build_whoop_context(self) -> str:
+        """Build WHOOP recovery context if user has an active connection."""
+        from rivaflow.db.repositories.whoop_connection_repo import (
+            WhoopConnectionRepository,
+        )
+        from rivaflow.db.repositories.whoop_recovery_cache_repo import (
+            WhoopRecoveryCacheRepository,
+        )
+
+        conn = WhoopConnectionRepository.get_by_user_id(self.user_id)
+        if not conn or not conn.get("is_active"):
+            return ""
+
+        end_dt = date.today().isoformat() + "T23:59:59"
+        start_dt = (date.today() - timedelta(days=7)).isoformat()
+        records = WhoopRecoveryCacheRepository.get_by_date_range(
+            self.user_id, start_dt, end_dt
+        )
+        if not records:
+            return ""
+
+        latest = records[-1]
+        parts = ["WHOOP RECOVERY DATA:"]
+
+        # Latest snapshot
+        rec_score = latest.get("recovery_score")
+        hrv = latest.get("hrv_ms")
+        rhr = latest.get("resting_hr")
+        spo2 = latest.get("spo2")
+        snap = "Latest Recovery:"
+        if rec_score is not None:
+            snap += f" {rec_score:.0f}%"
+        if hrv is not None:
+            snap += f" | HRV: {hrv:.0f}ms"
+        if rhr is not None:
+            snap += f" | RHR: {rhr:.0f}bpm"
+        if spo2 is not None:
+            snap += f" | SpO2: {spo2:.0f}%"
+        parts.append(snap)
+
+        # Sleep info
+        sleep_perf = latest.get("sleep_performance")
+        sleep_dur_ms = latest.get("sleep_duration_ms")
+        rem_ms = latest.get("rem_sleep_ms")
+        sws_ms = latest.get("slow_wave_ms")
+        if sleep_perf is not None or sleep_dur_ms is not None:
+            sleep_line = "Sleep:"
+            if sleep_perf is not None:
+                sleep_line += f" {sleep_perf:.0f}% performance"
+            if sleep_dur_ms is not None:
+                hrs = sleep_dur_ms / 3_600_000
+                sleep_line += f" ({hrs:.1f}h"
+                if rem_ms is not None and sleep_dur_ms > 0:
+                    sleep_line += f", {rem_ms / sleep_dur_ms * 100:.0f}% REM"
+                if sws_ms is not None and sleep_dur_ms > 0:
+                    sleep_line += f", {sws_ms / sleep_dur_ms * 100:.0f}% SWS"
+                sleep_line += ")"
+            parts.append(sleep_line)
+
+        # 7-day HRV trend
+        hrv_values = [r["hrv_ms"] for r in records if r.get("hrv_ms") is not None]
+        if len(hrv_values) >= 3:
+            slope = _linear_slope(hrv_values)
+            direction = "Declining" if slope < 0 else "Improving"
+            parts.append(f"7-Day HRV Trend: {direction} ({slope:+.1f} ms/day)")
+
+        # 7-day avg recovery & sleep debt
+        rec_values = [
+            r["recovery_score"] for r in records if r.get("recovery_score") is not None
+        ]
+        avg_rec = sum(rec_values) / len(rec_values) if rec_values else None
+        sleep_debt_ms = latest.get("sleep_debt_ms")
+        extras = ""
+        if avg_rec is not None:
+            extras += f"7-Day Avg Recovery: {avg_rec:.0f}%"
+        if sleep_debt_ms is not None:
+            debt_min = sleep_debt_ms / 60_000
+            if extras:
+                extras += f" | Sleep Debt: {debt_min:.0f} min"
+            else:
+                extras += f"Sleep Debt: {debt_min:.0f} min"
+        if extras:
+            parts.append(extras)
 
         if len(parts) <= 1:
             return ""

@@ -45,7 +45,8 @@ def _lookup_user_by_whoop_id(whoop_user_id: str) -> int | None:
         cursor = conn.cursor()
         cursor.execute(
             convert_query(
-                "SELECT user_id FROM whoop_connections " "WHERE whoop_user_id = ? AND is_active = 1"
+                "SELECT user_id FROM whoop_connections "
+                "WHERE whoop_user_id = ? AND is_active = 1"
             ),
             (whoop_user_id,),
         )
@@ -110,7 +111,9 @@ async def whoop_webhook(request: Request):
             service.sync_recovery(user_id, days_back=1)
         elif event_type == "body_measurement.updated":
             # Future: sync body measurement
-            logger.info(f"body_measurement.updated for user {user_id} (not yet handled)")
+            logger.info(
+                f"body_measurement.updated for user {user_id} (not yet handled)"
+            )
         else:
             logger.info(f"Unhandled WHOOP event type: {event_type}")
     except Exception:

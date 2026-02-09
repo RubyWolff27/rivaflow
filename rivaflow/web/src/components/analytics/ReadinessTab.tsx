@@ -1,8 +1,13 @@
 import { useState, useEffect } from 'react';
-import { Activity, Heart, Waves } from 'lucide-react';
+import { Activity, Heart, Waves, FlaskConical } from 'lucide-react';
 import { analyticsApi } from '../../api/client';
 import { Card, MetricTile, MetricTileSkeleton, CardSkeleton, EmptyState } from '../ui';
 import ReadinessTrendChart from './ReadinessTrendChart';
+import RecoveryPerformanceChart from './RecoveryPerformanceChart';
+import StrainEfficiencyChart from './StrainEfficiencyChart';
+import HRVPredictorChart from './HRVPredictorChart';
+import SleepImpactChart from './SleepImpactChart';
+import CardiovascularDriftChart from './CardiovascularDriftChart';
 
 interface ReadinessTabProps {
   dateRange: { start: string; end: string };
@@ -14,6 +19,7 @@ export default function ReadinessTab({ dateRange, selectedTypes }: ReadinessTabP
   const [error, setError] = useState<string | null>(null);
   const [data, setData] = useState<any>(null);
   const [whoopData, setWhoopData] = useState<any>(null);
+  const [perfScience, setPerfScience] = useState<{ correlation: any; efficiency: any; cardiovascular: any } | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -35,6 +41,21 @@ export default function ReadinessTab({ dateRange, selectedTypes }: ReadinessTabP
         if (!cancelled) {
           if (readinessRes.status === 'fulfilled') setData(readinessRes.value.data ?? null);
           if (whoopRes.status === 'fulfilled') setWhoopData(whoopRes.value.data ?? null);
+
+          // Load performance science data (non-blocking)
+          Promise.allSettled([
+            analyticsApi.whoopPerformanceCorrelation(),
+            analyticsApi.whoopEfficiency(),
+            analyticsApi.whoopCardiovascular(),
+          ]).then(([corrRes, effRes, cardioRes]) => {
+            if (!cancelled) {
+              setPerfScience({
+                correlation: corrRes.status === 'fulfilled' ? corrRes.value.data : null,
+                efficiency: effRes.status === 'fulfilled' ? effRes.value.data : null,
+                cardiovascular: cardioRes.status === 'fulfilled' ? cardioRes.value.data : null,
+              });
+            }
+          });
         }
       } catch (err) {
         if (!cancelled) {
@@ -233,6 +254,100 @@ export default function ReadinessTab({ dateRange, selectedTypes }: ReadinessTabP
                 <p className="text-xs mt-1" style={{ color: 'var(--muted)' }}>Sleep stage breakdown over time</p>
               </div>
               <SleepStackedChart data={whoopData.sleep_breakdown} />
+            </Card>
+          )}
+        </>
+      )}
+
+      {/* Performance Science Section */}
+      {perfScience && (perfScience.correlation || perfScience.efficiency || perfScience.cardiovascular) && (
+        <>
+          <div className="pt-2">
+            <div className="flex items-center gap-2 mb-1">
+              <FlaskConical className="w-5 h-5" style={{ color: 'var(--accent)' }} />
+              <h3 className="text-lg font-semibold" style={{ color: 'var(--text)' }}>Performance Science</h3>
+            </div>
+            <p className="text-xs" style={{ color: 'var(--muted)' }}>WHOOP biometrics correlated with your BJJ performance</p>
+          </div>
+
+          {/* Recovery × Performance */}
+          {perfScience.correlation?.recovery_correlation?.scatter?.length > 0 && (
+            <Card>
+              <h3 className="text-base font-semibold mb-1" style={{ color: 'var(--text)' }}>Recovery × Performance</h3>
+              <p className="text-xs mb-3" style={{ color: 'var(--muted)' }}>How does your WHOOP recovery score predict rolling performance?</p>
+              <RecoveryPerformanceChart
+                scatter={perfScience.correlation.recovery_correlation.scatter}
+                zones={perfScience.correlation.recovery_correlation.zones}
+                rValue={perfScience.correlation.recovery_correlation.r_value}
+              />
+              <p className="text-xs mt-2" style={{ color: 'var(--muted)' }}>{perfScience.correlation.recovery_correlation.insight}</p>
+            </Card>
+          )}
+
+          {/* HRV Predictor */}
+          {perfScience.correlation?.hrv_predictor?.scatter?.length > 0 && (
+            <Card>
+              <h3 className="text-base font-semibold mb-1" style={{ color: 'var(--text)' }}>HRV Performance Predictor</h3>
+              <p className="text-xs mb-3" style={{ color: 'var(--muted)' }}>Your personal HRV threshold for optimal training quality</p>
+              <HRVPredictorChart
+                scatter={perfScience.correlation.hrv_predictor.scatter}
+                rValue={perfScience.correlation.hrv_predictor.r_value}
+                hrvThreshold={perfScience.correlation.hrv_predictor.hrv_threshold}
+                qualityAbove={perfScience.correlation.hrv_predictor.quality_above}
+                qualityBelow={perfScience.correlation.hrv_predictor.quality_below}
+              />
+              <p className="text-xs mt-2" style={{ color: 'var(--muted)' }}>{perfScience.correlation.hrv_predictor.insight}</p>
+            </Card>
+          )}
+
+          {/* Strain Efficiency */}
+          {perfScience.efficiency?.strain_efficiency?.overall_efficiency > 0 && (
+            <Card>
+              <h3 className="text-base font-semibold mb-1" style={{ color: 'var(--text)' }}>Strain Efficiency</h3>
+              <p className="text-xs mb-3" style={{ color: 'var(--muted)' }}>Submissions per unit of WHOOP strain</p>
+              <StrainEfficiencyChart
+                overallEfficiency={perfScience.efficiency.strain_efficiency.overall_efficiency}
+                byClassType={perfScience.efficiency.strain_efficiency.by_class_type}
+                byGym={perfScience.efficiency.strain_efficiency.by_gym}
+                topSessions={perfScience.efficiency.strain_efficiency.top_sessions}
+              />
+              <p className="text-xs mt-2" style={{ color: 'var(--muted)' }}>{perfScience.efficiency.strain_efficiency.insight}</p>
+            </Card>
+          )}
+
+          {/* Sleep Impact */}
+          {perfScience.efficiency?.sleep_analysis && (
+            perfScience.efficiency.sleep_analysis.rem_r !== 0 ||
+            perfScience.efficiency.sleep_analysis.sws_r !== 0 ||
+            perfScience.efficiency.sleep_analysis.total_sleep_r !== 0
+          ) && (
+            <Card>
+              <h3 className="text-base font-semibold mb-1" style={{ color: 'var(--text)' }}>Sleep Impact</h3>
+              <p className="text-xs mb-3" style={{ color: 'var(--muted)' }}>Which sleep stages matter most for your performance?</p>
+              <SleepImpactChart
+                remR={perfScience.efficiency.sleep_analysis.rem_r}
+                swsR={perfScience.efficiency.sleep_analysis.sws_r}
+                totalSleepR={perfScience.efficiency.sleep_analysis.total_sleep_r}
+                optimalRemPct={perfScience.efficiency.sleep_analysis.optimal_rem_pct}
+                optimalSwsPct={perfScience.efficiency.sleep_analysis.optimal_sws_pct}
+              />
+              <p className="text-xs mt-2" style={{ color: 'var(--muted)' }}>{perfScience.efficiency.sleep_analysis.insight}</p>
+            </Card>
+          )}
+
+          {/* Cardiovascular Drift */}
+          {perfScience.cardiovascular?.weekly_rhr?.length >= 2 && (
+            <Card>
+              <h3 className="text-base font-semibold mb-1" style={{ color: 'var(--text)' }}>Cardiovascular Drift</h3>
+              <p className="text-xs mb-3" style={{ color: 'var(--muted)' }}>Resting heart rate trend — a key fitness and fatigue indicator</p>
+              <CardiovascularDriftChart
+                weeklyRhr={perfScience.cardiovascular.weekly_rhr}
+                slope={perfScience.cardiovascular.slope}
+                trend={perfScience.cardiovascular.trend}
+                currentRhr={perfScience.cardiovascular.current_rhr}
+                baselineRhr={perfScience.cardiovascular.baseline_rhr}
+              />
+              <p className="text-xs mt-2" style={{ color: 'var(--muted)' }}>{perfScience.cardiovascular.insight}</p>
             </Card>
           )}
         </>

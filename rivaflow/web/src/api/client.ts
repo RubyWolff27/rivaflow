@@ -1,5 +1,5 @@
 import axios from 'axios';
-import type { Session, Readiness, Report, Suggestion, TrainedMovement, Video, Profile, Grading, Movement, Friend, CustomVideo, WeeklyGoalProgress, GoalsSummary, TrainingStreaks, GoalCompletionStreak, DailyCheckin, StreakStatus, Streak, Milestone, MilestoneProgress, CompEvent, WeightLog, WeightAverage, Group, GroupMember, UserBasic, TrainingGoal, WhoopConnectionStatus, WhoopWorkoutMatch, WhoopRecovery, WhoopScopeCheck, WhoopReadinessAutoFill } from '../types';
+import type { Session, Readiness, Report, Suggestion, TrainedMovement, Video, Profile, Grading, Movement, Friend, CustomVideo, WeeklyGoalProgress, GoalsSummary, TrainingStreaks, GoalCompletionStreak, DailyCheckin, StreakStatus, Streak, Milestone, MilestoneProgress, CompEvent, WeightLog, WeightAverage, Group, GroupMember, UserBasic, TrainingGoal, WhoopConnectionStatus, WhoopWorkoutMatch, WhoopRecovery, WhoopScopeCheck, WhoopReadinessAutoFill, WhoopSessionContext } from '../types';
 
 // Paginated response type
 interface PaginatedResponse<T> {
@@ -278,6 +278,14 @@ export const analyticsApi = {
     api.get('/analytics/insights/overtraining-risk'),
   recoveryInsights: (params?: { days?: number }) =>
     api.get('/analytics/insights/recovery', { params }),
+
+  // Phase 3: WHOOP Performance Science
+  whoopPerformanceCorrelation: (params?: { days?: number }) =>
+    api.get('/analytics/whoop/performance-correlation', { params }),
+  whoopEfficiency: (params?: { days?: number }) =>
+    api.get('/analytics/whoop/efficiency', { params }),
+  whoopCardiovascular: (params?: { days?: number }) =>
+    api.get('/analytics/whoop/cardiovascular', { params }),
 };
 
 const userTz = Intl.DateTimeFormat().resolvedOptions().timeZone;
@@ -647,6 +655,8 @@ export const whoopApi = {
     api.get<WhoopScopeCheck>('/integrations/whoop/scope-check'),
   getReadinessAutoFill: (date: string) =>
     api.get<{ auto_fill: WhoopReadinessAutoFill | null }>('/integrations/whoop/readiness/auto-fill', { params: { date } }),
+  sessionContext: (sessionId: number) =>
+    api.get<WhoopSessionContext>(`/integrations/whoop/session/${sessionId}/context`),
 };
 
 // Enhanced Grapple API

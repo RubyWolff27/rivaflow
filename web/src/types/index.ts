@@ -616,6 +616,22 @@ export interface WhoopReadinessAutoFill {
   data_source: string;
 }
 
+// WHOOP Session Context
+export interface WhoopSessionContext {
+  recovery: {
+    score: number | null;
+    hrv_ms: number | null;
+    resting_hr: number | null;
+    sleep_performance: number | null;
+    sleep_duration_hours: number | null;
+    rem_pct: number | null;
+    sws_pct: number | null;
+  } | null;
+  workout: {
+    zone_durations: Record<string, number>;
+  } | null;
+}
+
 // Extracted Session
 export interface ExtractedSession {
   session_date?: string;

@@ -617,50 +617,50 @@ class InsightsAnalyticsService:
         self,
         user_id: int,
     ) -> dict[str, Any]:
-        """4 factors x 25pts = 0-100 risk score."""
+        """6 factors = 0-100 risk score (20+20+15+15+15+15)."""
         end = date.today()
         start_14d = end - timedelta(days=14)
         start_7d = end - timedelta(days=7)
         start_90d = end - timedelta(days=90)
 
-        # Factor 1: ACWR spike (25 pts)
+        # Factor 1: ACWR spike (20 pts)
         load_data = self.get_training_load_management(user_id, days=90)
         acwr = load_data["current_acwr"]
         if acwr >= 1.5:
-            acwr_risk = 25
+            acwr_risk = 20
         elif acwr >= 1.3:
-            acwr_risk = 15
+            acwr_risk = 12
         elif acwr >= 1.1:
-            acwr_risk = 5
+            acwr_risk = 4
         else:
             acwr_risk = 0
 
-        # Factor 2: Readiness decline (14-day slope, 25 pts)
+        # Factor 2: Readiness decline (14-day slope, 20 pts)
         readiness = self.readiness_repo.get_by_date_range(user_id, start_14d, end)
         readiness_scores = [r["composite_score"] for r in readiness]
         readiness_slope = _linear_slope(readiness_scores)
         if readiness_slope < -0.5:
-            readiness_risk = 25
+            readiness_risk = 20
         elif readiness_slope < -0.2:
-            readiness_risk = 15
+            readiness_risk = 12
         elif readiness_slope < 0:
-            readiness_risk = 5
+            readiness_risk = 4
         else:
             readiness_risk = 0
 
-        # Factor 3: Hotspot mentions (7d, 25 pts)
+        # Factor 3: Hotspot mentions (7d, 15 pts)
         readiness_7d = self.readiness_repo.get_by_date_range(user_id, start_7d, end)
         hotspot_count = sum(1 for r in readiness_7d if r.get("hotspot_note"))
         if hotspot_count >= 4:
-            hotspot_risk = 25
-        elif hotspot_count >= 2:
             hotspot_risk = 15
+        elif hotspot_count >= 2:
+            hotspot_risk = 10
         elif hotspot_count >= 1:
-            hotspot_risk = 5
+            hotspot_risk = 3
         else:
             hotspot_risk = 0
 
-        # Factor 4: Intensity creep (25 pts)
+        # Factor 4: Intensity creep (15 pts)
         sessions_90d = self.session_repo.get_by_date_range(user_id, start_90d, end)
         if len(sessions_90d) >= 5:
             half = len(sessions_90d) // 2
@@ -670,17 +670,76 @@ class InsightsAnalyticsService:
             avg_second = statistics.mean(second_half) if second_half else 0
             intensity_diff = avg_second - avg_first
             if intensity_diff >= 1.0:
-                intensity_risk = 25
-            elif intensity_diff >= 0.5:
                 intensity_risk = 15
+            elif intensity_diff >= 0.5:
+                intensity_risk = 10
             elif intensity_diff >= 0.2:
-                intensity_risk = 5
+                intensity_risk = 3
             else:
                 intensity_risk = 0
         else:
             intensity_risk = 0
 
-        total_risk = acwr_risk + readiness_risk + hotspot_risk + intensity_risk
+        # Factor 5: HRV decline (15 pts) — WHOOP biometrics
+        hrv_risk = 0
+        # Factor 6: Recovery decline (15 pts) — WHOOP biometrics
+        recovery_decline_risk = 0
+
+        try:
+            from rivaflow.db.repositories.whoop_connection_repo import (
+                WhoopConnectionRepository,
+            )
+            from rivaflow.db.repositories.whoop_recovery_cache_repo import (
+                WhoopRecoveryCacheRepository,
+            )
+
+            conn = WhoopConnectionRepository.get_by_user_id(user_id)
+            if conn and conn.get("is_active"):
+                end_dt = end.isoformat() + "T23:59:59"
+                start_dt = start_14d.isoformat()
+                recs = WhoopRecoveryCacheRepository.get_by_date_range(
+                    user_id, start_dt, end_dt
+                )
+
+                # HRV decline: slope over 14-day HRV values
+                hrv_values = [r["hrv_ms"] for r in recs if r.get("hrv_ms") is not None]
+                if len(hrv_values) >= 3:
+                    hrv_slope = _linear_slope(hrv_values)
+                    if hrv_slope < -1.0:
+                        hrv_risk = 15
+                    elif hrv_slope < -0.5:
+                        hrv_risk = 10
+                    elif hrv_slope < 0:
+                        hrv_risk = 3
+
+                # Recovery decline: consecutive days with recovery < 34%
+                consecutive_red = 0
+                max_consecutive = 0
+                for r in recs:
+                    rs = r.get("recovery_score")
+                    if rs is not None and rs < 34:
+                        consecutive_red += 1
+                        max_consecutive = max(max_consecutive, consecutive_red)
+                    else:
+                        consecutive_red = 0
+
+                if max_consecutive >= 3:
+                    recovery_decline_risk = 15
+                elif max_consecutive >= 2:
+                    recovery_decline_risk = 10
+                elif max_consecutive >= 1:
+                    recovery_decline_risk = 5
+        except Exception:
+            pass
+
+        total_risk = (
+            acwr_risk
+            + readiness_risk
+            + hotspot_risk
+            + intensity_risk
+            + hrv_risk
+            + recovery_decline_risk
+        )
 
         if total_risk >= 60:
             level = "red"
@@ -690,18 +749,26 @@ class InsightsAnalyticsService:
             level = "green"
 
         recommendations = []
-        if acwr_risk >= 15:
+        if acwr_risk >= 12:
             recommendations.append("Reduce training volume — ACWR is elevated.")
-        if readiness_risk >= 15:
+        if readiness_risk >= 12:
             recommendations.append(
                 "Readiness trending down — prioritize sleep and recovery."
             )
-        if hotspot_risk >= 15:
+        if hotspot_risk >= 10:
             recommendations.append(
                 "Multiple injury hotspots noted — consider rest days."
             )
-        if intensity_risk >= 15:
+        if intensity_risk >= 10:
             recommendations.append("Intensity creeping up — mix in lighter sessions.")
+        if hrv_risk >= 10:
+            recommendations.append(
+                "HRV declining — your nervous system needs recovery."
+            )
+        if recovery_decline_risk >= 10:
+            recommendations.append(
+                "Multiple low-recovery days — prioritize sleep and rest."
+            )
         if not recommendations:
             recommendations.append("Training load looks healthy. Keep it up!")
 
@@ -709,10 +776,24 @@ class InsightsAnalyticsService:
             "risk_score": total_risk,
             "level": level,
             "factors": {
-                "acwr_spike": {"score": acwr_risk, "max": 25},
-                "readiness_decline": {"score": readiness_risk, "max": 25},
-                "hotspot_mentions": {"score": hotspot_risk, "max": 25},
-                "intensity_creep": {"score": intensity_risk, "max": 25},
+                "acwr_spike": {"score": acwr_risk, "max": 20},
+                "readiness_decline": {
+                    "score": readiness_risk,
+                    "max": 20,
+                },
+                "hotspot_mentions": {
+                    "score": hotspot_risk,
+                    "max": 15,
+                },
+                "intensity_creep": {
+                    "score": intensity_risk,
+                    "max": 15,
+                },
+                "hrv_decline": {"score": hrv_risk, "max": 15},
+                "recovery_decline": {
+                    "score": recovery_decline_risk,
+                    "max": 15,
+                },
             },
             "recommendations": recommendations,
         }

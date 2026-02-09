@@ -255,6 +255,91 @@ def readiness_auto_fill(
         )
 
 
+@router.get("/whoop/session/{session_id}/context")
+def get_session_context(
+    request: Request,
+    session_id: int,
+    current_user: dict = Depends(get_current_user),
+):
+    """Get WHOOP recovery context for a specific session."""
+    _require_whoop_enabled()
+    user_id = current_user["id"]
+
+    from rivaflow.db.repositories.session_repo import SessionRepository
+    from rivaflow.db.repositories.whoop_recovery_cache_repo import (
+        WhoopRecoveryCacheRepository,
+    )
+    from rivaflow.db.repositories.whoop_workout_cache_repo import (
+        WhoopWorkoutCacheRepository,
+    )
+
+    session = SessionRepository.get_by_id(user_id, session_id)
+    if not session:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Session not found",
+        )
+
+    s_date = str(session.get("session_date", ""))
+    if not s_date:
+        return {"recovery": None, "workout": None}
+
+    # Find recovery for session date (or day before)
+    recovery_data = None
+    recs = WhoopRecoveryCacheRepository.get_by_date_range(
+        user_id, s_date, s_date + "T23:59:59"
+    )
+    if not recs:
+        # Try day before
+        from datetime import timedelta
+
+        try:
+            from datetime import date as date_cls
+
+            d = date_cls.fromisoformat(s_date[:10])
+            prev = (d - timedelta(days=1)).isoformat()
+            recs = WhoopRecoveryCacheRepository.get_by_date_range(
+                user_id, prev, prev + "T23:59:59"
+            )
+        except (ValueError, TypeError):
+            pass
+
+    if recs:
+        rec = recs[-1]
+        dur_ms = rec.get("sleep_duration_ms")
+        rem_ms = rec.get("rem_sleep_ms")
+        sws_ms = rec.get("slow_wave_ms")
+        recovery_data = {
+            "score": rec.get("recovery_score"),
+            "hrv_ms": rec.get("hrv_ms"),
+            "resting_hr": rec.get("resting_hr"),
+            "sleep_performance": rec.get("sleep_performance"),
+            "sleep_duration_hours": (
+                round(dur_ms / 3_600_000, 1) if dur_ms is not None else None
+            ),
+            "rem_pct": (
+                round(rem_ms / dur_ms * 100, 1)
+                if rem_ms is not None and dur_ms and dur_ms > 0
+                else None
+            ),
+            "sws_pct": (
+                round(sws_ms / dur_ms * 100, 1)
+                if sws_ms is not None and dur_ms and dur_ms > 0
+                else None
+            ),
+        }
+
+    # Find workout linked to session
+    workout_data = None
+    wo = WhoopWorkoutCacheRepository.get_by_session_id(session_id)
+    if wo and wo.get("zone_durations"):
+        workout_data = {
+            "zone_durations": wo["zone_durations"],
+        }
+
+    return {"recovery": recovery_data, "workout": workout_data}
+
+
 @router.delete("/whoop")
 def disconnect(
     request: Request,

@@ -5,6 +5,7 @@ import statistics
 from datetime import date, timedelta
 
 from rivaflow.core.rules import RULES, format_explanation
+from rivaflow.core.services.insights_analytics import _linear_slope
 from rivaflow.core.services.session_service import SessionService
 from rivaflow.db.repositories import ReadinessRepository
 from rivaflow.db.repositories.glossary_repo import GlossaryRepository
@@ -80,6 +81,12 @@ class SuggestionEngine:
                             )
                             if drop_pct > 0:
                                 session_context["hrv_drop_pct"] = drop_pct
+
+                    # Compute sustained HRV slope for 5+ day rule
+                    if len(hrv_values) >= 5:
+                        session_context["hrv_slope_5d"] = round(
+                            _linear_slope(hrv_values), 4
+                        )
         except Exception:
             logger.debug("WHOOP context enrichment skipped", exc_info=True)
 
@@ -129,6 +136,10 @@ class SuggestionEngine:
             replacements["whoop_recovery"] = readiness.get("whoop_recovery_score", "")
 
         replacements["hrv_drop_pct"] = session_context.get("hrv_drop_pct", "")
+        hrv_slope = session_context.get("hrv_slope_5d")
+        replacements["hrv_slope_5d"] = (
+            f"{hrv_slope:+.2f}" if hrv_slope is not None else ""
+        )
 
         stale = session_context.get("stale_techniques", [])
         if stale:

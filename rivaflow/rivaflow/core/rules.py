@@ -85,6 +85,20 @@ RULES = [
         priority=3,
     ),
     Rule(
+        name="whoop_hrv_sustained_decline",
+        condition=lambda r, s: (
+            s.get("hrv_slope_5d") is not None and s["hrv_slope_5d"] < -0.5
+        ),
+        recommendation=(
+            "Your HRV has been declining for 5+ days." " Prioritize sleep and recovery."
+        ),
+        explanation=(
+            "HRV slope over last 5+ days is {hrv_slope_5d}"
+            " — sustained decline detected"
+        ),
+        priority=2,
+    ),
+    Rule(
         name="stale_technique",
         condition=lambda r, s: len(s.get("stale_techniques", [])) > 0,
         recommendation="Revisit: {techniques}",
@@ -122,11 +136,13 @@ def format_explanation(explanation: str, readiness: dict, session_context: dict)
             }
         )
 
+    hrv_slope = session_context.get("hrv_slope_5d")
     replacements.update(
         {
             "consecutive_gi": session_context.get("consecutive_gi_sessions", 0),
             "consecutive_nogi": session_context.get("consecutive_nogi_sessions", 0),
             "hrv_drop_pct": session_context.get("hrv_drop_pct", ""),
+            "hrv_slope_5d": (f"{hrv_slope:+.2f}" if hrv_slope is not None else ""),
         }
     )
 

@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import { sessionsApi } from '../api/client';
-import type { Session } from '../types';
-import { ArrowLeft, Calendar, Clock, Zap, Users, MapPin, User, Book, Edit2, Activity, Target, Camera, ChevronLeft, ChevronRight, Plus } from 'lucide-react';
+import { sessionsApi, whoopApi } from '../api/client';
+import type { Session, WhoopSessionContext } from '../types';
+import { ArrowLeft, Calendar, Clock, Zap, Users, MapPin, User, Book, Edit2, Activity, Target, Camera, ChevronLeft, ChevronRight, Plus, Heart } from 'lucide-react';
 import PhotoGallery from '../components/PhotoGallery';
 import PhotoUpload from '../components/PhotoUpload';
 import SessionInsights from '../components/SessionInsights';
@@ -17,6 +17,7 @@ export default function SessionDetail() {
   const [photoCount, setPhotoCount] = useState(0);
   const [prevSessionId, setPrevSessionId] = useState<number | null>(null);
   const [nextSessionId, setNextSessionId] = useState<number | null>(null);
+  const [whoopCtx, setWhoopCtx] = useState<WhoopSessionContext | null>(null);
   const toast = useToast();
 
   useEffect(() => {
@@ -61,8 +62,18 @@ export default function SessionDetail() {
       }
     };
 
+    const doLoadWhoopCtx = async () => {
+      try {
+        const res = await whoopApi.sessionContext(parseInt(id ?? '0'));
+        if (!cancelled) setWhoopCtx(res.data ?? null);
+      } catch {
+        // WHOOP context is optional
+      }
+    };
+
     doLoad();
     doLoadAdjacent();
+    doLoadWhoopCtx();
     return () => { cancelled = true; };
   }, [id]);
 
@@ -386,6 +397,70 @@ export default function SessionDetail() {
         </div>
       )}
 
+      {/* WHOOP Recovery Context */}
+      {whoopCtx?.recovery && (
+        <div className="card">
+          <div className="flex items-center gap-2 mb-4">
+            <Heart className="w-5 h-5" style={{ color: '#8B5CF6' }} />
+            <h3 className="font-semibold text-lg">Recovery Going In</h3>
+          </div>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-4">
+            {whoopCtx.recovery.score != null && (
+              <div className="text-center p-3 rounded-lg" style={{ backgroundColor: 'var(--surfaceElev)' }}>
+                <p className="text-xs text-[var(--muted)] mb-1">Recovery</p>
+                <p className="text-2xl font-bold" style={{
+                  color: whoopCtx.recovery.score >= 67 ? '#10B981' : whoopCtx.recovery.score >= 34 ? '#F59E0B' : '#EF4444'
+                }}>
+                  {Math.round(whoopCtx.recovery.score)}%
+                </p>
+              </div>
+            )}
+            {whoopCtx.recovery.hrv_ms != null && (
+              <div className="text-center p-3 rounded-lg" style={{ backgroundColor: 'var(--surfaceElev)' }}>
+                <p className="text-xs text-[var(--muted)] mb-1">HRV</p>
+                <p className="text-2xl font-bold">{Math.round(whoopCtx.recovery.hrv_ms)} <span className="text-xs font-normal">ms</span></p>
+              </div>
+            )}
+            {whoopCtx.recovery.sleep_performance != null && (
+              <div className="text-center p-3 rounded-lg" style={{ backgroundColor: 'var(--surfaceElev)' }}>
+                <p className="text-xs text-[var(--muted)] mb-1">Sleep</p>
+                <p className="text-2xl font-bold">{Math.round(whoopCtx.recovery.sleep_performance)}%</p>
+              </div>
+            )}
+            {whoopCtx.recovery.sleep_duration_hours != null && (
+              <div className="text-center p-3 rounded-lg" style={{ backgroundColor: 'var(--surfaceElev)' }}>
+                <p className="text-xs text-[var(--muted)] mb-1">Sleep</p>
+                <p className="text-2xl font-bold">{whoopCtx.recovery.sleep_duration_hours} <span className="text-xs font-normal">hrs</span></p>
+              </div>
+            )}
+          </div>
+          {/* Sleep composition bar */}
+          {(whoopCtx.recovery.rem_pct != null || whoopCtx.recovery.sws_pct != null) && (
+            <div>
+              <p className="text-xs font-medium uppercase tracking-wide mb-2" style={{ color: 'var(--muted)' }}>Sleep Composition</p>
+              <div className="flex rounded-full overflow-hidden h-3">
+                {whoopCtx.recovery.rem_pct != null && (
+                  <div style={{ width: `${whoopCtx.recovery.rem_pct}%`, backgroundColor: '#8B5CF6' }} title={`REM ${whoopCtx.recovery.rem_pct.toFixed(0)}%`} />
+                )}
+                {whoopCtx.recovery.sws_pct != null && (
+                  <div style={{ width: `${whoopCtx.recovery.sws_pct}%`, backgroundColor: '#3B82F6' }} title={`Deep ${whoopCtx.recovery.sws_pct.toFixed(0)}%`} />
+                )}
+                <div style={{ flex: 1, backgroundColor: '#60A5FA' }} title="Light" />
+              </div>
+              <div className="flex gap-4 mt-1 text-xs" style={{ color: 'var(--muted)' }}>
+                {whoopCtx.recovery.rem_pct != null && (
+                  <span className="flex items-center gap-1"><span className="inline-block w-2 h-2 rounded-full" style={{ backgroundColor: '#8B5CF6' }} /> REM {whoopCtx.recovery.rem_pct.toFixed(0)}%</span>
+                )}
+                {whoopCtx.recovery.sws_pct != null && (
+                  <span className="flex items-center gap-1"><span className="inline-block w-2 h-2 rounded-full" style={{ backgroundColor: '#3B82F6' }} /> Deep {whoopCtx.recovery.sws_pct.toFixed(0)}%</span>
+                )}
+                <span className="flex items-center gap-1"><span className="inline-block w-2 h-2 rounded-full" style={{ backgroundColor: '#60A5FA' }} /> Light</span>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
       {/* Whoop Stats */}
       {(session.whoop_strain || session.whoop_calories || session.whoop_avg_hr || session.whoop_max_hr) && (
         <div className="card">
@@ -445,6 +520,51 @@ export default function SessionDetail() {
           </div>
         </div>
       )}
+
+      {/* HR Zone Distribution */}
+      {whoopCtx?.workout?.zone_durations && Object.keys(whoopCtx.workout.zone_durations).length > 0 && (() => {
+        const zones = whoopCtx.workout!.zone_durations;
+        const zoneConfig = [
+          { key: 'zone_one_ms', label: 'Zone 1 (Recovery)', color: '#93C5FD' },
+          { key: 'zone_two_ms', label: 'Zone 2 (Light)', color: '#34D399' },
+          { key: 'zone_three_ms', label: 'Zone 3 (Moderate)', color: '#FBBF24' },
+          { key: 'zone_four_ms', label: 'Zone 4 (Hard)', color: '#F97316' },
+          { key: 'zone_five_ms', label: 'Zone 5 (Max)', color: '#EF4444' },
+        ];
+        const totalMs = zoneConfig.reduce((sum, z) => sum + (zones[z.key] || 0), 0);
+        if (totalMs <= 0) return null;
+        return (
+          <div className="card">
+            <h3 className="font-semibold text-lg mb-4">HR Zone Distribution</h3>
+            {/* Stacked bar */}
+            <div className="flex rounded-full overflow-hidden h-4 mb-3">
+              {zoneConfig.map(z => {
+                const ms = zones[z.key] || 0;
+                const pct = (ms / totalMs) * 100;
+                if (pct < 1) return null;
+                return <div key={z.key} style={{ width: `${pct}%`, backgroundColor: z.color }} title={`${z.label}: ${Math.round(ms / 60000)} min`} />;
+              })}
+            </div>
+            <div className="space-y-2">
+              {zoneConfig.map(z => {
+                const ms = zones[z.key] || 0;
+                if (ms <= 0) return null;
+                const mins = Math.round(ms / 60000);
+                const pct = ((ms / totalMs) * 100).toFixed(0);
+                return (
+                  <div key={z.key} className="flex items-center justify-between text-sm">
+                    <div className="flex items-center gap-2">
+                      <span className="inline-block w-3 h-3 rounded-sm" style={{ backgroundColor: z.color }} />
+                      <span style={{ color: 'var(--text)' }}>{z.label}</span>
+                    </div>
+                    <span style={{ color: 'var(--muted)' }}>{mins} min ({pct}%)</span>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        );
+      })()}
 
       {/* Notes */}
       {session.notes && (

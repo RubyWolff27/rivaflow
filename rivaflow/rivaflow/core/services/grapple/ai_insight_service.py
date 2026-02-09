@@ -78,6 +78,41 @@ async def generate_post_session_insight(user_id: int, session_id: int) -> dict |
     except Exception:
         pass
 
+    # Enrich with WHOOP recovery for session date
+    try:
+        from rivaflow.db.repositories.whoop_connection_repo import (
+            WhoopConnectionRepository,
+        )
+        from rivaflow.db.repositories.whoop_recovery_cache_repo import (
+            WhoopRecoveryCacheRepository,
+        )
+        from rivaflow.db.repositories.whoop_workout_cache_repo import (
+            WhoopWorkoutCacheRepository,
+        )
+
+        conn = WhoopConnectionRepository.get_by_user_id(user_id)
+        if conn and conn.get("is_active"):
+            s_date = session.get("session_date", "")
+            if s_date:
+                d = str(s_date)
+                recs = WhoopRecoveryCacheRepository.get_by_date_range(
+                    user_id, d, d + "T23:59:59"
+                )
+                if recs:
+                    rec = recs[-1]
+                    rs = rec.get("recovery_score")
+                    hv = rec.get("hrv_ms")
+                    if rs is not None:
+                        context += f"WHOOP Recovery: {rs:.0f}%"
+                        if hv is not None:
+                            context += f", HRV: {hv:.0f}ms"
+                        wo = WhoopWorkoutCacheRepository.get_by_session_id(session_id)
+                        if wo and wo.get("strain") is not None:
+                            context += f", Session Strain: {wo['strain']}"
+                        context += ". "
+    except Exception:
+        pass
+
     try:
         client = GrappleLLMClient(environment="production")
     except RuntimeError:
@@ -156,10 +191,64 @@ async def generate_weekly_insight(
         )
         summary_lines.append(line)
 
+    # Enrich with WHOOP weekly averages
+    whoop_line = ""
+    try:
+        from datetime import date as date_cls
+        from datetime import timedelta
+
+        from rivaflow.db.repositories.whoop_connection_repo import (
+            WhoopConnectionRepository,
+        )
+        from rivaflow.db.repositories.whoop_recovery_cache_repo import (
+            WhoopRecoveryCacheRepository,
+        )
+
+        conn = WhoopConnectionRepository.get_by_user_id(user_id)
+        if conn and conn.get("is_active"):
+            end_dt = date_cls.today().isoformat() + "T23:59:59"
+            start_dt = (date_cls.today() - timedelta(days=7)).isoformat()
+            recs = WhoopRecoveryCacheRepository.get_by_date_range(
+                user_id, start_dt, end_dt
+            )
+            if recs:
+                rec_vals = [
+                    r["recovery_score"]
+                    for r in recs
+                    if r.get("recovery_score") is not None
+                ]
+                hrv_vals = [r["hrv_ms"] for r in recs if r.get("hrv_ms") is not None]
+                sleep_vals = [
+                    r["sleep_performance"]
+                    for r in recs
+                    if r.get("sleep_performance") is not None
+                ]
+                parts = []
+                if rec_vals:
+                    avg_r = sum(rec_vals) / len(rec_vals)
+                    parts.append(f"avg recovery {avg_r:.0f}%")
+                if hrv_vals:
+                    avg_h = sum(hrv_vals) / len(hrv_vals)
+                    parts.append(f"avg HRV {avg_h:.0f}ms")
+                if sleep_vals:
+                    avg_s = sum(sleep_vals) / len(sleep_vals)
+                    parts.append(f"avg sleep {avg_s:.0f}%")
+                if parts:
+                    whoop_line = "WHOOP Weekly: " + ", ".join(parts)
+    except Exception:
+        pass
+
     try:
         client = GrappleLLMClient(environment="production")
     except RuntimeError:
         return None
+
+    weekly_content = (
+        "Generate a weekly training pattern "
+        "insight from these recent sessions:\n" + "\n".join(summary_lines)
+    )
+    if whoop_line:
+        weekly_content += "\n" + whoop_line
 
     messages = [
         {
@@ -168,10 +257,7 @@ async def generate_weekly_insight(
         },
         {
             "role": "user",
-            "content": (
-                "Generate a weekly training pattern "
-                "insight from these recent sessions:\n" + "\n".join(summary_lines)
-            ),
+            "content": weekly_content,
         },
     ]
 

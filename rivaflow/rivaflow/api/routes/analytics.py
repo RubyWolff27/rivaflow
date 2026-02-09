@@ -12,6 +12,7 @@ from rivaflow.core.dependencies import get_current_user
 from rivaflow.core.exceptions import NotFoundError, RivaFlowException
 from rivaflow.core.services.analytics_service import AnalyticsService
 from rivaflow.core.services.fight_dynamics_service import FightDynamicsService
+from rivaflow.core.services.whoop_analytics_engine import WhoopAnalyticsEngine
 from rivaflow.core.utils.cache import cached
 
 logger = logging.getLogger(__name__)
@@ -887,6 +888,100 @@ def get_fight_dynamics_insights(
             f"Error in get_fight_dynamics_insights: {type(e).__name__}: {str(e)}"
         )
         logger.error(traceback.format_exc())
+        raise HTTPException(
+            status_code=500,
+            detail=f"Analytics error: {type(e).__name__}: {str(e)}",
+        )
+
+
+# ============================================================================
+# WHOOP PERFORMANCE SCIENCE (Phase 3)
+# ============================================================================
+
+whoop_analytics = WhoopAnalyticsEngine()
+
+
+@cached(ttl_seconds=600, key_prefix="whoop_perf_corr")
+def _get_whoop_performance_correlation_cached(user_id: int, days: int = 90):
+    return {
+        "recovery_correlation": whoop_analytics.get_recovery_performance_correlation(
+            user_id, days
+        ),
+        "hrv_predictor": whoop_analytics.get_hrv_performance_predictor(user_id, days),
+    }
+
+
+@cached(ttl_seconds=600, key_prefix="whoop_efficiency")
+def _get_whoop_efficiency_cached(user_id: int, days: int = 90):
+    return {
+        "strain_efficiency": whoop_analytics.get_strain_efficiency(user_id, days),
+        "sleep_analysis": whoop_analytics.get_sleep_performance_analysis(user_id, days),
+    }
+
+
+@cached(ttl_seconds=600, key_prefix="whoop_cardiovascular")
+def _get_whoop_cardiovascular_cached(user_id: int, days: int = 90):
+    return whoop_analytics.get_cardiovascular_drift(user_id, days)
+
+
+@router.get("/whoop/performance-correlation")
+@limiter.limit("60/minute")
+def get_whoop_performance_correlation(
+    request: Request,
+    days: int = Query(default=90, ge=7, le=365),
+    current_user: dict = Depends(get_current_user),
+):
+    """Recovery + HRV performance correlation. Cached 10 min."""
+    try:
+        return _get_whoop_performance_correlation_cached(
+            user_id=current_user["id"], days=days
+        )
+    except (RivaFlowException, HTTPException):
+        raise
+    except (ValueError, KeyError, TypeError) as e:
+        logger.error(
+            f"Error in whoop performance correlation:" f" {type(e).__name__}: {str(e)}"
+        )
+        raise HTTPException(
+            status_code=500,
+            detail=f"Analytics error: {type(e).__name__}: {str(e)}",
+        )
+
+
+@router.get("/whoop/efficiency")
+@limiter.limit("60/minute")
+def get_whoop_efficiency(
+    request: Request,
+    days: int = Query(default=90, ge=7, le=365),
+    current_user: dict = Depends(get_current_user),
+):
+    """Strain efficiency + sleep analysis. Cached 10 min."""
+    try:
+        return _get_whoop_efficiency_cached(user_id=current_user["id"], days=days)
+    except (RivaFlowException, HTTPException):
+        raise
+    except (ValueError, KeyError, TypeError) as e:
+        logger.error(f"Error in whoop efficiency:" f" {type(e).__name__}: {str(e)}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Analytics error: {type(e).__name__}: {str(e)}",
+        )
+
+
+@router.get("/whoop/cardiovascular")
+@limiter.limit("60/minute")
+def get_whoop_cardiovascular(
+    request: Request,
+    days: int = Query(default=90, ge=7, le=365),
+    current_user: dict = Depends(get_current_user),
+):
+    """Cardiovascular drift (RHR trend). Cached 10 min."""
+    try:
+        return _get_whoop_cardiovascular_cached(user_id=current_user["id"], days=days)
+    except (RivaFlowException, HTTPException):
+        raise
+    except (ValueError, KeyError, TypeError) as e:
+        logger.error(f"Error in whoop cardiovascular:" f" {type(e).__name__}: {str(e)}")
         raise HTTPException(
             status_code=500,
             detail=f"Analytics error: {type(e).__name__}: {str(e)}",
