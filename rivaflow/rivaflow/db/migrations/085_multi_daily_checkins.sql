@@ -23,7 +23,7 @@ CREATE TABLE IF NOT EXISTS daily_checkins_new (
     midday_note TEXT,
     training_quality INTEGER,
     recovery_note TEXT,
-    created_at TEXT NOT NULL DEFAULT (datetime('now')),
+    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
     UNIQUE(user_id, check_date, checkin_slot)
 );
 
@@ -40,7 +40,7 @@ SELECT
 FROM daily_checkins;
 
 -- Drop old table
-DROP TABLE daily_checkins;
+DROP TABLE IF EXISTS daily_checkins;
 
 -- Rename new table
 ALTER TABLE daily_checkins_new RENAME TO daily_checkins;
