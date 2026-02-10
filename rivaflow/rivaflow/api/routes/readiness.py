@@ -1,8 +1,9 @@
 """Readiness check-in endpoints."""
 
+import logging
 from datetime import date
 
-from fastapi import APIRouter, Depends, Request, status
+from fastapi import APIRouter, BackgroundTasks, Depends, Request, status
 from fastapi.responses import JSONResponse
 from slowapi import Limiter
 from slowapi.util import get_remote_address
@@ -12,9 +13,22 @@ from rivaflow.core.exceptions import ValidationError
 from rivaflow.core.models import ReadinessCreate
 from rivaflow.core.services.readiness_service import ReadinessService
 
+logger = logging.getLogger(__name__)
+
 router = APIRouter()
 limiter = Limiter(key_func=get_remote_address)
 service = ReadinessService()
+
+
+def _trigger_readiness_streak(user_id: int, check_date: str) -> None:
+    """Best-effort streak recording after readiness check-in."""
+    try:
+        from rivaflow.core.services.streak_service import StreakService
+
+        dt = date.fromisoformat(str(check_date)[:10])
+        StreakService().record_readiness_checkin(user_id, checkin_date=dt)
+    except Exception:
+        logger.debug("Readiness streak recording skipped", exc_info=True)
 
 
 @router.post("/", status_code=status.HTTP_201_CREATED)
@@ -22,6 +36,7 @@ service = ReadinessService()
 def log_readiness(
     request: Request,
     readiness: ReadinessCreate,
+    background_tasks: BackgroundTasks,
     current_user: dict = Depends(get_current_user),
 ):
     """Log daily readiness check-in."""
@@ -38,6 +53,14 @@ def log_readiness(
     entry = service.get_readiness(
         user_id=current_user["id"], check_date=readiness.check_date
     )
+
+    # Best-effort streak recording
+    background_tasks.add_task(
+        _trigger_readiness_streak,
+        current_user["id"],
+        str(readiness.check_date),
+    )
+
     return entry
 
 

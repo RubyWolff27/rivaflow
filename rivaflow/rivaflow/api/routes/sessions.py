@@ -45,6 +45,26 @@ def _trigger_post_session_insight(user_id: int, session_id: int) -> None:
         )
 
 
+def _trigger_post_session_hooks(user_id: int, session_date: str) -> None:
+    """Best-effort milestone check and streak recording after session."""
+    try:
+        from rivaflow.core.services.milestone_service import MilestoneService
+
+        MilestoneService().check_all_milestones(user_id)
+    except Exception:
+        logger.debug("Post-session milestone check skipped", exc_info=True)
+
+    try:
+        from rivaflow.core.services.streak_service import StreakService
+
+        checkin_date = date.fromisoformat(str(session_date)[:10])
+        StreakService().record_checkin(
+            user_id, checkin_type="session", checkin_date=checkin_date
+        )
+    except Exception:
+        logger.debug("Post-session streak recording skipped", exc_info=True)
+
+
 @router.post("/", status_code=status.HTTP_201_CREATED)
 @limiter.limit("60/minute")
 def create_session(
@@ -99,11 +119,16 @@ def create_session(
         user_id=current_user["id"], session_id=session_id
     )
 
-    # Best-effort: queue AI insight generation in background
+    # Best-effort background hooks
     background_tasks.add_task(
         _trigger_post_session_insight,
         current_user["id"],
         session_id,
+    )
+    background_tasks.add_task(
+        _trigger_post_session_hooks,
+        current_user["id"],
+        str(session.session_date),
     )
 
     return created_session

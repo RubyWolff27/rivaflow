@@ -769,7 +769,24 @@ export default function Grapple() {
                 <div className="text-center py-12" style={{ color: 'var(--muted)' }}>
                   <MessageCircle className="w-16 h-16 mx-auto mb-4 opacity-20" />
                   <p className="text-lg font-medium mb-2">Start a conversation</p>
-                  <p className="text-sm">Ask about techniques, training advice, recovery...</p>
+                  <p className="text-sm mb-4">Ask about techniques, training advice, recovery...</p>
+                  <div className="flex flex-wrap gap-2 justify-center">
+                    {[
+                      'What should I focus on this week?',
+                      'How do I improve my guard retention?',
+                      'Analyse my recent training',
+                      'Help me build a comp game plan',
+                    ].map((prompt) => (
+                      <button
+                        key={prompt}
+                        onClick={() => setInput(prompt)}
+                        className="text-xs px-3 py-1.5 rounded-full transition-colors"
+                        style={{ backgroundColor: 'var(--surfaceElev)', color: 'var(--text)', border: '1px solid var(--border)' }}
+                      >
+                        {prompt}
+                      </button>
+                    ))}
+                  </div>
                 </div>
               )}
 

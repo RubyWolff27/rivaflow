@@ -108,7 +108,7 @@ export default function CoachSettings() {
         } catch { /* profile not set yet */ }
 
         const res = await coachPreferencesApi.get();
-        const d = res.data;
+        const d = (res.data as any)?.data || res.data;
         if (d) {
           setCompetitionRuleset(d.competition_ruleset || 'none');
           setTrainingMode(d.training_mode || 'lifestyle');
@@ -211,9 +211,15 @@ export default function CoachSettings() {
     <div className="max-w-2xl mx-auto space-y-6">
       {/* Header */}
       <div>
-        <Link to="/grapple" className="flex items-center gap-1 text-sm mb-3 hover:underline" style={{ color: 'var(--accent)' }}>
-          <ArrowLeft className="w-4 h-4" /> Back to Grapple
-        </Link>
+        <div className="flex items-center gap-4 mb-3">
+          <Link to="/grapple" className="flex items-center gap-1 text-sm hover:underline" style={{ color: 'var(--accent)' }}>
+            <ArrowLeft className="w-4 h-4" /> Grapple
+          </Link>
+          <span className="text-xs" style={{ color: 'var(--muted)' }}>|</span>
+          <Link to="/profile" className="flex items-center gap-1 text-sm hover:underline" style={{ color: 'var(--muted)' }}>
+            Profile
+          </Link>
+        </div>
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-lg flex items-center justify-center" style={{ backgroundColor: 'var(--accent)' }}>
             <Sparkles className="w-5 h-5 text-white" />

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { Plus, Activity, Sparkles, Heart, Waves } from 'lucide-react';
+import { Plus, Activity, Sparkles, Heart, Waves, RefreshCw } from 'lucide-react';
 import { getLocalDateString } from '../../utils/date';
 import { suggestionsApi, readinessApi, whoopApi } from '../../api/client';
 import { Card, PrimaryButton, CardSkeleton } from '../ui';
@@ -32,6 +32,8 @@ const RULE_LABELS: Record<string, string> = {
   whoop_green_recovery: 'Peak Recovery',
   comp_fight_week: 'Fight Week',
   comp_taper_warning: 'Taper Period',
+  comp_peak_phase: 'Peak Phase',
+  comp_base_building: 'Base Building',
   recovery_mode_active: 'Recovery Mode',
   persistent_injuries: 'Injuries',
   rest_after_high_intensity: 'High Intensity',
@@ -54,6 +56,7 @@ export default function DailyActionHero() {
     hrv_ms: number | null;
     resting_hr: number | null;
   } | null>(null);
+  const [whoopSyncing, setWhoopSyncing] = useState(false);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -283,6 +286,29 @@ export default function DailyActionHero() {
                   </div>
                 )}
               </div>
+            )}
+
+            {/* WHOOP sync button */}
+            {whoopRecovery && (
+              <button
+                onClick={async (e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  setWhoopSyncing(true);
+                  try {
+                    await whoopApi.sync();
+                    const res = await whoopApi.getLatestRecovery();
+                    if (res.data?.recovery_score != null) setWhoopRecovery(res.data);
+                  } catch { /* best-effort */ }
+                  setWhoopSyncing(false);
+                }}
+                disabled={whoopSyncing}
+                className="p-1.5 rounded-md hover:opacity-80 shrink-0"
+                style={{ color: 'var(--muted)' }}
+                title="Sync WHOOP"
+              >
+                <RefreshCw className={`w-3.5 h-3.5 ${whoopSyncing ? 'animate-spin' : ''}`} />
+              </button>
             )}
           </div>
         </Link>

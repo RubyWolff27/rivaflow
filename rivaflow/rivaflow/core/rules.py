@@ -146,6 +146,40 @@ RULES = [
         priority=1,
     ),
     Rule(
+        name="comp_peak_phase",
+        condition=lambda r, s: (
+            s.get("training_mode") == "competition_prep"
+            and s.get("days_until_comp") is not None
+            and 14 < s["days_until_comp"] <= 42
+        ),
+        recommendation=(
+            "Peak phase — {days_until_comp} days out. "
+            "Sharpen your A-game and simulate competition rounds."
+        ),
+        explanation=(
+            "Competition in {days_until_comp} days. Focus on match "
+            "simulation, A-game drilling, and maintaining intensity."
+        ),
+        priority=2,
+    ),
+    Rule(
+        name="comp_base_building",
+        condition=lambda r, s: (
+            s.get("training_mode") == "competition_prep"
+            and s.get("days_until_comp") is not None
+            and 42 < s["days_until_comp"] <= 56
+        ),
+        recommendation=(
+            "Base building — {days_until_comp} days to competition. "
+            "Build volume and address weak positions."
+        ),
+        explanation=(
+            "Plenty of time before competition. Build a broad base, "
+            "work weak positions, and increase training volume."
+        ),
+        priority=4,
+    ),
+    Rule(
         name="recovery_mode_active",
         condition=lambda r, s: s.get("training_mode") == "recovery",
         recommendation="Recovery mode active — keep intensity low, focus on mobility",
