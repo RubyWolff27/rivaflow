@@ -34,17 +34,20 @@ export default function NextEvent() {
     return (
       <Link to="/events">
         <Card interactive>
-          <div className="flex items-center gap-3">
-            <div
-              className="w-10 h-10 rounded-full flex items-center justify-center shrink-0"
-              style={{ backgroundColor: 'var(--surfaceElev)' }}
-            >
-              <Calendar className="w-5 h-5" style={{ color: 'var(--muted)' }} />
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div
+                className="w-10 h-10 rounded-full flex items-center justify-center shrink-0"
+                style={{ backgroundColor: 'var(--surfaceElev)' }}
+              >
+                <Calendar className="w-5 h-5" style={{ color: 'var(--accent)' }} />
+              </div>
+              <div>
+                <p className="text-sm font-semibold" style={{ color: 'var(--text)' }}>Got a comp coming up?</p>
+                <p className="text-xs" style={{ color: 'var(--muted)' }}>Add it to track your prep and weight cut</p>
+              </div>
             </div>
-            <div>
-              <p className="text-sm font-medium" style={{ color: 'var(--text)' }}>No upcoming events</p>
-              <p className="text-xs" style={{ color: 'var(--accent)' }}>Add an event to start your prep</p>
-            </div>
+            <span className="text-xs font-medium shrink-0" style={{ color: 'var(--accent)' }}>Add →</span>
           </div>
         </Card>
       </Link>

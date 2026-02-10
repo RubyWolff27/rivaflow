@@ -175,22 +175,32 @@ export function JourneyProgress() {
         </div>
       )}
 
-      {/* Quick Stats - Sessions/Hours since last promotion */}
+      {/* Quick Stats - Tracked sessions/hours since promotion or signup */}
       <div className="grid grid-cols-2 gap-3 mt-4">
         <div>
           <p className="text-2xl font-bold" style={{ color: 'var(--text)' }}>
             {profile?.sessions_since_promotion || 0}
           </p>
-          <p className="text-xs" style={{ color: 'var(--muted)' }}>
-            Sessions at {beltRank}
+          <p className="text-xs font-medium" style={{ color: 'var(--muted)' }}>
+            Tracked Sessions
+          </p>
+          <p className="text-[10px]" style={{ color: 'var(--muted)' }}>
+            {profile?.promotion_date
+              ? `since ${new Date(profile.promotion_date + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}`
+              : 'since joining'}
           </p>
         </div>
         <div>
           <p className="text-2xl font-bold" style={{ color: 'var(--text)' }}>
             {profile?.hours_since_promotion?.toFixed(0) || 0}
           </p>
-          <p className="text-xs" style={{ color: 'var(--muted)' }}>
-            Hours at {beltRank}
+          <p className="text-xs font-medium" style={{ color: 'var(--muted)' }}>
+            Tracked Hours
+          </p>
+          <p className="text-[10px]" style={{ color: 'var(--muted)' }}>
+            {profile?.promotion_date
+              ? `since ${new Date(profile.promotion_date + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}`
+              : 'since joining'}
           </p>
         </div>
       </div>

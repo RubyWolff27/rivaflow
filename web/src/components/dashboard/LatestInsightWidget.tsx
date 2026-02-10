@@ -70,10 +70,10 @@ export default function LatestInsightWidget() {
             <ChevronRight className="w-4 h-4" style={{ color: 'var(--muted)' }} />
           )}
         </div>
-        <p className="text-sm font-medium mb-1" style={{ color: 'var(--text)' }}>
+        <p className="text-sm font-semibold mb-1" style={{ color: 'var(--text)' }}>
           {insight.title}
         </p>
-        <p className="text-xs line-clamp-2" style={{ color: 'var(--muted)' }}>
+        <p className="text-xs line-clamp-2 leading-relaxed" style={{ color: 'var(--muted)' }}>
           {insight.content}
         </p>
       </Card>
