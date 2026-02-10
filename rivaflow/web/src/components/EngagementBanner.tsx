@@ -23,10 +23,11 @@ export default function EngagementBanner() {
 
         setCheckedIn(checkinRes.data.checked_in);
 
-        // Parse insight if available
-        if (checkinRes.data.insight_shown) {
+        // Parse insight from morning slot if available
+        const morningInsight = checkinRes.data.morning?.insight_shown;
+        if (morningInsight) {
           try {
-            const parsedInsight = JSON.parse(checkinRes.data.insight_shown);
+            const parsedInsight = JSON.parse(morningInsight);
             setInsight(parsedInsight);
           } catch (e) {
             console.error('Error parsing insight:', e);

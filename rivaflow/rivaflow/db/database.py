@@ -501,6 +501,7 @@ def _apply_migrations(
         "082_gi_nogi_preference.sql",
         "083_target_weight_date.sql",
         "084_email_drip_log.sql",
+        "085_multi_daily_checkins.sql",
     ]
 
     migrations_dir = Path(__file__).parent / "migrations"

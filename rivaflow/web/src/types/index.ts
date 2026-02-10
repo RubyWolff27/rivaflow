@@ -316,14 +316,27 @@ export interface GoalsSummary {
 export interface DailyCheckin {
   id: number;
   check_date: string;
-  checkin_type: 'session' | 'rest' | 'readiness_only';
+  checkin_type: 'session' | 'rest' | 'readiness_only' | 'midday' | 'evening';
+  checkin_slot: 'morning' | 'midday' | 'evening';
   rest_type?: string;
   rest_note?: string;
   session_id?: number;
   readiness_id?: number;
   tomorrow_intention?: string;
   insight_shown?: string; // JSON string
+  energy_level?: number;
+  midday_note?: string;
+  training_quality?: number;
+  recovery_note?: string;
   created_at: string;
+}
+
+export interface DayCheckins {
+  date: string;
+  checked_in: boolean;
+  morning: DailyCheckin | null;
+  midday: DailyCheckin | null;
+  evening: DailyCheckin | null;
 }
 
 export interface Streak {

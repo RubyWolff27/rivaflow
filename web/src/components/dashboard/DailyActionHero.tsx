@@ -1,9 +1,11 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { Plus, Activity, Sparkles, Heart, Waves, RefreshCw } from 'lucide-react';
+import { Plus, Activity, Sparkles, Heart, Waves, RefreshCw, Sun, Moon, ChevronDown, ChevronUp } from 'lucide-react';
 import { getLocalDateString } from '../../utils/date';
-import { suggestionsApi, readinessApi, whoopApi } from '../../api/client';
+import { suggestionsApi, readinessApi, whoopApi, checkinsApi } from '../../api/client';
+import { getErrorMessage } from '../../api/client';
 import { Card, PrimaryButton, CardSkeleton } from '../ui';
+import type { DayCheckins } from '../../types';
 
 interface TriggeredRule {
   name: string;
@@ -45,12 +47,203 @@ const RULE_LABELS: Record<string, string> = {
 const sanitizeSuggestion = (text: string) =>
   text.replace(/\{[a-z_]+\}/gi, '').replace(/\s{2,}/g, ' ').trim();
 
+function getTimeSlot(): 'morning' | 'midday' | 'evening' {
+  const hour = new Date().getHours();
+  if (hour < 12) return 'morning';
+  if (hour < 17) return 'midday';
+  return 'evening';
+}
+
+/* ---------- Inline sub-components ---------- */
+
+function MiddayPrompt({ onSubmitted }: { onSubmitted: () => void }) {
+  const [expanded, setExpanded] = useState(false);
+  const [energy, setEnergy] = useState(3);
+  const [note, setNote] = useState('');
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
+
+  const submit = async () => {
+    setSaving(true);
+    setError('');
+    try {
+      await checkinsApi.createMidday({ energy_level: energy, midday_note: note || undefined });
+      onSubmitted();
+    } catch (e) {
+      setError(getErrorMessage(e));
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const energyLabels = ['', 'Very Low', 'Low', 'Moderate', 'Good', 'Great'];
+
+  return (
+    <div
+      className="mt-3 rounded-xl overflow-hidden"
+      style={{ backgroundColor: 'var(--surfaceElev)', border: '1px solid var(--border)' }}
+    >
+      <button
+        onClick={() => setExpanded(!expanded)}
+        className="w-full flex items-center justify-between p-3 text-left"
+      >
+        <div className="flex items-center gap-2">
+          <Sun className="w-4 h-4" style={{ color: '#F59E0B' }} />
+          <span className="text-sm font-semibold" style={{ color: 'var(--text)' }}>
+            Midday Energy Check
+          </span>
+        </div>
+        {expanded
+          ? <ChevronUp className="w-4 h-4" style={{ color: 'var(--muted)' }} />
+          : <ChevronDown className="w-4 h-4" style={{ color: 'var(--muted)' }} />}
+      </button>
+
+      {expanded && (
+        <div className="px-3 pb-3 space-y-3">
+          {/* Energy slider */}
+          <div>
+            <label className="text-xs font-medium" style={{ color: 'var(--muted)' }}>
+              Energy Level: <span style={{ color: 'var(--text)' }}>{energy}/5 — {energyLabels[energy]}</span>
+            </label>
+            <input
+              type="range" min={1} max={5} value={energy}
+              onChange={(e) => setEnergy(Number(e.target.value))}
+              className="w-full mt-1 accent-[var(--accent)]"
+            />
+          </div>
+
+          {/* Optional note */}
+          <input
+            type="text"
+            placeholder="Quick note (optional)"
+            value={note}
+            onChange={(e) => setNote(e.target.value)}
+            className="w-full text-sm rounded-lg px-3 py-2"
+            style={{ backgroundColor: 'var(--surface)', color: 'var(--text)', border: '1px solid var(--border)' }}
+          />
+
+          {error && <p className="text-xs" style={{ color: 'var(--error)' }}>{error}</p>}
+
+          <button
+            onClick={submit}
+            disabled={saving}
+            className="w-full py-2 rounded-lg text-sm font-semibold transition-colors"
+            style={{ backgroundColor: 'var(--accent)', color: '#fff', opacity: saving ? 0.6 : 1 }}
+          >
+            {saving ? 'Saving...' : 'Save Midday Check-in'}
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function EveningPrompt({ onSubmitted }: { onSubmitted: () => void }) {
+  const [expanded, setExpanded] = useState(false);
+  const [quality, setQuality] = useState(3);
+  const [recoveryNote, setRecoveryNote] = useState('');
+  const [tomorrow, setTomorrow] = useState('');
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
+
+  const submit = async () => {
+    setSaving(true);
+    setError('');
+    try {
+      await checkinsApi.createEvening({
+        training_quality: quality,
+        recovery_note: recoveryNote || undefined,
+        tomorrow_intention: tomorrow || undefined,
+      });
+      onSubmitted();
+    } catch (e) {
+      setError(getErrorMessage(e));
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const qualityLabels = ['', 'Poor', 'Below Avg', 'Average', 'Good', 'Excellent'];
+
+  return (
+    <div
+      className="mt-3 rounded-xl overflow-hidden"
+      style={{ backgroundColor: 'var(--surfaceElev)', border: '1px solid var(--border)' }}
+    >
+      <button
+        onClick={() => setExpanded(!expanded)}
+        className="w-full flex items-center justify-between p-3 text-left"
+      >
+        <div className="flex items-center gap-2">
+          <Moon className="w-4 h-4" style={{ color: '#8B5CF6' }} />
+          <span className="text-sm font-semibold" style={{ color: 'var(--text)' }}>
+            Evening Reflection
+          </span>
+        </div>
+        {expanded
+          ? <ChevronUp className="w-4 h-4" style={{ color: 'var(--muted)' }} />
+          : <ChevronDown className="w-4 h-4" style={{ color: 'var(--muted)' }} />}
+      </button>
+
+      {expanded && (
+        <div className="px-3 pb-3 space-y-3">
+          {/* Training quality slider */}
+          <div>
+            <label className="text-xs font-medium" style={{ color: 'var(--muted)' }}>
+              Training Quality: <span style={{ color: 'var(--text)' }}>{quality}/5 — {qualityLabels[quality]}</span>
+            </label>
+            <input
+              type="range" min={1} max={5} value={quality}
+              onChange={(e) => setQuality(Number(e.target.value))}
+              className="w-full mt-1 accent-[var(--accent)]"
+            />
+          </div>
+
+          {/* Recovery note */}
+          <textarea
+            placeholder="How does your body feel? Any notes on recovery..."
+            value={recoveryNote}
+            onChange={(e) => setRecoveryNote(e.target.value)}
+            rows={2}
+            className="w-full text-sm rounded-lg px-3 py-2 resize-none"
+            style={{ backgroundColor: 'var(--surface)', color: 'var(--text)', border: '1px solid var(--border)' }}
+          />
+
+          {/* Tomorrow's plan */}
+          <input
+            type="text"
+            placeholder="Tomorrow's plan (e.g. rest, gi, nogi)"
+            value={tomorrow}
+            onChange={(e) => setTomorrow(e.target.value)}
+            className="w-full text-sm rounded-lg px-3 py-2"
+            style={{ backgroundColor: 'var(--surface)', color: 'var(--text)', border: '1px solid var(--border)' }}
+          />
+
+          {error && <p className="text-xs" style={{ color: 'var(--error)' }}>{error}</p>}
+
+          <button
+            onClick={submit}
+            disabled={saving}
+            className="w-full py-2 rounded-lg text-sm font-semibold transition-colors"
+            style={{ backgroundColor: 'var(--accent)', color: '#fff', opacity: saving ? 0.6 : 1 }}
+          >
+            {saving ? 'Saving...' : 'Save Evening Reflection'}
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ---------- Main component ---------- */
+
 export default function DailyActionHero() {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [suggestion, setSuggestion] = useState<SuggestionData | null>(null);
   const [readinessScore, setReadinessScore] = useState<number | null>(null);
   const [hasCheckedIn, setHasCheckedIn] = useState(false);
+  const [dayCheckins, setDayCheckins] = useState<DayCheckins | null>(null);
   const [whoopRecovery, setWhoopRecovery] = useState<{
     recovery_score: number | null;
     hrv_ms: number | null;
@@ -58,14 +251,23 @@ export default function DailyActionHero() {
   } | null>(null);
   const [whoopSyncing, setWhoopSyncing] = useState(false);
 
+  const loadCheckins = async () => {
+    try {
+      const res = await checkinsApi.getToday();
+      setDayCheckins(res.data);
+      setHasCheckedIn(res.data.checked_in);
+    } catch { /* best-effort */ }
+  };
+
   useEffect(() => {
     const controller = new AbortController();
     const load = async () => {
-      // Load suggestion, readiness, and WHOOP in parallel
+      // Load suggestion, readiness, WHOOP, and checkins in parallel
       const results = await Promise.allSettled([
         suggestionsApi.getToday(),
         readinessApi.getByDate(getLocalDateString()),
         whoopApi.getLatestRecovery(),
+        checkinsApi.getToday(),
       ]);
 
       if (controller.signal.aborted) return;
@@ -88,6 +290,14 @@ export default function DailyActionHero() {
       // WHOOP
       if (results[2].status === 'fulfilled' && results[2].value.data?.recovery_score != null) {
         setWhoopRecovery(results[2].value.data);
+      }
+
+      // Day checkins
+      if (results[3].status === 'fulfilled' && results[3].value.data) {
+        setDayCheckins(results[3].value.data);
+        if (results[3].value.data.checked_in) {
+          setHasCheckedIn(true);
+        }
       }
 
       setLoading(false);
@@ -138,6 +348,14 @@ export default function DailyActionHero() {
       : readinessScore >= 12 ? '#F59E0B'
       : '#EF4444'
     : undefined;
+
+  // Time-aware slot prompts
+  const timeSlot = getTimeSlot();
+  const hasMorning = dayCheckins?.morning != null;
+  const hasMidday = dayCheckins?.midday != null;
+  const hasEvening = dayCheckins?.evening != null;
+  const showMidday = timeSlot === 'midday' && hasMorning && !hasMidday;
+  const showEvening = timeSlot === 'evening' && !hasEvening;
 
   return (
     <Card className="p-5">
@@ -312,6 +530,34 @@ export default function DailyActionHero() {
             )}
           </div>
         </Link>
+      )}
+
+      {/* Midday prompt */}
+      {showMidday && <MiddayPrompt onSubmitted={loadCheckins} />}
+
+      {/* Evening prompt */}
+      {showEvening && <EveningPrompt onSubmitted={loadCheckins} />}
+
+      {/* Completed slot badges */}
+      {(hasMidday || hasEvening) && (
+        <div className="flex gap-2 mt-3">
+          {hasMidday && (
+            <span
+              className="text-xs px-2 py-0.5 rounded-full"
+              style={{ backgroundColor: 'var(--success-bg)', color: 'var(--success)' }}
+            >
+              Midday logged
+            </span>
+          )}
+          {hasEvening && (
+            <span
+              className="text-xs px-2 py-0.5 rounded-full"
+              style={{ backgroundColor: 'var(--success-bg)', color: 'var(--success)' }}
+            >
+              Evening logged
+            </span>
+          )}
+        </div>
       )}
     </Card>
   );

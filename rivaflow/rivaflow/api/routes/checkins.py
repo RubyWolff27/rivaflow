@@ -3,7 +3,7 @@
 from datetime import date, timedelta
 
 from fastapi import APIRouter, Depends, Request
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from slowapi import Limiter
 from slowapi.util import get_remote_address
 
@@ -21,24 +21,43 @@ class TomorrowIntentionUpdate(BaseModel):
     tomorrow_intention: str
 
 
+class MiddayCheckinCreate(BaseModel):
+    """Create a midday check-in."""
+
+    energy_level: int = Field(..., ge=1, le=5)
+    midday_note: str | None = None
+
+
+class EveningCheckinCreate(BaseModel):
+    """Create an evening check-in."""
+
+    training_quality: int | None = Field(None, ge=1, le=5)
+    recovery_note: str | None = None
+    tomorrow_intention: str | None = None
+
+
 @router.get("/today")
 @limiter.limit("60/minute")
 def get_today_checkin(request: Request, current_user: dict = Depends(get_current_user)):
-    """Get today's check-in status."""
+    """Get today's check-in status (all slots)."""
     repo = CheckinRepository()
     today = date.today()
-    checkin = repo.get_checkin(user_id=current_user["id"], check_date=today)
+    slots = repo.get_day_checkins(user_id=current_user["id"], check_date=today)
+    checked_in = any(v is not None for v in slots.values())
 
-    if not checkin:
-        return {"checked_in": False, "date": today.isoformat()}
-
-    return {"checked_in": True, "date": today.isoformat(), **checkin}
+    return {
+        "checked_in": checked_in,
+        "date": today.isoformat(),
+        "morning": slots["morning"],
+        "midday": slots["midday"],
+        "evening": slots["evening"],
+    }
 
 
 @router.get("/week")
 @limiter.limit("60/minute")
 def get_week_checkins(request: Request, current_user: dict = Depends(get_current_user)):
-    """Get this week's check-ins."""
+    """Get this week's check-ins with slot breakdown."""
     repo = CheckinRepository()
     today = date.today()
     week_start = today - timedelta(days=today.weekday())
@@ -46,12 +65,17 @@ def get_week_checkins(request: Request, current_user: dict = Depends(get_current
     checkins = []
     for i in range(7):
         check_date = week_start + timedelta(days=i)
-        checkin = repo.get_checkin(user_id=current_user["id"], check_date=check_date)
+        slots = repo.get_day_checkins(user_id=current_user["id"], check_date=check_date)
+        slots_filled = sum(1 for v in slots.values() if v is not None)
         checkins.append(
             {
                 "date": check_date.isoformat(),
-                "checked_in": checkin is not None,
-                "checkin_type": checkin.get("checkin_type") if checkin else None,
+                "checked_in": slots_filled > 0,
+                "checkin_type": (
+                    slots["morning"].get("checkin_type") if slots["morning"] else None
+                ),
+                "slots": slots,
+                "slots_filled": slots_filled,
             }
         )
 
@@ -69,12 +93,11 @@ def update_tomorrow_intention(
     repo = CheckinRepository()
     today = date.today()
 
-    # Check if today's check-in exists
-    checkin = repo.get_checkin(user_id=current_user["id"], check_date=today)
-    if not checkin:
+    # Check if any slot exists today
+    slots = repo.get_day_checkins(user_id=current_user["id"], check_date=today)
+    if not any(v is not None for v in slots.values()):
         raise NotFoundError("No check-in found for today")
 
-    # Update tomorrow's intention
     repo.update_tomorrow_intention(
         user_id=current_user["id"],
         check_date=today,
@@ -82,3 +105,42 @@ def update_tomorrow_intention(
     )
 
     return {"success": True, "tomorrow_intention": data.tomorrow_intention}
+
+
+@router.post("/midday")
+@limiter.limit("60/minute")
+def create_midday_checkin(
+    request: Request,
+    data: MiddayCheckinCreate,
+    current_user: dict = Depends(get_current_user),
+):
+    """Create or update midday check-in."""
+    repo = CheckinRepository()
+    today = date.today()
+    checkin_id = repo.upsert_midday(
+        user_id=current_user["id"],
+        check_date=today,
+        energy_level=data.energy_level,
+        midday_note=data.midday_note,
+    )
+    return {"success": True, "id": checkin_id}
+
+
+@router.post("/evening")
+@limiter.limit("60/minute")
+def create_evening_checkin(
+    request: Request,
+    data: EveningCheckinCreate,
+    current_user: dict = Depends(get_current_user),
+):
+    """Create or update evening check-in."""
+    repo = CheckinRepository()
+    today = date.today()
+    checkin_id = repo.upsert_evening(
+        user_id=current_user["id"],
+        check_date=today,
+        training_quality=data.training_quality,
+        recovery_note=data.recovery_note,
+        tomorrow_intention=data.tomorrow_intention,
+    )
+    return {"success": True, "id": checkin_id}
