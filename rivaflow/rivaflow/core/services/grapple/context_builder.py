@@ -536,6 +536,47 @@ Athlete competes under NAGA (North American Grappling Association) rules:
                 context_parts.extend(ctx)
                 context_parts.append("")
 
+        # Inject profile training preferences
+        try:
+            profile = self.profile_repo.get(self.user_id)
+            if profile:
+                profile_ctx = []
+                if profile.get("default_gym"):
+                    profile_ctx.append(f"Default gym: {profile['default_gym']}")
+                if profile.get("primary_training_type"):
+                    profile_ctx.append(
+                        f"Primary training type: " f"{profile['primary_training_type']}"
+                    )
+                targets = []
+                if profile.get("weekly_sessions_target"):
+                    targets.append(f"{profile['weekly_sessions_target']} sessions")
+                if profile.get("weekly_hours_target"):
+                    targets.append(f"{profile['weekly_hours_target']}h")
+                if profile.get("weekly_rolls_target"):
+                    targets.append(f"{profile['weekly_rolls_target']} rolls")
+                if targets:
+                    profile_ctx.append(f"Weekly targets: {', '.join(targets)}")
+                if profile_ctx:
+                    context_parts.extend(["TRAINING PREFERENCES:"] + profile_ctx + [""])
+        except Exception:
+            logger.debug("Profile enrichment skipped", exc_info=True)
+
+        # Inject streak data
+        try:
+            from rivaflow.db.repositories.streak_repo import StreakRepository
+
+            streak_repo = StreakRepository()
+            training_streak = streak_repo.get_by_type(self.user_id, "training")
+            if training_streak and training_streak.get("current_count", 0) > 0:
+                context_parts.append(
+                    f"CURRENT TRAINING STREAK: "
+                    f"{training_streak['current_count']} weeks "
+                    f"(best: {training_streak.get('longest_count', 0)})"
+                )
+                context_parts.append("")
+        except Exception:
+            logger.debug("Streak enrichment skipped", exc_info=True)
+
         if total_sessions > 0:
             # Calculate training stats
             total_duration = sum(s.get("duration_mins", 0) for s in redacted_sessions)

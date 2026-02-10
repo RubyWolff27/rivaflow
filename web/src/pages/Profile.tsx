@@ -3,7 +3,8 @@ import { getLocalDateString } from '../utils/date';
 import { BELT_GRADES } from '../constants/belts';
 import { profileApi, gradingsApi, friendsApi, adminApi, gymsApi, whoopApi, getErrorMessage } from '../api/client';
 import type { Profile as ProfileType, Grading, Friend, WhoopConnectionStatus } from '../types';
-import { User, CheckCircle, Award, Plus, Trash2, Edit2, Target, AlertCircle, Crown, Star, Link2, RefreshCw, Unlink } from 'lucide-react';
+import { User, CheckCircle, Award, Plus, Trash2, Edit2, Target, AlertCircle, Crown, Star, Link2, RefreshCw, Unlink, Settings } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import GymSelector from '../components/GymSelector';
 import ConfirmDialog from '../components/ConfirmDialog';
 import { useToast } from '../contexts/ToastContext';
@@ -1232,6 +1233,22 @@ export default function Profile() {
           </div>
         </div>
       )}
+
+      {/* Coach Settings Link */}
+      <Link to="/coach-settings" className="card block hover:border-[var(--accent)] transition-colors">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <Settings className="w-6 h-6 text-[var(--accent)]" />
+            <div>
+              <h2 className="text-lg font-semibold">Grapple AI Coach Settings</h2>
+              <p className="text-sm text-[var(--muted)]">
+                Personalize how Grapple coaches you — training mode, style, injuries, and more
+              </p>
+            </div>
+          </div>
+          <span className="text-[var(--muted)]">&rarr;</span>
+        </div>
+      </Link>
 
       {/* Belt Progression Section */}
       <div className="card">

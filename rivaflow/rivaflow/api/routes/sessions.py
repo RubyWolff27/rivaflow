@@ -1,9 +1,12 @@
 """Session management endpoints."""
 
+import asyncio
+import logging
 from datetime import date
 
 from fastapi import (
     APIRouter,
+    BackgroundTasks,
     Depends,
     HTTPException,
     Query,
@@ -20,9 +23,26 @@ from rivaflow.core.models import SessionCreate, SessionUpdate
 from rivaflow.core.services.privacy_service import PrivacyService
 from rivaflow.core.services.session_service import SessionService
 
+logger = logging.getLogger(__name__)
+
 router = APIRouter()
 service = SessionService()
 limiter = Limiter(key_func=get_remote_address)
+
+
+def _trigger_post_session_insight(user_id: int, session_id: int) -> None:
+    """Best-effort AI insight generation after session creation."""
+    try:
+        from rivaflow.core.services.grapple.ai_insight_service import (
+            generate_post_session_insight,
+        )
+
+        asyncio.run(generate_post_session_insight(user_id, session_id))
+    except Exception:
+        logger.debug(
+            "Post-session insight generation skipped",
+            exc_info=True,
+        )
 
 
 @router.post("/", status_code=status.HTTP_201_CREATED)
@@ -30,6 +50,7 @@ limiter = Limiter(key_func=get_remote_address)
 def create_session(
     request: Request,
     session: SessionCreate,
+    background_tasks: BackgroundTasks,
     current_user: dict = Depends(get_current_user),
 ):
     """Create a new training session."""
@@ -77,6 +98,14 @@ def create_session(
     created_session = service.get_session(
         user_id=current_user["id"], session_id=session_id
     )
+
+    # Best-effort: queue AI insight generation in background
+    background_tasks.add_task(
+        _trigger_post_session_insight,
+        current_user["id"],
+        session_id,
+    )
+
     return created_session
 
 

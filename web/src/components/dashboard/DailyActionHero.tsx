@@ -26,6 +26,18 @@ const RULE_LABELS: Record<string, string> = {
   consecutive_nogi: 'Consecutive No-Gi',
   green_light: 'All Clear',
   stale_technique: 'Stale Technique',
+  whoop_low_recovery: 'WHOOP Low Recovery',
+  whoop_hrv_drop: 'HRV Drop',
+  whoop_hrv_sustained_decline: 'HRV Declining',
+  whoop_green_recovery: 'Peak Recovery',
+  comp_fight_week: 'Fight Week',
+  comp_taper_warning: 'Taper Period',
+  recovery_mode_active: 'Recovery Mode',
+  persistent_injuries: 'Injuries',
+  rest_after_high_intensity: 'High Intensity',
+  deload_week: 'Deload Week',
+  session_frequency_low: 'Long Break',
+  sleep_debt_high: 'Sleep Debt',
 };
 
 const sanitizeSuggestion = (text: string) =>

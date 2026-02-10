@@ -159,6 +159,62 @@ RULES = [
         explanation="Active injuries: {injury_areas} — avoid aggravating positions",
         priority=2,
     ),
+    # ── Load management rules ──
+    Rule(
+        name="rest_after_high_intensity",
+        condition=lambda r, s: (
+            s.get("last_session_intensity") is not None
+            and s["last_session_intensity"] >= 5
+            and s.get("days_since_last_session") is not None
+            and s["days_since_last_session"] == 0
+        ),
+        recommendation="Back-to-back after a max-intensity session — consider a lighter day",
+        explanation=(
+            "Yesterday's session was intensity {last_intensity}/5. "
+            "A recovery or technical session today protects gains."
+        ),
+        priority=2,
+    ),
+    Rule(
+        name="deload_week",
+        condition=lambda r, s: (
+            s.get("sessions_this_week") is not None and s["sessions_this_week"] >= 6
+        ),
+        recommendation="High volume this week ({sessions_week} sessions) — consider a deload",
+        explanation=(
+            "{sessions_week} sessions this week. Deload weeks "
+            "prevent overuse injuries and allow supercompensation."
+        ),
+        priority=1,
+    ),
+    Rule(
+        name="session_frequency_low",
+        condition=lambda r, s: (
+            s.get("days_since_last_session") is not None
+            and s["days_since_last_session"] >= 5
+        ),
+        recommendation="It's been {days_off} days — ease back in with drilling or flow rolls",
+        explanation=(
+            "{days_off} days since your last session. "
+            "Warm up carefully and avoid jumping straight to hard sparring."
+        ),
+        priority=3,
+    ),
+    Rule(
+        name="sleep_debt_high",
+        condition=lambda r, s: (
+            s.get("sleep_debt_min") is not None and s["sleep_debt_min"] >= 120
+        ),
+        recommendation=(
+            "Sleep debt is high ({sleep_debt}h). "
+            "Prioritize sleep over training today."
+        ),
+        explanation=(
+            "Accumulated sleep debt of {sleep_debt}h. "
+            "Training on poor sleep increases injury risk and impairs learning."
+        ),
+        priority=2,
+    ),
 ]
 
 
@@ -201,6 +257,15 @@ def format_explanation(explanation: str, readiness: dict, session_context: dict)
     if injuries:
         areas = [inj.get("area", "unknown") for inj in injuries[:3]]
         replacements["injury_areas"] = ", ".join(areas)
+
+    # Load management replacements
+    replacements["last_intensity"] = session_context.get("last_session_intensity", "")
+    replacements["sessions_week"] = session_context.get("sessions_this_week", "")
+    replacements["days_off"] = session_context.get("days_since_last_session", "")
+    sleep_debt_min = session_context.get("sleep_debt_min")
+    replacements["sleep_debt"] = (
+        f"{sleep_debt_min / 60:.1f}" if sleep_debt_min is not None else ""
+    )
 
     # Replace placeholders
     result = explanation

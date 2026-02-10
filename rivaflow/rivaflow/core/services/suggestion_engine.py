@@ -48,6 +48,37 @@ class SuggestionEngine:
             "stale_techniques": stale_techniques,
         }
 
+        # Enrich with session frequency / load data
+        try:
+            from rivaflow.db.repositories.session_repo import SessionRepository
+
+            recent_all = SessionRepository.get_recent(user_id, limit=10)
+            if recent_all:
+                last_date_str = str(recent_all[0].get("session_date", ""))
+                if last_date_str:
+                    try:
+                        last_dt = date.fromisoformat(last_date_str[:10])
+                        session_context["days_since_last_session"] = (
+                            date.today() - last_dt
+                        ).days
+                    except ValueError:
+                        pass
+                session_context["last_session_intensity"] = recent_all[0].get(
+                    "intensity"
+                )
+
+            # Sessions this week (Mon-Sun)
+            week_start = date.today() - timedelta(days=date.today().weekday())
+            week_sessions = [
+                s
+                for s in recent_all
+                if s.get("session_date")
+                and str(s["session_date"])[:10] >= week_start.isoformat()
+            ]
+            session_context["sessions_this_week"] = len(week_sessions)
+        except Exception:
+            logger.debug("Session frequency enrichment skipped", exc_info=True)
+
         # Enrich with coach preferences for mode-aware rules
         try:
             prefs = CoachPreferencesRepository.get(user_id)
@@ -121,6 +152,12 @@ class SuggestionEngine:
                         session_context["hrv_slope_5d"] = round(
                             _linear_slope(hrv_values), 4
                         )
+
+                # Sleep debt from latest recovery record
+                if latest_rec and latest_rec.get("sleep_debt_ms") is not None:
+                    session_context["sleep_debt_min"] = round(
+                        latest_rec["sleep_debt_ms"] / 60_000
+                    )
         except Exception:
             logger.debug("WHOOP context enrichment skipped", exc_info=True)
 
@@ -186,6 +223,17 @@ class SuggestionEngine:
         if injuries:
             areas = [inj.get("area", "unknown") for inj in injuries[:3]]
             replacements["injury_areas"] = ", ".join(areas)
+
+        # Load management replacements
+        replacements["last_intensity"] = session_context.get(
+            "last_session_intensity", ""
+        )
+        replacements["sessions_week"] = session_context.get("sessions_this_week", "")
+        replacements["days_off"] = session_context.get("days_since_last_session", "")
+        sleep_debt_min = session_context.get("sleep_debt_min")
+        replacements["sleep_debt"] = (
+            f"{sleep_debt_min / 60:.1f}" if sleep_debt_min is not None else ""
+        )
 
         result = recommendation
         for key, value in replacements.items():
