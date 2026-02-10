@@ -3,18 +3,32 @@
 from datetime import UTC, datetime, timedelta
 from unittest.mock import patch
 
+from rivaflow.core.auth import hash_password
+from rivaflow.db.repositories import UserRepository
 from rivaflow.db.repositories.whoop_recovery_cache_repo import (
     WhoopRecoveryCacheRepository,
 )
+
+
+def _create_test_user():
+    """Create a test user and return the user dict."""
+    return UserRepository().create(
+        email="whoop-recovery@test.com",
+        hashed_password=hash_password("testpass"),
+        first_name="Test",
+        last_name="User",
+    )
 
 
 class TestWhoopRecoveryCacheRepo:
     """Tests for WhoopRecoveryCacheRepository CRUD operations."""
 
     def test_upsert_creates_new_record(self, temp_db):
+        user = _create_test_user()
+        uid = user["id"]
         repo = WhoopRecoveryCacheRepository()
         row_id = repo.upsert(
-            user_id=1,
+            user_id=uid,
             whoop_cycle_id="cycle_123",
             recovery_score=85.0,
             resting_hr=55,
@@ -27,40 +41,44 @@ class TestWhoopRecoveryCacheRepo:
         assert row_id > 0
 
     def test_upsert_updates_existing_record(self, temp_db):
+        user = _create_test_user()
+        uid = user["id"]
         repo = WhoopRecoveryCacheRepository()
         id1 = repo.upsert(
-            user_id=1,
+            user_id=uid,
             whoop_cycle_id="cycle_123",
             recovery_score=85.0,
             cycle_start="2025-02-01",
         )
         id2 = repo.upsert(
-            user_id=1,
+            user_id=uid,
             whoop_cycle_id="cycle_123",
             recovery_score=90.0,
             cycle_start="2025-02-01",
         )
         # Should update same row, not create new
         assert id1 == id2
-        row = repo.get_latest(1)
+        row = repo.get_latest(uid)
         assert row is not None
         assert row["recovery_score"] == 90.0
 
     def test_get_latest_returns_most_recent(self, temp_db):
+        user = _create_test_user()
+        uid = user["id"]
         repo = WhoopRecoveryCacheRepository()
         repo.upsert(
-            user_id=1,
+            user_id=uid,
             whoop_cycle_id="cycle_1",
             recovery_score=70.0,
             cycle_start="2025-02-01",
         )
         repo.upsert(
-            user_id=1,
+            user_id=uid,
             whoop_cycle_id="cycle_2",
             recovery_score=85.0,
             cycle_start="2025-02-02",
         )
-        latest = repo.get_latest(1)
+        latest = repo.get_latest(uid)
         assert latest is not None
         assert latest["recovery_score"] == 85.0
         assert latest["whoop_cycle_id"] == "cycle_2"
@@ -70,36 +88,40 @@ class TestWhoopRecoveryCacheRepo:
         assert repo.get_latest(999) is None
 
     def test_get_by_date_range(self, temp_db):
+        user = _create_test_user()
+        uid = user["id"]
         repo = WhoopRecoveryCacheRepository()
         for day in range(1, 6):
             repo.upsert(
-                user_id=1,
+                user_id=uid,
                 whoop_cycle_id=f"cycle_{day}",
                 recovery_score=60.0 + day * 5,
                 cycle_start=f"2025-02-0{day}",
             )
-        results = repo.get_by_date_range(1, "2025-02-02", "2025-02-04")
+        results = repo.get_by_date_range(uid, "2025-02-02", "2025-02-04")
         assert len(results) == 3
         # Should be ordered by cycle_start DESC
         assert results[0]["whoop_cycle_id"] == "cycle_4"
 
     def test_delete_by_user(self, temp_db):
+        user = _create_test_user()
+        uid = user["id"]
         repo = WhoopRecoveryCacheRepository()
         repo.upsert(
-            user_id=1,
+            user_id=uid,
             whoop_cycle_id="cycle_1",
             recovery_score=70.0,
             cycle_start="2025-02-01",
         )
         repo.upsert(
-            user_id=1,
+            user_id=uid,
             whoop_cycle_id="cycle_2",
             recovery_score=80.0,
             cycle_start="2025-02-02",
         )
-        deleted = repo.delete_by_user(1)
+        deleted = repo.delete_by_user(uid)
         assert deleted == 2
-        assert repo.get_latest(1) is None
+        assert repo.get_latest(uid) is None
 
     def test_delete_by_user_no_data(self, temp_db):
         repo = WhoopRecoveryCacheRepository()
@@ -114,12 +136,14 @@ class TestWhoopServiceRecovery:
     def test_apply_recovery_to_readiness_high_recovery(self, mock_client_cls, temp_db):
         from rivaflow.core.services.whoop_service import WhoopService
 
+        user = _create_test_user()
+        uid = user["id"]
         service = WhoopService()
 
         # Insert a recovery record
         repo = WhoopRecoveryCacheRepository()
         repo.upsert(
-            user_id=1,
+            user_id=uid,
             whoop_cycle_id="cycle_today",
             recovery_score=92.0,
             hrv_ms=75.0,
@@ -129,7 +153,7 @@ class TestWhoopServiceRecovery:
             cycle_start="2025-02-08",
         )
 
-        result = service.apply_recovery_to_readiness(1, "2025-02-08")
+        result = service.apply_recovery_to_readiness(uid, "2025-02-08")
         assert result is not None
         assert result["sleep"] == 5  # 90-100% maps to 5
         assert result["energy"] == 5
@@ -141,11 +165,13 @@ class TestWhoopServiceRecovery:
     def test_apply_recovery_to_readiness_low_recovery(self, mock_client_cls, temp_db):
         from rivaflow.core.services.whoop_service import WhoopService
 
+        user = _create_test_user()
+        uid = user["id"]
         service = WhoopService()
 
         repo = WhoopRecoveryCacheRepository()
         repo.upsert(
-            user_id=1,
+            user_id=uid,
             whoop_cycle_id="cycle_low",
             recovery_score=25.0,
             hrv_ms=30.0,
@@ -153,7 +179,7 @@ class TestWhoopServiceRecovery:
             cycle_start="2025-02-08",
         )
 
-        result = service.apply_recovery_to_readiness(1, "2025-02-08")
+        result = service.apply_recovery_to_readiness(uid, "2025-02-08")
         assert result is not None
         assert result["sleep"] == 1  # 1-33% maps to 1
         assert result["energy"] == 1
@@ -164,11 +190,13 @@ class TestWhoopServiceRecovery:
     ):
         from rivaflow.core.services.whoop_service import WhoopService
 
+        user = _create_test_user()
+        uid = user["id"]
         service = WhoopService()
 
         repo = WhoopRecoveryCacheRepository()
         repo.upsert(
-            user_id=1,
+            user_id=uid,
             whoop_cycle_id="cycle_med",
             recovery_score=55.0,
             hrv_ms=50.0,
@@ -176,7 +204,7 @@ class TestWhoopServiceRecovery:
             cycle_start="2025-02-08",
         )
 
-        result = service.apply_recovery_to_readiness(1, "2025-02-08")
+        result = service.apply_recovery_to_readiness(uid, "2025-02-08")
         assert result is not None
         assert result["sleep"] == 3  # 50-66% maps to 3
         assert result["energy"] == 3
@@ -196,12 +224,14 @@ class TestWhoopServiceRecovery:
             WhoopConnectionRepository,
         )
 
+        user = _create_test_user()
+        uid = user["id"]
         service = WhoopService()
         conn_repo = WhoopConnectionRepository()
 
         # Create a connection with old (limited) scopes
         conn_repo.create(
-            user_id=1,
+            user_id=uid,
             whoop_user_id="whoop_123",
             access_token_encrypted="fake_token",
             refresh_token_encrypted="fake_refresh",
@@ -209,7 +239,7 @@ class TestWhoopServiceRecovery:
             scopes="read:workout read:profile offline",
         )
 
-        result = service.check_scope_compatibility(1)
+        result = service.check_scope_compatibility(uid)
         assert result["needs_reauth"] is True
         assert len(result["missing_scopes"]) > 0
         assert "read:recovery" in result["missing_scopes"]
@@ -222,12 +252,14 @@ class TestWhoopServiceRecovery:
             WhoopConnectionRepository,
         )
 
+        user = _create_test_user()
+        uid = user["id"]
         service = WhoopService()
         conn_repo = WhoopConnectionRepository()
 
         # Create connection with all current scopes
         conn_repo.create(
-            user_id=1,
+            user_id=uid,
             whoop_user_id="whoop_123",
             access_token_encrypted="fake_token",
             refresh_token_encrypted="fake_refresh",
@@ -235,6 +267,6 @@ class TestWhoopServiceRecovery:
             scopes=WHOOP_SCOPES,
         )
 
-        result = service.check_scope_compatibility(1)
+        result = service.check_scope_compatibility(uid)
         assert result["needs_reauth"] is False
         assert len(result["missing_scopes"]) == 0

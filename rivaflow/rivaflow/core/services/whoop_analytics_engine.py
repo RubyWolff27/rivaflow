@@ -663,8 +663,10 @@ class WhoopAnalyticsEngine:
             )
 
         # Insight
-        recent_debts = [
-            r["avg_debt_hrs"] for r in result[-4:] if r["avg_debt_hrs"] is not None
+        recent_debts: list[float] = [
+            float(r["avg_debt_hrs"])
+            for r in result[-4:]
+            if r["avg_debt_hrs"] is not None
         ]
         if recent_debts and statistics.mean(recent_debts) > 1.0:
             insight = (

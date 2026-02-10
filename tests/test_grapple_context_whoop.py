@@ -110,24 +110,31 @@ def test_whoop_context_partial_data(mock_conn_repo, mock_rec_repo):
 
 
 @patch(
-    "rivaflow.core.services.grapple.ai_insight_service" ".WhoopWorkoutCacheRepository"
+    "rivaflow.db.repositories.whoop_workout_cache_repo"
+    ".WhoopWorkoutCacheRepository.get_by_session_id"
 )
 @patch(
-    "rivaflow.core.services.grapple.ai_insight_service" ".WhoopRecoveryCacheRepository"
+    "rivaflow.db.repositories.whoop_recovery_cache_repo"
+    ".WhoopRecoveryCacheRepository.get_by_date_range"
 )
-@patch("rivaflow.core.services.grapple.ai_insight_service" ".WhoopConnectionRepository")
-@patch("rivaflow.core.services.grapple.ai_insight_service" ".GrappleLLMClient")
-@patch("rivaflow.core.services.grapple.ai_insight_service" ".InsightsAnalyticsService")
+@patch(
+    "rivaflow.db.repositories.whoop_connection_repo"
+    ".WhoopConnectionRepository.get_by_user_id"
+)
+@patch("rivaflow.core.services.grapple.ai_insight_service.GrappleLLMClient")
+@patch("rivaflow.core.services.grapple.ai_insight_service.InsightsAnalyticsService")
 @patch("rivaflow.core.services.grapple.ai_insight_service.SessionRepository")
-async def test_insight_includes_whoop_recovery(
+def test_insight_includes_whoop_recovery(
     mock_sess_repo,
     mock_insights,
     mock_llm,
-    mock_conn_repo,
-    mock_rec_repo,
-    mock_wo_repo,
+    mock_conn_get,
+    mock_rec_range,
+    mock_wo_get,
 ):
     """Post-session insight prompt includes WHOOP recovery data."""
+    import asyncio
+
     from rivaflow.core.services.grapple.ai_insight_service import (
         generate_post_session_insight,
     )
@@ -158,35 +165,30 @@ async def test_insight_includes_whoop_recovery(
     }
     mock_insights.return_value = mock_insights_inst
 
-    mock_conn_repo.get_by_user_id.return_value = {"is_active": True}
-    mock_rec_repo.get_by_date_range.return_value = [
-        {"recovery_score": 80, "hrv_ms": 50}
-    ]
-    mock_wo_repo.get_by_session_id.return_value = {"strain": 14.2}
+    mock_conn_get.return_value = {"is_active": True}
+    mock_rec_range.return_value = [{"recovery_score": 80, "hrv_ms": 50}]
+    mock_wo_get.return_value = {"strain": 14.2}
 
     mock_llm_inst = MagicMock()
-    mock_llm_inst.chat = MagicMock()
-    import asyncio
 
-    mock_llm_inst.chat.return_value = asyncio.coroutine(
-        lambda: {
+    async def _fake_chat(*args, **kwargs):
+        return {
             "content": '{"title":"Test","content":"Test","category":"observation"}',
             "total_tokens": 100,
             "cost_usd": 0.01,
         }
-    )()
+
+    mock_llm_inst.chat = _fake_chat
     mock_llm.return_value = mock_llm_inst
 
-    # We can't easily capture the full context without running the LLM,
-    # but we can verify no exceptions are raised
-    # The actual prompt content is passed to client.chat()
+    # Run the async function synchronously
+    # May fail due to AIInsightRepository not being mocked,
+    # but the WHOOP enrichment should not raise
     try:
-        await generate_post_session_insight(1, 1)
+        asyncio.get_event_loop().run_until_complete(generate_post_session_insight(1, 1))
     except Exception:
-        # May fail due to AIInsightRepository not being mocked,
-        # but the WHOOP enrichment should not raise
         pass
 
     # Verify WHOOP repos were called
-    mock_conn_repo.get_by_user_id.assert_called_once_with(1)
-    mock_rec_repo.get_by_date_range.assert_called_once()
+    mock_conn_get.assert_called_once_with(1)
+    mock_rec_range.assert_called_once()

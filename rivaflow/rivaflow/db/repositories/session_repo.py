@@ -172,6 +172,7 @@ class SessionRepository:
                 "techniques": lambda v: (
                     json.dumps(v) if v is not None else json.dumps([])
                 ),
+                "needs_review": lambda v: 1 if v else 0,
             }
 
             # List fields that can be explicitly cleared with []
