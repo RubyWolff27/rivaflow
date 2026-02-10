@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowLeft, Sparkles, Trophy, Heart, Brain, Shield, Plus, X } from 'lucide-react';
 import { Card, PrimaryButton } from '../components/ui';
-import { coachPreferencesApi } from '../api/client';
+import { coachPreferencesApi, profileApi } from '../api/client';
 import { useToast } from '../contexts/ToastContext';
 
 interface Injury {
@@ -12,13 +12,13 @@ interface Injury {
   notes: string;
 }
 
-const BELT_LEVELS = [
-  { id: 'white', label: 'White', color: '#E5E7EB' },
-  { id: 'blue', label: 'Blue', color: '#3B82F6' },
-  { id: 'purple', label: 'Purple', color: '#8B5CF6' },
-  { id: 'brown', label: 'Brown', color: '#92400E' },
-  { id: 'black', label: 'Black', color: '#1F2937' },
-];
+const BELT_COLORS: Record<string, string> = {
+  white: '#E5E7EB',
+  blue: '#3B82F6',
+  purple: '#8B5CF6',
+  brown: '#92400E',
+  black: '#1F2937',
+};
 
 const COMPETITION_RULESETS = [
   { id: 'none', label: 'No Preference' },
@@ -78,7 +78,7 @@ export default function CoachSettings() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
-  const [beltLevel, setBeltLevel] = useState('white');
+  const [currentGrade, setCurrentGrade] = useState('');
   const [competitionRuleset, setCompetitionRuleset] = useState('none');
   const [trainingMode, setTrainingMode] = useState('lifestyle');
   const [compDate, setCompDate] = useState('');
@@ -100,10 +100,16 @@ export default function CoachSettings() {
   useEffect(() => {
     const load = async () => {
       try {
+        // Fetch profile for belt (source of truth)
+        try {
+          const profileRes = await profileApi.get();
+          const p = (profileRes as any).data;
+          if (p?.current_grade) setCurrentGrade(p.current_grade);
+        } catch { /* profile not set yet */ }
+
         const res = await coachPreferencesApi.get();
         const d = res.data;
         if (d) {
-          setBeltLevel(d.belt_level || 'white');
           setCompetitionRuleset(d.competition_ruleset || 'none');
           setTrainingMode(d.training_mode || 'lifestyle');
           setCompDate(d.comp_date || '');
@@ -159,7 +165,6 @@ export default function CoachSettings() {
     setSaving(true);
     try {
       await coachPreferencesApi.update({
-        belt_level: beltLevel,
         competition_ruleset: competitionRuleset,
         training_mode: trainingMode,
         comp_date: trainingMode === 'competition_prep' ? compDate || null : null,
@@ -220,29 +225,32 @@ export default function CoachSettings() {
         </div>
       </div>
 
-      {/* 1. Belt Level */}
+      {/* 1. Your Belt (read-only from Profile) */}
       <Card className="p-5">
         <h2 className="text-sm font-semibold mb-1" style={{ color: 'var(--text)' }}>Your Belt</h2>
         <p className="text-xs mb-3" style={{ color: 'var(--muted)' }}>Grapple adapts its coaching depth and terminology to your level</p>
-        <div className="flex gap-2">
-          {BELT_LEVELS.map(belt => (
-            <button
-              key={belt.id}
-              onClick={() => setBeltLevel(belt.id)}
-              className="flex-1 py-3 rounded-xl text-xs font-bold transition-all relative"
-              style={{
-                backgroundColor: beltLevel === belt.id ? belt.color : 'var(--surfaceElev)',
-                color: beltLevel === belt.id
-                  ? (belt.id === 'white' ? '#1F2937' : '#fff')
-                  : 'var(--text)',
-                border: beltLevel === belt.id ? `2px solid ${belt.color}` : '2px solid transparent',
-                boxShadow: beltLevel === belt.id ? `0 0 12px ${belt.color}40` : 'none',
-              }}
-            >
-              {belt.label}
-            </button>
-          ))}
-        </div>
+        {currentGrade ? (
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div
+                className="w-8 h-3 rounded-sm"
+                style={{
+                  backgroundColor: BELT_COLORS[currentGrade.toLowerCase().split(' ')[0]] || '#9CA3AF',
+                  border: currentGrade.toLowerCase().startsWith('white') ? '1px solid var(--border)' : 'none',
+                }}
+              />
+              <span className="text-sm font-semibold" style={{ color: 'var(--text)' }}>{currentGrade}</span>
+            </div>
+            <Link to="/profile" className="text-xs hover:underline" style={{ color: 'var(--accent)' }}>
+              Update in Profile
+            </Link>
+          </div>
+        ) : (
+          <Link to="/profile" className="flex items-center justify-between p-3 rounded-lg" style={{ backgroundColor: 'var(--surfaceElev)' }}>
+            <span className="text-sm" style={{ color: 'var(--muted)' }}>Set your belt in Profile to personalise coaching</span>
+            <span className="text-xs font-medium" style={{ color: 'var(--accent)' }}>Set up</span>
+          </Link>
+        )}
       </Card>
 
       {/* 2. Training Mode */}

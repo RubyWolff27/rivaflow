@@ -12,6 +12,8 @@ from rivaflow.core.services.privacy_service import PrivacyService
 from rivaflow.db.repositories.coach_preferences_repo import (
     CoachPreferencesRepository,
 )
+from rivaflow.db.repositories.grading_repo import GradingRepository
+from rivaflow.db.repositories.profile_repo import ProfileRepository
 from rivaflow.db.repositories.readiness_repo import ReadinessRepository
 from rivaflow.db.repositories.session_repo import SessionRepository
 from rivaflow.db.repositories.user_repo import UserRepository
@@ -26,6 +28,9 @@ class GrappleContextBuilder:
     Similar to the existing chat context builder but optimized for Grapple's needs.
     """
 
+    # Map current_grade strings to belt keys used by directives
+    BELT_KEYWORDS = ["black", "brown", "purple", "blue", "white"]
+
     def __init__(self, user_id: int):
         """
         Initialize context builder.
@@ -37,7 +42,26 @@ class GrappleContextBuilder:
         self.session_repo = SessionRepository()
         self.readiness_repo = ReadinessRepository()
         self.user_repo = UserRepository()
+        self.profile_repo = ProfileRepository()
+        self.grading_repo = GradingRepository()
         self.insights = InsightsAnalyticsService()
+
+    def _get_belt_from_profile(self) -> str:
+        """Get belt level from profile/gradings (source of truth).
+
+        Parses current_grade like 'Blue (2 stripe)' into 'blue'.
+        Falls back to coach_preferences.belt_level if profile has no grade.
+        """
+        try:
+            profile = self.profile_repo.get(self.user_id)
+            grade = (profile or {}).get("current_grade") or ""
+            lower = grade.lower()
+            for belt in self.BELT_KEYWORDS:
+                if belt in lower:
+                    return belt
+        except Exception:
+            pass
+        return "white"
 
     def build_system_prompt(self) -> str:
         """
@@ -51,7 +75,8 @@ class GrappleContextBuilder:
         mode_directive = self._build_mode_directive(prefs)
         style_directive = self._build_style_directive(prefs)
         injury_directive = self._build_injury_directive(prefs)
-        belt_directive = self._build_belt_directive(prefs)
+        belt = self._get_belt_from_profile()
+        belt_directive = self._build_belt_directive(belt)
         ruleset_directive = self._build_ruleset_directive(prefs)
 
         return f"""You are Grapple, RivaFlow's AI BJJ coach. You hold coral-belt-level \
@@ -256,9 +281,8 @@ Training for long-term enjoyment and health, not competition.
         )
         return "\n" + "\n".join(lines) + "\n"
 
-    def _build_belt_directive(self, prefs: dict | None) -> str:
+    def _build_belt_directive(self, belt: str) -> str:
         """Build belt-level adaptation directive."""
-        belt = (prefs or {}).get("belt_level", "white")
         directives = {
             "white": """
 BELT-LEVEL ADAPTATION — WHITE BELT:
@@ -437,8 +461,28 @@ Athlete competes under NAGA (North American Grappling Association) rules:
         prefs = CoachPreferencesRepository.get(self.user_id)
         if prefs:
             ctx = ["PRACTITIONER CONTEXT:"]
-            if prefs.get("belt_level"):
-                ctx.append(f"Belt: {prefs['belt_level']}")
+            # Belt from profile (source of truth)
+            profile = None
+            try:
+                profile = self.profile_repo.get(self.user_id)
+            except Exception:
+                pass
+            grade_str = (profile or {}).get("current_grade")
+            if grade_str:
+                ctx.append(f"Belt: {grade_str}")
+            # Earliest grading date for training timeline
+            try:
+                all_gradings = self.grading_repo.list_all(
+                    self.user_id, order_by="date_graded ASC"
+                )
+                if all_gradings:
+                    first = all_gradings[0]
+                    ctx.append(
+                        f"First recorded belt: {first.get('grade')}"
+                        f" on {first.get('date_graded')}"
+                    )
+            except Exception:
+                pass
             if prefs.get("training_start_date"):
                 try:
                     start = date.fromisoformat(prefs["training_start_date"])

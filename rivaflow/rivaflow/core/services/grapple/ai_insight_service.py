@@ -42,12 +42,23 @@ def _get_mode_context(user_id: int) -> str:
         from rivaflow.db.repositories.coach_preferences_repo import (
             CoachPreferencesRepository,
         )
+        from rivaflow.db.repositories.profile_repo import (
+            ProfileRepository,
+        )
 
         prefs = CoachPreferencesRepository.get(user_id)
         if not prefs:
             return ""
         mode = prefs.get("training_mode", "lifestyle")
         parts = []
+        # Add belt from profile (source of truth)
+        try:
+            profile = ProfileRepository.get(user_id)
+            grade = (profile or {}).get("current_grade")
+            if grade:
+                parts.append(f"Athlete is a {grade}.")
+        except Exception:
+            pass
         if mode == "competition_prep":
             comp = prefs.get("comp_name") or "upcoming competition"
             parts.append(f"Athlete is in competition prep for {comp}.")
