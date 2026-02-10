@@ -12,6 +12,23 @@ interface Injury {
   notes: string;
 }
 
+const BELT_LEVELS = [
+  { id: 'white', label: 'White', color: '#E5E7EB' },
+  { id: 'blue', label: 'Blue', color: '#3B82F6' },
+  { id: 'purple', label: 'Purple', color: '#8B5CF6' },
+  { id: 'brown', label: 'Brown', color: '#92400E' },
+  { id: 'black', label: 'Black', color: '#1F2937' },
+];
+
+const COMPETITION_RULESETS = [
+  { id: 'none', label: 'No Preference' },
+  { id: 'ibjjf', label: 'IBJJF' },
+  { id: 'adcc', label: 'ADCC' },
+  { id: 'sub_only', label: 'Sub Only' },
+  { id: 'naga', label: 'NAGA' },
+  { id: 'other', label: 'Other' },
+];
+
 const TRAINING_MODES = [
   { id: 'lifestyle', label: 'Lifestyle & Health', icon: Heart, desc: 'Training for enjoyment, fitness, and longevity' },
   { id: 'competition_prep', label: 'Competition Prep', icon: Trophy, desc: 'Peaking for a specific event' },
@@ -61,6 +78,8 @@ export default function CoachSettings() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
+  const [beltLevel, setBeltLevel] = useState('white');
+  const [competitionRuleset, setCompetitionRuleset] = useState('none');
   const [trainingMode, setTrainingMode] = useState('lifestyle');
   const [compDate, setCompDate] = useState('');
   const [compName, setCompName] = useState('');
@@ -83,6 +102,8 @@ export default function CoachSettings() {
         const res = await coachPreferencesApi.get();
         const d = res.data;
         if (d) {
+          setBeltLevel(d.belt_level || 'white');
+          setCompetitionRuleset(d.competition_ruleset || 'none');
           setTrainingMode(d.training_mode || 'lifestyle');
           setCompDate(d.comp_date || '');
           setCompName(d.comp_name || '');
@@ -136,6 +157,8 @@ export default function CoachSettings() {
     setSaving(true);
     try {
       await coachPreferencesApi.update({
+        belt_level: beltLevel,
+        competition_ruleset: competitionRuleset,
         training_mode: trainingMode,
         comp_date: trainingMode === 'competition_prep' ? compDate || null : null,
         comp_name: trainingMode === 'competition_prep' ? compName || null : null,
@@ -194,7 +217,32 @@ export default function CoachSettings() {
         </div>
       </div>
 
-      {/* 1. Training Mode */}
+      {/* 1. Belt Level */}
+      <Card className="p-5">
+        <h2 className="text-sm font-semibold mb-1" style={{ color: 'var(--text)' }}>Your Belt</h2>
+        <p className="text-xs mb-3" style={{ color: 'var(--muted)' }}>Grapple adapts its coaching depth and terminology to your level</p>
+        <div className="flex gap-2">
+          {BELT_LEVELS.map(belt => (
+            <button
+              key={belt.id}
+              onClick={() => setBeltLevel(belt.id)}
+              className="flex-1 py-3 rounded-xl text-xs font-bold transition-all relative"
+              style={{
+                backgroundColor: beltLevel === belt.id ? belt.color : 'var(--surfaceElev)',
+                color: beltLevel === belt.id
+                  ? (belt.id === 'white' ? '#1F2937' : '#fff')
+                  : 'var(--text)',
+                border: beltLevel === belt.id ? `2px solid ${belt.color}` : '2px solid transparent',
+                boxShadow: beltLevel === belt.id ? `0 0 12px ${belt.color}40` : 'none',
+              }}
+            >
+              {belt.label}
+            </button>
+          ))}
+        </div>
+      </Card>
+
+      {/* 2. Training Mode */}
       <Card className="p-5">
         <h2 className="text-sm font-semibold mb-3" style={{ color: 'var(--text)' }}>Training Mode</h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -259,7 +307,28 @@ export default function CoachSettings() {
         </Card>
       )}
 
-      {/* 3. Coaching Style */}
+      {/* Competition Ruleset */}
+      <Card className="p-5">
+        <h2 className="text-sm font-semibold mb-1" style={{ color: 'var(--text)' }}>Competition Ruleset</h2>
+        <p className="text-xs mb-3" style={{ color: 'var(--muted)' }}>Grapple adjusts strategy advice based on the rules you compete under</p>
+        <div className="flex flex-wrap gap-2">
+          {COMPETITION_RULESETS.map(rs => (
+            <button
+              key={rs.id}
+              onClick={() => setCompetitionRuleset(rs.id)}
+              className="px-3 py-1.5 rounded-full text-xs font-medium transition-all"
+              style={{
+                backgroundColor: competitionRuleset === rs.id ? 'var(--accent)' : 'var(--surfaceElev)',
+                color: competitionRuleset === rs.id ? '#fff' : 'var(--text)',
+              }}
+            >
+              {rs.label}
+            </button>
+          ))}
+        </div>
+      </Card>
+
+      {/* Coaching Style */}
       <Card className="p-5">
         <h2 className="text-sm font-semibold mb-3" style={{ color: 'var(--text)' }}>Coaching Style</h2>
         <div className="flex flex-wrap gap-2">
@@ -474,8 +543,11 @@ export default function CoachSettings() {
       </PrimaryButton>
 
       {/* Info note */}
-      <p className="text-xs text-center pb-4" style={{ color: 'var(--muted)' }}>
+      <p className="text-xs text-center pb-2" style={{ color: 'var(--muted)' }}>
         Your preferences shape how Grapple gives advice, generates insights, and suggests daily training. Changes take effect on your next interaction.
+      </p>
+      <p className="text-xs text-center pb-4" style={{ color: 'var(--muted)', opacity: 0.7 }}>
+        Grapple is an AI training advisor and not a certified instructor. Always follow guidance from your in-person coach and consult medical professionals for injury or health concerns.
       </p>
     </div>
   );

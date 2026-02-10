@@ -28,6 +28,8 @@ VALID_COACHING_STYLES = {
 }
 VALID_POSITIONS = {"top", "bottom", "both"}
 VALID_COMP_EXPERIENCE = {"none", "beginner", "regular", "active"}
+VALID_BELT_LEVELS = {"white", "blue", "purple", "brown", "black"}
+VALID_COMPETITION_RULESETS = {"none", "ibjjf", "adcc", "sub_only", "naga", "other"}
 
 
 class Injury(BaseModel):
@@ -42,6 +44,8 @@ class Injury(BaseModel):
 class CoachPreferencesUpdate(BaseModel):
     """Coach preferences update model."""
 
+    belt_level: str | None = None
+    competition_ruleset: str | None = None
     training_mode: str | None = None
     comp_date: str | None = None
     comp_name: str | None = None
@@ -60,6 +64,8 @@ class CoachPreferencesUpdate(BaseModel):
 
 
 DEFAULTS = {
+    "belt_level": "white",
+    "competition_ruleset": "none",
     "training_mode": "lifestyle",
     "coaching_style": "balanced",
     "primary_position": "both",
@@ -129,6 +135,18 @@ def update_preferences(
     ):
         return {
             "error": f"Invalid competition_experience. Must be one of: {VALID_COMP_EXPERIENCE}"
+        }
+    if "belt_level" in fields and fields["belt_level"] not in VALID_BELT_LEVELS:
+        return {"error": f"Invalid belt_level. Must be one of: {VALID_BELT_LEVELS}"}
+    if (
+        "competition_ruleset" in fields
+        and fields["competition_ruleset"] not in VALID_COMPETITION_RULESETS
+    ):
+        return {
+            "error": (
+                "Invalid competition_ruleset. "
+                f"Must be one of: {VALID_COMPETITION_RULESETS}"
+            )
         }
     if "available_days_per_week" in fields:
         fields["available_days_per_week"] = max(

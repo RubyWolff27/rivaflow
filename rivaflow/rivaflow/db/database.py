@@ -495,6 +495,7 @@ def _apply_migrations(
         "076_whoop_recovery.sql",
         "077_whoop_auto_sessions.sql",
         "078_coach_preferences.sql",
+        "079_coach_belt_ruleset.sql",
     ]
 
     migrations_dir = Path(__file__).parent / "migrations"
