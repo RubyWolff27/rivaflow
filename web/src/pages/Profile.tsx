@@ -43,6 +43,7 @@ export default function Profile() {
     primary_training_type: 'gi',
     height_cm: '',
     target_weight_kg: '',
+    target_weight_date: '',
     weekly_sessions_target: 3,
     weekly_hours_target: 4.5,
     weekly_rolls_target: 15,
@@ -122,6 +123,7 @@ export default function Profile() {
             primary_training_type: profileRes.data?.primary_training_type ?? 'gi',
             height_cm: profileRes.data?.height_cm?.toString() ?? '',
             target_weight_kg: profileRes.data?.target_weight_kg?.toString() ?? '',
+            target_weight_date: profileRes.data?.target_weight_date ?? '',
             weekly_sessions_target: profileRes.data?.weekly_sessions_target ?? 3,
             weekly_hours_target: profileRes.data?.weekly_hours_target ?? 4.5,
             weekly_rolls_target: profileRes.data?.weekly_rolls_target ?? 15,
@@ -202,6 +204,7 @@ export default function Profile() {
         primary_training_type: profileRes.data?.primary_training_type ?? 'gi',
         height_cm: profileRes.data?.height_cm?.toString() ?? '',
         target_weight_kg: profileRes.data?.target_weight_kg?.toString() ?? '',
+        target_weight_date: profileRes.data?.target_weight_date ?? '',
         weekly_sessions_target: profileRes.data?.weekly_sessions_target ?? 3,
         weekly_hours_target: profileRes.data?.weekly_hours_target ?? 4.5,
         weekly_rolls_target: profileRes.data?.weekly_rolls_target ?? 15,
@@ -350,6 +353,7 @@ export default function Profile() {
         primary_training_type: formData.primary_training_type || undefined,
         height_cm: formData.height_cm ? parseInt(formData.height_cm) : undefined,
         target_weight_kg: formData.target_weight_kg ? parseFloat(formData.target_weight_kg) : undefined,
+        target_weight_date: formData.target_weight_date || undefined,
         avatar_url: formData.avatar_url || undefined,
       });
       setSuccess(true);
@@ -804,6 +808,17 @@ export default function Profile() {
               />
             </div>
           </div>
+          {formData.target_weight_kg && (
+            <div>
+              <label className="label">Target Date (optional)</label>
+              <input
+                type="date"
+                className="input"
+                value={formData.target_weight_date}
+                onChange={(e) => setFormData({ ...formData, target_weight_date: e.target.value })}
+              />
+            </div>
+          )}
 
           {/* Location */}
           <div className="grid grid-cols-2 gap-4">

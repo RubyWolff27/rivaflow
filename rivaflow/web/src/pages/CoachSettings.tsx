@@ -96,6 +96,8 @@ export default function CoachSettings() {
   const [availableDays, setAvailableDays] = useState('4');
   const [motivations, setMotivations] = useState<string[]>([]);
   const [additionalContext, setAdditionalContext] = useState('');
+  const [giNogiPreference, setGiNogiPreference] = useState('both');
+  const [giBiasPct, setGiBiasPct] = useState(50);
 
   useEffect(() => {
     const load = async () => {
@@ -127,6 +129,8 @@ export default function CoachSettings() {
           setAvailableDays(d.available_days_per_week != null ? String(d.available_days_per_week) : '4');
           setMotivations(d.motivations || []);
           setAdditionalContext(d.additional_context || '');
+          setGiNogiPreference(d.gi_nogi_preference || 'both');
+          setGiBiasPct(d.gi_bias_pct != null ? d.gi_bias_pct : 50);
         }
       } catch {
         // First time — use defaults
@@ -182,6 +186,8 @@ export default function CoachSettings() {
         available_days_per_week: parseInt(availableDays) || 4,
         motivations,
         additional_context: additionalContext || null,
+        gi_nogi_preference: giNogiPreference,
+        gi_bias_pct: giNogiPreference === 'both' ? giBiasPct : 50,
       });
       toast.success('Coach preferences saved');
     } catch {
@@ -363,6 +369,49 @@ export default function CoachSettings() {
             </button>
           ))}
         </div>
+      </Card>
+
+      {/* Gi / No-Gi Preference */}
+      <Card className="p-5">
+        <h2 className="text-sm font-semibold mb-1" style={{ color: 'var(--text)' }}>Gi / No-Gi Preference</h2>
+        <p className="text-xs mb-3" style={{ color: 'var(--muted)' }}>Grapple skews technique recommendations based on your preference</p>
+        <div className="flex gap-2 mb-3">
+          {[
+            { id: 'gi_only', label: 'Gi Only' },
+            { id: 'both', label: 'Both' },
+            { id: 'nogi_only', label: 'No-Gi Only' },
+          ].map((opt) => (
+            <button
+              key={opt.id}
+              onClick={() => setGiNogiPreference(opt.id)}
+              className="flex-1 py-2 rounded-lg text-xs font-medium transition-all"
+              style={{
+                backgroundColor: giNogiPreference === opt.id ? 'var(--accent)' : 'var(--surfaceElev)',
+                color: giNogiPreference === opt.id ? '#fff' : 'var(--text)',
+              }}
+            >
+              {opt.label}
+            </button>
+          ))}
+        </div>
+        {giNogiPreference === 'both' && (
+          <div>
+            <div className="flex justify-between text-xs mb-1" style={{ color: 'var(--muted)' }}>
+              <span>No-Gi</span>
+              <span>{giBiasPct}% Gi / {100 - giBiasPct}% No-Gi</span>
+              <span>Gi</span>
+            </div>
+            <input
+              type="range"
+              min={0}
+              max={100}
+              step={5}
+              value={giBiasPct}
+              onChange={(e) => setGiBiasPct(parseInt(e.target.value))}
+              className="w-full"
+            />
+          </div>
+        )}
       </Card>
 
       {/* 4. Your Game */}

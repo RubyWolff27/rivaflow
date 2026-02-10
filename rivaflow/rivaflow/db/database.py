@@ -498,6 +498,9 @@ def _apply_migrations(
         "079_coach_belt_ruleset.sql",
         "080_training_start_date.sql",
         "081_whoop_auto_fill_readiness.sql",
+        "082_gi_nogi_preference.sql",
+        "083_target_weight_date.sql",
+        "084_email_drip_log.sql",
     ]
 
     migrations_dir = Path(__file__).parent / "migrations"

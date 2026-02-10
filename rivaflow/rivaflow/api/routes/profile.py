@@ -30,6 +30,7 @@ class ProfileUpdate(BaseModel):
     primary_training_type: str | None = None
     height_cm: int | None = None
     target_weight_kg: float | None = None
+    target_weight_date: str | None = None
     weekly_sessions_target: int | None = None
     weekly_hours_target: float | None = None
     weekly_rolls_target: int | None = None
@@ -163,6 +164,7 @@ def update_profile(
         primary_training_type=profile.primary_training_type,
         height_cm=profile.height_cm,
         target_weight_kg=profile.target_weight_kg,
+        target_weight_date=profile.target_weight_date,
         weekly_sessions_target=profile.weekly_sessions_target,
         weekly_hours_target=profile.weekly_hours_target,
         weekly_rolls_target=profile.weekly_rolls_target,

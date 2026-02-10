@@ -641,6 +641,213 @@ RivaFlow - Training OS for the Mat
             text_content=text_content,
         )
 
+    def send_drip_day1(self, email: str, first_name: str | None = None) -> bool:
+        """Drip email Day 1: Get Started — profile setup, belt, gym."""
+        base_url = os.getenv("APP_BASE_URL", "https://rivaflow.app")
+        greeting = f"Hey {first_name}," if first_name else "Hey there,"
+
+        html_content = f"""
+<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        body {{ font-family: Arial, sans-serif; line-height: 1.6; color: #e0e0e0; background-color: #1a1a2e; margin: 0; padding: 0; }}
+        .container {{ max-width: 600px; margin: 0 auto; padding: 30px 20px; }}
+        .header {{ text-align: center; padding-bottom: 20px; border-bottom: 1px solid #2a2a4a; margin-bottom: 30px; }}
+        .header h1 {{ color: #ffffff; font-size: 24px; margin: 0; }}
+        .greeting {{ font-size: 18px; color: #ffffff; margin-bottom: 10px; }}
+        .text {{ font-size: 15px; color: #c0c0c0; margin-bottom: 20px; }}
+        .step {{ background-color: #2a2a4a; border-radius: 8px; padding: 20px; margin-bottom: 16px; }}
+        .step-title {{ font-size: 14px; font-weight: 700; color: #ff6b35; text-transform: uppercase; letter-spacing: 1px; margin: 0 0 6px 0; }}
+        .step-description {{ font-size: 14px; color: #c0c0c0; margin: 0 0 14px 0; }}
+        .button {{ display: inline-block; padding: 10px 22px; background-color: #ff6b35; color: #ffffff; text-decoration: none; border-radius: 6px; font-size: 14px; font-weight: 600; }}
+        .footer {{ margin-top: 30px; padding-top: 20px; border-top: 1px solid #2a2a4a; font-size: 12px; color: #666; text-align: center; }}
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header"><h1>Get Started with RivaFlow</h1></div>
+        <p class="greeting">{greeting}</p>
+        <p class="text">Welcome to Day 1! Let's get your profile set up so RivaFlow can personalise your experience.</p>
+        <div class="step">
+            <p class="step-title">Set Up Your Profile</p>
+            <p class="step-description">Add your belt rank, gym, and a profile photo. This helps Grapple AI coach you at the right level.</p>
+            <a href="{base_url}/profile" class="button">Set Up Profile</a>
+        </div>
+        <div class="step">
+            <p class="step-title">Log Your Belt</p>
+            <p class="step-description">Record your current belt and any stripes. Your belt progression is tracked over time.</p>
+            <a href="{base_url}/profile" class="button">Log Your Belt</a>
+        </div>
+        <div class="footer">
+            <p>RivaFlow &mdash; Training OS for the Mat</p>
+        </div>
+    </div>
+</body>
+</html>"""
+
+        text_content = f"""Get Started with RivaFlow
+
+{greeting}
+
+Welcome to Day 1! Let's get your profile set up.
+
+1. SET UP YOUR PROFILE
+   Add your belt rank, gym, and photo.
+   {base_url}/profile
+
+2. LOG YOUR BELT
+   Record your current belt and stripes.
+   {base_url}/profile
+
+---
+RivaFlow - Training OS for the Mat"""
+
+        return self.send_email(
+            to_email=email,
+            subject="Day 1: Get Your Profile Set Up",
+            html_content=html_content,
+            text_content=text_content,
+        )
+
+    def send_drip_day3(self, email: str, first_name: str | None = None) -> bool:
+        """Drip email Day 3: Track Your Training."""
+        base_url = os.getenv("APP_BASE_URL", "https://rivaflow.app")
+        greeting = f"Hey {first_name}," if first_name else "Hey there,"
+
+        html_content = f"""
+<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        body {{ font-family: Arial, sans-serif; line-height: 1.6; color: #e0e0e0; background-color: #1a1a2e; margin: 0; padding: 0; }}
+        .container {{ max-width: 600px; margin: 0 auto; padding: 30px 20px; }}
+        .header {{ text-align: center; padding-bottom: 20px; border-bottom: 1px solid #2a2a4a; margin-bottom: 30px; }}
+        .header h1 {{ color: #ffffff; font-size: 24px; margin: 0; }}
+        .greeting {{ font-size: 18px; color: #ffffff; margin-bottom: 10px; }}
+        .text {{ font-size: 15px; color: #c0c0c0; margin-bottom: 20px; }}
+        .step {{ background-color: #2a2a4a; border-radius: 8px; padding: 20px; margin-bottom: 16px; }}
+        .step-title {{ font-size: 14px; font-weight: 700; color: #ff6b35; text-transform: uppercase; letter-spacing: 1px; margin: 0 0 6px 0; }}
+        .step-description {{ font-size: 14px; color: #c0c0c0; margin: 0 0 14px 0; }}
+        .button {{ display: inline-block; padding: 10px 22px; background-color: #ff6b35; color: #ffffff; text-decoration: none; border-radius: 6px; font-size: 14px; font-weight: 600; }}
+        .footer {{ margin-top: 30px; padding-top: 20px; border-top: 1px solid #2a2a4a; font-size: 12px; color: #666; text-align: center; }}
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header"><h1>Track Your Training</h1></div>
+        <p class="greeting">{greeting}</p>
+        <p class="text">Ready to start logging? Quick Log takes less than 30 seconds. The more you log, the smarter your analytics become.</p>
+        <div class="step">
+            <p class="step-title">Log a Session</p>
+            <p class="step-description">Use Quick Log for speed or Full Log for detail. Track techniques, rolls, partners, and more.</p>
+            <a href="{base_url}/log" class="button">Log a Session</a>
+        </div>
+        <div class="step">
+            <p class="step-title">Check Your Readiness</p>
+            <p class="step-description">Rate your sleep, stress, soreness, and energy daily. RivaFlow gives personalised training suggestions.</p>
+            <a href="{base_url}/readiness" class="button">Check Readiness</a>
+        </div>
+        <div class="footer">
+            <p>RivaFlow &mdash; Training OS for the Mat</p>
+        </div>
+    </div>
+</body>
+</html>"""
+
+        text_content = f"""Track Your Training
+
+{greeting}
+
+Ready to start logging? Quick Log takes less than 30 seconds.
+
+1. LOG A SESSION
+   Use Quick Log for speed or Full Log for detail.
+   {base_url}/log
+
+2. CHECK YOUR READINESS
+   Rate sleep, stress, soreness, and energy daily.
+   {base_url}/readiness
+
+---
+RivaFlow - Training OS for the Mat"""
+
+        return self.send_email(
+            to_email=email,
+            subject="Day 3: Start Tracking Your Training",
+            html_content=html_content,
+            text_content=text_content,
+        )
+
+    def send_drip_day5(self, email: str, first_name: str | None = None) -> bool:
+        """Drip email Day 5: Level Up — partners, Grapple AI, game plans."""
+        base_url = os.getenv("APP_BASE_URL", "https://rivaflow.app")
+        greeting = f"Hey {first_name}," if first_name else "Hey there,"
+
+        html_content = f"""
+<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        body {{ font-family: Arial, sans-serif; line-height: 1.6; color: #e0e0e0; background-color: #1a1a2e; margin: 0; padding: 0; }}
+        .container {{ max-width: 600px; margin: 0 auto; padding: 30px 20px; }}
+        .header {{ text-align: center; padding-bottom: 20px; border-bottom: 1px solid #2a2a4a; margin-bottom: 30px; }}
+        .header h1 {{ color: #ffffff; font-size: 24px; margin: 0; }}
+        .greeting {{ font-size: 18px; color: #ffffff; margin-bottom: 10px; }}
+        .text {{ font-size: 15px; color: #c0c0c0; margin-bottom: 20px; }}
+        .step {{ background-color: #2a2a4a; border-radius: 8px; padding: 20px; margin-bottom: 16px; }}
+        .step-title {{ font-size: 14px; font-weight: 700; color: #ff6b35; text-transform: uppercase; letter-spacing: 1px; margin: 0 0 6px 0; }}
+        .step-description {{ font-size: 14px; color: #c0c0c0; margin: 0 0 14px 0; }}
+        .button {{ display: inline-block; padding: 10px 22px; background-color: #ff6b35; color: #ffffff; text-decoration: none; border-radius: 6px; font-size: 14px; font-weight: 600; }}
+        .footer {{ margin-top: 30px; padding-top: 20px; border-top: 1px solid #2a2a4a; font-size: 12px; color: #666; text-align: center; }}
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header"><h1>Level Up Your Training</h1></div>
+        <p class="greeting">{greeting}</p>
+        <p class="text">You're all set up. Now let's unlock the full power of RivaFlow &mdash; connect with partners and get AI coaching.</p>
+        <div class="step">
+            <p class="step-title">Find Training Partners</p>
+            <p class="step-description">Connect with your gym crew. See each other's sessions, give likes, and track who you roll with most.</p>
+            <a href="{base_url}/find-friends" class="button">Find Partners</a>
+        </div>
+        <div class="step">
+            <p class="step-title">Try Grapple AI Coach</p>
+            <p class="step-description">Your personal BJJ advisor. Ask technique questions, get training insights, and build game plans &mdash; all powered by your data.</p>
+            <a href="{base_url}/grapple" class="button">Try Grapple AI</a>
+        </div>
+        <div class="footer">
+            <p>RivaFlow &mdash; Training OS for the Mat</p>
+        </div>
+    </div>
+</body>
+</html>"""
+
+        text_content = f"""Level Up Your Training
+
+{greeting}
+
+You're all set up. Now let's unlock the full power of RivaFlow.
+
+1. FIND TRAINING PARTNERS
+   Connect with your gym crew.
+   {base_url}/find-friends
+
+2. TRY GRAPPLE AI COACH
+   Your personal BJJ advisor.
+   {base_url}/grapple
+
+---
+RivaFlow - Training OS for the Mat"""
+
+        return self.send_email(
+            to_email=email,
+            subject="Day 5: Level Up with Partners & AI Coaching",
+            html_content=html_content,
+            text_content=text_content,
+        )
+
     def send_feedback_notification(
         self,
         feedback_id: int,

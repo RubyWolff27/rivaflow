@@ -71,9 +71,12 @@ function InsightCard({ insight }: { insight: AIInsight }) {
   );
 }
 
+const CLASS_TYPES = ['gi', 'no_gi', 'open_mat', 'drilling', 'competition', 'wrestling', 'judo', 'mma', 'sc', 'mobility'];
+
 function SessionExtractionPanel() {
   const [text, setText] = useState('');
   const [extracted, setExtracted] = useState<ExtractedSession | null>(null);
+  const [editData, setEditData] = useState<ExtractedSession>({});
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const toast = useToast();
@@ -92,6 +95,7 @@ function SessionExtractionPanel() {
     try {
       const response = await grappleApi.extractSession(text);
       setExtracted(response.data);
+      setEditData({ ...response.data });
     } catch (err) {
       toast.error(getErrorMessage(err));
     } finally {
@@ -105,21 +109,22 @@ function SessionExtractionPanel() {
     try {
       const today = getLocalDateString();
       await grappleApi.saveExtractedSession({
-        session_date: extracted.session_date || today,
-        class_type: extracted.class_type || 'gi',
-        gym_name: extracted.gym_name || '',
-        duration_mins: extracted.duration_mins || 60,
-        intensity: extracted.intensity || 3,
-        rolls: extracted.rolls || 0,
-        submissions_for: extracted.submissions_for || 0,
-        submissions_against: extracted.submissions_against || 0,
-        partners: extracted.partners || [],
-        techniques: extracted.techniques || [],
-        notes: extracted.notes || '',
-        events: extracted.events || [],
+        session_date: editData.session_date || today,
+        class_type: editData.class_type || 'gi',
+        gym_name: editData.gym_name || '',
+        duration_mins: editData.duration_mins || 60,
+        intensity: editData.intensity || 3,
+        rolls: editData.rolls || 0,
+        submissions_for: editData.submissions_for || 0,
+        submissions_against: editData.submissions_against || 0,
+        partners: editData.partners || [],
+        techniques: editData.techniques || [],
+        notes: editData.notes || '',
+        events: editData.events || [],
       });
       toast.success('Session saved!');
       setExtracted(null);
+      setEditData({});
       setText('');
     } catch (err) {
       toast.error(getErrorMessage(err));
@@ -184,57 +189,139 @@ function SessionExtractionPanel() {
           <h4 className="font-semibold text-sm" style={{ color: 'var(--text)' }}>
             Extracted Session Preview
           </h4>
+          <p className="text-xs" style={{ color: 'var(--muted)' }}>
+            Review and edit the extracted fields below before saving.
+          </p>
           {extracted.parse_error && (
             <p className="text-xs" style={{ color: 'var(--error)' }}>
-              Could not fully parse — please review and edit below.
+              Could not fully parse — please check the fields below.
             </p>
           )}
-          <div className="grid grid-cols-2 gap-2 text-sm">
+          <div className="grid grid-cols-2 gap-3 text-sm">
             <div>
-              <span style={{ color: 'var(--muted)' }}>Date:</span>{' '}
-              <span style={{ color: 'var(--text)' }}>{extracted.session_date || 'Today'}</span>
+              <label className="block text-xs mb-1" style={{ color: 'var(--muted)' }}>Date</label>
+              <input
+                type="date"
+                value={editData.session_date || getLocalDateString()}
+                onChange={(e) => setEditData({ ...editData, session_date: e.target.value })}
+                className="w-full px-2 py-1.5 rounded-lg border text-sm"
+                style={{ borderColor: 'var(--border)', backgroundColor: 'var(--surfaceElev)', color: 'var(--text)' }}
+              />
             </div>
             <div>
-              <span style={{ color: 'var(--muted)' }}>Type:</span>{' '}
-              <span style={{ color: 'var(--text)' }}>{extracted.class_type || 'gi'}</span>
+              <label className="block text-xs mb-1" style={{ color: 'var(--muted)' }}>Type</label>
+              <select
+                value={editData.class_type || 'gi'}
+                onChange={(e) => setEditData({ ...editData, class_type: e.target.value })}
+                className="w-full px-2 py-1.5 rounded-lg border text-sm"
+                style={{ borderColor: 'var(--border)', backgroundColor: 'var(--surfaceElev)', color: 'var(--text)' }}
+              >
+                {CLASS_TYPES.map((t) => (
+                  <option key={t} value={t}>{t.replace('_', ' ')}</option>
+                ))}
+              </select>
             </div>
             <div>
-              <span style={{ color: 'var(--muted)' }}>Duration:</span>{' '}
-              <span style={{ color: 'var(--text)' }}>{extracted.duration_mins || 60} min</span>
+              <label className="block text-xs mb-1" style={{ color: 'var(--muted)' }}>Duration (min)</label>
+              <input
+                type="number"
+                min={0}
+                value={editData.duration_mins ?? 60}
+                onChange={(e) => setEditData({ ...editData, duration_mins: parseInt(e.target.value) || 0 })}
+                className="w-full px-2 py-1.5 rounded-lg border text-sm"
+                style={{ borderColor: 'var(--border)', backgroundColor: 'var(--surfaceElev)', color: 'var(--text)' }}
+              />
             </div>
             <div>
-              <span style={{ color: 'var(--muted)' }}>Intensity:</span>{' '}
-              <span style={{ color: 'var(--text)' }}>{extracted.intensity || 3}/5</span>
+              <label className="block text-xs mb-1" style={{ color: 'var(--muted)' }}>Intensity ({editData.intensity ?? 3}/5)</label>
+              <input
+                type="range"
+                min={1}
+                max={5}
+                value={editData.intensity ?? 3}
+                onChange={(e) => setEditData({ ...editData, intensity: parseInt(e.target.value) })}
+                className="w-full"
+              />
             </div>
             <div>
-              <span style={{ color: 'var(--muted)' }}>Rolls:</span>{' '}
-              <span style={{ color: 'var(--text)' }}>{extracted.rolls || 0}</span>
+              <label className="block text-xs mb-1" style={{ color: 'var(--muted)' }}>Rolls</label>
+              <input
+                type="number"
+                min={0}
+                value={editData.rolls ?? 0}
+                onChange={(e) => setEditData({ ...editData, rolls: parseInt(e.target.value) || 0 })}
+                className="w-full px-2 py-1.5 rounded-lg border text-sm"
+                style={{ borderColor: 'var(--border)', backgroundColor: 'var(--surfaceElev)', color: 'var(--text)' }}
+              />
             </div>
-            <div>
-              <span style={{ color: 'var(--muted)' }}>Subs:</span>{' '}
-              <span style={{ color: 'var(--text)' }}>
-                {extracted.submissions_for || 0} for / {extracted.submissions_against || 0} against
-              </span>
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <label className="block text-xs mb-1" style={{ color: 'var(--muted)' }}>Subs for</label>
+                <input
+                  type="number"
+                  min={0}
+                  value={editData.submissions_for ?? 0}
+                  onChange={(e) => setEditData({ ...editData, submissions_for: parseInt(e.target.value) || 0 })}
+                  className="w-full px-2 py-1.5 rounded-lg border text-sm"
+                  style={{ borderColor: 'var(--border)', backgroundColor: 'var(--surfaceElev)', color: 'var(--text)' }}
+                />
+              </div>
+              <div>
+                <label className="block text-xs mb-1" style={{ color: 'var(--muted)' }}>Against</label>
+                <input
+                  type="number"
+                  min={0}
+                  value={editData.submissions_against ?? 0}
+                  onChange={(e) => setEditData({ ...editData, submissions_against: parseInt(e.target.value) || 0 })}
+                  className="w-full px-2 py-1.5 rounded-lg border text-sm"
+                  style={{ borderColor: 'var(--border)', backgroundColor: 'var(--surfaceElev)', color: 'var(--text)' }}
+                />
+              </div>
             </div>
           </div>
-          {extracted.partners && extracted.partners.length > 0 && (
-            <div className="text-sm">
-              <span style={{ color: 'var(--muted)' }}>Partners:</span>{' '}
-              <span style={{ color: 'var(--text)' }}>{extracted.partners.join(', ')}</span>
-            </div>
-          )}
-          {extracted.techniques && extracted.techniques.length > 0 && (
-            <div className="text-sm">
-              <span style={{ color: 'var(--muted)' }}>Techniques:</span>{' '}
-              <span style={{ color: 'var(--text)' }}>{extracted.techniques.join(', ')}</span>
-            </div>
-          )}
-          {extracted.notes && (
-            <div className="text-sm">
-              <span style={{ color: 'var(--muted)' }}>Notes:</span>{' '}
-              <span style={{ color: 'var(--text)' }}>{extracted.notes}</span>
-            </div>
-          )}
+          <div>
+            <label className="block text-xs mb-1" style={{ color: 'var(--muted)' }}>Gym</label>
+            <input
+              type="text"
+              value={editData.gym_name || ''}
+              onChange={(e) => setEditData({ ...editData, gym_name: e.target.value })}
+              placeholder="Gym name"
+              className="w-full px-2 py-1.5 rounded-lg border text-sm"
+              style={{ borderColor: 'var(--border)', backgroundColor: 'var(--surfaceElev)', color: 'var(--text)' }}
+            />
+          </div>
+          <div>
+            <label className="block text-xs mb-1" style={{ color: 'var(--muted)' }}>Partners (comma-separated)</label>
+            <input
+              type="text"
+              value={(editData.partners || []).join(', ')}
+              onChange={(e) => setEditData({ ...editData, partners: e.target.value.split(',').map((s) => s.trim()).filter(Boolean) })}
+              placeholder="e.g., Mike, Sarah"
+              className="w-full px-2 py-1.5 rounded-lg border text-sm"
+              style={{ borderColor: 'var(--border)', backgroundColor: 'var(--surfaceElev)', color: 'var(--text)' }}
+            />
+          </div>
+          <div>
+            <label className="block text-xs mb-1" style={{ color: 'var(--muted)' }}>Techniques (comma-separated)</label>
+            <input
+              type="text"
+              value={(editData.techniques || []).join(', ')}
+              onChange={(e) => setEditData({ ...editData, techniques: e.target.value.split(',').map((s) => s.trim()).filter(Boolean) })}
+              placeholder="e.g., armbar, triangle"
+              className="w-full px-2 py-1.5 rounded-lg border text-sm"
+              style={{ borderColor: 'var(--border)', backgroundColor: 'var(--surfaceElev)', color: 'var(--text)' }}
+            />
+          </div>
+          <div>
+            <label className="block text-xs mb-1" style={{ color: 'var(--muted)' }}>Notes</label>
+            <textarea
+              value={editData.notes || ''}
+              onChange={(e) => setEditData({ ...editData, notes: e.target.value })}
+              rows={2}
+              className="w-full px-2 py-1.5 rounded-lg border text-sm"
+              style={{ borderColor: 'var(--border)', backgroundColor: 'var(--surfaceElev)', color: 'var(--text)' }}
+            />
+          </div>
           <div className="flex gap-2 pt-2">
             <button
               onClick={handleSave}
@@ -245,7 +332,7 @@ function SessionExtractionPanel() {
               {saving ? 'Saving...' : 'Confirm & Save'}
             </button>
             <button
-              onClick={() => setExtracted(null)}
+              onClick={() => { setExtracted(null); setEditData({}); }}
               className="px-4 py-2 rounded-lg text-sm"
               style={{ color: 'var(--muted)' }}
             >

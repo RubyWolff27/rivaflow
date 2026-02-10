@@ -93,6 +93,73 @@ async def _streak_at_risk_job() -> None:
         logger.error("Streak-at-risk job failed", exc_info=True)
 
 
+async def _drip_email_job() -> None:
+    """Send onboarding drip emails (daily 10:00 UTC).
+
+    Day 1 = day after registration, Day 3 = 3 days after, Day 5 = 5 days after.
+    """
+    try:
+        from rivaflow.core.services.email_service import EmailService
+        from rivaflow.db.database import convert_query, get_connection
+        from rivaflow.db.repositories.email_drip_repo import (
+            EmailDripRepository,
+        )
+
+        drips = [
+            (1, "drip_day1", "send_drip_day1"),
+            (3, "drip_day3", "send_drip_day3"),
+            (5, "drip_day5", "send_drip_day5"),
+        ]
+        email_service = EmailService()
+        total_sent = 0
+
+        for days_ago, email_key, method_name in drips:
+            with get_connection() as conn:
+                cursor = conn.cursor()
+                cursor.execute(
+                    convert_query(
+                        "SELECT id, email, first_name FROM users"
+                        " WHERE is_active = ?"
+                        " AND date(created_at) = date('now', ?)"
+                    ),
+                    (1, f"-{days_ago} days"),
+                )
+                rows = cursor.fetchall()
+
+            users = [
+                {
+                    "id": (r["id"] if hasattr(r, "keys") else r[0]),
+                    "email": (r["email"] if hasattr(r, "keys") else r[1]),
+                    "first_name": (r["first_name"] if hasattr(r, "keys") else r[2]),
+                }
+                for r in rows
+            ]
+
+            for user in users:
+                try:
+                    if EmailDripRepository.has_been_sent(user["id"], email_key):
+                        continue
+                    method = getattr(email_service, method_name)
+                    method(
+                        email=user["email"],
+                        first_name=user.get("first_name"),
+                    )
+                    EmailDripRepository.mark_sent(user["id"], email_key)
+                    total_sent += 1
+                except Exception:
+                    logger.debug(
+                        "Drip %s failed for user %d",
+                        email_key,
+                        user["id"],
+                        exc_info=True,
+                    )
+
+        if total_sent:
+            logger.info("Drip emails: sent %d emails", total_sent)
+    except Exception:
+        logger.error("Drip email job failed", exc_info=True)
+
+
 # ---------------------------------------------------------------------------
 # Lifecycle
 # ---------------------------------------------------------------------------
@@ -124,6 +191,16 @@ def start_scheduler() -> None:
         hour=20,
         minute=0,
         id="streak_at_risk",
+        replace_existing=True,
+    )
+
+    # Daily 10:00 UTC — onboarding drip emails
+    _scheduler.add_job(
+        _drip_email_job,
+        "cron",
+        hour=10,
+        minute=0,
+        id="drip_emails",
         replace_existing=True,
     )
 

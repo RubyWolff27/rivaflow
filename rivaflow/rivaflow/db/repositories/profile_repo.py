@@ -52,6 +52,7 @@ class ProfileRepository:
         weekly_bjj_sessions_target: int | None = None,
         weekly_sc_sessions_target: int | None = None,
         weekly_mobility_sessions_target: int | None = None,
+        target_weight_date: str | None = None,
         show_streak_on_dashboard: bool | None = None,
         show_weekly_goals: bool | None = None,
         timezone: str | None = None,
@@ -175,6 +176,9 @@ class ProfileRepository:
                 if target_weight_kg is not None:
                     updates.append("target_weight_kg = ?")
                     params.append(target_weight_kg)
+                if target_weight_date is not None:
+                    updates.append("target_weight_date = ?")
+                    params.append(target_weight_date)
                 if weekly_sessions_target is not None:
                     updates.append("weekly_sessions_target = ?")
                     params.append(weekly_sessions_target)

@@ -1,11 +1,12 @@
 import { useState, useEffect } from 'react';
 import { getLocalDateString } from '../utils/date';
-import { readinessApi, suggestionsApi, whoopApi } from '../api/client';
+import { readinessApi, profileApi, suggestionsApi, whoopApi } from '../api/client';
 import type { Readiness as ReadinessType } from '../types';
-import { Activity, Heart, Waves, Wind } from 'lucide-react';
+import { Activity, Heart, Waves, Wind, Target } from 'lucide-react';
 import { useToast } from '../contexts/ToastContext';
 import { triggerInsightRefresh } from '../hooks/useInsightRefresh';
 import ReadinessResult from '../components/ReadinessResult';
+import ReadinessTrendChart from '../components/analytics/ReadinessTrendChart';
 
 interface WhoopAutoFill {
   sleep: number;
@@ -25,6 +26,8 @@ export default function Readiness() {
   const [suggestionData, setSuggestionData] = useState<{ suggestion?: string; triggered_rules?: { name: string; recommendation: string; explanation: string; priority: number }[] } | null>(null);
   const [whoopAutoFill, setWhoopAutoFill] = useState<WhoopAutoFill | null>(null);
   const [whoopApplied, setWhoopApplied] = useState(false);
+  const [trendData, setTrendData] = useState<{ date: string; score: number }[]>([]);
+  const [weightGoal, setWeightGoal] = useState<{ target_weight_kg: number; target_weight_date: string } | null>(null);
   const toast = useToast();
 
   const [formData, setFormData] = useState({
@@ -53,6 +56,20 @@ export default function Readiness() {
         }
       } catch (error) {
         if (!cancelled) console.error('Error loading readiness:', error);
+      }
+
+      // Fetch profile for weight goal
+      try {
+        const profileRes = await profileApi.get();
+        const p = (profileRes as any).data;
+        if (!cancelled && p?.target_weight_kg && p?.target_weight_date) {
+          setWeightGoal({
+            target_weight_kg: p.target_weight_kg,
+            target_weight_date: p.target_weight_date,
+          });
+        }
+      } catch {
+        // Profile not available
       }
 
       // Try WHOOP auto-fill
@@ -131,6 +148,23 @@ export default function Readiness() {
       } catch {
         // Suggestion not available, still show result
       }
+      // Fetch 7-day trend for chart
+      try {
+        const end = getLocalDateString();
+        const startD = new Date();
+        startD.setDate(startD.getDate() - 6);
+        const start = startD.toISOString().split('T')[0];
+        const trendRes = await readinessApi.getByRange(start, end);
+        const items = Array.isArray(trendRes.data) ? trendRes.data : [];
+        setTrendData(
+          items.map((r: ReadinessType) => ({
+            date: r.check_date || '',
+            score: r.composite_score ?? 0,
+          }))
+        );
+      } catch {
+        // Trend data not available
+      }
     } catch (error) {
       console.error('Error logging readiness:', error);
       toast.error('Failed to log readiness. Please try again.');
@@ -172,11 +206,19 @@ export default function Readiness() {
 
       {/* Result after submission */}
       {success && (
-        <ReadinessResult
-          compositeScore={compositeScore}
-          suggestion={suggestionData?.suggestion}
-          triggeredRules={suggestionData?.triggered_rules}
-        />
+        <>
+          <ReadinessResult
+            compositeScore={compositeScore}
+            suggestion={suggestionData?.suggestion}
+            triggeredRules={suggestionData?.triggered_rules}
+          />
+          {trendData.length > 1 && (
+            <div className="card">
+              <h3 className="font-semibold mb-3" style={{ color: 'var(--text)' }}>7-Day Readiness Trend</h3>
+              <ReadinessTrendChart data={trendData} />
+            </div>
+          )}
+        </>
       )}
 
       {/* WHOOP auto-fill banner */}
@@ -284,6 +326,26 @@ export default function Readiness() {
               <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-[var(--muted)]">kg</span>
             </div>
           </div>
+
+          {/* Weight Goal Progress */}
+          {weightGoal && formData.weight_kg !== '' && (
+            <div className="p-3 rounded-lg" style={{ backgroundColor: 'var(--surfaceElev)', border: '1px solid var(--border)' }}>
+              <div className="flex items-center gap-2 mb-1">
+                <Target className="w-4 h-4" style={{ color: 'var(--accent)' }} />
+                <span className="text-xs font-medium" style={{ color: 'var(--text)' }}>Weight Goal</span>
+              </div>
+              <p className="text-sm" style={{ color: 'var(--muted)' }}>
+                Target: {weightGoal.target_weight_kg} kg by{' '}
+                {new Date(weightGoal.target_weight_date + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                {' '}({Math.max(0, Math.ceil((new Date(weightGoal.target_weight_date).getTime() - Date.now()) / 86400000))} days remaining)
+              </p>
+              <p className="text-sm mt-1" style={{ color: 'var(--text)' }}>
+                Current: {formData.weight_kg} kg
+                {' '}({(Number(formData.weight_kg) - weightGoal.target_weight_kg) > 0 ? '+' : ''}
+                {(Number(formData.weight_kg) - weightGoal.target_weight_kg).toFixed(1)} kg from target)
+              </p>
+            </div>
+          )}
 
           {/* Hotspot */}
           <div>

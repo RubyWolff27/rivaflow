@@ -1,5 +1,9 @@
 """Admin routes for gym and data management."""
 
+import logging
+import threading
+import time
+
 from fastapi import APIRouter, Body, Depends, Path, Query, Request
 from pydantic import BaseModel, Field
 from slowapi import Limiter
@@ -11,6 +15,8 @@ from rivaflow.core.services.audit_service import AuditService
 from rivaflow.core.services.gym_service import GymService
 from rivaflow.db.repositories.feedback_repo import FeedbackRepository
 from rivaflow.db.repositories.gym_repo import GymRepository
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/admin", tags=["admin"])
 limiter = Limiter(key_func=get_remote_address)
@@ -1015,3 +1021,108 @@ def get_feedback_stats(current_user: dict = Depends(get_admin_user)):
     stats = repo.get_stats()
 
     return stats
+
+
+# Email broadcast
+class BroadcastEmailRequest(BaseModel):
+    """Request model for admin email broadcast."""
+
+    subject: str = Field(..., min_length=1, max_length=200)
+    html_body: str = Field(..., min_length=1)
+    text_body: str | None = None
+
+
+def _send_broadcast_background(
+    users: list[dict],
+    subject: str,
+    html_body: str,
+    text_body: str | None,
+) -> None:
+    """Send broadcast emails in a background thread."""
+    from rivaflow.core.services.email_service import EmailService
+
+    email_service = EmailService()
+    sent = 0
+    failed = 0
+    for user in users:
+        try:
+            first_name = user.get("first_name") or ""
+            html = html_body.replace("{{first_name}}", first_name)
+            text = (
+                text_body.replace("{{first_name}}", first_name) if text_body else None
+            )
+            ok = email_service.send_email(
+                to_email=user["email"],
+                subject=subject,
+                html_content=html,
+                text_content=text,
+            )
+            if ok:
+                sent += 1
+            else:
+                failed += 1
+        except Exception:
+            failed += 1
+            logger.debug(
+                "Broadcast email failed for user %s",
+                user.get("email"),
+                exc_info=True,
+            )
+        time.sleep(0.1)
+    logger.info(
+        "Broadcast complete: %d sent, %d failed out of %d",
+        sent,
+        failed,
+        len(users),
+    )
+
+
+@router.post("/email/broadcast")
+@limiter.limit("5/hour")
+def broadcast_email(
+    request: Request,
+    body: BroadcastEmailRequest = Body(...),
+    current_user: dict = Depends(require_admin),
+):
+    """Send a broadcast email to all active users (admin only)."""
+    from rivaflow.db.database import convert_query, get_connection
+
+    with get_connection() as conn:
+        cursor = conn.cursor()
+        cursor.execute(
+            convert_query(
+                "SELECT id, email, first_name FROM users" " WHERE is_active = ?"
+            ),
+            (1,),
+        )
+        rows = cursor.fetchall()
+        users = [dict(r) for r in rows]
+
+    recipient_count = len(users)
+
+    # Audit log
+    AuditService.log(
+        actor_id=current_user["id"],
+        action="email.broadcast",
+        target_type="email",
+        target_id=None,
+        details={
+            "subject": body.subject,
+            "recipient_count": recipient_count,
+        },
+        ip_address=get_client_ip(request),
+    )
+
+    # Send in background thread
+    t = threading.Thread(
+        target=_send_broadcast_background,
+        args=(users, body.subject, body.html_body, body.text_body),
+        daemon=True,
+    )
+    t.start()
+
+    return {
+        "success": True,
+        "message": f"Broadcast queued for {recipient_count} recipients",
+        "recipient_count": recipient_count,
+    }

@@ -146,6 +146,7 @@ export interface Profile {
   primary_training_type?: string;
   height_cm?: number;
   target_weight_kg?: number;
+  target_weight_date?: string;
   weekly_sessions_target?: number;
   weekly_hours_target?: number;
   weekly_rolls_target?: number;

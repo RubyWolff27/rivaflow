@@ -11,14 +11,16 @@ const FAQ_DATA: FAQCategory[] = [
     { question: 'How do I log my first training session?', answer: 'Click Log in the navigation or use Quick Log. Fill in session type, duration, intensity, techniques and rolls.' },
     { question: 'How do I find and add friends?', answer: 'Go to Friends page and click Find Friends to search for other RivaFlow users and send friend requests.' },
     { question: 'What training types can I log?', answer: 'Gi BJJ, No-Gi BJJ, Strength and Conditioning, Mobility/Yoga, Wrestling, Judo, MMA, and Open Mat.' },
+    { question: 'How do I connect my WHOOP device?', answer: 'Go to your Profile page and look for the WHOOP Integration section. Click Connect WHOOP and follow the authorization flow. Once connected, your recovery, sleep, and workout data will sync automatically.' },
+    { question: 'Is there a Getting Started guide?', answer: 'Yes! When you first sign up, a Getting Started card appears on your Dashboard with step-by-step tasks: fill in your profile, log your first daily check-in, log your first session, and set weekly training goals. Complete each step to get the most out of RivaFlow.' },
   ]},
   { name: 'Training Logging', icon: '\u{1F4DD}', items: [
     { question: 'How do I log BJJ rolls with details?', answer: 'Add detailed rolls with partner name, duration, submissions scored and conceded. Each roll tracked individually. Quick Log automatically creates rolls for each partner you add.' },
-    { question: 'What is Quick Log vs Full Log?', answer: 'Quick Log lets you capture the essentials fast \u2014 pick partners and it auto-creates rolls. Full Log gives you complete control with techniques, fight dynamics, notes, and speech-to-text input.' },
+    { question: 'What is Quick Log vs Full Log vs Voice Log?', answer: 'Quick Log lets you capture the essentials fast \u2014 pick partners and it auto-creates rolls. Full Log gives you complete control with techniques, fight dynamics, notes, and speech-to-text input. Voice Log (in Grapple AI) lets you describe your session in natural language and the AI extracts structured data \u2014 date, type, duration, partners, techniques, and more \u2014 which you can review and edit before saving.' },
     { question: 'How do I track techniques?', answer: 'Add techniques from the unified glossary which covers positions, submissions, sweeps, escapes, and more. The Techniques page shows most-practised and stale moves.' },
     { question: 'What are fight dynamics?', answer: 'Fight dynamics track your attacks and defences during sparring. Record attempts and successes for deeper insight into your offensive and defensive game.' },
     { question: 'Can I log S&C and mobility sessions?', answer: 'Yes! Select the appropriate session type. Track exercises, sets, reps, and notes alongside BJJ training.' },
-    { question: 'Can I use voice to log sessions?', answer: 'Yes! Full Log supports speech-to-text for the notes field. Tap the microphone icon to dictate instead of typing.' },
+    { question: 'Can I use voice to log sessions?', answer: 'Yes! Full Log supports speech-to-text for the notes field. You can also use Voice Log in Grapple AI \u2014 describe your entire session naturally (or use the microphone) and Grapple will extract all the structured fields for you. Review and edit the extracted data before saving.' },
   ]},
   { name: 'Analytics & Insights', icon: '\u{1F4CA}', items: [
     { question: 'How do heatmaps and insights work?', answer: 'Reports show training heatmaps, breakdowns, submission ratios, and partner statistics. The training calendar displays a GitHub-style heatmap of your activity. Updated as you log sessions.' },
@@ -39,11 +41,21 @@ const FAQ_DATA: FAQCategory[] = [
     { question: 'What data does Grapple use?', answer: 'With your permission, Grapple analyses your sessions, readiness trends, ACWR training load, overtraining risk, technique effectiveness, session quality, and recovery patterns to give personalised advice.' },
     { question: 'Can Grapple help with game plans?', answer: 'Yes! Grapple can suggest techniques and strategies. You can also create structured Game Plans with position flows and drill sequences.' },
     { question: 'Does Grapple give post-session insights?', answer: 'Yes! After logging a session, Grapple generates a personalised insight that considers your training load, overtraining risk, and session quality alongside the session details.' },
+    { question: 'How does the Grapple scheduler work?', answer: 'Grapple runs background jobs to help you stay on track. Weekly insights are generated every Sunday with a summary of your training patterns. Streak-at-risk notifications fire daily if your training streak is about to break. Onboarding drip emails go out over your first 5 days to help you get set up.' },
+    { question: 'What are Game Plans?', answer: 'Game Plans are structured training blueprints you can create with Grapple. Define position flows (e.g., guard pull \u2192 sweep \u2192 pass \u2192 submission), add drill sequences, and track which plans you\'ve been working on. Great for competition prep or focused skill development.' },
+    { question: 'Can I customise how Grapple coaches me?', answer: 'Yes! Go to Coach Settings (gear icon on the Grapple page) to configure your training mode (lifestyle, comp prep, skill development, recovery), coaching style (motivational, analytical, tough love, technical), focus areas, injuries, competition ruleset, and gi/no-gi preference. Grapple adapts all its advice based on these settings.' },
+  ]},
+  { name: 'WHOOP Integration', icon: '\u{231A}', items: [
+    { question: 'What data does WHOOP sync?', answer: 'RivaFlow syncs your WHOOP recovery score, HRV, resting heart rate, SpO2, sleep performance, sleep duration, and workout data (including heart rate zones, strain, and calories). Data is cached and refreshed automatically.' },
+    { question: 'What is auto-fill readiness?', answer: 'When enabled, your daily readiness check-in is pre-filled with sleep and energy scores derived from your WHOOP recovery data. You still rate stress and soreness manually. Toggle this in your Profile under WHOOP settings.' },
+    { question: 'What is auto-create sessions?', answer: 'Auto-create sessions automatically logs BJJ workouts detected by WHOOP as training sessions in RivaFlow. The session includes duration, heart rate zones, strain, and calories. You can edit the session afterwards to add techniques, partners, and notes.' },
+    { question: 'How do I reconnect WHOOP?', answer: 'If your WHOOP connection expires or stops syncing, go to Profile \u2192 WHOOP Integration and click Reconnect. You\'ll be taken through the WHOOP authorization flow again. Your historical data is preserved.' },
   ]},
   { name: 'Account', icon: '\u{2699}\u{FE0F}', items: [
     { question: 'How do I reset my password?', answer: 'Click Forgot Password on the login page. Check spam or contact support@rivaflow.app if no email arrives.' },
     { question: 'How do I update my profile?', answer: 'Go to Profile to update personal info, belt rank, gym, avatar, and training preferences.' },
     { question: 'What about my data privacy?', answer: 'Your training data is yours. Read our Privacy Policy for details on collection, storage, and protection.' },
+    { question: 'How do notifications work?', answer: 'RivaFlow sends notifications for social activity (likes, comments, friend requests), training milestones (session counts, streak achievements), streak-at-risk warnings, and weekly AI insights. View them via the bell icon in the navigation. Email notifications are sent for important events like password resets and onboarding tips.' },
   ]},
 ];
 

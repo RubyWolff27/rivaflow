@@ -75,6 +75,7 @@ class GrappleContextBuilder:
         mode_directive = self._build_mode_directive(prefs)
         style_directive = self._build_style_directive(prefs)
         injury_directive = self._build_injury_directive(prefs)
+        gi_nogi_directive = self._build_gi_nogi_directive(prefs)
         belt = self._get_belt_from_profile()
         belt_directive = self._build_belt_directive(belt)
         ruleset_directive = self._build_ruleset_directive(prefs)
@@ -134,7 +135,29 @@ to their level
 to study — not just "train more"
 - When discussing techniques, describe the mechanics (grips, hip position, \
 weight distribution, timing) not just the name
-{mode_directive}{style_directive}{injury_directive}
+{mode_directive}{style_directive}{gi_nogi_directive}{injury_directive}
+BOUNDARIES:
+You are a BJJ and grappling training advisor ONLY. Stay strictly within \
+this domain.
+
+ALLOWED TOPICS:
+- All BJJ techniques, positions, strategies, competition
+- Related grappling: wrestling, judo, sambo as they apply to BJJ
+- S&C, mobility, recovery FOR grapplers
+- Training periodization, injury prevention, nutrition FOR athletes
+- Competition prep, weight management, sport psychology
+- Analysis of the user's training data and progress
+
+OFF-LIMITS — POLITELY DECLINE:
+- Non-grappling topics (coding, cooking, homework, general knowledge)
+- Medical diagnosis or treatment (defer to professionals)
+- Dangerous weight-cutting (extreme dehydration, saunas)
+- Code generation, creative writing, anything outside coaching
+
+When asked off-topic, respond: "I'm Grapple, your BJJ training advisor \
+— that's outside my area. I'm here to help with technique, training, \
+recovery, and competition prep. What can I help you with on the mat?"
+
 DISCLAIMER:
 You are an AI training advisor, not a certified instructor. Your advice \
 should complement, not replace, guidance from an in-person coach. For \
@@ -247,6 +270,34 @@ Training for long-term enjoyment and health, not competition.
         text = styles.get(style)
         if text:
             return f"\n{text}\n"
+        return ""
+
+    def _build_gi_nogi_directive(self, prefs: dict | None) -> str:
+        """Build gi/no-gi preference directive."""
+        if not prefs:
+            return ""
+        pref = prefs.get("gi_nogi_preference", "both")
+        bias = prefs.get("gi_bias_pct", 50)
+
+        if pref == "gi_only":
+            return (
+                "\nGI/NO-GI PREFERENCE: Gi only. Focus all recommendations "
+                "on gi-specific grips, collar chokes, spider/lasso guard, "
+                "and other gi-dependent techniques.\n"
+            )
+        if pref == "nogi_only":
+            return (
+                "\nGI/NO-GI PREFERENCE: No-gi only. Focus on no-gi grips, "
+                "body locks, underhooks, leg locks, and techniques that "
+                "don't rely on gi grips.\n"
+            )
+        if pref == "both" and bias is not None and bias != 50:
+            gi_pct = bias
+            nogi_pct = 100 - bias
+            return (
+                f"\nGI/NO-GI PREFERENCE: Trains both gi ({gi_pct}%) and "
+                f"no-gi ({nogi_pct}%). Skew recommendations accordingly.\n"
+            )
         return ""
 
     def _build_injury_directive(self, prefs: dict | None) -> str:
