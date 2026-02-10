@@ -116,6 +116,49 @@ RULES = [
         explanation="WHOOP recovery at {whoop_recovery}% — fully recovered",
         priority=8,
     ),
+    # ── Mode-aware rules ──
+    Rule(
+        name="comp_fight_week",
+        condition=lambda r, s: (
+            s.get("training_mode") == "competition_prep"
+            and s.get("days_until_comp") is not None
+            and s["days_until_comp"] <= 7
+            and s["days_until_comp"] >= 0
+        ),
+        recommendation="Fight week — light technical work and visualization only",
+        explanation="Competition in {days_until_comp} days. Preserve energy.",
+        priority=0,
+    ),
+    Rule(
+        name="comp_taper_warning",
+        condition=lambda r, s: (
+            s.get("training_mode") == "competition_prep"
+            and s.get("days_until_comp") is not None
+            and 7 < s["days_until_comp"] <= 14
+        ),
+        recommendation=(
+            "Begin tapering intensity — {days_until_comp} days to competition"
+        ),
+        explanation=(
+            "Competition approaching. Start reducing volume while "
+            "maintaining sharpness."
+        ),
+        priority=1,
+    ),
+    Rule(
+        name="recovery_mode_active",
+        condition=lambda r, s: s.get("training_mode") == "recovery",
+        recommendation="Recovery mode active — keep intensity low, focus on mobility",
+        explanation="You're in recovery mode. All sessions should be light.",
+        priority=1,
+    ),
+    Rule(
+        name="persistent_injuries",
+        condition=lambda r, s: len(s.get("persistent_injuries", [])) > 0,
+        recommendation="Protect injuries: {injury_areas}",
+        explanation="Active injuries: {injury_areas} — avoid aggravating positions",
+        priority=2,
+    ),
 ]
 
 
@@ -143,6 +186,7 @@ def format_explanation(explanation: str, readiness: dict, session_context: dict)
             "consecutive_nogi": session_context.get("consecutive_nogi_sessions", 0),
             "hrv_drop_pct": session_context.get("hrv_drop_pct", ""),
             "hrv_slope_5d": (f"{hrv_slope:+.2f}" if hrv_slope is not None else ""),
+            "days_until_comp": session_context.get("days_until_comp", ""),
         }
     )
 
@@ -151,6 +195,12 @@ def format_explanation(explanation: str, readiness: dict, session_context: dict)
     if stale:
         tech_names = [t["name"] for t in stale[:3]]  # Limit to 3
         replacements["techniques"] = ", ".join(tech_names)
+
+    # Format persistent injuries
+    injuries = session_context.get("persistent_injuries", [])
+    if injuries:
+        areas = [inj.get("area", "unknown") for inj in injuries[:3]]
+        replacements["injury_areas"] = ", ".join(areas)
 
     # Replace placeholders
     result = explanation

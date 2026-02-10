@@ -34,6 +34,7 @@ from rivaflow.api.routes import (
     analytics,
     auth,
     checkins,
+    coach_preferences,
     dashboard,
     events,
     feed,
@@ -232,6 +233,11 @@ app.include_router(
     training_goals.router,
     prefix="/api/v1/training-goals",
     tags=["training-goals"],
+)
+app.include_router(
+    coach_preferences.router,
+    prefix="/api/v1/coach-preferences",
+    tags=["coach-preferences"],
 )
 app.include_router(checkins.router, prefix="/api/v1")
 app.include_router(streaks.router, prefix="/api/v1")

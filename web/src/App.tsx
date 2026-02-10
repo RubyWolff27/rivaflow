@@ -48,6 +48,7 @@ const Privacy = lazy(() => import('./pages/Privacy'));
 const Groups = lazy(() => import('./pages/Groups'));
 const MyGame = lazy(() => import('./pages/MyGame'));
 const MonthlyGoals = lazy(() => import('./pages/MonthlyGoals'));
+const CoachSettings = lazy(() => import('./pages/CoachSettings'));
 const Login = lazy(() => import('./pages/Login'));
 const Register = lazy(() => import('./pages/Register'));
 const ForgotPassword = lazy(() => import('./pages/ForgotPassword'));
@@ -96,6 +97,7 @@ function App() {
                           <Route path="/profile" element={<Profile />} />
                           <Route path="/users/:userId" element={<UserProfile />} />
                           <Route path="/grapple" element={<Grapple />} />
+                          <Route path="/coach-settings" element={<CoachSettings />} />
                           <Route path="/my-game" element={<MyGame />} />
                           <Route path="/goals" element={<MonthlyGoals />} />
                           <Route path="/admin" element={<AdminDashboard />} />

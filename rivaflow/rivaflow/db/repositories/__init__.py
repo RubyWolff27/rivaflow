@@ -5,6 +5,7 @@ from rivaflow.db.repositories.activity_like_repo import ActivityLikeRepository
 from rivaflow.db.repositories.activity_photo_repo import ActivityPhotoRepository
 from rivaflow.db.repositories.ai_insight_repo import AIInsightRepository
 from rivaflow.db.repositories.checkin_repo import CheckinRepository
+from rivaflow.db.repositories.coach_preferences_repo import CoachPreferencesRepository
 from rivaflow.db.repositories.feedback_repo import FeedbackRepository
 from rivaflow.db.repositories.friend_repo import FriendRepository
 from rivaflow.db.repositories.friend_suggestions_repo import FriendSuggestionsRepository
@@ -35,6 +36,7 @@ __all__ = [
     "ActivityLikeRepository",
     "ActivityPhotoRepository",
     "CheckinRepository",
+    "CoachPreferencesRepository",
     "FeedbackRepository",
     "FriendRepository",
     "FriendSuggestionsRepository",

@@ -692,3 +692,9 @@ export const grappleApi = {
   techniqueQA: (question: string) =>
     api.post('/grapple/technique-qa', { question }),
 };
+
+export const coachPreferencesApi = {
+  get: () => api.get('/coach-preferences/'),
+  update: (data: Record<string, unknown>) =>
+    api.put('/coach-preferences/', data),
+};

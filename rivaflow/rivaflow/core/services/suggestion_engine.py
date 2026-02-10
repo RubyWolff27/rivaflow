@@ -1,5 +1,6 @@
 """Service layer for generating training suggestions."""
 
+import json
 import logging
 import statistics
 from datetime import date, timedelta
@@ -8,6 +9,9 @@ from rivaflow.core.rules import RULES, format_explanation
 from rivaflow.core.services.insights_analytics import _linear_slope
 from rivaflow.core.services.session_service import SessionService
 from rivaflow.db.repositories import ReadinessRepository
+from rivaflow.db.repositories.coach_preferences_repo import (
+    CoachPreferencesRepository,
+)
 from rivaflow.db.repositories.glossary_repo import GlossaryRepository
 
 logger = logging.getLogger(__name__)
@@ -43,6 +47,36 @@ class SuggestionEngine:
             "consecutive_nogi_sessions": consecutive_counts.get("no-gi", 0),
             "stale_techniques": stale_techniques,
         }
+
+        # Enrich with coach preferences for mode-aware rules
+        try:
+            prefs = CoachPreferencesRepository.get(user_id)
+            if prefs:
+                session_context["training_mode"] = prefs.get(
+                    "training_mode", "lifestyle"
+                )
+                # Competition countdown
+                if prefs.get("training_mode") == "competition_prep" and prefs.get(
+                    "comp_date"
+                ):
+                    try:
+                        comp_date = date.fromisoformat(prefs["comp_date"])
+                        session_context["days_until_comp"] = (
+                            comp_date - date.today()
+                        ).days
+                    except ValueError:
+                        pass
+                # Persistent injuries
+                injuries = prefs.get("injuries") or []
+                if isinstance(injuries, str):
+                    try:
+                        injuries = json.loads(injuries)
+                    except (json.JSONDecodeError, TypeError):
+                        injuries = []
+                if injuries:
+                    session_context["persistent_injuries"] = injuries
+        except Exception:
+            logger.debug("Coach preferences enrichment skipped", exc_info=True)
 
         # Enrich readiness with WHOOP recovery data if available
         try:
@@ -141,10 +175,17 @@ class SuggestionEngine:
             f"{hrv_slope:+.2f}" if hrv_slope is not None else ""
         )
 
+        replacements["days_until_comp"] = session_context.get("days_until_comp", "")
+
         stale = session_context.get("stale_techniques", [])
         if stale:
             tech_names = [t["name"] for t in stale[:3]]
             replacements["techniques"] = ", ".join(tech_names)
+
+        injuries = session_context.get("persistent_injuries", [])
+        if injuries:
+            areas = [inj.get("area", "unknown") for inj in injuries[:3]]
+            replacements["injury_areas"] = ", ".join(areas)
 
         result = recommendation
         for key, value in replacements.items():

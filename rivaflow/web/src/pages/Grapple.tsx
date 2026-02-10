@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { getLocalDateString } from '../utils/date';
-import { useSearchParams } from 'react-router-dom';
-import { Sparkles, Send, Trash2, MessageCircle, AlertCircle, ThumbsUp, ThumbsDown, Zap, Brain, BookOpen, Mic, MicOff } from 'lucide-react';
+import { Link, useSearchParams } from 'react-router-dom';
+import { Sparkles, Send, Trash2, MessageCircle, AlertCircle, ThumbsUp, ThumbsDown, Zap, Brain, BookOpen, Mic, MicOff, Settings } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
 import { grappleApi, getErrorMessage } from '../api/client';
@@ -719,6 +719,14 @@ export default function Grapple() {
             <h1 className="text-2xl font-bold" style={{ color: 'var(--text)' }}>Grapple AI Coach</h1>
             <p className="text-sm" style={{ color: 'var(--muted)' }}>Your BJJ training advisor</p>
           </div>
+          <Link
+            to="/coach-settings"
+            className="p-2 rounded-lg transition-colors hover:opacity-80"
+            style={{ color: 'var(--muted)' }}
+            title="Coach Settings"
+          >
+            <Settings className="w-5 h-5" />
+          </Link>
         </div>
 
         {/* Quick Action Chips */}

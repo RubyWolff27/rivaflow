@@ -1,5 +1,6 @@
 """Context builder for Grapple AI Coach - builds personalized prompts from user data."""
 
+import json
 import logging
 from datetime import date, datetime, timedelta
 
@@ -8,6 +9,9 @@ from rivaflow.core.services.insights_analytics import (
     _linear_slope,
 )
 from rivaflow.core.services.privacy_service import PrivacyService
+from rivaflow.db.repositories.coach_preferences_repo import (
+    CoachPreferencesRepository,
+)
 from rivaflow.db.repositories.readiness_repo import ReadinessRepository
 from rivaflow.db.repositories.session_repo import SessionRepository
 from rivaflow.db.repositories.user_repo import UserRepository
@@ -37,12 +41,16 @@ class GrappleContextBuilder:
 
     def build_system_prompt(self) -> str:
         """
-        Build the system prompt with user context.
+        Build the system prompt with user context and coaching preferences.
 
         Returns:
             Complete system prompt string
         """
         user_context = self._build_user_context()
+        prefs = CoachPreferencesRepository.get(self.user_id)
+        mode_directive = self._build_mode_directive(prefs)
+        style_directive = self._build_style_directive(prefs)
+        injury_directive = self._build_injury_directive(prefs)
 
         return f"""You are Grapple, an expert Brazilian Jiu-Jitsu (BJJ) coach and training advisor for RivaFlow.
 
@@ -65,11 +73,144 @@ Guidelines:
 - If medical advice is needed, recommend seeing a doctor or physiotherapist
 - Use BJJ terminology appropriately but explain when needed
 - Provide actionable advice, not just general statements
-
+{mode_directive}{style_directive}{injury_directive}
 CURRENT USER DATA:
 {user_context}
 
 Now respond to the user's questions using this context. Reference their specific training data when relevant."""
+
+    def _build_mode_directive(self, prefs: dict | None) -> str:
+        """Build mode-specific coaching directive."""
+        if not prefs:
+            return ""
+        mode = prefs.get("training_mode", "lifestyle")
+
+        if mode == "competition_prep":
+            comp_name = prefs.get("comp_name") or "upcoming competition"
+            comp_date = prefs.get("comp_date")
+            comp_div = prefs.get("comp_division") or ""
+            comp_wt = prefs.get("comp_weight_class") or ""
+            days_str = ""
+            if comp_date:
+                try:
+                    days = (date.fromisoformat(comp_date) - date.today()).days
+                    days_str = f" ({days} days away)"
+                except ValueError:
+                    pass
+            detail = f"{comp_name}{days_str}"
+            if comp_div:
+                detail += f", {comp_div}"
+            if comp_wt:
+                detail += f", {comp_wt}"
+            return f"""
+COACHING DIRECTIVE — COMPETITION PREP:
+Athlete is preparing for: {detail}.
+- Sharpen their A-game over exploring new techniques
+- Monitor training load — taper 2 weeks out, light work fight week
+- Weight management awareness if weight class is specified
+- Emphasize match simulation, competition rolling, and mental prep
+- Track ACWR closely and warn about overtraining risk
+"""
+        if mode == "skill_development":
+            focus = ", ".join(prefs.get("focus_areas") or [])
+            weak = prefs.get("weaknesses") or ""
+            extras = ""
+            if focus:
+                extras += f"\n- Reference their focus areas: {focus}"
+            if weak:
+                extras += f"\n- Address their weaknesses: {weak}"
+            return f"""
+COACHING DIRECTIVE — SKILL DEVELOPMENT:
+Focused on technical growth and expanding their game.
+- Recommend deliberate practice: positional sparring, drilling, weak positions
+- Encourage working from weak positions, not just strengths
+- Track technique diversity — flag if drilling a narrow set
+- Recommend video study and mental rehearsal alongside mat time{extras}
+"""
+        if mode == "recovery":
+            return """
+COACHING DIRECTIVE — RECOVERY MODE:
+Athlete is in a recovery period (injury rehab, overtraining, or burnout).
+- Strongly discourage high intensity until cleared
+- Focus on mobility, flow rolling, and drilling
+- Monitor readiness/WHOOP recovery extra carefully
+- Suggest graduated return-to-play protocols
+- Recommend cross-training (yoga, swimming) where appropriate
+- Be extra cautious — err on the side of rest
+"""
+        # Default: lifestyle
+        return """
+COACHING DIRECTIVE — LIFESTYLE TRAINING:
+Training for long-term enjoyment and health, not competition.
+- Prioritize injury prevention and sustainability
+- Encourage exploration of new techniques and positions
+- Balance training variety (gi/no-gi, different positions)
+- Recovery and longevity over intensity
+- Fun and social aspects of training matter
+"""
+
+    def _build_style_directive(self, prefs: dict | None) -> str:
+        """Build coaching style modifier."""
+        if not prefs:
+            return ""
+        style = prefs.get("coaching_style", "balanced")
+        styles = {
+            "motivational": (
+                "COACHING STYLE: Motivational — lead with encouragement, "
+                "celebrate progress, frame challenges as opportunities, "
+                "use positive language."
+            ),
+            "analytical": (
+                "COACHING STYLE: Analytical — focus on data and patterns, "
+                "reference specific numbers (ACWR, HRV, session quality), "
+                "be precise and evidence-based."
+            ),
+            "tough_love": (
+                "COACHING STYLE: Tough Love — be direct and honest even "
+                "if uncomfortable, call out sandbagging or excuses, push them."
+            ),
+            "technical": (
+                "COACHING STYLE: Technical — focus on technique breakdown "
+                "and positional details, reference specific moves and "
+                "transitions, less motivational talk, more instruction."
+            ),
+        }
+        text = styles.get(style)
+        if text:
+            return f"\n{text}\n"
+        return ""
+
+    def _build_injury_directive(self, prefs: dict | None) -> str:
+        """Build persistent injury context."""
+        if not prefs:
+            return ""
+        injuries = prefs.get("injuries") or []
+        if isinstance(injuries, str):
+            try:
+                injuries = json.loads(injuries)
+            except (json.JSONDecodeError, TypeError):
+                return ""
+        if not injuries:
+            return ""
+        lines = ["PERSISTENT INJURIES — adjust all recommendations:"]
+        for inj in injuries:
+            area = inj.get("area", "unknown")
+            side = inj.get("side", "")
+            severity = inj.get("severity", "")
+            notes = inj.get("notes", "")
+            entry = f"- {area}"
+            if side and side != "n/a":
+                entry += f" ({side})"
+            if severity:
+                entry += f", severity: {severity}"
+            if notes:
+                entry += f". {notes}"
+            lines.append(entry)
+        lines.append(
+            "Avoid suggesting techniques or positions that "
+            "could aggravate these injuries."
+        )
+        return "\n" + "\n".join(lines) + "\n"
 
     def _build_user_context(self) -> str:
         """
@@ -101,6 +242,48 @@ Now respond to the user's questions using this context. Reference their specific
             f"Email: {user['email']}",
             "",
         ]
+
+        # Inject practitioner context from coach preferences
+        prefs = CoachPreferencesRepository.get(self.user_id)
+        if prefs:
+            ctx = ["PRACTITIONER CONTEXT:"]
+            if prefs.get("years_training"):
+                ctx.append(f"Experience: {prefs['years_training']} years")
+            if (
+                prefs.get("competition_experience")
+                and prefs["competition_experience"] != "none"
+            ):
+                ctx.append(f"Competition experience: {prefs['competition_experience']}")
+            if prefs.get("available_days_per_week"):
+                ctx.append(
+                    f"Available training days: "
+                    f"{prefs['available_days_per_week']}/week"
+                )
+            if prefs.get("primary_position") and prefs["primary_position"] != "both":
+                ctx.append(f"Primary position: {prefs['primary_position']}")
+            focus = prefs.get("focus_areas") or []
+            if isinstance(focus, str):
+                try:
+                    focus = json.loads(focus)
+                except (json.JSONDecodeError, TypeError):
+                    focus = []
+            if focus:
+                ctx.append(f"Focus areas: {', '.join(focus)}")
+            if prefs.get("weaknesses"):
+                ctx.append(f"Self-identified weaknesses: {prefs['weaknesses']}")
+            motivations = prefs.get("motivations") or []
+            if isinstance(motivations, str):
+                try:
+                    motivations = json.loads(motivations)
+                except (json.JSONDecodeError, TypeError):
+                    motivations = []
+            if motivations:
+                ctx.append(f"Motivations: {', '.join(motivations)}")
+            if prefs.get("additional_context"):
+                ctx.append(f"Additional context: {prefs['additional_context']}")
+            if len(ctx) > 1:
+                context_parts.extend(ctx)
+                context_parts.append("")
 
         if total_sessions > 0:
             # Calculate training stats

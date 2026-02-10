@@ -32,6 +32,37 @@ Return JSON with:
 Only return valid JSON. No markdown fences."""
 
 
+def _get_mode_context(user_id: int) -> str:
+    """Get training mode context for insight generation."""
+    try:
+        from rivaflow.db.repositories.coach_preferences_repo import (
+            CoachPreferencesRepository,
+        )
+
+        prefs = CoachPreferencesRepository.get(user_id)
+        if not prefs:
+            return ""
+        mode = prefs.get("training_mode", "lifestyle")
+        parts = []
+        if mode == "competition_prep":
+            comp = prefs.get("comp_name") or "upcoming competition"
+            parts.append(f"Athlete is in competition prep for {comp}.")
+        elif mode == "recovery":
+            parts.append("Athlete is in recovery mode — prioritize safety.")
+        elif mode == "skill_development":
+            parts.append("Athlete is focused on skill development.")
+        else:
+            parts.append("Athlete trains for lifestyle and health.")
+        injuries = prefs.get("injuries") or []
+        if injuries:
+            areas = [inj.get("area", "") for inj in injuries[:3] if inj.get("area")]
+            if areas:
+                parts.append(f"Injuries: {', '.join(areas)}.")
+        return " ".join(parts)
+    except Exception:
+        return ""
+
+
 async def generate_post_session_insight(user_id: int, session_id: int) -> dict | None:
     """Generate an insight after a training session.
 
@@ -119,6 +150,11 @@ async def generate_post_session_insight(user_id: int, session_id: int) -> dict |
         logger.error("No LLM providers for insight gen")
         return None
 
+    mode_ctx = _get_mode_context(user_id)
+    user_content = f"{context}\n\n{session_summary}"
+    if mode_ctx:
+        user_content = f"{mode_ctx}\n\n{user_content}"
+
     messages = [
         {
             "role": "system",
@@ -126,7 +162,7 @@ async def generate_post_session_insight(user_id: int, session_id: int) -> dict |
         },
         {
             "role": "user",
-            "content": f"{context}\n\n{session_summary}",
+            "content": user_content,
         },
     ]
 
@@ -243,7 +279,11 @@ async def generate_weekly_insight(
     except RuntimeError:
         return None
 
-    weekly_content = (
+    mode_ctx = _get_mode_context(user_id)
+    weekly_content = ""
+    if mode_ctx:
+        weekly_content = mode_ctx + "\n\n"
+    weekly_content += (
         "Generate a weekly training pattern "
         "insight from these recent sessions:\n" + "\n".join(summary_lines)
     )
