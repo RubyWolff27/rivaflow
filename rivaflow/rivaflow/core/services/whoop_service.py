@@ -878,6 +878,53 @@ class WhoopService:
             logger.info("Timezone backfill: user=%s fixed=%d", user_id, fixed)
         return fixed
 
+    def set_auto_fill_readiness(self, user_id: int, enabled: bool) -> dict:
+        """Toggle auto-fill readiness preference."""
+        self.connection_repo.update_auto_fill_readiness(user_id, enabled)
+        return {"auto_fill_readiness": enabled}
+
+    def auto_fill_readiness_from_recovery(self, user_id: int) -> dict | None:
+        """Auto-fill today's readiness from WHOOP recovery data.
+
+        Only runs if the user has the toggle enabled and no manual entry
+        exists for today.
+        """
+        conn = self.connection_repo.get_by_user_id(user_id)
+        if not conn or not conn.get("auto_fill_readiness"):
+            return None
+
+        from datetime import date as date_cls
+
+        from rivaflow.core.services.readiness_service import ReadinessService
+
+        today = date_cls.today().isoformat()
+        fill_data = self.apply_recovery_to_readiness(user_id, today)
+        if not fill_data:
+            return None
+
+        # Check if a manual entry already exists for today
+        from rivaflow.db.repositories.readiness_repo import ReadinessRepository
+
+        existing = ReadinessRepository.get_by_date(user_id, date_cls.today())
+        if existing and existing.get("data_source") != "whoop":
+            return None  # User has a manual entry, don't overwrite
+
+        ReadinessService().log_readiness(
+            user_id=user_id,
+            check_date=date_cls.today(),
+            sleep=fill_data["sleep"],
+            stress=3,
+            soreness=3,
+            energy=fill_data["energy"],
+            hrv_ms=fill_data.get("hrv_ms"),
+            resting_hr=fill_data.get("resting_hr"),
+            spo2=fill_data.get("spo2"),
+            whoop_recovery_score=fill_data.get("whoop_recovery_score"),
+            whoop_sleep_score=fill_data.get("whoop_sleep_score"),
+            data_source="whoop",
+        )
+        return fill_data
+
     def set_auto_create_sessions(self, user_id: int, enabled: bool) -> dict:
         """Toggle auto-create and backfill if enabling."""
         self.connection_repo.update_auto_create(user_id, enabled)
@@ -908,6 +955,7 @@ class WhoopService:
             "connected_at": conn.get("connected_at"),
             "last_synced_at": conn.get("last_synced_at"),
             "auto_create_sessions": bool(conn.get("auto_create_sessions")),
+            "auto_fill_readiness": bool(conn.get("auto_fill_readiness")),
         }
 
     def disconnect(self, user_id: int) -> bool:

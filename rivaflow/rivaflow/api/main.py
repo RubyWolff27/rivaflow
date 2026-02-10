@@ -197,6 +197,15 @@ async def startup_event():
         except (OSError, ConnectionError, ValueError) as e:
             logging.warning(f"Could not seed glossary: {e}")
 
+    # Start background scheduler (not in test)
+    if not settings.IS_TEST:
+        try:
+            from rivaflow.core.scheduler import start_scheduler
+
+            start_scheduler()
+        except Exception as e:
+            logging.warning(f"Background scheduler failed to start: {e}")
+
 
 @app.on_event("shutdown")
 async def shutdown_event():
@@ -204,6 +213,14 @@ async def shutdown_event():
     from rivaflow.db.database import close_connection_pool
 
     close_connection_pool()
+
+    # Stop background scheduler
+    try:
+        from rivaflow.core.scheduler import stop_scheduler
+
+        stop_scheduler()
+    except Exception:
+        pass
 
 
 # Register health check routes (no prefix for easy access by load balancers)

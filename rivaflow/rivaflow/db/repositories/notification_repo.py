@@ -103,7 +103,7 @@ class NotificationRepository:
             SELECT COUNT(*) as cnt
             FROM notifications
             WHERE user_id = ?
-            AND notification_type IN ('like', 'comment', 'reply')
+            AND notification_type IN ('like', 'comment', 'reply', 'milestone', 'streak', 'streak_at_risk')
             AND is_read = FALSE
         """)
 
@@ -222,7 +222,7 @@ class NotificationRepository:
             UPDATE notifications
             SET is_read = ?, read_at = ?
             WHERE user_id = ?
-            AND notification_type IN ('like', 'comment', 'reply')
+            AND notification_type IN ('like', 'comment', 'reply', 'milestone', 'streak', 'streak_at_risk')
             AND is_read = FALSE
         """)
 

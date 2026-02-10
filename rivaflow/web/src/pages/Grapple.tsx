@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { getLocalDateString } from '../utils/date';
 import { Link, useSearchParams } from 'react-router-dom';
-import { Sparkles, Send, Trash2, MessageCircle, AlertCircle, ThumbsUp, ThumbsDown, Zap, Brain, BookOpen, Mic, MicOff, Settings } from 'lucide-react';
+import { Sparkles, Send, Trash2, MessageCircle, ThumbsUp, ThumbsDown, Zap, Brain, BookOpen, Mic, MicOff, Settings } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
 import { grappleApi, getErrorMessage } from '../api/client';
@@ -630,15 +630,35 @@ export default function Grapple() {
   }
 
   if (!tierInfo.features.grapple) {
+    const features = [
+      { icon: Mic, label: 'Voice Logging', desc: 'Describe your session and let AI extract the data' },
+      { icon: BookOpen, label: 'Technique Q&A', desc: 'Ask about any technique and get sourced answers' },
+      { icon: MessageCircle, label: 'AI Coaching', desc: 'Chat with a coach that knows your training history' },
+      { icon: Brain, label: 'Smart Insights', desc: 'Weekly pattern analysis and focus recommendations' },
+    ];
     return (
-      <div className="max-w-2xl mx-auto text-center py-12">
-        <div className="rounded-[14px] p-8" style={{ backgroundColor: 'var(--surface)', border: '1px solid var(--border)' }}>
-          <AlertCircle className="w-16 h-16 mx-auto mb-4" style={{ color: 'var(--accent)' }} />
-          <h2 className="text-2xl font-bold mb-2" style={{ color: 'var(--text)' }}>Grapple AI Coach</h2>
-          <p className="mb-4" style={{ color: 'var(--muted)' }}>
-            Get personalized BJJ coaching powered by AI. Upgrade to Premium to unlock Grapple.
-          </p>
-          <p className="text-sm" style={{ color: 'var(--muted)' }}>Current tier: {tierInfo.tier}</p>
+      <div className="max-w-2xl mx-auto py-12 space-y-6">
+        <div className="text-center">
+          <Sparkles className="w-12 h-12 mx-auto mb-3" style={{ color: 'var(--accent)' }} />
+          <h2 className="text-2xl font-bold mb-1" style={{ color: 'var(--text)' }}>Grapple AI Coach</h2>
+          <p className="text-sm" style={{ color: 'var(--muted)' }}>Your personal BJJ training advisor, powered by AI</p>
+        </div>
+        <div className="grid grid-cols-2 gap-3">
+          {features.map((f) => (
+            <div
+              key={f.label}
+              className="rounded-[14px] p-4 space-y-2"
+              style={{ backgroundColor: 'var(--surface)', border: '1px solid var(--border)' }}
+            >
+              <f.icon className="w-6 h-6" style={{ color: 'var(--accent)' }} />
+              <h3 className="text-sm font-semibold" style={{ color: 'var(--text)' }}>{f.label}</h3>
+              <p className="text-xs leading-relaxed" style={{ color: 'var(--muted)' }}>{f.desc}</p>
+            </div>
+          ))}
+        </div>
+        <div className="text-center space-y-1">
+          <p className="text-xs" style={{ color: 'var(--muted)' }}>Current tier: {tierInfo.tier}</p>
+          <p className="text-sm font-medium" style={{ color: 'var(--muted)' }}>Upgrade to Premium to unlock Grapple</p>
         </div>
       </div>
     );

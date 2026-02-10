@@ -49,18 +49,40 @@ def _trigger_post_session_hooks(user_id: int, session_date: str) -> None:
     """Best-effort milestone check and streak recording after session."""
     try:
         from rivaflow.core.services.milestone_service import MilestoneService
+        from rivaflow.core.services.notification_service import (
+            NotificationService,
+        )
 
-        MilestoneService().check_all_milestones(user_id)
+        new_milestones = MilestoneService().check_all_milestones(user_id)
+        for ms in new_milestones:
+            try:
+                NotificationService.create_milestone_notification(
+                    user_id, ms.get("milestone_label", "")
+                )
+            except Exception:
+                logger.debug("Milestone notification failed", exc_info=True)
     except Exception:
         logger.debug("Post-session milestone check skipped", exc_info=True)
 
     try:
+        from rivaflow.core.services.notification_service import (
+            NotificationService,
+        )
         from rivaflow.core.services.streak_service import StreakService
 
         checkin_date = date.fromisoformat(str(session_date)[:10])
-        StreakService().record_checkin(
+        result = StreakService().record_checkin(
             user_id, checkin_type="session", checkin_date=checkin_date
         )
+        if result.get("streak_extended"):
+            streak = result.get("checkin_streak") or {}
+            current = streak.get("current_streak", 0)
+            try:
+                NotificationService.create_streak_notification(
+                    user_id, "check-in", current
+                )
+            except Exception:
+                logger.debug("Streak notification failed", exc_info=True)
     except Exception:
         logger.debug("Post-session streak recording skipped", exc_info=True)
 

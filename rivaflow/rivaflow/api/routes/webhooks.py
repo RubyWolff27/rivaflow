@@ -109,6 +109,10 @@ async def whoop_webhook(request: Request):
             service.sync_workouts(user_id, days_back=1)
         elif event_type in ("recovery.updated", "sleep.updated"):
             service.sync_recovery(user_id, days_back=1)
+            try:
+                service.auto_fill_readiness_from_recovery(user_id)
+            except Exception:
+                logger.debug("Auto-fill readiness skipped", exc_info=True)
         elif event_type == "body_measurement.updated":
             # Future: sync body measurement
             logger.info(

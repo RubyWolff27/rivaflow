@@ -30,7 +30,21 @@ export default function LatestInsightWidget() {
     return () => { cancelled = true; };
   }, []);
 
-  if (loading || !insight) return null;
+  if (loading) return null;
+
+  if (!insight) {
+    return (
+      <Card>
+        <div className="flex items-center gap-2 mb-2">
+          <Brain className="w-5 h-5" style={{ color: 'var(--accent)' }} />
+          <h3 className="text-sm font-semibold" style={{ color: 'var(--text)' }}>AI Insights</h3>
+        </div>
+        <p className="text-xs leading-relaxed" style={{ color: 'var(--muted)' }}>
+          Log a few sessions and Grapple will start spotting patterns in your training.
+        </p>
+      </Card>
+    );
+  }
 
   const categoryColors: Record<string, string> = {
     observation: '#3B82F6',

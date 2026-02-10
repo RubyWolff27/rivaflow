@@ -26,7 +26,20 @@ def _trigger_readiness_streak(user_id: int, check_date: str) -> None:
         from rivaflow.core.services.streak_service import StreakService
 
         dt = date.fromisoformat(str(check_date)[:10])
-        StreakService().record_readiness_checkin(user_id, checkin_date=dt)
+        result = StreakService().record_readiness_checkin(user_id, checkin_date=dt)
+        if result.get("streak_extended"):
+            from rivaflow.core.services.notification_service import (
+                NotificationService,
+            )
+
+            streak = result.get("readiness_streak") or {}
+            current = streak.get("current_streak", 0)
+            try:
+                NotificationService.create_streak_notification(
+                    user_id, "readiness", current
+                )
+            except Exception:
+                logger.debug("Readiness streak notification failed", exc_info=True)
     except Exception:
         logger.debug("Readiness streak recording skipped", exc_info=True)
 

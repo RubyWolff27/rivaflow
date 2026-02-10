@@ -547,6 +547,16 @@ def set_auto_create(
     return service.set_auto_create_sessions(current_user["id"], body.enabled)
 
 
+@router.post("/whoop/auto-fill-readiness")
+def set_auto_fill_readiness(
+    body: AutoCreateRequest,
+    current_user: dict = Depends(get_current_user),
+):
+    """Toggle auto-fill readiness from WHOOP recovery data."""
+    _require_whoop_enabled()
+    return service.set_auto_fill_readiness(current_user["id"], body.enabled)
+
+
 @router.delete("/whoop")
 def disconnect(
     request: Request,

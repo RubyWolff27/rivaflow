@@ -172,6 +172,22 @@ class WhoopConnectionRepository:
             return cursor.rowcount > 0
 
     @staticmethod
+    def update_auto_fill_readiness(user_id: int, enabled: bool) -> bool:
+        """Toggle auto_fill_readiness preference."""
+        with get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                convert_query("""
+                    UPDATE whoop_connections
+                    SET auto_fill_readiness = ?,
+                        updated_at = ?
+                    WHERE user_id = ?
+                    """),
+                (1 if enabled else 0, _now_iso(), user_id),
+            )
+            return cursor.rowcount > 0
+
+    @staticmethod
     def _row_to_dict(row) -> dict:
         """Convert a database row to a dictionary."""
         if hasattr(row, "keys"):
@@ -190,5 +206,6 @@ class WhoopConnectionRepository:
             "created_at",
             "updated_at",
             "auto_create_sessions",
+            "auto_fill_readiness",
         ]
         return {col: row[i] for i, col in enumerate(columns)}

@@ -156,9 +156,29 @@ export const videosApi = {
   getById: (id: number) => api.get<Video>(`/videos/${id}`),
 };
 
+interface OnboardingStep {
+  key: string;
+  label: string;
+  done: boolean;
+}
+
+interface OnboardingStatus {
+  steps: OnboardingStep[];
+  completed: number;
+  total: number;
+  all_done: boolean;
+  profile_completion: {
+    filled: number;
+    total: number;
+    percentage: number;
+    missing: string[];
+  };
+}
+
 export const profileApi = {
   get: () => api.get<Profile>('/profile/'),
   update: (data: Partial<Profile>) => api.put<Profile>('/profile/', data),
+  getOnboardingStatus: () => api.get<OnboardingStatus>('/profile/onboarding-status'),
   uploadPhoto: (formData: FormData) => {
     return api.post<{ avatar_url: string; filename: string; message: string }>('/profile/photo', formData, {
       headers: {
@@ -663,6 +683,8 @@ export const whoopApi = {
     api.get<WhoopSessionContext>(`/integrations/whoop/session/${sessionId}/context`),
   setAutoCreate: (enabled: boolean) =>
     api.post('/integrations/whoop/auto-create-sessions', { enabled }),
+  setAutoFillReadiness: (enabled: boolean) =>
+    api.post('/integrations/whoop/auto-fill-readiness', { enabled }),
   getZonesBatch: (sessionIds: number[]) =>
     api.get<{ zones: Record<string, { zone_durations: Record<string, number> | null; strain: number | null; calories: number | null; score_state: string | null } | null> }>('/integrations/whoop/zones/batch', { params: { session_ids: sessionIds.join(',') } }),
   getZonesWeekly: (weekOffset = 0, tz?: string) =>

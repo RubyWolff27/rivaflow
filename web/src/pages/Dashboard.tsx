@@ -9,6 +9,7 @@ import { useTier } from '../hooks/useTier';
 import { profileApi } from '../api/client';
 import { refreshIfStale } from '../hooks/useInsightRefresh';
 import DailyActionHero from '../components/dashboard/DailyActionHero';
+import GettingStarted from '../components/dashboard/GettingStarted';
 import ThisWeek from '../components/dashboard/ThisWeek';
 import NextGoal from '../components/dashboard/NextGoal';
 import MyGameWidget from '../components/dashboard/MyGameWidget';
@@ -40,6 +41,9 @@ export default function Dashboard() {
         <h1 className="text-2xl font-semibold text-[var(--text)]" id="page-title">Dashboard</h1>
         {tierInfo.isBeta && <BetaBadge />}
       </div>
+
+      {/* 0. Getting Started — onboarding checklist for new users */}
+      <GettingStarted />
 
       {/* 1. Daily Action Hero — THE primary card */}
       <DailyActionHero />

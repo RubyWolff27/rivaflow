@@ -567,6 +567,7 @@ export interface WhoopConnectionStatus {
   connected_at?: string;
   last_synced_at?: string;
   auto_create_sessions?: boolean;
+  auto_fill_readiness?: boolean;
 }
 
 export interface WhoopWorkout {

@@ -42,6 +42,80 @@ class ProfileUpdate(BaseModel):
     avatar_url: str | None = None
 
 
+@router.get("/onboarding-status")
+@limiter.limit("120/minute")
+def get_onboarding_status(
+    request: Request, current_user: dict = Depends(get_current_user)
+):
+    """Get onboarding checklist status derived from existing data."""
+    from rivaflow.db.repositories.readiness_repo import ReadinessRepository
+    from rivaflow.db.repositories.session_repo import SessionRepository
+
+    user_id = current_user["id"]
+    profile = service.get_profile(user_id=user_id)
+
+    # Profile completion
+    profile_fields = {
+        "name": bool(profile and profile.get("first_name")),
+        "gym": bool(profile and profile.get("default_gym")),
+        "belt": bool(profile and profile.get("current_grade")),
+        "dob": bool(profile and profile.get("date_of_birth")),
+        "session_goal": bool(profile and profile.get("weekly_sessions_target")),
+    }
+    filled = sum(1 for v in profile_fields.values() if v)
+    total_fields = len(profile_fields)
+    missing = [k for k, v in profile_fields.items() if not v]
+
+    has_readiness = ReadinessRepository.get_latest(user_id) is not None
+    stats = SessionRepository.get_user_stats(user_id)
+    has_session = stats.get("total_sessions", 0) > 0
+    has_goals = bool(
+        profile
+        and (
+            profile.get("weekly_sessions_target")
+            or profile.get("weekly_hours_target")
+            or profile.get("weekly_rolls_target")
+        )
+    )
+
+    steps = [
+        {
+            "key": "profile",
+            "label": "Fill in your profile",
+            "done": filled >= 3,
+        },
+        {
+            "key": "readiness",
+            "label": "Log your first daily check-in",
+            "done": has_readiness,
+        },
+        {
+            "key": "session",
+            "label": "Log your first training session",
+            "done": has_session,
+        },
+        {
+            "key": "goals",
+            "label": "Set weekly training goals",
+            "done": has_goals,
+        },
+    ]
+
+    completed = sum(1 for s in steps if s["done"])
+    return {
+        "steps": steps,
+        "completed": completed,
+        "total": len(steps),
+        "all_done": completed == len(steps),
+        "profile_completion": {
+            "filled": filled,
+            "total": total_fields,
+            "percentage": round(filled / total_fields * 100),
+            "missing": missing,
+        },
+    }
+
+
 @router.get("/")
 @limiter.limit("120/minute")
 def get_profile(request: Request, current_user: dict = Depends(get_current_user)):

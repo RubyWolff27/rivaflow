@@ -146,6 +146,33 @@ class NotificationService:
         )
 
     @staticmethod
+    def create_milestone_notification(
+        user_id: int, milestone_label: str
+    ) -> dict[str, Any] | None:
+        """Create a notification for a newly achieved milestone."""
+        return NotificationRepository.create(
+            user_id=user_id,
+            actor_id=user_id,
+            notification_type="milestone",
+            message=f"Milestone: {milestone_label}",
+        )
+
+    @staticmethod
+    def create_streak_notification(
+        user_id: int, streak_type: str, streak_length: int
+    ) -> dict[str, Any] | None:
+        """Create a notification for a notable streak threshold."""
+        notable = {7, 14, 21, 30, 50, 75, 100, 150, 200, 365}
+        if streak_length not in notable:
+            return None
+        return NotificationRepository.create(
+            user_id=user_id,
+            actor_id=user_id,
+            notification_type="streak",
+            message=f"{streak_length}-day {streak_type} streak!",
+        )
+
+    @staticmethod
     def get_notification_counts(user_id: int) -> dict[str, int]:
         """
         Get notification counts for a user.
