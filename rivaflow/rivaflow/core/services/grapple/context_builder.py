@@ -439,8 +439,23 @@ Athlete competes under NAGA (North American Grappling Association) rules:
             ctx = ["PRACTITIONER CONTEXT:"]
             if prefs.get("belt_level"):
                 ctx.append(f"Belt: {prefs['belt_level']}")
+            if prefs.get("training_start_date"):
+                try:
+                    start = date.fromisoformat(prefs["training_start_date"])
+                    years_since = round((date.today() - start).days / 365.25, 1)
+                    ctx.append(
+                        f"Started training: {prefs['training_start_date']}"
+                        f" ({years_since} years ago)"
+                    )
+                except ValueError:
+                    pass
             if prefs.get("years_training"):
-                ctx.append(f"Experience: {prefs['years_training']} years")
+                label = (
+                    "Active mat time"
+                    if prefs.get("training_start_date")
+                    else "Experience"
+                )
+                ctx.append(f"{label}: {prefs['years_training']} years")
             if (
                 prefs.get("competition_experience")
                 and prefs["competition_experience"] != "none"

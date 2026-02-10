@@ -56,6 +56,7 @@ class CoachPreferencesUpdate(BaseModel):
     focus_areas: list[str] | None = None
     weaknesses: str | None = None
     injuries: list[Injury] | None = None
+    training_start_date: str | None = None
     years_training: float | None = None
     competition_experience: str | None = None
     available_days_per_week: int | None = None
@@ -79,6 +80,7 @@ DEFAULTS = {
     "comp_division": None,
     "comp_weight_class": None,
     "weaknesses": None,
+    "training_start_date": None,
     "years_training": None,
     "additional_context": None,
 }

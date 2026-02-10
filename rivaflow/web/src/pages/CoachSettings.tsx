@@ -90,6 +90,7 @@ export default function CoachSettings() {
   const [focusAreas, setFocusAreas] = useState<string[]>([]);
   const [weaknesses, setWeaknesses] = useState('');
   const [injuries, setInjuries] = useState<Injury[]>([]);
+  const [trainingStartDate, setTrainingStartDate] = useState('');
   const [yearsTraining, setYearsTraining] = useState('');
   const [competitionExp, setCompetitionExp] = useState('none');
   const [availableDays, setAvailableDays] = useState('4');
@@ -114,6 +115,7 @@ export default function CoachSettings() {
           setFocusAreas(d.focus_areas || []);
           setWeaknesses(d.weaknesses || '');
           setInjuries(d.injuries || []);
+          setTrainingStartDate(d.training_start_date || '');
           setYearsTraining(d.years_training != null ? String(d.years_training) : '');
           setCompetitionExp(d.competition_experience || 'none');
           setAvailableDays(d.available_days_per_week != null ? String(d.available_days_per_week) : '4');
@@ -169,6 +171,7 @@ export default function CoachSettings() {
         focus_areas: focusAreas,
         weaknesses: weaknesses || null,
         injuries,
+        training_start_date: trainingStartDate || null,
         years_training: yearsTraining ? parseFloat(yearsTraining) : null,
         competition_experience: competitionExp,
         available_days_per_week: parseInt(availableDays) || 4,
@@ -462,20 +465,32 @@ export default function CoachSettings() {
 
       {/* 6. Training Background */}
       <Card className="p-5">
-        <h2 className="text-sm font-semibold mb-3" style={{ color: 'var(--text)' }}>Training Background</h2>
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        <h2 className="text-sm font-semibold mb-1" style={{ color: 'var(--text)' }}>Training Background</h2>
+        <p className="text-xs mb-3" style={{ color: 'var(--muted)' }}>Fill in one or both — if you took breaks, add your active mat time separately</p>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
           <div>
-            <label className="text-xs font-medium block mb-1" style={{ color: 'var(--muted)' }}>Years Training</label>
+            <label className="text-xs font-medium block mb-1" style={{ color: 'var(--muted)' }}>When did you start?</label>
+            <input
+              type="date"
+              className="input w-full text-sm"
+              value={trainingStartDate}
+              onChange={e => setTrainingStartDate(e.target.value)}
+            />
+          </div>
+          <div>
+            <label className="text-xs font-medium block mb-1" style={{ color: 'var(--muted)' }}>Active mat time (years)</label>
             <input
               type="number"
               className="input w-full text-sm"
-              placeholder="e.g. 3.5"
+              placeholder="e.g. 3.5 — leave blank to auto-calculate"
               step="0.5"
               min="0"
               value={yearsTraining}
               onChange={e => setYearsTraining(e.target.value)}
             />
           </div>
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div>
             <label className="text-xs font-medium block mb-1" style={{ color: 'var(--muted)' }}>Comp Experience</label>
             <select className="input w-full text-sm" value={competitionExp} onChange={e => setCompetitionExp(e.target.value)}>
