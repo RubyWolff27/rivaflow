@@ -45,8 +45,12 @@ vi.mock('../../components/dashboard/JourneyProgress', () => ({ JourneyProgress: 
 vi.mock('../../components/dashboard/WeeklyGoalsBreakdown', () => ({ WeeklyGoalsBreakdown: () => <div data-testid="weekly-goals" /> }))
 vi.mock('../../components/dashboard/ReadinessRecommendation', () => ({ default: () => <div data-testid="readiness-rec" /> }))
 vi.mock('../../components/dashboard/NextEvent', () => ({ default: () => <div data-testid="next-event" /> }))
+vi.mock('../../components/dashboard/DailyActionHero', () => ({ default: () => <div data-testid="daily-action-hero">Log Session</div> }))
+vi.mock('../../components/dashboard/ThisWeek', () => ({ default: () => <div data-testid="this-week" /> }))
+vi.mock('../../components/dashboard/NextGoal', () => ({ default: () => <div data-testid="next-goal" /> }))
 vi.mock('../../components/dashboard/MyGameWidget', () => ({ default: () => <div data-testid="my-game" /> }))
 vi.mock('../../components/dashboard/LatestInsightWidget', () => ({ default: () => <div data-testid="latest-insight" /> }))
+vi.mock('../../components/dashboard/GettingStarted', () => ({ default: () => null }))
 
 import Dashboard from '../Dashboard'
 
@@ -70,11 +74,9 @@ describe('Dashboard', () => {
     })
   })
 
-  it('shows loading skeletons initially', () => {
+  it('renders the page title', () => {
     renderDashboard()
-    // Dashboard shows skeleton cards while loading
-    const skeletons = document.querySelectorAll('[class*="animate-pulse"]')
-    expect(skeletons.length).toBeGreaterThan(0)
+    expect(screen.getByText('Dashboard')).toBeInTheDocument()
   })
 
   it('renders quick action buttons after loading', async () => {

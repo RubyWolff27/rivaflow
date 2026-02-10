@@ -216,8 +216,8 @@ class TestWhoopServiceRecovery:
 
     @patch("rivaflow.core.services.whoop_service.WhoopClient")
     def test_check_scope_compatibility_all_scopes(self, mock_client_cls, temp_db):
-        from rivaflow.core.services.whoop_service import WhoopService
         from rivaflow.core.services.whoop_client import WHOOP_SCOPES
+        from rivaflow.core.services.whoop_service import WhoopService
         from rivaflow.db.repositories.whoop_connection_repo import (
             WhoopConnectionRepository,
         )
