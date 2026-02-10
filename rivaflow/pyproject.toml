@@ -39,7 +39,7 @@ classifiers = [
 ]
 
 dependencies = [
-    "fastapi==0.128.4",
+    "fastapi==0.128.7",
     "uvicorn[standard]==0.40.0",
     "typer==0.21.1",
     "rich==13.9.4",
