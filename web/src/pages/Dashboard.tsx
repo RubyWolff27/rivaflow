@@ -11,7 +11,6 @@ import { refreshIfStale } from '../hooks/useInsightRefresh';
 import DailyActionHero from '../components/dashboard/DailyActionHero';
 import GettingStarted from '../components/dashboard/GettingStarted';
 import ThisWeek from '../components/dashboard/ThisWeek';
-import NextGoal from '../components/dashboard/NextGoal';
 import MyGameWidget from '../components/dashboard/MyGameWidget';
 import LatestInsightWidget from '../components/dashboard/LatestInsightWidget';
 
@@ -106,9 +105,6 @@ export default function Dashboard() {
 
       {/* 7. My Game Plan */}
       <MyGameWidget />
-
-      {/* 8. Next Goal — comp countdown or milestone progress */}
-      <NextGoal />
     </div>
   );
 }
