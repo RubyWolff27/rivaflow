@@ -383,20 +383,13 @@ def search_users(
     if not q or len(q) < 2:
         return {"users": []}
 
-    # Get all users (simple implementation for now)
-    all_users = UserRepository.list_all()
+    # SQL-level search with LIMIT (avoids loading all users into memory)
+    filtered_users = UserRepository.search(q, limit=21)
 
-    # Filter by query (case-insensitive search in first_name, last_name only)
-    query_lower = q.lower()
+    # Exclude current user
     filtered_users = [
-        user
-        for user in all_users
-        if (
-            query_lower in user.get("first_name", "").lower()
-            or query_lower in user.get("last_name", "").lower()
-        )
-        and user["id"] != current_user["id"]  # Exclude current user
-    ]
+        user for user in filtered_users if user["id"] != current_user["id"]
+    ][:20]
 
     # Add follow status and strip sensitive fields
     for user in filtered_users:
@@ -407,8 +400,8 @@ def search_users(
         user.pop("hashed_password", None)
 
     return {
-        "users": filtered_users[:20],  # Limit to 20 results
-        "count": len(filtered_users[:20]),
+        "users": filtered_users,
+        "count": len(filtered_users),
     }
 
 

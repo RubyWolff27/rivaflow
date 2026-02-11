@@ -62,6 +62,9 @@ export function getErrorMessage(error: unknown): string {
   return 'An unexpected error occurred. Please try again.';
 }
 
+// Shared refresh promise to prevent concurrent refresh race conditions
+let refreshPromise: Promise<string> | null = null;
+
 // Response interceptor - handle 401 and refresh token
 api.interceptors.response.use(
   (response) => response,
@@ -75,14 +78,23 @@ api.interceptors.response.use(
       const refreshToken = localStorage.getItem('refresh_token');
       if (refreshToken) {
         try {
-          // Import auth API dynamically to avoid circular dependency
-          const { authApi } = await import('./auth');
-          const response = await authApi.refresh(refreshToken);
+          // Reuse in-flight refresh or start a new one
+          if (!refreshPromise) {
+            refreshPromise = (async () => {
+              const { authApi } = await import('./auth');
+              const response = await authApi.refresh(refreshToken);
+              const newToken = response.data.access_token;
+              localStorage.setItem('access_token', newToken);
+              return newToken;
+            })().finally(() => {
+              refreshPromise = null;
+            });
+          }
 
-          localStorage.setItem('access_token', response.data.access_token);
+          const newToken = await refreshPromise;
 
           // Retry original request with new token
-          originalRequest.headers.Authorization = `Bearer ${response.data.access_token}`;
+          originalRequest.headers.Authorization = `Bearer ${newToken}`;
           return api.request(originalRequest);
         } catch (refreshError) {
           // Refresh failed - logout user

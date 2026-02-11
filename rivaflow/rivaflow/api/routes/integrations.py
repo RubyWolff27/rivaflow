@@ -445,6 +445,7 @@ def get_zones_batch(
     """Get HR zone data for multiple sessions at once."""
     _require_whoop_enabled()
 
+    from rivaflow.db.repositories.session_repo import SessionRepository
     from rivaflow.db.repositories.whoop_workout_cache_repo import (
         WhoopWorkoutCacheRepository,
     )
@@ -453,8 +454,19 @@ def get_zones_batch(
         :50
     ]  # cap at 50
 
+    # Pre-fetch owned session IDs to prevent IDOR
+    user_id = current_user["id"]
+    owned_ids = set()
+    for sid in ids:
+        session = SessionRepository.get_by_id(sid)
+        if session and session.get("user_id") == user_id:
+            owned_ids.add(sid)
+
     result: dict[str, dict | None] = {}
     for sid in ids:
+        if sid not in owned_ids:
+            result[str(sid)] = None
+            continue
         wo = WhoopWorkoutCacheRepository.get_by_session_id(sid)
         if not wo:
             result[str(sid)] = None

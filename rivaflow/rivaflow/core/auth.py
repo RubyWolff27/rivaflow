@@ -3,7 +3,8 @@
 import secrets
 from datetime import datetime, timedelta
 
-from jose import JWTError, jwt
+import jwt
+from jwt.exceptions import PyJWTError
 from passlib.context import CryptContext
 
 from rivaflow.core.settings import settings
@@ -93,12 +94,12 @@ def decode_access_token(token: str) -> dict | None:
         Dictionary of decoded claims
 
     Raises:
-        JWTError: If token is invalid or expired
+        PyJWTError: If token is invalid or expired
     """
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         return payload
-    except JWTError:
+    except PyJWTError:
         return None
 
 

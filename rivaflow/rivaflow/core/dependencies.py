@@ -4,7 +4,7 @@ import logging
 
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
-from jose import JWTError
+from jwt.exceptions import PyJWTError
 
 from rivaflow.core.auth import decode_access_token
 from rivaflow.db.repositories.user_repo import UserRepository
@@ -76,7 +76,7 @@ async def get_current_user(
 
         return user
 
-    except JWTError:
+    except PyJWTError:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Could not validate credentials",
