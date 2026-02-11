@@ -5,13 +5,12 @@ import { Trophy, Target } from 'lucide-react';
 import { dashboardApi, profileApi } from '../../api/client';
 
 interface Milestone {
-  id: number;
-  milestone_type: string;
-  target_value: number;
-  current_value: number;
-  progress_percentage: number;
-  achieved: boolean;
-  achieved_at?: string;
+  type: string;
+  current: number;
+  next_target: number;
+  next_label: string;
+  remaining: number;
+  percentage: number;
 }
 
 interface Profile {
@@ -143,24 +142,24 @@ export function JourneyProgress() {
             </p>
           </div>
           <p className="text-sm mb-2" style={{ color: 'var(--text)' }}>
-            {closestMilestone.milestone_type}: {closestMilestone.target_value}
+            {closestMilestone.next_label}
           </p>
           <div className="flex items-center gap-3 mb-2">
             <div className="flex-1 h-2 rounded-full" style={{ backgroundColor: 'var(--border)' }}>
               <div
                 className="h-2 rounded-full transition-all"
                 style={{
-                  width: `${Math.min(100, closestMilestone.progress_percentage || 0)}%`,
+                  width: `${Math.min(100, closestMilestone.percentage || 0)}%`,
                   backgroundColor: 'var(--accent)',
                 }}
               />
             </div>
             <span className="text-sm font-medium" style={{ color: 'var(--text)' }}>
-              {closestMilestone.progress_percentage?.toFixed(0) || 0}%
+              {closestMilestone.percentage?.toFixed(0) || 0}%
             </span>
           </div>
           <p className="text-xs" style={{ color: 'var(--muted)' }}>
-            {closestMilestone.current_value} / {closestMilestone.target_value}
+            {closestMilestone.current} / {closestMilestone.next_target}
           </p>
         </div>
       ) : (

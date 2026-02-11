@@ -1,5 +1,6 @@
 """API routes for daily check-ins."""
 
+import logging
 from datetime import date, timedelta
 
 from fastapi import APIRouter, Depends, Request
@@ -11,6 +12,7 @@ from rivaflow.core.dependencies import get_current_user
 from rivaflow.core.exceptions import NotFoundError
 from rivaflow.db.repositories.checkin_repo import CheckinRepository
 
+logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/checkins", tags=["checkins"])
 limiter = Limiter(key_func=get_remote_address)
 
@@ -134,13 +136,19 @@ def create_evening_checkin(
     current_user: dict = Depends(get_current_user),
 ):
     """Create or update evening check-in."""
-    repo = CheckinRepository()
-    today = date.today()
-    checkin_id = repo.upsert_evening(
-        user_id=current_user["id"],
-        check_date=today,
-        training_quality=data.training_quality,
-        recovery_note=data.recovery_note,
-        tomorrow_intention=data.tomorrow_intention,
-    )
-    return {"success": True, "id": checkin_id}
+    try:
+        repo = CheckinRepository()
+        today = date.today()
+        checkin_id = repo.upsert_evening(
+            user_id=current_user["id"],
+            check_date=today,
+            training_quality=data.training_quality,
+            recovery_note=data.recovery_note,
+            tomorrow_intention=data.tomorrow_intention,
+        )
+        return {"success": True, "id": checkin_id}
+    except Exception as e:
+        logger.exception(
+            "Evening checkin failed for user %s: %s", current_user["id"], e
+        )
+        raise

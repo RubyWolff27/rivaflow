@@ -1,8 +1,11 @@
 """Repository for daily check-in operations."""
 
-from datetime import date
+import logging
+from datetime import date, datetime
 
 from rivaflow.db.database import convert_query, execute_insert, get_connection
+
+logger = logging.getLogger(__name__)
 
 
 class CheckinRepository:
@@ -248,15 +251,16 @@ class CheckinRepository:
                     """
                     INSERT INTO daily_checkins (
                         user_id, check_date, checkin_type, checkin_slot,
-                        energy_level, midday_note
+                        energy_level, midday_note, created_at
                     )
-                    VALUES (?, ?, 'midday', 'midday', ?, ?)
+                    VALUES (?, ?, 'midday', 'midday', ?, ?, ?)
                     """,
                     (
                         user_id,
                         check_date.isoformat(),
                         energy_level,
                         midday_note,
+                        datetime.now().isoformat(),
                     ),
                 )
                 return checkin_id
@@ -305,9 +309,9 @@ class CheckinRepository:
                     INSERT INTO daily_checkins (
                         user_id, check_date, checkin_type, checkin_slot,
                         training_quality, recovery_note,
-                        tomorrow_intention
+                        tomorrow_intention, created_at
                     )
-                    VALUES (?, ?, 'evening', 'evening', ?, ?, ?)
+                    VALUES (?, ?, 'evening', 'evening', ?, ?, ?, ?)
                     """,
                     (
                         user_id,
@@ -315,6 +319,7 @@ class CheckinRepository:
                         training_quality,
                         recovery_note,
                         tomorrow_intention,
+                        datetime.now().isoformat(),
                     ),
                 )
                 return checkin_id

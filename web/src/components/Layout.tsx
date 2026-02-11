@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, memo } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { Home, Plus, BarChart3, Book, Users, BookOpen, Video, Activity, Shield, Calendar, Sparkles, Trophy, HelpCircle, MessageSquare, Target, Crosshair } from 'lucide-react';
+import { Home, BarChart3, Book, Users, BookOpen, Video, Activity, Shield, Calendar, Sparkles, Trophy, HelpCircle, MessageSquare, Target, Crosshair } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import QuickLog from './QuickLog';
 import Sidebar from './Sidebar';
@@ -70,7 +70,6 @@ const Layout = memo(function Layout({ children }: { children: React.ReactNode })
   const navigation = [
     { name: 'Dashboard', href: '/', icon: Home },
     { name: 'Feed', href: '/feed', icon: Activity, badge: notificationCounts.feed_unread },
-    { name: 'Log', href: '/log', icon: Plus },
     { name: 'Progress', href: '/reports', icon: BarChart3 },
     { name: 'Friends', href: '/friends', icon: Users, badge: notificationCounts.friend_requests },
   ];

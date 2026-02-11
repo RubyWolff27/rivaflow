@@ -62,6 +62,8 @@ class CoachPreferencesUpdate(BaseModel):
     available_days_per_week: int | None = None
     motivations: list[str] | None = None
     additional_context: str | None = None
+    gi_nogi_preference: str | None = None
+    gi_bias_pct: int | None = None
 
 
 DEFAULTS = {

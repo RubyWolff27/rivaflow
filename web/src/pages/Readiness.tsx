@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { getLocalDateString } from '../utils/date';
 import { readinessApi, profileApi, suggestionsApi, whoopApi } from '../api/client';
 import type { Readiness as ReadinessType } from '../types';
-import { Activity, Heart, Waves, Wind, Target } from 'lucide-react';
+import { Activity, Heart, Waves, Wind, Target, Pencil } from 'lucide-react';
 import { useToast } from '../contexts/ToastContext';
 import { triggerInsightRefresh } from '../hooks/useInsightRefresh';
 import ReadinessResult from '../components/ReadinessResult';
@@ -70,6 +71,26 @@ export default function Readiness() {
         }
       } catch {
         // Profile not available
+      }
+
+      // Fetch 7-day trend on page load
+      try {
+        const end = getLocalDateString();
+        const startD = new Date();
+        startD.setDate(startD.getDate() - 6);
+        const start = startD.toISOString().split('T')[0];
+        const trendRes = await readinessApi.getByRange(start, end);
+        const items = Array.isArray(trendRes.data) ? trendRes.data : [];
+        if (!cancelled) {
+          setTrendData(
+            items.map((r: ReadinessType) => ({
+              date: r.check_date || '',
+              score: r.composite_score ?? 0,
+            }))
+          );
+        }
+      } catch {
+        // Trend data not available
       }
 
       // Try WHOOP auto-fill
@@ -185,7 +206,17 @@ export default function Readiness() {
       {/* Latest Readiness */}
       {latest && (
         <div className="card bg-primary-50 dark:bg-primary-900/20 border-primary-200 dark:border-primary-800">
-          <h3 className="font-semibold mb-2">Latest Check-in</h3>
+          <div className="flex items-center justify-between mb-2">
+            <h3 className="font-semibold">Latest Check-in</h3>
+            <Link
+              to={`/readiness/edit/${latest.check_date}`}
+              className="flex items-center gap-1 text-xs font-medium hover:underline"
+              style={{ color: 'var(--accent)' }}
+            >
+              <Pencil className="w-3 h-3" />
+              Edit
+            </Link>
+          </div>
           <p className="text-sm text-[var(--muted)] mb-3">
             {new Date(latest.check_date ?? new Date()).toLocaleDateString()} • Score: {latest.composite_score ?? 0}/20
           </p>
@@ -204,21 +235,21 @@ export default function Readiness() {
         </div>
       )}
 
+      {/* Trend chart — shown whenever data is available */}
+      {trendData.length > 1 && (
+        <div className="card">
+          <h3 className="font-semibold mb-3" style={{ color: 'var(--text)' }}>7-Day Readiness Trend</h3>
+          <ReadinessTrendChart data={trendData} />
+        </div>
+      )}
+
       {/* Result after submission */}
       {success && (
-        <>
-          <ReadinessResult
-            compositeScore={compositeScore}
-            suggestion={suggestionData?.suggestion}
-            triggeredRules={suggestionData?.triggered_rules}
-          />
-          {trendData.length > 1 && (
-            <div className="card">
-              <h3 className="font-semibold mb-3" style={{ color: 'var(--text)' }}>7-Day Readiness Trend</h3>
-              <ReadinessTrendChart data={trendData} />
-            </div>
-          )}
-        </>
+        <ReadinessResult
+          compositeScore={compositeScore}
+          suggestion={suggestionData?.suggestion}
+          triggeredRules={suggestionData?.triggered_rules}
+        />
       )}
 
       {/* WHOOP auto-fill banner */}
