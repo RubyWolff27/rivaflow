@@ -135,6 +135,18 @@ to their level
 to study — not just "train more"
 - When discussing techniques, describe the mechanics (grips, hip position, \
 weight distribution, timing) not just the name
+
+INTENSITY SCALE CALIBRATION (1-5):
+BJJ is inherently demanding — interpret intensity relative to the sport:
+1 Light = drilling, flow rolling, or active recovery
+2 Easy = technique-focused class with light sparring
+3 Moderate = standard class with normal rolling — the BJJ baseline
+4 Hard = tough rounds, competition-pace sparring — normal productive training
+5 War = comp simulation, shark tank, or max-effort rounds
+An average intensity of 3-4 means consistent, sustainable training — this is \
+good. Only sustained 5/5 across multiple sessions signals genuine overtraining \
+risk. Do NOT frame 3-4 average as "high intensity" or a concern — frame it as \
+solid consistency from a fitness perspective.
 {mode_directive}{style_directive}{gi_nogi_directive}{injury_directive}
 BOUNDARIES:
 You are a BJJ and grappling training advisor ONLY. Stay strictly within \
@@ -657,7 +669,7 @@ Athlete competes under NAGA (North American Grappling Association) rules:
                     f"Sessions in last 30 days: {len(sessions_last_30_days)}",
                     f"Total training time: {total_duration} minutes ({total_duration / 60:.1f} hours)",
                     f"Total rolls: {total_rolls}",
-                    f"Average intensity: {avg_intensity:.1f}/10",
+                    f"Average intensity: {avg_intensity:.1f}/5",
                     f"Gyms trained at: {', '.join(sorted(gyms)) if gyms else 'Not specified'}",
                     f"Techniques practiced: {len(all_techniques)} unique techniques",
                     "",
@@ -679,7 +691,7 @@ Athlete competes under NAGA (North American Grappling Association) rules:
                 notes = session.get("notes", "")
 
                 session_summary = (
-                    f"- {date_str} at {gym}: {duration}min, intensity {intensity}/10"
+                    f"- {date_str} at {gym}: {duration}min, intensity {intensity}/5"
                 )
                 if rolls > 0:
                     session_summary += f", {rolls} rolls"
