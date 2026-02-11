@@ -50,7 +50,7 @@ export default function FeedbackModal({ isOpen, onClose }: FeedbackModalProps) {
   const feedbackOptions = [
     { type: 'bug' as FeedbackType, icon: Bug, label: 'Bug', description: 'Something broke' },
     { type: 'feature' as FeedbackType, icon: Lightbulb, label: 'Feature', description: 'Something you want' },
-    { type: 'general' as FeedbackType, icon: MessageCircle, label: 'Feedback', description: 'General thoughts' },
+    { type: 'other' as FeedbackType, icon: MessageCircle, label: 'Feedback', description: 'General thoughts' },
   ];
 
   return (

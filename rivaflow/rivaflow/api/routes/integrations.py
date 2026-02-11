@@ -80,7 +80,12 @@ def callback(
 
     if error:
         logger.warning(f"WHOOP OAuth error: {error}")
-        return RedirectResponse(f"{frontend_url}/profile?whoop=error&reason={error}")
+        from urllib.parse import quote
+
+        safe_error = quote(error, safe="")
+        return RedirectResponse(
+            f"{frontend_url}/profile?whoop=error&reason={safe_error}"
+        )
 
     if not code or not state:
         return RedirectResponse(

@@ -20,7 +20,7 @@ class TestAuthServiceRegister:
 
         result = auth_service.register(
             email="newuser@example.com",
-            password="securepass123",
+            password="SecurePass123",
             first_name="New",
             last_name="User",
         )
@@ -40,7 +40,7 @@ class TestAuthServiceRegister:
 
         result = auth_service.register(
             email="newuser@example.com",
-            password="securepass123",
+            password="SecurePass123",
             first_name="New",
             last_name="User",
         )
@@ -61,7 +61,7 @@ class TestAuthServiceRegister:
 
         result = auth_service.register(
             email="newuser@example.com",
-            password="securepass123",
+            password="SecurePass123",
             first_name="New",
             last_name="User",
         )
@@ -92,7 +92,7 @@ class TestAuthServiceRegister:
         with pytest.raises(ValidationError, match="Email must contain an @ sign"):
             auth_service.register(
                 email="not-an-email",
-                password="securepass123",
+                password="SecurePass123",
                 first_name="New",
                 last_name="User",
             )
@@ -109,6 +109,30 @@ class TestAuthServiceRegister:
                 last_name="User",
             )
 
+    def test_register_no_uppercase(self, temp_db):
+        """Test registration with password missing uppercase letter."""
+        auth_service = AuthService()
+
+        with pytest.raises(ValidationError, match="uppercase letter"):
+            auth_service.register(
+                email="newuser@example.com",
+                password="nouppercase1",
+                first_name="New",
+                last_name="User",
+            )
+
+    def test_register_no_digit(self, temp_db):
+        """Test registration with password missing a digit."""
+        auth_service = AuthService()
+
+        with pytest.raises(ValidationError, match="one number"):
+            auth_service.register(
+                email="newuser@example.com",
+                password="NoDigitHere",
+                first_name="New",
+                last_name="User",
+            )
+
     def test_register_duplicate_email(self, temp_db, test_user):
         """Test registration with already existing email."""
         auth_service = AuthService()
@@ -116,7 +140,7 @@ class TestAuthServiceRegister:
         with pytest.raises(ValidationError, match="Email already registered"):
             auth_service.register(
                 email="test@example.com",  # Already exists from test_user fixture
-                password="securepass123",
+                password="SecurePass123",
                 first_name="Duplicate",
                 last_name="User",
             )
@@ -127,7 +151,7 @@ class TestAuthServiceRegister:
 
         result = auth_service.register(
             email="newuser@example.com",
-            password="securepass123",
+            password="SecurePass123",
             first_name="New",
             last_name="User",
         )

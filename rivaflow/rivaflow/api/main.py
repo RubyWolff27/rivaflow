@@ -2,6 +2,7 @@
 
 import logging
 import os
+from contextlib import asynccontextmanager
 from pathlib import Path
 
 try:
@@ -103,6 +104,58 @@ _docs_url = None if settings.IS_PRODUCTION else "/docs"
 _redoc_url = None if settings.IS_PRODUCTION else "/redoc"
 _openapi_url = None if settings.IS_PRODUCTION else "/openapi.json"
 
+
+@asynccontextmanager
+async def _lifespan(_app: FastAPI):
+    """Manage application startup and shutdown."""
+    # --- Startup ---
+    from rivaflow.core.config_validator import validate_environment
+
+    validate_environment()
+
+    from rivaflow.config import get_db_type
+
+    if get_db_type() == "postgresql":
+        logging.info("Running database migrations...")
+        try:
+            from rivaflow.db.migrate import run_migrations
+
+            run_migrations()
+            logging.info("Database migrations completed successfully")
+        except Exception as e:
+            logging.error(f"Failed to run migrations: {e}")
+            raise
+
+        try:
+            from rivaflow.db.seed_glossary import seed_glossary
+
+            seed_glossary()
+        except (OSError, ConnectionError, ValueError) as e:
+            logging.warning(f"Could not seed glossary: {e}")
+
+    if not settings.IS_TEST:
+        try:
+            from rivaflow.core.scheduler import start_scheduler
+
+            start_scheduler()
+        except Exception as e:
+            logging.warning(f"Background scheduler failed to start: {e}")
+
+    yield
+
+    # --- Shutdown ---
+    from rivaflow.db.database import close_connection_pool
+
+    close_connection_pool()
+
+    try:
+        from rivaflow.core.scheduler import stop_scheduler
+
+        stop_scheduler()
+    except Exception:
+        pass
+
+
 app = FastAPI(
     title="RivaFlow API",
     description="Training OS for the mat — Web API",
@@ -110,6 +163,7 @@ app = FastAPI(
     docs_url=_docs_url,
     redoc_url=_redoc_url,
     openapi_url=_openapi_url,
+    lifespan=_lifespan,
 )
 
 # Add rate limiter to app state
@@ -166,61 +220,6 @@ app.add_middleware(GzipCompressionMiddleware)
 
 # Add security headers for production hardening
 app.add_middleware(SecurityHeadersMiddleware)
-
-
-@app.on_event("startup")
-async def startup_event():
-    """Validate configuration and initialize services at startup."""
-    from rivaflow.core.config_validator import validate_environment
-
-    validate_environment()
-
-    # Run database migrations on startup (PostgreSQL only)
-    from rivaflow.config import get_db_type
-
-    if get_db_type() == "postgresql":
-        logging.info("Running database migrations...")
-        try:
-            from rivaflow.db.migrate import run_migrations
-
-            run_migrations()
-            logging.info("Database migrations completed successfully")
-        except Exception as e:
-            logging.error(f"Failed to run migrations: {e}")
-            raise
-
-        # Seed glossary data if not already present
-        try:
-            from rivaflow.db.seed_glossary import seed_glossary
-
-            seed_glossary()
-        except (OSError, ConnectionError, ValueError) as e:
-            logging.warning(f"Could not seed glossary: {e}")
-
-    # Start background scheduler (not in test)
-    if not settings.IS_TEST:
-        try:
-            from rivaflow.core.scheduler import start_scheduler
-
-            start_scheduler()
-        except Exception as e:
-            logging.warning(f"Background scheduler failed to start: {e}")
-
-
-@app.on_event("shutdown")
-async def shutdown_event():
-    """Close database connection pool on application shutdown."""
-    from rivaflow.db.database import close_connection_pool
-
-    close_connection_pool()
-
-    # Stop background scheduler
-    try:
-        from rivaflow.core.scheduler import stop_scheduler
-
-        stop_scheduler()
-    except Exception:
-        pass
 
 
 # Register health check routes (no prefix for easy access by load balancers)

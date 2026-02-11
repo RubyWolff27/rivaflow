@@ -77,7 +77,22 @@ class AuthService:
         if len(password) < 8:
             raise ValidationError(
                 message="Password must be at least 8 characters long",
-                action="Choose a password with at least 8 characters. Consider using a mix of letters, numbers, and symbols for better security.",
+                action="Choose a password with at least 8 characters.",
+            )
+        if not any(c.isupper() for c in password):
+            raise ValidationError(
+                message="Password must contain at least one uppercase letter",
+                action="Add an uppercase letter to your password.",
+            )
+        if not any(c.islower() for c in password):
+            raise ValidationError(
+                message="Password must contain at least one lowercase letter",
+                action="Add a lowercase letter to your password.",
+            )
+        if not any(c.isdigit() for c in password):
+            raise ValidationError(
+                message="Password must contain at least one number",
+                action="Add a number to your password.",
             )
 
         # Check if email already exists

@@ -22,7 +22,7 @@ class TestNewUserJourney:
         # Step 1: User registers
         registration = auth_service.register(
             email="newuser@example.com",
-            password="securepass123",
+            password="SecurePass123",
             first_name="John",
             last_name="Doe",
         )

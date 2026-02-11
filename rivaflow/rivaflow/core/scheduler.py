@@ -5,6 +5,7 @@ All jobs are best-effort — failures are logged but do not crash the app.
 """
 
 import logging
+from datetime import datetime, timedelta
 
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 
@@ -24,12 +25,15 @@ async def _weekly_insights_job() -> None:
         from rivaflow.db.database import convert_query, get_connection
 
         # Find users with sessions in the last 14 days
+        cutoff = (datetime.now() - timedelta(days=14)).strftime("%Y-%m-%d")
         with get_connection() as conn:
             cursor = conn.cursor()
-            cursor.execute(convert_query("""
-                    SELECT DISTINCT user_id FROM sessions
-                    WHERE session_date >= date('now', '-14 days')
-                """))
+            cursor.execute(
+                convert_query(
+                    "SELECT DISTINCT user_id FROM sessions" " WHERE session_date >= ?"
+                ),
+                (cutoff,),
+            )
             rows = cursor.fetchall()
 
         user_ids = [r["user_id"] if hasattr(r, "keys") else r[0] for r in rows]
@@ -114,15 +118,18 @@ async def _drip_email_job() -> None:
         total_sent = 0
 
         for days_ago, email_key, method_name in drips:
+            target_date = (datetime.now() - timedelta(days=days_ago)).strftime(
+                "%Y-%m-%d"
+            )
             with get_connection() as conn:
                 cursor = conn.cursor()
                 cursor.execute(
                     convert_query(
                         "SELECT id, email, first_name FROM users"
                         " WHERE is_active = ?"
-                        " AND date(created_at) = date('now', ?)"
+                        " AND SUBSTR(created_at, 1, 10) = ?"
                     ),
-                    (1, f"-{days_ago} days"),
+                    (1, target_date),
                 )
                 rows = cursor.fetchall()
 

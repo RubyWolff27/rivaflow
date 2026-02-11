@@ -188,9 +188,13 @@ async def _handle_chat(
         rate_limiter = GrappleRateLimiter()
         rate_check = rate_limiter.check_rate_limit(user_id, user_tier)
     except (ConnectionError, OSError) as e:
-        logger.error(f"Rate limit check failed for user {user_id}: {e}", exc_info=True)
-        # Fail open — allow the request if rate limiting is broken
-        rate_check = {"allowed": True, "remaining": 99, "limit": 99}
+        logger.critical(
+            f"Rate limit service down for user {user_id}: {e}", exc_info=True
+        )
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Rate limiting service unavailable. Please try again shortly.",
+        )
 
     if not rate_check["allowed"]:
         reset_at = rate_check.get("reset_at")

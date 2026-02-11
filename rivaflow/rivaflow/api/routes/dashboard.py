@@ -8,7 +8,7 @@ from slowapi import Limiter
 from slowapi.util import get_remote_address
 
 from rivaflow.core.dependencies import get_current_user
-from rivaflow.core.exceptions import ValidationError
+from rivaflow.core.exceptions import ServiceError
 from rivaflow.core.services.analytics_service import AnalyticsService
 from rivaflow.core.services.goals_service import GoalsService
 from rivaflow.core.services.milestone_service import MilestoneService
@@ -141,7 +141,7 @@ def get_dashboard_summary(
 
     except Exception as e:
         logger.error(f"Failed to load dashboard: {e}")
-        raise ValidationError("Failed to load dashboard data")
+        raise ServiceError("Failed to load dashboard data")
 
 
 @router.get("/quick-stats")
@@ -187,7 +187,7 @@ def get_quick_stats(
 
     except Exception as e:
         logger.error(f"Failed to load quick stats: {e}")
-        raise ValidationError("Failed to load quick stats")
+        raise ServiceError("Failed to load quick stats")
 
 
 @router.get("/week-summary")
@@ -258,4 +258,4 @@ def get_week_summary(
 
     except Exception as e:
         logger.error(f"Failed to load week summary: {e}")
-        raise ValidationError("Failed to load week summary")
+        raise ServiceError("Failed to load week summary")

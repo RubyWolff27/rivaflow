@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { getLocalDateString } from '../utils/date';
 import { Link, useSearchParams } from 'react-router-dom';
-import { Sparkles, Send, Trash2, MessageCircle, ThumbsUp, ThumbsDown, Zap, Brain, BookOpen, Mic, MicOff, Settings } from 'lucide-react';
+import { Sparkles, Send, Trash2, MessageCircle, ThumbsUp, ThumbsDown, Zap, Brain, BookOpen, Mic, MicOff, Settings, Menu, X } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
 import { grappleApi, getErrorMessage } from '../api/client';
@@ -527,6 +527,7 @@ export default function Grapple() {
   const [rateLimit, setRateLimit] = useState<{ remaining: number; limit: number } | null>(null);
   const [deleteSessionConfirmId, setDeleteSessionConfirmId] = useState<string | null>(null);
   const [activePanel, setActivePanel] = useState<ActivePanel>('chat');
+  const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const [searchParams, setSearchParams] = useSearchParams();
 
   const onTranscript = useCallback((transcript: string) => {
@@ -760,8 +761,17 @@ export default function Grapple() {
 
   return (
     <div className="h-[calc(100dvh-8rem)] md:h-[calc(100dvh-8rem)] flex flex-col md:flex-row gap-4">
-      {/* Sidebar - Sessions (hidden on mobile) */}
-      <div className="w-64 hidden md:flex flex-col rounded-[14px] p-4 shrink-0" style={{ backgroundColor: 'var(--surface)', border: '1px solid var(--border)' }}>
+      {/* Mobile sidebar backdrop */}
+      {mobileSidebarOpen && (
+        <div
+          className="fixed inset-0 z-40 md:hidden"
+          style={{ backgroundColor: 'rgba(0, 0, 0, 0.5)' }}
+          onClick={() => setMobileSidebarOpen(false)}
+        />
+      )}
+
+      {/* Sidebar - Sessions */}
+      <div className={`w-64 ${mobileSidebarOpen ? 'flex fixed inset-y-0 left-0 z-50 mt-16' : 'hidden'} md:flex md:static md:z-auto flex-col rounded-[14px] p-4 shrink-0`} style={{ backgroundColor: 'var(--surface)', border: '1px solid var(--border)' }}>
         <div className="flex items-center justify-between mb-4">
           <h2 className="font-semibold" style={{ color: 'var(--text)' }}>Chats</h2>
           <button
@@ -781,7 +791,7 @@ export default function Grapple() {
               style={{
                 backgroundColor: currentSessionId === session.id ? 'var(--surfaceElev)' : 'transparent',
               }}
-              onClick={() => { setCurrentSessionId(session.id); setActivePanel('chat'); }}
+              onClick={() => { setCurrentSessionId(session.id); setActivePanel('chat'); setMobileSidebarOpen(false); }}
             >
               <div className="flex-1 min-w-0">
                 <div className="text-sm font-medium truncate" style={{ color: 'var(--text)' }}>
@@ -821,6 +831,14 @@ export default function Grapple() {
       <div className="flex-1 flex flex-col min-w-0">
         {/* Header */}
         <div className="flex items-center gap-3 mb-4">
+          <button
+            className="md:hidden p-2 rounded-lg"
+            style={{ color: 'var(--muted)' }}
+            onClick={() => setMobileSidebarOpen(prev => !prev)}
+            title="Chat history"
+          >
+            {mobileSidebarOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+          </button>
           <Sparkles className="w-8 h-8" style={{ color: 'var(--accent)' }} />
           <div className="flex-1">
             <h1 className="text-2xl font-bold" style={{ color: 'var(--text)' }}>Grapple AI Coach</h1>
