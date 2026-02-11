@@ -271,6 +271,9 @@ export default function AdminTechniques() {
           className="fixed inset-0 z-50 flex items-center justify-center p-4"
           style={{ backgroundColor: 'rgba(0, 0, 0, 0.5)' }}
           onClick={() => setShowCreateModal(false)}
+          onKeyDown={e => e.key === 'Escape' && setShowCreateModal(false)}
+          role="dialog"
+          aria-modal="true"
         >
           <div onClick={(e: React.MouseEvent) => e.stopPropagation()}>
             <Card className="max-w-md w-full">

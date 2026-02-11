@@ -353,6 +353,9 @@ export default function AdminUsers() {
           className="fixed inset-0 z-50 flex items-center justify-center p-4"
           style={{ backgroundColor: 'rgba(0, 0, 0, 0.5)' }}
           onClick={() => setShowDetailsModal(false)}
+          onKeyDown={e => e.key === 'Escape' && setShowDetailsModal(false)}
+          role="dialog"
+          aria-modal="true"
         >
           <div onClick={(e: React.MouseEvent) => e.stopPropagation()}>
             <Card className="max-w-2xl w-full max-h-[90vh] overflow-y-auto">
@@ -520,6 +523,9 @@ export default function AdminUsers() {
           className="fixed inset-0 z-50 flex items-center justify-center p-4"
           style={{ backgroundColor: 'rgba(0, 0, 0, 0.5)' }}
           onClick={() => setShowTierModal(false)}
+          onKeyDown={e => e.key === 'Escape' && setShowTierModal(false)}
+          role="dialog"
+          aria-modal="true"
         >
           <div onClick={(e: React.MouseEvent) => e.stopPropagation()}>
             <Card className="max-w-md w-full">

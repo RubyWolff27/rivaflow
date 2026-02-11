@@ -14,6 +14,106 @@ import InsightsTab from '../components/analytics/InsightsTab';
 import WhoopAnalyticsTab from '../components/analytics/WhoopAnalyticsTab';
 import MiniZoneBar from '../components/MiniZoneBar';
 
+interface PerformanceOverview {
+  summary?: {
+    total_sessions?: number;
+    avg_intensity?: number;
+    total_rolls?: number;
+    total_submissions_for?: number;
+    total_hours?: number;
+    top_class_type?: string;
+    [key: string]: unknown;
+  };
+  daily_timeseries?: {
+    sessions?: number[];
+    intensity?: number[];
+    rolls?: number[];
+    submissions?: number[];
+    [key: string]: unknown;
+  };
+  deltas?: {
+    sessions?: number;
+    intensity?: number;
+    rolls?: number;
+    submissions?: number;
+    [key: string]: unknown;
+  };
+  [key: string]: unknown;
+}
+
+interface PartnersData {
+  top_partners?: Array<{
+    id?: number;
+    name?: string;
+    belt_rank?: string;
+    total_rolls?: number;
+    submissions_for?: number;
+    submissions_against?: number;
+    sub_ratio?: number;
+    [key: string]: unknown;
+  }>;
+  diversity_metrics?: { active_partners?: number; [key: string]: unknown };
+  summary?: {
+    total_rolls?: number;
+    total_submissions_for?: number;
+    total_submissions_against?: number;
+    [key: string]: unknown;
+  };
+  [key: string]: unknown;
+}
+
+interface TechniquesData {
+  summary?: { total_unique_techniques_used?: number; stale_count?: number; [key: string]: unknown };
+  category_breakdown?: Array<{ category?: string; count?: number; [key: string]: unknown }>;
+  gi_top_techniques?: Array<{ id?: number; name?: string; count?: number; [key: string]: unknown }>;
+  nogi_top_techniques?: Array<{ id?: number; name?: string; count?: number; [key: string]: unknown }>;
+  all_techniques?: Array<{ name: string; category: string; count: number }>;
+  stale_techniques?: Array<{ id?: number; name?: string; [key: string]: unknown }>;
+  [key: string]: unknown;
+}
+
+interface CalendarData {
+  calendar?: Array<{ date: string; count: number; intensity: number }>;
+  total_active_days?: number;
+  activity_rate?: number;
+  [key: string]: unknown;
+}
+
+interface DurationData {
+  overall_avg?: number;
+  by_class_type?: Array<{ class_type?: string; avg_duration?: number; sessions?: number; [key: string]: unknown }>;
+  [key: string]: unknown;
+}
+
+interface TimeOfDayData {
+  patterns?: Array<{ time_slot?: string; sessions?: number; avg_intensity?: number; [key: string]: unknown }>;
+  [key: string]: unknown;
+}
+
+interface GymData {
+  gyms?: Array<{ gym?: string; sessions?: number; avg_duration?: number; avg_intensity?: number; [key: string]: unknown }>;
+  [key: string]: unknown;
+}
+
+interface ClassTypeData {
+  class_types?: Array<{
+    class_type?: string;
+    sessions?: number;
+    avg_rolls?: number;
+    sub_rate?: number;
+    total_subs_for?: number;
+    total_subs_against?: number;
+    [key: string]: unknown;
+  }>;
+  [key: string]: unknown;
+}
+
+interface BeltDistData {
+  distribution?: Array<{ belt?: string; count?: number; [key: string]: unknown }>;
+  total_partners?: number;
+  [key: string]: unknown;
+}
+
 export default function Reports() {
   const { hasAccess: hasAdvancedAnalytics } = useFeatureAccess('advanced_analytics');
   const [searchParams, setSearchParams] = useSearchParams();
@@ -28,15 +128,15 @@ export default function Reports() {
   const [error, setError] = useState<string | null>(null);
 
   // Data states
-  const [performanceData, setPerformanceData] = useState<any>(null);
-  const [partnersData, setPartnersData] = useState<any>(null);
-  const [techniquesData, setTechniquesData] = useState<any>(null);
-  const [calendarData, setCalendarData] = useState<any>(null);
-  const [durationData, setDurationData] = useState<any>(null);
-  const [timeOfDayData, setTimeOfDayData] = useState<any>(null);
-  const [gymData, setGymData] = useState<any>(null);
-  const [classTypeData, setClassTypeData] = useState<any>(null);
-  const [beltDistData, setBeltDistData] = useState<any>(null);
+  const [performanceData, setPerformanceData] = useState<PerformanceOverview | null>(null);
+  const [partnersData, setPartnersData] = useState<PartnersData | null>(null);
+  const [techniquesData, setTechniquesData] = useState<TechniquesData | null>(null);
+  const [calendarData, setCalendarData] = useState<CalendarData | null>(null);
+  const [durationData, setDurationData] = useState<DurationData | null>(null);
+  const [timeOfDayData, setTimeOfDayData] = useState<TimeOfDayData | null>(null);
+  const [gymData, setGymData] = useState<GymData | null>(null);
+  const [classTypeData, setClassTypeData] = useState<ClassTypeData | null>(null);
+  const [beltDistData, setBeltDistData] = useState<BeltDistData | null>(null);
   const [zoneTrendsData, setZoneTrendsData] = useState<Array<{ session_id: number; date: string; zones: Record<string, number> }> | null>(null);
   const [expandedCards, setExpandedCards] = useState<Record<string, boolean>>({});
 
@@ -53,7 +153,7 @@ export default function Reports() {
 
   // Update URL params when filters change
   useEffect(() => {
-    const params: any = { tab: activeTab };
+    const params: Record<string, string> = { tab: activeTab };
     if (selectedTypes.length > 0) {
       params.types = selectedTypes.join(',');
     }
@@ -542,7 +642,7 @@ export default function Reports() {
               )}
 
               {/* Duration Analytics */}
-              {durationData && durationData.overall_avg > 0 && (
+              {durationData && (durationData.overall_avg ?? 0) > 0 && (
                 <Card>
                   <button className="w-full flex items-center justify-between" onClick={() => toggleCard('duration')}>
                     <div>
@@ -881,8 +981,8 @@ export default function Reports() {
                 <p className="text-xs mt-1" style={{ color: 'var(--muted)' }}>{beltDistData.total_partners} total partners</p>
               </div>
               <div className="space-y-2">
-                {beltDistData.distribution.map((b: any) => {
-                  const maxCount = Math.max(...beltDistData.distribution.map((d: any) => d.count));
+                {beltDistData.distribution!.map((b: any) => {
+                  const maxCount = Math.max(...beltDistData.distribution!.map((d: any) => d.count));
                   const beltColors: Record<string, string> = {
                     white: '#FFFFFF', blue: '#0066CC', purple: '#8B3FC0',
                     brown: '#8B4513', black: '#1a1a1a', unranked: 'var(--muted)',
@@ -984,7 +1084,7 @@ export default function Reports() {
                 {techniquesData.category_breakdown
                   .sort((a: any, b: any) => b.count - a.count)
                   .map((cat: any) => {
-                    const maxCount = Math.max(...techniquesData.category_breakdown.map((c: any) => c.count));
+                    const maxCount = Math.max(...techniquesData.category_breakdown!.map((c: any) => c.count));
                     const percentage = (cat.count / maxCount) * 100;
 
                     return (

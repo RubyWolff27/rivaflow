@@ -13,12 +13,101 @@ const ZONE_COLORS: Record<string, string> = {
   red: '#EF4444',
 };
 
+interface RecoveryZoneInfo {
+  avg_sub_rate?: number;
+  sessions?: number;
+  [key: string]: unknown;
+}
+
+interface PerfCorrData {
+  recovery_correlation?: {
+    scatter?: unknown[];
+    insight?: string;
+    zones?: Record<string, RecoveryZoneInfo>;
+    r_value?: number;
+    [key: string]: unknown;
+  };
+  hrv_predictor?: {
+    scatter?: unknown[];
+    insight?: string;
+    hrv_threshold?: number;
+    quality_above?: number;
+    quality_below?: number;
+    r_value?: number;
+    [key: string]: unknown;
+  };
+  [key: string]: unknown;
+}
+
+interface EfficiencyData {
+  strain_efficiency?: {
+    overall_efficiency?: number;
+    by_class_type?: Record<string, number>;
+    insight?: string;
+    top_sessions?: Array<{
+      session_id?: number;
+      date?: string;
+      submissions?: number;
+      strain?: number;
+      efficiency?: number;
+      [key: string]: unknown;
+    }>;
+    [key: string]: unknown;
+  };
+  sleep_analysis?: {
+    scatter?: unknown[];
+    insight?: string;
+    total_sleep_r?: number;
+    rem_r?: number;
+    sws_r?: number;
+    optimal_rem_pct?: number;
+    optimal_sws_pct?: number;
+    [key: string]: unknown;
+  };
+  [key: string]: unknown;
+}
+
+interface CardioData {
+  weekly_rhr?: Array<{ week: string; avg_rhr: number; [key: string]: unknown }>;
+  insight?: string;
+  current_rhr?: number;
+  baseline_rhr?: number;
+  trend?: string;
+  [key: string]: unknown;
+}
+
+interface SleepDebtData {
+  weekly?: Array<{
+    week: string;
+    avg_sleep_hrs?: number;
+    avg_debt_hrs?: number;
+    sessions?: number;
+    training_hours?: string | number;
+    [key: string]: unknown;
+  }>;
+  insight?: string;
+  [key: string]: unknown;
+}
+
+interface ReadinessModelData {
+  zones?: Record<string, {
+    sessions?: number;
+    avg_intensity?: number;
+    avg_rolls?: number;
+    avg_subs_for?: number;
+    sub_rate?: number;
+    [key: string]: unknown;
+  }>;
+  insight?: string;
+  [key: string]: unknown;
+}
+
 export default function WhoopAnalyticsTab({ days = 90 }: Props) {
-  const [perfCorr, setPerfCorr] = useState<any>(null);
-  const [efficiency, setEfficiency] = useState<any>(null);
-  const [cardio, setCardio] = useState<any>(null);
-  const [sleepDebt, setSleepDebt] = useState<any>(null);
-  const [readinessModel, setReadinessModel] = useState<any>(null);
+  const [perfCorr, setPerfCorr] = useState<PerfCorrData | null>(null);
+  const [efficiency, setEfficiency] = useState<EfficiencyData | null>(null);
+  const [cardio, setCardio] = useState<CardioData | null>(null);
+  const [sleepDebt, setSleepDebt] = useState<SleepDebtData | null>(null);
+  const [readinessModel, setReadinessModel] = useState<ReadinessModelData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -78,7 +167,7 @@ export default function WhoopAnalyticsTab({ days = 90 }: Props) {
   return (
     <div className="space-y-6">
       {/* 1. Recovery vs Performance */}
-      {recoveryCorr && recoveryCorr.scatter?.length > 0 && (
+      {recoveryCorr && (recoveryCorr.scatter?.length ?? 0) > 0 && (
         <Card>
           <div className="flex items-center gap-2 mb-4">
             <Heart className="w-5 h-5" style={{ color: '#EF4444' }} />
@@ -114,7 +203,7 @@ export default function WhoopAnalyticsTab({ days = 90 }: Props) {
       )}
 
       {/* 2. HRV Performance Predictor */}
-      {hrvPredictor && hrvPredictor.scatter?.length > 0 && (
+      {hrvPredictor && (hrvPredictor.scatter?.length ?? 0) > 0 && (
         <Card>
           <div className="flex items-center gap-2 mb-4">
             <Brain className="w-5 h-5" style={{ color: '#8B5CF6' }} />
@@ -138,7 +227,7 @@ export default function WhoopAnalyticsTab({ days = 90 }: Props) {
       )}
 
       {/* 3. Strain Efficiency */}
-      {strainEff && strainEff.top_sessions?.length > 0 && (
+      {strainEff && (strainEff.top_sessions?.length ?? 0) > 0 && (
         <Card>
           <div className="flex items-center gap-2 mb-4">
             <Zap className="w-5 h-5" style={{ color: '#F59E0B' }} />
@@ -168,7 +257,7 @@ export default function WhoopAnalyticsTab({ days = 90 }: Props) {
           {/* Top sessions */}
           <p className="text-xs font-medium uppercase mb-2" style={{ color: 'var(--muted)' }}>Most Efficient Sessions</p>
           <div className="space-y-1">
-            {strainEff.top_sessions.slice(0, 3).map((s: any) => (
+            {strainEff.top_sessions!.slice(0, 3).map((s: any) => (
               <div key={s.session_id} className="flex justify-between text-sm p-2 rounded" style={{ backgroundColor: 'var(--surfaceElev)' }}>
                 <span style={{ color: 'var(--muted)' }}>{new Date(s.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>
                 <span style={{ color: 'var(--text)' }}>{s.submissions} subs / {Number(s.strain).toFixed(1)} strain = <span className="font-semibold" style={{ color: 'var(--accent)' }}>{s.efficiency}</span></span>
@@ -179,7 +268,7 @@ export default function WhoopAnalyticsTab({ days = 90 }: Props) {
       )}
 
       {/* 4. Sleep Quality Impact */}
-      {sleepAnalysis && sleepAnalysis.scatter?.length > 0 && (
+      {sleepAnalysis && (sleepAnalysis.scatter?.length ?? 0) > 0 && (
         <Card>
           <div className="flex items-center gap-2 mb-4">
             <Moon className="w-5 h-5" style={{ color: '#60A5FA' }} />
@@ -207,7 +296,7 @@ export default function WhoopAnalyticsTab({ days = 90 }: Props) {
       )}
 
       {/* 5. Cardiovascular Adaptation */}
-      {cardio && cardio.weekly_rhr?.length >= 2 && (
+      {cardio && cardio.weekly_rhr && cardio.weekly_rhr.length >= 2 && (
         <Card>
           <div className="flex items-center gap-2 mb-4">
             <Activity className="w-5 h-5" style={{ color: '#EF4444' }} />
@@ -246,9 +335,9 @@ export default function WhoopAnalyticsTab({ days = 90 }: Props) {
 
           {/* RHR Timeline */}
           <div className="space-y-1">
-            {cardio.weekly_rhr.map((w: any) => {
-              const maxRhr = Math.max(...cardio.weekly_rhr.map((x: any) => x.avg_rhr));
-              const minRhr = Math.min(...cardio.weekly_rhr.map((x: any) => x.avg_rhr));
+            {cardio.weekly_rhr!.map((w: any) => {
+              const maxRhr = Math.max(...cardio.weekly_rhr!.map((x: any) => x.avg_rhr));
+              const minRhr = Math.min(...cardio.weekly_rhr!.map((x: any) => x.avg_rhr));
               const range = maxRhr - minRhr || 1;
               const pct = ((w.avg_rhr - minRhr) / range) * 60 + 20; // 20-80% width
               return (
@@ -266,7 +355,7 @@ export default function WhoopAnalyticsTab({ days = 90 }: Props) {
       )}
 
       {/* 6. Sleep Debt Tracker */}
-      {sleepDebt && sleepDebt.weekly?.length > 0 && (
+      {sleepDebt && sleepDebt.weekly && sleepDebt.weekly.length > 0 && (
         <Card>
           <div className="flex items-center gap-2 mb-4">
             <Moon className="w-5 h-5" style={{ color: '#A78BFA' }} />
@@ -275,7 +364,7 @@ export default function WhoopAnalyticsTab({ days = 90 }: Props) {
           <p className="text-sm mb-4" style={{ color: 'var(--muted)' }}>{sleepDebt.insight}</p>
 
           <div className="space-y-2">
-            {sleepDebt.weekly.map((w: any) => (
+            {sleepDebt.weekly!.map((w: any) => (
               <div key={w.week} className="flex items-center gap-3 p-2 rounded" style={{ backgroundColor: 'var(--surfaceElev)' }}>
                 <span className="text-xs w-16" style={{ color: 'var(--muted)' }}>{w.week.replace('Y', '').replace('-W', ' W')}</span>
                 <div className="flex-1 grid grid-cols-3 gap-2 text-xs">
@@ -338,7 +427,7 @@ export default function WhoopAnalyticsTab({ days = 90 }: Props) {
                     </div>
                     <div>
                       <p style={{ color: 'var(--muted)' }}>Sub Ratio</p>
-                      <p className="font-semibold text-sm" style={{ color: info.sub_rate >= 1 ? 'var(--accent)' : 'var(--text)' }}>{info.sub_rate}</p>
+                      <p className="font-semibold text-sm" style={{ color: (info.sub_rate ?? 0) >= 1 ? 'var(--accent)' : 'var(--text)' }}>{info.sub_rate}</p>
                     </div>
                   </div>
                 </div>

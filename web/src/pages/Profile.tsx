@@ -75,74 +75,31 @@ export default function Profile() {
   const [whoopNeedsReauth, setWhoopNeedsReauth] = useState(false);
 
   useEffect(() => {
-    const controller = new AbortController();
+    let cancelled = false;
     const doLoad = async () => {
-      setLoading(true);
+      await loadData();
+      if (cancelled) return;
+      // Load WHOOP status (best-effort, don't fail the page)
       try {
-        const [profileRes, gradingsRes, instructorsRes] = await Promise.all([
-          profileApi.get(),
-          gradingsApi.list(),
-          friendsApi.listInstructors(),
-        ]);
-        // Load WHOOP status (best-effort, don't fail the page)
-        try {
-          const whoopRes = await whoopApi.getStatus();
-          if (!controller.signal.aborted) {
-            setWhoopStatus(whoopRes.data);
-            // Check if re-auth is needed for expanded scopes
-            if (whoopRes.data?.connected) {
-              try {
-                const scopeRes = await whoopApi.checkScopes();
-                if (!controller.signal.aborted && scopeRes.data?.needs_reauth) {
-                  setWhoopNeedsReauth(true);
-                }
-              } catch {
-                // Scope check not available — that's fine
-              }
+        const whoopRes = await whoopApi.getStatus();
+        if (cancelled) return;
+        setWhoopStatus(whoopRes.data);
+        if (whoopRes.data?.connected) {
+          try {
+            const scopeRes = await whoopApi.checkScopes();
+            if (!cancelled && scopeRes.data?.needs_reauth) {
+              setWhoopNeedsReauth(true);
             }
+          } catch {
+            // Scope check not available — that's fine
           }
-        } catch {
-          // Feature flag off or not available — that's fine
         }
-
-        if (!controller.signal.aborted) {
-          setProfile(profileRes.data ?? null);
-          setGradings(gradingsRes.data ?? []);
-          setInstructors(instructorsRes.data ?? []);
-          setFormData({
-            first_name: profileRes.data?.first_name ?? '',
-            last_name: profileRes.data?.last_name ?? '',
-            date_of_birth: profileRes.data?.date_of_birth ?? '',
-            sex: profileRes.data?.sex ?? '',
-            city: profileRes.data?.city ?? '',
-            state: profileRes.data?.state ?? '',
-            default_gym: profileRes.data?.default_gym ?? '',
-            default_location: profileRes.data?.default_location ?? '',
-            current_professor: profileRes.data?.current_professor ?? '',
-            current_instructor_id: profileRes.data?.current_instructor_id ?? null,
-            primary_training_type: profileRes.data?.primary_training_type ?? 'gi',
-            height_cm: profileRes.data?.height_cm?.toString() ?? '',
-            target_weight_kg: profileRes.data?.target_weight_kg?.toString() ?? '',
-            target_weight_date: profileRes.data?.target_weight_date ?? '',
-            weekly_sessions_target: profileRes.data?.weekly_sessions_target ?? 3,
-            weekly_hours_target: profileRes.data?.weekly_hours_target ?? 4.5,
-            weekly_rolls_target: profileRes.data?.weekly_rolls_target ?? 15,
-            weekly_bjj_sessions_target: profileRes.data?.weekly_bjj_sessions_target ?? 3,
-            weekly_sc_sessions_target: profileRes.data?.weekly_sc_sessions_target ?? 1,
-            weekly_mobility_sessions_target: profileRes.data?.weekly_mobility_sessions_target ?? 0,
-            show_streak_on_dashboard: profileRes.data?.show_streak_on_dashboard ?? true,
-            show_weekly_goals: profileRes.data?.show_weekly_goals ?? true,
-            avatar_url: profileRes.data?.avatar_url ?? '',
-          });
-        }
-      } catch (error) {
-        if (!controller.signal.aborted) console.error('Error loading data:', error);
-      } finally {
-        if (!controller.signal.aborted) setLoading(false);
+      } catch {
+        // Feature flag off or not available — that's fine
       }
     };
     doLoad();
-    return () => { controller.abort(); };
+    return () => { cancelled = true; };
   }, []);
 
   // Fetch gym head coach when gym is selected

@@ -14,12 +14,110 @@ interface ReadinessTabProps {
   selectedTypes: string[];
 }
 
+interface ReadinessData {
+  trends?: Array<{
+    check_date?: string;
+    date?: string;
+    composite_score?: number;
+    [key: string]: unknown;
+  }>;
+  summary?: {
+    avg_composite_score?: number;
+    best_day?: string;
+    worst_day?: string;
+    days_logged?: number;
+    [key: string]: unknown;
+  };
+  component_averages?: {
+    sleep?: number;
+    stress?: number;
+    soreness?: number;
+    energy?: number;
+    [key: string]: unknown;
+  };
+  [key: string]: unknown;
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+interface WhoopTrendEntry { date: string; [key: string]: any; }
+
+interface WhoopTrendData {
+  hrv_trend?: WhoopTrendEntry[];
+  rhr_trend?: WhoopTrendEntry[];
+  recovery_over_time?: Array<{ date: string; recovery_score: number | null; sleep_performance: number | null }>;
+  sleep_breakdown?: Array<{ date: string; light_pct: number; sws_pct: number; rem_pct: number; awake_pct: number }>;
+  summary?: {
+    avg_hrv?: number;
+    avg_rhr?: number;
+    avg_recovery?: number;
+    [key: string]: unknown;
+  };
+  [key: string]: unknown;
+}
+
+interface PerfScienceCorrelation {
+  recovery_correlation?: {
+    scatter?: Array<{ date: string; recovery_score: number; sub_rate: number }>;
+    zones?: Record<string, { avg_sub_rate: number; sessions: number }>;
+    r_value?: number;
+    insight?: string;
+    [key: string]: unknown;
+  };
+  hrv_predictor?: {
+    scatter?: Array<{ date: string; hrv_ms: number; quality: number }>;
+    r_value?: number;
+    hrv_threshold?: number;
+    quality_above?: number;
+    quality_below?: number;
+    insight?: string;
+    [key: string]: unknown;
+  };
+  [key: string]: unknown;
+}
+
+interface PerfScienceEfficiency {
+  strain_efficiency?: {
+    overall_efficiency?: number;
+    by_class_type?: Record<string, number>;
+    by_gym?: Record<string, number>;
+    top_sessions?: Array<{ session_id: number; date: string; strain: number; submissions: number; efficiency: number }>;
+    insight?: string;
+    [key: string]: unknown;
+  };
+  sleep_analysis?: {
+    rem_r?: number;
+    sws_r?: number;
+    total_sleep_r?: number;
+    optimal_rem_pct?: number;
+    optimal_sws_pct?: number;
+    insight?: string;
+    [key: string]: unknown;
+  };
+  [key: string]: unknown;
+}
+
+interface PerfScienceCardiovascular {
+  weekly_rhr?: Array<{ week: string; avg_rhr: number; data_points: number }>;
+  slope?: number;
+  trend?: string;
+  current_rhr?: number | null;
+  baseline_rhr?: number | null;
+  insight?: string;
+  [key: string]: unknown;
+}
+
+interface PerfScienceData {
+  correlation: PerfScienceCorrelation | null;
+  efficiency: PerfScienceEfficiency | null;
+  cardiovascular: PerfScienceCardiovascular | null;
+}
+
 export default function ReadinessTab({ dateRange, selectedTypes }: ReadinessTabProps) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [data, setData] = useState<any>(null);
-  const [whoopData, setWhoopData] = useState<any>(null);
-  const [perfScience, setPerfScience] = useState<{ correlation: any; efficiency: any; cardiovascular: any } | null>(null);
+  const [data, setData] = useState<ReadinessData | null>(null);
+  const [whoopData, setWhoopData] = useState<WhoopTrendData | null>(null);
+  const [perfScience, setPerfScience] = useState<PerfScienceData | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -175,7 +273,7 @@ export default function ReadinessTab({ dateRange, selectedTypes }: ReadinessTabP
       )}
 
       {/* WHOOP Trends */}
-      {whoopData && (whoopData.hrv_trend?.length > 0 || whoopData.recovery_over_time?.length > 0) && (
+      {whoopData && ((whoopData.hrv_trend?.length ?? 0) > 0 || (whoopData.recovery_over_time?.length ?? 0) > 0) && (
         <>
           {/* WHOOP Summary Tiles */}
           {whoopData.summary && (
@@ -193,7 +291,7 @@ export default function ReadinessTab({ dateRange, selectedTypes }: ReadinessTabP
           )}
 
           {/* HRV Trend */}
-          {whoopData.hrv_trend?.length > 0 && (
+          {whoopData.hrv_trend && whoopData.hrv_trend.length > 0 && (
             <Card>
               <div className="mb-4">
                 <div className="flex items-center gap-2">
@@ -214,7 +312,7 @@ export default function ReadinessTab({ dateRange, selectedTypes }: ReadinessTabP
           )}
 
           {/* RHR Trend */}
-          {whoopData.rhr_trend?.length > 0 && (
+          {whoopData.rhr_trend && whoopData.rhr_trend.length > 0 && (
             <Card>
               <div className="mb-4">
                 <div className="flex items-center gap-2">
@@ -224,7 +322,7 @@ export default function ReadinessTab({ dateRange, selectedTypes }: ReadinessTabP
                 <p className="text-xs mt-1" style={{ color: 'var(--muted)' }}>RHR (bpm) with 7-day moving average</p>
               </div>
               <WhoopLineChart
-                data={whoopData.rhr_trend}
+                data={whoopData.rhr_trend!}
                 valueKey="resting_hr"
                 avgKey="7day_avg"
                 color="#EF4444"
@@ -235,7 +333,7 @@ export default function ReadinessTab({ dateRange, selectedTypes }: ReadinessTabP
           )}
 
           {/* Recovery Score Trend */}
-          {whoopData.recovery_over_time?.length > 0 && (
+          {whoopData.recovery_over_time && whoopData.recovery_over_time.length > 0 && (
             <Card>
               <div className="mb-4">
                 <h3 className="text-lg font-semibold" style={{ color: 'var(--text)' }}>Recovery Score</h3>
@@ -248,7 +346,7 @@ export default function ReadinessTab({ dateRange, selectedTypes }: ReadinessTabP
           )}
 
           {/* Sleep Composition */}
-          {whoopData.sleep_breakdown?.length > 0 && (
+          {whoopData.sleep_breakdown && whoopData.sleep_breakdown.length > 0 && (
             <Card>
               <div className="mb-4">
                 <h3 className="text-lg font-semibold" style={{ color: 'var(--text)' }}>Sleep Composition</h3>
@@ -272,47 +370,47 @@ export default function ReadinessTab({ dateRange, selectedTypes }: ReadinessTabP
           </div>
 
           {/* Recovery × Performance */}
-          {perfScience.correlation?.recovery_correlation?.scatter?.length > 0 && (
+          {perfScience.correlation?.recovery_correlation?.scatter && perfScience.correlation.recovery_correlation.scatter.length > 0 && (
             <Card>
               <h3 className="text-base font-semibold mb-1" style={{ color: 'var(--text)' }}>Recovery × Performance</h3>
               <p className="text-xs mb-3" style={{ color: 'var(--muted)' }}>How does your WHOOP recovery score predict rolling performance?</p>
               <RecoveryPerformanceChart
                 scatter={perfScience.correlation.recovery_correlation.scatter}
-                zones={perfScience.correlation.recovery_correlation.zones}
-                rValue={perfScience.correlation.recovery_correlation.r_value}
+                zones={perfScience.correlation.recovery_correlation.zones!}
+                rValue={perfScience.correlation.recovery_correlation.r_value!}
               />
               <p className="text-xs mt-2" style={{ color: 'var(--muted)' }}>{perfScience.correlation.recovery_correlation.insight}</p>
             </Card>
           )}
 
           {/* HRV Predictor */}
-          {perfScience.correlation?.hrv_predictor?.scatter?.length > 0 && (
+          {perfScience.correlation?.hrv_predictor?.scatter && perfScience.correlation.hrv_predictor.scatter.length > 0 && (
             <Card>
               <h3 className="text-base font-semibold mb-1" style={{ color: 'var(--text)' }}>HRV Performance Predictor</h3>
               <p className="text-xs mb-3" style={{ color: 'var(--muted)' }}>Your personal HRV threshold for optimal training quality</p>
               <HRVPredictorChart
                 scatter={perfScience.correlation.hrv_predictor.scatter}
-                rValue={perfScience.correlation.hrv_predictor.r_value}
-                hrvThreshold={perfScience.correlation.hrv_predictor.hrv_threshold}
-                qualityAbove={perfScience.correlation.hrv_predictor.quality_above}
-                qualityBelow={perfScience.correlation.hrv_predictor.quality_below}
+                rValue={perfScience.correlation.hrv_predictor.r_value!}
+                hrvThreshold={perfScience.correlation.hrv_predictor.hrv_threshold!}
+                qualityAbove={perfScience.correlation.hrv_predictor.quality_above!}
+                qualityBelow={perfScience.correlation.hrv_predictor.quality_below!}
               />
               <p className="text-xs mt-2" style={{ color: 'var(--muted)' }}>{perfScience.correlation.hrv_predictor.insight}</p>
             </Card>
           )}
 
           {/* Strain Efficiency */}
-          {perfScience.efficiency?.strain_efficiency?.overall_efficiency > 0 && (
+          {(perfScience.efficiency?.strain_efficiency?.overall_efficiency ?? 0) > 0 && (
             <Card>
               <h3 className="text-base font-semibold mb-1" style={{ color: 'var(--text)' }}>Strain Efficiency</h3>
               <p className="text-xs mb-3" style={{ color: 'var(--muted)' }}>Submissions per unit of WHOOP strain</p>
               <StrainEfficiencyChart
-                overallEfficiency={perfScience.efficiency.strain_efficiency.overall_efficiency}
-                byClassType={perfScience.efficiency.strain_efficiency.by_class_type}
-                byGym={perfScience.efficiency.strain_efficiency.by_gym}
-                topSessions={perfScience.efficiency.strain_efficiency.top_sessions}
+                overallEfficiency={perfScience.efficiency!.strain_efficiency!.overall_efficiency!}
+                byClassType={perfScience.efficiency!.strain_efficiency!.by_class_type!}
+                byGym={perfScience.efficiency!.strain_efficiency!.by_gym!}
+                topSessions={perfScience.efficiency!.strain_efficiency!.top_sessions!}
               />
-              <p className="text-xs mt-2" style={{ color: 'var(--muted)' }}>{perfScience.efficiency.strain_efficiency.insight}</p>
+              <p className="text-xs mt-2" style={{ color: 'var(--muted)' }}>{perfScience.efficiency!.strain_efficiency!.insight}</p>
             </Card>
           )}
 
@@ -326,27 +424,27 @@ export default function ReadinessTab({ dateRange, selectedTypes }: ReadinessTabP
               <h3 className="text-base font-semibold mb-1" style={{ color: 'var(--text)' }}>Sleep Impact</h3>
               <p className="text-xs mb-3" style={{ color: 'var(--muted)' }}>Which sleep stages matter most for your performance?</p>
               <SleepImpactChart
-                remR={perfScience.efficiency.sleep_analysis.rem_r}
-                swsR={perfScience.efficiency.sleep_analysis.sws_r}
-                totalSleepR={perfScience.efficiency.sleep_analysis.total_sleep_r}
-                optimalRemPct={perfScience.efficiency.sleep_analysis.optimal_rem_pct}
-                optimalSwsPct={perfScience.efficiency.sleep_analysis.optimal_sws_pct}
+                remR={perfScience.efficiency!.sleep_analysis!.rem_r!}
+                swsR={perfScience.efficiency!.sleep_analysis!.sws_r!}
+                totalSleepR={perfScience.efficiency!.sleep_analysis!.total_sleep_r!}
+                optimalRemPct={perfScience.efficiency!.sleep_analysis!.optimal_rem_pct!}
+                optimalSwsPct={perfScience.efficiency!.sleep_analysis!.optimal_sws_pct!}
               />
-              <p className="text-xs mt-2" style={{ color: 'var(--muted)' }}>{perfScience.efficiency.sleep_analysis.insight}</p>
+              <p className="text-xs mt-2" style={{ color: 'var(--muted)' }}>{perfScience.efficiency!.sleep_analysis!.insight}</p>
             </Card>
           )}
 
           {/* Cardiovascular Drift */}
-          {perfScience.cardiovascular?.weekly_rhr?.length >= 2 && (
+          {perfScience.cardiovascular?.weekly_rhr && perfScience.cardiovascular.weekly_rhr.length >= 2 && (
             <Card>
               <h3 className="text-base font-semibold mb-1" style={{ color: 'var(--text)' }}>Cardiovascular Drift</h3>
               <p className="text-xs mb-3" style={{ color: 'var(--muted)' }}>Resting heart rate trend — a key fitness and fatigue indicator</p>
               <CardiovascularDriftChart
                 weeklyRhr={perfScience.cardiovascular.weekly_rhr}
-                slope={perfScience.cardiovascular.slope}
-                trend={perfScience.cardiovascular.trend}
-                currentRhr={perfScience.cardiovascular.current_rhr}
-                baselineRhr={perfScience.cardiovascular.baseline_rhr}
+                slope={perfScience.cardiovascular.slope!}
+                trend={perfScience.cardiovascular.trend!}
+                currentRhr={perfScience.cardiovascular.current_rhr ?? null}
+                baselineRhr={perfScience.cardiovascular.baseline_rhr ?? null}
               />
               <p className="text-xs mt-2" style={{ color: 'var(--muted)' }}>{perfScience.cardiovascular.insight}</p>
             </Card>

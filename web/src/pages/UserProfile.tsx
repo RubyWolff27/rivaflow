@@ -5,13 +5,45 @@ import { Users, MapPin, Calendar, TrendingUp, Activity, UserCheck, UserPlus } fr
 import { useToast } from '../contexts/ToastContext';
 import { CardSkeleton } from '../components/ui';
 
+interface UserProfileData {
+  id: number;
+  first_name?: string;
+  last_name?: string;
+  avatar_url?: string;
+  current_grade?: string;
+  default_gym?: string;
+  location?: string;
+  state?: string;
+  follower_count?: number;
+  following_count?: number;
+  is_following?: boolean;
+  is_followed_by?: boolean;
+  [key: string]: unknown;
+}
+
+interface UserStats {
+  total_sessions?: number;
+  total_hours?: number;
+  total_rolls?: number;
+  sessions_this_week?: number;
+  [key: string]: unknown;
+}
+
+interface ActivityItem {
+  id?: number;
+  type?: string;
+  date?: string;
+  summary?: string;
+  [key: string]: unknown;
+}
+
 export default function UserProfile() {
   const { userId } = useParams<{ userId: string }>();
   const navigate = useNavigate();
 
-  const [profile, setProfile] = useState<any>(null);
-  const [stats, setStats] = useState<any>(null);
-  const [activity, setActivity] = useState<any[]>([]);
+  const [profile, setProfile] = useState<UserProfileData | null>(null);
+  const [stats, setStats] = useState<UserStats | null>(null);
+  const [activity, setActivity] = useState<ActivityItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [followLoading, setFollowLoading] = useState(false);
@@ -259,7 +291,7 @@ export default function UserProfile() {
           </p>
         ) : (
           <div className="space-y-4">
-            {activity.map((item: any) => (
+            {activity.map((item) => (
               <div
                 key={`${item.type}-${item.id}`}
                 className="border-l-4 border-primary-500 pl-4 py-2"
@@ -267,7 +299,7 @@ export default function UserProfile() {
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-sm text-[var(--muted)]">
-                      {formatDate(item.date)}
+                      {formatDate(item.date!)}
                     </p>
                     <p className="text-[var(--text)]">{item.summary}</p>
                   </div>

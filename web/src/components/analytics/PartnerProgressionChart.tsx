@@ -13,8 +13,16 @@ interface PartnerProgressionChartProps {
   partnerId: number;
 }
 
+interface PartnerProgressionData {
+  progression?: ProgressionPoint[];
+  partner?: { name?: string; belt_rank?: string; [key: string]: unknown };
+  trend?: string;
+  insight?: string;
+  [key: string]: unknown;
+}
+
 export default function PartnerProgressionChart({ partnerId }: PartnerProgressionChartProps) {
-  const [data, setData] = useState<any>(null);
+  const [data, setData] = useState<PartnerProgressionData | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -68,7 +76,7 @@ export default function PartnerProgressionChart({ partnerId }: PartnerProgressio
         )}
         <span
           className="text-xs px-2 py-0.5 rounded-full capitalize"
-          style={{ backgroundColor: trendColors[data.trend] || 'var(--muted)', color: '#FFFFFF' }}
+          style={{ backgroundColor: (data.trend && trendColors[data.trend]) || 'var(--muted)', color: '#FFFFFF' }}
         >
           {data.trend}
         </span>
@@ -80,11 +88,11 @@ export default function PartnerProgressionChart({ partnerId }: PartnerProgressio
         <text x={padding.left - 5} y={yScale(1) + 4} textAnchor="end" fontSize={9} fill="var(--muted)">1.0</text>
 
         {/* Line */}
-        <path d={linePath} fill="none" stroke={trendColors[data.trend] || 'var(--accent)'} strokeWidth={2} strokeLinejoin="round" />
+        <path d={linePath} fill="none" stroke={(data.trend && trendColors[data.trend]) || 'var(--accent)'} strokeWidth={2} strokeLinejoin="round" />
 
         {/* Points */}
         {progression.map((p, i) => (
-          <circle key={i} cx={xScale(i)} cy={yScale(p.rolling_sub_rate)} r={3} fill={trendColors[data.trend] || 'var(--accent)'}>
+          <circle key={i} cx={xScale(i)} cy={yScale(p.rolling_sub_rate)} r={3} fill={(data.trend && trendColors[data.trend]) || 'var(--accent)'}>
             <title>{`Roll ${p.roll_number}: ${p.rolling_sub_rate} sub rate`}</title>
           </circle>
         ))}

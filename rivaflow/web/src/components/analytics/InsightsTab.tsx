@@ -12,16 +12,122 @@ interface InsightsTabProps {
   dateRange: { start: string; end: string };
 }
 
+interface InsightsSummary {
+  acwr?: number;
+  acwr_zone?: string;
+  risk_score?: number;
+  risk_level?: string;
+  game_breadth?: number;
+  avg_session_quality?: number;
+  top_insight?: string;
+  [key: string]: unknown;
+}
+
+interface ACWRPoint {
+  date: string;
+  acwr: number;
+  zone: string;
+  acute: number;
+  chronic: number;
+  daily_load: number;
+}
+
+interface TrainingLoadData {
+  acwr_series?: ACWRPoint[];
+  current_acwr?: number;
+  current_zone?: string;
+  insight?: string;
+  [key: string]: unknown;
+}
+
+interface ReadinessCorrData {
+  data_points?: number;
+  scatter?: Array<{ date: string; readiness: number; sub_rate: number; intensity: number }>;
+  r_value?: number;
+  optimal_zone?: string;
+  insight?: string;
+  [key: string]: unknown;
+}
+
+interface InsightTechnique {
+  id: number;
+  name: string;
+  category: string;
+  submissions: number;
+  training_count: number;
+  quadrant: string;
+}
+
+interface TechniqueEffData {
+  techniques?: InsightTechnique[];
+  game_breadth?: number;
+  money_moves?: InsightTechnique[];
+  insight?: string;
+  [key: string]: unknown;
+}
+
+interface InsightScoredSession {
+  session_id: number;
+  date: string;
+  quality: number;
+  breakdown: { intensity: number; submissions: number; techniques: number; volume: number };
+  class_type: string;
+  gym: string;
+}
+
+interface InsightWeeklyTrend {
+  week: string;
+  avg_quality: number;
+  sessions: number;
+}
+
+interface SessionQualityData {
+  sessions?: InsightScoredSession[];
+  avg_quality?: number;
+  top_sessions?: InsightScoredSession[];
+  weekly_trend?: InsightWeeklyTrend[];
+  insight?: string;
+  [key: string]: unknown;
+}
+
+interface InsightFactor {
+  score: number;
+  max: number;
+}
+
+interface RiskData {
+  risk_score?: number;
+  level?: string;
+  factors?: Record<string, InsightFactor>;
+  recommendations?: string[];
+  [key: string]: unknown;
+}
+
+interface RecoveryRestEntry {
+  rest_days: number;
+  avg_sub_rate: number;
+  sessions: number;
+}
+
+interface RecoveryData {
+  data_points?: number;
+  sleep_correlation?: number;
+  optimal_rest_days?: number;
+  rest_analysis?: RecoveryRestEntry[];
+  insight?: string;
+  [key: string]: unknown;
+}
+
 export default function InsightsTab({ dateRange }: InsightsTabProps) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [summary, setSummary] = useState<any>(null);
-  const [trainingLoad, setTrainingLoad] = useState<any>(null);
-  const [readinessCorr, setReadinessCorr] = useState<any>(null);
-  const [techniqueEff, setTechniqueEff] = useState<any>(null);
-  const [sessionQuality, setSessionQuality] = useState<any>(null);
-  const [riskData, setRiskData] = useState<any>(null);
-  const [recoveryData, setRecoveryData] = useState<any>(null);
+  const [summary, setSummary] = useState<InsightsSummary | null>(null);
+  const [trainingLoad, setTrainingLoad] = useState<TrainingLoadData | null>(null);
+  const [readinessCorr, setReadinessCorr] = useState<ReadinessCorrData | null>(null);
+  const [techniqueEff, setTechniqueEff] = useState<TechniqueEffData | null>(null);
+  const [sessionQuality, setSessionQuality] = useState<SessionQualityData | null>(null);
+  const [riskData, setRiskData] = useState<RiskData | null>(null);
+  const [recoveryData, setRecoveryData] = useState<RecoveryData | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -125,7 +231,7 @@ export default function InsightsTab({ dateRange }: InsightsTabProps) {
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
           <div className="p-4 rounded-[14px]" style={{ backgroundColor: 'var(--surfaceElev)', border: '1px solid var(--border)' }}>
             <p className="text-xs font-medium uppercase tracking-wide mb-1" style={{ color: 'var(--muted)' }}>ACWR</p>
-            <p className="text-2xl font-bold" style={{ color: zoneColors[summary.acwr_zone] || 'var(--text)' }}>
+            <p className="text-2xl font-bold" style={{ color: (summary.acwr_zone && zoneColors[summary.acwr_zone]) || 'var(--text)' }}>
               {summary.acwr}
             </p>
             <p className="text-xs capitalize mt-1" style={{ color: 'var(--muted)' }}>{summary.acwr_zone?.replace('_', ' ')}</p>
@@ -133,7 +239,7 @@ export default function InsightsTab({ dateRange }: InsightsTabProps) {
 
           <div className="p-4 rounded-[14px]" style={{ backgroundColor: 'var(--surfaceElev)', border: '1px solid var(--border)' }}>
             <p className="text-xs font-medium uppercase tracking-wide mb-1" style={{ color: 'var(--muted)' }}>Risk</p>
-            <p className="text-2xl font-bold" style={{ color: riskColors[summary.risk_level] || 'var(--text)' }}>
+            <p className="text-2xl font-bold" style={{ color: (summary.risk_level && riskColors[summary.risk_level]) || 'var(--text)' }}>
               {summary.risk_score}
             </p>
             <p className="text-xs capitalize mt-1" style={{ color: 'var(--muted)' }}>{summary.risk_level}</p>
@@ -170,23 +276,23 @@ export default function InsightsTab({ dateRange }: InsightsTabProps) {
         <Card>
           <h3 className="text-lg font-semibold mb-3" style={{ color: 'var(--text)' }}>Training Load Management</h3>
           <ACWRChart
-            data={trainingLoad.acwr_series}
-            currentAcwr={trainingLoad.current_acwr}
-            currentZone={trainingLoad.current_zone}
-            insight={trainingLoad.insight}
+            data={trainingLoad.acwr_series!}
+            currentAcwr={trainingLoad.current_acwr!}
+            currentZone={trainingLoad.current_zone!}
+            insight={trainingLoad.insight!}
           />
         </Card>
       )}
 
       {/* Readiness × Performance */}
-      {readinessCorr && readinessCorr.data_points >= 3 && (
+      {readinessCorr && (readinessCorr.data_points ?? 0) >= 3 && (
         <Card>
           <h3 className="text-lg font-semibold mb-3" style={{ color: 'var(--text)' }}>Readiness × Performance</h3>
           <CorrelationScatter
-            scatter={readinessCorr.scatter}
-            rValue={readinessCorr.r_value}
-            optimalZone={readinessCorr.optimal_zone}
-            insight={readinessCorr.insight}
+            scatter={readinessCorr.scatter!}
+            rValue={readinessCorr.r_value!}
+            optimalZone={readinessCorr.optimal_zone!}
+            insight={readinessCorr.insight!}
           />
         </Card>
       )}
@@ -196,10 +302,10 @@ export default function InsightsTab({ dateRange }: InsightsTabProps) {
         <Card>
           <h3 className="text-lg font-semibold mb-3" style={{ color: 'var(--text)' }}>Technique Effectiveness</h3>
           <TechniqueQuadrant
-            techniques={techniqueEff.techniques}
-            gameBreadth={techniqueEff.game_breadth}
-            moneyMoves={techniqueEff.money_moves}
-            insight={techniqueEff.insight}
+            techniques={techniqueEff.techniques!}
+            gameBreadth={techniqueEff.game_breadth!}
+            moneyMoves={techniqueEff.money_moves!}
+            insight={techniqueEff.insight!}
           />
         </Card>
       )}
@@ -209,11 +315,11 @@ export default function InsightsTab({ dateRange }: InsightsTabProps) {
         <Card>
           <h3 className="text-lg font-semibold mb-3" style={{ color: 'var(--text)' }}>Session Quality</h3>
           <QualityTrend
-            sessions={sessionQuality.sessions}
-            avgQuality={sessionQuality.avg_quality}
-            topSessions={sessionQuality.top_sessions}
-            weeklyTrend={sessionQuality.weekly_trend}
-            insight={sessionQuality.insight}
+            sessions={sessionQuality.sessions!}
+            avgQuality={sessionQuality.avg_quality!}
+            topSessions={sessionQuality.top_sessions!}
+            weeklyTrend={sessionQuality.weekly_trend!}
+            insight={sessionQuality.insight!}
           />
         </Card>
       )}
@@ -225,10 +331,10 @@ export default function InsightsTab({ dateRange }: InsightsTabProps) {
           <Card>
             <h3 className="text-lg font-semibold mb-3" style={{ color: 'var(--text)' }}>Overtraining Risk</h3>
             <RiskGauge
-              riskScore={riskData.risk_score}
-              level={riskData.level}
-              factors={riskData.factors}
-              recommendations={riskData.recommendations}
+              riskScore={riskData.risk_score!}
+              level={riskData.level!}
+              factors={riskData.factors!}
+              recommendations={riskData.recommendations!}
             />
           </Card>
         )}
@@ -239,25 +345,25 @@ export default function InsightsTab({ dateRange }: InsightsTabProps) {
             <h3 className="text-lg font-semibold mb-3" style={{ color: 'var(--text)' }}>Recovery</h3>
             <div className="space-y-4">
               {/* Sleep Correlation */}
-              {recoveryData.data_points >= 3 && (
+              {(recoveryData.data_points ?? 0) >= 3 && (
                 <div className="p-3 rounded-lg" style={{ backgroundColor: 'var(--surfaceElev)' }}>
                   <p className="text-xs font-medium uppercase tracking-wide mb-1" style={{ color: 'var(--muted)' }}>
                     Sleep → Performance
                   </p>
-                  <p className="text-xl font-bold" style={{ color: Math.abs(recoveryData.sleep_correlation) >= 0.3 ? 'var(--accent)' : 'var(--text)' }}>
+                  <p className="text-xl font-bold" style={{ color: Math.abs(recoveryData.sleep_correlation ?? 0) >= 0.3 ? 'var(--accent)' : 'var(--text)' }}>
                     r = {recoveryData.sleep_correlation}
                   </p>
                 </div>
               )}
 
               {/* Optimal Rest Days */}
-              {recoveryData.optimal_rest_days > 0 && (
+              {(recoveryData.optimal_rest_days ?? 0) > 0 && (
                 <div className="p-3 rounded-lg" style={{ backgroundColor: 'var(--surfaceElev)' }}>
                   <p className="text-xs font-medium uppercase tracking-wide mb-1" style={{ color: 'var(--muted)' }}>
                     Optimal Rest
                   </p>
                   <p className="text-xl font-bold" style={{ color: 'var(--text)' }}>
-                    {recoveryData.optimal_rest_days} day{recoveryData.optimal_rest_days > 1 ? 's' : ''}
+                    {recoveryData.optimal_rest_days} day{(recoveryData.optimal_rest_days ?? 0) > 1 ? 's' : ''}
                   </p>
                   <p className="text-xs" style={{ color: 'var(--muted)' }}>between sessions</p>
                 </div>
