@@ -1500,7 +1500,7 @@ export default function LogSession() {
                         <div>
                           <label className="text-xs font-medium mb-1 block" style={{ color: 'var(--muted)' }}>Attempted</label>
                           <div className="flex items-center gap-2">
-                            <button type="button" onClick={() => handleFightDynamicsDecrement('attacks_attempted')} className="w-9 h-9 rounded-lg flex items-center justify-center font-bold" style={{ backgroundColor: 'var(--surfaceElev)', border: '1px solid var(--border)' }}>
+                            <button type="button" onClick={() => handleFightDynamicsDecrement('attacks_attempted')} className="w-11 h-11 rounded-lg flex items-center justify-center font-bold" style={{ backgroundColor: 'var(--surfaceElev)', border: '1px solid var(--border)' }}>
                               <Minus className="w-4 h-4" />
                             </button>
                             <input
@@ -1510,7 +1510,7 @@ export default function LogSession() {
                               onChange={(e) => handleFightDynamicsChange('attacks_attempted', parseInt(e.target.value) || 0)}
                               min="0"
                             />
-                            <button type="button" onClick={() => handleFightDynamicsIncrement('attacks_attempted')} className="w-9 h-9 rounded-lg flex items-center justify-center font-bold" style={{ backgroundColor: 'var(--accent)', color: '#fff' }}>
+                            <button type="button" onClick={() => handleFightDynamicsIncrement('attacks_attempted')} className="w-11 h-11 rounded-lg flex items-center justify-center font-bold" style={{ backgroundColor: 'var(--accent)', color: '#fff' }}>
                               <Plus className="w-4 h-4" />
                             </button>
                           </div>
@@ -1518,7 +1518,7 @@ export default function LogSession() {
                         <div>
                           <label className="text-xs font-medium mb-1 block" style={{ color: 'var(--muted)' }}>Successful</label>
                           <div className="flex items-center gap-2">
-                            <button type="button" onClick={() => handleFightDynamicsDecrement('attacks_successful')} className="w-9 h-9 rounded-lg flex items-center justify-center font-bold" style={{ backgroundColor: 'var(--surfaceElev)', border: '1px solid var(--border)' }}>
+                            <button type="button" onClick={() => handleFightDynamicsDecrement('attacks_successful')} className="w-11 h-11 rounded-lg flex items-center justify-center font-bold" style={{ backgroundColor: 'var(--surfaceElev)', border: '1px solid var(--border)' }}>
                               <Minus className="w-4 h-4" />
                             </button>
                             <input
@@ -1529,7 +1529,7 @@ export default function LogSession() {
                               min="0"
                               max={fightDynamics.attacks_attempted}
                             />
-                            <button type="button" onClick={() => handleFightDynamicsIncrement('attacks_successful')} className="w-9 h-9 rounded-lg flex items-center justify-center font-bold" style={{ backgroundColor: 'var(--accent)', color: '#fff' }}>
+                            <button type="button" onClick={() => handleFightDynamicsIncrement('attacks_successful')} className="w-11 h-11 rounded-lg flex items-center justify-center font-bold" style={{ backgroundColor: 'var(--accent)', color: '#fff' }}>
                               <Plus className="w-4 h-4" />
                             </button>
                           </div>
@@ -1552,7 +1552,7 @@ export default function LogSession() {
                         <div>
                           <label className="text-xs font-medium mb-1 block" style={{ color: 'var(--muted)' }}>Attempted</label>
                           <div className="flex items-center gap-2">
-                            <button type="button" onClick={() => handleFightDynamicsDecrement('defenses_attempted')} className="w-9 h-9 rounded-lg flex items-center justify-center font-bold" style={{ backgroundColor: 'var(--surfaceElev)', border: '1px solid var(--border)' }}>
+                            <button type="button" onClick={() => handleFightDynamicsDecrement('defenses_attempted')} className="w-11 h-11 rounded-lg flex items-center justify-center font-bold" style={{ backgroundColor: 'var(--surfaceElev)', border: '1px solid var(--border)' }}>
                               <Minus className="w-4 h-4" />
                             </button>
                             <input
@@ -1562,7 +1562,7 @@ export default function LogSession() {
                               onChange={(e) => handleFightDynamicsChange('defenses_attempted', parseInt(e.target.value) || 0)}
                               min="0"
                             />
-                            <button type="button" onClick={() => handleFightDynamicsIncrement('defenses_attempted')} className="w-9 h-9 rounded-lg flex items-center justify-center font-bold" style={{ backgroundColor: '#0095FF', color: '#fff' }}>
+                            <button type="button" onClick={() => handleFightDynamicsIncrement('defenses_attempted')} className="w-11 h-11 rounded-lg flex items-center justify-center font-bold" style={{ backgroundColor: '#0095FF', color: '#fff' }}>
                               <Plus className="w-4 h-4" />
                             </button>
                           </div>
@@ -1570,7 +1570,7 @@ export default function LogSession() {
                         <div>
                           <label className="text-xs font-medium mb-1 block" style={{ color: 'var(--muted)' }}>Successful</label>
                           <div className="flex items-center gap-2">
-                            <button type="button" onClick={() => handleFightDynamicsDecrement('defenses_successful')} className="w-9 h-9 rounded-lg flex items-center justify-center font-bold" style={{ backgroundColor: 'var(--surfaceElev)', border: '1px solid var(--border)' }}>
+                            <button type="button" onClick={() => handleFightDynamicsDecrement('defenses_successful')} className="w-11 h-11 rounded-lg flex items-center justify-center font-bold" style={{ backgroundColor: 'var(--surfaceElev)', border: '1px solid var(--border)' }}>
                               <Minus className="w-4 h-4" />
                             </button>
                             <input
@@ -1581,7 +1581,7 @@ export default function LogSession() {
                               min="0"
                               max={fightDynamics.defenses_attempted}
                             />
-                            <button type="button" onClick={() => handleFightDynamicsIncrement('defenses_successful')} className="w-9 h-9 rounded-lg flex items-center justify-center font-bold" style={{ backgroundColor: '#0095FF', color: '#fff' }}>
+                            <button type="button" onClick={() => handleFightDynamicsIncrement('defenses_successful')} className="w-11 h-11 rounded-lg flex items-center justify-center font-bold" style={{ backgroundColor: '#0095FF', color: '#fff' }}>
                               <Plus className="w-4 h-4" />
                             </button>
                           </div>

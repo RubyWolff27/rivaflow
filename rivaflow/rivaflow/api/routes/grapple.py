@@ -162,12 +162,12 @@ async def chat_with_grapple(
         return await _handle_chat(request, user_id, user_tier)
     except HTTPException:
         raise  # Let FastAPI handle these normally (they keep CORS headers)
-    except Exception as e:
+    except Exception:
         logger.exception(f"Unhandled error in grapple chat for user {user_id}")
         return JSONResponse(
             status_code=500,
             content={
-                "detail": f"Chat error: {type(e).__name__}: {str(e)}",
+                "detail": "An unexpected error occurred in chat",
             },
         )
 
@@ -230,7 +230,7 @@ async def _handle_chat(
         logger.error(f"Session create/get failed: {e}", exc_info=True)
         raise HTTPException(
             status_code=500,
-            detail=f"Failed to create chat session: {type(e).__name__}: {e}",
+            detail="Failed to create chat session",
         )
 
     # Step 3: Store user message
@@ -244,7 +244,7 @@ async def _handle_chat(
         logger.error(f"Failed to store user message: {e}", exc_info=True)
         raise HTTPException(
             status_code=500,
-            detail=f"Failed to store message: {type(e).__name__}: {e}",
+            detail="Failed to store message",
         )
 
     # Step 4: Build context
@@ -256,7 +256,7 @@ async def _handle_chat(
         logger.error(f"Context build failed: {e}", exc_info=True)
         raise HTTPException(
             status_code=500,
-            detail=f"Failed to build context: {type(e).__name__}: {e}",
+            detail="Failed to build context",
         )
 
     # Step 5: Call LLM
@@ -272,7 +272,7 @@ async def _handle_chat(
         logger.error(f"LLM call failed for user {user_id}: {e}", exc_info=True)
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail=f"AI service unavailable: {type(e).__name__}: {e}",
+            detail="AI service is temporarily unavailable",
         )
 
     # Steps 6-9: Post-LLM bookkeeping (non-fatal — don't fail the response)
@@ -543,9 +543,10 @@ async def extract_session(
         result = await extract_session_from_text(request.text, user_id)
         return result
     except RuntimeError as e:
+        logger.error(f"Session extraction failed: {e}")
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail=str(e),
+            detail="Session extraction service is temporarily unavailable",
         )
 
 
@@ -674,12 +675,12 @@ async def create_insight_chat(
         return await _handle_insight_chat(insight_id, user_id)
     except HTTPException:
         raise
-    except Exception as e:
+    except Exception:
         logger.exception(f"Unhandled error in insight chat for user {user_id}")
         return JSONResponse(
             status_code=500,
             content={
-                "detail": f"Chat error: {type(e).__name__}: {str(e)}",
+                "detail": "An unexpected error occurred in chat",
             },
         )
 
@@ -751,7 +752,8 @@ async def technique_qa_endpoint(
         result = await technique_qa(request.question, user_id)
         return result
     except RuntimeError as e:
+        logger.error(f"Technique QA failed: {e}")
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail=str(e),
+            detail="Technique QA service is temporarily unavailable",
         )

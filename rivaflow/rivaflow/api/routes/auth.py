@@ -131,7 +131,7 @@ def register(request: Request, req: RegisterRequest):
         raise ValidationError(str(e))
     except RivaFlowException:
         raise
-    except (ValueError, KeyError) as e:
+    except KeyError as e:
         error_msg = handle_service_error(e, "Registration failed", operation="register")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -163,7 +163,7 @@ def login(request: Request, req: LoginRequest):
             detail="Invalid email or password",
             headers={"WWW-Authenticate": "Bearer"},
         )
-    except (ValueError, KeyError) as e:
+    except KeyError as e:
         error_msg = handle_service_error(e, "Login failed", operation="login")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -195,7 +195,7 @@ def refresh_token(request: Request, req: RefreshRequest):
         )
     except RivaFlowException:
         raise
-    except (ValueError, KeyError) as e:
+    except KeyError as e:
         error_msg = handle_service_error(
             e, "Token refresh failed", operation="refresh_token"
         )
@@ -333,7 +333,7 @@ def reset_password(request: Request, req: ResetPasswordRequest):
         raise ValidationError(str(e))
     except HTTPException:
         raise
-    except (ValueError, KeyError) as e:
+    except KeyError as e:
         error_msg = handle_service_error(
             e, "Password reset failed", operation="reset_password"
         )

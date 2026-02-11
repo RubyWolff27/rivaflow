@@ -235,7 +235,7 @@ function PlanWizard({ onGenerate }: { onGenerate: () => void }) {
           <label className="block text-sm font-medium mb-2" style={{ color: 'var(--text)' }}>
             Belt Level
           </label>
-          <div className="grid grid-cols-5 gap-2">
+          <div className="grid grid-cols-3 sm:grid-cols-5 gap-2">
             {BELT_OPTIONS.map((b) => (
               <button
                 key={b.value}

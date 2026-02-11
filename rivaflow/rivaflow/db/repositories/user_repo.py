@@ -194,8 +194,9 @@ class UserRepository:
             cursor = conn.cursor()
             cursor.execute(
                 convert_query(
-                    "SELECT id, email, first_name, last_name, is_active, created_at, updated_at FROM users WHERE is_active = TRUE"
-                )
+                    "SELECT id, email, first_name, last_name, is_active, created_at, updated_at FROM users WHERE is_active = ?"
+                ),
+                (1,),
             )
             rows = cursor.fetchall()
             return [dict(row) for row in rows]
@@ -219,12 +220,12 @@ class UserRepository:
                 convert_query("""
                     SELECT id, email, first_name, last_name, is_active, created_at, updated_at
                     FROM users
-                    WHERE is_active = TRUE
+                    WHERE is_active = ?
                       AND (first_name LIKE ? OR last_name LIKE ? OR email LIKE ?)
                     ORDER BY first_name, last_name
                     LIMIT ?
                     """),
-                (like_pattern, like_pattern, like_pattern, limit),
+                (1, like_pattern, like_pattern, like_pattern, limit),
             )
             rows = cursor.fetchall()
             return [dict(row) for row in rows]

@@ -344,7 +344,7 @@ export default function Reports() {
       )}
 
       {/* Tabs */}
-      <div className="flex gap-1 border-b border-[var(--border)] pb-0">
+      <div className="flex gap-1 border-b border-[var(--border)] pb-0 overflow-x-auto scrollbar-hide">
         {tabs.map((tab) => {
           const Icon = tab.icon;
           const isActive = activeTab === tab.id;
@@ -352,7 +352,7 @@ export default function Reports() {
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
-              className="relative flex items-center gap-2 px-4 py-3 text-sm font-medium transition-colors"
+              className="relative flex items-center gap-2 px-4 py-3 text-sm font-medium transition-colors flex-shrink-0"
               style={{
                 color: isActive ? 'var(--accent)' : 'var(--muted)',
                 fontWeight: isActive ? 600 : 500,
@@ -377,7 +377,7 @@ export default function Reports() {
           <label className="text-sm font-medium text-[var(--text)]">Date Range</label>
 
           {/* Quick Range Buttons */}
-          <div className="flex gap-2" role="group" aria-label="Quick date range">
+          <div className="flex flex-wrap gap-2" role="group" aria-label="Quick date range">
             {[
               { label: 'Last 7 days', days: 7 },
               { label: 'Last 14 days', days: 14 },
@@ -410,7 +410,7 @@ export default function Reports() {
           </div>
 
           {/* Custom Date Range */}
-          <div className="flex items-center gap-4">
+          <div className="flex flex-wrap items-center gap-2 sm:gap-4">
             <span className="text-sm text-[var(--muted)]">Or select custom range:</span>
             <input
               type="date"
@@ -575,7 +575,7 @@ export default function Reports() {
                     {expandedCards.timeOfDay ? <ChevronUp className="w-5 h-5" style={{ color: 'var(--muted)' }} /> : <ChevronDown className="w-5 h-5" style={{ color: 'var(--muted)' }} />}
                   </button>
                   {expandedCards.timeOfDay && (
-                    <div className="mt-4 grid grid-cols-3 gap-3">
+                    <div className="mt-4 grid grid-cols-1 sm:grid-cols-3 gap-3">
                       {timeOfDayData.patterns.map((p: any) => (
                         <div key={p.time_slot} className="p-3 rounded-[14px] text-center" style={{ backgroundColor: 'var(--surfaceElev)', border: '1px solid var(--border)' }}>
                           <p className="text-xs font-medium uppercase tracking-wide mb-2" style={{ color: 'var(--muted)' }}>{p.time_slot}</p>
@@ -682,7 +682,7 @@ export default function Reports() {
                           <div className="p-4 rounded-lg" style={{ backgroundColor: 'var(--surfaceElev)' }}>
                             <p className="text-sm font-medium mb-3" style={{ color: 'var(--text)' }}>Period Totals</p>
                             <MiniZoneBar zones={agg} height="h-4" />
-                            <div className="grid grid-cols-5 gap-2 mt-3">
+                            <div className="grid grid-cols-3 sm:grid-cols-5 gap-2 mt-3">
                               {zoneKeys.map((k, i) => {
                                 const mins = Math.round(agg[k] / 60000);
                                 const pct = ((agg[k] / totalMs) * 100).toFixed(0);

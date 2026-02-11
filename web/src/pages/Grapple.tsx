@@ -759,7 +759,7 @@ export default function Grapple() {
   ];
 
   return (
-    <div className="h-[calc(100vh-8rem)] md:h-[calc(100vh-8rem)] flex flex-col md:flex-row gap-4">
+    <div className="h-[calc(100dvh-8rem)] md:h-[calc(100dvh-8rem)] flex flex-col md:flex-row gap-4">
       {/* Sidebar - Sessions (hidden on mobile) */}
       <div className="w-64 hidden md:flex flex-col rounded-[14px] p-4 shrink-0" style={{ backgroundColor: 'var(--surface)', border: '1px solid var(--border)' }}>
         <div className="flex items-center justify-between mb-4">

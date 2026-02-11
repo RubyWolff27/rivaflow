@@ -107,7 +107,7 @@ def get_performance_overview(
         logger.error(f"Error in get_performance_overview: {type(e).__name__}: {str(e)}")
         logger.error(traceback.format_exc())
         raise HTTPException(
-            status_code=500, detail=f"Analytics error: {type(e).__name__}: {str(e)}"
+            status_code=500, detail="An error occurred while processing analytics"
         )
 
 
@@ -136,7 +136,7 @@ def get_partner_analytics(
         logger.error(f"Error in get_partner_analytics: {type(e).__name__}: {str(e)}")
         logger.error(traceback.format_exc())
         raise HTTPException(
-            status_code=500, detail=f"Analytics error: {type(e).__name__}: {str(e)}"
+            status_code=500, detail="An error occurred while processing analytics"
         )
 
 
@@ -225,7 +225,7 @@ def get_technique_analytics(
         logger.error(f"Error in get_technique_analytics: {type(e).__name__}: {str(e)}")
         logger.error(traceback.format_exc())
         raise HTTPException(
-            status_code=500, detail=f"Analytics error: {type(e).__name__}: {str(e)}"
+            status_code=500, detail="An error occurred while processing analytics"
         )
 
 
@@ -256,7 +256,7 @@ def get_consistency_analytics(
         )
         logger.error(traceback.format_exc())
         raise HTTPException(
-            status_code=500, detail=f"Analytics error: {type(e).__name__}: {str(e)}"
+            status_code=500, detail="An error occurred while processing analytics"
         )
 
 
@@ -272,7 +272,7 @@ def get_milestones(request: Request, current_user: dict = Depends(get_current_us
         logger.error(f"Error in get_milestones: {type(e).__name__}: {str(e)}")
         logger.error(traceback.format_exc())
         raise HTTPException(
-            status_code=500, detail=f"Analytics error: {type(e).__name__}: {str(e)}"
+            status_code=500, detail="An error occurred while processing analytics"
         )
 
 
@@ -301,7 +301,7 @@ def get_instructor_analytics(
         logger.error(f"Error in get_instructor_analytics: {type(e).__name__}: {str(e)}")
         logger.error(traceback.format_exc())
         raise HTTPException(
-            status_code=500, detail=f"Analytics error: {type(e).__name__}: {str(e)}"
+            status_code=500, detail="An error occurred while processing analytics"
         )
 
 
@@ -412,7 +412,7 @@ def get_duration_analytics(
         logger.error(f"Error in get_duration_analytics: {type(e).__name__}: {str(e)}")
         logger.error(traceback.format_exc())
         raise HTTPException(
-            status_code=500, detail=f"Analytics error: {type(e).__name__}: {str(e)}"
+            status_code=500, detail="An error occurred while processing analytics"
         )
 
 
@@ -441,7 +441,7 @@ def get_time_of_day_patterns(
         logger.error(f"Error in get_time_of_day_patterns: {type(e).__name__}: {str(e)}")
         logger.error(traceback.format_exc())
         raise HTTPException(
-            status_code=500, detail=f"Analytics error: {type(e).__name__}: {str(e)}"
+            status_code=500, detail="An error occurred while processing analytics"
         )
 
 
@@ -470,7 +470,7 @@ def get_gym_comparison(
         logger.error(f"Error in get_gym_comparison: {type(e).__name__}: {str(e)}")
         logger.error(traceback.format_exc())
         raise HTTPException(
-            status_code=500, detail=f"Analytics error: {type(e).__name__}: {str(e)}"
+            status_code=500, detail="An error occurred while processing analytics"
         )
 
 
@@ -497,7 +497,7 @@ def get_class_type_effectiveness(
         )
         logger.error(traceback.format_exc())
         raise HTTPException(
-            status_code=500, detail=f"Analytics error: {type(e).__name__}: {str(e)}"
+            status_code=500, detail="An error occurred while processing analytics"
         )
 
 
@@ -522,7 +522,7 @@ def get_weight_trend(
         logger.error(f"Error in get_weight_trend: {type(e).__name__}: {str(e)}")
         logger.error(traceback.format_exc())
         raise HTTPException(
-            status_code=500, detail=f"Analytics error: {type(e).__name__}: {str(e)}"
+            status_code=500, detail="An error occurred while processing analytics"
         )
 
 
@@ -551,7 +551,7 @@ def get_training_calendar(
         logger.error(f"Error in get_training_calendar: {type(e).__name__}: {str(e)}")
         logger.error(traceback.format_exc())
         raise HTTPException(
-            status_code=500, detail=f"Analytics error: {type(e).__name__}: {str(e)}"
+            status_code=500, detail="An error occurred while processing analytics"
         )
 
 
@@ -574,7 +574,7 @@ def get_partner_belt_distribution(
         )
         logger.error(traceback.format_exc())
         raise HTTPException(
-            status_code=500, detail=f"Analytics error: {type(e).__name__}: {str(e)}"
+            status_code=500, detail="An error occurred while processing analytics"
         )
 
 
@@ -664,7 +664,7 @@ def get_insights_summary(
         logger.error(f"Error in get_insights_summary: {type(e).__name__}: {str(e)}")
         logger.error(traceback.format_exc())
         raise HTTPException(
-            status_code=500, detail=f"Analytics error: {type(e).__name__}: {str(e)}"
+            status_code=500, detail="An error occurred while processing analytics"
         )
 
 
@@ -691,7 +691,7 @@ def get_readiness_correlation(
         )
         logger.error(traceback.format_exc())
         raise HTTPException(
-            status_code=500, detail=f"Analytics error: {type(e).__name__}: {str(e)}"
+            status_code=500, detail="An error occurred while processing analytics"
         )
 
 
@@ -711,7 +711,7 @@ def get_training_load(
         logger.error(f"Error in get_training_load: {type(e).__name__}: {str(e)}")
         logger.error(traceback.format_exc())
         raise HTTPException(
-            status_code=500, detail=f"Analytics error: {type(e).__name__}: {str(e)}"
+            status_code=500, detail="An error occurred while processing analytics"
         )
 
 
@@ -738,7 +738,7 @@ def get_technique_effectiveness_insights(
         )
         logger.error(traceback.format_exc())
         raise HTTPException(
-            status_code=500, detail=f"Analytics error: {type(e).__name__}: {str(e)}"
+            status_code=500, detail="An error occurred while processing analytics"
         )
 
 
@@ -760,7 +760,7 @@ def get_partner_progression(
         logger.error(f"Error in get_partner_progression: {type(e).__name__}: {str(e)}")
         logger.error(traceback.format_exc())
         raise HTTPException(
-            status_code=500, detail=f"Analytics error: {type(e).__name__}: {str(e)}"
+            status_code=500, detail="An error occurred while processing analytics"
         )
 
 
@@ -785,7 +785,7 @@ def get_session_quality(
         logger.error(f"Error in get_session_quality: {type(e).__name__}: {str(e)}")
         logger.error(traceback.format_exc())
         raise HTTPException(
-            status_code=500, detail=f"Analytics error: {type(e).__name__}: {str(e)}"
+            status_code=500, detail="An error occurred while processing analytics"
         )
 
 
@@ -804,7 +804,7 @@ def get_overtraining_risk(
         logger.error(f"Error in get_overtraining_risk: {type(e).__name__}: {str(e)}")
         logger.error(traceback.format_exc())
         raise HTTPException(
-            status_code=500, detail=f"Analytics error: {type(e).__name__}: {str(e)}"
+            status_code=500, detail="An error occurred while processing analytics"
         )
 
 
@@ -824,7 +824,7 @@ def get_recovery_insights(
         logger.error(f"Error in get_recovery_insights: {type(e).__name__}: {str(e)}")
         logger.error(traceback.format_exc())
         raise HTTPException(
-            status_code=500, detail=f"Analytics error: {type(e).__name__}: {str(e)}"
+            status_code=500, detail="An error occurred while processing analytics"
         )
 
 
@@ -862,7 +862,7 @@ def get_fight_dynamics_heatmap(
         logger.error(traceback.format_exc())
         raise HTTPException(
             status_code=500,
-            detail=f"Analytics error: {type(e).__name__}: {str(e)}",
+            detail="An error occurred while processing analytics",
         )
 
 
@@ -890,7 +890,7 @@ def get_fight_dynamics_insights(
         logger.error(traceback.format_exc())
         raise HTTPException(
             status_code=500,
-            detail=f"Analytics error: {type(e).__name__}: {str(e)}",
+            detail="An error occurred while processing analytics",
         )
 
 
@@ -944,7 +944,7 @@ def get_whoop_performance_correlation(
         )
         raise HTTPException(
             status_code=500,
-            detail=f"Analytics error: {type(e).__name__}: {str(e)}",
+            detail="An error occurred while processing analytics",
         )
 
 
@@ -964,7 +964,7 @@ def get_whoop_efficiency(
         logger.error(f"Error in whoop efficiency:" f" {type(e).__name__}: {str(e)}")
         raise HTTPException(
             status_code=500,
-            detail=f"Analytics error: {type(e).__name__}: {str(e)}",
+            detail="An error occurred while processing analytics",
         )
 
 
@@ -984,7 +984,7 @@ def get_whoop_cardiovascular(
         logger.error(f"Error in whoop cardiovascular:" f" {type(e).__name__}: {str(e)}")
         raise HTTPException(
             status_code=500,
-            detail=f"Analytics error: {type(e).__name__}: {str(e)}",
+            detail="An error occurred while processing analytics",
         )
 
 
@@ -1014,7 +1014,7 @@ def get_whoop_sleep_debt(
         logger.error(f"Error in whoop sleep debt: {type(e).__name__}: {str(e)}")
         raise HTTPException(
             status_code=500,
-            detail=f"Analytics error: {type(e).__name__}: {str(e)}",
+            detail="An error occurred while processing analytics",
         )
 
 
@@ -1036,5 +1036,5 @@ def get_whoop_readiness_model(
         )
         raise HTTPException(
             status_code=500,
-            detail=f"Analytics error: {type(e).__name__}: {str(e)}",
+            detail="An error occurred while processing analytics",
         )

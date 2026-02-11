@@ -46,7 +46,7 @@ export default function Waitlist() {
 
   if (success) {
     return (
-      <div className="min-h-screen flex items-center justify-center px-4" style={{ backgroundColor: 'var(--background)' }}>
+      <div className="min-h-screen flex items-center justify-center px-4" style={{ backgroundColor: 'var(--bg)' }}>
         <div className="max-w-md w-full text-center space-y-6">
           <div
             className="p-8 rounded-lg border-2"
@@ -87,7 +87,7 @@ export default function Waitlist() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center px-4 py-12" style={{ backgroundColor: 'var(--background)' }}>
+    <div className="min-h-screen flex items-center justify-center px-4 py-12" style={{ backgroundColor: 'var(--bg)' }}>
       <div className="max-w-md w-full space-y-6">
         {/* Hero */}
         <div className="text-center">

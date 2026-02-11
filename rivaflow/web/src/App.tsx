@@ -53,6 +53,7 @@ const Login = lazy(() => import('./pages/Login'));
 const Register = lazy(() => import('./pages/Register'));
 const ForgotPassword = lazy(() => import('./pages/ForgotPassword'));
 const ResetPassword = lazy(() => import('./pages/ResetPassword'));
+const NotFound = lazy(() => import('./pages/NotFound'));
 
 function App() {
   return (
@@ -115,6 +116,7 @@ function App() {
                           <Route path="/faq" element={<FAQ />} />
                           <Route path="/terms" element={<Terms />} />
                           <Route path="/privacy" element={<Privacy />} />
+                          <Route path="*" element={<NotFound />} />
                         </Routes>
                       </Suspense>
                     </Layout>

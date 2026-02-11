@@ -1,5 +1,6 @@
 """Dashboard API endpoints."""
 
+import logging
 from datetime import date, timedelta
 
 from fastapi import APIRouter, Depends, Query, Request
@@ -15,6 +16,8 @@ from rivaflow.core.services.streak_service import StreakService
 from rivaflow.core.utils.cache import cached
 from rivaflow.db.repositories.readiness_repo import ReadinessRepository
 from rivaflow.db.repositories.session_repo import SessionRepository
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/dashboard", tags=["dashboard"])
 limiter = Limiter(key_func=get_remote_address)
@@ -137,7 +140,8 @@ def get_dashboard_summary(
         )
 
     except Exception as e:
-        raise ValidationError(f"Failed to load dashboard: {str(e)}")
+        logger.error(f"Failed to load dashboard: {e}")
+        raise ValidationError("Failed to load dashboard data")
 
 
 @router.get("/quick-stats")
@@ -182,7 +186,8 @@ def get_quick_stats(
         }
 
     except Exception as e:
-        raise ValidationError(f"Failed to load quick stats: {str(e)}")
+        logger.error(f"Failed to load quick stats: {e}")
+        raise ValidationError("Failed to load quick stats")
 
 
 @router.get("/week-summary")
@@ -219,7 +224,6 @@ def get_week_summary(
         week_end = week_start + timedelta(days=6)
 
         session_repo = SessionRepository()
-        GoalsService()
 
         # Get sessions for the week
         sessions = session_repo.get_by_date_range(user_id, week_start, week_end)
@@ -253,4 +257,5 @@ def get_week_summary(
         }
 
     except Exception as e:
-        raise ValidationError(f"Failed to load week summary: {str(e)}")
+        logger.error(f"Failed to load week summary: {e}")
+        raise ValidationError("Failed to load week summary")

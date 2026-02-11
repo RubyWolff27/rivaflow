@@ -87,7 +87,7 @@ export default function WhoopAnalyticsTab({ days = 90 }: Props) {
           <p className="text-sm mb-4" style={{ color: 'var(--muted)' }}>{recoveryCorr.insight}</p>
 
           {/* Zone comparison bars */}
-          <div className="grid grid-cols-3 gap-3 mb-4">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-4">
             {(['green', 'yellow', 'red'] as const).map(zone => {
               const info = recoveryCorr.zones?.[zone];
               if (!info) return null;
@@ -187,7 +187,7 @@ export default function WhoopAnalyticsTab({ days = 90 }: Props) {
           </div>
           <p className="text-sm mb-4" style={{ color: 'var(--muted)' }}>{sleepAnalysis.insight}</p>
 
-          <div className="grid grid-cols-3 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <div className="p-3 rounded-lg text-center" style={{ backgroundColor: 'var(--surfaceElev)' }}>
               <p className="text-xs" style={{ color: 'var(--muted)' }}>Total Sleep</p>
               <p className="text-lg font-bold" style={{ color: 'var(--text)' }}>r = {sleepAnalysis.total_sleep_r}</p>
@@ -216,7 +216,7 @@ export default function WhoopAnalyticsTab({ days = 90 }: Props) {
           <p className="text-sm mb-4" style={{ color: 'var(--muted)' }}>{cardio.insight}</p>
 
           {/* Current vs Baseline */}
-          <div className="grid grid-cols-3 gap-3 mb-4">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-4">
             <div className="p-3 rounded-lg text-center" style={{ backgroundColor: 'var(--surfaceElev)' }}>
               <p className="text-xs" style={{ color: 'var(--muted)' }}>Current RHR</p>
               <p className="text-2xl font-bold" style={{ color: 'var(--text)' }}>{cardio.current_rhr}</p>
@@ -323,7 +323,7 @@ export default function WhoopAnalyticsTab({ days = 90 }: Props) {
                     </span>
                     <span className="text-xs" style={{ color: 'var(--muted)' }}>{info.sessions} sessions</span>
                   </div>
-                  <div className="grid grid-cols-4 gap-2 text-center text-xs">
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-center text-xs">
                     <div>
                       <p style={{ color: 'var(--muted)' }}>Intensity</p>
                       <p className="font-semibold text-sm" style={{ color: 'var(--text)' }}>{info.avg_intensity}/5</p>

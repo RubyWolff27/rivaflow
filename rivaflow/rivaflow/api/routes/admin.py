@@ -385,7 +385,8 @@ def merge_gyms(
         }
     except Exception as e:
         # Transaction will be rolled back automatically by the context manager
-        raise ValidationError(f"Failed to merge gyms: {str(e)}")
+        logger.error(f"Failed to merge gyms: {e}")
+        raise ValidationError("Failed to merge gyms")
 
 
 # Dashboard endpoints

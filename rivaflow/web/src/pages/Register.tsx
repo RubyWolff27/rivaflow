@@ -47,7 +47,7 @@ export default function Register() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center px-4 py-12" style={{ backgroundColor: 'var(--background)' }}>
+    <div className="min-h-screen flex items-center justify-center px-4 py-12" style={{ backgroundColor: 'var(--bg)' }}>
       <div className="max-w-md w-full space-y-6">
         {/* Invite banner or Beta banner */}
         {inviteToken ? (
