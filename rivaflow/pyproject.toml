@@ -58,12 +58,10 @@ dependencies = [
     "redis==5.3.1",
     "sendgrid==6.12.5",
     "filetype==1.2.0",
-    # AI/ML dependencies REMOVED for v0.2.0 - Deploy without AI features
-    # Will migrate to separate microservice in future release
-    # "groq==0.14.0",
-    # "together==1.5.35",
-    # "sentence-transformers==3.3.1",
-    # "tiktoken==0.8.0",
+    "apscheduler>=3.10,<4",
+    "sentry-sdk[fastapi]==2.52.0",
+    "boto3==1.36.14",
+    "python-json-logger==3.3.0",
 ]
 
 [project.optional-dependencies]

@@ -72,12 +72,32 @@ from rivaflow.api.routes import (
 from rivaflow.core.exceptions import RivaFlowException
 from rivaflow.core.settings import settings
 
-# Configure logging
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
-    datefmt="%Y-%m-%d %H:%M:%S",
-)
+# Configure logging — JSON in production, plain text elsewhere
+if settings.IS_PRODUCTION:
+    try:
+        from pythonjsonlogger.json import JsonFormatter
+
+        _handler = logging.StreamHandler()
+        _handler.setFormatter(
+            JsonFormatter(
+                fmt="%(asctime)s %(name)s %(levelname)s %(message)s",
+                datefmt="%Y-%m-%dT%H:%M:%S",
+            )
+        )
+        logging.root.handlers = [_handler]
+        logging.root.setLevel(logging.INFO)
+    except ImportError:
+        logging.basicConfig(
+            level=logging.INFO,
+            format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+            datefmt="%Y-%m-%d %H:%M:%S",
+        )
+else:
+    logging.basicConfig(
+        level=logging.INFO,
+        format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+        datefmt="%Y-%m-%d %H:%M:%S",
+    )
 
 # Initialize Sentry error tracking (only if SDK installed and DSN configured)
 _sentry_dsn = os.getenv("SENTRY_DSN")
@@ -113,25 +133,14 @@ async def _lifespan(_app: FastAPI):
 
     validate_environment()
 
-    from rivaflow.config import get_db_type
+    # Migrations run via start.sh (prod) or database.py auto-init (dev/test).
+    # Seed glossary on every startup to pick up new terms.
+    try:
+        from rivaflow.db.seed_glossary import seed_glossary
 
-    if get_db_type() == "postgresql":
-        logging.info("Running database migrations...")
-        try:
-            from rivaflow.db.migrate import run_migrations
-
-            run_migrations()
-            logging.info("Database migrations completed successfully")
-        except Exception as e:
-            logging.error(f"Failed to run migrations: {e}")
-            raise
-
-        try:
-            from rivaflow.db.seed_glossary import seed_glossary
-
-            seed_glossary()
-        except (OSError, ConnectionError, ValueError) as e:
-            logging.warning(f"Could not seed glossary: {e}")
+        seed_glossary()
+    except (OSError, ConnectionError, ValueError) as e:
+        logging.warning(f"Could not seed glossary: {e}")
 
     if not settings.IS_TEST:
         try:

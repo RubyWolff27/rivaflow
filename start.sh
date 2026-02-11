@@ -20,21 +20,14 @@ fi
 
 echo "==> PORT: $PORT"
 
-# Initialize database
-echo "==> Initializing database..."
-python -c "
-from rivaflow.db.database import init_db
-init_db()
-print('Database initialized successfully')
-"
-
-# Run migrations
+# Run migrations (creates schema_migrations table if needed, then applies pending)
 echo "==> Running database migrations..."
 python rivaflow/db/migrate.py
 
-# Start uvicorn server
-echo "==> Starting uvicorn server on 0.0.0.0:${PORT}..."
-exec uvicorn rivaflow.api.main:app \
-    --host 0.0.0.0 \
-    --port "${PORT}" \
+# Start gunicorn with uvicorn workers
+echo "==> Starting gunicorn on 0.0.0.0:${PORT}..."
+exec gunicorn rivaflow.api.main:app \
+    -w 2 \
+    -k uvicorn.workers.UvicornWorker \
+    --bind "0.0.0.0:${PORT}" \
     --log-level info
