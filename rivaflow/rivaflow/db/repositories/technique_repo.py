@@ -138,7 +138,7 @@ class TechniqueRepository:
                 return [row[0] for row in rows]
 
     @staticmethod
-    def _row_to_dict(row: sqlite3.Row) -> dict:
+    def _row_to_dict(row) -> dict:
         """Convert a database row to a dictionary."""
         data = dict(row)
         # Parse dates - handle both PostgreSQL (date/datetime) and SQLite (string)

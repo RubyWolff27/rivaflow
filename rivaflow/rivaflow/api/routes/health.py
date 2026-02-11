@@ -29,7 +29,7 @@ def health_check():
     health_status = {
         "status": "healthy",
         "service": "rivaflow-api",
-        "version": "0.2.0",
+        "version": "0.5.0",
     }
 
     # Check database connectivity

@@ -108,11 +108,11 @@ def _get_connection_pool() -> "psycopg2.pool.ThreadedConnectionPool":
         if not DATABASE_URL:
             raise ValueError("DATABASE_URL environment variable is required")
 
-        # Create thread-safe connection pool with min=2, max=40 connections
+        # Create thread-safe connection pool with min=2, max=20 connections
         # minconn=2: Keep 2 warm connections ready
-        # maxconn=40: Allow up to 40 concurrent connections
+        # maxconn=20: Stay within Render starter tier limits
         _connection_pool = psycopg2.pool.ThreadedConnectionPool(
-            minconn=2, maxconn=40, dsn=DATABASE_URL
+            minconn=2, maxconn=20, dsn=DATABASE_URL
         )
 
     return _connection_pool

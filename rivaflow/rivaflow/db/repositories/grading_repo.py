@@ -1,6 +1,5 @@
 """Repository for grading/belt progression data access."""
 
-import sqlite3
 from datetime import date, datetime
 
 from rivaflow.core.constants import GRADING_SORT_OPTIONS
@@ -165,7 +164,7 @@ class GradingRepository:
             return cursor.rowcount > 0
 
     @staticmethod
-    def _row_to_dict(row: sqlite3.Row) -> dict:
+    def _row_to_dict(row) -> dict:
         """Convert a database row to a dictionary."""
         data = dict(row)
         # Parse date fields - handle both PostgreSQL (date/datetime) and SQLite (string)

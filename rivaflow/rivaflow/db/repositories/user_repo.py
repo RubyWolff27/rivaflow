@@ -1,6 +1,5 @@
 """Repository for user data access."""
 
-import sqlite3
 from datetime import datetime
 
 from rivaflow.db.database import convert_query, execute_insert, get_connection
@@ -272,7 +271,7 @@ class UserRepository:
             return cursor.rowcount > 0
 
     @staticmethod
-    def _row_to_dict(row: sqlite3.Row) -> dict:
+    def _row_to_dict(row) -> dict:
         """Convert a database row to a dictionary."""
         data = dict(row)
 

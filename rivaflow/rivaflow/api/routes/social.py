@@ -121,9 +121,12 @@ def get_followers(
     Returns:
         Paginated list of follower users with basic info
     """
-    all_followers = SocialService.get_followers(current_user["id"])
-    total = len(all_followers)
-    followers = all_followers[offset : offset + limit]
+    from rivaflow.db.repositories.relationship_repo import UserRelationshipRepository
+
+    followers = UserRelationshipRepository.get_followers(
+        current_user["id"], limit=limit, offset=offset
+    )
+    total = UserRelationshipRepository.count_followers(current_user["id"])
 
     return {"followers": followers, "total": total, "limit": limit, "offset": offset}
 
@@ -140,9 +143,12 @@ def get_following(
     Returns:
         Paginated list of followed users with basic info
     """
-    all_following = SocialService.get_following(current_user["id"])
-    total = len(all_following)
-    following = all_following[offset : offset + limit]
+    from rivaflow.db.repositories.relationship_repo import UserRelationshipRepository
+
+    following = UserRelationshipRepository.get_following(
+        current_user["id"], limit=limit, offset=offset
+    )
+    total = UserRelationshipRepository.count_following(current_user["id"])
 
     return {"following": following, "total": total, "limit": limit, "offset": offset}
 

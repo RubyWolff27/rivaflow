@@ -1,7 +1,6 @@
 """Repository for session data access."""
 
 import json
-import sqlite3
 from datetime import date, datetime
 
 from rivaflow.db.database import convert_query, execute_insert, get_connection
@@ -407,7 +406,7 @@ class SessionRepository:
             return sorted(partners_set)
 
     @staticmethod
-    def get_last_n_sessions_by_type(user_id: int, n: int = 5) -> dict[str, list[str]]:
+    def get_last_n_sessions_by_type(user_id: int, n: int = 5) -> list[str]:
         """Get the class types of the last N sessions."""
         with get_connection() as conn:
             cursor = conn.cursor()
@@ -451,7 +450,7 @@ class SessionRepository:
             return cursor.rowcount > 0
 
     @staticmethod
-    def _row_to_dict(row: sqlite3.Row) -> dict:
+    def _row_to_dict(row) -> dict:
         """Convert a database row to a dictionary."""
         data = dict(row)
         # Parse JSON fields - ensure arrays are never null

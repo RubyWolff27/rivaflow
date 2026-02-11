@@ -86,7 +86,7 @@ def about():
     console.print(f"[dim]{TAGLINE}[/dim]")
     console.print()
 
-    info_text = """[bold]Version:[/bold] 0.2.0-beta
+    info_text = """[bold]Version:[/bold] 0.5.0-beta
 [bold]Description:[/bold] Local-first training tracker for Brazilian Jiu-Jitsu and grappling
 
 [bold cyan]Features:[/bold cyan]

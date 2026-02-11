@@ -159,7 +159,7 @@ async def _lifespan(_app: FastAPI):
 app = FastAPI(
     title="RivaFlow API",
     description="Training OS for the mat — Web API",
-    version="0.2.0",
+    version="0.5.0",
     docs_url=_docs_url,
     redoc_url=_redoc_url,
     openapi_url=_openapi_url,
@@ -360,6 +360,6 @@ else:
         """Root endpoint when frontend is not available."""
         return {
             "message": "RivaFlow API",
-            "version": "0.2.0",
+            "version": "0.5.0",
             "docs": "/docs",
         }

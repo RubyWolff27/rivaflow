@@ -1,7 +1,6 @@
 """Repository for session rolls (detailed roll tracking) data access."""
 
 import json
-import sqlite3
 
 from rivaflow.db.database import convert_query, execute_insert, get_connection
 
@@ -309,7 +308,7 @@ class SessionRollRepository:
             return cursor.rowcount
 
     @staticmethod
-    def _row_to_dict(row: sqlite3.Row) -> dict:
+    def _row_to_dict(row) -> dict:
         """Convert a database row to a dictionary."""
         if not row:
             return {}

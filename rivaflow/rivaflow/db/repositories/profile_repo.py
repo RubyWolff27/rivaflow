@@ -1,6 +1,5 @@
 """Repository for user profile data access."""
 
-import sqlite3
 from datetime import date, datetime
 
 from rivaflow.db.database import convert_query, get_connection
@@ -230,7 +229,7 @@ class ProfileRepository:
                 raise Exception("Failed to create or update profile")
 
     @staticmethod
-    def _row_to_dict(row: sqlite3.Row) -> dict:
+    def _row_to_dict(row) -> dict:
         """Convert a database row to a dictionary."""
         data = dict(row)
 

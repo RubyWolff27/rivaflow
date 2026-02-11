@@ -803,7 +803,7 @@ export default function Grapple() {
               </div>
               <button
                 onClick={(e) => { e.stopPropagation(); setDeleteSessionConfirmId(session.id); }}
-                className="opacity-0 group-hover:opacity-100 p-1 rounded"
+                className="md:opacity-0 md:group-hover:opacity-100 p-1 rounded"
               >
                 <Trash2 className="w-4 h-4" style={{ color: 'var(--error)' }} />
               </button>

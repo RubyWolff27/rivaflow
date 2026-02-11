@@ -309,8 +309,8 @@ export default function Reports() {
   return (
     <div className="space-y-6">
       {/* Page Header */}
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-semibold text-[var(--text)]">Analytics</h1>
+      <div className="flex items-center justify-between flex-wrap gap-3">
+        <h1 className="text-2xl font-semibold text-[var(--text)]">Progress</h1>
         <div className="flex items-center gap-3">
           <Link
             to="/fight-dynamics"

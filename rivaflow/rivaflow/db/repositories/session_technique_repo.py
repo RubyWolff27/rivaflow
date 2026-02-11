@@ -1,7 +1,6 @@
 """Repository for session techniques (detailed technique tracking) data access."""
 
 import json
-import sqlite3
 
 from rivaflow.db.database import convert_query, execute_insert, get_connection
 
@@ -223,7 +222,7 @@ class SessionTechniqueRepository:
             return techniques_by_session
 
     @staticmethod
-    def _row_to_dict(row: sqlite3.Row) -> dict:
+    def _row_to_dict(row) -> dict:
         """Convert a database row to a dictionary."""
         if not row:
             return {}

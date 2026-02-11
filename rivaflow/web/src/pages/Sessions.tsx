@@ -22,7 +22,7 @@ export default function Sessions() {
     const doLoad = async () => {
       setLoading(true);
       try {
-        const response = await sessionsApi.list(1000);
+        const response = await sessionsApi.list(200);
         if (!controller.signal.aborted) {
           const loaded = response.data ?? [];
           setSessions(loaded);

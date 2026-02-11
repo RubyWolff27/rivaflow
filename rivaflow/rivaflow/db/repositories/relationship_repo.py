@@ -1,7 +1,5 @@
 """Repository for user relationships (social graph) data access."""
 
-import sqlite3
-
 from rivaflow.db.database import convert_query, execute_insert, get_connection
 
 
@@ -65,20 +63,23 @@ class UserRelationshipRepository:
             return cursor.rowcount > 0
 
     @staticmethod
-    def get_followers(user_id: int) -> list[dict]:
+    def get_followers(
+        user_id: int, limit: int | None = None, offset: int = 0
+    ) -> list[dict]:
         """
-        Get all users who follow this user.
+        Get users who follow this user.
 
         Args:
             user_id: The user whose followers to retrieve
+            limit: Max results (None = all)
+            offset: Number to skip
 
         Returns:
             List of follower user records with relationship info
         """
         with get_connection() as conn:
             cursor = conn.cursor()
-            cursor.execute(
-                convert_query("""
+            sql = """
                 SELECT
                     ur.id as relationship_id,
                     ur.follower_user_id,
@@ -90,27 +91,33 @@ class UserRelationshipRepository:
                 JOIN users u ON ur.follower_user_id = u.id
                 WHERE ur.following_user_id = ? AND ur.status = 'active'
                 ORDER BY ur.created_at DESC
-                """),
-                (user_id,),
-            )
+            """
+            params: list = [user_id]
+            if limit is not None:
+                sql += " LIMIT ? OFFSET ?"
+                params.extend([limit, offset])
+            cursor.execute(convert_query(sql), params)
             rows = cursor.fetchall()
             return [dict(row) for row in rows]
 
     @staticmethod
-    def get_following(user_id: int) -> list[dict]:
+    def get_following(
+        user_id: int, limit: int | None = None, offset: int = 0
+    ) -> list[dict]:
         """
-        Get all users that this user follows.
+        Get users that this user follows.
 
         Args:
             user_id: The user whose following list to retrieve
+            limit: Max results (None = all)
+            offset: Number to skip
 
         Returns:
             List of followed user records with relationship info
         """
         with get_connection() as conn:
             cursor = conn.cursor()
-            cursor.execute(
-                convert_query("""
+            sql = """
                 SELECT
                     ur.id as relationship_id,
                     ur.following_user_id,
@@ -122,11 +129,44 @@ class UserRelationshipRepository:
                 JOIN users u ON ur.following_user_id = u.id
                 WHERE ur.follower_user_id = ? AND ur.status = 'active'
                 ORDER BY ur.created_at DESC
-                """),
-                (user_id,),
-            )
+            """
+            params: list = [user_id]
+            if limit is not None:
+                sql += " LIMIT ? OFFSET ?"
+                params.extend([limit, offset])
+            cursor.execute(convert_query(sql), params)
             rows = cursor.fetchall()
             return [dict(row) for row in rows]
+
+    @staticmethod
+    def count_followers(user_id: int) -> int:
+        """Count total followers for a user."""
+        with get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                convert_query(
+                    "SELECT COUNT(*) FROM user_relationships"
+                    " WHERE following_user_id = ? AND status = 'active'"
+                ),
+                (user_id,),
+            )
+            row = cursor.fetchone()
+            return (row[0] if row else 0) or 0
+
+    @staticmethod
+    def count_following(user_id: int) -> int:
+        """Count total following for a user."""
+        with get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                convert_query(
+                    "SELECT COUNT(*) FROM user_relationships"
+                    " WHERE follower_user_id = ? AND status = 'active'"
+                ),
+                (user_id,),
+            )
+            row = cursor.fetchone()
+            return (row[0] if row else 0) or 0
 
     @staticmethod
     def is_following(follower_user_id: int, following_user_id: int) -> bool:
@@ -240,7 +280,7 @@ class UserRelationshipRepository:
                 return [row[0] for row in rows]
 
     @staticmethod
-    def _row_to_dict(row: sqlite3.Row) -> dict:
+    def _row_to_dict(row) -> dict:
         """Convert a database row to a dictionary."""
         if not row:
             return {}

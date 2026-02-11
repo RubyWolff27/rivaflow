@@ -1,7 +1,6 @@
 """Repository for movements glossary data access."""
 
 import json
-import sqlite3
 from datetime import date, datetime, timedelta
 
 from rivaflow.db.database import convert_query, execute_insert, get_connection
@@ -344,7 +343,7 @@ class GlossaryRepository:
             return dict(row) if row else None
 
     @staticmethod
-    def _row_to_dict(row: sqlite3.Row) -> dict:
+    def _row_to_dict(row) -> dict:
         """Convert a database row to a dictionary."""
         data = dict(row)
 

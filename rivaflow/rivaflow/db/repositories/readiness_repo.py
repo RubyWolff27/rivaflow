@@ -1,6 +1,5 @@
 """Repository for readiness check-in data access."""
 
-import sqlite3
 from datetime import date, datetime
 
 from rivaflow.db.database import convert_query, execute_insert, get_connection
@@ -173,7 +172,7 @@ class ReadinessRepository:
             return [ReadinessRepository._row_to_dict(row) for row in cursor.fetchall()]
 
     @staticmethod
-    def _row_to_dict(row: sqlite3.Row) -> dict:
+    def _row_to_dict(row) -> dict:
         """Convert a database row to a dictionary."""
         data = dict(row)
         # Parse dates - handle both PostgreSQL (date/datetime) and SQLite (string)

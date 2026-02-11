@@ -90,6 +90,7 @@ jobs:
           echo "Database health check passed"
         else
           echo "Database health check failed (HTTP $response)"
+          exit 1
         fi
 
     - name: Notify deployment success
