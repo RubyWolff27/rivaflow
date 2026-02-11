@@ -75,7 +75,7 @@ export default function Techniques() {
 
       {/* Stale Techniques Alert */}
       {staleTechniques.length > 0 && (
-        <div className="card bg-yellow-50 border-yellow-200">
+        <div className="card" style={{ backgroundColor: 'var(--surfaceElev)', border: '1px solid var(--border)' }}>
           <div className="flex items-start gap-3">
             <AlertCircle className="w-5 h-5 text-yellow-600 mt-0.5" />
             <div>

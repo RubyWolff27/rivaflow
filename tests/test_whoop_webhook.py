@@ -188,14 +188,14 @@ class TestWhoopWebhook:
     @patch("rivaflow.api.routes.webhooks.settings")
     @patch("rivaflow.api.routes.webhooks._lookup_user_by_whoop_id")
     @patch("rivaflow.api.routes.webhooks.service")
-    def test_no_secret_skips_signature_check(
+    def test_no_secret_rejects_webhook(
         self,
         mock_service,
         mock_lookup,
         mock_settings,
         client,
     ):
-        """When WHOOP_CLIENT_SECRET is not set, skip signature verification."""
+        """When WHOOP_CLIENT_SECRET is not set, reject the webhook (fail closed)."""
         mock_settings.WHOOP_CLIENT_SECRET = ""
         mock_lookup.return_value = 42
 
@@ -210,6 +210,5 @@ class TestWhoopWebhook:
             content=body,
             headers={"Content-Type": "application/json"},
         )
-        assert response.status_code == 200
-        assert response.json()["status"] == "ok"
-        mock_service.sync_workouts.assert_called_once_with(42, days_back=1)
+        assert response.status_code == 503
+        mock_service.sync_workouts.assert_not_called()

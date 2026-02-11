@@ -125,7 +125,7 @@ def get_profile(request: Request, current_user: dict = Depends(get_current_user)
     if not profile:
         # Return empty profile if none exists
         return {
-            "id": 1,
+            "id": current_user["id"],
             "first_name": None,
             "last_name": None,
             "date_of_birth": None,

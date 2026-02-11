@@ -239,7 +239,7 @@ export default function Sessions() {
               </div>
 
               {/* Stats */}
-              <div className="grid grid-cols-3 gap-3 py-3 border-t border-[var(--border)]">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 py-3 border-t border-[var(--border)]">
                 <div>
                   <div className="flex items-center gap-1 text-xs text-[var(--muted)] mb-1">
                     <Calendar className="w-3 h-3" />

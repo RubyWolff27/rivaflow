@@ -65,10 +65,9 @@ export default function SessionDetail() {
     const doLoadWhoopCtx = async () => {
       try {
         const res = await whoopApi.sessionContext(parseInt(id ?? '0'));
-        console.log('[WHOOP context]', id, res.data);
         if (!cancelled) setWhoopCtx(res.data ?? null);
-      } catch (err) {
-        console.log('[WHOOP context] error', id, err);
+      } catch {
+        // WHOOP context not available
       }
     };
 
@@ -522,7 +521,7 @@ export default function SessionDetail() {
             </div>
           )}
 
-          <div className="grid grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             {session.whoop_calories != null && (
               <div className="p-3 bg-[var(--surfaceElev)] rounded-lg text-center">
                 <p className="text-xs text-[var(--muted)] mb-1">Calories</p>

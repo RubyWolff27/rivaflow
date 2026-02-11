@@ -102,7 +102,7 @@ class AuthService:
         except (ConnectionError, OSError, ValueError) as e:
             raise ValueError(f"Failed to create user: {str(e)}")
 
-        # Create default profile for user
+        # Create profile + streaks in a single transaction
         try:
             import logging
 
@@ -112,6 +112,8 @@ class AuthService:
 
             with get_connection() as conn:
                 cursor = conn.cursor()
+
+                # Profile
                 cursor.execute(
                     convert_query("""
                     INSERT INTO profile (user_id, first_name, last_name, email)
@@ -119,57 +121,25 @@ class AuthService:
                     """),
                     (user["id"], first_name, last_name, email),
                 )
-        except (ConnectionError, OSError, ValueError) as e:
-            # Profile creation failed - delete the user and fail registration
-            logger.error(f"Failed to create profile for user {user['id']}: {e}")
-            try:
-                # Attempt to delete the user to maintain consistency
-                from rivaflow.db.database import convert_query, get_connection
 
-                with get_connection() as conn:
-                    cursor = conn.cursor()
+                # Streaks
+                for streak_type in ("checkin", "training", "readiness"):
                     cursor.execute(
-                        convert_query("DELETE FROM users WHERE id = ?"), (user["id"],)
+                        convert_query(
+                            "INSERT INTO streaks (streak_type, current_streak, longest_streak, user_id) VALUES (?, ?, ?, ?)"
+                        ),
+                        (streak_type, 0, 0, user["id"]),
                     )
-            except (ConnectionError, OSError):
-                pass  # Best effort cleanup
-            raise ValueError("Registration failed - unable to create user profile")
-
-        # Initialize streak records for the new user
-        try:
-            from rivaflow.db.database import convert_query, get_connection
-
-            with get_connection() as conn:
-                cursor = conn.cursor()
-                cursor.execute(
-                    convert_query(
-                        "INSERT INTO streaks (streak_type, current_streak, longest_streak, user_id) VALUES (?, ?, ?, ?)"
-                    ),
-                    ("checkin", 0, 0, user["id"]),
-                )
-                cursor.execute(
-                    convert_query(
-                        "INSERT INTO streaks (streak_type, current_streak, longest_streak, user_id) VALUES (?, ?, ?, ?)"
-                    ),
-                    ("training", 0, 0, user["id"]),
-                )
-                cursor.execute(
-                    convert_query(
-                        "INSERT INTO streaks (streak_type, current_streak, longest_streak, user_id) VALUES (?, ?, ?, ?)"
-                    ),
-                    ("readiness", 0, 0, user["id"]),
-                )
         except (ConnectionError, OSError, ValueError) as e:
-            # Streaks creation failed - delete user and profile, fail registration
-            logger.error(f"Failed to create streaks for user {user['id']}: {e}")
+            logger.error(f"Failed to create profile/streaks for user {user['id']}: {e}")
             try:
-                # Cleanup: delete user (CASCADE will delete profile)
                 from rivaflow.db.database import convert_query, get_connection
 
                 with get_connection() as conn:
                     cursor = conn.cursor()
                     cursor.execute(
-                        convert_query("DELETE FROM users WHERE id = ?"), (user["id"],)
+                        convert_query("DELETE FROM users WHERE id = ?"),
+                        (user["id"],),
                     )
             except (ConnectionError, OSError):
                 pass  # Best effort cleanup

@@ -64,7 +64,7 @@ export default function Dashboard() {
             </div>
           </div>
         </div>
-        <div className="grid grid-cols-3 gap-2">
+        <div className="grid grid-cols-3 gap-2" style={{ minHeight: '44px' }}>
           <button
             onClick={() => navigate('/grapple?panel=chat')}
             className="flex flex-col items-center gap-1.5 py-3 rounded-lg text-xs font-medium transition-all hover:opacity-80"

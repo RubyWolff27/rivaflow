@@ -3,7 +3,7 @@
 from datetime import datetime, timedelta
 from typing import Any
 
-from rivaflow.db.database import convert_query, get_connection
+from rivaflow.db.database import convert_query, execute_insert, get_connection
 
 
 class NotificationRepository:
@@ -34,16 +34,14 @@ class NotificationRepository:
         Returns:
             Created notification as dict
         """
-        query = convert_query("""
-            INSERT INTO notifications (user_id, actor_id, notification_type, activity_type, activity_id, comment_id, message)
-            VALUES (?, ?, ?, ?, ?, ?, ?)
-            RETURNING id, user_id, actor_id, notification_type, activity_type, activity_id, comment_id, message, is_read, created_at, read_at
-        """)
-
         with get_connection() as conn:
             cursor = conn.cursor()
-            cursor.execute(
-                query,
+            notification_id = execute_insert(
+                cursor,
+                """
+                INSERT INTO notifications (user_id, actor_id, notification_type, activity_type, activity_id, comment_id, message)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
+                """,
                 (
                     user_id,
                     actor_id,
@@ -54,8 +52,14 @@ class NotificationRepository:
                     message,
                 ),
             )
+
+            cursor.execute(
+                convert_query(
+                    "SELECT id, user_id, actor_id, notification_type, activity_type, activity_id, comment_id, message, is_read, created_at, read_at FROM notifications WHERE id = ?"
+                ),
+                (notification_id,),
+            )
             row = cursor.fetchone()
-            conn.commit()
 
             if row:
                 d = dict(row)

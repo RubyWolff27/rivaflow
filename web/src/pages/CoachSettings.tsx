@@ -504,7 +504,7 @@ export default function CoachSettings() {
                   <X className="w-3.5 h-3.5" style={{ color: 'var(--muted)' }} />
                 </button>
               </div>
-              <div className="grid grid-cols-3 gap-2 mb-2">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 mb-2">
                 <select className="input text-xs" value={inj.area} onChange={e => updateInjury(i, 'area', e.target.value)}>
                   {INJURY_AREAS.map(a => <option key={a} value={a}>{a.charAt(0).toUpperCase() + a.slice(1)}</option>)}
                 </select>

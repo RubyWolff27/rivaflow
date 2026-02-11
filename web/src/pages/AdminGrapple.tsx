@@ -294,7 +294,7 @@ export default function AdminGrapple() {
                 <span className="text-sm font-medium text-[var(--text)] uppercase">{tier}</span>
                 <span className="text-xs text-[var(--muted)]">{stats.users} users</span>
               </div>
-              <div className="grid grid-cols-3 gap-4 text-sm">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-sm">
                 <div>
                   <p className="text-[var(--muted)]">Messages</p>
                   <p className="font-medium text-[var(--text)]">{stats.messages.toLocaleString()}</p>

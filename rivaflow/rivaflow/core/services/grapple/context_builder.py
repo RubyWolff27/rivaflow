@@ -516,7 +516,7 @@ Athlete competes under NAGA (North American Grappling Association) rules:
         context_parts = [
             "USER PROFILE:",
             f"Name: {user['first_name']} {user['last_name']}",
-            f"Email: {user['email']}",
+            # Email intentionally omitted (PII not needed for coaching)
             "",
         ]
 

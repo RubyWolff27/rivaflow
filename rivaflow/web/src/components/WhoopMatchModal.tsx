@@ -85,7 +85,7 @@ export default function WhoopMatchModal({ isOpen, onClose, matches, onSelect, on
                     <p className="text-xs text-[var(--muted)] mb-2">{workout.sport_name}</p>
                   )}
 
-                  <div className="grid grid-cols-3 gap-3 mb-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-3">
                     {workout.strain != null && (
                       <div className="flex items-center gap-1 text-sm">
                         <Flame className="w-3.5 h-3.5 text-orange-500" />

@@ -80,4 +80,3 @@ databases:
     plan: starter
     databaseName: rivaflow
     user: rivaflow
-    ipAllowList: []

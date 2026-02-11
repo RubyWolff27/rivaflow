@@ -70,16 +70,19 @@ async def whoop_webhook(request: Request):
     # Verify signature using WHOOP's scheme:
     # base64(HMAC-SHA256(timestamp + body, client_secret))
     secret = settings.WHOOP_CLIENT_SECRET
-    if secret:
-        signature = request.headers.get("X-WHOOP-Signature", "")
-        timestamp = request.headers.get("X-WHOOP-Signature-Timestamp", "")
-        if not signature or not _verify_whoop_signature(body, signature, timestamp):
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Invalid webhook signature",
-            )
-    else:
-        logger.warning("WHOOP_CLIENT_SECRET not set — skipping signature check")
+    if not secret:
+        logger.error("WHOOP_CLIENT_SECRET not set — rejecting webhook")
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Webhook verification unavailable",
+        )
+    signature = request.headers.get("X-WHOOP-Signature", "")
+    timestamp = request.headers.get("X-WHOOP-Signature-Timestamp", "")
+    if not signature or not _verify_whoop_signature(body, signature, timestamp):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid webhook signature",
+        )
 
     # Parse event
     try:

@@ -64,7 +64,7 @@ export default function ResetPassword() {
             <h2 className="mt-6 text-center text-3xl font-extrabold" style={{ color: 'var(--text)' }}>
               Password Reset Successfully
             </h2>
-            <div className="mt-6 p-6 bg-green-50 border border-green-200 rounded-lg">
+            <div className="mt-6 p-6 rounded-lg" style={{ backgroundColor: 'var(--surfaceElev)', border: '1px solid var(--border)' }}>
               <p className="text-center text-sm" style={{ color: 'var(--text)' }}>
                 Your password has been reset successfully!
               </p>

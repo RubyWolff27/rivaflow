@@ -192,7 +192,7 @@ def update_gym(
         raise NotFoundError(f"Gym with id {gym_id} not found")
 
     # Filter out None values
-    update_data = {k: v for k, v in gym_data.dict().items() if v is not None}
+    update_data = {k: v for k, v in gym_data.model_dump().items() if v is not None}
 
     updated_gym = gym_service.update(gym_id, **update_data)
 

@@ -5,7 +5,6 @@ import sqlite3
 from datetime import date, datetime
 
 from rivaflow.db.database import convert_query, execute_insert, get_connection
-from rivaflow.db.repositories.session_technique_repo import SessionTechniqueRepository
 
 
 class SessionRepository:
@@ -430,17 +429,19 @@ class SessionRepository:
 
     @staticmethod
     def delete(user_id: int, session_id: int) -> bool:
-        """Delete a session by ID. Returns True if deleted, False if not found."""
-        from rivaflow.db.repositories.session_roll_repo import SessionRollRepository
-
+        """Delete a session and all related records atomically."""
         with get_connection() as conn:
             cursor = conn.cursor()
 
-            # Delete related session rolls
-            SessionRollRepository.delete_by_session(session_id)
-
-            # Delete related session techniques
-            SessionTechniqueRepository.delete_by_session(session_id)
+            # Delete related child records in same transaction
+            cursor.execute(
+                convert_query("DELETE FROM session_rolls WHERE session_id = ?"),
+                (session_id,),
+            )
+            cursor.execute(
+                convert_query("DELETE FROM session_techniques WHERE session_id = ?"),
+                (session_id,),
+            )
 
             # Delete the session itself
             cursor.execute(

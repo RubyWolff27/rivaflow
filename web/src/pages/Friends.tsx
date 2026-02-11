@@ -7,12 +7,12 @@ import ConfirmDialog from '../components/ConfirmDialog';
 import { useToast } from '../contexts/ToastContext';
 import { CardSkeleton } from '../components/ui';
 
-const BELT_COLORS: Record<string, string> = {
-  white: 'bg-[var(--surfaceElev)] text-[var(--text)] border-[var(--border)]',
-  blue: 'bg-blue-100 text-blue-800 border-blue-300',
-  purple: 'bg-purple-100 text-purple-800 border-purple-300',
-  brown: 'bg-amber-100 text-amber-800 border-amber-300',
-  black: 'bg-gray-900 text-white border-gray-700',
+const BELT_STYLES: Record<string, React.CSSProperties> = {
+  white: { backgroundColor: 'var(--surfaceElev)', color: 'var(--text)', borderColor: 'var(--border)' },
+  blue: { backgroundColor: 'rgba(59, 130, 246, 0.15)', color: 'rgb(96, 165, 250)', borderColor: 'rgba(59, 130, 246, 0.3)' },
+  purple: { backgroundColor: 'rgba(168, 85, 247, 0.15)', color: 'rgb(192, 132, 252)', borderColor: 'rgba(168, 85, 247, 0.3)' },
+  brown: { backgroundColor: 'rgba(180, 120, 60, 0.15)', color: 'rgb(200, 150, 80)', borderColor: 'rgba(180, 120, 60, 0.3)' },
+  black: { backgroundColor: 'rgba(0, 0, 0, 0.6)', color: '#fff', borderColor: 'rgba(100, 100, 100, 0.5)' },
 };
 
 export default function Friends() {
@@ -172,11 +172,11 @@ export default function Friends() {
   const renderBeltBadge = (friend: Friend) => {
     if (!friend.belt_rank) return null;
 
-    const colorClass = BELT_COLORS[friend.belt_rank];
+    const style = BELT_STYLES[friend.belt_rank];
     const stripes = friend.belt_stripes || 0;
 
     return (
-      <span className={`inline-flex items-center gap-1 px-2 py-1 rounded text-xs font-medium border ${colorClass}`}>
+      <span className="inline-flex items-center gap-1 px-2 py-1 rounded text-xs font-medium border" style={style}>
         {friend.belt_rank.charAt(0).toUpperCase() + friend.belt_rank.slice(1)} Belt
         {stripes > 0 && (
           <span className="flex gap-0.5 ml-1">
