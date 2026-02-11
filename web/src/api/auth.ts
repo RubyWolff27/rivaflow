@@ -6,6 +6,7 @@ const API_BASE = import.meta.env.VITE_API_URL || '/api';
 // Create a separate axios instance for auth (no interceptors to avoid circular dependencies)
 const authClient = axios.create({
   baseURL: API_BASE,
+  withCredentials: true,
   headers: {
     'Content-Type': 'application/json',
   },
@@ -28,7 +29,6 @@ export interface LoginRequest {
 
 export interface TokenResponse {
   access_token: string;
-  refresh_token: string;
   token_type: string;
   user: {
     id: number;
@@ -53,13 +53,11 @@ export const authApi = {
   login: (data: LoginRequest) =>
     authClient.post<TokenResponse>('/auth/login', data),
 
-  refresh: (refreshToken: string) =>
-    authClient.post<RefreshTokenResponse>('/auth/refresh', {
-      refresh_token: refreshToken,
-    }),
+  refresh: () =>
+    authClient.post<RefreshTokenResponse>('/auth/refresh'),
 
-  logout: (data: { refresh_token: string }) =>
-    authClient.post('/auth/logout', data, {
+  logout: () =>
+    authClient.post('/auth/logout', null, {
       headers: {
         Authorization: `Bearer ${localStorage.getItem('access_token')}`,
       },

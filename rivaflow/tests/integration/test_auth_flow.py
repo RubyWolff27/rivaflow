@@ -58,10 +58,12 @@ class TestRegistration:
         assert response.status_code == 201
         data = response.json()
         assert "access_token" in data
-        assert "refresh_token" in data
+        assert "refresh_token" not in data
         assert data["token_type"] == "bearer"
         assert "user" in data
         assert data["user"]["email"].endswith("@example.com")
+        # Refresh token should be in httpOnly cookie
+        assert "rf_token" in response.cookies
 
     def test_registration_duplicate_email(self, test_client, cleanup_test_user):
         """Test registration fails with duplicate email."""
@@ -155,8 +157,10 @@ class TestLogin:
         assert response.status_code == 200
         data = response.json()
         assert "access_token" in data
-        assert "refresh_token" in data
+        assert "refresh_token" not in data
         assert data["token_type"] == "bearer"
+        # Refresh token should be in httpOnly cookie
+        assert "rf_token" in response.cookies
 
     def test_login_wrong_password(self, test_client, registered_user):
         """Test login fails with wrong password."""
@@ -229,15 +233,9 @@ class TestTokenRefresh:
         return response.json()
 
     def test_successful_token_refresh(self, test_client, logged_in_user):
-        """Test successful token refresh."""
-        refresh_token = logged_in_user["refresh_token"]
-
-        response = test_client.post(
-            "/api/v1/auth/refresh",
-            json={
-                "refresh_token": refresh_token,
-            },
-        )
+        """Test successful token refresh via httpOnly cookie."""
+        # Cookie is set on test_client automatically from login
+        response = test_client.post("/api/v1/auth/refresh")
 
         assert response.status_code == 200
         data = response.json()
@@ -247,26 +245,18 @@ class TestTokenRefresh:
         assert data["access_token"] != logged_in_user["access_token"]
 
     def test_refresh_with_invalid_token(self, test_client):
-        """Test token refresh fails with invalid token."""
-        response = test_client.post(
-            "/api/v1/auth/refresh",
-            json={
-                "refresh_token": "invalid.token.here",
-            },
-        )
+        """Test token refresh fails with invalid cookie."""
+        test_client.cookies.set("rf_token", "invalid.token.here", path="/api")
+        response = test_client.post("/api/v1/auth/refresh")
 
         assert response.status_code == 401
 
     def test_refresh_with_access_token(self, test_client, logged_in_user):
-        """Test token refresh fails when using access token instead of refresh token."""
+        """Test token refresh fails when cookie holds an access token."""
         access_token = logged_in_user["access_token"]
+        test_client.cookies.set("rf_token", access_token, path="/api")
 
-        response = test_client.post(
-            "/api/v1/auth/refresh",
-            json={
-                "refresh_token": access_token,
-            },
-        )
+        response = test_client.post("/api/v1/auth/refresh")
 
         # Should fail because access tokens shouldn't work for refresh
         assert response.status_code in [401, 400]

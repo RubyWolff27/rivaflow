@@ -48,7 +48,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             console.error('Failed to load user:', error);
             // Clear invalid tokens
             localStorage.removeItem('access_token');
-            localStorage.removeItem('refresh_token');
             localStorage.removeItem('user');
           }
         }
@@ -64,7 +63,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       const response = await authApi.login({ email, password });
       localStorage.setItem('access_token', response.data.access_token);
-      localStorage.setItem('refresh_token', response.data.refresh_token);
       localStorage.setItem('user', JSON.stringify(response.data.user));
       setUser(response.data.user);
     } catch (error: unknown) {
@@ -92,7 +90,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         ...(currentGrade ? { current_grade: currentGrade } : {}),
       });
       localStorage.setItem('access_token', response.data.access_token);
-      localStorage.setItem('refresh_token', response.data.refresh_token);
       localStorage.setItem('user', JSON.stringify(response.data.user));
       setUser(response.data.user);
     } catch (error: unknown) {
@@ -101,17 +98,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const logout = () => {
-    const refreshToken = localStorage.getItem('refresh_token');
-
-    // Call logout API (fire and forget)
-    if (refreshToken) {
-      authApi.logout({ refresh_token: refreshToken }).catch(() => {
-        // Ignore errors - we're logging out anyway
-      });
-    }
+    // Call logout API (fire and forget) — cookie sent automatically
+    authApi.logout().catch(() => {
+      // Ignore errors - we're logging out anyway
+    });
 
     localStorage.removeItem('access_token');
-    localStorage.removeItem('refresh_token');
     localStorage.removeItem('user');
     setUser(null);
   };

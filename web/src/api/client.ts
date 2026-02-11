@@ -17,6 +17,7 @@ const API_BASE = import.meta.env.VITE_API_URL || '/api/v1';
 
 const api = axios.create({
   baseURL: API_BASE,
+  withCredentials: true,
   headers: {
     'Content-Type': 'application/json',
   },
@@ -75,37 +76,31 @@ api.interceptors.response.use(
     if (error.response?.status === 401 && !originalRequest._retry) {
       originalRequest._retry = true;
 
-      const refreshToken = localStorage.getItem('refresh_token');
-      if (refreshToken) {
-        try {
-          // Reuse in-flight refresh or start a new one
-          if (!refreshPromise) {
-            refreshPromise = (async () => {
-              const { authApi } = await import('./auth');
-              const response = await authApi.refresh(refreshToken);
-              const newToken = response.data.access_token;
-              localStorage.setItem('access_token', newToken);
-              return newToken;
-            })().finally(() => {
-              refreshPromise = null;
-            });
-          }
-
-          const newToken = await refreshPromise;
-
-          // Retry original request with new token
-          originalRequest.headers.Authorization = `Bearer ${newToken}`;
-          return api.request(originalRequest);
-        } catch (refreshError) {
-          // Refresh failed - logout user
-          localStorage.removeItem('access_token');
-          localStorage.removeItem('refresh_token');
-          window.location.href = '/login';
-          return Promise.reject(refreshError);
+      try {
+        // Reuse in-flight refresh or start a new one
+        if (!refreshPromise) {
+          refreshPromise = (async () => {
+            const { authApi } = await import('./auth');
+            const response = await authApi.refresh();
+            const newToken = response.data.access_token;
+            localStorage.setItem('access_token', newToken);
+            return newToken;
+          })().finally(() => {
+            refreshPromise = null;
+          });
         }
-      } else {
-        // No refresh token - redirect to login
+
+        const newToken = await refreshPromise;
+
+        // Retry original request with new token
+        originalRequest.headers.Authorization = `Bearer ${newToken}`;
+        return api.request(originalRequest);
+      } catch (refreshError) {
+        // Refresh failed - logout user
+        localStorage.removeItem('access_token');
+        localStorage.removeItem('user');
         window.location.href = '/login';
+        return Promise.reject(refreshError);
       }
     }
 

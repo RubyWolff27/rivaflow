@@ -2,7 +2,7 @@
 
 import logging
 
-from fastapi import APIRouter, Depends, HTTPException, Request, status
+from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
 from pydantic import BaseModel, EmailStr
 from slowapi import Limiter
 from slowapi.util import get_remote_address
@@ -24,6 +24,24 @@ router = APIRouter()
 limiter = Limiter(key_func=get_remote_address)
 
 
+def _set_refresh_cookie(response: Response, token: str):
+    """Set the refresh token as an httpOnly cookie."""
+    response.set_cookie(
+        key="rf_token",
+        value=token,
+        httponly=True,
+        secure=settings.IS_PRODUCTION,
+        samesite="lax",
+        path="/api",
+        max_age=settings.REFRESH_TOKEN_EXPIRE_DAYS * 24 * 60 * 60,
+    )
+
+
+def _clear_refresh_cookie(response: Response):
+    """Clear the refresh token cookie."""
+    response.delete_cookie(key="rf_token", path="/api")
+
+
 class RegisterRequest(BaseModel):
     """User registration request model."""
 
@@ -43,17 +61,10 @@ class LoginRequest(BaseModel):
     password: str
 
 
-class RefreshRequest(BaseModel):
-    """Token refresh request model."""
-
-    refresh_token: str
-
-
 class TokenResponse(BaseModel):
     """Authentication token response model."""
 
     access_token: str
-    refresh_token: str
     token_type: str = "bearer"
     user: dict
 
@@ -69,7 +80,7 @@ class AccessTokenResponse(BaseModel):
     "/register", response_model=TokenResponse, status_code=status.HTTP_201_CREATED
 )
 @limiter.limit("5/minute")
-def register(request: Request, req: RegisterRequest):
+def register(request: Request, req: RegisterRequest, response: Response):
     """
     Register a new user account.
 
@@ -125,6 +136,7 @@ def register(request: Request, req: RegisterRequest):
                     f"Failed to mark waitlist entry as registered for {req.email}: {e}"
                 )
 
+        _set_refresh_cookie(response, result["refresh_token"])
         return result
     except ValueError as e:
         # ValueError contains user-facing validation messages
@@ -141,19 +153,20 @@ def register(request: Request, req: RegisterRequest):
 
 @router.post("/login", response_model=TokenResponse)
 @limiter.limit("5/minute")
-def login(request: Request, req: LoginRequest):
+def login(request: Request, req: LoginRequest, response: Response):
     """
     Login with email and password.
 
     - **email**: User's email address
     - **password**: User's password
 
-    Returns access token, refresh token, and user information.
+    Returns access token and user information. Refresh token is set as httpOnly cookie.
     """
     service = AuthService()
 
     try:
         result = service.login(email=req.email, password=req.password)
+        _set_refresh_cookie(response, result["refresh_token"])
         return result
     except (ValueError, AuthenticationError):
         # Auth failures - use generic message to prevent user enumeration
@@ -173,21 +186,29 @@ def login(request: Request, req: LoginRequest):
 
 @router.post("/refresh", response_model=AccessTokenResponse)
 @limiter.limit("10/minute")
-def refresh_token(request: Request, req: RefreshRequest):
+def refresh_token(request: Request, response: Response):
     """
-    Refresh access token using a refresh token.
-
-    - **refresh_token**: Valid refresh token
+    Refresh access token using the httpOnly refresh token cookie.
 
     Returns new access token.
     """
+    token = request.cookies.get("rf_token")
+    if not token:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="No refresh token",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+
     service = AuthService()
 
     try:
-        result = service.refresh_access_token(refresh_token=req.refresh_token)
+        result = service.refresh_access_token(refresh_token=token)
+        _set_refresh_cookie(response, token)
         return result
     except ValueError:
         logger.warning("Token refresh failed")
+        _clear_refresh_cookie(response)
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid or expired refresh token",
@@ -206,38 +227,40 @@ def refresh_token(request: Request, req: RefreshRequest):
 
 
 @router.post("/logout")
-def logout(req: RefreshRequest, current_user: dict = Depends(get_current_user)):
+def logout(
+    request: Request,
+    response: Response,
+    current_user: dict = Depends(get_current_user),
+):
     """
-    Logout by invalidating the refresh token.
-
-    - **refresh_token**: Refresh token to invalidate
+    Logout by invalidating the refresh token cookie.
 
     Requires authentication (access token in Authorization header).
     """
-    service = AuthService()
+    token = request.cookies.get("rf_token")
+    if token:
+        service = AuthService()
+        try:
+            service.logout(refresh_token=token)
+        except RivaFlowException:
+            raise
+        except (ValueError, KeyError) as e:
+            error_msg = handle_service_error(
+                e, "Logout failed", user_id=current_user["id"], operation="logout"
+            )
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail=error_msg,
+            )
 
-    try:
-        success = service.logout(refresh_token=req.refresh_token)
-        if success:
-            return {"message": "Logged out successfully"}
-        else:
-            return {
-                "message": "Logged out successfully"
-            }  # Generic message to prevent info leakage
-    except RivaFlowException:
-        raise
-    except (ValueError, KeyError) as e:
-        error_msg = handle_service_error(
-            e, "Logout failed", user_id=current_user["id"], operation="logout"
-        )
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=error_msg,
-        )
+    _clear_refresh_cookie(response)
+    return {"message": "Logged out successfully"}
 
 
 @router.post("/logout-all")
-def logout_all_devices(current_user: dict = Depends(get_current_user)):
+def logout_all_devices(
+    response: Response, current_user: dict = Depends(get_current_user)
+):
     """
     Logout from all devices by invalidating all refresh tokens.
 
@@ -247,6 +270,7 @@ def logout_all_devices(current_user: dict = Depends(get_current_user)):
 
     try:
         count = service.logout_all_devices(user_id=current_user["id"])
+        _clear_refresh_cookie(response)
         return {"message": f"Logged out from {count} device(s)"}
     except RivaFlowException:
         raise
