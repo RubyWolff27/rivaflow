@@ -34,7 +34,6 @@ class StreakRepository:
                     """,
                     (user_id, streak_type),
                 )
-                conn.commit()
                 return {
                     "id": streak_id,
                     "streak_type": streak_type,
@@ -140,7 +139,6 @@ class StreakRepository:
                     streak_type,
                 ),
             )
-            conn.commit()
 
         return StreakRepository.get_streak(user_id, streak_type)
 

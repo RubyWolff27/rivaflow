@@ -53,7 +53,6 @@ class MilestoneRepository:
                 """,
                 (user_id, milestone_type, crossed_threshold, label),
             )
-            conn.commit()
 
             # Fetch and return the created milestone
             cursor.execute(
@@ -99,7 +98,6 @@ class MilestoneRepository:
                 """),
                 (milestone_id, user_id),
             )
-            conn.commit()
 
     @staticmethod
     def get_next_milestone(milestone_type: str, current_value: int) -> dict | None:

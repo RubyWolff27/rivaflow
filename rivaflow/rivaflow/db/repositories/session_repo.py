@@ -129,6 +129,23 @@ class SessionRepository:
             return session
 
     @staticmethod
+    def get_owned_ids(user_id: int, session_ids: list[int]) -> set[int]:
+        """Return the subset of *session_ids* that belong to *user_id*."""
+        if not session_ids:
+            return set()
+        placeholders = ",".join("?" for _ in session_ids)
+        with get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                convert_query(
+                    f"SELECT id FROM sessions WHERE user_id = ? AND id IN ({placeholders})"
+                ),
+                (user_id, *session_ids),
+            )
+            rows = cursor.fetchall()
+        return {(r["id"] if hasattr(r, "keys") else r[0]) for r in rows}
+
+    @staticmethod
     def get_by_id_any_user(session_id: int) -> dict | None:
         """Get a session by ID without user scope (for validation/privacy checks)."""
         with get_connection() as conn:

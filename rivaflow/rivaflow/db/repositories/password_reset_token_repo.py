@@ -4,6 +4,7 @@ import hashlib
 import secrets
 from datetime import datetime, timedelta
 
+from rivaflow.core.time_utils import utcnow
 from rivaflow.db.database import convert_query, get_connection
 
 
@@ -50,7 +51,7 @@ class PasswordResetTokenRepository:
         token_hash = PasswordResetTokenRepository._hash_token(token)
 
         # Calculate expiry timestamp
-        expires_at = datetime.utcnow() + timedelta(hours=expiry_hours)
+        expires_at = utcnow() + timedelta(hours=expiry_hours)
 
         with get_connection() as conn:
             cursor = conn.cursor()
@@ -123,7 +124,7 @@ class PasswordResetTokenRepository:
         if isinstance(expires_at, str):
             expires_at = datetime.fromisoformat(expires_at)
 
-        if datetime.utcnow() > expires_at:
+        if utcnow() > expires_at:
             return False
 
         return True
@@ -207,7 +208,7 @@ class PasswordResetTokenRepository:
         Returns:
             Number of tokens deleted
         """
-        cutoff = datetime.utcnow() - timedelta(days=days_old)
+        cutoff = utcnow() - timedelta(days=days_old)
 
         with get_connection() as conn:
             cursor = conn.cursor()
@@ -234,7 +235,7 @@ class PasswordResetTokenRepository:
         Returns:
             Number of reset requests in time window
         """
-        since = datetime.utcnow() - timedelta(hours=hours)
+        since = utcnow() - timedelta(hours=hours)
 
         with get_connection() as conn:
             cursor = conn.cursor()

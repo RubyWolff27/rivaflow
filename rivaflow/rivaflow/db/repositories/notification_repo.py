@@ -1,8 +1,9 @@
 """Repository for notifications data access."""
 
-from datetime import datetime, timedelta
+from datetime import timedelta
 from typing import Any
 
+from rivaflow.core.time_utils import utcnow
 from rivaflow.db.database import convert_query, execute_insert, get_connection
 
 
@@ -200,8 +201,7 @@ class NotificationRepository:
 
         with get_connection() as conn:
             cursor = conn.cursor()
-            cursor.execute(query, (True, datetime.utcnow(), notification_id, user_id))
-            conn.commit()
+            cursor.execute(query, (True, utcnow(), notification_id, user_id))
             return cursor.rowcount > 0
 
     @staticmethod
@@ -215,8 +215,7 @@ class NotificationRepository:
 
         with get_connection() as conn:
             cursor = conn.cursor()
-            cursor.execute(query, (True, datetime.utcnow(), user_id))
-            conn.commit()
+            cursor.execute(query, (True, utcnow(), user_id))
             return cursor.rowcount
 
     @staticmethod
@@ -232,8 +231,7 @@ class NotificationRepository:
 
         with get_connection() as conn:
             cursor = conn.cursor()
-            cursor.execute(query, (True, datetime.utcnow(), user_id))
-            conn.commit()
+            cursor.execute(query, (True, utcnow(), user_id))
             return cursor.rowcount
 
     @staticmethod
@@ -249,8 +247,7 @@ class NotificationRepository:
 
         with get_connection() as conn:
             cursor = conn.cursor()
-            cursor.execute(query, (True, datetime.utcnow(), user_id))
-            conn.commit()
+            cursor.execute(query, (True, utcnow(), user_id))
             return cursor.rowcount
 
     @staticmethod
@@ -261,7 +258,6 @@ class NotificationRepository:
         with get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(query, (notification_id, user_id))
-            conn.commit()
             return cursor.rowcount > 0
 
     @staticmethod
@@ -276,7 +272,7 @@ class NotificationRepository:
         Check if a similar notification already exists (to prevent spam).
         Returns True if duplicate exists.
         """
-        cutoff = datetime.utcnow() - timedelta(hours=1)
+        cutoff = utcnow() - timedelta(hours=1)
         query = convert_query("""
             SELECT COUNT(*) as cnt
             FROM notifications

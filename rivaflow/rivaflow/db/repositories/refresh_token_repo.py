@@ -2,6 +2,7 @@
 
 from datetime import datetime
 
+from rivaflow.core.time_utils import utcnow
 from rivaflow.db.database import convert_query, execute_insert, get_connection
 
 
@@ -132,7 +133,7 @@ class RefreshTokenRepository:
         """
         with get_connection() as conn:
             cursor = conn.cursor()
-            now = datetime.utcnow().isoformat()
+            now = utcnow().isoformat()
             cursor.execute(
                 convert_query("DELETE FROM refresh_tokens WHERE expires_at < ?"), (now,)
             )
@@ -159,7 +160,7 @@ class RefreshTokenRepository:
         if isinstance(expires_at, str):
             expires_at = datetime.fromisoformat(expires_at)
 
-        if expires_at < datetime.utcnow():
+        if expires_at < utcnow():
             # Clean up expired token
             RefreshTokenRepository.delete_by_token(token)
             return False

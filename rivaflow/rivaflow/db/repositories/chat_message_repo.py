@@ -77,7 +77,6 @@ class ChatMessageRepository:
                 ),
             )
             row = cursor.fetchone()
-            conn.commit()
 
             if row:
                 return ChatMessageRepository._row_to_dict(row)

@@ -50,7 +50,6 @@ class GymRepository:
                     added_by_user_id,
                 ),
             )
-            conn.commit()
 
             cursor.execute(convert_query("SELECT * FROM gyms WHERE id = ?"), (gym_id,))
             result = cursor.fetchone()
@@ -183,7 +182,6 @@ class GymRepository:
                 """),
                 values,
             )
-            conn.commit()
 
             return GymRepository.get_by_id(gym_id)
 
@@ -193,7 +191,6 @@ class GymRepository:
         with get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(convert_query("DELETE FROM gyms WHERE id = ?"), (gym_id,))
-            conn.commit()
             return cursor.rowcount > 0
 
     @staticmethod
@@ -258,8 +255,6 @@ class GymRepository:
                     convert_query("DELETE FROM gyms WHERE id = ?"), (source_gym_id,)
                 )
 
-                # Explicit commit (also happens automatically on context exit)
-                conn.commit()
                 return True
             except Exception as e:
                 # Rollback happens automatically via context manager

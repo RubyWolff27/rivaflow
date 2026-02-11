@@ -459,20 +459,21 @@ def get_zones_batch(
         :50
     ]  # cap at 50
 
-    # Pre-fetch owned session IDs to prevent IDOR
     user_id = current_user["id"]
-    owned_ids = set()
-    for sid in ids:
-        session = SessionRepository.get_by_id(sid)
-        if session and session.get("user_id") == user_id:
-            owned_ids.add(sid)
+
+    # Batch ownership check (single query instead of N get_by_id calls)
+    owned_ids = SessionRepository.get_owned_ids(user_id, ids)
+
+    # Batch fetch all linked workouts (single query instead of N loops)
+    owned_list = [sid for sid in ids if sid in owned_ids]
+    workouts_map = WhoopWorkoutCacheRepository.get_by_session_ids(owned_list)
 
     result: dict[str, dict | None] = {}
     for sid in ids:
         if sid not in owned_ids:
             result[str(sid)] = None
             continue
-        wo = WhoopWorkoutCacheRepository.get_by_session_id(sid)
+        wo = workouts_map.get(sid)
         if not wo:
             result[str(sid)] = None
             continue

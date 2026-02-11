@@ -6,6 +6,7 @@ from typing import Any
 from uuid import uuid4
 
 from rivaflow.core.middleware.feature_access import FeatureAccess
+from rivaflow.core.time_utils import utcnow
 from rivaflow.db.database import convert_query, get_connection
 
 logger = logging.getLogger(__name__)
@@ -54,7 +55,7 @@ class GrappleRateLimiter:
                 "allowed": False,
                 "remaining": 0,
                 "limit": 0,
-                "reset_at": datetime.utcnow(),
+                "reset_at": utcnow(),
                 "global_remaining": 0,
                 "reason": "No access to Grapple. Upgrade to Beta or Premium.",
             }
@@ -105,7 +106,7 @@ class GrappleRateLimiter:
             user_id: User ID
         """
         # Get or create current window
-        window_start = datetime.utcnow().replace(minute=0, second=0, microsecond=0)
+        window_start = utcnow().replace(minute=0, second=0, microsecond=0)
         window_end = window_start + timedelta(hours=1)
 
         query = convert_query("""
@@ -127,7 +128,6 @@ class GrappleRateLimiter:
                         window_end.isoformat(),
                     ),
                 )
-                conn.commit()
                 cursor.close()
         except (ConnectionError, OSError) as e:
             logger.error(f"Failed to record message for user {user_id}: {e}")
@@ -140,7 +140,7 @@ class GrappleRateLimiter:
         Returns:
             Tuple of (message_count, window_end)
         """
-        window_start = datetime.utcnow().replace(minute=0, second=0, microsecond=0)
+        window_start = utcnow().replace(minute=0, second=0, microsecond=0)
         window_end = window_start + timedelta(hours=1)
 
         query = convert_query("""
@@ -168,7 +168,7 @@ class GrappleRateLimiter:
 
     def _get_global_message_count(self) -> int:
         """Get total message count across all users in current hour."""
-        window_start = datetime.utcnow().replace(minute=0, second=0, microsecond=0)
+        window_start = utcnow().replace(minute=0, second=0, microsecond=0)
 
         query = convert_query("""
             SELECT COALESCE(SUM(message_count), 0)
@@ -193,7 +193,7 @@ class GrappleRateLimiter:
 
     def _get_next_hour_start(self) -> datetime:
         """Get the start of the next hour."""
-        now = datetime.utcnow()
+        now = utcnow()
         return now.replace(minute=0, second=0, microsecond=0) + timedelta(hours=1)
 
     def get_user_usage_stats(self, user_id: int, days: int = 7) -> dict[str, Any]:
@@ -207,7 +207,7 @@ class GrappleRateLimiter:
         Returns:
             Dict with usage statistics
         """
-        start_date = datetime.utcnow() - timedelta(days=days)
+        start_date = utcnow() - timedelta(days=days)
 
         query = convert_query("""
             SELECT
@@ -263,7 +263,7 @@ class GrappleRateLimiter:
         Returns:
             Number of records deleted
         """
-        cutoff_date = datetime.utcnow() - timedelta(days=days_to_keep)
+        cutoff_date = utcnow() - timedelta(days=days_to_keep)
 
         query = convert_query("DELETE FROM grapple_rate_limits WHERE window_start < ?")
 
@@ -272,7 +272,6 @@ class GrappleRateLimiter:
                 cursor = conn.cursor()
                 cursor.execute(query, (cutoff_date.isoformat(),))
                 deleted_count = cursor.rowcount
-                conn.commit()
                 cursor.close()
                 logger.info(f"Cleaned up {deleted_count} old rate limit records")
                 return deleted_count

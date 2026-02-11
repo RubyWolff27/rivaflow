@@ -1,7 +1,7 @@
 """Admin endpoints for Grapple AI Coach monitoring and management."""
 
 import logging
-from datetime import datetime, timedelta
+from datetime import timedelta
 from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -9,6 +9,7 @@ from pydantic import BaseModel
 
 from rivaflow.core.dependencies import get_current_user
 from rivaflow.core.middleware.feature_access import require_admin
+from rivaflow.core.time_utils import utcnow
 
 router = APIRouter(prefix="/admin/grapple", tags=["admin", "grapple"])
 logger = logging.getLogger(__name__)
@@ -102,7 +103,6 @@ def submit_feedback(
                 feedback.comment,
             ),
         )
-        conn.commit()
 
     logger.info(
         f"Feedback submitted by user {user_id}: {feedback.rating} for message {feedback.message_id}"
@@ -138,7 +138,7 @@ def get_global_stats(
 
     # Get token usage stats
     token_monitor = GrappleTokenMonitor()
-    start_date = datetime.utcnow() - timedelta(days=days)
+    start_date = utcnow() - timedelta(days=days)
     global_stats = token_monitor.get_global_usage_stats(start_date=start_date)
 
     # Get session/message counts
@@ -166,7 +166,7 @@ def get_global_stats(
             FROM chat_sessions
             WHERE updated_at >= ?
         """,
-            (datetime.utcnow() - timedelta(days=7),),
+            (utcnow() - timedelta(days=7),),
         )
         active_users_7d = cursor.fetchone()[0]
 
@@ -226,13 +226,12 @@ def get_cost_projections(
     Admin only. Projects total costs based on current usage.
     """
     import calendar
-    from datetime import datetime
 
     from rivaflow.db.database import get_connection
 
     logger.info(f"Admin {current_user['id']} fetching cost projections")
 
-    now = datetime.utcnow()
+    now = utcnow()
     month_start = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
 
     with get_connection() as conn:
@@ -310,7 +309,7 @@ def get_provider_stats(
 
     logger.info(f"Admin {current_user['id']} fetching provider stats")
 
-    start_date = datetime.utcnow() - timedelta(days=days)
+    start_date = utcnow() - timedelta(days=days)
 
     with get_connection() as conn:
         cursor = conn.cursor()
@@ -528,5 +527,5 @@ def get_grapple_health(
         "database": {
             "status": "healthy" if tables_ok else "error",
         },
-        "checked_at": datetime.utcnow().isoformat(),
+        "checked_at": utcnow().isoformat(),
     }

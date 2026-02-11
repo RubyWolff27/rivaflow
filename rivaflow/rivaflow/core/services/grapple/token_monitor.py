@@ -5,6 +5,7 @@ from datetime import datetime, timedelta
 from typing import Any
 from uuid import uuid4
 
+from rivaflow.core.time_utils import utcnow
 from rivaflow.db.database import convert_query, get_connection
 
 logger = logging.getLogger(__name__)
@@ -81,7 +82,6 @@ class GrappleTokenMonitor:
                         cost_usd,
                     ),
                 )
-                conn.commit()
                 cursor.close()
 
                 logger.info(
@@ -111,9 +111,9 @@ class GrappleTokenMonitor:
             Dict with usage statistics
         """
         if not start_date:
-            start_date = datetime.utcnow() - timedelta(days=30)
+            start_date = utcnow() - timedelta(days=30)
         if not end_date:
-            end_date = datetime.utcnow()
+            end_date = utcnow()
 
         query = convert_query("""
             SELECT
@@ -210,7 +210,7 @@ class GrappleTokenMonitor:
         Returns:
             Dict with cost projections
         """
-        now = datetime.utcnow()
+        now = utcnow()
 
         # Get usage for last 7 days to calculate average daily cost
         seven_days_ago = now - timedelta(days=7)
@@ -293,7 +293,7 @@ class GrappleTokenMonitor:
         cost_limit = FeatureAccess.get_cost_limit(user_tier)
 
         # Get current month usage
-        now = datetime.utcnow()
+        now = utcnow()
         month_start = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
         usage_this_month = self.get_user_usage(user_id, month_start, now)
         cost_this_month = usage_this_month["totals"]["total_cost_usd"]
@@ -338,9 +338,9 @@ class GrappleTokenMonitor:
             Dict with global statistics
         """
         if not start_date:
-            start_date = datetime.utcnow() - timedelta(days=30)
+            start_date = utcnow() - timedelta(days=30)
         if not end_date:
-            end_date = datetime.utcnow()
+            end_date = utcnow()
 
         query = convert_query("""
             SELECT

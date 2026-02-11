@@ -179,6 +179,28 @@ class WhoopWorkoutCacheRepository:
             return WhoopWorkoutCacheRepository._row_to_dict(row)
 
     @staticmethod
+    def get_by_session_ids(session_ids: list[int]) -> dict[int, dict]:
+        """Get cached workouts keyed by session_id for a batch of sessions."""
+        if not session_ids:
+            return {}
+        placeholders = ",".join("?" for _ in session_ids)
+        with get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                convert_query(
+                    f"SELECT * FROM whoop_workout_cache WHERE session_id IN ({placeholders})"
+                ),
+                tuple(session_ids),
+            )
+            rows = cursor.fetchall()
+        return {
+            row_dict["session_id"]: row_dict
+            for row in rows
+            if (row_dict := WhoopWorkoutCacheRepository._row_to_dict(row))
+            and row_dict.get("session_id")
+        }
+
+    @staticmethod
     def delete_by_user(user_id: int) -> int:
         """Delete all cached workouts for a user. Returns count deleted."""
         with get_connection() as conn:

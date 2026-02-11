@@ -3,6 +3,7 @@
 import secrets
 from datetime import datetime, timedelta
 
+from rivaflow.core.time_utils import utcnow
 from rivaflow.db.database import convert_query, execute_insert, get_connection
 
 
@@ -225,8 +226,8 @@ class WaitlistRepository:
             The plain invite token string, or None if entry not found
         """
         token = secrets.token_urlsafe(32)
-        expires_at = datetime.utcnow() + timedelta(days=7)
-        invited_at = datetime.utcnow().isoformat()
+        expires_at = utcnow() + timedelta(days=7)
+        invited_at = utcnow().isoformat()
 
         with get_connection() as conn:
             cursor = conn.cursor()
@@ -294,7 +295,7 @@ class WaitlistRepository:
         Returns:
             True if updated, False if not found
         """
-        registered_at = datetime.utcnow().isoformat()
+        registered_at = utcnow().isoformat()
 
         with get_connection() as conn:
             cursor = conn.cursor()
@@ -379,7 +380,7 @@ class WaitlistRepository:
         if isinstance(expires_at, str):
             expires_at = datetime.fromisoformat(expires_at)
 
-        if datetime.utcnow() > expires_at:
+        if utcnow() > expires_at:
             return False
 
         return True

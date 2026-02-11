@@ -1,13 +1,14 @@
 """Authentication utilities for JWT tokens and password hashing."""
 
 import secrets
-from datetime import datetime, timedelta
+from datetime import timedelta
 
 import jwt
 from jwt.exceptions import PyJWTError
 from passlib.context import CryptContext
 
 from rivaflow.core.settings import settings
+from rivaflow.core.time_utils import utcnow
 
 # Password hashing configuration
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
@@ -74,9 +75,9 @@ def create_access_token(data: dict, expires_delta: timedelta | None = None) -> s
     to_encode = data.copy()
 
     if expires_delta:
-        expire = datetime.utcnow() + expires_delta
+        expire = utcnow() + expires_delta
     else:
-        expire = datetime.utcnow() + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+        expire = utcnow() + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
 
     to_encode.update({"exp": expire})
     encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
@@ -110,5 +111,5 @@ def generate_refresh_token() -> str:
 
 def get_refresh_token_expiry() -> str:
     """Get the expiry datetime for a refresh token as ISO 8601 string."""
-    expiry = datetime.utcnow() + timedelta(days=REFRESH_TOKEN_EXPIRE_DAYS)
+    expiry = utcnow() + timedelta(days=REFRESH_TOKEN_EXPIRE_DAYS)
     return expiry.isoformat()

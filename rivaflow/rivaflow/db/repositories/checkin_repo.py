@@ -185,7 +185,6 @@ class CheckinRepository:
                 """),
                 (intention, user_id, check_date.isoformat(), target_slot),
             )
-            conn.commit()
 
     @staticmethod
     def get_day_checkins(user_id: int, check_date: date) -> dict:

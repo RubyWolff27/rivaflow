@@ -26,6 +26,9 @@ def convert_query(query: str) -> str:
     """
     Convert a query with ? placeholders to the correct format for current database.
 
+    Skips ``?`` characters inside single-quoted SQL string literals so that
+    values like ``'What?'`` are not mangled.
+
     Args:
         query: SQL query string with ? placeholders (SQLite style)
 
@@ -33,8 +36,15 @@ def convert_query(query: str) -> str:
         Query string with correct placeholders for current database
     """
     if get_db_type() == "postgresql":
-        # Convert ? to %s for PostgreSQL
-        return query.replace("?", "%s")
+        import re
+
+        # Replace ? with %s only when NOT inside single-quoted strings.
+        # Strategy: split on single-quote boundaries, only substitute in
+        # even-indexed segments (outside quotes).
+        parts = re.split(r"('(?:[^'\\]|\\.)*')", query)
+        for i in range(0, len(parts), 2):
+            parts[i] = parts[i].replace("?", "%s")
+        return "".join(parts)
     return query
 
 

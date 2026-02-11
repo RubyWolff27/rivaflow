@@ -9,6 +9,7 @@ from rivaflow.core.services.insights_analytics import (
     _linear_slope,
 )
 from rivaflow.core.services.privacy_service import PrivacyService
+from rivaflow.core.time_utils import utcnow
 from rivaflow.db.repositories.coach_preferences_repo import (
     CoachPreferencesRepository,
 )
@@ -502,7 +503,7 @@ Athlete competes under NAGA (North American Grappling Association) rules:
             return "User profile not found."
 
         # Get recent sessions (last 30 days + 20 most recent)
-        thirty_days_ago = datetime.utcnow() - timedelta(days=30)
+        thirty_days_ago = utcnow() - timedelta(days=30)
         recent_sessions = self.session_repo.get_recent(self.user_id, limit=200)
 
         # Redact all sessions for LLM

@@ -70,8 +70,6 @@ class CoachPreferencesRepository:
                 )
                 cursor.execute(convert_query(sql), [fields[c] for c in columns])
 
-            conn.commit()
-
         return CoachPreferencesRepository.get(user_id)  # type: ignore[return-value]
 
     @staticmethod

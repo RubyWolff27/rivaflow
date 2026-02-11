@@ -1,9 +1,9 @@
 """Repository for Grapple chat sessions data access."""
 
-from datetime import datetime
 from typing import Any
 from uuid import uuid4
 
+from rivaflow.core.time_utils import utcnow
 from rivaflow.db.database import convert_query, get_connection
 
 
@@ -35,7 +35,6 @@ class ChatSessionRepository:
             cursor = conn.cursor()
             cursor.execute(query, (session_id, user_id, session_title))
             row = cursor.fetchone()
-            conn.commit()
 
             if row:
                 # Handle both dict (PostgreSQL) and tuple (SQLite) results
@@ -182,11 +181,10 @@ class ChatSessionRepository:
                     message_count_delta,
                     tokens_delta,
                     cost_delta,
-                    datetime.utcnow(),
+                    utcnow(),
                     session_id,
                 ),
             )
-            conn.commit()
             return cursor.rowcount > 0
 
     @staticmethod
@@ -200,8 +198,7 @@ class ChatSessionRepository:
 
         with get_connection() as conn:
             cursor = conn.cursor()
-            cursor.execute(query, (title, datetime.utcnow(), session_id, user_id))
-            conn.commit()
+            cursor.execute(query, (title, utcnow(), session_id, user_id))
             return cursor.rowcount > 0
 
     @staticmethod
@@ -221,5 +218,4 @@ class ChatSessionRepository:
         with get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(query, (session_id, user_id))
-            conn.commit()
             return cursor.rowcount > 0
