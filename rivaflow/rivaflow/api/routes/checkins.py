@@ -1,7 +1,7 @@
 """API routes for daily check-ins."""
 
 import logging
-from datetime import date, timedelta
+from datetime import timedelta
 
 from fastapi import APIRouter, Depends, Request
 from pydantic import BaseModel, Field
@@ -11,11 +11,19 @@ from slowapi.util import get_remote_address
 from rivaflow.core.dependencies import get_current_user
 from rivaflow.core.exceptions import NotFoundError
 from rivaflow.core.services.streak_service import StreakService
+from rivaflow.core.time_utils import user_today
 from rivaflow.db.repositories.checkin_repo import CheckinRepository
+from rivaflow.db.repositories.profile_repo import ProfileRepository
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/checkins", tags=["checkins"])
 limiter = Limiter(key_func=get_remote_address)
+
+
+def _get_user_tz(user_id: int) -> str | None:
+    """Get user's timezone from profile."""
+    profile = ProfileRepository.get(user_id)
+    return profile.get("timezone") if profile else None
 
 
 class TomorrowIntentionUpdate(BaseModel):
@@ -45,9 +53,10 @@ class EveningCheckinCreate(BaseModel):
 @router.get("/today")
 @limiter.limit("60/minute")
 def get_today_checkin(request: Request, current_user: dict = Depends(get_current_user)):
-    """Get today's check-in status (all slots)."""
+    """Get today's check-in status (all slots), using user's timezone."""
     repo = CheckinRepository()
-    today = date.today()
+    tz = _get_user_tz(current_user["id"])
+    today = user_today(tz)
     slots = repo.get_day_checkins(user_id=current_user["id"], check_date=today)
     checked_in = any(v is not None for v in slots.values())
 
@@ -65,7 +74,8 @@ def get_today_checkin(request: Request, current_user: dict = Depends(get_current
 def get_week_checkins(request: Request, current_user: dict = Depends(get_current_user)):
     """Get this week's check-ins with slot breakdown."""
     repo = CheckinRepository()
-    today = date.today()
+    tz = _get_user_tz(current_user["id"])
+    today = user_today(tz)
     week_start = today - timedelta(days=today.weekday())
 
     checkins = []
@@ -97,7 +107,8 @@ def update_tomorrow_intention(
 ):
     """Update tomorrow's intention for today's check-in."""
     repo = CheckinRepository()
-    today = date.today()
+    tz = _get_user_tz(current_user["id"])
+    today = user_today(tz)
 
     # Check if any slot exists today
     slots = repo.get_day_checkins(user_id=current_user["id"], check_date=today)
@@ -122,7 +133,8 @@ def create_midday_checkin(
 ):
     """Create or update midday check-in."""
     repo = CheckinRepository()
-    today = date.today()
+    tz = _get_user_tz(current_user["id"])
+    today = user_today(tz)
     checkin_id = repo.upsert_midday(
         user_id=current_user["id"],
         check_date=today,
@@ -144,7 +156,8 @@ def create_evening_checkin(
     """Create or update evening check-in."""
     try:
         repo = CheckinRepository()
-        today = date.today()
+        tz = _get_user_tz(current_user["id"])
+        today = user_today(tz)
         checkin_id = repo.upsert_evening(
             user_id=current_user["id"],
             check_date=today,
@@ -171,7 +184,8 @@ def create_evening_checkin(
 def get_yesterday_checkin(request: Request, current_user: dict = Depends(get_current_user)):
     """Get yesterday's check-in data (for tomorrow_intention recall)."""
     repo = CheckinRepository()
-    yesterday = date.today() - timedelta(days=1)
+    tz = _get_user_tz(current_user["id"])
+    yesterday = user_today(tz) - timedelta(days=1)
     slots = repo.get_day_checkins(user_id=current_user["id"], check_date=yesterday)
     return {
         "date": yesterday.isoformat(),

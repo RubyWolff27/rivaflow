@@ -47,13 +47,6 @@ const RULE_LABELS: Record<string, string> = {
 const sanitizeSuggestion = (text: string) =>
   text.replace(/\{[a-z_]+\}/gi, '').replace(/\s{2,}/g, ' ').trim();
 
-function getTimeSlot(): 'morning' | 'midday' | 'evening' {
-  const hour = new Date().getHours();
-  if (hour < 12) return 'morning';
-  if (hour < 17) return 'midday';
-  return 'evening';
-}
-
 /* ---------- Inline sub-components ---------- */
 
 function MiddayPrompt({ onSubmitted, todayPlan }: { onSubmitted: () => void; todayPlan?: string }) {
@@ -530,14 +523,13 @@ export default function DailyActionHero() {
       : '#EF4444'
     : undefined;
 
-  // Time-aware slot prompts
-  const timeSlot = getTimeSlot();
+  // Show prompts for unfilled slots (all accessible regardless of time)
   const hasMorning = dayCheckins?.morning != null;
   const hasMidday = dayCheckins?.midday != null;
   const hasEvening = dayCheckins?.evening != null;
-  const showMorning = timeSlot === 'morning' && !hasMorning;
-  const showMidday = timeSlot === 'midday' && hasMorning && !hasMidday;
-  const showEvening = timeSlot === 'evening' && !hasEvening;
+  const showMorning = !hasMorning;
+  const showMidday = !hasMidday;
+  const showEvening = !hasEvening;
 
   return (
     <Card className="p-5">
@@ -553,7 +545,7 @@ export default function DailyActionHero() {
       </div>
 
       {/* Yesterday's plan banner */}
-      {todayPlan && !hasEvening && (
+      {todayPlan && (
         <TodayPlanBanner
           intention={todayPlan}
           onLog={() => navigate('/log')}
