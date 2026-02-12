@@ -142,7 +142,9 @@ def create_midday_checkin(
         midday_note=data.midday_note,
     )
     # Update check-in streak
-    StreakService().record_checkin(current_user["id"], checkin_type="midday", checkin_date=today)
+    StreakService().record_checkin(
+        current_user["id"], checkin_type="midday", checkin_date=today
+    )
     return {"success": True, "id": checkin_id}
 
 
@@ -175,13 +177,17 @@ def create_evening_checkin(
         )
         return {"success": True, "id": checkin_id}
     except Exception as e:
-        logger.exception("Evening checkin failed for user %s: %s", current_user["id"], e)
+        logger.exception(
+            "Evening checkin failed for user %s: %s", current_user["id"], e
+        )
         raise
 
 
 @router.get("/yesterday")
 @limiter.limit("60/minute")
-def get_yesterday_checkin(request: Request, current_user: dict = Depends(get_current_user)):
+def get_yesterday_checkin(
+    request: Request, current_user: dict = Depends(get_current_user)
+):
     """Get yesterday's check-in data (for tomorrow_intention recall)."""
     repo = CheckinRepository()
     tz = _get_user_tz(current_user["id"])

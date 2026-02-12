@@ -32,7 +32,9 @@ def log_rest_day(
 ):
     """Log a rest day."""
     repo = CheckinRepository()
-    check_date = date.fromisoformat(data.check_date) if data.check_date else date.today()
+    check_date = (
+        date.fromisoformat(data.check_date) if data.check_date else date.today()
+    )
 
     checkin_id = repo.upsert_checkin(
         user_id=current_user["id"],
@@ -43,7 +45,9 @@ def log_rest_day(
     )
 
     # Update check-in streak (rest days count toward consistency)
-    StreakService().record_checkin(current_user["id"], checkin_type="rest", checkin_date=check_date)
+    StreakService().record_checkin(
+        current_user["id"], checkin_type="rest", checkin_date=check_date
+    )
 
     return {
         "success": True,
