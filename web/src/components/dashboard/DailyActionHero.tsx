@@ -149,6 +149,34 @@ function MiddayPrompt({ onSubmitted, todayPlan }: { onSubmitted: () => void; tod
   );
 }
 
+function MorningPrompt({ onNavigate }: { onNavigate: () => void }) {
+  return (
+    <div
+      className="mt-3 rounded-xl overflow-hidden"
+      style={{ backgroundColor: 'var(--surfaceElev)', border: '1px solid var(--border)' }}
+    >
+      <div className="flex items-center justify-between p-3">
+        <div className="flex items-center gap-2">
+          <Sun className="w-4 h-4" style={{ color: '#F59E0B' }} />
+          <span className="text-sm font-semibold" style={{ color: 'var(--text)' }}>
+            Morning Check-in
+          </span>
+        </div>
+        <button
+          onClick={onNavigate}
+          className="px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors"
+          style={{ backgroundColor: 'var(--accent)', color: '#fff' }}
+        >
+          Check in
+        </button>
+      </div>
+      <p className="px-3 pb-3 text-xs" style={{ color: 'var(--muted)' }}>
+        Log how you're feeling to get personalized training guidance
+      </p>
+    </div>
+  );
+}
+
 const REST_TYPES = [
   { id: 'recovery', label: 'Recovery', icon: Coffee, color: '#10B981' },
   { id: 'life', label: 'Life', icon: Briefcase, color: '#3B82F6' },
@@ -507,6 +535,7 @@ export default function DailyActionHero() {
   const hasMorning = dayCheckins?.morning != null;
   const hasMidday = dayCheckins?.midday != null;
   const hasEvening = dayCheckins?.evening != null;
+  const showMorning = timeSlot === 'morning' && !hasMorning;
   const showMidday = timeSlot === 'midday' && hasMorning && !hasMidday;
   const showEvening = timeSlot === 'evening' && !hasEvening;
 
@@ -721,6 +750,9 @@ export default function DailyActionHero() {
         </div>
       )}
 
+      {/* Morning prompt */}
+      {showMorning && <MorningPrompt onNavigate={() => navigate('/readiness')} />}
+
       {/* Midday prompt */}
       {showMidday && <MiddayPrompt onSubmitted={loadCheckins} todayPlan={todayPlan} />}
 
@@ -728,8 +760,16 @@ export default function DailyActionHero() {
       {showEvening && <EveningPrompt onSubmitted={loadCheckins} />}
 
       {/* Completed slot badges */}
-      {(hasMidday || hasEvening || dayCheckins?.evening?.checkin_type === 'rest') && (
-        <div className="flex gap-2 mt-3">
+      {(hasMorning || hasMidday || hasEvening || dayCheckins?.evening?.checkin_type === 'rest') && (
+        <div className="flex flex-wrap gap-2 mt-3">
+          {hasMorning && (
+            <span
+              className="text-xs px-2 py-0.5 rounded-full"
+              style={{ backgroundColor: 'var(--success-bg)', color: 'var(--success)' }}
+            >
+              Morning logged
+            </span>
+          )}
           {hasMidday && (
             <span
               className="text-xs px-2 py-0.5 rounded-full"

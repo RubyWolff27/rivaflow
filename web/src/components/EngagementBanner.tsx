@@ -115,11 +115,11 @@ export default function EngagementBanner() {
 
       {/* Insight (if checked in) */}
       {checkedIn && insight && (
-        <div className="card bg-blue-50 border border-blue-200">
+        <div className="card border" style={{ backgroundColor: 'rgba(59,130,246,0.1)', borderColor: 'rgba(59,130,246,0.3)' }}>
           <div className="flex items-start gap-3">
             <span className="text-2xl">{insight.icon || '💡'}</span>
             <div className="flex-1">
-              <h4 className="font-semibold text-sm uppercase tracking-wide text-blue-900 mb-1">
+              <h4 className="font-semibold text-sm uppercase tracking-wide mb-1" style={{ color: 'rgb(59,130,246)' }}>
                 {insight.title}
               </h4>
               <p className="text-sm text-[var(--text)]">
@@ -137,11 +137,11 @@ export default function EngagementBanner() {
 
       {/* Closest Milestone Progress */}
       {closestMilestone && closestMilestone.has_milestone && closestMilestone.percentage >= 50 && (
-        <div className="card bg-purple-50 border border-purple-200">
+        <div className="card border" style={{ backgroundColor: 'rgba(139,92,246,0.1)', borderColor: 'rgba(139,92,246,0.3)' }}>
           <div className="flex items-start gap-3">
-            <Target className="w-5 h-5 text-purple-600 mt-0.5" />
+            <Target className="w-5 h-5 mt-0.5" style={{ color: 'rgb(139,92,246)' }} />
             <div className="flex-1">
-              <h4 className="font-semibold text-sm mb-2">NEXT MILESTONE</h4>
+              <h4 className="font-semibold text-sm mb-2" style={{ color: 'var(--text)' }}>NEXT MILESTONE</h4>
               <p className="text-sm text-[var(--text)] mb-2">
                 {closestMilestone.next_label}
               </p>
