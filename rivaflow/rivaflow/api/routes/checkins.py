@@ -10,6 +10,7 @@ from slowapi.util import get_remote_address
 
 from rivaflow.core.dependencies import get_current_user
 from rivaflow.core.exceptions import NotFoundError
+from rivaflow.core.services.streak_service import StreakService
 from rivaflow.db.repositories.checkin_repo import CheckinRepository
 
 logger = logging.getLogger(__name__)
@@ -128,6 +129,8 @@ def create_midday_checkin(
         energy_level=data.energy_level,
         midday_note=data.midday_note,
     )
+    # Update check-in streak
+    StreakService().record_checkin(current_user["id"], checkin_type="midday", checkin_date=today)
     return {"success": True, "id": checkin_id}
 
 
@@ -152,19 +155,20 @@ def create_evening_checkin(
             rest_type=data.rest_type,
             rest_note=data.rest_note,
         )
+        # Update check-in streak (rest days count too)
+        checkin_type = "rest" if data.did_not_train else "evening"
+        StreakService().record_checkin(
+            current_user["id"], checkin_type=checkin_type, checkin_date=today
+        )
         return {"success": True, "id": checkin_id}
     except Exception as e:
-        logger.exception(
-            "Evening checkin failed for user %s: %s", current_user["id"], e
-        )
+        logger.exception("Evening checkin failed for user %s: %s", current_user["id"], e)
         raise
 
 
 @router.get("/yesterday")
 @limiter.limit("60/minute")
-def get_yesterday_checkin(
-    request: Request, current_user: dict = Depends(get_current_user)
-):
+def get_yesterday_checkin(request: Request, current_user: dict = Depends(get_current_user)):
     """Get yesterday's check-in data (for tomorrow_intention recall)."""
     repo = CheckinRepository()
     yesterday = date.today() - timedelta(days=1)
