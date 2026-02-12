@@ -86,14 +86,14 @@ export default function RestDetail() {
     return labels[type] || type;
   };
 
-  const getRestTypeColor = (type: string) => {
-    const colors: { [key: string]: string } = {
-      'full': 'bg-purple-100 text-purple-700',
-      'active': 'bg-blue-100 text-blue-700',
-      'injury': 'bg-red-100 text-red-700',
-      'sick': 'bg-yellow-100 text-yellow-700',
+  const getRestTypeStyle = (type: string): React.CSSProperties => {
+    const styles: { [key: string]: React.CSSProperties } = {
+      'full': { backgroundColor: 'rgba(168,85,247,0.1)', color: '#a855f7' },
+      'active': { backgroundColor: 'rgba(59,130,246,0.1)', color: 'var(--accent)' },
+      'injury': { backgroundColor: 'rgba(239,68,68,0.1)', color: 'var(--error)' },
+      'sick': { backgroundColor: 'rgba(234,179,8,0.1)', color: '#ca8a04' },
     };
-    return colors[type] || 'bg-[var(--surfaceElev)] text-[var(--text)]';
+    return styles[type] || { backgroundColor: 'var(--surfaceElev)', color: 'var(--text)' };
   };
 
   return (
@@ -125,7 +125,7 @@ export default function RestDetail() {
         <div className="flex items-start gap-4 mb-4">
           <Moon className="w-8 h-8 text-purple-600" />
           <div className="flex-1">
-            <span className={`inline-block px-3 py-1 rounded-full text-sm font-semibold ${getRestTypeColor(restDay.rest_type)}`}>
+            <span className="inline-block px-3 py-1 rounded-full text-sm font-semibold" style={getRestTypeStyle(restDay.rest_type)}>
               {getRestTypeLabel(restDay.rest_type)}
             </span>
             <div className="flex items-center gap-2 text-[var(--muted)] mt-2">
@@ -148,7 +148,7 @@ export default function RestDetail() {
 
       {/* Tomorrow's Intention */}
       {restDay.tomorrow_intention && (
-        <div className="card bg-blue-50 border-blue-200">
+        <div className="card" style={{ backgroundColor: 'rgba(59,130,246,0.1)', borderColor: 'var(--accent)' }}>
           <h3 className="font-semibold text-lg mb-3">Tomorrow's Intention</h3>
           <p className="text-[var(--text)]">
             → {restDay.tomorrow_intention}

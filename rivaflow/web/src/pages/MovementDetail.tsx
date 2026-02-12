@@ -19,16 +19,16 @@ const CATEGORY_LABELS: Record<string, string> = {
   defense: 'Defense',
 };
 
-const CATEGORY_COLORS: Record<string, string> = {
-  position: 'bg-blue-100 text-blue-800',
-  submission: 'bg-red-100 text-red-800',
-  sweep: 'bg-green-100 text-green-800',
-  pass: 'bg-purple-100 text-purple-800',
-  takedown: 'bg-orange-100 text-orange-800',
-  escape: 'bg-yellow-100 text-yellow-800',
-  movement: 'bg-indigo-100 text-indigo-800',
-  concept: 'bg-[var(--surfaceElev)] text-[var(--text)]',
-  defense: 'bg-pink-100 text-pink-800',
+const CATEGORY_STYLES: Record<string, React.CSSProperties> = {
+  position: { backgroundColor: 'rgba(59,130,246,0.1)', color: 'var(--accent)' },
+  submission: { backgroundColor: 'rgba(239,68,68,0.1)', color: 'var(--error)' },
+  sweep: { backgroundColor: 'rgba(34,197,94,0.1)', color: 'var(--success)' },
+  pass: { backgroundColor: 'rgba(168,85,247,0.1)', color: '#a855f7' },
+  takedown: { backgroundColor: 'rgba(249,115,22,0.1)', color: '#f97316' },
+  escape: { backgroundColor: 'rgba(234,179,8,0.1)', color: '#ca8a04' },
+  movement: { backgroundColor: 'rgba(99,102,241,0.1)', color: '#6366f1' },
+  concept: { backgroundColor: 'var(--surfaceElev)', color: 'var(--text)' },
+  defense: { backgroundColor: 'rgba(236,72,153,0.1)', color: '#ec4899' },
 };
 
 export default function MovementDetail() {
@@ -196,17 +196,17 @@ export default function MovementDetail() {
       {/* Movement Details Card */}
       <div className="card space-y-4">
         <div className="flex flex-wrap gap-2">
-          <span className={`px-3 py-1 rounded-full text-sm font-medium ${CATEGORY_COLORS[movement.category]}`}>
+          <span className="px-3 py-1 rounded-full text-sm font-medium" style={CATEGORY_STYLES[movement.category]}>
             {CATEGORY_LABELS[movement.category] || movement.category}
           </span>
           {movement.points > 0 && (
-            <span className="px-3 py-1 rounded-full text-sm font-medium bg-amber-100 text-amber-800 flex items-center gap-1">
+            <span className="px-3 py-1 rounded-full text-sm font-medium flex items-center gap-1" style={{ backgroundColor: 'rgba(245,158,11,0.1)', color: '#d97706' }}>
               <Award className="w-4 h-4" />
               {movement.points} points
             </span>
           )}
           {movement.custom && (
-            <span className="px-3 py-1 rounded-full text-sm font-medium bg-blue-100 text-blue-800">
+            <span className="px-3 py-1 rounded-full text-sm font-medium" style={{ backgroundColor: 'rgba(59,130,246,0.1)', color: 'var(--accent)' }}>
               Custom
             </span>
           )}
@@ -371,11 +371,11 @@ export default function MovementDetail() {
                       {video.title && (
                         <h4 className="font-semibold text-[var(--text)]">{video.title}</h4>
                       )}
-                      <span className={`px-2 py-0.5 rounded text-xs font-medium ${
-                        video.video_type === 'gi' ? 'bg-blue-100 text-blue-800' :
-                        video.video_type === 'nogi' ? 'bg-purple-100 text-purple-800' :
-                        'bg-[var(--surfaceElev)] text-[var(--text)]'
-                      }`}>
+                      <span className="px-2 py-0.5 rounded text-xs font-medium" style={
+                        video.video_type === 'gi' ? { backgroundColor: 'rgba(59,130,246,0.1)', color: 'var(--accent)' } :
+                        video.video_type === 'nogi' ? { backgroundColor: 'rgba(168,85,247,0.1)', color: '#a855f7' } :
+                        { backgroundColor: 'var(--surfaceElev)', color: 'var(--text)' }
+                      }>
                         {video.video_type === 'gi' ? 'Gi' : video.video_type === 'nogi' ? 'No-Gi' : 'General'}
                       </span>
                     </div>

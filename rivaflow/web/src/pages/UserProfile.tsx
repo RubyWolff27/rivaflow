@@ -104,22 +104,22 @@ export default function UserProfile() {
     }
   };
 
-  const getBeltColor = (grade: string) => {
-    const beltColors: Record<string, string> = {
-      white: 'bg-[var(--surfaceElev)] text-[var(--text)] border-[var(--border)]',
-      blue: 'bg-blue-100 text-blue-800 border-blue-300',
-      purple: 'bg-purple-100 text-purple-800 border-purple-300',
-      brown: 'bg-amber-100 text-amber-800 border-amber-300',
-      black: 'bg-gray-900 text-white border-gray-700',  // intentional literal color
+  const getBeltStyle = (grade: string): React.CSSProperties => {
+    const beltStyles: Record<string, React.CSSProperties> = {
+      white: { backgroundColor: 'var(--surfaceElev)', color: 'var(--text)', borderColor: 'var(--border)' },
+      blue: { backgroundColor: 'rgba(59,130,246,0.1)', color: 'var(--accent)', borderColor: 'var(--accent)' },
+      purple: { backgroundColor: 'rgba(168,85,247,0.1)', color: '#a855f7', borderColor: '#a855f7' },
+      brown: { backgroundColor: 'rgba(245,158,11,0.1)', color: '#d97706', borderColor: '#d97706' },
+      black: { backgroundColor: '#111827', color: '#fff', borderColor: '#374151' },
     };
 
-    for (const [belt, colorClass] of Object.entries(beltColors)) {
+    for (const [belt, style] of Object.entries(beltStyles)) {
       if (grade?.toLowerCase().includes(belt)) {
-        return colorClass;
+        return style;
       }
     }
 
-    return 'bg-[var(--surfaceElev)] text-[var(--muted)] border-[var(--border)]';
+    return { backgroundColor: 'var(--surfaceElev)', color: 'var(--muted)', borderColor: 'var(--border)' };
   };
 
   const formatDate = (dateStr: string) => {
@@ -182,7 +182,7 @@ export default function UserProfile() {
               </h1>
               <div className="flex items-center gap-4 mt-2 text-sm text-[var(--muted)]">
                 {profile.current_grade && (
-                  <span className={`px-3 py-1 rounded-full border ${getBeltColor(profile.current_grade)}`}>
+                  <span className="px-3 py-1 rounded-full border" style={getBeltStyle(profile.current_grade)}>
                     {profile.current_grade}
                   </span>
                 )}

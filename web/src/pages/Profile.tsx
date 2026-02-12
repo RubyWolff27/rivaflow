@@ -624,7 +624,7 @@ export default function Profile() {
       <form onSubmit={handleSubmit} className="card">
         <h2 className="text-xl font-semibold mb-4">Personal Information</h2>
         {success && (
-          <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded-lg flex items-center gap-2 text-green-700">
+          <div className="mb-4 p-3 rounded-lg flex items-center gap-2" style={{ backgroundColor: 'rgba(34,197,94,0.1)', color: 'var(--success)', border: '1px solid var(--success)' }}>
             <CheckCircle className="w-5 h-5" />
             Profile updated successfully!
           </div>
@@ -958,11 +958,11 @@ export default function Profile() {
         </p>
 
         {/* Activity Goals Explanation */}
-        <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-          <h3 className="text-sm font-semibold text-blue-900 mb-2">
+        <div className="mb-6 p-4 rounded-lg" style={{ backgroundColor: 'rgba(59,130,246,0.1)', border: '1px solid var(--accent)' }}>
+          <h3 className="text-sm font-semibold mb-2" style={{ color: 'var(--accent)' }}>
             How Activity Goals Work
           </h3>
-          <div className="text-xs text-blue-800 space-y-1">
+          <div className="text-xs space-y-1" style={{ color: 'var(--accent)' }}>
             <p>Set specific goals for each training type:</p>
             <ul className="list-disc list-inside ml-2 mt-1 space-y-0.5">
               <li><strong>BJJ:</strong> Gi, No-Gi, Open Mat, Competition sessions</li>
@@ -1507,7 +1507,7 @@ export default function Profile() {
       </div>
 
       {/* Info Card */}
-      <div className="card bg-blue-50 border-blue-200">
+      <div className="card" style={{ backgroundColor: 'rgba(59,130,246,0.1)', borderColor: 'var(--accent)' }}>
         <h3 className="font-semibold mb-2">About Your Profile</h3>
         <ul className="text-sm text-[var(--muted)] space-y-1">
           <li>• Your profile data is stored locally on your device</li>

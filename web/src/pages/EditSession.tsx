@@ -830,7 +830,8 @@ export default function EditSession() {
                             return movement ? (
                               <span
                                 key={movementId}
-                                className="text-xs px-2 py-1 bg-green-100 text-green-700 rounded flex items-center gap-1"
+                                className="text-xs px-2 py-1 rounded flex items-center gap-1"
+                                style={{ backgroundColor: 'rgba(34,197,94,0.1)', color: 'var(--success)' }}
                               >
                                 {movement.name}
                                 <button
@@ -887,7 +888,8 @@ export default function EditSession() {
                             return movement ? (
                               <span
                                 key={movementId}
-                                className="text-xs px-2 py-1 bg-red-100 text-red-700 rounded flex items-center gap-1"
+                                className="text-xs px-2 py-1 rounded flex items-center gap-1"
+                                style={{ backgroundColor: 'rgba(239,68,68,0.1)', color: 'var(--error)' }}
                               >
                                 {movement.name}
                                 <button
@@ -1136,7 +1138,7 @@ export default function EditSession() {
               {whoopSynced ? (
                 <div className="space-y-3">
                   <div className="flex items-center gap-2 mb-2">
-                    <span className="inline-flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full bg-green-100 text-green-700">
+                    <span className="inline-flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full" style={{ backgroundColor: 'rgba(34,197,94,0.1)', color: 'var(--success)' }}>
                       <CheckCircle className="w-3 h-3" /> Synced from WHOOP
                     </span>
                     <button type="button" onClick={handleWhoopClear} className="text-xs text-[var(--muted)] hover:opacity-80 underline">
