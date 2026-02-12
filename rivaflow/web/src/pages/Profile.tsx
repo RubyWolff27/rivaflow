@@ -1474,6 +1474,7 @@ export default function Profile() {
                         alt={`${grading.grade} certificate`}
                         className="rounded-lg border border-[var(--border)] max-w-xs cursor-pointer hover:opacity-90"
                         onClick={() => window.open(grading.photo_url, '_blank')}
+                        onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
                       />
                     </div>
                   )}
@@ -1507,7 +1508,7 @@ export default function Profile() {
       </div>
 
       {/* Info Card */}
-      <div className="card" style={{ backgroundColor: 'rgba(59,130,246,0.1)', borderColor: 'var(--accent)' }}>
+      <div className="card" style={{ borderColor: 'var(--accent)' }}>
         <h3 className="font-semibold mb-2">About Your Profile</h3>
         <ul className="text-sm text-[var(--muted)] space-y-1">
           <li>• Your profile data is stored locally on your device</li>
