@@ -145,13 +145,15 @@ class UserRelationshipRepository:
             cursor = conn.cursor()
             cursor.execute(
                 convert_query(
-                    "SELECT COUNT(*) FROM user_relationships"
+                    "SELECT COUNT(*) as count FROM user_relationships"
                     " WHERE following_user_id = ? AND status = 'active'"
                 ),
                 (user_id,),
             )
             row = cursor.fetchone()
-            return (row[0] if row else 0) or 0
+            if not row:
+                return 0
+            return row["count"] if hasattr(row, "keys") else row[0]
 
     @staticmethod
     def count_following(user_id: int) -> int:
@@ -160,13 +162,15 @@ class UserRelationshipRepository:
             cursor = conn.cursor()
             cursor.execute(
                 convert_query(
-                    "SELECT COUNT(*) FROM user_relationships"
+                    "SELECT COUNT(*) as count FROM user_relationships"
                     " WHERE follower_user_id = ? AND status = 'active'"
                 ),
                 (user_id,),
             )
             row = cursor.fetchone()
-            return (row[0] if row else 0) or 0
+            if not row:
+                return 0
+            return row["count"] if hasattr(row, "keys") else row[0]
 
     @staticmethod
     def is_following(follower_user_id: int, following_user_id: int) -> bool:

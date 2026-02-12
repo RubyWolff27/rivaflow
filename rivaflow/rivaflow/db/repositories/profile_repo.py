@@ -120,9 +120,9 @@ class ProfileRepository:
                         (
                             show_streak_on_dashboard
                             if show_streak_on_dashboard is not None
-                            else 1
+                            else True
                         ),
-                        show_weekly_goals if show_weekly_goals is not None else 1,
+                        show_weekly_goals if show_weekly_goals is not None else True,
                         timezone if timezone is not None else "UTC",
                     ),
                 )
