@@ -1,11 +1,11 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { Plus, Activity, Sparkles, Heart, Waves, RefreshCw, Sun, Moon, ChevronDown, ChevronUp, CalendarCheck, Coffee, Briefcase, AlertTriangle, Plane } from 'lucide-react';
+import { Plus, Activity, Sparkles, Heart, Waves, RefreshCw, Sun, Moon, ChevronDown, ChevronUp, CalendarCheck, Coffee, Briefcase, AlertTriangle, Plane, Flame } from 'lucide-react';
 import { getLocalDateString } from '../../utils/date';
-import { suggestionsApi, readinessApi, whoopApi, checkinsApi } from '../../api/client';
+import { suggestionsApi, readinessApi, whoopApi, checkinsApi, streaksApi } from '../../api/client';
 import { getErrorMessage } from '../../api/client';
 import { Card, PrimaryButton, CardSkeleton } from '../ui';
-import type { DayCheckins } from '../../types';
+import type { DayCheckins, StreakStatus } from '../../types';
 
 interface TriggeredRule {
   name: string;
@@ -383,6 +383,7 @@ export default function DailyActionHero() {
     resting_hr: number | null;
   } | null>(null);
   const [whoopSyncing, setWhoopSyncing] = useState(false);
+  const [streaks, setStreaks] = useState<StreakStatus | null>(null);
 
   const loadCheckins = async () => {
     try {
@@ -402,6 +403,7 @@ export default function DailyActionHero() {
         whoopApi.getLatestRecovery(),
         checkinsApi.getToday(),
         checkinsApi.getYesterday(),
+        streaksApi.getStatus(),
       ]);
 
       if (controller.signal.aborted) return;
@@ -444,6 +446,11 @@ export default function DailyActionHero() {
         if (intention) {
           setTodayPlan(intention);
         }
+      }
+
+      // Streaks (Wave E)
+      if (results[5].status === 'fulfilled' && results[5].value.data) {
+        setStreaks(results[5].value.data);
       }
 
       setLoading(false);
@@ -686,6 +693,34 @@ export default function DailyActionHero() {
         </Link>
       )}
 
+      {/* Streak display (Wave E) */}
+      {streaks && streaks.checkin.current_streak > 0 && (
+        <div
+          className="flex items-center justify-between mt-3 p-3 rounded-lg"
+          style={{ backgroundColor: 'var(--surfaceElev)' }}
+        >
+          <div className="flex items-center gap-2">
+            <Flame className="w-5 h-5 text-orange-500" />
+            <span className="text-xl font-bold text-orange-600">
+              {streaks.checkin.current_streak}
+            </span>
+            <span className="text-sm" style={{ color: 'var(--muted)' }}>day streak</span>
+          </div>
+          {streaks.checkin.longest_streak > streaks.checkin.current_streak && (
+            <span className="text-xs text-orange-500">
+              {streaks.checkin.longest_streak - streaks.checkin.current_streak <= 3
+                ? `${streaks.checkin.longest_streak - streaks.checkin.current_streak} more to beat your best!`
+                : `Best: ${streaks.checkin.longest_streak}`}
+            </span>
+          )}
+          {streaks.checkin.current_streak >= streaks.checkin.longest_streak && streaks.checkin.current_streak >= 3 && (
+            <span className="text-xs font-medium text-orange-500">
+              Personal best!
+            </span>
+          )}
+        </div>
+      )}
+
       {/* Midday prompt */}
       {showMidday && <MiddayPrompt onSubmitted={loadCheckins} todayPlan={todayPlan} />}
 
@@ -693,7 +728,7 @@ export default function DailyActionHero() {
       {showEvening && <EveningPrompt onSubmitted={loadCheckins} />}
 
       {/* Completed slot badges */}
-      {(hasMidday || hasEvening) && (
+      {(hasMidday || hasEvening || dayCheckins?.evening?.checkin_type === 'rest') && (
         <div className="flex gap-2 mt-3">
           {hasMidday && (
             <span
