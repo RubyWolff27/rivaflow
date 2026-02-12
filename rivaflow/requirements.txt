@@ -15,7 +15,7 @@ pydantic-settings==2.12.0
 PyJWT[crypto]==2.10.1
 passlib[bcrypt]==1.7.4
 bcrypt==4.3.0
-cryptography==46.0.4  # Updated for CVE fixes
+cryptography==46.0.5  # Updated for CVE-2026-26007 fix
 
 # HTTP & API
 python-multipart==0.0.22  # Updated from 0.0.20 to fix CVE-2026-24486
