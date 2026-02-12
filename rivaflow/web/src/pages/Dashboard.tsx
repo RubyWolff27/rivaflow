@@ -19,14 +19,23 @@ export default function Dashboard() {
   const navigate = useNavigate();
   const tierInfo = useTier();
 
-  // Auto-sync browser timezone to profile (once per session)
+  // Auto-sync browser timezone to profile — always verify it matches
   useEffect(() => {
-    const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
-    const synced = sessionStorage.getItem('tz_synced');
-    if (!synced && tz) {
-      profileApi.update({ timezone: tz }).catch(() => {});
-      sessionStorage.setItem('tz_synced', '1');
-    }
+    const browserTz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    if (!browserTz) return;
+    const lastSynced = sessionStorage.getItem('tz_synced');
+    if (lastSynced === browserTz) return; // already confirmed this session
+    (async () => {
+      try {
+        const { data: profile } = await profileApi.get();
+        if (profile.timezone === browserTz) {
+          sessionStorage.setItem('tz_synced', browserTz);
+          return;
+        }
+        await profileApi.update({ timezone: browserTz });
+        sessionStorage.setItem('tz_synced', browserTz);
+      } catch { /* best-effort, will retry next load */ }
+    })();
   }, []);
 
   // Fire-and-forget staleness check for AI insights
