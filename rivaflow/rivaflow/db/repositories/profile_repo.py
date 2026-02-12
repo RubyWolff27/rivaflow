@@ -1,8 +1,11 @@
 """Repository for user profile data access."""
 
+import logging
 from datetime import date, datetime
 
 from rivaflow.db.database import convert_query, get_connection
+
+logger = logging.getLogger(__name__)
 
 
 class ProfileRepository:
@@ -11,6 +14,7 @@ class ProfileRepository:
     @staticmethod
     def get(user_id: int) -> dict | None:
         """Get the user profile."""
+        ProfileRepository._ensure_timezone_column()
         with get_connection() as conn:
             cursor = conn.cursor()
             # Join with users table to get avatar_url
@@ -27,6 +31,38 @@ class ProfileRepository:
             if row:
                 return ProfileRepository._row_to_dict(row)
             return None
+
+    _tz_col_checked = False
+
+    @classmethod
+    def _ensure_timezone_column(cls):
+        """Add timezone column to profile table if missing (PG only). Once-per-process."""
+        if cls._tz_col_checked:
+            return
+        from rivaflow.config import get_db_type
+
+        if get_db_type() != "postgresql":
+            cls._tz_col_checked = True
+            return
+        try:
+            with get_connection() as conn:
+                cur = conn.cursor()
+                cur.execute(
+                    "SELECT 1 FROM information_schema.columns "
+                    "WHERE table_schema='public' AND table_name='profile' "
+                    "AND column_name='timezone'"
+                )
+                if cur.fetchone() is None:
+                    logger.warning("profile.timezone missing — adding inline")
+                    cur.execute(
+                        "ALTER TABLE profile " "ADD COLUMN timezone TEXT DEFAULT 'UTC'"
+                    )
+                    conn.commit()
+                    logger.info("Added profile.timezone column inline")
+                cur.close()
+            cls._tz_col_checked = True
+        except Exception as exc:
+            logger.error(f"_ensure_timezone_column failed: {exc}")
 
     @staticmethod
     def update(
@@ -57,6 +93,7 @@ class ProfileRepository:
         timezone: str | None = None,
     ) -> dict:
         """Update the user profile. Creates profile if it doesn't exist. Returns updated profile."""
+        ProfileRepository._ensure_timezone_column()
         with get_connection() as conn:
             cursor = conn.cursor()
 

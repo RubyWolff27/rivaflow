@@ -134,6 +134,34 @@ async def _lifespan(_app: FastAPI):
     validate_environment()
 
     # Migrations run via start.sh (prod) or database.py auto-init (dev/test).
+    # Belt-and-suspenders: ensure critical columns exist on PG even if
+    # migrate.py didn't run or the deploy cached stale code.
+    try:
+        from rivaflow.config import get_db_type
+
+        if get_db_type() == "postgresql":
+            from rivaflow.db.database import get_connection
+
+            with get_connection() as conn:
+                cur = conn.cursor()
+                cur.execute(
+                    "SELECT 1 FROM information_schema.columns "
+                    "WHERE table_schema='public' AND table_name='profile' "
+                    "AND column_name='timezone'"
+                )
+                if cur.fetchone() is None:
+                    logging.warning(
+                        "profile.timezone column missing — adding via lifespan"
+                    )
+                    cur.execute(
+                        "ALTER TABLE profile ADD COLUMN timezone TEXT DEFAULT 'UTC'"
+                    )
+                    conn.commit()
+                    logging.info("Added profile.timezone column")
+                cur.close()
+    except Exception as e:
+        logging.warning(f"Could not ensure profile.timezone column: {e}")
+
     # Seed glossary on every startup to pick up new terms.
     try:
         from rivaflow.db.seed_glossary import seed_glossary
