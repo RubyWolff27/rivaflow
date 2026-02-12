@@ -53,6 +53,7 @@ export default function Profile() {
     show_streak_on_dashboard: true,
     show_weekly_goals: true,
     avatar_url: '',
+    timezone: '',
   });
 
   const [gradingForm, setGradingForm] = useState({
@@ -171,6 +172,7 @@ export default function Profile() {
         show_streak_on_dashboard: profileRes.data?.show_streak_on_dashboard ?? true,
         show_weekly_goals: profileRes.data?.show_weekly_goals ?? true,
         avatar_url: profileRes.data?.avatar_url ?? '',
+        timezone: profileRes.data?.timezone ?? '',
       });
     } catch (error) {
       console.error('Error loading data:', error);
@@ -312,6 +314,7 @@ export default function Profile() {
         target_weight_kg: formData.target_weight_kg ? parseFloat(formData.target_weight_kg) : undefined,
         target_weight_date: formData.target_weight_date || undefined,
         avatar_url: formData.avatar_url || undefined,
+        timezone: formData.timezone || undefined,
       });
       setSuccess(true);
       await loadData();
@@ -801,6 +804,35 @@ export default function Profile() {
                 required
               />
             </div>
+          </div>
+
+          {/* Timezone */}
+          <div>
+            <label className="label">Timezone</label>
+            <div className="flex gap-2">
+              <input
+                type="text"
+                className="input flex-1"
+                value={formData.timezone}
+                onChange={(e) => setFormData({ ...formData, timezone: e.target.value })}
+                placeholder="e.g., Australia/Sydney"
+              />
+              <button
+                type="button"
+                onClick={() => {
+                  const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+                  if (tz) setFormData({ ...formData, timezone: tz });
+                }}
+                className="btn-secondary text-sm whitespace-nowrap"
+              >
+                Detect
+              </button>
+            </div>
+            <p className="text-sm text-[var(--muted)] mt-1">
+              {formData.timezone
+                ? `Server date: ${new Date().toLocaleDateString('en-CA', { timeZone: formData.timezone })}`
+                : 'Used for daily check-in timing. Click Detect to use your browser timezone.'}
+            </p>
           </div>
 
           {/* Default Gym */}
