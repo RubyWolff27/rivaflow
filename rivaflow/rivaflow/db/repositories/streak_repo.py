@@ -92,18 +92,14 @@ class StreakRepository:
                 new_streak = streak["current_streak"] + 1
                 new_longest = max(new_streak, streak["longest_streak"])
                 grace_days_used = 0  # Reset grace days on consecutive check-in
-                streak_started = (
-                    streak["streak_started_date"] or checkin_date.isoformat()
-                )
+                streak_started = streak["streak_started_date"] or checkin_date.isoformat()
 
             # Missed 1 day - use grace day if available
             elif days_since_last == 2 and streak["grace_days_used"] < STREAK_GRACE_DAYS:
                 new_streak = streak["current_streak"] + 1
                 new_longest = max(new_streak, streak["longest_streak"])
                 grace_days_used = streak["grace_days_used"] + 1
-                streak_started = (
-                    streak["streak_started_date"] or checkin_date.isoformat()
-                )
+                streak_started = streak["streak_started_date"] or checkin_date.isoformat()
 
             # Streak broken - reset
             else:
@@ -160,6 +156,94 @@ class StreakRepository:
             rows = cursor.fetchall()
 
             return [dict(row) for row in rows]
+
+    @staticmethod
+    def recalculate_checkin_streak(user_id: int) -> dict:
+        """Recalculate the 'checkin' streak from daily_checkins history.
+
+        Scans distinct check-in dates backwards from today, counting
+        consecutive days (with grace-day tolerance). Updates the streaks
+        table with the correct values and returns the updated streak.
+        """
+        with get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                convert_query("""
+                    SELECT DISTINCT check_date
+                    FROM daily_checkins
+                    WHERE user_id = ?
+                    ORDER BY check_date DESC
+                    """),
+                (user_id,),
+            )
+            rows = cursor.fetchall()
+
+        if not rows:
+            return StreakRepository.get_streak(user_id, "checkin")
+
+        dates = sorted(
+            [date.fromisoformat(str(dict(r)["check_date"])[:10]) for r in rows],
+            reverse=True,
+        )
+
+        today = date.today()
+        # If most recent check-in isn't today or yesterday, streak is 0
+        gap_to_today = (today - dates[0]).days
+        if gap_to_today > 1:
+            current_streak = 0
+            streak_started = None
+            last_checkin = dates[0]
+        else:
+            current_streak = 1
+            last_checkin = dates[0]
+            streak_started = dates[0]
+            for i in range(1, len(dates)):
+                gap = (dates[i - 1] - dates[i]).days
+                if gap <= 2:  # consecutive or 1-day grace
+                    current_streak += 1
+                    streak_started = dates[i]
+                else:
+                    break
+
+        # Also compute longest streak across all history
+        longest_streak = current_streak
+        if len(dates) > 1:
+            run = 1
+            for i in range(1, len(dates)):
+                gap = (dates[i - 1] - dates[i]).days
+                if gap <= 2:
+                    run += 1
+                else:
+                    longest_streak = max(longest_streak, run)
+                    run = 1
+            longest_streak = max(longest_streak, run)
+
+        # Persist
+        existing = StreakRepository.get_streak(user_id, "checkin")
+        longest_streak = max(longest_streak, existing["longest_streak"])
+
+        with get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                convert_query("""
+                    UPDATE streaks
+                    SET current_streak = ?,
+                        longest_streak = ?,
+                        last_checkin_date = ?,
+                        streak_started_date = ?,
+                        updated_at = CURRENT_TIMESTAMP
+                    WHERE user_id = ? AND streak_type = 'checkin'
+                    """),
+                (
+                    current_streak,
+                    longest_streak,
+                    last_checkin.isoformat(),
+                    streak_started.isoformat() if streak_started else None,
+                    user_id,
+                ),
+            )
+
+        return StreakRepository.get_streak(user_id, "checkin")
 
     @staticmethod
     def is_streak_at_risk(user_id: int, streak_type: str) -> bool:
