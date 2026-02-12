@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { Plus, Activity, Sparkles, Heart, Waves, RefreshCw, Sun, Moon, ChevronDown, ChevronUp, CalendarCheck, Coffee, Briefcase, AlertTriangle, Plane, Flame } from 'lucide-react';
+import { Plus, Activity, Sparkles, Heart, Waves, RefreshCw, Sun, Moon, ChevronDown, ChevronUp, CalendarCheck, Coffee, Briefcase, AlertTriangle, Plane, Flame, Check } from 'lucide-react';
 import { getLocalDateString } from '../../utils/date';
 import { suggestionsApi, readinessApi, whoopApi, checkinsApi, streaksApi } from '../../api/client';
 import { getErrorMessage } from '../../api/client';
@@ -388,6 +388,148 @@ function TodayPlanBanner({ intention, onLog }: { intention: string; onLog: () =>
   );
 }
 
+/* ---------- Completed check-in badges ---------- */
+
+function CheckinBadges({ dayCheckins }: { dayCheckins: DayCheckins | null }) {
+  const [expanded, setExpanded] = useState<'morning' | 'midday' | 'evening' | null>(null);
+
+  if (!dayCheckins) return null;
+
+  const slots: { key: 'morning' | 'midday' | 'evening'; label: string; icon: typeof Sun }[] = [
+    { key: 'morning', label: 'Morning', icon: Sun },
+    { key: 'midday', label: 'Midday', icon: Coffee },
+    { key: 'evening', label: 'Evening', icon: Moon },
+  ];
+
+  const energyLabels = ['', 'Very Low', 'Low', 'Moderate', 'Good', 'Great'];
+  const qualityLabels = ['', 'Poor', 'Below Avg', 'Average', 'Good', 'Excellent'];
+
+  const toggle = (key: 'morning' | 'midday' | 'evening') =>
+    setExpanded(expanded === key ? null : key);
+
+  const checkin = expanded ? dayCheckins[expanded] : null;
+
+  return (
+    <div className="mt-3">
+      <div className="flex flex-wrap gap-2">
+        {slots.map(({ key, label, icon: Icon }) => {
+          const data = dayCheckins[key];
+          if (!data) return null;
+          const isOpen = expanded === key;
+          return (
+            <button
+              key={key}
+              onClick={() => toggle(key)}
+              className="text-xs px-2.5 py-1 rounded-full flex items-center gap-1.5 transition-all"
+              style={{
+                backgroundColor: isOpen ? 'var(--accent)' : 'var(--success-bg)',
+                color: isOpen ? '#fff' : 'var(--success)',
+                border: isOpen ? '1px solid var(--accent)' : '1px solid transparent',
+              }}
+            >
+              {isOpen ? <Icon className="w-3 h-3" /> : <Check className="w-3 h-3" />}
+              {label} logged
+            </button>
+          );
+        })}
+        {dayCheckins.evening?.checkin_type === 'rest' && (
+          <span
+            className="text-xs px-2.5 py-1 rounded-full"
+            style={{ backgroundColor: 'var(--primary-bg)', color: 'var(--primary)' }}
+          >
+            Rest day
+          </span>
+        )}
+      </div>
+
+      {/* Expanded detail panel */}
+      {checkin && (
+        <div
+          className="mt-2 p-3 rounded-xl text-sm space-y-1.5"
+          style={{ backgroundColor: 'var(--surfaceElev)', border: '1px solid var(--border)' }}
+        >
+          {/* Morning: show readiness-linked info */}
+          {expanded === 'morning' && (
+            <>
+              {checkin.checkin_type === 'session' && (
+                <p style={{ color: 'var(--muted)' }}>Logged with a session</p>
+              )}
+              {checkin.checkin_type === 'readiness_only' && (
+                <p style={{ color: 'var(--muted)' }}>Readiness check-in</p>
+              )}
+              {checkin.tomorrow_intention && (
+                <p style={{ color: 'var(--text)' }}>
+                  <span style={{ color: 'var(--muted)' }}>Plan: </span>
+                  {checkin.tomorrow_intention}
+                </p>
+              )}
+            </>
+          )}
+
+          {/* Midday: energy + note */}
+          {expanded === 'midday' && (
+            <>
+              {checkin.energy_level != null && (
+                <p style={{ color: 'var(--text)' }}>
+                  <span style={{ color: 'var(--muted)' }}>Energy: </span>
+                  {checkin.energy_level}/5 — {energyLabels[checkin.energy_level]}
+                </p>
+              )}
+              {checkin.midday_note && (
+                <p style={{ color: 'var(--text)' }}>
+                  <span style={{ color: 'var(--muted)' }}>Note: </span>
+                  {checkin.midday_note}
+                </p>
+              )}
+              {!checkin.energy_level && !checkin.midday_note && (
+                <p style={{ color: 'var(--muted)' }}>Checked in</p>
+              )}
+            </>
+          )}
+
+          {/* Evening: quality + recovery + tomorrow */}
+          {expanded === 'evening' && (
+            <>
+              {checkin.checkin_type === 'rest' && checkin.rest_type && (
+                <p style={{ color: 'var(--text)' }}>
+                  <span style={{ color: 'var(--muted)' }}>Rest: </span>
+                  {checkin.rest_type.charAt(0).toUpperCase() + checkin.rest_type.slice(1)}
+                  {checkin.rest_note && ` — ${checkin.rest_note}`}
+                </p>
+              )}
+              {checkin.training_quality != null && (
+                <p style={{ color: 'var(--text)' }}>
+                  <span style={{ color: 'var(--muted)' }}>Training: </span>
+                  {checkin.training_quality}/5 — {qualityLabels[checkin.training_quality]}
+                </p>
+              )}
+              {checkin.recovery_note && (
+                <p style={{ color: 'var(--text)' }}>
+                  <span style={{ color: 'var(--muted)' }}>Recovery: </span>
+                  {checkin.recovery_note}
+                </p>
+              )}
+              {checkin.tomorrow_intention && (
+                <p style={{ color: 'var(--text)' }}>
+                  <span style={{ color: 'var(--muted)' }}>Tomorrow: </span>
+                  {checkin.tomorrow_intention}
+                </p>
+              )}
+              {!checkin.training_quality && !checkin.recovery_note && !checkin.rest_type && (
+                <p style={{ color: 'var(--muted)' }}>Checked in</p>
+              )}
+            </>
+          )}
+
+          <p className="text-xs" style={{ color: 'var(--muted)' }}>
+            {new Date(checkin.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+          </p>
+        </div>
+      )}
+    </div>
+  );
+}
+
 /* ---------- Main component ---------- */
 
 export default function DailyActionHero() {
@@ -751,42 +893,9 @@ export default function DailyActionHero() {
       {/* Evening prompt */}
       {showEvening && <EveningPrompt onSubmitted={loadCheckins} />}
 
-      {/* Completed slot badges */}
-      {(hasMorning || hasMidday || hasEvening || dayCheckins?.evening?.checkin_type === 'rest') && (
-        <div className="flex flex-wrap gap-2 mt-3">
-          {hasMorning && (
-            <span
-              className="text-xs px-2 py-0.5 rounded-full"
-              style={{ backgroundColor: 'var(--success-bg)', color: 'var(--success)' }}
-            >
-              Morning logged
-            </span>
-          )}
-          {hasMidday && (
-            <span
-              className="text-xs px-2 py-0.5 rounded-full"
-              style={{ backgroundColor: 'var(--success-bg)', color: 'var(--success)' }}
-            >
-              Midday logged
-            </span>
-          )}
-          {hasEvening && (
-            <span
-              className="text-xs px-2 py-0.5 rounded-full"
-              style={{ backgroundColor: 'var(--success-bg)', color: 'var(--success)' }}
-            >
-              Evening logged
-            </span>
-          )}
-          {dayCheckins?.evening?.checkin_type === 'rest' && (
-            <span
-              className="text-xs px-2 py-0.5 rounded-full"
-              style={{ backgroundColor: 'var(--primary-bg)', color: 'var(--primary)' }}
-            >
-              Rest day
-            </span>
-          )}
-        </div>
+      {/* Completed slot badges — clickable to review */}
+      {(hasMorning || hasMidday || hasEvening) && (
+        <CheckinBadges dayCheckins={dayCheckins} />
       )}
     </Card>
   );
