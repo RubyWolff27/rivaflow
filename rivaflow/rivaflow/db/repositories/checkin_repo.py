@@ -271,8 +271,12 @@ class CheckinRepository:
         training_quality: int | None = None,
         recovery_note: str | None = None,
         tomorrow_intention: str | None = None,
+        did_not_train: bool = False,
+        rest_type: str | None = None,
+        rest_note: str | None = None,
     ) -> int:
         """Create or update evening check-in."""
+        checkin_type = "rest" if did_not_train else "evening"
         with get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(
@@ -289,14 +293,18 @@ class CheckinRepository:
                 cursor.execute(
                     convert_query("""
                     UPDATE daily_checkins
-                    SET training_quality = ?, recovery_note = ?,
-                        tomorrow_intention = ?
+                    SET checkin_type = ?, training_quality = ?,
+                        recovery_note = ?, tomorrow_intention = ?,
+                        rest_type = ?, rest_note = ?
                     WHERE id = ?
                     """),
                     (
+                        checkin_type,
                         training_quality,
                         recovery_note,
                         tomorrow_intention,
+                        rest_type if did_not_train else None,
+                        rest_note if did_not_train else None,
                         existing["id"],
                     ),
                 )
@@ -308,16 +316,20 @@ class CheckinRepository:
                     INSERT INTO daily_checkins (
                         user_id, check_date, checkin_type, checkin_slot,
                         training_quality, recovery_note,
-                        tomorrow_intention, created_at
+                        tomorrow_intention, rest_type, rest_note,
+                        created_at
                     )
-                    VALUES (?, ?, 'evening', 'evening', ?, ?, ?, ?)
+                    VALUES (?, ?, ?, 'evening', ?, ?, ?, ?, ?, ?)
                     """,
                     (
                         user_id,
                         check_date.isoformat(),
+                        checkin_type,
                         training_quality,
                         recovery_note,
                         tomorrow_intention,
+                        rest_type if did_not_train else None,
+                        rest_note if did_not_train else None,
                         datetime.now().isoformat(),
                     ),
                 )

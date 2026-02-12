@@ -968,6 +968,26 @@ def get_whoop_efficiency(
         )
 
 
+@router.get("/insights/checkin-trends")
+@limiter.limit("60/minute")
+def get_checkin_trends(
+    request: Request,
+    days: int = Query(default=30, ge=7, le=365),
+    current_user: dict = Depends(get_current_user),
+):
+    """Get daily check-in trends: energy, quality, rest patterns."""
+    try:
+        return service.get_checkin_trends(user_id=current_user["id"], days=days)
+    except (RivaFlowException, HTTPException):
+        raise
+    except (ValueError, KeyError, TypeError) as e:
+        logger.error(f"Error in checkin trends: {type(e).__name__}: {str(e)}")
+        raise HTTPException(
+            status_code=500,
+            detail="An error occurred while processing analytics",
+        )
+
+
 @router.get("/whoop/cardiovascular")
 @limiter.limit("60/minute")
 def get_whoop_cardiovascular(

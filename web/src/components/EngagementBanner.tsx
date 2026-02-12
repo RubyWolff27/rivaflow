@@ -95,6 +95,18 @@ export default function EngagementBanner() {
                   </span>
                 </div>
                 <p className="text-xs text-[var(--muted)]">day streak</p>
+                {streaks.checkin.longest_streak > streaks.checkin.current_streak && (
+                  <p className="text-xs text-orange-500 mt-0.5">
+                    {streaks.checkin.longest_streak - streaks.checkin.current_streak <= 3
+                      ? `${streaks.checkin.longest_streak - streaks.checkin.current_streak} more to beat your best!`
+                      : `Best: ${streaks.checkin.longest_streak}`}
+                  </p>
+                )}
+                {streaks.checkin.current_streak >= streaks.checkin.longest_streak && streaks.checkin.current_streak >= 3 && (
+                  <p className="text-xs text-orange-500 mt-0.5 font-medium">
+                    Personal best!
+                  </p>
+                )}
               </div>
             </div>
           )}

@@ -1,5 +1,5 @@
 import axios from 'axios';
-import type { Session, Readiness, Report, Suggestion, TrainedMovement, Video, Profile, Grading, Movement, Friend, CustomVideo, WeeklyGoalProgress, GoalsSummary, TrainingStreaks, GoalCompletionStreak, DayCheckins, StreakStatus, Streak, Milestone, MilestoneProgress, CompEvent, WeightLog, WeightAverage, Group, GroupMember, UserBasic, TrainingGoal, WhoopConnectionStatus, WhoopWorkoutMatch, WhoopRecovery, WhoopScopeCheck, WhoopReadinessAutoFill, WhoopSessionContext } from '../types';
+import type { Session, Readiness, Report, Suggestion, TrainedMovement, Video, Profile, Grading, Movement, Friend, CustomVideo, WeeklyGoalProgress, GoalsSummary, TrainingStreaks, GoalCompletionStreak, DailyCheckin, DayCheckins, StreakStatus, Streak, Milestone, MilestoneProgress, CompEvent, WeightLog, WeightAverage, Group, GroupMember, UserBasic, TrainingGoal, WhoopConnectionStatus, WhoopWorkoutMatch, WhoopRecovery, WhoopScopeCheck, WhoopReadinessAutoFill, WhoopSessionContext } from '../types';
 
 // Paginated response type
 interface PaginatedResponse<T> {
@@ -305,6 +305,8 @@ export const analyticsApi = {
     api.get('/analytics/insights/overtraining-risk'),
   recoveryInsights: (params?: { days?: number }) =>
     api.get('/analytics/insights/recovery', { params }),
+  checkinTrends: (params?: { days?: number }) =>
+    api.get('/analytics/insights/checkin-trends', { params }),
 
   // Phase 3: WHOOP Performance Science
   whoopPerformanceCorrelation: (params?: { days?: number }) =>
@@ -353,10 +355,11 @@ export const trainingGoalsApi = {
 // Engagement features (v0.2)
 export const checkinsApi = {
   getToday: () => api.get<DayCheckins>('/checkins/today'),
+  getYesterday: () => api.get<{ date: string; morning: DailyCheckin | null; midday: DailyCheckin | null; evening: DailyCheckin | null }>('/checkins/yesterday'),
   getWeek: () => api.get<{ week_start: string; checkins: { date: string; checked_in: boolean; checkin_type: string | null; slots: { morning: unknown; midday: unknown; evening: unknown }; slots_filled: number }[] }>('/checkins/week'),
   updateTomorrow: (data: { tomorrow_intention: string }) => api.put('/checkins/today/tomorrow', data),
   createMidday: (data: { energy_level: number; midday_note?: string }) => api.post<{ success: boolean; id: number }>('/checkins/midday', data),
-  createEvening: (data: { training_quality?: number; recovery_note?: string; tomorrow_intention?: string }) => api.post<{ success: boolean; id: number }>('/checkins/evening', data),
+  createEvening: (data: { did_not_train?: boolean; rest_type?: string; rest_note?: string; training_quality?: number; recovery_note?: string; tomorrow_intention?: string }) => api.post<{ success: boolean; id: number }>('/checkins/evening', data),
 };
 
 export const streaksApi = {

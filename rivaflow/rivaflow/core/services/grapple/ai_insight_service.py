@@ -12,6 +12,9 @@ from rivaflow.core.services.insights_analytics import (
 from rivaflow.db.repositories.ai_insight_repo import (
     AIInsightRepository,
 )
+from rivaflow.db.repositories.checkin_repo import (
+    CheckinRepository,
+)
 from rivaflow.db.repositories.session_repo import (
     SessionRepository,
 )
@@ -121,6 +124,44 @@ async def generate_post_session_insight(user_id: int, session_id: int) -> dict |
         context += f"Overtraining risk: {risk['risk_score']}/100 ({risk['level']}). "
         quality = insights_svc.get_session_quality_scores(user_id)
         context += f"Avg session quality: {quality['avg_quality']}/100. "
+    except Exception:
+        pass
+
+    # Enrich with recent check-in data
+    try:
+        from datetime import date as date_cls
+        from datetime import timedelta as td
+
+        checkin_repo = CheckinRepository()
+        end_d = date_cls.today()
+        start_d = end_d - td(days=7)
+        recent_checkins = checkin_repo.get_checkins_range(user_id, start_d, end_d)
+        if recent_checkins:
+            energy_vals = [
+                c["energy_level"] for c in recent_checkins if c.get("energy_level")
+            ]
+            quality_vals = [
+                c["training_quality"]
+                for c in recent_checkins
+                if c.get("training_quality")
+            ]
+            rest_days = sum(
+                1 for c in recent_checkins if c.get("checkin_type") == "rest"
+            )
+            if energy_vals:
+                avg_e = sum(energy_vals) / len(energy_vals)
+                context += f"Avg energy (7d): {avg_e:.1f}/5. "
+            if quality_vals:
+                avg_q = sum(quality_vals) / len(quality_vals)
+                context += f"Avg training quality (7d): {avg_q:.1f}/5. "
+            if rest_days:
+                context += f"Rest days (7d): {rest_days}. "
+            latest_recovery = next(
+                (c["recovery_note"] for c in recent_checkins if c.get("recovery_note")),
+                None,
+            )
+            if latest_recovery:
+                context += f"Latest recovery note: {latest_recovery}. "
     except Exception:
         pass
 
@@ -304,6 +345,43 @@ async def generate_weekly_insight(
     )
     if whoop_line:
         weekly_content += "\n" + whoop_line
+
+    # Enrich with check-in data
+    try:
+        checkin_repo = CheckinRepository()
+        end_d = date_cls.today()
+        start_d = end_d - timedelta(days=7)
+        weekly_checkins = checkin_repo.get_checkins_range(user_id, start_d, end_d)
+        if weekly_checkins:
+            energy_vals = [
+                c["energy_level"] for c in weekly_checkins if c.get("energy_level")
+            ]
+            quality_vals = [
+                c["training_quality"]
+                for c in weekly_checkins
+                if c.get("training_quality")
+            ]
+            rest_days = sum(
+                1 for c in weekly_checkins if c.get("checkin_type") == "rest"
+            )
+            checkin_line = "Check-in data:"
+            if energy_vals:
+                checkin_line += f" avg energy {sum(energy_vals)/len(energy_vals):.1f}/5"
+            if quality_vals:
+                checkin_line += (
+                    f", avg training quality"
+                    f" {sum(quality_vals)/len(quality_vals):.1f}/5"
+                )
+            if rest_days:
+                checkin_line += f", {rest_days} rest day(s)"
+            recovery_notes = [
+                c["recovery_note"] for c in weekly_checkins if c.get("recovery_note")
+            ]
+            if recovery_notes:
+                checkin_line += f". Recovery notes: {'; '.join(recovery_notes[:3])}"
+            weekly_content += "\n" + checkin_line
+    except Exception:
+        pass
 
     messages = [
         {

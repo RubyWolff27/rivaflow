@@ -33,6 +33,9 @@ class MiddayCheckinCreate(BaseModel):
 class EveningCheckinCreate(BaseModel):
     """Create an evening check-in."""
 
+    did_not_train: bool = False
+    rest_type: str | None = None
+    rest_note: str | None = None
     training_quality: int | None = Field(None, ge=1, le=5)
     recovery_note: str | None = None
     tomorrow_intention: str | None = None
@@ -145,6 +148,9 @@ def create_evening_checkin(
             training_quality=data.training_quality,
             recovery_note=data.recovery_note,
             tomorrow_intention=data.tomorrow_intention,
+            did_not_train=data.did_not_train,
+            rest_type=data.rest_type,
+            rest_note=data.rest_note,
         )
         return {"success": True, "id": checkin_id}
     except Exception as e:
@@ -152,3 +158,20 @@ def create_evening_checkin(
             "Evening checkin failed for user %s: %s", current_user["id"], e
         )
         raise
+
+
+@router.get("/yesterday")
+@limiter.limit("60/minute")
+def get_yesterday_checkin(
+    request: Request, current_user: dict = Depends(get_current_user)
+):
+    """Get yesterday's check-in data (for tomorrow_intention recall)."""
+    repo = CheckinRepository()
+    yesterday = date.today() - timedelta(days=1)
+    slots = repo.get_day_checkins(user_id=current_user["id"], check_date=yesterday)
+    return {
+        "date": yesterday.isoformat(),
+        "morning": slots["morning"],
+        "midday": slots["midday"],
+        "evening": slots["evening"],
+    }

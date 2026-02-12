@@ -74,9 +74,33 @@ async def _streak_at_risk_job() -> None:
         for uid in user_ids:
             try:
                 if streak_svc.is_streak_at_risk(uid):
+                    from datetime import date
+
+                    from rivaflow.db.repositories.checkin_repo import (
+                        CheckinRepository,
+                    )
                     from rivaflow.db.repositories.notification_repo import (
                         NotificationRepository,
                     )
+
+                    # Check yesterday's plan for a personalized nudge
+                    checkin_repo = CheckinRepository()
+                    yesterday = date.today() - timedelta(days=1)
+                    y_slots = checkin_repo.get_day_checkins(uid, yesterday)
+                    intention = None
+                    for slot in ("evening", "midday", "morning"):
+                        s = y_slots.get(slot)
+                        if s and s.get("tomorrow_intention"):
+                            intention = s["tomorrow_intention"]
+                            break
+
+                    if intention:
+                        msg = (
+                            f'You planned "{intention}" today'
+                            f" — don't forget to log it!"
+                        )
+                    else:
+                        msg = "Your streak is at risk!" " Train today to keep it going."
 
                     if not NotificationRepository.check_duplicate(
                         uid, uid, "streak_at_risk", None, None
@@ -85,7 +109,7 @@ async def _streak_at_risk_job() -> None:
                             user_id=uid,
                             actor_id=uid,
                             notification_type="streak_at_risk",
-                            message="Your streak is at risk! Train today to keep it going.",
+                            message=msg,
                         )
             except Exception:
                 logger.debug(

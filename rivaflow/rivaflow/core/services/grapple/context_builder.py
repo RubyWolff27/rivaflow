@@ -10,6 +10,7 @@ from rivaflow.core.services.insights_analytics import (
 )
 from rivaflow.core.services.privacy_service import PrivacyService
 from rivaflow.core.time_utils import utcnow
+from rivaflow.db.repositories.checkin_repo import CheckinRepository
 from rivaflow.db.repositories.coach_preferences_repo import (
     CoachPreferencesRepository,
 )
@@ -724,6 +725,15 @@ Athlete competes under NAGA (North American Grappling Association) rules:
                         f"- {r_date}: Energy {energy}/10, Soreness {soreness}/10, Sleep {sleep}/10"
                     )
 
+            # ── Daily check-in context ──
+            try:
+                checkin_ctx = self._build_checkin_context()
+                if checkin_ctx:
+                    context_parts.append("")
+                    context_parts.append(checkin_ctx)
+            except Exception:
+                logger.debug("Check-in context unavailable", exc_info=True)
+
             # ── Deep analytics context ──
             try:
                 deep = self._build_deep_analytics_context()
@@ -746,6 +756,58 @@ Athlete competes under NAGA (North American Grappling Association) rules:
             context_parts.append("No training sessions logged yet.")
 
         return "\n".join(context_parts)
+
+    def _build_checkin_context(self) -> str:
+        """Build daily check-in context from recent check-ins."""
+        repo = CheckinRepository()
+        end_date = date.today()
+        start_date = end_date - timedelta(days=7)
+        checkins = repo.get_checkins_range(self.user_id, start_date, end_date)
+        if not checkins:
+            return ""
+
+        parts = ["DAILY CHECK-INS (last 7 days):"]
+        for c in checkins:
+            slot = c.get("checkin_slot", "morning")
+            ctype = c.get("checkin_type", "")
+            line = f"- {c['check_date']} ({slot}): "
+
+            if ctype == "rest":
+                rt = c.get("rest_type", "unspecified")
+                line += f"REST DAY ({rt})"
+                if c.get("rest_note"):
+                    line += f" — {c['rest_note']}"
+            elif slot == "midday" and c.get("energy_level"):
+                labels = {1: "Very Low", 2: "Low", 3: "Moderate", 4: "Good", 5: "Great"}
+                label = labels.get(c["energy_level"], "")
+                line += f"Energy {c['energy_level']}/5 ({label})"
+                if c.get("midday_note"):
+                    line += f" — {c['midday_note']}"
+            elif slot == "evening":
+                items = []
+                if c.get("training_quality"):
+                    labels = {
+                        1: "Poor",
+                        2: "Below Avg",
+                        3: "Average",
+                        4: "Good",
+                        5: "Excellent",
+                    }
+                    label = labels.get(c["training_quality"], "")
+                    items.append(
+                        f"Training Quality {c['training_quality']}/5 ({label})"
+                    )
+                if c.get("recovery_note"):
+                    items.append(f"Recovery: {c['recovery_note']}")
+                if c.get("tomorrow_intention"):
+                    items.append(f"Tomorrow plan: {c['tomorrow_intention']}")
+                line += " | ".join(items) if items else "evening check-in"
+            else:
+                line += ctype or "check-in"
+
+            parts.append(line)
+
+        return "\n".join(parts)
 
     def _build_deep_analytics_context(self) -> str:
         """Build deep analytics context from InsightsAnalyticsService."""

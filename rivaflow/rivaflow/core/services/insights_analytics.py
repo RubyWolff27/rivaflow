@@ -935,3 +935,77 @@ class InsightsAnalyticsService:
             "money_moves": money_moves,
             "top_insight": top_insight,
         }
+
+    # ------------------------------------------------------------------
+    # 9. Check-in trends (energy, quality, rest patterns)
+    # ------------------------------------------------------------------
+
+    def get_checkin_trends(
+        self,
+        user_id: int,
+        days: int = 30,
+    ) -> dict[str, Any]:
+        """Analyse daily check-in data for energy, quality, and rest trends."""
+        from rivaflow.db.repositories.checkin_repo import CheckinRepository
+
+        repo = CheckinRepository()
+        end_date = date.today()
+        start_date = end_date - timedelta(days=days)
+        checkins = repo.get_checkins_range(user_id, start_date, end_date)
+
+        if not checkins:
+            return {
+                "energy_trend": [],
+                "quality_trend": [],
+                "rest_days": 0,
+                "training_days": 0,
+                "avg_energy": None,
+                "avg_quality": None,
+                "energy_slope": None,
+                "quality_slope": None,
+                "rest_pattern": [],
+            }
+
+        # Extract energy and quality time series
+        energy_points: list[dict[str, Any]] = []
+        quality_points: list[dict[str, Any]] = []
+        rest_dates: set[str] = set()
+        training_dates: set[str] = set()
+
+        for c in checkins:
+            d = c.get("check_date", "")
+            if c.get("energy_level"):
+                energy_points.append({"date": d, "value": c["energy_level"]})
+            if c.get("training_quality"):
+                quality_points.append({"date": d, "value": c["training_quality"]})
+            if c.get("checkin_type") == "rest":
+                rest_dates.add(d)
+            elif c.get("checkin_type") in ("session", "evening") and c.get(
+                "training_quality"
+            ):
+                training_dates.add(d)
+
+        energy_vals = [p["value"] for p in energy_points]
+        quality_vals = [p["value"] for p in quality_points]
+
+        return {
+            "energy_trend": energy_points,
+            "quality_trend": quality_points,
+            "rest_days": len(rest_dates),
+            "training_days": len(training_dates),
+            "avg_energy": (
+                round(statistics.mean(energy_vals), 1) if energy_vals else None
+            ),
+            "avg_quality": (
+                round(statistics.mean(quality_vals), 1) if quality_vals else None
+            ),
+            "energy_slope": (
+                round(_linear_slope(energy_vals), 3) if len(energy_vals) >= 3 else None
+            ),
+            "quality_slope": (
+                round(_linear_slope(quality_vals), 3)
+                if len(quality_vals) >= 3
+                else None
+            ),
+            "rest_pattern": sorted(rest_dates),
+        }

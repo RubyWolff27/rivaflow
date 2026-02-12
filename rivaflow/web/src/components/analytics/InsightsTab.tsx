@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Brain, Activity } from 'lucide-react';
+import { Brain, Activity, Battery, Star, Bed, TrendingUp, TrendingDown, Minus } from 'lucide-react';
 import { analyticsApi } from '../../api/client';
 import { Card, CardSkeleton, EmptyState } from '../ui';
 import ACWRChart from './ACWRChart';
@@ -118,6 +118,17 @@ interface RecoveryData {
   [key: string]: unknown;
 }
 
+interface CheckinTrendsData {
+  energy_trend?: Array<{ date: string; value: number }>;
+  quality_trend?: Array<{ date: string; value: number }>;
+  rest_days?: number;
+  training_days?: number;
+  avg_energy?: number | null;
+  avg_quality?: number | null;
+  energy_slope?: number | null;
+  quality_slope?: number | null;
+}
+
 export default function InsightsTab({ dateRange }: InsightsTabProps) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -128,6 +139,7 @@ export default function InsightsTab({ dateRange }: InsightsTabProps) {
   const [sessionQuality, setSessionQuality] = useState<SessionQualityData | null>(null);
   const [riskData, setRiskData] = useState<RiskData | null>(null);
   const [recoveryData, setRecoveryData] = useState<RecoveryData | null>(null);
+  const [checkinTrends, setCheckinTrends] = useState<CheckinTrendsData | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -140,7 +152,7 @@ export default function InsightsTab({ dateRange }: InsightsTabProps) {
           ? { start_date: dateRange.start, end_date: dateRange.end }
           : undefined;
 
-        const [summaryRes, loadRes, corrRes, techRes, qualRes, riskRes, recRes] = await Promise.all([
+        const [summaryRes, loadRes, corrRes, techRes, qualRes, riskRes, recRes, checkinRes] = await Promise.all([
           analyticsApi.insightsSummary().catch(() => ({ data: null })),
           analyticsApi.trainingLoad().catch(() => ({ data: null })),
           analyticsApi.readinessCorrelation(params).catch(() => ({ data: null })),
@@ -148,6 +160,7 @@ export default function InsightsTab({ dateRange }: InsightsTabProps) {
           analyticsApi.sessionQuality(params).catch(() => ({ data: null })),
           analyticsApi.overtTrainingRisk().catch(() => ({ data: null })),
           analyticsApi.recoveryInsights().catch(() => ({ data: null })),
+          analyticsApi.checkinTrends({ days: 30 }).catch(() => ({ data: null })),
         ]);
 
         if (!cancelled) {
@@ -158,6 +171,7 @@ export default function InsightsTab({ dateRange }: InsightsTabProps) {
           setSessionQuality(qualRes.data);
           setRiskData(riskRes.data);
           setRecoveryData(recRes.data);
+          setCheckinTrends(checkinRes.data);
         }
       } catch (err) {
         if (!cancelled) {
@@ -269,6 +283,68 @@ export default function InsightsTab({ dateRange }: InsightsTabProps) {
           <Brain className="w-5 h-5 flex-shrink-0" style={{ color: 'var(--accent)' }} />
           <p className="text-sm font-medium" style={{ color: 'var(--text)' }}>{summary.top_insight}</p>
         </div>
+      )}
+
+      {/* Check-in Trends */}
+      {checkinTrends && (checkinTrends.training_days ?? 0) + (checkinTrends.rest_days ?? 0) > 0 && (
+        <Card>
+          <h3 className="text-lg font-semibold mb-3" style={{ color: 'var(--text)' }}>Check-in Pulse</h3>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            <div className="p-3 rounded-lg" style={{ backgroundColor: 'var(--surfaceElev)' }}>
+              <div className="flex items-center gap-1.5 mb-1">
+                <Battery className="w-3.5 h-3.5" style={{ color: 'var(--accent)' }} />
+                <p className="text-xs font-medium uppercase tracking-wide" style={{ color: 'var(--muted)' }}>Energy</p>
+              </div>
+              <p className="text-xl font-bold" style={{ color: 'var(--text)' }}>
+                {checkinTrends.avg_energy != null ? checkinTrends.avg_energy.toFixed(1) : '—'}
+              </p>
+              <div className="flex items-center gap-1 mt-1">
+                {checkinTrends.energy_slope != null && checkinTrends.energy_slope > 0.05 && <TrendingUp className="w-3 h-3 text-green-500" />}
+                {checkinTrends.energy_slope != null && checkinTrends.energy_slope < -0.05 && <TrendingDown className="w-3 h-3 text-red-400" />}
+                {checkinTrends.energy_slope != null && Math.abs(checkinTrends.energy_slope) <= 0.05 && <Minus className="w-3 h-3" style={{ color: 'var(--muted)' }} />}
+                <p className="text-xs" style={{ color: 'var(--muted)' }}>/ 5</p>
+              </div>
+            </div>
+
+            <div className="p-3 rounded-lg" style={{ backgroundColor: 'var(--surfaceElev)' }}>
+              <div className="flex items-center gap-1.5 mb-1">
+                <Star className="w-3.5 h-3.5" style={{ color: '#EAB308' }} />
+                <p className="text-xs font-medium uppercase tracking-wide" style={{ color: 'var(--muted)' }}>Quality</p>
+              </div>
+              <p className="text-xl font-bold" style={{ color: 'var(--text)' }}>
+                {checkinTrends.avg_quality != null ? checkinTrends.avg_quality.toFixed(1) : '—'}
+              </p>
+              <div className="flex items-center gap-1 mt-1">
+                {checkinTrends.quality_slope != null && checkinTrends.quality_slope > 0.05 && <TrendingUp className="w-3 h-3 text-green-500" />}
+                {checkinTrends.quality_slope != null && checkinTrends.quality_slope < -0.05 && <TrendingDown className="w-3 h-3 text-red-400" />}
+                {checkinTrends.quality_slope != null && Math.abs(checkinTrends.quality_slope) <= 0.05 && <Minus className="w-3 h-3" style={{ color: 'var(--muted)' }} />}
+                <p className="text-xs" style={{ color: 'var(--muted)' }}>/ 5</p>
+              </div>
+            </div>
+
+            <div className="p-3 rounded-lg" style={{ backgroundColor: 'var(--surfaceElev)' }}>
+              <div className="flex items-center gap-1.5 mb-1">
+                <Activity className="w-3.5 h-3.5" style={{ color: 'var(--accent)' }} />
+                <p className="text-xs font-medium uppercase tracking-wide" style={{ color: 'var(--muted)' }}>Training</p>
+              </div>
+              <p className="text-xl font-bold" style={{ color: 'var(--text)' }}>
+                {checkinTrends.training_days ?? 0}
+              </p>
+              <p className="text-xs mt-1" style={{ color: 'var(--muted)' }}>days (30d)</p>
+            </div>
+
+            <div className="p-3 rounded-lg" style={{ backgroundColor: 'var(--surfaceElev)' }}>
+              <div className="flex items-center gap-1.5 mb-1">
+                <Bed className="w-3.5 h-3.5" style={{ color: '#8B5CF6' }} />
+                <p className="text-xs font-medium uppercase tracking-wide" style={{ color: 'var(--muted)' }}>Rest</p>
+              </div>
+              <p className="text-xl font-bold" style={{ color: 'var(--text)' }}>
+                {checkinTrends.rest_days ?? 0}
+              </p>
+              <p className="text-xs mt-1" style={{ color: 'var(--muted)' }}>days (30d)</p>
+            </div>
+          </div>
+        </Card>
       )}
 
       {/* Training Load Management */}

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { Plus, Activity, Sparkles, Heart, Waves, RefreshCw, Sun, Moon, ChevronDown, ChevronUp } from 'lucide-react';
+import { Plus, Activity, Sparkles, Heart, Waves, RefreshCw, Sun, Moon, ChevronDown, ChevronUp, CalendarCheck, Coffee, Briefcase, AlertTriangle, Plane } from 'lucide-react';
 import { getLocalDateString } from '../../utils/date';
 import { suggestionsApi, readinessApi, whoopApi, checkinsApi } from '../../api/client';
 import { getErrorMessage } from '../../api/client';
@@ -56,7 +56,7 @@ function getTimeSlot(): 'morning' | 'midday' | 'evening' {
 
 /* ---------- Inline sub-components ---------- */
 
-function MiddayPrompt({ onSubmitted }: { onSubmitted: () => void }) {
+function MiddayPrompt({ onSubmitted, todayPlan }: { onSubmitted: () => void; todayPlan?: string }) {
   const [expanded, setExpanded] = useState(false);
   const [energy, setEnergy] = useState(3);
   const [note, setNote] = useState('');
@@ -100,6 +100,17 @@ function MiddayPrompt({ onSubmitted }: { onSubmitted: () => void }) {
 
       {expanded && (
         <div className="px-3 pb-3 space-y-3">
+          {/* Remind of today's plan */}
+          {todayPlan && (
+            <div
+              className="flex items-center gap-2 p-2 rounded-lg text-xs"
+              style={{ backgroundColor: 'var(--surface)', border: '1px solid var(--border)' }}
+            >
+              <CalendarCheck className="w-3.5 h-3.5 shrink-0" style={{ color: 'var(--accent)' }} />
+              <span style={{ color: 'var(--muted)' }}>Today's plan: <strong style={{ color: 'var(--text)' }}>{todayPlan}</strong> — still on?</span>
+            </div>
+          )}
+
           {/* Energy slider */}
           <div>
             <label className="text-xs font-medium" style={{ color: 'var(--muted)' }}>
@@ -138,11 +149,21 @@ function MiddayPrompt({ onSubmitted }: { onSubmitted: () => void }) {
   );
 }
 
+const REST_TYPES = [
+  { id: 'recovery', label: 'Recovery', icon: Coffee, color: '#10B981' },
+  { id: 'life', label: 'Life', icon: Briefcase, color: '#3B82F6' },
+  { id: 'injury', label: 'Injury', icon: AlertTriangle, color: '#EF4444' },
+  { id: 'travel', label: 'Travel', icon: Plane, color: '#8B5CF6' },
+];
+
 function EveningPrompt({ onSubmitted }: { onSubmitted: () => void }) {
   const [expanded, setExpanded] = useState(false);
+  const [didNotTrain, setDidNotTrain] = useState(false);
   const [quality, setQuality] = useState(3);
   const [recoveryNote, setRecoveryNote] = useState('');
   const [tomorrow, setTomorrow] = useState('');
+  const [restType, setRestType] = useState<string | null>(null);
+  const [restNote, setRestNote] = useState('');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
 
@@ -151,7 +172,10 @@ function EveningPrompt({ onSubmitted }: { onSubmitted: () => void }) {
     setError('');
     try {
       await checkinsApi.createEvening({
-        training_quality: quality,
+        did_not_train: didNotTrain,
+        rest_type: didNotTrain ? (restType || undefined) : undefined,
+        rest_note: didNotTrain ? (restNote || undefined) : undefined,
+        training_quality: didNotTrain ? undefined : quality,
         recovery_note: recoveryNote || undefined,
         tomorrow_intention: tomorrow || undefined,
       });
@@ -187,32 +211,111 @@ function EveningPrompt({ onSubmitted }: { onSubmitted: () => void }) {
 
       {expanded && (
         <div className="px-3 pb-3 space-y-3">
-          {/* Training quality slider */}
-          <div>
-            <label className="text-xs font-medium" style={{ color: 'var(--muted)' }}>
-              Training Quality: <span style={{ color: 'var(--text)' }}>{quality}/5 — {qualityLabels[quality]}</span>
-            </label>
-            <input
-              type="range" min={1} max={5} value={quality}
-              onChange={(e) => setQuality(Number(e.target.value))}
-              className="w-full mt-1 accent-[var(--accent)]"
-            />
+          {/* Train / Rest toggle */}
+          <div className="flex rounded-lg overflow-hidden" style={{ border: '1px solid var(--border)' }}>
+            <button
+              onClick={() => setDidNotTrain(false)}
+              className="flex-1 py-2 text-sm font-semibold transition-colors"
+              style={{
+                backgroundColor: !didNotTrain ? 'var(--accent)' : 'var(--surface)',
+                color: !didNotTrain ? '#fff' : 'var(--muted)',
+              }}
+            >
+              I trained
+            </button>
+            <button
+              onClick={() => setDidNotTrain(true)}
+              className="flex-1 py-2 text-sm font-semibold transition-colors"
+              style={{
+                backgroundColor: didNotTrain ? 'var(--surfaceElev)' : 'var(--surface)',
+                color: didNotTrain ? 'var(--text)' : 'var(--muted)',
+                borderLeft: '1px solid var(--border)',
+              }}
+            >
+              Rest day
+            </button>
           </div>
 
-          {/* Recovery note */}
-          <textarea
-            placeholder="How does your body feel? Any notes on recovery..."
-            value={recoveryNote}
-            onChange={(e) => setRecoveryNote(e.target.value)}
-            rows={2}
-            className="w-full text-sm rounded-lg px-3 py-2 resize-none"
-            style={{ backgroundColor: 'var(--surface)', color: 'var(--text)', border: '1px solid var(--border)' }}
-          />
+          {!didNotTrain ? (
+            <>
+              {/* Training quality slider */}
+              <div>
+                <label className="text-xs font-medium" style={{ color: 'var(--muted)' }}>
+                  Training Quality: <span style={{ color: 'var(--text)' }}>{quality}/5 — {qualityLabels[quality]}</span>
+                </label>
+                <input
+                  type="range" min={1} max={5} value={quality}
+                  onChange={(e) => setQuality(Number(e.target.value))}
+                  className="w-full mt-1 accent-[var(--accent)]"
+                />
+              </div>
+
+              {/* Recovery note */}
+              <textarea
+                placeholder="How does your body feel? Any notes on recovery..."
+                value={recoveryNote}
+                onChange={(e) => setRecoveryNote(e.target.value)}
+                rows={2}
+                className="w-full text-sm rounded-lg px-3 py-2 resize-none"
+                style={{ backgroundColor: 'var(--surface)', color: 'var(--text)', border: '1px solid var(--border)' }}
+              />
+            </>
+          ) : (
+            <>
+              {/* Rest type picker */}
+              <div>
+                <label className="text-xs font-medium mb-2 block" style={{ color: 'var(--muted)' }}>
+                  Why no training?
+                </label>
+                <div className="grid grid-cols-4 gap-2">
+                  {REST_TYPES.map((rt) => {
+                    const Icon = rt.icon;
+                    const selected = restType === rt.id;
+                    return (
+                      <button
+                        key={rt.id}
+                        onClick={() => setRestType(selected ? null : rt.id)}
+                        className="flex flex-col items-center gap-1 py-2 rounded-lg text-xs font-medium transition-all"
+                        style={{
+                          backgroundColor: selected ? 'var(--surfaceElev)' : 'var(--surface)',
+                          border: selected ? `1px solid ${rt.color}` : '1px solid var(--border)',
+                          color: selected ? rt.color : 'var(--muted)',
+                        }}
+                      >
+                        <Icon className="w-4 h-4" />
+                        {rt.label}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Rest note */}
+              <input
+                type="text"
+                placeholder="Quick note (optional)"
+                value={restNote}
+                onChange={(e) => setRestNote(e.target.value)}
+                className="w-full text-sm rounded-lg px-3 py-2"
+                style={{ backgroundColor: 'var(--surface)', color: 'var(--text)', border: '1px solid var(--border)' }}
+              />
+
+              {/* Recovery note (still useful on rest days) */}
+              <textarea
+                placeholder="How does your body feel?"
+                value={recoveryNote}
+                onChange={(e) => setRecoveryNote(e.target.value)}
+                rows={2}
+                className="w-full text-sm rounded-lg px-3 py-2 resize-none"
+                style={{ backgroundColor: 'var(--surface)', color: 'var(--text)', border: '1px solid var(--border)' }}
+              />
+            </>
+          )}
 
           {/* Tomorrow's plan */}
           <input
             type="text"
-            placeholder="Tomorrow's plan (e.g. rest, gi, nogi)"
+            placeholder="Tomorrow's plan (e.g. 5km jog, BJJ Gi at 17:30)"
             value={tomorrow}
             onChange={(e) => setTomorrow(e.target.value)}
             className="w-full text-sm rounded-lg px-3 py-2"
@@ -235,6 +338,35 @@ function EveningPrompt({ onSubmitted }: { onSubmitted: () => void }) {
   );
 }
 
+/* ---------- Yesterday's Plan Banner ---------- */
+
+function TodayPlanBanner({ intention, onLog }: { intention: string; onLog: () => void }) {
+  return (
+    <div
+      className="flex items-center gap-3 p-3 rounded-xl mb-4"
+      style={{ backgroundColor: 'var(--surfaceElev)', border: '1px solid var(--border)' }}
+    >
+      <div
+        className="w-9 h-9 rounded-full flex items-center justify-center shrink-0"
+        style={{ backgroundColor: 'var(--warning-bg)' }}
+      >
+        <CalendarCheck className="w-4 h-4" style={{ color: 'var(--warning)' }} />
+      </div>
+      <div className="flex-1 min-w-0">
+        <p className="text-xs font-medium" style={{ color: 'var(--muted)' }}>Your plan today</p>
+        <p className="text-sm font-semibold truncate" style={{ color: 'var(--text)' }}>{intention}</p>
+      </div>
+      <button
+        onClick={onLog}
+        className="shrink-0 px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors"
+        style={{ backgroundColor: 'var(--accent)', color: '#fff' }}
+      >
+        Log it
+      </button>
+    </div>
+  );
+}
+
 /* ---------- Main component ---------- */
 
 export default function DailyActionHero() {
@@ -244,6 +376,7 @@ export default function DailyActionHero() {
   const [readinessScore, setReadinessScore] = useState<number | null>(null);
   const [hasCheckedIn, setHasCheckedIn] = useState(false);
   const [dayCheckins, setDayCheckins] = useState<DayCheckins | null>(null);
+  const [todayPlan, setTodayPlan] = useState<string | undefined>(undefined);
   const [whoopRecovery, setWhoopRecovery] = useState<{
     recovery_score: number | null;
     hrv_ms: number | null;
@@ -262,12 +395,13 @@ export default function DailyActionHero() {
   useEffect(() => {
     const controller = new AbortController();
     const load = async () => {
-      // Load suggestion, readiness, WHOOP, and checkins in parallel
+      // Load suggestion, readiness, WHOOP, checkins, and yesterday in parallel
       const results = await Promise.allSettled([
         suggestionsApi.getToday(),
         readinessApi.getByDate(getLocalDateString()),
         whoopApi.getLatestRecovery(),
         checkinsApi.getToday(),
+        checkinsApi.getYesterday(),
       ]);
 
       if (controller.signal.aborted) return;
@@ -297,6 +431,18 @@ export default function DailyActionHero() {
         setDayCheckins(results[3].value.data);
         if (results[3].value.data.checked_in) {
           setHasCheckedIn(true);
+        }
+      }
+
+      // Yesterday's plan (Wave B)
+      if (results[4].status === 'fulfilled' && results[4].value.data) {
+        const y = results[4].value.data;
+        // Check evening first, then other slots for tomorrow_intention
+        const intention = y.evening?.tomorrow_intention
+          || y.midday?.tomorrow_intention
+          || y.morning?.tomorrow_intention;
+        if (intention) {
+          setTodayPlan(intention);
         }
       }
 
@@ -369,6 +515,14 @@ export default function DailyActionHero() {
           Log Session
         </PrimaryButton>
       </div>
+
+      {/* Yesterday's plan banner */}
+      {todayPlan && !hasEvening && (
+        <TodayPlanBanner
+          intention={todayPlan}
+          onLog={() => navigate('/log')}
+        />
+      )}
 
       {/* Main recommendation */}
       {!hasCheckedIn && !whoopRecovery ? (
@@ -533,7 +687,7 @@ export default function DailyActionHero() {
       )}
 
       {/* Midday prompt */}
-      {showMidday && <MiddayPrompt onSubmitted={loadCheckins} />}
+      {showMidday && <MiddayPrompt onSubmitted={loadCheckins} todayPlan={todayPlan} />}
 
       {/* Evening prompt */}
       {showEvening && <EveningPrompt onSubmitted={loadCheckins} />}
@@ -555,6 +709,14 @@ export default function DailyActionHero() {
               style={{ backgroundColor: 'var(--success-bg)', color: 'var(--success)' }}
             >
               Evening logged
+            </span>
+          )}
+          {dayCheckins?.evening?.checkin_type === 'rest' && (
+            <span
+              className="text-xs px-2 py-0.5 rounded-full"
+              style={{ backgroundColor: 'var(--primary-bg)', color: 'var(--primary)' }}
+            >
+              Rest day
             </span>
           )}
         </div>
