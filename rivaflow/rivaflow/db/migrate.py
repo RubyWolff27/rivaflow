@@ -23,6 +23,36 @@ logger = logging.getLogger(__name__)
 _PG_LOCK_KEY = int(hashlib.md5(b"rivaflow_migrations").hexdigest()[:15], 16) % (2**31)
 
 
+def _ensure_critical_columns(conn):
+    """Ensure critical columns exist, bypassing migration tracking.
+
+    This handles cases where a migration was recorded as applied
+    but the schema change never actually took effect.
+    """
+    checks = [
+        ("profile", "timezone", "TEXT DEFAULT 'UTC'"),
+    ]
+    cursor = conn.cursor()
+    for table, column, col_def in checks:
+        try:
+            cursor.execute(
+                "SELECT column_name FROM information_schema.columns "
+                "WHERE table_name = %s AND column_name = %s",
+                (table, column),
+            )
+            if cursor.fetchone() is None:
+                logger.warning(f"Column {table}.{column} missing — adding it now")
+                cursor.execute(f"ALTER TABLE {table} ADD COLUMN {column} {col_def}")
+                conn.commit()
+                logger.info(f"Added missing column {table}.{column}")
+            else:
+                logger.info(f"Column {table}.{column} exists — OK")
+        except psycopg2.Error as e:
+            logger.error(f"Failed to ensure {table}.{column}: {e}")
+            conn.rollback()
+    cursor.close()
+
+
 def get_migration_files():
     """Get all PostgreSQL migration files in order."""
     migrations_dir = Path(__file__).parent / "migrations"
@@ -48,9 +78,7 @@ def create_migrations_table(conn):
 
         if not has_version_column:
             # Table exists but has wrong schema - drop and recreate
-            logger.warning(
-                "schema_migrations table exists with incorrect schema. Recreating..."
-            )
+            logger.warning("schema_migrations table exists with incorrect schema. Recreating...")
             cursor.execute("DROP TABLE IF EXISTS schema_migrations")
             conn.commit()
     except psycopg2.Error as e:
@@ -98,9 +126,7 @@ def apply_migration(conn, migration_file):
         cursor.execute(sql)
 
         # Record migration
-        cursor.execute(
-            "INSERT INTO schema_migrations (version) VALUES (%s)", (version,)
-        )
+        cursor.execute("INSERT INTO schema_migrations (version) VALUES (%s)", (version,))
 
         conn.commit()
         logger.info(f"✓ Applied: {version}")
@@ -159,6 +185,9 @@ def run_migrations():
         # Create migrations tracking table
         create_migrations_table(conn)
 
+        # Ensure critical columns exist (bypass migration tracking)
+        _ensure_critical_columns(conn)
+
         # Get applied migrations
         applied = get_applied_migrations(conn)
         logger.info(f"Already applied: {len(applied)} migrations")
@@ -193,7 +222,5 @@ def run_migrations():
 
 if __name__ == "__main__":
     # Configure logging for standalone execution
-    logging.basicConfig(
-        level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
-    )
+    logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
     run_migrations()
