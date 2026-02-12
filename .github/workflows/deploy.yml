@@ -84,12 +84,12 @@ jobs:
       run: |
         echo "Running post-deployment smoke tests..."
 
-        # Test database health endpoint
-        response=$(curl -s -o /dev/null -w "%{http_code}" https://api.rivaflow.app/api/v1/health/db)
+        # Test health endpoint (includes database connectivity check)
+        response=$(curl -s -o /dev/null -w "%{http_code}" https://api.rivaflow.app/health)
         if [ "$response" -eq 200 ]; then
-          echo "Database health check passed"
+          echo "Health check passed (includes DB connectivity)"
         else
-          echo "Database health check failed (HTTP $response)"
+          echo "Health check failed (HTTP $response)"
           exit 1
         fi
 
