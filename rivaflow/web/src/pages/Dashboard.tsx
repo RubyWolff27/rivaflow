@@ -19,12 +19,12 @@ export default function Dashboard() {
   const navigate = useNavigate();
   const tierInfo = useTier();
 
-  // Auto-sync browser timezone to profile — always verify it matches
+  // Auto-sync browser timezone to profile — reload if corrected
   useEffect(() => {
     const browserTz = Intl.DateTimeFormat().resolvedOptions().timeZone;
     if (!browserTz) return;
     const lastSynced = sessionStorage.getItem('tz_synced');
-    if (lastSynced === browserTz) return; // already confirmed this session
+    if (lastSynced === browserTz) return;
     (async () => {
       try {
         const { data: profile } = await profileApi.get();
@@ -34,6 +34,8 @@ export default function Dashboard() {
         }
         await profileApi.update({ timezone: browserTz });
         sessionStorage.setItem('tz_synced', browserTz);
+        // Timezone changed — reload so all date-dependent data is correct
+        window.location.reload();
       } catch { /* best-effort, will retry next load */ }
     })();
   }, []);
