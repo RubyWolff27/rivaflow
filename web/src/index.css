@@ -206,6 +206,15 @@
     margin-bottom: 0.25rem;
   }
 
+  /* Hide scrollbar but keep scroll functionality */
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+
   /* Border utilities */
   .border-default {
     border-color: var(--border);

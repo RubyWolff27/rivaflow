@@ -411,7 +411,7 @@ export default function Reports() {
       {/* Page Header */}
       <div className="flex items-center justify-between flex-wrap gap-3">
         <h1 className="text-2xl font-semibold text-[var(--text)]">Progress</h1>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 flex-wrap">
           <Link
             to="/fight-dynamics"
             className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors hover:opacity-80"
@@ -425,7 +425,7 @@ export default function Reports() {
           ) : (
             <button
               onClick={() => setShowUpgradePrompt(true)}
-              className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+              className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors"
               style={{ backgroundColor: 'var(--surfaceElev)', border: '1px solid var(--border)', color: 'var(--muted)' }}
             >
               <span>Activity Filter</span>

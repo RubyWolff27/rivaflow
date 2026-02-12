@@ -117,7 +117,7 @@ const Layout = memo(function Layout({ children }: { children: React.ReactNode })
   ];
 
   return (
-    <div className="min-h-screen app-bg">
+    <div className="min-h-screen app-bg overflow-x-hidden">
       {/* Skip to content link for screen readers */}
       <a
         href="#main-content"

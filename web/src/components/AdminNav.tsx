@@ -17,7 +17,7 @@ export default function AdminNav() {
 
   return (
     <div className="mb-6">
-      <nav className="flex gap-2 overflow-x-auto pb-2">
+      <nav className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
         {adminNavigation.map((item) => {
           const isActive = location.pathname === item.href;
           const Icon = item.icon;
