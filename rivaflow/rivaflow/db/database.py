@@ -501,6 +501,7 @@ def _apply_migrations(
         "071_deduplicate_glossary.sql",
         "072_fix_rate_limits_unique_index.sql",
         "073_create_training_goals.sql",
+        "074_add_profile_timezone.sql",
         "075_whoop_integration.sql",
         "076_whoop_recovery.sql",
         "077_whoop_auto_sessions.sql",
