@@ -13,6 +13,7 @@ import GettingStarted from '../components/dashboard/GettingStarted';
 import ThisWeek from '../components/dashboard/ThisWeek';
 import MyGameWidget from '../components/dashboard/MyGameWidget';
 import LatestInsightWidget from '../components/dashboard/LatestInsightWidget';
+import EngagementBanner from '../components/EngagementBanner';
 
 export default function Dashboard() {
   const navigate = useNavigate();
@@ -41,7 +42,10 @@ export default function Dashboard() {
         {tierInfo.isBeta && <BetaBadge />}
       </div>
 
-      {/* 0. Getting Started — onboarding checklist for new users */}
+      {/* 0. Engagement Banner — streaks, check-in status, motivation */}
+      <EngagementBanner />
+
+      {/* 1. Getting Started — onboarding checklist for new users */}
       <GettingStarted />
 
       {/* 1. Daily Action Hero — THE primary card */}

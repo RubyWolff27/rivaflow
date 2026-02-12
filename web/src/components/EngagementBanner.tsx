@@ -60,11 +60,11 @@ export default function EngagementBanner() {
   return (
     <div className="space-y-4">
       {/* Check-in Status Bar */}
-      <div className={`card border-2 ${
+      <div className="card border-2" style={
         checkedIn
-          ? 'bg-green-50 border-green-200'
-          : 'bg-yellow-50 border-yellow-200'
-      }`}>
+          ? { backgroundColor: 'rgba(34,197,94,0.1)', borderColor: 'var(--success)' }
+          : { backgroundColor: 'rgba(234,179,8,0.1)', borderColor: '#ca8a04' }
+      }>
         <div className="flex items-center justify-between">
           <div>
             <div className="flex items-center gap-2 mb-1">
