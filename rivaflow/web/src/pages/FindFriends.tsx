@@ -107,16 +107,17 @@ export default function FindFriends() {
       await socialApi.sendFriendRequest(userId, { connection_source: source });
       toast.success('Friend request sent');
       updateUserStatus(userId, 'pending_sent');
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error sending friend request:', error);
-      toast.error(error.response?.data?.detail || 'Failed to send friend request');
+      const e = error as { response?: { data?: { detail?: string } } };
+      toast.error(e.response?.data?.detail || 'Failed to send friend request');
     }
   };
 
   const handleAcceptRequest = async (userId: number) => {
     try {
       const receivedResponse = await socialApi.getReceivedRequests();
-      const request = receivedResponse.data.requests.find((r: any) => r.requester_id === userId);
+      const request = receivedResponse.data.requests.find((r: { requester_id: number; id: number }) => r.requester_id === userId);
 
       if (request) {
         await socialApi.acceptFriendRequest(request.id);
@@ -132,7 +133,7 @@ export default function FindFriends() {
   const handleDeclineRequest = async (userId: number) => {
     try {
       const receivedResponse = await socialApi.getReceivedRequests();
-      const request = receivedResponse.data.requests.find((r: any) => r.requester_id === userId);
+      const request = receivedResponse.data.requests.find((r: { requester_id: number; id: number }) => r.requester_id === userId);
 
       if (request) {
         await socialApi.declineFriendRequest(request.id);

@@ -3,7 +3,7 @@ import { MessageCircle, Send, Mic, MicOff } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
 import { useSpeechRecognition } from '../hooks/useSpeechRecognition';
-import axios from 'axios';
+import { chatApi, getErrorMessage } from '../api/client';
 
 interface Message {
   role: 'user' | 'assistant';
@@ -35,20 +35,13 @@ export default function Chat() {
     setLoading(true);
 
     try {
-      const token = localStorage.getItem('access_token');
-      const apiBase = import.meta.env.VITE_API_URL || '/api';
-      const response = await axios.post(
-        `${apiBase}/chat/`,
-        { messages: newMessages },
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-
+      const response = await chatApi.send(newMessages);
       setMessages([...newMessages, { role: 'assistant', content: response.data.reply }]);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Chat error:', error);
       setMessages([
         ...newMessages,
-        { role: 'assistant', content: 'Error: ' + (error.response?.data?.detail || 'Failed to get response') },
+        { role: 'assistant', content: 'Error: ' + getErrorMessage(error) },
       ]);
     } finally {
       setLoading(false);

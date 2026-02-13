@@ -147,22 +147,36 @@ class GrappleTokenMonitor:
                 }
 
                 for row in rows:
-                    provider = row[6]
+                    if hasattr(row, "keys"):
+                        r = dict(row)
+                    else:
+                        r = {
+                            "request_count": row[0],
+                            "total_tokens": row[1],
+                            "total_input_tokens": row[2],
+                            "total_output_tokens": row[3],
+                            "total_cost_usd": row[4],
+                            "avg_tokens_per_request": row[5],
+                            "provider": row[6],
+                        }
+                    provider = r["provider"]
                     by_provider[provider] = {
-                        "request_count": row[0],
-                        "total_tokens": row[1],
-                        "total_input_tokens": row[2],
-                        "total_output_tokens": row[3],
-                        "total_cost_usd": round(row[4], 6),
-                        "avg_tokens_per_request": round(row[5], 2),
+                        "request_count": r["request_count"],
+                        "total_tokens": r["total_tokens"],
+                        "total_input_tokens": r["total_input_tokens"],
+                        "total_output_tokens": r["total_output_tokens"],
+                        "total_cost_usd": round(float(r["total_cost_usd"] or 0), 6),
+                        "avg_tokens_per_request": round(
+                            float(r["avg_tokens_per_request"] or 0), 2
+                        ),
                     }
 
                     # Add to totals
-                    totals["request_count"] += row[0]
-                    totals["total_tokens"] += row[1]
-                    totals["total_input_tokens"] += row[2]
-                    totals["total_output_tokens"] += row[3]
-                    totals["total_cost_usd"] += row[4]
+                    totals["request_count"] += r["request_count"]
+                    totals["total_tokens"] += r["total_tokens"]
+                    totals["total_input_tokens"] += r["total_input_tokens"]
+                    totals["total_output_tokens"] += r["total_output_tokens"]
+                    totals["total_cost_usd"] += float(r["total_cost_usd"] or 0)
 
                 totals["total_cost_usd"] = round(totals["total_cost_usd"], 6)
                 totals["avg_tokens_per_request"] = (
@@ -371,18 +385,31 @@ class GrappleTokenMonitor:
                 }
 
                 for row in rows:
-                    provider = row[5]
+                    if hasattr(row, "keys"):
+                        r = dict(row)
+                    else:
+                        r = {
+                            "unique_users": row[0],
+                            "total_requests": row[1],
+                            "total_tokens": row[2],
+                            "total_cost_usd": row[3],
+                            "avg_tokens_per_request": row[4],
+                            "provider": row[5],
+                        }
+                    provider = r["provider"]
                     by_provider[provider] = {
-                        "unique_users": row[0],
-                        "total_requests": row[1],
-                        "total_tokens": row[2],
-                        "total_cost_usd": round(row[3], 6),
-                        "avg_tokens_per_request": round(row[4], 2),
+                        "unique_users": r["unique_users"],
+                        "total_requests": r["total_requests"],
+                        "total_tokens": r["total_tokens"],
+                        "total_cost_usd": round(float(r["total_cost_usd"] or 0), 6),
+                        "avg_tokens_per_request": round(
+                            float(r["avg_tokens_per_request"] or 0), 2
+                        ),
                     }
 
-                    totals["total_requests"] += row[1]
-                    totals["total_tokens"] += row[2]
-                    totals["total_cost_usd"] += row[3]
+                    totals["total_requests"] += r["total_requests"]
+                    totals["total_tokens"] += r["total_tokens"]
+                    totals["total_cost_usd"] += float(r["total_cost_usd"] or 0)
 
                 # Get unique users across all providers
                 user_query = convert_query("""
@@ -392,7 +419,11 @@ class GrappleTokenMonitor:
                 """)
                 cursor = conn.cursor()
                 cursor.execute(user_query, (start_date, end_date))
-                totals["unique_users"] = cursor.fetchone()[0]
+                urow = cursor.fetchone()
+                if hasattr(urow, "keys"):
+                    totals["unique_users"] = list(urow.values())[0] or 0
+                else:
+                    totals["unique_users"] = urow[0] or 0
                 cursor.close()
 
                 totals["total_cost_usd"] = round(totals["total_cost_usd"], 6)

@@ -98,9 +98,10 @@ export default function PhotoGallery({
       setSelectedPhoto(null);
       setPhotoToDelete(null);
       toast.success('Photo deleted successfully');
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error deleting photo:', error);
-      toast.error(error.response?.data?.detail || 'Failed to delete photo');
+      const e = error as { response?: { data?: { detail?: string } } };
+      toast.error(e.response?.data?.detail || 'Failed to delete photo');
     } finally {
       setDeleting(false);
     }

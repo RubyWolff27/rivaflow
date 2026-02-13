@@ -91,10 +91,11 @@ export default function UserProfile() {
         } catch {
           // Ignore — defaults to 'none'
         }
-      } catch (err: any) {
+      } catch (err: unknown) {
         if (!cancelled) {
           console.error('Error loading user profile:', err);
-          setError(err.response?.data?.detail || 'Failed to load user profile');
+          const e = err as { response?: { data?: { detail?: string } } };
+          setError(e.response?.data?.detail || 'Failed to load user profile');
         }
       } finally {
         if (!cancelled) setLoading(false);
@@ -122,8 +123,9 @@ export default function UserProfile() {
       }
       setFriendshipStatus('pending_sent');
       toast.success('Friend request sent!');
-    } catch (err: any) {
-      const msg = err.response?.data?.detail || 'Failed to send friend request';
+    } catch (err: unknown) {
+      const e = err as { response?: { data?: { detail?: string } } };
+      const msg = e.response?.data?.detail || 'Failed to send friend request';
       console.error('Failed to send friend request:', err);
       toast.error(msg);
     } finally {
@@ -139,14 +141,14 @@ export default function UserProfile() {
       // We need the connection ID — get it from received requests
       const receivedRes = await socialApi.getReceivedRequests();
       const pending = receivedRes.data.requests?.find(
-        (r: any) => r.requester_id === profile.id
+        (r: { requester_id: number; id: number }) => r.requester_id === profile.id
       );
       if (pending) {
         await socialApi.acceptFriendRequest(pending.id);
         setFriendshipStatus('friends');
         toast.success('Friend request accepted!');
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Failed to accept friend request:', err);
       toast.error('Failed to accept friend request');
     } finally {

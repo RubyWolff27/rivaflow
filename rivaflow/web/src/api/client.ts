@@ -568,6 +568,20 @@ export const adminApi = {
   // Broadcast email
   broadcastEmail: (data: { subject: string; html_body: string; text_body?: string }) =>
     api.post('/admin/email/broadcast', data),
+
+  // Grapple AI admin
+  getGrappleGlobalStats: (days = 30) =>
+    api.get('/admin/grapple/stats/global', { params: { days } }),
+  getGrappleProjections: () =>
+    api.get('/admin/grapple/stats/projections'),
+  getGrappleProviderStats: (days = 7) =>
+    api.get('/admin/grapple/stats/providers', { params: { days } }),
+  getGrappleTopUsers: (limit = 10) =>
+    api.get('/admin/grapple/stats/users', { params: { limit } }),
+  getGrappleFeedback: (limit = 20) =>
+    api.get('/admin/grapple/feedback', { params: { limit } }),
+  getGrappleFeedbackSummary: (data: { session_ids: string[] }) =>
+    api.post('/admin/grapple/feedback/summary', data),
 };
 
 // Feedback API (v0.2.0)
@@ -734,6 +748,12 @@ export const grappleApi = {
     api.post<{ chat_session_id: string }>(`/grapple/insights/${insightId}/chat`),
   techniqueQA: (question: string) =>
     api.post('/grapple/technique-qa', { question }),
+};
+
+// Chat API (general chat, separate from Grapple)
+export const chatApi = {
+  send: (messages: { role: string; content: string }[]) =>
+    api.post<{ reply: string }>('/chat/', { messages }),
 };
 
 export const coachPreferencesApi = {

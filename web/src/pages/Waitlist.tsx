@@ -37,8 +37,9 @@ export default function Waitlist() {
         referral_source: referralSource || undefined,
       });
       setSuccess(res.data);
-    } catch (err: any) {
-      setError(err.response?.data?.detail || 'Failed to join waitlist. Please try again.');
+    } catch (err: unknown) {
+      const e = err as { response?: { data?: { detail?: string } } };
+      setError(e.response?.data?.detail || 'Failed to join waitlist. Please try again.');
     } finally {
       setIsLoading(false);
     }

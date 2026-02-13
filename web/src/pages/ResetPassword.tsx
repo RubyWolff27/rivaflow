@@ -49,8 +49,9 @@ export default function ResetPassword() {
       setTimeout(() => {
         navigate('/login');
       }, 3000);
-    } catch (err: any) {
-      setError(err.response?.data?.detail || 'Failed to reset password');
+    } catch (err: unknown) {
+      const e = err as { response?: { data?: { detail?: string } } };
+      setError(e.response?.data?.detail || 'Failed to reset password');
     } finally {
       setIsLoading(false);
     }

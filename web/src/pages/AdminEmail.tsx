@@ -28,8 +28,9 @@ export default function AdminEmail() {
       setSubject('');
       setHtmlBody('');
       setTextBody('');
-    } catch (error: any) {
-      toast.error(error.response?.data?.detail || 'Failed to send email');
+    } catch (error: unknown) {
+      const e = error as { response?: { data?: { detail?: string } } };
+      toast.error(e.response?.data?.detail || 'Failed to send email');
     } finally {
       setSending(false);
     }

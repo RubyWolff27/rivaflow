@@ -124,8 +124,9 @@ export default function AdminWaitlist() {
       toast.success(`Invite sent to ${entry.email}`);
       loadEntries();
       loadStats();
-    } catch (err: any) {
-      toast.error(err.response?.data?.detail || 'Failed to invite');
+    } catch (err: unknown) {
+      const e = err as { response?: { data?: { detail?: string } } };
+      toast.error(e.response?.data?.detail || 'Failed to invite');
     }
     setConfirmAction(null);
   };
@@ -136,8 +137,9 @@ export default function AdminWaitlist() {
       toast.success(`Declined ${entry.email}`);
       loadEntries();
       loadStats();
-    } catch (err: any) {
-      toast.error(err.response?.data?.detail || 'Failed to decline');
+    } catch (err: unknown) {
+      const e = err as { response?: { data?: { detail?: string } } };
+      toast.error(e.response?.data?.detail || 'Failed to decline');
     }
     setConfirmAction(null);
   };
@@ -150,8 +152,9 @@ export default function AdminWaitlist() {
       setSelected(new Set());
       loadEntries();
       loadStats();
-    } catch (err: any) {
-      toast.error(err.response?.data?.detail || 'Bulk invite failed');
+    } catch (err: unknown) {
+      const e = err as { response?: { data?: { detail?: string } } };
+      toast.error(e.response?.data?.detail || 'Bulk invite failed');
     }
     setConfirmAction(null);
   };

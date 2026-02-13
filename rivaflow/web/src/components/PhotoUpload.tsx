@@ -73,9 +73,10 @@ export default function PhotoUpload({
       // Notify parent
       onUploadSuccess();
       toast.success('Photo uploaded successfully');
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error uploading photo:', error);
-      toast.error(error.response?.data?.detail || 'Failed to upload photo');
+      const e = error as { response?: { data?: { detail?: string } } };
+      toast.error(e.response?.data?.detail || 'Failed to upload photo');
     } finally {
       setUploading(false);
     }

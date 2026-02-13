@@ -32,8 +32,18 @@ def _ensure_critical_columns(conn):
     checks = [
         ("profile", "timezone", "TEXT DEFAULT 'UTC'"),
     ]
+    # Whitelist of allowed table/column names to prevent SQL injection
+    allowed_tables = {"profile", "sessions"}
+    allowed_columns = {"timezone", "session_score", "score_breakdown", "score_version"}
+
     cursor = conn.cursor()
     for table, column, col_def in checks:
+        if table not in allowed_tables or column not in allowed_columns:
+            logger.error(
+                f"Skipping unknown table/column: {table}.{column} "
+                f"— add to whitelist if intentional"
+            )
+            continue
         try:
             cursor.execute(
                 "SELECT column_name FROM information_schema.columns "

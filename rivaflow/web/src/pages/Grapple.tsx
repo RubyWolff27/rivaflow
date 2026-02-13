@@ -660,18 +660,20 @@ export default function Grapple() {
         setCurrentSessionId(response.data.session_id);
         loadSessions();
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Chat error:', error);
-      const errorMsg = error.response?.data?.detail?.message || error.response?.data?.detail || 'Failed to get response';
+      const e = error as { response?: { status?: number; data?: { detail?: string | { message?: string } } } };
+      const detail = e.response?.data?.detail;
+      const errorMsg = (typeof detail === 'object' ? detail?.message : detail) || 'Failed to get response';
 
       setMessages((prev) => [
         ...prev,
         { id: 'error-' + Date.now(), role: 'assistant', content: `Error: ${errorMsg}` },
       ]);
 
-      if (error.response?.status === 429) {
+      if (e.response?.status === 429) {
         toast.error('Rate limit exceeded. Please wait before sending more messages.');
-      } else if (error.response?.status === 403) {
+      } else if (e.response?.status === 403) {
         toast.error('Grapple AI Coach requires a Premium subscription');
       } else {
         toast.error('Failed to send message');

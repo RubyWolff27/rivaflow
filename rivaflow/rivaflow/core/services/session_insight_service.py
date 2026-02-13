@@ -108,15 +108,10 @@ class SessionInsightService:
                     (movement_id, user_id),
                 )
                 count_row = cursor.fetchone()
-                count = (
-                    count_row["count"]
-                    if hasattr(count_row, "keys") and "count" in dict(count_row)
-                    else (
-                        count_row[0]
-                        if not hasattr(count_row, "keys")
-                        else list(dict(count_row).values())[0]
-                    )
-                )
+                if hasattr(count_row, "keys"):
+                    count = list(dict(count_row).values())[0] or 0
+                else:
+                    count = count_row[0] or 0
 
                 # Check milestones (skip 1 since new_technique covers that)
                 for milestone in self.TECHNIQUE_MILESTONES:

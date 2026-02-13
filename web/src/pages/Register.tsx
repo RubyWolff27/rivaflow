@@ -39,8 +39,8 @@ export default function Register() {
     try {
       await register(email, password, firstName, lastName, inviteToken, defaultGym || undefined, beltGrade || undefined);
       navigate('/');
-    } catch (err: any) {
-      setError(err.message || 'Registration failed');
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Registration failed');
     } finally {
       setIsLoading(false);
     }

@@ -3,7 +3,7 @@ import { Sparkles, TrendingUp, DollarSign, Cpu, Users, MessageSquare, ThumbsUp, 
 import { Card } from '../components/ui';
 import AdminNav from '../components/AdminNav';
 import { useToast } from '../contexts/ToastContext';
-import axios from 'axios';
+import { adminApi } from '../api/client';
 
 interface GlobalStats {
   total_users: number;
@@ -85,16 +85,12 @@ export default function AdminGrapple() {
     const doLoad = async () => {
       setLoading(true);
       try {
-        const token = localStorage.getItem('access_token');
-        const headers = { Authorization: `Bearer ${token}` };
-        const apiBase = import.meta.env.VITE_API_URL || '/api/v1';
-
         const [global, projection, providers, users, feedbackData] = await Promise.all([
-          axios.get(`${apiBase}/admin/grapple/stats/global?days=30`, { headers }),
-          axios.get(`${apiBase}/admin/grapple/stats/projections`, { headers }),
-          axios.get(`${apiBase}/admin/grapple/stats/providers?days=7`, { headers }),
-          axios.get(`${apiBase}/admin/grapple/stats/users?limit=10`, { headers }),
-          axios.get(`${apiBase}/admin/grapple/feedback?limit=20`, { headers }),
+          adminApi.getGrappleGlobalStats(30),
+          adminApi.getGrappleProjections(),
+          adminApi.getGrappleProviderStats(7),
+          adminApi.getGrappleTopUsers(10),
+          adminApi.getGrappleFeedback(20),
         ]);
         if (!cancelled) {
           setGlobalStats(global.data);
@@ -103,7 +99,7 @@ export default function AdminGrapple() {
           setTopUsers(users.data.users);
           setFeedback(feedbackData.data.feedback);
         }
-      } catch (error: any) {
+      } catch (error: unknown) {
         if (!cancelled) {
           console.error('Failed to load stats:', error);
           toast.error('Failed to load Grapple statistics');

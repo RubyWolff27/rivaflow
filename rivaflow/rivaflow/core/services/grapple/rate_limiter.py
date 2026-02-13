@@ -226,14 +226,26 @@ class GrappleRateLimiter:
                 row = cursor.fetchone()
                 cursor.close()
 
-                if row and row[0] > 0:
-                    return {
-                        "active_hours": row[0],
-                        "total_messages": row[1] or 0,
-                        "peak_hourly_usage": row[2] or 0,
-                        "avg_hourly_usage": round(row[3] or 0, 2),
-                        "days_analyzed": days,
-                    }
+                if row:
+                    if hasattr(row, "keys"):
+                        r = dict(row)
+                    else:
+                        r = {
+                            "window_count": row[0],
+                            "total_messages": row[1],
+                            "peak_hourly_usage": row[2],
+                            "avg_hourly_usage": row[3],
+                        }
+                    if r["window_count"] and r["window_count"] > 0:
+                        return {
+                            "active_hours": r["window_count"],
+                            "total_messages": r["total_messages"] or 0,
+                            "peak_hourly_usage": r["peak_hourly_usage"] or 0,
+                            "avg_hourly_usage": round(
+                                float(r["avg_hourly_usage"] or 0), 2
+                            ),
+                            "days_analyzed": days,
+                        }
                 else:
                     return {
                         "active_hours": 0,
