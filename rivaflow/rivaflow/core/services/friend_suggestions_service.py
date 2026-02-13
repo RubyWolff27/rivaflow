@@ -4,6 +4,7 @@ from typing import Any
 
 from rivaflow.db.database import convert_query, get_connection
 from rivaflow.db.repositories.friend_suggestions_repo import FriendSuggestionsRepository
+from rivaflow.db.repositories.profile_repo import ProfileRepository
 from rivaflow.db.repositories.session_repo import SessionRepository
 from rivaflow.db.repositories.social_connection_repo import SocialConnectionRepository
 from rivaflow.db.repositories.user_repo import UserRepository
@@ -14,12 +15,12 @@ class FriendSuggestionsService:
     Generate friend suggestions using a transparent scoring algorithm.
 
     Scoring:
-    - Same primary gym: 40 points
+    - Same default gym (from profile): 40 points
     - Mutual friends: 5 points each (max 25)
-    - Same location (city): 15 points
+    - Same location city (from profile): 15 points
     - Partner name match: 30 points
-    - Similar belt rank: 5 points
-    - Minimum threshold: 10 points
+    - Similar belt rank (from profile current_grade): 5 points
+    - Minimum threshold: 5 points
     """
 
     def __init__(self):
@@ -35,7 +36,8 @@ class FriendSuggestionsService:
         Returns:
             Number of suggestions created
         """
-        # Clear old suggestions
+        # Clear profile cache and old suggestions
+        self._profile_cache: dict[int, dict[str, Any] | None] = {}
         self.suggestions_repo.clear_all_suggestions(user_id)
 
         # Get current user
@@ -54,7 +56,7 @@ class FriendSuggestionsService:
         for candidate in candidates:
             score, reasons = self._calculate_score(current_user, candidate, user_id)
 
-            if score >= 10:  # Minimum threshold
+            if score >= 5:  # Minimum threshold
                 mutual_count = len(
                     [r for r in reasons if r.startswith("mutual_friends")]
                 )
@@ -104,6 +106,30 @@ class FriendSuggestionsService:
     def dismiss_suggestion(self, user_id: int, suggested_user_id: int) -> bool:
         """Dismiss a friend suggestion."""
         return self.suggestions_repo.dismiss_suggestion(user_id, suggested_user_id)
+
+    def get_browsable_users(
+        self, user_id: int, limit: int = 20
+    ) -> list[dict[str, Any]]:
+        """Get all discoverable users as a fallback when suggestions are empty."""
+        existing_connections = self._get_existing_connection_ids(user_id)
+        candidates = self._get_candidate_users(user_id, existing_connections)
+
+        results = []
+        for c in candidates[:limit]:
+            profile = ProfileRepository.get(c["id"]) or {}
+            results.append(
+                {
+                    "id": c["id"],
+                    "username": c.get("username"),
+                    "display_name": c.get("display_name"),
+                    "belt_rank": profile.get("current_grade") or c.get("belt_rank"),
+                    "location_city": profile.get("city") or c.get("location_city"),
+                    "location_state": profile.get("state") or c.get("location_state"),
+                    "default_gym": profile.get("default_gym"),
+                    "profile_photo_url": c.get("profile_photo_url"),
+                }
+            )
+        return results
 
     def _get_existing_connection_ids(self, user_id: int) -> set[int]:
         """Get IDs of users already connected or with pending requests."""
@@ -192,18 +218,33 @@ class FriendSuggestionsService:
         """
         Calculate suggestion score and reasons.
 
+        Uses profile table data (default_gym, city, current_grade) which
+        users actually populate, rather than the users table social columns.
+
         Returns:
             (score, reasons) tuple
         """
         score = 0.0
         reasons = []
 
-        # 1. Same primary gym: 40 points
-        if (
-            current_user.get("primary_gym_id")
-            and candidate.get("primary_gym_id")
-            and current_user["primary_gym_id"] == candidate["primary_gym_id"]
-        ):
+        # Load profiles for both users (cached per generation run)
+        if not hasattr(self, "_profile_cache"):
+            self._profile_cache: dict[int, dict[str, Any] | None] = {}
+
+        if user_id not in self._profile_cache:
+            self._profile_cache[user_id] = ProfileRepository.get(user_id)
+        if candidate["id"] not in self._profile_cache:
+            self._profile_cache[candidate["id"]] = ProfileRepository.get(
+                candidate["id"]
+            )
+
+        user_profile = self._profile_cache[user_id] or {}
+        candidate_profile = self._profile_cache[candidate["id"]] or {}
+
+        # 1. Same default gym (from profile): 40 points
+        user_gym = (user_profile.get("default_gym") or "").strip().lower()
+        candidate_gym = (candidate_profile.get("default_gym") or "").strip().lower()
+        if user_gym and candidate_gym and user_gym == candidate_gym:
             score += 40
             reasons.append("same_gym")
 
@@ -214,13 +255,10 @@ class FriendSuggestionsService:
             score += mutual_points
             reasons.append(f"mutual_friends:{mutual_count}")
 
-        # 3. Same location (city): 15 points
-        if (
-            current_user.get("location_city")
-            and candidate.get("location_city")
-            and current_user["location_city"].lower()
-            == candidate["location_city"].lower()
-        ):
+        # 3. Same location city (from profile): 15 points
+        user_city = (user_profile.get("city") or "").strip().lower()
+        candidate_city = (candidate_profile.get("city") or "").strip().lower()
+        if user_city and candidate_city and user_city == candidate_city:
             score += 15
             reasons.append("same_city")
 
@@ -229,8 +267,8 @@ class FriendSuggestionsService:
             score += 30
             reasons.append("partner_match")
 
-        # 5. Similar belt rank: 5 points
-        if self._has_similar_belt(current_user, candidate):
+        # 5. Similar belt rank (from profile current_grade): 5 points
+        if self._has_similar_belt_from_profile(user_profile, candidate_profile):
             score += 5
             reasons.append("similar_belt")
 
@@ -278,11 +316,11 @@ class FriendSuggestionsService:
         return False
 
     def _has_similar_belt(self, user1: dict[str, Any], user2: dict[str, Any]) -> bool:
-        """Check if two users have similar belt ranks."""
+        """Check if two users have similar belt ranks (users table)."""
         belt_order = ["white", "blue", "purple", "brown", "black"]
 
-        belt1 = user1.get("belt_rank", "").lower()
-        belt2 = user2.get("belt_rank", "").lower()
+        belt1 = (user1.get("belt_rank") or "").lower()
+        belt2 = (user2.get("belt_rank") or "").lower()
 
         if not belt1 or not belt2:
             return False
@@ -292,6 +330,25 @@ class FriendSuggestionsService:
             idx2 = belt_order.index(belt2)
 
             # Within 1 belt rank
+            return abs(idx1 - idx2) <= 1
+        except ValueError:
+            return False
+
+    def _has_similar_belt_from_profile(
+        self, profile1: dict[str, Any], profile2: dict[str, Any]
+    ) -> bool:
+        """Check if two users have similar belt ranks using profile current_grade."""
+        belt_order = ["white", "blue", "purple", "brown", "black"]
+
+        grade1 = (profile1.get("current_grade") or "").strip().lower()
+        grade2 = (profile2.get("current_grade") or "").strip().lower()
+
+        if not grade1 or not grade2:
+            return False
+
+        try:
+            idx1 = belt_order.index(grade1)
+            idx2 = belt_order.index(grade2)
             return abs(idx1 - idx2) <= 1
         except ValueError:
             return False

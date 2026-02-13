@@ -22,10 +22,22 @@ interface FriendSuggestion {
   profile_photo_url: string;
 }
 
+interface BrowseUser {
+  id: number;
+  username: string;
+  display_name: string;
+  belt_rank: string;
+  location_city: string;
+  location_state: string;
+  default_gym: string;
+  profile_photo_url: string;
+}
+
 export function FriendSuggestions() {
   const navigate = useNavigate();
   const { hasAccess } = useFeatureAccess('friend_suggestions');
   const [suggestions, setSuggestions] = useState<FriendSuggestion[]>([]);
+  const [browseUsers, setBrowseUsers] = useState<BrowseUser[]>([]);
   const [loading, setLoading] = useState(true);
   const [regenerating, setRegenerating] = useState(false);
   const toast = useToast();
@@ -39,7 +51,20 @@ export function FriendSuggestions() {
     try {
       setLoading(true);
       const response = await socialApi.getFriendSuggestions(10);
-      setSuggestions(response.data.suggestions);
+      const s = response.data.suggestions;
+      setSuggestions(s);
+
+      // If no scored suggestions, load browse fallback
+      if (s.length === 0) {
+        try {
+          const browseRes = await socialApi.browseFriends(20);
+          setBrowseUsers(browseRes.data.users);
+        } catch {
+          // Browse is best-effort
+        }
+      } else {
+        setBrowseUsers([]);
+      }
     } catch (error) {
       console.error('Failed to load friend suggestions:', error);
       toast.error('Failed to load suggestions');
@@ -54,7 +79,18 @@ export function FriendSuggestions() {
       try {
         setLoading(true);
         const response = await socialApi.getFriendSuggestions(10);
-        if (!cancelled) setSuggestions(response.data.suggestions);
+        if (cancelled) return;
+        const s = response.data.suggestions;
+        setSuggestions(s);
+
+        if (s.length === 0) {
+          try {
+            const browseRes = await socialApi.browseFriends(20);
+            if (!cancelled) setBrowseUsers(browseRes.data.users);
+          } catch {
+            // Browse is best-effort
+          }
+        }
       } catch (error) {
         if (!cancelled) {
           console.error('Failed to load friend suggestions:', error);
@@ -127,14 +163,74 @@ export function FriendSuggestions() {
     );
   }
 
+  // No scored suggestions — show browse fallback
   if (suggestions.length === 0) {
     return (
-      <Card className="p-8 text-center">
-        <p className="text-[var(--muted)] mb-4">No friend suggestions available</p>
-        <PrimaryButton onClick={handleRegenerate} disabled={regenerating}>
-          {regenerating ? 'Generating...' : 'Generate Suggestions'}
-        </PrimaryButton>
-      </Card>
+      <div className="space-y-4">
+        {browseUsers.length > 0 ? (
+          <>
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-lg font-semibold text-white">People on RivaFlow</h3>
+              <SecondaryButton onClick={handleRegenerate} disabled={regenerating} className="text-sm px-3 py-1.5">
+                {regenerating ? 'Generating...' : 'Refresh'}
+              </SecondaryButton>
+            </div>
+            {browseUsers.map((user) => (
+              <Card key={user.id} className="p-4 hover:bg-[var(--surfaceElev)] transition-colors">
+                <div className="flex items-start space-x-4">
+                  <div className="flex-shrink-0">
+                    {user.profile_photo_url ? (
+                      <img
+                        src={user.profile_photo_url}
+                        alt={user.display_name}
+                        className="w-14 h-14 rounded-full object-cover"
+                      />
+                    ) : (
+                      <div
+                        className="w-14 h-14 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white text-lg font-bold"
+                        role="img"
+                        aria-label={`${user.display_name || user.username} avatar`}
+                      >
+                        {user.display_name?.charAt(0) || user.username?.charAt(0) || '?'}
+                      </div>
+                    )}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <h4 className="text-white font-semibold truncate">
+                      {user.display_name || user.username}
+                    </h4>
+                    {user.belt_rank && (
+                      <p className="text-sm text-[var(--text)] mb-1">
+                        {user.belt_rank.charAt(0).toUpperCase() + user.belt_rank.slice(1)} Belt
+                      </p>
+                    )}
+                    {(user.location_city || user.default_gym) && (
+                      <p className="text-sm text-[var(--muted)] mb-2">
+                        {user.default_gym && <span>{user.default_gym}</span>}
+                        {user.default_gym && user.location_city && ' • '}
+                        {user.location_city && <span>{user.location_city}{user.location_state ? `, ${user.location_state}` : ''}</span>}
+                      </p>
+                    )}
+                    <PrimaryButton
+                      className="text-sm px-3 py-1.5"
+                      onClick={() => navigate(`/users/${user.id}`)}
+                    >
+                      View Profile
+                    </PrimaryButton>
+                  </div>
+                </div>
+              </Card>
+            ))}
+          </>
+        ) : (
+          <Card className="p-8 text-center">
+            <p className="text-[var(--muted)] mb-4">No friend suggestions available</p>
+            <PrimaryButton onClick={handleRegenerate} disabled={regenerating}>
+              {regenerating ? 'Generating...' : 'Generate Suggestions'}
+            </PrimaryButton>
+          </Card>
+        )}
+      </div>
     );
   }
 

@@ -461,6 +461,22 @@ def get_friend_suggestions(
     }
 
 
+@router.get("/friend-suggestions/browse")
+def browse_all_users(
+    limit: int = Query(20, ge=1, le=50),
+    current_user: dict = Depends(get_current_user),
+):
+    """
+    Browse all discoverable users on the platform.
+
+    Used as a fallback when scoring produces no suggestions.
+    Returns users not already connected, excluding self.
+    """
+    service = FriendSuggestionsService()
+    users = service.get_browsable_users(current_user["id"], limit=limit)
+    return {"users": users, "count": len(users)}
+
+
 @router.post("/friend-suggestions/{suggested_user_id}/dismiss")
 def dismiss_friend_suggestion(
     suggested_user_id: int = Path(..., gt=0),

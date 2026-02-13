@@ -402,6 +402,8 @@ export const socialApi = {
     api.post(`/social/friend-suggestions/${suggestedUserId}/dismiss`),
   regenerateSuggestions: () =>
     api.post<{ success: boolean; suggestions_created: number }>('/social/friend-suggestions/regenerate'),
+  browseFriends: (limit = 20) =>
+    api.get('/social/friend-suggestions/browse', { params: { limit } }),
 
   // Friend Requests (v0.2.0)
   sendFriendRequest: (userId: number, data?: { connection_source?: string; request_message?: string }) =>
