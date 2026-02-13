@@ -125,7 +125,7 @@ export default function PhotoGallery({
             role="listitem"
           >
             <img
-              src={`/api${photo.url}`}
+              src={photo.url.startsWith('http') ? photo.url : `/api${photo.url}`}
               alt={photo.caption || 'Activity photo'}
               className="w-full h-full object-cover rounded-lg"
             />
@@ -163,7 +163,7 @@ export default function PhotoGallery({
               <X className="w-8 h-8" />
             </button>
             <img
-              src={`/api${selectedPhoto.url}`}
+              src={selectedPhoto.url.startsWith('http') ? selectedPhoto.url : `/api${selectedPhoto.url}`}
               alt={selectedPhoto.caption || 'Activity photo'}
               className="max-w-full max-h-[80vh] object-contain"
               onClick={(e) => e.stopPropagation()}

@@ -191,6 +191,71 @@ async def _drip_email_job() -> None:
         logger.error("Drip email job failed", exc_info=True)
 
 
+async def _coach_settings_reminder_job() -> None:
+    """Remind users to review Coach Settings if stale (weekly, Tuesdays 12:00 UTC)."""
+    try:
+        from rivaflow.core.services.email_service import EmailService
+        from rivaflow.db.database import convert_query, get_connection
+        from rivaflow.db.repositories.email_drip_repo import (
+            EmailDripRepository,
+        )
+
+        # Versioned key so users get re-reminded each quarter
+        now = datetime.now()
+        quarter = (now.month - 1) // 3 + 1
+        email_key = f"coach_settings_reminder_{now.year}_Q{quarter}"
+
+        # Find users whose coach_preferences.updated_at is older than 10 weeks
+        cutoff = (now - timedelta(weeks=10)).strftime("%Y-%m-%d")
+        with get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                convert_query(
+                    "SELECT cp.user_id, u.email, u.first_name "
+                    "FROM coach_preferences cp "
+                    "JOIN users u ON u.id = cp.user_id "
+                    "WHERE u.is_active = ? "
+                    "AND SUBSTR(cp.updated_at, 1, 10) < ?"
+                ),
+                (1, cutoff),
+            )
+            rows = cursor.fetchall()
+
+        users = [
+            {
+                "id": (r["user_id"] if hasattr(r, "keys") else r[0]),
+                "email": (r["email"] if hasattr(r, "keys") else r[1]),
+                "first_name": (r["first_name"] if hasattr(r, "keys") else r[2]),
+            }
+            for r in rows
+        ]
+        logger.info("Coach settings reminder: %d eligible users", len(users))
+
+        email_service = EmailService()
+        total_sent = 0
+        for user in users:
+            try:
+                if EmailDripRepository.has_been_sent(user["id"], email_key):
+                    continue
+                email_service.send_coach_settings_reminder(
+                    email=user["email"],
+                    first_name=user.get("first_name"),
+                )
+                EmailDripRepository.mark_sent(user["id"], email_key)
+                total_sent += 1
+            except Exception:
+                logger.debug(
+                    "Coach settings reminder failed for user %d",
+                    user["id"],
+                    exc_info=True,
+                )
+
+        if total_sent:
+            logger.info("Coach settings reminder: sent %d emails", total_sent)
+    except Exception:
+        logger.error("Coach settings reminder job failed", exc_info=True)
+
+
 # ---------------------------------------------------------------------------
 # Lifecycle
 # ---------------------------------------------------------------------------
@@ -232,6 +297,17 @@ def start_scheduler() -> None:
         hour=10,
         minute=0,
         id="drip_emails",
+        replace_existing=True,
+    )
+
+    # Tuesday 12:00 UTC — coach settings reminder
+    _scheduler.add_job(
+        _coach_settings_reminder_job,
+        "cron",
+        day_of_week="tue",
+        hour=12,
+        minute=0,
+        id="coach_settings_reminder",
         replace_existing=True,
     )
 

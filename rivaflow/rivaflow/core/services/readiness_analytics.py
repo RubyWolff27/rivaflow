@@ -165,13 +165,47 @@ class ReadinessAnalyticsService:
                 "avg_weight": None,
             }
 
+        # Summary stats for frontend
+        composite_scores = [
+            r["composite_score"]
+            for r in readiness_records
+            if r.get("composite_score") is not None
+        ]
+        summary = {}
+        if composite_scores:
+            best_idx = max(
+                range(len(readiness_records)),
+                key=lambda i: readiness_records[i].get("composite_score") or 0,
+            )
+            worst_idx = min(
+                range(len(readiness_records)),
+                key=lambda i: readiness_records[i].get("composite_score")
+                or float("inf"),
+            )
+            summary = {
+                "avg_composite_score": round(statistics.mean(composite_scores), 1),
+                "best_day": readiness_records[best_idx]["check_date"].isoformat(),
+                "worst_day": readiness_records[worst_idx]["check_date"].isoformat(),
+                "days_logged": len(readiness_records),
+            }
+
+        # Component averages for frontend breakdown
+        component_averages = {}
+        for key in ("sleep", "stress", "soreness", "energy"):
+            vals = [r[key] for r in readiness_records if r.get(key) is not None]
+            if vals:
+                component_averages[key] = round(statistics.mean(vals), 1)
+
         return {
             "readiness_over_time": readiness_over_time,
+            "trends": readiness_over_time,
             "training_load_vs_readiness": load_vs_readiness,
             "recovery_patterns": recovery_patterns,
             "injury_timeline": injury_timeline,
             "weight_over_time": weight_over_time,
             "weight_stats": weight_stats,
+            "summary": summary,
+            "component_averages": component_averages,
         }
 
     def get_weight_trend(
@@ -444,6 +478,74 @@ class ReadinessAnalyticsService:
                     }
                 )
 
+        # Heart rate zone distribution from workout cache
+        import json as _json
+
+        zone_keys = [
+            "zone_one_milli",
+            "zone_two_milli",
+            "zone_three_milli",
+            "zone_four_milli",
+            "zone_five_milli",
+        ]
+        zone_distribution: list[dict] = []
+        zone_totals = [0.0] * 5
+        zone_workout_count = 0
+
+        for w in cached_workouts:
+            # Try zone_durations column first, fall back to raw_data
+            zd = w.get("zone_durations")
+            if isinstance(zd, str):
+                try:
+                    zd = _json.loads(zd)
+                except (ValueError, TypeError):
+                    zd = None
+
+            if not zd:
+                raw = w.get("raw_data")
+                if isinstance(raw, str):
+                    try:
+                        raw = _json.loads(raw)
+                    except (ValueError, TypeError):
+                        raw = None
+                if isinstance(raw, dict):
+                    zd = (
+                        raw.get("score", {}).get("zone_duration")
+                        if raw.get("score")
+                        else None
+                    )
+
+            if not isinstance(zd, dict):
+                continue
+
+            millis = [float(zd.get(k, 0) or 0) for k in zone_keys]
+            total_ms = sum(millis)
+            if total_ms <= 0:
+                continue
+
+            w_date = str(w.get("start_time", ""))[:10]
+            entry = {
+                "date": w_date,
+                "total_mins": round(total_ms / 60000, 1),
+            }
+            for i, zk in enumerate(zone_keys):
+                entry[f"zone_{i + 1}_pct"] = round(millis[i] / total_ms * 100, 1)
+                entry[f"zone_{i + 1}_mins"] = round(millis[i] / 60000, 1)
+                zone_totals[i] += millis[i]
+            zone_distribution.append(entry)
+            zone_workout_count += 1
+
+        # Aggregate zone averages
+        zone_averages: dict = {}
+        if zone_workout_count > 0:
+            total_all = sum(zone_totals)
+            if total_all > 0:
+                zone_averages = {
+                    f"zone_{i + 1}_avg_pct": round(zone_totals[i] / total_all * 100, 1)
+                    for i in range(5)
+                }
+                zone_averages["workouts"] = zone_workout_count
+
         # Sleep composition breakdown
         sleep_breakdown = []
         for rec in reversed(recovery_records):
@@ -491,6 +593,8 @@ class ReadinessAnalyticsService:
             "recovery_over_time": recovery_over_time,
             "strain_vs_recovery": strain_vs_recovery,
             "sleep_breakdown": sleep_breakdown,
+            "zone_distribution": zone_distribution,
+            "zone_averages": zone_averages,
             "summary": {
                 "total_whoop_sessions": len(whoop_sessions),
                 "avg_strain": (

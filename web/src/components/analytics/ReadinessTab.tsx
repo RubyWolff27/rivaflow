@@ -41,11 +41,37 @@ interface ReadinessData {
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 interface WhoopTrendEntry { date: string; [key: string]: any; }
 
+interface ZoneDistEntry {
+  date: string;
+  total_mins: number;
+  zone_1_pct: number;
+  zone_2_pct: number;
+  zone_3_pct: number;
+  zone_4_pct: number;
+  zone_5_pct: number;
+  zone_1_mins: number;
+  zone_2_mins: number;
+  zone_3_mins: number;
+  zone_4_mins: number;
+  zone_5_mins: number;
+}
+
+interface ZoneAverages {
+  zone_1_avg_pct?: number;
+  zone_2_avg_pct?: number;
+  zone_3_avg_pct?: number;
+  zone_4_avg_pct?: number;
+  zone_5_avg_pct?: number;
+  workouts?: number;
+}
+
 interface WhoopTrendData {
   hrv_trend?: WhoopTrendEntry[];
   rhr_trend?: WhoopTrendEntry[];
   recovery_over_time?: Array<{ date: string; recovery_score: number | null; sleep_performance: number | null }>;
   sleep_breakdown?: Array<{ date: string; light_pct: number; sws_pct: number; rem_pct: number; awake_pct: number }>;
+  zone_distribution?: ZoneDistEntry[];
+  zone_averages?: ZoneAverages;
   summary?: {
     avg_hrv?: number;
     avg_rhr?: number;
@@ -353,6 +379,42 @@ export default function ReadinessTab({ dateRange, selectedTypes }: ReadinessTabP
                 <p className="text-xs mt-1" style={{ color: 'var(--muted)' }}>Sleep stage breakdown over time</p>
               </div>
               <SleepStackedChart data={whoopData.sleep_breakdown} />
+            </Card>
+          )}
+
+          {/* Heart Rate Zone Distribution */}
+          {whoopData.zone_distribution && whoopData.zone_distribution.length > 0 && (
+            <Card>
+              <div className="mb-4">
+                <h3 className="text-lg font-semibold" style={{ color: 'var(--text)' }}>Heart Rate Zones</h3>
+                <p className="text-xs mt-1" style={{ color: 'var(--muted)' }}>Time spent in each HR zone per workout</p>
+              </div>
+              {/* Zone averages summary */}
+              {whoopData.zone_averages && whoopData.zone_averages.workouts && (
+                <div className="grid grid-cols-5 gap-2 mb-4">
+                  {[
+                    { label: 'Zone 1', key: 'zone_1_avg_pct' as const, color: '#9CA3AF' },
+                    { label: 'Zone 2', key: 'zone_2_avg_pct' as const, color: '#3B82F6' },
+                    { label: 'Zone 3', key: 'zone_3_avg_pct' as const, color: '#10B981' },
+                    { label: 'Zone 4', key: 'zone_4_avg_pct' as const, color: '#F59E0B' },
+                    { label: 'Zone 5', key: 'zone_5_avg_pct' as const, color: '#EF4444' },
+                  ].map(z => (
+                    <div key={z.label} className="text-center">
+                      <div className="w-full h-2 rounded-full mb-1" style={{ backgroundColor: `${z.color}30` }}>
+                        <div
+                          className="h-full rounded-full"
+                          style={{ width: `${whoopData.zone_averages![z.key] ?? 0}%`, backgroundColor: z.color }}
+                        />
+                      </div>
+                      <p className="text-[10px] font-medium" style={{ color: z.color }}>{z.label}</p>
+                      <p className="text-xs font-semibold" style={{ color: 'var(--text)' }}>
+                        {whoopData.zone_averages![z.key] != null ? `${whoopData.zone_averages![z.key]}%` : '-'}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              )}
+              <ZoneDistChart data={whoopData.zone_distribution} />
             </Card>
           )}
         </>
@@ -664,6 +726,80 @@ function SleepStackedChart({ data }: { data: { date: string; light_pct: number; 
         <g key={stage.key} transform={`translate(${pad.left + i * 70}, ${pad.top - 10})`}>
           <rect width={8} height={8} fill={stage.color} rx={1} />
           <text x={12} y={8} fontSize={9} fill="var(--muted)">{stage.label}</text>
+        </g>
+      ))}
+    </svg>
+  );
+}
+
+function ZoneDistChart({ data }: { data: ZoneDistEntry[] }) {
+  if (data.length === 0) return null;
+
+  const width = 600;
+  const height = 180;
+  const pad = { top: 15, right: 20, bottom: 30, left: 45 };
+  const plotW = width - pad.left - pad.right;
+  const plotH = height - pad.top - pad.bottom;
+
+  const barW = Math.max(2, Math.min(12, plotW / data.length - 2));
+
+  const zones = [
+    { key: 'zone_5_pct' as const, color: '#EF4444', label: 'Z5' },
+    { key: 'zone_4_pct' as const, color: '#F59E0B', label: 'Z4' },
+    { key: 'zone_3_pct' as const, color: '#10B981', label: 'Z3' },
+    { key: 'zone_2_pct' as const, color: '#3B82F6', label: 'Z2' },
+    { key: 'zone_1_pct' as const, color: '#9CA3AF', label: 'Z1' },
+  ];
+
+  const yScale = (v: number) => pad.top + plotH - (v / 100) * plotH;
+
+  const labelIndices = data.length <= 5
+    ? data.map((_, i) => i)
+    : [0, Math.floor(data.length / 2), data.length - 1];
+
+  return (
+    <svg viewBox={`0 0 ${width} ${height}`} className="w-full" style={{ maxHeight: 180 }}>
+      {[0, 25, 50, 75, 100].map((v) => (
+        <g key={v}>
+          <line x1={pad.left} y1={yScale(v)} x2={width - pad.right} y2={yScale(v)} stroke="var(--border)" strokeWidth={1} />
+          <text x={pad.left - 6} y={yScale(v) + 4} textAnchor="end" fontSize={10} fill="var(--muted)">{v}%</text>
+        </g>
+      ))}
+      {data.map((d, i) => {
+        const x = pad.left + (i / Math.max(data.length - 1, 1)) * plotW - barW / 2;
+        let cumY = 0;
+        return (
+          <g key={i}>
+            {zones.map((zone) => {
+              const pct = d[zone.key] ?? 0;
+              const y0 = cumY;
+              cumY += pct;
+              return (
+                <rect
+                  key={zone.key}
+                  x={x}
+                  y={yScale(cumY)}
+                  width={barW}
+                  height={Math.max(0, yScale(y0) - yScale(cumY))}
+                  fill={zone.color}
+                  rx={0}
+                >
+                  <title>{d.date}: {zone.label} {pct.toFixed(0)}%</title>
+                </rect>
+              );
+            })}
+          </g>
+        );
+      })}
+      {labelIndices.map((i) => (
+        <text key={i} x={pad.left + (i / Math.max(data.length - 1, 1)) * plotW} y={height - 5} textAnchor="middle" fontSize={10} fill="var(--muted)">
+          {new Date(data[i].date + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+        </text>
+      ))}
+      {zones.map((zone, i) => (
+        <g key={zone.key} transform={`translate(${pad.left + i * 50}, ${pad.top - 10})`}>
+          <rect width={8} height={8} fill={zone.color} rx={1} />
+          <text x={12} y={8} fontSize={9} fill="var(--muted)">{zone.label}</text>
         </g>
       ))}
     </svg>

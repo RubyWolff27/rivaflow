@@ -1,5 +1,5 @@
 import { Link, useLocation } from 'react-router-dom';
-import { LayoutDashboard, Users, Building2, MessageSquare, Book, Sparkles, MessageCircle, ListOrdered } from 'lucide-react';
+import { LayoutDashboard, Users, Building2, MessageSquare, Book, Sparkles, MessageCircle, ListOrdered, Mail } from 'lucide-react';
 
 export default function AdminNav() {
   const location = useLocation();
@@ -13,6 +13,7 @@ export default function AdminNav() {
     { name: 'Techniques', href: '/admin/techniques', icon: Book },
     { name: 'Feedback', href: '/admin/feedback', icon: MessageCircle },
     { name: 'Waitlist', href: '/admin/waitlist', icon: ListOrdered },
+    { name: 'Email', href: '/admin/email', icon: Mail },
   ];
 
   return (

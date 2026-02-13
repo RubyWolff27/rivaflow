@@ -44,6 +44,7 @@ class Injury(BaseModel):
     notes: str | None = None
     status: str = "active"
     resolved_date: str | None = None
+    start_date: str | None = None
 
 
 class CoachPreferencesUpdate(BaseModel):

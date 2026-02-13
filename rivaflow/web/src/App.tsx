@@ -38,6 +38,7 @@ const Grapple = lazy(() => import('./pages/Grapple'));
 const AdminGrapple = lazy(() => import('./pages/AdminGrapple'));
 const AdminFeedback = lazy(() => import('./pages/AdminFeedback'));
 const AdminWaitlist = lazy(() => import('./pages/AdminWaitlist'));
+const AdminEmail = lazy(() => import('./pages/AdminEmail'));
 const Waitlist = lazy(() => import('./pages/Waitlist'));
 const Events = lazy(() => import('./pages/Events'));
 const FightDynamics = lazy(() => import('./pages/FightDynamics'));
@@ -109,6 +110,7 @@ function App() {
                           <Route path="/admin/grapple" element={<AdminGrapple />} />
                           <Route path="/admin/feedback" element={<AdminFeedback />} />
                           <Route path="/admin/waitlist" element={<AdminWaitlist />} />
+                          <Route path="/admin/email" element={<AdminEmail />} />
                           <Route path="/groups" element={<Groups />} />
                           <Route path="/events" element={<Events />} />
                           <Route path="/fight-dynamics" element={<FightDynamics />} />

@@ -12,6 +12,7 @@ interface Injury {
   notes: string;
   status: string;
   resolved_date: string;
+  start_date: string;
 }
 
 const BELT_COLORS: Record<string, string> = {
@@ -136,6 +137,7 @@ export default function CoachSettings() {
             notes: inj.notes || '',
             status: inj.status || 'active',
             resolved_date: inj.resolved_date || '',
+            start_date: inj.start_date || '',
           })));
           setTrainingStartDate(d.training_start_date || '');
           setYearsTraining(d.years_training != null ? String(d.years_training) : '');
@@ -168,7 +170,7 @@ export default function CoachSettings() {
   };
 
   const addInjury = () => {
-    setInjuries(prev => [...prev, { area: 'knee', side: 'n/a', severity: 'moderate', notes: '', status: 'active', resolved_date: '' }]);
+    setInjuries(prev => [...prev, { area: 'knee', side: 'n/a', severity: 'moderate', notes: '', status: 'active', resolved_date: '', start_date: '' }]);
   };
 
   const removeInjury = (index: number) => {
@@ -550,18 +552,27 @@ export default function CoachSettings() {
                     ))}
                   </div>
                 </div>
-                {(inj.status || 'active') === 'recovered' && (
-                  <div>
-                    <label className="text-[10px] font-medium block mb-0.5" style={{ color: 'var(--muted)' }}>Resolved Date</label>
-                    <input
-                      type="date"
-                      className="input w-full text-xs"
-                      value={inj.resolved_date || ''}
-                      onChange={e => updateInjury(i, 'resolved_date', e.target.value)}
-                    />
-                  </div>
-                )}
+                <div>
+                  <label className="text-[10px] font-medium block mb-0.5" style={{ color: 'var(--muted)' }}>Start Date</label>
+                  <input
+                    type="date"
+                    className="input w-full text-xs"
+                    value={inj.start_date || ''}
+                    onChange={e => updateInjury(i, 'start_date', e.target.value)}
+                  />
+                </div>
               </div>
+              {(inj.status || 'active') === 'recovered' && (
+                <div className="mb-2">
+                  <label className="text-[10px] font-medium block mb-0.5" style={{ color: 'var(--muted)' }}>Resolved Date</label>
+                  <input
+                    type="date"
+                    className="input w-full text-xs"
+                    value={inj.resolved_date || ''}
+                    onChange={e => updateInjury(i, 'resolved_date', e.target.value)}
+                  />
+                </div>
+              )}
               <input
                 className="input w-full text-xs"
                 placeholder="Notes (e.g. ACL sprain, 3 months ago)"

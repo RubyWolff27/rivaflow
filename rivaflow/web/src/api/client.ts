@@ -564,6 +564,10 @@ export const adminApi = {
     api.put(`/admin/feedback/${feedbackId}/status`, { status, admin_notes: adminNotes }),
   getFeedbackStats: () =>
     api.get('/admin/feedback/stats'),
+
+  // Broadcast email
+  broadcastEmail: (data: { subject: string; html_body: string; text_body?: string }) =>
+    api.post('/admin/email/broadcast', data),
 };
 
 // Feedback API (v0.2.0)

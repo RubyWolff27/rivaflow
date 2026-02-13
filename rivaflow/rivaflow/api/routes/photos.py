@@ -184,6 +184,10 @@ def get_activity_photos(
     Get photos for an activity (session, readiness, or rest).
     """
     photos = photo_repo.get_by_activity(current_user["id"], activity_type, activity_id)
+    # Map file_path → url so frontend can use photo.url
+    for photo in photos:
+        if "file_path" in photo and "url" not in photo:
+            photo["url"] = photo["file_path"]
     return photos
 
 
@@ -195,6 +199,9 @@ def get_photo(photo_id: int, current_user: dict = Depends(get_current_user)):
     photo = photo_repo.get_by_id(current_user["id"], photo_id)
     if not photo:
         raise HTTPException(status_code=404, detail="Photo not found")
+    # Map file_path → url so frontend can use photo.url
+    if "file_path" in photo and "url" not in photo:
+        photo["url"] = photo["file_path"]
     return photo
 
 

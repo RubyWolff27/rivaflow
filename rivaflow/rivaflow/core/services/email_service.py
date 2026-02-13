@@ -748,6 +748,11 @@ RivaFlow - Training OS for the Mat"""
             <p class="step-description">Rate your sleep, stress, soreness, and energy daily. RivaFlow gives personalised training suggestions.</p>
             <a href="{base_url}/readiness" class="button">Check Readiness</a>
         </div>
+        <div class="step">
+            <p class="step-title">Personalise Your Coach</p>
+            <p class="step-description">Set your belt level, training mode, injuries, and coaching style so Grapple AI can tailor its advice to you.</p>
+            <a href="{base_url}/coach-settings" class="button">Coach Settings</a>
+        </div>
         <div class="footer">
             <p>RivaFlow &mdash; Training OS for the Mat</p>
         </div>
@@ -768,6 +773,10 @@ Ready to start logging? Quick Log takes less than 30 seconds.
 2. CHECK YOUR READINESS
    Rate sleep, stress, soreness, and energy daily.
    {base_url}/readiness
+
+3. PERSONALISE YOUR COACH
+   Set your belt level, training mode, injuries, and coaching style.
+   {base_url}/coach-settings
 
 ---
 RivaFlow - Training OS for the Mat"""
@@ -980,3 +989,58 @@ RivaFlow - Training OS for the Mat
                 success = False
 
         return success
+
+    def send_coach_settings_reminder(
+        self, email: str, first_name: str | None = None
+    ) -> bool:
+        """Send a reminder to review Coach Settings (every ~10 weeks)."""
+        base_url = os.getenv("APP_BASE_URL", "https://rivaflow.app")
+        greeting = f"Hey {first_name}," if first_name else "Hey there,"
+
+        html_content = f"""
+<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        body {{ font-family: Arial, sans-serif; line-height: 1.6; color: #e0e0e0; background-color: #1a1a2e; margin: 0; padding: 0; }}
+        .container {{ max-width: 600px; margin: 0 auto; padding: 30px 20px; }}
+        .header {{ text-align: center; padding-bottom: 20px; border-bottom: 1px solid #2a2a4a; margin-bottom: 30px; }}
+        .header h1 {{ color: #ffffff; font-size: 24px; margin: 0; }}
+        .greeting {{ font-size: 18px; color: #ffffff; margin-bottom: 10px; }}
+        .text {{ font-size: 15px; color: #c0c0c0; margin-bottom: 20px; }}
+        .button {{ display: inline-block; padding: 10px 22px; background-color: #ff6b35; color: #ffffff; text-decoration: none; border-radius: 6px; font-size: 14px; font-weight: 600; }}
+        .footer {{ margin-top: 30px; padding-top: 20px; border-top: 1px solid #2a2a4a; font-size: 12px; color: #666; text-align: center; }}
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header"><h1>Review Your Coach Settings</h1></div>
+        <p class="greeting">{greeting}</p>
+        <p class="text">It's been a while since you updated your Coach Settings. Your goals, injuries, and focus areas may have changed &mdash; take 2 minutes to review so Grapple can keep giving you the best advice.</p>
+        <a href="{base_url}/coach-settings" class="button">Review Coach Settings</a>
+        <div class="footer">
+            <p>RivaFlow &mdash; Training OS for the Mat</p>
+        </div>
+    </div>
+</body>
+</html>"""
+
+        text_content = f"""Review Your Coach Settings
+
+{greeting}
+
+It's been a while since you updated your Coach Settings. Your goals,
+injuries, and focus areas may have changed -- take 2 minutes to review
+so Grapple can keep giving you the best advice.
+
+Review Coach Settings: {base_url}/coach-settings
+
+---
+RivaFlow - Training OS for the Mat"""
+
+        return self.send_email(
+            to_email=email,
+            subject="Time to Review Your Coach Settings",
+            html_content=html_content,
+            text_content=text_content,
+        )
