@@ -59,10 +59,19 @@ export default function Dashboard() {
       {/* 1. Getting Started — onboarding checklist for new users */}
       <GettingStarted />
 
-      {/* 1. Daily Action Hero — THE primary card */}
+      {/* 2. Daily Action Hero — THE primary card */}
       <DailyActionHero />
 
-      {/* 2. Grapple AI Coach — key differentiator */}
+      {/* 3. Last Session — "What did I do last?" */}
+      <LastSession />
+
+      {/* 4. This Week — weekly goals + progress */}
+      <ThisWeek />
+
+      {/* 5. Journey Progress — belt + milestone + stats */}
+      <JourneyProgress />
+
+      {/* 6. Grapple AI Coach */}
       <Card className="relative overflow-hidden">
         <div className="absolute top-0 right-0 w-32 h-32 opacity-[0.04]">
           <Sparkles className="w-full h-full" />
@@ -106,19 +115,10 @@ export default function Dashboard() {
         </div>
       </Card>
 
-      {/* 3. Latest AI Insight */}
+      {/* 7. Latest AI Insight */}
       <LatestInsightWidget />
 
-      {/* 4. Last Session */}
-      <LastSession />
-
-      {/* 5. Journey Progress — moved up for motivation */}
-      <JourneyProgress />
-
-      {/* 6. This Week — merged weekly stats + goals */}
-      <ThisWeek />
-
-      {/* 7. My Game Plan */}
+      {/* 8. My Game Plan */}
       <MyGameWidget />
     </div>
   );

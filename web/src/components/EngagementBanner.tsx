@@ -1,23 +1,21 @@
 import { useEffect, useState } from 'react';
-import { checkinsApi, streaksApi, milestonesApi } from '../api/client';
-import type { Insight, StreakStatus, MilestoneProgress } from '../types';
-import { Flame, CheckCircle2, AlertCircle, Target } from 'lucide-react';
+import { checkinsApi, streaksApi } from '../api/client';
+import type { Insight, StreakStatus } from '../types';
+import { Flame, CheckCircle2, AlertCircle } from 'lucide-react';
 
 export default function EngagementBanner() {
   const [checkedIn, setCheckedIn] = useState(false);
   const [insight, setInsight] = useState<Insight | null>(null);
   const [streaks, setStreaks] = useState<StreakStatus | null>(null);
-  const [closestMilestone, setClosestMilestone] = useState<MilestoneProgress & { has_milestone: boolean } | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     let cancelled = false;
     const doLoad = async () => {
       try {
-        const [checkinRes, streaksRes, milestoneRes] = await Promise.all([
+        const [checkinRes, streaksRes] = await Promise.all([
           checkinsApi.getToday(),
           streaksApi.getStatus(),
-          milestonesApi.getClosest(),
         ]);
         if (cancelled) return;
 
@@ -35,7 +33,6 @@ export default function EngagementBanner() {
         }
 
         setStreaks(streaksRes.data);
-        setClosestMilestone(milestoneRes.data);
       } catch (error) {
         if (!cancelled) console.error('Error loading engagement data:', error);
       } finally {
@@ -135,29 +132,6 @@ export default function EngagementBanner() {
         </div>
       )}
 
-      {/* Closest Milestone Progress */}
-      {closestMilestone && closestMilestone.has_milestone && closestMilestone.percentage >= 50 && (
-        <div className="card border" style={{ backgroundColor: 'rgba(139,92,246,0.1)', borderColor: 'rgba(139,92,246,0.3)' }}>
-          <div className="flex items-start gap-3">
-            <Target className="w-5 h-5 mt-0.5" style={{ color: 'rgb(139,92,246)' }} />
-            <div className="flex-1">
-              <h4 className="font-semibold text-sm mb-2" style={{ color: 'var(--text)' }}>NEXT MILESTONE</h4>
-              <p className="text-sm text-[var(--text)] mb-2">
-                {closestMilestone.next_label}
-              </p>
-              <div className="w-full bg-[var(--surfaceElev)] rounded-full h-2.5">
-                <div
-                  className="bg-purple-600 h-2.5 rounded-full transition-all"
-                  style={{ width: `${Math.min(closestMilestone.percentage, 100)}%` }}
-                />
-              </div>
-              <p className="text-xs text-[var(--muted)] mt-1.5">
-                {closestMilestone.percentage}% complete • {closestMilestone.remaining} to go
-              </p>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
