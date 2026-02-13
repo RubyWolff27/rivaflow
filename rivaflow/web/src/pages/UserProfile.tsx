@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { usersApi, socialApi } from '../api/client';
-import { Users, MapPin, Calendar, TrendingUp, Activity, UserCheck, UserPlus } from 'lucide-react';
+import { Users, MapPin, Calendar, TrendingUp, Activity, UserCheck, UserPlus, Clock } from 'lucide-react';
 import { useToast } from '../contexts/ToastContext';
 import { CardSkeleton } from '../components/ui';
 
@@ -37,6 +37,9 @@ interface ActivityItem {
   [key: string]: unknown;
 }
 
+// 'none' | 'pending_sent' | 'pending_received' | 'friends'
+type FriendshipStatus = 'none' | 'pending_sent' | 'pending_received' | 'friends';
+
 export default function UserProfile() {
   const { userId } = useParams<{ userId: string }>();
   const navigate = useNavigate();
@@ -46,7 +49,8 @@ export default function UserProfile() {
   const [activity, setActivity] = useState<ActivityItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [followLoading, setFollowLoading] = useState(false);
+  const [actionLoading, setActionLoading] = useState(false);
+  const [friendshipStatus, setFriendshipStatus] = useState<FriendshipStatus>('none');
   const toast = useToast();
 
   useEffect(() => {
@@ -70,6 +74,16 @@ export default function UserProfile() {
           setStats(statsRes.data);
           setActivity(activityRes.data?.items || []);
         }
+
+        // Load friendship status
+        try {
+          const statusRes = await socialApi.getFriendshipStatus(parseInt(userId!));
+          if (!cancelled) {
+            setFriendshipStatus(statusRes.data.status as FriendshipStatus);
+          }
+        } catch {
+          // Friendship status endpoint may not exist for self — ignore
+        }
       } catch (err: any) {
         if (!cancelled) {
           console.error('Error loading user profile:', err);
@@ -83,24 +97,53 @@ export default function UserProfile() {
     return () => { cancelled = true; };
   }, [userId]);
 
-  const handleFollowToggle = async () => {
+  const handleAddFriend = async () => {
     if (!profile) return;
 
     try {
-      setFollowLoading(true);
+      setActionLoading(true);
+      // Send friend request + follow
+      await socialApi.sendFriendRequest(profile.id, { connection_source: 'profile' });
+      // Also follow them so their activity shows in feed
+      if (!profile.is_following) {
+        try {
+          await socialApi.follow(profile.id);
+          setProfile({ ...profile, is_following: true, follower_count: (profile.follower_count ?? 0) + 1 });
+        } catch {
+          // Follow is best-effort
+        }
+      }
+      setFriendshipStatus('pending_sent');
+      toast.success('Friend request sent!');
+    } catch (err: any) {
+      const msg = err.response?.data?.detail || 'Failed to send friend request';
+      console.error('Failed to send friend request:', err);
+      toast.error(msg);
+    } finally {
+      setActionLoading(false);
+    }
+  };
 
-      if (profile.is_following) {
-        await socialApi.unfollow(profile.id);
-        setProfile({ ...profile, is_following: false, follower_count: (profile.follower_count ?? 0) - 1 });
-      } else {
-        await socialApi.follow(profile.id);
-        setProfile({ ...profile, is_following: true, follower_count: (profile.follower_count ?? 0) + 1 });
+  const handleAcceptRequest = async () => {
+    if (!profile) return;
+
+    try {
+      setActionLoading(true);
+      // We need the connection ID — get it from received requests
+      const receivedRes = await socialApi.getReceivedRequests();
+      const pending = receivedRes.data.requests?.find(
+        (r: any) => r.requester_id === profile.id
+      );
+      if (pending) {
+        await socialApi.acceptFriendRequest(pending.id);
+        setFriendshipStatus('friends');
+        toast.success('Friend request accepted!');
       }
     } catch (err: any) {
-      console.error('Failed to toggle follow:', err);
-      toast.error('Failed to update follow status');
+      console.error('Failed to accept friend request:', err);
+      toast.error('Failed to accept friend request');
     } finally {
-      setFollowLoading(false);
+      setActionLoading(false);
     }
   };
 
@@ -125,6 +168,60 @@ export default function UserProfile() {
   const formatDate = (dateStr: string) => {
     const date = new Date(dateStr);
     return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  };
+
+  const renderActionButton = () => {
+    if (actionLoading) {
+      return (
+        <button
+          disabled
+          className="flex items-center gap-2 px-4 py-2 rounded-lg font-medium bg-[var(--surfaceElev)] text-[var(--muted)] opacity-50"
+        >
+          <div className="animate-spin rounded-full h-4 w-4 border-2 border-[var(--muted)] border-t-transparent"></div>
+          <span>...</span>
+        </button>
+      );
+    }
+
+    switch (friendshipStatus) {
+      case 'friends':
+        return (
+          <span className="flex items-center gap-2 px-4 py-2 rounded-lg font-medium bg-green-500/10 text-green-400 border border-green-500/20">
+            <UserCheck className="w-4 h-4" />
+            Friends
+          </span>
+        );
+
+      case 'pending_sent':
+        return (
+          <span className="flex items-center gap-2 px-4 py-2 rounded-lg font-medium bg-[var(--surfaceElev)] text-[var(--muted)]">
+            <Clock className="w-4 h-4" />
+            Request Sent
+          </span>
+        );
+
+      case 'pending_received':
+        return (
+          <button
+            onClick={handleAcceptRequest}
+            className="flex items-center gap-2 px-4 py-2 rounded-lg font-medium bg-[var(--accent)] text-white hover:opacity-90"
+          >
+            <UserCheck className="w-4 h-4" />
+            Accept Request
+          </button>
+        );
+
+      default:
+        return (
+          <button
+            onClick={handleAddFriend}
+            className="flex items-center gap-2 px-4 py-2 rounded-lg font-medium bg-[var(--accent)] text-white hover:opacity-90"
+          >
+            <UserPlus className="w-4 h-4" />
+            Add Friend
+          </button>
+        );
+    }
   };
 
   if (loading) {
@@ -215,32 +312,7 @@ export default function UserProfile() {
             </div>
           </div>
 
-          <button
-            onClick={handleFollowToggle}
-            disabled={followLoading}
-            className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-colors ${
-              profile.is_following
-                ? 'bg-[var(--surfaceElev)] text-[var(--text)] hover:opacity-80'
-                : 'bg-[var(--accent)] text-white hover:opacity-90'
-            } disabled:opacity-50`}
-          >
-            {followLoading ? (
-              <>
-                <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
-                <span>...</span>
-              </>
-            ) : profile.is_following ? (
-              <>
-                <UserCheck className="w-4 h-4" />
-                Following
-              </>
-            ) : (
-              <>
-                <UserPlus className="w-4 h-4" />
-                Follow
-              </>
-            )}
-          </button>
+          {renderActionButton()}
         </div>
       </div>
 
