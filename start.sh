@@ -24,6 +24,10 @@ echo "==> PORT: $PORT"
 echo "==> Running database migrations..."
 python rivaflow/db/migrate.py
 
+# Backfill session scores (idempotent — skips already-scored sessions)
+echo "==> Backfilling session scores..."
+python rivaflow/db/backfill_scores.py || echo "WARNING: Score backfill failed (non-blocking)"
+
 # Start gunicorn with uvicorn workers
 echo "==> Starting gunicorn on 0.0.0.0:${PORT}..."
 exec gunicorn rivaflow.api.main:app \
