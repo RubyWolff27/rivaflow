@@ -142,25 +142,42 @@ async def _lifespan(_app: FastAPI):
         if get_db_type() == "postgresql":
             from rivaflow.db.database import get_connection
 
+            _ensure_columns = [
+                ("profile", "timezone", "TEXT DEFAULT 'UTC'"),
+                ("sessions", "session_score", "REAL"),
+                ("sessions", "score_breakdown", "TEXT"),
+                ("sessions", "score_version", "INTEGER DEFAULT 1"),
+            ]
             with get_connection() as conn:
                 cur = conn.cursor()
-                cur.execute(
-                    "SELECT 1 FROM information_schema.columns "
-                    "WHERE table_schema='public' AND table_name='profile' "
-                    "AND column_name='timezone'"
-                )
-                if cur.fetchone() is None:
-                    logging.warning(
-                        "profile.timezone column missing — adding via lifespan"
-                    )
+                for table, col, col_def in _ensure_columns:
                     cur.execute(
-                        "ALTER TABLE profile ADD COLUMN timezone TEXT DEFAULT 'UTC'"
+                        "SELECT 1 FROM information_schema.columns "
+                        "WHERE table_schema='public' "
+                        f"AND table_name='{table}' "
+                        f"AND column_name='{col}'"
                     )
-                    conn.commit()
-                    logging.info("Added profile.timezone column")
+                    if cur.fetchone() is None:
+                        logging.warning(
+                            "%s.%s column missing — adding via lifespan",
+                            table,
+                            col,
+                        )
+                        cur.execute(
+                            f"ALTER TABLE {table}" f" ADD COLUMN {col} {col_def}"
+                        )
+                        conn.commit()
+                        logging.info("Added %s.%s column", table, col)
+                # Ensure score index exists
+                cur.execute(
+                    "CREATE INDEX IF NOT EXISTS"
+                    " idx_sessions_session_score"
+                    " ON sessions(session_score)"
+                )
+                conn.commit()
                 cur.close()
     except Exception as e:
-        logging.warning(f"Could not ensure profile.timezone column: {e}")
+        logging.warning(f"Could not ensure critical columns: {e}")
 
     # Reset PG serial sequences to avoid duplicate key violations
     try:
