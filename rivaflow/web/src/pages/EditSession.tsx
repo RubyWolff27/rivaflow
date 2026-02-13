@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { sessionsApi, friendsApi, glossaryApi, whoopApi, getErrorMessage } from '../api/client';
+import { sessionsApi, friendsApi, socialApi, glossaryApi, whoopApi, getErrorMessage } from '../api/client';
 import type { Friend, Movement, MediaUrl, Session, SessionRoll, SessionTechnique, WhoopWorkoutMatch } from '../types';
 import { CheckCircle, ArrowLeft, Save, Loader, Plus, X, Search, Trash2, ToggleLeft, ToggleRight, Camera, RefreshCw } from 'lucide-react';
 import WhoopMatchModal from '../components/WhoopMatchModal';
@@ -101,12 +101,13 @@ export default function EditSession() {
     const doLoad = async () => {
       setLoading(true);
       try {
-        const [sessionRes, instructorsRes, partnersRes, autocompleteRes, movementsRes] = await Promise.all([
+        const [sessionRes, instructorsRes, partnersRes, autocompleteRes, movementsRes, socialFriendsRes] = await Promise.all([
           sessionsApi.getWithRolls(parseInt(id!)),
           friendsApi.listInstructors(),
           friendsApi.listPartners(),
           sessionsApi.getAutocomplete(),
           glossaryApi.list(),
+          socialApi.getFriends().catch(() => ({ data: { friends: [] } })),
         ]);
         if (controller.signal.aborted) return;
 
@@ -114,7 +115,18 @@ export default function EditSession() {
         const iData = instructorsRes.data as Friend[] | { friends: Friend[] };
         setInstructors(Array.isArray(iData) ? iData : iData?.friends || []);
         const pData = partnersRes.data as Friend[] | { friends: Friend[] };
-        setPartners(Array.isArray(pData) ? pData : pData?.friends || []);
+        const manualPartners = Array.isArray(pData) ? pData : pData?.friends || [];
+        const socialFriends: Friend[] = (socialFriendsRes.data.friends || []).map((sf: any) => ({
+          id: sf.id + 1000000,
+          name: `${sf.first_name || ''} ${sf.last_name || ''}`.trim(),
+          friend_type: 'training-partner' as const,
+        }));
+        const manualIds = new Set(manualPartners.map(p => p.name.toLowerCase()));
+        const merged = [
+          ...manualPartners,
+          ...socialFriends.filter(sf => !manualIds.has(sf.name.toLowerCase())),
+        ];
+        setPartners(merged);
         setAutocomplete(autocompleteRes.data);
         const mData = movementsRes.data as Movement[] | { movements: Movement[] };
         setMovements(Array.isArray(mData) ? mData : mData?.movements || []);

@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { X, Mic, MicOff } from 'lucide-react';
-import { sessionsApi, profileApi, restApi, friendsApi } from '../api/client';
+import { sessionsApi, profileApi, restApi, friendsApi, socialApi } from '../api/client';
 import { PrimaryButton, SecondaryButton, ClassTypeChips, IntensityChips } from './ui';
 import { useToast } from '../contexts/ToastContext';
 import { getLocalDateString } from '../utils/date';
@@ -61,9 +61,10 @@ export default function QuickLog({ isOpen, onClose, onSuccess }: QuickLogProps) 
     let cancelled = false;
     const doLoad = async () => {
       try {
-        const [profileRes, partnersRes] = await Promise.all([
+        const [profileRes, partnersRes, socialFriendsRes] = await Promise.all([
           profileApi.get(),
           friendsApi.listPartners(),
+          socialApi.getFriends().catch(() => ({ data: { friends: [] } })),
         ]);
         if (cancelled) return;
         if (profileRes.data?.primary_training_type) {
@@ -79,7 +80,18 @@ export default function QuickLog({ isOpen, onClose, onSuccess }: QuickLogProps) 
           }
         }
         if (partnersRes.data) {
-          setTopPartners(partnersRes.data.slice(0, 5));
+          const manualPartners: Friend[] = partnersRes.data;
+          const socialFriends: Friend[] = (socialFriendsRes.data.friends || []).map((sf: any) => ({
+            id: sf.id + 1000000,
+            name: `${sf.first_name || ''} ${sf.last_name || ''}`.trim(),
+            friend_type: 'training-partner' as const,
+          }));
+          const manualNames = new Set(manualPartners.map(p => p.name.toLowerCase()));
+          const merged = [
+            ...manualPartners,
+            ...socialFriends.filter(sf => !manualNames.has(sf.name.toLowerCase())),
+          ];
+          setTopPartners(merged.slice(0, 5));
         }
       } catch (error) {
         if (!cancelled) console.error('Error loading data:', error);

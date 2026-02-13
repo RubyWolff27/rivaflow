@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { getLocalDateString } from '../utils/date';
 import { useNavigate } from 'react-router-dom';
-import { sessionsApi, readinessApi, profileApi, friendsApi, glossaryApi, restApi, whoopApi, getErrorMessage } from '../api/client';
+import { sessionsApi, readinessApi, profileApi, friendsApi, socialApi, glossaryApi, restApi, whoopApi, getErrorMessage } from '../api/client';
 import type { Friend, Movement, MediaUrl, Readiness, WhoopWorkoutMatch } from '../types';
 import { CheckCircle, ArrowRight, ArrowLeft, Plus, X, ToggleLeft, ToggleRight, Search, Camera, ChevronDown, ChevronUp, Swords, Shield, Minus, Mic, MicOff, RefreshCw } from 'lucide-react';
 import WhoopMatchModal from '../components/WhoopMatchModal';
@@ -142,18 +142,29 @@ export default function LogSession() {
     const controller = new AbortController();
     const doLoad = async () => {
       try {
-        const [autocompleteRes, profileRes, instructorsRes, partnersRes, movementsRes] = await Promise.all([
+        const [autocompleteRes, profileRes, instructorsRes, partnersRes, movementsRes, socialFriendsRes] = await Promise.all([
           sessionsApi.getAutocomplete(),
           profileApi.get(),
           friendsApi.listInstructors(),
           friendsApi.listPartners(),
           glossaryApi.list(),
+          socialApi.getFriends().catch(() => ({ data: { friends: [] } })),
         ]);
         if (controller.signal.aborted) return;
 
         setAutocomplete(autocompleteRes.data ?? {});
         setInstructors(instructorsRes.data ?? []);
-        setPartners(partnersRes.data ?? []);
+        const manualPartners: Friend[] = partnersRes.data ?? [];
+        const socialFriends: Friend[] = (socialFriendsRes.data.friends || []).map((sf: any) => ({
+          id: sf.id + 1000000,
+          name: `${sf.first_name || ''} ${sf.last_name || ''}`.trim(),
+          friend_type: 'training-partner' as const,
+        }));
+        const manualNames = new Set(manualPartners.map(p => p.name.toLowerCase()));
+        setPartners([
+          ...manualPartners,
+          ...socialFriends.filter(sf => !manualNames.has(sf.name.toLowerCase())),
+        ]);
         // API returns {movements: [...], total: N} -- extract the array
         const movementsData = movementsRes.data as Movement[] | { movements: Movement[] };
         setMovements(Array.isArray(movementsData) ? movementsData : movementsData?.movements || []);
