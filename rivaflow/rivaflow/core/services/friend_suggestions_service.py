@@ -117,11 +117,18 @@ class FriendSuggestionsService:
         results = []
         for c in candidates[:limit]:
             profile = ProfileRepository.get(c["id"]) or {}
+            # Build display name: prefer profile first+last, then users.display_name
+            display_name = c.get("display_name")
+            if not display_name:
+                first = (profile.get("first_name") or "").strip()
+                last = (profile.get("last_name") or "").strip()
+                if first or last:
+                    display_name = f"{first} {last}".strip()
             results.append(
                 {
                     "id": c["id"],
                     "username": c.get("username"),
-                    "display_name": c.get("display_name"),
+                    "display_name": display_name,
                     "belt_rank": profile.get("current_grade") or c.get("belt_rank"),
                     "location_city": profile.get("city") or c.get("location_city"),
                     "location_state": profile.get("state") or c.get("location_state"),
@@ -178,12 +185,9 @@ class FriendSuggestionsService:
                 convert_query(f"""
                     SELECT
                         id, username, display_name, belt_rank, belt_stripes,
-                        location_city, location_state, primary_gym_id,
-                        searchable, profile_visibility
+                        location_city, location_state, primary_gym_id
                     FROM users
                     WHERE id NOT IN ({placeholders})
-                    AND searchable = TRUE
-                    AND profile_visibility IN ('public', 'friends')
                     LIMIT 500
                 """),
                 exclude_list,
@@ -205,8 +209,6 @@ class FriendSuggestionsService:
                             "location_city": row[5],
                             "location_state": row[6],
                             "primary_gym_id": row[7],
-                            "searchable": row[8],
-                            "profile_visibility": row[9],
                         }
                     )
 
@@ -299,6 +301,13 @@ class FriendSuggestionsService:
     def _has_partner_name_match(self, user_id: int, candidate: dict[str, Any]) -> bool:
         """Check if candidate's name appears in user's session partners."""
         candidate_name = candidate.get("display_name") or candidate.get("username", "")
+        # Also check profile first+last name
+        if not candidate_name and hasattr(self, "_profile_cache"):
+            cp = self._profile_cache.get(candidate["id"]) or {}
+            first = (cp.get("first_name") or "").strip()
+            last = (cp.get("last_name") or "").strip()
+            if first or last:
+                candidate_name = f"{first} {last}".strip()
         if not candidate_name:
             return False
 
