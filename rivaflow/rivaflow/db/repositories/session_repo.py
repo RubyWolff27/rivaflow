@@ -188,6 +188,9 @@ class SessionRepository:
                     json.dumps(v) if v is not None else json.dumps([])
                 ),
                 "needs_review": lambda v: 1 if v else 0,
+                "score_breakdown": lambda v: (
+                    json.dumps(v) if isinstance(v, dict) else v
+                ),
             }
 
             # List fields that can be explicitly cleared with []
@@ -225,6 +228,9 @@ class SessionRepository:
                 "defenses_successful",
                 "source",
                 "needs_review",
+                "session_score",
+                "score_breakdown",
+                "score_version",
             }
 
             # Process each provided field — validate BEFORE building query
@@ -492,4 +498,7 @@ class SessionRepository:
                 data["updated_at"] = datetime.fromisoformat(data["updated_at"])
         # Convert needs_review to bool (SQLite stores as INTEGER)
         data["needs_review"] = bool(data.get("needs_review", 0))
+        # Parse score_breakdown JSON
+        if data.get("score_breakdown"):
+            data["score_breakdown"] = json.loads(data["score_breakdown"])
         return data

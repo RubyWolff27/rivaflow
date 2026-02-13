@@ -1,5 +1,6 @@
 """Service layer for training session operations."""
 
+import logging
 from datetime import date
 from typing import Any
 
@@ -12,6 +13,8 @@ from rivaflow.db.repositories.checkin_repo import CheckinRepository
 from rivaflow.db.repositories.friend_repo import FriendRepository
 from rivaflow.db.repositories.glossary_repo import GlossaryRepository
 from rivaflow.db.repositories.session_technique_repo import SessionTechniqueRepository
+
+logger = logging.getLogger(__name__)
 
 
 class SessionService:
@@ -148,6 +151,9 @@ class SessionService:
             session_id=session_id,
         )
 
+        # Best-effort session scoring
+        self._score_session(user_id, session_id)
+
         return session_id
 
     def get_session(self, user_id: int, session_id: int) -> dict[str, Any] | None:
@@ -275,6 +281,9 @@ class SessionService:
                     session_id=session_id,
                     movement_id=movement["id"],
                 )
+
+        # Best-effort session scoring recalc
+        self._score_session(user_id, session_id)
 
         return updated
 
@@ -421,3 +430,17 @@ class SessionService:
     def get_partner_stats(self, user_id: int, partner_id: int) -> dict[str, Any]:
         """Get analytics for a specific training partner."""
         return self.roll_repo.get_partner_stats(user_id, partner_id)
+
+    @staticmethod
+    def _score_session(user_id: int, session_id: int) -> None:
+        """Best-effort session scoring — never blocks the main flow."""
+        try:
+            from rivaflow.core.services.session_scoring_service import (
+                SessionScoringService,
+            )
+
+            SessionScoringService().score_session(user_id, session_id)
+        except Exception:
+            logger.debug(
+                "Session scoring failed for session %s", session_id, exc_info=True
+            )

@@ -723,6 +723,16 @@ class WhoopService:
         # Link cache to session
         self.workout_cache_repo.link_to_session(workout_cache_id, session_id)
 
+        # Recalculate session score with new WHOOP data
+        try:
+            from rivaflow.core.services.session_scoring_service import (
+                SessionScoringService,
+            )
+
+            SessionScoringService().score_session(user_id, session_id)
+        except Exception:
+            logger.debug("Session scoring after WHOOP link failed", exc_info=True)
+
         return self.session_repo.get_by_id(user_id, session_id)
 
     # =========================================================================
@@ -809,6 +819,20 @@ class WhoopService:
 
                 self.workout_cache_repo.link_to_session(workout["id"], session_id)
                 created_ids.append(session_id)
+
+                # Best-effort scoring of auto-created session
+                try:
+                    from rivaflow.core.services.session_scoring_service import (
+                        SessionScoringService,
+                    )
+
+                    SessionScoringService().score_session(user_id, session_id)
+                except Exception:
+                    logger.debug(
+                        "Scoring auto-created session %s failed",
+                        session_id,
+                        exc_info=True,
+                    )
             except Exception:
                 logger.warning(
                     "Failed to auto-create session for workout %s",

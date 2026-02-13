@@ -5,6 +5,7 @@ import type { Session } from '../types';
 import { Calendar, MapPin, Clock, Activity, Target, Filter, Search } from 'lucide-react';
 import { CardSkeleton } from '../components/ui';
 import MiniZoneBar from '../components/MiniZoneBar';
+import SessionScoreBadge from '../components/sessions/SessionScoreBadge';
 
 type ZoneData = { zone_durations: Record<string, number> | null; strain: number | null; calories: number | null; score_state: string | null };
 
@@ -236,6 +237,7 @@ export default function Sessions() {
                     </p>
                   )}
                 </div>
+                <SessionScoreBadge score={session.session_score} />
               </div>
 
               {/* Stats */}

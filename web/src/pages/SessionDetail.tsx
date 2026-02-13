@@ -6,6 +6,7 @@ import { ArrowLeft, Calendar, Clock, Zap, Users, MapPin, User, Book, Edit2, Acti
 import PhotoGallery from '../components/PhotoGallery';
 import PhotoUpload from '../components/PhotoUpload';
 import SessionInsights from '../components/SessionInsights';
+import SessionScoreCard from '../components/sessions/SessionScoreCard';
 import { useToast } from '../contexts/ToastContext';
 import { CardSkeleton } from '../components/ui';
 
@@ -18,6 +19,7 @@ export default function SessionDetail() {
   const [prevSessionId, setPrevSessionId] = useState<number | null>(null);
   const [nextSessionId, setNextSessionId] = useState<number | null>(null);
   const [whoopCtx, setWhoopCtx] = useState<WhoopSessionContext | null>(null);
+  const [recalculating, setRecalculating] = useState(false);
   const toast = useToast();
 
   useEffect(() => {
@@ -90,6 +92,26 @@ export default function SessionDetail() {
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [prevSessionId, nextSessionId, navigate]);
+
+  const handleRecalculate = async () => {
+    if (!session) return;
+    setRecalculating(true);
+    try {
+      const res = await sessionsApi.recalculateScore(session.id);
+      if (res.data) {
+        setSession({
+          ...session,
+          session_score: res.data.session_score,
+          score_breakdown: res.data.score_breakdown,
+        });
+        toast.success('Score recalculated');
+      }
+    } catch {
+      toast.error('Failed to recalculate score');
+    } finally {
+      setRecalculating(false);
+    }
+  };
 
   if (loading) {
     return (
@@ -242,6 +264,14 @@ export default function SessionDetail() {
 
       {/* Session Insights */}
       <SessionInsights sessionId={session.id} />
+
+      {/* Performance Score */}
+      <SessionScoreCard
+        score={session.session_score}
+        breakdown={session.score_breakdown}
+        onRecalculate={handleRecalculate}
+        recalculating={recalculating}
+      />
 
       {/* Review auto-created session or add details CTA */}
       {session.needs_review ? (

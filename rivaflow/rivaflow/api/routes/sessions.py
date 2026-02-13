@@ -377,3 +377,63 @@ def get_partner_stats(partner_id: int, current_user: dict = Depends(get_current_
     """Get training statistics for a specific partner."""
     stats = service.get_partner_stats(user_id=current_user["id"], partner_id=partner_id)
     return stats
+
+
+# --- Session scoring endpoints ------------------------------------------------
+
+
+@router.get("/{session_id}/score")
+def get_session_score(
+    session_id: int,
+    current_user: dict = Depends(get_current_user),
+):
+    """Get the performance score and breakdown for a session."""
+    session = service.get_session(user_id=current_user["id"], session_id=session_id)
+    if not session:
+        raise NotFoundError(f"Session {session_id} not found")
+
+    return {
+        "session_id": session_id,
+        "session_score": session.get("session_score"),
+        "score_breakdown": session.get("score_breakdown"),
+        "score_version": session.get("score_version"),
+    }
+
+
+@router.post("/{session_id}/score/recalculate")
+@limiter.limit("30/minute")
+def recalculate_session_score(
+    request: Request,
+    session_id: int,
+    current_user: dict = Depends(get_current_user),
+):
+    """Force recalculate the performance score for a session."""
+    from rivaflow.core.services.session_scoring_service import (
+        SessionScoringService,
+    )
+
+    scoring = SessionScoringService()
+    breakdown = scoring.recalculate_session(current_user["id"], session_id)
+    if not breakdown:
+        raise NotFoundError(f"Session {session_id} not found")
+    return {
+        "session_id": session_id,
+        "session_score": breakdown["total"],
+        "score_breakdown": breakdown,
+    }
+
+
+@router.post("/scores/backfill")
+@limiter.limit("5/minute")
+def backfill_scores(
+    request: Request,
+    current_user: dict = Depends(get_current_user),
+):
+    """Score all unscored sessions for the current user."""
+    from rivaflow.core.services.session_scoring_service import (
+        SessionScoringService,
+    )
+
+    scoring = SessionScoringService()
+    result = scoring.backfill_user_scores(current_user["id"])
+    return result

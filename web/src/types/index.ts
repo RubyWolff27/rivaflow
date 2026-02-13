@@ -31,9 +31,27 @@ export interface Session {
   whoop_calories?: number;
   whoop_avg_hr?: number;
   whoop_max_hr?: number;
+  session_score?: number;
+  score_breakdown?: SessionScoreBreakdown;
+  score_version?: number;
   source?: 'manual' | 'whoop';
   needs_review?: boolean;
   created_at: string;
+}
+
+export interface SessionScorePillar {
+  score: number;
+  max: number;
+  pct: number;
+}
+
+export interface SessionScoreBreakdown {
+  version: number;
+  rubric: 'bjj' | 'competition' | 'supplementary';
+  total: number;
+  label: string;
+  pillars: Record<string, SessionScorePillar>;
+  data_completeness: number;
 }
 
 export interface Readiness {

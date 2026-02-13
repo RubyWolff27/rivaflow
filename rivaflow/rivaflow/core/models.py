@@ -259,6 +259,9 @@ class Session(SessionCreate):
     """Full session model with database fields."""
 
     id: int
+    session_score: float | None = None
+    score_breakdown: dict | None = None
+    score_version: int | None = None
     created_at: datetime
     updated_at: datetime
 

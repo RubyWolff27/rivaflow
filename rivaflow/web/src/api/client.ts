@@ -1,5 +1,5 @@
 import axios from 'axios';
-import type { Session, Readiness, Report, Suggestion, TrainedMovement, Video, Profile, Grading, Movement, Friend, CustomVideo, WeeklyGoalProgress, GoalsSummary, TrainingStreaks, GoalCompletionStreak, DailyCheckin, DayCheckins, StreakStatus, Streak, Milestone, MilestoneProgress, CompEvent, WeightLog, WeightAverage, Group, GroupMember, UserBasic, TrainingGoal, WhoopConnectionStatus, WhoopWorkoutMatch, WhoopRecovery, WhoopScopeCheck, WhoopReadinessAutoFill, WhoopSessionContext } from '../types';
+import type { Session, SessionScoreBreakdown, Readiness, Report, Suggestion, TrainedMovement, Video, Profile, Grading, Movement, Friend, CustomVideo, WeeklyGoalProgress, GoalsSummary, TrainingStreaks, GoalCompletionStreak, DailyCheckin, DayCheckins, StreakStatus, Streak, Milestone, MilestoneProgress, CompEvent, WeightLog, WeightAverage, Group, GroupMember, UserBasic, TrainingGoal, WhoopConnectionStatus, WhoopWorkoutMatch, WhoopRecovery, WhoopScopeCheck, WhoopReadinessAutoFill, WhoopSessionContext } from '../types';
 
 // Paginated response type
 interface PaginatedResponse<T> {
@@ -119,6 +119,9 @@ export const sessionsApi = {
   getByRange: (startDate: string, endDate: string) =>
     api.get<Session[]>(`/sessions/range/${startDate}/${endDate}`),
   getAutocomplete: () => api.get<{ gyms: string[]; locations: string[]; partners: string[]; techniques: string[] }>('/sessions/autocomplete/data'),
+  getScore: (id: number) => api.get<{ session_id: number; session_score: number | null; score_breakdown: SessionScoreBreakdown | null }>(`/sessions/${id}/score`),
+  recalculateScore: (id: number) => api.post<{ session_id: number; session_score: number; score_breakdown: SessionScoreBreakdown }>(`/sessions/${id}/score/recalculate`),
+  backfillScores: () => api.post<{ scored: number; skipped: number; total: number }>('/sessions/scores/backfill'),
 };
 
 export const readinessApi = {
