@@ -39,8 +39,12 @@ class FriendSuggestionsRepository:
                     score,
                     json.dumps(reasons),
                     mutual_friends_count,
-                    datetime.now(),
-                    expires_at,
+                    datetime.now().isoformat(),
+                    (
+                        expires_at.isoformat()
+                        if isinstance(expires_at, datetime)
+                        else str(expires_at)
+                    ),
                 ),
             )
 
@@ -71,7 +75,7 @@ class FriendSuggestionsRepository:
                     ORDER BY fs.score DESC
                     LIMIT ?
                 """),
-                (user_id, datetime.now(), limit),
+                (user_id, datetime.now().isoformat(), limit),
             )
             rows = cursor.fetchall()
             return [FriendSuggestionsRepository._row_to_dict(row) for row in rows]
@@ -87,7 +91,7 @@ class FriendSuggestionsRepository:
                     SET dismissed = TRUE, dismissed_at = ?
                     WHERE user_id = ? AND suggested_user_id = ?
                 """),
-                (datetime.now(), user_id, suggested_user_id),
+                (datetime.now().isoformat(), user_id, suggested_user_id),
             )
             return cursor.rowcount > 0
 
@@ -101,7 +105,7 @@ class FriendSuggestionsRepository:
                     DELETE FROM friend_suggestions
                     WHERE user_id = ? AND expires_at < ?
                 """),
-                (user_id, datetime.now()),
+                (user_id, datetime.now().isoformat()),
             )
             return cursor.rowcount
 

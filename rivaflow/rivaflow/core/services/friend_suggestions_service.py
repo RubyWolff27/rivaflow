@@ -83,7 +83,7 @@ class FriendSuggestionsService:
                     mutual_friends_count=candidate["mutual_friends_count"],
                 )
                 created_count += 1
-            except (ConnectionError, OSError, ValueError):
+            except Exception:
                 # Skip if duplicate or other error
                 continue
 

@@ -342,107 +342,132 @@ class SocialService:
     @staticmethod
     def get_friend_recommendations(user_id: int) -> list[dict[str, Any]]:
         """
-        Get friend recommendations based on gym overlap (Strava-style).
+        Get friend recommendations based on gym overlap.
 
         Recommendations prioritize:
-        1. Same gym (most frequent training location)
-        2. Recent gym overlap (last 30 days)
-        3. Mutual training partners
-        4. Exclude users already following
-
-        Args:
-            user_id: Current user ID
-
-        Returns:
-            List of recommended users with context
+        1. Same default gym (from profile)
+        2. Same primary session gym
+        3. Recent session gym overlap (last 30 days)
+        Excludes existing friends (friend_connections).
         """
         from collections import Counter
         from datetime import date, timedelta
 
+        from rivaflow.db.database import convert_query, get_connection
+        from rivaflow.db.repositories.profile_repo import ProfileRepository
         from rivaflow.db.repositories.user_repo import UserRepository
 
-        # Get current user's sessions (last 90 days for pattern matching)
+        # Get current user's profile gym
+        user_profile = ProfileRepository.get(user_id)
+        user_default_gym = (user_profile or {}).get("default_gym") or ""
+
+        # Get current user's sessions (last 90 days)
         start_date = date.today() - timedelta(days=90)
         end_date = date.today()
         user_sessions = SessionRepository.get_by_date_range(
             user_id, start_date, end_date
         )
 
-        # Find user's most frequent gym
+        # Find user's most frequent session gym
         gym_counts = Counter(
             [s.get("gym_name") for s in user_sessions if s.get("gym_name")]
         )
         user_primary_gym = gym_counts.most_common(1)[0][0] if gym_counts else None
 
-        # Get all users except current user
+        # Collect all user gym names for recent overlap
+        recent_start_str = (date.today() - timedelta(days=30)).isoformat()
+        user_recent_gyms = {
+            s.get("gym_name")
+            for s in user_sessions
+            if s.get("gym_name")
+            and str(s.get("session_date", ""))[:10] >= recent_start_str
+        }
+
+        # Get existing friend IDs from friend_connections
+        existing_friend_ids: set[int] = set()
+        try:
+            with get_connection() as conn:
+                cursor = conn.cursor()
+                cursor.execute(
+                    convert_query(
+                        "SELECT requester_id, recipient_id "
+                        "FROM friend_connections "
+                        "WHERE (requester_id = ? OR recipient_id = ?) "
+                        "AND status IN ('accepted', 'pending')"
+                    ),
+                    (user_id, user_id),
+                )
+                for row in cursor.fetchall():
+                    req_id = row["requester_id"] if hasattr(row, "keys") else row[0]
+                    rec_id = row["recipient_id"] if hasattr(row, "keys") else row[1]
+                    existing_friend_ids.add(rec_id if req_id == user_id else req_id)
+        except Exception:
+            pass
+
+        # Get all other users
         all_users = UserRepository.list_all()
-        other_users = [u for u in all_users if u["id"] != user_id]
-
-        # Get users already following
-        following = UserRelationshipRepository.get_following(user_id)
-        following_ids = {f["following_user_id"] for f in following}
-
         recommendations = []
 
-        for other_user in other_users:
-            # Skip if already following
-            if other_user["id"] in following_ids:
+        for other_user in all_users:
+            if other_user["id"] == user_id:
                 continue
-
-            # Get other user's sessions
-            other_sessions = SessionRepository.get_by_date_range(
-                other_user["id"], start_date, end_date
-            )
-
-            # Skip if they have no sessions
-            if not other_sessions:
+            if other_user["id"] in existing_friend_ids:
                 continue
-
-            # Find other user's most frequent gym
-            other_gym_counts = Counter(
-                [s.get("gym_name") for s in other_sessions if s.get("gym_name")]
-            )
-            other_primary_gym = (
-                other_gym_counts.most_common(1)[0][0] if other_gym_counts else None
-            )
 
             reason = None
             score = 0
 
-            # Check for same primary gym
-            if (
-                user_primary_gym
-                and other_primary_gym
-                and user_primary_gym == other_primary_gym
-            ):
-                reason = f"Trains at {user_primary_gym}"
-                score = 100
+            # 1. Check default gym from profile
+            if user_default_gym:
+                other_profile = ProfileRepository.get(other_user["id"])
+                other_default_gym = (other_profile or {}).get("default_gym") or ""
+                if (
+                    other_default_gym
+                    and user_default_gym.strip().lower()
+                    == other_default_gym.strip().lower()
+                ):
+                    reason = f"Trains at {user_default_gym}"
+                    score = 100
 
-            # Check for recent gym overlap (last 30 days)
+            # 2. Check session-based primary gym overlap
             if not reason:
-                recent_start = date.today() - timedelta(days=30)
-                user_recent_sessions = [
-                    s for s in user_sessions if s["session_date"] >= recent_start
-                ]
-                other_recent_sessions = [
-                    s for s in other_sessions if s["session_date"] >= recent_start
-                ]
+                other_sessions = SessionRepository.get_by_date_range(
+                    other_user["id"], start_date, end_date
+                )
+                if other_sessions:
+                    other_gym_counts = Counter(
+                        [s.get("gym_name") for s in other_sessions if s.get("gym_name")]
+                    )
+                    other_primary_gym = (
+                        other_gym_counts.most_common(1)[0][0]
+                        if other_gym_counts
+                        else None
+                    )
 
-                user_recent_gyms = {
-                    s.get("gym_name") for s in user_recent_sessions if s.get("gym_name")
-                }
-                other_recent_gyms = {
-                    s.get("gym_name")
-                    for s in other_recent_sessions
-                    if s.get("gym_name")
-                }
+                    if (
+                        user_primary_gym
+                        and other_primary_gym
+                        and user_primary_gym == other_primary_gym
+                    ):
+                        reason = f"Trains at {user_primary_gym}"
+                        score = 100
 
-                overlap_gyms = user_recent_gyms & other_recent_gyms
-                if overlap_gyms:
-                    reason = f"Recently trained at {', '.join(list(overlap_gyms)[:2])}"
-                    score = 80
+                    # 3. Recent gym overlap (last 30 days)
+                    if not reason and user_recent_gyms:
+                        other_recent_gyms = {
+                            s.get("gym_name")
+                            for s in other_sessions
+                            if s.get("gym_name")
+                            and str(s.get("session_date", ""))[:10] >= recent_start_str
+                        }
+                        overlap_gyms = user_recent_gyms & other_recent_gyms
+                        if overlap_gyms:
+                            reason = (
+                                "Recently trained at "
+                                f"{', '.join(list(overlap_gyms)[:2])}"
+                            )
+                            score = 80
 
-            # Only include if we found a reason
             if reason:
                 recommendations.append(
                     {
@@ -455,8 +480,5 @@ class SocialService:
                     }
                 )
 
-        # Sort by score (highest first)
         recommendations.sort(key=lambda x: x["score"], reverse=True)
-
-        # Return top 10 recommendations
         return recommendations[:10]
