@@ -246,14 +246,14 @@ class GrappleRateLimiter:
                             ),
                             "days_analyzed": days,
                         }
-                else:
-                    return {
-                        "active_hours": 0,
-                        "total_messages": 0,
-                        "peak_hourly_usage": 0,
-                        "avg_hourly_usage": 0,
-                        "days_analyzed": days,
-                    }
+
+                return {
+                    "active_hours": 0,
+                    "total_messages": 0,
+                    "peak_hourly_usage": 0,
+                    "avg_hourly_usage": 0,
+                    "days_analyzed": days,
+                }
         except (ConnectionError, OSError) as e:
             logger.error(f"Failed to get usage stats for user {user_id}: {e}")
             return {

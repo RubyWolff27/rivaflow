@@ -107,3 +107,4 @@ disable_error_code = [
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 addopts = "-v --cov=rivaflow"
+pythonpath = ["rivaflow"]

@@ -88,6 +88,7 @@ Changelog = "https://github.com/RubyWolff27/rivaflow/blob/main/CHANGELOG.md"
 packages = [
     "rivaflow",
     "rivaflow.api",
+    "rivaflow.api.middleware",
     "rivaflow.api.routes",
     "rivaflow.cache",
     "rivaflow.cli",
@@ -96,6 +97,7 @@ packages = [
     "rivaflow.core.middleware",
     "rivaflow.core.services",
     "rivaflow.core.services.grapple",
+    "rivaflow.core.utils",
     "rivaflow.db",
     "rivaflow.db.repositories",
 ]
