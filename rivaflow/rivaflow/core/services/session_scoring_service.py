@@ -450,14 +450,14 @@ class SessionScoringService:
                 return {"avg_duration": 60, "avg_intensity": 3, "avg_rolls": 5}
             if hasattr(row, "keys"):
                 return {
-                    "avg_duration": row["avg_duration"] or 60,
-                    "avg_intensity": row["avg_intensity"] or 3,
-                    "avg_rolls": row["avg_rolls"] or 5,
+                    "avg_duration": float(row["avg_duration"] or 60),
+                    "avg_intensity": float(row["avg_intensity"] or 3),
+                    "avg_rolls": float(row["avg_rolls"] or 5),
                 }
             return {
-                "avg_duration": row[0] or 60,
-                "avg_intensity": row[1] or 3,
-                "avg_rolls": row[2] or 5,
+                "avg_duration": float(row[0] or 60),
+                "avg_intensity": float(row[1] or 3),
+                "avg_rolls": float(row[2] or 5),
             }
 
     def _get_readiness_for_date(self, user_id: int, session: dict) -> dict | None:
