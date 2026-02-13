@@ -85,45 +85,54 @@ def execute_insert(cursor, query: str, params: tuple) -> int:
             if tbl_match:
                 tbl_name = tbl_match.group(1)
                 try:
-                    # Find ALL sequences owned by columns in this table
-                    cursor.execute(
-                        "SELECT s.relname FROM pg_class s "
-                        "JOIN pg_depend d ON d.objid = s.oid "
-                        "JOIN pg_class t ON d.refobjid = t.oid "
-                        "WHERE s.relkind = 'S' AND t.relname = %s",
-                        (tbl_name,),
-                    )
-                    seqs = [r[0] for r in cursor.fetchall()]
-
-                    if not seqs:
-                        # Try column_default fallback
-                        cursor.execute(
-                            "SELECT column_default "
-                            "FROM information_schema.columns "
-                            "WHERE table_name = %s AND column_name = 'id'",
-                            (tbl_name,),
-                        )
-                        drow = cursor.fetchone()
-                        if drow and drow[0]:
-                            m = _re.search(r"nextval\('([^']+)'", drow[0])
-                            if m:
-                                seqs = [m.group(1)]
-
                     cursor.execute(f"SELECT COALESCE(MAX(id), 0) FROM {tbl_name}")  # noqa: S608
                     max_id = cursor.fetchone()[0]
 
+                    # Find sequence by name pattern (handles renamed tables)
+                    cursor.execute(
+                        "SELECT relname FROM pg_class " "WHERE relkind = 'S' AND relname LIKE %s",
+                        (f"%{tbl_name}%",),
+                    )
+                    seqs = [r[0] for r in cursor.fetchall()]
+                    logger.info(f"Found sequences for {tbl_name}: {seqs}, max_id={max_id}")
+
                     for seq in seqs:
-                        cursor.execute(
-                            "SELECT setval(%s, %s, true)",
-                            (seq, max_id),
-                        )
+                        cursor.execute("SELECT setval(%s, %s, true)", (seq, max_id))
                         logger.info(f"Reset sequence {seq} to {max_id}")
                     conn.commit()
+
+                    if not seqs:
+                        # No sequence found at all — insert with explicit id
+                        logger.warning(f"No sequence found for {tbl_name}, using explicit id")
+                        explicit_id = max_id + 1
+                        # Add id column to the INSERT
+                        explicit_query = _re.sub(
+                            rf"INSERT\s+INTO\s+{tbl_name}\s*\(",
+                            f"INSERT INTO {tbl_name} (id, ",
+                            query,
+                            count=1,
+                            flags=_re.IGNORECASE,
+                        )
+                        explicit_query = _re.sub(
+                            r"VALUES\s*\(",
+                            f"VALUES ({explicit_id}, ",
+                            explicit_query,
+                            count=1,
+                            flags=_re.IGNORECASE,
+                        )
+                        explicit_query = explicit_query.rstrip().rstrip(";") + " RETURNING id"
+                        cursor.execute(convert_query(explicit_query), params)
+                        conn.commit()
+                        result = cursor.fetchone()
+                        if hasattr(result, "keys"):
+                            return result["id"]
+                        return result[0]
+
                 except Exception as inner:
                     logger.error(f"Failed to reset sequence for {tbl_name}: {inner}")
                     conn.rollback()
 
-            # Retry the INSERT once
+            # Retry the INSERT once (sequence should be fixed now)
             cursor.execute(converted, params)
 
         result = cursor.fetchone()
