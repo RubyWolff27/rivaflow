@@ -85,7 +85,8 @@ def execute_insert(cursor, query: str, params: tuple) -> int:
 
             tbl_name = tbl_match.group(1)
             cursor.execute(f"SELECT COALESCE(MAX(id), 0) + 1 FROM {tbl_name}")  # noqa: S608
-            next_id = cursor.fetchone()[0]
+            row = cursor.fetchone()
+            next_id = list(row.values())[0] if hasattr(row, "values") else row[0]
             logger.info(f"Retrying INSERT into {tbl_name} with explicit id={next_id}")
 
             # Rebuild query with explicit id column
