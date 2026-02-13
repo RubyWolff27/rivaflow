@@ -63,9 +63,69 @@ def execute_insert(cursor, query: str, params: tuple) -> int:
         The ID of the inserted row
     """
     if get_db_type() == "postgresql":
+        import re as _re
+
+        import psycopg2.errors
+
         # PostgreSQL: Add RETURNING id and fetch the result
         query_with_returning = query.rstrip().rstrip(";") + " RETURNING id"
-        cursor.execute(convert_query(query_with_returning), params)
+        converted = convert_query(query_with_returning)
+
+        try:
+            cursor.execute(converted, params)
+        except psycopg2.errors.UniqueViolation as exc:
+            # Serial sequence out of sync — reset and retry once
+            err_msg = str(exc)
+            logger.warning(f"UniqueViolation on INSERT, resetting sequence: {err_msg}")
+            conn = cursor.connection
+            conn.rollback()
+
+            # Extract table name from INSERT INTO <table>
+            tbl_match = _re.search(r"INSERT\s+INTO\s+(\w+)", query, _re.IGNORECASE)
+            if tbl_match:
+                tbl_name = tbl_match.group(1)
+                try:
+                    # Find ALL sequences owned by columns in this table
+                    cursor.execute(
+                        "SELECT s.relname FROM pg_class s "
+                        "JOIN pg_depend d ON d.objid = s.oid "
+                        "JOIN pg_class t ON d.refobjid = t.oid "
+                        "WHERE s.relkind = 'S' AND t.relname = %s",
+                        (tbl_name,),
+                    )
+                    seqs = [r[0] for r in cursor.fetchall()]
+
+                    if not seqs:
+                        # Try column_default fallback
+                        cursor.execute(
+                            "SELECT column_default "
+                            "FROM information_schema.columns "
+                            "WHERE table_name = %s AND column_name = 'id'",
+                            (tbl_name,),
+                        )
+                        drow = cursor.fetchone()
+                        if drow and drow[0]:
+                            m = _re.search(r"nextval\('([^']+)'", drow[0])
+                            if m:
+                                seqs = [m.group(1)]
+
+                    cursor.execute(f"SELECT COALESCE(MAX(id), 0) FROM {tbl_name}")  # noqa: S608
+                    max_id = cursor.fetchone()[0]
+
+                    for seq in seqs:
+                        cursor.execute(
+                            "SELECT setval(%s, %s, true)",
+                            (seq, max_id),
+                        )
+                        logger.info(f"Reset sequence {seq} to {max_id}")
+                    conn.commit()
+                except Exception as inner:
+                    logger.error(f"Failed to reset sequence for {tbl_name}: {inner}")
+                    conn.rollback()
+
+            # Retry the INSERT once
+            cursor.execute(converted, params)
+
         result = cursor.fetchone()
 
         if result is None:
