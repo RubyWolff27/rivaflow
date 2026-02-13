@@ -146,6 +146,38 @@ class NotificationService:
         )
 
     @staticmethod
+    def create_friend_request_notification(
+        recipient_id: int, requester_id: int
+    ) -> dict[str, Any] | None:
+        """Create a notification when someone sends a friend request."""
+        if recipient_id == requester_id:
+            return None
+
+        if NotificationRepository.check_duplicate(
+            recipient_id, requester_id, "follow", None, None
+        ):
+            return None
+
+        return NotificationRepository.create(
+            user_id=recipient_id,
+            actor_id=requester_id,
+            notification_type="follow",
+            message="sent you a friend request",
+        )
+
+    @staticmethod
+    def create_friend_accepted_notification(
+        requester_id: int, accepter_id: int
+    ) -> dict[str, Any] | None:
+        """Create a notification when someone accepts a friend request."""
+        return NotificationRepository.create(
+            user_id=requester_id,
+            actor_id=accepter_id,
+            notification_type="follow",
+            message="accepted your friend request",
+        )
+
+    @staticmethod
     def create_milestone_notification(
         user_id: int, milestone_label: str
     ) -> dict[str, Any] | None:

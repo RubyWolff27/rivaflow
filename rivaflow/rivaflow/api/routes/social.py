@@ -18,6 +18,7 @@ from slowapi.util import get_remote_address
 from rivaflow.core.dependencies import get_current_user
 from rivaflow.core.exceptions import NotFoundError, ValidationError
 from rivaflow.core.services.friend_suggestions_service import FriendSuggestionsService
+from rivaflow.core.services.notification_service import NotificationService
 from rivaflow.core.services.social_service import SocialService
 from rivaflow.db.repositories.social_connection_repo import SocialConnectionRepository
 from rivaflow.db.repositories.user_repo import UserRepository
@@ -540,6 +541,9 @@ def send_friend_request(
             connection_source=body.connection_source,
             request_message=body.request_message,
         )
+        NotificationService.create_friend_request_notification(
+            user_id, current_user["id"]
+        )
         return {"success": True, "connection": connection}
     except ValueError as e:
         raise ValidationError(str(e))
@@ -554,6 +558,12 @@ def accept_friend_request(
         connection = SocialConnectionRepository.accept_friend_request(
             connection_id=connection_id, recipient_id=current_user["id"]
         )
+        # Notify the requester that their request was accepted
+        requester_id = connection.get("requester_id")
+        if requester_id:
+            NotificationService.create_friend_accepted_notification(
+                requester_id, current_user["id"]
+            )
         return {"success": True, "connection": connection}
     except ValueError as e:
         raise ValidationError(str(e))
