@@ -53,25 +53,7 @@ export default function Dashboard() {
         {tierInfo.isBeta && <BetaBadge />}
       </div>
 
-      {/* 0. Engagement Banner — streaks, check-in status, motivation */}
-      <EngagementBanner />
-
-      {/* 1. Getting Started — onboarding checklist for new users */}
-      <GettingStarted />
-
-      {/* 2. Daily Action Hero — THE primary card */}
-      <DailyActionHero />
-
-      {/* 3. Last Session — "What did I do last?" */}
-      <LastSession />
-
-      {/* 4. This Week — weekly goals + progress */}
-      <ThisWeek />
-
-      {/* 5. Journey Progress — belt + milestone + stats */}
-      <JourneyProgress />
-
-      {/* 6. Grapple AI Coach */}
+      {/* 1. Grapple AI Coach — key differentiator */}
       <Card className="relative overflow-hidden">
         <div className="absolute top-0 right-0 w-32 h-32 opacity-[0.04]">
           <Sparkles className="w-full h-full" />
@@ -114,6 +96,24 @@ export default function Dashboard() {
           </button>
         </div>
       </Card>
+
+      {/* 2. Engagement Banner — streaks, check-in status, motivation */}
+      <EngagementBanner />
+
+      {/* 1. Getting Started — onboarding checklist for new users */}
+      <GettingStarted />
+
+      {/* 2. Daily Action Hero — THE primary card */}
+      <DailyActionHero />
+
+      {/* 3. Last Session — "What did I do last?" */}
+      <LastSession />
+
+      {/* 4. This Week — weekly goals + progress */}
+      <ThisWeek />
+
+      {/* 5. Journey Progress — belt + milestone + stats */}
+      <JourneyProgress />
 
       {/* 7. Latest AI Insight */}
       <LatestInsightWidget />
