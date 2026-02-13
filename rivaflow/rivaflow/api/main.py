@@ -188,11 +188,13 @@ async def _lifespan(_app: FastAPI):
     # Backfill session scores for any unscored sessions (idempotent).
     if not settings.IS_TEST:
         try:
+            logging.info("Starting session score backfill...")
             from rivaflow.db.backfill_scores import backfill_all_users
 
             backfill_all_users()
-        except Exception as e:
-            logging.warning(f"Session score backfill failed: {e}")
+            logging.info("Session score backfill complete.")
+        except Exception:
+            logging.warning("Session score backfill failed", exc_info=True)
 
     if not settings.IS_TEST:
         try:

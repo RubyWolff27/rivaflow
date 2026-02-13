@@ -440,7 +440,10 @@ class SessionService:
             )
 
             SessionScoringService().score_session(user_id, session_id)
+            logger.info("Session %s scored successfully", session_id)
         except Exception:
-            logger.debug(
-                "Session scoring failed for session %s", session_id, exc_info=True
+            logger.warning(
+                "Session scoring failed for session %s",
+                session_id,
+                exc_info=True,
             )

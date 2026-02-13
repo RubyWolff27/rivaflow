@@ -731,7 +731,7 @@ class WhoopService:
 
             SessionScoringService().score_session(user_id, session_id)
         except Exception:
-            logger.debug("Session scoring after WHOOP link failed", exc_info=True)
+            logger.warning("Session scoring after WHOOP link failed", exc_info=True)
 
         return self.session_repo.get_by_id(user_id, session_id)
 
@@ -828,7 +828,7 @@ class WhoopService:
 
                     SessionScoringService().score_session(user_id, session_id)
                 except Exception:
-                    logger.debug(
+                    logger.warning(
                         "Scoring auto-created session %s failed",
                         session_id,
                         exc_info=True,
