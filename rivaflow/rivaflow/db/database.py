@@ -74,66 +74,37 @@ def execute_insert(cursor, query: str, params: tuple) -> int:
         try:
             cursor.execute(converted, params)
         except psycopg2.errors.UniqueViolation as exc:
-            # Serial sequence out of sync — reset and retry once
-            err_msg = str(exc)
-            logger.warning(f"UniqueViolation on INSERT, resetting sequence: {err_msg}")
+            # Serial sequence broken — bypass it with explicit id
+            logger.warning(f"UniqueViolation on INSERT: {exc}")
             conn = cursor.connection
             conn.rollback()
 
-            # Extract table name from INSERT INTO <table>
             tbl_match = _re.search(r"INSERT\s+INTO\s+(\w+)", query, _re.IGNORECASE)
-            if tbl_match:
-                tbl_name = tbl_match.group(1)
-                try:
-                    cursor.execute(f"SELECT COALESCE(MAX(id), 0) FROM {tbl_name}")  # noqa: S608
-                    max_id = cursor.fetchone()[0]
+            if not tbl_match:
+                raise
 
-                    # Find sequence by name pattern (handles renamed tables)
-                    cursor.execute(
-                        "SELECT relname FROM pg_class " "WHERE relkind = 'S' AND relname LIKE %s",
-                        (f"%{tbl_name}%",),
-                    )
-                    seqs = [r[0] for r in cursor.fetchall()]
-                    logger.info(f"Found sequences for {tbl_name}: {seqs}, max_id={max_id}")
+            tbl_name = tbl_match.group(1)
+            cursor.execute(f"SELECT COALESCE(MAX(id), 0) + 1 FROM {tbl_name}")  # noqa: S608
+            next_id = cursor.fetchone()[0]
+            logger.info(f"Retrying INSERT into {tbl_name} with explicit id={next_id}")
 
-                    for seq in seqs:
-                        cursor.execute("SELECT setval(%s, %s, true)", (seq, max_id))
-                        logger.info(f"Reset sequence {seq} to {max_id}")
-                    conn.commit()
-
-                    if not seqs:
-                        # No sequence found at all — insert with explicit id
-                        logger.warning(f"No sequence found for {tbl_name}, using explicit id")
-                        explicit_id = max_id + 1
-                        # Add id column to the INSERT
-                        explicit_query = _re.sub(
-                            rf"INSERT\s+INTO\s+{tbl_name}\s*\(",
-                            f"INSERT INTO {tbl_name} (id, ",
-                            query,
-                            count=1,
-                            flags=_re.IGNORECASE,
-                        )
-                        explicit_query = _re.sub(
-                            r"VALUES\s*\(",
-                            f"VALUES ({explicit_id}, ",
-                            explicit_query,
-                            count=1,
-                            flags=_re.IGNORECASE,
-                        )
-                        explicit_query = explicit_query.rstrip().rstrip(";") + " RETURNING id"
-                        cursor.execute(convert_query(explicit_query), params)
-                        conn.commit()
-                        result = cursor.fetchone()
-                        if hasattr(result, "keys"):
-                            return result["id"]
-                        return result[0]
-
-                except Exception as inner:
-                    logger.error(f"Failed to reset sequence for {tbl_name}: {inner}")
-                    conn.rollback()
-
-            # Retry the INSERT once (sequence should be fixed now)
-            cursor.execute(converted, params)
+            # Rebuild query with explicit id column
+            explicit_q = _re.sub(
+                rf"(INSERT\s+INTO\s+{tbl_name}\s*\()",
+                r"\g<1>id, ",
+                query,
+                count=1,
+                flags=_re.IGNORECASE,
+            )
+            explicit_q = _re.sub(
+                r"(VALUES\s*\()",
+                rf"\g<1>{next_id}, ",
+                explicit_q,
+                count=1,
+                flags=_re.IGNORECASE,
+            )
+            explicit_q = explicit_q.rstrip().rstrip(";") + " RETURNING id"
+            cursor.execute(convert_query(explicit_q), params)
 
         result = cursor.fetchone()
 
