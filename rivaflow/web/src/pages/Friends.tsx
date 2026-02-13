@@ -1,11 +1,21 @@
 import { useState, useEffect } from 'react';
-import { friendsApi } from '../api/client';
+import { friendsApi, socialApi } from '../api/client';
 import type { Friend } from '../types';
 import { useNavigate } from 'react-router-dom';
-import { Users, Plus, Edit2, Trash2, Award, Filter, Search } from 'lucide-react';
+import { Users, Plus, Edit2, Trash2, Award, Filter, Search, UserCheck, X } from 'lucide-react';
 import ConfirmDialog from '../components/ConfirmDialog';
 import { useToast } from '../contexts/ToastContext';
 import { CardSkeleton } from '../components/ui';
+
+interface PendingRequest {
+  id: number;
+  requester_id: number;
+  requester_first_name: string;
+  requester_last_name: string;
+  requester_email: string;
+  requester_avatar_url?: string;
+  requested_at: string;
+}
 
 const BELT_STYLES: Record<string, React.CSSProperties> = {
   white: { backgroundColor: 'var(--surfaceElev)', color: 'var(--text)', borderColor: 'var(--border)' },
@@ -25,6 +35,8 @@ export default function Friends() {
   const [showAddForm, setShowAddForm] = useState(false);
   const [editingFriend, setEditingFriend] = useState<Friend | null>(null);
   const [friendToDelete, setFriendToDelete] = useState<number | null>(null);
+  const [pendingRequests, setPendingRequests] = useState<PendingRequest[]>([]);
+  const [requestActionLoading, setRequestActionLoading] = useState<number | null>(null);
   const toast = useToast();
 
   const [formData, setFormData] = useState({
@@ -57,6 +69,47 @@ export default function Friends() {
     doLoad();
     return () => { cancelled = true; };
   }, []);
+
+  // Load pending friend requests
+  useEffect(() => {
+    let cancelled = false;
+    const loadRequests = async () => {
+      try {
+        const res = await socialApi.getReceivedRequests();
+        if (!cancelled) setPendingRequests(res.data.requests || []);
+      } catch {
+        // Best-effort
+      }
+    };
+    loadRequests();
+    return () => { cancelled = true; };
+  }, []);
+
+  const handleAcceptRequest = async (request: PendingRequest) => {
+    try {
+      setRequestActionLoading(request.id);
+      await socialApi.acceptFriendRequest(request.id);
+      setPendingRequests((prev) => prev.filter((r) => r.id !== request.id));
+      toast.success(`You and ${request.requester_first_name} are now friends!`);
+    } catch {
+      toast.error('Failed to accept friend request');
+    } finally {
+      setRequestActionLoading(null);
+    }
+  };
+
+  const handleDeclineRequest = async (request: PendingRequest) => {
+    try {
+      setRequestActionLoading(request.id);
+      await socialApi.declineFriendRequest(request.id);
+      setPendingRequests((prev) => prev.filter((r) => r.id !== request.id));
+      toast.success('Friend request declined');
+    } catch {
+      toast.error('Failed to decline friend request');
+    } finally {
+      setRequestActionLoading(null);
+    }
+  };
 
   useEffect(() => {
     filterFriends();
@@ -229,6 +282,69 @@ export default function Friends() {
           </button>
         </div>
       </div>
+
+      {/* Pending Friend Requests */}
+      {pendingRequests.length > 0 && (
+        <div className="card bg-[var(--surface)] border border-[var(--accent)]/20">
+          <h3 className="text-lg font-semibold text-[var(--text)] mb-3">
+            Friend Requests ({pendingRequests.length})
+          </h3>
+          <div className="space-y-3">
+            {pendingRequests.map((request) => (
+              <div
+                key={request.id}
+                className="flex items-center justify-between p-3 rounded-[14px] bg-[var(--surfaceElev)]"
+              >
+                <div
+                  className="flex items-center gap-3 cursor-pointer flex-1"
+                  onClick={() => navigate(`/users/${request.requester_id}`)}
+                >
+                  {request.requester_avatar_url ? (
+                    <img
+                      src={request.requester_avatar_url}
+                      alt={request.requester_first_name}
+                      className="w-10 h-10 rounded-full object-cover"
+                    />
+                  ) : (
+                    <div
+                      className="w-10 h-10 rounded-full flex items-center justify-center text-white font-bold"
+                      style={{ background: 'linear-gradient(135deg, var(--accent), #FF8C42)' }}
+                    >
+                      {request.requester_first_name?.charAt(0) || '?'}
+                    </div>
+                  )}
+                  <div>
+                    <p className="font-medium text-[var(--text)]">
+                      {request.requester_first_name} {request.requester_last_name}
+                    </p>
+                    <p className="text-xs text-[var(--muted)]">
+                      Sent {new Date(request.requested_at).toLocaleDateString()}
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => handleAcceptRequest(request)}
+                    disabled={requestActionLoading === request.id}
+                    className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-sm font-medium text-white hover:opacity-90 disabled:opacity-50"
+                    style={{ backgroundColor: 'var(--accent)' }}
+                  >
+                    <UserCheck className="w-4 h-4" />
+                    Accept
+                  </button>
+                  <button
+                    onClick={() => handleDeclineRequest(request)}
+                    disabled={requestActionLoading === request.id}
+                    className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-sm font-medium text-[var(--muted)] bg-[var(--surface)] hover:opacity-80 disabled:opacity-50 border border-[var(--border)]"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Add/Edit Form */}
       {showAddForm && (

@@ -415,7 +415,7 @@ export const socialApi = {
   cancelFriendRequest: (connectionId: number) =>
     api.delete(`/social/friend-requests/${connectionId}`),
   getReceivedRequests: () =>
-    api.get<{ requests: (UserBasic & { status: string; requested_at: string })[]; count: number }>('/social/friend-requests/received'),
+    api.get<{ requests: { id: number; requester_id: number; requester_first_name: string; requester_last_name: string; requester_email: string; requester_avatar_url?: string; status: string; requested_at: string }[]; count: number }>('/social/friend-requests/received'),
   getSentRequests: () =>
     api.get<{ requests: (UserBasic & { status: string; requested_at: string })[]; count: number }>('/social/friend-requests/sent'),
   getFriends: (params?: { limit?: number; offset?: number }) =>
