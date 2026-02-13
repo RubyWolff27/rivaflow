@@ -32,6 +32,9 @@ VALID_BELT_LEVELS = {"white", "blue", "purple", "brown", "black"}
 VALID_COMPETITION_RULESETS = {"none", "ibjjf", "adcc", "sub_only", "naga", "other"}
 
 
+VALID_INJURY_STATUSES = {"active", "recovered", "managing"}
+
+
 class Injury(BaseModel):
     """A persistent injury entry."""
 
@@ -39,6 +42,8 @@ class Injury(BaseModel):
     side: str = "n/a"
     severity: str = "moderate"
     notes: str | None = None
+    status: str = "active"
+    resolved_date: str | None = None
 
 
 class CoachPreferencesUpdate(BaseModel):

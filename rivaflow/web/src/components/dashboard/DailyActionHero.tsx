@@ -361,7 +361,7 @@ function EveningPrompt({ onSubmitted }: { onSubmitted: () => void }) {
 
 /* ---------- Yesterday's Plan Banner ---------- */
 
-function TodayPlanBanner({ intention, onLog }: { intention: string; onLog: () => void }) {
+function TodayPlanBanner({ intention, onLog, completed }: { intention: string; onLog: () => void; completed?: boolean }) {
   return (
     <div
       className="flex items-center gap-3 p-3 rounded-xl mb-4"
@@ -369,21 +369,32 @@ function TodayPlanBanner({ intention, onLog }: { intention: string; onLog: () =>
     >
       <div
         className="w-9 h-9 rounded-full flex items-center justify-center shrink-0"
-        style={{ backgroundColor: 'var(--warning-bg)' }}
+        style={{ backgroundColor: completed ? 'var(--success-bg)' : 'var(--warning-bg)' }}
       >
-        <CalendarCheck className="w-4 h-4" style={{ color: 'var(--warning)' }} />
+        {completed
+          ? <Check className="w-4 h-4" style={{ color: 'var(--success)' }} />
+          : <CalendarCheck className="w-4 h-4" style={{ color: 'var(--warning)' }} />}
       </div>
       <div className="flex-1 min-w-0">
         <p className="text-xs font-medium" style={{ color: 'var(--muted)' }}>Your plan today</p>
         <p className="text-sm font-semibold truncate" style={{ color: 'var(--text)' }}>{intention}</p>
       </div>
-      <button
-        onClick={onLog}
-        className="shrink-0 px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors"
-        style={{ backgroundColor: 'var(--accent)', color: '#fff' }}
-      >
-        Log it
-      </button>
+      {completed ? (
+        <span
+          className="shrink-0 px-3 py-1.5 rounded-lg text-xs font-semibold"
+          style={{ backgroundColor: 'var(--success-bg)', color: 'var(--success)' }}
+        >
+          Done ✓
+        </span>
+      ) : (
+        <button
+          onClick={onLog}
+          className="shrink-0 px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors"
+          style={{ backgroundColor: 'var(--accent)', color: '#fff' }}
+        >
+          Log it
+        </button>
+      )}
     </div>
   );
 }
@@ -916,6 +927,7 @@ export default function DailyActionHero() {
         <TodayPlanBanner
           intention={todayPlan}
           onLog={() => navigate('/log')}
+          completed={hasCheckedIn}
         />
       )}
 

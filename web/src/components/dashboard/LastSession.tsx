@@ -4,6 +4,7 @@ import { sessionsApi, whoopApi } from '../../api/client';
 import { Calendar, Clock, TrendingUp, Award } from 'lucide-react';
 import { Card } from '../ui';
 import MiniZoneBar from '../MiniZoneBar';
+import SessionScoreBadge from '../sessions/SessionScoreBadge';
 
 interface Session {
   id: number;
@@ -14,6 +15,7 @@ interface Session {
   intensity: number;
   rolls?: number;
   notes?: string;
+  session_score?: number;
 }
 
 const ACTIVITY_COLORS: Record<string, string> = {
@@ -109,14 +111,17 @@ export function LastSession() {
             </h3>
             <p className="text-xs" style={{ color: 'var(--muted)' }}>{formattedDate}</p>
           </div>
-          <div
-            className="px-3 py-1 rounded-full text-xs font-semibold uppercase"
-            style={{
-              backgroundColor: `${color}20`,
-              color: color,
-            }}
-          >
-            {session.class_type}
+          <div className="flex items-center gap-2">
+            <SessionScoreBadge score={session.session_score} />
+            <div
+              className="px-3 py-1 rounded-full text-xs font-semibold uppercase"
+              style={{
+                backgroundColor: `${color}20`,
+                color: color,
+              }}
+            >
+              {session.class_type}
+            </div>
           </div>
         </div>
 

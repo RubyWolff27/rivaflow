@@ -97,15 +97,18 @@ class SuggestionEngine:
                         ).days
                     except ValueError:
                         pass
-                # Persistent injuries
+                # Persistent injuries — only active ones trigger rules
                 injuries = prefs.get("injuries") or []
                 if isinstance(injuries, str):
                     try:
                         injuries = json.loads(injuries)
                     except (json.JSONDecodeError, TypeError):
                         injuries = []
-                if injuries:
-                    session_context["persistent_injuries"] = injuries
+                active_injuries = [
+                    i for i in injuries if i.get("status", "active") == "active"
+                ]
+                if active_injuries:
+                    session_context["persistent_injuries"] = active_injuries
         except Exception:
             logger.debug("Coach preferences enrichment skipped", exc_info=True)
 

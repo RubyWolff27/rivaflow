@@ -326,24 +326,42 @@ Training for long-term enjoyment and health, not competition.
                 return ""
         if not injuries:
             return ""
-        lines = ["PERSISTENT INJURIES — adjust all recommendations:"]
-        for inj in injuries:
-            area = inj.get("area", "unknown")
-            side = inj.get("side", "")
-            severity = inj.get("severity", "")
-            notes = inj.get("notes", "")
-            entry = f"- {area}"
-            if side and side != "n/a":
-                entry += f" ({side})"
-            if severity:
-                entry += f", severity: {severity}"
-            if notes:
-                entry += f". {notes}"
-            lines.append(entry)
-        lines.append(
-            "Avoid suggesting techniques or positions that "
-            "could aggravate these injuries."
-        )
+        active = [i for i in injuries if i.get("status", "active") == "active"]
+        managing = [i for i in injuries if i.get("status") == "managing"]
+        if not active and not managing:
+            return ""
+        lines = []
+        if active:
+            lines.append("PERSISTENT INJURIES — adjust all recommendations:")
+            for inj in active:
+                area = inj.get("area", "unknown")
+                side = inj.get("side", "")
+                severity = inj.get("severity", "")
+                notes = inj.get("notes", "")
+                entry = f"- {area}"
+                if side and side != "n/a":
+                    entry += f" ({side})"
+                if severity:
+                    entry += f", severity: {severity}"
+                if notes:
+                    entry += f". {notes}"
+                lines.append(entry)
+            lines.append(
+                "Avoid suggesting techniques or positions that "
+                "could aggravate these injuries."
+            )
+        if managing:
+            lines.append("MANAGED INJURIES — be aware but not restrictive:")
+            for inj in managing:
+                area = inj.get("area", "unknown")
+                side = inj.get("side", "")
+                notes = inj.get("notes", "")
+                entry = f"- {area}"
+                if side and side != "n/a":
+                    entry += f" ({side})"
+                if notes:
+                    entry += f". {notes}"
+                lines.append(entry)
         return "\n" + "\n".join(lines) + "\n"
 
     def _build_belt_directive(self, belt: str) -> str:

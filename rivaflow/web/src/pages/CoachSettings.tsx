@@ -10,6 +10,8 @@ interface Injury {
   side: string;
   severity: string;
   notes: string;
+  status: string;
+  resolved_date: string;
 }
 
 const BELT_COLORS: Record<string, string> = {
@@ -72,6 +74,11 @@ const INJURY_AREAS = [
 
 const INJURY_SIDES = ['left', 'right', 'both', 'n/a'];
 const INJURY_SEVERITIES = ['mild', 'moderate', 'severe'];
+const INJURY_STATUSES = [
+  { id: 'active', label: 'Active', color: '#EF4444' },
+  { id: 'managing', label: 'Managing', color: '#F59E0B' },
+  { id: 'recovered', label: 'Recovered', color: '#10B981' },
+];
 
 export default function CoachSettings() {
   const toast = useToast();
@@ -122,7 +129,14 @@ export default function CoachSettings() {
           setPrimaryPosition(d.primary_position || 'both');
           setFocusAreas(d.focus_areas || []);
           setWeaknesses(d.weaknesses || '');
-          setInjuries(d.injuries || []);
+          setInjuries((d.injuries || []).map((inj: Partial<Injury>) => ({
+            area: inj.area || 'knee',
+            side: inj.side || 'n/a',
+            severity: inj.severity || 'moderate',
+            notes: inj.notes || '',
+            status: inj.status || 'active',
+            resolved_date: inj.resolved_date || '',
+          })));
           setTrainingStartDate(d.training_start_date || '');
           setYearsTraining(d.years_training != null ? String(d.years_training) : '');
           setCompetitionExp(d.competition_experience || 'none');
@@ -154,7 +168,7 @@ export default function CoachSettings() {
   };
 
   const addInjury = () => {
-    setInjuries(prev => [...prev, { area: 'knee', side: 'n/a', severity: 'moderate', notes: '' }]);
+    setInjuries(prev => [...prev, { area: 'knee', side: 'n/a', severity: 'moderate', notes: '', status: 'active', resolved_date: '' }]);
   };
 
   const removeInjury = (index: number) => {
@@ -514,6 +528,39 @@ export default function CoachSettings() {
                 <select className="input text-xs" value={inj.severity} onChange={e => updateInjury(i, 'severity', e.target.value)}>
                   {INJURY_SEVERITIES.map(s => <option key={s} value={s}>{s.charAt(0).toUpperCase() + s.slice(1)}</option>)}
                 </select>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mb-2">
+                <div>
+                  <label className="text-[10px] font-medium block mb-0.5" style={{ color: 'var(--muted)' }}>Status</label>
+                  <div className="flex gap-1.5">
+                    {INJURY_STATUSES.map(st => (
+                      <button
+                        key={st.id}
+                        type="button"
+                        onClick={() => updateInjury(i, 'status', st.id)}
+                        className="flex-1 py-1 rounded-md text-[10px] font-semibold transition-all"
+                        style={{
+                          backgroundColor: (inj.status || 'active') === st.id ? `${st.color}20` : 'var(--surface)',
+                          color: (inj.status || 'active') === st.id ? st.color : 'var(--muted)',
+                          border: (inj.status || 'active') === st.id ? `1px solid ${st.color}` : '1px solid var(--border)',
+                        }}
+                      >
+                        {st.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                {(inj.status || 'active') === 'recovered' && (
+                  <div>
+                    <label className="text-[10px] font-medium block mb-0.5" style={{ color: 'var(--muted)' }}>Resolved Date</label>
+                    <input
+                      type="date"
+                      className="input w-full text-xs"
+                      value={inj.resolved_date || ''}
+                      onChange={e => updateInjury(i, 'resolved_date', e.target.value)}
+                    />
+                  </div>
+                )}
               </div>
               <input
                 className="input w-full text-xs"
