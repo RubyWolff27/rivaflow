@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { usersApi, socialApi } from '../api/client';
 import { Users, MapPin, Calendar, TrendingUp, Activity, UserCheck, UserPlus, Clock } from 'lucide-react';
 import { useToast } from '../contexts/ToastContext';
+import { useAuth } from '../contexts/AuthContext';
 import { CardSkeleton } from '../components/ui';
 
 interface UserProfileData {
@@ -43,6 +44,7 @@ type FriendshipStatus = 'none' | 'pending_sent' | 'pending_received' | 'friends'
 export default function UserProfile() {
   const { userId } = useParams<{ userId: string }>();
   const navigate = useNavigate();
+  const { user: currentUser } = useAuth();
 
   const [profile, setProfile] = useState<UserProfileData | null>(null);
   const [stats, setStats] = useState<UserStats | null>(null);
@@ -64,25 +66,30 @@ export default function UserProfile() {
       try {
         setLoading(true);
         setError('');
-        const [profileRes, statsRes, activityRes] = await Promise.all([
-          usersApi.getProfile(parseInt(userId!)),
+
+        // Load profile (required)
+        const profileRes = await usersApi.getProfile(parseInt(userId!));
+        if (cancelled) return;
+        setProfile(profileRes.data);
+
+        // Load stats and activity in parallel (best-effort)
+        const [statsRes, activityRes] = await Promise.allSettled([
           usersApi.getStats(parseInt(userId!)),
           usersApi.getActivity(parseInt(userId!)),
         ]);
         if (!cancelled) {
-          setProfile(profileRes.data);
-          setStats(statsRes.data);
-          setActivity(activityRes.data?.items || []);
+          if (statsRes.status === 'fulfilled') setStats(statsRes.value.data);
+          if (activityRes.status === 'fulfilled') setActivity(activityRes.value.data?.items || []);
         }
 
-        // Load friendship status
+        // Load friendship status (best-effort, not needed for own profile)
         try {
           const statusRes = await socialApi.getFriendshipStatus(parseInt(userId!));
           if (!cancelled) {
             setFriendshipStatus(statusRes.data.status as FriendshipStatus);
           }
         } catch {
-          // Friendship status endpoint may not exist for self — ignore
+          // Ignore — defaults to 'none'
         }
       } catch (err: any) {
         if (!cancelled) {
@@ -171,6 +178,10 @@ export default function UserProfile() {
   };
 
   const renderActionButton = () => {
+    // Don't show action button on your own profile
+    const isOwnProfile = currentUser && profile && currentUser.id === profile.id;
+    if (isOwnProfile) return null;
+
     if (actionLoading) {
       return (
         <button
