@@ -17,6 +17,15 @@ interface PendingRequest {
   requested_at: string;
 }
 
+interface SocialFriend {
+  id: number;
+  first_name: string;
+  last_name: string;
+  email?: string;
+  avatar_url?: string;
+  friends_since?: string;
+}
+
 const BELT_STYLES: Record<string, React.CSSProperties> = {
   white: { backgroundColor: 'var(--surfaceElev)', color: 'var(--text)', borderColor: 'var(--border)' },
   blue: { backgroundColor: 'rgba(59, 130, 246, 0.15)', color: 'rgb(96, 165, 250)', borderColor: 'rgba(59, 130, 246, 0.3)' },
@@ -37,6 +46,7 @@ export default function Friends() {
   const [friendToDelete, setFriendToDelete] = useState<number | null>(null);
   const [pendingRequests, setPendingRequests] = useState<PendingRequest[]>([]);
   const [requestActionLoading, setRequestActionLoading] = useState<number | null>(null);
+  const [socialFriends, setSocialFriends] = useState<SocialFriend[]>([]);
   const toast = useToast();
 
   const [formData, setFormData] = useState({
@@ -70,18 +80,27 @@ export default function Friends() {
     return () => { cancelled = true; };
   }, []);
 
-  // Load pending friend requests
+  // Load pending friend requests and social friends
   useEffect(() => {
     let cancelled = false;
-    const loadRequests = async () => {
+    const loadSocial = async () => {
       try {
-        const res = await socialApi.getReceivedRequests();
-        if (!cancelled) setPendingRequests(res.data.requests || []);
+        const [requestsRes, friendsRes] = await Promise.allSettled([
+          socialApi.getReceivedRequests(),
+          socialApi.getFriends(),
+        ]);
+        if (cancelled) return;
+        if (requestsRes.status === 'fulfilled') {
+          setPendingRequests(requestsRes.value.data.requests || []);
+        }
+        if (friendsRes.status === 'fulfilled') {
+          setSocialFriends(friendsRes.value.data.friends || []);
+        }
       } catch {
         // Best-effort
       }
     };
-    loadRequests();
+    loadSocial();
     return () => { cancelled = true; };
   }, []);
 
@@ -90,6 +109,13 @@ export default function Friends() {
       setRequestActionLoading(request.id);
       await socialApi.acceptFriendRequest(request.id);
       setPendingRequests((prev) => prev.filter((r) => r.id !== request.id));
+      setSocialFriends((prev) => [...prev, {
+        id: request.requester_id,
+        first_name: request.requester_first_name,
+        last_name: request.requester_last_name,
+        avatar_url: request.requester_avatar_url,
+        friends_since: new Date().toISOString(),
+      }]);
       toast.success(`You and ${request.requester_first_name} are now friends!`);
     } catch {
       toast.error('Failed to accept friend request');
@@ -339,6 +365,56 @@ export default function Friends() {
                   >
                     <X className="w-4 h-4" />
                   </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Social Friends (RivaFlow users) */}
+      {socialFriends.length > 0 && (
+        <div className="card bg-[var(--surface)]">
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-lg font-semibold text-[var(--text)]">
+              RivaFlow Friends ({socialFriends.length})
+            </h3>
+            <button
+              onClick={() => navigate('/find-friends')}
+              className="text-sm text-[var(--accent)] hover:opacity-80"
+            >
+              Find more
+            </button>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+            {socialFriends.map((sf) => (
+              <div
+                key={sf.id}
+                className="flex items-center gap-3 p-3 rounded-[14px] bg-[var(--surfaceElev)] cursor-pointer hover:shadow-md transition-shadow"
+                onClick={() => navigate(`/users/${sf.id}`)}
+              >
+                {sf.avatar_url ? (
+                  <img
+                    src={sf.avatar_url}
+                    alt={sf.first_name}
+                    className="w-10 h-10 rounded-full object-cover"
+                  />
+                ) : (
+                  <div
+                    className="w-10 h-10 rounded-full flex items-center justify-center text-white font-bold"
+                    style={{ background: 'linear-gradient(135deg, var(--accent), #FF8C42)' }}
+                  >
+                    {sf.first_name?.charAt(0) || '?'}
+                  </div>
+                )}
+                <div className="flex-1 min-w-0">
+                  <p className="font-medium text-[var(--text)] truncate">
+                    {sf.first_name} {sf.last_name}
+                  </p>
+                  <p className="text-xs text-[var(--muted)]">
+                    <UserCheck className="w-3 h-3 inline mr-1" />
+                    Friends
+                  </p>
                 </div>
               </div>
             ))}
