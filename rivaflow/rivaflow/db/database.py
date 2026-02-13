@@ -609,6 +609,7 @@ def _apply_migrations(
 
                     # Split on semicolons and execute separately
                     statements = [s.strip() for s in sql.split(";") if s.strip()]
+                    stmt_failures = 0
                     for statement in statements:
                         if not statement:
                             continue
@@ -627,12 +628,25 @@ def _apply_migrations(
                             continue
 
                         try:
+                            # Use SAVEPOINT so a single failed statement
+                            # (e.g. CREATE EXTENSION for missing pgvector)
+                            # doesn't abort the whole migration transaction.
+                            cursor.execute("SAVEPOINT migration_stmt")
                             cursor.execute(clean_statement)
+                            cursor.execute("RELEASE SAVEPOINT migration_stmt")
                         except Exception as e:
-                            logger.error(
-                                f"Error executing statement: {clean_statement[:100]}... - {e}"
+                            stmt_failures += 1
+                            logger.warning(
+                                f"Statement failed (rolling back): "
+                                f"{clean_statement[:100]}... - {e}"
                             )
-                            raise
+                            cursor.execute("ROLLBACK TO SAVEPOINT migration_stmt")
+                            cursor.execute("RELEASE SAVEPOINT migration_stmt")
+                    if stmt_failures:
+                        logger.warning(
+                            f"Migration {migration}: {stmt_failures} "
+                            f"statement(s) failed (non-fatal)"
+                        )
                 else:
                     # SQLite supports executescript
                     try:
