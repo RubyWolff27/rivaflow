@@ -185,6 +185,15 @@ async def _lifespan(_app: FastAPI):
     except (OSError, ConnectionError, ValueError) as e:
         logging.warning(f"Could not seed glossary: {e}")
 
+    # Backfill session scores for any unscored sessions (idempotent).
+    if not settings.IS_TEST:
+        try:
+            from rivaflow.db.backfill_scores import backfill_all_users
+
+            backfill_all_users()
+        except Exception as e:
+            logging.warning(f"Session score backfill failed: {e}")
+
     if not settings.IS_TEST:
         try:
             from rivaflow.core.scheduler import start_scheduler
