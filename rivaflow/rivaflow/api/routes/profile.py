@@ -41,6 +41,7 @@ class ProfileUpdate(BaseModel):
     show_weekly_goals: bool | None = None
     timezone: str | None = None
     avatar_url: str | None = None
+    primary_gym_id: int | None = None
 
 
 @router.get("/onboarding-status")
@@ -174,6 +175,7 @@ def update_profile(
         show_streak_on_dashboard=profile.show_streak_on_dashboard,
         show_weekly_goals=profile.show_weekly_goals,
         timezone=profile.timezone,
+        primary_gym_id=profile.primary_gym_id,
     )
     return updated
 

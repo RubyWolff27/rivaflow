@@ -31,6 +31,13 @@ class ProfileService:
         if not profile:
             return None
 
+        # Auto-resolve primary_gym_id from default_gym if not set
+        if not profile.get("primary_gym_id") and profile.get("default_gym"):
+            resolved_id = self._resolve_gym_id(profile["default_gym"])
+            if resolved_id:
+                self.user_repo.update_primary_gym(user_id, resolved_id)
+                profile["primary_gym_id"] = resolved_id
+
         # Calculate sessions and hours since last belt promotion
         from datetime import date
 
@@ -110,9 +117,10 @@ class ProfileService:
         show_streak_on_dashboard: bool | None = None,
         show_weekly_goals: bool | None = None,
         timezone: str | None = None,
+        primary_gym_id: int | None = None,
     ) -> dict:
         """Update the user profile. Returns updated profile."""
-        return self.repo.update(
+        result = self.repo.update(
             user_id=user_id,
             first_name=first_name,
             last_name=last_name,
@@ -139,6 +147,37 @@ class ProfileService:
             show_weekly_goals=show_weekly_goals,
             timezone=timezone,
         )
+
+        # Auto-resolve primary_gym_id from default_gym
+        gym_id = primary_gym_id
+        if gym_id is None and default_gym:
+            gym_id = self._resolve_gym_id(default_gym)
+        if gym_id is not None:
+            self.user_repo.update_primary_gym(user_id, gym_id)
+            result["primary_gym_id"] = gym_id
+
+        return result
+
+    def _resolve_gym_id(self, default_gym: str) -> int | None:
+        """Try to match a default_gym text to a gym ID in the database."""
+        try:
+            from rivaflow.db.repositories.gym_repo import GymRepository
+
+            # The default_gym format is "Name, City, State, Country"
+            gym_name = default_gym.split(",")[0].strip()
+            if not gym_name:
+                return None
+            results = GymRepository.search(gym_name)
+            if results:
+                # Prefer exact name match
+                for gym in results:
+                    if gym["name"].lower() == gym_name.lower():
+                        return gym["id"]
+                # Fall back to first result
+                return results[0]["id"]
+        except Exception:
+            logger.debug("Gym ID resolution failed", exc_info=True)
+        return None
 
     def get_default_gym(self, user_id: int) -> str | None:
         """Get the default gym from profile."""

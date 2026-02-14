@@ -271,6 +271,20 @@ class UserRepository:
             return cursor.rowcount > 0
 
     @staticmethod
+    def update_primary_gym(user_id: int, gym_id: int | None) -> bool:
+        """Set the user's primary gym ID."""
+        with get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                convert_query(
+                    "UPDATE users SET primary_gym_id = ?,"
+                    " updated_at = CURRENT_TIMESTAMP WHERE id = ?"
+                ),
+                (gym_id, user_id),
+            )
+            return cursor.rowcount > 0
+
+    @staticmethod
     def _row_to_dict(row) -> dict:
         """Convert a database row to a dictionary."""
         data = dict(row)

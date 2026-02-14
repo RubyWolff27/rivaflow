@@ -54,6 +54,7 @@ export default function Profile() {
     show_weekly_goals: true,
     avatar_url: '',
     timezone: '',
+    primary_gym_id: null as number | null,
   });
 
   const [gradingForm, setGradingForm] = useState({
@@ -173,6 +174,7 @@ export default function Profile() {
         show_weekly_goals: profileRes.data?.show_weekly_goals ?? true,
         avatar_url: profileRes.data?.avatar_url ?? '',
         timezone: profileRes.data?.timezone ?? '',
+        primary_gym_id: profileRes.data?.primary_gym_id ?? null,
       });
     } catch (error) {
       console.error('Error loading data:', error);
@@ -315,6 +317,7 @@ export default function Profile() {
         target_weight_date: formData.target_weight_date || undefined,
         avatar_url: formData.avatar_url || undefined,
         timezone: formData.timezone || undefined,
+        primary_gym_id: formData.primary_gym_id || undefined,
       });
       setSuccess(true);
       await loadData();
@@ -841,8 +844,11 @@ export default function Profile() {
             <GymSelector
               value={formData.default_gym}
               onChange={(value, custom) => {
-                setFormData({ ...formData, default_gym: value });
+                setFormData({ ...formData, default_gym: value, primary_gym_id: custom ? null : formData.primary_gym_id });
                 setIsCustomGym(custom);
+              }}
+              onGymSelected={(gym) => {
+                setFormData(prev => ({ ...prev, primary_gym_id: gym.id }));
               }}
               onCreateGym={async (gymName) => {
                 try {
