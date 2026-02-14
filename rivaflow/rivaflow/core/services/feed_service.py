@@ -8,12 +8,10 @@ from rivaflow.core.pagination import paginate_with_cursor
 from rivaflow.core.services.privacy_service import PrivacyService
 from rivaflow.db.repositories import (
     ActivityPhotoRepository,
-    ReadinessRepository,
     SessionRepository,
     UserRelationshipRepository,
     UserRepository,
 )
-from rivaflow.db.repositories.checkin_repo import CheckinRepository
 
 
 class FeedService:
@@ -46,24 +44,15 @@ class FeedService:
         start_date = end_date - timedelta(days=days_back)
 
         session_repo = SessionRepository()
-        readiness_repo = ReadinessRepository()
-        checkin_repo = CheckinRepository()
         photo_repo = ActivityPhotoRepository()
 
-        # Get all activity
+        # Get sessions only
         sessions = session_repo.get_by_date_range(user_id, start_date, end_date)
-        readiness_entries = readiness_repo.get_by_date_range(
-            user_id, start_date, end_date
-        )
-        checkins = checkin_repo.get_checkins_range(user_id, start_date, end_date)
 
-        # Build unified feed items (without photos first)
+        # Build unified feed items
         feed_items = []
-
-        # Collect all activity keys for batch photo loading
         photo_keys: list[tuple[str, int]] = []
 
-        # Add sessions
         for session in sessions:
             session_date = session["session_date"]
             if hasattr(session_date, "isoformat"):
@@ -77,71 +66,13 @@ class FeedService:
                     "date": session_date,
                     "id": session["id"],
                     "data": session,
-                    "summary": f"{session['class_type']} at {session['gym_name']} • {session['duration_mins']}min • {session['rolls']} rolls",
+                    "summary": f"{session['class_type']} at {session['gym_name']} \u2022 {session['duration_mins']}min \u2022 {session['rolls']} rolls",
                     "thumbnail": None,
                     "photo_count": 0,
                 }
             )
 
-        # Add readiness check-ins (only if not already covered by session/rest check-in)
-        session_dates = {s["session_date"] for s in sessions}
-        rest_dates = {c["check_date"] for c in checkins if c["checkin_type"] == "rest"}
-
-        for readiness in readiness_entries:
-            readiness_date = readiness["check_date"]
-            if hasattr(readiness_date, "isoformat"):
-                readiness_date = readiness_date.isoformat()
-
-            if readiness_date not in session_dates and readiness_date not in rest_dates:
-                composite = readiness.get("composite_score", 0)
-
-                photo_keys.append(("readiness", readiness["id"]))
-
-                feed_items.append(
-                    {
-                        "type": "readiness",
-                        "date": readiness_date,
-                        "id": readiness["id"],
-                        "data": readiness,
-                        "summary": f"Readiness check-in • Score: {composite}/20 • Sleep: {readiness['sleep']}/5",
-                        "thumbnail": None,
-                        "photo_count": 0,
-                    }
-                )
-
-        # Add rest days
-        for checkin in checkins:
-            if checkin["checkin_type"] == "rest":
-                checkin_date = checkin["check_date"]
-                if hasattr(checkin_date, "isoformat"):
-                    checkin_date = checkin_date.isoformat()
-
-                rest_type_label = {
-                    "recovery": "Active recovery",
-                    "life": "Life got in the way",
-                    "injury": "Injury/rehab",
-                    "travel": "Traveling",
-                }.get(checkin["rest_type"], checkin["rest_type"])
-
-                summary = f"Rest day • {rest_type_label}"
-                if checkin.get("rest_note"):
-                    summary += f" • {checkin['rest_note']}"
-
-                photo_keys.append(("rest", checkin["id"]))
-
-                feed_items.append(
-                    {
-                        "type": "rest",
-                        "date": checkin_date,
-                        "id": checkin["id"],
-                        "data": checkin,
-                        "summary": summary,
-                        "thumbnail": None,
-                        "photo_count": 0,
-                    }
-                )
-
-        # Batch load all photos in a single query per activity type
+        # Batch load all photos
         if photo_keys:
             photos_map = photo_repo.batch_get_by_activities(user_id, photo_keys)
             for item in feed_items:
@@ -170,6 +101,7 @@ class FeedService:
         """
         Get activity feed from users that this user follows (friends feed) with cursor-based pagination.
         Only shows activities with visibility_level != 'private' and applies privacy redaction.
+        Excludes users who have set activity_visibility to 'private'.
 
         Args:
             user_id: Current user ID
@@ -196,9 +128,26 @@ class FeedService:
                 "has_more": False,
             }
 
-        # Batch load activities from all followed users to avoid N+1 queries
+        # Filter out users who have set activity_visibility to 'private'
+        visibility_map = UserRepository.get_activity_visibility_bulk(following_user_ids)
+        visible_user_ids = [
+            uid
+            for uid in following_user_ids
+            if visibility_map.get(uid, "friends") != "private"
+        ]
+
+        if not visible_user_ids:
+            return {
+                "items": [],
+                "total": 0,
+                "limit": limit,
+                "offset": offset,
+                "has_more": False,
+            }
+
+        # Batch load activities from all visible followed users
         feed_items = FeedService._batch_load_friend_activities(
-            following_user_ids, start_date, end_date
+            visible_user_ids, start_date, end_date
         )
 
         # Sort by date descending, then by type and id for consistent ordering
@@ -256,7 +205,7 @@ class FeedService:
         user_ids: list[int], start_date: date, end_date: date
     ) -> list[dict[str, Any]]:
         """
-        Batch load activities from multiple users in optimized queries.
+        Batch load session activities from multiple users in optimized queries.
 
         Args:
             user_ids: List of user IDs to load activities from
@@ -316,7 +265,9 @@ class FeedService:
                     summary_parts.append(f"{redacted_session['rolls']} rolls")
 
                 summary = (
-                    " • ".join(summary_parts) if summary_parts else "Training session"
+                    " \u2022 ".join(summary_parts)
+                    if summary_parts
+                    else "Training session"
                 )
 
                 feed_items.append(
@@ -327,72 +278,6 @@ class FeedService:
                         "data": redacted_session,
                         "summary": summary,
                         "owner_user_id": session["user_id"],
-                    }
-                )
-
-            # Batch load readiness entries
-            query = convert_query(f"""
-                SELECT
-                    id, user_id, check_date, sleep, stress, soreness, energy,
-                    composite_score, hotspot_note, weight_kg
-                FROM readiness
-                WHERE user_id IN ({placeholders})
-                    AND check_date BETWEEN ? AND ?
-                ORDER BY check_date DESC
-            """)
-            cursor.execute(query, user_ids + [start_date, end_date])
-
-            for row in cursor.fetchall():
-                readiness = dict(row)
-                readiness_date = readiness["check_date"]
-                if hasattr(readiness_date, "isoformat"):
-                    readiness_date = readiness_date.isoformat()
-
-                composite = readiness.get("composite_score", 0)
-                feed_items.append(
-                    {
-                        "type": "readiness",
-                        "date": readiness_date,
-                        "id": readiness["id"],
-                        "data": readiness,
-                        "summary": f"Readiness check-in • Score: {composite}/20",
-                        "owner_user_id": readiness["user_id"],
-                    }
-                )
-
-            # Batch load rest day check-ins
-            query = convert_query(f"""
-                SELECT
-                    id, user_id, check_date, checkin_type, rest_type, rest_note
-                FROM daily_checkins
-                WHERE user_id IN ({placeholders})
-                    AND check_date BETWEEN ? AND ?
-                    AND checkin_type = 'rest'
-                ORDER BY check_date DESC
-            """)
-            cursor.execute(query, user_ids + [start_date, end_date])
-
-            for row in cursor.fetchall():
-                checkin = dict(row)
-                checkin_date = checkin["check_date"]
-                if hasattr(checkin_date, "isoformat"):
-                    checkin_date = checkin_date.isoformat()
-
-                rest_type_label = {
-                    "recovery": "Active recovery",
-                    "life": "Life got in the way",
-                    "injury": "Injury/rehab",
-                    "travel": "Traveling",
-                }.get(checkin["rest_type"], checkin["rest_type"])
-
-                feed_items.append(
-                    {
-                        "type": "rest",
-                        "date": checkin_date,
-                        "id": checkin["id"],
-                        "data": checkin,
-                        "summary": f"Rest day • {rest_type_label}",
-                        "owner_user_id": checkin["user_id"],
                     }
                 )
 
@@ -550,19 +435,12 @@ class FeedService:
             Feed response with public items only
         """
         session_repo = SessionRepository()
-        readiness_repo = ReadinessRepository()
-        checkin_repo = CheckinRepository()
 
         # Get recent activities (last 90 days)
         end_date = date.today()
         start_date = end_date - timedelta(days=90)
 
-        # Get all activity
         sessions = session_repo.get_by_date_range(user_id, start_date, end_date)
-        readiness_entries = readiness_repo.get_by_date_range(
-            user_id, start_date, end_date
-        )
-        checkins = checkin_repo.get_checkins_range(user_id, start_date, end_date)
 
         # Build unified feed
         feed_items = []
@@ -588,53 +466,10 @@ class FeedService:
                     "date": session_date,
                     "id": session["id"],
                     "data": session_data,
-                    "summary": f"{session_data.get('class_type', 'Training')} at {session_data.get('gym_name', 'Gym')} • {session_data.get('duration_mins', 0)}min",
+                    "summary": f"{session_data.get('class_type', 'Training')} at {session_data.get('gym_name', 'Gym')} \u2022 {session_data.get('duration_mins', 0)}min",
                     "owner_user_id": user_id,
                 }
             )
-
-        # Add readiness check-ins (only public ones)
-        for readiness in readiness_entries:
-            readiness_date = readiness["check_date"]
-            if hasattr(readiness_date, "isoformat"):
-                readiness_date = readiness_date.isoformat()
-
-            composite = readiness.get("composite_score", 0)
-            feed_items.append(
-                {
-                    "type": "readiness",
-                    "date": readiness_date,
-                    "id": readiness["id"],
-                    "data": readiness,
-                    "summary": f"Readiness check-in • Score: {composite}/20",
-                    "owner_user_id": user_id,
-                }
-            )
-
-        # Add rest days (public)
-        for checkin in checkins:
-            if checkin["checkin_type"] == "rest":
-                checkin_date = checkin["check_date"]
-                if hasattr(checkin_date, "isoformat"):
-                    checkin_date = checkin_date.isoformat()
-
-                rest_type_label = {
-                    "recovery": "Active recovery",
-                    "life": "Life got in the way",
-                    "injury": "Injury/rehab",
-                    "travel": "Traveling",
-                }.get(checkin["rest_type"], checkin["rest_type"])
-
-                feed_items.append(
-                    {
-                        "type": "rest",
-                        "date": checkin_date,
-                        "id": checkin["id"],
-                        "data": checkin,
-                        "summary": f"Rest day • {rest_type_label}",
-                        "owner_user_id": user_id,
-                    }
-                )
 
         # Sort by date descending
         feed_items.sort(key=lambda x: x["date"], reverse=True)

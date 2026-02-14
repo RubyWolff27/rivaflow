@@ -20,7 +20,8 @@ class ProfileRepository:
             # Join with users table to get avatar_url
             cursor.execute(
                 convert_query("""
-                    SELECT p.*, u.avatar_url, u.email, u.primary_gym_id
+                    SELECT p.*, u.avatar_url, u.email, u.primary_gym_id,
+                        u.activity_visibility
                     FROM profile p
                     LEFT JOIN users u ON p.user_id = u.id
                     WHERE p.user_id = ?
@@ -252,7 +253,8 @@ class ProfileRepository:
             # Return updated profile (join with users table to get avatar_url)
             cursor.execute(
                 convert_query("""
-                    SELECT p.*, u.avatar_url, u.email, u.primary_gym_id
+                    SELECT p.*, u.avatar_url, u.email, u.primary_gym_id,
+                        u.activity_visibility
                     FROM profile p
                     LEFT JOIN users u ON p.user_id = u.id
                     WHERE p.user_id = ?

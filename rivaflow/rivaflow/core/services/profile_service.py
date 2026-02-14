@@ -118,6 +118,7 @@ class ProfileService:
         show_weekly_goals: bool | None = None,
         timezone: str | None = None,
         primary_gym_id: int | None = None,
+        activity_visibility: str | None = None,
     ) -> dict:
         """Update the user profile. Returns updated profile."""
         result = self.repo.update(
@@ -155,6 +156,12 @@ class ProfileService:
         if gym_id is not None:
             self.user_repo.update_primary_gym(user_id, gym_id)
             result["primary_gym_id"] = gym_id
+
+        # Update activity_visibility on users table
+        if activity_visibility is not None:
+            if activity_visibility in ("friends", "private"):
+                self.user_repo.update_activity_visibility(user_id, activity_visibility)
+                result["activity_visibility"] = activity_visibility
 
         return result
 

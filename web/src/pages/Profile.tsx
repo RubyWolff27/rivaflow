@@ -52,6 +52,7 @@ export default function Profile() {
     weekly_mobility_sessions_target: 0,
     show_streak_on_dashboard: true,
     show_weekly_goals: true,
+    activity_visibility: 'friends' as 'friends' | 'private',
     avatar_url: '',
     timezone: '',
     primary_gym_id: null as number | null,
@@ -172,6 +173,7 @@ export default function Profile() {
         weekly_mobility_sessions_target: profileRes.data?.weekly_mobility_sessions_target ?? 0,
         show_streak_on_dashboard: profileRes.data?.show_streak_on_dashboard ?? true,
         show_weekly_goals: profileRes.data?.show_weekly_goals ?? true,
+        activity_visibility: profileRes.data?.activity_visibility ?? 'friends',
         avatar_url: profileRes.data?.avatar_url ?? '',
         timezone: profileRes.data?.timezone ?? '',
         primary_gym_id: profileRes.data?.primary_gym_id ?? null,
@@ -350,6 +352,7 @@ export default function Profile() {
         weekly_mobility_sessions_target: formData.weekly_mobility_sessions_target,
         show_streak_on_dashboard: formData.show_streak_on_dashboard,
         show_weekly_goals: formData.show_weekly_goals,
+        activity_visibility: formData.activity_visibility,
       });
       setSuccess(true);
       await loadData();
@@ -1103,6 +1106,16 @@ export default function Profile() {
                 className="rounded"
               />
               <span className="text-sm">Show training streaks on dashboard</span>
+            </label>
+
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={formData.activity_visibility === 'friends'}
+                onChange={(e) => setFormData({ ...formData, activity_visibility: e.target.checked ? 'friends' : 'private' })}
+                className="rounded"
+              />
+              <span className="text-sm">Show my sessions on friends' feeds</span>
             </label>
           </div>
 

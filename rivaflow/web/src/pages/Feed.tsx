@@ -1,8 +1,8 @@
-import React, { useEffect, useState, memo, useCallback } from 'react';
+import { useEffect, useState, memo, useCallback } from 'react';
 import { getLocalDateString } from '../utils/date';
 import { useNavigate } from 'react-router-dom';
 import { feedApi, socialApi, sessionsApi } from '../api/client';
-import { Activity, Calendar, Heart, Moon, Zap, Edit2, Eye } from 'lucide-react';
+import { Activity, Calendar, Edit2, Eye, Zap } from 'lucide-react';
 import FeedToggle from '../components/FeedToggle';
 import ActivitySocialActions from '../components/ActivitySocialActions';
 import CommentSection from '../components/CommentSection';
@@ -29,8 +29,6 @@ const FeedItemComponent = memo(function FeedItemComponent({
   handleLike,
   handleUnlike,
   toggleComments,
-  getIcon,
-  getBackgroundColor,
   formatDate,
   shouldShowSocialActions,
   isActivityEditable,
@@ -45,8 +43,6 @@ const FeedItemComponent = memo(function FeedItemComponent({
   handleLike: (type: string, id: number) => void;
   handleUnlike: (type: string, id: number) => void;
   toggleComments: (type: string, id: number) => void;
-  getIcon: (type: string) => React.JSX.Element;
-  getBackgroundColor: (type: string) => string;
   formatDate: (date: string) => string;
   shouldShowSocialActions: (item: FeedItem) => boolean;
   isActivityEditable: (item: FeedItem) => boolean;
@@ -68,9 +64,11 @@ const FeedItemComponent = memo(function FeedItemComponent({
         </div>
       )}
 
-      <div className={`card border-2 ${getBackgroundColor(item.type)}`}>
+      <div className="card border-2 bg-primary-50 dark:bg-primary-900/20 border-primary-200 dark:border-primary-800">
         <div className="flex items-start gap-4">
-          <div className="mt-1">{getIcon(item.type)}</div>
+          <div className="mt-1">
+            <Zap className="w-5 h-5 text-[var(--accent)]" />
+          </div>
           <div className="flex-1 min-w-0">
             <div className="flex items-start justify-between gap-2 mb-1">
               {item.owner_user_id && currentUserId && item.owner_user_id !== currentUserId ? (
@@ -88,63 +86,23 @@ const FeedItemComponent = memo(function FeedItemComponent({
               <div className="flex items-center gap-2">
                 {isActivityEditable(item) && (
                   <>
-                    {item.type === 'session' && (
-                      <>
-                        <button
-                          onClick={() => navigate(`/session/${item.id}`)}
-                          className="p-1 hover:bg-white/50 dark:hover:bg-black/20 rounded transition-colors"
-                          aria-label="View session details"
-                        >
-                          <Eye className="w-4 h-4 text-[var(--muted)]" />
-                        </button>
-                        <button
-                          onClick={() => navigate(`/session/edit/${item.id}`)}
-                          className="p-1 hover:bg-white/50 dark:hover:bg-black/20 rounded transition-colors"
-                          aria-label="Edit session"
-                        >
-                          <Edit2 className="w-4 h-4 text-[var(--muted)]" />
-                        </button>
-                      </>
-                    )}
-                    {item.type === 'readiness' && (
-                      <>
-                        <button
-                          onClick={() => navigate(`/readiness/${item.data?.check_date ?? ''}`)}
-                          className="p-1 hover:bg-white/50 dark:hover:bg-black/20 rounded transition-colors"
-                          aria-label="View readiness details"
-                        >
-                          <Eye className="w-4 h-4 text-[var(--muted)]" />
-                        </button>
-                        <button
-                          onClick={() => navigate(`/readiness/edit/${item.data?.check_date ?? ''}`)}
-                          className="p-1 hover:bg-white/50 dark:hover:bg-black/20 rounded transition-colors"
-                          aria-label="Edit readiness"
-                        >
-                          <Edit2 className="w-4 h-4 text-[var(--muted)]" />
-                        </button>
-                      </>
-                    )}
-                    {item.type === 'rest' && (
-                      <>
-                        <button
-                          onClick={() => navigate(`/rest/${item.data?.rest_date ?? ''}`)}
-                          className="p-1 hover:bg-white/50 dark:hover:bg-black/20 rounded transition-colors"
-                          aria-label="View rest day details"
-                        >
-                          <Eye className="w-4 h-4 text-[var(--muted)]" />
-                        </button>
-                        <button
-                          onClick={() => navigate(`/rest/edit/${item.data?.rest_date ?? ''}`)}
-                          className="p-1 hover:bg-white/50 dark:hover:bg-black/20 rounded transition-colors"
-                          aria-label="Edit rest day"
-                        >
-                          <Edit2 className="w-4 h-4 text-[var(--muted)]" />
-                        </button>
-                      </>
-                    )}
+                    <button
+                      onClick={() => navigate(`/session/${item.id}`)}
+                      className="p-1 hover:bg-white/50 dark:hover:bg-black/20 rounded transition-colors"
+                      aria-label="View session details"
+                    >
+                      <Eye className="w-4 h-4 text-[var(--muted)]" />
+                    </button>
+                    <button
+                      onClick={() => navigate(`/session/edit/${item.id}`)}
+                      className="p-1 hover:bg-white/50 dark:hover:bg-black/20 rounded transition-colors"
+                      aria-label="Edit session"
+                    >
+                      <Edit2 className="w-4 h-4 text-[var(--muted)]" />
+                    </button>
                   </>
                 )}
-                {isActivityEditable(item) && item.type === 'session' && (
+                {isActivityEditable(item) && (
                   <select
                     value={item.data?.visibility_level || item.data?.visibility || 'friends'}
                     onChange={(e) => handleVisibilityChange(item.type, item.id, e.target.value)}
@@ -152,73 +110,54 @@ const FeedItemComponent = memo(function FeedItemComponent({
                     aria-label="Change visibility"
                     title="Who can see this"
                   >
-                    <option value="private">🔒 Private</option>
-                    <option value="friends">👥 Friends</option>
-                    <option value="public">🌐 Public</option>
+                    <option value="private">Private</option>
+                    <option value="friends">Friends</option>
+                    <option value="public">Public</option>
                   </select>
                 )}
                 <span className="text-xs px-2 py-1 bg-white/50 dark:bg-black/20 rounded capitalize whitespace-nowrap">
-                  {item.type}
+                  session
                 </span>
               </div>
             </div>
 
             {/* Session details */}
-            {item.type === 'session' && (
-              <div className="mt-2 text-sm text-[var(--muted)] space-y-1">
-                {item.data?.class_time && <div>🕐 {item.data.class_time}</div>}
-                {item.data?.location && <div>📍 {item.data.location}</div>}
-                {item.data?.instructor_name && <div>👨‍🏫 {item.data.instructor_name}</div>}
-                {item.data?.partners && Array.isArray(item.data.partners) && item.data.partners.length > 0 && (
-                  <div>🤝 Partners: {item.data.partners.join(', ')}</div>
-                )}
-                {item.data?.techniques && Array.isArray(item.data.techniques) && item.data.techniques.length > 0 && (
-                  <div>🎯 Techniques: {item.data.techniques.join(', ')}</div>
-                )}
-                {item.data?.notes && (
-                  <div className="mt-2 text-[var(--text)] italic">
-                    "{item.data.notes}"
-                  </div>
-                )}
-              </div>
-            )}
+            <div className="mt-2 text-sm text-[var(--muted)] space-y-1">
+              {item.data?.class_time && <div>🕐 {item.data.class_time}</div>}
+              {item.data?.location && <div>📍 {item.data.location}</div>}
+              {item.data?.instructor_name && <div>👨‍🏫 {item.data.instructor_name}</div>}
+              {item.data?.partners && Array.isArray(item.data.partners) && item.data.partners.length > 0 && (
+                <div>🤝 Partners: {item.data.partners.join(', ')}</div>
+              )}
+              {item.data?.techniques && Array.isArray(item.data.techniques) && item.data.techniques.length > 0 && (
+                <div>🎯 Techniques: {item.data.techniques.join(', ')}</div>
+              )}
+              {item.data?.notes && (
+                <div className="mt-2 text-[var(--text)] italic">
+                  "{item.data.notes}"
+                </div>
+              )}
+            </div>
 
-            {/* Readiness details */}
-            {item.type === 'readiness' && (
-              <div className="mt-2 grid grid-cols-2 md:grid-cols-4 gap-2 text-xs">
-                <div className="flex items-center gap-1">
-                  <span className="text-[var(--muted)]">😴 Sleep:</span>
-                  <span className="font-semibold">{item.data?.sleep ?? 0}/5</span>
+            {/* Photo thumbnail */}
+            {item.thumbnail && (
+              <div
+                className="mt-3 cursor-pointer"
+                onClick={() => navigate(`/session/${item.id}`)}
+              >
+                <div className="relative inline-block">
+                  <img
+                    src={item.thumbnail}
+                    alt="Session photo"
+                    className="w-20 h-20 rounded-lg object-cover border border-[var(--border)]"
+                    onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                  />
+                  {(item.photo_count ?? 0) > 1 && (
+                    <span className="absolute bottom-1 right-1 bg-black/60 text-white text-xs px-1.5 py-0.5 rounded-full font-medium">
+                      +{(item.photo_count ?? 1) - 1}
+                    </span>
+                  )}
                 </div>
-                <div className="flex items-center gap-1">
-                  <span className="text-[var(--muted)]">😰 Stress:</span>
-                  <span className="font-semibold">{item.data?.stress ?? 0}/5</span>
-                </div>
-                <div className="flex items-center gap-1">
-                  <span className="text-[var(--muted)]">💪 Soreness:</span>
-                  <span className="font-semibold">{item.data?.soreness ?? 0}/5</span>
-                </div>
-                <div className="flex items-center gap-1">
-                  <span className="text-[var(--muted)]">⚡ Energy:</span>
-                  <span className="font-semibold">{item.data?.energy ?? 0}/5</span>
-                </div>
-                {item.data?.hotspot_note && (
-                  <div className="col-span-2 md:col-span-4 text-[var(--text)] mt-1">
-                    🔥 Hotspot: {item.data.hotspot_note}
-                  </div>
-                )}
-                {item.data?.weight_kg && (
-                  <div className="col-span-2 md:col-span-4 text-[var(--text)]">
-                    ⚖️ Weight: {item.data.weight_kg} kg
-                  </div>
-                )}
-              </div>
-            )}
-
-            {/* Rest day details */}
-            {item.type === 'rest' && item.data?.rest_note && (
-              <div className="mt-2 text-sm text-[var(--text)] italic">
-                "{item.data.rest_note}"
               </div>
             )}
 
@@ -383,7 +322,7 @@ export default function Feed() {
   const handleVisibilityChange = useCallback(async (activityType: string, activityId: number, visibility: string) => {
     if (!feed) return;
 
-    // Only sessions support visibility updates for now
+    // Only sessions support visibility updates
     if (activityType !== 'session') {
       return;
     }
@@ -413,32 +352,6 @@ export default function Feed() {
       loadFeed();
     }
   }, [feed]);
-
-  const getIcon = useCallback((type: string) => {
-    switch (type) {
-      case 'session':
-        return <Zap className="w-5 h-5 text-[var(--accent)]" />;
-      case 'readiness':
-        return <Heart className="w-5 h-5 text-emerald-500" />;
-      case 'rest':
-        return <Moon className="w-5 h-5 text-purple-600" />;
-      default:
-        return <Activity className="w-5 h-5 text-[var(--muted)]" />;
-    }
-  }, []);
-
-  const getBackgroundColor = useCallback((type: string) => {
-    switch (type) {
-      case 'session':
-        return 'bg-primary-50 dark:bg-primary-900/20 border-primary-200 dark:border-primary-800';
-      case 'readiness':
-        return 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800';
-      case 'rest':
-        return 'bg-purple-50 dark:bg-purple-900/20 border-purple-200 dark:border-purple-800';
-      default:
-        return 'bg-[var(--surfaceElev)] border-[var(--border)]';
-    }
-  }, []);
 
   const formatDate = useCallback((dateStr: string) => {
     const date = new Date(dateStr);
@@ -479,7 +392,6 @@ export default function Feed() {
   ];
 
   const matchesSessionFilter = useCallback((item: FeedItem): boolean => {
-    if (item.type !== 'session') return true; // pass through non-session items
     if (sessionFilter === 'all') return true;
     const d = item.data ?? {};
     switch (sessionFilter) {
@@ -498,9 +410,8 @@ export default function Feed() {
 
   const getFilterCount = useCallback((filterKey: string): number => {
     if (!feed) return 0;
-    if (filterKey === 'all') return feed.items.filter(i => i.type === 'session').length;
+    if (filterKey === 'all') return feed.items.length;
     return feed.items.filter(i => {
-      if (i.type !== 'session') return false;
       const d = i.data ?? {};
       switch (filterKey) {
         case 'comp': return d.class_type === 'competition';
@@ -587,13 +498,13 @@ export default function Feed() {
           <Activity className="w-16 h-16 text-[var(--muted)] mx-auto mb-4" />
           <p className="text-[var(--muted)] text-lg">
             {view === 'friends'
-              ? "No activity from friends in the last " + daysBack + " days"
-              : "No activity in the last " + daysBack + " days"}
+              ? "No sessions from friends in the last " + daysBack + " days"
+              : "No sessions in the last " + daysBack + " days"}
           </p>
           <p className="text-[var(--muted)] text-sm mt-2">
             {view === 'friends'
-              ? "Follow other users to see their activity here!"
-              : "Log a session, readiness check-in, or rest day to see it here!"}
+              ? "Follow other users to see their sessions here!"
+              : "Log a training session to see it here!"}
           </p>
         </div>
       ) : filteredItems.length === 0 && sessionFilter !== 'all' ? (
@@ -621,8 +532,6 @@ export default function Feed() {
               handleLike={handleLike}
               handleUnlike={handleUnlike}
               toggleComments={toggleComments}
-              getIcon={getIcon}
-              getBackgroundColor={getBackgroundColor}
               formatDate={formatDate}
               shouldShowSocialActions={shouldShowSocialActions}
               isActivityEditable={isActivityEditable}
@@ -635,7 +544,7 @@ export default function Feed() {
       {feed && feed.total > 0 && (
         <div className="text-center py-4 space-y-2">
           <p className="text-sm text-[var(--muted)]">
-            Showing {feed.items.length} of {feed.total} activities
+            Showing {feed.items.length} of {feed.total} sessions
           </p>
           {feed.has_more && (
             <button

@@ -176,6 +176,7 @@ export interface Profile {
   timezone?: string;
   avatar_url?: string;
   primary_gym_id?: number;
+  activity_visibility?: 'friends' | 'private';
   // Journey progress fields
   belt_rank?: string; // Deprecated, use current_grade
   belt_stripes?: number; // Deprecated, use current_grade
@@ -433,11 +434,13 @@ export interface ActivityComment {
 }
 
 export interface FeedItem {
-  type: 'session' | 'readiness' | 'rest';
+  type: 'session';
   date: string;
   id: number;
   data: any;  // eslint-disable-line @typescript-eslint/no-explicit-any
   summary: string;
+  thumbnail?: string;
+  photo_count?: number;
   like_count?: number;
   comment_count?: number;
   has_liked?: boolean;

@@ -271,6 +271,56 @@ class UserRepository:
             return cursor.rowcount > 0
 
     @staticmethod
+    def get_activity_visibility_bulk(user_ids: list[int]) -> dict[int, str]:
+        """Get activity_visibility for multiple users.
+
+        Args:
+            user_ids: List of user IDs
+
+        Returns:
+            Dict mapping user_id to activity_visibility value
+        """
+        if not user_ids:
+            return {}
+
+        with get_connection() as conn:
+            cursor = conn.cursor()
+            placeholders = ",".join("?" * len(user_ids))
+            cursor.execute(
+                convert_query(
+                    f"SELECT id, activity_visibility FROM users"
+                    f" WHERE id IN ({placeholders})"
+                ),
+                user_ids,
+            )
+            return {
+                row["id"]: row["activity_visibility"] or "friends"
+                for row in cursor.fetchall()
+            }
+
+    @staticmethod
+    def update_activity_visibility(user_id: int, visibility: str) -> bool:
+        """Update a user's activity_visibility setting.
+
+        Args:
+            user_id: User's ID
+            visibility: 'friends' or 'private'
+
+        Returns:
+            True if updated successfully
+        """
+        with get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                convert_query(
+                    "UPDATE users SET activity_visibility = ?,"
+                    " updated_at = CURRENT_TIMESTAMP WHERE id = ?"
+                ),
+                (visibility, user_id),
+            )
+            return cursor.rowcount > 0
+
+    @staticmethod
     def update_primary_gym(user_id: int, gym_id: int | None) -> bool:
         """Set the user's primary gym ID."""
         with get_connection() as conn:

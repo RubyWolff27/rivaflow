@@ -42,6 +42,7 @@ class ProfileUpdate(BaseModel):
     timezone: str | None = None
     avatar_url: str | None = None
     primary_gym_id: int | None = None
+    activity_visibility: str | None = None
 
 
 @router.get("/onboarding-status")
@@ -176,6 +177,7 @@ def update_profile(
         show_weekly_goals=profile.show_weekly_goals,
         timezone=profile.timezone,
         primary_gym_id=profile.primary_gym_id,
+        activity_visibility=profile.activity_visibility,
     )
     return updated
 
