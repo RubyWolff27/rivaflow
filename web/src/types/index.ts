@@ -445,6 +445,10 @@ export interface FeedItem {
   comment_count?: number;
   has_liked?: boolean;
   owner_user_id?: number;
+  owner?: {
+    first_name?: string;
+    last_name?: string;
+  };
 }
 
 export interface UserRelationship {

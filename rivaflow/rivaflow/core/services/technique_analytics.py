@@ -155,12 +155,30 @@ class TechniqueAnalyticsService:
             if mid in movement_map
         ]
 
+        # Top submission techniques (from session_techniques with submission category)
+        top_submissions = [t for t in all_techniques if t["category"] == "submission"]
+
+        # Session-level submission stats (from sessions table integers)
+        total_session_subs_for = sum(s.get("submissions_for", 0) or 0 for s in sessions)
+        total_session_subs_against = sum(
+            s.get("submissions_against", 0) or 0 for s in sessions
+        )
+        sessions_with_subs = len(
+            [s for s in sessions if (s.get("submissions_for", 0) or 0) > 0]
+        )
+
         return {
             "category_breakdown": category_breakdown,
             "all_techniques": all_techniques,
             "stale_techniques": stale_techniques,
             "gi_top_techniques": gi_top,
             "nogi_top_techniques": nogi_top,
+            "top_submissions": top_submissions,
+            "submission_stats": {
+                "total_submissions_for": total_session_subs_for,
+                "total_submissions_against": total_session_subs_against,
+                "sessions_with_submissions": sessions_with_subs,
+            },
             "summary": {
                 "total_unique_techniques_used": len(used_movement_ids),
                 "stale_count": len(stale_techniques),

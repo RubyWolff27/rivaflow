@@ -1,5 +1,6 @@
 """Performance analytics service for training sessions."""
 
+import json
 import statistics
 from collections import Counter, defaultdict
 from datetime import date, timedelta
@@ -402,8 +403,6 @@ class PerformanceAnalyticsService:
         partners = self.friend_repo.list_by_type(user_id, "training-partner")
 
         # Count simple-mode partner mentions from sessions.partners JSON
-        import json
-
         simple_partner_counts: dict[str, int] = {}
         for s in sessions:
             raw = s.get("partners")
@@ -453,6 +452,15 @@ class PerformanceAnalyticsService:
 
             total_rolls = detailed_count + simple_count
 
+            # Aggregate session-level submissions for this partner
+            sess_subs_for, sess_subs_against = (
+                self._get_session_submissions_for_partner(partner["name"], sessions)
+            )
+            roll_subs_for = stats.get("total_submissions_for", 0)
+            roll_subs_against = stats.get("total_submissions_against", 0)
+            final_subs_for = max(roll_subs_for, sess_subs_for)
+            final_subs_against = max(roll_subs_against, sess_subs_against)
+
             partner_matrix.append(
                 {
                     "id": partner["id"],
@@ -460,11 +468,11 @@ class PerformanceAnalyticsService:
                     "belt_rank": partner.get("belt_rank"),
                     "belt_stripes": partner.get("belt_stripes", 0),
                     "total_rolls": total_rolls,
-                    "submissions_for": stats.get("total_submissions_for", 0),
-                    "submissions_against": stats.get("total_submissions_against", 0),
+                    "submissions_for": final_subs_for,
+                    "submissions_against": final_subs_against,
                     "sub_ratio": stats.get("sub_ratio", 0),
-                    "subs_per_roll_for": stats.get("subs_per_roll_for", 0),
-                    "subs_per_roll_against": stats.get("subs_per_roll_against", 0),
+                    "subs_per_roll_for": stats.get("subs_per_roll", 0),
+                    "subs_per_roll_against": stats.get("taps_per_roll", 0),
                 }
             )
 
@@ -535,6 +543,39 @@ class PerformanceAnalyticsService:
                 **stats2,
             },
         }
+
+    @staticmethod
+    def _get_session_submissions_for_partner(
+        partner_name: str, sessions: list[dict]
+    ) -> tuple[int, int]:
+        """Sum session-level submissions for sessions involving a partner."""
+        total_for = 0
+        total_against = 0
+        name_lower = partner_name.strip().lower()
+        for s in sessions:
+            partners_raw = s.get("partners")
+            if not partners_raw:
+                continue
+            try:
+                plist = (
+                    json.loads(partners_raw)
+                    if isinstance(partners_raw, str)
+                    else partners_raw
+                )
+                if not isinstance(plist, list):
+                    continue
+                names = [n.strip().lower() for n in plist]
+            except (json.JSONDecodeError, TypeError):
+                continue
+            if name_lower not in names:
+                continue
+            n_partners = len(names) or 1
+            subs_for = s.get("submissions_for", 0) or 0
+            subs_against = s.get("submissions_against", 0) or 0
+            # Distribute session-level submissions across partners
+            total_for += subs_for // n_partners
+            total_against += subs_against // n_partners
+        return total_for, total_against
 
     def _get_session_date(self, user_id: int, session_id: int) -> date:
         """Helper to get session date."""

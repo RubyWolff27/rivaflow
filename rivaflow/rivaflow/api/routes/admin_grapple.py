@@ -64,12 +64,12 @@ def submit_feedback(
     user_id = current_user["id"]
 
     # Verify message exists and belongs to user's session
-    verify_query = """
+    verify_query = convert_query("""
         SELECT cm.session_id
         FROM chat_messages cm
         JOIN chat_sessions cs ON cm.session_id = cs.id
         WHERE cm.id = ? AND cs.user_id = ? AND cm.role = 'assistant'
-    """
+    """)
 
     with get_connection() as conn:
         cursor = conn.cursor()
@@ -82,7 +82,7 @@ def submit_feedback(
                 detail="Message not found or access denied",
             )
 
-        session_id = result[0]
+        session_id = result["session_id"]
 
         # Insert feedback
         feedback_id = str(uuid4())
@@ -132,7 +132,7 @@ def get_global_stats(
     Admin only. Shows usage across all users.
     """
     from rivaflow.core.services.grapple.token_monitor import GrappleTokenMonitor
-    from rivaflow.db.database import get_connection
+    from rivaflow.db.database import convert_query, get_connection
 
     logger.info(f"Admin {current_user['id']} fetching global Grapple stats")
 
@@ -147,32 +147,32 @@ def get_global_stats(
 
         # Total sessions and messages
         cursor.execute(
-            """
+            convert_query("""
             SELECT
                 COUNT(DISTINCT cs.id) as total_sessions,
                 COUNT(cm.id) as total_messages
             FROM chat_sessions cs
             LEFT JOIN chat_messages cm ON cs.id = cm.session_id
             WHERE cs.created_at >= ?
-        """,
+        """),
             (start_date,),
         )
         session_stats = cursor.fetchone()
 
         # Active users in last 7 days
         cursor.execute(
-            """
-            SELECT COUNT(DISTINCT user_id)
+            convert_query("""
+            SELECT COUNT(DISTINCT user_id) as cnt
             FROM chat_sessions
             WHERE updated_at >= ?
-        """,
+        """),
             (utcnow() - timedelta(days=7),),
         )
-        active_users_7d = cursor.fetchone()[0]
+        active_users_7d = cursor.fetchone()["cnt"]
 
         # Stats by tier
         cursor.execute(
-            """
+            convert_query("""
             SELECT
                 u.subscription_tier,
                 COUNT(DISTINCT u.id) as user_count,
@@ -186,7 +186,7 @@ def get_global_stats(
             LEFT JOIN token_usage_logs tul ON u.id = tul.user_id AND tul.created_at >= ?
             WHERE u.subscription_tier IN ('beta', 'premium', 'admin')
             GROUP BY u.subscription_tier
-        """,
+        """),
             (start_date,),
         )
         tier_stats = cursor.fetchall()
@@ -194,20 +194,20 @@ def get_global_stats(
     # Format tier stats
     by_tier = {}
     for row in tier_stats:
-        tier = row[0]
+        tier = row["subscription_tier"]
         by_tier[tier] = {
-            "users": row[1],
-            "sessions": row[2],
-            "messages": row[3],
-            "tokens": row[4],
-            "cost_usd": float(row[5]) if row[5] else 0.0,
+            "users": row["user_count"],
+            "sessions": row["session_count"],
+            "messages": row["message_count"],
+            "tokens": row["total_tokens"],
+            "cost_usd": float(row["total_cost"]) if row["total_cost"] else 0.0,
         }
 
     return UsageStatsResponse(
         total_users=global_stats["totals"]["unique_users"],
         active_users_7d=active_users_7d,
-        total_sessions=session_stats[0] if session_stats else 0,
-        total_messages=session_stats[1] if session_stats else 0,
+        total_sessions=(session_stats["total_sessions"] if session_stats else 0),
+        total_messages=(session_stats["total_messages"] if session_stats else 0),
         total_tokens=global_stats["totals"]["total_tokens"],
         total_cost_usd=global_stats["totals"]["total_cost_usd"],
         by_provider=global_stats["by_provider"],
@@ -227,7 +227,7 @@ def get_cost_projections(
     """
     import calendar
 
-    from rivaflow.db.database import get_connection
+    from rivaflow.db.database import convert_query, get_connection
 
     logger.info(f"Admin {current_user['id']} fetching cost projections")
 
@@ -239,34 +239,36 @@ def get_cost_projections(
 
         # Cost so far this month
         cursor.execute(
-            """
-            SELECT COALESCE(SUM(cost_usd), 0)
+            convert_query("""
+            SELECT COALESCE(SUM(cost_usd), 0) as cost
             FROM token_usage_logs
             WHERE created_at >= ?
-        """,
+        """),
             (month_start,),
         )
-        cost_this_month = cursor.fetchone()[0]
+        cost_this_month = cursor.fetchone()["cost"]
 
         # Average daily cost
         cursor.execute(
-            """
+            convert_query("""
             SELECT
-                DATE(created_at) as date,
+                DATE(created_at) as dt,
                 SUM(cost_usd) as daily_cost
             FROM token_usage_logs
             WHERE created_at >= ?
             GROUP BY DATE(created_at)
-            ORDER BY date DESC
+            ORDER BY dt DESC
             LIMIT 7
-        """,
+        """),
             (now - timedelta(days=7),),
         )
         daily_costs = cursor.fetchall()
 
     # Calculate average daily cost
     if daily_costs:
-        avg_daily_cost = sum(row[1] for row in daily_costs) / len(daily_costs)
+        avg_daily_cost = sum(row["daily_cost"] for row in daily_costs) / len(
+            daily_costs
+        )
     else:
         avg_daily_cost = 0.0
 
@@ -275,19 +277,25 @@ def get_cost_projections(
     days_elapsed = now.day
     days_remaining = days_in_month - days_elapsed
 
-    projected_month_cost = cost_this_month + (avg_daily_cost * days_remaining)
+    projected_month_cost = float(cost_this_month) + (
+        float(avg_daily_cost) * days_remaining
+    )
 
     return {
         "current_month": {
-            "cost_so_far": round(cost_this_month, 6),
+            "cost_so_far": round(float(cost_this_month), 6),
             "projected_total": round(projected_month_cost, 6),
             "days_elapsed": days_elapsed,
             "days_remaining": days_remaining,
         },
         "daily_average": {
-            "last_7_days": round(avg_daily_cost, 6),
+            "last_7_days": round(float(avg_daily_cost), 6),
             "daily_costs": [
-                {"date": row[0], "cost_usd": round(row[1], 6)} for row in daily_costs
+                {
+                    "date": row["dt"],
+                    "cost_usd": round(float(row["daily_cost"]), 6),
+                }
+                for row in daily_costs
             ],
         },
         "calculated_at": now.isoformat(),
@@ -305,7 +313,7 @@ def get_provider_stats(
 
     Admin only. Shows which providers are being used and their reliability.
     """
-    from rivaflow.db.database import get_connection
+    from rivaflow.db.database import convert_query, get_connection
 
     logger.info(f"Admin {current_user['id']} fetching provider stats")
 
@@ -316,7 +324,7 @@ def get_provider_stats(
 
         # Provider usage stats
         cursor.execute(
-            """
+            convert_query("""
             SELECT
                 provider,
                 model,
@@ -330,7 +338,7 @@ def get_provider_stats(
             WHERE created_at >= ?
             GROUP BY provider, model
             ORDER BY request_count DESC
-        """,
+        """),
             (start_date,),
         )
 
@@ -338,14 +346,18 @@ def get_provider_stats(
         for row in cursor.fetchall():
             provider_stats.append(
                 {
-                    "provider": row[0],
-                    "model": row[1],
-                    "request_count": row[2],
-                    "total_tokens": row[3],
-                    "input_tokens": row[4],
-                    "output_tokens": row[5],
-                    "total_cost_usd": round(row[6], 6) if row[6] else 0.0,
-                    "avg_tokens_per_request": round(row[7], 2) if row[7] else 0.0,
+                    "provider": row["provider"],
+                    "model": row["model"],
+                    "request_count": row["request_count"],
+                    "total_tokens": row["total_tokens"],
+                    "input_tokens": row["input_tokens"],
+                    "output_tokens": row["output_tokens"],
+                    "total_cost_usd": (
+                        round(float(row["total_cost"]), 6) if row["total_cost"] else 0.0
+                    ),
+                    "avg_tokens_per_request": (
+                        round(float(row["avg_tokens"]), 2) if row["avg_tokens"] else 0.0
+                    ),
                 }
             )
 
@@ -367,29 +379,35 @@ def get_user_stats(
 
     Admin only. Shows which users are using Grapple most.
     """
-    from rivaflow.db.database import get_connection
+    from rivaflow.db.database import convert_query, get_connection
 
     logger.info(f"Admin {current_user['id']} fetching user stats")
 
     with get_connection() as conn:
         cursor = conn.cursor()
 
-        # Use the view we created in migration
+        # Inline query instead of relying on grapple_user_usage view
         cursor.execute(
-            """
+            convert_query("""
             SELECT
-                user_id,
-                email,
-                subscription_tier,
-                total_sessions,
-                total_messages,
-                total_tokens,
-                total_cost_usd,
-                last_activity
-            FROM grapple_user_usage
-            ORDER BY total_messages DESC
+                u.id as user_id,
+                u.email,
+                u.subscription_tier,
+                COUNT(DISTINCT cs.id) as total_sessions,
+                COUNT(cm.id) as total_messages,
+                COALESCE(SUM(tul.total_tokens), 0) as total_tokens,
+                COALESCE(SUM(tul.cost_usd), 0) as total_cost_usd,
+                MAX(cs.updated_at) as last_activity
+            FROM users u
+            LEFT JOIN chat_sessions cs ON u.id = cs.user_id
+            LEFT JOIN chat_messages cm ON cs.id = cm.session_id
+            LEFT JOIN token_usage_logs tul ON u.id = tul.user_id
+            WHERE u.subscription_tier IN ('beta', 'premium', 'admin')
+            GROUP BY u.id, u.email, u.subscription_tier
+            HAVING COUNT(cs.id) > 0
+            ORDER BY COUNT(cm.id) DESC
             LIMIT ?
-        """,
+        """),
             (limit,),
         )
 
@@ -397,14 +415,18 @@ def get_user_stats(
         for row in cursor.fetchall():
             users.append(
                 {
-                    "user_id": row[0],
-                    "email": row[1],
-                    "subscription_tier": row[2],
-                    "total_sessions": row[3] or 0,
-                    "total_messages": row[4] or 0,
-                    "total_tokens": row[5] or 0,
-                    "total_cost_usd": round(row[6], 6) if row[6] else 0.0,
-                    "last_activity": row[7],
+                    "user_id": row["user_id"],
+                    "email": row["email"],
+                    "subscription_tier": row["subscription_tier"],
+                    "total_sessions": row["total_sessions"] or 0,
+                    "total_messages": row["total_messages"] or 0,
+                    "total_tokens": row["total_tokens"] or 0,
+                    "total_cost_usd": (
+                        round(float(row["total_cost_usd"]), 6)
+                        if row["total_cost_usd"]
+                        else 0.0
+                    ),
+                    "last_activity": row["last_activity"],
                 }
             )
 
@@ -426,7 +448,7 @@ def get_feedback(
 
     Admin only. Shows feedback to improve the system.
     """
-    from rivaflow.db.database import get_connection
+    from rivaflow.db.database import convert_query, get_connection
 
     logger.info(f"Admin {current_user['id']} fetching feedback")
 
@@ -444,7 +466,7 @@ def get_feedback(
         JOIN users u ON f.user_id = u.id
         WHERE 1=1
     """
-    params = []
+    params: list = []
 
     if rating:
         query += " AND f.rating = ?"
@@ -455,20 +477,20 @@ def get_feedback(
 
     with get_connection() as conn:
         cursor = conn.cursor()
-        cursor.execute(query, params)
+        cursor.execute(convert_query(query), params)
 
         feedback_list = []
         for row in cursor.fetchall():
             feedback_list.append(
                 {
-                    "id": row[0],
-                    "user_id": row[1],
-                    "user_email": row[2],
-                    "message_id": row[3],
-                    "rating": row[4],
-                    "category": row[5],
-                    "comment": row[6],
-                    "created_at": row[7],
+                    "id": row["id"],
+                    "user_id": row["user_id"],
+                    "user_email": row["email"],
+                    "message_id": row["message_id"],
+                    "rating": row["rating"],
+                    "category": row["category"],
+                    "comment": row["comment"],
+                    "created_at": row["created_at"],
                 }
             )
 
@@ -502,19 +524,41 @@ def get_grapple_health(
         llm_healthy = False
 
     # Check database tables exist
+    from rivaflow.config import get_db_type
     from rivaflow.db.database import get_connection
 
     tables_ok = True
+    required_tables = {
+        "chat_sessions",
+        "chat_messages",
+        "token_usage_logs",
+        "grapple_feedback",
+    }
     try:
         with get_connection() as conn:
             cursor = conn.cursor()
-            cursor.execute("""
-                SELECT table_name
-                FROM information_schema.tables
-                WHERE table_name IN ('chat_sessions', 'chat_messages', 'token_usage_logs', 'grapple_feedback')
-            """)
-            tables = [row[0] for row in cursor.fetchall()]
-            tables_ok = len(tables) == 4
+            if get_db_type() == "postgresql":
+                cursor.execute("""
+                    SELECT table_name
+                    FROM information_schema.tables
+                    WHERE table_name IN (
+                        'chat_sessions', 'chat_messages',
+                        'token_usage_logs', 'grapple_feedback'
+                    )
+                """)
+            else:
+                cursor.execute("""
+                    SELECT name FROM sqlite_master
+                    WHERE type='table' AND name IN (
+                        'chat_sessions', 'chat_messages',
+                        'token_usage_logs', 'grapple_feedback'
+                    )
+                """)
+            found = {
+                row["table_name" if get_db_type() == "postgresql" else "name"]
+                for row in cursor.fetchall()
+            }
+            tables_ok = required_tables <= found
     except Exception:
         tables_ok = False
 

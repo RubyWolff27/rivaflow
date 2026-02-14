@@ -69,6 +69,8 @@ interface TechniquesData {
   nogi_top_techniques?: Array<{ id?: number; name?: string; count?: number; [key: string]: unknown }>;
   all_techniques?: Array<{ name: string; category: string; count: number }>;
   stale_techniques?: Array<{ id?: number; name?: string; [key: string]: unknown }>;
+  top_submissions?: Array<{ name: string; category: string; count: number }>;
+  submission_stats?: { total_submissions_for: number; total_submissions_against: number; sessions_with_submissions: number };
   [key: string]: unknown;
 }
 
@@ -1071,6 +1073,59 @@ export default function Reports() {
                 </p>
               </div>
             </div>
+
+          {/* Submissions Overview */}
+          {techniquesData.submission_stats && (
+            <Card>
+              <div className="mb-4">
+                <h3 className="text-lg font-semibold" style={{ color: 'var(--text)' }}>Submissions Overview</h3>
+                <p className="text-xs mt-1" style={{ color: 'var(--muted)' }}>Session-level submission totals</p>
+              </div>
+
+              <div className="grid grid-cols-3 gap-3 mb-4">
+                <div className="p-3 rounded-lg text-center" style={{ backgroundColor: 'var(--surfaceElev)' }}>
+                  <p className="text-xl font-semibold" style={{ color: 'var(--accent)' }}>
+                    {techniquesData.submission_stats.total_submissions_for ?? 0}
+                  </p>
+                  <p className="text-xs mt-1" style={{ color: 'var(--muted)' }}>Subs For</p>
+                </div>
+                <div className="p-3 rounded-lg text-center" style={{ backgroundColor: 'var(--surfaceElev)' }}>
+                  <p className="text-xl font-semibold" style={{ color: 'var(--text)' }}>
+                    {techniquesData.submission_stats.total_submissions_against ?? 0}
+                  </p>
+                  <p className="text-xs mt-1" style={{ color: 'var(--muted)' }}>Subs Against</p>
+                </div>
+                <div className="p-3 rounded-lg text-center" style={{ backgroundColor: 'var(--surfaceElev)' }}>
+                  <p className="text-xl font-semibold" style={{ color: 'var(--text)' }}>
+                    {techniquesData.submission_stats.sessions_with_submissions ?? 0}
+                  </p>
+                  <p className="text-xs mt-1" style={{ color: 'var(--muted)' }}>Sessions w/ Subs</p>
+                </div>
+              </div>
+
+              {techniquesData.top_submissions && Array.isArray(techniquesData.top_submissions) && techniquesData.top_submissions.length > 0 ? (
+                <div>
+                  <h4 className="text-sm font-semibold mb-2" style={{ color: 'var(--text)' }}>Most Common Submissions</h4>
+                  <div className="space-y-2">
+                    {techniquesData.top_submissions.slice(0, 8).map((tech: any) => (
+                      <div
+                        key={tech.name ?? `sub-${Math.random()}`}
+                        className="flex items-center justify-between p-3 rounded-lg"
+                        style={{ backgroundColor: 'var(--surfaceElev)' }}
+                      >
+                        <span className="text-sm" style={{ color: 'var(--text)' }}>{tech.name ?? 'Unknown'}</span>
+                        <span className="text-sm font-medium" style={{ color: 'var(--accent)' }}>{tech.count ?? 0}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ) : (
+                <p className="text-sm text-center py-4" style={{ color: 'var(--muted)' }}>
+                  Log technique names during sessions to see your most common submissions here.
+                </p>
+              )}
+            </Card>
+          )}
 
           {/* Category Breakdown */}
           {techniquesData.category_breakdown && Array.isArray(techniquesData.category_breakdown) && techniquesData.category_breakdown.length > 0 && (

@@ -2,7 +2,7 @@ import { useEffect, useState, memo, useCallback } from 'react';
 import { getLocalDateString } from '../utils/date';
 import { useNavigate } from 'react-router-dom';
 import { feedApi, socialApi, sessionsApi } from '../api/client';
-import { Activity, Calendar, Edit2, Eye, Zap } from 'lucide-react';
+import { Activity, Calendar, Edit2, Eye } from 'lucide-react';
 import FeedToggle from '../components/FeedToggle';
 import ActivitySocialActions from '../components/ActivitySocialActions';
 import CommentSection from '../components/CommentSection';
@@ -52,6 +52,12 @@ const FeedItemComponent = memo(function FeedItemComponent({
   const commentKey = `${item.type}-${item.id}`;
   const isCommentsOpen = expandedComments.has(commentKey);
 
+  const isFriend = !!(item.owner_user_id && currentUserId && item.owner_user_id !== currentUserId);
+  const ownerName = item.owner
+    ? `${item.owner.first_name || ''} ${item.owner.last_name || ''}`.trim()
+    : '';
+  const ownerInitial = ownerName ? ownerName[0].toUpperCase() : '?';
+
   return (
     <div>
       {showDateHeader && (
@@ -64,132 +70,143 @@ const FeedItemComponent = memo(function FeedItemComponent({
         </div>
       )}
 
-      <div className="card border-2 bg-primary-50 dark:bg-primary-900/20 border-primary-200 dark:border-primary-800">
-        <div className="flex items-start gap-4">
-          <div className="mt-1">
-            <Zap className="w-5 h-5 text-[var(--accent)]" />
-          </div>
-          <div className="flex-1 min-w-0">
-            <div className="flex items-start justify-between gap-2 mb-1">
-              {item.owner_user_id && currentUserId && item.owner_user_id !== currentUserId ? (
+      <div className="rounded-[14px] overflow-hidden" style={{ backgroundColor: 'var(--surface)', border: '1px solid var(--border)' }}>
+        {/* Friend name header */}
+        {isFriend && ownerName && (
+          <div className="px-4 pt-3 pb-0">
+            <div className="flex items-center gap-2.5">
+              <button
+                onClick={() => navigate(`/users/${item.owner_user_id}`)}
+                className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold shrink-0"
+                style={{ backgroundColor: 'var(--accent)', color: '#fff' }}
+              >
+                {ownerInitial}
+              </button>
+              <div className="flex items-center gap-1.5 min-w-0">
                 <button
                   onClick={() => navigate(`/users/${item.owner_user_id}`)}
-                  className="text-sm font-medium text-[var(--text)] hover:text-[var(--accent)] transition-colors text-left"
+                  className="text-sm font-semibold truncate hover:underline"
+                  style={{ color: 'var(--text)' }}
                 >
-                  {item.summary}
+                  {ownerName}
                 </button>
-              ) : (
-                <p className="text-sm font-medium text-[var(--text)]">
-                  {item.summary}
-                </p>
-              )}
-              <div className="flex items-center gap-2">
-                {isActivityEditable(item) && (
-                  <>
-                    <button
-                      onClick={() => navigate(`/session/${item.id}`)}
-                      className="p-1 hover:bg-white/50 dark:hover:bg-black/20 rounded transition-colors"
-                      aria-label="View session details"
-                    >
-                      <Eye className="w-4 h-4 text-[var(--muted)]" />
-                    </button>
-                    <button
-                      onClick={() => navigate(`/session/edit/${item.id}`)}
-                      className="p-1 hover:bg-white/50 dark:hover:bg-black/20 rounded transition-colors"
-                      aria-label="Edit session"
-                    >
-                      <Edit2 className="w-4 h-4 text-[var(--muted)]" />
-                    </button>
-                  </>
-                )}
-                {isActivityEditable(item) && (
-                  <select
-                    value={item.data?.visibility_level || item.data?.visibility || 'friends'}
-                    onChange={(e) => handleVisibilityChange(item.type, item.id, e.target.value)}
-                    className="text-xs px-2 py-1 bg-white/50 dark:bg-black/20 rounded cursor-pointer border-none outline-none"
-                    aria-label="Change visibility"
-                    title="Who can see this"
-                  >
-                    <option value="private">Private</option>
-                    <option value="friends">Friends</option>
-                    <option value="public">Public</option>
-                  </select>
-                )}
-                <span className="text-xs px-2 py-1 bg-white/50 dark:bg-black/20 rounded capitalize whitespace-nowrap">
-                  session
+                <span className="text-xs shrink-0" style={{ color: 'var(--muted)' }}>
+                  · {formatDate(item.date)}
                 </span>
               </div>
             </div>
+          </div>
+        )}
 
-            {/* Session details */}
-            <div className="mt-2 text-sm text-[var(--muted)] space-y-1">
-              {item.data?.class_time && <div>🕐 {item.data.class_time}</div>}
-              {item.data?.location && <div>📍 {item.data.location}</div>}
-              {item.data?.instructor_name && <div>👨‍🏫 {item.data.instructor_name}</div>}
-              {item.data?.partners && Array.isArray(item.data.partners) && item.data.partners.length > 0 && (
-                <div>🤝 Partners: {item.data.partners.join(', ')}</div>
+        <div className="p-4">
+          {/* Summary + actions row */}
+          <div className="flex items-start justify-between gap-2 mb-1">
+            <p className="text-sm font-medium" style={{ color: 'var(--text)' }}>
+              {item.summary}
+            </p>
+            <div className="flex items-center gap-2 shrink-0">
+              {isActivityEditable(item) && (
+                <>
+                  <button
+                    onClick={() => navigate(`/session/${item.id}`)}
+                    className="p-1 hover:bg-white/50 dark:hover:bg-black/20 rounded transition-colors"
+                    aria-label="View session details"
+                  >
+                    <Eye className="w-4 h-4 text-[var(--muted)]" />
+                  </button>
+                  <button
+                    onClick={() => navigate(`/session/edit/${item.id}`)}
+                    className="p-1 hover:bg-white/50 dark:hover:bg-black/20 rounded transition-colors"
+                    aria-label="Edit session"
+                  >
+                    <Edit2 className="w-4 h-4 text-[var(--muted)]" />
+                  </button>
+                </>
               )}
-              {item.data?.techniques && Array.isArray(item.data.techniques) && item.data.techniques.length > 0 && (
-                <div>🎯 Techniques: {item.data.techniques.join(', ')}</div>
-              )}
-              {item.data?.notes && (
-                <div className="mt-2 text-[var(--text)] italic">
-                  "{item.data.notes}"
-                </div>
+              {isActivityEditable(item) && (
+                <select
+                  value={item.data?.visibility_level || item.data?.visibility || 'friends'}
+                  onChange={(e) => handleVisibilityChange(item.type, item.id, e.target.value)}
+                  className="text-xs px-2 py-1 bg-white/50 dark:bg-black/20 rounded cursor-pointer border-none outline-none"
+                  aria-label="Change visibility"
+                  title="Who can see this"
+                >
+                  <option value="private">Private</option>
+                  <option value="friends">Friends</option>
+                  <option value="public">Public</option>
+                </select>
               )}
             </div>
+          </div>
 
-            {/* Photo thumbnail */}
-            {item.thumbnail && (
-              <div
-                className="mt-3 cursor-pointer"
-                onClick={() => navigate(`/session/${item.id}`)}
-              >
-                <div className="relative inline-block">
-                  <img
-                    src={item.thumbnail}
-                    alt="Session photo"
-                    className="w-20 h-20 rounded-lg object-cover border border-[var(--border)]"
-                    onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
-                  />
-                  {(item.photo_count ?? 0) > 1 && (
-                    <span className="absolute bottom-1 right-1 bg-black/60 text-white text-xs px-1.5 py-0.5 rounded-full font-medium">
-                      +{(item.photo_count ?? 1) - 1}
-                    </span>
-                  )}
-                </div>
-              </div>
+          {/* Session details */}
+          <div className="mt-2 text-sm space-y-1" style={{ color: 'var(--muted)' }}>
+            {item.data?.class_time && <div>🕐 {item.data.class_time}</div>}
+            {item.data?.location && <div>📍 {item.data.location}</div>}
+            {item.data?.instructor_name && <div>👨‍🏫 {item.data.instructor_name}</div>}
+            {item.data?.partners && Array.isArray(item.data.partners) && item.data.partners.length > 0 && (
+              <div>🤝 Partners: {item.data.partners.join(', ')}</div>
             )}
-
-            {item.data?.tomorrow_intention && (
-              <div className="mt-2 text-xs text-[var(--muted)]">
-                → Tomorrow: {item.data.tomorrow_intention}
-              </div>
+            {item.data?.techniques && Array.isArray(item.data.techniques) && item.data.techniques.length > 0 && (
+              <div>🎯 Techniques: {item.data.techniques.join(', ')}</div>
             )}
-
-            {/* Social actions */}
-            {shouldShowSocialActions(item) && currentUserId && (
-              <>
-                <ActivitySocialActions
-                  activityType={item.type}
-                  activityId={item.id}
-                  likeCount={item.like_count || 0}
-                  commentCount={item.comment_count || 0}
-                  hasLiked={item.has_liked || false}
-                  onLike={() => handleLike(item.type, item.id)}
-                  onUnlike={() => handleUnlike(item.type, item.id)}
-                  onToggleComments={() => toggleComments(item.type, item.id)}
-                />
-
-                <CommentSection
-                  activityType={item.type}
-                  activityId={item.id}
-                  currentUserId={currentUserId}
-                  isOpen={isCommentsOpen}
-                />
-              </>
+            {item.data?.notes && (
+              <div className="mt-2 italic" style={{ color: 'var(--text)' }}>
+                &ldquo;{item.data.notes}&rdquo;
+              </div>
             )}
           </div>
+
+          {/* Photo — full-width for social feel */}
+          {item.thumbnail && (
+            <div
+              className="mt-3 cursor-pointer"
+              onClick={() => navigate(`/session/${item.id}`)}
+            >
+              <div className="relative">
+                <img
+                  src={item.thumbnail}
+                  alt="Session photo"
+                  className="w-full max-h-48 rounded-lg object-cover border border-[var(--border)]"
+                  onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                />
+                {(item.photo_count ?? 0) > 1 && (
+                  <span className="absolute bottom-2 right-2 bg-black/60 text-white text-xs px-1.5 py-0.5 rounded-full font-medium">
+                    +{(item.photo_count ?? 1) - 1}
+                  </span>
+                )}
+              </div>
+            </div>
+          )}
+
+          {item.data?.tomorrow_intention && (
+            <div className="mt-2 text-xs" style={{ color: 'var(--muted)' }}>
+              → Tomorrow: {item.data.tomorrow_intention}
+            </div>
+          )}
+
+          {/* Social actions bar */}
+          {shouldShowSocialActions(item) && currentUserId && (
+            <>
+              <ActivitySocialActions
+                activityType={item.type}
+                activityId={item.id}
+                likeCount={item.like_count || 0}
+                commentCount={item.comment_count || 0}
+                hasLiked={item.has_liked || false}
+                onLike={() => handleLike(item.type, item.id)}
+                onUnlike={() => handleUnlike(item.type, item.id)}
+                onToggleComments={() => toggleComments(item.type, item.id)}
+              />
+
+              <CommentSection
+                activityType={item.type}
+                activityId={item.id}
+                currentUserId={currentUserId}
+                isOpen={isCommentsOpen}
+              />
+            </>
+          )}
         </div>
       </div>
     </div>

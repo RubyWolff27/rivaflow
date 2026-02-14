@@ -632,6 +632,8 @@ export const groupsApi = {
     api.post<Group>('/groups/', data),
   list: () =>
     api.get<{ groups: Group[]; count: number }>('/groups/'),
+  discover: () =>
+    api.get<{ groups: Group[]; count: number }>('/groups/discover'),
   get: (groupId: number) =>
     api.get<Group & { members: GroupMember[]; member_count: number; user_role: string | null }>(`/groups/${groupId}`),
   update: (groupId: number, data: { name?: string; description?: string; group_type?: string; privacy?: string; gym_id?: number; avatar_url?: string }) =>

@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
-import { groupsApi } from '../api/client';
+import { groupsApi, socialApi } from '../api/client';
 import type { Group, GroupMember } from '../types';
-import { Users, Plus, X, LogOut, Trash2, ChevronRight, Shield } from 'lucide-react';
+import { Users, Plus, X, LogOut, Trash2, ChevronRight, Shield, UserPlus, Search, Globe } from 'lucide-react';
 import { useToast } from '../contexts/ToastContext';
 
 const GROUP_TYPE_LABELS: Record<string, string> = {
@@ -20,10 +20,16 @@ const GROUP_TYPE_COLORS: Record<string, string> = {
 
 export default function Groups() {
   const [groups, setGroups] = useState<Group[]>([]);
+  const [discoverGroups, setDiscoverGroups] = useState<Group[]>([]);
   const [loading, setLoading] = useState(true);
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [selectedGroup, setSelectedGroup] = useState<(Group & { members: GroupMember[]; member_count: number; user_role: string | null }) | null>(null);
   const [detailLoading, setDetailLoading] = useState(false);
+  const [tab, setTab] = useState<'my' | 'discover'>('my');
+  const [showAddMember, setShowAddMember] = useState(false);
+  const [memberSearch, setMemberSearch] = useState('');
+  const [searchResults, setSearchResults] = useState<any[]>([]);
+  const [searching, setSearching] = useState(false);
   const toast = useToast();
 
   const [formData, setFormData] = useState({
@@ -57,6 +63,18 @@ export default function Groups() {
       setGroups(response.data.groups || []);
     } catch {
       toast.showToast('error', 'Failed to load groups');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const loadDiscover = async () => {
+    setLoading(true);
+    try {
+      const response = await groupsApi.discover();
+      setDiscoverGroups(response.data.groups || []);
+    } catch {
+      toast.showToast('error', 'Failed to load discoverable groups');
     } finally {
       setLoading(false);
     }
@@ -108,6 +126,69 @@ export default function Groups() {
       loadGroups();
     } catch {
       toast.showToast('error', 'Failed to delete group');
+    }
+  };
+
+  const handleJoin = async (groupId: number) => {
+    try {
+      await groupsApi.join(groupId);
+      toast.showToast('success', 'Joined group!');
+      loadGroups();
+      loadDiscover();
+    } catch {
+      toast.showToast('error', 'Failed to join group');
+    }
+  };
+
+  const handleAddMember = async (userId: number) => {
+    if (!selectedGroup) return;
+    try {
+      await groupsApi.addMember(selectedGroup.id, userId);
+      toast.showToast('success', 'Member added!');
+      setShowAddMember(false);
+      setMemberSearch('');
+      setSearchResults([]);
+      loadGroupDetail(selectedGroup.id);
+    } catch {
+      toast.showToast('error', 'Failed to add member');
+    }
+  };
+
+  const handleRemoveMember = async (userId: number) => {
+    if (!selectedGroup) return;
+    try {
+      await groupsApi.removeMember(selectedGroup.id, userId);
+      toast.showToast('success', 'Member removed');
+      loadGroupDetail(selectedGroup.id);
+    } catch {
+      toast.showToast('error', 'Failed to remove member');
+    }
+  };
+
+  const handleMemberSearch = async (query: string) => {
+    setMemberSearch(query);
+    if (query.length < 2) {
+      setSearchResults([]);
+      return;
+    }
+    setSearching(true);
+    try {
+      const response = await socialApi.searchUsers(query);
+      const results = response.data?.users || response.data || [];
+      // Filter out existing members
+      const memberIds = new Set((selectedGroup?.members || []).map(m => m.user_id));
+      setSearchResults(results.filter((u: any) => !memberIds.has(u.id)));
+    } catch {
+      setSearchResults([]);
+    } finally {
+      setSearching(false);
+    }
+  };
+
+  const handleTabChange = (newTab: 'my' | 'discover') => {
+    setTab(newTab);
+    if (newTab === 'discover') {
+      loadDiscover();
     }
   };
 
@@ -193,9 +274,82 @@ export default function Groups() {
 
         {/* Members List */}
         <div>
-          <h2 className="text-lg font-semibold mb-3" style={{ color: 'var(--text)' }}>
-            Members ({selectedGroup.members?.length || 0})
-          </h2>
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-lg font-semibold" style={{ color: 'var(--text)' }}>
+              Members ({selectedGroup.members?.length || 0})
+            </h2>
+            {isAdmin && (
+              <button
+                onClick={() => setShowAddMember(true)}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium"
+                style={{ backgroundColor: 'var(--accent)', color: '#FFFFFF' }}
+              >
+                <UserPlus className="w-3.5 h-3.5" />
+                Add Member
+              </button>
+            )}
+          </div>
+
+          {/* Add Member Modal */}
+          {showAddMember && (
+            <div className="rounded-[14px] p-4 mb-4" style={{ backgroundColor: 'var(--surface)', border: '1px solid var(--border)' }}>
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="text-sm font-semibold" style={{ color: 'var(--text)' }}>Search Users</h3>
+                <button onClick={() => { setShowAddMember(false); setMemberSearch(''); setSearchResults([]); }} style={{ color: 'var(--muted)' }}>
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+              <div className="relative mb-3">
+                <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2" style={{ color: 'var(--muted)' }} />
+                <input
+                  type="text"
+                  value={memberSearch}
+                  onChange={(e) => handleMemberSearch(e.target.value)}
+                  placeholder="Search by name or email..."
+                  className="w-full pl-9 pr-3 py-2 rounded-lg text-sm"
+                  style={{ backgroundColor: 'var(--surfaceElev)', color: 'var(--text)', border: '1px solid var(--border)' }}
+                  autoFocus
+                />
+              </div>
+              {searching && (
+                <p className="text-xs py-2" style={{ color: 'var(--muted)' }}>Searching...</p>
+              )}
+              {searchResults.length > 0 && (
+                <div className="space-y-2 max-h-48 overflow-y-auto">
+                  {searchResults.map((user: any) => (
+                    <div
+                      key={user.id}
+                      className="flex items-center justify-between p-2 rounded-lg"
+                      style={{ backgroundColor: 'var(--surfaceElev)' }}
+                    >
+                      <div className="flex items-center gap-2">
+                        <div
+                          className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold"
+                          style={{ backgroundColor: 'var(--accent)', color: '#fff' }}
+                        >
+                          {(user.first_name?.[0] || '?').toUpperCase()}
+                        </div>
+                        <span className="text-sm" style={{ color: 'var(--text)' }}>
+                          {user.first_name} {user.last_name}
+                        </span>
+                      </div>
+                      <button
+                        onClick={() => handleAddMember(user.id)}
+                        className="px-2.5 py-1 rounded text-xs font-medium"
+                        style={{ backgroundColor: 'var(--accent)', color: '#fff' }}
+                      >
+                        Add
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+              {memberSearch.length >= 2 && !searching && searchResults.length === 0 && (
+                <p className="text-xs py-2" style={{ color: 'var(--muted)' }}>No users found</p>
+              )}
+            </div>
+          )}
+
           <div className="space-y-2">
             {detailLoading ? (
               Array.from({ length: 3 }).map((_, i) => (
@@ -229,6 +383,16 @@ export default function Groups() {
                       </p>
                     </div>
                   </div>
+                  {isAdmin && member.role !== 'admin' && (
+                    <button
+                      onClick={() => handleRemoveMember(member.user_id)}
+                      className="p-1.5 rounded hover:bg-white/50 dark:hover:bg-black/20 transition-colors"
+                      aria-label="Remove member"
+                      title="Remove member"
+                    >
+                      <X className="w-4 h-4" style={{ color: 'var(--error)' }} />
+                    </button>
+                  )}
                 </div>
               ))
             )}
@@ -256,6 +420,34 @@ export default function Groups() {
         >
           <Plus className="w-4 h-4" />
           New Group
+        </button>
+      </div>
+
+      {/* Tabs: My Groups | Discover */}
+      <div className="flex gap-1 p-1 rounded-lg" style={{ backgroundColor: 'var(--surfaceElev)' }}>
+        <button
+          onClick={() => handleTabChange('my')}
+          className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-md text-sm font-medium transition-colors"
+          style={{
+            backgroundColor: tab === 'my' ? 'var(--surface)' : 'transparent',
+            color: tab === 'my' ? 'var(--text)' : 'var(--muted)',
+            boxShadow: tab === 'my' ? '0 1px 2px rgba(0,0,0,0.05)' : 'none',
+          }}
+        >
+          <Users className="w-3.5 h-3.5" />
+          My Groups
+        </button>
+        <button
+          onClick={() => handleTabChange('discover')}
+          className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-md text-sm font-medium transition-colors"
+          style={{
+            backgroundColor: tab === 'discover' ? 'var(--surface)' : 'transparent',
+            color: tab === 'discover' ? 'var(--text)' : 'var(--muted)',
+            boxShadow: tab === 'discover' ? '0 1px 2px rgba(0,0,0,0.05)' : 'none',
+          }}
+        >
+          <Globe className="w-3.5 h-3.5" />
+          Discover
         </button>
       </div>
 
@@ -349,7 +541,7 @@ export default function Groups() {
         </div>
       )}
 
-      {/* Groups List */}
+      {/* Groups List / Discover */}
       {loading ? (
         <div className="space-y-3">
           {Array.from({ length: 3 }).map((_, i) => (
@@ -359,34 +551,104 @@ export default function Groups() {
             </div>
           ))}
         </div>
-      ) : groups.length === 0 ? (
-        <div className="text-center py-16">
-          <Users className="w-12 h-12 mx-auto mb-4" style={{ color: 'var(--muted)' }} />
-          <h3 className="text-lg font-semibold mb-2" style={{ color: 'var(--text)' }}>
-            No groups yet
-          </h3>
-          <p className="text-sm mb-6" style={{ color: 'var(--muted)' }}>
-            Create a group to train and track progress together.
-          </p>
-          <button
-            onClick={() => setShowCreateForm(true)}
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium"
-            style={{ backgroundColor: 'var(--accent)', color: '#FFFFFF' }}
-          >
-            <Plus className="w-4 h-4" />
-            Create Your First Group
-          </button>
-        </div>
+      ) : tab === 'my' ? (
+        groups.length === 0 ? (
+          <div className="text-center py-16">
+            <Users className="w-12 h-12 mx-auto mb-4" style={{ color: 'var(--muted)' }} />
+            <h3 className="text-lg font-semibold mb-2" style={{ color: 'var(--text)' }}>
+              No groups yet
+            </h3>
+            <p className="text-sm mb-6" style={{ color: 'var(--muted)' }}>
+              Create a group or discover open groups to join.
+            </p>
+            <div className="flex justify-center gap-3">
+              <button
+                onClick={() => setShowCreateForm(true)}
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium"
+                style={{ backgroundColor: 'var(--accent)', color: '#FFFFFF' }}
+              >
+                <Plus className="w-4 h-4" />
+                Create Group
+              </button>
+              <button
+                onClick={() => handleTabChange('discover')}
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium"
+                style={{ color: 'var(--text)', border: '1px solid var(--border)' }}
+              >
+                <Globe className="w-4 h-4" />
+                Discover
+              </button>
+            </div>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {groups.map((group) => (
+              <button
+                key={group.id}
+                onClick={() => loadGroupDetail(group.id)}
+                className="w-full text-left rounded-[14px] p-5 transition-colors"
+                style={{ backgroundColor: 'var(--surface)', border: '1px solid var(--border)' }}
+              >
+                <div className="flex items-start justify-between">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-1">
+                      <h3 className="font-semibold text-sm truncate" style={{ color: 'var(--text)' }}>
+                        {group.name}
+                      </h3>
+                      <span
+                        className="px-2 py-0.5 rounded-full text-[10px] font-semibold shrink-0"
+                        style={{
+                          backgroundColor: `${GROUP_TYPE_COLORS[group.group_type] || 'var(--accent)'}20`,
+                          color: GROUP_TYPE_COLORS[group.group_type] || 'var(--accent)',
+                        }}
+                      >
+                        {GROUP_TYPE_LABELS[group.group_type] || group.group_type}
+                      </span>
+                    </div>
+                    {group.description && (
+                      <p className="text-xs mb-2 line-clamp-1" style={{ color: 'var(--muted)' }}>
+                        {group.description}
+                      </p>
+                    )}
+                    <div className="flex items-center gap-3 text-xs" style={{ color: 'var(--muted)' }}>
+                      <span className="flex items-center gap-1">
+                        <Users className="w-3.5 h-3.5" />
+                        {group.member_count || 0} member{(group.member_count || 0) !== 1 ? 's' : ''}
+                      </span>
+                      {group.member_role === 'admin' && (
+                        <span className="flex items-center gap-1" style={{ color: 'var(--accent)' }}>
+                          <Shield className="w-3 h-3" />
+                          Admin
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                  <ChevronRight className="w-5 h-5 shrink-0 mt-1" style={{ color: 'var(--muted)' }} />
+                </div>
+              </button>
+            ))}
+          </div>
+        )
       ) : (
-        <div className="space-y-3">
-          {groups.map((group) => (
-            <button
-              key={group.id}
-              onClick={() => loadGroupDetail(group.id)}
-              className="w-full text-left rounded-[14px] p-5 transition-colors"
-              style={{ backgroundColor: 'var(--surface)', border: '1px solid var(--border)' }}
-            >
-              <div className="flex items-start justify-between">
+        /* Discover Tab */
+        discoverGroups.length === 0 ? (
+          <div className="text-center py-16">
+            <Globe className="w-12 h-12 mx-auto mb-4" style={{ color: 'var(--muted)' }} />
+            <h3 className="text-lg font-semibold mb-2" style={{ color: 'var(--text)' }}>
+              No open groups to discover
+            </h3>
+            <p className="text-sm" style={{ color: 'var(--muted)' }}>
+              All open groups have been joined, or none exist yet.
+            </p>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {discoverGroups.map((group) => (
+              <div
+                key={group.id}
+                className="rounded-[14px] p-5 flex items-start justify-between"
+                style={{ backgroundColor: 'var(--surface)', border: '1px solid var(--border)' }}
+              >
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 mb-1">
                     <h3 className="font-semibold text-sm truncate" style={{ color: 'var(--text)' }}>
@@ -403,7 +665,7 @@ export default function Groups() {
                     </span>
                   </div>
                   {group.description && (
-                    <p className="text-xs mb-2 line-clamp-1" style={{ color: 'var(--muted)' }}>
+                    <p className="text-xs mb-2 line-clamp-2" style={{ color: 'var(--muted)' }}>
                       {group.description}
                     </p>
                   )}
@@ -412,19 +674,19 @@ export default function Groups() {
                       <Users className="w-3.5 h-3.5" />
                       {group.member_count || 0} member{(group.member_count || 0) !== 1 ? 's' : ''}
                     </span>
-                    {group.member_role === 'admin' && (
-                      <span className="flex items-center gap-1" style={{ color: 'var(--accent)' }}>
-                        <Shield className="w-3 h-3" />
-                        Admin
-                      </span>
-                    )}
                   </div>
                 </div>
-                <ChevronRight className="w-5 h-5 shrink-0 mt-1" style={{ color: 'var(--muted)' }} />
+                <button
+                  onClick={() => handleJoin(group.id)}
+                  className="shrink-0 ml-3 px-4 py-2 rounded-lg text-sm font-medium"
+                  style={{ backgroundColor: 'var(--accent)', color: '#FFFFFF' }}
+                >
+                  Join
+                </button>
               </div>
-            </button>
-          ))}
-        </div>
+            ))}
+          </div>
+        )
       )}
     </div>
   );

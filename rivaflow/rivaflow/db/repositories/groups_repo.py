@@ -82,6 +82,28 @@ class GroupsRepository:
             return [GroupsRepository._row_to_dict(row) for row in rows]
 
     @staticmethod
+    def list_discoverable(user_id: int) -> list[dict]:
+        """List open groups the user is NOT a member of."""
+        with get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                convert_query("""
+                    SELECT g.*,
+                           (SELECT COUNT(*) FROM group_members gm2
+                            WHERE gm2.group_id = g.id) as member_count
+                    FROM groups g
+                    WHERE g.privacy = 'open'
+                    AND g.id NOT IN (
+                        SELECT group_id FROM group_members WHERE user_id = ?
+                    )
+                    ORDER BY g.created_at DESC
+                """),
+                (user_id,),
+            )
+            rows = cursor.fetchall()
+            return [GroupsRepository._row_to_dict(row) for row in rows]
+
+    @staticmethod
     def add_member(group_id: int, user_id: int, role: str = "member") -> bool:
         """Add a member to a group.
 

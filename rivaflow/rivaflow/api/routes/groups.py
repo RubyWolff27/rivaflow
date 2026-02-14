@@ -80,6 +80,17 @@ def list_groups(
     return {"groups": groups, "count": len(groups)}
 
 
+@router.get("/discover")
+@limiter.limit("60/minute")
+def discover_groups(
+    request: Request,
+    current_user: dict = Depends(get_current_user),
+):
+    """List open groups user can join."""
+    groups = repo.list_discoverable(user_id=current_user["id"])
+    return {"groups": groups, "count": len(groups)}
+
+
 @router.get("/{group_id}")
 @limiter.limit("120/minute")
 def get_group(
