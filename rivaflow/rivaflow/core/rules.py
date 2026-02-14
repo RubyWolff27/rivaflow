@@ -74,7 +74,10 @@ RULES = [
             s["consecutive_gi_sessions"] >= 3
             and s.get("gi_nogi_preference") != "gi_only"
             and s["consecutive_gi_sessions"] >= _gi_threshold(s.get("gi_bias_pct", 50))
-            and (not s.get("todays_class_types") or "no-gi" in s.get("todays_class_types", set()))
+            and (
+                not s.get("todays_class_types")
+                or "no-gi" in s.get("todays_class_types", set())
+            )
         ),
         recommendation="Train No-Gi today",
         explanation="{consecutive_gi} consecutive Gi sessions → unload grips",
@@ -85,8 +88,12 @@ RULES = [
         condition=lambda r, s: (
             s["consecutive_nogi_sessions"] >= 3
             and s.get("gi_nogi_preference") != "nogi_only"
-            and s["consecutive_nogi_sessions"] >= _nogi_threshold(s.get("gi_bias_pct", 50))
-            and (not s.get("todays_class_types") or "gi" in s.get("todays_class_types", set()))
+            and s["consecutive_nogi_sessions"]
+            >= _nogi_threshold(s.get("gi_bias_pct", 50))
+            and (
+                not s.get("todays_class_types")
+                or "gi" in s.get("todays_class_types", set())
+            )
         ),
         recommendation="Train Gi today",
         explanation="{consecutive_nogi} consecutive No-Gi sessions → vary stimulus",
@@ -102,7 +109,9 @@ RULES = [
     Rule(
         name="whoop_low_recovery",
         condition=lambda r, s: (
-            r and r.get("whoop_recovery_score") is not None and r["whoop_recovery_score"] < 34
+            r
+            and r.get("whoop_recovery_score") is not None
+            and r["whoop_recovery_score"] < 34
         ),
         recommendation="WHOOP shows low recovery ({whoop_recovery}%). Consider a light session.",
         explanation="WHOOP recovery score is {whoop_recovery}% — body needs rest",
@@ -110,19 +119,24 @@ RULES = [
     ),
     Rule(
         name="whoop_hrv_drop",
-        condition=lambda r, s: (s.get("hrv_drop_pct") is not None and s["hrv_drop_pct"] > 20),
+        condition=lambda r, s: (
+            s.get("hrv_drop_pct") is not None and s["hrv_drop_pct"] > 20
+        ),
         recommendation="Your HRV has dropped significantly. Listen to your body today.",
         explanation="HRV is {hrv_drop_pct}% below your 7-day average",
         priority=3,
     ),
     Rule(
         name="whoop_hrv_sustained_decline",
-        condition=lambda r, s: (s.get("hrv_slope_5d") is not None and s["hrv_slope_5d"] < -0.5),
+        condition=lambda r, s: (
+            s.get("hrv_slope_5d") is not None and s["hrv_slope_5d"] < -0.5
+        ),
         recommendation=(
             "Your HRV has been declining for 5+ days." " Prioritize sleep and recovery."
         ),
         explanation=(
-            "HRV slope over last 5+ days is {hrv_slope_5d}" " — sustained decline detected"
+            "HRV slope over last 5+ days is {hrv_slope_5d}"
+            " — sustained decline detected"
         ),
         priority=2,
     ),
@@ -136,7 +150,9 @@ RULES = [
     Rule(
         name="whoop_green_recovery",
         condition=lambda r, s: (
-            r and r.get("whoop_recovery_score") is not None and r["whoop_recovery_score"] >= 90
+            r
+            and r.get("whoop_recovery_score") is not None
+            and r["whoop_recovery_score"] >= 90
         ),
         recommendation="WHOOP shows peak recovery ({whoop_recovery}%). Great day to push hard!",
         explanation="WHOOP recovery at {whoop_recovery}% — fully recovered",
@@ -162,9 +178,12 @@ RULES = [
             and s.get("days_until_comp") is not None
             and 7 < s["days_until_comp"] <= 14
         ),
-        recommendation=("Begin tapering intensity — {days_until_comp} days to competition"),
+        recommendation=(
+            "Begin tapering intensity — {days_until_comp} days to competition"
+        ),
         explanation=(
-            "Competition approaching. Start reducing volume while " "maintaining sharpness."
+            "Competition approaching. Start reducing volume while "
+            "maintaining sharpness."
         ),
         priority=1,
     ),
@@ -247,7 +266,8 @@ RULES = [
     Rule(
         name="session_frequency_low",
         condition=lambda r, s: (
-            s.get("days_since_last_session") is not None and s["days_since_last_session"] >= 5
+            s.get("days_since_last_session") is not None
+            and s["days_since_last_session"] >= 5
         ),
         recommendation="It's been {days_off} days — ease back in with drilling or flow rolls",
         explanation=(
@@ -258,9 +278,12 @@ RULES = [
     ),
     Rule(
         name="sleep_debt_high",
-        condition=lambda r, s: (s.get("sleep_debt_min") is not None and s["sleep_debt_min"] >= 120),
+        condition=lambda r, s: (
+            s.get("sleep_debt_min") is not None and s["sleep_debt_min"] >= 120
+        ),
         recommendation=(
-            "Sleep debt is high ({sleep_debt}h). " "Prioritize sleep over training today."
+            "Sleep debt is high ({sleep_debt}h). "
+            "Prioritize sleep over training today."
         ),
         explanation=(
             "Accumulated sleep debt of {sleep_debt}h. "
@@ -316,7 +339,9 @@ def format_explanation(explanation: str, readiness: dict, session_context: dict)
     replacements["sessions_week"] = session_context.get("sessions_this_week", "")
     replacements["days_off"] = session_context.get("days_since_last_session", "")
     sleep_debt_min = session_context.get("sleep_debt_min")
-    replacements["sleep_debt"] = f"{sleep_debt_min / 60:.1f}" if sleep_debt_min is not None else ""
+    replacements["sleep_debt"] = (
+        f"{sleep_debt_min / 60:.1f}" if sleep_debt_min is not None else ""
+    )
 
     # Replace placeholders
     result = explanation
