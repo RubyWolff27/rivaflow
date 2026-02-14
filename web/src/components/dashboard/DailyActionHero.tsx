@@ -1,11 +1,11 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { Plus, Activity, Sparkles, Heart, Waves, RefreshCw, Sun, Moon, ChevronDown, ChevronUp, CalendarCheck, Coffee, Briefcase, AlertTriangle, Plane, Flame, Check } from 'lucide-react';
+import { Plus, Activity, Sparkles, Heart, Waves, RefreshCw, Sun, Moon, ChevronDown, ChevronUp, CalendarCheck, Coffee, Briefcase, AlertTriangle, Plane, Flame, Check, Clock } from 'lucide-react';
 import { getLocalDateString } from '../../utils/date';
-import { suggestionsApi, readinessApi, whoopApi, checkinsApi, streaksApi, sessionsApi } from '../../api/client';
-import { getErrorMessage } from '../../api/client';
+import { suggestionsApi, readinessApi, whoopApi, checkinsApi, streaksApi, sessionsApi, goalsApi, gymsApi, profileApi, getErrorMessage } from '../../api/client';
+import type { GymClass } from '../../api/client';
 import { Card, PrimaryButton, CardSkeleton } from '../ui';
-import type { DayCheckins, StreakStatus } from '../../types';
+import type { DayCheckins, StreakStatus, Session, WeeklyGoalProgress } from '../../types';
 
 interface TriggeredRule {
   name: string;
@@ -359,9 +359,182 @@ function EveningPrompt({ onSubmitted }: { onSubmitted: () => void }) {
   );
 }
 
-/* ---------- Yesterday's Plan Banner ---------- */
+/* ---------- Smart Plan Banner ---------- */
 
-function TodayPlanBanner({ intention, onLog, completed }: { intention: string; onLog: () => void; completed?: boolean }) {
+function parseTimeToday(timeStr: string): Date {
+  const parts = timeStr.split(':').map(Number);
+  const d = new Date();
+  d.setHours(parts[0], parts[1], parts[2] || 0, 0);
+  return d;
+}
+
+interface SmartStatus {
+  type: string;
+  headline: string;
+  subtext?: string;
+  icon: 'check' | 'clock' | 'alert' | 'calendar';
+  iconColor: string;
+  iconBg: string;
+  showLogButton: boolean;
+}
+
+function computeSmartStatus(
+  intention: string | undefined,
+  sessions: Session[],
+  classes: GymClass[],
+  goals: WeeklyGoalProgress | null,
+): SmartStatus | null {
+  const now = new Date();
+  const hasSession = sessions.length > 0;
+
+  // P1: Session logged + matches an ended gym class
+  if (hasSession && classes.length > 0) {
+    const matchedEnded = classes.some(c => {
+      const endTime = parseTimeToday(c.end_time);
+      if (now.getTime() < endTime.getTime() - 30 * 60 * 1000) return false;
+      return sessions.some(s =>
+        c.class_type === null || s.class_type === c.class_type
+      );
+    });
+    if (matchedEnded) {
+      return {
+        type: 'trained-planned',
+        headline: 'Nice work — trained as planned!',
+        icon: 'check',
+        iconColor: 'var(--success)',
+        iconBg: 'var(--success-bg)',
+        showLogButton: false,
+      };
+    }
+  }
+
+  // P2: Session logged, no gym match
+  if (hasSession) {
+    return {
+      type: 'trained',
+      headline: 'Session logged — nice work!',
+      icon: 'check',
+      iconColor: 'var(--success)',
+      iconBg: 'var(--success-bg)',
+      showLogButton: false,
+    };
+  }
+
+  // P3: Upcoming class within 4 hrs
+  if (classes.length > 0) {
+    const upcoming = classes
+      .filter(c => {
+        const start = parseTimeToday(c.start_time);
+        const diffMs = start.getTime() - now.getTime();
+        return diffMs > 0 && diffMs <= 4 * 60 * 60 * 1000;
+      })
+      .sort((a, b) =>
+        parseTimeToday(a.start_time).getTime() - parseTimeToday(b.start_time).getTime()
+      );
+    if (upcoming.length > 0) {
+      const next = upcoming[0];
+      const timeStr = parseTimeToday(next.start_time)
+        .toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+      const typeLabel = next.class_type
+        ? ' ' + next.class_type.split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join('-')
+        : '';
+      return {
+        type: 'upcoming',
+        headline: `Next: ${timeStr}${typeLabel}`,
+        subtext: next.class_name,
+        icon: 'clock',
+        iconColor: 'var(--accent)',
+        iconBg: 'var(--surfaceElev)',
+        showLogButton: false,
+      };
+    }
+  }
+
+  // P4: Behind on goals with ≤4 days remaining
+  if (goals && goals.days_remaining <= 4) {
+    const { targets, actual } = goals;
+    const gaps: { label: string; needed: number }[] = [];
+    if (targets.sc_sessions && actual.sc_sessions != null
+        && targets.sc_sessions > actual.sc_sessions) {
+      gaps.push({ label: 'S&C', needed: targets.sc_sessions - actual.sc_sessions });
+    }
+    if (targets.mobility_sessions && actual.mobility_sessions != null
+        && targets.mobility_sessions > actual.mobility_sessions) {
+      gaps.push({ label: 'mobility', needed: targets.mobility_sessions - actual.mobility_sessions });
+    }
+    if (targets.bjj_sessions && actual.bjj_sessions != null
+        && targets.bjj_sessions > actual.bjj_sessions) {
+      gaps.push({ label: 'BJJ', needed: targets.bjj_sessions - actual.bjj_sessions });
+    }
+    if (gaps.length > 0) {
+      const top = gaps[0];
+      return {
+        type: 'goal-nudge',
+        headline: `You still need ${top.needed} ${top.label} session${top.needed > 1 ? 's' : ''} this week`,
+        subtext: `${goals.days_remaining} day${goals.days_remaining > 1 ? 's' : ''} remaining`,
+        icon: 'alert',
+        iconColor: 'var(--warning)',
+        iconBg: 'var(--warning-bg)',
+        showLogButton: true,
+      };
+    }
+  }
+
+  // P5: All classes past, no upcoming
+  if (classes.length > 0) {
+    const allPast = classes.every(c =>
+      now.getTime() > parseTimeToday(c.end_time).getTime()
+    );
+    if (allPast) {
+      return {
+        type: 'missed',
+        headline: "Missed today's class? Plan for tomorrow",
+        icon: 'calendar',
+        iconColor: 'var(--muted)',
+        iconBg: 'var(--surfaceElev)',
+        showLogButton: false,
+      };
+    }
+  }
+
+  // P6: Intention from yesterday
+  if (intention) {
+    return {
+      type: 'intention',
+      headline: intention,
+      subtext: 'Your plan today',
+      icon: 'calendar',
+      iconColor: 'var(--warning)',
+      iconBg: 'var(--warning-bg)',
+      showLogButton: true,
+    };
+  }
+
+  // P7: Nothing to show
+  return null;
+}
+
+function SmartPlanBanner({
+  intention,
+  todaySessions,
+  todaysClasses,
+  weeklyGoals,
+  onLog,
+}: {
+  intention?: string;
+  todaySessions: Session[];
+  todaysClasses: GymClass[];
+  weeklyGoals: WeeklyGoalProgress | null;
+  onLog: () => void;
+}) {
+  const status = computeSmartStatus(intention, todaySessions, todaysClasses, weeklyGoals);
+  if (!status) return null;
+
+  const IconComponent = status.icon === 'check' ? Check
+    : status.icon === 'clock' ? Clock
+    : status.icon === 'alert' ? AlertTriangle
+    : CalendarCheck;
+
   return (
     <div
       className="flex items-center gap-3 p-3 rounded-xl mb-4"
@@ -369,24 +542,21 @@ function TodayPlanBanner({ intention, onLog, completed }: { intention: string; o
     >
       <div
         className="w-9 h-9 rounded-full flex items-center justify-center shrink-0"
-        style={{ backgroundColor: completed ? 'var(--success-bg)' : 'var(--warning-bg)' }}
+        style={{ backgroundColor: status.iconBg }}
       >
-        {completed
-          ? <Check className="w-4 h-4" style={{ color: 'var(--success)' }} />
-          : <CalendarCheck className="w-4 h-4" style={{ color: 'var(--warning)' }} />}
+        <IconComponent className="w-4 h-4" style={{ color: status.iconColor }} />
       </div>
       <div className="flex-1 min-w-0">
-        <p className="text-xs font-medium" style={{ color: 'var(--muted)' }}>Your plan today</p>
-        <p className="text-sm font-semibold truncate" style={{ color: 'var(--text)' }}>{intention}</p>
+        {status.subtext && (
+          <p className="text-xs font-medium" style={{ color: 'var(--muted)' }}>
+            {status.subtext}
+          </p>
+        )}
+        <p className="text-sm font-semibold truncate" style={{ color: 'var(--text)' }}>
+          {status.headline}
+        </p>
       </div>
-      {completed ? (
-        <span
-          className="shrink-0 px-3 py-1.5 rounded-lg text-xs font-semibold"
-          style={{ backgroundColor: 'var(--success-bg)', color: 'var(--success)' }}
-        >
-          Done ✓
-        </span>
-      ) : (
+      {status.showLogButton ? (
         <button
           onClick={onLog}
           className="shrink-0 px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors"
@@ -394,7 +564,14 @@ function TodayPlanBanner({ intention, onLog, completed }: { intention: string; o
         >
           Log it
         </button>
-      )}
+      ) : (status.type === 'trained-planned' || status.type === 'trained') ? (
+        <span
+          className="shrink-0 px-3 py-1.5 rounded-lg text-xs font-semibold"
+          style={{ backgroundColor: 'var(--success-bg)', color: 'var(--success)' }}
+        >
+          Done ✓
+        </span>
+      ) : null}
     </div>
   );
 }
@@ -783,7 +960,9 @@ export default function DailyActionHero() {
   } | null>(null);
   const [whoopSyncing, setWhoopSyncing] = useState(false);
   const [streaks, setStreaks] = useState<StreakStatus | null>(null);
-  const [hasLoggedSession, setHasLoggedSession] = useState(false);
+  const [todaySessions, setTodaySessions] = useState<Session[]>([]);
+  const [todaysClasses, setTodaysClasses] = useState<GymClass[]>([]);
+  const [weeklyGoals, setWeeklyGoals] = useState<WeeklyGoalProgress | null>(null);
 
   const loadCheckins = async () => {
     try {
@@ -806,6 +985,12 @@ export default function DailyActionHero() {
         checkinsApi.getYesterday(),
         streaksApi.getStatus(),
         sessionsApi.getByRange(today, today),
+        goalsApi.getCurrentWeek(),
+        profileApi.get().then(res =>
+          res.data.primary_gym_id
+            ? gymsApi.getTodaysClasses(res.data.primary_gym_id)
+            : { data: { classes: [] as GymClass[] } }
+        ),
       ]);
 
       if (controller.signal.aborted) return;
@@ -855,11 +1040,24 @@ export default function DailyActionHero() {
         setStreaks(results[5].value.data);
       }
 
-      // Today's sessions — check if user has logged a session today
+      // Today's sessions
       if (results[6].status === 'fulfilled' && results[6].value.data) {
-        const todaySessions = results[6].value.data;
-        if (Array.isArray(todaySessions) && todaySessions.length > 0) {
-          setHasLoggedSession(true);
+        const sessions = results[6].value.data;
+        if (Array.isArray(sessions)) {
+          setTodaySessions(sessions);
+        }
+      }
+
+      // Weekly goals
+      if (results[7].status === 'fulfilled' && results[7].value.data) {
+        setWeeklyGoals(results[7].value.data);
+      }
+
+      // Today's gym classes
+      if (results[8].status === 'fulfilled' && results[8].value.data) {
+        const classData = results[8].value.data;
+        if (classData.classes && Array.isArray(classData.classes)) {
+          setTodaysClasses(classData.classes);
         }
       }
 
@@ -933,14 +1131,14 @@ export default function DailyActionHero() {
         </PrimaryButton>
       </div>
 
-      {/* Yesterday's plan banner */}
-      {todayPlan && (
-        <TodayPlanBanner
-          intention={todayPlan}
-          onLog={() => navigate('/log')}
-          completed={hasLoggedSession}
-        />
-      )}
+      {/* Smart plan banner */}
+      <SmartPlanBanner
+        intention={todayPlan}
+        todaySessions={todaySessions}
+        todaysClasses={todaysClasses}
+        weeklyGoals={weeklyGoals}
+        onLog={() => navigate('/log')}
+      />
 
       {/* Main recommendation */}
       {!hasCheckedIn && !whoopRecovery ? (
