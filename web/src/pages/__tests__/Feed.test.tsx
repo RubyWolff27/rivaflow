@@ -128,7 +128,7 @@ describe('Feed', () => {
     } as any)
     renderFeed()
     await waitFor(() => {
-      expect(screen.getByText(/no activity/i)).toBeInTheDocument()
+      expect(screen.getByText(/no sessions/i)).toBeInTheDocument()
     })
   })
 })

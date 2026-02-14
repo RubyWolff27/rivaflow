@@ -150,7 +150,9 @@ class SessionRepository:
         """Get a session by ID without user scope (for validation/privacy checks)."""
         with get_connection() as conn:
             cursor = conn.cursor()
-            cursor.execute(convert_query("SELECT * FROM sessions WHERE id = ?"), (session_id,))
+            cursor.execute(
+                convert_query("SELECT * FROM sessions WHERE id = ?"), (session_id,)
+            )
             row = cursor.fetchone()
             if not row:
                 return None
@@ -179,10 +181,16 @@ class SessionRepository:
             # Most fields pass through directly, but some need transformation
             field_processors = {
                 "session_date": lambda v: v.isoformat() if v else None,
-                "partners": lambda v: (json.dumps(v) if v is not None else json.dumps([])),
-                "techniques": lambda v: (json.dumps(v) if v is not None else json.dumps([])),
+                "partners": lambda v: (
+                    json.dumps(v) if v is not None else json.dumps([])
+                ),
+                "techniques": lambda v: (
+                    json.dumps(v) if v is not None else json.dumps([])
+                ),
                 "needs_review": lambda v: bool(v),
-                "score_breakdown": lambda v: (json.dumps(v) if isinstance(v, dict) else v),
+                "score_breakdown": lambda v: (
+                    json.dumps(v) if isinstance(v, dict) else v
+                ),
             }
 
             # List fields that can be explicitly cleared with []
@@ -253,7 +261,9 @@ class SessionRepository:
 
             # Build and execute query
             params.extend([session_id, user_id])
-            query = f"UPDATE sessions SET {', '.join(updates)} WHERE id = ? AND user_id = ?"
+            query = (
+                f"UPDATE sessions SET {', '.join(updates)} WHERE id = ? AND user_id = ?"
+            )
             cursor.execute(convert_query(query), params)
 
             if cursor.rowcount == 0:
