@@ -1,0 +1,2 @@
+-- Fix needs_review column type (PG-only, no-op for SQLite)
+-- SQLite already uses INTEGER which accepts both bool and int
