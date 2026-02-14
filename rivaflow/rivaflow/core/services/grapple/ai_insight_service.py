@@ -72,8 +72,17 @@ def _get_mode_context(user_id: int) -> str:
         else:
             parts.append("Athlete trains for lifestyle and health.")
         injuries = prefs.get("injuries") or []
-        if injuries:
-            areas = [inj.get("area", "") for inj in injuries[:3] if inj.get("area")]
+        if isinstance(injuries, str):
+            try:
+                injuries = json.loads(injuries)
+            except (json.JSONDecodeError, TypeError):
+                injuries = []
+        # Only include active/managing injuries — not recovered ones
+        active_injuries = [
+            i for i in injuries if i.get("status", "active") in ("active", "managing")
+        ]
+        if active_injuries:
+            areas = [inj.get("area", "") for inj in active_injuries[:3] if inj.get("area")]
             if areas:
                 parts.append(f"Injuries: {', '.join(areas)}.")
         return " ".join(parts)
@@ -137,17 +146,11 @@ async def generate_post_session_insight(user_id: int, session_id: int) -> dict |
         start_d = end_d - td(days=7)
         recent_checkins = checkin_repo.get_checkins_range(user_id, start_d, end_d)
         if recent_checkins:
-            energy_vals = [
-                c["energy_level"] for c in recent_checkins if c.get("energy_level")
-            ]
+            energy_vals = [c["energy_level"] for c in recent_checkins if c.get("energy_level")]
             quality_vals = [
-                c["training_quality"]
-                for c in recent_checkins
-                if c.get("training_quality")
+                c["training_quality"] for c in recent_checkins if c.get("training_quality")
             ]
-            rest_days = sum(
-                1 for c in recent_checkins if c.get("checkin_type") == "rest"
-            )
+            rest_days = sum(1 for c in recent_checkins if c.get("checkin_type") == "rest")
             if energy_vals:
                 avg_e = sum(energy_vals) / len(energy_vals)
                 context += f"Avg energy (7d): {avg_e:.1f}/5. "
@@ -182,9 +185,7 @@ async def generate_post_session_insight(user_id: int, session_id: int) -> dict |
             s_date = session.get("session_date", "")
             if s_date:
                 d = str(s_date)
-                recs = WhoopRecoveryCacheRepository.get_by_date_range(
-                    user_id, d, d + "T23:59:59"
-                )
+                recs = WhoopRecoveryCacheRepository.get_by_date_range(user_id, d, d + "T23:59:59")
                 if recs:
                     rec = recs[-1]
                     rs = rec.get("recovery_score")
@@ -300,20 +301,14 @@ async def generate_weekly_insight(
         if conn and conn.get("is_active"):
             end_dt = date_cls.today().isoformat() + "T23:59:59"
             start_dt = (date_cls.today() - timedelta(days=7)).isoformat()
-            recs = WhoopRecoveryCacheRepository.get_by_date_range(
-                user_id, start_dt, end_dt
-            )
+            recs = WhoopRecoveryCacheRepository.get_by_date_range(user_id, start_dt, end_dt)
             if recs:
                 rec_vals = [
-                    r["recovery_score"]
-                    for r in recs
-                    if r.get("recovery_score") is not None
+                    r["recovery_score"] for r in recs if r.get("recovery_score") is not None
                 ]
                 hrv_vals = [r["hrv_ms"] for r in recs if r.get("hrv_ms") is not None]
                 sleep_vals = [
-                    r["sleep_performance"]
-                    for r in recs
-                    if r.get("sleep_performance") is not None
+                    r["sleep_performance"] for r in recs if r.get("sleep_performance") is not None
                 ]
                 parts = []
                 if rec_vals:
@@ -353,30 +348,21 @@ async def generate_weekly_insight(
         start_d = end_d - timedelta(days=7)
         weekly_checkins = checkin_repo.get_checkins_range(user_id, start_d, end_d)
         if weekly_checkins:
-            energy_vals = [
-                c["energy_level"] for c in weekly_checkins if c.get("energy_level")
-            ]
+            energy_vals = [c["energy_level"] for c in weekly_checkins if c.get("energy_level")]
             quality_vals = [
-                c["training_quality"]
-                for c in weekly_checkins
-                if c.get("training_quality")
+                c["training_quality"] for c in weekly_checkins if c.get("training_quality")
             ]
-            rest_days = sum(
-                1 for c in weekly_checkins if c.get("checkin_type") == "rest"
-            )
+            rest_days = sum(1 for c in weekly_checkins if c.get("checkin_type") == "rest")
             checkin_line = "Check-in data:"
             if energy_vals:
                 checkin_line += f" avg energy {sum(energy_vals)/len(energy_vals):.1f}/5"
             if quality_vals:
                 checkin_line += (
-                    f", avg training quality"
-                    f" {sum(quality_vals)/len(quality_vals):.1f}/5"
+                    f", avg training quality" f" {sum(quality_vals)/len(quality_vals):.1f}/5"
                 )
             if rest_days:
                 checkin_line += f", {rest_days} rest day(s)"
-            recovery_notes = [
-                c["recovery_note"] for c in weekly_checkins if c.get("recovery_note")
-            ]
+            recovery_notes = [c["recovery_note"] for c in weekly_checkins if c.get("recovery_note")]
             if recovery_notes:
                 checkin_line += f". Recovery notes: {'; '.join(recovery_notes[:3])}"
             weekly_content += "\n" + checkin_line
