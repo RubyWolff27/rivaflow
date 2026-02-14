@@ -10,6 +10,7 @@ import { profileApi } from '../api/client';
 import { refreshIfStale } from '../hooks/useInsightRefresh';
 import DailyActionHero from '../components/dashboard/DailyActionHero';
 import GettingStarted from '../components/dashboard/GettingStarted';
+import TodayClassesWidget from '../components/dashboard/TodayClassesWidget';
 import ThisWeek from '../components/dashboard/ThisWeek';
 import MyGameWidget from '../components/dashboard/MyGameWidget';
 import LatestInsightWidget from '../components/dashboard/LatestInsightWidget';
@@ -105,6 +106,9 @@ export default function Dashboard() {
 
       {/* 2. Daily Action Hero — THE primary card */}
       <DailyActionHero />
+
+      {/* 2b. Today's gym classes */}
+      <TodayClassesWidget />
 
       {/* 3. Last Session — "What did I do last?" */}
       <LastSession />

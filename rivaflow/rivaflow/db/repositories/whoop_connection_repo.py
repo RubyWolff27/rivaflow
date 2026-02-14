@@ -167,7 +167,7 @@ class WhoopConnectionRepository:
                         updated_at = ?
                     WHERE user_id = ?
                     """),
-                (1 if enabled else 0, _now_iso(), user_id),
+                (enabled, _now_iso(), user_id),
             )
             return cursor.rowcount > 0
 
@@ -183,7 +183,7 @@ class WhoopConnectionRepository:
                         updated_at = ?
                     WHERE user_id = ?
                     """),
-                (1 if enabled else 0, _now_iso(), user_id),
+                (enabled, _now_iso(), user_id),
             )
             return cursor.rowcount > 0
 

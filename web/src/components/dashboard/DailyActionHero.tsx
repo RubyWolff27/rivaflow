@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { Plus, Activity, Sparkles, Heart, Waves, RefreshCw, Sun, Moon, ChevronDown, ChevronUp, CalendarCheck, Coffee, Briefcase, AlertTriangle, Plane, Flame, Check } from 'lucide-react';
 import { getLocalDateString } from '../../utils/date';
-import { suggestionsApi, readinessApi, whoopApi, checkinsApi, streaksApi } from '../../api/client';
+import { suggestionsApi, readinessApi, whoopApi, checkinsApi, streaksApi, sessionsApi } from '../../api/client';
 import { getErrorMessage } from '../../api/client';
 import { Card, PrimaryButton, CardSkeleton } from '../ui';
 import type { DayCheckins, StreakStatus } from '../../types';
@@ -783,6 +783,7 @@ export default function DailyActionHero() {
   } | null>(null);
   const [whoopSyncing, setWhoopSyncing] = useState(false);
   const [streaks, setStreaks] = useState<StreakStatus | null>(null);
+  const [hasLoggedSession, setHasLoggedSession] = useState(false);
 
   const loadCheckins = async () => {
     try {
@@ -796,13 +797,15 @@ export default function DailyActionHero() {
     const controller = new AbortController();
     const load = async () => {
       // Load suggestion, readiness, WHOOP, checkins, and yesterday in parallel
+      const today = getLocalDateString();
       const results = await Promise.allSettled([
         suggestionsApi.getToday(),
-        readinessApi.getByDate(getLocalDateString()),
+        readinessApi.getByDate(today),
         whoopApi.getLatestRecovery(),
         checkinsApi.getToday(),
         checkinsApi.getYesterday(),
         streaksApi.getStatus(),
+        sessionsApi.getByRange(today, today),
       ]);
 
       if (controller.signal.aborted) return;
@@ -850,6 +853,14 @@ export default function DailyActionHero() {
       // Streaks (Wave E)
       if (results[5].status === 'fulfilled' && results[5].value.data) {
         setStreaks(results[5].value.data);
+      }
+
+      // Today's sessions — check if user has logged a session today
+      if (results[6].status === 'fulfilled' && results[6].value.data) {
+        const todaySessions = results[6].value.data;
+        if (Array.isArray(todaySessions) && todaySessions.length > 0) {
+          setHasLoggedSession(true);
+        }
       }
 
       setLoading(false);
@@ -927,7 +938,7 @@ export default function DailyActionHero() {
         <TodayPlanBanner
           intention={todayPlan}
           onLog={() => navigate('/log')}
-          completed={hasCheckedIn}
+          completed={hasLoggedSession}
         />
       )}
 

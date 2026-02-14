@@ -84,7 +84,7 @@ class SessionRepository:
                     defenses_attempted,
                     defenses_successful,
                     source,
-                    1 if needs_review else 0,
+                    needs_review,
                 ),
             )
 
@@ -187,7 +187,7 @@ class SessionRepository:
                 "techniques": lambda v: (
                     json.dumps(v) if v is not None else json.dumps([])
                 ),
-                "needs_review": lambda v: 1 if v else 0,
+                "needs_review": lambda v: bool(v),
                 "score_breakdown": lambda v: (
                     json.dumps(v) if isinstance(v, dict) else v
                 ),

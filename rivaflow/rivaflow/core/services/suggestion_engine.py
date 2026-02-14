@@ -86,6 +86,10 @@ class SuggestionEngine:
                 session_context["training_mode"] = prefs.get(
                     "training_mode", "lifestyle"
                 )
+                session_context["gi_nogi_preference"] = prefs.get(
+                    "gi_nogi_preference", "both"
+                )
+                session_context["gi_bias_pct"] = prefs.get("gi_bias_pct", 50)
                 # Competition countdown
                 if prefs.get("training_mode") == "competition_prep" and prefs.get(
                     "comp_date"
@@ -111,6 +115,25 @@ class SuggestionEngine:
                     session_context["persistent_injuries"] = active_injuries
         except Exception:
             logger.debug("Coach preferences enrichment skipped", exc_info=True)
+
+        # Enrich with today's gym class types for timetable-aware rules
+        try:
+            from rivaflow.db.repositories.profile_repo import ProfileRepository
+
+            profile = ProfileRepository.get(user_id)
+            primary_gym_id = profile.get("primary_gym_id") if profile else None
+            if primary_gym_id:
+                from rivaflow.core.services.gym_service import GymService
+
+                gym_svc = GymService()
+                todays = gym_svc.get_todays_classes(primary_gym_id)
+                types_today = {
+                    c.get("class_type") for c in todays if c.get("class_type")
+                }
+                session_context["todays_gym_classes"] = todays
+                session_context["todays_class_types"] = types_today
+        except Exception:
+            logger.debug("Gym timetable enrichment skipped", exc_info=True)
 
         # Enrich readiness with WHOOP recovery data if available
         try:

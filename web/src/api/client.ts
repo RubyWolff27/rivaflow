@@ -1,6 +1,20 @@
 import axios from 'axios';
 import type { Session, SessionScoreBreakdown, Readiness, Report, Suggestion, TrainedMovement, Video, Profile, Grading, Movement, Friend, CustomVideo, WeeklyGoalProgress, GoalsSummary, TrainingStreaks, GoalCompletionStreak, DailyCheckin, DayCheckins, StreakStatus, Streak, Milestone, MilestoneProgress, CompEvent, WeightLog, WeightAverage, Group, GroupMember, UserBasic, TrainingGoal, WhoopConnectionStatus, WhoopWorkoutMatch, WhoopRecovery, WhoopScopeCheck, WhoopReadinessAutoFill, WhoopSessionContext } from '../types';
 
+// Gym class for timetable
+export interface GymClass {
+  id: number;
+  gym_id: number;
+  day_of_week: number;
+  day_name: string;
+  start_time: string;
+  end_time: string;
+  class_name: string;
+  class_type: string | null;
+  level: string | null;
+  is_active: number;
+}
+
 // Paginated response type
 interface PaginatedResponse<T> {
   techniques: T[];
@@ -494,6 +508,10 @@ export const gymsApi = {
     api.get('/gyms', { params: { verified_only: verifiedOnly } }),
   search: (query: string, verifiedOnly = true) =>
     api.get('/gyms/search', { params: { q: query, verified_only: verifiedOnly } }),
+  getTimetable: (gymId: number) =>
+    api.get<{ gym_id: number; gym_name: string; timetable: Record<string, GymClass[]> }>(`/gyms/${gymId}/timetable`),
+  getTodaysClasses: (gymId: number) =>
+    api.get<{ gym_id: number; gym_name: string; classes: GymClass[] }>(`/gyms/${gymId}/timetable/today`),
 };
 
 export const adminApi = {

@@ -18,7 +18,28 @@ class Rule:
 # Context object structure expected by rules:
 # - readiness: dict with sleep, stress, soreness, energy, hotspot_note, composite_score
 # - session_context: dict with consecutive_gi_sessions, consecutive_nogi_sessions,
-#                    stale_techniques (list of dicts)
+#                    stale_techniques (list of dicts),
+#                    gi_nogi_preference, gi_bias_pct
+
+
+def _gi_threshold(bias_pct: int) -> int:
+    """Map gi_bias_pct to consecutive-session threshold before suggesting variety.
+
+    Higher Gi bias → more consecutive Gi sessions allowed before suggesting No-Gi.
+    """
+    if bias_pct >= 90:
+        return 7
+    if bias_pct >= 75:
+        return 5
+    if bias_pct >= 60:
+        return 4
+    return 3
+
+
+def _nogi_threshold(bias_pct: int) -> int:
+    """Mirror of _gi_threshold for No-Gi bias (inverted)."""
+    nogi_bias = 100 - bias_pct
+    return _gi_threshold(nogi_bias)
 
 
 RULES = [
@@ -45,14 +66,31 @@ RULES = [
     ),
     Rule(
         name="consecutive_gi",
-        condition=lambda r, s: s["consecutive_gi_sessions"] >= 3,
+        condition=lambda r, s: (
+            s["consecutive_gi_sessions"] >= 3
+            and s.get("gi_nogi_preference") != "gi_only"
+            and s["consecutive_gi_sessions"] >= _gi_threshold(s.get("gi_bias_pct", 50))
+            and (
+                not s.get("todays_class_types")
+                or "no-gi" in s.get("todays_class_types", set())
+            )
+        ),
         recommendation="Train No-Gi today",
         explanation="{consecutive_gi} consecutive Gi sessions → unload grips",
         priority=3,
     ),
     Rule(
         name="consecutive_nogi",
-        condition=lambda r, s: s["consecutive_nogi_sessions"] >= 3,
+        condition=lambda r, s: (
+            s["consecutive_nogi_sessions"] >= 3
+            and s.get("gi_nogi_preference") != "nogi_only"
+            and s["consecutive_nogi_sessions"]
+            >= _nogi_threshold(s.get("gi_bias_pct", 50))
+            and (
+                not s.get("todays_class_types")
+                or "gi" in s.get("todays_class_types", set())
+            )
+        ),
         recommendation="Train Gi today",
         explanation="{consecutive_nogi} consecutive No-Gi sessions → vary stimulus",
         priority=3,

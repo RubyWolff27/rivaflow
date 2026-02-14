@@ -644,6 +644,31 @@ Athlete competes under NAGA (North American Grappling Association) rules:
         except Exception:
             logger.debug("Profile enrichment skipped", exc_info=True)
 
+        # Inject today's gym timetable
+        try:
+            primary_gym_id = None
+            if profile and profile.get("primary_gym_id"):
+                primary_gym_id = profile["primary_gym_id"]
+            if primary_gym_id:
+                from rivaflow.core.services.gym_service import GymService
+
+                gym_svc = GymService()
+                gym = gym_svc.get_by_id(primary_gym_id)
+                todays_classes = gym_svc.get_todays_classes(primary_gym_id)
+                if todays_classes and gym:
+                    gym_name = gym.get("name", "your gym")
+                    lines = [f"TODAY'S CLASSES AT {gym_name.upper()}:"]
+                    for c in todays_classes:
+                        line = (
+                            f"- {c['start_time']}-{c['end_time']}" f" {c['class_name']}"
+                        )
+                        if c.get("class_type"):
+                            line += f" ({c['class_type']})"
+                        lines.append(line)
+                    context_parts.extend(lines + [""])
+        except Exception:
+            logger.debug("Gym timetable enrichment skipped", exc_info=True)
+
         # Inject streak data
         try:
             from rivaflow.db.repositories.streak_repo import StreakRepository

@@ -1,8 +1,10 @@
 """Service layer for gym management with caching."""
 
+from datetime import date
 from typing import Any
 
 from rivaflow.cache import CacheKeys, get_redis_client
+from rivaflow.db.repositories.gym_class_repo import GymClassRepository
 from rivaflow.db.repositories.gym_repo import GymRepository
 
 
@@ -139,6 +141,45 @@ class GymService:
             self._invalidate_gym_cache(target_gym_id)
 
         return merged
+
+    # ── Timetable methods ──
+
+    def get_timetable(self, gym_id: int) -> dict[str, list[dict]]:
+        """Get all classes for a gym grouped by day name."""
+        cache_key = f"gym:timetable:{gym_id}"
+        cached = self.cache.get(cache_key)
+        if cached is not None:
+            return cached
+
+        repo = GymClassRepository()
+        classes = repo.get_by_gym(gym_id)
+        grouped: dict[str, list[dict]] = {}
+        for cls in classes:
+            day = cls["day_name"]
+            grouped.setdefault(day, []).append(cls)
+
+        self.cache.set(cache_key, grouped, ttl=CacheKeys.TTL_1_HOUR)
+        return grouped
+
+    def get_todays_classes(self, gym_id: int, today: date | None = None) -> list[dict]:
+        """Get classes for today at a gym."""
+        if today is None:
+            today = date.today()
+        day_of_week = today.weekday()  # 0=Monday
+
+        cache_key = f"gym:timetable:{gym_id}:day:{day_of_week}"
+        cached = self.cache.get(cache_key)
+        if cached is not None:
+            return cached
+
+        repo = GymClassRepository()
+        classes = repo.get_by_gym_and_day(gym_id, day_of_week)
+        self.cache.set(cache_key, classes, ttl=CacheKeys.TTL_1_HOUR)
+        return classes
+
+    def _invalidate_timetable_cache(self, gym_id: int) -> None:
+        """Invalidate timetable cache for a gym."""
+        self.cache.delete_pattern(f"gym:timetable:{gym_id}*")
 
     def _invalidate_gym_cache(self, gym_id: int | None = None) -> None:
         """

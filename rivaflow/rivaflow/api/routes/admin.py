@@ -14,6 +14,7 @@ from rivaflow.core.exceptions import NotFoundError, ValidationError
 from rivaflow.core.services.audit_service import AuditService
 from rivaflow.core.services.gym_service import GymService
 from rivaflow.db.repositories.feedback_repo import FeedbackRepository
+from rivaflow.db.repositories.gym_class_repo import GymClassRepository
 from rivaflow.db.repositories.gym_repo import GymRepository
 
 logger = logging.getLogger(__name__)
@@ -1022,6 +1023,165 @@ def get_feedback_stats(current_user: dict = Depends(get_admin_user)):
     stats = repo.get_stats()
 
     return stats
+
+
+# ── Gym timetable management ──
+
+
+class GymClassRequest(BaseModel):
+    """Request model for a single gym class."""
+
+    day_of_week: int = Field(..., ge=0, le=6)
+    start_time: str = Field(..., pattern=r"^\d{1,2}:\d{2}$")
+    end_time: str = Field(..., pattern=r"^\d{1,2}:\d{2}$")
+    class_name: str = Field(..., min_length=1, max_length=200)
+    class_type: str | None = Field(None, max_length=50)
+    level: str | None = Field(None, max_length=50)
+
+
+class BulkTimetableRequest(BaseModel):
+    """Request model for bulk-setting a gym timetable."""
+
+    classes: list[GymClassRequest]
+
+
+@router.post("/gyms/{gym_id}/timetable")
+@limiter.limit("30/minute")
+def set_timetable(
+    request: Request,
+    gym_id: int = Path(..., gt=0),
+    body: BulkTimetableRequest = Body(...),
+    current_user: dict = Depends(require_admin),
+):
+    """Bulk-set timetable for a gym (replaces all existing classes)."""
+    gym_service = GymService()
+    gym = gym_service.get_by_id(gym_id)
+    if not gym:
+        raise NotFoundError(f"Gym {gym_id} not found")
+
+    repo = GymClassRepository()
+    class_dicts = [c.model_dump() for c in body.classes]
+    ids = repo.bulk_replace(gym_id, class_dicts)
+
+    gym_service._invalidate_timetable_cache(gym_id)
+
+    AuditService.log(
+        actor_id=current_user["id"],
+        action="gym.timetable.set",
+        target_type="gym",
+        target_id=gym_id,
+        details={
+            "name": gym["name"],
+            "class_count": len(ids),
+        },
+        ip_address=get_client_ip(request),
+    )
+
+    return {
+        "success": True,
+        "gym_id": gym_id,
+        "classes_created": len(ids),
+    }
+
+
+@router.post("/gyms/{gym_id}/classes")
+@limiter.limit("30/minute")
+def add_class(
+    request: Request,
+    gym_id: int = Path(..., gt=0),
+    body: GymClassRequest = Body(...),
+    current_user: dict = Depends(require_admin),
+):
+    """Add a single class to a gym timetable."""
+    gym_service = GymService()
+    gym = gym_service.get_by_id(gym_id)
+    if not gym:
+        raise NotFoundError(f"Gym {gym_id} not found")
+
+    repo = GymClassRepository()
+    class_id = repo.create(
+        gym_id=gym_id,
+        day_of_week=body.day_of_week,
+        start_time=body.start_time,
+        end_time=body.end_time,
+        class_name=body.class_name,
+        class_type=body.class_type,
+        level=body.level,
+    )
+
+    gym_service._invalidate_timetable_cache(gym_id)
+
+    AuditService.log(
+        actor_id=current_user["id"],
+        action="gym.class.add",
+        target_type="gym_class",
+        target_id=class_id,
+        details={
+            "gym_name": gym["name"],
+            "class_name": body.class_name,
+        },
+        ip_address=get_client_ip(request),
+    )
+
+    return {"success": True, "class_id": class_id}
+
+
+@router.put("/gyms/{gym_id}/classes/{class_id}")
+@limiter.limit("30/minute")
+def update_class(
+    request: Request,
+    gym_id: int = Path(..., gt=0),
+    class_id: int = Path(..., gt=0),
+    body: GymClassRequest = Body(...),
+    current_user: dict = Depends(require_admin),
+):
+    """Update a gym class."""
+    repo = GymClassRepository()
+    updated = repo.update(
+        class_id,
+        day_of_week=body.day_of_week,
+        start_time=body.start_time,
+        end_time=body.end_time,
+        class_name=body.class_name,
+        class_type=body.class_type,
+        level=body.level,
+    )
+    if not updated:
+        raise NotFoundError(f"Class {class_id} not found")
+
+    gym_service = GymService()
+    gym_service._invalidate_timetable_cache(gym_id)
+
+    return {"success": True, "class": updated}
+
+
+@router.delete("/gyms/{gym_id}/classes/{class_id}")
+@limiter.limit("30/minute")
+def delete_class(
+    request: Request,
+    gym_id: int = Path(..., gt=0),
+    class_id: int = Path(..., gt=0),
+    current_user: dict = Depends(require_admin),
+):
+    """Delete a gym class."""
+    repo = GymClassRepository()
+    deleted = repo.delete(class_id)
+    if not deleted:
+        raise NotFoundError(f"Class {class_id} not found")
+
+    gym_service = GymService()
+    gym_service._invalidate_timetable_cache(gym_id)
+
+    AuditService.log(
+        actor_id=current_user["id"],
+        action="gym.class.delete",
+        target_type="gym_class",
+        target_id=class_id,
+        details={"gym_id": gym_id},
+        ip_address=get_client_ip(request),
+    )
+
+    return {"success": True}
 
 
 # Email broadcast

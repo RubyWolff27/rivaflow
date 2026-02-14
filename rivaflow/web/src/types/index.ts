@@ -175,6 +175,7 @@ export interface Profile {
   show_weekly_goals?: boolean;
   timezone?: string;
   avatar_url?: string;
+  primary_gym_id?: number;
   // Journey progress fields
   belt_rank?: string; // Deprecated, use current_grade
   belt_stripes?: number; // Deprecated, use current_grade

@@ -576,6 +576,7 @@ def _apply_migrations(
         "085_multi_daily_checkins.sql",
         "086_ensure_profile_timezone.sql",
         "087_session_score.sql",
+        "088_gym_timetable.sql",
     ]
 
     migrations_dir = Path(__file__).parent / "migrations"

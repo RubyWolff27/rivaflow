@@ -16,6 +16,7 @@ from rivaflow.db.repositories.glossary_repo import GlossaryRepository
 from rivaflow.db.repositories.goal_progress_repo import GoalProgressRepository
 from rivaflow.db.repositories.grading_repo import GradingRepository
 from rivaflow.db.repositories.groups_repo import GroupsRepository
+from rivaflow.db.repositories.gym_class_repo import GymClassRepository
 from rivaflow.db.repositories.gym_repo import GymRepository
 from rivaflow.db.repositories.milestone_repo import MilestoneRepository
 from rivaflow.db.repositories.profile_repo import ProfileRepository
@@ -47,6 +48,7 @@ __all__ = [
     "GoalProgressRepository",
     "GradingRepository",
     "GroupsRepository",
+    "GymClassRepository",
     "GymRepository",
     "MilestoneRepository",
     "ProfileRepository",
