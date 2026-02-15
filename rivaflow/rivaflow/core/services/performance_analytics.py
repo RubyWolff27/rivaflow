@@ -457,21 +457,19 @@ class PerformanceAnalyticsService:
 
             total_rolls = detailed_count + simple_count
 
-            # Aggregate session-level submissions for this partner.
-            # Check both sessions.partners JSON (simple mode) AND
-            # session_rolls (detailed mode) to find sessions involving
-            # this partner.
-            all_rolls = rolls_in_range + unlinked_in_range
-            roll_session_ids = {r["session_id"] for r in all_rolls}
-            sess_subs_for, sess_subs_against = (
-                self._get_session_submissions_for_partner(
-                    partner["name"], sessions, roll_session_ids
-                )
-            )
-            roll_subs_for = stats.get("total_submissions_for", 0)
-            roll_subs_against = stats.get("total_submissions_against", 0)
-            final_subs_for = max(roll_subs_for, sess_subs_for)
-            final_subs_against = max(roll_subs_against, sess_subs_against)
+            # Per-partner submissions come from per-roll data only
+            # (session-level subs are whole-session aggregates, not
+            # attributable to individual partners)
+            subs_for = stats.get("total_submissions_for", 0)
+            subs_against = stats.get("total_submissions_against", 0)
+
+            # Compute ratio from actual per-partner data
+            if subs_against > 0:
+                ratio = round(subs_for / subs_against, 2)
+            elif subs_for > 0:
+                ratio = float(subs_for)
+            else:
+                ratio = 0.0
 
             partner_matrix.append(
                 {
@@ -480,9 +478,9 @@ class PerformanceAnalyticsService:
                     "belt_rank": partner.get("belt_rank"),
                     "belt_stripes": partner.get("belt_stripes", 0),
                     "total_rolls": total_rolls,
-                    "submissions_for": final_subs_for,
-                    "submissions_against": final_subs_against,
-                    "sub_ratio": stats.get("sub_ratio", 0),
+                    "submissions_for": subs_for,
+                    "submissions_against": subs_against,
+                    "sub_ratio": ratio,
                     "subs_per_roll_for": stats.get("subs_per_roll", 0),
                     "subs_per_roll_against": stats.get("taps_per_roll", 0),
                 }
@@ -507,10 +505,10 @@ class PerformanceAnalyticsService:
             user_id, sessions
         )
 
-        # Overall partner stats
+        # Overall stats: rolls from partner matrix, subs from session totals
         total_rolls_all_partners = sum(p["total_rolls"] for p in partner_matrix)
-        total_subs_for = sum(p["submissions_for"] for p in partner_matrix)
-        total_subs_against = sum(p["submissions_against"] for p in partner_matrix)
+        total_subs_for = sum(s.get("submissions_for", 0) or 0 for s in sessions)
+        total_subs_against = sum(s.get("submissions_against", 0) or 0 for s in sessions)
 
         return {
             "partner_matrix": partner_matrix,
