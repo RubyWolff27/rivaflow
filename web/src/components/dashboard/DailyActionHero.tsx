@@ -361,14 +361,14 @@ function EveningPrompt({ onSubmitted }: { onSubmitted: () => void }) {
 
 /* ---------- Smart Plan Banner ---------- */
 
-function parseTimeToday(timeStr: string): Date {
+export function parseTimeToday(timeStr: string): Date {
   const parts = timeStr.split(':').map(Number);
   const d = new Date();
   d.setHours(parts[0], parts[1], parts[2] || 0, 0);
   return d;
 }
 
-interface SmartStatus {
+export interface SmartStatus {
   type: string;
   headline: string;
   subtext?: string;
@@ -378,7 +378,7 @@ interface SmartStatus {
   showLogButton: boolean;
 }
 
-function computeSmartStatus(
+export function computeSmartStatus(
   intention: string | undefined,
   sessions: Session[],
   classes: GymClass[],

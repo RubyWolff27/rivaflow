@@ -272,10 +272,8 @@ export default function AdminTechniques() {
           style={{ backgroundColor: 'rgba(0, 0, 0, 0.5)' }}
           onClick={() => setShowCreateModal(false)}
           onKeyDown={e => e.key === 'Escape' && setShowCreateModal(false)}
-          role="dialog"
-          aria-modal="true"
         >
-          <div onClick={(e: React.MouseEvent) => e.stopPropagation()}>
+          <div onClick={(e: React.MouseEvent) => e.stopPropagation()} role="dialog" aria-modal="true" aria-label="Create technique">
             <Card className="max-w-md w-full">
             <div className="space-y-4">
               <h2 className="text-xl font-bold" style={{ color: 'var(--text)' }}>

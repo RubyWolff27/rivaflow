@@ -65,7 +65,7 @@ export default function LatestInsightWidget() {
   };
 
   return (
-    <div onClick={handleClick} onKeyDown={e => e.key === 'Enter' && handleClick()} role="button" tabIndex={0} className="cursor-pointer">
+    <div onClick={handleClick} onKeyDown={e => e.key === 'Enter' && handleClick()} role="button" tabIndex={0} aria-label="View latest insight" className="cursor-pointer">
       <Card interactive>
         <div className="flex items-center justify-between mb-2">
           <div className="flex items-center gap-2">

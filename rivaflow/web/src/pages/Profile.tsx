@@ -185,6 +185,52 @@ export default function Profile() {
     }
   };
 
+  const refreshProfile = async () => {
+    try {
+      const profileRes = await profileApi.get();
+      setProfile(profileRes.data ?? null);
+      setFormData({
+        first_name: profileRes.data?.first_name ?? '',
+        last_name: profileRes.data?.last_name ?? '',
+        date_of_birth: profileRes.data?.date_of_birth ?? '',
+        sex: profileRes.data?.sex ?? '',
+        city: profileRes.data?.city ?? '',
+        state: profileRes.data?.state ?? '',
+        default_gym: profileRes.data?.default_gym ?? '',
+        default_location: profileRes.data?.default_location ?? '',
+        current_professor: profileRes.data?.current_professor ?? '',
+        current_instructor_id: profileRes.data?.current_instructor_id ?? null,
+        primary_training_type: profileRes.data?.primary_training_type ?? 'gi',
+        height_cm: profileRes.data?.height_cm?.toString() ?? '',
+        target_weight_kg: profileRes.data?.target_weight_kg?.toString() ?? '',
+        target_weight_date: profileRes.data?.target_weight_date ?? '',
+        weekly_sessions_target: profileRes.data?.weekly_sessions_target ?? 3,
+        weekly_hours_target: profileRes.data?.weekly_hours_target ?? 4.5,
+        weekly_rolls_target: profileRes.data?.weekly_rolls_target ?? 15,
+        weekly_bjj_sessions_target: profileRes.data?.weekly_bjj_sessions_target ?? 3,
+        weekly_sc_sessions_target: profileRes.data?.weekly_sc_sessions_target ?? 1,
+        weekly_mobility_sessions_target: profileRes.data?.weekly_mobility_sessions_target ?? 0,
+        show_streak_on_dashboard: profileRes.data?.show_streak_on_dashboard ?? true,
+        show_weekly_goals: profileRes.data?.show_weekly_goals ?? true,
+        activity_visibility: profileRes.data?.activity_visibility ?? 'friends',
+        avatar_url: profileRes.data?.avatar_url ?? '',
+        timezone: profileRes.data?.timezone ?? '',
+        primary_gym_id: profileRes.data?.primary_gym_id ?? null,
+      });
+    } catch (error) {
+      console.error('Error refreshing profile:', error);
+    }
+  };
+
+  const refreshGradings = async () => {
+    try {
+      const gradingsRes = await gradingsApi.list();
+      setGradings(gradingsRes.data ?? []);
+    } catch (error) {
+      console.error('Error refreshing gradings:', error);
+    }
+  };
+
   const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -222,7 +268,7 @@ export default function Profile() {
       setFormData(prev => ({ ...prev, avatar_url: response.data.avatar_url }));
 
       toast.success('Profile photo uploaded successfully!');
-      await loadData(); // Refresh profile data
+      await refreshProfile();
     } catch (error: unknown) {
       console.error('Error uploading photo:', error);
       toast.error(getErrorMessage(error));
@@ -238,7 +284,7 @@ export default function Profile() {
       setFormData(prev => ({ ...prev, avatar_url: '' }));
       setPhotoPreview(null);
       toast.success('Profile photo deleted successfully!');
-      await loadData();
+      await refreshProfile();
     } catch (error: unknown) {
       console.error('Error deleting photo:', error);
       toast.error(getErrorMessage(error));
@@ -405,7 +451,7 @@ export default function Profile() {
       });
       setGradingPhotoPreview(null);
       setShowAddGrading(false);
-      await loadData();
+      await refreshGradings();
       toast.success('Grading added successfully');
     } catch (error) {
       console.error('Error adding grading:', error);
@@ -455,7 +501,7 @@ export default function Profile() {
       });
       setGradingPhotoPreview(null);
       setEditingGrading(null);
-      await loadData();
+      await refreshGradings();
       toast.success('Grading updated successfully');
     } catch (error) {
       console.error('Error updating grading:', error);
@@ -481,7 +527,7 @@ export default function Profile() {
 
     try {
       await gradingsApi.delete(gradingToDelete);
-      await loadData();
+      await refreshGradings();
       toast.success('Grading deleted successfully');
     } catch (error) {
       console.error('Error deleting grading:', error);

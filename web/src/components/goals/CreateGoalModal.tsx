@@ -82,11 +82,14 @@ export default function CreateGoalModal({ month, onClose, onCreated }: CreateGoa
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50" onClick={onClose} onKeyDown={e => e.key === 'Escape' && onClose()} role="dialog" aria-modal="true">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50" onClick={onClose} onKeyDown={e => e.key === 'Escape' && onClose()}>
       <div
         className="w-full max-w-md rounded-[14px] p-6 max-h-[90vh] overflow-y-auto"
         style={{ backgroundColor: 'var(--surface)' }}
         onClick={(e) => e.stopPropagation()}
+        role="dialog"
+        aria-modal="true"
+        aria-label="Create goal"
       >
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-lg font-semibold" style={{ color: 'var(--text)' }}>

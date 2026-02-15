@@ -58,7 +58,6 @@ class ProfileRepository:
                     cur.execute(
                         "ALTER TABLE profile " "ADD COLUMN timezone TEXT DEFAULT 'UTC'"
                     )
-                    conn.commit()
                     logger.info("Added profile.timezone column inline")
                 cur.close()
             cls._tz_col_checked = True

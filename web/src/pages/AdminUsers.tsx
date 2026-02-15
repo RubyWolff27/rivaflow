@@ -354,10 +354,8 @@ export default function AdminUsers() {
           style={{ backgroundColor: 'rgba(0, 0, 0, 0.5)' }}
           onClick={() => setShowDetailsModal(false)}
           onKeyDown={e => e.key === 'Escape' && setShowDetailsModal(false)}
-          role="dialog"
-          aria-modal="true"
         >
-          <div onClick={(e: React.MouseEvent) => e.stopPropagation()}>
+          <div onClick={(e: React.MouseEvent) => e.stopPropagation()} role="dialog" aria-modal="true" aria-label="User details">
             <Card className="max-w-2xl w-full max-h-[90vh] overflow-y-auto">
             <div className="space-y-4">
               <div className="flex items-start justify-between">
@@ -524,10 +522,8 @@ export default function AdminUsers() {
           style={{ backgroundColor: 'rgba(0, 0, 0, 0.5)' }}
           onClick={() => setShowTierModal(false)}
           onKeyDown={e => e.key === 'Escape' && setShowTierModal(false)}
-          role="dialog"
-          aria-modal="true"
         >
-          <div onClick={(e: React.MouseEvent) => e.stopPropagation()}>
+          <div onClick={(e: React.MouseEvent) => e.stopPropagation()} role="dialog" aria-modal="true" aria-label="Change tier">
             <Card className="max-w-md w-full">
               <div className="space-y-4">
                 <div>
