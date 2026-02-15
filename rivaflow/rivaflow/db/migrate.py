@@ -60,6 +60,34 @@ def _ensure_critical_columns(conn):
         except psycopg2.Error as e:
             logger.error(f"Failed to ensure {table}.{column}: {e}")
             conn.rollback()
+
+    # Ensure needs_review is BOOLEAN (migrations 089/090 failed due to
+    # semicolon splitting and ::boolean cast issues)
+    try:
+        cursor.execute(
+            "SELECT data_type FROM information_schema.columns "
+            "WHERE table_name = 'sessions' AND column_name = 'needs_review'"
+        )
+        row = cursor.fetchone()
+        if row and row[0] != "boolean":
+            logger.warning(f"sessions.needs_review is {row[0]}, converting to BOOLEAN")
+            cursor.execute(
+                "ALTER TABLE sessions ALTER COLUMN needs_review "
+                "TYPE BOOLEAN USING CASE WHEN needs_review = 0 "
+                "THEN FALSE WHEN needs_review IS NULL THEN NULL "
+                "ELSE TRUE END"
+            )
+            cursor.execute(
+                "ALTER TABLE sessions ALTER COLUMN needs_review " "SET DEFAULT FALSE"
+            )
+            conn.commit()
+            logger.info("Converted sessions.needs_review to BOOLEAN")
+        else:
+            logger.info("sessions.needs_review is BOOLEAN — OK")
+    except psycopg2.Error as e:
+        logger.error(f"Failed to fix needs_review type: {e}")
+        conn.rollback()
+
     cursor.close()
 
 
