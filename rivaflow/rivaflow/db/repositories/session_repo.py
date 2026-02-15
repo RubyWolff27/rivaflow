@@ -2,8 +2,24 @@
 
 import json
 from datetime import date, datetime
+from typing import Any
 
+from rivaflow.config import get_db_type
 from rivaflow.db.database import convert_query, execute_insert, get_connection
+
+
+def _pg_bool(value: bool) -> Any:
+    """Adapt a Python bool for PostgreSQL columns that may be INTEGER or BOOLEAN.
+
+    Uses psycopg2.extensions.AsIs to send an untyped integer literal (0 or 1)
+    which PostgreSQL will coerce to either INTEGER or BOOLEAN via assignment cast.
+    For SQLite, returns a plain int (always INTEGER columns).
+    """
+    if get_db_type() == "postgresql":
+        from psycopg2.extensions import AsIs
+
+        return AsIs("1" if value else "0")
+    return int(value)
 
 
 class SessionRepository:
@@ -84,7 +100,7 @@ class SessionRepository:
                     defenses_attempted,
                     defenses_successful,
                     source,
-                    needs_review,
+                    _pg_bool(needs_review),
                 ),
             )
 
@@ -187,7 +203,7 @@ class SessionRepository:
                 "techniques": lambda v: (
                     json.dumps(v) if v is not None else json.dumps([])
                 ),
-                "needs_review": lambda v: bool(v),
+                "needs_review": lambda v: _pg_bool(bool(v)),
                 "score_breakdown": lambda v: (
                     json.dumps(v) if isinstance(v, dict) else v
                 ),
