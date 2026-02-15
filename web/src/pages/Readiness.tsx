@@ -5,7 +5,7 @@ import { readinessApi, profileApi, suggestionsApi, whoopApi } from '../api/clien
 import type { Readiness as ReadinessType } from '../types';
 import { Activity, Heart, Waves, Wind, Target, Pencil } from 'lucide-react';
 import { useToast } from '../contexts/ToastContext';
-import { triggerInsightRefresh } from '../hooks/useInsightRefresh';
+import { triggerInsightRefresh } from '../utils/insightRefresh';
 import ReadinessResult from '../components/ReadinessResult';
 import ReadinessTrendChart from '../components/analytics/ReadinessTrendChart';
 

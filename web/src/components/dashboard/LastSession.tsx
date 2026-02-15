@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { sessionsApi, whoopApi } from '../../api/client';
 import { Calendar, Clock, TrendingUp, Award } from 'lucide-react';
+import { ACTIVITY_COLORS } from '../../constants/activity';
 import { Card } from '../ui';
 import MiniZoneBar from '../MiniZoneBar';
 import SessionScoreBadge from '../sessions/SessionScoreBadge';
@@ -17,15 +18,6 @@ interface Session {
   notes?: string;
   session_score?: number;
 }
-
-const ACTIVITY_COLORS: Record<string, string> = {
-  'gi': '#3B82F6',
-  'no-gi': '#8B5CF6',
-  's&c': '#EF4444',
-  'drilling': '#F59E0B',
-  'open-mat': '#10B981',
-  'competition': '#EC4899',
-};
 
 export function LastSession() {
   const [session, setSession] = useState<Session | null>(null);

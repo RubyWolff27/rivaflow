@@ -707,3 +707,34 @@ export interface ExtractedEvent {
   outcome?: string;
   partner_name?: string;
 }
+
+// Auth user (extends base User with auth-specific fields)
+export interface AuthUser extends User {
+  is_admin?: boolean;
+  subscription_tier?: string;
+  is_beta_user?: boolean;
+  tier_expires_at?: string;
+  beta_joined_at?: string;
+}
+
+// Week stats (used by dashboard components)
+export interface WeekStats {
+  total_sessions: number;
+  total_hours: number;
+  total_rolls: number;
+  class_types: Record<string, number>;
+}
+
+// Gym class for timetable
+export interface GymClass {
+  id: number;
+  gym_id: number;
+  day_of_week: number;
+  day_name: string;
+  start_time: string;
+  end_time: string;
+  class_name: string;
+  class_type: string | null;
+  level: string | null;
+  is_active: number;
+}

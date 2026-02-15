@@ -1,24 +1,10 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import type { AuthUser } from '../types';
 import { authApi } from '../api/auth';
 import { getErrorMessage } from '../api/client';
 
-interface User {
-  id: number;
-  email: string;
-  first_name: string;
-  last_name: string;
-  is_active: boolean;
-  is_admin?: boolean;
-  subscription_tier?: string;
-  is_beta_user?: boolean;
-  tier_expires_at?: string;
-  beta_joined_at?: string;
-  created_at: string;
-  updated_at: string;
-}
-
 interface AuthContextType {
-  user: User | null;
+  user: AuthUser | null;
   login: (email: string, password: string) => Promise<void>;
   register: (email: string, password: string, firstName: string, lastName: string, inviteToken?: string, defaultGym?: string, currentGrade?: string) => Promise<void>;
   logout: () => void;
@@ -28,7 +14,7 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<User | null>(null);
+  const [user, setUser] = useState<AuthUser | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   // Load user from localStorage on mount

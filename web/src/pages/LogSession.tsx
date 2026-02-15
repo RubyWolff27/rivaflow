@@ -3,15 +3,20 @@ import { getLocalDateString } from '../utils/date';
 import { useNavigate } from 'react-router-dom';
 import { sessionsApi, readinessApi, profileApi, friendsApi, socialApi, glossaryApi, restApi, whoopApi, getErrorMessage } from '../api/client';
 import type { Friend, Movement, MediaUrl, Readiness, WhoopWorkoutMatch } from '../types';
-import { CheckCircle, ArrowRight, ArrowLeft, Plus, X, ToggleLeft, ToggleRight, Search, Camera, ChevronDown, ChevronUp, Swords, Shield, Minus, Mic, MicOff, RefreshCw } from 'lucide-react';
+import { CheckCircle, ArrowLeft, Camera, Mic, MicOff } from 'lucide-react';
 import WhoopMatchModal from '../components/WhoopMatchModal';
 import GymSelector from '../components/GymSelector';
 import { ClassTypeChips, IntensityChips } from '../components/ui';
 import { useToast } from '../contexts/ToastContext';
-import { triggerInsightRefresh } from '../hooks/useInsightRefresh';
+import { triggerInsightRefresh } from '../utils/insightRefresh';
 import { useSpeechRecognition } from '../hooks/useSpeechRecognition';
-
-const SPARRING_TYPES = ['gi', 'no-gi', 'open-mat', 'competition'];
+import ReadinessStep from '../components/sessions/ReadinessStep';
+import TechniqueTracker from '../components/sessions/TechniqueTracker';
+import RollTracker from '../components/sessions/RollTracker';
+import WhoopIntegrationPanel from '../components/sessions/WhoopIntegrationPanel';
+import FightDynamicsPanel from '../components/sessions/FightDynamicsPanel';
+import type { RollEntry, TechniqueEntry } from '../components/sessions/sessionTypes';
+import { SPARRING_TYPES } from '../components/sessions/sessionTypes';
 
 const TIME_QUICK_SELECT = [
   { label: '6:30am', value: '06:30' },
@@ -22,40 +27,20 @@ const TIME_QUICK_SELECT = [
 
 const DURATION_QUICK_SELECT = [60, 75, 90, 120] as const;
 
-interface RollEntry {
-  roll_number: number;
-  partner_id: number | null;
-  partner_name: string;
-  duration_mins: number;
-  submissions_for: number[];
-  submissions_against: number[];
-  notes: string;
-}
-
-interface TechniqueEntry {
-  technique_number: number;
-  movement_id: number | null;
-  movement_name: string;
-  notes: string;
-  media_urls: MediaUrl[];
-}
-
 export default function LogSession() {
   const navigate = useNavigate();
   const toast = useToast();
   const [activityType, setActivityType] = useState<'training' | 'rest'>('training');
-  const [step, setStep] = useState(1); // 1 = Readiness, 2 = Session (or Rest form if rest selected)
+  const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const [skippedReadiness, setSkippedReadiness] = useState(false);
   const [autocomplete, setAutocomplete] = useState<{ gyms?: string[]; locations?: string[]; partners?: string[]; techniques?: string[] }>({});
 
-  // New: Contacts and glossary data
   const [instructors, setInstructors] = useState<Friend[]>([]);
   const [partners, setPartners] = useState<Friend[]>([]);
   const [movements, setMovements] = useState<Movement[]>([]);
 
-  // New: Roll tracking mode
   const [detailedMode, setDetailedMode] = useState(false);
   const [rolls, setRolls] = useState<RollEntry[]>([]);
 
@@ -67,7 +52,6 @@ export default function LogSession() {
   const [showWhoopModal, setShowWhoopModal] = useState(false);
   const [whoopManualMode, setWhoopManualMode] = useState(false);
 
-  // Collapsible sections
   const [showWhoop, setShowWhoop] = useState(false);
   const [showFightDynamics, setShowFightDynamics] = useState(false);
   const [fightDynamics, setFightDynamics] = useState({
@@ -77,15 +61,12 @@ export default function LogSession() {
     defenses_successful: 0,
   });
 
-  // Search state for submissions
   const [submissionSearchFor, setSubmissionSearchFor] = useState<{[rollIndex: number]: string}>({});
   const [submissionSearchAgainst, setSubmissionSearchAgainst] = useState<{[rollIndex: number]: string}>({});
 
-  // Technique tracking
   const [techniques, setTechniques] = useState<TechniqueEntry[]>([]);
   const [techniqueSearch, setTechniqueSearch] = useState<{[techIndex: number]: string}>({});
 
-  // Readiness data (Step 1)
   const [readinessData, setReadinessData] = useState({
     check_date: getLocalDateString(),
     sleep: 3,
@@ -96,7 +77,6 @@ export default function LogSession() {
     weight_kg: '',
   });
 
-  // Session data (Step 2)
   const [sessionData, setSessionData] = useState({
     session_date: getLocalDateString(),
     class_time: '',
@@ -119,7 +99,6 @@ export default function LogSession() {
     whoop_max_hr: '',
   });
 
-  // Rest day data
   const [restData, setRestData] = useState({
     rest_date: getLocalDateString(),
     rest_type: 'active',
@@ -161,7 +140,6 @@ export default function LogSession() {
           name: `${sf.first_name || ''} ${sf.last_name || ''}`.trim(),
           friend_type: 'training-partner' as const,
         }));
-        // Merge manual partners + instructors + social friends, deduped by name
         const seenNames = new Set<string>();
         const merged: Friend[] = [];
         for (const p of [...manualPartners, ...loadedInstructors]) {
@@ -178,11 +156,9 @@ export default function LogSession() {
           }
         }
         setPartners(merged);
-        // API returns {movements: [...], total: N} -- extract the array
         const movementsData = movementsRes.data as Movement[] | { movements: Movement[] };
         setMovements(Array.isArray(movementsData) ? movementsData : movementsData?.movements || []);
 
-        // Auto-populate default gym, location, coach, and class type from profile
         const updates: Partial<typeof sessionData> = {};
         if (profileRes.data?.default_gym) {
           updates.gym_name = profileRes.data.default_gym;
@@ -201,7 +177,6 @@ export default function LogSession() {
           setSessionData(prev => ({ ...prev, ...updates }));
         }
 
-        // Check WHOOP connection status (best-effort)
         try {
           const whoopRes = await whoopApi.getStatus();
           if (!controller.signal.aborted && whoopRes.data?.connected) {
@@ -219,9 +194,7 @@ export default function LogSession() {
   }, []);
 
   const handleNextStep = useCallback(() => {
-    if (step === 1) {
-      setStep(2);
-    }
+    if (step === 1) setStep(2);
   }, [step]);
 
   const handleSkipReadiness = useCallback(() => {
@@ -233,31 +206,20 @@ export default function LogSession() {
     setStep(1);
   }, []);
 
+  // Roll handlers
   const handleAddRoll = useCallback(() => {
-    setRolls(prev => [
-      ...prev,
-      {
-        roll_number: prev.length + 1,
-        partner_id: null,
-        partner_name: '',
-        duration_mins: 5,
-        submissions_for: [],
-        submissions_against: [],
-        notes: '',
-      },
-    ]);
+    setRolls(prev => [...prev, {
+      roll_number: prev.length + 1, partner_id: null, partner_name: '',
+      duration_mins: 5, submissions_for: [], submissions_against: [], notes: '',
+    }]);
   }, []);
 
   const handleRemoveRoll = useCallback((index: number) => {
     setRolls(prev => {
       const updated = prev.filter((_, i) => i !== index);
-      updated.forEach((roll, i) => {
-        roll.roll_number = i + 1;
-      });
+      updated.forEach((roll, i) => { roll.roll_number = i + 1; });
       return updated;
     });
-
-    // Clean up search state for removed roll and reindex remaining
     setSubmissionSearchFor(prev => {
       const result: {[key: number]: string} = {};
       Object.keys(prev).forEach(key => {
@@ -267,7 +229,6 @@ export default function LogSession() {
       });
       return result;
     });
-
     setSubmissionSearchAgainst(prev => {
       const result: {[key: number]: string} = {};
       Object.keys(prev).forEach(key => {
@@ -292,40 +253,28 @@ export default function LogSession() {
       const updated = [...prev];
       const field = type === 'for' ? 'submissions_for' : 'submissions_against';
       const current = updated[rollIndex][field];
-
       if (current.includes(movementId)) {
         updated[rollIndex][field] = current.filter(id => id !== movementId);
       } else {
         updated[rollIndex][field] = [...current, movementId];
       }
-
       return updated;
     });
   }, []);
 
   // Technique handlers
   const handleAddTechnique = useCallback(() => {
-    setTechniques(prev => [
-      ...prev,
-      {
-        technique_number: prev.length + 1,
-        movement_id: null,
-        movement_name: '',
-        notes: '',
-        media_urls: [],
-      },
-    ]);
+    setTechniques(prev => [...prev, {
+      technique_number: prev.length + 1, movement_id: null, movement_name: '', notes: '', media_urls: [],
+    }]);
   }, []);
 
   const handleRemoveTechnique = useCallback((index: number) => {
     setTechniques(prev => {
       const updated = prev.filter((_, i) => i !== index);
-      updated.forEach((tech, i) => {
-        tech.technique_number = i + 1;
-      });
+      updated.forEach((tech, i) => { tech.technique_number = i + 1; });
       return updated;
     });
-
     setTechniqueSearch(prev => {
       const result: {[key: number]: string} = {};
       Object.keys(prev).forEach(key => {
@@ -345,15 +294,20 @@ export default function LogSession() {
     });
   }, []);
 
+  const handleSelectMovement = useCallback((index: number, movementId: number, movementName: string) => {
+    setTechniques(prev => {
+      const updated = [...prev];
+      updated[index] = { ...updated[index], movement_id: movementId, movement_name: movementName };
+      return updated;
+    });
+  }, []);
+
   const handleAddMediaUrl = useCallback((techIndex: number) => {
     setTechniques(prev => {
       const updated = [...prev];
       updated[techIndex] = {
         ...updated[techIndex],
-        media_urls: [
-          ...updated[techIndex].media_urls,
-          { type: 'video', url: '', title: '' },
-        ],
+        media_urls: [...updated[techIndex].media_urls, { type: 'video', url: '', title: '' }],
       };
       return updated;
     });
@@ -380,141 +334,11 @@ export default function LogSession() {
     });
   }, []);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-
-    try {
-      // Handle rest day submission
-      if (activityType === 'rest') {
-        await restApi.logRestDay({
-          rest_type: restData.rest_type,
-          note: restData.rest_note || undefined,
-          rest_date: restData.rest_date,
-        });
-        setSuccess(true);
-        setTimeout(() => navigate('/'), 1500);
-        return;
-      }
-
-      // Handle training session submission
-      // Save readiness first (only if not skipped)
-      if (!skippedReadiness) {
-        const readinessPayload: Partial<Readiness> & Record<string, unknown> = {
-          ...readinessData,
-          weight_kg: readinessData.weight_kg ? parseFloat(readinessData.weight_kg as string) : undefined,
-        };
-        await readinessApi.create(readinessPayload);
-      }
-
-      // Build session payload
-      const payload: Record<string, unknown> = {
-        ...sessionData,
-        class_time: sessionData.class_time || undefined,
-        location: sessionData.location || undefined,
-        notes: sessionData.notes || undefined,
-        partners: sessionData.partners ? sessionData.partners.split(',').map(p => p.trim()) : undefined,
-        techniques: sessionData.techniques ? sessionData.techniques.split(',').map(t => t.trim()) : undefined,
-        visibility_level: 'private',
-        whoop_strain: sessionData.whoop_strain ? parseFloat(sessionData.whoop_strain as string) : undefined,
-        whoop_calories: sessionData.whoop_calories ? parseInt(sessionData.whoop_calories as string) : undefined,
-        whoop_avg_hr: sessionData.whoop_avg_hr ? parseInt(sessionData.whoop_avg_hr as string) : undefined,
-        whoop_max_hr: sessionData.whoop_max_hr ? parseInt(sessionData.whoop_max_hr as string) : undefined,
-      };
-
-      // Add fight dynamics if any data was entered
-      if (fightDynamics.attacks_attempted > 0 || fightDynamics.defenses_attempted > 0) {
-        payload.attacks_attempted = fightDynamics.attacks_attempted;
-        payload.attacks_successful = Math.min(fightDynamics.attacks_successful, fightDynamics.attacks_attempted);
-        payload.defenses_attempted = fightDynamics.defenses_attempted;
-        payload.defenses_successful = Math.min(fightDynamics.defenses_successful, fightDynamics.defenses_attempted);
-      }
-
-      // Add instructor
-      if (sessionData.instructor_id) {
-        payload.instructor_id = sessionData.instructor_id;
-        const instructor = instructors.find(i => i.id === sessionData.instructor_id);
-        if (instructor) {
-          payload.instructor_name = instructor.name ?? undefined;
-        }
-      } else if (sessionData.instructor_name) {
-        payload.instructor_name = sessionData.instructor_name;
-      } else {
-        payload.instructor_id = undefined;
-        payload.instructor_name = undefined;
-      }
-
-      // Add detailed rolls if in detailed mode
-      if (detailedMode && rolls.length > 0) {
-        payload.session_rolls = rolls.map(roll => ({
-          roll_number: roll.roll_number,
-          partner_id: roll.partner_id || undefined,
-          partner_name: roll.partner_name || undefined,
-          duration_mins: roll.duration_mins || undefined,
-          submissions_for: roll.submissions_for.length > 0 ? roll.submissions_for : undefined,
-          submissions_against: roll.submissions_against.length > 0 ? roll.submissions_against : undefined,
-          notes: roll.notes || undefined,
-        }));
-
-        // Calculate aggregates from detailed rolls
-        payload.rolls = rolls.length;
-        payload.submissions_for = rolls.reduce((sum, roll) => sum + roll.submissions_for.length, 0);
-        payload.submissions_against = rolls.reduce((sum, roll) => sum + roll.submissions_against.length, 0);
-      }
-
-      // Add detailed techniques if present
-      if (techniques.length > 0) {
-        payload.session_techniques = techniques
-          .filter(tech => tech.movement_id !== null)
-          .map(tech => ({
-            movement_id: tech.movement_id!,
-            technique_number: tech.technique_number,
-            notes: tech.notes || undefined,
-            media_urls: tech.media_urls.length > 0 ? tech.media_urls.filter(m => m.url) : undefined,
-          }));
-      }
-
-      const response = await sessionsApi.create(payload);
-      setSuccess(true);
-      // Trigger AI insight generation for the new session
-      if (response.data?.id) {
-        triggerInsightRefresh(response.data.id);
-        setTimeout(() => navigate(`/session/${response.data.id}`), 1500);
-      } else {
-        triggerInsightRefresh();
-        setTimeout(() => navigate('/'), 1500);
-      }
-    } catch (error) {
-      console.error('Error creating session:', error);
-      toast.showToast('error', 'Failed to log session. Please try again.');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const compositeScore = useMemo(
-    () => readinessData.sleep + (6 - readinessData.stress) + (6 - readinessData.soreness) + readinessData.energy,
-    [readinessData.sleep, readinessData.stress, readinessData.soreness, readinessData.energy]
-  );
-  const isSparringType = useMemo(
-    () => SPARRING_TYPES.includes(sessionData.class_type),
-    [sessionData.class_type]
-  );
-
-  const submissionMovements = useMemo(
-    () => movements.filter(m => m.category === 'submission'),
-    [movements]
-  );
-
   // Fight dynamics handlers
   const handleFightDynamicsIncrement = useCallback((field: keyof typeof fightDynamics) => {
     setFightDynamics(fd => {
-      if (field === 'attacks_successful') {
-        return { ...fd, [field]: Math.min(fd.attacks_attempted, fd[field] + 1) };
-      }
-      if (field === 'defenses_successful') {
-        return { ...fd, [field]: Math.min(fd.defenses_attempted, fd[field] + 1) };
-      }
+      if (field === 'attacks_successful') return { ...fd, [field]: Math.min(fd.attacks_attempted, fd[field] + 1) };
+      if (field === 'defenses_successful') return { ...fd, [field]: Math.min(fd.defenses_attempted, fd[field] + 1) };
       return { ...fd, [field]: fd[field] + 1 };
     });
   }, []);
@@ -526,16 +350,13 @@ export default function LogSession() {
   const handleFightDynamicsChange = useCallback((field: keyof typeof fightDynamics, value: number) => {
     setFightDynamics(fd => {
       const clamped = Math.max(0, value);
-      if (field === 'attacks_successful') {
-        return { ...fd, [field]: Math.min(fd.attacks_attempted, clamped) };
-      }
-      if (field === 'defenses_successful') {
-        return { ...fd, [field]: Math.min(fd.defenses_attempted, clamped) };
-      }
+      if (field === 'attacks_successful') return { ...fd, [field]: Math.min(fd.attacks_attempted, clamped) };
+      if (field === 'defenses_successful') return { ...fd, [field]: Math.min(fd.defenses_attempted, clamped) };
       return { ...fd, [field]: clamped };
     });
   }, []);
 
+  // WHOOP handlers
   const handleWhoopSync = useCallback(async () => {
     if (!sessionData.session_date || !sessionData.class_time) return;
     setWhoopSyncing(true);
@@ -549,7 +370,6 @@ export default function LogSession() {
       if (matches.length === 0) {
         toast.showToast('warning', 'No matching WHOOP workouts found');
       } else if (matches.length === 1 && matches[0].overlap_pct >= 90) {
-        // Auto-populate
         const w = matches[0];
         setSessionData(prev => ({
           ...prev,
@@ -588,15 +408,122 @@ export default function LogSession() {
   }, [whoopMatches, toast]);
 
   const handleWhoopClear = useCallback(() => {
-    setSessionData(prev => ({
-      ...prev,
-      whoop_strain: '',
-      whoop_calories: '',
-      whoop_avg_hr: '',
-      whoop_max_hr: '',
-    }));
+    setSessionData(prev => ({ ...prev, whoop_strain: '', whoop_calories: '', whoop_avg_hr: '', whoop_max_hr: '' }));
     setWhoopSynced(false);
   }, []);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+
+    try {
+      if (activityType === 'rest') {
+        await restApi.logRestDay({
+          rest_type: restData.rest_type,
+          note: restData.rest_note || undefined,
+          rest_date: restData.rest_date,
+        });
+        setSuccess(true);
+        setTimeout(() => navigate('/'), 1500);
+        return;
+      }
+
+      if (!skippedReadiness) {
+        const readinessPayload: Partial<Readiness> & Record<string, unknown> = {
+          ...readinessData,
+          weight_kg: readinessData.weight_kg ? parseFloat(readinessData.weight_kg as string) : undefined,
+        };
+        await readinessApi.create(readinessPayload);
+      }
+
+      const payload: Record<string, unknown> = {
+        ...sessionData,
+        class_time: sessionData.class_time || undefined,
+        location: sessionData.location || undefined,
+        notes: sessionData.notes || undefined,
+        partners: sessionData.partners ? sessionData.partners.split(',').map(p => p.trim()) : undefined,
+        techniques: sessionData.techniques ? sessionData.techniques.split(',').map(t => t.trim()) : undefined,
+        visibility_level: 'private',
+        whoop_strain: sessionData.whoop_strain ? parseFloat(sessionData.whoop_strain as string) : undefined,
+        whoop_calories: sessionData.whoop_calories ? parseInt(sessionData.whoop_calories as string) : undefined,
+        whoop_avg_hr: sessionData.whoop_avg_hr ? parseInt(sessionData.whoop_avg_hr as string) : undefined,
+        whoop_max_hr: sessionData.whoop_max_hr ? parseInt(sessionData.whoop_max_hr as string) : undefined,
+      };
+
+      if (fightDynamics.attacks_attempted > 0 || fightDynamics.defenses_attempted > 0) {
+        payload.attacks_attempted = fightDynamics.attacks_attempted;
+        payload.attacks_successful = Math.min(fightDynamics.attacks_successful, fightDynamics.attacks_attempted);
+        payload.defenses_attempted = fightDynamics.defenses_attempted;
+        payload.defenses_successful = Math.min(fightDynamics.defenses_successful, fightDynamics.defenses_attempted);
+      }
+
+      if (sessionData.instructor_id) {
+        payload.instructor_id = sessionData.instructor_id;
+        const instructor = instructors.find(i => i.id === sessionData.instructor_id);
+        if (instructor) payload.instructor_name = instructor.name ?? undefined;
+      } else if (sessionData.instructor_name) {
+        payload.instructor_name = sessionData.instructor_name;
+      } else {
+        payload.instructor_id = undefined;
+        payload.instructor_name = undefined;
+      }
+
+      if (detailedMode && rolls.length > 0) {
+        payload.session_rolls = rolls.map(roll => ({
+          roll_number: roll.roll_number,
+          partner_id: roll.partner_id || undefined,
+          partner_name: roll.partner_name || undefined,
+          duration_mins: roll.duration_mins || undefined,
+          submissions_for: roll.submissions_for.length > 0 ? roll.submissions_for : undefined,
+          submissions_against: roll.submissions_against.length > 0 ? roll.submissions_against : undefined,
+          notes: roll.notes || undefined,
+        }));
+        payload.rolls = rolls.length;
+        payload.submissions_for = rolls.reduce((sum, roll) => sum + roll.submissions_for.length, 0);
+        payload.submissions_against = rolls.reduce((sum, roll) => sum + roll.submissions_against.length, 0);
+      }
+
+      if (techniques.length > 0) {
+        payload.session_techniques = techniques
+          .filter(tech => tech.movement_id !== null)
+          .map(tech => ({
+            movement_id: tech.movement_id!,
+            technique_number: tech.technique_number,
+            notes: tech.notes || undefined,
+            media_urls: tech.media_urls.length > 0 ? tech.media_urls.filter(m => m.url) : undefined,
+          }));
+      }
+
+      const response = await sessionsApi.create(payload);
+      setSuccess(true);
+      if (response.data?.id) {
+        triggerInsightRefresh(response.data.id);
+        setTimeout(() => navigate(`/session/${response.data.id}`), 1500);
+      } else {
+        triggerInsightRefresh();
+        setTimeout(() => navigate('/'), 1500);
+      }
+    } catch (error) {
+      console.error('Error creating session:', error);
+      toast.showToast('error', 'Failed to log session. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const compositeScore = useMemo(
+    () => readinessData.sleep + (6 - readinessData.stress) + (6 - readinessData.soreness) + readinessData.energy,
+    [readinessData.sleep, readinessData.stress, readinessData.soreness, readinessData.energy]
+  );
+  const isSparringType = useMemo(
+    () => SPARRING_TYPES.includes(sessionData.class_type),
+    [sessionData.class_type]
+  );
+
+  const submissionMovements = useMemo(
+    () => movements.filter(m => m.category === 'submission'),
+    [movements]
+  );
 
   const filterMovements = useCallback((search: string) => {
     const s = search.toLowerCase();
@@ -636,10 +563,7 @@ export default function LogSession() {
         <div className="flex gap-3" role="group" aria-label="Activity type">
           <button
             type="button"
-            onClick={() => {
-              setActivityType('training');
-              setStep(1);
-            }}
+            onClick={() => { setActivityType('training'); setStep(1); }}
             className="flex-1 py-3 rounded-lg font-medium text-sm transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-2"
             style={{
               backgroundColor: activityType === 'training' ? 'var(--accent)' : 'var(--surfaceElev)',
@@ -652,10 +576,7 @@ export default function LogSession() {
           </button>
           <button
             type="button"
-            onClick={() => {
-              setActivityType('rest');
-              setStep(2); // Skip readiness for rest days
-            }}
+            onClick={() => { setActivityType('rest'); setStep(2); }}
             className="flex-1 py-3 rounded-lg font-medium text-sm transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-2"
             style={{
               backgroundColor: activityType === 'rest' ? 'var(--accent)' : 'var(--surfaceElev)',
@@ -705,87 +626,15 @@ export default function LogSession() {
         }
       </h1>
 
-      {/* Step 1: Readiness (only for training) */}
+      {/* Step 1: Readiness */}
       {activityType === 'training' && step === 1 && (
-        <div className="card space-y-6">
-          <p className="text-[var(--muted)]">
-            Let's check your readiness before logging today's session.
-          </p>
-
-          {/* Sliders */}
-          {(['sleep', 'stress', 'soreness', 'energy'] as const).map((metric) => (
-            <div key={metric}>
-              <label className="label capitalize flex justify-between">
-                <span>{metric}</span>
-                <span className="font-bold">{readinessData[metric]}/5</span>
-              </label>
-              <input
-                type="range"
-                min="1"
-                max="5"
-                value={readinessData[metric]}
-                onChange={(e) => setReadinessData({ ...readinessData, [metric]: parseInt(e.target.value) })}
-                className="w-full h-2 bg-[var(--surfaceElev)] rounded-lg appearance-none cursor-pointer"
-                aria-label={metric}
-                aria-valuetext={`${metric}: ${readinessData[metric]} out of 5`}
-              />
-              <div className="flex justify-between text-xs text-[var(--muted)] mt-1">
-                <span>{metric === 'sleep' ? 'Poor' : metric === 'soreness' ? 'None' : 'Low'}</span>
-                <span>{metric === 'sleep' ? 'Great' : metric === 'soreness' ? 'Severe' : 'High'}</span>
-              </div>
-            </div>
-          ))}
-
-          {/* Composite Score */}
-          <div className="p-4 bg-gradient-to-r from-primary-50 to-blue-50 dark:from-primary-900/20 dark:to-blue-900/20 rounded-lg">
-            <p className="text-sm text-[var(--muted)] mb-1">Readiness Score</p>
-            <p className="text-3xl font-bold text-[var(--accent)]">{compositeScore}/20</p>
-          </div>
-
-          {/* Hotspot */}
-          <div>
-            <label className="label">Any Injuries or Hotspots? (optional)</label>
-            <input
-              type="text"
-              className="input"
-              value={readinessData.hotspot_note}
-              onChange={(e) => setReadinessData({ ...readinessData, hotspot_note: e.target.value })}
-              placeholder="e.g., left shoulder, right knee"
-            />
-          </div>
-
-          {/* Weight */}
-          <div>
-            <label className="label">Weight (kg) (optional)</label>
-            <input
-              type="number"
-              inputMode="decimal"
-              className="input"
-              value={readinessData.weight_kg}
-              onChange={(e) => setReadinessData({ ...readinessData, weight_kg: e.target.value })}
-              placeholder="e.g., 75.5"
-              step="0.1"
-              min="30"
-              max="300"
-            />
-          </div>
-
-          <button onClick={handleNextStep} className="btn-primary w-full flex items-center justify-center gap-2">
-            Continue to Session Details
-            <ArrowRight className="w-4 h-4" />
-          </button>
-
-          {/* Discreet skip option */}
-          <div className="text-center mt-3">
-            <button
-              type="button"
-              onClick={handleSkipReadiness}
-              className="text-xs text-[var(--muted)] hover:opacity-80 underline"
-            >
-              Skip readiness check
-            </button>
-          </div>
-        </div>
+        <ReadinessStep
+          data={readinessData}
+          onChange={setReadinessData}
+          compositeScore={compositeScore}
+          onNext={handleNextStep}
+          onSkip={handleSkipReadiness}
+        />
       )}
 
       {/* Step 2: Training Session */}
@@ -794,13 +643,8 @@ export default function LogSession() {
           {/* Date */}
           <div>
             <label className="label">Date</label>
-            <input
-              type="date"
-              className="input"
-              value={sessionData.session_date}
-              onChange={(e) => setSessionData({ ...sessionData, session_date: e.target.value })}
-              required
-            />
+            <input type="date" className="input" value={sessionData.session_date}
+              onChange={(e) => setSessionData({ ...sessionData, session_date: e.target.value })} required />
           </div>
 
           {/* Class Time */}
@@ -808,9 +652,7 @@ export default function LogSession() {
             <label className="label">Class Time (optional)</label>
             <div className="flex gap-2 mb-2" role="group" aria-label="Common class times">
               {TIME_QUICK_SELECT.map((time) => (
-                <button
-                  key={time.value}
-                  type="button"
+                <button key={time.value} type="button"
                   onClick={() => setSessionData({ ...sessionData, class_time: time.value })}
                   className="flex-1 min-h-[44px] py-2 rounded-lg font-medium text-sm transition-all"
                   style={{
@@ -824,22 +666,16 @@ export default function LogSession() {
                 </button>
               ))}
             </div>
-            <input
-              type="text"
-              className="input text-sm"
-              value={sessionData.class_time}
+            <input type="text" className="input text-sm" value={sessionData.class_time}
               onChange={(e) => setSessionData({ ...sessionData, class_time: e.target.value })}
-              placeholder="Or type custom time (e.g., 18:30, morning)"
-            />
+              placeholder="Or type custom time (e.g., 18:30, morning)" />
           </div>
 
           {/* Class Type */}
           <div>
             <label className="label">Class Type</label>
-            <ClassTypeChips
-              value={sessionData.class_type}
-              onChange={(val) => setSessionData({ ...sessionData, class_type: val })}
-            />
+            <ClassTypeChips value={sessionData.class_type}
+              onChange={(val) => setSessionData({ ...sessionData, class_type: val })} />
           </div>
 
           {/* Gym Name */}
@@ -847,17 +683,14 @@ export default function LogSession() {
             <label className="label">Gym Name</label>
             <GymSelector
               value={sessionData.gym_name}
-              onChange={(gymName, _isCustom) => {
-                setSessionData({ ...sessionData, gym_name: gymName });
-              }}
+              onChange={(gymName, _isCustom) => { setSessionData({ ...sessionData, gym_name: gymName }); }}
               onGymSelected={(gym) => {
-                // Auto-populate instructor with gym's head coach if available
                 if (gym.head_coach) {
                   setSessionData(prev => ({
                     ...prev,
                     gym_name: [gym.name, gym.city, gym.state, gym.country].filter(Boolean).join(', '),
                     instructor_name: gym.head_coach ?? '',
-                    instructor_id: null, // Clear instructor_id since head coach is free text
+                    instructor_id: null,
                   }));
                 }
               }}
@@ -870,19 +703,12 @@ export default function LogSession() {
           {/* Instructor */}
           <div>
             <label className="label">Instructor (optional)</label>
-            <select
-              className="input"
-              value={sessionData.instructor_id || ''}
+            <select className="input" value={sessionData.instructor_id || ''}
               onChange={(e) => {
                 const instructorId = e.target.value ? parseInt(e.target.value) : null;
                 const instructor = instructors.find(i => i.id === instructorId);
-                setSessionData({
-                  ...sessionData,
-                  instructor_id: instructorId,
-                  instructor_name: instructor?.name || '',
-                });
-              }}
-            >
+                setSessionData({ ...sessionData, instructor_id: instructorId, instructor_name: instructor?.name || '' });
+              }}>
               <option value="">Select instructor...</option>
               {instructors.map(instructor => (
                 <option key={instructor.id} value={instructor.id}>
@@ -900,19 +726,12 @@ export default function LogSession() {
           {/* Location */}
           <div>
             <label className="label">Location (optional)</label>
-            <input
-              type="text"
-              className="input"
-              value={sessionData.location}
+            <input type="text" className="input" value={sessionData.location}
               onChange={(e) => setSessionData({ ...sessionData, location: e.target.value })}
-              placeholder="e.g., Sydney, NSW"
-              list="locations"
-            />
+              placeholder="e.g., Sydney, NSW" list="locations" />
             {autocomplete.locations && (
               <datalist id="locations">
-                {autocomplete.locations.map((loc: string) => (
-                  <option key={loc} value={loc} />
-                ))}
+                {autocomplete.locations.map((loc: string) => <option key={loc} value={loc} />)}
               </datalist>
             )}
           </div>
@@ -922,9 +741,7 @@ export default function LogSession() {
             <label className="label">Duration (minutes)</label>
             <div className="flex gap-2 mb-2" role="group" aria-label="Duration options">
               {DURATION_QUICK_SELECT.map((mins) => (
-                <button
-                  key={mins}
-                  type="button"
+                <button key={mins} type="button"
                   onClick={() => setSessionData({ ...sessionData, duration_mins: mins })}
                   className="flex-1 min-h-[44px] py-3 rounded-lg font-medium text-sm transition-all"
                   style={{
@@ -932,728 +749,120 @@ export default function LogSession() {
                     color: sessionData.duration_mins === mins ? '#FFFFFF' : 'var(--text)',
                     border: sessionData.duration_mins === mins ? 'none' : '1px solid var(--border)',
                   }}
-                  aria-label={`${mins} minutes`}
-                  aria-pressed={sessionData.duration_mins === mins}
+                  aria-label={`${mins} minutes`} aria-pressed={sessionData.duration_mins === mins}
                 >
                   {mins}m
                 </button>
               ))}
             </div>
-            <input
-              type="number"
-              className="input text-sm"
-              value={sessionData.duration_mins}
+            <input type="number" className="input text-sm" value={sessionData.duration_mins}
               onChange={(e) => setSessionData({ ...sessionData, duration_mins: parseInt(e.target.value) || 0 })}
-              placeholder="Or enter custom duration"
-              min="1"
-              required
-            />
+              placeholder="Or enter custom duration" min="1" required />
           </div>
 
           {/* Intensity */}
           <div>
             <label className="label">Intensity</label>
-            <IntensityChips
-              value={sessionData.intensity}
-              onChange={(val) => setSessionData({ ...sessionData, intensity: val })}
+            <IntensityChips value={sessionData.intensity}
+              onChange={(val) => setSessionData({ ...sessionData, intensity: val })} />
+          </div>
+
+          {/* Technique Tracker */}
+          <TechniqueTracker
+            techniques={techniques}
+            techniqueSearch={techniqueSearch}
+            onSearchChange={(index, value) => setTechniqueSearch({ ...techniqueSearch, [index]: value })}
+            filterMovements={filterMovements}
+            onAdd={handleAddTechnique}
+            onRemove={handleRemoveTechnique}
+            onChange={handleTechniqueChange}
+            onSelectMovement={handleSelectMovement}
+            onAddMediaUrl={handleAddMediaUrl}
+            onRemoveMediaUrl={handleRemoveMediaUrl}
+            onMediaUrlChange={handleMediaUrlChange}
+          />
+
+          {/* Roll Tracking */}
+          {isSparringType && (
+            <RollTracker
+              detailedMode={detailedMode}
+              onToggleMode={() => setDetailedMode(!detailedMode)}
+              rolls={rolls}
+              partners={partners}
+              simpleData={{
+                rolls: sessionData.rolls,
+                submissions_for: sessionData.submissions_for,
+                submissions_against: sessionData.submissions_against,
+                partners: sessionData.partners,
+              }}
+              onSimpleChange={(field, value) => setSessionData({ ...sessionData, [field]: value })}
+              submissionSearchFor={submissionSearchFor}
+              submissionSearchAgainst={submissionSearchAgainst}
+              onSubmissionSearchForChange={(index, value) => setSubmissionSearchFor({ ...submissionSearchFor, [index]: value })}
+              onSubmissionSearchAgainstChange={(index, value) => setSubmissionSearchAgainst({ ...submissionSearchAgainst, [index]: value })}
+              filterSubmissions={filterSubmissions}
+              onAddRoll={handleAddRoll}
+              onRemoveRoll={handleRemoveRoll}
+              onRollChange={handleRollChange}
+              onToggleSubmission={handleToggleSubmission}
             />
-          </div>
+          )}
 
-          {/* Technique Focus */}
-          <div className="space-y-4 border-t border-[var(--border)] pt-4">
-            <div className="flex items-center justify-between">
-              <h3 className="font-semibold text-lg">Technique of the Day</h3>
-              <button
-                type="button"
-                onClick={handleAddTechnique}
-                className="flex items-center gap-2 px-3 py-1 min-h-[44px] bg-[var(--accent)] text-white rounded-md hover:opacity-90 text-sm"
-              >
-                <Plus className="w-4 h-4" />
-                Add Technique
-              </button>
-            </div>
+          {/* WHOOP Integration */}
+          <WhoopIntegrationPanel
+            whoopConnected={whoopConnected}
+            whoopSyncing={whoopSyncing}
+            whoopSynced={whoopSynced}
+            whoopManualMode={whoopManualMode}
+            showWhoop={showWhoop}
+            classTime={sessionData.class_time}
+            whoopData={{
+              whoop_strain: sessionData.whoop_strain,
+              whoop_calories: sessionData.whoop_calories,
+              whoop_avg_hr: sessionData.whoop_avg_hr,
+              whoop_max_hr: sessionData.whoop_max_hr,
+            }}
+            onWhoopDataChange={(field, value) => setSessionData({ ...sessionData, [field]: value })}
+            onSync={handleWhoopSync}
+            onClear={handleWhoopClear}
+            onToggleManualMode={(manual) => { setWhoopManualMode(manual); if (manual) setShowWhoop(true); }}
+            onToggleShow={() => setShowWhoop(!showWhoop)}
+          />
 
-            {techniques.length === 0 ? (
-              <p className="text-sm text-[var(--muted)]">
-                Click "Add Technique" to track techniques you focused on today
-              </p>
-            ) : (
-              <div className="space-y-4">
-                {techniques.map((tech, index) => (
-                  <div key={index} className="border border-[var(--border)] rounded-lg p-4 space-y-3">
-                    <div className="flex items-center justify-between">
-                      <h4 className="font-semibold">Technique #{tech.technique_number}</h4>
-                      <button
-                        type="button"
-                        onClick={() => handleRemoveTechnique(index)}
-                        className="text-red-600 hover:text-red-700"
-                      >
-                        <X className="w-4 h-4" />
-                      </button>
-                    </div>
-
-                    {/* Movement Selection */}
-                    <div>
-                      <label className="label text-sm">Movement</label>
-                      <div className="relative mb-2">
-                        <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 w-4 h-4 text-[var(--muted)]" />
-                        <input
-                          type="text"
-                          className="input pl-8 text-sm"
-                          placeholder="Search movements..."
-                          value={techniqueSearch[index] || ''}
-                          onChange={(e) => setTechniqueSearch({ ...techniqueSearch, [index]: e.target.value })}
-                        />
-                      </div>
-                      <div className="max-h-48 overflow-y-auto border border-[var(--border)] rounded p-2 space-y-1">
-                        {(() => {
-                          const filtered = filterMovements(techniqueSearch[index] ?? '');
-                          return filtered.length === 0
-                            ? <p className="text-xs text-[var(--muted)] text-center py-2">No movements found</p>
-                            : filtered.map(movement => (
-                              <button
-                                key={movement.id}
-                                type="button"
-                                onClick={() => {
-                                  const updated = [...techniques];
-                                  updated[index] = {
-                                    ...updated[index],
-                                    movement_id: movement.id,
-                                    movement_name: movement.name ?? ''
-                                  };
-                                  setTechniques(updated);
-                                }}
-                                className={`w-full text-left px-2 py-2 min-h-[44px] rounded text-sm ${
-                                  tech.movement_id === movement.id
-                                    ? 'bg-[var(--accent)] text-white'
-                                    : 'hover:bg-[var(--surfaceElev)]'
-                                }`}
-                              >
-                                <span className="font-medium">{movement.name ?? 'Unknown'}</span>
-                                <span className="text-xs ml-2 opacity-75">
-                                  {movement.category ?? 'N/A'}
-                                  {movement.subcategory && ` - ${movement.subcategory}`}
-                                </span>
-                              </button>
-                            ));
-                        })()}
-                      </div>
-                      {tech.movement_id && (
-                        <p className="text-sm text-[var(--muted)] mt-1">
-                          Selected: <span className="font-medium">{tech.movement_name}</span>
-                        </p>
-                      )}
-                    </div>
-
-                    {/* Notes */}
-                    <div>
-                      <label className="label text-sm">Notes / Key Points</label>
-                      <textarea
-                        className="input resize-none"
-                        rows={3}
-                        value={tech.notes}
-                        onChange={(e) => handleTechniqueChange(index, 'notes', e.target.value)}
-                        placeholder="What did you learn? Key details, insights, or observations..."
-                      />
-                    </div>
-
-                    {/* Media URLs */}
-                    <div>
-                      <div className="flex items-center justify-between mb-2">
-                        <label className="label text-sm mb-0">Reference Media</label>
-                        <button
-                          type="button"
-                          onClick={() => handleAddMediaUrl(index)}
-                          className="text-xs text-[var(--accent)] hover:opacity-80 flex items-center gap-1"
-                        >
-                          <Plus className="w-3 h-3" />
-                          Add Link
-                        </button>
-                      </div>
-                      {tech.media_urls.length === 0 ? (
-                        <p className="text-xs text-[var(--muted)]">No media links added</p>
-                      ) : (
-                        <div className="space-y-2">
-                          {tech.media_urls.map((media, mediaIndex) => (
-                            <div key={mediaIndex} className="border border-[var(--border)] rounded p-2 space-y-2">
-                              <div className="flex items-center justify-between">
-                                <select
-                                  className="input-sm text-xs"
-                                  value={media.type}
-                                  onChange={(e) => handleMediaUrlChange(index, mediaIndex, 'type', e.target.value as 'video' | 'image')}
-                                >
-                                  <option value="video">Video</option>
-                                  <option value="image">Image</option>
-                                </select>
-                                <button
-                                  type="button"
-                                  onClick={() => handleRemoveMediaUrl(index, mediaIndex)}
-                                  className="text-red-600 hover:text-red-700"
-                                >
-                                  <X className="w-3 h-3" />
-                                </button>
-                              </div>
-                              <input
-                                type="text"
-                                className="input text-xs"
-                                placeholder="URL (YouTube, Instagram, etc.)"
-                                value={media.url}
-                                onChange={(e) => handleMediaUrlChange(index, mediaIndex, 'url', e.target.value)}
-                              />
-                              <input
-                                type="text"
-                                className="input text-xs"
-                                placeholder="Title (optional)"
-                                value={media.title ?? ''}
-                                onChange={(e) => handleMediaUrlChange(index, mediaIndex, 'title', e.target.value)}
-                              />
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-
-          {/* Sparring Details */}
+          {/* Fight Dynamics */}
           {isSparringType && (
-            <div className="space-y-4 border-t border-[var(--border)] pt-4">
-              <div className="flex items-center justify-between">
-                <h3 className="font-semibold text-lg">Roll Tracking</h3>
-                <button
-                  type="button"
-                  onClick={() => setDetailedMode(!detailedMode)}
-                  className="flex items-center gap-2 text-sm text-[var(--accent)] hover:opacity-80"
-                >
-                  {detailedMode ? (
-                    <>
-                      <ToggleRight className="w-5 h-5" />
-                      Detailed Mode
-                    </>
-                  ) : (
-                    <>
-                      <ToggleLeft className="w-5 h-5" />
-                      Simple Mode
-                    </>
-                  )}
-                </button>
-              </div>
-
-              {!detailedMode ? (
-                // Simple Mode: Aggregate counts
-                <>
-                  <div>
-                    <label className="label">Rolls</label>
-                    <input
-                      type="number"
-                      className="input"
-                      value={sessionData.rolls}
-                      onChange={(e) => setSessionData({ ...sessionData, rolls: parseInt(e.target.value) })}
-                      min="0"
-                    />
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label className="label">Submissions For</label>
-                      <input
-                        type="number"
-                        className="input"
-                        value={sessionData.submissions_for}
-                        onChange={(e) => setSessionData({ ...sessionData, submissions_for: parseInt(e.target.value) })}
-                        min="0"
-                      />
-                    </div>
-                    <div>
-                      <label className="label">Submissions Against</label>
-                      <input
-                        type="number"
-                        className="input"
-                        value={sessionData.submissions_against}
-                        onChange={(e) => setSessionData({ ...sessionData, submissions_against: parseInt(e.target.value) })}
-                        min="0"
-                      />
-                    </div>
-                  </div>
-                </>
-              ) : (
-                // Detailed Mode: Individual rolls
-                <div className="space-y-4">
-                  <p className="text-sm text-[var(--muted)]">
-                    Track each roll with partner and submissions from glossary
-                  </p>
-
-                  {rolls.map((roll, index) => (
-                    <div key={index} className="border border-[var(--border)] rounded-lg p-4 space-y-3">
-                      <div className="flex items-center justify-between">
-                        <h4 className="font-semibold">Roll #{roll.roll_number}</h4>
-                        <button
-                          type="button"
-                          onClick={() => handleRemoveRoll(index)}
-                          className="text-red-600 hover:text-red-700"
-                        >
-                          <X className="w-4 h-4" />
-                        </button>
-                      </div>
-
-                      {/* Partner Selection */}
-                      <div>
-                        <label className="label text-sm">Partner</label>
-                        <select
-                          className="input"
-                          value={roll.partner_id || ''}
-                          onChange={(e) => {
-                            const partnerId = e.target.value ? parseInt(e.target.value) : null;
-                            const partner = partners.find(p => p.id === partnerId);
-                            handleRollChange(index, 'partner_id', partnerId);
-                            handleRollChange(index, 'partner_name', partner ? partner.name : '');
-                          }}
-                        >
-                          <option value="">Select partner...</option>
-                          {partners.map(partner => (
-                            <option key={partner.id} value={partner.id}>
-                              {partner.name ?? 'Unknown'}
-                              {partner.belt_rank && ` (${partner.belt_rank} belt)`}
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-
-                      {/* Duration */}
-                      <div>
-                        <label className="label text-sm">Duration (mins)</label>
-                        <input
-                          type="number"
-                          className="input"
-                          value={roll.duration_mins}
-                          onChange={(e) => handleRollChange(index, 'duration_mins', parseInt(e.target.value))}
-                          min="1"
-                        />
-                      </div>
-
-                      {/* Submissions For */}
-                      <div>
-                        <label className="label text-sm">Submissions You Got</label>
-                        <div className="relative mb-2">
-                          <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 w-4 h-4 text-[var(--muted)]" />
-                          <input
-                            type="text"
-                            className="input pl-8 text-sm"
-                            placeholder="Search submissions..."
-                            value={submissionSearchFor[index] || ''}
-                            onChange={(e) => setSubmissionSearchFor({ ...submissionSearchFor, [index]: e.target.value })}
-                          />
-                        </div>
-                        <div className="max-h-32 overflow-y-auto border border-[var(--border)] rounded p-2 space-y-1">
-                          {(() => {
-                            const filtered = filterSubmissions(submissionSearchFor[index] ?? '');
-                            return filtered.length === 0
-                              ? <p className="text-xs text-[var(--muted)] text-center py-2">No submissions found</p>
-                              : filtered.map(movement => (
-                                <label key={movement.id} className="flex items-center gap-2 text-sm cursor-pointer hover:bg-[var(--surfaceElev)] p-1 rounded">
-                                  <input
-                                    type="checkbox"
-                                    checked={roll.submissions_for.includes(movement.id)}
-                                    onChange={() => handleToggleSubmission(index, movement.id, 'for')}
-                                    className="w-4 h-4"
-                                  />
-                                  <span>{movement.name ?? 'Unknown'}</span>
-                                </label>
-                              ));
-                          })()}
-                        </div>
-                      </div>
-
-                      {/* Submissions Against */}
-                      <div>
-                        <label className="label text-sm">Submissions They Got</label>
-                        <div className="relative mb-2">
-                          <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 w-4 h-4 text-[var(--muted)]" />
-                          <input
-                            type="text"
-                            className="input pl-8 text-sm"
-                            placeholder="Search submissions..."
-                            value={submissionSearchAgainst[index] || ''}
-                            onChange={(e) => setSubmissionSearchAgainst({ ...submissionSearchAgainst, [index]: e.target.value })}
-                          />
-                        </div>
-                        <div className="max-h-32 overflow-y-auto border border-[var(--border)] rounded p-2 space-y-1">
-                          {(() => {
-                            const filtered = filterSubmissions(submissionSearchAgainst[index] ?? '');
-                            return filtered.length === 0
-                              ? <p className="text-xs text-[var(--muted)] text-center py-2">No submissions found</p>
-                              : filtered.map(movement => (
-                                <label key={movement.id} className="flex items-center gap-2 text-sm cursor-pointer hover:bg-[var(--surfaceElev)] p-1 rounded">
-                                  <input
-                                    type="checkbox"
-                                    checked={roll.submissions_against.includes(movement.id)}
-                                    onChange={() => handleToggleSubmission(index, movement.id, 'against')}
-                                    className="w-4 h-4"
-                                  />
-                                  <span>{movement.name ?? 'Unknown'}</span>
-                                </label>
-                              ));
-                          })()}
-                        </div>
-                      </div>
-
-                      {/* Roll Notes */}
-                      <div>
-                        <label className="label text-sm">Notes (optional)</label>
-                        <input
-                          type="text"
-                          className="input"
-                          value={roll.notes}
-                          onChange={(e) => handleRollChange(index, 'notes', e.target.value)}
-                          placeholder="How did this roll go?"
-                        />
-                      </div>
-                    </div>
-                  ))}
-
-                  <button
-                    type="button"
-                    onClick={handleAddRoll}
-                    className="btn-secondary w-full flex items-center justify-center gap-2"
-                  >
-                    <Plus className="w-4 h-4" />
-                    Add Roll
-                  </button>
-                </div>
-              )}
-            </div>
+            <FightDynamicsPanel
+              data={fightDynamics}
+              expanded={showFightDynamics}
+              onToggle={() => setShowFightDynamics(!showFightDynamics)}
+              onIncrement={handleFightDynamicsIncrement}
+              onDecrement={handleFightDynamicsDecrement}
+              onChange={handleFightDynamicsChange}
+            />
           )}
 
-          {/* Partners (Simple mode sparring only) */}
-          {!detailedMode && isSparringType && (
-            <div>
-              <label className="label">Partners (comma-separated)</label>
-              <input
-                type="text"
-                className="input"
-                value={sessionData.partners}
-                onChange={(e) => setSessionData({ ...sessionData, partners: e.target.value })}
-                placeholder="e.g., John, Sarah"
-              />
-            </div>
-          )}
-
-          {/* Whoop Stats */}
-          <div className="border-t border-[var(--border)] pt-4">
-            {whoopConnected && !whoopManualMode ? (
-              <>
-                <div className="flex items-center justify-between mb-3">
-                  <h3 className="font-semibold text-lg">WHOOP Stats</h3>
-                  <button
-                    type="button"
-                    onClick={() => { setWhoopManualMode(true); setShowWhoop(true); }}
-                    className="text-xs text-[var(--accent)] hover:opacity-80"
-                  >
-                    Enter manually
-                  </button>
-                </div>
-
-                {whoopSynced ? (
-                  <div className="space-y-3">
-                    <div className="flex items-center gap-2 mb-2">
-                      <span className="inline-flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full" style={{ backgroundColor: 'rgba(34,197,94,0.1)', color: 'var(--success)' }}>
-                        <CheckCircle className="w-3 h-3" /> Synced from WHOOP
-                      </span>
-                      <button type="button" onClick={handleWhoopClear} className="text-xs text-[var(--muted)] hover:opacity-80 underline">
-                        Clear
-                      </button>
-                    </div>
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                      {sessionData.whoop_strain && (
-                        <div className="p-2 bg-[var(--surfaceElev)] rounded-lg text-center">
-                          <p className="text-xs text-[var(--muted)]">Strain</p>
-                          <p className="text-lg font-bold">{sessionData.whoop_strain}</p>
-                        </div>
-                      )}
-                      {sessionData.whoop_calories && (
-                        <div className="p-2 bg-[var(--surfaceElev)] rounded-lg text-center">
-                          <p className="text-xs text-[var(--muted)]">Calories</p>
-                          <p className="text-lg font-bold">{sessionData.whoop_calories}</p>
-                        </div>
-                      )}
-                      {sessionData.whoop_avg_hr && (
-                        <div className="p-2 bg-[var(--surfaceElev)] rounded-lg text-center">
-                          <p className="text-xs text-[var(--muted)]">Avg HR</p>
-                          <p className="text-lg font-bold">{sessionData.whoop_avg_hr}</p>
-                        </div>
-                      )}
-                      {sessionData.whoop_max_hr && (
-                        <div className="p-2 bg-[var(--surfaceElev)] rounded-lg text-center">
-                          <p className="text-xs text-[var(--muted)]">Max HR</p>
-                          <p className="text-lg font-bold">{sessionData.whoop_max_hr}</p>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                ) : (
-                  <div>
-                    {sessionData.class_time ? (
-                      <button
-                        type="button"
-                        onClick={handleWhoopSync}
-                        disabled={whoopSyncing}
-                        className="w-full py-3 rounded-lg font-medium text-sm transition-all flex items-center justify-center gap-2"
-                        style={{ backgroundColor: 'var(--accent)', color: '#fff' }}
-                      >
-                        <RefreshCw className={`w-4 h-4 ${whoopSyncing ? 'animate-spin' : ''}`} />
-                        {whoopSyncing ? 'Syncing from WHOOP...' : 'Sync from WHOOP'}
-                      </button>
-                    ) : (
-                      <div className="text-center py-3 text-sm text-[var(--muted)]">
-                        Add a class time above to sync from WHOOP
-                      </div>
-                    )}
-                  </div>
-                )}
-              </>
-            ) : (
-              <>
-                <button
-                  type="button"
-                  onClick={() => setShowWhoop(!showWhoop)}
-                  className="flex items-center justify-between w-full text-left"
-                >
-                  <h3 className="font-semibold text-lg">Whoop Stats <span className="text-sm font-normal" style={{ color: 'var(--muted)' }}>optional</span></h3>
-                  {showWhoop ? <ChevronUp className="w-5 h-5" style={{ color: 'var(--muted)' }} /> : <ChevronDown className="w-5 h-5" style={{ color: 'var(--muted)' }} />}
-                </button>
-                {showWhoop && (
-                  <div className="grid grid-cols-2 gap-4 mt-3">
-                    <div>
-                      <label className="label">Activity Strain</label>
-                      <input
-                        type="number"
-                        inputMode="decimal"
-                        className="input"
-                        value={sessionData.whoop_strain}
-                        onChange={(e) => setSessionData({ ...sessionData, whoop_strain: e.target.value })}
-                        placeholder="0-21"
-                        min="0"
-                        max="21"
-                        step="0.1"
-                      />
-                    </div>
-                    <div>
-                      <label className="label">Calories</label>
-                      <input
-                        type="number"
-                        className="input"
-                        value={sessionData.whoop_calories}
-                        onChange={(e) => setSessionData({ ...sessionData, whoop_calories: e.target.value })}
-                        placeholder="e.g., 500"
-                        min="0"
-                      />
-                    </div>
-                    <div>
-                      <label className="label">Avg HR (bpm)</label>
-                      <input
-                        type="number"
-                        className="input"
-                        value={sessionData.whoop_avg_hr}
-                        onChange={(e) => setSessionData({ ...sessionData, whoop_avg_hr: e.target.value })}
-                        placeholder="e.g., 140"
-                        min="0"
-                        max="250"
-                      />
-                    </div>
-                    <div>
-                      <label className="label">Max HR (bpm)</label>
-                      <input
-                        type="number"
-                        className="input"
-                        value={sessionData.whoop_max_hr}
-                        onChange={(e) => setSessionData({ ...sessionData, whoop_max_hr: e.target.value })}
-                        placeholder="e.g., 185"
-                        min="0"
-                        max="250"
-                      />
-                    </div>
-                  </div>
-                )}
-                {whoopConnected && whoopManualMode && (
-                  <button
-                    type="button"
-                    onClick={() => setWhoopManualMode(false)}
-                    className="text-xs text-[var(--accent)] hover:opacity-80 mt-2"
-                  >
-                    Switch to WHOOP sync
-                  </button>
-                )}
-              </>
-            )}
-          </div>
-
-          {/* Fight Dynamics (BJJ sessions only) */}
-          {isSparringType && (
-            <div className="border-t border-[var(--border)] pt-4">
-              <button
-                type="button"
-                onClick={() => setShowFightDynamics(!showFightDynamics)}
-                className="flex items-center justify-between w-full text-left"
-              >
-                <div>
-                  <h3 className="font-semibold text-lg flex items-center gap-2">
-                    <Swords className="w-5 h-5" style={{ color: 'var(--accent)' }} />
-                    Fight Dynamics
-                    <span className="text-xs font-normal px-2 py-0.5 rounded-full" style={{ backgroundColor: 'var(--surfaceElev)', color: 'var(--muted)' }}>
-                      optional
-                    </span>
-                  </h3>
-                  <p className="text-xs mt-0.5" style={{ color: 'var(--muted)' }}>For comp prep — track attacks and defences</p>
-                </div>
-                {showFightDynamics ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
-              </button>
-
-              {showFightDynamics && (
-                <div className="mt-4 space-y-4">
-                  <div className="grid grid-cols-2 gap-4">
-                    {/* Attack Column */}
-                    <div className="p-3 rounded-lg" style={{ backgroundColor: 'rgba(255, 77, 45, 0.08)', border: '1px solid rgba(255, 77, 45, 0.2)' }}>
-                      <h4 className="text-sm font-semibold mb-3 flex items-center gap-1" style={{ color: 'var(--accent)' }}>
-                        <Swords className="w-4 h-4" />
-                        ATTACK
-                      </h4>
-                      <div className="space-y-3">
-                        <div>
-                          <label className="text-xs font-medium mb-1 block" style={{ color: 'var(--muted)' }}>Attempted</label>
-                          <div className="flex items-center gap-2">
-                            <button type="button" onClick={() => handleFightDynamicsDecrement('attacks_attempted')} className="w-11 h-11 rounded-lg flex items-center justify-center font-bold" style={{ backgroundColor: 'var(--surfaceElev)', border: '1px solid var(--border)' }}>
-                              <Minus className="w-4 h-4" />
-                            </button>
-                            <input
-                              type="number"
-                              className="input text-center font-bold text-lg flex-1"
-                              value={fightDynamics.attacks_attempted}
-                              onChange={(e) => handleFightDynamicsChange('attacks_attempted', parseInt(e.target.value) || 0)}
-                              min="0"
-                            />
-                            <button type="button" onClick={() => handleFightDynamicsIncrement('attacks_attempted')} className="w-11 h-11 rounded-lg flex items-center justify-center font-bold" style={{ backgroundColor: 'var(--accent)', color: '#fff' }}>
-                              <Plus className="w-4 h-4" />
-                            </button>
-                          </div>
-                        </div>
-                        <div>
-                          <label className="text-xs font-medium mb-1 block" style={{ color: 'var(--muted)' }}>Successful</label>
-                          <div className="flex items-center gap-2">
-                            <button type="button" onClick={() => handleFightDynamicsDecrement('attacks_successful')} className="w-11 h-11 rounded-lg flex items-center justify-center font-bold" style={{ backgroundColor: 'var(--surfaceElev)', border: '1px solid var(--border)' }}>
-                              <Minus className="w-4 h-4" />
-                            </button>
-                            <input
-                              type="number"
-                              className="input text-center font-bold text-lg flex-1"
-                              value={fightDynamics.attacks_successful}
-                              onChange={(e) => handleFightDynamicsChange('attacks_successful', parseInt(e.target.value) || 0)}
-                              min="0"
-                              max={fightDynamics.attacks_attempted}
-                            />
-                            <button type="button" onClick={() => handleFightDynamicsIncrement('attacks_successful')} className="w-11 h-11 rounded-lg flex items-center justify-center font-bold" style={{ backgroundColor: 'var(--accent)', color: '#fff' }}>
-                              <Plus className="w-4 h-4" />
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-                      {fightDynamics.attacks_attempted > 0 && (
-                        <p className="text-xs font-semibold mt-2 text-center" style={{ color: 'var(--accent)' }}>
-                          {Math.round((fightDynamics.attacks_successful / fightDynamics.attacks_attempted) * 100)}% success
-                        </p>
-                      )}
-                    </div>
-
-                    {/* Defence Column */}
-                    <div className="p-3 rounded-lg" style={{ backgroundColor: 'rgba(0, 149, 255, 0.08)', border: '1px solid rgba(0, 149, 255, 0.2)' }}>
-                      <h4 className="text-sm font-semibold mb-3 flex items-center gap-1" style={{ color: '#0095FF' }}>
-                        <Shield className="w-4 h-4" />
-                        DEFENCE
-                      </h4>
-                      <div className="space-y-3">
-                        <div>
-                          <label className="text-xs font-medium mb-1 block" style={{ color: 'var(--muted)' }}>Attempted</label>
-                          <div className="flex items-center gap-2">
-                            <button type="button" onClick={() => handleFightDynamicsDecrement('defenses_attempted')} className="w-11 h-11 rounded-lg flex items-center justify-center font-bold" style={{ backgroundColor: 'var(--surfaceElev)', border: '1px solid var(--border)' }}>
-                              <Minus className="w-4 h-4" />
-                            </button>
-                            <input
-                              type="number"
-                              className="input text-center font-bold text-lg flex-1"
-                              value={fightDynamics.defenses_attempted}
-                              onChange={(e) => handleFightDynamicsChange('defenses_attempted', parseInt(e.target.value) || 0)}
-                              min="0"
-                            />
-                            <button type="button" onClick={() => handleFightDynamicsIncrement('defenses_attempted')} className="w-11 h-11 rounded-lg flex items-center justify-center font-bold" style={{ backgroundColor: '#0095FF', color: '#fff' }}>
-                              <Plus className="w-4 h-4" />
-                            </button>
-                          </div>
-                        </div>
-                        <div>
-                          <label className="text-xs font-medium mb-1 block" style={{ color: 'var(--muted)' }}>Successful</label>
-                          <div className="flex items-center gap-2">
-                            <button type="button" onClick={() => handleFightDynamicsDecrement('defenses_successful')} className="w-11 h-11 rounded-lg flex items-center justify-center font-bold" style={{ backgroundColor: 'var(--surfaceElev)', border: '1px solid var(--border)' }}>
-                              <Minus className="w-4 h-4" />
-                            </button>
-                            <input
-                              type="number"
-                              className="input text-center font-bold text-lg flex-1"
-                              value={fightDynamics.defenses_successful}
-                              onChange={(e) => handleFightDynamicsChange('defenses_successful', parseInt(e.target.value) || 0)}
-                              min="0"
-                              max={fightDynamics.defenses_attempted}
-                            />
-                            <button type="button" onClick={() => handleFightDynamicsIncrement('defenses_successful')} className="w-11 h-11 rounded-lg flex items-center justify-center font-bold" style={{ backgroundColor: '#0095FF', color: '#fff' }}>
-                              <Plus className="w-4 h-4" />
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-                      {fightDynamics.defenses_attempted > 0 && (
-                        <p className="text-xs font-semibold mt-2 text-center" style={{ color: '#0095FF' }}>
-                          {Math.round((fightDynamics.defenses_successful / fightDynamics.defenses_attempted) * 100)}% success
-                        </p>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* Session Details / Notes */}
+          {/* Notes */}
           <div className={!isSparringType ? 'border-t border-[var(--border)] pt-4' : ''}>
             <label className="label">
               {!isSparringType ? 'Session Details' : 'Notes'}
               {!isSparringType && <span className="text-sm font-normal text-[var(--muted)] ml-2">(Workout details, exercises, distances, times, etc.)</span>}
             </label>
             <div className="relative">
-              <textarea
-                className="input"
-                value={sessionData.notes}
+              <textarea className="input" value={sessionData.notes}
                 onChange={(e) => setSessionData({ ...sessionData, notes: e.target.value })}
                 rows={!isSparringType ? 5 : 3}
-                placeholder={
-                  !isSparringType
-                    ? "e.g., 5km run in 30 mins, Deadlifts 3x8 @ 100kg, Squats 3x10 @ 80kg, or Yoga flow focusing on hip mobility..."
-                    : "Any notes about today's training..."
-                }
-              />
+                placeholder={!isSparringType
+                  ? "e.g., 5km run in 30 mins, Deadlifts 3x8 @ 100kg, Squats 3x10 @ 80kg, or Yoga flow focusing on hip mobility..."
+                  : "Any notes about today's training..."} />
               {hasSpeechApi && (
-                <button
-                  type="button"
-                  onClick={toggleRecording}
-                  disabled={isTranscribing}
+                <button type="button" onClick={toggleRecording} disabled={isTranscribing}
                   className="absolute bottom-2 right-2 p-1.5 rounded-lg transition-all"
                   style={{
                     backgroundColor: isRecording ? 'var(--error)' : 'var(--surfaceElev)',
                     color: isRecording ? '#FFFFFF' : 'var(--muted)',
                     opacity: isTranscribing ? 0.6 : 1,
                   }}
-                  aria-label={isTranscribing ? 'Transcribing audio...' : isRecording ? 'Stop recording' : 'Start voice input'}
-                >
+                  aria-label={isTranscribing ? 'Transcribing audio...' : isRecording ? 'Stop recording' : 'Start voice input'}>
                   {isTranscribing ? (
                     <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
                   ) : isRecording ? (
@@ -1676,19 +885,10 @@ export default function LogSession() {
 
           {/* Submit */}
           <div className="flex gap-2">
-            <button
-              type="button"
-              onClick={handleBackStep}
-              className="btn-secondary flex items-center gap-2"
-            >
-              <ArrowLeft className="w-4 h-4" />
-              Back
+            <button type="button" onClick={handleBackStep} className="btn-secondary flex items-center gap-2">
+              <ArrowLeft className="w-4 h-4" /> Back
             </button>
-            <button
-              type="submit"
-              disabled={loading}
-              className="btn-primary flex-1"
-            >
+            <button type="submit" disabled={loading} className="btn-primary flex-1">
               {loading ? 'Logging Session...' : 'Log Session'}
             </button>
           </div>
@@ -1701,36 +901,22 @@ export default function LogSession() {
         onClose={() => setShowWhoopModal(false)}
         matches={whoopMatches}
         onSelect={handleWhoopMatchSelect}
-        onManual={() => {
-          setShowWhoopModal(false);
-          setWhoopManualMode(true);
-          setShowWhoop(true);
-        }}
+        onManual={() => { setShowWhoopModal(false); setWhoopManualMode(true); setShowWhoop(true); }}
       />
 
       {/* Rest Day Form */}
       {activityType === 'rest' && step === 2 && (
         <form onSubmit={handleSubmit} className="card space-y-4">
-          {/* Date */}
           <div>
             <label className="label">Date</label>
-            <input
-              type="date"
-              className="input"
-              value={restData.rest_date}
-              onChange={(e) => setRestData({ ...restData, rest_date: e.target.value })}
-              required
-            />
+            <input type="date" className="input" value={restData.rest_date}
+              onChange={(e) => setRestData({ ...restData, rest_date: e.target.value })} required />
           </div>
-
-          {/* Rest Type */}
           <div>
             <label className="label">Rest Type</label>
             <div className="flex gap-2" role="group" aria-label="Rest type options">
               {['active', 'passive', 'injury'].map((type) => (
-                <button
-                  key={type}
-                  type="button"
+                <button key={type} type="button"
                   onClick={() => setRestData({ ...restData, rest_type: type })}
                   className="flex-1 py-3 rounded-lg font-medium text-sm transition-all capitalize focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-2"
                   style={{
@@ -1750,25 +936,13 @@ export default function LogSession() {
               <span className="font-semibold ml-3">Injury:</span> Recovering from injury.
             </p>
           </div>
-
-          {/* Note */}
           <div>
             <label className="label">Note (optional)</label>
-            <textarea
-              className="input"
-              rows={4}
-              value={restData.rest_note}
+            <textarea className="input" rows={4} value={restData.rest_note}
               onChange={(e) => setRestData({ ...restData, rest_note: e.target.value })}
-              placeholder="Any notes about your rest day, recovery activities, or how you're feeling..."
-            />
+              placeholder="Any notes about your rest day, recovery activities, or how you're feeling..." />
           </div>
-
-          {/* Submit */}
-          <button
-            type="submit"
-            disabled={loading}
-            className="btn-primary w-full"
-          >
+          <button type="submit" disabled={loading} className="btn-primary w-full">
             {loading ? 'Logging Rest Day...' : 'Log Rest Day'}
           </button>
         </form>

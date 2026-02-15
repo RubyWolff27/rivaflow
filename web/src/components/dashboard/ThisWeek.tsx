@@ -2,15 +2,10 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { TrendingUp, TrendingDown, Minus } from 'lucide-react';
 import { dashboardApi, goalsApi, whoopApi } from '../../api/client';
+import type { WeekStats } from '../../types';
+import { ACTIVITY_COLORS, ACTIVITY_LABELS } from '../../constants/activity';
 import { Card } from '../ui';
 import MiniZoneBar from '../MiniZoneBar';
-
-interface WeekStats {
-  total_sessions: number;
-  total_hours: number;
-  total_rolls: number;
-  class_types: Record<string, number>;
-}
 
 interface GoalProgress {
   targets: {
@@ -35,24 +30,6 @@ interface GoalProgress {
     mobility_sessions_pct?: number;
   };
 }
-
-const ACTIVITY_COLORS: Record<string, string> = {
-  'gi': '#3B82F6',
-  'no-gi': '#8B5CF6',
-  's&c': '#EF4444',
-  'drilling': '#F59E0B',
-  'open-mat': '#10B981',
-  'competition': '#EC4899',
-};
-
-const ACTIVITY_LABELS: Record<string, string> = {
-  'gi': 'Gi',
-  'no-gi': 'No-Gi',
-  's&c': 'S&C',
-  'drilling': 'Drilling',
-  'open-mat': 'Open Mat',
-  'competition': 'Competition',
-};
 
 export default function ThisWeek() {
   const [currentWeek, setCurrentWeek] = useState<WeekStats | null>(null);

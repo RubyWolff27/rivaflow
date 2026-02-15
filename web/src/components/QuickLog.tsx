@@ -5,7 +5,7 @@ import { sessionsApi, profileApi, restApi, friendsApi, socialApi } from '../api/
 import { PrimaryButton, SecondaryButton, ClassTypeChips, IntensityChips } from './ui';
 import { useToast } from '../contexts/ToastContext';
 import { getLocalDateString } from '../utils/date';
-import { triggerInsightRefresh } from '../hooks/useInsightRefresh';
+import { triggerInsightRefresh } from '../utils/insightRefresh';
 import { useSpeechRecognition } from '../hooks/useSpeechRecognition';
 import type { Friend } from '../types';
 

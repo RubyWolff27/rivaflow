@@ -1,15 +1,17 @@
 import { useState, useEffect } from 'react';
 import { getLocalDateString } from '../utils/date';
-import { BELT_GRADES } from '../constants/belts';
 import { profileApi, gradingsApi, friendsApi, adminApi, gymsApi, whoopApi, getErrorMessage } from '../api/client';
 import type { Profile as ProfileType, Grading, Friend, WhoopConnectionStatus } from '../types';
-import { User, CheckCircle, Award, Plus, Trash2, Edit2, Target, AlertCircle, Crown, Star, Link2, RefreshCw, Unlink, Settings } from 'lucide-react';
+import { User, Crown, Star, Settings } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import GymSelector from '../components/GymSelector';
 import ConfirmDialog from '../components/ConfirmDialog';
 import { useToast } from '../contexts/ToastContext';
 import { useTier } from '../hooks/useTier';
 import { CardSkeleton } from '../components/ui';
+import PersonalInformationForm from '../components/profile/PersonalInformationForm';
+import WeeklyGoalsForm from '../components/profile/WeeklyGoalsForm';
+import ConnectedDevicesSection from '../components/profile/ConnectedDevicesSection';
+import BeltProgressionCard from '../components/profile/BeltProgressionCard';
 
 
 export default function Profile() {
@@ -596,33 +598,45 @@ export default function Profile() {
     }
   };
 
-  const formatDate = (dateStr: string) => {
-    const date = new Date(dateStr);
-    return date.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+  const handleSetAutoCreate = async (value: boolean) => {
+    if (!whoopStatus) return;
+    try {
+      await whoopApi.setAutoCreate(value);
+      setWhoopStatus({ ...whoopStatus, auto_create_sessions: value });
+      toast.success(value ? 'Auto-create enabled' : 'Auto-create disabled');
+    } catch (err) {
+      toast.error(getErrorMessage(err));
+    }
   };
 
-  const BELT_COLORS: Record<string, string> = {
-    white: '#F3F4F6',
-    blue: '#3B82F6',
-    purple: '#8B5CF6',
-    brown: '#78350F',
-    black: '#1F2937',
+  const handleSetAutoFillReadiness = async (value: boolean) => {
+    if (!whoopStatus) return;
+    try {
+      await whoopApi.setAutoFillReadiness(value);
+      setWhoopStatus({ ...whoopStatus, auto_fill_readiness: value });
+      toast.success(value ? 'Auto-fill enabled' : 'Auto-fill disabled');
+    } catch (err) {
+      toast.error(getErrorMessage(err));
+    }
   };
 
-  const parseBeltGrade = (gradeStr: string) => {
-    if (!gradeStr) return { beltColor: '#9CA3AF', beltName: 'White', stripes: 0 };
-
-    const lower = gradeStr.toLowerCase();
-    const beltBase = lower.split(' ')[0]; // Extract base belt color
-    const stripeMatch = gradeStr.match(/\((\d+) stripe/i);
-    const stripes = stripeMatch ? parseInt(stripeMatch[1]) : 0;
-
-    return {
-      beltColor: BELT_COLORS[beltBase] || '#9CA3AF',
-      beltName: beltBase.charAt(0).toUpperCase() + beltBase.slice(1),
-      stripes,
-      fullGrade: gradeStr,
-    };
+  const handleCreateGym = async (gymName: string) => {
+    try {
+      // Submit custom gym for verification
+      await adminApi.createGym({
+        name: gymName,
+        country: formData.state === 'NSW' || formData.state === 'VIC' || formData.state === 'QLD'
+          ? 'Australia'
+          : 'Unknown',
+        city: formData.city || undefined,
+        state: formData.state || undefined,
+        verified: false, // Pending verification
+      });
+      setGymVerificationPending(true);
+      setTimeout(() => setGymVerificationPending(false), 5000);
+    } catch (error) {
+      console.error('Error submitting gym:', error);
+    }
   };
 
   if (loading) {
@@ -676,663 +690,52 @@ export default function Profile() {
       </div>
 
       {/* Profile Form */}
-      <form onSubmit={handleSubmit} className="card">
-        <h2 className="text-xl font-semibold mb-4">Personal Information</h2>
-        {success && (
-          <div className="mb-4 p-3 rounded-lg flex items-center gap-2" style={{ backgroundColor: 'rgba(34,197,94,0.1)', color: 'var(--success)', border: '1px solid var(--success)' }}>
-            <CheckCircle className="w-5 h-5" />
-            Profile updated successfully!
-          </div>
-        )}
-
-        <div className="space-y-6">
-          {/* Profile Photo */}
-          <div className="flex flex-col sm:flex-row items-center gap-6 pb-6 border-b border-[var(--border)]">
-            <div className="flex-shrink-0">
-              {photoPreview || formData.avatar_url ? (
-                <img
-                  src={photoPreview || formData.avatar_url}
-                  alt="Profile"
-                  className="w-24 h-24 rounded-full object-cover border-4 border-[var(--border)]"
-                  onError={(e) => {
-                    e.currentTarget.src = 'https://ui-avatars.com/api/?name=' + encodeURIComponent(formData.first_name + '+' + formData.last_name) + '&size=200&background=random';
-                  }}
-                />
-              ) : (
-                <div className="w-24 h-24 rounded-full bg-[var(--surfaceElev)] flex items-center justify-center">
-                  <User className="w-12 h-12 text-[var(--muted)]" />
-                </div>
-              )}
-            </div>
-            <div className="flex-1">
-              <label className="label">Profile Photo</label>
-              <div className="flex gap-2">
-                <label className="btn-primary cursor-pointer flex items-center gap-2">
-                  <input
-                    type="file"
-                    className="hidden"
-                    accept="image/jpeg,image/jpg,image/png,image/webp,image/gif"
-                    onChange={handlePhotoUpload}
-                    disabled={uploadingPhoto}
-                  />
-                  {uploadingPhoto ? 'Uploading...' : 'Choose Photo'}
-                </label>
-                {formData.avatar_url && (
-                  <button
-                    type="button"
-                    onClick={handleDeletePhoto}
-                    className="btn-secondary"
-                  >
-                    Remove Photo
-                  </button>
-                )}
-              </div>
-              <p className="text-xs text-[var(--muted)] mt-1">
-                Upload a JPG, PNG, WebP, or GIF image (max 5MB)
-              </p>
-            </div>
-          </div>
-
-          {/* Name */}
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="label">First Name</label>
-              <input
-                type="text"
-                className="input"
-                value={formData.first_name}
-                onChange={(e) => setFormData({ ...formData, first_name: e.target.value })}
-                placeholder="Your first name"
-                required
-              />
-            </div>
-            <div>
-              <label className="label">Last Name</label>
-              <input
-                type="text"
-                className="input"
-                value={formData.last_name}
-                onChange={(e) => setFormData({ ...formData, last_name: e.target.value })}
-                placeholder="Your last name"
-                required
-              />
-            </div>
-          </div>
-
-          {/* Date of Birth */}
-          <div>
-            <label className="label">Date of Birth</label>
-            <input
-              type="date"
-              className="input"
-              value={formData.date_of_birth}
-              onChange={(e) => setFormData({ ...formData, date_of_birth: e.target.value })}
-              max={getLocalDateString()}
-            />
-            {profile?.age != null && (
-              <p className="text-sm text-[var(--muted)] mt-1">
-                Age: {profile.age} years old
-              </p>
-            )}
-          </div>
-
-          {/* Sex */}
-          <div>
-            <label className="label">Sex</label>
-            <select
-              className="input"
-              value={formData.sex}
-              onChange={(e) => setFormData({ ...formData, sex: e.target.value })}
-            >
-              <option value="">Prefer not to say</option>
-              <option value="male">Male</option>
-              <option value="female">Female</option>
-              <option value="other">Other</option>
-              <option value="prefer_not_to_say">Prefer not to say</option>
-            </select>
-          </div>
-
-          {/* Height and Target Weight */}
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="label">Height (cm)</label>
-              <input
-                type="number"
-                className="input"
-                value={formData.height_cm}
-                onChange={(e) => setFormData({ ...formData, height_cm: e.target.value })}
-                placeholder="e.g., 175"
-                min="100"
-                max="250"
-              />
-            </div>
-            <div>
-              <label className="label">Target Weight (kg)</label>
-              <input
-                type="number"
-                className="input"
-                value={formData.target_weight_kg}
-                onChange={(e) => setFormData({ ...formData, target_weight_kg: e.target.value })}
-                placeholder="e.g., 75.5"
-                min="30"
-                max="300"
-                step="0.1"
-              />
-            </div>
-          </div>
-          {formData.target_weight_kg && (
-            <div>
-              <label className="label">Target Date (optional)</label>
-              <input
-                type="date"
-                className="input"
-                value={formData.target_weight_date}
-                onChange={(e) => setFormData({ ...formData, target_weight_date: e.target.value })}
-              />
-            </div>
-          )}
-
-          {/* Location */}
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="label">City</label>
-              <input
-                type="text"
-                className="input"
-                value={formData.city}
-                onChange={(e) => setFormData({ ...formData, city: e.target.value })}
-                placeholder="e.g., Sydney"
-                required
-              />
-            </div>
-            <div>
-              <label className="label">State</label>
-              <input
-                type="text"
-                className="input"
-                value={formData.state}
-                onChange={(e) => setFormData({ ...formData, state: e.target.value })}
-                placeholder="e.g., NSW"
-                required
-              />
-            </div>
-          </div>
-
-          {/* Timezone */}
-          <div>
-            <label className="label">Timezone</label>
-            <div className="flex gap-2">
-              <input
-                type="text"
-                className="input flex-1"
-                value={formData.timezone}
-                onChange={(e) => setFormData({ ...formData, timezone: e.target.value })}
-                placeholder="e.g., Australia/Sydney"
-              />
-              <button
-                type="button"
-                onClick={() => {
-                  const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
-                  if (tz) setFormData({ ...formData, timezone: tz });
-                }}
-                className="btn-secondary text-sm whitespace-nowrap"
-              >
-                Detect
-              </button>
-            </div>
-            <p className="text-sm text-[var(--muted)] mt-1">
-              {formData.timezone
-                ? `Server date: ${new Date().toLocaleDateString('en-CA', { timeZone: formData.timezone })}`
-                : 'Used for daily check-in timing. Click Detect to use your browser timezone.'}
-            </p>
-          </div>
-
-          {/* Default Gym */}
-          <div>
-            <label className="label">Default Gym</label>
-            <GymSelector
-              value={formData.default_gym}
-              onChange={(value, custom) => {
-                setFormData({ ...formData, default_gym: value, primary_gym_id: custom ? null : formData.primary_gym_id });
-                setIsCustomGym(custom);
-              }}
-              onGymSelected={(gym) => {
-                setFormData(prev => ({ ...prev, primary_gym_id: gym.id }));
-              }}
-              onCreateGym={async (gymName) => {
-                try {
-                  // Submit custom gym for verification
-                  await adminApi.createGym({
-                    name: gymName,
-                    country: formData.state === 'NSW' || formData.state === 'VIC' || formData.state === 'QLD'
-                      ? 'Australia'
-                      : 'Unknown',
-                    city: formData.city || undefined,
-                    state: formData.state || undefined,
-                    verified: false, // Pending verification
-                  });
-                  setGymVerificationPending(true);
-                  setTimeout(() => setGymVerificationPending(false), 5000);
-                } catch (error) {
-                  console.error('Error submitting gym:', error);
-                }
-              }}
-            />
-            {isCustomGym && gymVerificationPending && (
-              <div className="flex items-start gap-2 mt-2 p-3 rounded-lg" style={{ backgroundColor: 'var(--warning-bg)' }}>
-                <AlertCircle className="w-4 h-4 mt-0.5 flex-shrink-0" style={{ color: 'var(--warning)' }} />
-                <div>
-                  <p className="text-sm font-medium" style={{ color: 'var(--warning)' }}>
-                    Gym Submitted for Verification
-                  </p>
-                  <p className="text-xs mt-1" style={{ color: 'var(--muted)' }}>
-                    Your gym has been added to our database and will be verified by our team soon.
-                  </p>
-                </div>
-              </div>
-            )}
-            <p className="text-sm text-[var(--muted)] mt-1">
-              Select from existing gyms or add a new one for verification
-            </p>
-          </div>
-
-          {/* Default Location */}
-          <div>
-            <label className="label">Default Location</label>
-            <input
-              type="text"
-              className="input"
-              value={formData.default_location}
-              onChange={(e) => setFormData({ ...formData, default_location: e.target.value })}
-              placeholder="e.g., Sydney, NSW"
-            />
-            <p className="text-sm text-[var(--muted)] mt-1">
-              This will auto-populate when logging sessions
-            </p>
-          </div>
-
-          {/* Current Coach/Instructor */}
-          <div>
-            <label className="label">Current Coach / Instructor</label>
-            <select
-              className="input"
-              value={formData.current_instructor_id ?? ''}
-              onChange={(e) => {
-                const value = e.target.value;
-                if (value === 'gym_head_coach') {
-                  // Using gym head coach (no ID, just name)
-                  setFormData({
-                    ...formData,
-                    current_instructor_id: null,
-                    current_professor: gymHeadCoach ?? '',
-                  });
-                } else {
-                  const instructorId = value ? parseInt(value) : null;
-                  const instructor = instructors.find(i => i.id === instructorId);
-                  setFormData({
-                    ...formData,
-                    current_instructor_id: instructorId,
-                    current_professor: instructor?.name ?? '',
-                  });
-                }
-              }}
-            >
-              <option value="">Select a coach...</option>
-              {gymHeadCoach && (
-                <option value="gym_head_coach">
-                  {gymHeadCoach} (Head Coach at {formData.default_gym})
-                </option>
-              )}
-              {instructors.map((instructor) => (
-                <option key={instructor.id} value={instructor.id}>
-                  {instructor.name ?? 'Unknown'}
-                  {instructor.belt_rank && ` - ${instructor.belt_rank}`}
-                </option>
-              ))}
-            </select>
-            <p className="text-sm text-[var(--muted)] mt-1">
-              {gymHeadCoach
-                ? `Head coach from your selected gym is available, or add other instructors in Contacts.`
-                : 'This will auto-populate when logging sessions. Add instructors in Contacts first.'}
-            </p>
-          </div>
-
-          {/* Primary Training Type */}
-          <div>
-            <label className="label">Primary Training Type</label>
-            <select
-              className="input"
-              value={formData.primary_training_type}
-              onChange={(e) => setFormData({ ...formData, primary_training_type: e.target.value })}
-            >
-              <option value="gi">Gi</option>
-              <option value="no-gi">No-Gi</option>
-              <option value="s&c">S&C</option>
-              <option value="mobility">Mobility</option>
-              <option value="drilling">Drilling</option>
-              <option value="cardio">Cardio</option>
-              <option value="physio">Physio</option>
-              <option value="recovery">Recovery</option>
-              <option value="mma">MMA</option>
-              <option value="judo">Judo</option>
-              <option value="wrestling">Wrestling</option>
-              <option value="other">Other</option>
-            </select>
-            <p className="text-sm text-[var(--muted)] mt-1">
-              This will be the default class type when logging sessions
-            </p>
-          </div>
-
-          <button
-            type="submit"
-            disabled={saving}
-            className="btn-primary w-full"
-          >
-            {saving ? 'Saving...' : 'Save Profile'}
-          </button>
-        </div>
-      </form>
+      <PersonalInformationForm
+        formData={formData}
+        onChange={(data) => setFormData(prev => ({ ...prev, ...data }))}
+        profile={profile}
+        instructors={instructors}
+        saving={saving}
+        success={success}
+        onSubmit={handleSubmit}
+        photoPreview={photoPreview}
+        uploadingPhoto={uploadingPhoto}
+        onPhotoUpload={handlePhotoUpload}
+        onDeletePhoto={handleDeletePhoto}
+        isCustomGym={isCustomGym}
+        onCustomGymChange={setIsCustomGym}
+        gymVerificationPending={gymVerificationPending}
+        onGymVerificationPending={setGymVerificationPending}
+        gymHeadCoach={gymHeadCoach}
+        onCreateGym={handleCreateGym}
+        onGymSelected={(gym) => {
+          setFormData(prev => ({ ...prev, primary_gym_id: gym.id }));
+        }}
+      />
 
       {/* Weekly Goals Section */}
-      <form onSubmit={handleGoalsSubmit} className="card">
-        <div className="flex items-center gap-3 mb-4">
-          <Target className="w-6 h-6 text-green-600" />
-          <h2 className="text-xl font-semibold">Weekly Goals</h2>
-        </div>
-
-        <p className="text-sm text-[var(--muted)] mb-4">
-          Set your weekly training targets. These will be tracked on your dashboard.
-        </p>
-
-        {/* Activity Goals Explanation */}
-        <div className="mb-6 p-4 rounded-lg" style={{ backgroundColor: 'rgba(59,130,246,0.1)', border: '1px solid var(--accent)' }}>
-          <h3 className="text-sm font-semibold mb-2" style={{ color: 'var(--accent)' }}>
-            How Activity Goals Work
-          </h3>
-          <div className="text-xs space-y-1" style={{ color: 'var(--accent)' }}>
-            <p>Set specific goals for each training type:</p>
-            <ul className="list-disc list-inside ml-2 mt-1 space-y-0.5">
-              <li><strong>BJJ:</strong> Gi, No-Gi, Open Mat, Competition sessions</li>
-              <li><strong>S&C:</strong> Strength & Conditioning sessions</li>
-              <li><strong>Mobility:</strong> Mobility, Recovery, Physio sessions</li>
-            </ul>
-            <p className="mt-2">Your dashboard will track progress for each activity type separately.</p>
-          </div>
-        </div>
-
-        <div className="space-y-4">
-          {/* Activity-Specific Goals */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <div>
-              <label className="label">BJJ Sessions / Week</label>
-              <input
-                type="number"
-                className="input"
-                value={formData.weekly_bjj_sessions_target}
-                onChange={(e) => setFormData({ ...formData, weekly_bjj_sessions_target: parseInt(e.target.value) || 0 })}
-                min="0"
-                max="20"
-              />
-              <p className="text-xs text-[var(--muted)] mt-1">Gi, No-Gi, Open Mat</p>
-            </div>
-
-            <div>
-              <label className="label">S&C Sessions / Week</label>
-              <input
-                type="number"
-                className="input"
-                value={formData.weekly_sc_sessions_target}
-                onChange={(e) => setFormData({ ...formData, weekly_sc_sessions_target: parseInt(e.target.value) || 0 })}
-                min="0"
-                max="20"
-              />
-              <p className="text-xs text-[var(--muted)] mt-1">Strength & Conditioning</p>
-            </div>
-
-            <div>
-              <label className="label">Mobility / Week</label>
-              <input
-                type="number"
-                className="input"
-                value={formData.weekly_mobility_sessions_target}
-                onChange={(e) => setFormData({ ...formData, weekly_mobility_sessions_target: parseInt(e.target.value) || 0 })}
-                min="0"
-                max="20"
-              />
-              <p className="text-xs text-[var(--muted)] mt-1">Mobility, Recovery</p>
-            </div>
-          </div>
-
-          {/* Overall Goals */}
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="label">Hours / Week</label>
-              <input
-                type="number"
-                className="input"
-                value={formData.weekly_hours_target}
-                onChange={(e) => setFormData({ ...formData, weekly_hours_target: parseFloat(e.target.value) || 0 })}
-                min="0"
-                max="40"
-                step="0.5"
-              />
-              <p className="text-xs text-[var(--muted)] mt-1">Total training time</p>
-            </div>
-
-            <div>
-              <label className="label">Rolls / Week</label>
-              <input
-                type="number"
-                className="input"
-                value={formData.weekly_rolls_target}
-                onChange={(e) => setFormData({ ...formData, weekly_rolls_target: parseInt(e.target.value) || 0 })}
-                min="0"
-                max="100"
-              />
-              <p className="text-xs text-[var(--muted)] mt-1">Live sparring rounds</p>
-            </div>
-          </div>
-
-          <div className="space-y-2">
-            <label className="flex items-center gap-2 cursor-pointer">
-              <input
-                type="checkbox"
-                checked={formData.show_weekly_goals}
-                onChange={(e) => setFormData({ ...formData, show_weekly_goals: e.target.checked })}
-                className="rounded"
-              />
-              <span className="text-sm">Show weekly goals on dashboard</span>
-            </label>
-
-            <label className="flex items-center gap-2 cursor-pointer">
-              <input
-                type="checkbox"
-                checked={formData.show_streak_on_dashboard}
-                onChange={(e) => setFormData({ ...formData, show_streak_on_dashboard: e.target.checked })}
-                className="rounded"
-              />
-              <span className="text-sm">Show training streaks on dashboard</span>
-            </label>
-
-            <label className="flex items-center gap-2 cursor-pointer">
-              <input
-                type="checkbox"
-                checked={formData.activity_visibility === 'friends'}
-                onChange={(e) => setFormData({ ...formData, activity_visibility: e.target.checked ? 'friends' : 'private' })}
-                className="rounded"
-              />
-              <span className="text-sm">Show my sessions on friends' feeds</span>
-            </label>
-          </div>
-
-          <button
-            type="submit"
-            disabled={saving}
-            className="btn-primary w-full"
-          >
-            {saving ? 'Saving...' : 'Save Goals'}
-          </button>
-        </div>
-      </form>
+      <WeeklyGoalsForm
+        formData={formData}
+        onChange={(data) => setFormData(prev => ({ ...prev, ...data }))}
+        saving={saving}
+        onSubmit={handleGoalsSubmit}
+      />
 
       {/* Connected Devices */}
       {whoopStatus !== null && (
-        <div className="card">
-          <div className="flex items-center gap-3 mb-4">
-            <Link2 className="w-6 h-6 text-[var(--accent)]" />
-            <h2 className="text-xl font-semibold">Connected Devices</h2>
-          </div>
-
-          <div className="p-4 bg-[var(--surfaceElev)] rounded-lg">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-black flex items-center justify-center">
-                  <span className="text-white font-bold text-sm">W</span>
-                </div>
-                <div>
-                  <p className="font-semibold">WHOOP</p>
-                  {whoopStatus.connected ? (
-                    <p className="text-sm text-green-600 flex items-center gap-1">
-                      <CheckCircle className="w-3.5 h-3.5" /> Connected
-                    </p>
-                  ) : (
-                    <p className="text-sm text-[var(--muted)]">Not connected</p>
-                  )}
-                </div>
-              </div>
-
-              {whoopStatus.connected ? (
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={handleWhoopSync}
-                    disabled={whoopSyncing}
-                    className="btn-secondary flex items-center gap-1.5 text-sm"
-                  >
-                    <RefreshCw className={`w-3.5 h-3.5 ${whoopSyncing ? 'animate-spin' : ''}`} />
-                    {whoopSyncing ? 'Syncing...' : 'Sync'}
-                  </button>
-                  <button
-                    onClick={() => setShowDisconnectConfirm(true)}
-                    className="text-sm text-[var(--error)] hover:opacity-80 flex items-center gap-1"
-                  >
-                    <Unlink className="w-3.5 h-3.5" />
-                    Disconnect
-                  </button>
-                </div>
-              ) : (
-                <button
-                  onClick={handleWhoopConnect}
-                  disabled={whoopLoading}
-                  className="btn-primary text-sm"
-                >
-                  {whoopLoading ? 'Connecting...' : 'Connect WHOOP'}
-                </button>
-              )}
-            </div>
-
-            {whoopStatus.connected && whoopNeedsReauth && (
-              <div className="mt-3 p-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <AlertCircle className="w-4 h-4 text-amber-600 dark:text-amber-400 flex-shrink-0" />
-                    <div>
-                      <p className="text-sm font-medium text-amber-800 dark:text-amber-300">
-                        Additional permissions needed
-                      </p>
-                      <p className="text-xs text-amber-700 dark:text-amber-400 mt-0.5">
-                        WHOOP needs recovery &amp; sleep permissions for auto-fill and HRV trends.
-                      </p>
-                    </div>
-                  </div>
-                  <button
-                    onClick={handleWhoopConnect}
-                    disabled={whoopLoading}
-                    className="text-sm font-medium px-3 py-1.5 rounded-lg whitespace-nowrap"
-                    style={{ backgroundColor: 'var(--accent)', color: '#FFFFFF' }}
-                  >
-                    {whoopLoading ? 'Redirecting...' : 'Re-authorize'}
-                  </button>
-                </div>
-              </div>
-            )}
-
-            {whoopStatus.connected && whoopStatus.last_synced_at && (
-              <p className="text-xs text-[var(--muted)] mt-2">
-                Last synced: {new Date(whoopStatus.last_synced_at).toLocaleString()}
-              </p>
-            )}
-
-            {whoopStatus.connected && (
-              <>
-                <div className="mt-3 flex items-center justify-between p-3 rounded-lg bg-[var(--surfaceElev)]">
-                  <div>
-                    <p className="font-medium text-sm">Auto-log BJJ sessions</p>
-                    <p className="text-xs text-[var(--muted)]">
-                      Auto-create sessions when WHOOP detects BJJ training
-                    </p>
-                  </div>
-                  <button
-                    onClick={async () => {
-                      try {
-                        const newVal = !whoopStatus.auto_create_sessions;
-                        await whoopApi.setAutoCreate(newVal);
-                        setWhoopStatus({ ...whoopStatus, auto_create_sessions: newVal });
-                        toast.success(newVal ? 'Auto-create enabled' : 'Auto-create disabled');
-                      } catch (err) {
-                        toast.error(getErrorMessage(err));
-                      }
-                    }}
-                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                      whoopStatus.auto_create_sessions ? 'bg-[var(--accent)]' : 'bg-gray-300 dark:bg-gray-600'
-                    }`}
-                  >
-                    <span
-                      className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                        whoopStatus.auto_create_sessions ? 'translate-x-6' : 'translate-x-1'
-                      }`}
-                    />
-                  </button>
-                </div>
-
-                <div className="mt-3 flex items-center justify-between p-3 rounded-lg bg-[var(--surfaceElev)]">
-                  <div>
-                    <p className="font-medium text-sm">Auto-fill daily check-in</p>
-                    <p className="text-xs text-[var(--muted)]">
-                      Pre-fill readiness with WHOOP recovery, HRV, and sleep data
-                    </p>
-                  </div>
-                  <button
-                    onClick={async () => {
-                      try {
-                        const newVal = !whoopStatus.auto_fill_readiness;
-                        await whoopApi.setAutoFillReadiness(newVal);
-                        setWhoopStatus({ ...whoopStatus, auto_fill_readiness: newVal });
-                        toast.success(newVal ? 'Auto-fill enabled' : 'Auto-fill disabled');
-                      } catch (err) {
-                        toast.error(getErrorMessage(err));
-                      }
-                    }}
-                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                      whoopStatus.auto_fill_readiness ? 'bg-[var(--accent)]' : 'bg-gray-300 dark:bg-gray-600'
-                    }`}
-                  >
-                    <span
-                      className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                        whoopStatus.auto_fill_readiness ? 'translate-x-6' : 'translate-x-1'
-                      }`}
-                    />
-                  </button>
-                </div>
-              </>
-            )}
-
-            {!whoopStatus.connected && (
-              <p className="text-xs text-[var(--muted)] mt-3">
-                Connect your WHOOP to auto-sync strain, heart rate, and calorie data to your sessions.
-              </p>
-            )}
-          </div>
-        </div>
+        <ConnectedDevicesSection
+          whoopStatus={whoopStatus}
+          whoopLoading={whoopLoading}
+          whoopSyncing={whoopSyncing}
+          whoopNeedsReauth={whoopNeedsReauth}
+          onConnect={handleWhoopConnect}
+          onSync={handleWhoopSync}
+          onSetAutoCreate={handleSetAutoCreate}
+          onSetAutoFillReadiness={handleSetAutoFillReadiness}
+          showDisconnectConfirm={showDisconnectConfirm}
+          onShowDisconnectConfirm={setShowDisconnectConfirm}
+          onDisconnect={handleWhoopDisconnect}
+        />
       )}
 
       {/* Coach Settings Link */}
@@ -1352,257 +755,26 @@ export default function Profile() {
       </Link>
 
       {/* Belt Progression Section */}
-      <div className="card">
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-3">
-            <Award className="w-6 h-6 text-[var(--accent)]" />
-            <h2 className="text-xl font-semibold">Belt Progression</h2>
-          </div>
-          <button
-            onClick={handleOpenAddGrading}
-            className="btn-primary flex items-center gap-2"
-          >
-            <Plus className="w-4 h-4" />
-            Add Grading
-          </button>
-        </div>
-
-        {/* Current Grade Display */}
-        {profile?.current_grade && (() => {
-          const { beltColor, beltName, stripes } = parseBeltGrade(profile.current_grade);
-          return (
-            <div className="mb-6 p-4 bg-gradient-to-r from-primary-50 to-blue-50 dark:from-primary-900/20 dark:to-blue-900/20 rounded-lg">
-              <p className="text-sm text-[var(--muted)] mb-3">Current Grade</p>
-              <div className="flex items-center gap-4">
-                <div
-                  className="w-16 h-10 rounded border-2 flex-shrink-0"
-                  style={{ backgroundColor: beltColor, borderColor: 'var(--border)' }}
-                />
-                <div>
-                  <p className="text-2xl font-bold text-[var(--accent)]">{beltName} Belt</p>
-                  <div className="flex items-center gap-1 mt-1">
-                    {[...Array(4)].map((_, i) => (
-                      <div
-                        key={i}
-                        className="w-2.5 h-2.5 rounded-full transition-colors"
-                        style={{
-                          backgroundColor: i < stripes ? beltColor : 'var(--border)',
-                        }}
-                      />
-                    ))}
-                  </div>
-                </div>
-              </div>
-            </div>
-          );
-        })()}
-
-        {/* Add/Edit Grading Form */}
-        {(showAddGrading || editingGrading) && (
-          <form onSubmit={editingGrading ? handleUpdateGrading : handleAddGrading} className="mb-6 p-4 bg-[var(--surfaceElev)] rounded-lg space-y-4">
-            <h3 className="font-semibold text-lg">{editingGrading ? 'Edit Grading' : 'Add New Grading'}</h3>
-
-            <div>
-              <label className="label">Belt / Grade</label>
-              <select
-                className="input"
-                value={gradingForm.grade}
-                onChange={(e) => setGradingForm({ ...gradingForm, grade: e.target.value })}
-                required
-              >
-                <option value="">Select your grade</option>
-                {BELT_GRADES.map((grade) => (
-                  <option key={grade} value={grade}>
-                    {grade}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div>
-              <label className="label">Date Graded</label>
-              <input
-                type="date"
-                className="input"
-                value={gradingForm.date_graded}
-                onChange={(e) => setGradingForm({ ...gradingForm, date_graded: e.target.value })}
-                max={getLocalDateString()}
-                required
-              />
-            </div>
-
-            <div>
-              <label className="label">Professor / Instructor (optional)</label>
-              <select
-                className="input"
-                value={gradingForm.instructor_id ?? ''}
-                onChange={(e) => {
-                  const instructorId = e.target.value ? parseInt(e.target.value) : null;
-                  const instructor = instructors.find(i => i.id === instructorId);
-                  setGradingForm({
-                    ...gradingForm,
-                    instructor_id: instructorId,
-                    professor: instructor?.name ?? '',
-                  });
-                }}
-              >
-                <option value="">Select instructor...</option>
-                {instructors.map((instructor) => (
-                  <option key={instructor.id} value={instructor.id}>
-                    {instructor.name ?? 'Unknown'}
-                    {instructor.belt_rank && ` (${instructor.belt_rank} belt)`}
-                    {instructor.instructor_certification && ` - ${instructor.instructor_certification}`}
-                  </option>
-                ))}
-              </select>
-              <p className="text-xs text-[var(--muted)] mt-1">
-                Select from your instructor list. <a href="/friends" className="text-[var(--accent)] hover:underline">Add instructors in Friends</a>
-              </p>
-            </div>
-
-            <div>
-              <label className="label">Grading Photo (optional)</label>
-              {gradingPhotoPreview || gradingForm.photo_url ? (
-                <div className="mb-3">
-                  <img
-                    src={gradingPhotoPreview || gradingForm.photo_url}
-                    alt="Grading"
-                    className="w-full max-w-sm rounded-lg border border-[var(--border)]"
-                  />
-                  <button
-                    type="button"
-                    onClick={handleDeleteGradingPhoto}
-                    className="mt-2 text-sm text-red-600 hover:text-red-700"
-                  >
-                    Remove Photo
-                  </button>
-                </div>
-              ) : null}
-              <label className="btn-secondary cursor-pointer inline-flex items-center gap-2">
-                <input
-                  type="file"
-                  className="hidden"
-                  accept="image/jpeg,image/jpg,image/png,image/webp,image/gif"
-                  onChange={handleGradingPhotoUpload}
-                  disabled={uploadingGradingPhoto}
-                />
-                {uploadingGradingPhoto ? 'Uploading...' : gradingForm.photo_url ? 'Change Photo' : 'Upload Photo'}
-              </label>
-              <p className="text-xs text-[var(--muted)] mt-1">
-                Upload a photo of your belt certificate or grading (max 5MB)
-              </p>
-            </div>
-
-            <div>
-              <label className="label">Notes (optional)</label>
-              <textarea
-                className="input"
-                value={gradingForm.notes}
-                onChange={(e) => setGradingForm({ ...gradingForm, notes: e.target.value })}
-                rows={2}
-                placeholder="e.g., Focused on passing game, competition preparation"
-              />
-            </div>
-
-            <div className="flex gap-2">
-              <button type="submit" className="btn-primary">
-                {editingGrading ? 'Update Grading' : 'Save Grading'}
-              </button>
-              <button
-                type="button"
-                onClick={editingGrading ? handleCancelEdit : () => setShowAddGrading(false)}
-                className="btn-secondary"
-              >
-                Cancel
-              </button>
-            </div>
-          </form>
-        )}
-
-        {/* Grading History */}
-        {gradings.length > 0 ? (
-          <div className="space-y-3">
-            <h3 className="text-sm font-semibold text-[var(--muted)] uppercase">History</h3>
-            {gradings.map((grading) => {
-              const { beltColor, stripes } = parseBeltGrade(grading.grade);
-              return (
-                <div
-                  key={grading.id}
-                  className="flex items-start justify-between p-3 bg-[var(--surfaceElev)] rounded-lg"
-                >
-                  <div className="flex-1">
-                    <div className="flex items-center gap-3 mb-2">
-                      <div
-                        className="w-12 h-7 rounded border-2 flex-shrink-0"
-                        style={{ backgroundColor: beltColor, borderColor: 'var(--border)' }}
-                      />
-                      <div>
-                        <p className="font-semibold text-[var(--text)]">{grading.grade}</p>
-                        <div className="flex items-center gap-1">
-                          {[...Array(4)].map((_, i) => (
-                            <div
-                              key={i}
-                              className="w-2 h-2 rounded-full"
-                              style={{
-                                backgroundColor: i < stripes ? beltColor : 'var(--border)',
-                              }}
-                            />
-                          ))}
-                        </div>
-                      </div>
-                    </div>
-                    <p className="text-sm text-[var(--muted)]">
-                      {formatDate(grading.date_graded)}
-                    </p>
-                  {grading.professor && (
-                    <p className="text-sm text-[var(--muted)]">
-                      Professor: {grading.professor}
-                    </p>
-                  )}
-                  {grading.notes && (
-                    <p className="text-sm text-[var(--muted)] mt-1 italic">
-                      {grading.notes}
-                    </p>
-                  )}
-                  {grading.photo_url && (
-                    <div className="mt-2">
-                      <img
-                        src={grading.photo_url}
-                        alt={`${grading.grade} certificate`}
-                        className="rounded-lg border border-[var(--border)] max-w-xs cursor-pointer hover:opacity-90"
-                        onClick={() => window.open(grading.photo_url, '_blank')}
-                        onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
-                      />
-                    </div>
-                  )}
-                </div>
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => handleEditGrading(grading)}
-                    className="text-[var(--accent)] hover:opacity-80"
-                    title="Edit grading"
-                  >
-                    <Edit2 className="w-4 h-4" />
-                  </button>
-                  <button
-                    onClick={() => setGradingToDelete(grading.id)}
-                    className="text-[var(--error)] hover:opacity-80"
-                    title="Delete grading"
-                    aria-label="Delete grading"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </button>
-                </div>
-              </div>
-            );
-            })}
-          </div>
-        ) : (
-          <p className="text-[var(--muted)] text-center py-6">
-            No gradings recorded yet. Click "Add Grading" to track your belt progression.
-          </p>
-        )}
-      </div>
+      <BeltProgressionCard
+        profile={profile}
+        gradings={gradings}
+        instructors={instructors}
+        gradingForm={gradingForm}
+        onGradingFormChange={setGradingForm}
+        showAddGrading={showAddGrading}
+        editingGrading={editingGrading}
+        onOpenAddGrading={handleOpenAddGrading}
+        onAddGrading={handleAddGrading}
+        onEditGrading={handleEditGrading}
+        onUpdateGrading={handleUpdateGrading}
+        onCancelEdit={handleCancelEdit}
+        onDeleteGrading={(id) => setGradingToDelete(id)}
+        onCloseAddGrading={() => setShowAddGrading(false)}
+        gradingPhotoPreview={gradingPhotoPreview}
+        uploadingGradingPhoto={uploadingGradingPhoto}
+        onGradingPhotoUpload={handleGradingPhotoUpload}
+        onDeleteGradingPhoto={handleDeleteGradingPhoto}
+      />
 
       {/* Info Card */}
       <div className="card" style={{ borderColor: 'var(--accent)' }}>

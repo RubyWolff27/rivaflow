@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { Clock } from 'lucide-react';
 import { Card } from '../ui';
 import { profileApi, gymsApi } from '../../api/client';
-import type { GymClass } from '../../api/client';
+import type { GymClass } from '../../types';
 
 function classBadge(classType: string | null) {
   switch (classType) {

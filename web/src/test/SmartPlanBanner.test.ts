@@ -2,9 +2,8 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import {
   parseTimeToday,
   computeSmartStatus,
-} from "../components/dashboard/DailyActionHero";
-import type { Session, WeeklyGoalProgress } from "../types";
-import type { GymClass } from "../api/client";
+} from "../components/dashboard/computeSmartStatus";
+import type { Session, WeeklyGoalProgress, GymClass } from "../types";
 
 /* ------------------------------------------------------------------ */
 /*  Helpers                                                            */

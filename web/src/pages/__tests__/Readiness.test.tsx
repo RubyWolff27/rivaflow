@@ -43,7 +43,7 @@ vi.mock('../../contexts/ToastContext', () => ({
   }),
 }))
 
-vi.mock('../../hooks/useInsightRefresh', () => ({
+vi.mock('../../utils/insightRefresh', () => ({
   triggerInsightRefresh: vi.fn(),
 }))
 

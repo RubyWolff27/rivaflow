@@ -1,11 +1,15 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { Plus, Activity, Sparkles, Heart, Waves, RefreshCw, Sun, Moon, ChevronDown, ChevronUp, CalendarCheck, Coffee, Briefcase, AlertTriangle, Plane, Flame, Check, Clock } from 'lucide-react';
+import { Plus, Activity, Sparkles, Heart, Waves, RefreshCw, Flame } from 'lucide-react';
 import { getLocalDateString } from '../../utils/date';
-import { suggestionsApi, readinessApi, whoopApi, checkinsApi, streaksApi, sessionsApi, goalsApi, gymsApi, profileApi, getErrorMessage } from '../../api/client';
-import type { GymClass } from '../../api/client';
+import { suggestionsApi, readinessApi, whoopApi, checkinsApi, streaksApi, sessionsApi, goalsApi, gymsApi, profileApi } from '../../api/client';
 import { Card, PrimaryButton, CardSkeleton } from '../ui';
-import type { DayCheckins, StreakStatus, Session, WeeklyGoalProgress } from '../../types';
+import SmartPlanBanner from './SmartPlanBanner';
+import MorningPrompt from './MorningPrompt';
+import MiddayPrompt from './MiddayPrompt';
+import EveningPrompt from './EveningPrompt';
+import CheckinBadges from './CheckinBadges';
+import type { DayCheckins, StreakStatus, Session, WeeklyGoalProgress, GymClass } from '../../types';
 
 interface TriggeredRule {
   name: string;
@@ -47,904 +51,6 @@ const RULE_LABELS: Record<string, string> = {
 const sanitizeSuggestion = (text: string) =>
   text.replace(/\{[a-z_]+\}/gi, '').replace(/\s{2,}/g, ' ').trim();
 
-/* ---------- Inline sub-components ---------- */
-
-function MiddayPrompt({ onSubmitted, todayPlan }: { onSubmitted: () => void; todayPlan?: string }) {
-  const [expanded, setExpanded] = useState(false);
-  const [energy, setEnergy] = useState(3);
-  const [note, setNote] = useState('');
-  const [saving, setSaving] = useState(false);
-  const [error, setError] = useState('');
-
-  const submit = async () => {
-    setSaving(true);
-    setError('');
-    try {
-      await checkinsApi.createMidday({ energy_level: energy, midday_note: note || undefined });
-      onSubmitted();
-    } catch (e) {
-      setError(getErrorMessage(e));
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  const energyLabels = ['', 'Very Low', 'Low', 'Moderate', 'Good', 'Great'];
-
-  return (
-    <div
-      className="mt-3 rounded-xl overflow-hidden"
-      style={{ backgroundColor: 'var(--surfaceElev)', border: '1px solid var(--border)' }}
-    >
-      <button
-        onClick={() => setExpanded(!expanded)}
-        className="w-full flex items-center justify-between p-3 text-left"
-      >
-        <div className="flex items-center gap-2">
-          <Sun className="w-4 h-4" style={{ color: '#F59E0B' }} />
-          <span className="text-sm font-semibold" style={{ color: 'var(--text)' }}>
-            Midday Energy Check
-          </span>
-        </div>
-        {expanded
-          ? <ChevronUp className="w-4 h-4" style={{ color: 'var(--muted)' }} />
-          : <ChevronDown className="w-4 h-4" style={{ color: 'var(--muted)' }} />}
-      </button>
-
-      {expanded && (
-        <div className="px-3 pb-3 space-y-3">
-          {/* Remind of today's plan */}
-          {todayPlan && (
-            <div
-              className="flex items-center gap-2 p-2 rounded-lg text-xs"
-              style={{ backgroundColor: 'var(--surface)', border: '1px solid var(--border)' }}
-            >
-              <CalendarCheck className="w-3.5 h-3.5 shrink-0" style={{ color: 'var(--accent)' }} />
-              <span style={{ color: 'var(--muted)' }}>Today's plan: <strong style={{ color: 'var(--text)' }}>{todayPlan}</strong> — still on?</span>
-            </div>
-          )}
-
-          {/* Energy slider */}
-          <div>
-            <label className="text-xs font-medium" style={{ color: 'var(--muted)' }}>
-              Energy Level: <span style={{ color: 'var(--text)' }}>{energy}/5 — {energyLabels[energy]}</span>
-            </label>
-            <input
-              type="range" min={1} max={5} value={energy}
-              onChange={(e) => setEnergy(Number(e.target.value))}
-              className="w-full mt-1 accent-[var(--accent)]"
-            />
-          </div>
-
-          {/* Optional note */}
-          <input
-            type="text"
-            placeholder="Quick note (optional)"
-            value={note}
-            onChange={(e) => setNote(e.target.value)}
-            className="w-full text-sm rounded-lg px-3 py-2"
-            style={{ backgroundColor: 'var(--surface)', color: 'var(--text)', border: '1px solid var(--border)' }}
-          />
-
-          {error && <p className="text-xs" style={{ color: 'var(--error)' }}>{error}</p>}
-
-          <button
-            onClick={submit}
-            disabled={saving}
-            className="w-full py-2 rounded-lg text-sm font-semibold transition-colors"
-            style={{ backgroundColor: 'var(--accent)', color: '#fff', opacity: saving ? 0.6 : 1 }}
-          >
-            {saving ? 'Saving...' : 'Save Midday Check-in'}
-          </button>
-        </div>
-      )}
-    </div>
-  );
-}
-
-function MorningPrompt({ onNavigate }: { onNavigate: () => void }) {
-  return (
-    <div
-      className="mt-3 rounded-xl overflow-hidden"
-      style={{ backgroundColor: 'var(--surfaceElev)', border: '1px solid var(--border)' }}
-    >
-      <div className="flex items-center justify-between p-3">
-        <div className="flex items-center gap-2">
-          <Sun className="w-4 h-4" style={{ color: '#F59E0B' }} />
-          <span className="text-sm font-semibold" style={{ color: 'var(--text)' }}>
-            Morning Check-in
-          </span>
-        </div>
-        <button
-          onClick={onNavigate}
-          className="px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors"
-          style={{ backgroundColor: 'var(--accent)', color: '#fff' }}
-        >
-          Check in
-        </button>
-      </div>
-      <p className="px-3 pb-3 text-xs" style={{ color: 'var(--muted)' }}>
-        Log how you're feeling to get personalized training guidance
-      </p>
-    </div>
-  );
-}
-
-const REST_TYPES = [
-  { id: 'recovery', label: 'Recovery', icon: Coffee, color: '#10B981' },
-  { id: 'life', label: 'Life', icon: Briefcase, color: '#3B82F6' },
-  { id: 'injury', label: 'Injury', icon: AlertTriangle, color: '#EF4444' },
-  { id: 'travel', label: 'Travel', icon: Plane, color: '#8B5CF6' },
-];
-
-function EveningPrompt({ onSubmitted }: { onSubmitted: () => void }) {
-  const [expanded, setExpanded] = useState(false);
-  const [didNotTrain, setDidNotTrain] = useState(false);
-  const [quality, setQuality] = useState(3);
-  const [recoveryNote, setRecoveryNote] = useState('');
-  const [tomorrow, setTomorrow] = useState('');
-  const [restType, setRestType] = useState<string | null>(null);
-  const [restNote, setRestNote] = useState('');
-  const [saving, setSaving] = useState(false);
-  const [error, setError] = useState('');
-
-  const submit = async () => {
-    setSaving(true);
-    setError('');
-    try {
-      await checkinsApi.createEvening({
-        did_not_train: didNotTrain,
-        rest_type: didNotTrain ? (restType || undefined) : undefined,
-        rest_note: didNotTrain ? (restNote || undefined) : undefined,
-        training_quality: didNotTrain ? undefined : quality,
-        recovery_note: recoveryNote || undefined,
-        tomorrow_intention: tomorrow || undefined,
-      });
-      onSubmitted();
-    } catch (e) {
-      setError(getErrorMessage(e));
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  const qualityLabels = ['', 'Poor', 'Below Avg', 'Average', 'Good', 'Excellent'];
-
-  return (
-    <div
-      className="mt-3 rounded-xl overflow-hidden"
-      style={{ backgroundColor: 'var(--surfaceElev)', border: '1px solid var(--border)' }}
-    >
-      <button
-        onClick={() => setExpanded(!expanded)}
-        className="w-full flex items-center justify-between p-3 text-left"
-      >
-        <div className="flex items-center gap-2">
-          <Moon className="w-4 h-4" style={{ color: '#8B5CF6' }} />
-          <span className="text-sm font-semibold" style={{ color: 'var(--text)' }}>
-            Evening Reflection
-          </span>
-        </div>
-        {expanded
-          ? <ChevronUp className="w-4 h-4" style={{ color: 'var(--muted)' }} />
-          : <ChevronDown className="w-4 h-4" style={{ color: 'var(--muted)' }} />}
-      </button>
-
-      {expanded && (
-        <div className="px-3 pb-3 space-y-3">
-          {/* Train / Rest toggle */}
-          <div className="flex rounded-lg overflow-hidden" style={{ border: '1px solid var(--border)' }}>
-            <button
-              onClick={() => setDidNotTrain(false)}
-              className="flex-1 py-2 text-sm font-semibold transition-colors"
-              style={{
-                backgroundColor: !didNotTrain ? 'var(--accent)' : 'var(--surface)',
-                color: !didNotTrain ? '#fff' : 'var(--muted)',
-              }}
-            >
-              I trained
-            </button>
-            <button
-              onClick={() => setDidNotTrain(true)}
-              className="flex-1 py-2 text-sm font-semibold transition-colors"
-              style={{
-                backgroundColor: didNotTrain ? 'var(--surfaceElev)' : 'var(--surface)',
-                color: didNotTrain ? 'var(--text)' : 'var(--muted)',
-                borderLeft: '1px solid var(--border)',
-              }}
-            >
-              Rest day
-            </button>
-          </div>
-
-          {!didNotTrain ? (
-            <>
-              {/* Training quality slider */}
-              <div>
-                <label className="text-xs font-medium" style={{ color: 'var(--muted)' }}>
-                  Training Quality: <span style={{ color: 'var(--text)' }}>{quality}/5 — {qualityLabels[quality]}</span>
-                </label>
-                <input
-                  type="range" min={1} max={5} value={quality}
-                  onChange={(e) => setQuality(Number(e.target.value))}
-                  className="w-full mt-1 accent-[var(--accent)]"
-                />
-              </div>
-
-              {/* Recovery note */}
-              <textarea
-                placeholder="How does your body feel? Any notes on recovery..."
-                value={recoveryNote}
-                onChange={(e) => setRecoveryNote(e.target.value)}
-                rows={2}
-                className="w-full text-sm rounded-lg px-3 py-2 resize-none"
-                style={{ backgroundColor: 'var(--surface)', color: 'var(--text)', border: '1px solid var(--border)' }}
-              />
-            </>
-          ) : (
-            <>
-              {/* Rest type picker */}
-              <div>
-                <label className="text-xs font-medium mb-2 block" style={{ color: 'var(--muted)' }}>
-                  Why no training?
-                </label>
-                <div className="grid grid-cols-4 gap-2">
-                  {REST_TYPES.map((rt) => {
-                    const Icon = rt.icon;
-                    const selected = restType === rt.id;
-                    return (
-                      <button
-                        key={rt.id}
-                        onClick={() => setRestType(selected ? null : rt.id)}
-                        className="flex flex-col items-center gap-1 py-2 rounded-lg text-xs font-medium transition-all"
-                        style={{
-                          backgroundColor: selected ? 'var(--surfaceElev)' : 'var(--surface)',
-                          border: selected ? `1px solid ${rt.color}` : '1px solid var(--border)',
-                          color: selected ? rt.color : 'var(--muted)',
-                        }}
-                      >
-                        <Icon className="w-4 h-4" />
-                        {rt.label}
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-
-              {/* Rest note */}
-              <input
-                type="text"
-                placeholder="Quick note (optional)"
-                value={restNote}
-                onChange={(e) => setRestNote(e.target.value)}
-                className="w-full text-sm rounded-lg px-3 py-2"
-                style={{ backgroundColor: 'var(--surface)', color: 'var(--text)', border: '1px solid var(--border)' }}
-              />
-
-              {/* Recovery note (still useful on rest days) */}
-              <textarea
-                placeholder="How does your body feel?"
-                value={recoveryNote}
-                onChange={(e) => setRecoveryNote(e.target.value)}
-                rows={2}
-                className="w-full text-sm rounded-lg px-3 py-2 resize-none"
-                style={{ backgroundColor: 'var(--surface)', color: 'var(--text)', border: '1px solid var(--border)' }}
-              />
-            </>
-          )}
-
-          {/* Tomorrow's plan */}
-          <input
-            type="text"
-            placeholder="Tomorrow's plan (e.g. 5km jog, BJJ Gi at 17:30)"
-            value={tomorrow}
-            onChange={(e) => setTomorrow(e.target.value)}
-            className="w-full text-sm rounded-lg px-3 py-2"
-            style={{ backgroundColor: 'var(--surface)', color: 'var(--text)', border: '1px solid var(--border)' }}
-          />
-
-          {error && <p className="text-xs" style={{ color: 'var(--error)' }}>{error}</p>}
-
-          <button
-            onClick={submit}
-            disabled={saving}
-            className="w-full py-2 rounded-lg text-sm font-semibold transition-colors"
-            style={{ backgroundColor: 'var(--accent)', color: '#fff', opacity: saving ? 0.6 : 1 }}
-          >
-            {saving ? 'Saving...' : 'Save Evening Reflection'}
-          </button>
-        </div>
-      )}
-    </div>
-  );
-}
-
-/* ---------- Smart Plan Banner ---------- */
-
-export function parseTimeToday(timeStr: string): Date {
-  const parts = timeStr.split(':').map(Number);
-  const d = new Date();
-  d.setHours(parts[0], parts[1], parts[2] || 0, 0);
-  return d;
-}
-
-export interface SmartStatus {
-  type: string;
-  headline: string;
-  subtext?: string;
-  icon: 'check' | 'clock' | 'alert' | 'calendar';
-  iconColor: string;
-  iconBg: string;
-  showLogButton: boolean;
-}
-
-export function computeSmartStatus(
-  intention: string | undefined,
-  sessions: Session[],
-  classes: GymClass[],
-  goals: WeeklyGoalProgress | null,
-): SmartStatus | null {
-  const now = new Date();
-  const hasSession = sessions.length > 0;
-
-  // P1: Session logged + matches an ended gym class
-  if (hasSession && classes.length > 0) {
-    const matchedEnded = classes.some(c => {
-      const endTime = parseTimeToday(c.end_time);
-      if (now.getTime() < endTime.getTime() - 30 * 60 * 1000) return false;
-      return sessions.some(s =>
-        c.class_type === null || s.class_type === c.class_type
-      );
-    });
-    if (matchedEnded) {
-      return {
-        type: 'trained-planned',
-        headline: 'Nice work — trained as planned!',
-        icon: 'check',
-        iconColor: 'var(--success)',
-        iconBg: 'var(--success-bg)',
-        showLogButton: false,
-      };
-    }
-  }
-
-  // P2: Session logged, no gym match
-  if (hasSession) {
-    return {
-      type: 'trained',
-      headline: 'Session logged — nice work!',
-      icon: 'check',
-      iconColor: 'var(--success)',
-      iconBg: 'var(--success-bg)',
-      showLogButton: false,
-    };
-  }
-
-  // P3: Upcoming class within 4 hrs
-  if (classes.length > 0) {
-    const upcoming = classes
-      .filter(c => {
-        const start = parseTimeToday(c.start_time);
-        const diffMs = start.getTime() - now.getTime();
-        return diffMs > 0 && diffMs <= 4 * 60 * 60 * 1000;
-      })
-      .sort((a, b) =>
-        parseTimeToday(a.start_time).getTime() - parseTimeToday(b.start_time).getTime()
-      );
-    if (upcoming.length > 0) {
-      const next = upcoming[0];
-      const timeStr = parseTimeToday(next.start_time)
-        .toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
-      const typeLabel = next.class_type
-        ? ' ' + next.class_type.split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join('-')
-        : '';
-      return {
-        type: 'upcoming',
-        headline: `Next: ${timeStr}${typeLabel}`,
-        subtext: next.class_name,
-        icon: 'clock',
-        iconColor: 'var(--accent)',
-        iconBg: 'var(--surfaceElev)',
-        showLogButton: false,
-      };
-    }
-  }
-
-  // P4: Behind on goals with ≤4 days remaining
-  if (goals && goals.days_remaining <= 4) {
-    const { targets, actual } = goals;
-    const gaps: { label: string; needed: number }[] = [];
-    if (targets.sc_sessions && actual.sc_sessions != null
-        && targets.sc_sessions > actual.sc_sessions) {
-      gaps.push({ label: 'S&C', needed: targets.sc_sessions - actual.sc_sessions });
-    }
-    if (targets.mobility_sessions && actual.mobility_sessions != null
-        && targets.mobility_sessions > actual.mobility_sessions) {
-      gaps.push({ label: 'mobility', needed: targets.mobility_sessions - actual.mobility_sessions });
-    }
-    if (targets.bjj_sessions && actual.bjj_sessions != null
-        && targets.bjj_sessions > actual.bjj_sessions) {
-      gaps.push({ label: 'BJJ', needed: targets.bjj_sessions - actual.bjj_sessions });
-    }
-    if (gaps.length > 0) {
-      const top = gaps[0];
-      return {
-        type: 'goal-nudge',
-        headline: `You still need ${top.needed} ${top.label} session${top.needed > 1 ? 's' : ''} this week`,
-        subtext: `${goals.days_remaining} day${goals.days_remaining > 1 ? 's' : ''} remaining`,
-        icon: 'alert',
-        iconColor: 'var(--warning)',
-        iconBg: 'var(--warning-bg)',
-        showLogButton: true,
-      };
-    }
-  }
-
-  // P5: All classes past, no upcoming
-  if (classes.length > 0) {
-    const allPast = classes.every(c =>
-      now.getTime() > parseTimeToday(c.end_time).getTime()
-    );
-    if (allPast) {
-      return {
-        type: 'missed',
-        headline: "Missed today's class? Plan for tomorrow",
-        icon: 'calendar',
-        iconColor: 'var(--muted)',
-        iconBg: 'var(--surfaceElev)',
-        showLogButton: false,
-      };
-    }
-  }
-
-  // P6: Intention from yesterday
-  if (intention) {
-    return {
-      type: 'intention',
-      headline: intention,
-      subtext: 'Your plan today',
-      icon: 'calendar',
-      iconColor: 'var(--warning)',
-      iconBg: 'var(--warning-bg)',
-      showLogButton: true,
-    };
-  }
-
-  // P7: Nothing to show
-  return null;
-}
-
-function SmartPlanBanner({
-  intention,
-  todaySessions,
-  todaysClasses,
-  weeklyGoals,
-  onLog,
-}: {
-  intention?: string;
-  todaySessions: Session[];
-  todaysClasses: GymClass[];
-  weeklyGoals: WeeklyGoalProgress | null;
-  onLog: () => void;
-}) {
-  const status = computeSmartStatus(intention, todaySessions, todaysClasses, weeklyGoals);
-  if (!status) return null;
-
-  const IconComponent = status.icon === 'check' ? Check
-    : status.icon === 'clock' ? Clock
-    : status.icon === 'alert' ? AlertTriangle
-    : CalendarCheck;
-
-  return (
-    <div
-      className="flex items-center gap-3 p-3 rounded-xl mb-4"
-      style={{ backgroundColor: 'var(--surfaceElev)', border: '1px solid var(--border)' }}
-    >
-      <div
-        className="w-9 h-9 rounded-full flex items-center justify-center shrink-0"
-        style={{ backgroundColor: status.iconBg }}
-      >
-        <IconComponent className="w-4 h-4" style={{ color: status.iconColor }} />
-      </div>
-      <div className="flex-1 min-w-0">
-        {status.subtext && (
-          <p className="text-xs font-medium" style={{ color: 'var(--muted)' }}>
-            {status.subtext}
-          </p>
-        )}
-        <p className="text-sm font-semibold truncate" style={{ color: 'var(--text)' }}>
-          {status.headline}
-        </p>
-      </div>
-      {status.showLogButton ? (
-        <button
-          onClick={onLog}
-          className="shrink-0 px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors"
-          style={{ backgroundColor: 'var(--accent)', color: '#fff' }}
-        >
-          Log it
-        </button>
-      ) : (status.type === 'trained-planned' || status.type === 'trained') ? (
-        <span
-          className="shrink-0 px-3 py-1.5 rounded-lg text-xs font-semibold"
-          style={{ backgroundColor: 'var(--success-bg)', color: 'var(--success)' }}
-        >
-          Done ✓
-        </span>
-      ) : null}
-    </div>
-  );
-}
-
-/* ---------- Completed check-in badges ---------- */
-
-function CheckinBadges({
-  dayCheckins,
-  onUpdated,
-}: {
-  dayCheckins: DayCheckins | null;
-  onUpdated: () => void;
-}) {
-  const navigate = useNavigate();
-  const [expanded, setExpanded] = useState<'morning' | 'midday' | 'evening' | null>(null);
-  const [editing, setEditing] = useState(false);
-
-  // Midday edit state
-  const [editEnergy, setEditEnergy] = useState(3);
-  const [editMiddayNote, setEditMiddayNote] = useState('');
-
-  // Evening edit state
-  const [editQuality, setEditQuality] = useState(3);
-  const [editRecoveryNote, setEditRecoveryNote] = useState('');
-  const [editTomorrow, setEditTomorrow] = useState('');
-  const [editDidNotTrain, setEditDidNotTrain] = useState(false);
-  const [editRestType, setEditRestType] = useState<string | null>(null);
-  const [editRestNote, setEditRestNote] = useState('');
-
-  const [saving, setSaving] = useState(false);
-  const [error, setError] = useState('');
-
-  if (!dayCheckins) return null;
-
-  const slots: { key: 'morning' | 'midday' | 'evening'; label: string; icon: typeof Sun }[] = [
-    { key: 'morning', label: 'Morning', icon: Sun },
-    { key: 'midday', label: 'Midday', icon: Coffee },
-    { key: 'evening', label: 'Evening', icon: Moon },
-  ];
-
-  const energyLabels = ['', 'Very Low', 'Low', 'Moderate', 'Good', 'Great'];
-  const qualityLabels = ['', 'Poor', 'Below Avg', 'Average', 'Good', 'Excellent'];
-
-  const toggle = (key: 'morning' | 'midday' | 'evening') => {
-    if (expanded === key) {
-      setExpanded(null);
-      setEditing(false);
-    } else {
-      setExpanded(key);
-      setEditing(false);
-    }
-  };
-
-  const startEdit = () => {
-    const checkin = expanded ? dayCheckins[expanded] : null;
-    if (!checkin) return;
-
-    if (expanded === 'midday') {
-      setEditEnergy(checkin.energy_level ?? 3);
-      setEditMiddayNote(checkin.midday_note ?? '');
-    } else if (expanded === 'evening') {
-      const isRest = checkin.checkin_type === 'rest';
-      setEditDidNotTrain(isRest);
-      setEditQuality(checkin.training_quality ?? 3);
-      setEditRecoveryNote(checkin.recovery_note ?? '');
-      setEditTomorrow(checkin.tomorrow_intention ?? '');
-      setEditRestType(isRest ? (checkin.rest_type ?? null) : null);
-      setEditRestNote(isRest ? (checkin.rest_note ?? '') : '');
-    }
-    setEditing(true);
-    setError('');
-  };
-
-  const saveEdit = async () => {
-    setSaving(true);
-    setError('');
-    try {
-      if (expanded === 'midday') {
-        await checkinsApi.createMidday({
-          energy_level: editEnergy,
-          midday_note: editMiddayNote || undefined,
-        });
-      } else if (expanded === 'evening') {
-        await checkinsApi.createEvening({
-          did_not_train: editDidNotTrain,
-          rest_type: editDidNotTrain ? (editRestType || undefined) : undefined,
-          rest_note: editDidNotTrain ? (editRestNote || undefined) : undefined,
-          training_quality: editDidNotTrain ? undefined : editQuality,
-          recovery_note: editRecoveryNote || undefined,
-          tomorrow_intention: editTomorrow || undefined,
-        });
-      }
-      setEditing(false);
-      onUpdated();
-    } catch (e) {
-      setError(getErrorMessage(e));
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  const checkin = expanded ? dayCheckins[expanded] : null;
-
-  return (
-    <div className="mt-3">
-      <div className="flex flex-wrap gap-2">
-        {slots.map(({ key, label, icon: Icon }) => {
-          const data = dayCheckins[key];
-          if (!data) return null;
-          const isOpen = expanded === key;
-          return (
-            <button
-              key={key}
-              onClick={() => toggle(key)}
-              className="text-xs px-2.5 py-1 rounded-full flex items-center gap-1.5 transition-all"
-              style={{
-                backgroundColor: isOpen ? 'var(--accent)' : 'var(--success-bg)',
-                color: isOpen ? '#fff' : 'var(--success)',
-                border: isOpen ? '1px solid var(--accent)' : '1px solid transparent',
-              }}
-            >
-              {isOpen ? <Icon className="w-3 h-3" /> : <Check className="w-3 h-3" />}
-              {label} logged
-            </button>
-          );
-        })}
-        {dayCheckins.evening?.checkin_type === 'rest' && (
-          <span
-            className="text-xs px-2.5 py-1 rounded-full"
-            style={{ backgroundColor: 'var(--primary-bg)', color: 'var(--primary)' }}
-          >
-            Rest day
-          </span>
-        )}
-      </div>
-
-      {/* Expanded detail / edit panel */}
-      {checkin && expanded && (
-        <div
-          className="mt-2 p-3 rounded-xl text-sm space-y-2"
-          style={{ backgroundColor: 'var(--surfaceElev)', border: '1px solid var(--border)' }}
-        >
-          {!editing ? (
-            <>
-              {/* --- Read-only view --- */}
-              {expanded === 'morning' && (
-                <>
-                  {checkin.checkin_type === 'session' && (
-                    <p style={{ color: 'var(--muted)' }}>Logged with a session</p>
-                  )}
-                  {checkin.checkin_type === 'readiness_only' && (
-                    <p style={{ color: 'var(--muted)' }}>Readiness check-in</p>
-                  )}
-                  {checkin.tomorrow_intention && (
-                    <p style={{ color: 'var(--text)' }}>
-                      <span style={{ color: 'var(--muted)' }}>Plan: </span>
-                      {checkin.tomorrow_intention}
-                    </p>
-                  )}
-                </>
-              )}
-
-              {expanded === 'midday' && (
-                <>
-                  {checkin.energy_level != null && (
-                    <p style={{ color: 'var(--text)' }}>
-                      <span style={{ color: 'var(--muted)' }}>Energy: </span>
-                      {checkin.energy_level}/5 — {energyLabels[checkin.energy_level]}
-                    </p>
-                  )}
-                  {checkin.midday_note && (
-                    <p style={{ color: 'var(--text)' }}>
-                      <span style={{ color: 'var(--muted)' }}>Note: </span>
-                      {checkin.midday_note}
-                    </p>
-                  )}
-                  {!checkin.energy_level && !checkin.midday_note && (
-                    <p style={{ color: 'var(--muted)' }}>Checked in</p>
-                  )}
-                </>
-              )}
-
-              {expanded === 'evening' && (
-                <>
-                  {checkin.checkin_type === 'rest' && checkin.rest_type && (
-                    <p style={{ color: 'var(--text)' }}>
-                      <span style={{ color: 'var(--muted)' }}>Rest: </span>
-                      {checkin.rest_type.charAt(0).toUpperCase() + checkin.rest_type.slice(1)}
-                      {checkin.rest_note && ` — ${checkin.rest_note}`}
-                    </p>
-                  )}
-                  {checkin.training_quality != null && (
-                    <p style={{ color: 'var(--text)' }}>
-                      <span style={{ color: 'var(--muted)' }}>Training: </span>
-                      {checkin.training_quality}/5 — {qualityLabels[checkin.training_quality]}
-                    </p>
-                  )}
-                  {checkin.recovery_note && (
-                    <p style={{ color: 'var(--text)' }}>
-                      <span style={{ color: 'var(--muted)' }}>Recovery: </span>
-                      {checkin.recovery_note}
-                    </p>
-                  )}
-                  {checkin.tomorrow_intention && (
-                    <p style={{ color: 'var(--text)' }}>
-                      <span style={{ color: 'var(--muted)' }}>Tomorrow: </span>
-                      {checkin.tomorrow_intention}
-                    </p>
-                  )}
-                  {!checkin.training_quality && !checkin.recovery_note && !checkin.rest_type && (
-                    <p style={{ color: 'var(--muted)' }}>Checked in</p>
-                  )}
-                </>
-              )}
-
-              <div className="flex items-center justify-between pt-1">
-                <p className="text-xs" style={{ color: 'var(--muted)' }}>
-                  {new Date(checkin.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                </p>
-                {expanded === 'morning' ? (
-                  <button
-                    onClick={() => navigate('/readiness')}
-                    className="text-xs font-medium px-2 py-1 rounded-md"
-                    style={{ color: 'var(--accent)' }}
-                  >
-                    Update readiness
-                  </button>
-                ) : (
-                  <button
-                    onClick={startEdit}
-                    className="text-xs font-medium px-2 py-1 rounded-md"
-                    style={{ color: 'var(--accent)' }}
-                  >
-                    Edit
-                  </button>
-                )}
-              </div>
-            </>
-          ) : (
-            <>
-              {/* --- Edit mode --- */}
-              {expanded === 'midday' && (
-                <div className="space-y-2">
-                  <div>
-                    <label className="text-xs font-medium" style={{ color: 'var(--muted)' }}>
-                      Energy: <span style={{ color: 'var(--text)' }}>{editEnergy}/5 — {energyLabels[editEnergy]}</span>
-                    </label>
-                    <input
-                      type="range" min={1} max={5} value={editEnergy}
-                      onChange={(e) => setEditEnergy(Number(e.target.value))}
-                      className="w-full mt-1 accent-[var(--accent)]"
-                    />
-                  </div>
-                  <input
-                    type="text"
-                    placeholder="Quick note (optional)"
-                    value={editMiddayNote}
-                    onChange={(e) => setEditMiddayNote(e.target.value)}
-                    className="w-full text-sm rounded-lg px-3 py-2"
-                    style={{ backgroundColor: 'var(--surface)', color: 'var(--text)', border: '1px solid var(--border)' }}
-                  />
-                </div>
-              )}
-
-              {expanded === 'evening' && (
-                <div className="space-y-2">
-                  <div className="flex rounded-lg overflow-hidden" style={{ border: '1px solid var(--border)' }}>
-                    <button
-                      onClick={() => setEditDidNotTrain(false)}
-                      className="flex-1 py-1.5 text-xs font-semibold transition-colors"
-                      style={{
-                        backgroundColor: !editDidNotTrain ? 'var(--accent)' : 'var(--surface)',
-                        color: !editDidNotTrain ? '#fff' : 'var(--muted)',
-                      }}
-                    >
-                      Trained
-                    </button>
-                    <button
-                      onClick={() => setEditDidNotTrain(true)}
-                      className="flex-1 py-1.5 text-xs font-semibold transition-colors"
-                      style={{
-                        backgroundColor: editDidNotTrain ? 'var(--surfaceElev)' : 'var(--surface)',
-                        color: editDidNotTrain ? 'var(--text)' : 'var(--muted)',
-                        borderLeft: '1px solid var(--border)',
-                      }}
-                    >
-                      Rest day
-                    </button>
-                  </div>
-
-                  {!editDidNotTrain ? (
-                    <div>
-                      <label className="text-xs font-medium" style={{ color: 'var(--muted)' }}>
-                        Quality: <span style={{ color: 'var(--text)' }}>{editQuality}/5 — {qualityLabels[editQuality]}</span>
-                      </label>
-                      <input
-                        type="range" min={1} max={5} value={editQuality}
-                        onChange={(e) => setEditQuality(Number(e.target.value))}
-                        className="w-full mt-1 accent-[var(--accent)]"
-                      />
-                    </div>
-                  ) : (
-                    <div className="grid grid-cols-4 gap-1.5">
-                      {REST_TYPES.map((rt) => {
-                        const Icon = rt.icon;
-                        const selected = editRestType === rt.id;
-                        return (
-                          <button
-                            key={rt.id}
-                            onClick={() => setEditRestType(selected ? null : rt.id)}
-                            className="flex flex-col items-center gap-0.5 py-1.5 rounded-lg text-[10px] font-medium transition-all"
-                            style={{
-                              backgroundColor: selected ? 'var(--surface)' : 'var(--surface)',
-                              border: selected ? `1px solid ${rt.color}` : '1px solid var(--border)',
-                              color: selected ? rt.color : 'var(--muted)',
-                            }}
-                          >
-                            <Icon className="w-3.5 h-3.5" />
-                            {rt.label}
-                          </button>
-                        );
-                      })}
-                    </div>
-                  )}
-
-                  <textarea
-                    placeholder={editDidNotTrain ? 'Rest note (optional)' : 'Recovery note (optional)'}
-                    value={editDidNotTrain ? editRestNote : editRecoveryNote}
-                    onChange={(e) => editDidNotTrain ? setEditRestNote(e.target.value) : setEditRecoveryNote(e.target.value)}
-                    rows={2}
-                    className="w-full text-sm rounded-lg px-3 py-2 resize-none"
-                    style={{ backgroundColor: 'var(--surface)', color: 'var(--text)', border: '1px solid var(--border)' }}
-                  />
-                  <input
-                    type="text"
-                    placeholder="Tomorrow's plan (optional)"
-                    value={editTomorrow}
-                    onChange={(e) => setEditTomorrow(e.target.value)}
-                    className="w-full text-sm rounded-lg px-3 py-2"
-                    style={{ backgroundColor: 'var(--surface)', color: 'var(--text)', border: '1px solid var(--border)' }}
-                  />
-                </div>
-              )}
-
-              {error && <p className="text-xs" style={{ color: 'var(--error)' }}>{error}</p>}
-
-              <div className="flex gap-2 pt-1">
-                <button
-                  onClick={() => setEditing(false)}
-                  className="flex-1 py-1.5 rounded-lg text-xs font-semibold"
-                  style={{ backgroundColor: 'var(--surface)', color: 'var(--muted)', border: '1px solid var(--border)' }}
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={saveEdit}
-                  disabled={saving}
-                  className="flex-1 py-1.5 rounded-lg text-xs font-semibold"
-                  style={{ backgroundColor: 'var(--accent)', color: '#fff', opacity: saving ? 0.6 : 1 }}
-                >
-                  {saving ? 'Saving...' : 'Save'}
-                </button>
-              </div>
-            </>
-          )}
-        </div>
-      )}
-    </div>
-  );
-}
-
-/* ---------- Main component ---------- */
-
 export default function DailyActionHero() {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
@@ -975,7 +81,6 @@ export default function DailyActionHero() {
   useEffect(() => {
     const controller = new AbortController();
     const load = async () => {
-      // Load suggestion, readiness, WHOOP, checkins, and yesterday in parallel
       const today = getLocalDateString();
       const results = await Promise.allSettled([
         suggestionsApi.getToday(),
@@ -995,7 +100,6 @@ export default function DailyActionHero() {
 
       if (controller.signal.aborted) return;
 
-      // Suggestion
       if (results[0].status === 'fulfilled' && results[0].value.data) {
         setSuggestion(results[0].value.data);
         if (results[0].value.data.readiness?.composite_score != null) {
@@ -1004,18 +108,15 @@ export default function DailyActionHero() {
         }
       }
 
-      // Readiness (fallback if suggestion didn't include it)
       if (results[1].status === 'fulfilled' && results[1].value.data) {
         setReadinessScore(results[1].value.data.composite_score);
         setHasCheckedIn(true);
       }
 
-      // WHOOP
       if (results[2].status === 'fulfilled' && results[2].value.data?.recovery_score != null) {
         setWhoopRecovery(results[2].value.data);
       }
 
-      // Day checkins
       if (results[3].status === 'fulfilled' && results[3].value.data) {
         setDayCheckins(results[3].value.data);
         if (results[3].value.data.checked_in) {
@@ -1023,10 +124,8 @@ export default function DailyActionHero() {
         }
       }
 
-      // Yesterday's plan (Wave B)
       if (results[4].status === 'fulfilled' && results[4].value.data) {
         const y = results[4].value.data;
-        // Check evening first, then other slots for tomorrow_intention
         const intention = y.evening?.tomorrow_intention
           || y.midday?.tomorrow_intention
           || y.morning?.tomorrow_intention;
@@ -1035,12 +134,10 @@ export default function DailyActionHero() {
         }
       }
 
-      // Streaks (Wave E)
       if (results[5].status === 'fulfilled' && results[5].value.data) {
         setStreaks(results[5].value.data);
       }
 
-      // Today's sessions
       if (results[6].status === 'fulfilled' && results[6].value.data) {
         const sessions = results[6].value.data;
         if (Array.isArray(sessions)) {
@@ -1048,12 +145,10 @@ export default function DailyActionHero() {
         }
       }
 
-      // Weekly goals
       if (results[7].status === 'fulfilled' && results[7].value.data) {
         setWeeklyGoals(results[7].value.data);
       }
 
-      // Today's gym classes
       if (results[8].status === 'fulfilled' && results[8].value.data) {
         const classData = results[8].value.data;
         if (classData.classes && Array.isArray(classData.classes)) {
@@ -1069,7 +164,6 @@ export default function DailyActionHero() {
 
   if (loading) return <CardSkeleton lines={3} />;
 
-  // Determine recommendation level
   const score = readinessScore ?? 0;
   let label: string;
   let labelBg: string;
@@ -1110,7 +204,6 @@ export default function DailyActionHero() {
       : '#EF4444'
     : undefined;
 
-  // Show prompts for unfilled slots (all accessible regardless of time)
   const hasMorning = dayCheckins?.morning != null;
   const hasMidday = dayCheckins?.midday != null;
   const hasEvening = dayCheckins?.evening != null;
@@ -1120,7 +213,6 @@ export default function DailyActionHero() {
 
   return (
     <Card className="p-5">
-      {/* Header row: "Today" + Log Session button */}
       <div className="flex items-center justify-between mb-4">
         <h2 className="text-sm font-medium uppercase tracking-wide" style={{ color: 'var(--muted)' }}>
           Today
@@ -1131,7 +223,6 @@ export default function DailyActionHero() {
         </PrimaryButton>
       </div>
 
-      {/* Smart plan banner */}
       <SmartPlanBanner
         intention={todayPlan}
         todaySessions={todaySessions}
@@ -1140,9 +231,7 @@ export default function DailyActionHero() {
         onLog={() => navigate('/log')}
       />
 
-      {/* Main recommendation */}
       {!hasCheckedIn && !whoopRecovery ? (
-        // No data yet — prompt check-in
         <div className="mb-4">
           <div className="flex items-center gap-3 mb-2">
             <div
@@ -1169,7 +258,6 @@ export default function DailyActionHero() {
           </button>
         </div>
       ) : (
-        // Has data — show recommendation
         <div className="mb-4">
           <div className="flex items-center gap-3">
             <div
@@ -1199,7 +287,6 @@ export default function DailyActionHero() {
             </div>
           </div>
 
-          {/* Triggered rules */}
           {suggestion?.triggered_rules && suggestion.triggered_rules.length > 0 && (
             <div className="flex flex-wrap gap-1.5 mt-3">
               {suggestion.triggered_rules.slice(0, 3).map((rule, i) => (
@@ -1216,14 +303,12 @@ export default function DailyActionHero() {
         </div>
       )}
 
-      {/* Recovery indicators row */}
       {(hasCheckedIn || whoopRecovery) && (
         <Link to="/readiness">
           <div
             className="flex items-center gap-3 p-3 rounded-lg transition-colors hover:opacity-90"
             style={{ backgroundColor: 'var(--surfaceElev)' }}
           >
-            {/* Readiness pill */}
             {hasCheckedIn && readinessScore != null && (
               <div className="flex items-center gap-2 flex-1 min-w-0">
                 <Activity className="w-4 h-4 shrink-0" style={{ color: readinessColor }} />
@@ -1236,12 +321,10 @@ export default function DailyActionHero() {
               </div>
             )}
 
-            {/* Divider */}
             {hasCheckedIn && readinessScore != null && whoopRecovery && (
               <div className="w-px h-8" style={{ backgroundColor: 'var(--border)' }} />
             )}
 
-            {/* WHOOP pill */}
             {whoopRecovery && whoopRecovery.recovery_score != null && (
               <div className="flex items-center gap-2 flex-1 min-w-0">
                 <div className="w-5 h-5 rounded-full bg-black flex items-center justify-center shrink-0">
@@ -1256,7 +339,6 @@ export default function DailyActionHero() {
               </div>
             )}
 
-            {/* Supporting metrics */}
             {whoopRecovery && (
               <div className="hidden sm:flex items-center gap-3 text-xs" style={{ color: 'var(--muted)' }}>
                 {whoopRecovery.hrv_ms != null && (
@@ -1276,7 +358,6 @@ export default function DailyActionHero() {
               </div>
             )}
 
-            {/* WHOOP sync button */}
             {whoopRecovery && (
               <button
                 onClick={async (e) => {
@@ -1302,7 +383,6 @@ export default function DailyActionHero() {
         </Link>
       )}
 
-      {/* Streak display (Wave E) */}
       {streaks && streaks.checkin.current_streak > 0 && (
         <div
           className="flex items-center justify-between mt-3 p-3 rounded-lg"
@@ -1330,16 +410,10 @@ export default function DailyActionHero() {
         </div>
       )}
 
-      {/* Morning prompt */}
       {showMorning && <MorningPrompt onNavigate={() => navigate('/readiness')} />}
-
-      {/* Midday prompt */}
       {showMidday && <MiddayPrompt onSubmitted={loadCheckins} todayPlan={todayPlan} />}
-
-      {/* Evening prompt */}
       {showEvening && <EveningPrompt onSubmitted={loadCheckins} />}
 
-      {/* Completed slot badges — clickable to review */}
       {(hasMorning || hasMidday || hasEvening) && (
         <CheckinBadges dayCheckins={dayCheckins} onUpdated={loadCheckins} />
       )}

@@ -7,7 +7,7 @@ import { JourneyProgress } from '../components/dashboard/JourneyProgress';
 import { BetaBadge } from '../components/UpgradePrompt';
 import { useTier } from '../hooks/useTier';
 import { profileApi } from '../api/client';
-import { refreshIfStale } from '../hooks/useInsightRefresh';
+import { refreshIfStale } from '../utils/insightRefresh';
 import DailyActionHero from '../components/dashboard/DailyActionHero';
 import GettingStarted from '../components/dashboard/GettingStarted';
 import TodayClassesWidget from '../components/dashboard/TodayClassesWidget';

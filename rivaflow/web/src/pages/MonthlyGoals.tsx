@@ -19,7 +19,8 @@ export default function MonthlyGoals() {
   const [goals, setGoals] = useState<TrainingGoal[]>([]);
   const [loading, setLoading] = useState(true);
   const [showCreate, setShowCreate] = useState(false);
-  const [editGoal, setEditGoal] = useState<TrainingGoal | null>(null);
+  const [confirmDeleteId, setConfirmDeleteId] = useState<number | null>(null);
+  const [editingGoal, setEditingGoal] = useState<{id: number; value: string} | null>(null);
 
   const fetchGoals = useCallback(async (m: string, signal?: AbortSignal) => {
     setLoading(true);
@@ -42,37 +43,43 @@ export default function MonthlyGoals() {
     return () => ctrl.abort();
   }, [month, fetchGoals]);
 
-  const handleDelete = async (goalId: number) => {
-    if (!confirm('Delete this goal?')) return;
+  const handleDelete = (goalId: number) => {
+    setConfirmDeleteId(goalId);
+  };
+
+  const confirmDelete = async () => {
+    if (!confirmDeleteId) return;
     try {
-      await trainingGoalsApi.delete(goalId);
-      setGoals((prev) => prev.filter((g) => g.id !== goalId));
+      await trainingGoalsApi.delete(confirmDeleteId);
+      setGoals((prev) => prev.filter((g) => g.id !== confirmDeleteId));
       toast.showToast('success', 'Goal deleted');
     } catch {
       toast.showToast('error', 'Failed to delete goal');
+    } finally {
+      setConfirmDeleteId(null);
     }
   };
 
-  const handleEdit = async (goal: TrainingGoal) => {
-    const newTarget = prompt('New target value:', String(goal.target_value));
-    if (!newTarget) return;
-    const parsed = parseInt(newTarget);
+  const handleEdit = (goal: TrainingGoal) => {
+    setEditingGoal({ id: goal.id, value: String(goal.target_value) });
+  };
+
+  const submitEdit = async () => {
+    if (!editingGoal) return;
+    const parsed = parseInt(editingGoal.value);
     if (isNaN(parsed) || parsed < 1) {
       toast.showToast('error', 'Target must be a positive number');
       return;
     }
     try {
-      const res = await trainingGoalsApi.update(goal.id, { target_value: parsed });
-      setGoals((prev) => prev.map((g) => (g.id === goal.id ? res.data : g)));
+      const res = await trainingGoalsApi.update(editingGoal.id, { target_value: parsed });
+      setGoals((prev) => prev.map((g) => (g.id === editingGoal.id ? res.data : g)));
       toast.showToast('success', 'Goal updated');
+      setEditingGoal(null);
     } catch {
       toast.showToast('error', 'Failed to update goal');
     }
   };
-
-  // Suppress unused var lint — editGoal reserved for future inline editing
-  void editGoal;
-  void setEditGoal;
 
   return (
     <div className="space-y-6">
@@ -131,6 +138,64 @@ export default function MonthlyGoals() {
             fetchGoals(month);
           }}
         />
+      )}
+
+      {confirmDeleteId !== null && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+          <div className="bg-[var(--surface)] border border-[var(--border)] rounded-[14px] p-6 max-w-sm mx-4">
+            <p className="text-sm font-medium mb-4" style={{ color: 'var(--text)' }}>Delete this goal?</p>
+            <div className="flex gap-3 justify-end">
+              <button
+                onClick={() => setConfirmDeleteId(null)}
+                className="px-3 py-1.5 text-sm rounded-lg border border-[var(--border)]"
+                style={{ color: 'var(--text)' }}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={confirmDelete}
+                className="px-3 py-1.5 text-sm rounded-lg text-white"
+                style={{ backgroundColor: 'var(--error)' }}
+              >
+                Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {editingGoal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+          <div className="bg-[var(--surface)] border border-[var(--border)] rounded-[14px] p-6 max-w-sm mx-4">
+            <p className="text-sm font-medium mb-3" style={{ color: 'var(--text)' }}>New target value</p>
+            <input
+              type="number"
+              min={1}
+              value={editingGoal.value}
+              onChange={(e) => setEditingGoal({ ...editingGoal, value: e.target.value })}
+              onKeyDown={(e) => e.key === 'Enter' && submitEdit()}
+              autoFocus
+              className="w-full px-3 py-2 text-sm border border-[var(--border)] rounded-lg bg-[var(--surface)] mb-4"
+              style={{ color: 'var(--text)' }}
+            />
+            <div className="flex gap-3 justify-end">
+              <button
+                onClick={() => setEditingGoal(null)}
+                className="px-3 py-1.5 text-sm rounded-lg border border-[var(--border)]"
+                style={{ color: 'var(--text)' }}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={submitEdit}
+                className="px-3 py-1.5 text-sm rounded-lg text-white"
+                style={{ backgroundColor: 'var(--accent)' }}
+              >
+                Save
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
