@@ -821,39 +821,41 @@ export default function LogSession() {
               onChange={(val) => setSessionData({ ...sessionData, intensity: val })} />
           </div>
 
-          {/* Notes — essential for non-sparring types (S&C, cardio, mobility) */}
-          {!isSparringType && (
-            <div className="border-t border-[var(--border)] pt-4">
-              <label className="label">
-                Session Details
+          {/* Notes */}
+          <div className="border-t border-[var(--border)] pt-4">
+            <label className="label">
+              {isSparringType ? 'Notes' : 'Session Details'}
+              {!isSparringType && (
                 <span className="text-sm font-normal text-[var(--muted)] ml-2">(Workout details, exercises, distances, times, etc.)</span>
-              </label>
-              <div className="relative">
-                <textarea className="input" value={sessionData.notes}
-                  onChange={(e) => setSessionData({ ...sessionData, notes: e.target.value })}
-                  rows={5}
-                  placeholder="e.g., 5km run in 30 mins, Deadlifts 3x8 @ 100kg, Squats 3x10 @ 80kg, or Yoga flow focusing on hip mobility..." />
-                {hasSpeechApi && (
-                  <button type="button" onClick={toggleRecording} disabled={isTranscribing}
-                    className="absolute bottom-2 right-2 p-1.5 rounded-lg transition-all"
-                    style={{
-                      backgroundColor: isRecording ? 'var(--error)' : 'var(--surfaceElev)',
-                      color: isRecording ? '#FFFFFF' : 'var(--muted)',
-                      opacity: isTranscribing ? 0.6 : 1,
-                    }}
-                    aria-label={isTranscribing ? 'Transcribing audio...' : isRecording ? 'Stop recording' : 'Start voice input'}>
-                    {isTranscribing ? (
-                      <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
-                    ) : isRecording ? (
-                      <MicOff className="w-4 h-4" />
-                    ) : (
-                      <Mic className="w-4 h-4" />
-                    )}
-                  </button>
-                )}
-              </div>
+              )}
+            </label>
+            <div className="relative">
+              <textarea className="input" value={sessionData.notes}
+                onChange={(e) => setSessionData({ ...sessionData, notes: e.target.value })}
+                rows={isSparringType ? 3 : 5}
+                placeholder={isSparringType
+                  ? "Any notes about today's training..."
+                  : "e.g., 5km run in 30 mins, Deadlifts 3x8 @ 100kg, Squats 3x10 @ 80kg, or Yoga flow focusing on hip mobility..."} />
+              {hasSpeechApi && (
+                <button type="button" onClick={toggleRecording} disabled={isTranscribing}
+                  className="absolute bottom-2 right-2 p-1.5 rounded-lg transition-all"
+                  style={{
+                    backgroundColor: isRecording ? 'var(--error)' : 'var(--surfaceElev)',
+                    color: isRecording ? '#FFFFFF' : 'var(--muted)',
+                    opacity: isTranscribing ? 0.6 : 1,
+                  }}
+                  aria-label={isTranscribing ? 'Transcribing audio...' : isRecording ? 'Stop recording' : 'Start voice input'}>
+                  {isTranscribing ? (
+                    <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                  ) : isRecording ? (
+                    <MicOff className="w-4 h-4" />
+                  ) : (
+                    <Mic className="w-4 h-4" />
+                  )}
+                </button>
+              )}
             </div>
-          )}
+          </div>
 
           {/* Collapsible More Details — Instructor, Location, Notes (sparring only) */}
           <div className="border-t border-[var(--border)] pt-3">
@@ -910,36 +912,6 @@ export default function LogSession() {
                   )}
                 </div>
 
-                {/* Notes — inside More Details for sparring types */}
-                {isSparringType && (
-                  <div>
-                    <label className="label">Notes</label>
-                    <div className="relative">
-                      <textarea className="input" value={sessionData.notes}
-                        onChange={(e) => setSessionData({ ...sessionData, notes: e.target.value })}
-                        rows={3}
-                        placeholder="Any notes about today's training..." />
-                      {hasSpeechApi && (
-                        <button type="button" onClick={toggleRecording} disabled={isTranscribing}
-                          className="absolute bottom-2 right-2 p-1.5 rounded-lg transition-all"
-                          style={{
-                            backgroundColor: isRecording ? 'var(--error)' : 'var(--surfaceElev)',
-                            color: isRecording ? '#FFFFFF' : 'var(--muted)',
-                            opacity: isTranscribing ? 0.6 : 1,
-                          }}
-                          aria-label={isTranscribing ? 'Transcribing audio...' : isRecording ? 'Stop recording' : 'Start voice input'}>
-                          {isTranscribing ? (
-                            <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
-                          ) : isRecording ? (
-                            <MicOff className="w-4 h-4" />
-                          ) : (
-                            <Mic className="w-4 h-4" />
-                          )}
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                )}
               </div>
             )}
           </div>
