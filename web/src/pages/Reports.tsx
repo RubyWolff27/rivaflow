@@ -28,6 +28,7 @@ import type {
 } from '../components/analytics/reportTypes';
 
 export default function Reports() {
+  useEffect(() => { document.title = 'Reports | RivaFlow'; }, []);
   const { hasAccess: hasAdvancedAnalytics } = useFeatureAccess('advanced_analytics');
   const [searchParams, setSearchParams] = useSearchParams();
   const [activeTab, setActiveTab] = useState(searchParams.get('tab') || 'overview');

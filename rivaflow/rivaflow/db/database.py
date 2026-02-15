@@ -162,11 +162,11 @@ def _get_connection_pool() -> "psycopg2.pool.ThreadedConnectionPool":
         if not DATABASE_URL:
             raise ValueError("DATABASE_URL environment variable is required")
 
-        # Create thread-safe connection pool with min=2, max=20 connections
+        # Create thread-safe connection pool with min=2, max=10 connections
         # minconn=2: Keep 2 warm connections ready
-        # maxconn=20: Stay within Render starter tier limits
+        # maxconn=10: Conservative for Render starter tier (max ~97 connections)
         _connection_pool = psycopg2.pool.ThreadedConnectionPool(
-            minconn=2, maxconn=20, dsn=DATABASE_URL
+            minconn=2, maxconn=10, dsn=DATABASE_URL
         )
 
     return _connection_pool
@@ -581,6 +581,8 @@ def _apply_migrations(
         "089_fix_needs_review_type.sql",
         "090_fix_needs_review_type_v2.sql",
         "091_fix_needs_review_type_v3.sql",
+        "092_hash_refresh_tokens.sql",
+        "093_login_lockout.sql",
     ]
 
     migrations_dir = Path(__file__).parent / "migrations"
@@ -648,9 +650,14 @@ def _apply_migrations(
                             cursor.execute("ROLLBACK TO SAVEPOINT migration_stmt")
                             cursor.execute("RELEASE SAVEPOINT migration_stmt")
                     if stmt_failures:
+                        if stmt_failures >= len(statements):
+                            raise RuntimeError(
+                                f"Migration {migration}: ALL {stmt_failures} "
+                                f"statement(s) failed — aborting deployment"
+                            )
                         logger.warning(
-                            f"Migration {migration}: {stmt_failures} "
-                            f"statement(s) failed (non-fatal)"
+                            f"Migration {migration}: {stmt_failures} of "
+                            f"{len(statements)} statement(s) failed (non-fatal)"
                         )
                 else:
                     # SQLite supports executescript

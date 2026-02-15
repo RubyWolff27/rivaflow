@@ -22,7 +22,7 @@ python-multipart==0.0.22  # Updated from 0.0.20 to fix CVE-2026-24486
 httpx==0.28.1
 
 # Database
-psycopg2-binary==2.9.11
+psycopg2==2.9.11
 pgvector==0.4.2
 
 # Configuration & utilities

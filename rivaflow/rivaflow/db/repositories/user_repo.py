@@ -16,8 +16,10 @@ _USER_COLS = (
     "tier_expires_at, beta_joined_at"
 )
 
-# All columns including hashed_password (for auth queries only)
-_USER_COLS_WITH_PASSWORD = "hashed_password, " + _USER_COLS
+# All columns including auth-sensitive fields (for auth queries only)
+_USER_COLS_WITH_PASSWORD = (
+    "hashed_password, failed_login_attempts, locked_until, " + _USER_COLS
+)
 
 
 class UserRepository:

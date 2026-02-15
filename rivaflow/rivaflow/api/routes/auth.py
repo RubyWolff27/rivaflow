@@ -3,7 +3,7 @@
 import logging
 
 from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel, EmailStr, Field
 
 from rivaflow.api.rate_limit import limiter
 from rivaflow.api.response_models import CurrentUserResponse
@@ -45,7 +45,7 @@ class RegisterRequest(BaseModel):
     """User registration request model."""
 
     email: EmailStr
-    password: str
+    password: str = Field(..., min_length=8, max_length=128)
     first_name: str
     last_name: str
     invite_token: str | None = None
@@ -57,7 +57,7 @@ class LoginRequest(BaseModel):
     """User login request model."""
 
     email: EmailStr
-    password: str
+    password: str = Field(..., max_length=128)
 
 
 class TokenResponse(BaseModel):
@@ -111,7 +111,7 @@ def register(request: Request, req: RegisterRequest, response: Response):
     if req.invite_token and not settings.WAITLIST_ENABLED:
         if not waitlist_repo.is_invite_valid(req.invite_token):
             logger.warning(
-                f"Invalid invite token used in {settings.ENV} for {req.email}"
+                f"Invalid invite token used in {settings.ENV} for {req.email[:3]}***"
             )
 
     service = AuthService()
@@ -132,7 +132,7 @@ def register(request: Request, req: RegisterRequest, response: Response):
                 waitlist_repo.mark_registered(req.email)
             except (ConnectionError, OSError) as e:
                 logger.error(
-                    f"Failed to mark waitlist entry as registered for {req.email}: {e}"
+                    f"Failed to mark waitlist entry as registered for {req.email[:3]}***: {e}"
                 )
 
         _set_refresh_cookie(response, result["refresh_token"])
@@ -169,7 +169,7 @@ def login(request: Request, req: LoginRequest, response: Response):
         return result
     except (ValueError, AuthenticationError):
         # Auth failures - use generic message to prevent user enumeration
-        logger.warning(f"Login attempt failed for {req.email}")
+        logger.warning(f"Login attempt failed for {req.email[:3]}***")
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid email or password",
@@ -329,7 +329,7 @@ def forgot_password(request: Request, req: ForgotPasswordRequest):
             "message": "If an account exists with this email, you will receive a password reset link."
         }
     except Exception as e:
-        logger.error(f"Forgot password error for {req.email}: {e}")
+        logger.error(f"Forgot password error for {req.email[:3]}***: {e}")
         # Still return success to prevent info leakage
         return {
             "message": "If an account exists with this email, you will receive a password reset link."

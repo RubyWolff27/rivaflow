@@ -36,6 +36,7 @@ const BELT_STYLES: Record<string, React.CSSProperties> = {
 };
 
 export default function Friends() {
+  useEffect(() => { document.title = 'Friends | RivaFlow'; }, []);
   const navigate = useNavigate();
   const [friends, setFriends] = useState<Friend[]>([]);
   const [filteredFriends, setFilteredFriends] = useState<Friend[]>([]);

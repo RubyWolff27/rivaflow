@@ -15,7 +15,39 @@ import ConnectedDevicesSection from '../components/profile/ConnectedDevicesSecti
 import BeltProgressionCard from '../components/profile/BeltProgressionCard';
 
 
+function mapProfileToFormData(data?: ProfileType | null) {
+  return {
+    first_name: data?.first_name ?? '',
+    last_name: data?.last_name ?? '',
+    date_of_birth: data?.date_of_birth ?? '',
+    sex: data?.sex ?? '',
+    city: data?.city ?? '',
+    state: data?.state ?? '',
+    default_gym: data?.default_gym ?? '',
+    default_location: data?.default_location ?? '',
+    current_professor: data?.current_professor ?? '',
+    current_instructor_id: data?.current_instructor_id ?? null as number | null,
+    primary_training_type: data?.primary_training_type ?? 'gi',
+    height_cm: data?.height_cm?.toString() ?? '',
+    target_weight_kg: data?.target_weight_kg?.toString() ?? '',
+    target_weight_date: data?.target_weight_date ?? '',
+    weekly_sessions_target: data?.weekly_sessions_target ?? 3,
+    weekly_hours_target: data?.weekly_hours_target ?? 4.5,
+    weekly_rolls_target: data?.weekly_rolls_target ?? 15,
+    weekly_bjj_sessions_target: data?.weekly_bjj_sessions_target ?? 3,
+    weekly_sc_sessions_target: data?.weekly_sc_sessions_target ?? 1,
+    weekly_mobility_sessions_target: data?.weekly_mobility_sessions_target ?? 0,
+    show_streak_on_dashboard: data?.show_streak_on_dashboard ?? true,
+    show_weekly_goals: data?.show_weekly_goals ?? true,
+    activity_visibility: (data?.activity_visibility ?? 'friends') as 'friends' | 'private',
+    avatar_url: data?.avatar_url ?? '',
+    timezone: data?.timezone ?? '',
+    primary_gym_id: data?.primary_gym_id ?? null as number | null,
+  };
+}
+
 export default function Profile() {
+  useEffect(() => { document.title = 'Profile | RivaFlow'; }, []);
   const [profile, setProfile] = useState<ProfileType | null>(null);
   const [gradings, setGradings] = useState<Grading[]>([]);
   const [instructors, setInstructors] = useState<Friend[]>([]);
@@ -32,34 +64,7 @@ export default function Profile() {
   const toast = useToast();
   const tierInfo = useTier();
 
-  const [formData, setFormData] = useState({
-    first_name: '',
-    last_name: '',
-    date_of_birth: '',
-    sex: '',
-    city: '',
-    state: '',
-    default_gym: '',
-    default_location: '',
-    current_professor: '',
-    current_instructor_id: null as number | null,
-    primary_training_type: 'gi',
-    height_cm: '',
-    target_weight_kg: '',
-    target_weight_date: '',
-    weekly_sessions_target: 3,
-    weekly_hours_target: 4.5,
-    weekly_rolls_target: 15,
-    weekly_bjj_sessions_target: 3,
-    weekly_sc_sessions_target: 1,
-    weekly_mobility_sessions_target: 0,
-    show_streak_on_dashboard: true,
-    show_weekly_goals: true,
-    activity_visibility: 'friends' as 'friends' | 'private',
-    avatar_url: '',
-    timezone: '',
-    primary_gym_id: null as number | null,
-  });
+  const [formData, setFormData] = useState(mapProfileToFormData());
 
   const [gradingForm, setGradingForm] = useState({
     grade: '',
@@ -153,34 +158,7 @@ export default function Profile() {
       setProfile(profileRes.data ?? null);
       setGradings(gradingsRes.data ?? []);
       setInstructors(instructorsRes.data ?? []);
-      setFormData({
-        first_name: profileRes.data?.first_name ?? '',
-        last_name: profileRes.data?.last_name ?? '',
-        date_of_birth: profileRes.data?.date_of_birth ?? '',
-        sex: profileRes.data?.sex ?? '',
-        city: profileRes.data?.city ?? '',
-        state: profileRes.data?.state ?? '',
-        default_gym: profileRes.data?.default_gym ?? '',
-        default_location: profileRes.data?.default_location ?? '',
-        current_professor: profileRes.data?.current_professor ?? '',
-        current_instructor_id: profileRes.data?.current_instructor_id ?? null,
-        primary_training_type: profileRes.data?.primary_training_type ?? 'gi',
-        height_cm: profileRes.data?.height_cm?.toString() ?? '',
-        target_weight_kg: profileRes.data?.target_weight_kg?.toString() ?? '',
-        target_weight_date: profileRes.data?.target_weight_date ?? '',
-        weekly_sessions_target: profileRes.data?.weekly_sessions_target ?? 3,
-        weekly_hours_target: profileRes.data?.weekly_hours_target ?? 4.5,
-        weekly_rolls_target: profileRes.data?.weekly_rolls_target ?? 15,
-        weekly_bjj_sessions_target: profileRes.data?.weekly_bjj_sessions_target ?? 3,
-        weekly_sc_sessions_target: profileRes.data?.weekly_sc_sessions_target ?? 1,
-        weekly_mobility_sessions_target: profileRes.data?.weekly_mobility_sessions_target ?? 0,
-        show_streak_on_dashboard: profileRes.data?.show_streak_on_dashboard ?? true,
-        show_weekly_goals: profileRes.data?.show_weekly_goals ?? true,
-        activity_visibility: profileRes.data?.activity_visibility ?? 'friends',
-        avatar_url: profileRes.data?.avatar_url ?? '',
-        timezone: profileRes.data?.timezone ?? '',
-        primary_gym_id: profileRes.data?.primary_gym_id ?? null,
-      });
+      setFormData(mapProfileToFormData(profileRes.data));
     } catch (error) {
       logger.error('Error loading data:', error);
     } finally {
@@ -192,34 +170,7 @@ export default function Profile() {
     try {
       const profileRes = await profileApi.get();
       setProfile(profileRes.data ?? null);
-      setFormData({
-        first_name: profileRes.data?.first_name ?? '',
-        last_name: profileRes.data?.last_name ?? '',
-        date_of_birth: profileRes.data?.date_of_birth ?? '',
-        sex: profileRes.data?.sex ?? '',
-        city: profileRes.data?.city ?? '',
-        state: profileRes.data?.state ?? '',
-        default_gym: profileRes.data?.default_gym ?? '',
-        default_location: profileRes.data?.default_location ?? '',
-        current_professor: profileRes.data?.current_professor ?? '',
-        current_instructor_id: profileRes.data?.current_instructor_id ?? null,
-        primary_training_type: profileRes.data?.primary_training_type ?? 'gi',
-        height_cm: profileRes.data?.height_cm?.toString() ?? '',
-        target_weight_kg: profileRes.data?.target_weight_kg?.toString() ?? '',
-        target_weight_date: profileRes.data?.target_weight_date ?? '',
-        weekly_sessions_target: profileRes.data?.weekly_sessions_target ?? 3,
-        weekly_hours_target: profileRes.data?.weekly_hours_target ?? 4.5,
-        weekly_rolls_target: profileRes.data?.weekly_rolls_target ?? 15,
-        weekly_bjj_sessions_target: profileRes.data?.weekly_bjj_sessions_target ?? 3,
-        weekly_sc_sessions_target: profileRes.data?.weekly_sc_sessions_target ?? 1,
-        weekly_mobility_sessions_target: profileRes.data?.weekly_mobility_sessions_target ?? 0,
-        show_streak_on_dashboard: profileRes.data?.show_streak_on_dashboard ?? true,
-        show_weekly_goals: profileRes.data?.show_weekly_goals ?? true,
-        activity_visibility: profileRes.data?.activity_visibility ?? 'friends',
-        avatar_url: profileRes.data?.avatar_url ?? '',
-        timezone: profileRes.data?.timezone ?? '',
-        primary_gym_id: profileRes.data?.primary_gym_id ?? null,
-      });
+      setFormData(mapProfileToFormData(profileRes.data));
     } catch (error) {
       logger.error('Error refreshing profile:', error);
     }
@@ -781,7 +732,7 @@ export default function Profile() {
       <div className="card" style={{ borderColor: 'var(--accent)' }}>
         <h3 className="font-semibold mb-2">About Your Profile</h3>
         <ul className="text-sm text-[var(--muted)] space-y-1">
-          <li>• Your profile data is stored locally on your device</li>
+          <li>• Your profile data is stored securely on our servers</li>
           <li>• Default gym will pre-fill session logging forms</li>
           <li>• Belt progression tracks your BJJ journey over time</li>
           <li>• All fields are optional</li>

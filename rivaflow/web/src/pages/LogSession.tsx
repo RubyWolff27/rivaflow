@@ -23,6 +23,7 @@ import { SPARRING_TYPES } from '../components/sessions/sessionTypes';
 const DURATION_QUICK_SELECT = [60, 75, 90, 120] as const;
 
 export default function LogSession() {
+  useEffect(() => { document.title = 'Log Session | RivaFlow'; }, []);
   const navigate = useNavigate();
   const toast = useToast();
   const [activityType, setActivityType] = useState<'training' | 'rest'>('training');

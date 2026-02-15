@@ -299,6 +299,7 @@ const FeedItemComponent = memo(function FeedItemComponent({
 });
 
 export default function Feed() {
+  useEffect(() => { document.title = 'Feed | RivaFlow'; }, []);
   const navigate = useNavigate();
   const { user } = useAuth();
   const [feed, setFeed] = useState<FeedResponse | null>(null);

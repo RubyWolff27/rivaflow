@@ -1,6 +1,7 @@
 """Health check endpoint for monitoring and load balancer checks."""
 
 import logging
+import os
 
 from fastapi import APIRouter, status
 from fastapi.responses import JSONResponse
@@ -8,6 +9,8 @@ from fastapi.responses import JSONResponse
 from rivaflow.db.database import get_connection
 
 logger = logging.getLogger(__name__)
+
+_GIT_SHA = os.getenv("RENDER_GIT_COMMIT", "unknown")
 
 router = APIRouter()
 
@@ -30,6 +33,7 @@ def health_check():
         "status": "healthy",
         "service": "rivaflow-api",
         "version": "0.5.0",
+        "commit": _GIT_SHA,
     }
 
     # Check database connectivity
@@ -49,7 +53,6 @@ def health_check():
                 )
     except Exception as e:
         logger.error(f"Health check database error: {e}")
-        logger.error(f"Error type: {type(e).__name__}")
         health_status["database"] = "disconnected"
         health_status["status"] = "unhealthy"
         return JSONResponse(

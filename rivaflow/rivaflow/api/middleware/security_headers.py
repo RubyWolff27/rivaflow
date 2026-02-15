@@ -44,26 +44,28 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
         # Control referrer information
         response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
 
-        # Content Security Policy - restrictive but allows API usage
-        # Adjust this based on your frontend needs
-        csp_policy = (
-            "default-src 'self'; "
-            "script-src 'self'; "
-            "style-src 'self' 'unsafe-inline'; "
-            "img-src 'self' data: https:; "
-            "font-src 'self' data:; "
-            "connect-src 'self'; "
-            "frame-ancestors 'none'; "
-            "base-uri 'self'; "
-            "form-action 'self'"
-        )
-        response.headers["Content-Security-Policy"] = csp_policy
+        # Content Security Policy - only apply to non-JSON responses
+        # API JSON responses don't need CSP; it can cause issues with clients
+        content_type = response.headers.get("content-type", "")
+        if "application/json" not in content_type:
+            csp_policy = (
+                "default-src 'self'; "
+                "script-src 'self'; "
+                "style-src 'self' 'unsafe-inline'; "
+                "img-src 'self' data: https:; "
+                "font-src 'self' data:; "
+                "connect-src 'self' https://api.rivaflow.app; "
+                "frame-ancestors 'none'; "
+                "base-uri 'self'; "
+                "form-action 'self'"
+            )
+            response.headers["Content-Security-Policy"] = csp_policy
 
         # Permissions Policy (formerly Feature-Policy)
-        # Disable unnecessary browser features
+        # Disable unnecessary browser features; allow microphone for voice logging
         permissions_policy = (
             "geolocation=(), "
-            "microphone=(), "
+            "microphone=(self), "
             "camera=(), "
             "payment=(), "
             "usb=(), "

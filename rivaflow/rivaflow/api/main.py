@@ -20,13 +20,14 @@ from fastapi.staticfiles import StaticFiles
 from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 from slowapi.util import get_remote_address
+from starlette.middleware.gzip import GZipMiddleware
 
-from rivaflow.api.middleware.compression import GzipCompressionMiddleware
 from rivaflow.api.middleware.error_handler import (
     generic_exception_handler,
     rivaflow_exception_handler,
     validation_exception_handler,
 )
+from rivaflow.api.middleware.request_id import RequestIDMiddleware
 from rivaflow.api.middleware.security_headers import SecurityHeadersMiddleware
 from rivaflow.api.middleware.versioning import VersioningMiddleware
 from rivaflow.api.routes import (
@@ -105,7 +106,7 @@ if SENTRY_AVAILABLE and _sentry_dsn:
     sentry_sdk.init(
         dsn=_sentry_dsn,
         environment=os.getenv("ENV", "development"),
-        traces_sample_rate=0.5,
+        traces_sample_rate=0.1,
         profiles_sample_rate=0.1,
         send_default_pii=False,
     )
@@ -235,10 +236,13 @@ app.add_middleware(
 app.add_middleware(VersioningMiddleware)
 
 # Add gzip compression for responses > 1KB
-app.add_middleware(GzipCompressionMiddleware)
+app.add_middleware(GZipMiddleware, minimum_size=1000)
 
 # Add security headers for production hardening
 app.add_middleware(SecurityHeadersMiddleware)
+
+# Add request ID tracking
+app.add_middleware(RequestIDMiddleware)
 
 
 # Register health check routes (no prefix for easy access by load balancers)
@@ -325,8 +329,8 @@ async def health():
                 checks["database"] = "error"
                 overall_status = "degraded"
                 status_code = 503
-    except Exception as e:
-        checks["database"] = f"error: {type(e).__name__}"
+    except Exception:
+        checks["database"] = "error"
         overall_status = "unhealthy"
         status_code = 503
 

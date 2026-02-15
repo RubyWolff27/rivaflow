@@ -25,7 +25,7 @@ export default function GettingStarted() {
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
   const [dismissed, setDismissed] = useState(
-    () => sessionStorage.getItem('onboarding_dismissed') === '1',
+    () => localStorage.getItem('onboarding_dismissed') === '1',
   );
 
   useEffect(() => {
@@ -69,7 +69,7 @@ export default function GettingStarted() {
           </span>
           <button
             onClick={() => {
-              sessionStorage.setItem('onboarding_dismissed', '1');
+              localStorage.setItem('onboarding_dismissed', '1');
               setDismissed(true);
             }}
             className="text-xs"

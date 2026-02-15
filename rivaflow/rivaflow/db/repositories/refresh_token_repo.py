@@ -1,5 +1,6 @@
 """Repository for refresh token data access."""
 
+import hashlib
 from datetime import datetime
 
 from rivaflow.core.time_utils import utcnow
@@ -8,6 +9,15 @@ from rivaflow.db.database import convert_query, execute_insert, get_connection
 
 class RefreshTokenRepository:
     """Data access layer for refresh tokens."""
+
+    @staticmethod
+    def _hash_token(token: str) -> str:
+        """Hash a refresh token using SHA-256.
+
+        Refresh tokens are already cryptographically random, so SHA-256
+        is sufficient (no need for bcrypt's computational slowness).
+        """
+        return hashlib.sha256(token.encode()).hexdigest()
 
     @staticmethod
     def create(user_id: int, token: str, expires_at: str) -> dict:
@@ -22,6 +32,8 @@ class RefreshTokenRepository:
         Returns:
             Dictionary representation of the created token
         """
+        token_hash = RefreshTokenRepository._hash_token(token)
+
         with get_connection() as conn:
             cursor = conn.cursor()
 
@@ -31,12 +43,13 @@ class RefreshTokenRepository:
                 INSERT INTO refresh_tokens (user_id, token, expires_at)
                 VALUES (?, ?, ?)
                 """,
-                (user_id, token, expires_at),
+                (user_id, token_hash, expires_at),
             )
 
             # Fetch and return the created token
             cursor.execute(
-                convert_query("SELECT * FROM refresh_tokens WHERE id = ?"), (token_id,)
+                convert_query("SELECT * FROM refresh_tokens WHERE id = ?"),
+                (token_id,),
             )
             row = cursor.fetchone()
             return RefreshTokenRepository._row_to_dict(row)
@@ -47,15 +60,18 @@ class RefreshTokenRepository:
         Get a refresh token by its token string.
 
         Args:
-            token: The refresh token string
+            token: The refresh token string (unhashed)
 
         Returns:
             Token dictionary or None if not found
         """
+        token_hash = RefreshTokenRepository._hash_token(token)
+
         with get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(
-                convert_query("SELECT * FROM refresh_tokens WHERE token = ?"), (token,)
+                convert_query("SELECT * FROM refresh_tokens WHERE token = ?"),
+                (token_hash,),
             )
             row = cursor.fetchone()
             if row:
@@ -92,15 +108,18 @@ class RefreshTokenRepository:
         Delete a refresh token.
 
         Args:
-            token: The refresh token string
+            token: The refresh token string (unhashed)
 
         Returns:
             True if token was deleted, False if not found
         """
+        token_hash = RefreshTokenRepository._hash_token(token)
+
         with get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(
-                convert_query("DELETE FROM refresh_tokens WHERE token = ?"), (token,)
+                convert_query("DELETE FROM refresh_tokens WHERE token = ?"),
+                (token_hash,),
             )
             return cursor.rowcount > 0
 

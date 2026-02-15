@@ -42,7 +42,7 @@ export function CardSkeleton({ lines = 3 }: { lines?: number }) {
     <div className="p-6 bg-[var(--surface)] border border-[var(--border)] rounded-[14px] space-y-3">
       <LoadingSkeleton width="150px" height="20px" />
       {Array.from({ length: lines }).map((_, i) => (
-        <LoadingSkeleton key={i} width={`${Math.random() * 30 + 70}%`} height="16px" />
+        <LoadingSkeleton key={i} width={`${[95, 80, 70, 85, 75][i % 5]}%`} height="16px" />
       ))}
     </div>
   );

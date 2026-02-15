@@ -39,6 +39,7 @@ interface TierInfo {
 type ActivePanel = 'chat' | 'extract' | 'insights' | 'technique-qa';
 
 export default function Grapple() {
+  useEffect(() => { document.title = 'Grapple AI | RivaFlow'; }, []);
   const { user: _user } = useAuth();
   const toast = useToast();
   const messagesEndRef = useRef<HTMLDivElement>(null);

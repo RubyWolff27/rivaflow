@@ -3,6 +3,7 @@ import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { AuthProvider } from './contexts/AuthContext';
 import { ToastProvider } from './contexts/ToastContext';
 import PrivateRoute from './components/PrivateRoute';
+import AdminRoute from './components/AdminRoute';
 import Layout from './components/Layout';
 import LoadingSkeleton from './components/LoadingSkeleton';
 import ErrorBoundary from './components/ErrorBoundary';
@@ -102,15 +103,15 @@ function App() {
                           <Route path="/coach-settings" element={<CoachSettings />} />
                           <Route path="/my-game" element={<MyGame />} />
                           <Route path="/goals" element={<MonthlyGoals />} />
-                          <Route path="/admin" element={<AdminDashboard />} />
-                          <Route path="/admin/users" element={<AdminUsers />} />
-                          <Route path="/admin/gyms" element={<AdminGyms />} />
-                          <Route path="/admin/content" element={<AdminContent />} />
-                          <Route path="/admin/techniques" element={<AdminTechniques />} />
-                          <Route path="/admin/grapple" element={<AdminGrapple />} />
-                          <Route path="/admin/feedback" element={<AdminFeedback />} />
-                          <Route path="/admin/waitlist" element={<AdminWaitlist />} />
-                          <Route path="/admin/email" element={<AdminEmail />} />
+                          <Route path="/admin" element={<AdminRoute><AdminDashboard /></AdminRoute>} />
+                          <Route path="/admin/users" element={<AdminRoute><AdminUsers /></AdminRoute>} />
+                          <Route path="/admin/gyms" element={<AdminRoute><AdminGyms /></AdminRoute>} />
+                          <Route path="/admin/content" element={<AdminRoute><AdminContent /></AdminRoute>} />
+                          <Route path="/admin/techniques" element={<AdminRoute><AdminTechniques /></AdminRoute>} />
+                          <Route path="/admin/grapple" element={<AdminRoute><AdminGrapple /></AdminRoute>} />
+                          <Route path="/admin/feedback" element={<AdminRoute><AdminFeedback /></AdminRoute>} />
+                          <Route path="/admin/waitlist" element={<AdminRoute><AdminWaitlist /></AdminRoute>} />
+                          <Route path="/admin/email" element={<AdminRoute><AdminEmail /></AdminRoute>} />
                           <Route path="/groups" element={<Groups />} />
                           <Route path="/events" element={<Events />} />
                           <Route path="/fight-dynamics" element={<FightDynamics />} />

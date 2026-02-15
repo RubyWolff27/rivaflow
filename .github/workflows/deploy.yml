@@ -62,23 +62,51 @@ jobs:
         RENDER_SERVICE_ID: ${{ secrets.RENDER_SERVICE_ID }}
       run: |
         if [ -z "$RENDER_API_KEY" ] || [ -z "$RENDER_SERVICE_ID" ]; then
-          echo "WARNING: RENDER_API_KEY or RENDER_SERVICE_ID not configured."
-          echo "Deploy will only happen if autoDeploy is enabled in Render dashboard."
+          echo "ERROR: RENDER_API_KEY or RENDER_SERVICE_ID not configured."
           echo "Configure these secrets to enable CI-triggered deploys."
+          exit 1
         else
           echo "Triggering Render deployment for commit ${{ github.sha }}..."
           curl -s -X POST \
             -H "Authorization: Bearer $RENDER_API_KEY" \
             -H "Content-Type: application/json" \
             "https://api.render.com/v1/services/$RENDER_SERVICE_ID/deploys"
-          echo "Deploy triggered via Render API."
+          echo "API deploy triggered via Render API."
         fi
         echo "Monitor: https://dashboard.render.com/"
 
+    - name: Trigger frontend deployment
+      env:
+        RENDER_API_KEY: ${{ secrets.RENDER_API_KEY }}
+        RENDER_FRONTEND_SERVICE_ID: ${{ secrets.RENDER_FRONTEND_SERVICE_ID }}
+      run: |
+        if [ -z "$RENDER_API_KEY" ] || [ -z "$RENDER_FRONTEND_SERVICE_ID" ]; then
+          echo "RENDER_FRONTEND_SERVICE_ID not configured — skipping frontend deploy."
+        else
+          echo "Triggering Render frontend deployment..."
+          curl -s -X POST \
+            -H "Authorization: Bearer $RENDER_API_KEY" \
+            -H "Content-Type: application/json" \
+            "https://api.render.com/v1/services/$RENDER_FRONTEND_SERVICE_ID/deploys"
+          echo "Frontend deploy triggered."
+        fi
+
     - name: Wait for deployment health check
       run: |
-        echo "Waiting 60 seconds for deployment..."
-        sleep 60
+        echo "Polling health endpoint (max 120s)..."
+        for i in $(seq 1 24); do
+          response=$(curl -s -o /dev/null -w "%{http_code}" https://api.rivaflow.app/health || true)
+          if [ "$response" -eq 200 ]; then
+            echo "Health check passed after $((i * 5))s"
+            break
+          fi
+          echo "Attempt $i: HTTP $response — retrying in 5s..."
+          sleep 5
+        done
+        if [ "$response" -ne 200 ]; then
+          echo "Health check failed after 120s (last HTTP $response)"
+          exit 1
+        fi
 
     - name: Verify health endpoint
       id: health_check

@@ -11,6 +11,7 @@ import SessionScoreBadge from '../components/sessions/SessionScoreBadge';
 type ZoneData = { zone_durations: Record<string, number> | null; strain: number | null; calories: number | null; score_state: string | null };
 
 export default function Sessions() {
+  useEffect(() => { document.title = 'Sessions | RivaFlow'; }, []);
   const [sessions, setSessions] = useState<Session[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');

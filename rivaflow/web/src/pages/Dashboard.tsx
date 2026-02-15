@@ -33,11 +33,11 @@ export default function Dashboard() {
         }
         await profileApi.update({ timezone: browserTz });
         sessionStorage.setItem('tz_synced', browserTz);
-        // Timezone changed — reload so all date-dependent data is correct
-        window.location.reload();
       } catch { /* best-effort, will retry next load */ }
     })();
   }, []);
+
+  useEffect(() => { document.title = 'Dashboard | RivaFlow'; }, []);
 
   // Fire-and-forget staleness check for AI insights
   useEffect(() => {

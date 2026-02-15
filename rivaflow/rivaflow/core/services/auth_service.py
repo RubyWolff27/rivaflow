@@ -1,6 +1,7 @@
 """Service layer for authentication operations."""
 
 import logging
+from datetime import datetime, timedelta
 from typing import Any
 
 from rivaflow.core.auth import (
@@ -74,26 +75,7 @@ class AuthService:
         email = normalized_email
 
         # Validate password strength
-        if len(password) < 8:
-            raise ValidationError(
-                message="Password must be at least 8 characters long",
-                action="Choose a password with at least 8 characters.",
-            )
-        if not any(c.isupper() for c in password):
-            raise ValidationError(
-                message="Password must contain at least one uppercase letter",
-                action="Add an uppercase letter to your password.",
-            )
-        if not any(c.islower() for c in password):
-            raise ValidationError(
-                message="Password must contain at least one lowercase letter",
-                action="Add a lowercase letter to your password.",
-            )
-        if not any(c.isdigit() for c in password):
-            raise ValidationError(
-                message="Password must contain at least one number",
-                action="Add a number to your password.",
-            )
+        AuthService._validate_password_strength(password)
 
         # Check if email already exists (no password needed for existence check)
         existing_user = self.user_repo.get_by_email(email)
@@ -191,7 +173,7 @@ class AuthService:
                 first_name=first_name,
             )
         except (ConnectionError, OSError, RuntimeError) as e:
-            logger.warning(f"Failed to send welcome email to {email}: {e}")
+            logger.warning(f"Failed to send welcome email to {email[:3]}***: {e}")
 
         return {
             "access_token": access_token,
@@ -229,12 +211,29 @@ class AuthService:
                 action="Your account has been deactivated. Please contact support@rivaflow.com for assistance.",
             )
 
+        # Check account lockout
+        locked_until = user.get("locked_until")
+        if locked_until:
+            if isinstance(locked_until, str):
+                locked_until = datetime.fromisoformat(locked_until)
+            from rivaflow.core.time_utils import utcnow
+
+            if locked_until > utcnow():
+                raise AuthenticationError(
+                    message="Account temporarily locked",
+                    action="Too many failed login attempts. Please try again in 15 minutes, or reset your password.",
+                )
+
         # Verify password
         if not verify_password(password, user["hashed_password"]):
+            self._record_failed_login(user["id"], user.get("failed_login_attempts", 0))
             raise AuthenticationError(
                 message="Invalid email or password",
                 action="Double-check your email and password. If you forgot your password, click 'Forgot Password' to reset it.",
             )
+
+        # Successful login — reset lockout counters
+        self._reset_login_attempts(user["id"])
 
         # Generate tokens (sub must be string for JWT)
         access_token = create_access_token(data={"sub": str(user["id"])})
@@ -386,12 +385,14 @@ class AuthService:
             )
 
             if success:
-                logger.info(f"Password reset email sent to {email}")
+                logger.info(f"Password reset email sent to {email[:3]}***")
             else:
-                logger.error(f"Failed to send password reset email to {email}")
+                logger.error(f"Failed to send password reset email to {email[:3]}***")
 
         else:
-            logger.info(f"Password reset requested for non-existent email: {email}")
+            logger.info(
+                f"Password reset requested for non-existent email: {email[:3]}***"
+            )
 
         # Always return True (don't reveal if user exists)
         return True
@@ -419,9 +420,8 @@ class AuthService:
 
         logger = logging.getLogger(__name__)
 
-        # Validate password strength
-        if len(new_password) < 8:
-            raise ValueError("Password must be at least 8 characters long")
+        # Validate password strength (same rules as registration)
+        AuthService._validate_password_strength(new_password)
 
         token_repo = PasswordResetTokenRepository()
 
@@ -474,6 +474,77 @@ class AuthService:
         except Exception as e:
             logger.error(f"Password reset failed for user {user_id}: {e}")
             raise
+
+    MAX_FAILED_ATTEMPTS = 5
+    LOCKOUT_MINUTES = 15
+
+    @staticmethod
+    def _record_failed_login(user_id: int, current_attempts: int) -> None:
+        """Increment failed login attempts; lock after MAX_FAILED_ATTEMPTS."""
+        from rivaflow.db.database import convert_query, get_connection
+
+        new_attempts = (current_attempts or 0) + 1
+        locked_until = None
+        if new_attempts >= AuthService.MAX_FAILED_ATTEMPTS:
+            from rivaflow.core.time_utils import utcnow
+
+            locked_until = (
+                utcnow() + timedelta(minutes=AuthService.LOCKOUT_MINUTES)
+            ).isoformat()
+            logger.warning(
+                "User %d locked out after %d failed attempts", user_id, new_attempts
+            )
+
+        with get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                convert_query(
+                    "UPDATE users SET failed_login_attempts = ?, locked_until = ? WHERE id = ?"
+                ),
+                (new_attempts, locked_until, user_id),
+            )
+
+    @staticmethod
+    def _reset_login_attempts(user_id: int) -> None:
+        """Reset failed login counters on successful login."""
+        from rivaflow.db.database import convert_query, get_connection
+
+        with get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                convert_query(
+                    "UPDATE users SET failed_login_attempts = 0, locked_until = NULL WHERE id = ?"
+                ),
+                (user_id,),
+            )
+
+    @staticmethod
+    def _validate_password_strength(password: str) -> None:
+        """Validate password meets strength requirements.
+
+        Raises:
+            ValidationError: If password doesn't meet requirements
+        """
+        if len(password) < 8:
+            raise ValidationError(
+                message="Password must be at least 8 characters long",
+                action="Choose a password with at least 8 characters.",
+            )
+        if not any(c.isupper() for c in password):
+            raise ValidationError(
+                message="Password must contain at least one uppercase letter",
+                action="Add an uppercase letter to your password.",
+            )
+        if not any(c.islower() for c in password):
+            raise ValidationError(
+                message="Password must contain at least one lowercase letter",
+                action="Add a lowercase letter to your password.",
+            )
+        if not any(c.isdigit() for c in password):
+            raise ValidationError(
+                message="Password must contain at least one number",
+                action="Add a number to your password.",
+            )
 
     @staticmethod
     def _sanitize_user(user: dict[str, Any]) -> dict[str, Any]:

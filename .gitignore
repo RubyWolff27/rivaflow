@@ -49,6 +49,8 @@ htmlcov/
 .env.local
 web/.env
 web/.env.local
+rivaflow/.env
+rivaflow/.env.*
 
 # OS
 .DS_Store

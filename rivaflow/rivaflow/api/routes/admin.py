@@ -486,8 +486,8 @@ def list_users(
     search: str | None = None,
     is_active: bool | None = None,
     is_admin: bool | None = None,
-    limit: int = 50,
-    offset: int = 0,
+    limit: int = Query(50, ge=1, le=500),
+    offset: int = Query(0, ge=0),
     current_user: dict = Depends(require_admin),
 ):
     """List all users with optional filters (admin only)."""
@@ -726,8 +726,8 @@ def delete_user(
 @limiter.limit("60/minute")
 def list_all_comments(
     request: Request,
-    limit: int = 100,
-    offset: int = 0,
+    limit: int = Query(100, ge=1, le=500),
+    offset: int = Query(0, ge=0),
     current_user: dict = Depends(require_admin),
 ):
     """List all comments for moderation (admin only)."""

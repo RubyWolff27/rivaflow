@@ -1,0 +1,21 @@
+"""Request ID middleware for tracing requests across services."""
+
+import uuid
+
+from starlette.middleware.base import BaseHTTPMiddleware
+from starlette.requests import Request
+
+
+class RequestIDMiddleware(BaseHTTPMiddleware):
+    """Ensure every request has a unique X-Request-ID header.
+
+    If the incoming request already has an X-Request-ID, it is preserved.
+    Otherwise a new UUID4 is generated. The ID is echoed back on the
+    response so clients can correlate requests with server logs.
+    """
+
+    async def dispatch(self, request: Request, call_next):
+        request_id = request.headers.get("x-request-id") or str(uuid.uuid4())
+        response = await call_next(request)
+        response.headers["X-Request-ID"] = request_id
+        return response

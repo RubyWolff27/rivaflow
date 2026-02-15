@@ -73,7 +73,6 @@ jobs:
           --import-mode=importlib \
           --tb=short \
           -v \
-          || echo "::warning::Some inner tests failed — these need maintenance"
 
     - name: Upload coverage to Codecov
       uses: codecov/codecov-action@v5

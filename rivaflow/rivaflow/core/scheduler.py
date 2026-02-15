@@ -22,6 +22,7 @@ _LOCK_IDS = {
     "streak_at_risk": 900002,
     "drip_emails": 900003,
     "coach_settings_reminder": 900004,
+    "token_cleanup": 900005,
 }
 
 
@@ -324,6 +325,32 @@ async def _coach_settings_reminder_job() -> None:
         _release_advisory_lock("coach_settings_reminder")
 
 
+async def _token_cleanup_job() -> None:
+    """Delete expired refresh tokens and password reset tokens (daily 03:00 UTC)."""
+    if not _try_advisory_lock("token_cleanup"):
+        return
+    try:
+        from rivaflow.db.repositories.password_reset_token_repo import (
+            PasswordResetTokenRepository,
+        )
+        from rivaflow.db.repositories.refresh_token_repo import (
+            RefreshTokenRepository,
+        )
+
+        refresh_deleted = RefreshTokenRepository.delete_expired()
+        reset_deleted = PasswordResetTokenRepository.cleanup_expired_tokens()
+        if refresh_deleted or reset_deleted:
+            logger.info(
+                "Token cleanup: %d refresh, %d reset tokens deleted",
+                refresh_deleted,
+                reset_deleted,
+            )
+    except Exception:
+        logger.error("Token cleanup job failed", exc_info=True)
+    finally:
+        _release_advisory_lock("token_cleanup")
+
+
 # ---------------------------------------------------------------------------
 # Lifecycle
 # ---------------------------------------------------------------------------
@@ -365,6 +392,16 @@ def start_scheduler() -> None:
         hour=10,
         minute=0,
         id="drip_emails",
+        replace_existing=True,
+    )
+
+    # Daily 03:00 UTC — expired token cleanup
+    _scheduler.add_job(
+        _token_cleanup_job,
+        "cron",
+        hour=3,
+        minute=0,
+        id="token_cleanup",
         replace_existing=True,
     )
 
