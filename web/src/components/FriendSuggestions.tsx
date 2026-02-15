@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { socialApi } from '../api/client';
+import { logger } from '../utils/logger';
 import { useToast } from '../contexts/ToastContext';
 import { Card, PrimaryButton, SecondaryButton } from './ui';
 import { useFeatureAccess } from '../hooks/useTier';
@@ -66,7 +67,7 @@ export function FriendSuggestions() {
         setBrowseUsers([]);
       }
     } catch (error) {
-      console.error('Failed to load friend suggestions:', error);
+      logger.error('Failed to load friend suggestions:', error);
       toast.error('Failed to load suggestions');
     } finally {
       setLoading(false);
@@ -93,7 +94,7 @@ export function FriendSuggestions() {
         }
       } catch (error) {
         if (!cancelled) {
-          console.error('Failed to load friend suggestions:', error);
+          logger.error('Failed to load friend suggestions:', error);
           toast.error('Failed to load suggestions');
         }
       } finally {
@@ -110,7 +111,7 @@ export function FriendSuggestions() {
       setSuggestions(suggestions.filter(s => s.suggested_user_id !== suggestedUserId));
       toast.success('Suggestion dismissed');
     } catch (error) {
-      console.error('Failed to dismiss suggestion:', error);
+      logger.error('Failed to dismiss suggestion:', error);
       toast.error('Failed to dismiss suggestion');
     }
   };
@@ -122,7 +123,7 @@ export function FriendSuggestions() {
       toast.success('Generating new suggestions...');
       setTimeout(() => loadSuggestions(), 2000);
     } catch (error) {
-      console.error('Failed to regenerate suggestions:', error);
+      logger.error('Failed to regenerate suggestions:', error);
       toast.error('Failed to regenerate suggestions');
     } finally {
       setRegenerating(false);

@@ -22,6 +22,23 @@ def _pg_bool(value: bool) -> Any:
     return int(value)
 
 
+# Explicit column list for sessions table (avoids SELECT *)
+_SESSION_COLS = (
+    "id, user_id, session_date, class_time, class_type, gym_name, location, "
+    "duration_mins, intensity, rolls, "
+    "submissions_for, submissions_against, "
+    "partners, techniques, notes, "
+    "visibility_level, audience_scope, share_fields, published_at, "
+    "instructor_id, instructor_name, "
+    "whoop_strain, whoop_calories, whoop_avg_hr, whoop_max_hr, "
+    "attacks_attempted, attacks_successful, "
+    "defenses_attempted, defenses_successful, "
+    "source, needs_review, "
+    "session_score, score_breakdown, score_version, "
+    "created_at, updated_at"
+)
+
+
 class SessionRepository:
     """Data access layer for training sessions."""
 
@@ -110,7 +127,10 @@ class SessionRepository:
         with get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(
-                convert_query("SELECT * FROM sessions WHERE id = ? AND user_id = ?"),
+                convert_query(
+                    f"SELECT {_SESSION_COLS} FROM sessions"
+                    " WHERE id = ? AND user_id = ?"
+                ),
                 (session_id, user_id),
             )
             row = cursor.fetchone()
@@ -167,7 +187,8 @@ class SessionRepository:
         with get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(
-                convert_query("SELECT * FROM sessions WHERE id = ?"), (session_id,)
+                convert_query(f"SELECT {_SESSION_COLS} FROM sessions WHERE id = ?"),
+                (session_id,),
             )
             row = cursor.fetchone()
             if not row:
@@ -300,15 +321,15 @@ class SessionRepository:
                 # Build parameterized query with IN clause
                 placeholders = ", ".join("?" * len(types))
                 query = f"""
-                SELECT * FROM sessions
+                SELECT {_SESSION_COLS} FROM sessions
                 WHERE user_id = ? AND session_date BETWEEN ? AND ?
                 AND class_type IN ({placeholders})
                 ORDER BY session_date DESC
                 """
                 params = (user_id, start_date.isoformat(), end_date.isoformat(), *types)
             else:
-                query = """
-                SELECT * FROM sessions
+                query = f"""
+                SELECT {_SESSION_COLS} FROM sessions
                 WHERE user_id = ? AND session_date BETWEEN ? AND ?
                 ORDER BY session_date DESC
                 """
@@ -324,7 +345,8 @@ class SessionRepository:
             cursor = conn.cursor()
             cursor.execute(
                 convert_query(
-                    "SELECT * FROM sessions WHERE user_id = ? ORDER BY session_date DESC LIMIT ?"
+                    f"SELECT {_SESSION_COLS} FROM sessions"
+                    " WHERE user_id = ? ORDER BY session_date DESC LIMIT ?"
                 ),
                 (user_id, limit),
             )
@@ -343,14 +365,17 @@ class SessionRepository:
             if limit:
                 cursor.execute(
                     convert_query(
-                        "SELECT * FROM sessions WHERE user_id = ? ORDER BY session_date DESC LIMIT ?"
+                        f"SELECT {_SESSION_COLS} FROM sessions"
+                        " WHERE user_id = ? ORDER BY session_date DESC"
+                        " LIMIT ?"
                     ),
                     (user_id, limit),
                 )
             else:
                 cursor.execute(
                     convert_query(
-                        "SELECT * FROM sessions WHERE user_id = ? ORDER BY session_date DESC"
+                        f"SELECT {_SESSION_COLS} FROM sessions"
+                        " WHERE user_id = ? ORDER BY session_date DESC"
                     ),
                     (user_id,),
                 )

@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { friendsApi, socialApi } from '../api/client';
+import { logger } from '../utils/logger';
 import type { Friend } from '../types';
 import { useNavigate } from 'react-router-dom';
 import { Users, Plus, Edit2, Trash2, Award, Filter, Search, UserCheck, X } from 'lucide-react';
@@ -71,7 +72,7 @@ export default function Friends() {
           setFriends(data.friends || data || []);
         }
       } catch (error) {
-        if (!cancelled) console.error('Error loading contacts:', error);
+        if (!cancelled) logger.error('Error loading contacts:', error);
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -149,7 +150,7 @@ export default function Friends() {
       const data = response.data as any;
       setFriends(data.friends || data || []);
     } catch (error) {
-      console.error('Error loading contacts:', error);
+      logger.error('Error loading contacts:', error);
     } finally {
       setLoading(false);
     }
@@ -198,7 +199,7 @@ export default function Friends() {
       await loadFriends();
       toast.success(editingFriend ? 'Friend updated successfully' : 'Friend added successfully');
     } catch (error) {
-      console.error('Error saving contact:', error);
+      logger.error('Error saving contact:', error);
       toast.error('Failed to save friend.');
     }
   };
@@ -226,7 +227,7 @@ export default function Friends() {
       await loadFriends();
       toast.success('Friend deleted successfully');
     } catch (error) {
-      console.error('Error deleting friend:', error);
+      logger.error('Error deleting friend:', error);
       toast.error('Failed to delete friend.');
     } finally {
       setFriendToDelete(null);

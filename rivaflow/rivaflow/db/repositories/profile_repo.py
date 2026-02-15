@@ -7,6 +7,27 @@ from rivaflow.db.database import convert_query, get_connection
 
 logger = logging.getLogger(__name__)
 
+# Explicit column list for profile table (avoids SELECT p.*)
+_PROFILE_COLS = (
+    "p.id, p.user_id, p.first_name, p.last_name, "
+    "p.date_of_birth, p.sex, p.default_gym, p.default_location, "
+    "p.current_grade, p.current_professor, p.current_instructor_id, "
+    "p.primary_training_type, "
+    "p.location, p.state, "
+    "p.height_cm, p.target_weight_kg, p.target_weight_date, "
+    "p.weekly_sessions_target, p.weekly_hours_target, p.weekly_rolls_target, "
+    "p.weekly_bjj_sessions_target, p.weekly_sc_sessions_target, "
+    "p.weekly_mobility_sessions_target, "
+    "p.show_streak_on_dashboard, p.show_weekly_goals, "
+    "p.timezone, "
+    "p.created_at, p.updated_at"
+)
+
+# Profile columns joined with user table fields
+_PROFILE_JOIN_COLS = (
+    _PROFILE_COLS + ", u.avatar_url, u.email, u.primary_gym_id, u.activity_visibility"
+)
+
 
 class ProfileRepository:
     """Data access layer for user profile (single row table)."""
@@ -19,13 +40,12 @@ class ProfileRepository:
             cursor = conn.cursor()
             # Join with users table to get avatar_url
             cursor.execute(
-                convert_query("""
-                    SELECT p.*, u.avatar_url, u.email, u.primary_gym_id,
-                        u.activity_visibility
-                    FROM profile p
-                    LEFT JOIN users u ON p.user_id = u.id
-                    WHERE p.user_id = ?
-                """),
+                convert_query(
+                    f"SELECT {_PROFILE_JOIN_COLS}"
+                    " FROM profile p"
+                    " LEFT JOIN users u ON p.user_id = u.id"
+                    " WHERE p.user_id = ?"
+                ),
                 (user_id,),
             )
             row = cursor.fetchone()
@@ -251,13 +271,12 @@ class ProfileRepository:
 
             # Return updated profile (join with users table to get avatar_url)
             cursor.execute(
-                convert_query("""
-                    SELECT p.*, u.avatar_url, u.email, u.primary_gym_id,
-                        u.activity_visibility
-                    FROM profile p
-                    LEFT JOIN users u ON p.user_id = u.id
-                    WHERE p.user_id = ?
-                """),
+                convert_query(
+                    f"SELECT {_PROFILE_JOIN_COLS}"
+                    " FROM profile p"
+                    " LEFT JOIN users u ON p.user_id = u.id"
+                    " WHERE p.user_id = ?"
+                ),
                 (user_id,),
             )
             row = cursor.fetchone()

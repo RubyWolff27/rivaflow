@@ -15,8 +15,6 @@ from rivaflow.core.settings import settings
 router = APIRouter(prefix="/integrations", tags=["integrations"])
 logger = logging.getLogger(__name__)
 
-service = WhoopService()
-
 
 # ============================================================================
 # Feature flag guard
@@ -58,6 +56,7 @@ def authorize(
 ):
     """Return the WHOOP OAuth authorization URL."""
     _require_whoop_enabled()
+    service = WhoopService()
     user_id = current_user["id"]
     url = service.initiate_oauth(user_id)
     return {"authorization_url": url}
@@ -92,6 +91,7 @@ def callback(
             f"{frontend_url}/profile?whoop=error&reason=missing_params"
         )
 
+    service = WhoopService()
     try:
         service.handle_callback(code, state)
         return RedirectResponse(f"{frontend_url}/profile?whoop=connected")
@@ -109,6 +109,7 @@ def get_status(
 ):
     """Return the user's WHOOP connection status."""
     _require_whoop_enabled()
+    service = WhoopService()
     return service.get_connection_status(current_user["id"])
 
 
@@ -120,6 +121,7 @@ def sync_workouts(
 ):
     """Trigger a workout sync from WHOOP."""
     _require_whoop_enabled()
+    service = WhoopService()
     try:
         result = service.sync_workouts(current_user["id"], days_back=days)
         return result
@@ -151,6 +153,7 @@ def get_workouts(
     by those parameters (for new/unsaved sessions).
     """
     _require_whoop_enabled()
+    service = WhoopService()
     user_id = current_user["id"]
 
     try:
@@ -186,6 +189,7 @@ def match_workout(
 ):
     """Link a cached WHOOP workout to a session."""
     _require_whoop_enabled()
+    service = WhoopService()
     try:
         updated = service.apply_workout_to_session(
             current_user["id"], body.session_id, body.workout_cache_id
@@ -206,6 +210,7 @@ def sync_recovery(
 ):
     """Trigger a recovery/sleep data sync from WHOOP."""
     _require_whoop_enabled()
+    service = WhoopService()
     try:
         result = service.sync_recovery(current_user["id"], days_back=days)
         return result
@@ -228,6 +233,7 @@ def get_latest_recovery(
 ):
     """Get the latest WHOOP recovery data."""
     _require_whoop_enabled()
+    service = WhoopService()
     try:
         data = service.get_latest_recovery(current_user["id"])
         return data or {"message": "No recovery data available"}
@@ -245,6 +251,7 @@ def scope_check(
 ):
     """Check if the user's WHOOP scopes need re-authorization."""
     _require_whoop_enabled()
+    service = WhoopService()
     return service.check_scope_compatibility(current_user["id"])
 
 
@@ -256,6 +263,7 @@ def readiness_auto_fill(
 ):
     """Get auto-fill readiness values from WHOOP recovery data."""
     _require_whoop_enabled()
+    service = WhoopService()
     if not date:
         from datetime import date as date_cls
 
@@ -280,6 +288,7 @@ def get_session_context(
 ):
     """Get WHOOP recovery context for a specific session."""
     _require_whoop_enabled()
+    service = WhoopService()
     user_id = current_user["id"]
 
     from rivaflow.db.repositories.session_repo import SessionRepository
@@ -568,6 +577,7 @@ def set_auto_create(
 ):
     """Toggle auto-creation of sessions from WHOOP BJJ workouts."""
     _require_whoop_enabled()
+    service = WhoopService()
     return service.set_auto_create_sessions(current_user["id"], body.enabled)
 
 
@@ -578,6 +588,7 @@ def set_auto_fill_readiness(
 ):
     """Toggle auto-fill readiness from WHOOP recovery data."""
     _require_whoop_enabled()
+    service = WhoopService()
     return service.set_auto_fill_readiness(current_user["id"], body.enabled)
 
 
@@ -588,5 +599,6 @@ def disconnect(
 ):
     """Disconnect WHOOP and clear all synced data."""
     _require_whoop_enabled()
+    service = WhoopService()
     service.disconnect(current_user["id"])
     return {"disconnected": True}

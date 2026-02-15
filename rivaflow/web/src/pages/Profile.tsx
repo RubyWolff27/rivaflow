@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { getLocalDateString } from '../utils/date';
 import { profileApi, gradingsApi, friendsApi, adminApi, gymsApi, whoopApi, getErrorMessage } from '../api/client';
+import { logger } from '../utils/logger';
 import type { Profile as ProfileType, Grading, Friend, WhoopConnectionStatus } from '../types';
 import { User, Crown, Star, Settings } from 'lucide-react';
 import { Link } from 'react-router-dom';
@@ -131,7 +132,7 @@ export default function Profile() {
         }
       } catch (error) {
         if (!controller.signal.aborted) {
-          console.error('Error fetching gym details:', error);
+          logger.error('Error fetching gym details:', error);
           setGymHeadCoach(null);
         }
       }
@@ -181,7 +182,7 @@ export default function Profile() {
         primary_gym_id: profileRes.data?.primary_gym_id ?? null,
       });
     } catch (error) {
-      console.error('Error loading data:', error);
+      logger.error('Error loading data:', error);
     } finally {
       setLoading(false);
     }
@@ -220,7 +221,7 @@ export default function Profile() {
         primary_gym_id: profileRes.data?.primary_gym_id ?? null,
       });
     } catch (error) {
-      console.error('Error refreshing profile:', error);
+      logger.error('Error refreshing profile:', error);
     }
   };
 
@@ -229,7 +230,7 @@ export default function Profile() {
       const gradingsRes = await gradingsApi.list();
       setGradings(gradingsRes.data ?? []);
     } catch (error) {
-      console.error('Error refreshing gradings:', error);
+      logger.error('Error refreshing gradings:', error);
     }
   };
 
@@ -272,7 +273,7 @@ export default function Profile() {
       toast.success('Profile photo uploaded successfully!');
       await refreshProfile();
     } catch (error: unknown) {
-      console.error('Error uploading photo:', error);
+      logger.error('Error uploading photo:', error);
       toast.error(getErrorMessage(error));
       setPhotoPreview(null);
     } finally {
@@ -288,7 +289,7 @@ export default function Profile() {
       toast.success('Profile photo deleted successfully!');
       await refreshProfile();
     } catch (error: unknown) {
-      console.error('Error deleting photo:', error);
+      logger.error('Error deleting photo:', error);
       toast.error(getErrorMessage(error));
     }
   };
@@ -331,7 +332,7 @@ export default function Profile() {
 
       toast.success('Photo uploaded successfully!');
     } catch (error: unknown) {
-      console.error('Error uploading grading photo:', error);
+      logger.error('Error uploading grading photo:', error);
       toast.error(getErrorMessage(error));
       setGradingPhotoPreview(null);
     } finally {
@@ -373,7 +374,7 @@ export default function Profile() {
       await loadData();
       setTimeout(() => setSuccess(false), 3000);
     } catch (error) {
-      console.error('Error updating profile:', error);
+      logger.error('Error updating profile:', error);
       toast.error('Failed to update profile. Please try again.');
     } finally {
       setSaving(false);
@@ -406,7 +407,7 @@ export default function Profile() {
       await loadData();
       setTimeout(() => setSuccess(false), 3000);
     } catch (error) {
-      console.error('Error updating goals:', error);
+      logger.error('Error updating goals:', error);
       toast.error('Failed to update goals. Please try again.');
     } finally {
       setSaving(false);
@@ -456,7 +457,7 @@ export default function Profile() {
       await refreshGradings();
       toast.success('Grading added successfully');
     } catch (error) {
-      console.error('Error adding grading:', error);
+      logger.error('Error adding grading:', error);
       toast.error('Failed to add grading. Please try again.');
     }
   };
@@ -506,7 +507,7 @@ export default function Profile() {
       await refreshGradings();
       toast.success('Grading updated successfully');
     } catch (error) {
-      console.error('Error updating grading:', error);
+      logger.error('Error updating grading:', error);
       toast.error('Failed to update grading. Please try again.');
     }
   };
@@ -532,7 +533,7 @@ export default function Profile() {
       await refreshGradings();
       toast.success('Grading deleted successfully');
     } catch (error) {
-      console.error('Error deleting grading:', error);
+      logger.error('Error deleting grading:', error);
       toast.error('Failed to delete grading.');
     } finally {
       setGradingToDelete(null);
@@ -635,7 +636,7 @@ export default function Profile() {
       setGymVerificationPending(true);
       setTimeout(() => setGymVerificationPending(false), 5000);
     } catch (error) {
-      console.error('Error submitting gym:', error);
+      logger.error('Error submitting gym:', error);
     }
   };
 

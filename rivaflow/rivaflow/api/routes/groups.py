@@ -16,7 +16,6 @@ from rivaflow.core.exceptions import NotFoundError
 from rivaflow.db.repositories.groups_repo import GroupsRepository
 
 router = APIRouter()
-repo = GroupsRepository()
 
 
 class GroupCreate(BaseModel):
@@ -56,6 +55,7 @@ def create_group(
     current_user: dict = Depends(get_current_user),
 ):
     """Create a new group."""
+    repo = GroupsRepository()
     group_id = repo.create(
         user_id=current_user["id"],
         data=group.model_dump(),
@@ -71,6 +71,7 @@ def list_groups(
     current_user: dict = Depends(get_current_user),
 ):
     """List groups the current user belongs to."""
+    repo = GroupsRepository()
     groups = repo.list_by_user(user_id=current_user["id"])
     # Add member count to each group
     for g in groups:
@@ -85,6 +86,7 @@ def discover_groups(
     current_user: dict = Depends(get_current_user),
 ):
     """List open groups user can join."""
+    repo = GroupsRepository()
     groups = repo.list_discoverable(user_id=current_user["id"])
     return {"groups": groups, "count": len(groups)}
 
@@ -97,6 +99,7 @@ def get_group(
     current_user: dict = Depends(get_current_user),
 ):
     """Get group detail with members."""
+    repo = GroupsRepository()
     group = repo.get_by_id(group_id)
     if not group:
         raise NotFoundError("Group not found")
@@ -121,6 +124,7 @@ def update_group(
     current_user: dict = Depends(get_current_user),
 ):
     """Update a group. Admin only."""
+    repo = GroupsRepository()
     updated = repo.update(
         group_id=group_id,
         user_id=current_user["id"],
@@ -142,6 +146,7 @@ def delete_group(
     current_user: dict = Depends(get_current_user),
 ):
     """Delete a group. Admin only."""
+    repo = GroupsRepository()
     deleted = repo.delete(group_id=group_id, user_id=current_user["id"])
     if not deleted:
         raise HTTPException(
@@ -160,6 +165,7 @@ def add_member(
     current_user: dict = Depends(get_current_user),
 ):
     """Add a member to a group (invite). Must be admin."""
+    repo = GroupsRepository()
     role = repo.get_member_role(group_id, current_user["id"])
     if role != "admin":
         raise HTTPException(
@@ -193,6 +199,7 @@ def remove_member(
     current_user: dict = Depends(get_current_user),
 ):
     """Remove a member from a group. Must be admin or self."""
+    repo = GroupsRepository()
     caller_role = repo.get_member_role(group_id, current_user["id"])
     if caller_role != "admin" and current_user["id"] != user_id:
         raise HTTPException(
@@ -214,6 +221,7 @@ def join_group(
     current_user: dict = Depends(get_current_user),
 ):
     """Join an open group."""
+    repo = GroupsRepository()
     group = repo.get_by_id(group_id)
     if not group:
         raise NotFoundError("Group not found")
@@ -241,6 +249,7 @@ def leave_group(
     current_user: dict = Depends(get_current_user),
 ):
     """Leave a group."""
+    repo = GroupsRepository()
     removed = repo.remove_member(group_id=group_id, user_id=current_user["id"])
     if not removed:
         raise NotFoundError("You are not a member of this group")

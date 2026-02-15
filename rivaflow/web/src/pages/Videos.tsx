@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { videosApi, glossaryApi } from '../api/client';
+import { logger } from '../utils/logger';
 import type { Video, Movement } from '../types';
 import { Video as VideoIcon, ExternalLink, Plus, X } from 'lucide-react';
 import { useToast } from '../contexts/ToastContext';
@@ -45,7 +46,7 @@ export default function Videos() {
           setMovements(Array.isArray(mData) ? mData : mData?.movements || []);
         }
       } catch (error) {
-        if (!cancelled) console.error('Error loading data:', error);
+        if (!cancelled) logger.error('Error loading data:', error);
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -66,7 +67,7 @@ export default function Videos() {
       const mData = movementsRes.data as any;
       setMovements(Array.isArray(mData) ? mData : mData?.movements || []);
     } catch (error) {
-      console.error('Error loading data:', error);
+      logger.error('Error loading data:', error);
     } finally {
       setLoading(false);
     }
@@ -91,7 +92,7 @@ export default function Videos() {
       await loadData();
       toast.showToast('success', 'Video added successfully!');
     } catch (error) {
-      console.error('Error adding video:', error);
+      logger.error('Error adding video:', error);
       toast.showToast('error', 'Failed to add video. Please try again.');
     } finally {
       setSubmitting(false);
@@ -104,7 +105,7 @@ export default function Videos() {
       setDeleteConfirmId(null);
       await loadData();
     } catch (error) {
-      console.error('Error deleting video:', error);
+      logger.error('Error deleting video:', error);
       toast.showToast('error', 'Failed to delete video. Please try again.');
     }
   };

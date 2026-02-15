@@ -1,5 +1,6 @@
 import { useState, useEffect, memo } from 'react';
 import { techniquesApi } from '../api/client';
+import { logger } from '../utils/logger';
 import type { TrainedMovement } from '../types';
 import { Book, AlertCircle } from 'lucide-react';
 import { CardSkeleton } from '../components/ui';
@@ -44,7 +45,7 @@ export default function Techniques() {
         }
       } catch (error) {
         if (!cancelled) {
-          console.error('Error loading techniques:', error);
+          logger.error('Error loading techniques:', error);
           setTechniques([]);
           setStaleTechniques([]);
         }

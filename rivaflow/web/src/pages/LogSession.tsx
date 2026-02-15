@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo, useCallback } from 'react';
 import { getLocalDateString } from '../utils/date';
 import { useNavigate } from 'react-router-dom';
 import { sessionsApi, readinessApi, profileApi, friendsApi, socialApi, glossaryApi, restApi, whoopApi, getErrorMessage } from '../api/client';
+import { logger } from '../utils/logger';
 import type { Friend, Movement, MediaUrl, Readiness, WhoopWorkoutMatch } from '../types';
 import { CheckCircle, ArrowLeft, Camera, Mic, MicOff } from 'lucide-react';
 import WhoopMatchModal from '../components/WhoopMatchModal';
@@ -186,7 +187,7 @@ export default function LogSession() {
           // Feature flag off or not available
         }
       } catch (error) {
-        if (!controller.signal.aborted) console.error('Error loading data:', error);
+        if (!controller.signal.aborted) logger.error('Error loading data:', error);
       }
     };
     doLoad();
@@ -504,7 +505,7 @@ export default function LogSession() {
         setTimeout(() => navigate('/'), 1500);
       }
     } catch (error) {
-      console.error('Error creating session:', error);
+      logger.error('Error creating session:', error);
       toast.showToast('error', 'Failed to log session. Please try again.');
     } finally {
       setLoading(false);
@@ -547,10 +548,27 @@ export default function LogSession() {
   if (success) {
     return (
       <div className="max-w-md mx-auto text-center py-12">
-        <CheckCircle className="w-16 h-16 text-green-500 mx-auto mb-4" />
-        <h2 className="text-2xl font-bold mb-2">{activityType === 'rest' ? 'Rest Day Logged!' : 'Session Logged!'}</h2>
-        <p className="text-[var(--muted)]">{activityType === 'rest' ? 'Redirecting to home...' : 'Redirecting to session details...'}</p>
-        {activityType === 'training' && <p className="text-sm text-[var(--muted)] mt-2">You can add photos on the next page</p>}
+        <style>{`
+          @keyframes celebrationBounce {
+            0% { transform: scale(0); opacity: 0; }
+            50% { transform: scale(1.2); opacity: 1; }
+            70% { transform: scale(0.9); }
+            100% { transform: scale(1); opacity: 1; }
+          }
+          .celebrate-bounce {
+            animation: celebrationBounce 0.6s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+          }
+          .celebrate-bounce-delay {
+            animation: celebrationBounce 0.5s cubic-bezier(0.22, 1, 0.36, 1) 0.15s forwards;
+            opacity: 0;
+          }
+        `}</style>
+        <CheckCircle className="w-16 h-16 text-green-500 mx-auto mb-4 celebrate-bounce" />
+        <div className="celebrate-bounce-delay">
+          <h2 className="text-2xl font-bold mb-2">{activityType === 'rest' ? 'Rest Day Logged!' : 'Session Logged!'}</h2>
+          <p className="text-[var(--muted)]">{activityType === 'rest' ? 'Redirecting to home...' : 'Redirecting to session details...'}</p>
+          {activityType === 'training' && <p className="text-sm text-[var(--muted)] mt-2">You can add photos on the next page</p>}
+        </div>
       </div>
     );
   }

@@ -9,15 +9,9 @@ from fastapi import APIRouter, HTTPException, Request, status
 
 from rivaflow.core.services.whoop_service import WhoopService
 from rivaflow.core.settings import settings
-from rivaflow.db.repositories.whoop_connection_repo import (
-    WhoopConnectionRepository,
-)
 
 router = APIRouter(prefix="/webhooks", tags=["webhooks"])
 logger = logging.getLogger(__name__)
-
-service = WhoopService()
-connection_repo = WhoopConnectionRepository()
 
 
 def _verify_whoop_signature(body: bytes, signature: str, timestamp: str) -> bool:
@@ -107,6 +101,7 @@ async def whoop_webhook(request: Request):
         return {"status": "ignored", "reason": "unknown user"}
 
     # Dispatch based on event type
+    service = WhoopService()
     try:
         if event_type == "workout.updated":
             service.sync_workouts(user_id, days_back=1)

@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { Card } from '../ui';
 import { Trophy, Target } from 'lucide-react';
 import { dashboardApi, profileApi } from '../../api/client';
+import { logger } from '../../utils/logger';
 
 interface Milestone {
   type: string;
@@ -52,7 +53,7 @@ export function JourneyProgress() {
           }
         }
       } catch (error) {
-        if (!cancelled) console.error('Failed to load journey progress:', error);
+        if (!cancelled) logger.error('Failed to load journey progress:', error);
       } finally {
         if (!cancelled) setLoading(false);
       }

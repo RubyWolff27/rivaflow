@@ -9,7 +9,6 @@ from rivaflow.core.exceptions import NotFoundError
 from rivaflow.core.services.friend_service import FriendService
 
 router = APIRouter()
-service = FriendService()
 
 
 class FriendCreate(BaseModel):
@@ -49,6 +48,7 @@ def list_contacts(
     current_user: dict = Depends(get_current_user),
 ):
     """Get all friends with optional filtering and pagination."""
+    service = FriendService()
     if search:
         all_friends = service.search_friends(user_id=current_user["id"], query=search)
     elif friend_type:
@@ -69,6 +69,7 @@ def list_contacts(
 @limiter.limit("120/minute")
 def list_instructors(request: Request, current_user: dict = Depends(get_current_user)):
     """Get all friends who are instructors."""
+    service = FriendService()
     instructors = service.list_instructors(user_id=current_user["id"])
     return instructors
 
@@ -79,6 +80,7 @@ def list_training_partners(
     request: Request, current_user: dict = Depends(get_current_user)
 ):
     """Get all friends who are training partners."""
+    service = FriendService()
     partners = service.list_training_partners(user_id=current_user["id"])
     return partners
 
@@ -89,6 +91,7 @@ def get_contact(
     request: Request, friend_id: int, current_user: dict = Depends(get_current_user)
 ):
     """Get a specific friend by ID."""
+    service = FriendService()
     friend = service.get_friend(user_id=current_user["id"], friend_id=friend_id)
     if not friend:
         raise NotFoundError("Friend not found")
@@ -103,6 +106,7 @@ def create_contact(
     current_user: dict = Depends(get_current_user),
 ):
     """Create a new friend."""
+    service = FriendService()
     # Let exceptions bubble up - global handler will catch them
     created = service.create_friend(
         user_id=current_user["id"],
@@ -127,6 +131,7 @@ def update_contact(
     current_user: dict = Depends(get_current_user),
 ):
     """Update a friend."""
+    service = FriendService()
     updated = service.update_friend(
         user_id=current_user["id"],
         friend_id=friend_id,
@@ -150,6 +155,7 @@ def delete_contact(
     request: Request, friend_id: int, current_user: dict = Depends(get_current_user)
 ):
     """Delete a friend."""
+    service = FriendService()
     deleted = service.delete_friend(user_id=current_user["id"], friend_id=friend_id)
     if not deleted:
         raise NotFoundError("Friend not found")

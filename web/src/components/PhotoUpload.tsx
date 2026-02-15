@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Camera, Upload, X } from 'lucide-react';
 import { photosApi } from '../api/client';
+import { logger } from '../utils/logger';
 import { useToast } from '../contexts/ToastContext';
 
 interface PhotoUploadProps {
@@ -74,7 +75,7 @@ export default function PhotoUpload({
       onUploadSuccess();
       toast.success('Photo uploaded successfully');
     } catch (error: unknown) {
-      console.error('Error uploading photo:', error);
+      logger.error('Error uploading photo:', error);
       const e = error as { response?: { data?: { detail?: string } } };
       toast.error(e.response?.data?.detail || 'Failed to upload photo');
     } finally {

@@ -15,6 +15,7 @@ import ThisWeek from '../components/dashboard/ThisWeek';
 import MyGameWidget from '../components/dashboard/MyGameWidget';
 import LatestInsightWidget from '../components/dashboard/LatestInsightWidget';
 import EngagementBanner from '../components/EngagementBanner';
+import ErrorBoundary from '../components/ErrorBoundary';
 
 export default function Dashboard() {
   const navigate = useNavigate();
@@ -98,32 +99,35 @@ export default function Dashboard() {
         </div>
       </Card>
 
-      {/* 2. Engagement Banner — streaks, check-in status, motivation */}
-      <EngagementBanner />
+      {/* Dashboard widgets wrapped in ErrorBoundary */}
+      <ErrorBoundary compact>
+        {/* 2. Engagement Banner — streaks, check-in status, motivation */}
+        <EngagementBanner />
 
-      {/* 1. Getting Started — onboarding checklist for new users */}
-      <GettingStarted />
+        {/* 1. Getting Started — onboarding checklist for new users */}
+        <GettingStarted />
 
-      {/* 2. Daily Action Hero — THE primary card */}
-      <DailyActionHero />
+        {/* 2. Daily Action Hero — THE primary card */}
+        <DailyActionHero />
 
-      {/* 2b. Today's gym classes */}
-      <TodayClassesWidget />
+        {/* 2b. Today's gym classes */}
+        <TodayClassesWidget />
 
-      {/* 3. Last Session — "What did I do last?" */}
-      <LastSession />
+        {/* 3. Last Session — "What did I do last?" */}
+        <LastSession />
 
-      {/* 4. This Week — weekly goals + progress */}
-      <ThisWeek />
+        {/* 4. This Week — weekly goals + progress */}
+        <ThisWeek />
 
-      {/* 5. Journey Progress — belt + milestone + stats */}
-      <JourneyProgress />
+        {/* 5. Journey Progress — belt + milestone + stats */}
+        <JourneyProgress />
 
-      {/* 7. Latest AI Insight */}
-      <LatestInsightWidget />
+        {/* 7. Latest AI Insight */}
+        <LatestInsightWidget />
 
-      {/* 8. My Game Plan */}
-      <MyGameWidget />
+        {/* 8. My Game Plan */}
+        <MyGameWidget />
+      </ErrorBoundary>
     </div>
   );
 }

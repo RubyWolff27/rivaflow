@@ -4,7 +4,7 @@ import base64
 import hashlib
 import hmac
 import json
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 
 class TestWhoopWebhook:
@@ -21,16 +21,18 @@ class TestWhoopWebhook:
 
     @patch("rivaflow.api.routes.webhooks.settings")
     @patch("rivaflow.api.routes.webhooks._lookup_user_by_whoop_id")
-    @patch("rivaflow.api.routes.webhooks.service")
+    @patch("rivaflow.api.routes.webhooks.WhoopService")
     def test_valid_workout_webhook(
         self,
-        mock_service,
+        mock_whoop_cls,
         mock_lookup,
         mock_settings,
         client,
     ):
         mock_settings.WHOOP_CLIENT_SECRET = "test-secret"
         mock_lookup.return_value = 42
+        mock_service = MagicMock()
+        mock_whoop_cls.return_value = mock_service
 
         payload = {
             "type": "workout.updated",
@@ -55,16 +57,18 @@ class TestWhoopWebhook:
 
     @patch("rivaflow.api.routes.webhooks.settings")
     @patch("rivaflow.api.routes.webhooks._lookup_user_by_whoop_id")
-    @patch("rivaflow.api.routes.webhooks.service")
+    @patch("rivaflow.api.routes.webhooks.WhoopService")
     def test_valid_recovery_webhook(
         self,
-        mock_service,
+        mock_whoop_cls,
         mock_lookup,
         mock_settings,
         client,
     ):
         mock_settings.WHOOP_CLIENT_SECRET = "test-secret"
         mock_lookup.return_value = 42
+        mock_service = MagicMock()
+        mock_whoop_cls.return_value = mock_service
 
         payload = {
             "type": "recovery.updated",
@@ -152,16 +156,18 @@ class TestWhoopWebhook:
 
     @patch("rivaflow.api.routes.webhooks.settings")
     @patch("rivaflow.api.routes.webhooks._lookup_user_by_whoop_id")
-    @patch("rivaflow.api.routes.webhooks.service")
+    @patch("rivaflow.api.routes.webhooks.WhoopService")
     def test_unknown_event_type(
         self,
-        mock_service,
+        mock_whoop_cls,
         mock_lookup,
         mock_settings,
         client,
     ):
         mock_settings.WHOOP_CLIENT_SECRET = "test-secret"
         mock_lookup.return_value = 42
+        mock_service = MagicMock()
+        mock_whoop_cls.return_value = mock_service
 
         payload = {
             "type": "something.unknown",
@@ -187,10 +193,10 @@ class TestWhoopWebhook:
 
     @patch("rivaflow.api.routes.webhooks.settings")
     @patch("rivaflow.api.routes.webhooks._lookup_user_by_whoop_id")
-    @patch("rivaflow.api.routes.webhooks.service")
+    @patch("rivaflow.api.routes.webhooks.WhoopService")
     def test_no_secret_rejects_webhook(
         self,
-        mock_service,
+        mock_whoop_cls,
         mock_lookup,
         mock_settings,
         client,
@@ -198,6 +204,8 @@ class TestWhoopWebhook:
         """When WHOOP_CLIENT_SECRET is not set, reject the webhook (fail closed)."""
         mock_settings.WHOOP_CLIENT_SECRET = ""
         mock_lookup.return_value = 42
+        mock_service = MagicMock()
+        mock_whoop_cls.return_value = mock_service
 
         payload = {
             "type": "workout.updated",

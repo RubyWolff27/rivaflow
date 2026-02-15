@@ -4,6 +4,7 @@ import { Sparkles, Send, Trash2, MessageCircle, ThumbsUp, ThumbsDown, Zap, Brain
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
 import { grappleApi } from '../api/client';
+import { logger } from '../utils/logger';
 import { useSpeechRecognition } from '../hooks/useSpeechRecognition';
 import ConfirmDialog from '../components/ConfirmDialog';
 import SessionExtractionPanel from '../components/grapple/SessionExtractionPanel';
@@ -102,7 +103,7 @@ export default function Grapple() {
           setSessions(sessionsRes.data.sessions);
         }
       } catch (error) {
-        if (!cancelled) console.error('Failed to load grapple data:', error);
+        if (!cancelled) logger.error('Failed to load grapple data:', error);
       }
     };
     doLoad();
@@ -118,7 +119,7 @@ export default function Grapple() {
         if (!cancelled) setMessages(response.data.messages || []);
       } catch (error) {
         if (!cancelled) {
-          console.error('Failed to load session:', error);
+          logger.error('Failed to load session:', error);
           toast.error('Failed to load chat session');
         }
       }
@@ -140,7 +141,7 @@ export default function Grapple() {
       const response = await grappleApi.getSessions();
       setSessions(response.data.sessions);
     } catch (error) {
-      console.error('Failed to load sessions:', error);
+      logger.error('Failed to load sessions:', error);
     }
   };
 
@@ -185,7 +186,7 @@ export default function Grapple() {
         loadSessions();
       }
     } catch (error: unknown) {
-      console.error('Chat error:', error);
+      logger.error('Chat error:', error);
       const e = error as { response?: { status?: number; data?: { detail?: string | { message?: string } } } };
       const detail = e.response?.data?.detail;
       const errorMsg = (typeof detail === 'object' ? detail?.message : detail) || 'Failed to get response';
@@ -225,7 +226,7 @@ export default function Grapple() {
         newChat();
       }
     } catch (error) {
-      console.error('Failed to delete session:', error);
+      logger.error('Failed to delete session:', error);
       toast.error('Failed to delete session');
     }
   };
@@ -235,7 +236,7 @@ export default function Grapple() {
       await grappleApi.submitFeedback({ message_id: messageId, rating });
       toast.success('Thank you for your feedback!');
     } catch (error) {
-      console.error('Failed to submit feedback:', error);
+      logger.error('Failed to submit feedback:', error);
     }
   };
 

@@ -26,7 +26,6 @@ from rivaflow.db.repositories import ActivityPhotoRepository
 logger = logging.getLogger(__name__)
 
 router = APIRouter()
-photo_repo = ActivityPhotoRepository()
 
 # Allowed file extensions and MIME types
 ALLOWED_EXTENSIONS = {".jpg", ".jpeg", ".png", ".webp", ".gif"}
@@ -99,6 +98,7 @@ async def upload_photo(
     Accepts image files (jpg, png, webp, gif) up to 5MB.
     Maximum 3 photos per activity.
     """
+    photo_repo = ActivityPhotoRepository()
     # Validate activity type
     if activity_type not in ["session", "readiness", "rest"]:
         raise HTTPException(status_code=400, detail="Invalid activity type")
@@ -181,6 +181,7 @@ def get_activity_photos(
     """
     Get photos for an activity (session, readiness, or rest).
     """
+    photo_repo = ActivityPhotoRepository()
     photos = photo_repo.get_by_activity(current_user["id"], activity_type, activity_id)
     # Map file_path → url so frontend can use photo.url
     for photo in photos:
@@ -194,6 +195,7 @@ def get_photo(photo_id: int, current_user: dict = Depends(get_current_user)):
     """
     Get photo by ID.
     """
+    photo_repo = ActivityPhotoRepository()
     photo = photo_repo.get_by_id(current_user["id"], photo_id)
     if not photo:
         raise HTTPException(status_code=404, detail="Photo not found")
@@ -208,6 +210,7 @@ def delete_photo(photo_id: int, current_user: dict = Depends(get_current_user)):
     """
     Delete a photo.
     """
+    photo_repo = ActivityPhotoRepository()
     # Get photo info to delete file
     photo = photo_repo.get_by_id(current_user["id"], photo_id)
     if not photo:
@@ -238,6 +241,7 @@ def update_caption(
     """
     Update photo caption.
     """
+    photo_repo = ActivityPhotoRepository()
     updated = photo_repo.update_caption(current_user["id"], photo_id, caption)
     if not updated:
         raise HTTPException(status_code=404, detail="Photo not found")

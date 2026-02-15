@@ -9,7 +9,6 @@ from rivaflow.core.exceptions import NotFoundError
 from rivaflow.core.services.glossary_service import GlossaryService
 
 router = APIRouter()
-service = GlossaryService()
 
 
 class VideoCreateRequest(BaseModel):
@@ -29,6 +28,7 @@ def add_video(
     current_user: dict = Depends(get_current_user),
 ):
     """Add a new video linked to a glossary movement."""
+    service = GlossaryService()
     if not video.movement_id:
         raise NotFoundError("movement_id is required to link a video to a movement")
     return service.add_video(
@@ -49,6 +49,7 @@ def list_videos(
     current_user: dict = Depends(get_current_user),
 ):
     """List all videos with pagination."""
+    service = GlossaryService()
     all_videos = service.list_all_videos(
         user_id=current_user["id"], limit=limit, offset=offset
     )
@@ -66,6 +67,7 @@ def delete_video(
     request: Request, video_id: int, current_user: dict = Depends(get_current_user)
 ):
     """Delete a video."""
+    service = GlossaryService()
     deleted = service.delete_video(user_id=current_user["id"], video_id=video_id)
     if not deleted:
         raise NotFoundError("Video not found")
@@ -78,6 +80,7 @@ def get_video(
     request: Request, video_id: int, current_user: dict = Depends(get_current_user)
 ):
     """Get a video by ID."""
+    service = GlossaryService()
     video = service.get_video(user_id=current_user["id"], video_id=video_id)
     if not video:
         raise NotFoundError("Video not found")

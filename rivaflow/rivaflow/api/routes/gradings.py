@@ -23,7 +23,6 @@ from rivaflow.core.services.grading_service import GradingService
 from rivaflow.core.services.storage_service import get_storage
 
 router = APIRouter()
-service = GradingService()
 
 # Allowed file extensions
 ALLOWED_EXTENSIONS = {".jpg", ".jpeg", ".png", ".webp", ".gif"}
@@ -56,6 +55,7 @@ class GradingUpdate(BaseModel):
 @limiter.limit("120/minute")
 def list_gradings(request: Request, current_user: dict = Depends(get_current_user)):
     """Get all gradings, ordered by date (newest first)."""
+    service = GradingService()
     gradings = service.list_gradings(user_id=current_user["id"])
     return gradings
 
@@ -68,6 +68,7 @@ def create_grading(
     current_user: dict = Depends(get_current_user),
 ):
     """Create a new grading and update the profile's current_grade."""
+    service = GradingService()
     created = service.create_grading(
         user_id=current_user["id"],
         grade=grading.grade,
@@ -86,6 +87,7 @@ def get_latest_grading(
     request: Request, current_user: dict = Depends(get_current_user)
 ):
     """Get the most recent grading."""
+    service = GradingService()
     grading = service.get_latest_grading(user_id=current_user["id"])
     if not grading:
         return None
@@ -101,6 +103,7 @@ def update_grading(
     current_user: dict = Depends(get_current_user),
 ):
     """Update a grading by ID."""
+    service = GradingService()
     try:
         updated = service.update_grading(
             user_id=current_user["id"],
@@ -125,6 +128,7 @@ def delete_grading(
     request: Request, grading_id: int, current_user: dict = Depends(get_current_user)
 ):
     """Delete a grading by ID."""
+    service = GradingService()
     deleted = service.delete_grading(
         user_id=current_user["id"],
         grading_id=grading_id,

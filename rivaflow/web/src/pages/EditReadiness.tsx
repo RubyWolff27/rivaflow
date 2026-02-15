@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { readinessApi } from '../api/client';
+import { logger } from '../utils/logger';
 import { ArrowLeft, Save, Camera } from 'lucide-react';
 import PhotoGallery from '../components/PhotoGallery';
 import PhotoUpload from '../components/PhotoUpload';
@@ -46,7 +47,7 @@ export default function EditReadiness() {
         }
       } catch (error) {
         if (!cancelled) {
-          console.error('Error loading readiness:', error);
+          logger.error('Error loading readiness:', error);
           toast.error('Failed to load readiness check-in');
           navigate('/feed');
         }
@@ -76,7 +77,7 @@ export default function EditReadiness() {
       toast.success('Readiness check-in updated successfully!');
       navigate('/feed');
     } catch (error) {
-      console.error('Error updating readiness:', error);
+      logger.error('Error updating readiness:', error);
       toast.error('Failed to update readiness check-in');
     } finally {
       setSaving(false);

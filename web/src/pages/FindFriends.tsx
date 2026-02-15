@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { socialApi } from '../api/client';
+import { logger } from '../utils/logger';
 import { UserPlus, UserMinus, Search, X, Users, MapPin, Dumbbell } from 'lucide-react';
 import { Card, PrimaryButton, SecondaryButton } from '../components/ui';
 import { FriendSuggestions } from '../components/FriendSuggestions';
@@ -58,7 +59,7 @@ export default function FindFriends() {
           );
           if (!cancelled) setSearchResults(usersWithStatus);
         } catch (error) {
-          if (!cancelled) console.error('Error searching users:', error);
+          if (!cancelled) logger.error('Error searching users:', error);
         }
       };
       doSearch();
@@ -92,7 +93,7 @@ export default function FindFriends() {
           );
           if (!cancelled) setRecommended(recsWithStatus);
         } catch (error) {
-          if (!cancelled) console.error('Error loading recommendations:', error);
+          if (!cancelled) logger.error('Error loading recommendations:', error);
         } finally {
           if (!cancelled) setLoadingRecommended(false);
         }
@@ -108,7 +109,7 @@ export default function FindFriends() {
       toast.success('Friend request sent');
       updateUserStatus(userId, 'pending_sent');
     } catch (error: unknown) {
-      console.error('Error sending friend request:', error);
+      logger.error('Error sending friend request:', error);
       const e = error as { response?: { data?: { detail?: string } } };
       toast.error(e.response?.data?.detail || 'Failed to send friend request');
     }
@@ -125,7 +126,7 @@ export default function FindFriends() {
         updateUserStatus(userId, 'friends');
       }
     } catch (error) {
-      console.error('Error accepting friend request:', error);
+      logger.error('Error accepting friend request:', error);
       toast.error('Failed to accept friend request');
     }
   };
@@ -141,7 +142,7 @@ export default function FindFriends() {
         updateUserStatus(userId, 'none');
       }
     } catch (error) {
-      console.error('Error declining friend request:', error);
+      logger.error('Error declining friend request:', error);
       toast.error('Failed to decline friend request');
     }
   };
@@ -152,7 +153,7 @@ export default function FindFriends() {
       toast.success('Friend removed');
       updateUserStatus(userId, 'none');
     } catch (error) {
-      console.error('Error removing friend:', error);
+      logger.error('Error removing friend:', error);
       toast.error('Failed to remove friend');
     }
   };

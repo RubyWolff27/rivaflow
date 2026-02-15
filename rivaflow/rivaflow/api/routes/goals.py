@@ -6,6 +6,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from pydantic import BaseModel
 
 from rivaflow.api.rate_limit import limiter
+from rivaflow.api.response_models import GoalsSummaryResponse, WeeklyGoalProgress
 from rivaflow.core.dependencies import get_current_user
 from rivaflow.core.exceptions import RivaFlowException, ValidationError
 from rivaflow.core.services.goals_service import GoalsService
@@ -13,7 +14,6 @@ from rivaflow.core.services.goals_service import GoalsService
 logger = logging.getLogger(__name__)
 
 router = APIRouter()
-service = GoalsService()
 
 
 class GoalTargetsUpdate(BaseModel):
@@ -24,7 +24,7 @@ class GoalTargetsUpdate(BaseModel):
     weekly_rolls_target: int | None = None
 
 
-@router.get("/current-week")
+@router.get("/current-week", response_model=WeeklyGoalProgress)
 @limiter.limit("120/minute")
 def get_current_week_progress(
     request: Request,
@@ -39,6 +39,7 @@ def get_current_week_progress(
     - Days remaining
     - Completion status
     """
+    service = GoalsService()
     try:
         logger.info(f"Getting current week progress for user_id={current_user['id']}")
         result = service.get_current_week_progress(user_id=current_user["id"], tz=tz)
@@ -60,7 +61,7 @@ def get_current_week_progress(
         )
 
 
-@router.get("/summary")
+@router.get("/summary", response_model=GoalsSummaryResponse)
 @limiter.limit("120/minute")
 def get_goals_summary(
     request: Request,
@@ -75,6 +76,7 @@ def get_goals_summary(
     - Goal completion streaks (consecutive weeks)
     - Recent 12-week trend
     """
+    service = GoalsService()
     return service.get_goals_summary(user_id=current_user["id"], tz=tz)
 
 
@@ -84,6 +86,7 @@ def get_training_streaks(
     request: Request, current_user: dict = Depends(get_current_user)
 ):
     """Get training session streaks (consecutive days trained)."""
+    service = GoalsService()
     return service.get_training_streaks(user_id=current_user["id"])
 
 
@@ -93,6 +96,7 @@ def get_goal_completion_streaks(
     request: Request, current_user: dict = Depends(get_current_user)
 ):
     """Get weekly goal completion streaks."""
+    service = GoalsService()
     return service.get_goal_completion_streak(user_id=current_user["id"])
 
 
@@ -106,6 +110,7 @@ def get_recent_trend(
     Args:
         weeks: Number of recent weeks to include (default 12)
     """
+    service = GoalsService()
     try:
         if weeks < 1 or weeks > 52:
             raise ValidationError("Weeks must be between 1 and 52")
@@ -130,6 +135,7 @@ def update_goal_targets(
 
     Returns updated profile.
     """
+    service = GoalsService()
     profile = service.update_profile_goals(
         user_id=current_user["id"],
         weekly_sessions_target=targets.weekly_sessions_target,

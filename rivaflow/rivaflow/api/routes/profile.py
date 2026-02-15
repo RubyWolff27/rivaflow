@@ -4,11 +4,11 @@ from fastapi import APIRouter, Depends, File, Request, UploadFile
 from pydantic import BaseModel
 
 from rivaflow.api.rate_limit import limiter
+from rivaflow.api.response_models import ProfileResponse
 from rivaflow.core.dependencies import get_current_user
 from rivaflow.core.services.profile_service import ProfileService
 
 router = APIRouter()
-service = ProfileService()
 
 
 class ProfileUpdate(BaseModel):
@@ -52,6 +52,7 @@ def get_onboarding_status(
     from rivaflow.db.repositories.readiness_repo import ReadinessRepository
     from rivaflow.db.repositories.session_repo import SessionRepository
 
+    service = ProfileService()
     user_id = current_user["id"]
     profile = service.get_profile(user_id=user_id)
 
@@ -117,10 +118,11 @@ def get_onboarding_status(
     }
 
 
-@router.get("/")
+@router.get("/", response_model=ProfileResponse)
 @limiter.limit("120/minute")
 def get_profile(request: Request, current_user: dict = Depends(get_current_user)):
     """Get the user profile."""
+    service = ProfileService()
     profile = service.get_profile(user_id=current_user["id"])
     if not profile:
         # Return empty profile if none exists
@@ -140,7 +142,7 @@ def get_profile(request: Request, current_user: dict = Depends(get_current_user)
     return profile
 
 
-@router.put("/")
+@router.put("/", response_model=ProfileResponse)
 @limiter.limit("30/minute")
 def update_profile(
     request: Request,
@@ -148,6 +150,7 @@ def update_profile(
     current_user: dict = Depends(get_current_user),
 ):
     """Update the user profile."""
+    service = ProfileService()
     updated = service.update_profile(
         user_id=current_user["id"],
         first_name=profile.first_name,
@@ -193,6 +196,7 @@ async def upload_profile_photo(
     Accepts image files (jpg, png, webp, gif) up to 5MB.
     Returns the URL of the uploaded photo.
     """
+    service = ProfileService()
     # Read file content
     content = await file.read()
 
@@ -216,6 +220,7 @@ def delete_profile_photo(
 
     Removes the file from disk and clears the avatar_url in the database.
     """
+    service = ProfileService()
     # Delegate to service layer
     result = service.delete_profile_photo(user_id=current_user["id"])
     return result

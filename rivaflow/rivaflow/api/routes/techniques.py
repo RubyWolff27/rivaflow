@@ -9,7 +9,6 @@ from rivaflow.core.exceptions import NotFoundError
 from rivaflow.core.services.glossary_service import GlossaryService
 
 router = APIRouter()
-service = GlossaryService()
 
 
 class TechniqueCreateRequest(BaseModel):
@@ -27,6 +26,7 @@ def add_technique(
     current_user: dict = Depends(get_current_user),
 ):
     """Add a new technique (creates a glossary entry)."""
+    service = GlossaryService()
     return service.create_custom_movement(
         user_id=current_user["id"],
         name=technique.name,
@@ -43,6 +43,7 @@ def list_techniques(
     current_user: dict = Depends(get_current_user),
 ):
     """List trained techniques with pagination."""
+    service = GlossaryService()
     all_techniques = service.list_trained_movements(
         user_id=current_user["id"], trained_only=True
     )
@@ -63,6 +64,7 @@ def get_stale_techniques(
     request: Request, days: int = 7, current_user: dict = Depends(get_current_user)
 ):
     """Get stale techniques (trained but not within N days)."""
+    service = GlossaryService()
     return service.get_stale_movements(user_id=current_user["id"], days=days)
 
 
@@ -74,6 +76,7 @@ def search_techniques(
     current_user: dict = Depends(get_current_user),
 ):
     """Search techniques by name."""
+    service = GlossaryService()
     return service.list_trained_movements(user_id=current_user["id"], search=q)
 
 
@@ -83,6 +86,7 @@ def get_technique(
     request: Request, technique_id: int, current_user: dict = Depends(get_current_user)
 ):
     """Get a technique by ID (reads from glossary)."""
+    service = GlossaryService()
     movement = service.get_movement(
         user_id=current_user["id"], movement_id=technique_id
     )

@@ -14,11 +14,11 @@ def enable_whoop(monkeypatch):
 
 @pytest.fixture()
 def mock_whoop_service(monkeypatch):
-    """Replace the module-level WhoopService instance with a mock."""
+    """Patch WhoopService so each endpoint gets the same mock instance."""
     svc = MagicMock()
     monkeypatch.setattr(
-        "rivaflow.api.routes.integrations.service",
-        svc,
+        "rivaflow.api.routes.integrations.WhoopService",
+        lambda: svc,
     )
     return svc
 

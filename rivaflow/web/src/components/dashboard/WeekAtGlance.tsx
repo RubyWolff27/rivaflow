@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { dashboardApi, whoopApi } from '../../api/client';
+import { logger } from '../../utils/logger';
 import { TrendingUp, TrendingDown, Minus } from 'lucide-react';
 import type { WeekStats } from '../../types';
 import { ACTIVITY_COLORS, ACTIVITY_LABELS } from '../../constants/activity';
@@ -35,7 +36,7 @@ export function WeekAtGlance() {
           }
         } catch { /* WHOOP not connected */ }
       } catch (error) {
-        if (!cancelled) console.error('Failed to load week summary:', error);
+        if (!cancelled) logger.error('Failed to load week summary:', error);
       } finally {
         if (!cancelled) setLoading(false);
       }

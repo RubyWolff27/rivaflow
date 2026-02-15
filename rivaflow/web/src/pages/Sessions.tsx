@@ -1,6 +1,7 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { sessionsApi, whoopApi } from '../api/client';
+import { logger } from '../utils/logger';
 import type { Session } from '../types';
 import { Calendar, MapPin, Clock, Activity, Target, Filter, Search } from 'lucide-react';
 import { CardSkeleton } from '../components/ui';
@@ -11,7 +12,6 @@ type ZoneData = { zone_durations: Record<string, number> | null; strain: number 
 
 export default function Sessions() {
   const [sessions, setSessions] = useState<Session[]>([]);
-  const [filteredSessions, setFilteredSessions] = useState<Session[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterType, setFilterType] = useState<string>('all');
@@ -39,7 +39,7 @@ export default function Sessions() {
           }
         }
       } catch (error) {
-        if (!controller.signal.aborted) console.error('Error loading sessions:', error);
+        if (!controller.signal.aborted) logger.error('Error loading sessions:', error);
       } finally {
         if (!controller.signal.aborted) setLoading(false);
       }
@@ -48,19 +48,16 @@ export default function Sessions() {
     return () => { controller.abort(); };
   }, []);
 
-  useEffect(() => {
-    filterAndSortSessions();
-  }, [sessions, searchTerm, filterType, sortBy]);
-
-  const filterAndSortSessions = () => {
+  const filteredSessions = useMemo(() => {
     let filtered = [...sessions];
 
     // Apply search filter
     if (searchTerm) {
+      const lowerSearch = searchTerm.toLowerCase();
       filtered = filtered.filter(s =>
-        s.gym_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        s.location?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        s.notes?.toLowerCase().includes(searchTerm.toLowerCase())
+        s.gym_name?.toLowerCase().includes(lowerSearch) ||
+        s.location?.toLowerCase().includes(lowerSearch) ||
+        s.notes?.toLowerCase().includes(lowerSearch)
       );
     }
 
@@ -81,8 +78,8 @@ export default function Sessions() {
       return 0;
     });
 
-    setFilteredSessions(filtered);
-  };
+    return filtered;
+  }, [sessions, searchTerm, filterType, sortBy]);
 
   const formatDate = (dateStr: string) => {
     const date = new Date(dateStr);
@@ -93,9 +90,12 @@ export default function Sessions() {
     });
   };
 
-  const uniqueClassTypes = Array.from(new Set(sessions.map(s => s.class_type)));
+  const uniqueClassTypes = useMemo(
+    () => Array.from(new Set(sessions.map(s => s.class_type))),
+    [sessions]
+  );
 
-  const stats = {
+  const stats = useMemo(() => ({
     total: sessions.length,
     totalHours: sessions.reduce((sum, s) => sum + (s.duration_mins ?? 0), 0) / 60,
     totalRolls: sessions.reduce((sum, s) => sum + (s.rolls ?? 0), 0),
@@ -105,7 +105,7 @@ export default function Sessions() {
         ? rated.reduce((sum, s) => sum + (s.intensity ?? 0), 0) / rated.length
         : 0;
     })(),
-  };
+  }), [sessions]);
 
   if (loading) {
     return (

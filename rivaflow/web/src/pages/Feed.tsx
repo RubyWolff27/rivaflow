@@ -1,7 +1,8 @@
-import { useEffect, useState, memo, useCallback } from 'react';
+import { useEffect, useState, memo, useCallback, useMemo } from 'react';
 import { getLocalDateString } from '../utils/date';
 import { useNavigate } from 'react-router-dom';
 import { feedApi, socialApi, sessionsApi } from '../api/client';
+import { logger } from '../utils/logger';
 import { Activity, Calendar, Edit2, Eye } from 'lucide-react';
 import FeedToggle from '../components/FeedToggle';
 import ActivitySocialActions from '../components/ActivitySocialActions';
@@ -246,7 +247,7 @@ export default function Feed() {
           if (!controller.signal.aborted) setFeed(response.data ?? null);
         }
       } catch (error) {
-        if (!controller.signal.aborted) console.error('Error loading feed:', error);
+        if (!controller.signal.aborted) logger.error('Error loading feed:', error);
       } finally {
         if (!controller.signal.aborted) setLoading(false);
       }
@@ -273,7 +274,7 @@ export default function Feed() {
         setFeed(response.data ?? null);
       }
     } catch (error) {
-      console.error('Error loading feed:', error);
+      logger.error('Error loading feed:', error);
     } finally {
       setLoading(false);
     }
@@ -295,7 +296,7 @@ export default function Feed() {
     try {
       await socialApi.like(activityType, activityId);
     } catch (error) {
-      console.error('Error liking activity:', error);
+      logger.error('Error liking activity:', error);
       // Revert optimistic update on error
       loadFeed();
     }
@@ -317,7 +318,7 @@ export default function Feed() {
     try {
       await socialApi.unlike(activityType, activityId);
     } catch (error) {
-      console.error('Error unliking activity:', error);
+      logger.error('Error unliking activity:', error);
       // Revert optimistic update on error
       loadFeed();
     }
@@ -364,7 +365,7 @@ export default function Feed() {
         });
       }
     } catch (error) {
-      console.error('Error updating visibility:', error);
+      logger.error('Error updating visibility:', error);
       // Revert optimistic update on error
       loadFeed();
     }
@@ -440,7 +441,10 @@ export default function Feed() {
     }).length;
   }, [feed]);
 
-  const filteredItems = feed?.items.filter(matchesSessionFilter) ?? [];
+  const filteredItems = useMemo(
+    () => feed?.items.filter(matchesSessionFilter) ?? [],
+    [feed, matchesSessionFilter]
+  );
 
   if (loading) {
     return (
@@ -581,7 +585,7 @@ export default function Feed() {
                     });
                   }
                 } catch (err) {
-                  console.error('Error loading more:', err);
+                  logger.error('Error loading more:', err);
                 } finally {
                   setLoadingMore(false);
                 }

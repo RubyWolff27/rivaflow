@@ -6,6 +6,7 @@
 import { Crown, X } from 'lucide-react';
 import { Card, PrimaryButton, SecondaryButton } from './ui';
 import { FEATURE_DESCRIPTIONS } from '../config/tiers';
+import { logger } from '../utils/logger';
 
 interface UpgradePromptProps {
   feature?: string;
@@ -31,7 +32,7 @@ export function UpgradePrompt({
 
   const handleUpgrade = () => {
     // TODO: Navigate to pricing/upgrade page when implemented
-    console.log('Upgrade clicked');
+    logger.log('Upgrade clicked');
   };
 
   if (inline) {

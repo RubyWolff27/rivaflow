@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { X, Bug, Lightbulb, MessageCircle } from 'lucide-react';
 import { feedbackApi } from '../api/client';
+import { logger } from '../utils/logger';
 import { useToast } from '../contexts/ToastContext';
 
 interface FeedbackModalProps {
@@ -40,7 +41,7 @@ export default function FeedbackModal({ isOpen, onClose }: FeedbackModalProps) {
       setFeedbackType('improvement');
       onClose();
     } catch (error) {
-      console.error('Failed to submit feedback:', error);
+      logger.error('Failed to submit feedback:', error);
       toast.error('Failed to submit feedback. Please try again.');
     } finally {
       setSubmitting(false);

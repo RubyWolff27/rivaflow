@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { getLocalDateString } from '../utils/date';
 import { readinessApi, profileApi, suggestionsApi, whoopApi } from '../api/client';
+import { logger } from '../utils/logger';
 import type { Readiness as ReadinessType } from '../types';
 import { Activity, Heart, Waves, Wind, Target, Pencil } from 'lucide-react';
 import { useToast } from '../contexts/ToastContext';
@@ -56,7 +57,7 @@ export default function Readiness() {
           setLatest(res.data ?? null);
         }
       } catch (error) {
-        if (!cancelled) console.error('Error loading readiness:', error);
+        if (!cancelled) logger.error('Error loading readiness:', error);
       }
 
       // Fetch profile for weight goal
@@ -129,7 +130,7 @@ export default function Readiness() {
         setLatest(res.data ?? null);
       }
     } catch (error) {
-      console.error('Error loading readiness:', error);
+      logger.error('Error loading readiness:', error);
     }
   };
 
@@ -187,7 +188,7 @@ export default function Readiness() {
         // Trend data not available
       }
     } catch (error) {
-      console.error('Error logging readiness:', error);
+      logger.error('Error logging readiness:', error);
       toast.error('Failed to log readiness. Please try again.');
     } finally {
       setLoading(false);

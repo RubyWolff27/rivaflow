@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { goalsApi } from '../../api/client';
+import { logger } from '../../utils/logger';
 import { Card } from '../ui';
 
 interface WeeklyGoalProgress {
@@ -38,7 +39,7 @@ export function WeeklyGoalsBreakdown() {
         const response = await goalsApi.getCurrentWeek();
         if (!cancelled) setGoals(response.data);
       } catch (error) {
-        if (!cancelled) console.error('Failed to load weekly goals:', error);
+        if (!cancelled) logger.error('Failed to load weekly goals:', error);
       } finally {
         if (!cancelled) setLoading(false);
       }

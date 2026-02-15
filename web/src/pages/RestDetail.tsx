@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { restApi } from '../api/client';
+import { logger } from '../utils/logger';
 import { ArrowLeft, Calendar, Moon, Edit2, Camera } from 'lucide-react';
 import PhotoGallery from '../components/PhotoGallery';
 import PhotoUpload from '../components/PhotoUpload';
@@ -39,7 +40,7 @@ export default function RestDetail() {
         }
       } catch (error) {
         if (!cancelled) {
-          console.error('Error loading rest day:', error);
+          logger.error('Error loading rest day:', error);
           toast.showToast('error', 'Failed to load rest day');
           navigate('/feed');
         }

@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { Search, Plus, CheckCircle, AlertCircle } from 'lucide-react';
 import { gymsApi } from '../api/client';
+import { logger } from '../utils/logger';
 
 interface Gym {
   id: number;
@@ -45,7 +46,7 @@ export default function GymSelector({ value, onChange, onCreateGym, onGymSelecte
           if (!cancelled) setGyms(response.data.gyms || []);
         } catch (error) {
           if (!cancelled) {
-            console.error('Error searching gyms:', error);
+            logger.error('Error searching gyms:', error);
             setGyms([]);
           }
         } finally {
@@ -58,7 +59,7 @@ export default function GymSelector({ value, onChange, onCreateGym, onGymSelecte
           if (!cancelled) setGyms(response.data.gyms || []);
         } catch (error) {
           if (!cancelled) {
-            console.error('Error loading gyms:', error);
+            logger.error('Error loading gyms:', error);
             setGyms([]);
           }
         } finally {
@@ -87,7 +88,7 @@ export default function GymSelector({ value, onChange, onCreateGym, onGymSelecte
       const response = await gymsApi.list(true); // Only verified gyms
       setGyms(response.data.gyms || []);
     } catch (error) {
-      console.error('Error loading gyms:', error);
+      logger.error('Error loading gyms:', error);
       setGyms([]);
     } finally {
       setLoading(false);

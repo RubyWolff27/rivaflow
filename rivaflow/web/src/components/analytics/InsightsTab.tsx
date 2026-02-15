@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Brain, Activity, Battery, Star, Bed, TrendingUp, TrendingDown, Minus } from 'lucide-react';
 import { analyticsApi } from '../../api/client';
+import { logger } from '../../utils/logger';
 import { Card, CardSkeleton, EmptyState } from '../ui';
 import ACWRChart from './ACWRChart';
 import CorrelationScatter from './CorrelationScatter';
@@ -175,7 +176,7 @@ export default function InsightsTab({ dateRange }: InsightsTabProps) {
         }
       } catch (err) {
         if (!cancelled) {
-          console.error('Error loading insights:', err);
+          logger.error('Error loading insights:', err);
           setError('Failed to load insights. Please try again.');
         }
       } finally {

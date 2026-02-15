@@ -4,6 +4,7 @@ import { Card } from '../components/ui';
 import AdminNav from '../components/AdminNav';
 import { useToast } from '../contexts/ToastContext';
 import { adminApi } from '../api/client';
+import { logger } from '../utils/logger';
 
 interface GlobalStats {
   total_users: number;
@@ -101,7 +102,7 @@ export default function AdminGrapple() {
         }
       } catch (error: unknown) {
         if (!cancelled) {
-          console.error('Failed to load stats:', error);
+          logger.error('Failed to load stats:', error);
           toast.error('Failed to load Grapple statistics');
         }
       } finally {

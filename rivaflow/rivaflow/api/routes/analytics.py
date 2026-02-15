@@ -16,8 +16,6 @@ from rivaflow.core.utils.cache import cached
 logger = logging.getLogger(__name__)
 
 router = APIRouter()
-service = AnalyticsService()
-fight_dynamics_service = FightDynamicsService()
 
 
 @cached(ttl_seconds=600, key_prefix="analytics_performance")
@@ -31,6 +29,7 @@ def _get_performance_overview_cached(
     Cached helper for performance overview.
     Cache TTL: 10 minutes
     """
+    service = AnalyticsService()
     return service.get_performance_overview(
         user_id=user_id, start_date=start_date, end_date=end_date, types=types
     )
@@ -47,6 +46,7 @@ def _get_partner_analytics_cached(
     Cached helper for partner analytics.
     Cache TTL: 10 minutes
     """
+    service = AnalyticsService()
     return service.get_partner_analytics(
         user_id=user_id, start_date=start_date, end_date=end_date, types=types
     )
@@ -63,6 +63,7 @@ def _get_technique_analytics_cached(
     Cached helper for technique analytics.
     Cache TTL: 10 minutes
     """
+    service = AnalyticsService()
     return service.get_technique_analytics(
         user_id=user_id, start_date=start_date, end_date=end_date, types=types
     )
@@ -145,8 +146,11 @@ def get_head_to_head(
 ):
     """Get head-to-head comparison between two partners."""
     try:
+        service = AnalyticsService()
         result = service.get_head_to_head(
-            user_id=current_user["id"], partner1_id=partner1_id, partner2_id=partner2_id
+            user_id=current_user["id"],
+            partner1_id=partner1_id,
+            partner2_id=partner2_id,
         )
         if not result:
             raise NotFoundError("One or both partners not found")
@@ -167,6 +171,7 @@ def get_readiness_trends(
     current_user: dict = Depends(get_current_user),
 ):
     """Get readiness and recovery analytics."""
+    service = AnalyticsService()
     return service.get_readiness_trends(
         user_id=current_user["id"],
         start_date=start_date,
@@ -187,6 +192,7 @@ def get_whoop_analytics(
     current_user: dict = Depends(get_current_user),
 ):
     """Get Whoop fitness tracker analytics."""
+    service = AnalyticsService()
     return service.get_whoop_analytics(
         user_id=current_user["id"],
         start_date=start_date,
@@ -236,6 +242,7 @@ def get_consistency_analytics(
 ):
     """Get training consistency analytics."""
     try:
+        service = AnalyticsService()
         return service.get_consistency_analytics(
             user_id=current_user["id"],
             start_date=start_date,
@@ -256,6 +263,7 @@ def get_consistency_analytics(
 def get_milestones(request: Request, current_user: dict = Depends(get_current_user)):
     """Get progression and milestone data."""
     try:
+        service = AnalyticsService()
         return service.get_milestones(user_id=current_user["id"])
     except (RivaFlowException, HTTPException):
         raise
@@ -279,6 +287,7 @@ def get_instructor_analytics(
 ):
     """Get instructor insights analytics."""
     try:
+        service = AnalyticsService()
         return service.get_instructor_analytics(
             user_id=current_user["id"],
             start_date=start_date,
@@ -302,6 +311,7 @@ def _get_duration_analytics_cached(
     types: list[str] | None = None,
 ):
     """Cached helper for duration analytics. Cache TTL: 10 minutes."""
+    service = AnalyticsService()
     return service.get_duration_analytics(
         user_id=user_id, start_date=start_date, end_date=end_date, types=types
     )
@@ -315,6 +325,7 @@ def _get_time_of_day_cached(
     types: list[str] | None = None,
 ):
     """Cached helper for time of day patterns. Cache TTL: 10 minutes."""
+    service = AnalyticsService()
     return service.get_time_of_day_patterns(
         user_id=user_id, start_date=start_date, end_date=end_date, types=types
     )
@@ -328,6 +339,7 @@ def _get_gym_comparison_cached(
     types: list[str] | None = None,
 ):
     """Cached helper for gym comparison. Cache TTL: 10 minutes."""
+    service = AnalyticsService()
     return service.get_gym_comparison(
         user_id=user_id, start_date=start_date, end_date=end_date, types=types
     )
@@ -340,6 +352,7 @@ def _get_class_type_effectiveness_cached(
     end_date: date | None = None,
 ):
     """Cached helper for class type effectiveness. Cache TTL: 10 minutes."""
+    service = AnalyticsService()
     return service.get_class_type_effectiveness(
         user_id=user_id, start_date=start_date, end_date=end_date
     )
@@ -352,6 +365,7 @@ def _get_weight_trend_cached(
     end_date: date | None = None,
 ):
     """Cached helper for weight trend. Cache TTL: 10 minutes."""
+    service = AnalyticsService()
     return service.get_weight_trend(
         user_id=user_id, start_date=start_date, end_date=end_date
     )
@@ -365,6 +379,7 @@ def _get_training_calendar_cached(
     types: list[str] | None = None,
 ):
     """Cached helper for training calendar. Cache TTL: 10 minutes."""
+    service = AnalyticsService()
     return service.get_training_frequency_heatmap(
         user_id=user_id, start_date=start_date, end_date=end_date, types=types
     )
@@ -373,6 +388,7 @@ def _get_training_calendar_cached(
 @cached(ttl_seconds=600, key_prefix="analytics_belt_dist")
 def _get_partner_belt_distribution_cached(user_id: int):
     """Cached helper for partner belt distribution. Cache TTL: 10 minutes."""
+    service = AnalyticsService()
     return service.get_partner_belt_distribution(user_id=user_id)
 
 
@@ -564,6 +580,7 @@ def get_partner_belt_distribution(
 @cached(ttl_seconds=300, key_prefix="insights_summary")
 def _get_insights_summary_cached(user_id: int):
     """Cached helper for insights summary. Cache TTL: 5 minutes."""
+    service = AnalyticsService()
     return service.get_insights_summary(user_id=user_id)
 
 
@@ -574,6 +591,7 @@ def _get_readiness_correlation_cached(
     end_date: date | None = None,
 ):
     """Cached helper for readiness correlation. Cache TTL: 10 minutes."""
+    service = AnalyticsService()
     return service.get_readiness_performance_correlation(
         user_id=user_id, start_date=start_date, end_date=end_date
     )
@@ -582,6 +600,7 @@ def _get_readiness_correlation_cached(
 @cached(ttl_seconds=600, key_prefix="insights_training_load")
 def _get_training_load_cached(user_id: int, days: int = 90):
     """Cached helper for training load. Cache TTL: 10 minutes."""
+    service = AnalyticsService()
     return service.get_training_load_management(user_id=user_id, days=days)
 
 
@@ -592,6 +611,7 @@ def _get_technique_effectiveness_cached(
     end_date: date | None = None,
 ):
     """Cached helper for technique effectiveness. Cache TTL: 10 minutes."""
+    service = AnalyticsService()
     return service.get_technique_effectiveness(
         user_id=user_id, start_date=start_date, end_date=end_date
     )
@@ -600,6 +620,7 @@ def _get_technique_effectiveness_cached(
 @cached(ttl_seconds=600, key_prefix="insights_partner_prog")
 def _get_partner_progression_cached(user_id: int, partner_id: int):
     """Cached helper for partner progression. Cache TTL: 10 minutes."""
+    service = AnalyticsService()
     return service.get_partner_progression(user_id=user_id, partner_id=partner_id)
 
 
@@ -610,6 +631,7 @@ def _get_session_quality_cached(
     end_date: date | None = None,
 ):
     """Cached helper for session quality. Cache TTL: 10 minutes."""
+    service = AnalyticsService()
     return service.get_session_quality_scores(
         user_id=user_id, start_date=start_date, end_date=end_date
     )
@@ -618,12 +640,14 @@ def _get_session_quality_cached(
 @cached(ttl_seconds=300, key_prefix="insights_risk")
 def _get_overtraining_risk_cached(user_id: int):
     """Cached helper for overtraining risk. Cache TTL: 5 minutes."""
+    service = AnalyticsService()
     return service.get_overtraining_risk(user_id=user_id)
 
 
 @cached(ttl_seconds=600, key_prefix="insights_recovery")
 def _get_recovery_insights_cached(user_id: int, days: int = 90):
     """Cached helper for recovery insights. Cache TTL: 10 minutes."""
+    service = AnalyticsService()
     return service.get_recovery_insights(user_id=user_id, days=days)
 
 
@@ -653,7 +677,7 @@ def get_readiness_correlation(
     end_date: date | None = Query(None),
     current_user: dict = Depends(get_current_user),
 ):
-    """Get readiness × performance correlation. Cached for 10 minutes."""
+    """Get readiness x performance correlation. Cached for 10 minutes."""
     try:
         return _get_readiness_correlation_cached(
             user_id=current_user["id"],
@@ -813,7 +837,8 @@ def get_fight_dynamics_heatmap(
 ):
     """Get aggregated attack/defence data for heatmap display."""
     try:
-        return fight_dynamics_service.get_heatmap_data(
+        fds = FightDynamicsService()
+        return fds.get_heatmap_data(
             user_id=current_user["id"],
             view=view,
             weeks=weeks,
@@ -841,7 +866,8 @@ def get_fight_dynamics_insights(
     Only generates insights when 3+ sessions have fight dynamics data.
     """
     try:
-        return fight_dynamics_service.get_insights(
+        fds = FightDynamicsService()
+        return fds.get_insights(
             user_id=current_user["id"],
         )
     except (RivaFlowException, HTTPException):
@@ -858,30 +884,29 @@ def get_fight_dynamics_insights(
 # WHOOP PERFORMANCE SCIENCE (Phase 3)
 # ============================================================================
 
-whoop_analytics = WhoopAnalyticsEngine()
-
 
 @cached(ttl_seconds=600, key_prefix="whoop_perf_corr")
 def _get_whoop_performance_correlation_cached(user_id: int, days: int = 90):
+    wa = WhoopAnalyticsEngine()
     return {
-        "recovery_correlation": whoop_analytics.get_recovery_performance_correlation(
-            user_id, days
-        ),
-        "hrv_predictor": whoop_analytics.get_hrv_performance_predictor(user_id, days),
+        "recovery_correlation": wa.get_recovery_performance_correlation(user_id, days),
+        "hrv_predictor": wa.get_hrv_performance_predictor(user_id, days),
     }
 
 
 @cached(ttl_seconds=600, key_prefix="whoop_efficiency")
 def _get_whoop_efficiency_cached(user_id: int, days: int = 90):
+    wa = WhoopAnalyticsEngine()
     return {
-        "strain_efficiency": whoop_analytics.get_strain_efficiency(user_id, days),
-        "sleep_analysis": whoop_analytics.get_sleep_performance_analysis(user_id, days),
+        "strain_efficiency": wa.get_strain_efficiency(user_id, days),
+        "sleep_analysis": wa.get_sleep_performance_analysis(user_id, days),
     }
 
 
 @cached(ttl_seconds=600, key_prefix="whoop_cardiovascular")
 def _get_whoop_cardiovascular_cached(user_id: int, days: int = 90):
-    return whoop_analytics.get_cardiovascular_drift(user_id, days)
+    wa = WhoopAnalyticsEngine()
+    return wa.get_cardiovascular_drift(user_id, days)
 
 
 @router.get("/whoop/performance-correlation")
@@ -937,6 +962,7 @@ def get_checkin_trends(
 ):
     """Get daily check-in trends: energy, quality, rest patterns."""
     try:
+        service = AnalyticsService()
         return service.get_checkin_trends(user_id=current_user["id"], days=days)
     except (RivaFlowException, HTTPException):
         raise
@@ -970,12 +996,14 @@ def get_whoop_cardiovascular(
 
 @cached(ttl_seconds=600, key_prefix="whoop_sleep_debt")
 def _get_whoop_sleep_debt_cached(user_id: int, days: int = 90):
-    return whoop_analytics.get_sleep_debt_tracker(user_id, days)
+    wa = WhoopAnalyticsEngine()
+    return wa.get_sleep_debt_tracker(user_id, days)
 
 
 @cached(ttl_seconds=600, key_prefix="whoop_readiness_model")
 def _get_whoop_readiness_model_cached(user_id: int, days: int = 90):
-    return whoop_analytics.get_recovery_readiness_model(user_id, days)
+    wa = WhoopAnalyticsEngine()
+    return wa.get_recovery_readiness_model(user_id, days)
 
 
 @router.get("/whoop/sleep-debt")

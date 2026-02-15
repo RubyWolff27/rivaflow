@@ -4,6 +4,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
 import { useSpeechRecognition } from '../hooks/useSpeechRecognition';
 import { chatApi, getErrorMessage } from '../api/client';
+import { logger } from '../utils/logger';
 
 interface Message {
   role: 'user' | 'assistant';
@@ -38,7 +39,7 @@ export default function Chat() {
       const response = await chatApi.send(newMessages);
       setMessages([...newMessages, { role: 'assistant', content: response.data.reply }]);
     } catch (error: unknown) {
-      console.error('Chat error:', error);
+      logger.error('Chat error:', error);
       setMessages([
         ...newMessages,
         { role: 'assistant', content: 'Error: ' + getErrorMessage(error) },

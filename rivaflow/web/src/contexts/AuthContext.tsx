@@ -2,6 +2,7 @@ import { createContext, useContext, useState, useEffect, ReactNode } from 'react
 import type { AuthUser } from '../types';
 import { authApi } from '../api/auth';
 import { getErrorMessage } from '../api/client';
+import { logger } from '../utils/logger';
 
 interface AuthContextType {
   user: AuthUser | null;
@@ -31,7 +32,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           }
         } catch (error) {
           if (!cancelled) {
-            console.error('Failed to load user:', error);
+            logger.error('Failed to load user:', error);
             // Clear invalid tokens
             localStorage.removeItem('access_token');
             localStorage.removeItem('user');

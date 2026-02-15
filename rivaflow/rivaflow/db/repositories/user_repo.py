@@ -4,6 +4,21 @@ from datetime import datetime
 
 from rivaflow.db.database import convert_query, execute_insert, get_connection
 
+# Columns returned by default (excludes hashed_password for security)
+_USER_COLS = (
+    "id, email, first_name, last_name, is_active, created_at, updated_at, "
+    "primary_gym_id, is_admin, last_seen_feed, avatar_url, "
+    "subscription_tier, is_beta_user, "
+    "username, display_name, profile_photo_url, "
+    "location_city, location_state, location_country, "
+    "belt_rank, belt_stripes, searchable, "
+    "profile_visibility, activity_visibility, bio, preferred_style, "
+    "tier_expires_at, beta_joined_at"
+)
+
+# All columns including hashed_password (for auth queries only)
+_USER_COLS_WITH_PASSWORD = "hashed_password, " + _USER_COLS
+
 
 class UserRepository:
     """Data access layer for user accounts."""
@@ -61,7 +76,8 @@ class UserRepository:
 
             # Fetch and return the created user
             cursor.execute(
-                convert_query("SELECT * FROM users WHERE id = ?"), (user_id,)
+                convert_query(f"SELECT {_USER_COLS} FROM users WHERE id = ?"),
+                (user_id,),
             )
             row = cursor.fetchone()
 
@@ -84,8 +100,10 @@ class UserRepository:
         """
         with get_connection() as conn:
             cursor = conn.cursor()
+            cols = _USER_COLS_WITH_PASSWORD if include_password else _USER_COLS
             cursor.execute(
-                convert_query("SELECT * FROM users WHERE email = ?"), (email,)
+                convert_query(f"SELECT {cols} FROM users WHERE email = ?"),
+                (email,),
             )
             row = cursor.fetchone()
             if row:
@@ -108,7 +126,8 @@ class UserRepository:
         with get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(
-                convert_query("SELECT * FROM users WHERE id = ?"), (user_id,)
+                convert_query(f"SELECT {_USER_COLS} FROM users WHERE id = ?"),
+                (user_id,),
             )
             row = cursor.fetchone()
             if row:
@@ -177,7 +196,8 @@ class UserRepository:
 
             # Return updated user
             cursor.execute(
-                convert_query("SELECT * FROM users WHERE id = ?"), (user_id,)
+                convert_query(f"SELECT {_USER_COLS} FROM users WHERE id = ?"),
+                (user_id,),
             )
             row = cursor.fetchone()
             if row:

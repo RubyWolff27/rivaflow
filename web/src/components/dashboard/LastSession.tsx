@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { sessionsApi, whoopApi } from '../../api/client';
+import { logger } from '../../utils/logger';
 import { Calendar, Clock, TrendingUp, Award } from 'lucide-react';
 import { ACTIVITY_COLORS } from '../../constants/activity';
 import { Card } from '../ui';
@@ -40,7 +41,7 @@ export function LastSession() {
           } catch { /* WHOOP not connected */ }
         }
       } catch (error) {
-        if (!cancelled) console.error('Failed to load last session:', error);
+        if (!cancelled) logger.error('Failed to load last session:', error);
       } finally {
         if (!cancelled) setLoading(false);
       }

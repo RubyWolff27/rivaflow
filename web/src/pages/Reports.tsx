@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { getLocalDateString } from '../utils/date';
 import { useSearchParams, Link } from 'react-router-dom';
 import { analyticsApi, sessionsApi, whoopApi } from '../api/client';
+import { logger } from '../utils/logger';
 import { TrendingUp, Users, Activity, Target, Brain, Swords, Heart } from 'lucide-react';
 import { Card } from '../components/ui';
 import { ActivityTypeFilter } from '../components/ActivityTypeFilter';
@@ -13,6 +14,7 @@ import WhoopAnalyticsTab from '../components/analytics/WhoopAnalyticsTab';
 import OverviewTab from '../components/analytics/OverviewTab';
 import PartnersTab from '../components/analytics/PartnersTab';
 import TechniquesTab from '../components/analytics/TechniquesTab';
+import ErrorBoundary from '../components/ErrorBoundary';
 import type {
   PerformanceOverview,
   PartnersData,
@@ -137,7 +139,7 @@ export default function Reports() {
           }
         } catch (error) {
           if (!cancelled) {
-            console.error('Error loading analytics:', error);
+            logger.error('Error loading analytics:', error);
             setError('Failed to load analytics data. Please try again.');
           }
         } finally {
@@ -318,43 +320,49 @@ export default function Reports() {
 
       {/* Tab Content */}
       {activeTab === 'overview' && (
-        <OverviewTab
-          loading={loading}
-          error={error}
-          performanceData={performanceData}
-          calendarData={calendarData}
-          durationData={durationData}
-          timeOfDayData={timeOfDayData}
-          gymData={gymData}
-          classTypeData={classTypeData}
-          zoneTrendsData={zoneTrendsData}
-          isBJJActivity={isBJJActivity}
-          selectedTypes={selectedTypes}
-          chipLabel={chipLabel}
-          sessionsDelta={sessionsDelta}
-          intensityDelta={intensityDelta}
-          rollsDelta={rollsDelta}
-          submissionsDelta={submissionsDelta}
-        />
+        <ErrorBoundary compact>
+          <OverviewTab
+            loading={loading}
+            error={error}
+            performanceData={performanceData}
+            calendarData={calendarData}
+            durationData={durationData}
+            timeOfDayData={timeOfDayData}
+            gymData={gymData}
+            classTypeData={classTypeData}
+            zoneTrendsData={zoneTrendsData}
+            isBJJActivity={isBJJActivity}
+            selectedTypes={selectedTypes}
+            chipLabel={chipLabel}
+            sessionsDelta={sessionsDelta}
+            intensityDelta={intensityDelta}
+            rollsDelta={rollsDelta}
+            submissionsDelta={submissionsDelta}
+          />
+        </ErrorBoundary>
       )}
 
       {activeTab === 'partners' && (
-        <PartnersTab
-          loading={loading}
-          error={error}
-          partnersData={partnersData}
-          beltDistData={beltDistData}
-          selectedTypes={selectedTypes}
-        />
+        <ErrorBoundary compact>
+          <PartnersTab
+            loading={loading}
+            error={error}
+            partnersData={partnersData}
+            beltDistData={beltDistData}
+            selectedTypes={selectedTypes}
+          />
+        </ErrorBoundary>
       )}
 
       {activeTab === 'techniques' && (
-        <TechniquesTab
-          loading={loading}
-          error={error}
-          techniquesData={techniquesData}
-          selectedTypes={selectedTypes}
-        />
+        <ErrorBoundary compact>
+          <TechniquesTab
+            loading={loading}
+            error={error}
+            techniquesData={techniquesData}
+            selectedTypes={selectedTypes}
+          />
+        </ErrorBoundary>
       )}
 
       {activeTab === 'readiness' && (

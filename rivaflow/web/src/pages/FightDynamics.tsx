@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { analyticsApi } from '../api/client';
+import { logger } from '../utils/logger';
 import { Swords, Shield, TrendingUp, TrendingDown, Minus, AlertTriangle, Target, Lightbulb, BarChart3 } from 'lucide-react';
 
 interface HeatmapPeriod {
@@ -85,7 +86,7 @@ export default function FightDynamics() {
         }
       } catch (err) {
         if (!cancelled) {
-          console.error('Error loading fight dynamics:', err);
+          logger.error('Error loading fight dynamics:', err);
           setError('Failed to load fight dynamics data.');
         }
       } finally {

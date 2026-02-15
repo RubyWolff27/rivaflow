@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { readinessApi } from '../api/client';
+import { logger } from '../utils/logger';
 import type { Readiness } from '../types';
 import { ArrowLeft, Calendar, Heart, Edit2, Camera } from 'lucide-react';
 import PhotoGallery from '../components/PhotoGallery';
@@ -24,7 +25,7 @@ export default function ReadinessDetail() {
         if (!cancelled) setReadiness(response.data);
       } catch (error) {
         if (!cancelled) {
-          console.error('Error loading readiness:', error);
+          logger.error('Error loading readiness:', error);
           toast.error('Failed to load readiness check-in');
           navigate('/feed');
         }

@@ -1,6 +1,7 @@
 import { useState, useEffect, memo } from 'react';
 import { Edit2, Trash2, Send } from 'lucide-react';
 import { socialApi } from '../api/client';
+import { logger } from '../utils/logger';
 import type { ActivityComment } from '../types';
 import ConfirmDialog from './ConfirmDialog';
 import { useToast } from '../contexts/ToastContext';
@@ -36,7 +37,7 @@ const CommentSection = memo(function CommentSection({
         const response = await socialApi.getComments(activityType, activityId);
         if (!cancelled) setComments(response.data?.comments ?? []);
       } catch (error) {
-        if (!cancelled) console.error('Error loading comments:', error);
+        if (!cancelled) logger.error('Error loading comments:', error);
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -51,7 +52,7 @@ const CommentSection = memo(function CommentSection({
       const response = await socialApi.getComments(activityType, activityId);
       setComments(response.data?.comments ?? []);
     } catch (error) {
-      console.error('Error loading comments:', error);
+      logger.error('Error loading comments:', error);
     } finally {
       setLoading(false);
     }
@@ -67,7 +68,7 @@ const CommentSection = memo(function CommentSection({
       setNewComment('');
       await loadComments();
     } catch (error) {
-      console.error('Error adding comment:', error);
+      logger.error('Error adding comment:', error);
     } finally {
       setSubmitting(false);
     }
@@ -88,7 +89,7 @@ const CommentSection = memo(function CommentSection({
       setEditingText('');
       await loadComments();
     } catch (error) {
-      console.error('Error updating comment:', error);
+      logger.error('Error updating comment:', error);
     } finally {
       setSubmitting(false);
     }
@@ -102,7 +103,7 @@ const CommentSection = memo(function CommentSection({
       await loadComments();
       toast.success('Comment deleted successfully');
     } catch (error) {
-      console.error('Error deleting comment:', error);
+      logger.error('Error deleting comment:', error);
       toast.error('Failed to delete comment');
     } finally {
       setCommentToDelete(null);

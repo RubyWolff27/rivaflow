@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Calendar, MapPin, Trophy, Scale, Plus, Edit2, Trash2, ChevronDown, ChevronUp, Clock } from 'lucide-react';
 import { eventsApi, weightLogsApi } from '../api/client';
+import { logger } from '../utils/logger';
 import type { CompEvent, WeightLog } from '../types';
 import { useToast } from '../contexts/ToastContext';
 import ConfirmDialog from '../components/ConfirmDialog';
@@ -353,7 +354,7 @@ export default function Events() {
       setNextEvent(nextRes.data);
       setWeightLogs(wlRes.data.logs);
     } catch (err) {
-      console.error('Failed to load events data', err);
+      logger.error('Failed to load events data', err);
     } finally {
       setLoading(false);
     }
@@ -374,7 +375,7 @@ export default function Events() {
           setWeightLogs(wlRes.data.logs);
         }
       } catch (err) {
-        if (!cancelled) console.error('Failed to load events data', err);
+        if (!cancelled) logger.error('Failed to load events data', err);
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -402,7 +403,7 @@ export default function Events() {
       setDeleteConfirmId(null);
       fetchAll();
     } catch (err) {
-      console.error('Failed to delete event', err);
+      logger.error('Failed to delete event', err);
       toast.showToast('error', 'Failed to delete event');
     }
   };

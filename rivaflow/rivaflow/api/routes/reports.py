@@ -12,7 +12,6 @@ from rivaflow.core.dependencies import get_current_user
 from rivaflow.core.services.report_service import ReportService
 
 router = APIRouter()
-service = ReportService()
 
 
 @router.get("/week")
@@ -23,6 +22,7 @@ def get_week_report(
     current_user: dict = Depends(get_current_user),
 ):
     """Get current week report."""
+    service = ReportService()
     start_date, end_date = service.get_week_dates(target_date)
     report = service.generate_report(
         user_id=current_user["id"], start_date=start_date, end_date=end_date
@@ -38,6 +38,7 @@ def get_month_report(
     current_user: dict = Depends(get_current_user),
 ):
     """Get current month report."""
+    service = ReportService()
     start_date, end_date = service.get_month_dates(target_date)
     report = service.generate_report(
         user_id=current_user["id"], start_date=start_date, end_date=end_date
@@ -54,6 +55,7 @@ def get_range_report(
     current_user: dict = Depends(get_current_user),
 ):
     """Get report for custom date range."""
+    service = ReportService()
     report = service.generate_report(
         user_id=current_user["id"], start_date=start_date, end_date=end_date
     )
@@ -68,6 +70,7 @@ def export_week_csv(
     current_user: dict = Depends(get_current_user),
 ):
     """Export week report as CSV."""
+    service = ReportService()
     start_date, end_date = service.get_week_dates(target_date)
     report = service.generate_report(
         user_id=current_user["id"], start_date=start_date, end_date=end_date

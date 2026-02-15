@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Activity, Heart, Waves, FlaskConical } from 'lucide-react';
 import { analyticsApi } from '../../api/client';
+import { logger } from '../../utils/logger';
 import { Card, MetricTile, MetricTileSkeleton, CardSkeleton, EmptyState } from '../ui';
 import ReadinessTrendChart from './ReadinessTrendChart';
 import RecoveryPerformanceChart from './RecoveryPerformanceChart';
@@ -183,7 +184,7 @@ export default function ReadinessTab({ dateRange, selectedTypes }: ReadinessTabP
         }
       } catch (err) {
         if (!cancelled) {
-          console.error('Error loading readiness trends:', err);
+          logger.error('Error loading readiness trends:', err);
           setError('Failed to load readiness data. Please try again.');
         }
       } finally {

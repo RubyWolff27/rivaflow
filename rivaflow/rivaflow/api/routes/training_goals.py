@@ -13,7 +13,6 @@ from rivaflow.core.services.training_goals_service import TrainingGoalsService
 logger = logging.getLogger(__name__)
 
 router = APIRouter()
-service = TrainingGoalsService()
 
 
 class CreateTrainingGoal(BaseModel):
@@ -40,6 +39,7 @@ def create_goal(
     current_user: dict = Depends(get_current_user),
 ):
     """Create a new monthly training goal."""
+    service = TrainingGoalsService()
     try:
         return service.create_goal(
             user_id=current_user["id"],
@@ -60,6 +60,7 @@ def list_goals(
     current_user: dict = Depends(get_current_user),
 ):
     """List training goals for a month with progress. Defaults to current month."""
+    service = TrainingGoalsService()
     if not month:
         month = date.today().strftime("%Y-%m")
     try:
@@ -74,6 +75,7 @@ def get_goal(
     current_user: dict = Depends(get_current_user),
 ):
     """Get a single training goal with progress."""
+    service = TrainingGoalsService()
     try:
         return service.get_goal_with_progress(
             user_id=current_user["id"], goal_id=goal_id
@@ -89,6 +91,7 @@ def update_goal(
     current_user: dict = Depends(get_current_user),
 ):
     """Update a training goal's target_value or is_active."""
+    service = TrainingGoalsService()
     try:
         return service.update_goal(
             user_id=current_user["id"],
@@ -108,6 +111,7 @@ def delete_goal(
     current_user: dict = Depends(get_current_user),
 ):
     """Delete a training goal."""
+    service = TrainingGoalsService()
     try:
         service.delete_goal(user_id=current_user["id"], goal_id=goal_id)
         return {"success": True}

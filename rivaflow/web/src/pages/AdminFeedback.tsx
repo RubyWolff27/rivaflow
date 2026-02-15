@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { adminApi } from '../api/client';
+import { logger } from '../utils/logger';
 import { MessageCircle, CheckCircle, Clock, BarChart3, User, Calendar } from 'lucide-react';
 import { Card } from '../components/ui';
 import AdminNav from '../components/AdminNav';
@@ -70,7 +71,7 @@ export default function AdminFeedback() {
         }
       } catch (error) {
         if (!cancelled) {
-          console.error('Failed to load feedback:', error);
+          logger.error('Failed to load feedback:', error);
           toast.error('Failed to load feedback. Please try again.');
         }
       } finally {
@@ -91,7 +92,7 @@ export default function AdminFeedback() {
       const response = await adminApi.listFeedback(params);
       setFeedback(response.data.feedback || []);
     } catch (error) {
-      console.error('Failed to load feedback:', error);
+      logger.error('Failed to load feedback:', error);
       toast.error('Failed to load feedback. Please try again.');
     } finally {
       setLoading(false);
@@ -103,7 +104,7 @@ export default function AdminFeedback() {
       const response = await adminApi.getFeedbackStats();
       setStats(response.data);
     } catch (error) {
-      console.error('Failed to load feedback stats:', error);
+      logger.error('Failed to load feedback stats:', error);
     }
   };
 
@@ -117,7 +118,7 @@ export default function AdminFeedback() {
       loadFeedback();
       loadStats();
     } catch (error) {
-      console.error('Failed to update feedback status:', error);
+      logger.error('Failed to update feedback status:', error);
       toast.error('Failed to update feedback status. Please try again.');
     } finally {
       setUpdatingStatus(false);

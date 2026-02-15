@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { sessionsApi, friendsApi, socialApi, glossaryApi, whoopApi, getErrorMessage } from '../api/client';
+import { logger } from '../utils/logger';
 import type { Friend, Movement, MediaUrl, Session, SessionRoll, SessionTechnique, WhoopWorkoutMatch } from '../types';
 import { CheckCircle, ArrowLeft, Save, Loader, Plus, X, Search, Trash2, ToggleLeft, ToggleRight, Camera } from 'lucide-react';
 import WhoopMatchModal from '../components/WhoopMatchModal';
@@ -193,7 +194,7 @@ export default function EditSession() {
         }
       } catch (error) {
         if (!controller.signal.aborted) {
-          console.error('Error loading session:', error);
+          logger.error('Error loading session:', error);
           toast.error('Failed to load session. Redirecting to dashboard.');
           navigate('/');
         }
@@ -466,7 +467,7 @@ export default function EditSession() {
       setSuccess(true);
       setTimeout(() => navigate(`/session/${id}`), 1500);
     } catch (error) {
-      console.error('Error updating session:', error);
+      logger.error('Error updating session:', error);
       toast.error('Failed to update session. Please try again.');
     } finally {
       setSaving(false);
@@ -480,7 +481,7 @@ export default function EditSession() {
       toast.success('Session deleted successfully');
       navigate('/');
     } catch (error) {
-      console.error('Error deleting session:', error);
+      logger.error('Error deleting session:', error);
       toast.error('Failed to delete session. Please try again.');
       setSaving(false);
     }

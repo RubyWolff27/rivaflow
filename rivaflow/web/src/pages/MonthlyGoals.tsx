@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Plus, Crosshair } from 'lucide-react';
 import { trainingGoalsApi } from '../api/client';
+import { logger } from '../utils/logger';
 import type { TrainingGoal } from '../types';
 import { PageHeader, Card, EmptyState } from '../components/ui';
 import MonthSelector from '../components/goals/MonthSelector';
@@ -29,7 +30,7 @@ export default function MonthlyGoals() {
       if (!signal?.aborted) setGoals(res.data);
     } catch (err) {
       if (!signal?.aborted) {
-        console.error('Failed to load goals:', err);
+        logger.error('Failed to load goals:', err);
         setGoals([]);
       }
     } finally {

@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Trash2, X } from 'lucide-react';
 import { photosApi } from '../api/client';
+import { logger } from '../utils/logger';
 import ConfirmDialog from './ConfirmDialog';
 import { useToast } from '../contexts/ToastContext';
 
@@ -51,7 +52,7 @@ export default function PhotoGallery({
         }
       } catch (error) {
         if (!cancelled) {
-          console.error('Error loading photos:', error);
+          logger.error('Error loading photos:', error);
           // Gracefully handle errors - set empty photos instead of crashing
           setPhotos([]);
           onPhotoCountChange?.(0);
@@ -81,7 +82,7 @@ export default function PhotoGallery({
         onPhotoCountChange?.(0);
       }
     } catch (error) {
-      console.error('Error loading photos:', error);
+      logger.error('Error loading photos:', error);
       // Gracefully handle errors - set empty photos instead of crashing
       setPhotos([]);
       onPhotoCountChange?.(0);
@@ -99,7 +100,7 @@ export default function PhotoGallery({
       setPhotoToDelete(null);
       toast.success('Photo deleted successfully');
     } catch (error: unknown) {
-      console.error('Error deleting photo:', error);
+      logger.error('Error deleting photo:', error);
       const e = error as { response?: { data?: { detail?: string } } };
       toast.error(e.response?.data?.detail || 'Failed to delete photo');
     } finally {

@@ -14,7 +14,6 @@ from rivaflow.core.validation import validate_video_url
 logger = logging.getLogger(__name__)
 
 router = APIRouter()
-service = GlossaryService()
 
 
 class MovementCreate(BaseModel):
@@ -53,6 +52,7 @@ def list_movements(
     current_user: dict = Depends(get_current_user),
 ):
     """Get all movements with optional filtering and pagination."""
+    service = GlossaryService()
     all_movements = service.list_movements(
         user_id=current_user["id"],
         category=category,
@@ -72,6 +72,7 @@ def list_movements(
 @limiter.limit("120/minute")
 def get_categories(request: Request, current_user: dict = Depends(get_current_user)):
     """Get list of all movement categories."""
+    service = GlossaryService()
     categories = service.get_categories(user_id=current_user["id"])
     return {"categories": categories}
 
@@ -85,6 +86,7 @@ def get_movement(
     current_user: dict = Depends(get_current_user),
 ):
     """Get a specific movement by ID with optional video links."""
+    service = GlossaryService()
     movement = service.get_movement(
         user_id=current_user["id"],
         movement_id=movement_id,
@@ -103,6 +105,7 @@ def create_custom_movement(
     current_user: dict = Depends(get_current_user),
 ):
     """Create a custom user-added movement."""
+    service = GlossaryService()
     created = service.create_custom_movement(
         user_id=current_user["id"],
         name=movement.name,
@@ -123,6 +126,7 @@ def delete_custom_movement(
     request: Request, movement_id: int, current_user: dict = Depends(get_current_user)
 ):
     """Delete a custom movement. Can only delete custom movements."""
+    service = GlossaryService()
     deleted = service.delete_custom_movement(
         user_id=current_user["id"], movement_id=movement_id
     )
@@ -146,6 +150,7 @@ def add_custom_video(
     except ValueError as e:
         raise ValidationError(str(e))
 
+    service = GlossaryService()
     created = service.add_custom_video(
         user_id=current_user["id"],
         movement_id=movement_id,
@@ -165,6 +170,7 @@ def delete_custom_video(
     current_user: dict = Depends(get_current_user),
 ):
     """Delete a custom video link."""
+    service = GlossaryService()
     deleted = service.delete_custom_video(user_id=current_user["id"], video_id=video_id)
     if not deleted:
         raise NotFoundError("Video not found")

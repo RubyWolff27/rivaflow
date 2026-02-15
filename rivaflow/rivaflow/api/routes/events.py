@@ -12,8 +12,6 @@ from rivaflow.db.repositories.events_repo import EventRepository
 from rivaflow.db.repositories.weight_log_repo import WeightLogRepository
 
 router = APIRouter()
-event_repo = EventRepository()
-weight_repo = WeightLogRepository()
 
 
 # --- Pydantic models ---
@@ -63,6 +61,8 @@ class WeightLogCreate(BaseModel):
 @limiter.limit("120/minute")
 def get_next_event(request: Request, current_user: dict = Depends(get_current_user)):
     """Get the next upcoming event with countdown information."""
+    event_repo = EventRepository()
+    weight_repo = WeightLogRepository()
     event = event_repo.get_next_upcoming(user_id=current_user["id"])
     if not event:
         return {"event": None, "days_until": None}
@@ -86,6 +86,7 @@ def create_event(
     request: Request, event: EventCreate, current_user: dict = Depends(get_current_user)
 ):
     """Create a new event."""
+    event_repo = EventRepository()
     event_id = event_repo.create(
         user_id=current_user["id"],
         data=event.model_dump(),
@@ -102,6 +103,7 @@ def list_events(
     current_user: dict = Depends(get_current_user),
 ):
     """List events for the current user."""
+    event_repo = EventRepository()
     events = event_repo.list_by_user(user_id=current_user["id"], status=status)
     return {"events": events, "total": len(events)}
 
@@ -112,6 +114,7 @@ def get_event(
     request: Request, event_id: int, current_user: dict = Depends(get_current_user)
 ):
     """Get a specific event by ID."""
+    event_repo = EventRepository()
     event = event_repo.get_by_id(user_id=current_user["id"], event_id=event_id)
     if not event:
         raise NotFoundError("Event not found")
@@ -127,6 +130,7 @@ def update_event(
     current_user: dict = Depends(get_current_user),
 ):
     """Update an event."""
+    event_repo = EventRepository()
     data = {k: v for k, v in event.model_dump().items() if v is not None}
     updated = event_repo.update(
         user_id=current_user["id"], event_id=event_id, data=data
@@ -142,6 +146,7 @@ def delete_event(
     request: Request, event_id: int, current_user: dict = Depends(get_current_user)
 ):
     """Delete an event."""
+    event_repo = EventRepository()
     deleted = event_repo.delete(user_id=current_user["id"], event_id=event_id)
     if not deleted:
         raise NotFoundError("Event not found")
@@ -162,6 +167,7 @@ def create_weight_log(
     current_user: dict = Depends(get_current_user),
 ):
     """Log a weight entry."""
+    weight_repo = WeightLogRepository()
     data = log.model_dump()
     if not data.get("logged_date"):
         data["logged_date"] = date.today().isoformat()
@@ -178,6 +184,7 @@ def list_weight_logs(
     current_user: dict = Depends(get_current_user),
 ):
     """Get weight history with optional date range."""
+    weight_repo = WeightLogRepository()
     logs = weight_repo.list_by_user(
         user_id=current_user["id"],
         start_date=start_date,
@@ -193,6 +200,7 @@ def get_latest_weight(
     current_user: dict = Depends(get_current_user),
 ):
     """Get the most recent weight log."""
+    weight_repo = WeightLogRepository()
     latest = weight_repo.get_latest(user_id=current_user["id"])
     if not latest:
         return {"weight": None, "logged_date": None}
@@ -207,5 +215,6 @@ def get_weight_averages(
     current_user: dict = Depends(get_current_user),
 ):
     """Get weight averages grouped by week or month."""
+    weight_repo = WeightLogRepository()
     averages = weight_repo.get_averages(user_id=current_user["id"], period=period)
     return {"averages": averages, "period": period}

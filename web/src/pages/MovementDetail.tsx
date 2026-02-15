@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { glossaryApi } from '../api/client';
+import { logger } from '../utils/logger';
 import type { Movement } from '../types';
 import { ArrowLeft, Award, Plus, Trash2, ExternalLink, Video as VideoIcon } from 'lucide-react';
 import ConfirmDialog from '../components/ConfirmDialog';
@@ -54,7 +55,7 @@ export default function MovementDetail() {
         const response = await glossaryApi.getById(parseInt(id), true);
         if (!cancelled) setMovement(response.data);
       } catch (error) {
-        if (!cancelled) console.error('Error loading movement:', error);
+        if (!cancelled) logger.error('Error loading movement:', error);
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -70,7 +71,7 @@ export default function MovementDetail() {
       const response = await glossaryApi.getById(parseInt(id), true);
       setMovement(response.data);
     } catch (error) {
-      console.error('Error loading movement:', error);
+      logger.error('Error loading movement:', error);
     } finally {
       setLoading(false);
     }
@@ -91,7 +92,7 @@ export default function MovementDetail() {
       await loadMovement();
       toast.success('Video link added successfully');
     } catch (error) {
-      console.error('Error adding video:', error);
+      logger.error('Error adding video:', error);
       toast.error('Failed to add video link.');
     }
   };
@@ -104,7 +105,7 @@ export default function MovementDetail() {
       await loadMovement();
       toast.success('Video link deleted successfully');
     } catch (error) {
-      console.error('Error deleting video:', error);
+      logger.error('Error deleting video:', error);
       toast.error('Failed to delete video link.');
     } finally {
       setVideoToDelete(null);

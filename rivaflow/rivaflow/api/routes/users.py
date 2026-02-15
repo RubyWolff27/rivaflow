@@ -8,7 +8,6 @@ from rivaflow.core.exceptions import NotFoundError
 from rivaflow.core.services.user_service import UserService
 
 router = APIRouter()
-service = UserService()
 
 
 @router.get("/search")
@@ -20,6 +19,7 @@ def search_users(
     current_user: dict = Depends(get_current_user),
 ):
     """Search for users by name or email."""
+    service = UserService()
     users = service.search_users(
         query=q, limit=limit, exclude_user_id=current_user["id"]
     )
@@ -40,6 +40,7 @@ def get_user_profile(
     current_user: dict = Depends(get_current_user),
 ):
     """Get a user's public profile."""
+    service = UserService()
     user_profile = service.get_user_profile(
         user_id=user_id, requesting_user_id=current_user["id"]
     )
@@ -58,6 +59,7 @@ def get_user_stats(
     current_user: dict = Depends(get_current_user),
 ):
     """Get a user's public statistics."""
+    service = UserService()
     stats = service.get_user_stats(user_id=user_id)
 
     if stats is None:
@@ -76,6 +78,7 @@ def get_user_activity(
     current_user: dict = Depends(get_current_user),
 ):
     """Get a user's public activity feed."""
+    service = UserService()
     from rivaflow.core.services.feed_service import FeedService
 
     # Check if user exists

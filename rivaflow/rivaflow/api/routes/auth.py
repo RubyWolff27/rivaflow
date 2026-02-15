@@ -6,6 +6,7 @@ from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
 from pydantic import BaseModel, EmailStr
 
 from rivaflow.api.rate_limit import limiter
+from rivaflow.api.response_models import CurrentUserResponse
 from rivaflow.core.dependencies import get_current_user
 from rivaflow.core.error_handling import handle_service_error
 from rivaflow.core.exceptions import (
@@ -283,7 +284,7 @@ def logout_all_devices(
         )
 
 
-@router.get("/me")
+@router.get("/me", response_model=CurrentUserResponse)
 def get_current_user_info(current_user: dict = Depends(get_current_user)):
     """
     Get current authenticated user information.

@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { checkinsApi, streaksApi } from '../api/client';
+import { logger } from '../utils/logger';
 import type { Insight, StreakStatus } from '../types';
 import { Flame, CheckCircle2, AlertCircle } from 'lucide-react';
 
@@ -28,13 +29,13 @@ export default function EngagementBanner() {
             const parsedInsight = JSON.parse(morningInsight);
             setInsight(parsedInsight);
           } catch (e) {
-            console.error('Error parsing insight:', e);
+            logger.error('Error parsing insight:', e);
           }
         }
 
         setStreaks(streaksRes.data);
       } catch (error) {
-        if (!cancelled) console.error('Error loading engagement data:', error);
+        if (!cancelled) logger.error('Error loading engagement data:', error);
       } finally {
         if (!cancelled) setLoading(false);
       }

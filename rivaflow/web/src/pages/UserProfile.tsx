@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { usersApi, socialApi } from '../api/client';
+import { logger } from '../utils/logger';
 import { Users, MapPin, Calendar, TrendingUp, Activity, UserCheck, UserPlus, Clock } from 'lucide-react';
 import { useToast } from '../contexts/ToastContext';
 import { useAuth } from '../contexts/AuthContext';
@@ -93,7 +94,7 @@ export default function UserProfile() {
         }
       } catch (err: unknown) {
         if (!cancelled) {
-          console.error('Error loading user profile:', err);
+          logger.error('Error loading user profile:', err);
           const e = err as { response?: { data?: { detail?: string } } };
           setError(e.response?.data?.detail || 'Failed to load user profile');
         }
@@ -126,7 +127,7 @@ export default function UserProfile() {
     } catch (err: unknown) {
       const e = err as { response?: { data?: { detail?: string } } };
       const msg = e.response?.data?.detail || 'Failed to send friend request';
-      console.error('Failed to send friend request:', err);
+      logger.error('Failed to send friend request:', err);
       toast.error(msg);
     } finally {
       setActionLoading(false);
@@ -149,7 +150,7 @@ export default function UserProfile() {
         toast.success('Friend request accepted!');
       }
     } catch (err: unknown) {
-      console.error('Failed to accept friend request:', err);
+      logger.error('Failed to accept friend request:', err);
       toast.error('Failed to accept friend request');
     } finally {
       setActionLoading(false);

@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { restApi } from '../api/client';
+import { logger } from '../utils/logger';
 import { ArrowLeft, Save, Camera } from 'lucide-react';
 import PhotoGallery from '../components/PhotoGallery';
 import PhotoUpload from '../components/PhotoUpload';
@@ -59,7 +60,7 @@ export default function EditRest() {
         }
       } catch (error) {
         if (!cancelled) {
-          console.error('Error loading rest day:', error);
+          logger.error('Error loading rest day:', error);
           toast.showToast('error', 'Failed to load rest day');
           navigate('/feed');
         }
@@ -86,7 +87,7 @@ export default function EditRest() {
       toast.showToast('success', 'Rest day updated!');
       navigate('/feed');
     } catch (error) {
-      console.error('Error updating rest day:', error);
+      logger.error('Error updating rest day:', error);
       toast.showToast('error', 'Failed to update rest day');
     } finally {
       setSaving(false);

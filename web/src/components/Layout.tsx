@@ -8,6 +8,7 @@ import BottomNav from './BottomNav';
 import PageTransition from './ui/PageTransition';
 import { notificationsApi } from '../api/client';
 import BetaBanner from './BetaBanner';
+import { logger } from '../utils/logger';
 
 // Memoize Layout to prevent unnecessary re-renders
 const Layout = memo(function Layout({ children }: { children: React.ReactNode }) {
@@ -30,7 +31,7 @@ const Layout = memo(function Layout({ children }: { children: React.ReactNode })
         const response = await notificationsApi.getCounts();
         if (!cancelled) setNotificationCounts(response.data);
       } catch (error) {
-        if (!cancelled) console.error('Error fetching notifications:', error);
+        if (!cancelled) logger.error('Error fetching notifications:', error);
       }
     };
 
@@ -60,7 +61,7 @@ const Layout = memo(function Layout({ children }: { children: React.ReactNode })
           if (!cancelled) setNotificationCounts(response.data);
         }
       } catch (error) {
-        if (!cancelled) console.error('Error marking notifications as read:', error);
+        if (!cancelled) logger.error('Error marking notifications as read:', error);
       }
     };
 

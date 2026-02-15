@@ -1,9 +1,13 @@
-import { Component, ErrorInfo, ReactNode } from 'react';
+import { Component } from 'react';
+import type { ErrorInfo, ReactNode } from 'react';
 import { AlertTriangle } from 'lucide-react';
+import { logger } from '../utils/logger';
 
 interface Props {
   children: ReactNode;
   fallback?: ReactNode;
+  /** Render a smaller inline fallback suitable for wrapping individual widgets. */
+  compact?: boolean;
 }
 
 interface State {
@@ -38,7 +42,7 @@ export class ErrorBoundary extends Component<Props, State> {
 
   componentDidCatch(error: Error, errorInfo: ErrorInfo) {
     // Log the error to error reporting service
-    console.error('ErrorBoundary caught an error:', error, errorInfo);
+    logger.error('ErrorBoundary caught an error:', error, errorInfo);
 
     // Store error info in state for display in development
     this.setState({
@@ -63,7 +67,32 @@ export class ErrorBoundary extends Component<Props, State> {
         return this.props.fallback;
       }
 
-      // Default fallback UI
+      // Compact inline fallback for wrapping individual widgets/sections
+      if (this.props.compact) {
+        return (
+          <div
+            className="rounded-[14px] p-6 text-center"
+            style={{
+              backgroundColor: 'var(--surface)',
+              border: '1px solid var(--border)',
+            }}
+          >
+            <AlertTriangle className="w-6 h-6 mx-auto mb-2" style={{ color: 'var(--error)' }} />
+            <p className="text-sm font-medium mb-3" style={{ color: 'var(--text)' }}>
+              Something went wrong.
+            </p>
+            <button
+              onClick={this.handleReset}
+              className="px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+              style={{ backgroundColor: 'var(--accent)', color: '#FFFFFF' }}
+            >
+              Try again
+            </button>
+          </div>
+        );
+      }
+
+      // Default full-page fallback UI
       return (
         <div className="min-h-screen flex items-center justify-center p-4" style={{ backgroundColor: 'var(--bg)' }}>
           <div className="max-w-md w-full rounded-[14px] shadow-lg p-6" style={{ backgroundColor: 'var(--surface)', border: '1px solid var(--border)' }}>

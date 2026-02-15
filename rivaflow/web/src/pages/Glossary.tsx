@@ -1,6 +1,7 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { glossaryApi } from '../api/client';
+import { logger } from '../utils/logger';
 import type { Movement } from '../types';
 import { Book, Search, Plus, Trash2, Award } from 'lucide-react';
 import ConfirmDialog from '../components/ConfirmDialog';
@@ -34,7 +35,6 @@ const CATEGORY_STYLES: Record<string, React.CSSProperties> = {
 export default function Glossary() {
   const navigate = useNavigate();
   const [movements, setMovements] = useState<Movement[]>([]);
-  const [filteredMovements, setFilteredMovements] = useState<Movement[]>([]);
   const [categories, setCategories] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -71,7 +71,7 @@ export default function Glossary() {
           setCategories(categoriesRes.data.categories);
         }
       } catch (error) {
-        if (!cancelled) console.error('Error loading glossary:', error);
+        if (!cancelled) logger.error('Error loading glossary:', error);
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -80,28 +80,7 @@ export default function Glossary() {
     return () => { cancelled = true; };
   }, []);
 
-  useEffect(() => {
-    filterMovements();
-  }, [movements, searchQuery, selectedCategory, showGiOnly, showNoGiOnly]);
-
-  const loadData = async () => {
-    setLoading(true);
-    try {
-      const [movementsRes, categoriesRes] = await Promise.all([
-        glossaryApi.list(),
-        glossaryApi.getCategories(),
-      ]);
-      const movementsData = movementsRes.data as any;
-      setMovements(Array.isArray(movementsData) ? movementsData : movementsData.movements || []);
-      setCategories(categoriesRes.data.categories);
-    } catch (error) {
-      console.error('Error loading glossary:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const filterMovements = () => {
+  const filteredMovements = useMemo(() => {
     let filtered = [...movements];
 
     // Category filter
@@ -128,7 +107,24 @@ export default function Glossary() {
       filtered = filtered.filter(m => m.nogi_applicable);
     }
 
-    setFilteredMovements(filtered);
+    return filtered;
+  }, [movements, searchQuery, selectedCategory, showGiOnly, showNoGiOnly]);
+
+  const loadData = async () => {
+    setLoading(true);
+    try {
+      const [movementsRes, categoriesRes] = await Promise.all([
+        glossaryApi.list(),
+        glossaryApi.getCategories(),
+      ]);
+      const movementsData = movementsRes.data as any;
+      setMovements(Array.isArray(movementsData) ? movementsData : movementsData.movements || []);
+      setCategories(categoriesRes.data.categories);
+    } catch (error) {
+      logger.error('Error loading glossary:', error);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleAddCustom = async (e: React.FormEvent) => {
@@ -156,7 +152,7 @@ export default function Glossary() {
       await loadData();
       toast.success('Custom movement added successfully');
     } catch (error) {
-      console.error('Error adding custom movement:', error);
+      logger.error('Error adding custom movement:', error);
       toast.error('Failed to add custom movement.');
     }
   };
@@ -169,22 +165,20 @@ export default function Glossary() {
       await loadData();
       toast.success('Custom movement deleted successfully');
     } catch (error) {
-      console.error('Error deleting movement:', error);
+      logger.error('Error deleting movement:', error);
       toast.error('Failed to delete movement. Can only delete custom movements.');
     } finally {
       setMovementToDelete(null);
     }
   };
 
-  const getCategoryStats = () => {
+  const categoryStats = useMemo(() => {
     const stats: Record<string, number> = {};
     movements.forEach(m => {
       stats[m.category] = (stats[m.category] || 0) + 1;
     });
     return stats;
-  };
-
-  const categoryStats = getCategoryStats();
+  }, [movements]);
 
   if (loading) {
     return (

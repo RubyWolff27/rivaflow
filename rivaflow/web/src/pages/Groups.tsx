@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { groupsApi, socialApi } from '../api/client';
+import { logger } from '../utils/logger';
 import type { Group, GroupMember } from '../types';
 import { Users, Plus, X, LogOut, Trash2, ChevronRight, Shield, UserPlus, Search, Globe } from 'lucide-react';
 import { useToast } from '../contexts/ToastContext';
@@ -47,7 +48,7 @@ export default function Groups() {
         const response = await groupsApi.list();
         if (!cancelled) setGroups(response.data.groups || []);
       } catch {
-        if (!cancelled) console.error('Error loading groups');
+        if (!cancelled) logger.error('Error loading groups');
       } finally {
         if (!cancelled) setLoading(false);
       }

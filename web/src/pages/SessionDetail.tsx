@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { sessionsApi, whoopApi } from '../api/client';
+import { logger } from '../utils/logger';
 import type { Session, WhoopSessionContext } from '../types';
-import { ArrowLeft, Calendar, Clock, Zap, Users, MapPin, User, Book, Edit2, Activity, Target, Camera, ChevronLeft, ChevronRight, Plus, Heart } from 'lucide-react';
+import { ArrowLeft, Calendar, Clock, Zap, Users, MapPin, User, Book, Edit2, Activity, Target, Camera, Plus, Heart } from 'lucide-react';
 import PhotoGallery from '../components/PhotoGallery';
 import PhotoUpload from '../components/PhotoUpload';
 import SessionInsights from '../components/SessionInsights';
@@ -16,8 +17,6 @@ export default function SessionDetail() {
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
   const [photoCount, setPhotoCount] = useState(0);
-  const [prevSessionId, setPrevSessionId] = useState<number | null>(null);
-  const [nextSessionId, setNextSessionId] = useState<number | null>(null);
   const [whoopCtx, setWhoopCtx] = useState<WhoopSessionContext | null>(null);
   const [recalculating, setRecalculating] = useState(false);
   const toast = useToast();
@@ -32,35 +31,12 @@ export default function SessionDetail() {
         if (!cancelled) setSession(response.data ?? null);
       } catch (error) {
         if (!cancelled) {
-          console.error('Error loading session:', error);
+          logger.error('Error loading session:', error);
           toast.error('Failed to load session');
           navigate('/feed');
         }
       } finally {
         if (!cancelled) setLoading(false);
-      }
-    };
-
-    const doLoadAdjacent = async () => {
-      try {
-        const response = await sessionsApi.list(1000);
-        if (cancelled) return;
-        const sessions = response.data || [];
-        const currentIndex = sessions.findIndex(s => s.id === parseInt(id ?? '0'));
-        if (currentIndex !== -1) {
-          if (currentIndex < sessions.length - 1) {
-            setPrevSessionId(sessions[currentIndex + 1].id);
-          } else {
-            setPrevSessionId(null);
-          }
-          if (currentIndex > 0) {
-            setNextSessionId(sessions[currentIndex - 1].id);
-          } else {
-            setNextSessionId(null);
-          }
-        }
-      } catch (error) {
-        if (!cancelled) console.error('Error loading adjacent sessions:', error);
       }
     };
 
@@ -74,24 +50,9 @@ export default function SessionDetail() {
     };
 
     doLoad();
-    doLoadAdjacent();
     doLoadWhoopCtx();
     return () => { cancelled = true; };
   }, [id]);
-
-  // Keyboard navigation
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'ArrowLeft' && prevSessionId) {
-        navigate(`/session/${prevSessionId}`);
-      } else if (e.key === 'ArrowRight' && nextSessionId) {
-        navigate(`/session/${nextSessionId}`);
-      }
-    };
-
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [prevSessionId, nextSessionId, navigate]);
 
   const handleRecalculate = async () => {
     if (!session) return;
@@ -161,37 +122,6 @@ export default function SessionDetail() {
           <h1 className="text-3xl font-bold" style={{ color: 'var(--text)' }} id="page-title">Session Details</h1>
         </div>
         <div className="flex items-center gap-2">
-          {/* Previous/Next Navigation */}
-          <div className="flex items-center gap-1 mr-2">
-            <button
-              onClick={() => prevSessionId && navigate(`/session/${prevSessionId}`)}
-              disabled={!prevSessionId}
-              className="p-2 rounded-lg transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-              style={{
-                backgroundColor: prevSessionId ? 'var(--surface)' : 'transparent',
-                color: 'var(--text)',
-                border: '1px solid var(--border)',
-              }}
-              aria-label="Previous session (Left Arrow)"
-              title="Previous session (←)"
-            >
-              <ChevronLeft className="w-5 h-5" />
-            </button>
-            <button
-              onClick={() => nextSessionId && navigate(`/session/${nextSessionId}`)}
-              disabled={!nextSessionId}
-              className="p-2 rounded-lg transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-              style={{
-                backgroundColor: nextSessionId ? 'var(--surface)' : 'transparent',
-                color: 'var(--text)',
-                border: '1px solid var(--border)',
-              }}
-              aria-label="Next session (Right Arrow)"
-              title="Next session (→)"
-            >
-              <ChevronRight className="w-5 h-5" />
-            </button>
-          </div>
           <Link
             to={`/session/edit/${session.id}`}
             className="btn-primary flex items-center gap-2"

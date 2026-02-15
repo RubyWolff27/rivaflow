@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { X, Mic, MicOff } from 'lucide-react';
 import { sessionsApi, profileApi, restApi, friendsApi, socialApi } from '../api/client';
+import { logger } from '../utils/logger';
 import { PrimaryButton, SecondaryButton, ClassTypeChips, IntensityChips } from './ui';
 import { useToast } from '../contexts/ToastContext';
 import { getLocalDateString } from '../utils/date';
@@ -94,7 +95,7 @@ export default function QuickLog({ isOpen, onClose, onSuccess }: QuickLogProps) 
           setTopPartners(merged.slice(0, 5));
         }
       } catch (error) {
-        if (!cancelled) console.error('Error loading data:', error);
+        if (!cancelled) logger.error('Error loading data:', error);
       }
     };
     doLoad();
@@ -176,7 +177,7 @@ export default function QuickLog({ isOpen, onClose, onSuccess }: QuickLogProps) 
       if (onSuccess) onSuccess();
       onClose();
     } catch (error) {
-      console.error('Error logging activity:', error);
+      logger.error('Error logging activity:', error);
       toast.error(`Failed to log ${activityType === 'rest' ? 'rest day' : 'session'}`);
     } finally {
       setLoading(false);
