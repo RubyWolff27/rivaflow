@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { sessionsApi, readinessApi, profileApi, friendsApi, socialApi, glossaryApi, restApi, whoopApi, getErrorMessage } from '../api/client';
 import { logger } from '../utils/logger';
 import type { Friend, Movement, MediaUrl, Readiness, WhoopWorkoutMatch } from '../types';
-import { CheckCircle, ArrowLeft, Camera, Mic, MicOff } from 'lucide-react';
+import { CheckCircle, ArrowLeft, Mic, MicOff, ChevronDown, ChevronUp } from 'lucide-react';
 import WhoopMatchModal from '../components/WhoopMatchModal';
 import GymSelector from '../components/GymSelector';
 import { ClassTypeChips, IntensityChips } from '../components/ui';
@@ -14,17 +14,11 @@ import { useSpeechRecognition } from '../hooks/useSpeechRecognition';
 import ReadinessStep from '../components/sessions/ReadinessStep';
 import TechniqueTracker from '../components/sessions/TechniqueTracker';
 import RollTracker from '../components/sessions/RollTracker';
+import ClassTimePicker from '../components/sessions/ClassTimePicker';
 import WhoopIntegrationPanel from '../components/sessions/WhoopIntegrationPanel';
 import FightDynamicsPanel from '../components/sessions/FightDynamicsPanel';
 import type { RollEntry, TechniqueEntry } from '../components/sessions/sessionTypes';
 import { SPARRING_TYPES } from '../components/sessions/sessionTypes';
-
-const TIME_QUICK_SELECT = [
-  { label: '6:30am', value: '06:30' },
-  { label: '12pm', value: '12:00' },
-  { label: '5:30pm', value: '17:30' },
-  { label: '7pm', value: '19:00' },
-] as const;
 
 const DURATION_QUICK_SELECT = [60, 75, 90, 120] as const;
 
@@ -55,6 +49,9 @@ export default function LogSession() {
 
   const [showWhoop, setShowWhoop] = useState(false);
   const [showFightDynamics, setShowFightDynamics] = useState(false);
+  const [showMoreDetails, setShowMoreDetails] = useState(false);
+  const [showCustomDuration, setShowCustomDuration] = useState(false);
+  const [selectedPartnerIds, setSelectedPartnerIds] = useState<Set<number>>(new Set());
   const [fightDynamics, setFightDynamics] = useState({
     attacks_attempted: 0,
     attacks_successful: 0,
@@ -83,6 +80,7 @@ export default function LogSession() {
     class_time: '',
     class_type: 'gi',
     gym_name: '',
+    gym_id: null as number | null,
     location: '',
     duration_mins: 60,
     intensity: 4,
@@ -163,6 +161,9 @@ export default function LogSession() {
         const updates: Partial<typeof sessionData> = {};
         if (profileRes.data?.default_gym) {
           updates.gym_name = profileRes.data.default_gym;
+        }
+        if (profileRes.data?.primary_gym_id) {
+          updates.gym_id = profileRes.data.primary_gym_id;
         }
         if (profileRes.data?.default_location) {
           updates.location = profileRes.data.default_location;
@@ -437,12 +438,18 @@ export default function LogSession() {
         await readinessApi.create(readinessPayload);
       }
 
+      const { gym_id: _gymId, ...sessionPayloadData } = sessionData;
       const payload: Record<string, unknown> = {
-        ...sessionData,
+        ...sessionPayloadData,
         class_time: sessionData.class_time || undefined,
         location: sessionData.location || undefined,
         notes: sessionData.notes || undefined,
-        partners: sessionData.partners ? sessionData.partners.split(',').map(p => p.trim()) : undefined,
+        partners: (() => {
+          const pillNames = topPartners.filter(p => selectedPartnerIds.has(p.id)).map(p => p.name);
+          const typedNames = sessionData.partners ? sessionData.partners.split(',').map(p => p.trim()).filter(Boolean) : [];
+          const all = [...pillNames, ...typedNames];
+          return all.length > 0 ? all : undefined;
+        })(),
         techniques: sessionData.techniques ? sessionData.techniques.split(',').map(t => t.trim()) : undefined,
         visibility_level: 'private',
         whoop_strain: sessionData.whoop_strain ? parseFloat(sessionData.whoop_strain as string) : undefined,
@@ -544,6 +551,20 @@ export default function LogSession() {
       (m.aliases ?? []).some(alias => alias.toLowerCase().includes(s))
     );
   }, [submissionMovements]);
+
+  const topPartners = useMemo(
+    () => partners.filter(p => p.friend_type === 'training-partner' || p.friend_type === 'both').slice(0, 8),
+    [partners]
+  );
+
+  const handleTogglePartner = useCallback((partnerId: number) => {
+    setSelectedPartnerIds(prev => {
+      const next = new Set(prev);
+      if (next.has(partnerId)) next.delete(partnerId);
+      else next.add(partnerId);
+      return next;
+    });
+  }, []);
 
   if (success) {
     return (
@@ -666,28 +687,18 @@ export default function LogSession() {
           </div>
 
           {/* Class Time */}
-          <div>
-            <label className="label">Class Time (optional)</label>
-            <div className="flex gap-2 mb-2" role="group" aria-label="Common class times">
-              {TIME_QUICK_SELECT.map((time) => (
-                <button key={time.value} type="button"
-                  onClick={() => setSessionData({ ...sessionData, class_time: time.value })}
-                  className="flex-1 min-h-[44px] py-2 rounded-lg font-medium text-sm transition-all"
-                  style={{
-                    backgroundColor: sessionData.class_time === time.value ? 'var(--accent)' : 'var(--surfaceElev)',
-                    color: sessionData.class_time === time.value ? '#FFFFFF' : 'var(--text)',
-                    border: sessionData.class_time === time.value ? 'none' : '1px solid var(--border)',
-                  }}
-                  aria-pressed={sessionData.class_time === time.value}
-                >
-                  {time.label}
-                </button>
-              ))}
-            </div>
-            <input type="text" className="input text-sm" value={sessionData.class_time}
-              onChange={(e) => setSessionData({ ...sessionData, class_time: e.target.value })}
-              placeholder="Or type custom time (e.g., 18:30, morning)" />
-          </div>
+          <ClassTimePicker
+            gymId={sessionData.gym_id}
+            classTime={sessionData.class_time}
+            onSelect={(classTime, classType, durationMins) => {
+              setSessionData(prev => ({
+                ...prev,
+                class_time: classTime,
+                ...(classType ? { class_type: classType } : {}),
+                ...(durationMins ? { duration_mins: durationMins } : {}),
+              }));
+            }}
+          />
 
           {/* Class Type */}
           <div>
@@ -701,16 +712,21 @@ export default function LogSession() {
             <label className="label">Gym Name</label>
             <GymSelector
               value={sessionData.gym_name}
-              onChange={(gymName, _isCustom) => { setSessionData({ ...sessionData, gym_name: gymName }); }}
+              onChange={(gymName, isCustom) => {
+                setSessionData(prev => ({
+                  ...prev,
+                  gym_name: gymName,
+                  gym_id: isCustom ? null : prev.gym_id,
+                }));
+              }}
               onGymSelected={(gym) => {
-                if (gym.head_coach) {
-                  setSessionData(prev => ({
-                    ...prev,
-                    gym_name: [gym.name, gym.city, gym.state, gym.country].filter(Boolean).join(', '),
-                    instructor_name: gym.head_coach ?? '',
-                    instructor_id: null,
-                  }));
-                }
+                setSessionData(prev => ({
+                  ...prev,
+                  gym_name: [gym.name, gym.city, gym.state, gym.country].filter(Boolean).join(', '),
+                  gym_id: gym.id,
+                  instructor_name: gym.head_coach ?? prev.instructor_name,
+                  instructor_id: gym.head_coach ? null : prev.instructor_id,
+                }));
               }}
             />
             <p className="text-xs text-[var(--muted)] mt-1">
@@ -718,64 +734,50 @@ export default function LogSession() {
             </p>
           </div>
 
-          {/* Instructor */}
-          <div>
-            <label className="label">Instructor (optional)</label>
-            <select className="input" value={sessionData.instructor_id || ''}
-              onChange={(e) => {
-                const instructorId = e.target.value ? parseInt(e.target.value) : null;
-                const instructor = instructors.find(i => i.id === instructorId);
-                setSessionData({ ...sessionData, instructor_id: instructorId, instructor_name: instructor?.name || '' });
-              }}>
-              <option value="">Select instructor...</option>
-              {instructors.map(instructor => (
-                <option key={instructor.id} value={instructor.id}>
-                  {instructor.name ?? 'Unknown'}
-                  {instructor.belt_rank && ` (${instructor.belt_rank} belt)`}
-                  {instructor.instructor_certification && ` - ${instructor.instructor_certification}`}
-                </option>
-              ))}
-            </select>
-            <p className="text-xs text-[var(--muted)] mt-1">
-              Select from your list. <a href="/friends" className="text-[var(--accent)] hover:underline">Manage instructors in Friends</a>
-            </p>
-          </div>
-
-          {/* Location */}
-          <div>
-            <label className="label">Location (optional)</label>
-            <input type="text" className="input" value={sessionData.location}
-              onChange={(e) => setSessionData({ ...sessionData, location: e.target.value })}
-              placeholder="e.g., Sydney, NSW" list="locations" />
-            {autocomplete.locations && (
-              <datalist id="locations">
-                {autocomplete.locations.map((loc: string) => <option key={loc} value={loc} />)}
-              </datalist>
-            )}
-          </div>
-
           {/* Duration */}
           <div>
             <label className="label">Duration (minutes)</label>
-            <div className="flex gap-2 mb-2" role="group" aria-label="Duration options">
-              {DURATION_QUICK_SELECT.map((mins) => (
-                <button key={mins} type="button"
-                  onClick={() => setSessionData({ ...sessionData, duration_mins: mins })}
-                  className="flex-1 min-h-[44px] py-3 rounded-lg font-medium text-sm transition-all"
-                  style={{
-                    backgroundColor: sessionData.duration_mins === mins ? 'var(--accent)' : 'var(--surfaceElev)',
-                    color: sessionData.duration_mins === mins ? '#FFFFFF' : 'var(--text)',
-                    border: sessionData.duration_mins === mins ? 'none' : '1px solid var(--border)',
-                  }}
-                  aria-label={`${mins} minutes`} aria-pressed={sessionData.duration_mins === mins}
-                >
-                  {mins}m
-                </button>
-              ))}
-            </div>
-            <input type="number" className="input text-sm" value={sessionData.duration_mins}
-              onChange={(e) => setSessionData({ ...sessionData, duration_mins: parseInt(e.target.value) || 0 })}
-              placeholder="Or enter custom duration" min="1" required />
+            {(() => {
+              const isStandard = (DURATION_QUICK_SELECT as readonly number[]).includes(sessionData.duration_mins);
+              const isCustomActive = !isStandard || showCustomDuration;
+              return (
+                <>
+                  <div className="flex flex-wrap gap-2" role="group" aria-label="Duration options">
+                    {DURATION_QUICK_SELECT.map((mins) => (
+                      <button key={mins} type="button"
+                        onClick={() => { setSessionData({ ...sessionData, duration_mins: mins }); setShowCustomDuration(false); }}
+                        className="flex-1 min-h-[44px] py-3 rounded-lg font-medium text-sm transition-all"
+                        style={{
+                          backgroundColor: sessionData.duration_mins === mins && !showCustomDuration ? 'var(--accent)' : 'var(--surfaceElev)',
+                          color: sessionData.duration_mins === mins && !showCustomDuration ? '#FFFFFF' : 'var(--text)',
+                          border: sessionData.duration_mins === mins && !showCustomDuration ? 'none' : '1px solid var(--border)',
+                        }}
+                        aria-label={`${mins} minutes`} aria-pressed={sessionData.duration_mins === mins && !showCustomDuration}
+                      >
+                        {mins}m
+                      </button>
+                    ))}
+                    <button type="button"
+                      onClick={() => setShowCustomDuration(true)}
+                      className="flex-1 min-h-[44px] py-3 rounded-lg font-medium text-sm transition-all"
+                      style={{
+                        backgroundColor: isCustomActive ? 'var(--accent)' : 'var(--surfaceElev)',
+                        color: isCustomActive ? '#FFFFFF' : 'var(--text)',
+                        border: isCustomActive ? 'none' : '1px solid var(--border)',
+                      }}
+                      aria-pressed={isCustomActive}
+                    >
+                      {isCustomActive && !isStandard ? `${sessionData.duration_mins}m` : 'Custom'}
+                    </button>
+                  </div>
+                  {isCustomActive && (
+                    <input type="number" className="input text-sm mt-2" value={sessionData.duration_mins}
+                      onChange={(e) => setSessionData({ ...sessionData, duration_mins: parseInt(e.target.value) || 0 })}
+                      placeholder="Enter duration in minutes" min="1" autoFocus />
+                  )}
+                </>
+              );
+            })()}
           </div>
 
           {/* Intensity */}
@@ -783,6 +785,129 @@ export default function LogSession() {
             <label className="label">Intensity</label>
             <IntensityChips value={sessionData.intensity}
               onChange={(val) => setSessionData({ ...sessionData, intensity: val })} />
+          </div>
+
+          {/* Notes — essential for non-sparring types (S&C, cardio, mobility) */}
+          {!isSparringType && (
+            <div className="border-t border-[var(--border)] pt-4">
+              <label className="label">
+                Session Details
+                <span className="text-sm font-normal text-[var(--muted)] ml-2">(Workout details, exercises, distances, times, etc.)</span>
+              </label>
+              <div className="relative">
+                <textarea className="input" value={sessionData.notes}
+                  onChange={(e) => setSessionData({ ...sessionData, notes: e.target.value })}
+                  rows={5}
+                  placeholder="e.g., 5km run in 30 mins, Deadlifts 3x8 @ 100kg, Squats 3x10 @ 80kg, or Yoga flow focusing on hip mobility..." />
+                {hasSpeechApi && (
+                  <button type="button" onClick={toggleRecording} disabled={isTranscribing}
+                    className="absolute bottom-2 right-2 p-1.5 rounded-lg transition-all"
+                    style={{
+                      backgroundColor: isRecording ? 'var(--error)' : 'var(--surfaceElev)',
+                      color: isRecording ? '#FFFFFF' : 'var(--muted)',
+                      opacity: isTranscribing ? 0.6 : 1,
+                    }}
+                    aria-label={isTranscribing ? 'Transcribing audio...' : isRecording ? 'Stop recording' : 'Start voice input'}>
+                    {isTranscribing ? (
+                      <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                    ) : isRecording ? (
+                      <MicOff className="w-4 h-4" />
+                    ) : (
+                      <Mic className="w-4 h-4" />
+                    )}
+                  </button>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Collapsible More Details — Instructor, Location, Notes (sparring only) */}
+          <div className="border-t border-[var(--border)] pt-3">
+            <button type="button" onClick={() => setShowMoreDetails(!showMoreDetails)}
+              className="flex items-center justify-between w-full text-sm text-[var(--muted)] hover:text-[var(--text)] transition-colors">
+              <span className="font-medium">
+                More Details
+                {!showMoreDetails && (sessionData.instructor_name || sessionData.location) && (
+                  <span className="ml-2 text-xs font-normal">
+                    {[
+                      sessionData.instructor_name && `Instructor: ${sessionData.instructor_name}`,
+                      sessionData.location && `Location: ${sessionData.location}`,
+                    ].filter(Boolean).join(' | ')}
+                  </span>
+                )}
+              </span>
+              {showMoreDetails ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+            </button>
+            {showMoreDetails && (
+              <div className="space-y-4 mt-3">
+                {/* Instructor */}
+                <div>
+                  <label className="label">Instructor (optional)</label>
+                  <select className="input" value={sessionData.instructor_id || ''}
+                    onChange={(e) => {
+                      const instructorId = e.target.value ? parseInt(e.target.value) : null;
+                      const instructor = instructors.find(i => i.id === instructorId);
+                      setSessionData({ ...sessionData, instructor_id: instructorId, instructor_name: instructor?.name || '' });
+                    }}>
+                    <option value="">Select instructor...</option>
+                    {instructors.map(instructor => (
+                      <option key={instructor.id} value={instructor.id}>
+                        {instructor.name ?? 'Unknown'}
+                        {instructor.belt_rank && ` (${instructor.belt_rank} belt)`}
+                        {instructor.instructor_certification && ` - ${instructor.instructor_certification}`}
+                      </option>
+                    ))}
+                  </select>
+                  <p className="text-xs text-[var(--muted)] mt-1">
+                    Select from your list. <a href="/friends" className="text-[var(--accent)] hover:underline">Manage instructors in Friends</a>
+                  </p>
+                </div>
+
+                {/* Location */}
+                <div>
+                  <label className="label">Location (optional)</label>
+                  <input type="text" className="input" value={sessionData.location}
+                    onChange={(e) => setSessionData({ ...sessionData, location: e.target.value })}
+                    placeholder="e.g., Sydney, NSW" list="locations" />
+                  {autocomplete.locations && (
+                    <datalist id="locations">
+                      {autocomplete.locations.map((loc: string) => <option key={loc} value={loc} />)}
+                    </datalist>
+                  )}
+                </div>
+
+                {/* Notes — inside More Details for sparring types */}
+                {isSparringType && (
+                  <div>
+                    <label className="label">Notes</label>
+                    <div className="relative">
+                      <textarea className="input" value={sessionData.notes}
+                        onChange={(e) => setSessionData({ ...sessionData, notes: e.target.value })}
+                        rows={3}
+                        placeholder="Any notes about today's training..." />
+                      {hasSpeechApi && (
+                        <button type="button" onClick={toggleRecording} disabled={isTranscribing}
+                          className="absolute bottom-2 right-2 p-1.5 rounded-lg transition-all"
+                          style={{
+                            backgroundColor: isRecording ? 'var(--error)' : 'var(--surfaceElev)',
+                            color: isRecording ? '#FFFFFF' : 'var(--muted)',
+                            opacity: isTranscribing ? 0.6 : 1,
+                          }}
+                          aria-label={isTranscribing ? 'Transcribing audio...' : isRecording ? 'Stop recording' : 'Start voice input'}>
+                          {isTranscribing ? (
+                            <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                          ) : isRecording ? (
+                            <MicOff className="w-4 h-4" />
+                          ) : (
+                            <Mic className="w-4 h-4" />
+                          )}
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
 
           {/* Technique Tracker */}
@@ -823,6 +948,9 @@ export default function LogSession() {
               onRemoveRoll={handleRemoveRoll}
               onRollChange={handleRollChange}
               onToggleSubmission={handleToggleSubmission}
+              topPartners={topPartners}
+              selectedPartnerIds={selectedPartnerIds}
+              onTogglePartner={handleTogglePartner}
             />
           )}
 
@@ -859,56 +987,22 @@ export default function LogSession() {
             />
           )}
 
-          {/* Notes */}
-          <div className={!isSparringType ? 'border-t border-[var(--border)] pt-4' : ''}>
-            <label className="label">
-              {!isSparringType ? 'Session Details' : 'Notes'}
-              {!isSparringType && <span className="text-sm font-normal text-[var(--muted)] ml-2">(Workout details, exercises, distances, times, etc.)</span>}
-            </label>
-            <div className="relative">
-              <textarea className="input" value={sessionData.notes}
-                onChange={(e) => setSessionData({ ...sessionData, notes: e.target.value })}
-                rows={!isSparringType ? 5 : 3}
-                placeholder={!isSparringType
-                  ? "e.g., 5km run in 30 mins, Deadlifts 3x8 @ 100kg, Squats 3x10 @ 80kg, or Yoga flow focusing on hip mobility..."
-                  : "Any notes about today's training..."} />
-              {hasSpeechApi && (
-                <button type="button" onClick={toggleRecording} disabled={isTranscribing}
-                  className="absolute bottom-2 right-2 p-1.5 rounded-lg transition-all"
-                  style={{
-                    backgroundColor: isRecording ? 'var(--error)' : 'var(--surfaceElev)',
-                    color: isRecording ? '#FFFFFF' : 'var(--muted)',
-                    opacity: isTranscribing ? 0.6 : 1,
-                  }}
-                  aria-label={isTranscribing ? 'Transcribing audio...' : isRecording ? 'Stop recording' : 'Start voice input'}>
-                  {isTranscribing ? (
-                    <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
-                  ) : isRecording ? (
-                    <MicOff className="w-4 h-4" />
-                  ) : (
-                    <Mic className="w-4 h-4" />
-                  )}
-                </button>
-              )}
-            </div>
-          </div>
-
           {/* Photo Upload Info */}
-          <div className="rounded-lg p-3 flex items-start gap-2" style={{ backgroundColor: 'rgba(59,130,246,0.1)', border: '1px solid var(--accent)' }}>
-            <Camera className="w-5 h-5 flex-shrink-0 mt-0.5" style={{ color: 'var(--accent)' }} />
-            <div className="text-sm" style={{ color: 'var(--accent)' }}>
-              <span className="font-semibold">Want to add photos?</span> Save the session first, then you can upload up to 3 photos on the next page.
-            </div>
-          </div>
+          <p className="text-xs text-[var(--muted)]">You can add up to 3 photos after saving.</p>
 
-          {/* Submit */}
-          <div className="flex gap-2">
-            <button type="button" onClick={handleBackStep} className="btn-secondary flex items-center gap-2">
-              <ArrowLeft className="w-4 h-4" /> Back
-            </button>
-            <button type="submit" disabled={loading} className="btn-primary flex-1">
-              {loading ? 'Logging Session...' : 'Log Session'}
-            </button>
+          {/* Spacer so sticky bar doesn't obscure content on mobile */}
+          <div className="pb-16 sm:pb-0" />
+
+          {/* Submit — sticky on mobile */}
+          <div className="sticky bottom-0 -mx-4 px-4 py-3 border-t border-[var(--border)] bg-[var(--surface)] sm:static sm:mx-0 sm:px-0 sm:py-0 sm:border-t-0">
+            <div className="flex gap-2">
+              <button type="button" onClick={handleBackStep} className="btn-secondary flex items-center gap-2">
+                <ArrowLeft className="w-4 h-4" /> Back
+              </button>
+              <button type="submit" disabled={loading} className="btn-primary flex-1">
+                {loading ? 'Logging Session...' : 'Log Session'}
+              </button>
+            </div>
           </div>
         </form>
       )}

@@ -24,6 +24,9 @@ interface RollTrackerProps {
   onRollChange: (index: number, field: keyof RollEntry, value: RollEntry[keyof RollEntry]) => void;
   onToggleSubmission: (rollIndex: number, movementId: number, type: 'for' | 'against') => void;
   showPartners?: boolean;
+  topPartners?: Friend[];
+  selectedPartnerIds?: Set<number>;
+  onTogglePartner?: (partnerId: number) => void;
 }
 
 export default function RollTracker({
@@ -43,6 +46,9 @@ export default function RollTracker({
   onRollChange,
   onToggleSubmission,
   showPartners = true,
+  topPartners = [],
+  selectedPartnerIds,
+  onTogglePartner,
 }: RollTrackerProps) {
   return (
     <>
@@ -247,13 +253,35 @@ export default function RollTracker({
 
       {!detailedMode && showPartners && (
         <div>
-          <label className="label">Partners (comma-separated)</label>
+          <label className="label">Partners</label>
+          {topPartners.length > 0 && selectedPartnerIds && onTogglePartner && (
+            <div className="flex flex-wrap gap-2 mb-2">
+              {topPartners.map((partner) => {
+                const selected = selectedPartnerIds.has(partner.id);
+                return (
+                  <button
+                    key={partner.id}
+                    type="button"
+                    onClick={() => onTogglePartner(partner.id)}
+                    className="px-3 py-1.5 rounded-full text-xs font-medium transition-all"
+                    style={{
+                      backgroundColor: selected ? 'var(--accent)' : 'var(--surfaceElev)',
+                      color: selected ? '#FFFFFF' : 'var(--text)',
+                      border: selected ? 'none' : '1px solid var(--border)',
+                    }}
+                  >
+                    {partner.name}
+                  </button>
+                );
+              })}
+            </div>
+          )}
           <input
             type="text"
             className="input"
             value={simpleData.partners}
             onChange={(e) => onSimpleChange('partners', e.target.value)}
-            placeholder="e.g., John, Sarah"
+            placeholder={topPartners.length > 0 ? "Additional partners..." : "e.g., John, Sarah"}
           />
         </div>
       )}
