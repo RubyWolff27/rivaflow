@@ -153,18 +153,31 @@ export default function LogSession() {
         if (controller.signal.aborted) return;
 
         setAutocomplete(autocompleteRes.data ?? {});
-        setInstructors(instructorsRes.data ?? []);
+        const loadedInstructors: Friend[] = instructorsRes.data ?? [];
+        setInstructors(loadedInstructors);
         const manualPartners: Friend[] = partnersRes.data ?? [];
         const socialFriends: Friend[] = (socialFriendsRes.data.friends || []).map((sf: any) => ({
           id: sf.id + 1000000,
           name: `${sf.first_name || ''} ${sf.last_name || ''}`.trim(),
           friend_type: 'training-partner' as const,
         }));
-        const manualNames = new Set(manualPartners.map(p => p.name.toLowerCase()));
-        setPartners([
-          ...manualPartners,
-          ...socialFriends.filter(sf => !manualNames.has(sf.name.toLowerCase())),
-        ]);
+        // Merge manual partners + instructors + social friends, deduped by name
+        const seenNames = new Set<string>();
+        const merged: Friend[] = [];
+        for (const p of [...manualPartners, ...loadedInstructors]) {
+          const key = p.name.toLowerCase();
+          if (!seenNames.has(key)) {
+            seenNames.add(key);
+            merged.push(p);
+          }
+        }
+        for (const sf of socialFriends) {
+          if (!seenNames.has(sf.name.toLowerCase())) {
+            seenNames.add(sf.name.toLowerCase());
+            merged.push(sf);
+          }
+        }
+        setPartners(merged);
         // API returns {movements: [...], total: N} -- extract the array
         const movementsData = movementsRes.data as Movement[] | { movements: Movement[] };
         setMovements(Array.isArray(movementsData) ? movementsData : movementsData?.movements || []);
