@@ -399,8 +399,13 @@ class PerformanceAnalyticsService:
             user_id, start_date, end_date, types=types
         )
 
-        # Get all partners from contacts
+        # Get all partners from contacts (including 'both' type)
         partners = self.friend_repo.list_by_type(user_id, "training-partner")
+        both = self.friend_repo.list_by_type(user_id, "both")
+        seen_ids = {p["id"] for p in partners}
+        for b in both:
+            if b["id"] not in seen_ids:
+                partners.append(b)
 
         # Count simple-mode partner mentions from sessions.partners JSON
         simple_partner_counts: dict[str, int] = {}
@@ -452,9 +457,16 @@ class PerformanceAnalyticsService:
 
             total_rolls = detailed_count + simple_count
 
-            # Aggregate session-level submissions for this partner
+            # Aggregate session-level submissions for this partner.
+            # Check both sessions.partners JSON (simple mode) AND
+            # session_rolls (detailed mode) to find sessions involving
+            # this partner.
+            all_rolls = rolls_in_range + unlinked_in_range
+            roll_session_ids = {r["session_id"] for r in all_rolls}
             sess_subs_for, sess_subs_against = (
-                self._get_session_submissions_for_partner(partner["name"], sessions)
+                self._get_session_submissions_for_partner(
+                    partner["name"], sessions, roll_session_ids
+                )
             )
             roll_subs_for = stats.get("total_submissions_for", 0)
             roll_subs_against = stats.get("total_submissions_against", 0)
@@ -546,33 +558,54 @@ class PerformanceAnalyticsService:
 
     @staticmethod
     def _get_session_submissions_for_partner(
-        partner_name: str, sessions: list[dict]
+        partner_name: str,
+        sessions: list[dict],
+        roll_session_ids: set | None = None,
     ) -> tuple[int, int]:
-        """Sum session-level submissions for sessions involving a partner."""
+        """Sum session-level submissions for sessions involving a partner.
+
+        Checks two sources to determine if a partner was in a session:
+        1. sessions.partners JSON (simple mode)
+        2. roll_session_ids from session_rolls table (detailed mode)
+        """
         total_for = 0
         total_against = 0
         name_lower = partner_name.strip().lower()
+        if roll_session_ids is None:
+            roll_session_ids = set()
+
         for s in sessions:
-            partners_raw = s.get("partners")
-            if not partners_raw:
-                continue
-            try:
-                plist = (
-                    json.loads(partners_raw)
-                    if isinstance(partners_raw, str)
-                    else partners_raw
-                )
-                if not isinstance(plist, list):
-                    continue
-                names = [n.strip().lower() for n in plist]
-            except (json.JSONDecodeError, TypeError):
-                continue
-            if name_lower not in names:
-                continue
-            n_partners = len(names) or 1
             subs_for = s.get("submissions_for", 0) or 0
             subs_against = s.get("submissions_against", 0) or 0
-            # Distribute session-level submissions across partners
+            if subs_for == 0 and subs_against == 0:
+                continue
+
+            # Check if partner was in this session via partners JSON
+            in_session_json = False
+            n_partners_json = 0
+            partners_raw = s.get("partners")
+            if partners_raw:
+                try:
+                    plist = (
+                        json.loads(partners_raw)
+                        if isinstance(partners_raw, str)
+                        else partners_raw
+                    )
+                    if isinstance(plist, list):
+                        names = [n.strip().lower() for n in plist]
+                        n_partners_json = len(names)
+                        in_session_json = name_lower in names
+                except (json.JSONDecodeError, TypeError):
+                    pass
+
+            # Check if partner was in this session via detailed rolls
+            in_session_rolls = s.get("id") in roll_session_ids
+
+            if not in_session_json and not in_session_rolls:
+                continue
+
+            # Estimate partner count for proportional distribution
+            n_partners = max(n_partners_json, 1)
             total_for += subs_for // n_partners
             total_against += subs_against // n_partners
         return total_for, total_against
