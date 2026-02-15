@@ -399,13 +399,13 @@ class PerformanceAnalyticsService:
             user_id, start_date, end_date, types=types
         )
 
-        # Get all partners from contacts (including 'both' type)
+        # Get all partners from contacts (including 'other' type)
         partners = self.friend_repo.list_by_type(user_id, "training-partner")
-        both = self.friend_repo.list_by_type(user_id, "both")
+        other = self.friend_repo.list_by_type(user_id, "other")
         seen_ids = {p["id"] for p in partners}
-        for b in both:
-            if b["id"] not in seen_ids:
-                partners.append(b)
+        for o in other:
+            if o["id"] not in seen_ids:
+                partners.append(o)
 
         # Count simple-mode partner mentions from sessions.partners JSON
         simple_partner_counts: dict[str, int] = {}

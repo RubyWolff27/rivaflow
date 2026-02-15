@@ -49,16 +49,16 @@ class FriendService:
     def list_instructors(self, user_id: int) -> list[dict]:
         """Get all friends who are instructors."""
         instructors = self.repo.list_by_type(user_id, "instructor", order_by="name ASC")
-        both = self.repo.list_by_type(user_id, "both", order_by="name ASC")
-        return instructors + both
+        other = self.repo.list_by_type(user_id, "other", order_by="name ASC")
+        return instructors + other
 
     def list_training_partners(self, user_id: int) -> list[dict]:
         """Get all friends who are training partners."""
         partners = self.repo.list_by_type(
             user_id, "training-partner", order_by="name ASC"
         )
-        both = self.repo.list_by_type(user_id, "both", order_by="name ASC")
-        return partners + both
+        other = self.repo.list_by_type(user_id, "other", order_by="name ASC")
+        return partners + other
 
     def search_friends(self, user_id: int, query: str) -> list[dict]:
         """Search friends by name."""

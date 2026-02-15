@@ -113,19 +113,31 @@ export default function EditSession() {
 
         const sessionData = sessionRes.data;
         const iData = instructorsRes.data as Friend[] | { friends: Friend[] };
-        setInstructors(Array.isArray(iData) ? iData : iData?.friends || []);
+        const loadedInstructors: Friend[] = Array.isArray(iData) ? iData : iData?.friends || [];
+        setInstructors(loadedInstructors);
         const pData = partnersRes.data as Friend[] | { friends: Friend[] };
-        const manualPartners = Array.isArray(pData) ? pData : pData?.friends || [];
+        const manualPartners: Friend[] = Array.isArray(pData) ? pData : pData?.friends || [];
         const socialFriends: Friend[] = (socialFriendsRes.data.friends || []).map((sf: any) => ({
           id: sf.id + 1000000,
           name: `${sf.first_name || ''} ${sf.last_name || ''}`.trim(),
           friend_type: 'training-partner' as const,
         }));
-        const manualIds = new Set(manualPartners.map(p => p.name.toLowerCase()));
-        const merged = [
-          ...manualPartners,
-          ...socialFriends.filter(sf => !manualIds.has(sf.name.toLowerCase())),
-        ];
+        // Merge manual partners + instructors + social friends, deduped by name
+        const seenNames = new Set<string>();
+        const merged: Friend[] = [];
+        for (const p of [...manualPartners, ...loadedInstructors]) {
+          const key = p.name.toLowerCase();
+          if (!seenNames.has(key)) {
+            seenNames.add(key);
+            merged.push(p);
+          }
+        }
+        for (const sf of socialFriends) {
+          if (!seenNames.has(sf.name.toLowerCase())) {
+            seenNames.add(sf.name.toLowerCase());
+            merged.push(sf);
+          }
+        }
         setPartners(merged);
         setAutocomplete(autocompleteRes.data);
         const mData = movementsRes.data as Movement[] | { movements: Movement[] };
