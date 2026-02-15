@@ -437,20 +437,27 @@ export default function QuickLog({ isOpen, onClose, onSuccess }: QuickLogProps) 
                 <label className="block text-sm font-medium mb-2" style={{ color: 'var(--text)' }}>
                   Rest Type
                 </label>
-                <div className="flex gap-2" role="group" aria-label="Rest type options">
-                  {['active', 'passive', 'injury'].map((type) => (
+                <div className="grid grid-cols-3 gap-2" role="group" aria-label="Rest type options">
+                  {([
+                    { value: 'active', label: 'Active Recovery' },
+                    { value: 'full', label: 'Full Rest' },
+                    { value: 'injury', label: 'Injury / Rehab' },
+                    { value: 'sick', label: 'Sick Day' },
+                    { value: 'travel', label: 'Travelling' },
+                    { value: 'life', label: 'Life Got in the Way' },
+                  ] as const).map((type) => (
                     <button
-                      key={type}
-                      onClick={() => setRestType(type)}
-                      className="flex-1 py-3 rounded-lg font-medium text-sm transition-all capitalize"
+                      key={type.value}
+                      onClick={() => setRestType(type.value)}
+                      className="py-2.5 rounded-lg font-medium text-xs transition-all"
                       style={{
-                        backgroundColor: restType === type ? 'var(--accent)' : 'var(--surfaceElev)',
-                        color: restType === type ? '#FFFFFF' : 'var(--text)',
-                        border: restType === type ? 'none' : '1px solid var(--border)',
+                        backgroundColor: restType === type.value ? 'var(--accent)' : 'var(--surfaceElev)',
+                        color: restType === type.value ? '#FFFFFF' : 'var(--text)',
+                        border: restType === type.value ? 'none' : '1px solid var(--border)',
                       }}
-                      aria-pressed={restType === type}
+                      aria-pressed={restType === type.value}
                     >
-                      {type}
+                      {type.label}
                     </button>
                   ))}
                 </div>

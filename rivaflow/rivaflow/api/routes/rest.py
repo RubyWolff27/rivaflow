@@ -16,7 +16,7 @@ router = APIRouter(prefix="/rest", tags=["rest"])
 class RestDayCreate(BaseModel):
     """Create a rest day check-in."""
 
-    rest_type: str | None = None  # active, passive, injury
+    rest_type: str | None = None  # active, full, injury, sick, travel, life
     rest_note: str | None = None
     check_date: str | None = None  # ISO date string, defaults to today
 

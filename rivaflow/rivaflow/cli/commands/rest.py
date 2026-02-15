@@ -61,7 +61,10 @@ def show_milestone_celebration(milestone: dict, user_id: int):
 def rest(
     ctx: typer.Context,
     rest_type: str = typer.Option(
-        "recovery", "--type", "-t", help="Type: recovery, life, injury, travel"
+        "full",
+        "--type",
+        "-t",
+        help="Type: active, full, injury, sick, travel, life",
     ),
     note: str | None = typer.Option(None, "--note", "-n", help="Optional note"),
     tomorrow: str | None = typer.Option(
@@ -73,10 +76,12 @@ def rest(
 
     \b
     Rest Types:
-      • recovery - Planned rest for recovery
+      • active - Active recovery (light activity, stretching)
+      • full - Full rest day (complete rest)
+      • injury - Injury / rehab
+      • sick - Sick day
+      • travel - Travelling or away from gym
       • life - Life got in the way
-      • injury - Recovering from injury
-      • travel - Traveling or away from gym
 
     \b
     Examples:

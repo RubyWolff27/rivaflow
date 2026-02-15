@@ -88,15 +88,19 @@ ALL_CLASS_TYPES = SPARRING_CLASS_TYPES | NON_SPARRING_CLASS_TYPES
 # ==============================================================================
 
 REST_TYPE_ACTIVE = "active"
-REST_TYPE_PASSIVE = "passive"
+REST_TYPE_FULL = "full"
 REST_TYPE_INJURY = "injury"
-REST_TYPE_RECOVERY = "recovery"
+REST_TYPE_SICK = "sick"
+REST_TYPE_TRAVEL = "travel"
+REST_TYPE_LIFE = "life"
 
 REST_TYPES = {
-    REST_TYPE_ACTIVE: "Active recovery",
-    REST_TYPE_PASSIVE: "Complete rest",
-    REST_TYPE_INJURY: "Injury/rehab",
-    REST_TYPE_RECOVERY: "Recovery day",
+    REST_TYPE_ACTIVE: "Active Recovery",
+    REST_TYPE_FULL: "Full Rest",
+    REST_TYPE_INJURY: "Injury / Rehab",
+    REST_TYPE_SICK: "Sick Day",
+    REST_TYPE_TRAVEL: "Travelling",
+    REST_TYPE_LIFE: "Life Got in the Way",
 }
 
 # ==============================================================================

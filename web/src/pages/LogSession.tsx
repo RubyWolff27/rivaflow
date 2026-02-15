@@ -98,6 +98,8 @@ export default function LogSession() {
     whoop_max_hr: '',
   });
 
+  const [readinessAutoSkipped, setReadinessAutoSkipped] = useState(false);
+
   const [restData, setRestData] = useState({
     rest_date: getLocalDateString(),
     rest_type: 'active',
@@ -177,6 +179,28 @@ export default function LogSession() {
         }
         if (Object.keys(updates).length > 0) {
           setSessionData(prev => ({ ...prev, ...updates }));
+        }
+
+        // Check if readiness already logged today — auto-skip step 1
+        try {
+          const today = getLocalDateString();
+          const readinessRes = await readinessApi.getByDate(today);
+          if (!controller.signal.aborted && readinessRes.data) {
+            setReadinessData(prev => ({
+              ...prev,
+              sleep: readinessRes.data.sleep ?? prev.sleep,
+              stress: readinessRes.data.stress ?? prev.stress,
+              soreness: readinessRes.data.soreness ?? prev.soreness,
+              energy: readinessRes.data.energy ?? prev.energy,
+              hotspot_note: readinessRes.data.hotspot_note ?? prev.hotspot_note,
+              weight_kg: readinessRes.data.weight_kg?.toString() ?? prev.weight_kg,
+            }));
+            setSkippedReadiness(true);
+            setReadinessAutoSkipped(true);
+            setStep(2);
+          }
+        } catch {
+          // No readiness logged today — show step 1 as normal
         }
 
         try {
@@ -679,6 +703,16 @@ export default function LogSession() {
       {/* Step 2: Training Session */}
       {activityType === 'training' && step === 2 && (
         <form onSubmit={handleSubmit} className="card space-y-4">
+          {/* Readiness auto-skip note */}
+          {readinessAutoSkipped && (
+            <div className="flex items-center justify-between text-sm rounded-lg px-3 py-2" style={{ backgroundColor: 'rgba(34,197,94,0.1)', color: '#16a34a' }}>
+              <span>Readiness already logged today</span>
+              <button type="button" onClick={() => { setReadinessAutoSkipped(false); setSkippedReadiness(false); setStep(1); }}
+                className="font-medium underline" style={{ color: 'var(--accent)' }}>
+                Edit
+              </button>
+            </div>
+          )}
           {/* Date */}
           <div>
             <label className="label">Date</label>
@@ -1026,27 +1060,29 @@ export default function LogSession() {
           </div>
           <div>
             <label className="label">Rest Type</label>
-            <div className="flex gap-2" role="group" aria-label="Rest type options">
-              {['active', 'passive', 'injury'].map((type) => (
-                <button key={type} type="button"
-                  onClick={() => setRestData({ ...restData, rest_type: type })}
-                  className="flex-1 py-3 rounded-lg font-medium text-sm transition-all capitalize focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-2"
+            <div className="grid grid-cols-3 gap-2" role="group" aria-label="Rest type options">
+              {([
+                { value: 'active', label: 'Active Recovery' },
+                { value: 'full', label: 'Full Rest' },
+                { value: 'injury', label: 'Injury / Rehab' },
+                { value: 'sick', label: 'Sick Day' },
+                { value: 'travel', label: 'Travelling' },
+                { value: 'life', label: 'Life Got in the Way' },
+              ] as const).map((type) => (
+                <button key={type.value} type="button"
+                  onClick={() => setRestData({ ...restData, rest_type: type.value })}
+                  className="py-3 rounded-lg font-medium text-sm transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-2"
                   style={{
-                    backgroundColor: restData.rest_type === type ? 'var(--accent)' : 'var(--surfaceElev)',
-                    color: restData.rest_type === type ? '#FFFFFF' : 'var(--text)',
-                    border: restData.rest_type === type ? 'none' : '1px solid var(--border)',
+                    backgroundColor: restData.rest_type === type.value ? 'var(--accent)' : 'var(--surfaceElev)',
+                    color: restData.rest_type === type.value ? '#FFFFFF' : 'var(--text)',
+                    border: restData.rest_type === type.value ? 'none' : '1px solid var(--border)',
                   }}
-                  aria-pressed={restData.rest_type === type}
+                  aria-pressed={restData.rest_type === type.value}
                 >
-                  {type}
+                  {type.label}
                 </button>
               ))}
             </div>
-            <p className="text-xs text-[var(--muted)] mt-2">
-              <span className="font-semibold">Active:</span> Light activity, stretching, mobility work.
-              <span className="font-semibold ml-3">Passive:</span> Complete rest, no training.
-              <span className="font-semibold ml-3">Injury:</span> Recovering from injury.
-            </p>
           </div>
           <div>
             <label className="label">Note (optional)</label>

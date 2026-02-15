@@ -79,20 +79,24 @@ export default function RestDetail() {
 
   const getRestTypeLabel = (type: string) => {
     const labels: { [key: string]: string } = {
-      'full': 'Full Rest Day',
       'active': 'Active Recovery',
-      'injury': 'Injury Recovery',
+      'full': 'Full Rest',
+      'injury': 'Injury / Rehab',
       'sick': 'Sick Day',
+      'travel': 'Travelling',
+      'life': 'Life Got in the Way',
     };
     return labels[type] || type;
   };
 
   const getRestTypeStyle = (type: string): React.CSSProperties => {
     const styles: { [key: string]: React.CSSProperties } = {
-      'full': { backgroundColor: 'rgba(168,85,247,0.1)', color: '#a855f7' },
       'active': { backgroundColor: 'rgba(59,130,246,0.1)', color: 'var(--accent)' },
+      'full': { backgroundColor: 'rgba(168,85,247,0.1)', color: '#a855f7' },
       'injury': { backgroundColor: 'rgba(239,68,68,0.1)', color: 'var(--error)' },
       'sick': { backgroundColor: 'rgba(234,179,8,0.1)', color: '#ca8a04' },
+      'travel': { backgroundColor: 'rgba(34,197,94,0.1)', color: '#16a34a' },
+      'life': { backgroundColor: 'rgba(156,163,175,0.1)', color: '#6b7280' },
     };
     return styles[type] || { backgroundColor: 'var(--surfaceElev)', color: 'var(--text)' };
   };

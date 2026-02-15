@@ -46,10 +46,12 @@ VISIBILITY_LEVELS = {"private", "attendance", "summary", "full"}
 
 # Rest day types
 REST_TYPES = {
-    "recovery": "Active recovery",
-    "life": "Life got in the way",
-    "injury": "Injury/rehab",
-    "travel": "Traveling",
+    "active": "Active Recovery",
+    "full": "Full Rest",
+    "injury": "Injury / Rehab",
+    "sick": "Sick Day",
+    "travel": "Travelling",
+    "life": "Life Got in the Way",
 }
 
 # Tomorrow intentions
