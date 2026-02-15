@@ -58,10 +58,10 @@ class GymClassRepository:
             cursor.execute(
                 convert_query("""
                     SELECT * FROM gym_classes
-                    WHERE gym_id = ? AND is_active = 1
+                    WHERE gym_id = ? AND is_active = ?
                     ORDER BY day_of_week, start_time
                 """),
-                (gym_id,),
+                (gym_id, True),
             )
             return [GymClassRepository._row_to_dict(row) for row in cursor.fetchall()]
 
@@ -73,10 +73,10 @@ class GymClassRepository:
             cursor.execute(
                 convert_query("""
                     SELECT * FROM gym_classes
-                    WHERE gym_id = ? AND day_of_week = ? AND is_active = 1
+                    WHERE gym_id = ? AND day_of_week = ? AND is_active = ?
                     ORDER BY start_time
                 """),
-                (gym_id, day_of_week),
+                (gym_id, day_of_week, True),
             )
             return [GymClassRepository._row_to_dict(row) for row in cursor.fetchall()]
 
