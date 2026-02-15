@@ -578,6 +578,7 @@ def _apply_migrations(
         "087_session_score.sql",
         "088_gym_timetable.sql",
         "089_fix_needs_review_type.sql",
+        "090_fix_needs_review_type_v2.sql",
     ]
 
     migrations_dir = Path(__file__).parent / "migrations"
