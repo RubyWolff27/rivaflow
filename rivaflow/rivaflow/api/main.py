@@ -163,7 +163,9 @@ async def _lifespan(_app: FastAPI):
                             table,
                             col,
                         )
-                        cur.execute(f"ALTER TABLE {table}" f" ADD COLUMN {col} {col_def}")
+                        cur.execute(
+                            f"ALTER TABLE {table}" f" ADD COLUMN {col} {col_def}"
+                        )
                         conn.commit()
                         logging.info("Added %s.%s column", table, col)
                 # Ensure needs_review is BOOLEAN (may be INTEGER
@@ -187,7 +189,9 @@ async def _lifespan(_app: FastAPI):
                         "THEN NULL ELSE TRUE END"
                     )
                     cur.execute(
-                        "ALTER TABLE sessions " "ALTER COLUMN needs_review " "SET DEFAULT FALSE"
+                        "ALTER TABLE sessions "
+                        "ALTER COLUMN needs_review "
+                        "SET DEFAULT FALSE"
                     )
                     conn.commit()
                 # Ensure score index exists
@@ -334,7 +338,9 @@ app.include_router(readiness.router, prefix="/api/v1/readiness", tags=["readines
 app.include_router(rest.router, prefix="/api/v1")
 app.include_router(feed.router, prefix="/api/v1")
 app.include_router(reports.router, prefix="/api/v1/reports", tags=["reports"])
-app.include_router(suggestions.router, prefix="/api/v1/suggestions", tags=["suggestions"])
+app.include_router(
+    suggestions.router, prefix="/api/v1/suggestions", tags=["suggestions"]
+)
 app.include_router(techniques.router, prefix="/api/v1/techniques", tags=["techniques"])
 app.include_router(videos.router, prefix="/api/v1/videos", tags=["videos"])
 app.include_router(profile.router, prefix="/api/v1/profile", tags=["profile"])
@@ -374,7 +380,9 @@ app.include_router(events.router, prefix="/api/v1/events", tags=["events"])
 app.include_router(integrations.router, prefix="/api/v1", tags=["integrations"])
 app.include_router(webhooks.router, prefix="/api/v1", tags=["webhooks"])
 app.include_router(waitlist.router, prefix="/api/v1/waitlist", tags=["waitlist"])
-app.include_router(waitlist.admin_router, prefix="/api/v1/admin/waitlist", tags=["admin-waitlist"])
+app.include_router(
+    waitlist.admin_router, prefix="/api/v1/admin/waitlist", tags=["admin-waitlist"]
+)
 
 
 @app.get("/health")
@@ -427,7 +435,9 @@ if not os.getenv("S3_BUCKET_NAME"):
 web_dist_path = Path(__file__).parent.parent.parent / "web" / "dist"
 if web_dist_path.exists():
     # Mount static assets (JS, CSS, images, etc.)
-    app.mount("/assets", StaticFiles(directory=str(web_dist_path / "assets")), name="assets")
+    app.mount(
+        "/assets", StaticFiles(directory=str(web_dist_path / "assets")), name="assets"
+    )
 
     # Catch-all route to serve index.html for React Router
     # This must be defined last to not override other routes
@@ -435,7 +445,11 @@ if web_dist_path.exists():
     async def serve_react_app(full_path: str):
         """Serve the React app for all non-API routes."""
         # Don't intercept API routes or health check
-        if full_path.startswith("api/") or full_path.startswith("api/v1/") or full_path == "health":
+        if (
+            full_path.startswith("api/")
+            or full_path.startswith("api/v1/")
+            or full_path == "health"
+        ):
             return {"error": "Not found"}
 
         # Serve index.html for all other routes (React Router will handle routing)
