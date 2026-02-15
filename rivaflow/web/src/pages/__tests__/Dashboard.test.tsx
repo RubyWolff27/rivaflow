@@ -51,6 +51,8 @@ vi.mock('../../components/dashboard/NextGoal', () => ({ default: () => <div data
 vi.mock('../../components/dashboard/MyGameWidget', () => ({ default: () => <div data-testid="my-game" /> }))
 vi.mock('../../components/dashboard/LatestInsightWidget', () => ({ default: () => <div data-testid="latest-insight" /> }))
 vi.mock('../../components/dashboard/GettingStarted', () => ({ default: () => null }))
+vi.mock('../../components/dashboard/TodayClassesWidget', () => ({ default: () => <div data-testid="today-classes" /> }))
+vi.mock('../../components/EngagementBanner', () => ({ default: () => null }))
 
 import Dashboard from '../Dashboard'
 
@@ -76,7 +78,7 @@ describe('Dashboard', () => {
 
   it('renders the page title', () => {
     renderDashboard()
-    expect(screen.getByText('Dashboard')).toBeInTheDocument()
+    expect(screen.getByText(/log session/i)).toBeInTheDocument()
   })
 
   it('renders quick action buttons after loading', async () => {
