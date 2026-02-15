@@ -390,26 +390,25 @@ class PerformanceAnalyticsService:
             if o["id"] not in seen_ids:
                 partners.append(o)
 
-        # Count simple-mode partner mentions from sessions.partners JSON
-        simple_partner_counts: dict[str, int] = {}
+        # Pre-compute per-session partner names from JSON
+        session_partners_json: dict[int, set[str]] = {}
         for s in sessions:
+            names: set[str] = set()
             raw = s.get("partners")
-            if not raw:
-                continue
-            try:
-                plist = json.loads(raw) if isinstance(raw, str) else raw
-                if isinstance(plist, list):
-                    for name in plist:
-                        name_lower = name.strip().lower()
-                        simple_partner_counts[name_lower] = (
-                            simple_partner_counts.get(name_lower, 0) + 1
-                        )
-            except (json.JSONDecodeError, TypeError):
-                pass
+            if raw:
+                try:
+                    plist = json.loads(raw) if isinstance(raw, str) else raw
+                    if isinstance(plist, list):
+                        for name in plist:
+                            names.add(name.strip().lower())
+                except (json.JSONDecodeError, TypeError):
+                    pass
+            session_partners_json[s["id"]] = names
 
         partner_matrix = []
         for partner in partners:
             stats = self.roll_repo.get_partner_stats(user_id, partner["id"])
+            name_lower = partner["name"].strip().lower()
 
             # Count detailed rolls in date range (linked by partner_id)
             rolls_in_range = self.roll_repo.get_by_partner_id(user_id, partner["id"])
@@ -418,7 +417,6 @@ class PerformanceAnalyticsService:
                 for r in rolls_in_range
                 if start_date <= self._get_session_date(user_id, r["session_id"]) <= end_date
             ]
-            detailed_count = len(rolls_in_range)
 
             # Also count unlinked rolls (partner_id IS NULL, matched by name)
             unlinked_rolls = self.roll_repo.list_by_partner_name(user_id, partner["name"])
@@ -427,44 +425,45 @@ class PerformanceAnalyticsService:
                 for r in unlinked_rolls
                 if start_date <= self._get_session_date(user_id, r["session_id"]) <= end_date
             ]
-            detailed_count += len(unlinked_in_range)
 
-            # Count simple-mode mentions by partner name
-            simple_count = simple_partner_counts.get(partner["name"].strip().lower(), 0)
+            all_partner_rolls = rolls_in_range + unlinked_in_range
+            detailed_count = len(all_partner_rolls)
+            detailed_session_ids = {r["session_id"] for r in all_partner_rolls}
+
+            # Simple mode: count sessions with this partner in JSON,
+            # EXCLUDING sessions already counted via detailed rolls
+            simple_count = 0
+            for s in sessions:
+                if s["id"] in detailed_session_ids:
+                    continue  # already counted via session_rolls
+                if name_lower in session_partners_json.get(s["id"], set()):
+                    simple_count += 1
 
             total_rolls = detailed_count + simple_count
 
             # Per-partner submissions: prefer per-roll technique data,
-            # fall back to session-level subs for sessions with this partner
+            # else attribute session-level subs ONLY for single-partner
+            # sessions (we can't attribute multi-partner session subs)
             roll_subs_for = stats.get("total_submissions_for", 0)
             roll_subs_against = stats.get("total_submissions_against", 0)
 
             if roll_subs_for > 0 or roll_subs_against > 0:
-                # Per-roll technique data exists — use it (most accurate)
                 subs_for = roll_subs_for
                 subs_against = roll_subs_against
             else:
-                # Fall back to session-level: sum subs from sessions
-                # where this partner had rolls
-                all_partner_rolls = rolls_in_range + unlinked_in_range
-                partner_session_ids = {r["session_id"] for r in all_partner_rolls}
-                # Also check sessions.partners JSON for simple-mode
-                name_lower = partner["name"].strip().lower()
                 subs_for = 0
                 subs_against = 0
                 for s in sessions:
-                    sid = s.get("id")
-                    in_rolls = sid in partner_session_ids
-                    in_json = False
-                    raw = s.get("partners")
-                    if raw:
-                        try:
-                            plist = json.loads(raw) if isinstance(raw, str) else raw
-                            if isinstance(plist, list):
-                                in_json = name_lower in [n.strip().lower() for n in plist]
-                        except (json.JSONDecodeError, TypeError):
-                            pass
-                    if in_rolls or in_json:
+                    sid = s["id"]
+                    in_rolls = sid in detailed_session_ids
+                    in_json = name_lower in session_partners_json.get(sid, set())
+                    if not (in_rolls or in_json):
+                        continue
+                    # Count total unique partners in this session
+                    json_partners = session_partners_json.get(sid, set())
+                    total_partners_in_session = len(json_partners)
+                    # If this session only has 1 partner, attribute subs
+                    if total_partners_in_session <= 1:
                         subs_for += s.get("submissions_for", 0) or 0
                         subs_against += s.get("submissions_against", 0) or 0
 
@@ -552,58 +551,6 @@ class PerformanceAnalyticsService:
                 **stats2,
             },
         }
-
-    @staticmethod
-    def _get_session_submissions_for_partner(
-        partner_name: str,
-        sessions: list[dict],
-        roll_session_ids: set | None = None,
-    ) -> tuple[int, int]:
-        """Sum session-level submissions for sessions involving a partner.
-
-        Checks two sources to determine if a partner was in a session:
-        1. sessions.partners JSON (simple mode)
-        2. roll_session_ids from session_rolls table (detailed mode)
-        """
-        total_for = 0
-        total_against = 0
-        name_lower = partner_name.strip().lower()
-        if roll_session_ids is None:
-            roll_session_ids = set()
-
-        for s in sessions:
-            subs_for = s.get("submissions_for", 0) or 0
-            subs_against = s.get("submissions_against", 0) or 0
-            if subs_for == 0 and subs_against == 0:
-                continue
-
-            # Check if partner was in this session via partners JSON
-            in_session_json = False
-            n_partners_json = 0
-            partners_raw = s.get("partners")
-            if partners_raw:
-                try:
-                    plist = (
-                        json.loads(partners_raw) if isinstance(partners_raw, str) else partners_raw
-                    )
-                    if isinstance(plist, list):
-                        names = [n.strip().lower() for n in plist]
-                        n_partners_json = len(names)
-                        in_session_json = name_lower in names
-                except (json.JSONDecodeError, TypeError):
-                    pass
-
-            # Check if partner was in this session via detailed rolls
-            in_session_rolls = s.get("id") in roll_session_ids
-
-            if not in_session_json and not in_session_rolls:
-                continue
-
-            # Estimate partner count for proportional distribution
-            n_partners = max(n_partners_json, 1)
-            total_for += subs_for // n_partners
-            total_against += subs_against // n_partners
-        return total_for, total_against
 
     def _get_session_date(self, user_id: int, session_id: int) -> date:
         """Helper to get session date."""
