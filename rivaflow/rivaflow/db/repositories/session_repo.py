@@ -9,16 +9,16 @@ from rivaflow.db.database import convert_query, execute_insert, get_connection
 
 
 def _pg_bool(value: bool) -> Any:
-    """Adapt a Python bool for PostgreSQL columns that may be INTEGER or BOOLEAN.
+    """Adapt a Python bool for PostgreSQL BOOLEAN or SQLite INTEGER columns.
 
-    Uses psycopg2.extensions.AsIs to send an untyped integer literal (0 or 1)
-    which PostgreSQL will coerce to either INTEGER or BOOLEAN via assignment cast.
-    For SQLite, returns a plain int (always INTEGER columns).
+    For PostgreSQL: returns Python bool → psycopg2 sends TRUE/FALSE.
+    For SQLite: returns int (1/0) since SQLite has no boolean type.
+
+    Note: production's needs_review column is converted from INTEGER to
+    BOOLEAN at startup by migrate.py _ensure_critical_columns().
     """
     if get_db_type() == "postgresql":
-        from psycopg2.extensions import AsIs
-
-        return AsIs("1" if value else "0")
+        return bool(value)
     return int(value)
 
 
@@ -166,9 +166,7 @@ class SessionRepository:
         """Get a session by ID without user scope (for validation/privacy checks)."""
         with get_connection() as conn:
             cursor = conn.cursor()
-            cursor.execute(
-                convert_query("SELECT * FROM sessions WHERE id = ?"), (session_id,)
-            )
+            cursor.execute(convert_query("SELECT * FROM sessions WHERE id = ?"), (session_id,))
             row = cursor.fetchone()
             if not row:
                 return None
@@ -197,16 +195,10 @@ class SessionRepository:
             # Most fields pass through directly, but some need transformation
             field_processors = {
                 "session_date": lambda v: v.isoformat() if v else None,
-                "partners": lambda v: (
-                    json.dumps(v) if v is not None else json.dumps([])
-                ),
-                "techniques": lambda v: (
-                    json.dumps(v) if v is not None else json.dumps([])
-                ),
+                "partners": lambda v: (json.dumps(v) if v is not None else json.dumps([])),
+                "techniques": lambda v: (json.dumps(v) if v is not None else json.dumps([])),
                 "needs_review": lambda v: _pg_bool(bool(v)),
-                "score_breakdown": lambda v: (
-                    json.dumps(v) if isinstance(v, dict) else v
-                ),
+                "score_breakdown": lambda v: (json.dumps(v) if isinstance(v, dict) else v),
             }
 
             # List fields that can be explicitly cleared with []
@@ -277,9 +269,7 @@ class SessionRepository:
 
             # Build and execute query
             params.extend([session_id, user_id])
-            query = (
-                f"UPDATE sessions SET {', '.join(updates)} WHERE id = ? AND user_id = ?"
-            )
+            query = f"UPDATE sessions SET {', '.join(updates)} WHERE id = ? AND user_id = ?"
             cursor.execute(convert_query(query), params)
 
             if cursor.rowcount == 0:
