@@ -4,6 +4,7 @@ from datetime import date, timedelta
 from typing import Any
 
 from rivaflow.cache import CacheKeys, get_redis_client
+from rivaflow.core.constants import REST_TYPES
 from rivaflow.core.pagination import paginate_with_cursor
 from rivaflow.core.services.privacy_service import PrivacyService
 from rivaflow.db.repositories import (
@@ -12,6 +13,7 @@ from rivaflow.db.repositories import (
     UserRelationshipRepository,
     UserRepository,
 )
+from rivaflow.db.repositories.checkin_repo import CheckinRepository
 
 
 class FeedService:
@@ -67,6 +69,33 @@ class FeedService:
                     "id": session["id"],
                     "data": session,
                     "summary": f"{session['class_type']} at {session['gym_name']} \u2022 {session['duration_mins']}min \u2022 {session['rolls']} rolls",
+                    "thumbnail": None,
+                    "photo_count": 0,
+                }
+            )
+
+        # Get rest-day checkins and merge into feed
+        checkins = CheckinRepository.get_checkins_range(user_id, start_date, end_date)
+        for checkin in checkins:
+            if checkin["checkin_type"] != "rest":
+                continue
+            check_date = checkin["check_date"]
+            if hasattr(check_date, "isoformat"):
+                check_date = check_date.isoformat()
+            rest_type = checkin.get("rest_type") or ""
+            label = REST_TYPES.get(rest_type, rest_type.title() or "Rest")
+            feed_items.append(
+                {
+                    "type": "rest",
+                    "date": check_date,
+                    "id": checkin["id"],
+                    "data": {
+                        "rest_type": rest_type,
+                        "rest_note": checkin.get("rest_note"),
+                        "tomorrow_intention": checkin.get("tomorrow_intention"),
+                        "check_date": check_date,
+                    },
+                    "summary": f"Rest Day \u2014 {label}",
                     "thumbnail": None,
                     "photo_count": 0,
                 }

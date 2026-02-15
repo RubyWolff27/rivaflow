@@ -3,7 +3,7 @@ import { getLocalDateString } from '../utils/date';
 import { useNavigate } from 'react-router-dom';
 import { feedApi, socialApi, sessionsApi } from '../api/client';
 import { logger } from '../utils/logger';
-import { Activity, Calendar, Edit2, Eye } from 'lucide-react';
+import { Activity, Calendar, Edit2, Eye, Moon } from 'lucide-react';
 import FeedToggle from '../components/FeedToggle';
 import ActivitySocialActions from '../components/ActivitySocialActions';
 import CommentSection from '../components/CommentSection';
@@ -23,7 +23,7 @@ interface FeedResponse {
 const FeedItemComponent = memo(function FeedItemComponent({
   item,
   prevItem,
-  view: _view,
+  view,
   currentUserId,
   navigate,
   expandedComments,
@@ -58,6 +58,32 @@ const FeedItemComponent = memo(function FeedItemComponent({
     ? `${item.owner.first_name || ''} ${item.owner.last_name || ''}`.trim()
     : '';
   const ownerInitial = ownerName ? ownerName[0].toUpperCase() : '?';
+
+  const isRest = item.type === 'rest';
+
+  const getRestTypeStyle = (type: string): React.CSSProperties => {
+    const styles: Record<string, React.CSSProperties> = {
+      'active': { backgroundColor: 'rgba(59,130,246,0.1)', color: 'var(--accent)' },
+      'full': { backgroundColor: 'rgba(168,85,247,0.1)', color: '#a855f7' },
+      'injury': { backgroundColor: 'rgba(239,68,68,0.1)', color: 'var(--error)' },
+      'sick': { backgroundColor: 'rgba(234,179,8,0.1)', color: '#ca8a04' },
+      'travel': { backgroundColor: 'rgba(34,197,94,0.1)', color: '#16a34a' },
+      'life': { backgroundColor: 'rgba(156,163,175,0.1)', color: '#6b7280' },
+    };
+    return styles[type] || { backgroundColor: 'var(--surfaceElev)', color: 'var(--text)' };
+  };
+
+  const getRestTypeLabel = (type: string): string => {
+    const labels: Record<string, string> = {
+      'active': 'Active Recovery',
+      'full': 'Full Rest',
+      'injury': 'Injury / Rehab',
+      'sick': 'Sick Day',
+      'travel': 'Travelling',
+      'life': 'Life Got in the Way',
+    };
+    return labels[type] || type || 'Rest';
+  };
 
   return (
     <div>
@@ -100,90 +126,148 @@ const FeedItemComponent = memo(function FeedItemComponent({
         )}
 
         <div className="p-4">
-          {/* Summary + actions row */}
-          <div className="flex items-start justify-between gap-2 mb-1">
-            <p className="text-sm font-medium" style={{ color: 'var(--text)' }}>
-              {item.summary}
-            </p>
-            <div className="flex items-center gap-2 shrink-0">
-              {isActivityEditable(item) && (
-                <>
-                  <button
-                    onClick={() => navigate(`/session/${item.id}`)}
-                    className="p-1 hover:bg-white/50 dark:hover:bg-black/20 rounded transition-colors"
-                    aria-label="View session details"
-                  >
-                    <Eye className="w-4 h-4 text-[var(--muted)]" />
-                  </button>
-                  <button
-                    onClick={() => navigate(`/session/edit/${item.id}`)}
-                    className="p-1 hover:bg-white/50 dark:hover:bg-black/20 rounded transition-colors"
-                    aria-label="Edit session"
-                  >
-                    <Edit2 className="w-4 h-4 text-[var(--muted)]" />
-                  </button>
-                </>
-              )}
-              {isActivityEditable(item) && (
-                <select
-                  value={item.data?.visibility_level || item.data?.visibility || 'friends'}
-                  onChange={(e) => handleVisibilityChange(item.type, item.id, e.target.value)}
-                  className="text-xs px-2 py-1 bg-white/50 dark:bg-black/20 rounded cursor-pointer border-none outline-none"
-                  aria-label="Change visibility"
-                  title="Who can see this"
-                >
-                  <option value="private">Private</option>
-                  <option value="friends">Friends</option>
-                  <option value="public">Public</option>
-                </select>
-              )}
-            </div>
-          </div>
-
-          {/* Session details */}
-          <div className="mt-2 text-sm space-y-1" style={{ color: 'var(--muted)' }}>
-            {item.data?.class_time && <div>🕐 {item.data.class_time}</div>}
-            {item.data?.location && <div>📍 {item.data.location}</div>}
-            {item.data?.instructor_name && <div>👨‍🏫 {item.data.instructor_name}</div>}
-            {item.data?.partners && Array.isArray(item.data.partners) && item.data.partners.length > 0 && (
-              <div>🤝 Partners: {item.data.partners.join(', ')}</div>
-            )}
-            {item.data?.techniques && Array.isArray(item.data.techniques) && item.data.techniques.length > 0 && (
-              <div>🎯 Techniques: {item.data.techniques.join(', ')}</div>
-            )}
-            {item.data?.notes && (
-              <div className="mt-2 italic" style={{ color: 'var(--text)' }}>
-                &ldquo;{item.data.notes}&rdquo;
+          {isRest ? (
+            /* Rest day card */
+            <>
+              <div className="flex items-start justify-between gap-2 mb-2">
+                <div className="flex items-center gap-2">
+                  <Moon className="w-5 h-5 text-purple-500" />
+                  <p className="text-sm font-medium" style={{ color: 'var(--text)' }}>
+                    {item.summary}
+                  </p>
+                </div>
+                <div className="flex items-center gap-2 shrink-0">
+                  {view === 'my' && (
+                    <>
+                      <button
+                        onClick={() => navigate(`/rest/${item.date}`)}
+                        className="p-1 hover:bg-white/50 dark:hover:bg-black/20 rounded transition-colors"
+                        aria-label="View rest day"
+                      >
+                        <Eye className="w-4 h-4 text-[var(--muted)]" />
+                      </button>
+                      <button
+                        onClick={() => navigate(`/rest/edit/${item.date}`)}
+                        className="p-1 hover:bg-white/50 dark:hover:bg-black/20 rounded transition-colors"
+                        aria-label="Edit rest day"
+                      >
+                        <Edit2 className="w-4 h-4 text-[var(--muted)]" />
+                      </button>
+                    </>
+                  )}
+                </div>
               </div>
-            )}
-          </div>
 
-          {/* Photo — full-width for social feel */}
-          {item.thumbnail && (
-            <div
-              className="mt-3 cursor-pointer"
-              onClick={() => navigate(`/session/${item.id}`)}
-            >
-              <div className="relative">
-                <img
-                  src={item.thumbnail}
-                  alt="Session photo"
-                  className="w-full max-h-48 rounded-lg object-cover border border-[var(--border)]"
-                  onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
-                />
-                {(item.photo_count ?? 0) > 1 && (
-                  <span className="absolute bottom-2 right-2 bg-black/60 text-white text-xs px-1.5 py-0.5 rounded-full font-medium">
-                    +{(item.photo_count ?? 1) - 1}
-                  </span>
+              {item.data?.rest_type && (
+                <span
+                  className="inline-block px-2.5 py-0.5 rounded-full text-xs font-semibold mb-2"
+                  style={getRestTypeStyle(item.data.rest_type)}
+                >
+                  {getRestTypeLabel(item.data.rest_type)}
+                </span>
+              )}
+
+              {item.data?.rest_note && (
+                <p className="text-sm mt-1" style={{ color: 'var(--muted)' }}>
+                  {item.data.rest_note}
+                </p>
+              )}
+
+              {item.data?.tomorrow_intention && (
+                <div className="mt-2 text-xs" style={{ color: 'var(--muted)' }}>
+                  Tomorrow: {item.data.tomorrow_intention}
+                </div>
+              )}
+            </>
+          ) : (
+            /* Session card */
+            <>
+              {/* Summary + actions row */}
+              <div className="flex items-start justify-between gap-2 mb-1">
+                <p className="text-sm font-medium" style={{ color: 'var(--text)' }}>
+                  {item.summary}
+                </p>
+                <div className="flex items-center gap-2 shrink-0">
+                  {isActivityEditable(item) && (
+                    <>
+                      <button
+                        onClick={() => navigate(`/session/${item.id}`)}
+                        className="p-1 hover:bg-white/50 dark:hover:bg-black/20 rounded transition-colors"
+                        aria-label="View session details"
+                      >
+                        <Eye className="w-4 h-4 text-[var(--muted)]" />
+                      </button>
+                      <button
+                        onClick={() => navigate(`/session/edit/${item.id}`)}
+                        className="p-1 hover:bg-white/50 dark:hover:bg-black/20 rounded transition-colors"
+                        aria-label="Edit session"
+                      >
+                        <Edit2 className="w-4 h-4 text-[var(--muted)]" />
+                      </button>
+                    </>
+                  )}
+                  {isActivityEditable(item) && (
+                    <select
+                      value={item.data?.visibility_level || item.data?.visibility || 'friends'}
+                      onChange={(e) => handleVisibilityChange(item.type, item.id, e.target.value)}
+                      className="text-xs px-2 py-1 bg-white/50 dark:bg-black/20 rounded cursor-pointer border-none outline-none"
+                      aria-label="Change visibility"
+                      title="Who can see this"
+                    >
+                      <option value="private">Private</option>
+                      <option value="friends">Friends</option>
+                      <option value="public">Public</option>
+                    </select>
+                  )}
+                </div>
+              </div>
+
+              {/* Session details */}
+              <div className="mt-2 text-sm space-y-1" style={{ color: 'var(--muted)' }}>
+                {item.data?.class_time && <div>🕐 {item.data.class_time}</div>}
+                {item.data?.location && <div>📍 {item.data.location}</div>}
+                {item.data?.instructor_name && <div>👨‍🏫 {item.data.instructor_name}</div>}
+                {item.data?.partners && Array.isArray(item.data.partners) && item.data.partners.length > 0 && (
+                  <div>🤝 Partners: {item.data.partners.join(', ')}</div>
+                )}
+                {item.data?.techniques && Array.isArray(item.data.techniques) && item.data.techniques.length > 0 && (
+                  <div>🎯 Techniques: {item.data.techniques.join(', ')}</div>
+                )}
+                {item.data?.notes && (
+                  <div className="mt-2 italic" style={{ color: 'var(--text)' }}>
+                    &ldquo;{item.data.notes}&rdquo;
+                  </div>
                 )}
               </div>
-            </div>
-          )}
 
-          {item.data?.tomorrow_intention && (
-            <div className="mt-2 text-xs" style={{ color: 'var(--muted)' }}>
-              → Tomorrow: {item.data.tomorrow_intention}
-            </div>
+              {/* Photo — full-width for social feel */}
+              {item.thumbnail && (
+                <div
+                  className="mt-3 cursor-pointer"
+                  onClick={() => navigate(`/session/${item.id}`)}
+                >
+                  <div className="relative">
+                    <img
+                      src={item.thumbnail}
+                      alt="Session photo"
+                      className="w-full max-h-48 rounded-lg object-cover border border-[var(--border)]"
+                      onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                    />
+                    {(item.photo_count ?? 0) > 1 && (
+                      <span className="absolute bottom-2 right-2 bg-black/60 text-white text-xs px-1.5 py-0.5 rounded-full font-medium">
+                        +{(item.photo_count ?? 1) - 1}
+                      </span>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {item.data?.tomorrow_intention && (
+                <div className="mt-2 text-xs" style={{ color: 'var(--muted)' }}>
+                  Tomorrow: {item.data.tomorrow_intention}
+                </div>
+              )}
+            </>
           )}
 
           {/* Social actions bar */}
@@ -403,6 +487,7 @@ export default function Feed() {
 
   const sessionFilters = [
     { key: 'all', label: 'All' },
+    { key: 'rest', label: 'Rest Days' },
     { key: 'comp', label: '\u{1F94B} Comp Prep' },
     { key: 'hard', label: '\u{1F525} Hard' },
     { key: 'technical', label: '\u{1F9E0} Technical' },
@@ -411,6 +496,9 @@ export default function Feed() {
 
   const matchesSessionFilter = useCallback((item: FeedItem): boolean => {
     if (sessionFilter === 'all') return true;
+    if (sessionFilter === 'rest') return item.type === 'rest';
+    // Non-rest filters only match sessions
+    if (item.type !== 'session') return false;
     const d = item.data ?? {};
     switch (sessionFilter) {
       case 'comp':
@@ -429,7 +517,9 @@ export default function Feed() {
   const getFilterCount = useCallback((filterKey: string): number => {
     if (!feed) return 0;
     if (filterKey === 'all') return feed.items.length;
+    if (filterKey === 'rest') return feed.items.filter(i => i.type === 'rest').length;
     return feed.items.filter(i => {
+      if (i.type !== 'session') return false;
       const d = i.data ?? {};
       switch (filterKey) {
         case 'comp': return d.class_type === 'competition';
@@ -519,13 +609,13 @@ export default function Feed() {
           <Activity className="w-16 h-16 text-[var(--muted)] mx-auto mb-4" />
           <p className="text-[var(--muted)] text-lg">
             {view === 'friends'
-              ? "No sessions from friends in the last " + daysBack + " days"
-              : "No sessions in the last " + daysBack + " days"}
+              ? "No activity from friends in the last " + daysBack + " days"
+              : "No activity in the last " + daysBack + " days"}
           </p>
           <p className="text-[var(--muted)] text-sm mt-2">
             {view === 'friends'
-              ? "Follow other users to see their sessions here!"
-              : "Log a training session to see it here!"}
+              ? "Follow other users to see their activity here!"
+              : "Log a session or rest day to see it here!"}
           </p>
         </div>
       ) : filteredItems.length === 0 && sessionFilter !== 'all' ? (
@@ -565,7 +655,7 @@ export default function Feed() {
       {feed && feed.total > 0 && (
         <div className="text-center py-4 space-y-2">
           <p className="text-sm text-[var(--muted)]">
-            Showing {feed.items.length} of {feed.total} sessions
+            Showing {feed.items.length} of {feed.total} activities
           </p>
           {feed.has_more && (
             <button

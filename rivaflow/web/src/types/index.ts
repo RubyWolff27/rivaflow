@@ -434,7 +434,7 @@ export interface ActivityComment {
 }
 
 export interface FeedItem {
-  type: 'session';
+  type: 'session' | 'rest';
   date: string;
   id: number;
   data: any;  // eslint-disable-line @typescript-eslint/no-explicit-any
