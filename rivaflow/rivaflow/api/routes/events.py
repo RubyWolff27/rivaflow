@@ -4,16 +4,14 @@ from datetime import date, datetime
 
 from fastapi import APIRouter, Depends, Query, Request, Response, status
 from pydantic import BaseModel
-from slowapi import Limiter
-from slowapi.util import get_remote_address
 
+from rivaflow.api.rate_limit import limiter
 from rivaflow.core.dependencies import get_current_user
 from rivaflow.core.exceptions import NotFoundError
 from rivaflow.db.repositories.events_repo import EventRepository
 from rivaflow.db.repositories.weight_log_repo import WeightLogRepository
 
 router = APIRouter()
-limiter = Limiter(key_func=get_remote_address)
 event_repo = EventRepository()
 weight_repo = WeightLogRepository()
 

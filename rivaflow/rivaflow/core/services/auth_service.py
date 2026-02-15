@@ -95,7 +95,7 @@ class AuthService:
                 action="Add a number to your password.",
             )
 
-        # Check if email already exists
+        # Check if email already exists (no password needed for existence check)
         existing_user = self.user_repo.get_by_email(email)
         if existing_user:
             raise ValidationError(
@@ -214,8 +214,8 @@ class AuthService:
         Raises:
             ValueError: If credentials are invalid
         """
-        # Get user by email
-        user = self.user_repo.get_by_email(email)
+        # Get user by email (include password for verification)
+        user = self.user_repo.get_by_email(email, include_password=True)
         if not user:
             raise AuthenticationError(
                 message="Invalid email or password",
@@ -257,11 +257,15 @@ class AuthService:
         """
         Generate a new access token using a refresh token.
 
+        Implements refresh token rotation: on each use the old token is
+        deleted and a brand-new refresh token is issued.  This limits the
+        window of abuse if a token is leaked.
+
         Args:
             refresh_token: The refresh token string
 
         Returns:
-            Dictionary with new access_token
+            Dictionary with new access_token and new refresh_token
 
         Raises:
             ValueError: If refresh token is invalid or expired
@@ -280,11 +284,22 @@ class AuthService:
         if not user or not user.get("is_active"):
             raise ValueError("User not found or inactive")
 
-        # Generate new access token
+        # Delete the old refresh token (rotation)
+        self.refresh_token_repo.delete_by_token(refresh_token)
+
+        # Generate new tokens
         access_token = create_access_token(data={"sub": str(user["id"])})
+        new_refresh_token = generate_refresh_token()
+        expires_at = get_refresh_token_expiry()
+
+        # Store the new refresh token
+        self.refresh_token_repo.create(
+            user_id=user["id"], token=new_refresh_token, expires_at=expires_at
+        )
 
         return {
             "access_token": access_token,
+            "refresh_token": new_refresh_token,
             "token_type": "bearer",
         }
 

@@ -4,13 +4,11 @@ import logging
 
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from pydantic import BaseModel, Field
-from slowapi import Limiter
-from slowapi.util import get_remote_address
 
+from rivaflow.api.rate_limit import limiter
 from rivaflow.core.dependencies import get_current_user
 
 router = APIRouter(prefix="/game-plans", tags=["game-plans"])
-limiter = Limiter(key_func=get_remote_address)
 logger = logging.getLogger(__name__)
 
 

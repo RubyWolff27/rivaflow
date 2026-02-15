@@ -253,8 +253,9 @@ class TestAPILoadPerformance:
                     else:  # 10% updates
                         if session_ids:
                             repo.update(
-                                session_ids[i % len(session_ids)],
-                                {"notes": f"Updated {i}"},
+                                user_id,
+                                session_id=session_ids[i % len(session_ids)],
+                                notes=f"Updated {i}",
                             )
                         return {"type": "update", "success": True}
                 except Exception as e:
@@ -347,7 +348,8 @@ class TestAPIEndpointPerformance:
             query_time = end_time - start_time
             print(f"\nAnalytics overview with 1000 sessions: {query_time:.3f}s")
 
-            assert "total_sessions" in overview
+            assert "summary" in overview
+            assert "total_sessions" in overview["summary"]
             assert (
                 query_time < 2.0
             ), f"Analytics took {query_time:.3f}s, should be under 2s"

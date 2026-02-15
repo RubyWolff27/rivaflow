@@ -9,17 +9,18 @@ from contextlib import contextmanager
 from pathlib import Path
 from typing import Optional, Union
 
-from rivaflow.config import APP_DIR, DATABASE_URL, DB_PATH, get_db_type
+from rivaflow.config import APP_DIR, DATABASE_URL, DB_PATH
+from rivaflow.core.settings import settings
 
 logger = logging.getLogger(__name__)
 
 # Backwards compatibility
-DB_TYPE = get_db_type()
+DB_TYPE = settings.DB_TYPE
 
 
 def get_placeholder():
     """Get the correct SQL parameter placeholder for the current database."""
-    return "?" if get_db_type() == "sqlite" else "%s"
+    return "?" if settings.DB_TYPE == "sqlite" else "%s"
 
 
 def convert_query(query: str) -> str:
@@ -35,7 +36,7 @@ def convert_query(query: str) -> str:
     Returns:
         Query string with correct placeholders for current database
     """
-    if get_db_type() == "postgresql":
+    if settings.DB_TYPE == "postgresql":
         import re
 
         # Replace ? with %s only when NOT inside single-quoted strings.
@@ -62,7 +63,7 @@ def execute_insert(cursor, query: str, params: tuple) -> int:
     Returns:
         The ID of the inserted row
     """
-    if get_db_type() == "postgresql":
+    if settings.DB_TYPE == "postgresql":
         import re as _re
 
         import psycopg2.errors

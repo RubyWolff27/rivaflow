@@ -1,14 +1,12 @@
 """API routes for activity feed."""
 
 from fastapi import APIRouter, Depends, Query, Request
-from slowapi import Limiter
-from slowapi.util import get_remote_address
 
+from rivaflow.api.rate_limit import limiter
 from rivaflow.core.dependencies import get_current_user
 from rivaflow.core.services.feed_service import FeedService
 
 router = APIRouter(prefix="/feed", tags=["feed"])
-limiter = Limiter(key_func=get_remote_address)
 
 
 @router.get("/activity")

@@ -1,13 +1,11 @@
 """Weekly goals and streak tracking endpoints."""
 
 import logging
-import traceback
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from pydantic import BaseModel
-from slowapi import Limiter
-from slowapi.util import get_remote_address
 
+from rivaflow.api.rate_limit import limiter
 from rivaflow.core.dependencies import get_current_user
 from rivaflow.core.exceptions import RivaFlowException, ValidationError
 from rivaflow.core.services.goals_service import GoalsService
@@ -15,7 +13,6 @@ from rivaflow.core.services.goals_service import GoalsService
 logger = logging.getLogger(__name__)
 
 router = APIRouter()
-limiter = Limiter(key_func=get_remote_address)
 service = GoalsService()
 
 
@@ -53,13 +50,13 @@ def get_current_week_progress(
         raise
     except (ValueError, KeyError, TypeError) as e:
         logger.error(
-            f"ERROR in get_current_week_progress for user_id={current_user['id']}"
+            "get_current_week_progress failed for user_id=%s: %s",
+            current_user["id"],
+            e,
+            exc_info=True,
         )
-        logger.error(f"Exception type: {type(e).__name__}")
-        logger.error(f"Exception message: {str(e)}")
-        logger.error(f"Full traceback:\n{traceback.format_exc()}")
         raise HTTPException(
-            status_code=500, detail=f"Failed to get current week progress: {str(e)}"
+            status_code=500, detail="Failed to get current week progress"
         )
 
 

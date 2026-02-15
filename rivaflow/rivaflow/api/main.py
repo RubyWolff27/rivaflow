@@ -105,7 +105,7 @@ if SENTRY_AVAILABLE and _sentry_dsn:
     sentry_sdk.init(
         dsn=_sentry_dsn,
         environment=os.getenv("ENV", "development"),
-        traces_sample_rate=0.1,
+        traces_sample_rate=0.5,
         profiles_sample_rate=0.1,
         send_default_pii=False,
     )
@@ -137,9 +137,8 @@ async def _lifespan(_app: FastAPI):
     # Belt-and-suspenders: ensure critical columns exist on PG even if
     # migrate.py didn't run or the deploy cached stale code.
     try:
-        from rivaflow.config import get_db_type
 
-        if get_db_type() == "postgresql":
+        if settings.DB_TYPE == "postgresql":
             from rivaflow.db.database import get_connection
 
             _ensure_columns = [
@@ -207,9 +206,8 @@ async def _lifespan(_app: FastAPI):
 
     # Reset PG serial sequences to avoid duplicate key violations
     try:
-        from rivaflow.config import get_db_type
 
-        if get_db_type() == "postgresql":
+        if settings.DB_TYPE == "postgresql":
             from rivaflow.db.database import get_connection
 
             with get_connection() as conn:
@@ -416,6 +414,18 @@ async def health():
         checks["database"] = f"error: {type(e).__name__}"
         overall_status = "unhealthy"
         status_code = 503
+
+    # Check scheduler status
+    try:
+        from rivaflow.core.scheduler import _scheduler
+
+        if _scheduler is not None:
+            jobs = _scheduler.get_jobs()
+            checks["scheduler"] = f"ok ({len(jobs)} jobs)"
+        else:
+            checks["scheduler"] = "not started"
+    except Exception:
+        checks["scheduler"] = "unknown"
 
     from fastapi.responses import JSONResponse
 

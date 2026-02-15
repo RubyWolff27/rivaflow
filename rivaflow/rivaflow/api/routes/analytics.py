@@ -1,13 +1,11 @@
 """Analytics and dashboard endpoints."""
 
 import logging
-import traceback
 from datetime import date
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
-from slowapi import Limiter
-from slowapi.util import get_remote_address
 
+from rivaflow.api.rate_limit import limiter
 from rivaflow.core.dependencies import get_current_user
 from rivaflow.core.exceptions import NotFoundError, RivaFlowException
 from rivaflow.core.services.analytics_service import AnalyticsService
@@ -18,7 +16,6 @@ from rivaflow.core.utils.cache import cached
 logger = logging.getLogger(__name__)
 
 router = APIRouter()
-limiter = Limiter(key_func=get_remote_address)
 service = AnalyticsService()
 fight_dynamics_service = FightDynamicsService()
 
@@ -103,9 +100,8 @@ def get_performance_overview(
         )
     except (RivaFlowException, HTTPException):
         raise
-    except (ValueError, KeyError, TypeError) as e:
-        logger.error(f"Error in get_performance_overview: {type(e).__name__}: {str(e)}")
-        logger.error(traceback.format_exc())
+    except (ValueError, KeyError, TypeError):
+        logger.error("get_performance_overview failed", exc_info=True)
         raise HTTPException(
             status_code=500, detail="An error occurred while processing analytics"
         )
@@ -132,9 +128,8 @@ def get_partner_analytics(
         )
     except (RivaFlowException, HTTPException):
         raise
-    except (ValueError, KeyError, TypeError) as e:
-        logger.error(f"Error in get_partner_analytics: {type(e).__name__}: {str(e)}")
-        logger.error(traceback.format_exc())
+    except (ValueError, KeyError, TypeError):
+        logger.error("get_partner_analytics failed", exc_info=True)
         raise HTTPException(
             status_code=500, detail="An error occurred while processing analytics"
         )
@@ -221,9 +216,8 @@ def get_technique_analytics(
         )
     except (RivaFlowException, HTTPException):
         raise
-    except (ValueError, KeyError, TypeError) as e:
-        logger.error(f"Error in get_technique_analytics: {type(e).__name__}: {str(e)}")
-        logger.error(traceback.format_exc())
+    except (ValueError, KeyError, TypeError):
+        logger.error("get_technique_analytics failed", exc_info=True)
         raise HTTPException(
             status_code=500, detail="An error occurred while processing analytics"
         )
@@ -250,11 +244,8 @@ def get_consistency_analytics(
         )
     except (RivaFlowException, HTTPException):
         raise
-    except (ValueError, KeyError, TypeError) as e:
-        logger.error(
-            f"Error in get_consistency_analytics: {type(e).__name__}: {str(e)}"
-        )
-        logger.error(traceback.format_exc())
+    except (ValueError, KeyError, TypeError):
+        logger.error("get_consistency_analytics failed", exc_info=True)
         raise HTTPException(
             status_code=500, detail="An error occurred while processing analytics"
         )
@@ -268,9 +259,8 @@ def get_milestones(request: Request, current_user: dict = Depends(get_current_us
         return service.get_milestones(user_id=current_user["id"])
     except (RivaFlowException, HTTPException):
         raise
-    except (ValueError, KeyError, TypeError) as e:
-        logger.error(f"Error in get_milestones: {type(e).__name__}: {str(e)}")
-        logger.error(traceback.format_exc())
+    except (ValueError, KeyError, TypeError):
+        logger.error("get_milestones failed", exc_info=True)
         raise HTTPException(
             status_code=500, detail="An error occurred while processing analytics"
         )
@@ -297,9 +287,8 @@ def get_instructor_analytics(
         )
     except (RivaFlowException, HTTPException):
         raise
-    except (ValueError, KeyError, TypeError) as e:
-        logger.error(f"Error in get_instructor_analytics: {type(e).__name__}: {str(e)}")
-        logger.error(traceback.format_exc())
+    except (ValueError, KeyError, TypeError):
+        logger.error("get_instructor_analytics failed", exc_info=True)
         raise HTTPException(
             status_code=500, detail="An error occurred while processing analytics"
         )
@@ -408,9 +397,8 @@ def get_duration_analytics(
         )
     except (RivaFlowException, HTTPException):
         raise
-    except (ValueError, KeyError, TypeError) as e:
-        logger.error(f"Error in get_duration_analytics: {type(e).__name__}: {str(e)}")
-        logger.error(traceback.format_exc())
+    except (ValueError, KeyError, TypeError):
+        logger.error("get_duration_analytics failed", exc_info=True)
         raise HTTPException(
             status_code=500, detail="An error occurred while processing analytics"
         )
@@ -437,9 +425,8 @@ def get_time_of_day_patterns(
         )
     except (RivaFlowException, HTTPException):
         raise
-    except (ValueError, KeyError, TypeError) as e:
-        logger.error(f"Error in get_time_of_day_patterns: {type(e).__name__}: {str(e)}")
-        logger.error(traceback.format_exc())
+    except (ValueError, KeyError, TypeError):
+        logger.error("get_time_of_day_patterns failed", exc_info=True)
         raise HTTPException(
             status_code=500, detail="An error occurred while processing analytics"
         )
@@ -466,9 +453,8 @@ def get_gym_comparison(
         )
     except (RivaFlowException, HTTPException):
         raise
-    except (ValueError, KeyError, TypeError) as e:
-        logger.error(f"Error in get_gym_comparison: {type(e).__name__}: {str(e)}")
-        logger.error(traceback.format_exc())
+    except (ValueError, KeyError, TypeError):
+        logger.error("get_gym_comparison failed", exc_info=True)
         raise HTTPException(
             status_code=500, detail="An error occurred while processing analytics"
         )
@@ -491,11 +477,8 @@ def get_class_type_effectiveness(
         )
     except (RivaFlowException, HTTPException):
         raise
-    except (ValueError, KeyError, TypeError) as e:
-        logger.error(
-            f"Error in get_class_type_effectiveness: {type(e).__name__}: {str(e)}"
-        )
-        logger.error(traceback.format_exc())
+    except (ValueError, KeyError, TypeError):
+        logger.error("get_class_type_effectiveness failed", exc_info=True)
         raise HTTPException(
             status_code=500, detail="An error occurred while processing analytics"
         )
@@ -518,9 +501,8 @@ def get_weight_trend(
         )
     except (RivaFlowException, HTTPException):
         raise
-    except (ValueError, KeyError, TypeError) as e:
-        logger.error(f"Error in get_weight_trend: {type(e).__name__}: {str(e)}")
-        logger.error(traceback.format_exc())
+    except (ValueError, KeyError, TypeError):
+        logger.error("get_weight_trend failed", exc_info=True)
         raise HTTPException(
             status_code=500, detail="An error occurred while processing analytics"
         )
@@ -547,9 +529,8 @@ def get_training_calendar(
         )
     except (RivaFlowException, HTTPException):
         raise
-    except (ValueError, KeyError, TypeError) as e:
-        logger.error(f"Error in get_training_calendar: {type(e).__name__}: {str(e)}")
-        logger.error(traceback.format_exc())
+    except (ValueError, KeyError, TypeError):
+        logger.error("get_training_calendar failed", exc_info=True)
         raise HTTPException(
             status_code=500, detail="An error occurred while processing analytics"
         )
@@ -568,11 +549,8 @@ def get_partner_belt_distribution(
         )
     except (RivaFlowException, HTTPException):
         raise
-    except (ValueError, KeyError, TypeError) as e:
-        logger.error(
-            f"Error in get_partner_belt_distribution: {type(e).__name__}: {str(e)}"
-        )
-        logger.error(traceback.format_exc())
+    except (ValueError, KeyError, TypeError):
+        logger.error("get_partner_belt_distribution failed", exc_info=True)
         raise HTTPException(
             status_code=500, detail="An error occurred while processing analytics"
         )
@@ -660,9 +638,8 @@ def get_insights_summary(
         return _get_insights_summary_cached(user_id=current_user["id"])
     except (RivaFlowException, HTTPException):
         raise
-    except (ValueError, KeyError, TypeError) as e:
-        logger.error(f"Error in get_insights_summary: {type(e).__name__}: {str(e)}")
-        logger.error(traceback.format_exc())
+    except (ValueError, KeyError, TypeError):
+        logger.error("get_insights_summary failed", exc_info=True)
         raise HTTPException(
             status_code=500, detail="An error occurred while processing analytics"
         )
@@ -685,11 +662,8 @@ def get_readiness_correlation(
         )
     except (RivaFlowException, HTTPException):
         raise
-    except (ValueError, KeyError, TypeError) as e:
-        logger.error(
-            f"Error in get_readiness_correlation: {type(e).__name__}: {str(e)}"
-        )
-        logger.error(traceback.format_exc())
+    except (ValueError, KeyError, TypeError):
+        logger.error("get_readiness_correlation failed", exc_info=True)
         raise HTTPException(
             status_code=500, detail="An error occurred while processing analytics"
         )
@@ -707,9 +681,8 @@ def get_training_load(
         return _get_training_load_cached(user_id=current_user["id"], days=days)
     except (RivaFlowException, HTTPException):
         raise
-    except (ValueError, KeyError, TypeError) as e:
-        logger.error(f"Error in get_training_load: {type(e).__name__}: {str(e)}")
-        logger.error(traceback.format_exc())
+    except (ValueError, KeyError, TypeError):
+        logger.error("get_training_load failed", exc_info=True)
         raise HTTPException(
             status_code=500, detail="An error occurred while processing analytics"
         )
@@ -732,11 +705,8 @@ def get_technique_effectiveness_insights(
         )
     except (RivaFlowException, HTTPException):
         raise
-    except (ValueError, KeyError, TypeError) as e:
-        logger.error(
-            f"Error in get_technique_effectiveness: {type(e).__name__}: {str(e)}"
-        )
-        logger.error(traceback.format_exc())
+    except (ValueError, KeyError, TypeError):
+        logger.error("get_technique_effectiveness failed", exc_info=True)
         raise HTTPException(
             status_code=500, detail="An error occurred while processing analytics"
         )
@@ -756,9 +726,8 @@ def get_partner_progression(
         )
     except (RivaFlowException, HTTPException):
         raise
-    except (ValueError, KeyError, TypeError) as e:
-        logger.error(f"Error in get_partner_progression: {type(e).__name__}: {str(e)}")
-        logger.error(traceback.format_exc())
+    except (ValueError, KeyError, TypeError):
+        logger.error("get_partner_progression failed", exc_info=True)
         raise HTTPException(
             status_code=500, detail="An error occurred while processing analytics"
         )
@@ -781,9 +750,8 @@ def get_session_quality(
         )
     except (RivaFlowException, HTTPException):
         raise
-    except (ValueError, KeyError, TypeError) as e:
-        logger.error(f"Error in get_session_quality: {type(e).__name__}: {str(e)}")
-        logger.error(traceback.format_exc())
+    except (ValueError, KeyError, TypeError):
+        logger.error("get_session_quality failed", exc_info=True)
         raise HTTPException(
             status_code=500, detail="An error occurred while processing analytics"
         )
@@ -800,9 +768,8 @@ def get_overtraining_risk(
         return _get_overtraining_risk_cached(user_id=current_user["id"])
     except (RivaFlowException, HTTPException):
         raise
-    except (ValueError, KeyError, TypeError) as e:
-        logger.error(f"Error in get_overtraining_risk: {type(e).__name__}: {str(e)}")
-        logger.error(traceback.format_exc())
+    except (ValueError, KeyError, TypeError):
+        logger.error("get_overtraining_risk failed", exc_info=True)
         raise HTTPException(
             status_code=500, detail="An error occurred while processing analytics"
         )
@@ -820,9 +787,8 @@ def get_recovery_insights(
         return _get_recovery_insights_cached(user_id=current_user["id"], days=days)
     except (RivaFlowException, HTTPException):
         raise
-    except (ValueError, KeyError, TypeError) as e:
-        logger.error(f"Error in get_recovery_insights: {type(e).__name__}: {str(e)}")
-        logger.error(traceback.format_exc())
+    except (ValueError, KeyError, TypeError):
+        logger.error("get_recovery_insights failed", exc_info=True)
         raise HTTPException(
             status_code=500, detail="An error occurred while processing analytics"
         )
@@ -855,11 +821,8 @@ def get_fight_dynamics_heatmap(
         )
     except (RivaFlowException, HTTPException):
         raise
-    except (ValueError, KeyError, TypeError) as e:
-        logger.error(
-            f"Error in get_fight_dynamics_heatmap: {type(e).__name__}: {str(e)}"
-        )
-        logger.error(traceback.format_exc())
+    except (ValueError, KeyError, TypeError):
+        logger.error("get_fight_dynamics_heatmap failed", exc_info=True)
         raise HTTPException(
             status_code=500,
             detail="An error occurred while processing analytics",
@@ -883,11 +846,8 @@ def get_fight_dynamics_insights(
         )
     except (RivaFlowException, HTTPException):
         raise
-    except (ValueError, KeyError, TypeError) as e:
-        logger.error(
-            f"Error in get_fight_dynamics_insights: {type(e).__name__}: {str(e)}"
-        )
-        logger.error(traceback.format_exc())
+    except (ValueError, KeyError, TypeError):
+        logger.error("get_fight_dynamics_insights failed", exc_info=True)
         raise HTTPException(
             status_code=500,
             detail="An error occurred while processing analytics",

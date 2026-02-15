@@ -13,23 +13,22 @@ from rivaflow.core.time_utils import utcnow
 # Password hashing configuration
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
-# JWT configuration - Load from centralized settings
-# This will raise ValueError if SECRET_KEY is not set
-SECRET_KEY = settings.SECRET_KEY
-
-# Production security check - ensure dev secret is not used in production
-if settings.IS_PRODUCTION and (
-    SECRET_KEY.startswith("dev-") or SECRET_KEY == "dev" or len(SECRET_KEY) < 32
-):
-    raise RuntimeError(
-        "Production environment detected with insecure SECRET_KEY. "
-        "SECRET_KEY must be a secure random string (>= 32 characters). "
-        "Generate one with: python -c 'import secrets; print(secrets.token_urlsafe(32))'"
-    )
-
 ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = settings.ACCESS_TOKEN_EXPIRE_MINUTES
-REFRESH_TOKEN_EXPIRE_DAYS = settings.REFRESH_TOKEN_EXPIRE_DAYS
+
+
+def _get_secret_key() -> str:
+    """Return the JWT signing key, validating in production."""
+    key = settings.SECRET_KEY
+    if settings.IS_PRODUCTION and (
+        key.startswith("dev-") or key == "dev" or len(key) < 32
+    ):
+        raise RuntimeError(
+            "Production environment detected with insecure SECRET_KEY. "
+            "SECRET_KEY must be a secure random string (>= 32 characters). "
+            "Generate one with: python -c 'import secrets; "
+            "print(secrets.token_urlsafe(32))'"
+        )
+    return key
 
 
 def hash_password(password: str) -> str:
@@ -77,10 +76,10 @@ def create_access_token(data: dict, expires_delta: timedelta | None = None) -> s
     if expires_delta:
         expire = utcnow() + expires_delta
     else:
-        expire = utcnow() + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+        expire = utcnow() + timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
 
     to_encode.update({"exp": expire})
-    encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
+    encoded_jwt = jwt.encode(to_encode, _get_secret_key(), algorithm=ALGORITHM)
     return encoded_jwt
 
 
@@ -98,7 +97,7 @@ def decode_access_token(token: str) -> dict | None:
         PyJWTError: If token is invalid or expired
     """
     try:
-        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        payload = jwt.decode(token, _get_secret_key(), algorithms=[ALGORITHM])
         return payload
     except PyJWTError:
         return None
@@ -111,5 +110,5 @@ def generate_refresh_token() -> str:
 
 def get_refresh_token_expiry() -> str:
     """Get the expiry datetime for a refresh token as ISO 8601 string."""
-    expiry = utcnow() + timedelta(days=REFRESH_TOKEN_EXPIRE_DAYS)
+    expiry = utcnow() + timedelta(days=settings.REFRESH_TOKEN_EXPIRE_DAYS)
     return expiry.isoformat()

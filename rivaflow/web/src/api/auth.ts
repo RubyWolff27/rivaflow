@@ -1,7 +1,7 @@
 import axios from 'axios';
 
-// API base URL - use environment variable if set, otherwise default to relative path
-const API_BASE = import.meta.env.VITE_API_URL || '/api';
+// API base URL - use environment variable if set, otherwise default to versioned path
+const API_BASE = import.meta.env.VITE_API_URL || '/api/v1';
 
 // Create a separate axios instance for auth (no interceptors to avoid circular dependencies)
 const authClient = axios.create({

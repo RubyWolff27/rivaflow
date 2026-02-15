@@ -4,9 +4,8 @@ import logging
 
 from fastapi import APIRouter, Depends, HTTPException, Path, Request, status
 from pydantic import BaseModel, EmailStr, Field
-from slowapi import Limiter
-from slowapi.util import get_remote_address
 
+from rivaflow.api.rate_limit import limiter
 from rivaflow.core.dependencies import get_admin_user
 from rivaflow.core.exceptions import RivaFlowException
 from rivaflow.core.services.email_service import EmailService
@@ -16,7 +15,6 @@ logger = logging.getLogger(__name__)
 
 # Public waitlist routes
 router = APIRouter()
-limiter = Limiter(key_func=get_remote_address)
 
 # Admin waitlist routes
 admin_router = APIRouter()

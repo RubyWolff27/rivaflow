@@ -15,16 +15,14 @@ from fastapi import (
     status,
 )
 from pydantic import BaseModel
-from slowapi import Limiter
-from slowapi.util import get_remote_address
 
+from rivaflow.api.rate_limit import limiter
 from rivaflow.core.dependencies import get_current_user
 from rivaflow.core.exceptions import NotFoundError
 from rivaflow.core.services.grading_service import GradingService
 from rivaflow.core.services.storage_service import get_storage
 
 router = APIRouter()
-limiter = Limiter(key_func=get_remote_address)
 service = GradingService()
 
 # Allowed file extensions

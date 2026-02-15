@@ -36,8 +36,10 @@ const Layout = memo(function Layout({ children }: { children: React.ReactNode })
 
     fetchNotifications();
 
-    // Refresh every 60 seconds
-    const interval = setInterval(fetchNotifications, 60000);
+    // Refresh every 60 seconds (skip if tab is hidden to save bandwidth)
+    const interval = setInterval(() => {
+      if (document.visibilityState === 'visible') fetchNotifications();
+    }, 60000);
     return () => { cancelled = true; clearInterval(interval); };
   }, []);
 

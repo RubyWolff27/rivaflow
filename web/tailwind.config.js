@@ -7,19 +7,19 @@ export default {
   theme: {
     extend: {
       colors: {
-        // Combat Red - Primary Brand Color (Performance)
+        // Combat Red - Primary Brand Color (matches --accent: #FF4D2D)
         combat: {
-          DEFAULT: '#E63946',
-          50: '#FDECEE',
-          100: '#FBD9DC',
-          200: '#F7B3B9',
-          300: '#F38D96',
-          400: '#EF6773',
-          500: '#E63946',  // Primary Combat Red
-          600: '#D11E2C',
-          700: '#9E1721',
-          800: '#6B0F16',
-          900: '#38080B',
+          DEFAULT: '#FF4D2D',
+          50: '#FFF0ED',
+          100: '#FFE1DB',
+          200: '#FFC3B7',
+          300: '#FFA593',
+          400: '#FF7960',
+          500: '#FF4D2D',  // Primary — matches CSS --accent
+          600: '#E63F24',
+          700: '#B3301C',
+          800: '#802214',
+          900: '#4D140C',
         },
         // Energy Orange - Secondary Accent (Achievements)
         energy: {
@@ -49,18 +49,18 @@ export default {
           800: '#005C50',
           900: '#002924',
         },
-        // Primary maps to Combat Red (new default)
+        // Primary maps to Combat Red (matches --accent)
         primary: {
-          50: '#FDECEE',
-          100: '#FBD9DC',
-          200: '#F7B3B9',
-          300: '#F38D96',
-          400: '#EF6773',
-          500: '#E63946',  // Combat Red
-          600: '#D11E2C',
-          700: '#9E1721',
-          800: '#6B0F16',
-          900: '#38080B',
+          50: '#FFF0ED',
+          100: '#FFE1DB',
+          200: '#FFC3B7',
+          300: '#FFA593',
+          400: '#FF7960',
+          500: '#FF4D2D',  // Matches --accent
+          600: '#E63F24',
+          700: '#B3301C',
+          800: '#802214',
+          900: '#4D140C',
         },
         // Mat Black - Dark mode foundation
         mat: {

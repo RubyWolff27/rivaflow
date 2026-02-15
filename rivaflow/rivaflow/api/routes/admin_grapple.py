@@ -524,7 +524,7 @@ def get_grapple_health(
         llm_healthy = False
 
     # Check database tables exist
-    from rivaflow.config import get_db_type
+    from rivaflow.core.settings import settings
     from rivaflow.db.database import get_connection
 
     tables_ok = True
@@ -537,7 +537,7 @@ def get_grapple_health(
     try:
         with get_connection() as conn:
             cursor = conn.cursor()
-            if get_db_type() == "postgresql":
+            if settings.DB_TYPE == "postgresql":
                 cursor.execute("""
                     SELECT table_name
                     FROM information_schema.tables
@@ -555,7 +555,7 @@ def get_grapple_health(
                     )
                 """)
             found = {
-                row["table_name" if get_db_type() == "postgresql" else "name"]
+                row["table_name" if settings.DB_TYPE == "postgresql" else "name"]
                 for row in cursor.fetchall()
             }
             tables_ok = required_tables <= found

@@ -12,9 +12,8 @@ from fastapi import (
     status,
 )
 from pydantic import BaseModel, Field
-from slowapi import Limiter
-from slowapi.util import get_remote_address
 
+from rivaflow.api.rate_limit import limiter
 from rivaflow.core.dependencies import get_current_user
 from rivaflow.core.exceptions import NotFoundError, ValidationError
 from rivaflow.core.services.friend_suggestions_service import FriendSuggestionsService
@@ -24,7 +23,6 @@ from rivaflow.db.repositories.social_connection_repo import SocialConnectionRepo
 from rivaflow.db.repositories.user_repo import UserRepository
 
 router = APIRouter(prefix="/social", tags=["social"])
-limiter = Limiter(key_func=get_remote_address)
 
 
 # Pydantic models

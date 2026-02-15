@@ -40,9 +40,9 @@ class ProfileRepository:
         """Add timezone column to profile table if missing (PG only). Once-per-process."""
         if cls._tz_col_checked:
             return
-        from rivaflow.config import get_db_type
+        from rivaflow.core.settings import settings
 
-        if get_db_type() != "postgresql":
+        if settings.DB_TYPE != "postgresql":
             cls._tz_col_checked = True
             return
         try:

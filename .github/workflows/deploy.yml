@@ -57,10 +57,22 @@ jobs:
         echo "Author: ${{ github.actor }}"
 
     - name: Trigger Render deployment
+      env:
+        RENDER_API_KEY: ${{ secrets.RENDER_API_KEY }}
+        RENDER_SERVICE_ID: ${{ secrets.RENDER_SERVICE_ID }}
       run: |
-        # Render auto-deploys on git push to main
-        # This step can be enhanced with Render API for controlled deploys
-        echo "Render will auto-deploy from main branch"
+        if [ -z "$RENDER_API_KEY" ] || [ -z "$RENDER_SERVICE_ID" ]; then
+          echo "WARNING: RENDER_API_KEY or RENDER_SERVICE_ID not configured."
+          echo "Deploy will only happen if autoDeploy is enabled in Render dashboard."
+          echo "Configure these secrets to enable CI-triggered deploys."
+        else
+          echo "Triggering Render deployment for commit ${{ github.sha }}..."
+          curl -s -X POST \
+            -H "Authorization: Bearer $RENDER_API_KEY" \
+            -H "Content-Type: application/json" \
+            "https://api.render.com/v1/services/$RENDER_SERVICE_ID/deploys"
+          echo "Deploy triggered via Render API."
+        fi
         echo "Monitor: https://dashboard.render.com/"
 
     - name: Wait for deployment health check
@@ -87,11 +99,30 @@ jobs:
         # Test health endpoint (includes database connectivity check)
         response=$(curl -s -o /dev/null -w "%{http_code}" https://api.rivaflow.app/health)
         if [ "$response" -eq 200 ]; then
-          echo "Health check passed (includes DB connectivity)"
+          echo "✓ Health check passed (includes DB connectivity)"
         else
-          echo "Health check failed (HTTP $response)"
+          echo "✗ Health check failed (HTTP $response)"
           exit 1
         fi
+
+        # Test auth endpoint reachable (should return 422 without body, not 500)
+        response=$(curl -s -o /dev/null -w "%{http_code}" -X POST https://api.rivaflow.app/api/v1/auth/login)
+        if [ "$response" -eq 422 ]; then
+          echo "✓ Auth endpoint reachable (422 = validation error, expected)"
+        else
+          echo "✗ Auth endpoint unexpected status (HTTP $response)"
+          exit 1
+        fi
+
+        # Test frontend is accessible
+        response=$(curl -s -o /dev/null -w "%{http_code}" https://rivaflow.app)
+        if [ "$response" -eq 200 ] || [ "$response" -eq 301 ] || [ "$response" -eq 302 ]; then
+          echo "✓ Frontend accessible (HTTP $response)"
+        else
+          echo "⚠ Frontend returned HTTP $response (may still be deploying)"
+        fi
+
+        echo "All smoke tests passed."
 
     - name: Notify deployment success
       if: success()

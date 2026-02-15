@@ -17,9 +17,8 @@ from fastapi import (
     UploadFile,
     status,
 )
-from slowapi import Limiter
-from slowapi.util import get_remote_address
 
+from rivaflow.api.rate_limit import limiter
 from rivaflow.core.dependencies import get_current_user
 from rivaflow.core.services.storage_service import get_storage
 from rivaflow.db.repositories import ActivityPhotoRepository
@@ -28,7 +27,6 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter()
 photo_repo = ActivityPhotoRepository()
-limiter = Limiter(key_func=get_remote_address)
 
 # Allowed file extensions and MIME types
 ALLOWED_EXTENSIONS = {".jpg", ".jpeg", ".png", ".webp", ".gif"}

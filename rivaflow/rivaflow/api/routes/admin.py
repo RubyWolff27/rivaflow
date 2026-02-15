@@ -6,9 +6,8 @@ import time
 
 from fastapi import APIRouter, Body, Depends, Path, Query, Request
 from pydantic import BaseModel, Field
-from slowapi import Limiter
-from slowapi.util import get_remote_address
 
+from rivaflow.api.rate_limit import limiter
 from rivaflow.core.dependencies import get_admin_user
 from rivaflow.core.exceptions import NotFoundError, ValidationError
 from rivaflow.core.services.audit_service import AuditService
@@ -20,7 +19,6 @@ from rivaflow.db.repositories.gym_repo import GymRepository
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/admin", tags=["admin"])
-limiter = Limiter(key_func=get_remote_address)
 
 
 # Pydantic models
@@ -606,8 +604,10 @@ def get_user_details(
         )
         following_count = extract_count(cursor.fetchone())
 
+    # Strip sensitive fields before returning
+    safe_user = {k: v for k, v in user.items() if k != "hashed_password"}
     return {
-        **user,
+        **safe_user,
         "stats": {
             "sessions": session_count,
             "comments": comment_count,
@@ -1254,7 +1254,7 @@ def broadcast_email(
             convert_query(
                 "SELECT id, email, first_name FROM users" " WHERE is_active = ?"
             ),
-            (1,),
+            (True,),
         )
         rows = cursor.fetchall()
         users = [dict(r) for r in rows]

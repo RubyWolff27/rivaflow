@@ -4,15 +4,13 @@ from datetime import date
 
 from fastapi import APIRouter, Depends, Request, status
 from pydantic import BaseModel
-from slowapi import Limiter
-from slowapi.util import get_remote_address
 
+from rivaflow.api.rate_limit import limiter
 from rivaflow.core.dependencies import get_current_user
 from rivaflow.core.services.streak_service import StreakService
 from rivaflow.db.repositories.checkin_repo import CheckinRepository
 
 router = APIRouter(prefix="/rest", tags=["rest"])
-limiter = Limiter(key_func=get_remote_address)
 
 
 class RestDayCreate(BaseModel):

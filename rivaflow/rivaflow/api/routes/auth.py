@@ -4,9 +4,8 @@ import logging
 
 from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
 from pydantic import BaseModel, EmailStr
-from slowapi import Limiter
-from slowapi.util import get_remote_address
 
+from rivaflow.api.rate_limit import limiter
 from rivaflow.core.dependencies import get_current_user
 from rivaflow.core.error_handling import handle_service_error
 from rivaflow.core.exceptions import (
@@ -21,7 +20,6 @@ from rivaflow.db.repositories.waitlist_repo import WaitlistRepository
 logger = logging.getLogger(__name__)
 
 router = APIRouter()
-limiter = Limiter(key_func=get_remote_address)
 
 
 def _set_refresh_cookie(response: Response, token: str):
@@ -204,7 +202,8 @@ def refresh_token(request: Request, response: Response):
 
     try:
         result = service.refresh_access_token(refresh_token=token)
-        _set_refresh_cookie(response, token)
+        # Set the rotated refresh token cookie (not the old one)
+        _set_refresh_cookie(response, result["refresh_token"])
         return result
     except ValueError:
         logger.warning("Token refresh failed")

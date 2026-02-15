@@ -143,10 +143,10 @@ export default function Reports() {
   const [expandedCards, setExpandedCards] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
-    // Set default date range (last 7 days)
+    // Set default date range (last 30 days)
     const end = new Date();
     const start = new Date();
-    start.setDate(start.getDate() - 7);
+    start.setDate(start.getDate() - 30);
     setDateRange({
       start: getLocalDateString(start),
       end: getLocalDateString(end),

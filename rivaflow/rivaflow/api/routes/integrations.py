@@ -128,10 +128,10 @@ def sync_workouts(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="WHOOP not connected",
         )
-    except ExternalServiceError as e:
+    except ExternalServiceError:
         raise HTTPException(
             status_code=status.HTTP_502_BAD_GATEWAY,
-            detail=str(e),
+            detail="Failed to sync workouts from WHOOP",
         )
 
 
@@ -171,8 +171,11 @@ def get_workouts(
             )
 
         return {"workouts": matches, "count": len(matches)}
-    except NotFoundError as e:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
+    except NotFoundError:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Workout not found",
+        )
 
 
 @router.post("/whoop/match")
@@ -188,8 +191,11 @@ def match_workout(
             current_user["id"], body.session_id, body.workout_cache_id
         )
         return updated
-    except NotFoundError as e:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
+    except NotFoundError:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Workout or session not found",
+        )
 
 
 @router.post("/whoop/sync-recovery")
@@ -208,10 +214,10 @@ def sync_recovery(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="WHOOP not connected",
         )
-    except ExternalServiceError as e:
+    except ExternalServiceError:
         raise HTTPException(
             status_code=status.HTTP_502_BAD_GATEWAY,
-            detail=str(e),
+            detail="Failed to sync recovery data from WHOOP",
         )
 
 

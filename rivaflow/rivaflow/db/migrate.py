@@ -15,7 +15,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
 import psycopg2
 
-from rivaflow.config import get_db_type
+from rivaflow.core.settings import settings
 
 logger = logging.getLogger(__name__)
 
@@ -184,7 +184,7 @@ def apply_migration(conn, migration_file):
 
 def run_migrations():
     """Run all pending migrations."""
-    db_type = get_db_type()
+    db_type = settings.DB_TYPE
 
     if db_type != "postgresql":
         logger.info("Migrations only run on PostgreSQL (production).")

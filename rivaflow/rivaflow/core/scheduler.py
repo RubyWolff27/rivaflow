@@ -2,6 +2,9 @@
 
 Runs alongside the FastAPI app using APScheduler's AsyncIOScheduler.
 All jobs are best-effort — failures are logged but do not crash the app.
+
+Uses PG advisory locks to prevent duplicate job execution when multiple
+gunicorn workers each start their own scheduler instance.
 """
 
 import logging
@@ -13,6 +16,55 @@ logger = logging.getLogger(__name__)
 
 _scheduler: AsyncIOScheduler | None = None
 
+# Advisory lock IDs (arbitrary unique ints) for each scheduled job
+_LOCK_IDS = {
+    "weekly_insights": 900001,
+    "streak_at_risk": 900002,
+    "drip_emails": 900003,
+    "coach_settings_reminder": 900004,
+}
+
+
+def _try_advisory_lock(job_name: str) -> bool:
+    """Try to acquire a PG advisory lock for a job. Returns True if acquired."""
+    try:
+        from rivaflow.core.settings import settings
+        from rivaflow.db.database import get_connection
+
+        lock_id = _LOCK_IDS.get(job_name, hash(job_name) % 2**31)
+
+        if settings.DB_TYPE != "postgresql":
+            return True  # SQLite is single-process, no lock needed
+
+        with get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("SELECT pg_try_advisory_lock(%s)", (lock_id,))
+            result = cursor.fetchone()
+            acquired = result["pg_try_advisory_lock"] if result else False
+            if not acquired:
+                logger.debug("Job %s skipped — another worker holds the lock", job_name)
+            return acquired
+    except Exception:
+        logger.debug("Advisory lock check failed for %s, proceeding", job_name)
+        return True  # Fail open — better to run twice than never
+
+
+def _release_advisory_lock(job_name: str) -> None:
+    """Release a PG advisory lock for a job."""
+    try:
+        from rivaflow.core.settings import settings
+        from rivaflow.db.database import get_connection
+
+        if settings.DB_TYPE != "postgresql":
+            return
+
+        lock_id = _LOCK_IDS.get(job_name, hash(job_name) % 2**31)
+        with get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("SELECT pg_advisory_unlock(%s)", (lock_id,))
+    except Exception:
+        logger.debug("Advisory lock release failed for %s", job_name)
+
 
 # ---------------------------------------------------------------------------
 # Job definitions
@@ -21,6 +73,8 @@ _scheduler: AsyncIOScheduler | None = None
 
 async def _weekly_insights_job() -> None:
     """Generate weekly AI insights for active users (Sunday 18:00 UTC)."""
+    if not _try_advisory_lock("weekly_insights"):
+        return
     try:
         from rivaflow.db.database import convert_query, get_connection
 
@@ -50,10 +104,14 @@ async def _weekly_insights_job() -> None:
                 logger.debug("Weekly insight failed for user %d", uid, exc_info=True)
     except Exception:
         logger.error("Weekly insights job failed", exc_info=True)
+    finally:
+        _release_advisory_lock("weekly_insights")
 
 
 async def _streak_at_risk_job() -> None:
     """Notify users whose streaks are at risk (daily 20:00 UTC)."""
+    if not _try_advisory_lock("streak_at_risk"):
+        return
     try:
         from rivaflow.core.services.streak_service import StreakService
         from rivaflow.db.database import convert_query, get_connection
@@ -119,6 +177,8 @@ async def _streak_at_risk_job() -> None:
                 )
     except Exception:
         logger.error("Streak-at-risk job failed", exc_info=True)
+    finally:
+        _release_advisory_lock("streak_at_risk")
 
 
 async def _drip_email_job() -> None:
@@ -126,6 +186,8 @@ async def _drip_email_job() -> None:
 
     Day 1 = day after registration, Day 3 = 3 days after, Day 5 = 5 days after.
     """
+    if not _try_advisory_lock("drip_emails"):
+        return
     try:
         from rivaflow.core.services.email_service import EmailService
         from rivaflow.db.database import convert_query, get_connection
@@ -153,7 +215,7 @@ async def _drip_email_job() -> None:
                         " WHERE is_active = ?"
                         " AND SUBSTR(created_at, 1, 10) = ?"
                     ),
-                    (1, target_date),
+                    (True, target_date),
                 )
                 rows = cursor.fetchall()
 
@@ -189,10 +251,14 @@ async def _drip_email_job() -> None:
             logger.info("Drip emails: sent %d emails", total_sent)
     except Exception:
         logger.error("Drip email job failed", exc_info=True)
+    finally:
+        _release_advisory_lock("drip_emails")
 
 
 async def _coach_settings_reminder_job() -> None:
     """Remind users to review Coach Settings if stale (weekly, Tuesdays 12:00 UTC)."""
+    if not _try_advisory_lock("coach_settings_reminder"):
+        return
     try:
         from rivaflow.core.services.email_service import EmailService
         from rivaflow.db.database import convert_query, get_connection
@@ -217,7 +283,7 @@ async def _coach_settings_reminder_job() -> None:
                     "WHERE u.is_active = ? "
                     "AND SUBSTR(cp.updated_at, 1, 10) < ?"
                 ),
-                (1, cutoff),
+                (True, cutoff),
             )
             rows = cursor.fetchall()
 
@@ -254,6 +320,8 @@ async def _coach_settings_reminder_job() -> None:
             logger.info("Coach settings reminder: sent %d emails", total_sent)
     except Exception:
         logger.error("Coach settings reminder job failed", exc_info=True)
+    finally:
+        _release_advisory_lock("coach_settings_reminder")
 
 
 # ---------------------------------------------------------------------------

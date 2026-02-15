@@ -9,15 +9,8 @@ from rivaflow.core.services.goals_service import GoalsService
 class TestCurrentWeekProgress:
     """Test current week goal progress calculation."""
 
-    @patch("rivaflow.core.services.goals_service.ProfileRepository")
-    @patch("rivaflow.core.services.goals_service.SessionRepository")
-    @patch("rivaflow.core.services.goals_service.GoalProgressRepository")
-    @patch("rivaflow.core.services.goals_service.ReportService")
-    def test_calculates_progress_correctly(
-        self, mock_report_service, mock_goal_repo, mock_session_repo, mock_profile_repo
-    ):
+    def test_calculates_progress_correctly(self):
         """Test that progress percentages are calculated correctly."""
-        # Setup
         service = GoalsService()
 
         # Mock week dates
@@ -34,13 +27,27 @@ class TestCurrentWeekProgress:
                 "weekly_sessions_target": 4,
                 "weekly_hours_target": 6.0,
                 "weekly_rolls_target": 20,
+                "weekly_bjj_sessions_target": 3,
+                "weekly_sc_sessions_target": 1,
+                "weekly_mobility_sessions_target": 0,
+                "timezone": None,
             }
         )
 
         # Mock sessions (2 sessions, 3 hours, 10 rolls)
         sessions = [
-            {"duration_mins": 90, "rolls": 5},
-            {"duration_mins": 90, "rolls": 5},
+            {
+                "duration_mins": 90,
+                "rolls": 5,
+                "class_type": "gi",
+                "session_date": "2026-01-20",
+            },
+            {
+                "duration_mins": 90,
+                "rolls": 5,
+                "class_type": "no-gi",
+                "session_date": "2026-01-21",
+            },
         ]
         service.session_repo.get_by_date_range = Mock(return_value=sessions)
 
@@ -48,8 +55,8 @@ class TestCurrentWeekProgress:
         service.goal_progress_repo.get_by_week = Mock(return_value=None)
         service.goal_progress_repo.create = Mock(return_value=1)
 
-        with patch("rivaflow.core.services.goals_service.date") as mock_date:
-            mock_date.today.return_value = today
+        with patch("rivaflow.core.services.report_service.today_in_tz") as mock_today:
+            mock_today.return_value = today
 
             # Execute
             progress = service.get_current_week_progress(user_id=1)
@@ -72,13 +79,7 @@ class TestCurrentWeekProgress:
         assert progress["completed"] is False
         assert progress["days_remaining"] == 3  # Wed to Sun
 
-    @patch("rivaflow.core.services.goals_service.ProfileRepository")
-    @patch("rivaflow.core.services.goals_service.SessionRepository")
-    @patch("rivaflow.core.services.goals_service.GoalProgressRepository")
-    @patch("rivaflow.core.services.goals_service.ReportService")
-    def test_detects_goal_completion(
-        self, mock_report_service, mock_goal_repo, mock_session_repo, mock_profile_repo
-    ):
+    def test_detects_goal_completion(self):
         """Test that completed goals are properly detected."""
         service = GoalsService()
 
@@ -93,22 +94,41 @@ class TestCurrentWeekProgress:
                 "weekly_sessions_target": 3,
                 "weekly_hours_target": 4.5,
                 "weekly_rolls_target": 15,
+                "weekly_bjj_sessions_target": 3,
+                "weekly_sc_sessions_target": 0,
+                "weekly_mobility_sessions_target": 0,
+                "timezone": None,
             }
         )
 
         # Sessions that meet all targets
         sessions = [
-            {"duration_mins": 90, "rolls": 5},
-            {"duration_mins": 90, "rolls": 5},
-            {"duration_mins": 90, "rolls": 5},
+            {
+                "duration_mins": 90,
+                "rolls": 5,
+                "class_type": "gi",
+                "session_date": "2026-01-20",
+            },
+            {
+                "duration_mins": 90,
+                "rolls": 5,
+                "class_type": "no-gi",
+                "session_date": "2026-01-21",
+            },
+            {
+                "duration_mins": 90,
+                "rolls": 5,
+                "class_type": "gi",
+                "session_date": "2026-01-22",
+            },
         ]
         service.session_repo.get_by_date_range = Mock(return_value=sessions)
 
         service.goal_progress_repo.get_by_week = Mock(return_value=None)
         service.goal_progress_repo.create = Mock(return_value=1)
 
-        with patch("rivaflow.core.services.goals_service.date") as mock_date:
-            mock_date.today.return_value = date(2026, 1, 22)
+        with patch("rivaflow.core.services.report_service.today_in_tz") as mock_today:
+            mock_today.return_value = date(2026, 1, 22)
             progress = service.get_current_week_progress(user_id=1)
 
         assert progress["completed"] is True
@@ -120,8 +140,7 @@ class TestCurrentWeekProgress:
 class TestStreakCalculations:
     """Test streak tracking functionality."""
 
-    @patch("rivaflow.core.services.goals_service.AnalyticsService")
-    def test_retrieves_training_streaks_from_analytics(self, mock_analytics_service):
+    def test_retrieves_training_streaks_from_analytics(self):
         """Test that training streaks are retrieved from AnalyticsService."""
         service = GoalsService()
 
@@ -135,8 +154,8 @@ class TestStreakCalculations:
             }
         )
 
-        with patch("rivaflow.core.services.goals_service.date") as mock_date:
-            mock_date.today.return_value = date(2026, 1, 22)
+        with patch("rivaflow.core.services.report_service.today_in_tz") as mock_today:
+            mock_today.return_value = date(2026, 1, 22)
 
             streaks = service.get_training_streaks(user_id=1)
 
@@ -144,8 +163,7 @@ class TestStreakCalculations:
         assert streaks["longest_streak"] == 14
         assert streaks["last_updated"] == "2026-01-22"
 
-    @patch("rivaflow.core.services.goals_service.GoalProgressRepository")
-    def test_calculates_goal_completion_streaks(self, mock_goal_repo):
+    def test_calculates_goal_completion_streaks(self):
         """Test calculation of consecutive weeks hitting all goals."""
         service = GoalsService()
 
@@ -165,9 +183,8 @@ class TestStreakCalculations:
 class TestGoalsUpdate:
     """Test goal target updates."""
 
-    @patch("rivaflow.core.services.goals_service.ProfileRepository")
     @patch("rivaflow.db.database.get_connection")
-    def test_updates_profile_goals(self, mock_get_connection, mock_profile_repo):
+    def test_updates_profile_goals(self, mock_get_connection):
         """Test updating weekly goal targets in profile."""
         service = GoalsService()
 
@@ -216,39 +233,37 @@ class TestGoalsUpdate:
 class TestGoalsTrend:
     """Test goal completion trend calculation."""
 
-    @patch("rivaflow.core.services.goals_service.GoalProgressRepository")
-    def test_calculates_completion_percentage(self, mock_goal_repo):
-        """Test that completion percentage is calculated correctly for trends."""
+    def test_calculates_completion_percentage(self):
+        """Test that completion percentage is calculated correctly."""
         service = GoalsService()
 
         # Mock goal progress records
-        mock_goal_repo_instance = Mock()
-        service.goal_progress_repo = mock_goal_repo_instance
-
-        mock_goal_repo_instance.get_recent_weeks.return_value = [
-            {
-                "week_start_date": "2026-01-12",
-                "week_end_date": "2026-01-18",
-                "target_sessions": 4,
-                "actual_sessions": 4,
-                "target_hours": 6.0,
-                "actual_hours": 6.0,
-                "target_rolls": 20,
-                "actual_rolls": 20,
-                "completed_at": "2026-01-18 23:00:00",
-            },
-            {
-                "week_start_date": "2026-01-05",
-                "week_end_date": "2026-01-11",
-                "target_sessions": 4,
-                "actual_sessions": 2,
-                "target_hours": 6.0,
-                "actual_hours": 3.0,
-                "target_rolls": 20,
-                "actual_rolls": 10,
-                "completed_at": None,
-            },
-        ]
+        service.goal_progress_repo.get_recent_weeks = Mock(
+            return_value=[
+                {
+                    "week_start_date": "2026-01-12",
+                    "week_end_date": "2026-01-18",
+                    "target_sessions": 4,
+                    "actual_sessions": 4,
+                    "target_hours": 6.0,
+                    "actual_hours": 6.0,
+                    "target_rolls": 20,
+                    "actual_rolls": 20,
+                    "completed_at": "2026-01-18 23:00:00",
+                },
+                {
+                    "week_start_date": "2026-01-05",
+                    "week_end_date": "2026-01-11",
+                    "target_sessions": 4,
+                    "actual_sessions": 2,
+                    "target_hours": 6.0,
+                    "actual_hours": 3.0,
+                    "target_rolls": 20,
+                    "actual_rolls": 10,
+                    "completed_at": None,
+                },
+            ]
+        )
 
         trend = service.get_recent_weeks_trend(user_id=1, weeks=2)
 
@@ -275,7 +290,11 @@ class TestGoalsSummary:
     )
     @patch("rivaflow.core.services.goals_service.GoalsService.get_recent_weeks_trend")
     def test_returns_complete_summary(
-        self, mock_trend, mock_goal_streaks, mock_training_streaks, mock_current
+        self,
+        mock_trend,
+        mock_goal_streaks,
+        mock_training_streaks,
+        mock_current,
     ):
         """Test that summary combines all goal data."""
         service = GoalsService()

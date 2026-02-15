@@ -1,8 +1,44 @@
 """Secure error handling utilities."""
 
+import functools
 import logging
 
+from fastapi import HTTPException
+
 logger = logging.getLogger(__name__)
+
+
+def route_error_handler(
+    operation: str,
+    detail: str = "An error occurred",
+):
+    """Decorator that wraps route handlers with standardized error handling.
+
+    Re-raises RivaFlowException and HTTPException unchanged.
+    Catches ValueError/KeyError/TypeError, logs with exc_info, and raises HTTP 500.
+
+    Usage::
+
+        @router.get("/foo")
+        @route_error_handler("foo lookup")
+        def get_foo(...):
+            return service.get_foo(...)
+    """
+
+    def decorator(func):
+        @functools.wraps(func)
+        def wrapper(*args, **kwargs):
+            try:
+                return func(*args, **kwargs)
+            except HTTPException:
+                raise
+            except (ValueError, KeyError, TypeError):
+                logger.error("%s failed", operation, exc_info=True)
+                raise HTTPException(status_code=500, detail=detail)
+
+        return wrapper
+
+    return decorator
 
 
 def handle_service_error(

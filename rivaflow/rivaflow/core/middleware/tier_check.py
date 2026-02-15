@@ -36,7 +36,7 @@ def require_feature(feature: str):
                     detail="Authentication required",
                 )
 
-            user_tier = getattr(current_user, "subscription_tier", "free")
+            user_tier = current_user.get("subscription_tier", "free")
             has_access, error_msg = TierAccessService.check_tier_access(
                 user_tier, feature
             )
@@ -78,8 +78,8 @@ def check_limit(feature: str, increment: bool = True):
                     detail="Authentication required",
                 )
 
-            user_id = current_user.id
-            user_tier = getattr(current_user, "subscription_tier", "free")
+            user_id = current_user["id"]
+            user_tier = current_user.get("subscription_tier", "free")
 
             allowed, error_msg, current_count = TierAccessService.check_usage_limit(
                 user_id, user_tier, feature, increment=increment
@@ -132,7 +132,7 @@ def require_premium():
                     detail="Authentication required",
                 )
 
-            user_tier = getattr(current_user, "subscription_tier", "free")
+            user_tier = current_user.get("subscription_tier", "free")
 
             if user_tier not in ["premium", "lifetime_premium", "admin"]:
                 raise HTTPException(
@@ -170,7 +170,7 @@ def require_admin():
                     detail="Authentication required",
                 )
 
-            user_tier = getattr(current_user, "subscription_tier", "free")
+            user_tier = current_user.get("subscription_tier", "free")
 
             if user_tier != "admin":
                 raise HTTPException(

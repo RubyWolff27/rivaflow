@@ -23,7 +23,8 @@ from rivaflow.core.auth import (
     hash_password,
     verify_password,
 )
-from rivaflow.db.database import get_connection
+from rivaflow.core.exceptions import ValidationError
+from rivaflow.db.database import convert_query, get_connection
 from rivaflow.db.repositories.password_reset_token_repo import (
     PasswordResetTokenRepository,
 )
@@ -389,30 +390,32 @@ class TestAuthorizationChecks:
         with get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(
-                """
+                convert_query("""
                 INSERT INTO users (email, hashed_password, created_at)
                 VALUES (?, ?, CURRENT_TIMESTAMP)
-            """,
-                ("user1@example.com", "hash"),
+            """),
+                (f"sec_user1_{id(self)}@example.com", "hash"),
             )
             conn.commit()
             user1_id = cursor.lastrowid
 
             cursor.execute(
-                """
+                convert_query("""
                 INSERT INTO users (email, hashed_password, created_at)
                 VALUES (?, ?, CURRENT_TIMESTAMP)
-            """,
-                ("user2@example.com", "hash"),
+            """),
+                (f"sec_user2_{id(self)}@example.com", "hash"),
             )
             conn.commit()
             user2_id = cursor.lastrowid
 
         try:
             # User 1 creates a session
+            from datetime import date
+
             session = SessionRepository.create(
                 user_id=user1_id,
-                session_date="2026-02-01",
+                session_date=date(2026, 2, 1),
                 class_type="gi",
                 gym_name="User 1 Gym",
                 duration_mins=90,
@@ -428,12 +431,13 @@ class TestAuthorizationChecks:
             assert session_id not in user2_session_ids
 
             # Cleanup
-            SessionRepository.delete(session_id)
+            SessionRepository.delete(user1_id, session_id)
         finally:
             with get_connection() as conn:
                 cursor = conn.cursor()
                 cursor.execute(
-                    "DELETE FROM users WHERE id IN (?, ?)", (user1_id, user2_id)
+                    convert_query("DELETE FROM users WHERE id IN (?, ?)"),
+                    (user1_id, user2_id),
                 )
                 conn.commit()
 
@@ -457,7 +461,7 @@ class TestInputValidation:
         ]
 
         for invalid_email in invalid_emails:
-            with pytest.raises(ValueError):
+            with pytest.raises((ValueError, ValidationError)):
                 service.register(
                     email=invalid_email,
                     password="SecurePassword123!",
@@ -472,7 +476,7 @@ class TestInputValidation:
         service = AuthService()
 
         # Too short
-        with pytest.raises(ValueError):
+        with pytest.raises((ValueError, ValidationError)):
             service.register(
                 email="test@example.com",
                 password="short",
@@ -489,7 +493,9 @@ class TestSecretKeyValidation:
         # This test verifies the SECRET_KEY validation logic exists
         # Actual validation happens in core/auth.py
 
-        from rivaflow.core.auth import SECRET_KEY
+        from rivaflow.core.auth import _get_secret_key
+
+        key = _get_secret_key()
 
         # In test environment, any key is allowed
         # But production should validate:
@@ -497,8 +503,8 @@ class TestSecretKeyValidation:
         # - Minimum 32 characters
         # - Not empty
 
-        assert SECRET_KEY is not None
-        assert len(SECRET_KEY) > 0
+        assert key is not None
+        assert len(key) > 0
 
 
 class TestTimingAttacks:

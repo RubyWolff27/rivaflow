@@ -71,12 +71,13 @@ class UserRepository:
             return UserRepository._row_to_dict(row)
 
     @staticmethod
-    def get_by_email(email: str) -> dict | None:
+    def get_by_email(email: str, include_password: bool = False) -> dict | None:
         """
         Get a user by email address.
 
         Args:
             email: User's email address
+            include_password: If True, include hashed_password in result (for auth only)
 
         Returns:
             User dictionary or None if not found
@@ -88,7 +89,9 @@ class UserRepository:
             )
             row = cursor.fetchone()
             if row:
-                return UserRepository._row_to_dict(row)
+                return UserRepository._row_to_dict(
+                    row, include_password=include_password
+                )
             return None
 
     @staticmethod
@@ -195,7 +198,7 @@ class UserRepository:
                 convert_query(
                     "SELECT id, email, first_name, last_name, is_active, created_at, updated_at FROM users WHERE is_active = ?"
                 ),
-                (1,),
+                (True,),
             )
             rows = cursor.fetchall()
             return [dict(row) for row in rows]
@@ -224,7 +227,7 @@ class UserRepository:
                     ORDER BY first_name, last_name
                     LIMIT ?
                     """),
-                (1, like_pattern, like_pattern, like_pattern, limit),
+                (True, like_pattern, like_pattern, like_pattern, limit),
             )
             rows = cursor.fetchall()
             return [dict(row) for row in rows]
@@ -335,8 +338,14 @@ class UserRepository:
             return cursor.rowcount > 0
 
     @staticmethod
-    def _row_to_dict(row) -> dict:
-        """Convert a database row to a dictionary."""
+    def _row_to_dict(row, include_password: bool = False) -> dict:
+        """Convert a database row to a dictionary.
+
+        Args:
+            row: Database row
+            include_password: If True, keep hashed_password in result.
+                Only set this for auth operations that need password verification.
+        """
         data = dict(row)
 
         # Parse timestamps - handle both PostgreSQL (datetime) and SQLite (string)
@@ -349,9 +358,8 @@ class UserRepository:
         if data.get("beta_joined_at") and isinstance(data["beta_joined_at"], str):
             data["beta_joined_at"] = datetime.fromisoformat(data["beta_joined_at"])
 
-        # Remove hashed_password from returned dict for security
-        # (services that need it can access directly from row)
-        # Actually, keep it for now as auth service needs it for verification
-        # We'll remove it in the API response layer
+        # Strip hashed_password by default for security
+        if not include_password:
+            data.pop("hashed_password", None)
 
         return data

@@ -4,7 +4,7 @@ import json
 from datetime import date, datetime
 from typing import Any
 
-from rivaflow.config import get_db_type
+from rivaflow.core.settings import settings
 from rivaflow.db.database import convert_query, execute_insert, get_connection
 
 
@@ -17,7 +17,7 @@ def _pg_bool(value: bool) -> Any:
     Note: production's needs_review column is converted from INTEGER to
     BOOLEAN at startup by migrate.py _ensure_critical_columns().
     """
-    if get_db_type() == "postgresql":
+    if settings.DB_TYPE == "postgresql":
         return bool(value)
     return int(value)
 
