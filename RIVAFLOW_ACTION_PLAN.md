@@ -335,10 +335,10 @@
 |------|--------|-------|
 | 1: Critical Safety | DONE | All 10 items complete, 408 root tests pass, lint clean |
 | 2: Security Hardening | DONE | Token rotation, error leakage fixed, 2MB body limit, password stripped from repo |
-| 3: Backend Code Quality | DONE | 3.1 error decorator + analytics cleanup, 3.4 deferred SECRET_KEY, 3.6 shared limiter, 3.7 deprecated imports fixed. 3.2/3.3/3.5 deferred (incremental) |
-| 4: Testing Coverage | DONE | All 5 items complete (commit 4177b18): session scoring (308L), goals (552L), admin (275L), gym timetable (490L), SmartPlanBanner (586L). 89 backend tests pass. |
-| 5: Frontend Architecture | DONE | 5.1-5.6 done (commit 2e91f71): split client.ts, broke LogSession/DailyActionHero/Profile/Grapple/Reports/EditSession into components. 5.7 visibility polling, 5.8 auth API path fixed earlier. |
-| 6: UX Quick Wins | DONE | 6.1 light surfaceElev, 6.2 theme-color meta, 6.3 Reports 30d default, 6.5 brand colors unified. 6.4/6.6 deferred |
-| 7: DevOps & Infrastructure | DONE | 7.1 Sentry 0.5, 7.2 smoke tests expanded, 7.3 WEB_CONCURRENCY (done in W2), 7.4 scheduler health, 7.7 cache headers. 7.5/7.6 deferred |
-| 8: Frontend Performance | DONE | 8.4 devDeps fixed, 8.6 Vite chunk splitting (vendor/icons/charts). 8.1-8.3/8.5/8.7 deferred |
-| Final Sync | PENDING | |
+| 3: Backend Code Quality | DONE | All items complete. 3.2 response_model, 3.3 explicit columns, 3.5 Depends pattern (commit 17bfe43) |
+| 4: Testing Coverage | DONE | All 5 items complete (commit 4177b18): session scoring, goals, admin, gym timetable, SmartPlanBanner. 497 tests pass. |
+| 5: Frontend Architecture | DONE | All items complete (commit 2e91f71): split client.ts, broke 6 god components into focused sub-components. |
+| 6: UX Quick Wins | DONE | All items complete. 6.4 celebration animation (commit 17bfe43). 6.6 widgets already self-conditional. |
+| 7: DevOps & Infrastructure | DONE | All items complete. 7.5 sync script, 7.6 removed stale deployment dir (commit 17bfe43) |
+| 8: Frontend Performance | DONE | All items complete. 8.1 react-window removed, 8.2 SessionDetail fixed, 8.3 useMemo, 8.5 ErrorBoundary, 8.7 logger (commit 17bfe43) |
+| Final Sync | DONE | 497 backend tests, 85 frontend tests, tsc clean, black clean, ruff clean, production build passes |
