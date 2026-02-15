@@ -9,16 +9,15 @@ from rivaflow.db.database import convert_query, execute_insert, get_connection
 
 
 def _pg_bool(value: bool) -> Any:
-    """Adapt a Python bool for PostgreSQL BOOLEAN or SQLite INTEGER columns.
+    """Adapt a Python bool for PostgreSQL INTEGER or BOOLEAN columns.
 
-    For PostgreSQL: returns Python bool → psycopg2 sends TRUE/FALSE.
+    For PostgreSQL: returns string '0' or '1'. PG's assignment cast
+    converts text to either INTEGER or BOOLEAN, so this works regardless
+    of the column's current type on production.
     For SQLite: returns int (1/0) since SQLite has no boolean type.
-
-    Note: production's needs_review column is converted from INTEGER to
-    BOOLEAN at startup by migrate.py _ensure_critical_columns().
     """
     if settings.DB_TYPE == "postgresql":
-        return bool(value)
+        return str(int(value))
     return int(value)
 
 
