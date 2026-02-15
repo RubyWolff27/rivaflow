@@ -523,14 +523,28 @@ class WhoopService:
         except (ValueError, IndexError):
             return []
 
-        session_start = datetime(
+        # class_time is in the user's local timezone, not UTC.
+        # Convert to UTC using the user's profile timezone.
+        import zoneinfo
+
+        user_tz = UTC
+        try:
+            profile = self.profile_repo.get(user_id)
+            tz_name = profile.get("timezone") if profile else None
+            if tz_name and tz_name != "UTC":
+                user_tz = zoneinfo.ZoneInfo(tz_name)
+        except Exception:
+            logger.debug("Could not load user timezone, defaulting to UTC")
+
+        local_dt = datetime(
             date_part.year,
             date_part.month,
             date_part.day,
             hour,
             minute,
-            tzinfo=UTC,
+            tzinfo=user_tz,
         )
+        session_start = local_dt.astimezone(UTC)
         session_end = session_start + timedelta(minutes=duration_mins)
 
         # Expand search window +/- 2 hours
