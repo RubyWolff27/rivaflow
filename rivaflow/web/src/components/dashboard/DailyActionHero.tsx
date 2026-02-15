@@ -1,15 +1,15 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { Plus, Activity, Sparkles, Heart, Waves, RefreshCw, Flame } from 'lucide-react';
+import { Plus, Activity, Sparkles, Heart, Waves, RefreshCw } from 'lucide-react';
 import { getLocalDateString } from '../../utils/date';
-import { suggestionsApi, readinessApi, whoopApi, checkinsApi, streaksApi, sessionsApi, goalsApi, gymsApi, profileApi } from '../../api/client';
+import { suggestionsApi, readinessApi, whoopApi, checkinsApi, sessionsApi, goalsApi, gymsApi, profileApi } from '../../api/client';
 import { Card, PrimaryButton, CardSkeleton } from '../ui';
 import SmartPlanBanner from './SmartPlanBanner';
 import MorningPrompt from './MorningPrompt';
 import MiddayPrompt from './MiddayPrompt';
 import EveningPrompt from './EveningPrompt';
 import CheckinBadges from './CheckinBadges';
-import type { DayCheckins, StreakStatus, Session, WeeklyGoalProgress, GymClass } from '../../types';
+import type { DayCheckins, Session, WeeklyGoalProgress, GymClass } from '../../types';
 
 interface TriggeredRule {
   name: string;
@@ -54,6 +54,7 @@ const sanitizeSuggestion = (text: string) =>
 export default function DailyActionHero() {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
+  const [bannerDismissed, setBannerDismissed] = useState(false);
   const [suggestion, setSuggestion] = useState<SuggestionData | null>(null);
   const [readinessScore, setReadinessScore] = useState<number | null>(null);
   const [hasCheckedIn, setHasCheckedIn] = useState(false);
@@ -65,7 +66,6 @@ export default function DailyActionHero() {
     resting_hr: number | null;
   } | null>(null);
   const [whoopSyncing, setWhoopSyncing] = useState(false);
-  const [streaks, setStreaks] = useState<StreakStatus | null>(null);
   const [todaySessions, setTodaySessions] = useState<Session[]>([]);
   const [todaysClasses, setTodaysClasses] = useState<GymClass[]>([]);
   const [weeklyGoals, setWeeklyGoals] = useState<WeeklyGoalProgress | null>(null);
@@ -88,7 +88,6 @@ export default function DailyActionHero() {
         whoopApi.getLatestRecovery(),
         checkinsApi.getToday(),
         checkinsApi.getYesterday(),
-        streaksApi.getStatus(),
         sessionsApi.getByRange(today, today),
         goalsApi.getCurrentWeek(),
         profileApi.get().then(res =>
@@ -135,22 +134,18 @@ export default function DailyActionHero() {
       }
 
       if (results[5].status === 'fulfilled' && results[5].value.data) {
-        setStreaks(results[5].value.data);
-      }
-
-      if (results[6].status === 'fulfilled' && results[6].value.data) {
-        const sessions = results[6].value.data;
+        const sessions = results[5].value.data;
         if (Array.isArray(sessions)) {
           setTodaySessions(sessions);
         }
       }
 
-      if (results[7].status === 'fulfilled' && results[7].value.data) {
-        setWeeklyGoals(results[7].value.data);
+      if (results[6].status === 'fulfilled' && results[6].value.data) {
+        setWeeklyGoals(results[6].value.data);
       }
 
-      if (results[8].status === 'fulfilled' && results[8].value.data) {
-        const classData = results[8].value.data;
+      if (results[7].status === 'fulfilled' && results[7].value.data) {
+        const classData = results[7].value.data;
         if (classData.classes && Array.isArray(classData.classes)) {
           setTodaysClasses(classData.classes);
         }
@@ -204,6 +199,8 @@ export default function DailyActionHero() {
       : '#EF4444'
     : undefined;
 
+  const statsBorderColor = readinessColor || whoopColor || 'var(--border)';
+
   const hasMorning = dayCheckins?.morning != null;
   const hasMidday = dayCheckins?.midday != null;
   const hasEvening = dayCheckins?.evening != null;
@@ -212,9 +209,9 @@ export default function DailyActionHero() {
   const showEvening = !hasEvening;
 
   return (
-    <Card className="p-5">
+    <Card variant="hero">
       <div className="flex items-center justify-between mb-4">
-        <h2 className="text-sm font-medium uppercase tracking-wide" style={{ color: 'var(--muted)' }}>
+        <h2 className="text-base font-semibold uppercase tracking-wide" style={{ color: 'var(--muted)' }}>
           Today
         </h2>
         <PrimaryButton onClick={() => navigate('/log')} className="flex items-center gap-2">
@@ -223,13 +220,16 @@ export default function DailyActionHero() {
         </PrimaryButton>
       </div>
 
-      <SmartPlanBanner
-        intention={todayPlan}
-        todaySessions={todaySessions}
-        todaysClasses={todaysClasses}
-        weeklyGoals={weeklyGoals}
-        onLog={() => navigate('/log')}
-      />
+      {!bannerDismissed && (
+        <SmartPlanBanner
+          intention={todayPlan}
+          todaySessions={todaySessions}
+          todaysClasses={todaysClasses}
+          weeklyGoals={weeklyGoals}
+          onLog={() => navigate('/log')}
+          onDismiss={() => setBannerDismissed(true)}
+        />
+      )}
 
       {!hasCheckedIn && !whoopRecovery ? (
         <div className="mb-4">
@@ -267,6 +267,11 @@ export default function DailyActionHero() {
               <Sparkles className="w-6 h-6" style={{ color: labelColor }} />
             </div>
             <div className="flex-1 min-w-0">
+              {todaySessions.length > 0 && (
+                <p className="text-[11px] font-medium uppercase tracking-wide mb-1" style={{ color: 'var(--muted)' }}>
+                  For your next session
+                </p>
+              )}
               <div className="flex items-center gap-2 mb-0.5">
                 <span
                   className="text-sm font-bold uppercase tracking-wide px-2.5 py-1 rounded-md"
@@ -307,7 +312,7 @@ export default function DailyActionHero() {
         <Link to="/readiness">
           <div
             className="flex items-center gap-3 p-3 rounded-lg transition-colors hover:opacity-90"
-            style={{ backgroundColor: 'var(--surfaceElev)' }}
+            style={{ backgroundColor: 'var(--surfaceElev)', borderLeft: `3px solid ${statsBorderColor}` }}
           >
             {hasCheckedIn && readinessScore != null && (
               <div className="flex items-center gap-2 flex-1 min-w-0">
@@ -381,33 +386,6 @@ export default function DailyActionHero() {
             )}
           </div>
         </Link>
-      )}
-
-      {streaks && streaks.checkin.current_streak > 0 && (
-        <div
-          className="flex items-center justify-between mt-3 p-3 rounded-lg"
-          style={{ backgroundColor: 'var(--surfaceElev)' }}
-        >
-          <div className="flex items-center gap-2">
-            <Flame className="w-5 h-5 text-orange-500" />
-            <span className="text-xl font-bold text-orange-600">
-              {streaks.checkin.current_streak}
-            </span>
-            <span className="text-sm" style={{ color: 'var(--muted)' }}>day streak</span>
-          </div>
-          {streaks.checkin.longest_streak > streaks.checkin.current_streak && (
-            <span className="text-xs text-orange-500">
-              {streaks.checkin.longest_streak - streaks.checkin.current_streak <= 3
-                ? `${streaks.checkin.longest_streak - streaks.checkin.current_streak} more to beat your best!`
-                : `Best: ${streaks.checkin.longest_streak}`}
-            </span>
-          )}
-          {streaks.checkin.current_streak >= streaks.checkin.longest_streak && streaks.checkin.current_streak >= 3 && (
-            <span className="text-xs font-medium text-orange-500">
-              Personal best!
-            </span>
-          )}
-        </div>
       )}
 
       {showMorning && <MorningPrompt onNavigate={() => navigate('/readiness')} />}

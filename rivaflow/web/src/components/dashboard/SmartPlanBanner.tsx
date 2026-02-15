@@ -8,12 +8,14 @@ export default function SmartPlanBanner({
   todaysClasses,
   weeklyGoals,
   onLog,
+  onDismiss,
 }: {
   intention?: string;
   todaySessions: Session[];
   todaysClasses: GymClass[];
   weeklyGoals: WeeklyGoalProgress | null;
   onLog: () => void;
+  onDismiss?: () => void;
 }) {
   const status = computeSmartStatus(intention, todaySessions, todaysClasses, weeklyGoals);
   if (!status) return null;
@@ -53,12 +55,13 @@ export default function SmartPlanBanner({
           Log it
         </button>
       ) : (status.type === 'trained-planned' || status.type === 'trained') ? (
-        <span
-          className="shrink-0 px-3 py-1.5 rounded-lg text-xs font-semibold"
+        <button
+          onClick={onDismiss}
+          className="shrink-0 px-3 py-1.5 rounded-lg text-xs font-semibold transition-opacity hover:opacity-80"
           style={{ backgroundColor: 'var(--success-bg)', color: 'var(--success)' }}
         >
           Done ✓
-        </span>
+        </button>
       ) : null}
     </div>
   );

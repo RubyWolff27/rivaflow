@@ -4,8 +4,6 @@ import { Sparkles, MessageCircle, Mic, BookOpen } from 'lucide-react';
 import { Card } from '../components/ui';
 import { LastSession } from '../components/dashboard/LastSession';
 import { JourneyProgress } from '../components/dashboard/JourneyProgress';
-import { BetaBadge } from '../components/UpgradePrompt';
-import { useTier } from '../hooks/useTier';
 import { profileApi } from '../api/client';
 import { refreshIfStale } from '../utils/insightRefresh';
 import DailyActionHero from '../components/dashboard/DailyActionHero';
@@ -19,7 +17,6 @@ import ErrorBoundary from '../components/ErrorBoundary';
 
 export default function Dashboard() {
   const navigate = useNavigate();
-  const tierInfo = useTier();
 
   // Auto-sync browser timezone to profile — reload if corrected
   useEffect(() => {
@@ -49,83 +46,77 @@ export default function Dashboard() {
 
   return (
     <div className="space-y-4 sm:space-y-5">
-      {/* Page Header */}
-      <div className="flex items-center gap-3">
-        <h1 className="text-2xl font-semibold text-[var(--text)]" id="page-title">Dashboard</h1>
-        {tierInfo.isBeta && <BetaBadge />}
-      </div>
-
-      {/* 1. Grapple AI Coach — key differentiator */}
-      <Card className="relative overflow-hidden">
-        <div className="absolute top-0 right-0 w-32 h-32 opacity-[0.04]">
-          <Sparkles className="w-full h-full" />
-        </div>
-        <div className="flex items-start justify-between mb-3">
-          <div className="flex items-center gap-2.5">
-            <div className="w-9 h-9 rounded-lg flex items-center justify-center" style={{ backgroundColor: 'var(--accent)' }}>
-              <Sparkles className="w-5 h-5 text-white" />
-            </div>
-            <div>
-              <h2 className="text-base font-semibold" style={{ color: 'var(--text)' }}>Grapple AI Coach</h2>
-              <p className="text-xs" style={{ color: 'var(--muted)' }}>Voice-powered BJJ coaching and session logging</p>
-            </div>
-          </div>
-        </div>
-        <div className="grid grid-cols-3 gap-2" style={{ minHeight: '44px' }}>
-          <button
-            onClick={() => navigate('/grapple?panel=chat')}
-            className="flex flex-col items-center gap-1.5 py-3 rounded-lg text-xs font-medium transition-all hover:opacity-80"
-            style={{ backgroundColor: 'var(--surfaceElev)', color: 'var(--text)' }}
-          >
-            <MessageCircle className="w-4 h-4" style={{ color: 'var(--accent)' }} />
-            Ask Coach
-          </button>
-          <button
-            onClick={() => navigate('/grapple?panel=extract')}
-            className="flex flex-col items-center gap-1.5 py-3 rounded-lg text-xs font-medium transition-all hover:opacity-80"
-            style={{ backgroundColor: 'var(--surfaceElev)', color: 'var(--text)' }}
-          >
-            <Mic className="w-4 h-4" style={{ color: 'var(--accent)' }} />
-            Voice Log
-          </button>
-          <button
-            onClick={() => navigate('/grapple?panel=technique')}
-            className="flex flex-col items-center gap-1.5 py-3 rounded-lg text-xs font-medium transition-all hover:opacity-80"
-            style={{ backgroundColor: 'var(--surfaceElev)', color: 'var(--text)' }}
-          >
-            <BookOpen className="w-4 h-4" style={{ color: 'var(--accent)' }} />
-            Technique QA
-          </button>
-        </div>
-      </Card>
-
       {/* Dashboard widgets wrapped in ErrorBoundary */}
       <ErrorBoundary compact>
-        {/* 2. Engagement Banner — streaks, check-in status, motivation */}
+        {/* 1. Engagement Banner — streaks, check-in status, motivation */}
         <EngagementBanner />
 
-        {/* 1. Getting Started — onboarding checklist for new users */}
+        {/* Getting Started — onboarding checklist for new users */}
         <GettingStarted />
 
         {/* 2. Daily Action Hero — THE primary card */}
         <DailyActionHero />
 
-        {/* 2b. Today's gym classes */}
+        {/* 3. Today's gym classes */}
         <TodayClassesWidget />
 
-        {/* 3. Last Session — "What did I do last?" */}
+        {/* 4. Last Session — "What did I do last?" */}
         <LastSession />
 
-        {/* 4. This Week — weekly goals + progress */}
+        {/* 5. This Week — weekly goals + progress */}
         <ThisWeek />
 
-        {/* 5. Journey Progress — belt + milestone + stats */}
+        {/* 6. Grapple AI Coach — key differentiator */}
+        <Card className="relative overflow-hidden">
+          <div className="absolute top-0 right-0 w-32 h-32 opacity-[0.04]">
+            <Sparkles className="w-full h-full" />
+          </div>
+          <div className="flex items-start justify-between mb-3">
+            <div className="flex items-center gap-2.5">
+              <div className="w-9 h-9 rounded-lg flex items-center justify-center" style={{ backgroundColor: 'var(--accent)' }}>
+                <Sparkles className="w-5 h-5 text-white" />
+              </div>
+              <div>
+                <h2 className="text-base font-semibold" style={{ color: 'var(--text)' }}>Grapple AI Coach</h2>
+                <p className="text-xs" style={{ color: 'var(--muted)' }}>Voice-powered BJJ coaching and session logging</p>
+              </div>
+            </div>
+          </div>
+          <div className="grid grid-cols-3 gap-2" style={{ minHeight: '44px' }}>
+            <button
+              onClick={() => navigate('/grapple?panel=chat')}
+              className="flex flex-col items-center gap-1.5 py-3 rounded-lg text-xs font-medium transition-all hover:opacity-80"
+              style={{ backgroundColor: 'var(--surfaceElev)', color: 'var(--text)' }}
+            >
+              <MessageCircle className="w-4 h-4" style={{ color: 'var(--accent)' }} />
+              Ask Coach
+            </button>
+            <button
+              onClick={() => navigate('/grapple?panel=extract')}
+              className="flex flex-col items-center gap-1.5 py-3 rounded-lg text-xs font-medium transition-all hover:opacity-80"
+              style={{ backgroundColor: 'var(--surfaceElev)', color: 'var(--text)' }}
+            >
+              <Mic className="w-4 h-4" style={{ color: 'var(--accent)' }} />
+              Voice Log
+            </button>
+            <button
+              onClick={() => navigate('/grapple?panel=technique')}
+              className="flex flex-col items-center gap-1.5 py-3 rounded-lg text-xs font-medium transition-all hover:opacity-80"
+              style={{ backgroundColor: 'var(--surfaceElev)', color: 'var(--text)' }}
+            >
+              <BookOpen className="w-4 h-4" style={{ color: 'var(--accent)' }} />
+              Technique QA
+            </button>
+          </div>
+        </Card>
+
+        {/* 7. Journey Progress — belt + milestone + stats */}
         <JourneyProgress />
 
-        {/* 7. Latest AI Insight */}
+        {/* 8. Latest AI Insight */}
         <LatestInsightWidget />
 
-        {/* 8. My Game Plan */}
+        {/* 9. My Game Plan */}
         <MyGameWidget />
       </ErrorBoundary>
     </div>

@@ -34,9 +34,9 @@ export default function LatestInsightWidget() {
 
   if (!insight) {
     return (
-      <Card>
+      <Card variant="compact">
         <div className="flex items-center gap-2 mb-2">
-          <Brain className="w-5 h-5" style={{ color: 'var(--accent)' }} />
+          <Brain className="w-4 h-4" style={{ color: 'var(--accent)' }} />
           <h3 className="text-sm font-semibold" style={{ color: 'var(--text)' }}>AI Insights</h3>
         </div>
         <p className="text-xs leading-relaxed" style={{ color: 'var(--muted)' }}>
@@ -66,10 +66,10 @@ export default function LatestInsightWidget() {
 
   return (
     <div onClick={handleClick} onKeyDown={e => e.key === 'Enter' && handleClick()} role="button" tabIndex={0} aria-label="View latest insight" className="cursor-pointer">
-      <Card interactive>
+      <Card variant="compact" interactive>
         <div className="flex items-center justify-between mb-2">
           <div className="flex items-center gap-2">
-            <Brain className="w-5 h-5" style={{ color: 'var(--accent)' }} />
+            <Brain className="w-4 h-4" style={{ color: 'var(--accent)' }} />
             <h3 className="text-sm font-semibold" style={{ color: 'var(--text)' }}>Latest Insight</h3>
             <span
               className="text-[10px] font-bold uppercase px-1.5 py-0.5 rounded"

@@ -60,16 +60,16 @@ export default function EngagementBanner() {
       {/* Check-in Status Bar */}
       <div className="card border-2" style={
         checkedIn
-          ? { backgroundColor: 'rgba(34,197,94,0.1)', borderColor: 'var(--success)' }
-          : { backgroundColor: 'rgba(234,179,8,0.1)', borderColor: '#ca8a04' }
+          ? { backgroundColor: 'var(--success-bg)', borderColor: 'var(--success)' }
+          : { backgroundColor: 'var(--warning-bg)', borderColor: 'var(--warning)' }
       }>
         <div className="flex items-center justify-between">
           <div>
             <div className="flex items-center gap-2 mb-1">
               {checkedIn ? (
-                <CheckCircle2 className="w-5 h-5 text-green-600" />
+                <CheckCircle2 className="w-5 h-5" style={{ color: 'var(--success)' }} />
               ) : (
-                <AlertCircle className="w-5 h-5 text-yellow-600" />
+                <AlertCircle className="w-5 h-5" style={{ color: 'var(--warning)' }} />
               )}
               <span className="font-semibold">
                 {getGreeting()} — {checkedIn ? '✅ Checked in' : '⚠️ Not checked in yet'}
@@ -87,21 +87,21 @@ export default function EngagementBanner() {
             <div className="flex items-center gap-4">
               <div className="text-right">
                 <div className="flex items-center gap-1.5 justify-end">
-                  <Flame className="w-5 h-5 text-orange-500" />
-                  <span className="text-2xl font-bold text-orange-600">
+                  <Flame className="w-5 h-5" style={{ color: 'var(--accent)' }} />
+                  <span className="text-2xl font-bold" style={{ color: 'var(--accent)' }}>
                     {streaks.checkin.current_streak}
                   </span>
                 </div>
-                <p className="text-xs text-[var(--muted)]">day streak</p>
+                <p className="text-xs" style={{ color: 'var(--muted)' }}>day streak</p>
                 {streaks.checkin.longest_streak > streaks.checkin.current_streak && (
-                  <p className="text-xs text-orange-500 mt-0.5">
+                  <p className="text-xs mt-0.5" style={{ color: 'var(--accent)' }}>
                     {streaks.checkin.longest_streak - streaks.checkin.current_streak <= 3
                       ? `${streaks.checkin.longest_streak - streaks.checkin.current_streak} more to beat your best!`
                       : `Best: ${streaks.checkin.longest_streak}`}
                   </p>
                 )}
                 {streaks.checkin.current_streak >= streaks.checkin.longest_streak && streaks.checkin.current_streak >= 3 && (
-                  <p className="text-xs text-orange-500 mt-0.5 font-medium">
+                  <p className="text-xs mt-0.5 font-medium" style={{ color: 'var(--accent)' }}>
                     Personal best!
                   </p>
                 )}
@@ -113,11 +113,11 @@ export default function EngagementBanner() {
 
       {/* Insight (if checked in) */}
       {checkedIn && insight && (
-        <div className="card border" style={{ backgroundColor: 'rgba(59,130,246,0.1)', borderColor: 'rgba(59,130,246,0.3)' }}>
+        <div className="card border" style={{ backgroundColor: 'var(--primary-bg)', borderColor: 'var(--primary)' }}>
           <div className="flex items-start gap-3">
             <span className="text-2xl">{insight.icon || '💡'}</span>
             <div className="flex-1">
-              <h4 className="font-semibold text-sm uppercase tracking-wide mb-1" style={{ color: 'rgb(59,130,246)' }}>
+              <h4 className="font-semibold text-sm uppercase tracking-wide mb-1" style={{ color: 'var(--primary)' }}>
                 {insight.title}
               </h4>
               <p className="text-sm text-[var(--text)]">

@@ -143,7 +143,7 @@ export function LastSession() {
             </div>
             {session.rolls && session.rolls > 0 && (
               <div className="flex items-center gap-2">
-                <span className="text-sm font-medium" style={{ color: color }}>
+                <span className="text-sm" style={{ color: 'var(--text)' }}>
                   {session.rolls} rolls
                 </span>
               </div>

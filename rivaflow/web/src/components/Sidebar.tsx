@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { Plus, User, LogOut, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Plus, User, LogOut, ChevronLeft, ChevronRight, ChevronDown } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 
 interface NavSection {
@@ -14,6 +14,8 @@ interface SidebarProps {
   onQuickLog: () => void;
 }
 
+const DEFAULT_EXPANDED = ['Training'];
+
 export default function Sidebar({ navigation, moreNavSections, onQuickLog }: SidebarProps) {
   const location = useLocation();
   const navigate = useNavigate();
@@ -21,10 +23,35 @@ export default function Sidebar({ navigation, moreNavSections, onQuickLog }: Sid
   const [collapsed, setCollapsed] = useState(() => {
     try { return localStorage.getItem('sidebar-collapsed') === 'true'; } catch { return false; }
   });
+  const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>(() => {
+    try {
+      const stored = localStorage.getItem('sidebar-sections');
+      if (stored) return JSON.parse(stored);
+    } catch { /* noop */ }
+    return Object.fromEntries(DEFAULT_EXPANDED.map(s => [s, true]));
+  });
 
   useEffect(() => {
     try { localStorage.setItem('sidebar-collapsed', String(collapsed)); } catch { /* noop */ }
   }, [collapsed]);
+
+  useEffect(() => {
+    try { localStorage.setItem('sidebar-sections', JSON.stringify(expandedSections)); } catch { /* noop */ }
+  }, [expandedSections]);
+
+  const toggleSection = (label: string) => {
+    setExpandedSections(prev => ({ ...prev, [label]: !prev[label] }));
+  };
+
+  // Auto-expand section if it contains the active route
+  useEffect(() => {
+    for (const section of moreNavSections) {
+      if (section.items.some(item => location.pathname === item.href)) {
+        setExpandedSections(prev => prev[section.label] ? prev : { ...prev, [section.label]: true });
+        break;
+      }
+    }
+  }, [location.pathname, moreNavSections]);
 
   const handleLogout = () => {
     logout();
@@ -114,38 +141,55 @@ export default function Sidebar({ navigation, moreNavSections, onQuickLog }: Sid
           );
         })}
 
-        {/* More sections */}
-        {moreNavSections.map((section) => (
-          <div key={section.label} className="pt-4">
-            {!collapsed && (
-              <div className="px-3 pb-2">
-                <span className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: 'var(--muted)' }}>
-                  {section.label}
-                </span>
-              </div>
-            )}
-            {collapsed && <div className="my-2 mx-2" style={{ borderTop: '1px solid var(--border)' }} />}
-            {section.items.map((item) => {
-              const isActive = location.pathname === item.href;
-              const Icon = item.icon;
-              return (
-                <Link
-                  key={item.name}
-                  to={item.href}
-                  className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors"
-                  style={{
-                    color: isActive ? 'var(--accent)' : 'var(--muted)',
-                    backgroundColor: isActive ? 'var(--surfaceElev)' : 'transparent',
-                  }}
-                  title={collapsed ? item.name : undefined}
+        {/* Collapsible sections */}
+        {moreNavSections.map((section) => {
+          const isExpanded = expandedSections[section.label] ?? false;
+          const hasActiveItem = section.items.some(item => location.pathname === item.href);
+          return (
+            <div key={section.label} className="pt-4">
+              {!collapsed ? (
+                <button
+                  onClick={() => toggleSection(section.label)}
+                  className="w-full flex items-center justify-between px-3 pb-2 group"
                 >
-                  <Icon className="w-4 h-4 shrink-0" />
-                  {!collapsed && item.name}
-                </Link>
-              );
-            })}
-          </div>
-        ))}
+                  <span className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: 'var(--muted)' }}>
+                    {section.label}
+                  </span>
+                  <ChevronDown
+                    className="w-3 h-3 transition-transform"
+                    style={{
+                      color: 'var(--muted)',
+                      transform: isExpanded ? 'rotate(0deg)' : 'rotate(-90deg)',
+                    }}
+                  />
+                </button>
+              ) : (
+                <div className="my-2 mx-2" style={{ borderTop: '1px solid var(--border)' }} />
+              )}
+              {(collapsed || isExpanded || hasActiveItem) && section.items.map((item) => {
+                const isActive = location.pathname === item.href;
+                const Icon = item.icon;
+                // When collapsed section has active item but section not expanded, only show active item
+                if (!collapsed && !isExpanded && !isActive) return null;
+                return (
+                  <Link
+                    key={item.name}
+                    to={item.href}
+                    className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors"
+                    style={{
+                      color: isActive ? 'var(--accent)' : 'var(--muted)',
+                      backgroundColor: isActive ? 'var(--surfaceElev)' : 'transparent',
+                    }}
+                    title={collapsed ? item.name : undefined}
+                  >
+                    <Icon className="w-4 h-4 shrink-0" />
+                    {!collapsed && item.name}
+                  </Link>
+                );
+              })}
+            </div>
+          );
+        })}
       </nav>
 
       {/* User section at bottom */}

@@ -65,9 +65,9 @@ export default function ThisWeek() {
   }, []);
 
   const getTrendIcon = (current: number, previous: number) => {
-    if (current > previous) return <TrendingUp className="w-3.5 h-3.5 text-green-500" />;
-    if (current < previous) return <TrendingDown className="w-3.5 h-3.5 text-red-500" />;
-    return <Minus className="w-3.5 h-3.5 text-[var(--muted)]" />;
+    if (current > previous) return <TrendingUp className="w-3.5 h-3.5" style={{ color: 'var(--success)' }} />;
+    if (current < previous) return <TrendingDown className="w-3.5 h-3.5" style={{ color: 'var(--danger)' }} />;
+    return <Minus className="w-3.5 h-3.5" style={{ color: 'var(--muted)' }} />;
   };
 
   if (loading) {
@@ -185,7 +185,7 @@ export default function ThisWeek() {
               <div className="w-full h-2 rounded-full" style={{ backgroundColor: 'var(--border)' }}>
                 <div
                   className="h-2 rounded-full transition-all"
-                  style={{ width: `${Math.min(100, g.pct)}%`, backgroundColor: g.color }}
+                  style={{ width: `${Math.min(100, g.pct)}%`, backgroundColor: g.pct >= 100 ? 'var(--success)' : g.color }}
                 />
               </div>
             </div>
@@ -214,7 +214,7 @@ export default function ThisWeek() {
                 <div className="w-full h-1.5 rounded-full" style={{ backgroundColor: 'var(--border)' }}>
                   <div
                     className="h-1.5 rounded-full transition-all"
-                    style={{ width: `${Math.min(100, g.pct)}%`, backgroundColor: g.color }}
+                    style={{ width: `${Math.min(100, g.pct)}%`, backgroundColor: g.pct >= 100 ? 'var(--success)' : 'var(--accent)' }}
                   />
                 </div>
               </div>

@@ -33,10 +33,10 @@ export default function MyGameWidget() {
   if (!plan) {
     return (
       <Link to="/my-game">
-        <Card interactive>
+        <Card variant="compact" interactive>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <Target className="w-5 h-5" style={{ color: 'var(--accent)' }} />
+              <Target className="w-4 h-4" style={{ color: 'var(--accent)' }} />
               <div>
                 <h3 className="text-sm font-semibold" style={{ color: 'var(--text)' }}>Build Your Game</h3>
                 <p className="text-xs" style={{ color: 'var(--muted)' }}>Create a strategy mind map</p>
@@ -53,10 +53,10 @@ export default function MyGameWidget() {
 
   return (
     <Link to="/my-game">
-      <Card interactive>
+      <Card variant="compact" interactive>
         <div className="flex items-center justify-between mb-2">
           <div className="flex items-center gap-2">
-            <Target className="w-5 h-5" style={{ color: 'var(--accent)' }} />
+            <Target className="w-4 h-4" style={{ color: 'var(--accent)' }} />
             <h3 className="text-sm font-semibold" style={{ color: 'var(--text)' }}>
               {plan.title || 'My Game'}
             </h3>

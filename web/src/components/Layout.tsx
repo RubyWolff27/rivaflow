@@ -7,7 +7,6 @@ import Sidebar from './Sidebar';
 import BottomNav from './BottomNav';
 import PageTransition from './ui/PageTransition';
 import { notificationsApi } from '../api/client';
-import BetaBanner from './BetaBanner';
 import { logger } from '../utils/logger';
 
 // Memoize Layout to prevent unnecessary re-renders
@@ -137,9 +136,6 @@ const Layout = memo(function Layout({ children }: { children: React.ReactNode })
       >
         Skip to main content
       </a>
-
-      {/* Beta Feedback Banner */}
-      <BetaBanner />
 
       {/* Layout: Sidebar + Main + BottomNav */}
       <div className="flex">

@@ -25,6 +25,14 @@ interface Profile {
   promotion_date?: string;
 }
 
+const getRelativeMonths = (dateStr: string): string => {
+  const then = new Date(dateStr + 'T00:00:00');
+  const now = new Date();
+  const months = Math.max(1, Math.round((now.getTime() - then.getTime()) / (30.44 * 24 * 60 * 60 * 1000)));
+  if (months === 1) return 'in ~1 month';
+  return `in ~${months} months`;
+};
+
 const BELT_COLORS: Record<string, string> = {
   white: '#F3F4F6',
   blue: '#3B82F6',
@@ -64,10 +72,10 @@ export function JourneyProgress() {
 
   if (loading) {
     return (
-      <Card className="p-6">
+      <Card variant="compact">
         <div className="animate-pulse">
-          <div className="h-6 bg-[var(--surfaceElev)] rounded w-1/2 mb-4"></div>
-          <div className="space-y-3">
+          <div className="h-5 bg-[var(--surfaceElev)] rounded w-1/2 mb-3"></div>
+          <div className="space-y-2">
             <div className="h-4 bg-[var(--surfaceElev)] rounded w-full"></div>
             <div className="h-4 bg-[var(--surfaceElev)] rounded w-2/3"></div>
           </div>
@@ -87,12 +95,12 @@ export function JourneyProgress() {
   const stripes = stripeMatch ? parseInt(stripeMatch[1]) : (profile?.belt_stripes || 0);
 
   return (
-    <Card className="p-6">
-      <div className="mb-4">
-        <h3 className="text-lg font-semibold" style={{ color: 'var(--text)' }}>
+    <Card variant="compact">
+      <div className="mb-3">
+        <h3 className="text-sm font-semibold" style={{ color: 'var(--text)' }}>
           Journey Progress
         </h3>
-        <p className="text-xs" style={{ color: 'var(--muted)' }}>
+        <p className="text-[11px]" style={{ color: 'var(--muted)' }}>
           Track your belt and milestone progress
         </p>
       </div>
@@ -159,8 +167,8 @@ export function JourneyProgress() {
               {closestMilestone.percentage?.toFixed(0) || 0}%
             </span>
           </div>
-          <p className="text-xs" style={{ color: 'var(--muted)' }}>
-            {closestMilestone.current} / {closestMilestone.next_target}
+          <p className="text-xs font-medium" style={{ color: 'var(--accent)' }}>
+            {closestMilestone.remaining} to go
           </p>
         </div>
       ) : (
@@ -178,7 +186,7 @@ export function JourneyProgress() {
       {/* Quick Stats - Tracked sessions/hours since promotion or signup */}
       <div className="grid grid-cols-2 gap-3 mt-4">
         <div>
-          <p className="text-2xl font-bold" style={{ color: 'var(--text)' }}>
+          <p className="text-xl font-bold" style={{ color: 'var(--text)' }}>
             {profile?.sessions_since_promotion || 0}
           </p>
           <p className="text-xs font-medium" style={{ color: 'var(--muted)' }}>
@@ -186,12 +194,12 @@ export function JourneyProgress() {
           </p>
           <p className="text-[10px]" style={{ color: 'var(--muted)' }}>
             {profile?.promotion_date
-              ? `since ${new Date(profile.promotion_date + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}`
+              ? getRelativeMonths(profile.promotion_date)
               : 'since joining'}
           </p>
         </div>
         <div>
-          <p className="text-2xl font-bold" style={{ color: 'var(--text)' }}>
+          <p className="text-xl font-bold" style={{ color: 'var(--text)' }}>
             {profile?.hours_since_promotion?.toFixed(0) || 0}
           </p>
           <p className="text-xs font-medium" style={{ color: 'var(--muted)' }}>
@@ -199,7 +207,7 @@ export function JourneyProgress() {
           </p>
           <p className="text-[10px]" style={{ color: 'var(--muted)' }}>
             {profile?.promotion_date
-              ? `since ${new Date(profile.promotion_date + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}`
+              ? getRelativeMonths(profile.promotion_date)
               : 'since joining'}
           </p>
         </div>
