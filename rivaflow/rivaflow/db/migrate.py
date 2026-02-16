@@ -80,6 +80,8 @@ def _ensure_critical_columns(conn):
         row = cursor.fetchone()
         if row and row[0] != "boolean":
             logger.warning(f"sessions.needs_review is {row[0]}, converting to BOOLEAN")
+            # Must drop default before type change, then re-add
+            cursor.execute("ALTER TABLE sessions ALTER COLUMN needs_review DROP DEFAULT")
             cursor.execute(
                 "ALTER TABLE sessions ALTER COLUMN needs_review "
                 "TYPE BOOLEAN USING CASE WHEN needs_review = 0 "
