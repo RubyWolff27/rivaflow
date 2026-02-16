@@ -32,7 +32,7 @@ python rivaflow/db/migrate.py
 # Start gunicorn with uvicorn workers
 WORKERS="${WEB_CONCURRENCY:-2}"
 echo "==> Starting gunicorn on 0.0.0.0:${PORT} with ${WORKERS} workers..."
-exec gunicorn rivaflow.api.main:app \
+exec python -m gunicorn rivaflow.api.main:app \
     -w "${WORKERS}" \
     -k uvicorn.workers.UvicornWorker \
     --bind "0.0.0.0:${PORT}" \
