@@ -82,11 +82,8 @@ export default function Dashboard() {
           onCheckinUpdated={data.refetchCheckins}
         />
 
-        {/* 4. Weekly progress rings */}
-        <WeeklyProgress
-          weeklyGoals={data.weeklyGoals}
-          streakCount={data.streaks?.checkin.current_streak ?? 0}
-        />
+        {/* 4. Weekly hours progress */}
+        <WeeklyProgress weeklyGoals={data.weeklyGoals} />
 
         {/* 5. Last session (compact) */}
         <LastSession />

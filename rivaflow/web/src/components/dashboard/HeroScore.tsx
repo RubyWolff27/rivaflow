@@ -320,7 +320,7 @@ export default function HeroScore({
       </div>
 
       {/* Label badge + suggestion */}
-      <div className="text-center mt-4">
+      <div className="text-center mt-3">
         <span
           className="inline-block text-sm font-bold uppercase tracking-wide px-2.5 py-1 rounded-md"
           style={{ backgroundColor: labelBg, color: labelColor }}
@@ -329,23 +329,23 @@ export default function HeroScore({
         </span>
 
         {suggestion?.suggestion ? (
-          <p className="text-sm mt-2 line-clamp-2 mx-auto max-w-md" style={{ color: 'var(--muted)' }}>
+          <p className="text-sm font-medium mt-1.5 line-clamp-2 mx-auto max-w-md" style={{ color: 'var(--text)' }}>
             {sanitizeSuggestion(suggestion.suggestion)}
           </p>
         ) : !hasCheckedIn && !whoopRecovery ? (
-          <p className="text-sm mt-2" style={{ color: 'var(--muted)' }}>
+          <p className="text-sm mt-1.5" style={{ color: 'var(--muted)' }}>
             Check in for personalized training guidance
           </p>
         ) : (
-          <p className="text-sm mt-2" style={{ color: 'var(--muted)' }}>
+          <p className="text-sm mt-1.5" style={{ color: 'var(--muted)' }}>
             Based on your readiness score of {score}/20
           </p>
         )}
 
-        {/* Triggered rule chips */}
-        {suggestion?.triggered_rules && suggestion.triggered_rules.length > 0 && (
-          <div className="flex flex-wrap justify-center gap-1.5 mt-2">
-            {suggestion.triggered_rules.slice(0, 3).map((rule, i) => (
+        {/* Triggered rule chips + WHOOP sync — same row */}
+        {(suggestion?.triggered_rules?.length || hasWhoop) && (
+          <div className="flex flex-wrap justify-center items-center gap-1.5 mt-2">
+            {suggestion?.triggered_rules?.slice(0, 3).map((rule, i) => (
               <span
                 key={i}
                 className="text-xs px-2 py-0.5 rounded-full"
@@ -358,36 +358,32 @@ export default function HeroScore({
                 {RULE_LABELS[rule.name] || rule.name.replace(/_/g, ' ')}
               </span>
             ))}
+            {hasWhoop && (
+              <button
+                onClick={onSyncWhoop}
+                disabled={whoopSyncing}
+                className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full hover:opacity-80"
+                style={{ color: 'var(--muted)', backgroundColor: 'var(--surfaceElev)', border: '1px solid var(--border)' }}
+                title="Sync WHOOP"
+              >
+                <RefreshCw className={`w-3 h-3 ${whoopSyncing ? 'animate-spin' : ''}`} />
+                {whoopRecovery?.hrv_ms != null && (
+                  <span>HRV {Math.round(whoopRecovery.hrv_ms)}</span>
+                )}
+                {whoopRecovery?.resting_hr != null && (
+                  <span className="hidden sm:inline">RHR {Math.round(whoopRecovery.resting_hr)}</span>
+                )}
+              </button>
+            )}
           </div>
         )}
       </div>
-
-      {/* WHOOP sync button (compact, inline) */}
-      {hasWhoop && (
-        <div className="flex justify-center mt-3">
-          <button
-            onClick={onSyncWhoop}
-            disabled={whoopSyncing}
-            className="flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-md hover:opacity-80"
-            style={{ color: 'var(--muted)', backgroundColor: 'var(--surfaceElev)' }}
-            title="Sync WHOOP"
-          >
-            <RefreshCw className={`w-3 h-3 ${whoopSyncing ? 'animate-spin' : ''}`} />
-            {whoopRecovery?.hrv_ms != null && (
-              <span>HRV {Math.round(whoopRecovery.hrv_ms)}</span>
-            )}
-            {whoopRecovery?.resting_hr != null && (
-              <span className="hidden sm:inline">RHR {Math.round(whoopRecovery.resting_hr)}</span>
-            )}
-          </button>
-        </div>
-      )}
 
       {/* Not checked in prompt */}
       {!hasCheckedIn && !whoopRecovery && (
         <button
           onClick={() => navigate('/readiness')}
-          className="w-full mt-4 py-2.5 rounded-lg text-sm font-semibold transition-colors"
+          className="w-full mt-3 py-2.5 rounded-lg text-sm font-semibold transition-colors"
           style={{
             backgroundColor: 'var(--surfaceElev)',
             color: 'var(--accent)',
@@ -402,7 +398,7 @@ export default function HeroScore({
       {/* Full-width Log Session CTA */}
       <PrimaryButton
         onClick={() => navigate('/log')}
-        className="w-full mt-4 py-4 text-base font-bold"
+        className="w-full mt-3 py-4 text-base font-bold"
       >
         + Log Session
       </PrimaryButton>
