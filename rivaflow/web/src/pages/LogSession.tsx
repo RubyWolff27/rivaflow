@@ -184,7 +184,7 @@ export default function LogSession() {
         await readinessApi.create(readinessPayload);
       }
 
-      const { gym_id: _gymId, ...sessionPayloadData } = form.sessionData;
+      const { gym_id: _gymId, whoop_strain: _ws, whoop_calories: _wc, whoop_avg_hr: _wah, whoop_max_hr: _wmh, ...sessionPayloadData } = form.sessionData;
       const payload: Record<string, unknown> = {
         ...sessionPayloadData,
         class_time: form.sessionData.class_time || undefined,
