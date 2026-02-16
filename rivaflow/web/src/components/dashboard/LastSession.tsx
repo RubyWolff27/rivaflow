@@ -1,11 +1,10 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { sessionsApi, whoopApi } from '../../api/client';
+import { sessionsApi } from '../../api/client';
 import { logger } from '../../utils/logger';
-import { Calendar, Clock, TrendingUp, Award } from 'lucide-react';
+import { Calendar } from 'lucide-react';
 import { ACTIVITY_COLORS } from '../../constants/activity';
 import { Card } from '../ui';
-import MiniZoneBar from '../MiniZoneBar';
 import SessionScoreBadge from '../sessions/SessionScoreBadge';
 
 interface Session {
@@ -23,7 +22,6 @@ interface Session {
 export function LastSession() {
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
-  const [zones, setZones] = useState<Record<string, number> | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -31,14 +29,7 @@ export function LastSession() {
       try {
         const response = await sessionsApi.list(1);
         if (!cancelled && response.data && response.data.length > 0) {
-          const s = response.data[0];
-          setSession(s);
-          try {
-            const zRes = await whoopApi.getZonesBatch([s.id]);
-            if (!cancelled && zRes.data?.zones?.[String(s.id)]?.zone_durations) {
-              setZones(zRes.data.zones[String(s.id)]!.zone_durations!);
-            }
-          } catch { /* WHOOP not connected */ }
+          setSession(response.data[0]);
         }
       } catch (error) {
         if (!cancelled) logger.error('Failed to load last session:', error);
@@ -52,13 +43,10 @@ export function LastSession() {
 
   if (loading) {
     return (
-      <Card className="p-6">
-        <div className="animate-pulse">
-          <div className="h-6 bg-[var(--surfaceElev)] rounded w-1/2 mb-4"></div>
-          <div className="space-y-3">
-            <div className="h-4 bg-[var(--surfaceElev)] rounded w-full"></div>
-            <div className="h-4 bg-[var(--surfaceElev)] rounded w-2/3"></div>
-          </div>
+      <Card variant="compact">
+        <div className="animate-pulse flex items-center gap-3">
+          <div className="h-4 bg-[var(--surfaceElev)] rounded w-24" />
+          <div className="h-4 bg-[var(--surfaceElev)] rounded w-32" />
         </div>
       </Card>
     );
@@ -66,18 +54,15 @@ export function LastSession() {
 
   if (!session) {
     return (
-      <Card className="p-6">
-        <div className="text-center py-8">
-          <Calendar className="w-12 h-12 mx-auto mb-4" style={{ color: 'var(--muted)' }} />
-          <h3 className="font-semibold mb-2" style={{ color: 'var(--text)' }}>
-            No Sessions Yet
-          </h3>
-          <p className="text-sm mb-4" style={{ color: 'var(--muted)' }}>
-            Log your first training session to start tracking
+      <Card variant="compact">
+        <div className="text-center py-4">
+          <Calendar className="w-8 h-8 mx-auto mb-2" style={{ color: 'var(--muted)' }} />
+          <p className="text-sm mb-2" style={{ color: 'var(--muted)' }}>
+            No sessions yet
           </p>
           <Link
             to="/log"
-            className="inline-block px-4 py-2 rounded-lg font-medium transition-colors"
+            className="inline-block px-3 py-1.5 rounded-lg text-sm font-medium"
             style={{ backgroundColor: 'var(--accent)', color: '#FFFFFF' }}
           >
             Log Session
@@ -96,69 +81,34 @@ export function LastSession() {
 
   return (
     <Link to={`/session/${session.id}`}>
-      <Card className="p-6 hover:border-[var(--accent)] transition-colors cursor-pointer">
-        <div className="flex items-start justify-between mb-4">
-          <div>
-            <h3 className="text-lg font-semibold mb-1" style={{ color: 'var(--text)' }}>
-              Last Session
-            </h3>
-            <p className="text-xs" style={{ color: 'var(--muted)' }}>{formattedDate}</p>
-          </div>
-          <div className="flex items-center gap-2">
-            <SessionScoreBadge score={session.session_score} />
+      <Card variant="compact" interactive>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="shrink-0">
+              <span className="text-xs font-medium" style={{ color: 'var(--muted)' }}>
+                Last Session
+              </span>
+              <p className="text-xs" style={{ color: 'var(--muted)' }}>
+                {formattedDate}
+              </p>
+            </div>
             <div
-              className="px-3 py-1 rounded-full text-xs font-semibold uppercase"
-              style={{
-                backgroundColor: `${color}20`,
-                color: color,
-              }}
+              className="px-2 py-0.5 rounded-full text-xs font-semibold uppercase shrink-0"
+              style={{ backgroundColor: `${color}20`, color }}
             >
               {session.class_type}
             </div>
-          </div>
-        </div>
-
-        <div className="space-y-3">
-          {/* Gym */}
-          <div className="flex items-center gap-2">
-            <Award className="w-4 h-4" style={{ color: 'var(--muted)' }} />
-            <span className="text-sm" style={{ color: 'var(--text)' }}>
+            <span className="text-sm truncate" style={{ color: 'var(--text)' }}>
               {session.gym_name}
             </span>
+            <span className="text-xs shrink-0" style={{ color: 'var(--muted)' }}>
+              {session.duration_mins}min
+            </span>
+            <span className="text-xs shrink-0" style={{ color: 'var(--muted)' }}>
+              {session.intensity}/5
+            </span>
           </div>
-
-          {/* Duration and Intensity */}
-          <div className="flex items-center gap-4">
-            <div className="flex items-center gap-2">
-              <Clock className="w-4 h-4" style={{ color: 'var(--muted)' }} />
-              <span className="text-sm" style={{ color: 'var(--text)' }}>
-                {session.duration_mins}min
-              </span>
-            </div>
-            <div className="flex items-center gap-2">
-              <TrendingUp className="w-4 h-4" style={{ color: 'var(--muted)' }} />
-              <span className="text-sm" style={{ color: 'var(--text)' }}>
-                {session.intensity}/5 intensity
-              </span>
-            </div>
-            {session.rolls && session.rolls > 0 && (
-              <div className="flex items-center gap-2">
-                <span className="text-sm" style={{ color: 'var(--text)' }}>
-                  {session.rolls} rolls
-                </span>
-              </div>
-            )}
-          </div>
-
-          {/* HR Zone Bar */}
-          {zones && <MiniZoneBar zones={zones} height="h-2.5" />}
-
-          {/* Notes Preview */}
-          {session.notes && (
-            <p className="text-sm line-clamp-2" style={{ color: 'var(--muted)' }}>
-              {session.notes}
-            </p>
-          )}
+          <SessionScoreBadge score={session.session_score} />
         </div>
       </Card>
     </Link>

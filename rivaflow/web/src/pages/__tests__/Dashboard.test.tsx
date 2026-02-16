@@ -4,10 +4,41 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 
 vi.mock('../../api/client', () => ({
   profileApi: {
+    get: vi.fn(() => Promise.resolve({ data: { timezone: 'UTC' } })),
     update: vi.fn(() => Promise.resolve({ data: {} })),
+  },
+  suggestionsApi: {
+    getToday: vi.fn(() => Promise.resolve({ data: null })),
   },
   readinessApi: {
     getByDate: vi.fn(() => Promise.resolve({ data: null })),
+  },
+  whoopApi: {
+    getLatestRecovery: vi.fn(() => Promise.resolve({ data: null })),
+    sync: vi.fn(() => Promise.resolve({ data: {} })),
+  },
+  checkinsApi: {
+    getToday: vi.fn(() => Promise.resolve({ data: { checked_in: false, morning: null, midday: null, evening: null } })),
+    getYesterday: vi.fn(() => Promise.resolve({ data: null })),
+  },
+  sessionsApi: {
+    getByRange: vi.fn(() => Promise.resolve({ data: [] })),
+    list: vi.fn(() => Promise.resolve({ data: [] })),
+  },
+  goalsApi: {
+    getCurrentWeek: vi.fn(() => Promise.resolve({ data: null })),
+  },
+  streaksApi: {
+    getStatus: vi.fn(() => Promise.resolve({ data: { checkin: { current_streak: 0, longest_streak: 0 }, training: { current_streak: 0, longest_streak: 0 }, readiness: { current_streak: 0, longest_streak: 0 }, any_at_risk: false } })),
+  },
+  gymsApi: {
+    getTodaysClasses: vi.fn(() => Promise.resolve({ data: { classes: [] } })),
+  },
+  grappleApi: {
+    getInsights: vi.fn(() => Promise.resolve({ data: [] })),
+  },
+  gamePlansApi: {
+    getCurrent: vi.fn(() => Promise.resolve({ data: null })),
   },
   weightLogsApi: {
     getLatest: vi.fn(() => Promise.resolve({ data: null })),
@@ -17,7 +48,7 @@ vi.mock('../../api/client', () => ({
 
 vi.mock('../../contexts/AuthContext', () => ({
   useAuth: () => ({
-    user: { id: 1, email: 'test@example.com', subscription_tier: 'beta', is_beta_user: true },
+    user: { id: 1, email: 'test@example.com', first_name: 'Ruby', last_name: 'Test', subscription_tier: 'beta', is_beta_user: true },
     isLoading: false,
     login: vi.fn(),
     register: vi.fn(),
@@ -38,21 +69,19 @@ vi.mock('../../utils/insightRefresh', () => ({
   triggerInsightRefresh: vi.fn(),
 }))
 
+vi.mock('../../utils/date', () => ({
+  getLocalDateString: () => '2026-02-16',
+}))
+
 // Mock child components that make their own API calls
-vi.mock('../../components/dashboard/WeekAtGlance', () => ({ WeekAtGlance: () => <div data-testid="week-at-glance" /> }))
-vi.mock('../../components/dashboard/LastSession', () => ({ LastSession: () => <div data-testid="last-session" /> }))
-vi.mock('../../components/dashboard/JourneyProgress', () => ({ JourneyProgress: () => <div data-testid="journey-progress" /> }))
-vi.mock('../../components/dashboard/WeeklyGoalsBreakdown', () => ({ WeeklyGoalsBreakdown: () => <div data-testid="weekly-goals" /> }))
-vi.mock('../../components/dashboard/ReadinessRecommendation', () => ({ default: () => <div data-testid="readiness-rec" /> }))
-vi.mock('../../components/dashboard/NextEvent', () => ({ default: () => <div data-testid="next-event" /> }))
-vi.mock('../../components/dashboard/DailyActionHero', () => ({ default: () => <div data-testid="daily-action-hero">Log Session</div> }))
-vi.mock('../../components/dashboard/ThisWeek', () => ({ default: () => <div data-testid="this-week" /> }))
-vi.mock('../../components/dashboard/NextGoal', () => ({ default: () => <div data-testid="next-goal" /> }))
-vi.mock('../../components/dashboard/MyGameWidget', () => ({ default: () => <div data-testid="my-game" /> }))
-vi.mock('../../components/dashboard/LatestInsightWidget', () => ({ default: () => <div data-testid="latest-insight" /> }))
 vi.mock('../../components/dashboard/GettingStarted', () => ({ default: () => null }))
 vi.mock('../../components/dashboard/TodayClassesWidget', () => ({ default: () => <div data-testid="today-classes" /> }))
-vi.mock('../../components/EngagementBanner', () => ({ default: () => null }))
+vi.mock('../../components/dashboard/LastSession', () => ({ LastSession: () => <div data-testid="last-session" /> }))
+vi.mock('../../components/dashboard/QuickLinks', () => ({ default: () => <div data-testid="quick-links" /> }))
+vi.mock('../../components/dashboard/MorningPrompt', () => ({ default: () => <div data-testid="morning-prompt" /> }))
+vi.mock('../../components/dashboard/MiddayPrompt', () => ({ default: () => <div data-testid="midday-prompt" /> }))
+vi.mock('../../components/dashboard/EveningPrompt', () => ({ default: () => <div data-testid="evening-prompt" /> }))
+vi.mock('../../components/dashboard/CheckinBadges', () => ({ default: () => null }))
 
 import Dashboard from '../Dashboard'
 
@@ -76,15 +105,17 @@ describe('Dashboard', () => {
     })
   })
 
-  it('renders the page title', () => {
-    renderDashboard()
-    expect(screen.getByText(/log session/i)).toBeInTheDocument()
-  })
-
-  it('renders quick action buttons after loading', async () => {
+  it('renders the greeting bar', async () => {
     renderDashboard()
     await waitFor(() => {
-      expect(screen.getByText(/log session/i)).toBeInTheDocument()
+      expect(screen.getByText(/good/i)).toBeInTheDocument()
+    })
+  })
+
+  it('renders weekly progress', async () => {
+    renderDashboard()
+    await waitFor(() => {
+      expect(screen.getByText(/this week/i)).toBeInTheDocument()
     })
   })
 })

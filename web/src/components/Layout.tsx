@@ -156,18 +156,20 @@ const Layout = memo(function Layout({ children }: { children: React.ReactNode })
             <PageTransition>{children}</PageTransition>
           </main>
 
-          {/* Footer */}
-          <footer className="mt-12 py-6 px-4 text-center hidden md:block" style={{ borderTop: '1px solid var(--border)' }}>
-            <div className="flex items-center justify-center gap-4 text-xs" style={{ color: 'var(--muted)' }}>
-              <span>RIVAFLOW</span>
-              <span>&middot;</span>
-              <a href="/terms" className="hover:underline" style={{ color: 'var(--muted)' }}>Terms</a>
-              <span>&middot;</span>
-              <a href="/privacy" className="hover:underline" style={{ color: 'var(--muted)' }}>Privacy</a>
-              <span>&middot;</span>
-              <a href="/contact" className="hover:underline" style={{ color: 'var(--muted)' }}>Contact</a>
-            </div>
-          </footer>
+          {/* Footer — hidden on dashboard */}
+          {location.pathname !== '/' && (
+            <footer className="mt-12 py-6 px-4 text-center hidden md:block" style={{ borderTop: '1px solid var(--border)' }}>
+              <div className="flex items-center justify-center gap-4 text-xs" style={{ color: 'var(--muted)' }}>
+                <span>RIVAFLOW</span>
+                <span>&middot;</span>
+                <a href="/terms" className="hover:underline" style={{ color: 'var(--muted)' }}>Terms</a>
+                <span>&middot;</span>
+                <a href="/privacy" className="hover:underline" style={{ color: 'var(--muted)' }}>Privacy</a>
+                <span>&middot;</span>
+                <a href="/contact" className="hover:underline" style={{ color: 'var(--muted)' }}>Contact</a>
+              </div>
+            </footer>
+          )}
         </div>
       </div>
 
