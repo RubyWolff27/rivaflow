@@ -21,6 +21,7 @@ import FightDynamicsPanel from '../components/sessions/FightDynamicsPanel';
 import { useSessionForm, mergePartners, mapSocialFriends } from '../hooks/useSessionForm';
 
 const DURATION_QUICK_SELECT = [60, 75, 90, 120] as const;
+const HH_MM_RE = /^([01]\d|2[0-3]):([0-5]\d)$/;
 
 export default function LogSession() {
   usePageTitle('Log Session');
@@ -176,7 +177,7 @@ export default function LogSession() {
       const { gym_id: _gymId, whoop_strain: _ws, whoop_calories: _wc, whoop_avg_hr: _wah, whoop_max_hr: _wmh, ...sessionPayloadData } = form.sessionData;
       const payload: Record<string, unknown> = {
         ...sessionPayloadData,
-        class_time: form.sessionData.class_time || undefined,
+        class_time: form.sessionData.class_time && HH_MM_RE.test(form.sessionData.class_time) ? form.sessionData.class_time : undefined,
         location: form.sessionData.location || undefined,
         notes: form.sessionData.notes || undefined,
         partners: (() => {

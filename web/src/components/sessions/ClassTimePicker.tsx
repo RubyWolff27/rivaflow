@@ -93,7 +93,7 @@ export default function ClassTimePicker({ gymId, classTime, onSelect }: ClassTim
       </div>
       <input type="text" className="input text-sm" value={classTime}
         onChange={(e) => onSelect(e.target.value)}
-        placeholder="Or type custom time (e.g., 18:30, morning)" />
+        placeholder="Or type custom time (e.g., 18:30)" />
     </div>
   );
 }

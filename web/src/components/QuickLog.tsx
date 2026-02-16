@@ -11,6 +11,8 @@ import { useSpeechRecognition } from '../hooks/useSpeechRecognition';
 import { mapSocialFriends } from '../hooks/useSessionForm';
 import type { Friend } from '../types';
 
+const HH_MM_RE = /^([01]\d|2[0-3]):([0-5]\d)$/;
+
 const TIME_OPTIONS = [
   { label: '6:30am', value: '06:30' },
   { label: '12pm', value: '12:00' },
@@ -150,7 +152,7 @@ export default function QuickLog({ isOpen, onClose, onSuccess }: QuickLogProps) 
           duration_mins: duration,
           intensity,
           class_type: classType,
-          class_time: classTime || undefined,
+          class_time: classTime && HH_MM_RE.test(classTime) ? classTime : undefined,
           rolls: quickRolls,
           partners: allPartners.length > 0 ? allPartners : undefined,
           notes: notes || undefined,

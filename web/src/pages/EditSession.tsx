@@ -13,6 +13,7 @@ import ConfirmDialog from '../components/ConfirmDialog';
 import { useToast } from '../contexts/ToastContext';
 import { useSessionForm, mergePartners, mapSocialFriends } from '../hooks/useSessionForm';
 
+const HH_MM_RE = /^([01]\d|2[0-3]):([0-5]\d)$/;
 const CLASS_TYPES = ['gi', 'no-gi', 'open-mat', 'competition', 's&c', 'cardio', 'mobility'];
 const CLASS_TYPE_LABELS: Record<string, string> = {
   'gi': 'Gi',
@@ -156,7 +157,7 @@ export default function EditSession() {
     try {
       const payload: Partial<Session> & Record<string, unknown> = {
         session_date: form.sessionData.session_date,
-        class_time: form.sessionData.class_time || undefined,
+        class_time: form.sessionData.class_time && HH_MM_RE.test(form.sessionData.class_time) ? form.sessionData.class_time : undefined,
         class_type: form.sessionData.class_type,
         gym_name: form.sessionData.gym_name,
         location: form.sessionData.location || undefined,
