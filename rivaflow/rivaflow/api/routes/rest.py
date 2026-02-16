@@ -2,7 +2,7 @@
 
 from datetime import date, timedelta
 
-from fastapi import APIRouter, Depends, Query, Request, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from pydantic import BaseModel
 
 from rivaflow.api.rate_limit import limiter
@@ -23,9 +23,7 @@ def get_recent_rest_days(
     """Get recent rest day check-ins."""
     end_date = date.today()
     start_date = end_date - timedelta(days=days)
-    checkins = CheckinRepository.get_checkins_range(
-        current_user["id"], start_date, end_date
-    )
+    checkins = CheckinRepository.get_checkins_range(current_user["id"], start_date, end_date)
     rest_days = [c for c in checkins if c["checkin_type"] == "rest"]
     return [
         {
@@ -46,6 +44,7 @@ class RestDayCreate(BaseModel):
     rest_type: str | None = None  # active, full, injury, sick, travel, life
     rest_note: str | None = None
     check_date: str | None = None  # ISO date string, defaults to today
+    tomorrow_intention: str | None = None
 
 
 @router.post("/", status_code=status.HTTP_201_CREATED)
@@ -57,9 +56,7 @@ def log_rest_day(
 ):
     """Log a rest day."""
     repo = CheckinRepository()
-    check_date = (
-        date.fromisoformat(data.check_date) if data.check_date else date.today()
-    )
+    check_date = date.fromisoformat(data.check_date) if data.check_date else date.today()
 
     checkin_id = repo.upsert_checkin(
         user_id=current_user["id"],
@@ -67,12 +64,11 @@ def log_rest_day(
         checkin_type="rest",
         rest_type=data.rest_type,
         rest_note=data.rest_note,
+        tomorrow_intention=data.tomorrow_intention,
     )
 
     # Update check-in streak (rest days count toward consistency)
-    StreakService().record_checkin(
-        current_user["id"], checkin_type="rest", checkin_date=check_date
-    )
+    StreakService().record_checkin(current_user["id"], checkin_type="rest", checkin_date=check_date)
 
     return {
         "success": True,
@@ -81,3 +77,50 @@ def log_rest_day(
         "checkin_type": "rest",
         "rest_type": data.rest_type,
     }
+
+
+@router.get("/by-date/{rest_date}")
+@limiter.limit("30/minute")
+def get_rest_by_date(
+    request: Request,
+    rest_date: str,
+    current_user: dict = Depends(get_current_user),
+):
+    """Get a rest day check-in by date."""
+    try:
+        check_date = date.fromisoformat(rest_date)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid date format")
+
+    checkin = CheckinRepository.get_checkin(current_user["id"], check_date, checkin_slot="morning")
+    if not checkin or checkin["checkin_type"] != "rest":
+        raise HTTPException(status_code=404, detail="Rest day not found")
+
+    return {
+        "id": checkin["id"],
+        "rest_date": checkin["check_date"],
+        "rest_type": checkin.get("rest_type"),
+        "rest_note": checkin.get("rest_note"),
+        "tomorrow_intention": checkin.get("tomorrow_intention"),
+        "created_at": checkin["created_at"],
+    }
+
+
+@router.delete("/{checkin_id}", status_code=status.HTTP_200_OK)
+@limiter.limit("10/minute")
+def delete_rest_day(
+    request: Request,
+    checkin_id: int,
+    current_user: dict = Depends(get_current_user),
+):
+    """Delete a rest day check-in."""
+    repo = CheckinRepository()
+    # Verify it exists and is a rest-type checkin
+    checkin = repo.get_checkin_by_id(current_user["id"], checkin_id)
+    if not checkin:
+        raise HTTPException(status_code=404, detail="Rest day not found")
+    if checkin["checkin_type"] != "rest":
+        raise HTTPException(status_code=400, detail="Not a rest day check-in")
+
+    repo.delete_checkin(current_user["id"], checkin_id)
+    return {"success": True, "deleted_id": checkin_id}

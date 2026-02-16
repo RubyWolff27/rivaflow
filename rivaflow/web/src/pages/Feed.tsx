@@ -2,9 +2,9 @@ import { useEffect, useState, memo, useCallback, useMemo } from 'react';
 import { getLocalDateString } from '../utils/date';
 import { useNavigate } from 'react-router-dom';
 import { usePageTitle } from '../hooks/usePageTitle';
-import { feedApi, socialApi, sessionsApi } from '../api/client';
+import { feedApi, socialApi, sessionsApi, restApi } from '../api/client';
 import { logger } from '../utils/logger';
-import { Activity, Calendar, Edit2, Eye, Moon } from 'lucide-react';
+import { Activity, Calendar, Edit2, Eye, Moon, Trash2 } from 'lucide-react';
 import FeedToggle from '../components/FeedToggle';
 import ActivitySocialActions from '../components/ActivitySocialActions';
 import CommentSection from '../components/CommentSection';
@@ -35,6 +35,7 @@ const FeedItemComponent = memo(function FeedItemComponent({
   shouldShowSocialActions,
   isActivityEditable,
   handleVisibilityChange,
+  handleDeleteRest,
 }: {
   item: FeedItem;
   prevItem: FeedItem | null;
@@ -49,6 +50,7 @@ const FeedItemComponent = memo(function FeedItemComponent({
   shouldShowSocialActions: (item: FeedItem) => boolean;
   isActivityEditable: (item: FeedItem) => boolean;
   handleVisibilityChange: (type: string, id: number, visibility: string) => void;
+  handleDeleteRest: (id: number) => void;
 }) {
   const showDateHeader = !prevItem || prevItem.date !== item.date;
   const commentKey = `${item.type}-${item.id}`;
@@ -153,6 +155,13 @@ const FeedItemComponent = memo(function FeedItemComponent({
                         aria-label="Edit rest day"
                       >
                         <Edit2 className="w-4 h-4 text-[var(--muted)]" />
+                      </button>
+                      <button
+                        onClick={() => handleDeleteRest(item.id)}
+                        className="p-1 hover:bg-white/50 dark:hover:bg-black/20 rounded transition-colors"
+                        aria-label="Delete rest day"
+                      >
+                        <Trash2 className="w-4 h-4 text-[var(--muted)]" />
                       </button>
                     </>
                   )}
@@ -423,6 +432,26 @@ export default function Feed() {
     });
   }, []);
 
+  const handleDeleteRest = useCallback(async (checkinId: number) => {
+    if (!feed) return;
+    if (!window.confirm('Delete this rest day? This cannot be undone.')) return;
+
+    // Optimistic removal
+    setFeed({
+      ...feed,
+      items: feed.items.filter(item => !(item.type === 'rest' && item.id === checkinId)),
+      total: feed.total - 1,
+    });
+
+    try {
+      await restApi.delete(checkinId);
+    } catch (error) {
+      logger.error('Error deleting rest day:', error);
+      // Revert on error
+      loadFeed();
+    }
+  }, [feed]);
+
   const handleVisibilityChange = useCallback(async (activityType: string, activityId: number, visibility: string) => {
     if (!feed) return;
 
@@ -649,6 +678,7 @@ export default function Feed() {
               shouldShowSocialActions={shouldShowSocialActions}
               isActivityEditable={isActivityEditable}
               handleVisibilityChange={handleVisibilityChange}
+              handleDeleteRest={handleDeleteRest}
             />
           ))}
         </div>

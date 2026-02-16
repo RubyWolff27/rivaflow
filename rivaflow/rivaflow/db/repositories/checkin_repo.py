@@ -115,9 +115,7 @@ class CheckinRepository:
                 return checkin_id
 
     @staticmethod
-    def get_checkins_range(
-        user_id: int, start_date: date, end_date: date
-    ) -> list[dict]:
+    def get_checkins_range(user_id: int, start_date: date, end_date: date) -> list[dict]:
         """Get all check-ins in date range (all slots)."""
         with get_connection() as conn:
             cursor = conn.cursor()
@@ -213,6 +211,37 @@ class CheckinRepository:
                 if slot in result:
                     result[slot] = d
             return result
+
+    @staticmethod
+    def delete_checkin(user_id: int, checkin_id: int) -> bool:
+        """Delete a check-in by ID. Returns True if deleted."""
+        with get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                convert_query("DELETE FROM daily_checkins" " WHERE id = ? AND user_id = ?"),
+                (checkin_id, user_id),
+            )
+            return cursor.rowcount > 0
+
+    @staticmethod
+    def get_checkin_by_id(user_id: int, checkin_id: int) -> dict | None:
+        """Get a single check-in by ID (with ownership check)."""
+        with get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                convert_query("""
+                SELECT id, check_date, checkin_type, checkin_slot,
+                       rest_type, rest_note,
+                       session_id, readiness_id, tomorrow_intention,
+                       insight_shown, energy_level, midday_note,
+                       training_quality, recovery_note, created_at
+                FROM daily_checkins
+                WHERE id = ? AND user_id = ?
+                """),
+                (checkin_id, user_id),
+            )
+            row = cursor.fetchone()
+            return dict(row) if row else None
 
     @staticmethod
     def upsert_midday(

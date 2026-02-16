@@ -120,8 +120,8 @@ export default function QuickLog({ isOpen, onClose, onSuccess }: QuickLogProps) 
         // Log rest day
         await restApi.logRestDay({
           rest_type: restType,
-          note: restNote || undefined,
-          rest_date: today,
+          rest_note: restNote || undefined,
+          check_date: today,
         });
         toast.success('Rest day logged successfully');
         // Reset rest form

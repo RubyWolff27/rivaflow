@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { usePageTitle } from '../hooks/usePageTitle';
 import { restApi } from '../api/client';
 import { logger } from '../utils/logger';
-import { ArrowLeft, Save, Camera } from 'lucide-react';
+import { ArrowLeft, Save, Camera, Trash2 } from 'lucide-react';
 import PhotoGallery from '../components/PhotoGallery';
 import PhotoUpload from '../components/PhotoUpload';
 import { useToast } from '../contexts/ToastContext';
@@ -33,6 +33,8 @@ export default function EditRest() {
   const toast = useToast();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [restId, setRestId] = useState<number | null>(null);
   const [photoCount, setPhotoCount] = useState(0);
 
@@ -48,20 +50,16 @@ export default function EditRest() {
     const doLoad = async () => {
       setLoading(true);
       try {
-        const response = await restApi.getRecent(365);
+        const response = await restApi.getByDate(date!);
         if (cancelled) return;
-        const found = response.data.find((r: RestDay) => r.rest_date === date);
-        if (found) {
-          setRestId(found.id);
-          setFormData({
-            rest_date: found.rest_date,
-            rest_type: found.rest_type,
-            rest_note: found.rest_note || '',
-            tomorrow_intention: found.tomorrow_intention || '',
-          });
-        } else {
-          throw new Error('Rest day not found');
-        }
+        const found: RestDay = response.data;
+        setRestId(found.id);
+        setFormData({
+          rest_date: found.rest_date,
+          rest_type: found.rest_type,
+          rest_note: found.rest_note || '',
+          tomorrow_intention: found.tomorrow_intention || '',
+        });
       } catch (error) {
         if (!cancelled) {
           logger.error('Error loading rest day:', error);
@@ -82,9 +80,9 @@ export default function EditRest() {
 
     try {
       await restApi.logRestDay({
-        rest_date: formData.rest_date,
+        check_date: formData.rest_date,
         rest_type: formData.rest_type,
-        note: formData.rest_note || undefined,
+        rest_note: formData.rest_note || undefined,
         tomorrow_intention: formData.tomorrow_intention || undefined,
       });
 
@@ -95,6 +93,22 @@ export default function EditRest() {
       toast.error('Failed to update rest day');
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!restId) return;
+    setDeleting(true);
+    try {
+      await restApi.delete(restId);
+      toast.success('Rest day deleted');
+      navigate('/feed');
+    } catch (error) {
+      logger.error('Error deleting rest day:', error);
+      toast.error('Failed to delete rest day');
+    } finally {
+      setDeleting(false);
+      setShowDeleteConfirm(false);
     }
   };
 
@@ -216,6 +230,42 @@ export default function EditRest() {
           </button>
         </div>
       </form>
+
+      {/* Delete section */}
+      {restId && (
+        <div className="card border border-[var(--error)]" style={{ borderColor: 'var(--error)' }}>
+          {showDeleteConfirm ? (
+            <div className="space-y-3">
+              <p className="text-sm font-medium">Are you sure you want to delete this rest day? This cannot be undone.</p>
+              <div className="flex gap-3">
+                <button
+                  onClick={handleDelete}
+                  disabled={deleting}
+                  className="px-4 py-2 rounded-lg text-sm font-medium text-white"
+                  style={{ backgroundColor: 'var(--error)' }}
+                >
+                  {deleting ? 'Deleting...' : 'Yes, Delete'}
+                </button>
+                <button
+                  onClick={() => setShowDeleteConfirm(false)}
+                  className="btn-secondary text-sm"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          ) : (
+            <button
+              onClick={() => setShowDeleteConfirm(true)}
+              className="flex items-center gap-2 text-sm font-medium"
+              style={{ color: 'var(--error)' }}
+            >
+              <Trash2 className="w-4 h-4" />
+              Delete Rest Day
+            </button>
+          )}
+        </div>
+      )}
     </div>
   );
 }

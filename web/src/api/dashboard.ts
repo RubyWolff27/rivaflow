@@ -23,7 +23,9 @@ export const notificationsApi = {
 };
 
 export const restApi = {
-  logRestDay: (data: { rest_type: string; note?: string; tomorrow_intention?: string; rest_date?: string }) =>
+  logRestDay: (data: { rest_type: string; rest_note?: string; tomorrow_intention?: string; check_date?: string }) =>
     api.post('/rest/', data),
   getRecent: (days = 30) => api.get('/rest/recent', { params: { days } }),
+  getByDate: (date: string) => api.get(`/rest/by-date/${date}`),
+  delete: (checkinId: number) => api.delete(`/rest/${checkinId}`),
 };

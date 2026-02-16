@@ -168,8 +168,8 @@ export default function LogSession() {
       if (activityType === 'rest') {
         await restApi.logRestDay({
           rest_type: restData.rest_type,
-          note: restData.rest_note || undefined,
-          rest_date: restData.rest_date,
+          rest_note: restData.rest_note || undefined,
+          check_date: restData.rest_date,
         });
         setSuccess(true);
         setTimeout(() => navigate('/'), 1500);
