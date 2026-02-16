@@ -94,12 +94,12 @@ export default function RestDetail() {
 
   const getRestTypeLabel = (type: string) => {
     const labels: { [key: string]: string } = {
-      'active': 'Active Recovery',
-      'full': 'Full Rest',
-      'injury': 'Injury / Rehab',
-      'sick': 'Sick Day',
-      'travel': 'Travelling',
-      'life': 'Life Got in the Way',
+      'active': '\u{1F3C3} Active Recovery',
+      'full': '\u{1F6CC} Full Rest',
+      'injury': '\u{1F915} Injury / Rehab',
+      'sick': '\u{1F912} Sick Day',
+      'travel': '\u{2708}\u{FE0F} Travelling',
+      'life': '\u{1F937} Life Got in the Way',
     };
     return labels[type] || type;
   };

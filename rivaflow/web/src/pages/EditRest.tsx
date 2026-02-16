@@ -18,12 +18,12 @@ interface RestDay {
 }
 
 const REST_TYPES = [
-  { value: 'active', label: 'Active Recovery' },
-  { value: 'full', label: 'Full Rest' },
-  { value: 'injury', label: 'Injury / Rehab' },
-  { value: 'sick', label: 'Sick Day' },
-  { value: 'travel', label: 'Travelling' },
-  { value: 'life', label: 'Life Got in the Way' },
+  { value: 'active', label: '\u{1F3C3} Active Recovery' },
+  { value: 'full', label: '\u{1F6CC} Full Rest' },
+  { value: 'injury', label: '\u{1F915} Injury / Rehab' },
+  { value: 'sick', label: '\u{1F912} Sick Day' },
+  { value: 'travel', label: '\u{2708}\u{FE0F} Travelling' },
+  { value: 'life', label: '\u{1F937} Life Got in the Way' },
 ];
 
 export default function EditRest() {
