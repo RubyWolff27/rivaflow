@@ -1,82 +1,84 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Brain, Target, ChevronRight } from 'lucide-react';
-import { grappleApi, gamePlansApi } from '../../api/client';
+import { MessageCircle, Mic, Brain } from 'lucide-react';
+import { grappleApi } from '../../api/client';
 import { Card } from '../ui';
-
-interface InsightRow {
-  title: string;
-}
-
-interface GamePlanRow {
-  focus: string;
-}
 
 export default function QuickLinks() {
   const navigate = useNavigate();
-  const [insight, setInsight] = useState<InsightRow | null>(null);
-  const [gamePlan, setGamePlan] = useState<GamePlanRow | null>(null);
+  const [insightTitle, setInsightTitle] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
     const load = async () => {
-      const results = await Promise.allSettled([
-        grappleApi.getInsights({ limit: 1 }),
-        gamePlansApi.getCurrent(),
-      ]);
-
-      if (cancelled) return;
-
-      if (results[0].status === 'fulfilled' && results[0].value.data) {
-        const insights = results[0].value.data;
-        const list = Array.isArray(insights) ? insights : insights.insights;
+      try {
+        const res = await grappleApi.getInsights({ limit: 1 });
+        if (cancelled) return;
+        const insights = res.data;
+        const list = Array.isArray(insights) ? insights : insights?.insights;
         if (list && list.length > 0) {
-          setInsight({ title: list[0].title || list[0].insight_type || 'Training Insight' });
+          setInsightTitle(list[0].title || list[0].insight_type || 'Training Insight');
         }
-      }
-
-      if (results[1].status === 'fulfilled' && results[1].value.data) {
-        const plan = results[1].value.data;
-        const focus = plan.focus_areas
-          ? (Array.isArray(plan.focus_areas) ? plan.focus_areas.join(', ') : plan.focus_areas)
-          : plan.name || 'Game Plan';
-        setGamePlan({ focus: String(focus) });
-      }
+      } catch { /* best-effort */ }
     };
     load();
     return () => { cancelled = true; };
   }, []);
 
-  if (!insight && !gamePlan) return null;
-
   return (
     <Card variant="compact">
-      <div className="divide-y" style={{ borderColor: 'var(--border)' }}>
-        {insight && (
-          <button
-            onClick={() => navigate('/grapple?panel=chat')}
-            className="flex items-center gap-3 w-full py-2 first:pt-0 last:pb-0 text-left hover:opacity-80 transition-opacity"
-          >
-            <Brain className="w-4 h-4 shrink-0" style={{ color: 'var(--accent)' }} />
-            <span className="text-sm truncate flex-1" style={{ color: 'var(--text)' }}>
-              Insight: {insight.title}
-            </span>
-            <ChevronRight className="w-4 h-4 shrink-0" style={{ color: 'var(--muted)' }} />
-          </button>
-        )}
-        {gamePlan && (
-          <button
-            onClick={() => navigate('/my-game')}
-            className="flex items-center gap-3 w-full py-2 first:pt-0 last:pb-0 text-left hover:opacity-80 transition-opacity"
-          >
-            <Target className="w-4 h-4 shrink-0" style={{ color: 'var(--accent)' }} />
-            <span className="text-sm truncate flex-1" style={{ color: 'var(--text)' }}>
-              My Game: {gamePlan.focus}
-            </span>
-            <ChevronRight className="w-4 h-4 shrink-0" style={{ color: 'var(--muted)' }} />
-          </button>
-        )}
+      {/* Grapple AI quick actions */}
+      <div className="flex items-center gap-2 mb-3">
+        <div
+          className="w-6 h-6 rounded-md flex items-center justify-center"
+          style={{ backgroundColor: 'var(--accent)' }}
+        >
+          <Brain className="w-3.5 h-3.5 text-white" />
+        </div>
+        <span className="text-sm font-semibold" style={{ color: 'var(--text)' }}>
+          Grapple AI
+        </span>
       </div>
+      <div className="grid grid-cols-3 gap-2">
+        <button
+          onClick={() => navigate('/grapple?panel=chat')}
+          className="flex flex-col items-center gap-1.5 py-2.5 rounded-lg text-xs font-medium transition-all hover:opacity-80"
+          style={{ backgroundColor: 'var(--surfaceElev)', color: 'var(--text)' }}
+        >
+          <MessageCircle className="w-4 h-4" style={{ color: 'var(--accent)' }} />
+          Ask Coach
+        </button>
+        <button
+          onClick={() => navigate('/grapple?panel=extract')}
+          className="flex flex-col items-center gap-1.5 py-2.5 rounded-lg text-xs font-medium transition-all hover:opacity-80"
+          style={{ backgroundColor: 'var(--surfaceElev)', color: 'var(--text)' }}
+        >
+          <Mic className="w-4 h-4" style={{ color: 'var(--accent)' }} />
+          Voice Log
+        </button>
+        <button
+          onClick={() => navigate('/grapple?panel=chat')}
+          className="flex flex-col items-center gap-1.5 py-2.5 rounded-lg text-xs font-medium transition-all hover:opacity-80"
+          style={{ backgroundColor: 'var(--surfaceElev)', color: 'var(--text)' }}
+        >
+          <Brain className="w-4 h-4" style={{ color: 'var(--accent)' }} />
+          Insight
+        </button>
+      </div>
+
+      {/* Latest insight one-liner */}
+      {insightTitle && (
+        <button
+          onClick={() => navigate('/grapple?panel=chat')}
+          className="flex items-center gap-2 w-full mt-3 pt-3 text-left hover:opacity-80 transition-opacity"
+          style={{ borderTop: '1px solid var(--border)' }}
+        >
+          <span className="text-xs truncate flex-1" style={{ color: 'var(--muted)' }}>
+            Latest: {insightTitle}
+          </span>
+          <span className="text-xs" style={{ color: 'var(--accent)' }}>View</span>
+        </button>
+      )}
     </Card>
   );
 }

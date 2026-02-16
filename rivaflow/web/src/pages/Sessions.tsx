@@ -8,6 +8,7 @@ import { Calendar, MapPin, Clock, Activity, Target, Filter, Search } from 'lucid
 import { CardSkeleton } from '../components/ui';
 import MiniZoneBar from '../components/MiniZoneBar';
 import SessionScoreBadge from '../components/sessions/SessionScoreBadge';
+import TodayClassesWidget from '../components/dashboard/TodayClassesWidget';
 
 type ZoneData = { zone_durations: Record<string, number> | null; strain: number | null; calories: number | null; score_state: string | null };
 
@@ -130,6 +131,9 @@ export default function Sessions() {
         <h1 className="text-3xl font-bold text-[var(--text)] mb-2" id="page-title">All Sessions</h1>
         <p className="text-[var(--muted)]">View and manage your training history</p>
       </div>
+
+      {/* Today's Classes */}
+      <TodayClassesWidget />
 
       {/* Stats Overview */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">

@@ -11,7 +11,6 @@ import ActiveCheckinPrompt from '../components/dashboard/ActiveCheckinPrompt';
 import WeeklyProgress from '../components/dashboard/WeeklyProgress';
 import QuickLinks from '../components/dashboard/QuickLinks';
 import GettingStarted from '../components/dashboard/GettingStarted';
-import TodayClassesWidget from '../components/dashboard/TodayClassesWidget';
 import ErrorBoundary from '../components/ErrorBoundary';
 
 export default function Dashboard() {
@@ -72,6 +71,8 @@ export default function Dashboard() {
           suggestion={data.suggestion}
           whoopSyncing={data.whoopSyncing}
           onSyncWhoop={data.syncWhoop}
+          weeklyGoals={data.weeklyGoals}
+          streaks={data.streaks}
         />
 
         {/* 3. Active check-in prompt */}
@@ -87,13 +88,10 @@ export default function Dashboard() {
           streakCount={data.streaks?.checkin.current_streak ?? 0}
         />
 
-        {/* 5. Today's gym classes */}
-        <TodayClassesWidget />
-
-        {/* 6. Last session (compact) */}
+        {/* 5. Last session (compact) */}
         <LastSession />
 
-        {/* 7. Quick links — insights + game plan */}
+        {/* 6. Grapple AI quick actions */}
         <QuickLinks />
       </ErrorBoundary>
     </div>
