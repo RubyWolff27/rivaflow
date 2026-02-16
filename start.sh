@@ -29,12 +29,9 @@ echo "==> PORT: $PORT"
 echo "==> Running database migrations..."
 python rivaflow/db/migrate.py
 
-# Start gunicorn with uvicorn workers
-WORKERS="${WEB_CONCURRENCY:-2}"
-echo "==> Starting gunicorn on 0.0.0.0:${PORT} with ${WORKERS} workers..."
-exec python -m gunicorn rivaflow.api.main:app \
-    -w "${WORKERS}" \
-    -k uvicorn.workers.UvicornWorker \
-    --bind "0.0.0.0:${PORT}" \
-    --limit-request-body 2097152 \
+# Start uvicorn
+echo "==> Starting uvicorn on 0.0.0.0:${PORT}..."
+exec python -m uvicorn rivaflow.api.main:app \
+    --host 0.0.0.0 \
+    --port "${PORT}" \
     --log-level info
