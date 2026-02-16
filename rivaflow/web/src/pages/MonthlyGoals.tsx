@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { usePageTitle } from '../hooks/usePageTitle';
 import { Plus, Crosshair } from 'lucide-react';
 import { trainingGoalsApi } from '../api/client';
 import { logger } from '../utils/logger';
@@ -15,6 +16,7 @@ function currentMonth(): string {
 }
 
 export default function MonthlyGoals() {
+  usePageTitle('Monthly Goals');
   const toast = useToast();
   const [month, setMonth] = useState(currentMonth);
   const [goals, setGoals] = useState<TrainingGoal[]>([]);
@@ -53,9 +55,9 @@ export default function MonthlyGoals() {
     try {
       await trainingGoalsApi.delete(confirmDeleteId);
       setGoals((prev) => prev.filter((g) => g.id !== confirmDeleteId));
-      toast.showToast('success', 'Goal deleted');
+      toast.success('Goal deleted');
     } catch {
-      toast.showToast('error', 'Failed to delete goal');
+      toast.error('Failed to delete goal');
     } finally {
       setConfirmDeleteId(null);
     }
@@ -69,16 +71,16 @@ export default function MonthlyGoals() {
     if (!editingGoal) return;
     const parsed = parseInt(editingGoal.value);
     if (isNaN(parsed) || parsed < 1) {
-      toast.showToast('error', 'Target must be a positive number');
+      toast.error('Target must be a positive number');
       return;
     }
     try {
       const res = await trainingGoalsApi.update(editingGoal.id, { target_value: parsed });
       setGoals((prev) => prev.map((g) => (g.id === editingGoal.id ? res.data : g)));
-      toast.showToast('success', 'Goal updated');
+      toast.success('Goal updated');
       setEditingGoal(null);
     } catch {
-      toast.showToast('error', 'Failed to update goal');
+      toast.error('Failed to update goal');
     }
   };
 

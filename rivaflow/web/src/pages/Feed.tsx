@@ -1,6 +1,7 @@
 import { useEffect, useState, memo, useCallback, useMemo } from 'react';
 import { getLocalDateString } from '../utils/date';
 import { useNavigate } from 'react-router-dom';
+import { usePageTitle } from '../hooks/usePageTitle';
 import { feedApi, socialApi, sessionsApi } from '../api/client';
 import { logger } from '../utils/logger';
 import { Activity, Calendar, Edit2, Eye, Moon } from 'lucide-react';
@@ -299,7 +300,7 @@ const FeedItemComponent = memo(function FeedItemComponent({
 });
 
 export default function Feed() {
-  useEffect(() => { document.title = 'Feed | RivaFlow'; }, []);
+  usePageTitle('Feed');
   const navigate = useNavigate();
   const { user } = useAuth();
   const [feed, setFeed] = useState<FeedResponse | null>(null);

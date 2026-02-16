@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Sparkles, TrendingUp, DollarSign, Cpu, Users, MessageSquare, ThumbsUp, ThumbsDown, Activity } from 'lucide-react';
+import { usePageTitle } from '../hooks/usePageTitle';
 import { Card } from '../components/ui';
 import AdminNav from '../components/AdminNav';
 import { useToast } from '../contexts/ToastContext';
@@ -73,6 +74,7 @@ interface Feedback {
 }
 
 export default function AdminGrapple() {
+  usePageTitle('Grapple Analytics');
   const toast = useToast();
   const [globalStats, setGlobalStats] = useState<GlobalStats | null>(null);
   const [costProjection, setCostProjection] = useState<CostProjection | null>(null);

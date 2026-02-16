@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { usePageTitle } from '../hooks/usePageTitle';
 import { friendsApi, socialApi } from '../api/client';
 import { logger } from '../utils/logger';
 import type { Friend } from '../types';
@@ -36,7 +37,7 @@ const BELT_STYLES: Record<string, React.CSSProperties> = {
 };
 
 export default function Friends() {
-  useEffect(() => { document.title = 'Friends | RivaFlow'; }, []);
+  usePageTitle('Friends');
   const navigate = useNavigate();
   const [friends, setFriends] = useState<Friend[]>([]);
   const [filteredFriends, setFilteredFriends] = useState<Friend[]>([]);

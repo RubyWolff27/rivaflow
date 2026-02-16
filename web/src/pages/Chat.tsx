@@ -1,4 +1,5 @@
 import { useState, useCallback } from 'react';
+import { usePageTitle } from '../hooks/usePageTitle';
 import { MessageCircle, Send, Mic, MicOff } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
@@ -12,6 +13,7 @@ interface Message {
 }
 
 export default function Chat() {
+  usePageTitle('Chat');
   const { user: _user } = useAuth();
   const toast = useToast();
   const [messages, setMessages] = useState<Message[]>([]);

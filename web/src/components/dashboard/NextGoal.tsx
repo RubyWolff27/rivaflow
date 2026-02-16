@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { Trophy, Target, Flame } from 'lucide-react';
 import { eventsApi, milestonesApi } from '../../api/client';
 import { Card, CardSkeleton } from '../ui';
-import type { MilestoneProgress } from '../../types';
+import type { MilestoneProgress, CompEvent } from '../../types';
 
 const MILESTONE_ICONS: Record<string, string> = {
   hours: 'Hours on the mat',
@@ -17,7 +17,7 @@ const MILESTONE_ICONS: Record<string, string> = {
 export default function NextGoal() {
   const [loading, setLoading] = useState(true);
   const [eventData, setEventData] = useState<{
-    event: any | null;
+    event: CompEvent | null;
     days_until: number | null;
     current_weight: number | null;
   }>({ event: null, days_until: null, current_weight: null });
@@ -45,12 +45,12 @@ export default function NextGoal() {
 
   if (loading) return <CardSkeleton lines={2} />;
 
-  const hasEvent = eventData.event != null;
   const hasMilestone = milestone?.has_milestone;
 
   // Show event if it exists (comp countdown)
-  if (hasEvent) {
-    const { event, days_until, current_weight } = eventData;
+  const event = eventData.event;
+  if (event != null) {
+    const { days_until, current_weight } = eventData;
     const isUrgent = days_until != null && days_until <= 7;
 
     return (

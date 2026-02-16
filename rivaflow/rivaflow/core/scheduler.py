@@ -102,7 +102,7 @@ async def _weekly_insights_job() -> None:
             try:
                 await generate_weekly_insight(uid)
             except Exception:
-                logger.debug("Weekly insight failed for user %d", uid, exc_info=True)
+                logger.warning("Weekly insight failed for user %d", uid, exc_info=True)
     except Exception:
         logger.error("Weekly insights job failed", exc_info=True)
     finally:
@@ -171,7 +171,7 @@ async def _streak_at_risk_job() -> None:
                             message=msg,
                         )
             except Exception:
-                logger.debug(
+                logger.warning(
                     "Streak-at-risk check failed for user %d",
                     uid,
                     exc_info=True,

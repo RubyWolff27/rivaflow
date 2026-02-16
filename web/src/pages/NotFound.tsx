@@ -1,7 +1,9 @@
 import { Link } from 'react-router-dom';
 import { Home } from 'lucide-react';
+import { usePageTitle } from '../hooks/usePageTitle';
 
 function NotFound() {
+  usePageTitle('Page Not Found');
   return (
     <div className="flex flex-col items-center justify-center min-h-[60vh] px-4 text-center">
       <h1 className="text-6xl font-bold mb-4" style={{ color: 'var(--accent)' }}>404</h1>

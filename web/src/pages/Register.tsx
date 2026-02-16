@@ -1,10 +1,11 @@
-import { useState, useEffect, FormEvent } from 'react';
+import { useState, FormEvent } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { BELT_GRADES } from '../constants/belts';
+import { usePageTitle } from '../hooks/usePageTitle';
 
 export default function Register() {
-  useEffect(() => { document.title = 'Register | RivaFlow'; }, []);
+  usePageTitle('Register');
   const { register } = useAuth();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();

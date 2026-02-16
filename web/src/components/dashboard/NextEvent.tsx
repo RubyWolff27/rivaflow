@@ -3,11 +3,12 @@ import { Link } from 'react-router-dom';
 import { Trophy, Calendar } from 'lucide-react';
 import { eventsApi } from '../../api/client';
 import { Card, CardSkeleton } from '../ui';
+import type { CompEvent } from '../../types';
 
 export default function NextEvent() {
   const [loading, setLoading] = useState(true);
   const [eventData, setEventData] = useState<{
-    event: any | null;
+    event: CompEvent | null;
     days_until: number | null;
     current_weight: number | null;
   }>({ event: null, days_until: null, current_weight: null });

@@ -1,8 +1,10 @@
 import { useState, FormEvent } from 'react';
 import { Link } from 'react-router-dom';
+import { usePageTitle } from '../hooks/usePageTitle';
 import { authApi } from '../api/auth';
 
 export default function ForgotPassword() {
+  usePageTitle('Forgot Password');
   const [email, setEmail] = useState('');
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);

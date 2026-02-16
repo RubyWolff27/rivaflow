@@ -1,10 +1,12 @@
 import { useState, useEffect, FormEvent } from 'react';
 import { Link } from 'react-router-dom';
+import { usePageTitle } from '../hooks/usePageTitle';
 import { waitlistApi } from '../api/client';
 
 const BELT_RANKS = ['White', 'Blue', 'Purple', 'Brown', 'Black'];
 
 export default function Waitlist() {
+  usePageTitle('Join the Waitlist');
   const [email, setEmail] = useState('');
   const [firstName, setFirstName] = useState('');
   const [gymName, setGymName] = useState('');

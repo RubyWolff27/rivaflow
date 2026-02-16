@@ -38,8 +38,9 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
         # Prevent clickjacking
         response.headers["X-Frame-Options"] = "DENY"
 
-        # Enable XSS protection (legacy, but still useful for older browsers)
-        response.headers["X-XSS-Protection"] = "1; mode=block"
+        # Disable legacy XSS filter (can introduce vulnerabilities in edge cases;
+        # modern browsers ignore it, and CSP provides the real protection)
+        response.headers["X-XSS-Protection"] = "0"
 
         # Control referrer information
         response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"

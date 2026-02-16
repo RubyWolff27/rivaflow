@@ -1,11 +1,13 @@
 import { useState } from 'react';
 import { Mail, Send } from 'lucide-react';
+import { usePageTitle } from '../hooks/usePageTitle';
 import AdminNav from '../components/AdminNav';
 import { adminApi } from '../api/client';
 import { useToast } from '../contexts/ToastContext';
 import ConfirmDialog from '../components/ConfirmDialog';
 
 export default function AdminEmail() {
+  usePageTitle('Broadcast Email');
   const toast = useToast();
 
   const [subject, setSubject] = useState('');

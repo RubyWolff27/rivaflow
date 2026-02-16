@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { usePageTitle } from '../hooks/usePageTitle';
 import { socialApi } from '../api/client';
 import { logger } from '../utils/logger';
 import { UserPlus, UserMinus, Search, X, Users, MapPin, Dumbbell } from 'lucide-react';
@@ -30,6 +31,7 @@ interface RecommendedUser {
 type DiscoveryTab = 'search' | 'gym' | 'suggestions';
 
 export default function FindFriends() {
+  usePageTitle('Find Friends');
   const navigate = useNavigate();
   const [searchResults, setSearchResults] = useState<SearchUser[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
@@ -48,7 +50,7 @@ export default function FindFriends() {
           if (cancelled) return;
           const users = response.data.users || [];
           const usersWithStatus = await Promise.all(
-            users.map(async (user: any) => {
+            users.map(async (user: SearchUser) => {
               try {
                 const statusResponse = await socialApi.getFriendshipStatus(user.id);
                 return { ...user, friendship_status: statusResponse.data.status };
@@ -82,7 +84,7 @@ export default function FindFriends() {
           if (cancelled) return;
           const recs = response.data.recommendations || [];
           const recsWithStatus = await Promise.all(
-            recs.map(async (user: any) => {
+            recs.map(async (user: RecommendedUser) => {
               try {
                 const statusResponse = await socialApi.getFriendshipStatus(user.id);
                 return { ...user, friendship_status: statusResponse.data.status };

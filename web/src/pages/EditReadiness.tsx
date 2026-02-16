@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { usePageTitle } from '../hooks/usePageTitle';
 import { readinessApi } from '../api/client';
 import { logger } from '../utils/logger';
 import { ArrowLeft, Save, Camera } from 'lucide-react';
@@ -8,6 +9,7 @@ import PhotoUpload from '../components/PhotoUpload';
 import { useToast } from '../contexts/ToastContext';
 
 export default function EditReadiness() {
+  usePageTitle('Edit Readiness');
   const { date } = useParams<{ date: string }>();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);

@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { usePageTitle } from '../hooks/usePageTitle';
 import { restApi } from '../api/client';
 import { logger } from '../utils/logger';
 import { ArrowLeft, Save, Camera } from 'lucide-react';
@@ -26,6 +27,7 @@ const REST_TYPES = [
 ];
 
 export default function EditRest() {
+  usePageTitle('Edit Rest Day');
   const { date } = useParams<{ date: string }>();
   const navigate = useNavigate();
   const toast = useToast();
@@ -63,7 +65,7 @@ export default function EditRest() {
       } catch (error) {
         if (!cancelled) {
           logger.error('Error loading rest day:', error);
-          toast.showToast('error', 'Failed to load rest day');
+          toast.error('Failed to load rest day');
           navigate('/feed');
         }
       } finally {
@@ -86,11 +88,11 @@ export default function EditRest() {
         tomorrow_intention: formData.tomorrow_intention || undefined,
       });
 
-      toast.showToast('success', 'Rest day updated!');
+      toast.success('Rest day updated!');
       navigate('/feed');
     } catch (error) {
       logger.error('Error updating rest day:', error);
-      toast.showToast('error', 'Failed to update rest day');
+      toast.error('Failed to update rest day');
     } finally {
       setSaving(false);
     }

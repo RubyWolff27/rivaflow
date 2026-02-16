@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { usePageTitle } from '../hooks/usePageTitle';
 import { Mail, Send, MessageSquare } from 'lucide-react';
 import { useToast } from '../contexts/ToastContext';
 
@@ -10,6 +11,7 @@ const SUBJECT_OPTIONS = [
 ];
 
 export default function ContactUs() {
+  usePageTitle('Contact Us');
   const toast = useToast();
   const [submitting, setSubmitting] = useState(false);
   const [formData, setFormData] = useState({

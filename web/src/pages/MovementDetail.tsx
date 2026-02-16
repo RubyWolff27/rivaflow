@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { usePageTitle } from '../hooks/usePageTitle';
 import { glossaryApi } from '../api/client';
 import { logger } from '../utils/logger';
 import type { Movement } from '../types';
@@ -33,6 +34,7 @@ const CATEGORY_STYLES: Record<string, React.CSSProperties> = {
 };
 
 export default function MovementDetail() {
+  usePageTitle('Movement Detail');
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [movement, setMovement] = useState<Movement | null>(null);

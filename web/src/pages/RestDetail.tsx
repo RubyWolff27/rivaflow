@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
+import { usePageTitle } from '../hooks/usePageTitle';
 import { restApi } from '../api/client';
 import { logger } from '../utils/logger';
 import { ArrowLeft, Calendar, Moon, Edit2, Camera } from 'lucide-react';
@@ -18,6 +19,7 @@ interface RestDay {
 }
 
 export default function RestDetail() {
+  usePageTitle('Rest Day');
   const { date } = useParams<{ date: string }>();
   const navigate = useNavigate();
   const toast = useToast();
@@ -41,7 +43,7 @@ export default function RestDetail() {
       } catch (error) {
         if (!cancelled) {
           logger.error('Error loading rest day:', error);
-          toast.showToast('error', 'Failed to load rest day');
+          toast.error('Failed to load rest day');
           navigate('/feed');
         }
       } finally {

@@ -257,9 +257,9 @@ export default function WhoopAnalyticsTab({ days = 90 }: Props) {
           {/* Top sessions */}
           <p className="text-xs font-medium uppercase mb-2" style={{ color: 'var(--muted)' }}>Most Efficient Sessions</p>
           <div className="space-y-1">
-            {strainEff.top_sessions!.slice(0, 3).map((s: any) => (
+            {strainEff.top_sessions!.slice(0, 3).map((s) => (
               <div key={s.session_id} className="flex justify-between text-sm p-2 rounded" style={{ backgroundColor: 'var(--surfaceElev)' }}>
-                <span style={{ color: 'var(--muted)' }}>{new Date(s.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>
+                <span style={{ color: 'var(--muted)' }}>{new Date(s.date ?? '').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>
                 <span style={{ color: 'var(--text)' }}>{s.submissions} subs / {Number(s.strain).toFixed(1)} strain = <span className="font-semibold" style={{ color: 'var(--accent)' }}>{s.efficiency}</span></span>
               </div>
             ))}
@@ -335,9 +335,9 @@ export default function WhoopAnalyticsTab({ days = 90 }: Props) {
 
           {/* RHR Timeline */}
           <div className="space-y-1">
-            {cardio.weekly_rhr!.map((w: any) => {
-              const maxRhr = Math.max(...cardio.weekly_rhr!.map((x: any) => x.avg_rhr));
-              const minRhr = Math.min(...cardio.weekly_rhr!.map((x: any) => x.avg_rhr));
+            {cardio.weekly_rhr!.map((w) => {
+              const maxRhr = Math.max(...cardio.weekly_rhr!.map((x) => x.avg_rhr));
+              const minRhr = Math.min(...cardio.weekly_rhr!.map((x) => x.avg_rhr));
               const range = maxRhr - minRhr || 1;
               const pct = ((w.avg_rhr - minRhr) / range) * 60 + 20; // 20-80% width
               return (
@@ -364,7 +364,7 @@ export default function WhoopAnalyticsTab({ days = 90 }: Props) {
           <p className="text-sm mb-4" style={{ color: 'var(--muted)' }}>{sleepDebt.insight}</p>
 
           <div className="space-y-2">
-            {sleepDebt.weekly!.map((w: any) => (
+            {sleepDebt.weekly!.map((w) => (
               <div key={w.week} className="flex items-center gap-3 p-2 rounded" style={{ backgroundColor: 'var(--surfaceElev)' }}>
                 <span className="text-xs w-16" style={{ color: 'var(--muted)' }}>{w.week.replace('Y', '').replace('-W', ' W')}</span>
                 <div className="flex-1 grid grid-cols-3 gap-2 text-xs">
@@ -392,7 +392,7 @@ export default function WhoopAnalyticsTab({ days = 90 }: Props) {
       )}
 
       {/* 7. Recovery Readiness Model */}
-      {readinessModel && Object.values(readinessModel.zones || {}).some((z: any) => z.sessions > 0) && (
+      {readinessModel && Object.values(readinessModel.zones || {}).some((z) => (z.sessions ?? 0) > 0) && (
         <Card>
           <div className="flex items-center gap-2 mb-4">
             <Shield className="w-5 h-5" style={{ color: '#10B981' }} />

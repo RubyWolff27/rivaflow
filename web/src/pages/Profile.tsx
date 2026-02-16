@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { getLocalDateString } from '../utils/date';
+import { usePageTitle } from '../hooks/usePageTitle';
 import { profileApi, gradingsApi, friendsApi, adminApi, gymsApi, whoopApi, getErrorMessage } from '../api/client';
 import { logger } from '../utils/logger';
 import type { Profile as ProfileType, Grading, Friend, WhoopConnectionStatus } from '../types';
@@ -47,7 +48,7 @@ function mapProfileToFormData(data?: ProfileType | null) {
 }
 
 export default function Profile() {
-  useEffect(() => { document.title = 'Profile | RivaFlow'; }, []);
+  usePageTitle('Profile');
   const [profile, setProfile] = useState<ProfileType | null>(null);
   const [gradings, setGradings] = useState<Grading[]>([]);
   const [instructors, setInstructors] = useState<Friend[]>([]);

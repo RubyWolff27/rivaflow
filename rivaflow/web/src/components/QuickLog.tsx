@@ -8,6 +8,7 @@ import { useToast } from '../contexts/ToastContext';
 import { getLocalDateString } from '../utils/date';
 import { triggerInsightRefresh } from '../utils/insightRefresh';
 import { useSpeechRecognition } from '../hooks/useSpeechRecognition';
+import { mapSocialFriends } from '../hooks/useSessionForm';
 import type { Friend } from '../types';
 
 const TIME_OPTIONS = [
@@ -82,11 +83,7 @@ export default function QuickLog({ isOpen, onClose, onSuccess }: QuickLogProps) 
         }
         if (partnersRes.data) {
           const manualPartners: Friend[] = partnersRes.data;
-          const socialFriends: Friend[] = (socialFriendsRes.data.friends || []).map((sf: any) => ({
-            id: sf.id + 1000000,
-            name: `${sf.first_name || ''} ${sf.last_name || ''}`.trim(),
-            friend_type: 'training-partner' as const,
-          }));
+          const socialFriends = mapSocialFriends(socialFriendsRes.data.friends || []);
           const manualNames = new Set(manualPartners.map(p => p.name.toLowerCase()));
           const merged = [
             ...manualPartners,

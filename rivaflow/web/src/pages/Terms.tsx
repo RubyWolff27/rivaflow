@@ -1,6 +1,8 @@
 import { FileText } from 'lucide-react';
+import { usePageTitle } from '../hooks/usePageTitle';
 
 export default function Terms() {
+  usePageTitle('Terms & Conditions');
   return (
     <div className="max-w-3xl mx-auto">
       <div className="flex items-center gap-3 mb-6">

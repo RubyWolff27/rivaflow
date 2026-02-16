@@ -222,7 +222,7 @@ export default function TechniquesTab({
               <div className="space-y-2">
                 {techniquesData.top_submissions
                   .slice(0, 8)
-                  .map((tech: any) => (
+                  .map((tech) => (
                     <div
                       key={
                         tech.name ?? `sub-${Math.random()}`
@@ -283,16 +283,16 @@ export default function TechniquesTab({
             <div className="space-y-3">
               {techniquesData
                 .category_breakdown!.sort(
-                  (a: any, b: any) => b.count - a.count
+                  (a, b) => (b.count ?? 0) - (a.count ?? 0)
                 )
-                .map((cat: any) => {
+                .map((cat) => {
                   const maxCount = Math.max(
                     ...techniquesData.category_breakdown!.map(
-                      (c: any) => c.count
+                      (c) => c.count ?? 0
                     )
                   );
                   const percentage =
-                    (cat.count / maxCount) * 100;
+                    ((cat.count ?? 0) / maxCount) * 100;
 
                   return (
                     <div key={cat.category ?? 'unknown'}>
@@ -359,7 +359,7 @@ export default function TechniquesTab({
             <div className="space-y-2">
               {techniquesData.gi_top_techniques
                 .slice(0, 5)
-                .map((tech: any) => (
+                .map((tech) => (
                   <div
                     key={tech.name ?? tech.id}
                     className="flex items-center justify-between p-3 rounded-lg"
@@ -415,7 +415,7 @@ export default function TechniquesTab({
             <div className="space-y-2">
               {techniquesData.nogi_top_techniques
                 .slice(0, 5)
-                .map((tech: any) => (
+                .map((tech) => (
                   <div
                     key={tech.name ?? tech.id}
                     className="flex items-center justify-between p-3 rounded-lg"
@@ -481,7 +481,7 @@ export default function TechniquesTab({
             <div className="flex flex-wrap gap-2">
               {techniquesData.stale_techniques
                 .slice(0, 15)
-                .map((tech: any) => (
+                .map((tech) => (
                   <Chip
                     key={
                       tech.id ?? `stale-${Math.random()}`

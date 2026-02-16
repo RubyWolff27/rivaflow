@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { usePageTitle } from '../hooks/usePageTitle';
 import { Calendar, MapPin, Trophy, Scale, Plus, Edit2, Trash2, ChevronDown, ChevronUp, Clock } from 'lucide-react';
 import { eventsApi, weightLogsApi } from '../api/client';
 import { logger } from '../utils/logger';
@@ -329,6 +330,7 @@ function WeightLogForm({ onSubmit }: { onSubmit: () => void }) {
 /* ------------------------------------------------------------------ */
 
 export default function Events() {
+  usePageTitle('Events');
   const [events, setEvents] = useState<CompEvent[]>([]);
   const [weightLogs, setWeightLogs] = useState<WeightLog[]>([]);
   const [nextEvent, setNextEvent] = useState<{
@@ -404,7 +406,7 @@ export default function Events() {
       fetchAll();
     } catch (err) {
       logger.error('Failed to delete event', err);
-      toast.showToast('error', 'Failed to delete event');
+      toast.error('Failed to delete event');
     }
   };
 

@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { usePageTitle } from '../hooks/usePageTitle';
 import { adminApi } from '../api/client';
 import { logger } from '../utils/logger';
 import { MessageCircle, CheckCircle, Clock, BarChart3, User, Calendar } from 'lucide-react';
@@ -42,6 +43,7 @@ interface FeedbackStats {
 }
 
 export default function AdminFeedback() {
+  usePageTitle('Feedback Management');
   const toast = useToast();
   const [feedback, setFeedback] = useState<Feedback[]>([]);
   const [stats, setStats] = useState<FeedbackStats | null>(null);
@@ -57,7 +59,7 @@ export default function AdminFeedback() {
     const doLoad = async () => {
       setLoading(true);
       try {
-        const params: any = { limit: 100 };
+        const params: Record<string, string | number> = { limit: 100 };
         if (filterStatus !== 'all') params.status = filterStatus;
         if (filterCategory !== 'all') params.category = filterCategory;
 
@@ -85,7 +87,7 @@ export default function AdminFeedback() {
   const loadFeedback = async () => {
     setLoading(true);
     try {
-      const params: any = { limit: 100 };
+      const params: Record<string, string | number> = { limit: 100 };
       if (filterStatus !== 'all') params.status = filterStatus;
       if (filterCategory !== 'all') params.category = filterCategory;
 

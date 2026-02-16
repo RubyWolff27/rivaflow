@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { usePageTitle } from '../hooks/usePageTitle';
 import { analyticsApi } from '../api/client';
 import { logger } from '../utils/logger';
 import { Swords, Shield, TrendingUp, TrendingDown, Minus, AlertTriangle, Target, Lightbulb, BarChart3 } from 'lucide-react';
@@ -64,6 +65,7 @@ interface InsightsData {
 type ViewMode = 'weekly' | 'monthly';
 
 export default function FightDynamics() {
+  usePageTitle('Fight Dynamics');
   const [view, setView] = useState<ViewMode>('weekly');
   const [heatmapData, setHeatmapData] = useState<HeatmapPeriod[]>([]);
   const [insights, setInsights] = useState<InsightsData | null>(null);

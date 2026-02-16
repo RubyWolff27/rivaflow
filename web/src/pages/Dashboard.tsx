@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { usePageTitle } from '../hooks/usePageTitle';
 import { Sparkles, MessageCircle, Mic, BookOpen } from 'lucide-react';
 import { Card } from '../components/ui';
 import { LastSession } from '../components/dashboard/LastSession';
@@ -37,7 +38,7 @@ export default function Dashboard() {
     })();
   }, []);
 
-  useEffect(() => { document.title = 'Dashboard | RivaFlow'; }, []);
+  usePageTitle('Dashboard');
 
   // Fire-and-forget staleness check for AI insights
   useEffect(() => {

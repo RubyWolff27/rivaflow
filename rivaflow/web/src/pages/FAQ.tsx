@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
+import { usePageTitle } from '../hooks/usePageTitle';
 import { HelpCircle, Search, ChevronDown, ChevronUp, MessageSquare } from 'lucide-react';
 
 interface FAQItem { question: string; answer: string; }
@@ -62,6 +63,7 @@ const FAQ_DATA: FAQCategory[] = [
 ];
 
 export default function FAQ() {
+  usePageTitle('FAQ');
   const [searchQuery, setSearchQuery] = useState('');
   const [openItems, setOpenItems] = useState<Set<string>>(new Set());
 

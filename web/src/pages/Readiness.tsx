@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
+import { usePageTitle } from '../hooks/usePageTitle';
 import { getLocalDateString } from '../utils/date';
 import { readinessApi, profileApi, suggestionsApi, whoopApi } from '../api/client';
 import { logger } from '../utils/logger';
@@ -22,6 +23,7 @@ interface WhoopAutoFill {
 }
 
 export default function Readiness() {
+  usePageTitle('Readiness');
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const [latest, setLatest] = useState<ReadinessType | null>(null);

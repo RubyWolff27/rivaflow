@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { usePageTitle } from '../hooks/usePageTitle';
 import { ArrowLeft, Sparkles, Trophy, Heart, Brain, Shield, Plus, X } from 'lucide-react';
 import { Card, PrimaryButton } from '../components/ui';
 import { coachPreferencesApi, profileApi } from '../api/client';
@@ -82,6 +83,7 @@ const INJURY_STATUSES = [
 ];
 
 export default function CoachSettings() {
+  usePageTitle('Coach Settings');
   const toast = useToast();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);

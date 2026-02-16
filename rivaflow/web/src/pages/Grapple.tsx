@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
+import { usePageTitle } from '../hooks/usePageTitle';
 import { Sparkles, Send, Trash2, MessageCircle, ThumbsUp, ThumbsDown, Zap, Brain, BookOpen, Mic, MicOff, Settings, Menu, X } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
@@ -39,7 +40,7 @@ interface TierInfo {
 type ActivePanel = 'chat' | 'extract' | 'insights' | 'technique-qa';
 
 export default function Grapple() {
-  useEffect(() => { document.title = 'Grapple AI | RivaFlow'; }, []);
+  usePageTitle('Grapple AI');
   const { user: _user } = useAuth();
   const toast = useToast();
   const messagesEndRef = useRef<HTMLDivElement>(null);

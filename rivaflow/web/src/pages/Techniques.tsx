@@ -1,4 +1,5 @@
 import { useState, useEffect, memo } from 'react';
+import { usePageTitle } from '../hooks/usePageTitle';
 import { techniquesApi } from '../api/client';
 import { logger } from '../utils/logger';
 import type { TrainedMovement } from '../types';
@@ -26,6 +27,7 @@ const TechniqueRow = memo(function TechniqueRow({ tech }: { tech: TrainedMovemen
 });
 
 export default function Techniques() {
+  usePageTitle('Techniques');
   const [techniques, setTechniques] = useState<TrainedMovement[]>([]);
   const [staleTechniques, setStaleTechniques] = useState<TrainedMovement[]>([]);
   const [loading, setLoading] = useState(true);

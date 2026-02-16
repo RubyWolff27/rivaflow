@@ -51,6 +51,14 @@ const RULE_LABELS: Record<string, string> = {
 const sanitizeSuggestion = (text: string) =>
   text.replace(/\{[a-z_]+\}/gi, '').replace(/\s{2,}/g, ' ').trim();
 
+/** Readiness composite score thresholds (0-20 scale) */
+const READINESS_HIGH_THRESHOLD = 16;
+const READINESS_MODERATE_THRESHOLD = 12;
+
+/** WHOOP recovery score thresholds (0-100 percentage) */
+const WHOOP_RECOVERY_HIGH = 67;
+const WHOOP_RECOVERY_MODERATE = 34;
+
 export default function DailyActionHero() {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
@@ -170,12 +178,12 @@ export default function DailyActionHero() {
     labelBg = 'var(--surfaceElev)';
     labelColor = 'var(--accent)';
     iconBg = 'var(--surfaceElev)';
-  } else if (score >= 16 || (whoopRecovery && whoopRecovery.recovery_score !== null && whoopRecovery.recovery_score >= 67 && !hasCheckedIn)) {
+  } else if (score >= READINESS_HIGH_THRESHOLD || (whoopRecovery && whoopRecovery.recovery_score !== null && whoopRecovery.recovery_score >= WHOOP_RECOVERY_HIGH && !hasCheckedIn)) {
     label = 'Train Hard';
     labelBg = 'var(--success-bg)';
     labelColor = 'var(--success)';
     iconBg = 'var(--success-bg)';
-  } else if (score >= 12 || (whoopRecovery && whoopRecovery.recovery_score !== null && whoopRecovery.recovery_score >= 34 && !hasCheckedIn)) {
+  } else if (score >= READINESS_MODERATE_THRESHOLD || (whoopRecovery && whoopRecovery.recovery_score !== null && whoopRecovery.recovery_score >= WHOOP_RECOVERY_MODERATE && !hasCheckedIn)) {
     label = 'Light Session';
     labelBg = 'var(--warning-bg)';
     labelColor = 'var(--warning)';
@@ -188,14 +196,14 @@ export default function DailyActionHero() {
   }
 
   const whoopColor = whoopRecovery?.recovery_score != null
-    ? whoopRecovery.recovery_score >= 67 ? '#10B981'
-      : whoopRecovery.recovery_score >= 34 ? '#F59E0B'
+    ? whoopRecovery.recovery_score >= WHOOP_RECOVERY_HIGH ? '#10B981'
+      : whoopRecovery.recovery_score >= WHOOP_RECOVERY_MODERATE ? '#F59E0B'
       : '#EF4444'
     : undefined;
 
   const readinessColor = readinessScore != null
-    ? readinessScore >= 16 ? '#10B981'
-      : readinessScore >= 12 ? '#F59E0B'
+    ? readinessScore >= READINESS_HIGH_THRESHOLD ? '#10B981'
+      : readinessScore >= READINESS_MODERATE_THRESHOLD ? '#F59E0B'
       : '#EF4444'
     : undefined;
 

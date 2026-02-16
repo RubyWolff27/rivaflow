@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { usePageTitle } from '../hooks/usePageTitle';
 import { adminApi } from '../api/client';
 import { Trash2, MessageSquare, User } from 'lucide-react';
 import { Card, SecondaryButton } from '../components/ui';
@@ -19,6 +20,7 @@ interface Comment {
 }
 
 export default function AdminContent() {
+  usePageTitle('Content Moderation');
   const toast = useToast();
   const [comments, setComments] = useState<Comment[]>([]);
   const [loading, setLoading] = useState(true);

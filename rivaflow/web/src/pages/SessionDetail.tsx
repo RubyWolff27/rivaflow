@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
+import { usePageTitle } from '../hooks/usePageTitle';
 import { sessionsApi, whoopApi } from '../api/client';
 import { logger } from '../utils/logger';
 import type { Session, WhoopSessionContext } from '../types';
@@ -12,6 +13,7 @@ import { useToast } from '../contexts/ToastContext';
 import { CardSkeleton } from '../components/ui';
 
 export default function SessionDetail() {
+  usePageTitle('Session Detail');
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [session, setSession] = useState<Session | null>(null);
@@ -293,7 +295,7 @@ export default function SessionDetail() {
             <h3 className="font-semibold text-lg">Roll Details</h3>
           </div>
           <div className="space-y-3">
-            {session.detailed_rolls.map((roll: any) => (
+            {session.detailed_rolls.map((roll) => (
               <div
                 key={roll.roll_number ?? roll.id}
                 className="flex items-center gap-4 p-3 rounded-lg"
@@ -350,7 +352,7 @@ export default function SessionDetail() {
         <div className="card">
           <h3 className="font-semibold text-lg mb-4">Technique Details</h3>
           <div className="space-y-4">
-            {session.session_techniques.map((tech: any) => (
+            {session.session_techniques.map((tech) => (
               <div key={tech.technique_number ?? tech.movement_name} className="border border-[var(--border)] rounded-lg p-4">
                 <div className="flex items-start justify-between mb-2">
                   <h4 className="font-semibold text-[var(--accent)]">
@@ -368,7 +370,7 @@ export default function SessionDetail() {
                 {tech.media_urls && Array.isArray(tech.media_urls) && tech.media_urls.length > 0 && (
                   <div className="mt-3 space-y-2">
                     <p className="text-xs font-semibold text-[var(--muted)]">Reference Media:</p>
-                    {tech.media_urls.map((media: any) => (
+                    {tech.media_urls.map((media) => (
                       <a
                         key={media.url}
                         href={media.url}

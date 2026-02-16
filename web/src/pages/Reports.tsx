@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { getLocalDateString } from '../utils/date';
 import { useSearchParams, Link } from 'react-router-dom';
+import { usePageTitle } from '../hooks/usePageTitle';
 import { analyticsApi, sessionsApi, whoopApi } from '../api/client';
 import { logger } from '../utils/logger';
 import { TrendingUp, Users, Activity, Target, Brain, Swords, Heart } from 'lucide-react';
@@ -28,7 +29,7 @@ import type {
 } from '../components/analytics/reportTypes';
 
 export default function Reports() {
-  useEffect(() => { document.title = 'Reports | RivaFlow'; }, []);
+  usePageTitle('Reports');
   const { hasAccess: hasAdvancedAnalytics } = useFeatureAccess('advanced_analytics');
   const [searchParams, setSearchParams] = useSearchParams();
   const [activeTab, setActiveTab] = useState(searchParams.get('tab') || 'overview');
@@ -106,10 +107,10 @@ export default function Reports() {
             // Fetch zone trends for sessions in this range
             try {
               const sessRes = await sessionsApi.list(50);
-              const rangeSessions = (sessRes.data || []).filter((s: any) =>
+              const rangeSessions = (sessRes.data || []).filter((s) =>
                 s.session_date >= params.start_date && s.session_date <= params.end_date
               );
-              const ids = rangeSessions.map((s: any) => s.id);
+              const ids = rangeSessions.map((s) => s.id);
               if (ids.length > 0) {
                 const zRes = await whoopApi.getZonesBatch(ids);
                 if (!cancelled && zRes.data?.zones) {

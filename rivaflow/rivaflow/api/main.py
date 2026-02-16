@@ -19,7 +19,6 @@ from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
-from slowapi.util import get_remote_address
 from starlette.middleware.gzip import GZipMiddleware
 
 from rivaflow.api.middleware.error_handler import (
@@ -28,6 +27,7 @@ from rivaflow.api.middleware.error_handler import (
     validation_exception_handler,
 )
 from rivaflow.api.middleware.request_id import RequestIDMiddleware
+from rivaflow.api.middleware.request_logging import RequestLoggingMiddleware
 from rivaflow.api.middleware.security_headers import SecurityHeadersMiddleware
 from rivaflow.api.middleware.versioning import VersioningMiddleware
 from rivaflow.api.routes import (
@@ -113,13 +113,14 @@ if SENTRY_AVAILABLE and _sentry_dsn:
     logging.info("Sentry error tracking initialized")
 
 # Initialize rate limiter (disabled in test environment)
+from rivaflow.api.rate_limit import _get_real_client_ip  # noqa: E402
+
 if not settings.IS_TEST:
-    limiter = Limiter(key_func=get_remote_address)
+    limiter = Limiter(key_func=_get_real_client_ip)
 else:
-    # Create a dummy limiter for test environment that doesn't limit
     from slowapi import Limiter as DummyLimiter
 
-    limiter = DummyLimiter(key_func=get_remote_address, enabled=False)
+    limiter = DummyLimiter(key_func=_get_real_client_ip, enabled=False)
 
 _docs_url = None if settings.IS_PRODUCTION else "/docs"
 _redoc_url = None if settings.IS_PRODUCTION else "/redoc"
@@ -244,6 +245,9 @@ app.add_middleware(SecurityHeadersMiddleware)
 # Add request ID tracking
 app.add_middleware(RequestIDMiddleware)
 
+# Add request logging (method, path, status, latency)
+app.add_middleware(RequestLoggingMiddleware)
+
 
 # Register health check routes (no prefix for easy access by load balancers)
 app.include_router(health.router)
@@ -300,57 +304,6 @@ app.include_router(waitlist.router, prefix="/api/v1/waitlist", tags=["waitlist"]
 app.include_router(
     waitlist.admin_router, prefix="/api/v1/admin/waitlist", tags=["admin-waitlist"]
 )
-
-
-@app.get("/health")
-@app.head("/health")
-async def health():
-    """
-    Health check endpoint with database connectivity test.
-
-    Supports both GET and HEAD methods for monitoring services.
-    Returns 200 if healthy, 503 if degraded/unhealthy.
-    """
-    from rivaflow.db.database import get_connection
-
-    checks = {}
-    overall_status = "ok"
-    status_code = 200
-
-    # Check database connectivity
-    try:
-        with get_connection() as conn:
-            cursor = conn.cursor()
-            cursor.execute("SELECT 1")
-            result = cursor.fetchone()
-            if result:
-                checks["database"] = "ok"
-            else:
-                checks["database"] = "error"
-                overall_status = "degraded"
-                status_code = 503
-    except Exception:
-        checks["database"] = "error"
-        overall_status = "unhealthy"
-        status_code = 503
-
-    # Check scheduler status
-    try:
-        from rivaflow.core.scheduler import _scheduler
-
-        if _scheduler is not None:
-            jobs = _scheduler.get_jobs()
-            checks["scheduler"] = f"ok ({len(jobs)} jobs)"
-        else:
-            checks["scheduler"] = "not started"
-    except Exception:
-        checks["scheduler"] = "unknown"
-
-    from fastapi.responses import JSONResponse
-
-    return JSONResponse(
-        status_code=status_code, content={"status": overall_status, "checks": checks}
-    )
 
 
 # Serve uploaded files locally (only when S3 is not configured)

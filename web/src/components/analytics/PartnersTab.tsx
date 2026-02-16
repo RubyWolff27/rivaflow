@@ -210,7 +210,7 @@ export default function PartnersTab({
         partnersData.top_partners.length > 0 ? (
           <div className="space-y-3">
             {partnersData.top_partners.map(
-              (partner: any, index: number) => (
+              (partner, index: number) => (
                 <div
                   key={partner.id}
                   className="p-4 rounded-[14px]"
@@ -345,10 +345,10 @@ export default function PartnersTab({
               </p>
             </div>
             <div className="space-y-2">
-              {beltDistData.distribution!.map((b: any) => {
+              {beltDistData.distribution!.map((b) => {
                 const maxCount = Math.max(
                   ...beltDistData.distribution!.map(
-                    (d: any) => d.count
+                    (d) => d.count ?? 0
                   )
                 );
                 const beltColors: Record<string, string> = {
@@ -360,14 +360,14 @@ export default function PartnersTab({
                   unranked: 'var(--muted)',
                 };
                 return (
-                  <div key={b.belt}>
+                  <div key={b.belt ?? 'unknown'}>
                     <div className="flex items-center justify-between mb-1">
                       <div className="flex items-center gap-2">
                         <div
                           className="w-3 h-3 rounded-full border"
                           style={{
                             backgroundColor:
-                              beltColors[b.belt] || 'var(--muted)',
+                              beltColors[b.belt ?? ''] || 'var(--muted)',
                             borderColor: 'var(--border)',
                           }}
                         />
@@ -375,14 +375,14 @@ export default function PartnersTab({
                           className="text-sm font-medium capitalize"
                           style={{ color: 'var(--text)' }}
                         >
-                          {b.belt}
+                          {b.belt ?? 'Unknown'}
                         </span>
                       </div>
                       <span
                         className="text-sm"
                         style={{ color: 'var(--muted)' }}
                       >
-                        {b.count}
+                        {b.count ?? 0}
                       </span>
                     </div>
                     <div
@@ -392,9 +392,9 @@ export default function PartnersTab({
                       <div
                         className="h-2 rounded-full transition-all"
                         style={{
-                          width: `${(b.count / maxCount) * 100}%`,
+                          width: `${((b.count ?? 0) / maxCount) * 100}%`,
                           backgroundColor:
-                            beltColors[b.belt] || 'var(--accent)',
+                            beltColors[b.belt ?? ''] || 'var(--accent)',
                         }}
                       />
                     </div>

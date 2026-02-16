@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
+import { usePageTitle } from '../hooks/usePageTitle';
 import { adminApi } from '../api/client';
 import { Users, Building2, MessageSquare, Activity, TrendingUp, Shield } from 'lucide-react';
 import { Card } from '../components/ui';
@@ -18,6 +19,7 @@ interface DashboardStats {
 }
 
 export default function AdminDashboard() {
+  usePageTitle('Admin Dashboard');
   const toast = useToast();
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [loading, setLoading] = useState(true);

@@ -65,7 +65,7 @@ class TokenResponse(BaseModel):
 
     access_token: str
     token_type: str = "bearer"
-    user: dict
+    user: CurrentUserResponse
 
 
 class AccessTokenResponse(BaseModel):
@@ -304,7 +304,7 @@ class ResetPasswordRequest(BaseModel):
     """Reset password request model."""
 
     token: str
-    new_password: str
+    new_password: str = Field(..., min_length=8, max_length=128)
 
 
 @router.post("/forgot-password")

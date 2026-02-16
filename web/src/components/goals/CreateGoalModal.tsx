@@ -52,7 +52,7 @@ export default function CreateGoalModal({ month, onClose, onCreated }: CreateGoa
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (goalType === 'technique' && !movementId) {
-      toast.showToast('error', 'Please select a movement');
+      toast.error('Please select a movement');
       return;
     }
     setSubmitting(true);
@@ -65,11 +65,11 @@ export default function CreateGoalModal({ month, onClose, onCreated }: CreateGoa
         movement_id: goalType === 'technique' ? movementId : null,
         class_type_filter: classTypeFilter || null,
       });
-      toast.showToast('success', 'Goal created');
+      toast.success('Goal created');
       onCreated();
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Failed to create goal';
-      toast.showToast('error', msg);
+      toast.error(msg);
     } finally {
       setSubmitting(false);
     }

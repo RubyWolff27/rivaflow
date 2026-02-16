@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
+import { usePageTitle } from '../hooks/usePageTitle';
 import { readinessApi } from '../api/client';
 import { logger } from '../utils/logger';
 import type { Readiness } from '../types';
@@ -9,6 +10,7 @@ import PhotoUpload from '../components/PhotoUpload';
 import { useToast } from '../contexts/ToastContext';
 
 export default function ReadinessDetail() {
+  usePageTitle('Readiness Detail');
   const { date } = useParams<{ date: string }>();
   const navigate = useNavigate();
   const [readiness, setReadiness] = useState<Readiness | null>(null);

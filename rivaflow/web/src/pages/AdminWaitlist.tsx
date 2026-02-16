@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Search, Send, X, Users, Clock, CheckCircle, XCircle } from 'lucide-react';
+import { usePageTitle } from '../hooks/usePageTitle';
 import AdminNav from '../components/AdminNav';
 import { adminApi } from '../api/client';
 import { useToast } from '../contexts/ToastContext';
@@ -30,6 +31,7 @@ interface WaitlistStats {
 }
 
 export default function AdminWaitlist() {
+  usePageTitle('Waitlist Management');
   const toast = useToast();
 
   const [entries, setEntries] = useState<WaitlistEntry[]>([]);

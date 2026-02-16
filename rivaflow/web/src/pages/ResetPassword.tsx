@@ -1,8 +1,10 @@
 import { useState, FormEvent, useEffect } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+import { usePageTitle } from '../hooks/usePageTitle';
 import { authApi } from '../api/auth';
 
 export default function ResetPassword() {
+  usePageTitle('Reset Password');
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const token = searchParams.get('token');

@@ -39,8 +39,7 @@ interface ReadinessData {
   [key: string]: unknown;
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-interface WhoopTrendEntry { date: string; [key: string]: any; }
+interface WhoopTrendEntry { date: string; [key: string]: string | number | null | undefined; }
 
 interface ZoneDistEntry {
   date: string;
@@ -226,8 +225,8 @@ export default function ReadinessTab({ dateRange, selectedTypes }: ReadinessTabP
   const componentAverages = data?.component_averages || {};
 
   // Transform trend data for chart
-  const chartData = trends.map((t: any) => ({
-    date: t.check_date || t.date,
+  const chartData = trends.map((t) => ({
+    date: t.check_date || t.date || '',
     score: t.composite_score ?? 0,
   }));
 
@@ -521,7 +520,7 @@ export default function ReadinessTab({ dateRange, selectedTypes }: ReadinessTabP
 /* ---- WHOOP Chart Components ---- */
 
 function WhoopLineChart({ data, valueKey, avgKey, color, avgColor, unit }: {
-  data: { date: string; [key: string]: any }[];
+  data: { date: string; [key: string]: string | number | null | undefined }[];
   valueKey: string;
   avgKey: string;
   color: string;
@@ -536,7 +535,7 @@ function WhoopLineChart({ data, valueKey, avgKey, color, avgColor, unit }: {
   const plotW = width - pad.left - pad.right;
   const plotH = height - pad.top - pad.bottom;
 
-  const values = data.map((d) => d[valueKey]).filter((v: any) => v != null) as number[];
+  const values = data.map((d) => d[valueKey]).filter((v): v is number => v != null && typeof v === 'number');
   if (values.length === 0) return null;
 
   const minV = Math.floor(Math.min(...values) * 0.9);
@@ -548,7 +547,7 @@ function WhoopLineChart({ data, valueKey, avgKey, color, avgColor, unit }: {
 
   const buildPath = (key: string) =>
     data
-      .map((d, i) => (d[key] != null ? `${i === 0 || data[i - 1]?.[key] == null ? 'M' : 'L'} ${xScale(i)} ${yScale(d[key])}` : ''))
+      .map((d, i) => (d[key] != null ? `${i === 0 || data[i - 1]?.[key] == null ? 'M' : 'L'} ${xScale(i)} ${yScale(Number(d[key]))}` : ''))
       .filter(Boolean)
       .join(' ');
 
@@ -578,7 +577,7 @@ function WhoopLineChart({ data, valueKey, avgKey, color, avgColor, unit }: {
       {/* Points */}
       {data.map((d, i) =>
         d[valueKey] != null ? (
-          <circle key={i} cx={xScale(i)} cy={yScale(d[valueKey])} r={2.5} fill={color}>
+          <circle key={i} cx={xScale(i)} cy={yScale(Number(d[valueKey]))} r={2.5} fill={color}>
             <title>{d.date}: {Number(d[valueKey]).toFixed(0)} {unit}</title>
           </circle>
         ) : null

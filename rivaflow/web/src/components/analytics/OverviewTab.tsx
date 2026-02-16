@@ -376,7 +376,7 @@ export default function OverviewTab({
           </button>
           {expandedCards.duration && (
             <div className="mt-4 space-y-3">
-              {durationData.by_class_type?.map((ct: any) => (
+              {durationData.by_class_type?.map((ct) => (
                 <div
                   key={ct.class_type}
                   className="flex justify-between items-center p-3 rounded-lg"
@@ -403,7 +403,7 @@ export default function OverviewTab({
 
       {/* Time of Day */}
       {timeOfDayData?.patterns &&
-        timeOfDayData.patterns.some((p: any) => p.sessions > 0) && (
+        timeOfDayData.patterns.some((p) => (p.sessions ?? 0) > 0) && (
           <Card>
             <button
               className="w-full flex items-center justify-between"
@@ -437,7 +437,7 @@ export default function OverviewTab({
             </button>
             {expandedCards.timeOfDay && (
               <div className="mt-4 grid grid-cols-1 sm:grid-cols-3 gap-3">
-                {timeOfDayData.patterns.map((p: any) => (
+                {timeOfDayData.patterns.map((p) => (
                   <div
                     key={p.time_slot}
                     className="p-3 rounded-[14px] text-center"
@@ -464,7 +464,7 @@ export default function OverviewTab({
                     >
                       sessions
                     </p>
-                    {p.sessions > 0 && (
+                    {(p.sessions ?? 0) > 0 && (
                       <p
                         className="text-xs mt-1"
                         style={{ color: 'var(--accent)' }}
@@ -514,7 +514,7 @@ export default function OverviewTab({
           </button>
           {expandedCards.gym && (
             <div className="mt-4 space-y-3">
-              {gymData.gyms.map((g: any) => (
+              {gymData.gyms.map((g) => (
                 <div
                   key={g.gym}
                   className="p-3 rounded-lg flex items-center justify-between"
@@ -591,7 +591,7 @@ export default function OverviewTab({
             </button>
             {expandedCards.classType && (
               <div className="mt-4 space-y-3">
-                {classTypeData.class_types.map((ct: any) => (
+                {classTypeData.class_types.map((ct) => (
                   <div
                     key={ct.class_type}
                     className="p-3 rounded-lg flex items-center justify-between"
@@ -616,12 +616,12 @@ export default function OverviewTab({
                         className="text-sm font-semibold"
                         style={{
                           color:
-                            ct.sub_rate >= 1
+                            (ct.sub_rate ?? 0) >= 1
                               ? 'var(--accent)'
                               : 'var(--text)',
                         }}
                       >
-                        {ct.sub_rate.toFixed(2)} ratio
+                        {(ct.sub_rate ?? 0).toFixed(2)} ratio
                       </p>
                       <p
                         className="text-xs"

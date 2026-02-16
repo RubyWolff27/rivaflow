@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { usePageTitle } from '../hooks/usePageTitle';
 import { glossaryApi } from '../api/client';
 import { logger } from '../utils/logger';
 import type { Movement } from '../types';
@@ -33,6 +34,7 @@ const CATEGORY_STYLES: Record<string, React.CSSProperties> = {
 };
 
 export default function Glossary() {
+  usePageTitle('Glossary');
   const navigate = useNavigate();
   const [movements, setMovements] = useState<Movement[]>([]);
   const [categories, setCategories] = useState<string[]>([]);

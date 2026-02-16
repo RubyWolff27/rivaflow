@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { usePageTitle } from '../hooks/usePageTitle';
 import { adminApi } from '../api/client';
 import { Search, Plus, Edit2, Trash2, Check, XCircle, MapPin, Globe, Building2, ExternalLink, Map } from 'lucide-react';
 import { Card, PrimaryButton, SecondaryButton } from '../components/ui';
@@ -29,6 +30,7 @@ interface Gym {
 }
 
 export default function AdminGyms() {
+  usePageTitle('Gym Management');
   const toast = useToast();
   const [gyms, setGyms] = useState<Gym[]>([]);
   const [pendingGyms, setPendingGyms] = useState<Gym[]>([]);

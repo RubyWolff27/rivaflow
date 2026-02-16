@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { usePageTitle } from '../hooks/usePageTitle';
 import { adminApi } from '../api/client';
 import { Search, Shield, ShieldOff, UserX, Eye, CheckCircle, XCircle, Crown } from 'lucide-react';
 import { Card, PrimaryButton, SecondaryButton } from '../components/ui';
@@ -30,6 +31,7 @@ interface UserDetails extends User {
 }
 
 export default function AdminUsers() {
+  usePageTitle('User Management');
   const toast = useToast();
   const [users, setUsers] = useState<User[]>([]);
   const [searchQuery, setSearchQuery] = useState('');

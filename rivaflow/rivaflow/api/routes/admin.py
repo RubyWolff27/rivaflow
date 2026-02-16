@@ -890,8 +890,8 @@ def delete_technique(
 @limiter.limit("60/minute")
 def get_audit_logs(
     request: Request,
-    limit: int = 100,
-    offset: int = 0,
+    limit: int = Query(100, ge=1, le=500),
+    offset: int = Query(0, ge=0),
     actor_id: int | None = None,
     action: str | None = None,
     target_type: str | None = None,
@@ -1189,8 +1189,8 @@ class BroadcastEmailRequest(BaseModel):
     """Request model for admin email broadcast."""
 
     subject: str = Field(..., min_length=1, max_length=200)
-    html_body: str = Field(..., min_length=1)
-    text_body: str | None = None
+    html_body: str = Field(..., min_length=1, max_length=500_000)
+    text_body: str | None = Field(None, max_length=500_000)
 
 
 def _send_broadcast_background(

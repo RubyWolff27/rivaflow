@@ -451,7 +451,7 @@ export default function InsightsTab({ dateRange }: InsightsTabProps) {
                 <div>
                   <p className="text-xs font-medium uppercase tracking-wide mb-2" style={{ color: 'var(--muted)' }}>Sub Rate by Rest Days</p>
                   <div className="space-y-1">
-                    {recoveryData.rest_analysis.map((r: any) => (
+                    {recoveryData.rest_analysis.map((r) => (
                       <div key={r.rest_days} className="flex items-center justify-between text-xs">
                         <span style={{ color: 'var(--text)' }}>{r.rest_days} day{r.rest_days !== 1 ? 's' : ''}</span>
                         <span style={{ color: r.rest_days === recoveryData.optimal_rest_days ? 'var(--accent)' : 'var(--muted)' }}>

@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
+import { usePageTitle } from '../hooks/usePageTitle';
 import { groupsApi, socialApi } from '../api/client';
 import { logger } from '../utils/logger';
-import type { Group, GroupMember } from '../types';
+import type { Group, GroupMember, UserBasic } from '../types';
 import { Users, Plus, X, LogOut, Trash2, ChevronRight, Shield, UserPlus, Search, Globe } from 'lucide-react';
 import { useToast } from '../contexts/ToastContext';
 
@@ -20,6 +21,7 @@ const GROUP_TYPE_COLORS: Record<string, string> = {
 };
 
 export default function Groups() {
+  usePageTitle('Groups');
   const [groups, setGroups] = useState<Group[]>([]);
   const [discoverGroups, setDiscoverGroups] = useState<Group[]>([]);
   const [loading, setLoading] = useState(true);
@@ -29,7 +31,7 @@ export default function Groups() {
   const [tab, setTab] = useState<'my' | 'discover'>('my');
   const [showAddMember, setShowAddMember] = useState(false);
   const [memberSearch, setMemberSearch] = useState('');
-  const [searchResults, setSearchResults] = useState<any[]>([]);
+  const [searchResults, setSearchResults] = useState<UserBasic[]>([]);
   const [searching, setSearching] = useState(false);
   const toast = useToast();
 
@@ -63,7 +65,7 @@ export default function Groups() {
       const response = await groupsApi.list();
       setGroups(response.data.groups || []);
     } catch {
-      toast.showToast('error', 'Failed to load groups');
+      toast.error('Failed to load groups');
     } finally {
       setLoading(false);
     }
@@ -75,7 +77,7 @@ export default function Groups() {
       const response = await groupsApi.discover();
       setDiscoverGroups(response.data.groups || []);
     } catch {
-      toast.showToast('error', 'Failed to load discoverable groups');
+      toast.error('Failed to load discoverable groups');
     } finally {
       setLoading(false);
     }
@@ -87,7 +89,7 @@ export default function Groups() {
       const response = await groupsApi.get(groupId);
       setSelectedGroup(response.data);
     } catch {
-      toast.showToast('error', 'Failed to load group details');
+      toast.error('Failed to load group details');
     } finally {
       setDetailLoading(false);
     }
@@ -99,45 +101,45 @@ export default function Groups() {
 
     try {
       await groupsApi.create(formData);
-      toast.showToast('success', 'Group created!');
+      toast.success('Group created!');
       setShowCreateForm(false);
       setFormData({ name: '', description: '', group_type: 'training_crew', privacy: 'invite_only' });
       loadGroups();
     } catch {
-      toast.showToast('error', 'Failed to create group');
+      toast.error('Failed to create group');
     }
   };
 
   const handleLeave = async (groupId: number) => {
     try {
       await groupsApi.leave(groupId);
-      toast.showToast('success', 'Left group');
+      toast.success('Left group');
       setSelectedGroup(null);
       loadGroups();
     } catch {
-      toast.showToast('error', 'Failed to leave group');
+      toast.error('Failed to leave group');
     }
   };
 
   const handleDelete = async (groupId: number) => {
     try {
       await groupsApi.delete(groupId);
-      toast.showToast('success', 'Group deleted');
+      toast.success('Group deleted');
       setSelectedGroup(null);
       loadGroups();
     } catch {
-      toast.showToast('error', 'Failed to delete group');
+      toast.error('Failed to delete group');
     }
   };
 
   const handleJoin = async (groupId: number) => {
     try {
       await groupsApi.join(groupId);
-      toast.showToast('success', 'Joined group!');
+      toast.success('Joined group!');
       loadGroups();
       loadDiscover();
     } catch {
-      toast.showToast('error', 'Failed to join group');
+      toast.error('Failed to join group');
     }
   };
 
@@ -145,13 +147,13 @@ export default function Groups() {
     if (!selectedGroup) return;
     try {
       await groupsApi.addMember(selectedGroup.id, userId);
-      toast.showToast('success', 'Member added!');
+      toast.success('Member added!');
       setShowAddMember(false);
       setMemberSearch('');
       setSearchResults([]);
       loadGroupDetail(selectedGroup.id);
     } catch {
-      toast.showToast('error', 'Failed to add member');
+      toast.error('Failed to add member');
     }
   };
 
@@ -159,10 +161,10 @@ export default function Groups() {
     if (!selectedGroup) return;
     try {
       await groupsApi.removeMember(selectedGroup.id, userId);
-      toast.showToast('success', 'Member removed');
+      toast.success('Member removed');
       loadGroupDetail(selectedGroup.id);
     } catch {
-      toast.showToast('error', 'Failed to remove member');
+      toast.error('Failed to remove member');
     }
   };
 
@@ -178,7 +180,7 @@ export default function Groups() {
       const results = response.data?.users || response.data || [];
       // Filter out existing members
       const memberIds = new Set((selectedGroup?.members || []).map(m => m.user_id));
-      setSearchResults(results.filter((u: any) => !memberIds.has(u.id)));
+      setSearchResults(results.filter((u: UserBasic) => !memberIds.has(u.id)));
     } catch {
       setSearchResults([]);
     } finally {
@@ -317,7 +319,7 @@ export default function Groups() {
               )}
               {searchResults.length > 0 && (
                 <div className="space-y-2 max-h-48 overflow-y-auto">
-                  {searchResults.map((user: any) => (
+                  {searchResults.map((user) => (
                     <div
                       key={user.id}
                       className="flex items-center justify-between p-2 rounded-lg"

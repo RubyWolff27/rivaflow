@@ -1,9 +1,10 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { getLocalDateString } from '../utils/date';
 import { useNavigate } from 'react-router-dom';
-import { sessionsApi, readinessApi, profileApi, friendsApi, socialApi, glossaryApi, restApi, whoopApi, getErrorMessage } from '../api/client';
+import { usePageTitle } from '../hooks/usePageTitle';
+import { sessionsApi, readinessApi, profileApi, friendsApi, socialApi, glossaryApi, restApi, whoopApi } from '../api/client';
 import { logger } from '../utils/logger';
-import type { Friend, Movement, MediaUrl, Readiness, WhoopWorkoutMatch } from '../types';
+import type { Readiness, Movement } from '../types';
 import { CheckCircle, ArrowLeft, Mic, MicOff, ChevronDown, ChevronUp } from 'lucide-react';
 import WhoopMatchModal from '../components/WhoopMatchModal';
 import GymSelector from '../components/GymSelector';
@@ -17,13 +18,12 @@ import RollTracker from '../components/sessions/RollTracker';
 import ClassTimePicker from '../components/sessions/ClassTimePicker';
 import WhoopIntegrationPanel from '../components/sessions/WhoopIntegrationPanel';
 import FightDynamicsPanel from '../components/sessions/FightDynamicsPanel';
-import type { RollEntry, TechniqueEntry } from '../components/sessions/sessionTypes';
-import { SPARRING_TYPES } from '../components/sessions/sessionTypes';
+import { useSessionForm, mergePartners, mapSocialFriends } from '../hooks/useSessionForm';
 
 const DURATION_QUICK_SELECT = [60, 75, 90, 120] as const;
 
 export default function LogSession() {
-  useEffect(() => { document.title = 'Log Session | RivaFlow'; }, []);
+  usePageTitle('Log Session');
   const navigate = useNavigate();
   const toast = useToast();
   const [activityType, setActivityType] = useState<'training' | 'rest'>('training');
@@ -31,40 +31,11 @@ export default function LogSession() {
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const [skippedReadiness, setSkippedReadiness] = useState(false);
-  const [autocomplete, setAutocomplete] = useState<{ gyms?: string[]; locations?: string[]; partners?: string[]; techniques?: string[] }>({});
+  const [readinessAutoSkipped, setReadinessAutoSkipped] = useState(false);
 
-  const [instructors, setInstructors] = useState<Friend[]>([]);
-  const [partners, setPartners] = useState<Friend[]>([]);
-  const [movements, setMovements] = useState<Movement[]>([]);
-
-  const [detailedMode, setDetailedMode] = useState(false);
-  const [rolls, setRolls] = useState<RollEntry[]>([]);
-
-  // WHOOP integration state
-  const [whoopConnected, setWhoopConnected] = useState(false);
-  const [whoopSyncing, setWhoopSyncing] = useState(false);
-  const [whoopSynced, setWhoopSynced] = useState(false);
-  const [whoopMatches, setWhoopMatches] = useState<WhoopWorkoutMatch[]>([]);
-  const [showWhoopModal, setShowWhoopModal] = useState(false);
-  const [whoopManualMode, setWhoopManualMode] = useState(false);
-
-  const [showWhoop, setShowWhoop] = useState(false);
-  const [showFightDynamics, setShowFightDynamics] = useState(false);
-  const [showMoreDetails, setShowMoreDetails] = useState(false);
-  const [showCustomDuration, setShowCustomDuration] = useState(false);
-  const [selectedPartnerIds, setSelectedPartnerIds] = useState<Set<number>>(new Set());
-  const [fightDynamics, setFightDynamics] = useState({
-    attacks_attempted: 0,
-    attacks_successful: 0,
-    defenses_attempted: 0,
-    defenses_successful: 0,
+  const form = useSessionForm({
+    initialData: { session_date: getLocalDateString() },
   });
-
-  const [submissionSearchFor, setSubmissionSearchFor] = useState<{[rollIndex: number]: string}>({});
-  const [submissionSearchAgainst, setSubmissionSearchAgainst] = useState<{[rollIndex: number]: string}>({});
-
-  const [techniques, setTechniques] = useState<TechniqueEntry[]>([]);
-  const [techniqueSearch, setTechniqueSearch] = useState<{[techIndex: number]: string}>({});
 
   const [readinessData, setReadinessData] = useState({
     check_date: getLocalDateString(),
@@ -76,31 +47,6 @@ export default function LogSession() {
     weight_kg: '',
   });
 
-  const [sessionData, setSessionData] = useState({
-    session_date: getLocalDateString(),
-    class_time: '',
-    class_type: 'gi',
-    gym_name: '',
-    gym_id: null as number | null,
-    location: '',
-    duration_mins: 60,
-    intensity: 4,
-    instructor_id: null as number | null,
-    instructor_name: '',
-    rolls: 0,
-    submissions_for: 0,
-    submissions_against: 0,
-    partners: '',
-    techniques: '',
-    notes: '',
-    whoop_strain: '',
-    whoop_calories: '',
-    whoop_avg_hr: '',
-    whoop_max_hr: '',
-  });
-
-  const [readinessAutoSkipped, setReadinessAutoSkipped] = useState(false);
-
   const [restData, setRestData] = useState({
     rest_date: getLocalDateString(),
     rest_type: 'active',
@@ -109,13 +55,13 @@ export default function LogSession() {
 
   // Voice-to-text for notes
   const onTranscript = useCallback((transcript: string) => {
-    setSessionData(prev => ({
+    form.setSessionData(prev => ({
       ...prev,
       notes: prev.notes ? `${prev.notes} ${transcript}` : transcript,
     }));
-  }, []);
+  }, [form]);
   const onSpeechError = useCallback((message: string) => {
-    toast.showToast('error', message);
+    toast.error(message);
   }, [toast]);
   const { isRecording, isTranscribing, hasSpeechApi, toggleRecording } = useSpeechRecognition({ onTranscript, onError: onSpeechError });
 
@@ -133,35 +79,16 @@ export default function LogSession() {
         ]);
         if (controller.signal.aborted) return;
 
-        setAutocomplete(autocompleteRes.data ?? {});
-        const loadedInstructors: Friend[] = instructorsRes.data ?? [];
-        setInstructors(loadedInstructors);
-        const manualPartners: Friend[] = partnersRes.data ?? [];
-        const socialFriends: Friend[] = (socialFriendsRes.data.friends || []).map((sf: any) => ({
-          id: sf.id + 1000000,
-          name: `${sf.first_name || ''} ${sf.last_name || ''}`.trim(),
-          friend_type: 'training-partner' as const,
-        }));
-        const seenNames = new Set<string>();
-        const merged: Friend[] = [];
-        for (const p of [...manualPartners, ...loadedInstructors]) {
-          const key = p.name.toLowerCase();
-          if (!seenNames.has(key)) {
-            seenNames.add(key);
-            merged.push(p);
-          }
-        }
-        for (const sf of socialFriends) {
-          if (!seenNames.has(sf.name.toLowerCase())) {
-            seenNames.add(sf.name.toLowerCase());
-            merged.push(sf);
-          }
-        }
-        setPartners(merged);
+        form.setAutocomplete(autocompleteRes.data ?? {});
+        const loadedInstructors = instructorsRes.data ?? [];
+        form.setInstructors(loadedInstructors);
+        const manualPartners = partnersRes.data ?? [];
+        const socialFriends = mapSocialFriends(socialFriendsRes.data.friends || []);
+        form.setPartners(mergePartners(manualPartners, loadedInstructors, socialFriends));
         const movementsData = movementsRes.data as Movement[] | { movements: Movement[] };
-        setMovements(Array.isArray(movementsData) ? movementsData : movementsData?.movements || []);
+        form.setMovements(Array.isArray(movementsData) ? movementsData : movementsData?.movements || []);
 
-        const updates: Partial<typeof sessionData> = {};
+        const updates: Record<string, string | number | null> = {};
         if (profileRes.data?.default_gym) {
           updates.gym_name = profileRes.data.default_gym;
         }
@@ -179,7 +106,7 @@ export default function LogSession() {
           updates.class_type = profileRes.data.primary_training_type;
         }
         if (Object.keys(updates).length > 0) {
-          setSessionData(prev => ({ ...prev, ...updates }));
+          form.setSessionData(prev => ({ ...prev, ...updates }));
         }
 
         // Check if readiness already logged today — auto-skip step 1
@@ -207,7 +134,7 @@ export default function LogSession() {
         try {
           const whoopRes = await whoopApi.getStatus();
           if (!controller.signal.aborted && whoopRes.data?.connected) {
-            setWhoopConnected(true);
+            form.setWhoopConnected(true);
           }
         } catch {
           // Feature flag off or not available
@@ -231,212 +158,6 @@ export default function LogSession() {
 
   const handleBackStep = useCallback(() => {
     setStep(1);
-  }, []);
-
-  // Roll handlers
-  const handleAddRoll = useCallback(() => {
-    setRolls(prev => [...prev, {
-      roll_number: prev.length + 1, partner_id: null, partner_name: '',
-      duration_mins: 5, submissions_for: [], submissions_against: [], notes: '',
-    }]);
-  }, []);
-
-  const handleRemoveRoll = useCallback((index: number) => {
-    setRolls(prev => {
-      const updated = prev.filter((_, i) => i !== index);
-      updated.forEach((roll, i) => { roll.roll_number = i + 1; });
-      return updated;
-    });
-    setSubmissionSearchFor(prev => {
-      const result: {[key: number]: string} = {};
-      Object.keys(prev).forEach(key => {
-        const idx = parseInt(key);
-        if (idx < index) result[idx] = prev[idx];
-        else if (idx > index) result[idx - 1] = prev[idx];
-      });
-      return result;
-    });
-    setSubmissionSearchAgainst(prev => {
-      const result: {[key: number]: string} = {};
-      Object.keys(prev).forEach(key => {
-        const idx = parseInt(key);
-        if (idx < index) result[idx] = prev[idx];
-        else if (idx > index) result[idx - 1] = prev[idx];
-      });
-      return result;
-    });
-  }, []);
-
-  const handleRollChange = useCallback((index: number, field: keyof RollEntry, value: RollEntry[keyof RollEntry]) => {
-    setRolls(prev => {
-      const updated = [...prev];
-      updated[index] = { ...updated[index], [field]: value };
-      return updated;
-    });
-  }, []);
-
-  const handleToggleSubmission = useCallback((rollIndex: number, movementId: number, type: 'for' | 'against') => {
-    setRolls(prev => {
-      const updated = [...prev];
-      const field = type === 'for' ? 'submissions_for' : 'submissions_against';
-      const current = updated[rollIndex][field];
-      if (current.includes(movementId)) {
-        updated[rollIndex][field] = current.filter(id => id !== movementId);
-      } else {
-        updated[rollIndex][field] = [...current, movementId];
-      }
-      return updated;
-    });
-  }, []);
-
-  // Technique handlers
-  const handleAddTechnique = useCallback(() => {
-    setTechniques(prev => [...prev, {
-      technique_number: prev.length + 1, movement_id: null, movement_name: '', notes: '', media_urls: [],
-    }]);
-  }, []);
-
-  const handleRemoveTechnique = useCallback((index: number) => {
-    setTechniques(prev => {
-      const updated = prev.filter((_, i) => i !== index);
-      updated.forEach((tech, i) => { tech.technique_number = i + 1; });
-      return updated;
-    });
-    setTechniqueSearch(prev => {
-      const result: {[key: number]: string} = {};
-      Object.keys(prev).forEach(key => {
-        const idx = parseInt(key);
-        if (idx < index) result[idx] = prev[idx];
-        else if (idx > index) result[idx - 1] = prev[idx];
-      });
-      return result;
-    });
-  }, []);
-
-  const handleTechniqueChange = useCallback((index: number, field: keyof TechniqueEntry, value: TechniqueEntry[keyof TechniqueEntry]) => {
-    setTechniques(prev => {
-      const updated = [...prev];
-      updated[index] = { ...updated[index], [field]: value };
-      return updated;
-    });
-  }, []);
-
-  const handleSelectMovement = useCallback((index: number, movementId: number, movementName: string) => {
-    setTechniques(prev => {
-      const updated = [...prev];
-      updated[index] = { ...updated[index], movement_id: movementId, movement_name: movementName };
-      return updated;
-    });
-  }, []);
-
-  const handleAddMediaUrl = useCallback((techIndex: number) => {
-    setTechniques(prev => {
-      const updated = [...prev];
-      updated[techIndex] = {
-        ...updated[techIndex],
-        media_urls: [...updated[techIndex].media_urls, { type: 'video', url: '', title: '' }],
-      };
-      return updated;
-    });
-  }, []);
-
-  const handleRemoveMediaUrl = useCallback((techIndex: number, mediaIndex: number) => {
-    setTechniques(prev => {
-      const updated = [...prev];
-      updated[techIndex] = {
-        ...updated[techIndex],
-        media_urls: updated[techIndex].media_urls.filter((_, i) => i !== mediaIndex),
-      };
-      return updated;
-    });
-  }, []);
-
-  const handleMediaUrlChange = useCallback((techIndex: number, mediaIndex: number, field: keyof MediaUrl, value: string) => {
-    setTechniques(prev => {
-      const updated = [...prev];
-      const mediaUrls = [...updated[techIndex].media_urls];
-      mediaUrls[mediaIndex] = { ...mediaUrls[mediaIndex], [field]: value };
-      updated[techIndex] = { ...updated[techIndex], media_urls: mediaUrls };
-      return updated;
-    });
-  }, []);
-
-  // Fight dynamics handlers
-  const handleFightDynamicsIncrement = useCallback((field: keyof typeof fightDynamics) => {
-    setFightDynamics(fd => {
-      if (field === 'attacks_successful') return { ...fd, [field]: Math.min(fd.attacks_attempted, fd[field] + 1) };
-      if (field === 'defenses_successful') return { ...fd, [field]: Math.min(fd.defenses_attempted, fd[field] + 1) };
-      return { ...fd, [field]: fd[field] + 1 };
-    });
-  }, []);
-
-  const handleFightDynamicsDecrement = useCallback((field: keyof typeof fightDynamics) => {
-    setFightDynamics(fd => ({ ...fd, [field]: Math.max(0, fd[field] - 1) }));
-  }, []);
-
-  const handleFightDynamicsChange = useCallback((field: keyof typeof fightDynamics, value: number) => {
-    setFightDynamics(fd => {
-      const clamped = Math.max(0, value);
-      if (field === 'attacks_successful') return { ...fd, [field]: Math.min(fd.attacks_attempted, clamped) };
-      if (field === 'defenses_successful') return { ...fd, [field]: Math.min(fd.defenses_attempted, clamped) };
-      return { ...fd, [field]: clamped };
-    });
-  }, []);
-
-  // WHOOP handlers
-  const handleWhoopSync = useCallback(async () => {
-    if (!sessionData.session_date || !sessionData.class_time) return;
-    setWhoopSyncing(true);
-    try {
-      const res = await whoopApi.getWorkouts({
-        session_date: sessionData.session_date,
-        class_time: sessionData.class_time,
-        duration_mins: sessionData.duration_mins,
-      });
-      const matches = res.data.workouts || [];
-      if (matches.length === 0) {
-        toast.showToast('warning', 'No matching WHOOP workouts found');
-      } else if (matches.length === 1 && matches[0].overlap_pct >= 90) {
-        const w = matches[0];
-        setSessionData(prev => ({
-          ...prev,
-          whoop_strain: w.strain?.toString() || '',
-          whoop_calories: w.calories?.toString() || '',
-          whoop_avg_hr: w.avg_heart_rate?.toString() || '',
-          whoop_max_hr: w.max_heart_rate?.toString() || '',
-        }));
-        setWhoopSynced(true);
-        toast.showToast('success', 'WHOOP data synced automatically');
-      } else {
-        setWhoopMatches(matches);
-        setShowWhoopModal(true);
-      }
-    } catch (error: unknown) {
-      toast.showToast('error', getErrorMessage(error));
-    } finally {
-      setWhoopSyncing(false);
-    }
-  }, [sessionData.session_date, sessionData.class_time, sessionData.duration_mins, toast]);
-
-  const handleWhoopMatchSelect = useCallback((workoutCacheId: number) => {
-    const workout = whoopMatches.find(w => w.id === workoutCacheId);
-    if (workout) {
-      setSessionData(prev => ({
-        ...prev,
-        whoop_strain: workout.strain?.toString() || '',
-        whoop_calories: workout.calories?.toString() || '',
-        whoop_avg_hr: workout.avg_heart_rate?.toString() || '',
-        whoop_max_hr: workout.max_heart_rate?.toString() || '',
-      }));
-      setWhoopSynced(true);
-      setShowWhoopModal(false);
-      toast.showToast('success', 'WHOOP data applied');
-    }
-  }, [whoopMatches, toast]);
-
-  const handleWhoopClear = useCallback(() => {
-    setSessionData(prev => ({ ...prev, whoop_strain: '', whoop_calories: '', whoop_avg_hr: '', whoop_max_hr: '' }));
-    setWhoopSynced(false);
   }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -463,68 +184,46 @@ export default function LogSession() {
         await readinessApi.create(readinessPayload);
       }
 
-      const { gym_id: _gymId, ...sessionPayloadData } = sessionData;
+      const { gym_id: _gymId, ...sessionPayloadData } = form.sessionData;
       const payload: Record<string, unknown> = {
         ...sessionPayloadData,
-        class_time: sessionData.class_time || undefined,
-        location: sessionData.location || undefined,
-        notes: sessionData.notes || undefined,
+        class_time: form.sessionData.class_time || undefined,
+        location: form.sessionData.location || undefined,
+        notes: form.sessionData.notes || undefined,
         partners: (() => {
-          const pillNames = topPartners.filter(p => selectedPartnerIds.has(p.id)).map(p => p.name);
-          const typedNames = sessionData.partners ? sessionData.partners.split(',').map(p => p.trim()).filter(Boolean) : [];
+          const pillNames = form.topPartners.filter(p => form.selectedPartnerIds.has(p.id)).map(p => p.name);
+          const typedNames = form.sessionData.partners ? form.sessionData.partners.split(',').map(p => p.trim()).filter(Boolean) : [];
           const all = [...pillNames, ...typedNames];
           return all.length > 0 ? all : undefined;
         })(),
-        techniques: sessionData.techniques ? sessionData.techniques.split(',').map(t => t.trim()) : undefined,
+        techniques: form.sessionData.techniques ? form.sessionData.techniques.split(',').map(t => t.trim()) : undefined,
         visibility_level: 'private',
-        whoop_strain: sessionData.whoop_strain ? parseFloat(sessionData.whoop_strain as string) : undefined,
-        whoop_calories: sessionData.whoop_calories ? parseInt(sessionData.whoop_calories as string) : undefined,
-        whoop_avg_hr: sessionData.whoop_avg_hr ? parseInt(sessionData.whoop_avg_hr as string) : undefined,
-        whoop_max_hr: sessionData.whoop_max_hr ? parseInt(sessionData.whoop_max_hr as string) : undefined,
+        ...form.buildWhoopPayload(),
+        ...form.buildFightDynamicsPayload(),
       };
 
-      if (fightDynamics.attacks_attempted > 0 || fightDynamics.defenses_attempted > 0) {
-        payload.attacks_attempted = fightDynamics.attacks_attempted;
-        payload.attacks_successful = Math.min(fightDynamics.attacks_successful, fightDynamics.attacks_attempted);
-        payload.defenses_attempted = fightDynamics.defenses_attempted;
-        payload.defenses_successful = Math.min(fightDynamics.defenses_successful, fightDynamics.defenses_attempted);
-      }
-
-      if (sessionData.instructor_id) {
-        payload.instructor_id = sessionData.instructor_id;
-        const instructor = instructors.find(i => i.id === sessionData.instructor_id);
+      if (form.sessionData.instructor_id) {
+        payload.instructor_id = form.sessionData.instructor_id;
+        const instructor = form.instructors.find(i => i.id === form.sessionData.instructor_id);
         if (instructor) payload.instructor_name = instructor.name ?? undefined;
-      } else if (sessionData.instructor_name) {
-        payload.instructor_name = sessionData.instructor_name;
+      } else if (form.sessionData.instructor_name) {
+        payload.instructor_name = form.sessionData.instructor_name;
       } else {
         payload.instructor_id = undefined;
         payload.instructor_name = undefined;
       }
 
-      if (detailedMode && rolls.length > 0) {
-        payload.session_rolls = rolls.map(roll => ({
-          roll_number: roll.roll_number,
-          partner_id: roll.partner_id || undefined,
-          partner_name: roll.partner_name || undefined,
-          duration_mins: roll.duration_mins || undefined,
-          submissions_for: roll.submissions_for.length > 0 ? roll.submissions_for : undefined,
-          submissions_against: roll.submissions_against.length > 0 ? roll.submissions_against : undefined,
-          notes: roll.notes || undefined,
-        }));
-        payload.rolls = rolls.length;
-        payload.submissions_for = rolls.reduce((sum, roll) => sum + roll.submissions_for.length, 0);
-        payload.submissions_against = rolls.reduce((sum, roll) => sum + roll.submissions_against.length, 0);
+      const rollsPayload = form.buildRollsPayload();
+      if (rollsPayload.session_rolls) {
+        payload.session_rolls = rollsPayload.session_rolls;
+        payload.rolls = rollsPayload.rolls;
+        payload.submissions_for = rollsPayload.submissions_for;
+        payload.submissions_against = rollsPayload.submissions_against;
       }
 
-      if (techniques.length > 0) {
-        payload.session_techniques = techniques
-          .filter(tech => tech.movement_id !== null)
-          .map(tech => ({
-            movement_id: tech.movement_id!,
-            technique_number: tech.technique_number,
-            notes: tech.notes || undefined,
-            media_urls: tech.media_urls.length > 0 ? tech.media_urls.filter(m => m.url) : undefined,
-          }));
+      const techniquesPayload = form.buildTechniquesPayload();
+      if (techniquesPayload.session_techniques) {
+        payload.session_techniques = techniquesPayload.session_techniques;
       }
 
       const response = await sessionsApi.create(payload);
@@ -538,7 +237,7 @@ export default function LogSession() {
       }
     } catch (error) {
       logger.error('Error creating session:', error);
-      toast.showToast('error', 'Failed to log session. Please try again.');
+      toast.error('Failed to log session. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -548,48 +247,6 @@ export default function LogSession() {
     () => readinessData.sleep + (6 - readinessData.stress) + (6 - readinessData.soreness) + readinessData.energy,
     [readinessData.sleep, readinessData.stress, readinessData.soreness, readinessData.energy]
   );
-  const isSparringType = useMemo(
-    () => SPARRING_TYPES.includes(sessionData.class_type),
-    [sessionData.class_type]
-  );
-
-  const submissionMovements = useMemo(
-    () => movements.filter(m => m.category === 'submission'),
-    [movements]
-  );
-
-  const filterMovements = useCallback((search: string) => {
-    const s = search.toLowerCase();
-    return movements.filter(m =>
-      m.name?.toLowerCase().includes(s) ||
-      m.category?.toLowerCase().includes(s) ||
-      m.subcategory?.toLowerCase().includes(s) ||
-      (m.aliases ?? []).some(alias => alias.toLowerCase().includes(s))
-    );
-  }, [movements]);
-
-  const filterSubmissions = useCallback((search: string) => {
-    const s = search.toLowerCase();
-    return submissionMovements.filter(m =>
-      m.name?.toLowerCase().includes(s) ||
-      m.subcategory?.toLowerCase().includes(s) ||
-      (m.aliases ?? []).some(alias => alias.toLowerCase().includes(s))
-    );
-  }, [submissionMovements]);
-
-  const topPartners = useMemo(
-    () => partners.filter(p => p.friend_type === 'training-partner' || p.friend_type === 'both').slice(0, 8),
-    [partners]
-  );
-
-  const handleTogglePartner = useCallback((partnerId: number) => {
-    setSelectedPartnerIds(prev => {
-      const next = new Set(prev);
-      if (next.has(partnerId)) next.delete(partnerId);
-      else next.add(partnerId);
-      return next;
-    });
-  }, []);
 
   if (success) {
     return (
@@ -717,16 +374,16 @@ export default function LogSession() {
           {/* Date */}
           <div>
             <label className="label">Date</label>
-            <input type="date" className="input" value={sessionData.session_date}
-              onChange={(e) => setSessionData({ ...sessionData, session_date: e.target.value })} required />
+            <input type="date" className="input" value={form.sessionData.session_date}
+              onChange={(e) => form.setSessionData(prev => ({ ...prev, session_date: e.target.value }))} required />
           </div>
 
           {/* Class Time */}
           <ClassTimePicker
-            gymId={sessionData.gym_id}
-            classTime={sessionData.class_time}
+            gymId={form.sessionData.gym_id}
+            classTime={form.sessionData.class_time}
             onSelect={(classTime, classType, durationMins) => {
-              setSessionData(prev => ({
+              form.setSessionData(prev => ({
                 ...prev,
                 class_time: classTime,
                 ...(classType ? { class_type: classType } : {}),
@@ -738,24 +395,24 @@ export default function LogSession() {
           {/* Class Type */}
           <div>
             <label className="label">Class Type</label>
-            <ClassTypeChips value={sessionData.class_type}
-              onChange={(val) => setSessionData({ ...sessionData, class_type: val })} />
+            <ClassTypeChips value={form.sessionData.class_type}
+              onChange={(val) => form.setSessionData(prev => ({ ...prev, class_type: val }))} />
           </div>
 
           {/* Gym Name */}
           <div>
             <label className="label">Gym Name</label>
             <GymSelector
-              value={sessionData.gym_name}
+              value={form.sessionData.gym_name}
               onChange={(gymName, isCustom) => {
-                setSessionData(prev => ({
+                form.setSessionData(prev => ({
                   ...prev,
                   gym_name: gymName,
                   gym_id: isCustom ? null : prev.gym_id,
                 }));
               }}
               onGymSelected={(gym) => {
-                setSessionData(prev => ({
+                form.setSessionData(prev => ({
                   ...prev,
                   gym_name: [gym.name, gym.city, gym.state, gym.country].filter(Boolean).join(', '),
                   gym_id: gym.id,
@@ -773,27 +430,27 @@ export default function LogSession() {
           <div>
             <label className="label">Duration (minutes)</label>
             {(() => {
-              const isStandard = (DURATION_QUICK_SELECT as readonly number[]).includes(sessionData.duration_mins);
-              const isCustomActive = !isStandard || showCustomDuration;
+              const isStandard = (DURATION_QUICK_SELECT as readonly number[]).includes(form.sessionData.duration_mins);
+              const isCustomActive = !isStandard || form.showCustomDuration;
               return (
                 <>
                   <div className="flex flex-wrap gap-2" role="group" aria-label="Duration options">
                     {DURATION_QUICK_SELECT.map((mins) => (
                       <button key={mins} type="button"
-                        onClick={() => { setSessionData({ ...sessionData, duration_mins: mins }); setShowCustomDuration(false); }}
+                        onClick={() => { form.setSessionData(prev => ({ ...prev, duration_mins: mins })); form.setShowCustomDuration(false); }}
                         className="flex-1 min-h-[44px] py-3 rounded-lg font-medium text-sm transition-all"
                         style={{
-                          backgroundColor: sessionData.duration_mins === mins && !showCustomDuration ? 'var(--accent)' : 'var(--surfaceElev)',
-                          color: sessionData.duration_mins === mins && !showCustomDuration ? '#FFFFFF' : 'var(--text)',
-                          border: sessionData.duration_mins === mins && !showCustomDuration ? 'none' : '1px solid var(--border)',
+                          backgroundColor: form.sessionData.duration_mins === mins && !form.showCustomDuration ? 'var(--accent)' : 'var(--surfaceElev)',
+                          color: form.sessionData.duration_mins === mins && !form.showCustomDuration ? '#FFFFFF' : 'var(--text)',
+                          border: form.sessionData.duration_mins === mins && !form.showCustomDuration ? 'none' : '1px solid var(--border)',
                         }}
-                        aria-label={`${mins} minutes`} aria-pressed={sessionData.duration_mins === mins && !showCustomDuration}
+                        aria-label={`${mins} minutes`} aria-pressed={form.sessionData.duration_mins === mins && !form.showCustomDuration}
                       >
                         {mins}m
                       </button>
                     ))}
                     <button type="button"
-                      onClick={() => setShowCustomDuration(true)}
+                      onClick={() => form.setShowCustomDuration(true)}
                       className="flex-1 min-h-[44px] py-3 rounded-lg font-medium text-sm transition-all"
                       style={{
                         backgroundColor: isCustomActive ? 'var(--accent)' : 'var(--surfaceElev)',
@@ -802,12 +459,12 @@ export default function LogSession() {
                       }}
                       aria-pressed={isCustomActive}
                     >
-                      {isCustomActive && !isStandard ? `${sessionData.duration_mins}m` : 'Custom'}
+                      {isCustomActive && !isStandard ? `${form.sessionData.duration_mins}m` : 'Custom'}
                     </button>
                   </div>
                   {isCustomActive && (
-                    <input type="number" className="input text-sm mt-2" value={sessionData.duration_mins}
-                      onChange={(e) => setSessionData({ ...sessionData, duration_mins: parseInt(e.target.value) || 0 })}
+                    <input type="number" className="input text-sm mt-2" value={form.sessionData.duration_mins}
+                      onChange={(e) => form.setSessionData(prev => ({ ...prev, duration_mins: parseInt(e.target.value) || 0 }))}
                       placeholder="Enter duration in minutes" min="1" autoFocus />
                   )}
                 </>
@@ -818,23 +475,23 @@ export default function LogSession() {
           {/* Intensity */}
           <div>
             <label className="label">Intensity</label>
-            <IntensityChips value={sessionData.intensity}
-              onChange={(val) => setSessionData({ ...sessionData, intensity: val })} />
+            <IntensityChips value={form.sessionData.intensity}
+              onChange={(val) => form.setSessionData(prev => ({ ...prev, intensity: val }))} />
           </div>
 
           {/* Notes */}
           <div className="border-t border-[var(--border)] pt-4">
             <label className="label">
-              {isSparringType ? 'Notes' : 'Session Details'}
-              {!isSparringType && (
+              {form.isSparringType ? 'Notes' : 'Session Details'}
+              {!form.isSparringType && (
                 <span className="text-sm font-normal text-[var(--muted)] ml-2">(Workout details, exercises, distances, times, etc.)</span>
               )}
             </label>
             <div className="relative">
-              <textarea className="input" value={sessionData.notes}
-                onChange={(e) => setSessionData({ ...sessionData, notes: e.target.value })}
-                rows={isSparringType ? 3 : 5}
-                placeholder={isSparringType
+              <textarea className="input" value={form.sessionData.notes}
+                onChange={(e) => form.setSessionData(prev => ({ ...prev, notes: e.target.value }))}
+                rows={form.isSparringType ? 3 : 5}
+                placeholder={form.isSparringType
                   ? "Any notes about today's training..."
                   : "e.g., 5km run in 30 mins, Deadlifts 3x8 @ 100kg, Squats 3x10 @ 80kg, or Yoga flow focusing on hip mobility..."} />
               {hasSpeechApi && (
@@ -858,36 +515,36 @@ export default function LogSession() {
             </div>
           </div>
 
-          {/* Collapsible More Details — Instructor, Location, Notes (sparring only) */}
+          {/* Collapsible More Details — Instructor, Location */}
           <div className="border-t border-[var(--border)] pt-3">
-            <button type="button" onClick={() => setShowMoreDetails(!showMoreDetails)}
+            <button type="button" onClick={() => form.setShowMoreDetails(!form.showMoreDetails)}
               className="flex items-center justify-between w-full text-sm text-[var(--muted)] hover:text-[var(--text)] transition-colors">
               <span className="font-medium">
                 More Details
-                {!showMoreDetails && (sessionData.instructor_name || sessionData.location) && (
+                {!form.showMoreDetails && (form.sessionData.instructor_name || form.sessionData.location) && (
                   <span className="ml-2 text-xs font-normal">
                     {[
-                      sessionData.instructor_name && `Instructor: ${sessionData.instructor_name}`,
-                      sessionData.location && `Location: ${sessionData.location}`,
+                      form.sessionData.instructor_name && `Instructor: ${form.sessionData.instructor_name}`,
+                      form.sessionData.location && `Location: ${form.sessionData.location}`,
                     ].filter(Boolean).join(' | ')}
                   </span>
                 )}
               </span>
-              {showMoreDetails ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+              {form.showMoreDetails ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
             </button>
-            {showMoreDetails && (
+            {form.showMoreDetails && (
               <div className="space-y-4 mt-3">
                 {/* Instructor */}
                 <div>
                   <label className="label">Instructor (optional)</label>
-                  <select className="input" value={sessionData.instructor_id || ''}
+                  <select className="input" value={form.sessionData.instructor_id || ''}
                     onChange={(e) => {
                       const instructorId = e.target.value ? parseInt(e.target.value) : null;
-                      const instructor = instructors.find(i => i.id === instructorId);
-                      setSessionData({ ...sessionData, instructor_id: instructorId, instructor_name: instructor?.name || '' });
+                      const instructor = form.instructors.find(i => i.id === instructorId);
+                      form.setSessionData(prev => ({ ...prev, instructor_id: instructorId, instructor_name: instructor?.name || '' }));
                     }}>
                     <option value="">Select instructor...</option>
-                    {instructors.map(instructor => (
+                    {form.instructors.map(instructor => (
                       <option key={instructor.id} value={instructor.id}>
                         {instructor.name ?? 'Unknown'}
                         {instructor.belt_rank && ` (${instructor.belt_rank} belt)`}
@@ -903,12 +560,12 @@ export default function LogSession() {
                 {/* Location */}
                 <div>
                   <label className="label">Location (optional)</label>
-                  <input type="text" className="input" value={sessionData.location}
-                    onChange={(e) => setSessionData({ ...sessionData, location: e.target.value })}
+                  <input type="text" className="input" value={form.sessionData.location}
+                    onChange={(e) => form.setSessionData(prev => ({ ...prev, location: e.target.value }))}
                     placeholder="e.g., Sydney, NSW" list="locations" />
-                  {autocomplete.locations && (
+                  {form.autocomplete.locations && (
                     <datalist id="locations">
-                      {autocomplete.locations.map((loc: string) => <option key={loc} value={loc} />)}
+                      {form.autocomplete.locations.map((loc: string) => <option key={loc} value={loc} />)}
                     </datalist>
                   )}
                 </div>
@@ -919,78 +576,78 @@ export default function LogSession() {
 
           {/* Technique Tracker */}
           <TechniqueTracker
-            techniques={techniques}
-            techniqueSearch={techniqueSearch}
-            onSearchChange={(index, value) => setTechniqueSearch({ ...techniqueSearch, [index]: value })}
-            filterMovements={filterMovements}
-            onAdd={handleAddTechnique}
-            onRemove={handleRemoveTechnique}
-            onChange={handleTechniqueChange}
-            onSelectMovement={handleSelectMovement}
-            onAddMediaUrl={handleAddMediaUrl}
-            onRemoveMediaUrl={handleRemoveMediaUrl}
-            onMediaUrlChange={handleMediaUrlChange}
+            techniques={form.techniques}
+            techniqueSearch={form.techniqueSearch}
+            onSearchChange={(index, value) => form.setTechniqueSearch(prev => ({ ...prev, [index]: value }))}
+            filterMovements={form.filterMovements}
+            onAdd={form.handleAddTechnique}
+            onRemove={form.handleRemoveTechnique}
+            onChange={form.handleTechniqueChange}
+            onSelectMovement={form.handleSelectMovement}
+            onAddMediaUrl={form.handleAddMediaUrl}
+            onRemoveMediaUrl={form.handleRemoveMediaUrl}
+            onMediaUrlChange={form.handleMediaUrlChange}
           />
 
           {/* Roll Tracking */}
-          {isSparringType && (
+          {form.isSparringType && (
             <RollTracker
-              detailedMode={detailedMode}
-              onToggleMode={() => setDetailedMode(!detailedMode)}
-              rolls={rolls}
-              partners={partners}
+              detailedMode={form.detailedMode}
+              onToggleMode={() => form.setDetailedMode(prev => !prev)}
+              rolls={form.rolls}
+              partners={form.partners}
               simpleData={{
-                rolls: sessionData.rolls,
-                submissions_for: sessionData.submissions_for,
-                submissions_against: sessionData.submissions_against,
-                partners: sessionData.partners,
+                rolls: form.sessionData.rolls,
+                submissions_for: form.sessionData.submissions_for,
+                submissions_against: form.sessionData.submissions_against,
+                partners: form.sessionData.partners,
               }}
-              onSimpleChange={(field, value) => setSessionData({ ...sessionData, [field]: value })}
-              submissionSearchFor={submissionSearchFor}
-              submissionSearchAgainst={submissionSearchAgainst}
-              onSubmissionSearchForChange={(index, value) => setSubmissionSearchFor({ ...submissionSearchFor, [index]: value })}
-              onSubmissionSearchAgainstChange={(index, value) => setSubmissionSearchAgainst({ ...submissionSearchAgainst, [index]: value })}
-              filterSubmissions={filterSubmissions}
-              onAddRoll={handleAddRoll}
-              onRemoveRoll={handleRemoveRoll}
-              onRollChange={handleRollChange}
-              onToggleSubmission={handleToggleSubmission}
-              topPartners={topPartners}
-              selectedPartnerIds={selectedPartnerIds}
-              onTogglePartner={handleTogglePartner}
+              onSimpleChange={(field, value) => form.setSessionData(prev => ({ ...prev, [field]: value }))}
+              submissionSearchFor={form.submissionSearchFor}
+              submissionSearchAgainst={form.submissionSearchAgainst}
+              onSubmissionSearchForChange={(index, value) => form.setSubmissionSearchFor(prev => ({ ...prev, [index]: value }))}
+              onSubmissionSearchAgainstChange={(index, value) => form.setSubmissionSearchAgainst(prev => ({ ...prev, [index]: value }))}
+              filterSubmissions={form.filterSubmissions}
+              onAddRoll={form.handleAddRoll}
+              onRemoveRoll={form.handleRemoveRoll}
+              onRollChange={form.handleRollChange}
+              onToggleSubmission={form.handleToggleSubmission}
+              topPartners={form.topPartners}
+              selectedPartnerIds={form.selectedPartnerIds}
+              onTogglePartner={form.handleTogglePartner}
             />
           )}
 
           {/* WHOOP Integration */}
           <WhoopIntegrationPanel
-            whoopConnected={whoopConnected}
-            whoopSyncing={whoopSyncing}
-            whoopSynced={whoopSynced}
-            whoopManualMode={whoopManualMode}
-            showWhoop={showWhoop}
-            classTime={sessionData.class_time}
+            whoopConnected={form.whoopConnected}
+            whoopSyncing={form.whoopSyncing}
+            whoopSynced={form.whoopSynced}
+            whoopManualMode={form.whoopManualMode}
+            showWhoop={form.showWhoop}
+            classTime={form.sessionData.class_time}
             whoopData={{
-              whoop_strain: sessionData.whoop_strain,
-              whoop_calories: sessionData.whoop_calories,
-              whoop_avg_hr: sessionData.whoop_avg_hr,
-              whoop_max_hr: sessionData.whoop_max_hr,
+              whoop_strain: form.sessionData.whoop_strain,
+              whoop_calories: form.sessionData.whoop_calories,
+              whoop_avg_hr: form.sessionData.whoop_avg_hr,
+              whoop_max_hr: form.sessionData.whoop_max_hr,
             }}
-            onWhoopDataChange={(field, value) => setSessionData({ ...sessionData, [field]: value })}
-            onSync={handleWhoopSync}
-            onClear={handleWhoopClear}
-            onToggleManualMode={(manual) => { setWhoopManualMode(manual); if (manual) setShowWhoop(true); }}
-            onToggleShow={() => setShowWhoop(!showWhoop)}
+            onWhoopDataChange={(field, value) => form.setSessionData(prev => ({ ...prev, [field]: value }))}
+            onSync={form.handleWhoopSync}
+            onClear={form.handleWhoopClear}
+            onToggleManualMode={(manual) => { form.setWhoopManualMode(manual); if (manual) form.setShowWhoop(true); }}
+            onToggleShow={() => form.setShowWhoop(prev => !prev)}
           />
 
           {/* Fight Dynamics */}
-          {isSparringType && (
+          {form.isSparringType && (
             <FightDynamicsPanel
-              data={fightDynamics}
-              expanded={showFightDynamics}
-              onToggle={() => setShowFightDynamics(!showFightDynamics)}
-              onIncrement={handleFightDynamicsIncrement}
-              onDecrement={handleFightDynamicsDecrement}
-              onChange={handleFightDynamicsChange}
+              data={form.fightDynamics}
+              expanded={form.showFightDynamics}
+              onToggle={() => form.setShowFightDynamics(prev => !prev)}
+              onIncrement={form.handleFightDynamicsIncrement}
+              onDecrement={form.handleFightDynamicsDecrement}
+              onChange={form.handleFightDynamicsChange}
             />
           )}
 
@@ -1016,11 +673,11 @@ export default function LogSession() {
 
       {/* WHOOP Match Modal */}
       <WhoopMatchModal
-        isOpen={showWhoopModal}
-        onClose={() => setShowWhoopModal(false)}
-        matches={whoopMatches}
-        onSelect={handleWhoopMatchSelect}
-        onManual={() => { setShowWhoopModal(false); setWhoopManualMode(true); setShowWhoop(true); }}
+        isOpen={form.showWhoopModal}
+        onClose={() => form.setShowWhoopModal(false)}
+        matches={form.whoopMatches}
+        onSelect={form.handleWhoopMatchSelect}
+        onManual={() => { form.setShowWhoopModal(false); form.setWhoopManualMode(true); form.setShowWhoop(true); }}
       />
 
       {/* Rest Day Form */}

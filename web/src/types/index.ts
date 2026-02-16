@@ -433,11 +433,36 @@ export interface ActivityComment {
   email?: string;
 }
 
+export interface FeedItemData {
+  // Session fields
+  class_type?: string;
+  class_time?: string;
+  gym_name?: string;
+  location?: string;
+  duration_mins?: number;
+  intensity?: number;
+  rolls?: number;
+  submissions_for?: number;
+  submissions_against?: number;
+  partners?: string[];
+  techniques?: string[];
+  notes?: string;
+  instructor_name?: string;
+  // Rest fields
+  rest_type?: string;
+  rest_note?: string;
+  // Shared fields
+  tomorrow_intention?: string;
+  visibility?: string;
+  visibility_level?: string;
+  [key: string]: unknown;
+}
+
 export interface FeedItem {
   type: 'session' | 'rest';
   date: string;
   id: number;
-  data: any;  // eslint-disable-line @typescript-eslint/no-explicit-any
+  data: FeedItemData;
   summary: string;
   thumbnail?: string;
   photo_count?: number;

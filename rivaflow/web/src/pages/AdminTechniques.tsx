@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { usePageTitle } from '../hooks/usePageTitle';
 import { adminApi, glossaryApi } from '../api/client';
 import { Search, Trash2, Plus } from 'lucide-react';
 import { Card, PrimaryButton, SecondaryButton } from '../components/ui';
@@ -17,6 +18,7 @@ interface Technique {
 }
 
 export default function AdminTechniques() {
+  usePageTitle('Technique Management');
   const toast = useToast();
   const [techniques, setTechniques] = useState<Technique[]>([]);
   const [searchQuery, setSearchQuery] = useState('');

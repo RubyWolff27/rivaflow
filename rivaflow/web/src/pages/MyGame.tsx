@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { usePageTitle } from '../hooks/usePageTitle';
 import { ChevronRight, ChevronDown, Plus, Target, Star, Trash2, Edit3, Sparkles } from 'lucide-react';
 import { useToast } from '../contexts/ToastContext';
 import { gamePlansApi, getErrorMessage } from '../api/client';
@@ -305,6 +306,7 @@ function PlanWizard({ onGenerate }: { onGenerate: () => void }) {
 }
 
 export default function MyGame() {
+  usePageTitle('My Game');
   const [plan, setPlan] = useState<GamePlan | null>(null);
   const [loading, setLoading] = useState(true);
   const [addingNode, setAddingNode] = useState(false);

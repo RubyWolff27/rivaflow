@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { usePageTitle } from '../hooks/usePageTitle';
 import { videosApi, glossaryApi } from '../api/client';
 import { logger } from '../utils/logger';
 import type { Video, Movement } from '../types';
@@ -15,6 +16,7 @@ interface VideoForm {
 }
 
 export default function Videos() {
+  usePageTitle('Videos');
   const toast = useToast();
   const [videos, setVideos] = useState<Video[]>([]);
   const [movements, setMovements] = useState<Movement[]>([]);
@@ -90,10 +92,10 @@ export default function Videos() {
       setMovementSearch('');
       setShowForm(false);
       await loadData();
-      toast.showToast('success', 'Video added successfully!');
+      toast.success('Video added successfully!');
     } catch (error) {
       logger.error('Error adding video:', error);
-      toast.showToast('error', 'Failed to add video. Please try again.');
+      toast.error('Failed to add video. Please try again.');
     } finally {
       setSubmitting(false);
     }
@@ -106,7 +108,7 @@ export default function Videos() {
       await loadData();
     } catch (error) {
       logger.error('Error deleting video:', error);
-      toast.showToast('error', 'Failed to delete video. Please try again.');
+      toast.error('Failed to delete video. Please try again.');
     }
   };
 

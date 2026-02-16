@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { usePageTitle } from '../hooks/usePageTitle';
 import { usersApi, socialApi } from '../api/client';
 import { logger } from '../utils/logger';
 import { Users, MapPin, Calendar, TrendingUp, Activity, UserCheck, UserPlus, Clock } from 'lucide-react';
@@ -43,6 +44,7 @@ interface ActivityItem {
 type FriendshipStatus = 'none' | 'pending_sent' | 'pending_received' | 'friends';
 
 export default function UserProfile() {
+  usePageTitle('User Profile');
   const { userId } = useParams<{ userId: string }>();
   const navigate = useNavigate();
   const { user: currentUser } = useAuth();
