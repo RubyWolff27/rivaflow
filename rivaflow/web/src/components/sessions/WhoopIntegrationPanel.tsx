@@ -37,7 +37,7 @@ export default function WhoopIntegrationPanel({
   onToggleShow,
 }: WhoopIntegrationPanelProps) {
   return (
-    <div className="border-t border-[var(--border)] pt-4">
+    <div>
       {whoopConnected && !whoopManualMode ? (
         <>
           <div className="flex items-center justify-between mb-3">

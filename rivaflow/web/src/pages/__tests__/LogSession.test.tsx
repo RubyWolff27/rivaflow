@@ -99,19 +99,22 @@ vi.mock('../../components/ui', () => ({
   ),
 }))
 
-vi.mock('../../components/sessions/ReadinessStep', () => ({
-  default: ({ onNext, onSkip }: { onNext: () => void; onSkip: () => void }) => (
-    <div data-testid="readiness-step">
-      <p>Sleep</p>
-      <p>Stress</p>
-      <p>Soreness</p>
-      <p>Energy</p>
-      <button data-testid="readiness-next" onClick={onNext}>
-        Next
-      </button>
-      <button data-testid="readiness-skip" onClick={onSkip}>
-        Skip
-      </button>
+vi.mock('../../components/sessions/CompactReadiness', () => ({
+  default: ({ alreadyLogged, compositeScore, onSkip }: { alreadyLogged: boolean; compositeScore: number; onSkip: () => void }) => (
+    <div data-testid="compact-readiness">
+      {alreadyLogged ? (
+        <span data-testid="readiness-badge">Readiness: {compositeScore}/20</span>
+      ) : (
+        <>
+          <p>Sleep</p>
+          <p>Stress</p>
+          <p>Soreness</p>
+          <p>Energy</p>
+          <button data-testid="readiness-skip" onClick={onSkip}>
+            Skip
+          </button>
+        </>
+      )}
     </div>
   ),
 }))
@@ -156,7 +159,7 @@ describe('LogSession', () => {
   it('renders without crashing', async () => {
     renderLogSession()
     await waitFor(() => {
-      expect(screen.getByText('How Are You Feeling?')).toBeInTheDocument()
+      expect(screen.getByTestId('compact-readiness')).toBeInTheDocument()
     })
   })
 
@@ -168,7 +171,7 @@ describe('LogSession', () => {
     expect(screen.getByText(/rest day/i)).toBeInTheDocument()
   })
 
-  it('starts on readiness step', async () => {
+  it('shows readiness sliders inline on the form', async () => {
     renderLogSession()
     await waitFor(() => {
       expect(screen.getByText(/sleep/i)).toBeInTheDocument()
@@ -194,91 +197,47 @@ describe('LogSession', () => {
     })
   })
 
-  // --- New interaction tests ---
-
   it('toggles from Training to Rest Day and shows rest form', async () => {
     renderLogSession()
 
     await waitFor(() => {
-      expect(screen.getByText('How Are You Feeling?')).toBeInTheDocument()
+      expect(screen.getByTestId('compact-readiness')).toBeInTheDocument()
     })
 
-    // Click Rest Day button
     fireEvent.click(screen.getByText(/rest day/i))
 
     await waitFor(() => {
-      expect(screen.getByRole('heading', { name: 'Log Rest Day' })).toBeInTheDocument()
+      expect(screen.getByText(/active recovery/i)).toBeInTheDocument()
     })
-
-    // Rest day form should show rest type options
-    expect(screen.getByText(/active recovery/i)).toBeInTheDocument()
     expect(screen.getByText(/full rest/i)).toBeInTheDocument()
   })
 
-  it('toggles from Rest Day back to Training and shows readiness', async () => {
+  it('toggles from Rest Day back to Training and shows form', async () => {
     renderLogSession()
 
     await waitFor(() => {
-      expect(screen.getByText('How Are You Feeling?')).toBeInTheDocument()
+      expect(screen.getByTestId('compact-readiness')).toBeInTheDocument()
     })
 
-    // Switch to rest, then back to training
     fireEvent.click(screen.getByText(/rest day/i))
 
     await waitFor(() => {
-      expect(screen.getByRole('heading', { name: 'Log Rest Day' })).toBeInTheDocument()
+      expect(screen.getByText(/active recovery/i)).toBeInTheDocument()
     })
 
     fireEvent.click(screen.getByText(/training session/i))
 
     await waitFor(() => {
-      expect(screen.getByText('How Are You Feeling?')).toBeInTheDocument()
+      expect(screen.getByTestId('compact-readiness')).toBeInTheDocument()
     })
   })
 
-  it('advances to step 2 when clicking Next on readiness step', async () => {
+  it('shows duration chip buttons on the form', async () => {
     renderLogSession()
 
     await waitFor(() => {
-      expect(screen.getByTestId('readiness-step')).toBeInTheDocument()
+      expect(screen.getByText('60m')).toBeInTheDocument()
     })
-
-    fireEvent.click(screen.getByTestId('readiness-next'))
-
-    await waitFor(() => {
-      expect(screen.getByText('Log Training Session')).toBeInTheDocument()
-    })
-  })
-
-  it('advances to step 2 when clicking Skip on readiness step', async () => {
-    renderLogSession()
-
-    await waitFor(() => {
-      expect(screen.getByTestId('readiness-step')).toBeInTheDocument()
-    })
-
-    fireEvent.click(screen.getByTestId('readiness-skip'))
-
-    await waitFor(() => {
-      expect(screen.getByText('Log Training Session')).toBeInTheDocument()
-    })
-  })
-
-  it('shows duration chip buttons on step 2', async () => {
-    renderLogSession()
-
-    await waitFor(() => {
-      expect(screen.getByTestId('readiness-step')).toBeInTheDocument()
-    })
-
-    fireEvent.click(screen.getByTestId('readiness-next'))
-
-    await waitFor(() => {
-      expect(screen.getByText('Log Training Session')).toBeInTheDocument()
-    })
-
-    // Check for standard duration chips
-    expect(screen.getByText('60m')).toBeInTheDocument()
     expect(screen.getByText('75m')).toBeInTheDocument()
     expect(screen.getByText('90m')).toBeInTheDocument()
     expect(screen.getByText('120m')).toBeInTheDocument()
@@ -289,20 +248,12 @@ describe('LogSession', () => {
     renderLogSession()
 
     await waitFor(() => {
-      expect(screen.getByTestId('readiness-step')).toBeInTheDocument()
+      expect(screen.getByText('60m')).toBeInTheDocument()
     })
 
-    fireEvent.click(screen.getByTestId('readiness-next'))
-
-    await waitFor(() => {
-      expect(screen.getByText('Log Training Session')).toBeInTheDocument()
-    })
-
-    // Click 90m chip
     const chip90 = screen.getByLabelText('90 minutes')
     fireEvent.click(chip90)
 
-    // Verify the button is now pressed
     expect(chip90).toHaveAttribute('aria-pressed', 'true')
   })
 
@@ -310,13 +261,7 @@ describe('LogSession', () => {
     renderLogSession()
 
     await waitFor(() => {
-      expect(screen.getByTestId('readiness-step')).toBeInTheDocument()
-    })
-
-    fireEvent.click(screen.getByTestId('readiness-next'))
-
-    await waitFor(() => {
-      expect(screen.getByText('Log Training Session')).toBeInTheDocument()
+      expect(screen.getByText('Custom')).toBeInTheDocument()
     })
 
     fireEvent.click(screen.getByText('Custom'))
@@ -326,8 +271,7 @@ describe('LogSession', () => {
     })
   })
 
-  it('skips readiness step automatically when readiness already logged today', async () => {
-    // Mock that readiness was already logged today
+  it('shows readiness badge when readiness already logged today', async () => {
     mockGetByDate.mockResolvedValueOnce({
       data: {
         sleep: 4,
@@ -341,33 +285,8 @@ describe('LogSession', () => {
 
     renderLogSession()
 
-    // Should skip directly to step 2
     await waitFor(() => {
-      expect(screen.getByText('Log Training Session')).toBeInTheDocument()
-    })
-
-    // Should show auto-skip note
-    expect(screen.getByText('Readiness already logged today')).toBeInTheDocument()
-  })
-
-  it('shows Back button on step 2 that navigates to step 1', async () => {
-    renderLogSession()
-
-    await waitFor(() => {
-      expect(screen.getByTestId('readiness-step')).toBeInTheDocument()
-    })
-
-    fireEvent.click(screen.getByTestId('readiness-next'))
-
-    await waitFor(() => {
-      expect(screen.getByText('Log Training Session')).toBeInTheDocument()
-    })
-
-    // Click Back
-    fireEvent.click(screen.getByText('Back'))
-
-    await waitFor(() => {
-      expect(screen.getByText('How Are You Feeling?')).toBeInTheDocument()
+      expect(screen.getByTestId('readiness-badge')).toBeInTheDocument()
     })
   })
 
@@ -375,17 +294,15 @@ describe('LogSession', () => {
     renderLogSession()
 
     await waitFor(() => {
-      expect(screen.getByText('How Are You Feeling?')).toBeInTheDocument()
+      expect(screen.getByTestId('compact-readiness')).toBeInTheDocument()
     })
 
     fireEvent.click(screen.getByText(/rest day/i))
 
     await waitFor(() => {
-      expect(screen.getByRole('heading', { name: 'Log Rest Day' })).toBeInTheDocument()
+      expect(screen.getByText(/active recovery/i)).toBeInTheDocument()
     })
 
-    // Verify all rest type buttons
-    expect(screen.getByText(/active recovery/i)).toBeInTheDocument()
     expect(screen.getByText(/full rest/i)).toBeInTheDocument()
     expect(screen.getByText(/injury/i)).toBeInTheDocument()
     expect(screen.getByText(/sick day/i)).toBeInTheDocument()
@@ -397,56 +314,38 @@ describe('LogSession', () => {
     renderLogSession()
 
     await waitFor(() => {
-      expect(screen.getByText('How Are You Feeling?')).toBeInTheDocument()
+      expect(screen.getByTestId('compact-readiness')).toBeInTheDocument()
     })
 
     fireEvent.click(screen.getByText(/rest day/i))
 
     await waitFor(() => {
-      expect(screen.getByRole('heading', { name: 'Log Rest Day' })).toBeInTheDocument()
+      expect(screen.getByText(/active recovery/i)).toBeInTheDocument()
     })
 
-    const fullRestBtn = screen.getByText('Full Rest')
+    const fullRestBtn = screen.getByText(/full rest/i)
     fireEvent.click(fullRestBtn)
     expect(fullRestBtn).toHaveAttribute('aria-pressed', 'true')
   })
 
-  it('shows class type chips on step 2', async () => {
+  it('shows class type chips on the form', async () => {
     renderLogSession()
-
-    await waitFor(() => {
-      expect(screen.getByTestId('readiness-step')).toBeInTheDocument()
-    })
-
-    fireEvent.click(screen.getByTestId('readiness-next'))
 
     await waitFor(() => {
       expect(screen.getByTestId('class-type-chips')).toBeInTheDocument()
     })
   })
 
-  it('shows intensity chips on step 2', async () => {
+  it('shows intensity chips on the form', async () => {
     renderLogSession()
-
-    await waitFor(() => {
-      expect(screen.getByTestId('readiness-step')).toBeInTheDocument()
-    })
-
-    fireEvent.click(screen.getByTestId('readiness-next'))
 
     await waitFor(() => {
       expect(screen.getByTestId('intensity-chips')).toBeInTheDocument()
     })
   })
 
-  it('shows the Log Session submit button on step 2', async () => {
+  it('shows the Log Session submit button', async () => {
     renderLogSession()
-
-    await waitFor(() => {
-      expect(screen.getByTestId('readiness-step')).toBeInTheDocument()
-    })
-
-    fireEvent.click(screen.getByTestId('readiness-next'))
 
     await waitFor(() => {
       expect(screen.getByText('Log Session')).toBeInTheDocument()
@@ -457,22 +356,13 @@ describe('LogSession', () => {
     renderLogSession()
 
     await waitFor(() => {
-      expect(screen.getByText('How Are You Feeling?')).toBeInTheDocument()
+      expect(screen.getByTestId('compact-readiness')).toBeInTheDocument()
     })
 
     fireEvent.click(screen.getByText(/rest day/i))
 
     await waitFor(() => {
       expect(screen.getByText('Log Rest Day', { selector: 'button' })).toBeInTheDocument()
-    })
-  })
-
-  it('shows progress indicator with step numbers for training', async () => {
-    renderLogSession()
-
-    await waitFor(() => {
-      expect(screen.getByText('Readiness Check')).toBeInTheDocument()
-      expect(screen.getByText('Session Details')).toBeInTheDocument()
     })
   })
 })

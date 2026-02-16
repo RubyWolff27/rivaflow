@@ -43,7 +43,7 @@ export default function TechniqueTracker({
   onMediaUrlChange,
 }: TechniqueTrackerProps) {
   return (
-    <div className="space-y-4 border-t border-[var(--border)] pt-4">
+    <div className="space-y-3">
       <div className="flex items-center justify-between">
         <h3 className="font-semibold text-lg">Technique of the Day</h3>
         <button

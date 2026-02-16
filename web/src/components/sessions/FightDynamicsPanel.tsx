@@ -25,7 +25,7 @@ export default function FightDynamicsPanel({
   onChange,
 }: FightDynamicsPanelProps) {
   return (
-    <div className="border-t border-[var(--border)] pt-4">
+    <div>
       <button
         type="button"
         onClick={onToggle}

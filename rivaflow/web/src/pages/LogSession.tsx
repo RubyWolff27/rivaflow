@@ -5,14 +5,14 @@ import { usePageTitle } from '../hooks/usePageTitle';
 import { sessionsApi, readinessApi, profileApi, friendsApi, socialApi, glossaryApi, restApi, whoopApi } from '../api/client';
 import { logger } from '../utils/logger';
 import type { Readiness, Movement } from '../types';
-import { CheckCircle, ArrowLeft, Mic, MicOff, ChevronDown, ChevronUp } from 'lucide-react';
+import { CheckCircle, Mic, MicOff, ChevronDown, ChevronUp } from 'lucide-react';
 import WhoopMatchModal from '../components/WhoopMatchModal';
 import GymSelector from '../components/GymSelector';
 import { ClassTypeChips, IntensityChips } from '../components/ui';
 import { useToast } from '../contexts/ToastContext';
 import { triggerInsightRefresh } from '../utils/insightRefresh';
 import { useSpeechRecognition } from '../hooks/useSpeechRecognition';
-import ReadinessStep from '../components/sessions/ReadinessStep';
+import CompactReadiness from '../components/sessions/CompactReadiness';
 import TechniqueTracker from '../components/sessions/TechniqueTracker';
 import RollTracker from '../components/sessions/RollTracker';
 import ClassTimePicker from '../components/sessions/ClassTimePicker';
@@ -27,11 +27,10 @@ export default function LogSession() {
   const navigate = useNavigate();
   const toast = useToast();
   const [activityType, setActivityType] = useState<'training' | 'rest'>('training');
-  const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const [skippedReadiness, setSkippedReadiness] = useState(false);
-  const [readinessAutoSkipped, setReadinessAutoSkipped] = useState(false);
+  const [readinessAlreadyLogged, setReadinessAlreadyLogged] = useState(false);
 
   const form = useSessionForm({
     initialData: { session_date: getLocalDateString() },
@@ -109,7 +108,7 @@ export default function LogSession() {
           form.setSessionData(prev => ({ ...prev, ...updates }));
         }
 
-        // Check if readiness already logged today — auto-skip step 1
+        // Check if readiness already logged today
         try {
           const today = getLocalDateString();
           const readinessRes = await readinessApi.getByDate(today);
@@ -124,11 +123,10 @@ export default function LogSession() {
               weight_kg: readinessRes.data.weight_kg?.toString() ?? prev.weight_kg,
             }));
             setSkippedReadiness(true);
-            setReadinessAutoSkipped(true);
-            setStep(2);
+            setReadinessAlreadyLogged(true);
           }
         } catch {
-          // No readiness logged today — show step 1 as normal
+          // No readiness logged today
         }
 
         try {
@@ -147,17 +145,8 @@ export default function LogSession() {
     return () => { controller.abort(); };
   }, []);
 
-  const handleNextStep = useCallback(() => {
-    if (step === 1) setStep(2);
-  }, [step]);
-
   const handleSkipReadiness = useCallback(() => {
     setSkippedReadiness(true);
-    setStep(2);
-  }, []);
-
-  const handleBackStep = useCallback(() => {
-    setStep(1);
   }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -278,99 +267,48 @@ export default function LogSession() {
 
   return (
     <div className="max-w-2xl mx-auto">
-      {/* Activity Type Selector */}
-      <div className="card mb-6">
-        <label className="label">What would you like to log?</label>
-        <div className="flex gap-3" role="group" aria-label="Activity type">
-          <button
-            type="button"
-            onClick={() => { setActivityType('training'); setStep(1); }}
-            className="flex-1 py-3 rounded-lg font-medium text-sm transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-2"
-            style={{
-              backgroundColor: activityType === 'training' ? 'var(--accent)' : 'var(--surfaceElev)',
-              color: activityType === 'training' ? '#FFFFFF' : 'var(--text)',
-              border: activityType === 'training' ? 'none' : '1px solid var(--border)',
-            }}
-            aria-pressed={activityType === 'training'}
-          >
-            Training Session
-          </button>
-          <button
-            type="button"
-            onClick={() => { setActivityType('rest'); setStep(2); }}
-            className="flex-1 py-3 rounded-lg font-medium text-sm transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-2"
-            style={{
-              backgroundColor: activityType === 'rest' ? 'var(--accent)' : 'var(--surfaceElev)',
-              color: activityType === 'rest' ? '#FFFFFF' : 'var(--text)',
-              border: activityType === 'rest' ? 'none' : '1px solid var(--border)',
-            }}
-            aria-pressed={activityType === 'rest'}
-          >
-            Rest Day
-          </button>
-        </div>
+      {/* Activity Type Selector — slim, no card wrapper */}
+      <div className="flex gap-2 mb-4" role="group" aria-label="Activity type">
+        <button
+          type="button"
+          onClick={() => setActivityType('training')}
+          className="flex-1 py-2 rounded-lg font-medium text-sm transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-2"
+          style={{
+            backgroundColor: activityType === 'training' ? 'var(--accent)' : 'var(--surfaceElev)',
+            color: activityType === 'training' ? '#FFFFFF' : 'var(--text)',
+            border: activityType === 'training' ? 'none' : '1px solid var(--border)',
+          }}
+          aria-pressed={activityType === 'training'}
+        >
+          Training Session
+        </button>
+        <button
+          type="button"
+          onClick={() => setActivityType('rest')}
+          className="flex-1 py-2 rounded-lg font-medium text-sm transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-2"
+          style={{
+            backgroundColor: activityType === 'rest' ? 'var(--accent)' : 'var(--surfaceElev)',
+            color: activityType === 'rest' ? '#FFFFFF' : 'var(--text)',
+            border: activityType === 'rest' ? 'none' : '1px solid var(--border)',
+          }}
+          aria-pressed={activityType === 'rest'}
+        >
+          Rest Day
+        </button>
       </div>
 
-      {/* Progress Indicator (only for training) */}
+      {/* Training Session — single-page form */}
       {activityType === 'training' && (
-        <div className="mb-6">
-        <div className="flex items-center justify-center gap-2">
-          <div className={`w-8 h-8 rounded-full flex items-center justify-center font-semibold ${
-            step === 1
-              ? 'bg-[var(--accent)] text-white'
-              : skippedReadiness
-                ? 'bg-[var(--surfaceElev)] text-[var(--muted)] line-through'
-                : 'bg-green-500 text-white'
-          }`}>
-            1
-          </div>
-          <div className="w-16 h-1 bg-[var(--surfaceElev)]"></div>
-          <div className={`w-8 h-8 rounded-full flex items-center justify-center font-semibold ${step === 2 ? 'bg-[var(--accent)] text-white' : 'bg-[var(--surfaceElev)] text-[var(--muted)]'}`}>
-            2
-          </div>
-        </div>
-        <div className="flex justify-between mt-2 text-sm">
-          <span className={`${step === 1 ? 'font-semibold' : skippedReadiness ? 'text-[var(--muted)] line-through' : 'text-[var(--muted)]'}`}>
-            Readiness Check {skippedReadiness && '(skipped)'}
-          </span>
-          <span className={step === 2 ? 'font-semibold' : 'text-[var(--muted)]'}>Session Details</span>
-        </div>
-      </div>
-      )}
+        <form onSubmit={handleSubmit} className="card space-y-3">
+          {/* Compact Readiness */}
+          <CompactReadiness
+            data={readinessData}
+            onChange={setReadinessData}
+            compositeScore={compositeScore}
+            onSkip={handleSkipReadiness}
+            alreadyLogged={readinessAlreadyLogged}
+          />
 
-      <h1 className="text-3xl font-bold mb-6">
-        {activityType === 'rest'
-          ? 'Log Rest Day'
-          : step === 1
-            ? 'How Are You Feeling?'
-            : 'Log Training Session'
-        }
-      </h1>
-
-      {/* Step 1: Readiness */}
-      {activityType === 'training' && step === 1 && (
-        <ReadinessStep
-          data={readinessData}
-          onChange={setReadinessData}
-          compositeScore={compositeScore}
-          onNext={handleNextStep}
-          onSkip={handleSkipReadiness}
-        />
-      )}
-
-      {/* Step 2: Training Session */}
-      {activityType === 'training' && step === 2 && (
-        <form onSubmit={handleSubmit} className="card space-y-4">
-          {/* Readiness auto-skip note */}
-          {readinessAutoSkipped && (
-            <div className="flex items-center justify-between text-sm rounded-lg px-3 py-2" style={{ backgroundColor: 'rgba(34,197,94,0.1)', color: '#16a34a' }}>
-              <span>Readiness already logged today</span>
-              <button type="button" onClick={() => { setReadinessAutoSkipped(false); setSkippedReadiness(false); setStep(1); }}
-                className="font-medium underline" style={{ color: 'var(--accent)' }}>
-                Edit
-              </button>
-            </div>
-          )}
           {/* Date */}
           <div>
             <label className="label">Date</label>
@@ -395,13 +333,13 @@ export default function LogSession() {
           {/* Class Type */}
           <div>
             <label className="label">Class Type</label>
-            <ClassTypeChips value={form.sessionData.class_type}
+            <ClassTypeChips value={form.sessionData.class_type} size="sm"
               onChange={(val) => form.setSessionData(prev => ({ ...prev, class_type: val }))} />
           </div>
 
           {/* Gym Name */}
           <div>
-            <label className="label">Gym Name</label>
+            <label className="label">Gym</label>
             <GymSelector
               value={form.sessionData.gym_name}
               onChange={(gymName, isCustom) => {
@@ -421,9 +359,6 @@ export default function LogSession() {
                 }));
               }}
             />
-            <p className="text-xs text-[var(--muted)] mt-1">
-              Select from verified gyms or add a new one. Head coach will auto-populate if available.
-            </p>
           </div>
 
           {/* Duration */}
@@ -438,7 +373,7 @@ export default function LogSession() {
                     {DURATION_QUICK_SELECT.map((mins) => (
                       <button key={mins} type="button"
                         onClick={() => { form.setSessionData(prev => ({ ...prev, duration_mins: mins })); form.setShowCustomDuration(false); }}
-                        className="flex-1 min-h-[44px] py-3 rounded-lg font-medium text-sm transition-all"
+                        className="flex-1 min-h-[36px] py-2 rounded-lg font-medium text-xs transition-all"
                         style={{
                           backgroundColor: form.sessionData.duration_mins === mins && !form.showCustomDuration ? 'var(--accent)' : 'var(--surfaceElev)',
                           color: form.sessionData.duration_mins === mins && !form.showCustomDuration ? '#FFFFFF' : 'var(--text)',
@@ -451,7 +386,7 @@ export default function LogSession() {
                     ))}
                     <button type="button"
                       onClick={() => form.setShowCustomDuration(true)}
-                      className="flex-1 min-h-[44px] py-3 rounded-lg font-medium text-sm transition-all"
+                      className="flex-1 min-h-[36px] py-2 rounded-lg font-medium text-xs transition-all"
                       style={{
                         backgroundColor: isCustomActive ? 'var(--accent)' : 'var(--surfaceElev)',
                         color: isCustomActive ? '#FFFFFF' : 'var(--text)',
@@ -475,12 +410,12 @@ export default function LogSession() {
           {/* Intensity */}
           <div>
             <label className="label">Intensity</label>
-            <IntensityChips value={form.sessionData.intensity}
+            <IntensityChips value={form.sessionData.intensity} size="sm" showDescription={false}
               onChange={(val) => form.setSessionData(prev => ({ ...prev, intensity: val }))} />
           </div>
 
           {/* Notes */}
-          <div className="border-t border-[var(--border)] pt-4">
+          <div>
             <label className="label">
               {form.isSparringType ? 'Notes' : 'Session Details'}
               {!form.isSparringType && (
@@ -516,7 +451,7 @@ export default function LogSession() {
           </div>
 
           {/* Collapsible More Details — Instructor, Location */}
-          <div className="border-t border-[var(--border)] pt-3">
+          <div>
             <button type="button" onClick={() => form.setShowMoreDetails(!form.showMoreDetails)}
               className="flex items-center justify-between w-full text-sm text-[var(--muted)] hover:text-[var(--text)] transition-colors">
               <span className="font-medium">
@@ -569,7 +504,6 @@ export default function LogSession() {
                     </datalist>
                   )}
                 </div>
-
               </div>
             )}
           </div>
@@ -651,22 +585,14 @@ export default function LogSession() {
             />
           )}
 
-          {/* Photo Upload Info */}
-          <p className="text-xs text-[var(--muted)]">You can add up to 3 photos after saving.</p>
-
           {/* Spacer so sticky bar doesn't obscure content on mobile */}
-          <div className="pb-16 sm:pb-0" />
+          <div className="pb-14 sm:pb-0" />
 
           {/* Submit — sticky on mobile */}
           <div className="sticky bottom-0 -mx-4 px-4 py-3 border-t border-[var(--border)] bg-[var(--surface)] sm:static sm:mx-0 sm:px-0 sm:py-0 sm:border-t-0">
-            <div className="flex gap-2">
-              <button type="button" onClick={handleBackStep} className="btn-secondary flex items-center gap-2">
-                <ArrowLeft className="w-4 h-4" /> Back
-              </button>
-              <button type="submit" disabled={loading} className="btn-primary flex-1">
-                {loading ? 'Logging Session...' : 'Log Session'}
-              </button>
-            </div>
+            <button type="submit" disabled={loading} className="btn-primary w-full">
+              {loading ? 'Logging Session...' : 'Log Session'}
+            </button>
           </div>
         </form>
       )}
@@ -681,7 +607,7 @@ export default function LogSession() {
       />
 
       {/* Rest Day Form */}
-      {activityType === 'rest' && step === 2 && (
+      {activityType === 'rest' && (
         <form onSubmit={handleSubmit} className="card space-y-4">
           <div>
             <label className="label">Date</label>

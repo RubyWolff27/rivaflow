@@ -52,9 +52,9 @@ export default function RollTracker({
 }: RollTrackerProps) {
   return (
     <>
-      <div className="space-y-4 border-t border-[var(--border)] pt-4">
+      <div className="space-y-3">
         <div className="flex items-center justify-between">
-          <h3 className="font-semibold text-lg">Roll Tracking</h3>
+          <h3 className="font-semibold text-base">Rolls & Submissions</h3>
           <button
             type="button"
             onClick={onToggleMode}
@@ -75,9 +75,9 @@ export default function RollTracker({
         </div>
 
         {!detailedMode ? (
-          <>
+          <div className="grid grid-cols-3 gap-3">
             <div>
-              <label className="label">Rolls</label>
+              <label className="label text-xs">Rolls</label>
               <input
                 type="number"
                 className="input"
@@ -86,30 +86,27 @@ export default function RollTracker({
                 min="0"
               />
             </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="label">Submissions For</label>
-                <input
-                  type="number"
-                  className="input"
-                  value={simpleData.submissions_for}
-                  onChange={(e) => onSimpleChange('submissions_for', parseInt(e.target.value))}
-                  min="0"
-                />
-              </div>
-              <div>
-                <label className="label">Submissions Against</label>
-                <input
-                  type="number"
-                  className="input"
-                  value={simpleData.submissions_against}
-                  onChange={(e) => onSimpleChange('submissions_against', parseInt(e.target.value))}
-                  min="0"
-                />
-              </div>
+            <div>
+              <label className="label text-xs">Subs+</label>
+              <input
+                type="number"
+                className="input"
+                value={simpleData.submissions_for}
+                onChange={(e) => onSimpleChange('submissions_for', parseInt(e.target.value))}
+                min="0"
+              />
             </div>
-          </>
+            <div>
+              <label className="label text-xs">Subs-</label>
+              <input
+                type="number"
+                className="input"
+                value={simpleData.submissions_against}
+                onChange={(e) => onSimpleChange('submissions_against', parseInt(e.target.value))}
+                min="0"
+              />
+            </div>
+          </div>
         ) : (
           <div className="space-y-4">
             <p className="text-sm text-[var(--muted)]">
