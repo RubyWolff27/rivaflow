@@ -3,6 +3,11 @@
 
 set -e  # Exit on error
 
+# Activate virtualenv if running on Render
+if [ -f /opt/render/project/src/.venv/bin/activate ]; then
+    . /opt/render/project/src/.venv/bin/activate
+fi
+
 echo "==> Starting RivaFlow deployment..."
 echo "==> Python version: $(python --version)"
 echo "==> Environment: ${ENV:-development}"
