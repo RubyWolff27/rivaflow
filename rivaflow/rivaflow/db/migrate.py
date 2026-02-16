@@ -31,10 +31,19 @@ def _ensure_critical_columns(conn):
     """
     checks = [
         ("profile", "timezone", "TEXT DEFAULT 'UTC'"),
+        ("users", "failed_login_attempts", "INTEGER DEFAULT 0"),
+        ("users", "locked_until", "TIMESTAMP"),
     ]
     # Whitelist of allowed table/column names to prevent SQL injection
-    allowed_tables = {"profile", "sessions"}
-    allowed_columns = {"timezone", "session_score", "score_breakdown", "score_version"}
+    allowed_tables = {"profile", "sessions", "users"}
+    allowed_columns = {
+        "timezone",
+        "session_score",
+        "score_breakdown",
+        "score_version",
+        "failed_login_attempts",
+        "locked_until",
+    }
 
     cursor = conn.cursor()
     for table, column, col_def in checks:
@@ -77,9 +86,7 @@ def _ensure_critical_columns(conn):
                 "THEN FALSE WHEN needs_review IS NULL THEN NULL "
                 "ELSE TRUE END"
             )
-            cursor.execute(
-                "ALTER TABLE sessions ALTER COLUMN needs_review " "SET DEFAULT FALSE"
-            )
+            cursor.execute("ALTER TABLE sessions ALTER COLUMN needs_review " "SET DEFAULT FALSE")
             conn.commit()
             logger.info("Converted sessions.needs_review to BOOLEAN")
         else:
@@ -116,9 +123,7 @@ def create_migrations_table(conn):
 
         if not has_version_column:
             # Table exists but has wrong schema - drop and recreate
-            logger.warning(
-                "schema_migrations table exists with incorrect schema. Recreating..."
-            )
+            logger.warning("schema_migrations table exists with incorrect schema. Recreating...")
             cursor.execute("DROP TABLE IF EXISTS schema_migrations")
             conn.commit()
     except psycopg2.Error as e:
@@ -166,9 +171,7 @@ def apply_migration(conn, migration_file):
         cursor.execute(sql)
 
         # Record migration
-        cursor.execute(
-            "INSERT INTO schema_migrations (version) VALUES (%s)", (version,)
-        )
+        cursor.execute("INSERT INTO schema_migrations (version) VALUES (%s)", (version,))
 
         conn.commit()
         logger.info(f"✓ Applied: {version}")
@@ -264,7 +267,5 @@ def run_migrations():
 
 if __name__ == "__main__":
     # Configure logging for standalone execution
-    logging.basicConfig(
-        level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
-    )
+    logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
     run_migrations()
