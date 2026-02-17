@@ -7,7 +7,7 @@ quality, rewarding smart training that aligns effort with recovery state.
 import logging
 from datetime import date
 
-from rivaflow.config import SPARRING_CLASS_TYPES
+from rivaflow.core.constants import SPARRING_CLASS_TYPES
 from rivaflow.db.database import convert_query, get_connection
 from rivaflow.db.repositories.session_repo import SessionRepository
 

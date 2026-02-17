@@ -1,4 +1,4 @@
-const CLASS_TYPES = [
+export const CLASS_TYPES = [
   { value: 'gi', label: 'Gi', color: '#3B82F6' },
   { value: 'no-gi', label: 'No-Gi', color: '#8B5CF6' },
   { value: 'open-mat', label: 'Open Mat', color: '#F59E0B' },

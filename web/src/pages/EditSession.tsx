@@ -12,18 +12,9 @@ import PhotoUpload from '../components/PhotoUpload';
 import ConfirmDialog from '../components/ConfirmDialog';
 import { useToast } from '../contexts/ToastContext';
 import { useSessionForm, mergePartners, mapSocialFriends } from '../hooks/useSessionForm';
+import { CLASS_TYPES } from '../components/ui/ClassTypeChips';
 
 const HH_MM_RE = /^([01]\d|2[0-3]):([0-5]\d)$/;
-const CLASS_TYPES = ['gi', 'no-gi', 'open-mat', 'competition', 's&c', 'cardio', 'mobility'];
-const CLASS_TYPE_LABELS: Record<string, string> = {
-  'gi': 'Gi',
-  'no-gi': 'No-Gi',
-  'open-mat': 'Open Mat',
-  'competition': 'Competition',
-  's&c': 'S&C',
-  'cardio': 'Cardio',
-  'mobility': 'Mobility',
-};
 
 export default function EditSession() {
   usePageTitle('Edit Session');
@@ -306,7 +297,7 @@ export default function EditSession() {
             required
           >
             {CLASS_TYPES.map((type) => (
-              <option key={type} value={type}>{CLASS_TYPE_LABELS[type] || type}</option>
+              <option key={type.value} value={type.value}>{type.label}</option>
             ))}
           </select>
         </div>

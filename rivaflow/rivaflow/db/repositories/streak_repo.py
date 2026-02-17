@@ -2,7 +2,7 @@
 
 from datetime import date
 
-from rivaflow.config import STREAK_GRACE_DAYS
+from rivaflow.core.constants import STREAK_GRACE_DAYS
 from rivaflow.db.database import convert_query, execute_insert, get_connection
 
 

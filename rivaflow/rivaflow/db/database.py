@@ -9,13 +9,15 @@ from contextlib import contextmanager
 from pathlib import Path
 from typing import Optional, Union
 
-from rivaflow.config import APP_DIR, DATABASE_URL, DB_PATH
 from rivaflow.core.settings import settings
 
 logger = logging.getLogger(__name__)
 
 # Backwards compatibility
 DB_TYPE = settings.DB_TYPE
+APP_DIR = settings.APP_DIR
+DATABASE_URL = settings.DATABASE_URL
+DB_PATH = settings.DB_PATH
 
 
 def get_placeholder():

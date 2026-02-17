@@ -2,7 +2,7 @@
 
 import random
 
-from rivaflow.config import MILESTONE_QUOTES
+from rivaflow.core.constants import MILESTONE_QUOTES
 from rivaflow.db.database import get_connection
 from rivaflow.db.repositories.milestone_repo import MilestoneRepository
 from rivaflow.db.repositories.streak_repo import StreakRepository

@@ -1,6 +1,6 @@
 """Repository for milestone tracking."""
 
-from rivaflow.config import MILESTONE_LABELS, MILESTONES
+from rivaflow.core.constants import MILESTONE_LABELS, MILESTONES
 from rivaflow.db.database import convert_query, execute_insert, get_connection
 
 

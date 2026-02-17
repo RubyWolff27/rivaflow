@@ -81,14 +81,18 @@ def _ensure_critical_columns(conn):
         if row and row[0] != "boolean":
             logger.warning(f"sessions.needs_review is {row[0]}, converting to BOOLEAN")
             # Must drop default before type change, then re-add
-            cursor.execute("ALTER TABLE sessions ALTER COLUMN needs_review DROP DEFAULT")
+            cursor.execute(
+                "ALTER TABLE sessions ALTER COLUMN needs_review DROP DEFAULT"
+            )
             cursor.execute(
                 "ALTER TABLE sessions ALTER COLUMN needs_review "
                 "TYPE BOOLEAN USING CASE WHEN needs_review = 0 "
                 "THEN FALSE WHEN needs_review IS NULL THEN NULL "
                 "ELSE TRUE END"
             )
-            cursor.execute("ALTER TABLE sessions ALTER COLUMN needs_review " "SET DEFAULT FALSE")
+            cursor.execute(
+                "ALTER TABLE sessions ALTER COLUMN needs_review " "SET DEFAULT FALSE"
+            )
             conn.commit()
             logger.info("Converted sessions.needs_review to BOOLEAN")
         else:
@@ -125,7 +129,9 @@ def create_migrations_table(conn):
 
         if not has_version_column:
             # Table exists but has wrong schema - drop and recreate
-            logger.warning("schema_migrations table exists with incorrect schema. Recreating...")
+            logger.warning(
+                "schema_migrations table exists with incorrect schema. Recreating..."
+            )
             cursor.execute("DROP TABLE IF EXISTS schema_migrations")
             conn.commit()
     except psycopg2.Error as e:
@@ -173,7 +179,9 @@ def apply_migration(conn, migration_file):
         cursor.execute(sql)
 
         # Record migration
-        cursor.execute("INSERT INTO schema_migrations (version) VALUES (%s)", (version,))
+        cursor.execute(
+            "INSERT INTO schema_migrations (version) VALUES (%s)", (version,)
+        )
 
         conn.commit()
         logger.info(f"✓ Applied: {version}")
@@ -246,7 +254,7 @@ def run_migrations():
         logger.info("=" * 60)
         logger.info("✓ All migrations applied successfully")
         logger.info("=" * 60)
-    except psycopg2.Error as e:
+    except (psycopg2.Error, RuntimeError) as e:
         logger.error(f"Migration failed: {e}", exc_info=True)
         raise RuntimeError(f"Database migration failed: {e}") from e
     finally:
@@ -269,5 +277,7 @@ def run_migrations():
 
 if __name__ == "__main__":
     # Configure logging for standalone execution
-    logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
+    logging.basicConfig(
+        level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
+    )
     run_migrations()

@@ -362,7 +362,7 @@ export default function HeroScore({
               <button
                 onClick={onSyncWhoop}
                 disabled={whoopSyncing}
-                className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full hover:opacity-80"
+                className="inline-flex items-center gap-1 text-xs min-h-[44px] px-3 py-2 rounded-full hover:opacity-80"
                 style={{ color: 'var(--muted)', backgroundColor: 'var(--surfaceElev)', border: '1px solid var(--border)' }}
                 title="Sync WHOOP"
               >

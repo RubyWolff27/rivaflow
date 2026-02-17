@@ -3,8 +3,8 @@
 import random
 from datetime import date, timedelta
 
-from rivaflow.config import DB_TYPE
 from rivaflow.core.services.milestone_service import MilestoneService
+from rivaflow.core.settings import settings
 from rivaflow.db.database import convert_query, get_connection
 from rivaflow.db.repositories.streak_repo import StreakRepository
 
@@ -81,7 +81,7 @@ class InsightService:
             four_weeks_ago = today - timedelta(days=28)
 
             # Database-specific week formatting
-            if DB_TYPE == "postgresql":
+            if settings.DB_TYPE == "postgresql":
                 week_format = "to_char(session_date::date, 'IYYY-IW')"
             else:
                 week_format = "strftime('%Y-%W', session_date)"

@@ -6,7 +6,11 @@ from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
 from pydantic import BaseModel, EmailStr, Field
 
 from rivaflow.api.rate_limit import limiter
-from rivaflow.api.response_models import CurrentUserResponse
+from rivaflow.api.response_models import (
+    AccessTokenResponse,
+    CurrentUserResponse,
+    TokenResponse,
+)
 from rivaflow.core.dependencies import get_current_user
 from rivaflow.core.error_handling import handle_service_error
 from rivaflow.core.exceptions import (
@@ -58,21 +62,6 @@ class LoginRequest(BaseModel):
 
     email: EmailStr
     password: str = Field(..., max_length=128)
-
-
-class TokenResponse(BaseModel):
-    """Authentication token response model."""
-
-    access_token: str
-    token_type: str = "bearer"
-    user: CurrentUserResponse
-
-
-class AccessTokenResponse(BaseModel):
-    """Access token only response model (for refresh)."""
-
-    access_token: str
-    token_type: str = "bearer"
 
 
 @router.post(

@@ -188,7 +188,7 @@ const Layout = memo(function Layout({ children }: { children: React.ReactNode })
           if (sessionId) {
             navigate(`/session/${sessionId}`);
           } else if (location.pathname === '/') {
-            navigate(0); // Force re-render without full page reload
+            window.location.reload();
           }
         }}
       />

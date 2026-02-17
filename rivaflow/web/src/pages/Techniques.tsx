@@ -87,7 +87,8 @@ export default function Techniques() {
                 {staleTechniques.map((tech) => (
                   <span
                     key={tech.id}
-                    className="px-2 py-1 bg-yellow-100 text-yellow-800 rounded text-sm"
+                    className="px-2 py-1 rounded text-sm"
+                    style={{ backgroundColor: 'rgba(234,179,8,0.1)', color: '#ca8a04' }}
                   >
                     {tech.name}
                   </span>

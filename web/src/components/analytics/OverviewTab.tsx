@@ -17,6 +17,7 @@ import {
 } from '../ui';
 import TrainingCalendar from './TrainingCalendar';
 import MiniZoneBar from '../MiniZoneBar';
+import ErrorBoundary from '../ErrorBoundary';
 import type {
   PerformanceOverview,
   CalendarData,
@@ -337,16 +338,19 @@ export default function OverviewTab({
 
       {/* Training Calendar */}
       {calendarData && calendarData.calendar && (
-        <TrainingCalendar
-          calendar={calendarData.calendar}
-          totalActiveDays={calendarData.total_active_days ?? 0}
-          activityRate={calendarData.activity_rate ?? 0}
-        />
+        <ErrorBoundary compact>
+          <TrainingCalendar
+            calendar={calendarData.calendar}
+            totalActiveDays={calendarData.total_active_days ?? 0}
+            activityRate={calendarData.activity_rate ?? 0}
+          />
+        </ErrorBoundary>
       )}
 
       {/* Duration Analytics */}
       {durationData && (durationData.overall_avg ?? 0) > 0 && (
-        <Card>
+        <ErrorBoundary compact>
+          <Card>
           <button
             className="w-full flex items-center justify-between"
             onClick={() => toggleCard('duration')}
@@ -399,12 +403,14 @@ export default function OverviewTab({
             </div>
           )}
         </Card>
+        </ErrorBoundary>
       )}
 
       {/* Time of Day */}
       {timeOfDayData?.patterns &&
         timeOfDayData.patterns.some((p) => (p.sessions ?? 0) > 0) && (
-          <Card>
+          <ErrorBoundary compact>
+            <Card>
             <button
               className="w-full flex items-center justify-between"
               onClick={() => toggleCard('timeOfDay')}
@@ -477,11 +483,13 @@ export default function OverviewTab({
               </div>
             )}
           </Card>
+          </ErrorBoundary>
         )}
 
       {/* Gym Comparison */}
       {gymData?.gyms && gymData.gyms.length > 1 && (
-        <Card>
+        <ErrorBoundary compact>
+          <Card>
           <button
             className="w-full flex items-center justify-between"
             onClick={() => toggleCard('gym')}
@@ -553,12 +561,14 @@ export default function OverviewTab({
             </div>
           )}
         </Card>
+        </ErrorBoundary>
       )}
 
       {/* Class Type Effectiveness */}
       {classTypeData?.class_types &&
         classTypeData.class_types.length > 1 && (
-          <Card>
+          <ErrorBoundary compact>
+            <Card>
             <button
               className="w-full flex items-center justify-between"
               onClick={() => toggleCard('classType')}
@@ -635,11 +645,13 @@ export default function OverviewTab({
               </div>
             )}
           </Card>
+          </ErrorBoundary>
         )}
 
       {/* HR Zone Trends */}
       {zoneTrendsData && zoneTrendsData.length > 0 && (
-        <Card>
+        <ErrorBoundary compact>
+          <Card>
           <button
             className="w-full flex items-center justify-between"
             onClick={() => toggleCard('zonesTrend')}
@@ -805,6 +817,7 @@ export default function OverviewTab({
             </div>
           )}
         </Card>
+        </ErrorBoundary>
       )}
     </div>
   );

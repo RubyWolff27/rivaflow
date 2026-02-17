@@ -5,11 +5,11 @@ from datetime import date
 
 from fastapi import APIRouter, BackgroundTasks, Depends, Request, status
 from fastapi.responses import JSONResponse
+from pydantic import BaseModel, Field
 
 from rivaflow.api.rate_limit import limiter
 from rivaflow.api.response_models import ReadinessResponse
 from rivaflow.core.dependencies import get_current_user
-from rivaflow.core.exceptions import ValidationError
 from rivaflow.core.models import ReadinessCreate
 from rivaflow.core.services.readiness_service import ReadinessService
 
@@ -123,28 +123,28 @@ def get_readiness_range(
     )
 
 
+class WeightLogRequest(BaseModel):
+    """Weight logging request model."""
+
+    weight_kg: float = Field(..., ge=20, le=400)
+    check_date: str | None = None
+
+
 @router.post("/weight")
 @limiter.limit("30/minute")
 def log_weight_only(
-    request: Request, data: dict, current_user: dict = Depends(get_current_user)
+    request: Request,
+    data: WeightLogRequest,
+    current_user: dict = Depends(get_current_user),
 ):
     """Log weight only for a date (quick logging for rest days)."""
     service = ReadinessService()
-    try:
-        check_date = date.fromisoformat(
-            data.get("check_date", date.today().isoformat())
-        )
-        weight_kg = float(data["weight_kg"])
+    check_date = date.fromisoformat(
+        data.check_date if data.check_date else date.today().isoformat()
+    )
 
-        if weight_kg < 30 or weight_kg > 300:
-            raise ValidationError("Weight must be between 30 and 300 kg")
-
-        service.log_weight_only(
-            user_id=current_user["id"], check_date=check_date, weight_kg=weight_kg
-        )
-        entry = service.get_readiness(user_id=current_user["id"], check_date=check_date)
-        return entry
-    except KeyError:
-        raise ValidationError("weight_kg is required")
-    except ValueError as e:
-        raise ValidationError(str(e))
+    service.log_weight_only(
+        user_id=current_user["id"], check_date=check_date, weight_kg=data.weight_kg
+    )
+    entry = service.get_readiness(user_id=current_user["id"], check_date=check_date)
+    return entry

@@ -104,6 +104,21 @@ REST_TYPES = {
 }
 
 # ==============================================================================
+# TOMORROW INTENTIONS
+# ==============================================================================
+
+TOMORROW_INTENTIONS = {
+    "train_gi": "🥋 Gi training",
+    "train_nogi": "🩳 No-Gi training",
+    "train_wrestling": "🤼 Wrestling",
+    "train_open": "🔓 Open mat",
+    "train_sc": "🏋️ S&C / Conditioning",
+    "train_mobility": "🧘 Mobility / Yoga",
+    "rest": "😴 Rest day",
+    "unsure": "🤷 Not sure yet",
+}
+
+# ==============================================================================
 # ACTIVITY TYPES
 # ==============================================================================
 
@@ -216,11 +231,46 @@ MILESTONE_ROLLS = [50, 100, 250, 500, 1000]
 MILESTONE_PARTNERS = [10, 25, 50, 100]
 MILESTONE_TECHNIQUES = [10, 25, 50, 100]
 
+MILESTONES = {
+    "hours": MILESTONE_HOURS,
+    "sessions": MILESTONE_SESSIONS,
+    "streak": MILESTONE_STREAK,
+    "rolls": MILESTONE_ROLLS,
+    "partners": MILESTONE_PARTNERS,
+    "techniques": MILESTONE_TECHNIQUES,
+}
+
+MILESTONE_LABELS = {
+    "hours": "{} Hours on the Mat",
+    "sessions": "{} Sessions Logged",
+    "streak": "{}-Day Streak",
+    "rolls": "{} Rolls Completed",
+    "partners": "{} Training Partners",
+    "techniques": "{} Techniques Practiced",
+}
+
+MILESTONE_QUOTES = [
+    (
+        "The more you sweat in training, the less you bleed in combat.",
+        "Richard Marcinko",
+    ),
+    ("A black belt is a white belt who never quit.", "Unknown"),
+    ("The ground is my ocean, I'm the shark.", "Jean Jacques Machado"),
+    ("There is no losing, only winning or learning.", "Carlos Gracie Jr"),
+    ("Be water, my friend.", "Bruce Lee"),
+    ("Discipline equals freedom.", "Jocko Willink"),
+    ("Train hard, fight easy.", "Alexander Suvorov"),
+    ("The more you know, the less you need.", "Rickson Gracie"),
+    ("Position before submission.", "Saulo Ribeiro"),
+    ("Leave your ego at the door.", "Helio Gracie"),
+]
+
 # ==============================================================================
 # DEFAULT VALUES
 # ==============================================================================
 
 DEFAULT_SESSION_DURATION = 60  # minutes
+DEFAULT_DURATION = 60  # minutes (alias for backwards compatibility)
 DEFAULT_INTENSITY = 4
 DEFAULT_ROLL_COUNT = 0
 DEFAULT_VISIBILITY = VISIBILITY_FRIENDS

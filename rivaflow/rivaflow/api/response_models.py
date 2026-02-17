@@ -18,7 +18,7 @@ from pydantic import BaseModel, ConfigDict
 class AuthUser(BaseModel):
     """Minimal user dict returned inside auth responses."""
 
-    model_config = ConfigDict(extra="allow")
+    model_config = ConfigDict(extra="ignore")
 
     id: int
     email: str
@@ -29,7 +29,7 @@ class AuthUser(BaseModel):
 class TokenResponse(BaseModel):
     """Response for login / register."""
 
-    model_config = ConfigDict(extra="allow")
+    model_config = ConfigDict(extra="ignore")
 
     access_token: str
     token_type: str = "bearer"
@@ -39,7 +39,7 @@ class TokenResponse(BaseModel):
 class AccessTokenResponse(BaseModel):
     """Response for token refresh."""
 
-    model_config = ConfigDict(extra="allow")
+    model_config = ConfigDict(extra="ignore")
 
     access_token: str
     token_type: str = "bearer"
@@ -48,7 +48,7 @@ class AccessTokenResponse(BaseModel):
 class CurrentUserResponse(BaseModel):
     """Response for GET /auth/me."""
 
-    model_config = ConfigDict(extra="allow")
+    model_config = ConfigDict(extra="ignore")
 
     id: int
     email: str
@@ -70,7 +70,7 @@ class MessageResponse(BaseModel):
 class SessionResponse(BaseModel):
     """Single training session."""
 
-    model_config = ConfigDict(extra="allow")
+    model_config = ConfigDict(extra="ignore")
 
     id: int
     user_id: int
@@ -122,7 +122,7 @@ class SessionScoreResponse(BaseModel):
 class ProfileResponse(BaseModel):
     """User profile."""
 
-    model_config = ConfigDict(extra="allow")
+    model_config = ConfigDict(extra="ignore")
 
     id: int | None = None
     user_id: int | None = None
@@ -164,7 +164,7 @@ class ProfileResponse(BaseModel):
 class ReadinessResponse(BaseModel):
     """Single readiness entry."""
 
-    model_config = ConfigDict(extra="allow")
+    model_config = ConfigDict(extra="ignore")
 
     id: int | None = None
     user_id: int | None = None
@@ -185,7 +185,7 @@ class ReadinessResponse(BaseModel):
 class GoalDimensionProgress(BaseModel):
     """Progress on a single goal dimension (sessions, hours, rolls)."""
 
-    model_config = ConfigDict(extra="allow")
+    model_config = ConfigDict(extra="ignore")
 
     target: int | float | None = None
     current: int | float | None = None
@@ -196,7 +196,7 @@ class GoalDimensionProgress(BaseModel):
 class WeeklyGoalProgress(BaseModel):
     """Current week goal progress."""
 
-    model_config = ConfigDict(extra="allow")
+    model_config = ConfigDict(extra="ignore")
 
     sessions: GoalDimensionProgress | None = None
     hours: GoalDimensionProgress | None = None
@@ -209,7 +209,7 @@ class WeeklyGoalProgress(BaseModel):
 class GoalsSummaryResponse(BaseModel):
     """Comprehensive goals summary."""
 
-    model_config = ConfigDict(extra="allow")
+    model_config = ConfigDict(extra="ignore")
 
     current_week: dict | None = None
     streaks: dict | None = None

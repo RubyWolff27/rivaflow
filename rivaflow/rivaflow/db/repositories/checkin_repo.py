@@ -115,7 +115,9 @@ class CheckinRepository:
                 return checkin_id
 
     @staticmethod
-    def get_checkins_range(user_id: int, start_date: date, end_date: date) -> list[dict]:
+    def get_checkins_range(
+        user_id: int, start_date: date, end_date: date
+    ) -> list[dict]:
         """Get all check-ins in date range (all slots)."""
         with get_connection() as conn:
             cursor = conn.cursor()
@@ -218,7 +220,9 @@ class CheckinRepository:
         with get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(
-                convert_query("DELETE FROM daily_checkins" " WHERE id = ? AND user_id = ?"),
+                convert_query(
+                    "DELETE FROM daily_checkins" " WHERE id = ? AND user_id = ?"
+                ),
                 (checkin_id, user_id),
             )
             return cursor.rowcount > 0

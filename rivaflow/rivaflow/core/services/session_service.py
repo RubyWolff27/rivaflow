@@ -4,7 +4,7 @@ import logging
 from datetime import date
 from typing import Any
 
-from rivaflow.config import SPARRING_CLASS_TYPES
+from rivaflow.core.constants import SPARRING_CLASS_TYPES
 from rivaflow.db.repositories import (
     SessionRepository,
     SessionRollRepository,
