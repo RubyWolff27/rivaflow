@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, memo } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { Home, BarChart3, Book, Users, BookOpen, Video, Activity, Shield, Calendar, Sparkles, Trophy, HelpCircle, MessageSquare, Target, Crosshair, Settings } from 'lucide-react';
+import { Home, BarChart3, User, Users, Activity, Shield, Calendar, Sparkles, HelpCircle, MessageSquare, Target, Settings } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import QuickLog from './QuickLog';
 import Sidebar from './Sidebar';
@@ -68,40 +68,29 @@ const Layout = memo(function Layout({ children }: { children: React.ReactNode })
     return () => { cancelled = true; };
   }, [location.pathname]);
 
-  // Primary navigation - most important features only
+  // Primary navigation — 3 tabs + Log CTA (Strava-style simplicity)
   const navigation = [
-    { name: 'Dashboard', href: '/', icon: Home },
-    { name: 'Feed', href: '/feed', icon: Activity, badge: notificationCounts.feed_unread },
+    { name: 'Home', href: '/', icon: Home },
     { name: 'Progress', href: '/reports', icon: BarChart3 },
-    { name: 'Friends', href: '/friends', icon: Users, badge: notificationCounts.friend_requests },
+    { name: 'You', href: '/profile', icon: User },
   ];
 
-  // Secondary navigation - organized into sections
+  // "You" tab subsections — shown in sidebar and More sheet on mobile
   const moreNavSections = [
     {
       label: 'Training',
       items: [
         { name: 'Sessions', href: '/sessions', icon: Calendar },
-        { name: 'Readiness', href: '/readiness', icon: Activity },
-        { name: 'Events', href: '/events', icon: Trophy },
+        { name: 'Feed', href: '/feed', icon: Activity, badge: notificationCounts.feed_unread },
         { name: 'Grapple AI', href: '/grapple', icon: Sparkles },
-        { name: 'Coach Settings', href: '/coach-settings', icon: Settings },
         { name: 'My Game', href: '/my-game', icon: Target },
-        { name: 'Goals', href: '/goals', icon: Crosshair },
+        { name: 'Coach Settings', href: '/coach-settings', icon: Settings },
       ],
     },
     {
-      label: 'Library',
+      label: 'Social',
       items: [
-        { name: 'Techniques', href: '/techniques', icon: Book },
-        { name: 'Glossary', href: '/glossary', icon: BookOpen },
-        { name: 'Videos', href: '/videos', icon: Video },
-      ],
-    },
-    {
-      label: 'Community',
-      items: [
-        { name: 'Groups', href: '/groups', icon: Users },
+        { name: 'Friends', href: '/friends', icon: Users, badge: notificationCounts.friend_requests },
       ],
     },
     {

@@ -1,11 +1,18 @@
 import { useState, useRef, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { Home, Plus, Activity, BarChart3, Grid, User, LogOut, X } from 'lucide-react';
+import { Home, Plus, BarChart3, User, LogOut, X } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
+
+interface NavSectionItem {
+  name: string;
+  href: string;
+  icon: React.ComponentType<{ className?: string }>;
+  badge?: number;
+}
 
 interface NavSection {
   label: string;
-  items: { name: string; href: string; icon: React.ComponentType<{ className?: string }> }[];
+  items: NavSectionItem[];
 }
 
 interface BottomNavProps {
@@ -14,47 +21,46 @@ interface BottomNavProps {
   onQuickLog: () => void;
 }
 
-export default function BottomNav({ navigation, moreNavSections, onQuickLog }: BottomNavProps) {
+export default function BottomNav({ moreNavSections, onQuickLog }: BottomNavProps) {
   const location = useLocation();
   const navigate = useNavigate();
   const { logout } = useAuth();
-  const [moreOpen, setMoreOpen] = useState(false);
+  const [youOpen, setYouOpen] = useState(false);
   const sheetRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    setMoreOpen(false);
+    setYouOpen(false);
   }, [location.pathname]);
 
   useEffect(() => {
-    if (moreOpen) {
-      const handleEsc = (e: KeyboardEvent) => { if (e.key === 'Escape') setMoreOpen(false); };
+    if (youOpen) {
+      const handleEsc = (e: KeyboardEvent) => { if (e.key === 'Escape') setYouOpen(false); };
       document.addEventListener('keydown', handleEsc);
       return () => document.removeEventListener('keydown', handleEsc);
     }
-  }, [moreOpen]);
+  }, [youOpen]);
 
   const handleLogout = () => {
     logout();
     navigate('/login');
   };
 
-  // 5 bottom items: Dashboard, Feed, Log(accent), Progress, More
+  // 4 bottom items: Home, Log(accent), Progress, You
   const bottomItems = [
     { name: 'Home', href: '/', icon: Home },
-    { name: 'Feed', href: '/feed', icon: Activity, badge: navigation.find(n => n.href === '/feed')?.badge },
     { name: 'Log', href: '#quicklog', icon: Plus, isAccent: true },
     { name: 'Progress', href: '/reports', icon: BarChart3 },
-    { name: 'More', href: '#more', icon: Grid },
+    { name: 'You', href: '#you', icon: User },
   ];
 
   return (
     <>
-      {/* More sheet overlay */}
-      {moreOpen && (
+      {/* "You" sheet overlay */}
+      {youOpen && (
         <div
           className="md:hidden fixed inset-0 z-40"
           style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}
-          onClick={() => setMoreOpen(false)}
+          onClick={() => setYouOpen(false)}
         >
           <div
             ref={sheetRef}
@@ -63,12 +69,12 @@ export default function BottomNav({ navigation, moreNavSections, onQuickLog }: B
             onClick={(e) => e.stopPropagation()}
             role="dialog"
             aria-modal="true"
-            aria-label="More navigation options"
+            aria-label="You menu"
           >
             <div className="flex items-center justify-between px-6 pt-5 pb-3">
-              <h2 className="text-lg font-semibold" style={{ color: 'var(--text)' }}>More</h2>
+              <h2 className="text-lg font-semibold" style={{ color: 'var(--text)' }}>You</h2>
               <button
-                onClick={() => setMoreOpen(false)}
+                onClick={() => setYouOpen(false)}
                 className="p-2 rounded-lg"
                 style={{ color: 'var(--muted)' }}
                 aria-label="Close"
@@ -77,36 +83,19 @@ export default function BottomNav({ navigation, moreNavSections, onQuickLog }: B
               </button>
             </div>
 
-            {/* Friends link */}
-            {navigation.filter(n => n.href === '/friends').map((item) => {
-              const Icon = item.icon;
-              const hasBadge = item.badge != null && item.badge > 0;
-              return (
-                <Link
-                  key={item.name}
-                  to={item.href}
-                  className="flex items-center gap-3 px-6 py-3 text-sm font-medium"
-                  style={{ color: location.pathname === item.href ? 'var(--accent)' : 'var(--text)' }}
-                >
-                  <Icon className="w-5 h-5" />
-                  {item.name}
-                  {hasBadge && (
-                    <span
-                      className="ml-auto flex items-center justify-center min-w-[20px] h-[20px] px-1.5 text-[10px] font-bold rounded-full"
-                      style={{ backgroundColor: 'var(--error)', color: '#FFFFFF' }}
-                    >
-                      {item.badge! > 99 ? '99+' : item.badge}
-                    </span>
-                  )}
-                </Link>
-              );
-            })}
+            {/* Profile link at top */}
+            <Link
+              to="/profile"
+              className="flex items-center gap-3 px-6 py-3 text-sm font-medium"
+              style={{ color: location.pathname === '/profile' ? 'var(--accent)' : 'var(--text)' }}
+            >
+              <User className="w-5 h-5" />
+              Profile
+            </Link>
 
-            {moreNavSections.map((section, sIdx) => (
+            {moreNavSections.map((section) => (
               <div key={section.label}>
-                {(sIdx > 0 || navigation.some(n => n.href === '/friends')) && (
-                  <div className="my-1 mx-6" style={{ borderTop: '1px solid var(--border)' }} />
-                )}
+                <div className="my-1 mx-6" style={{ borderTop: '1px solid var(--border)' }} />
                 <div className="px-6 pt-3 pb-1">
                   <span className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: 'var(--muted)' }}>
                     {section.label}
@@ -115,6 +104,7 @@ export default function BottomNav({ navigation, moreNavSections, onQuickLog }: B
                 {section.items.map((item) => {
                   const isActive = location.pathname === item.href;
                   const Icon = item.icon;
+                  const hasBadge = item.badge != null && item.badge > 0;
                   return (
                     <Link
                       key={item.name}
@@ -126,22 +116,22 @@ export default function BottomNav({ navigation, moreNavSections, onQuickLog }: B
                     >
                       <Icon className="w-5 h-5" />
                       {item.name}
+                      {hasBadge && (
+                        <span
+                          className="ml-auto flex items-center justify-center min-w-[20px] h-[20px] px-1.5 text-[10px] font-bold rounded-full"
+                          style={{ backgroundColor: 'var(--error)', color: '#FFFFFF' }}
+                        >
+                          {item.badge! > 99 ? '99+' : item.badge}
+                        </span>
+                      )}
                     </Link>
                   );
                 })}
               </div>
             ))}
 
-            {/* Profile + Logout */}
+            {/* Logout */}
             <div className="mx-6 my-1" style={{ borderTop: '1px solid var(--border)' }} />
-            <Link
-              to="/profile"
-              className="flex items-center gap-3 px-6 py-3 text-sm font-medium"
-              style={{ color: 'var(--text)' }}
-            >
-              <User className="w-5 h-5" />
-              Profile
-            </Link>
             <button
               onClick={handleLogout}
               className="w-full flex items-center gap-3 px-6 py-3 text-sm font-medium"
@@ -167,13 +157,12 @@ export default function BottomNav({ navigation, moreNavSections, onQuickLog }: B
         <div className="flex items-center justify-around h-16 px-2 max-w-lg mx-auto">
           {bottomItems.map((item) => {
             const Icon = item.icon;
-            const isMore = item.href === '#more';
             const isLog = item.href === '#quicklog';
-            const isActive = !isMore && !isLog && (
+            const isYou = item.href === '#you';
+            const isActive = !isLog && !isYou && (
               location.pathname === item.href ||
               (item.href === '/reports' && location.pathname === '/progress')
             );
-            const hasBadge = 'badge' in item && item.badge != null && item.badge > 0;
 
             if (isLog) {
               return (
@@ -193,14 +182,15 @@ export default function BottomNav({ navigation, moreNavSections, onQuickLog }: B
               );
             }
 
-            if (isMore) {
+            if (isYou) {
+              const youActive = youOpen || location.pathname === '/profile';
               return (
                 <button
                   key={item.name}
-                  onClick={() => setMoreOpen(true)}
+                  onClick={() => setYouOpen(true)}
                   className="flex flex-col items-center justify-center gap-0.5 py-1 px-2 relative"
-                  style={{ color: moreOpen ? 'var(--accent)' : 'var(--muted)' }}
-                  aria-label="More options"
+                  style={{ color: youActive ? 'var(--accent)' : 'var(--muted)' }}
+                  aria-label="You menu"
                 >
                   <Icon className="w-5 h-5" />
                   <span className="text-[10px] font-medium">{item.name}</span>
@@ -217,14 +207,6 @@ export default function BottomNav({ navigation, moreNavSections, onQuickLog }: B
               >
                 <Icon className="w-5 h-5" />
                 <span className="text-[10px] font-medium">{item.name}</span>
-                {hasBadge && (
-                  <span
-                    className="absolute top-0 right-0 flex items-center justify-center min-w-[16px] h-[16px] px-1 text-[9px] font-bold rounded-full"
-                    style={{ backgroundColor: 'var(--error)', color: '#FFFFFF' }}
-                  >
-                    {item.badge! > 99 ? '99+' : item.badge}
-                  </span>
-                )}
               </Link>
             );
           })}
