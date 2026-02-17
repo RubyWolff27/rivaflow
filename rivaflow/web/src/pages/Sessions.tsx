@@ -6,6 +6,7 @@ import { logger } from '../utils/logger';
 import type { Session } from '../types';
 import { Calendar, MapPin, Clock, Activity, Target, Filter, Search } from 'lucide-react';
 import { CardSkeleton } from '../components/ui';
+import { useToast } from '../contexts/ToastContext';
 import MiniZoneBar from '../components/MiniZoneBar';
 import SessionScoreBadge from '../components/sessions/SessionScoreBadge';
 import TodayClassesWidget from '../components/dashboard/TodayClassesWidget';
@@ -14,6 +15,7 @@ type ZoneData = { zone_durations: Record<string, number> | null; strain: number 
 
 export default function Sessions() {
   usePageTitle('Sessions');
+  const toast = useToast();
   const [sessions, setSessions] = useState<Session[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -42,7 +44,10 @@ export default function Sessions() {
           }
         }
       } catch (error) {
-        if (!controller.signal.aborted) logger.error('Error loading sessions:', error);
+        if (!controller.signal.aborted) {
+          logger.error('Error loading sessions:', error);
+          toast.error('Failed to load sessions');
+        }
       } finally {
         if (!controller.signal.aborted) setLoading(false);
       }

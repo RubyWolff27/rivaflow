@@ -1,3 +1,4 @@
+import { memo } from 'react';
 import { TrendingUp, TrendingDown, Minus } from 'lucide-react';
 
 interface DeltaChipProps {
@@ -6,7 +7,7 @@ interface DeltaChipProps {
   className?: string;
 }
 
-export default function DeltaChip({ value, format = 'number', className = '' }: DeltaChipProps) {
+const DeltaChip = memo(function DeltaChip({ value, format = 'number', className = '' }: DeltaChipProps) {
   const isPositive = value > 0;
   const isNeutral = value === 0;
 
@@ -26,4 +27,6 @@ export default function DeltaChip({ value, format = 'number', className = '' }: 
       {formattedValue}
     </span>
   );
-}
+});
+
+export default DeltaChip;

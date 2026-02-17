@@ -57,7 +57,10 @@ export default function MovementDetail() {
         const response = await glossaryApi.getById(parseInt(id), true);
         if (!cancelled) setMovement(response.data);
       } catch (error) {
-        if (!cancelled) logger.error('Error loading movement:', error);
+        if (!cancelled) {
+          logger.error('Error loading movement:', error);
+          toast.error('Failed to load movement details');
+        }
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -74,6 +77,7 @@ export default function MovementDetail() {
       setMovement(response.data);
     } catch (error) {
       logger.error('Error loading movement:', error);
+      toast.error('Failed to load movement details');
     } finally {
       setLoading(false);
     }

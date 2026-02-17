@@ -8,7 +8,8 @@ from pydantic import BaseModel
 from rivaflow.api.rate_limit import limiter
 from rivaflow.api.response_models import GoalsSummaryResponse, WeeklyGoalProgress
 from rivaflow.core.dependencies import get_current_user
-from rivaflow.core.exceptions import RivaFlowException, ValidationError
+from rivaflow.core.error_handling import route_error_handler
+from rivaflow.core.exceptions import ValidationError
 from rivaflow.core.services.goals_service import GoalsService
 
 logger = logging.getLogger(__name__)
@@ -26,6 +27,9 @@ class GoalTargetsUpdate(BaseModel):
 
 @router.get("/current-week", response_model=WeeklyGoalProgress)
 @limiter.limit("120/minute")
+@route_error_handler(
+    "get_current_week_progress", detail="Failed to get current week progress"
+)
 def get_current_week_progress(
     request: Request,
     tz: str | None = Query(None, description="IANA timezone, e.g. Australia/Sydney"),
@@ -40,25 +44,12 @@ def get_current_week_progress(
     - Completion status
     """
     service = GoalsService()
-    try:
-        logger.info(f"Getting current week progress for user_id={current_user['id']}")
-        result = service.get_current_week_progress(user_id=current_user["id"], tz=tz)
-        logger.info(
-            f"Successfully retrieved current week progress for user_id={current_user['id']}"
-        )
-        return result
-    except (RivaFlowException, HTTPException):
-        raise
-    except (ValueError, KeyError, TypeError) as e:
-        logger.error(
-            "get_current_week_progress failed for user_id=%s: %s",
-            current_user["id"],
-            e,
-            exc_info=True,
-        )
-        raise HTTPException(
-            status_code=500, detail="Failed to get current week progress"
-        )
+    logger.info(f"Getting current week progress for user_id={current_user['id']}")
+    result = service.get_current_week_progress(user_id=current_user["id"], tz=tz)
+    logger.info(
+        f"Successfully retrieved current week progress for user_id={current_user['id']}"
+    )
+    return result
 
 
 @router.get("/summary", response_model=GoalsSummaryResponse)

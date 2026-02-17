@@ -357,6 +357,7 @@ export default function Events() {
       setWeightLogs(wlRes.data.logs);
     } catch (err) {
       logger.error('Failed to load events data', err);
+      toast.error('Failed to load events');
     } finally {
       setLoading(false);
     }
@@ -377,7 +378,10 @@ export default function Events() {
           setWeightLogs(wlRes.data.logs);
         }
       } catch (err) {
-        if (!cancelled) logger.error('Failed to load events data', err);
+        if (!cancelled) {
+          logger.error('Failed to load events data', err);
+          toast.error('Failed to load events');
+        }
       } finally {
         if (!cancelled) setLoading(false);
       }

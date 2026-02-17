@@ -46,6 +46,14 @@ vi.mock('../../api/client', () => ({
   },
 }))
 
+vi.mock('../../contexts/ToastContext', () => ({
+  useToast: () => ({
+    showToast: vi.fn(),
+    success: vi.fn(),
+    error: vi.fn(),
+  }),
+}))
+
 vi.mock('../../contexts/AuthContext', () => ({
   useAuth: () => ({
     user: { id: 1, email: 'test@example.com', subscription_tier: 'beta', is_beta_user: true },

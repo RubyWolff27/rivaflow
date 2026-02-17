@@ -105,7 +105,10 @@ export default function Grapple() {
           setSessions(sessionsRes.data.sessions);
         }
       } catch (error) {
-        if (!cancelled) logger.error('Failed to load grapple data:', error);
+        if (!cancelled) {
+          logger.error('Failed to load grapple data:', error);
+          toast.error('Failed to load Grapple AI');
+        }
       }
     };
     doLoad();
@@ -144,6 +147,7 @@ export default function Grapple() {
       setSessions(response.data.sessions);
     } catch (error) {
       logger.error('Failed to load sessions:', error);
+      toast.error('Failed to load chat sessions');
     }
   };
 
@@ -239,6 +243,7 @@ export default function Grapple() {
       toast.success('Thank you for your feedback!');
     } catch (error) {
       logger.error('Failed to submit feedback:', error);
+      toast.error('Failed to submit feedback');
     }
   };
 

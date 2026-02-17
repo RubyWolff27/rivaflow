@@ -53,6 +53,7 @@ export default function PhotoGallery({
       } catch (error) {
         if (!cancelled) {
           logger.error('Error loading photos:', error);
+          toast.error('Failed to load photos');
           // Gracefully handle errors - set empty photos instead of crashing
           setPhotos([]);
           onPhotoCountChange?.(0);
@@ -83,6 +84,7 @@ export default function PhotoGallery({
       }
     } catch (error) {
       logger.error('Error loading photos:', error);
+      toast.error('Failed to load photos');
       // Gracefully handle errors - set empty photos instead of crashing
       setPhotos([]);
       onPhotoCountChange?.(0);

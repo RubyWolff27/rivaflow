@@ -74,7 +74,10 @@ export default function Friends() {
           setFriends(data.friends || data || []);
         }
       } catch (error) {
-        if (!cancelled) logger.error('Error loading contacts:', error);
+        if (!cancelled) {
+          logger.error('Error loading contacts:', error);
+          toast.error('Failed to load friends');
+        }
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -153,6 +156,7 @@ export default function Friends() {
       setFriends(data.friends || data || []);
     } catch (error) {
       logger.error('Error loading contacts:', error);
+      toast.error('Failed to load friends');
     } finally {
       setLoading(false);
     }

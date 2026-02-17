@@ -33,6 +33,7 @@ export default function MonthlyGoals() {
     } catch (err) {
       if (!signal?.aborted) {
         logger.error('Failed to load goals:', err);
+        toast.error('Failed to load goals');
         setGoals([]);
       }
     } finally {

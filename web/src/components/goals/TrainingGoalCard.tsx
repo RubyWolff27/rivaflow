@@ -1,3 +1,4 @@
+import { memo } from 'react';
 import { Check, Pencil, Trash2 } from 'lucide-react';
 import type { TrainingGoal } from '../../types';
 import { Card } from '../ui';
@@ -21,7 +22,7 @@ function formatActual(metric: string, value: number): string {
   return String(value);
 }
 
-export default function TrainingGoalCard({ goal, onEdit, onDelete }: TrainingGoalCardProps) {
+const TrainingGoalCard = memo(function TrainingGoalCard({ goal, onEdit, onDelete }: TrainingGoalCardProps) {
   const title = goal.goal_type === 'technique' && goal.movement_name
     ? goal.movement_name
     : `${METRIC_LABELS[goal.metric] || goal.metric}${goal.class_type_filter ? ` (${goal.class_type_filter})` : ''}`;
@@ -87,4 +88,6 @@ export default function TrainingGoalCard({ goal, onEdit, onDelete }: TrainingGoa
       </div>
     </Card>
   );
-}
+});
+
+export default TrainingGoalCard;

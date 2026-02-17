@@ -1,3 +1,5 @@
+import { memo } from 'react';
+
 const ZONE_CONFIG = [
   { key: 'zone_one_milli', color: '#93C5FD' },
   { key: 'zone_two_milli', color: '#34D399' },
@@ -11,7 +13,7 @@ interface MiniZoneBarProps {
   height?: string;
 }
 
-export default function MiniZoneBar({ zones, height = 'h-2' }: MiniZoneBarProps) {
+const MiniZoneBar = memo(function MiniZoneBar({ zones, height = 'h-2' }: MiniZoneBarProps) {
   const totalMs = ZONE_CONFIG.reduce((sum, z) => sum + (zones[z.key] || 0), 0);
   if (totalMs <= 0) return null;
 
@@ -30,4 +32,6 @@ export default function MiniZoneBar({ zones, height = 'h-2' }: MiniZoneBarProps)
       })}
     </div>
   );
-}
+});
+
+export default MiniZoneBar;

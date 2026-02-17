@@ -50,7 +50,10 @@ export default function Groups() {
         const response = await groupsApi.list();
         if (!cancelled) setGroups(response.data.groups || []);
       } catch {
-        if (!cancelled) logger.error('Error loading groups');
+        if (!cancelled) {
+          logger.error('Error loading groups');
+          toast.error('Failed to load groups');
+        }
       } finally {
         if (!cancelled) setLoading(false);
       }

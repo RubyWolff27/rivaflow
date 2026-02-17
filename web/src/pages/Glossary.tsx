@@ -73,7 +73,10 @@ export default function Glossary() {
           setCategories(categoriesRes.data.categories);
         }
       } catch (error) {
-        if (!cancelled) logger.error('Error loading glossary:', error);
+        if (!cancelled) {
+          logger.error('Error loading glossary:', error);
+          toast.error('Failed to load glossary');
+        }
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -124,6 +127,7 @@ export default function Glossary() {
       setCategories(categoriesRes.data.categories);
     } catch (error) {
       logger.error('Error loading glossary:', error);
+      toast.error('Failed to load glossary');
     } finally {
       setLoading(false);
     }

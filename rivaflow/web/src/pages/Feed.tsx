@@ -10,6 +10,7 @@ import ActivitySocialActions from '../components/ActivitySocialActions';
 import CommentSection from '../components/CommentSection';
 import { CardSkeleton } from '../components/ui';
 import { useAuth } from '../contexts/AuthContext';
+import { useToast } from '../contexts/ToastContext';
 import type { FeedItem } from '../types';
 
 interface FeedResponse {
@@ -312,6 +313,7 @@ export default function Feed() {
   usePageTitle('Feed');
   const navigate = useNavigate();
   const { user } = useAuth();
+  const toast = useToast();
   const [feed, setFeed] = useState<FeedResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [daysBack, setDaysBack] = useState(30);
@@ -342,7 +344,10 @@ export default function Feed() {
           if (!controller.signal.aborted) setFeed(response.data ?? null);
         }
       } catch (error) {
-        if (!controller.signal.aborted) logger.error('Error loading feed:', error);
+        if (!controller.signal.aborted) {
+          logger.error('Error loading feed:', error);
+          toast.error('Failed to load feed');
+        }
       } finally {
         if (!controller.signal.aborted) setLoading(false);
       }
@@ -370,6 +375,7 @@ export default function Feed() {
       }
     } catch (error) {
       logger.error('Error loading feed:', error);
+      toast.error('Failed to load feed');
     } finally {
       setLoading(false);
     }
@@ -392,6 +398,7 @@ export default function Feed() {
       await socialApi.like(activityType, activityId);
     } catch (error) {
       logger.error('Error liking activity:', error);
+      toast.error('Failed to like activity');
       // Revert optimistic update on error
       loadFeed();
     }
@@ -414,6 +421,7 @@ export default function Feed() {
       await socialApi.unlike(activityType, activityId);
     } catch (error) {
       logger.error('Error unliking activity:', error);
+      toast.error('Failed to update like');
       // Revert optimistic update on error
       loadFeed();
     }
@@ -447,6 +455,7 @@ export default function Feed() {
       await restApi.delete(checkinId);
     } catch (error) {
       logger.error('Error deleting rest day:', error);
+      toast.error('Failed to delete rest day');
       // Revert on error
       loadFeed();
     }
@@ -481,6 +490,7 @@ export default function Feed() {
       }
     } catch (error) {
       logger.error('Error updating visibility:', error);
+      toast.error('Failed to update visibility');
       // Revert optimistic update on error
       loadFeed();
     }
@@ -708,6 +718,7 @@ export default function Feed() {
                   }
                 } catch (err) {
                   logger.error('Error loading more:', err);
+                  toast.error('Failed to load more activities');
                 } finally {
                   setLoadingMore(false);
                 }

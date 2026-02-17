@@ -12,6 +12,14 @@ vi.mock('../../api/client', () => ({
   },
 }))
 
+vi.mock('../../contexts/ToastContext', () => ({
+  useToast: () => ({
+    showToast: vi.fn(),
+    success: vi.fn(),
+    error: vi.fn(),
+  }),
+}))
+
 import Techniques from '../Techniques'
 
 function renderTechniques() {

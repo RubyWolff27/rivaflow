@@ -5,6 +5,7 @@ import { logger } from '../utils/logger';
 import type { TrainedMovement } from '../types';
 import { Book, AlertCircle, ArrowUp, ArrowDown } from 'lucide-react';
 import { CardSkeleton } from '../components/ui';
+import { useToast } from '../contexts/ToastContext';
 
 type SortKey = 'name' | 'category' | 'last_trained_date' | 'train_count';
 type SortDir = 'asc' | 'desc';
@@ -62,6 +63,7 @@ function SortHeader({
 
 export default function Techniques() {
   usePageTitle('Techniques');
+  const toast = useToast();
   const [techniques, setTechniques] = useState<TrainedMovement[]>([]);
   const [staleTechniques, setStaleTechniques] = useState<TrainedMovement[]>([]);
   const [loading, setLoading] = useState(true);
@@ -84,6 +86,7 @@ export default function Techniques() {
       } catch (error) {
         if (!cancelled) {
           logger.error('Error loading techniques:', error);
+          toast.error('Failed to load techniques');
           setTechniques([]);
           setStaleTechniques([]);
         }

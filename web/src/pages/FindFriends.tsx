@@ -61,7 +61,10 @@ export default function FindFriends() {
           );
           if (!cancelled) setSearchResults(usersWithStatus);
         } catch (error) {
-          if (!cancelled) logger.error('Error searching users:', error);
+          if (!cancelled) {
+            logger.error('Error searching users:', error);
+            toast.error('Failed to search users');
+          }
         }
       };
       doSearch();
@@ -95,7 +98,10 @@ export default function FindFriends() {
           );
           if (!cancelled) setRecommended(recsWithStatus);
         } catch (error) {
-          if (!cancelled) logger.error('Error loading recommendations:', error);
+          if (!cancelled) {
+            logger.error('Error loading recommendations:', error);
+            toast.error('Failed to load recommendations');
+          }
         } finally {
           if (!cancelled) setLoadingRecommended(false);
         }

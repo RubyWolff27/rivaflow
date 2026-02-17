@@ -1,3 +1,4 @@
+import { memo } from 'react';
 import type { AIInsight } from '../../types';
 
 const categoryColors: Record<string, string> = {
@@ -7,7 +8,7 @@ const categoryColors: Record<string, string> = {
   recovery: '#10B981',
 };
 
-export default function InsightCard({ insight }: { insight: AIInsight }) {
+const InsightCard = memo(function InsightCard({ insight }: { insight: AIInsight }) {
   const color = categoryColors[insight.category] || '#6B7280';
 
   return (
@@ -34,4 +35,6 @@ export default function InsightCard({ insight }: { insight: AIInsight }) {
       </p>
     </div>
   );
-}
+});
+
+export default InsightCard;

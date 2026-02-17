@@ -142,7 +142,10 @@ export default function LogSession() {
           // Feature flag off or not available
         }
       } catch (error) {
-        if (!controller.signal.aborted) logger.error('Error loading data:', error);
+        if (!controller.signal.aborted) {
+          logger.error('Error loading data:', error);
+          toast.error('Failed to load session data');
+        }
       }
     };
     doLoad();

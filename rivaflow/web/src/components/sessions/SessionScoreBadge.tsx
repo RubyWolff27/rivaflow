@@ -1,3 +1,5 @@
+import { memo } from 'react';
+
 /** Compact circular badge showing session score (0-100), color-coded by tier. */
 interface Props {
   score: number | null | undefined;
@@ -19,7 +21,7 @@ function tierColor(score: number): string {
   return 'var(--muted)';
 }
 
-export default function SessionScoreBadge({ score, size = 'sm' }: Props) {
+const SessionScoreBadge = memo(function SessionScoreBadge({ score, size = 'sm' }: Props) {
   if (score == null) return null;
 
   const color = tierColor(score);
@@ -37,4 +39,6 @@ export default function SessionScoreBadge({ score, size = 'sm' }: Props) {
       {Math.round(score)}
     </div>
   );
-}
+});
+
+export default SessionScoreBadge;

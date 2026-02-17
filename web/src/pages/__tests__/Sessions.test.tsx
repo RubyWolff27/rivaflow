@@ -24,6 +24,14 @@ vi.mock('../../components/MiniZoneBar', () => ({
   default: () => <div data-testid="zone-bar" />,
 }))
 
+vi.mock('../../contexts/ToastContext', () => ({
+  useToast: () => ({
+    showToast: vi.fn(),
+    success: vi.fn(),
+    error: vi.fn(),
+  }),
+}))
+
 import Sessions from '../Sessions'
 
 const sampleSessions = [

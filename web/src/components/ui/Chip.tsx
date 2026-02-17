@@ -1,4 +1,4 @@
-import { ReactNode } from 'react';
+import { ReactNode, memo } from 'react';
 
 interface ChipProps {
   children: ReactNode;
@@ -6,7 +6,7 @@ interface ChipProps {
   className?: string;
 }
 
-export default function Chip({ children, variant = 'default', className = '' }: ChipProps) {
+const Chip = memo(function Chip({ children, variant = 'default', className = '' }: ChipProps) {
   const baseStyles = 'inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium';
 
   const variantStyles = {
@@ -19,4 +19,6 @@ export default function Chip({ children, variant = 'default', className = '' }: 
       {children}
     </span>
   );
-}
+});
+
+export default Chip;

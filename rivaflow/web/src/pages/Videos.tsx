@@ -48,7 +48,10 @@ export default function Videos() {
           setMovements(Array.isArray(mData) ? mData : mData?.movements || []);
         }
       } catch (error) {
-        if (!cancelled) logger.error('Error loading data:', error);
+        if (!cancelled) {
+          logger.error('Error loading data:', error);
+          toast.error('Failed to load videos');
+        }
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -70,6 +73,7 @@ export default function Videos() {
       setMovements(Array.isArray(mData) ? mData : mData?.movements || []);
     } catch (error) {
       logger.error('Error loading data:', error);
+      toast.error('Failed to load videos');
     } finally {
       setLoading(false);
     }

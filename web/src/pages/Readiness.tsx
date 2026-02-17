@@ -59,7 +59,10 @@ export default function Readiness() {
           setLatest(res.data ?? null);
         }
       } catch (error) {
-        if (!cancelled) logger.error('Error loading readiness:', error);
+        if (!cancelled) {
+          logger.error('Error loading readiness:', error);
+          toast.error('Failed to load readiness data');
+        }
       }
 
       // Fetch profile for weight goal
@@ -133,6 +136,7 @@ export default function Readiness() {
       }
     } catch (error) {
       logger.error('Error loading readiness:', error);
+      toast.error('Failed to load readiness data');
     }
   };
 

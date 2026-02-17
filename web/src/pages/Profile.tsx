@@ -163,6 +163,7 @@ export default function Profile() {
       setFormData(mapProfileToFormData(profileRes.data));
     } catch (error) {
       logger.error('Error loading data:', error);
+      toast.error('Failed to load profile data');
     } finally {
       setLoading(false);
     }
@@ -175,6 +176,7 @@ export default function Profile() {
       setFormData(mapProfileToFormData(profileRes.data));
     } catch (error) {
       logger.error('Error refreshing profile:', error);
+      toast.error('Failed to refresh profile');
     }
   };
 
@@ -184,6 +186,7 @@ export default function Profile() {
       setGradings(gradingsRes.data ?? []);
     } catch (error) {
       logger.error('Error refreshing gradings:', error);
+      toast.error('Failed to refresh gradings');
     }
   };
 
@@ -574,6 +577,7 @@ export default function Profile() {
       setTimeout(() => setGymVerificationPending(false), 5000);
     } catch (error) {
       logger.error('Error submitting gym:', error);
+      toast.error('Failed to submit gym');
     }
   };
 

@@ -94,7 +94,10 @@ export default function QuickLog({ isOpen, onClose, onSuccess }: QuickLogProps) 
           setTopPartners(merged.slice(0, 5));
         }
       } catch (error) {
-        if (!cancelled) logger.error('Error loading data:', error);
+        if (!cancelled) {
+          logger.error('Error loading data:', error);
+          toast.error('Failed to load form data');
+        }
       }
     };
     doLoad();

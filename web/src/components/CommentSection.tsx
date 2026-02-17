@@ -37,7 +37,10 @@ const CommentSection = memo(function CommentSection({
         const response = await socialApi.getComments(activityType, activityId);
         if (!cancelled) setComments(response.data?.comments ?? []);
       } catch (error) {
-        if (!cancelled) logger.error('Error loading comments:', error);
+        if (!cancelled) {
+          logger.error('Error loading comments:', error);
+          toast.error('Failed to load comments');
+        }
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -53,6 +56,7 @@ const CommentSection = memo(function CommentSection({
       setComments(response.data?.comments ?? []);
     } catch (error) {
       logger.error('Error loading comments:', error);
+      toast.error('Failed to load comments');
     } finally {
       setLoading(false);
     }
@@ -69,6 +73,7 @@ const CommentSection = memo(function CommentSection({
       await loadComments();
     } catch (error) {
       logger.error('Error adding comment:', error);
+      toast.error('Failed to add comment');
     } finally {
       setSubmitting(false);
     }
@@ -90,6 +95,7 @@ const CommentSection = memo(function CommentSection({
       await loadComments();
     } catch (error) {
       logger.error('Error updating comment:', error);
+      toast.error('Failed to update comment');
     } finally {
       setSubmitting(false);
     }

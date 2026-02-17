@@ -1,3 +1,4 @@
+import { memo } from 'react';
 import Chip from './Chip';
 import DeltaChip from './DeltaChip';
 import Sparkline from './Sparkline';
@@ -11,7 +12,7 @@ interface MetricTileProps {
   className?: string;
 }
 
-export default function MetricTile({
+const MetricTile = memo(function MetricTile({
   label,
   chipLabel,
   value,
@@ -41,4 +42,6 @@ export default function MetricTile({
       )}
     </div>
   );
-}
+});
+
+export default MetricTile;
