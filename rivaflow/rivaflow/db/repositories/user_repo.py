@@ -360,6 +360,89 @@ class UserRepository:
             return cursor.rowcount > 0
 
     @staticmethod
+    def update_password(user_id: int, hashed_password: str) -> bool:
+        """Update a user's password hash.
+
+        Args:
+            user_id: User's ID
+            hashed_password: New hashed password
+
+        Returns:
+            True if updated successfully, False if user not found
+        """
+        with get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                convert_query(
+                    "UPDATE users SET hashed_password = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?"
+                ),
+                (hashed_password, user_id),
+            )
+            return cursor.rowcount > 0
+
+    @staticmethod
+    def record_failed_login(
+        user_id: int, new_attempts: int, locked_until: str | None = None
+    ) -> bool:
+        """Record a failed login attempt and optionally lock the account.
+
+        Args:
+            user_id: User's ID
+            new_attempts: Updated count of failed attempts
+            locked_until: ISO timestamp when lock expires (None if not locked)
+
+        Returns:
+            True if updated successfully
+        """
+        with get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                convert_query(
+                    "UPDATE users SET failed_login_attempts = ?, locked_until = ? WHERE id = ?"
+                ),
+                (new_attempts, locked_until, user_id),
+            )
+            return cursor.rowcount > 0
+
+    @staticmethod
+    def reset_login_attempts(user_id: int) -> bool:
+        """Reset failed login counters on successful login.
+
+        Args:
+            user_id: User's ID
+
+        Returns:
+            True if updated successfully
+        """
+        with get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                convert_query(
+                    "UPDATE users SET failed_login_attempts = 0, locked_until = NULL WHERE id = ?"
+                ),
+                (user_id,),
+            )
+            return cursor.rowcount > 0
+
+    @staticmethod
+    def delete_by_id(user_id: int) -> bool:
+        """Hard-delete a user by ID.
+
+        Args:
+            user_id: User's ID
+
+        Returns:
+            True if deleted, False if not found
+        """
+        with get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                convert_query("DELETE FROM users WHERE id = ?"),
+                (user_id,),
+            )
+            return cursor.rowcount > 0
+
+    @staticmethod
     def _row_to_dict(row, include_password: bool = False) -> dict:
         """Convert a database row to a dictionary.
 

@@ -85,8 +85,8 @@ class AuthService:
         existing_user = self.user_repo.get_by_email(email)
         if existing_user:
             raise ValidationError(
-                message="Unable to create account with this email",
-                action="Please try logging in, or use the 'Forgot Password' link if you need to reset your credentials.",
+                message="Unable to create account",
+                action="If you already have an account, try logging in or use 'Forgot Password' to reset your credentials.",
             )
 
         # Hash password
@@ -122,14 +122,7 @@ class AuthService:
         except (ConnectionError, OSError, ValueError) as e:
             logger.error(f"Failed to create profile/streaks for user {user['id']}: {e}")
             try:
-                from rivaflow.db.database import convert_query, get_connection
-
-                with get_connection() as conn:
-                    cursor = conn.cursor()
-                    cursor.execute(
-                        convert_query("DELETE FROM users WHERE id = ?"),
-                        (user["id"],),
-                    )
+                self.user_repo.delete_by_id(user["id"])
             except (ConnectionError, OSError):
                 pass  # Best effort cleanup
             raise ValueError("Registration failed - unable to initialize user data")
@@ -424,18 +417,7 @@ class AuthService:
 
         # Update user's password
         try:
-            from rivaflow.db.database import convert_query, get_connection
-
-            with get_connection() as conn:
-                cursor = conn.cursor()
-                cursor.execute(
-                    convert_query("""
-                    UPDATE users
-                    SET hashed_password = ?, updated_at = CURRENT_TIMESTAMP
-                    WHERE id = ?
-                    """),
-                    (hashed_pwd, user_id),
-                )
+            self.user_repo.update_password(user_id, hashed_pwd)
 
             # Mark token as used
             token_repo.mark_as_used(token)
@@ -468,8 +450,6 @@ class AuthService:
     @staticmethod
     def _record_failed_login(user_id: int, current_attempts: int) -> None:
         """Increment failed login attempts; lock after MAX_FAILED_ATTEMPTS."""
-        from rivaflow.db.database import convert_query, get_connection
-
         new_attempts = (current_attempts or 0) + 1
         locked_until = None
         if new_attempts >= AuthService.MAX_FAILED_ATTEMPTS:
@@ -482,28 +462,12 @@ class AuthService:
                 "User %d locked out after %d failed attempts", user_id, new_attempts
             )
 
-        with get_connection() as conn:
-            cursor = conn.cursor()
-            cursor.execute(
-                convert_query(
-                    "UPDATE users SET failed_login_attempts = ?, locked_until = ? WHERE id = ?"
-                ),
-                (new_attempts, locked_until, user_id),
-            )
+        UserRepository.record_failed_login(user_id, new_attempts, locked_until)
 
     @staticmethod
     def _reset_login_attempts(user_id: int) -> None:
         """Reset failed login counters on successful login."""
-        from rivaflow.db.database import convert_query, get_connection
-
-        with get_connection() as conn:
-            cursor = conn.cursor()
-            cursor.execute(
-                convert_query(
-                    "UPDATE users SET failed_login_attempts = 0, locked_until = NULL WHERE id = ?"
-                ),
-                (user_id,),
-            )
+        UserRepository.reset_login_attempts(user_id)
 
     @staticmethod
     def _validate_password_strength(password: str) -> None:
@@ -531,6 +495,14 @@ class AuthService:
             raise ValidationError(
                 message="Password must contain at least one number",
                 action="Add a number to your password.",
+            )
+
+        from rivaflow.core.constants import COMMON_PASSWORDS
+
+        if password.lower() in COMMON_PASSWORDS:
+            raise ValidationError(
+                message="This password is too common and easily guessed",
+                action="Choose a more unique password that isn't commonly used.",
             )
 
     @staticmethod

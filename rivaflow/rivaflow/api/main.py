@@ -28,6 +28,7 @@ from rivaflow.api.middleware.error_handler import (
 )
 from rivaflow.api.middleware.request_id import RequestIDMiddleware
 from rivaflow.api.middleware.request_logging import RequestLoggingMiddleware
+from rivaflow.api.middleware.request_size import RequestSizeLimitMiddleware
 from rivaflow.api.middleware.security_headers import SecurityHeadersMiddleware
 from rivaflow.api.middleware.versioning import VersioningMiddleware
 from rivaflow.api.routes import (
@@ -135,6 +136,9 @@ async def _lifespan(_app: FastAPI):
 
     validate_environment()
 
+    # Ensure upload directory exists
+    settings.ensure_upload_dir()
+
     # Seed glossary on every startup to pick up new terms.
     try:
         from rivaflow.db.seed_glossary import seed_glossary
@@ -233,6 +237,9 @@ app.add_middleware(RequestIDMiddleware)
 
 # Add request logging (method, path, status, latency)
 app.add_middleware(RequestLoggingMiddleware)
+
+# Add request body size limit (10MB)
+app.add_middleware(RequestSizeLimitMiddleware)
 
 
 # Register health check routes (no prefix for easy access by load balancers)

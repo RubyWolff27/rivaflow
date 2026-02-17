@@ -6,6 +6,8 @@ import logging
 
 from fastapi import HTTPException
 
+from rivaflow.core.exceptions import RivaFlowException
+
 logger = logging.getLogger(__name__)
 
 
@@ -34,6 +36,8 @@ def route_error_handler(
                     return await func(*args, **kwargs)
                 return func(*args, **kwargs)
             except HTTPException:
+                raise
+            except RivaFlowException:
                 raise
             except (ValueError, KeyError, TypeError):
                 logger.error("%s failed", operation, exc_info=True)

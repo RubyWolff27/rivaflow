@@ -392,77 +392,21 @@ def merge_gyms(
 @limiter.limit("60/minute")
 def get_dashboard_stats(request: Request, current_user: dict = Depends(require_admin)):
     """Get platform statistics for admin dashboard."""
-    from datetime import datetime, timedelta
+    from rivaflow.core.services.admin_service import AdminService
 
-    from rivaflow.db.database import convert_query, get_connection
+    stats = AdminService.get_dashboard_stats()
 
-    with get_connection() as conn:
-        cursor = conn.cursor()
-
-        # Helper function to safely extract count from query result
-        def get_count(result):
-            if not result:
-                return 0
-            # PostgreSQL with RealDictCursor returns dict, SQLite returns Row
-            if isinstance(result, dict):
-                # Get the first (and only) value from the dict
-                return list(result.values())[0] or 0
-            else:
-                # SQLite Row object - supports integer indexing
-                try:
-                    return result[0]
-                except (KeyError, IndexError, TypeError):
-                    return 0
-
-        # Total users
-        cursor.execute(convert_query("SELECT COUNT(*) FROM users"))
-        total_users = get_count(cursor.fetchone())
-
-        # Active users (logged session in last 30 days)
-        thirty_days_ago = (datetime.now() - timedelta(days=30)).strftime("%Y-%m-%d")
-        cursor.execute(
-            convert_query("""
-            SELECT COUNT(DISTINCT user_id) FROM sessions
-            WHERE session_date >= ?
-        """),
-            (thirty_days_ago,),
-        )
-        active_users = get_count(cursor.fetchone())
-
-        # Total sessions
-        cursor.execute(convert_query("SELECT COUNT(*) FROM sessions"))
-        total_sessions = get_count(cursor.fetchone())
-
-        # Total gyms
-        gym_service = GymService()
-        total_gyms = len(gym_service.list_all(verified_only=False))
-        pending_gyms = len(gym_service.get_pending_gyms())
-        verified_gyms = total_gyms - pending_gyms
-
-        # Total comments
-        cursor.execute(convert_query("SELECT COUNT(*) FROM activity_comments"))
-        total_comments = get_count(cursor.fetchone())
-
-        # New users this week
-        week_ago = (datetime.now() - timedelta(days=7)).strftime("%Y-%m-%d")
-        cursor.execute(
-            convert_query("""
-            SELECT COUNT(*) FROM users
-            WHERE created_at >= ?
-        """),
-            (week_ago,),
-        )
-        new_users_week = get_count(cursor.fetchone())
+    # Add gym stats (still uses GymService)
+    gym_service = GymService()
+    total_gyms = len(gym_service.list_all(verified_only=False))
+    pending_gyms = len(gym_service.get_pending_gyms())
+    verified_gyms = total_gyms - pending_gyms
 
     return {
-        "total_users": total_users,
-        "active_users": active_users,
-        "new_users_week": new_users_week,
-        "total_sessions": total_sessions,
+        **stats,
         "total_gyms": total_gyms,
         "verified_gyms": verified_gyms,
         "pending_gyms": pending_gyms,
-        "total_comments": total_comments,
     }
 
 
@@ -490,61 +434,15 @@ def list_users(
     current_user: dict = Depends(require_admin),
 ):
     """List all users with optional filters (admin only)."""
-    from rivaflow.db.database import convert_query, get_connection
+    from rivaflow.core.services.admin_service import AdminService
 
-    with get_connection() as conn:
-        cursor = conn.cursor()
-
-        query = "SELECT id, email, first_name, last_name, is_active, is_admin, subscription_tier, is_beta_user, created_at FROM users WHERE 1=1"
-        params = []
-
-        if search:
-            query += " AND (email LIKE ? OR first_name LIKE ? OR last_name LIKE ?)"
-            search_term = f"%{search}%"
-            params.extend([search_term, search_term, search_term])
-
-        if is_active is not None:
-            query += " AND is_active = ?"
-            params.append(is_active)
-
-        if is_admin is not None:
-            query += " AND is_admin = ?"
-            params.append(is_admin)
-
-        query += " ORDER BY created_at DESC LIMIT ? OFFSET ?"
-        params.extend([limit, offset])
-
-        cursor.execute(convert_query(query), params)
-        users = cursor.fetchall()
-
-        # Get total count
-        count_query = "SELECT COUNT(*) FROM users WHERE 1=1"
-        count_params = []
-        if search:
-            count_query += (
-                " AND (email LIKE ? OR first_name LIKE ? OR last_name LIKE ?)"
-            )
-            count_params.extend([search_term, search_term, search_term])
-        if is_active is not None:
-            count_query += " AND is_active = ?"
-            count_params.append(is_active)
-        if is_admin is not None:
-            count_query += " AND is_admin = ?"
-            count_params.append(is_admin)
-
-        cursor.execute(convert_query(count_query), count_params)
-        row = cursor.fetchone()
-        # Handle both PostgreSQL (dict) and SQLite (Row) results
-        total_count = (
-            list(row.values())[0] if isinstance(row, dict) else (row[0] if row else 0)
-        )
-
-        return {
-            "users": [dict(row) for row in users],
-            "total": total_count,
-            "limit": limit,
-            "offset": offset,
-        }
+    return AdminService.list_users(
+        search=search,
+        is_active=is_active,
+        is_admin=is_admin,
+        limit=limit,
+        offset=offset,
+    )
 
 
 @router.get("/users/{user_id}")
@@ -555,65 +453,12 @@ def get_user_details(
     current_user: dict = Depends(require_admin),
 ):
     """Get detailed user information (admin only)."""
-    from rivaflow.db.database import convert_query, get_connection
-    from rivaflow.db.repositories.user_repo import UserRepository
+    from rivaflow.core.services.admin_service import AdminService
 
-    user = UserRepository.get_by_id(user_id)
-    if not user:
+    result = AdminService.get_user_details(user_id)
+    if not result:
         raise NotFoundError(f"User {user_id} not found")
-
-    # Get user stats
-    with get_connection() as conn:
-        cursor = conn.cursor()
-
-        # Helper to extract count from result (works with both PostgreSQL dict and SQLite Row)
-        def extract_count(result):
-            if not result:
-                return 0
-            return list(result.values())[0] if isinstance(result, dict) else result[0]
-
-        # Session count
-        cursor.execute(
-            convert_query("SELECT COUNT(*) FROM sessions WHERE user_id = ?"), (user_id,)
-        )
-        session_count = extract_count(cursor.fetchone())
-
-        # Comment count
-        cursor.execute(
-            convert_query("SELECT COUNT(*) FROM activity_comments WHERE user_id = ?"),
-            (user_id,),
-        )
-        comment_count = extract_count(cursor.fetchone())
-
-        # Followers
-        cursor.execute(
-            convert_query("""
-            SELECT COUNT(*) FROM user_relationships WHERE following_user_id = ?
-        """),
-            (user_id,),
-        )
-        followers_count = extract_count(cursor.fetchone())
-
-        # Following
-        cursor.execute(
-            convert_query("""
-            SELECT COUNT(*) FROM user_relationships WHERE follower_user_id = ?
-        """),
-            (user_id,),
-        )
-        following_count = extract_count(cursor.fetchone())
-
-    # Strip sensitive fields before returning
-    safe_user = {k: v for k, v in user.items() if k != "hashed_password"}
-    return {
-        **safe_user,
-        "stats": {
-            "sessions": session_count,
-            "comments": comment_count,
-            "followers": followers_count,
-            "following": following_count,
-        },
-    }
+    return result
 
 
 @router.put("/users/{user_id}")
@@ -625,51 +470,26 @@ def update_user(
     current_user: dict = Depends(require_admin),
 ):
     """Update user (admin only)."""
-    from rivaflow.db.database import convert_query, get_connection
+    from rivaflow.core.services.admin_service import AdminService
     from rivaflow.db.repositories.user_repo import UserRepository
 
     user = UserRepository.get_by_id(user_id)
     if not user:
         raise NotFoundError(f"User {user_id} not found")
 
-    # Valid fields that can be updated (whitelist for SQL safety)
-    valid_admin_update_fields = {
-        "is_active",
-        "is_admin",
-        "subscription_tier",
-        "is_beta_user",
-    }
-
-    changes = {}
-    with get_connection() as conn:
-        cursor = conn.cursor()
-        updates = []
-        params = []
-
-        field_values = {
+    changes = {
+        k: v
+        for k, v in {
             "is_active": user_data.is_active,
             "is_admin": user_data.is_admin,
             "subscription_tier": user_data.subscription_tier,
             "is_beta_user": user_data.is_beta_user,
-        }
+        }.items()
+        if v is not None
+    }
 
-        for field, value in field_values.items():
-            if field not in valid_admin_update_fields:
-                raise ValueError(f"Invalid field: {field}")
-            if value is not None:
-                updates.append(f"{field} = ?")
-                params.append(value)
-                changes[field] = value
+    updated_user = AdminService.update_user(user_id, changes)
 
-        if updates:
-            query = f"UPDATE users SET {', '.join(updates)} WHERE id = ?"
-            params.append(user_id)
-            cursor.execute(convert_query(query), params)
-            conn.commit()
-
-    updated_user = UserRepository.get_by_id(user_id)
-
-    # Audit log
     if changes:
         AuditService.log(
             actor_id=current_user["id"],
@@ -691,7 +511,7 @@ def delete_user(
     current_user: dict = Depends(require_admin),
 ):
     """Delete user (admin only). Cascades to all related data."""
-    from rivaflow.db.database import convert_query, get_connection
+    from rivaflow.core.services.admin_service import AdminService
     from rivaflow.db.repositories.user_repo import UserRepository
 
     if user_id == current_user["id"]:
@@ -702,12 +522,8 @@ def delete_user(
         raise NotFoundError(f"User {user_id} not found")
 
     user_email = user["email"]
-    with get_connection() as conn:
-        cursor = conn.cursor()
-        cursor.execute(convert_query("DELETE FROM users WHERE id = ?"), (user_id,))
-        conn.commit()
+    AdminService.delete_user(user_id)
 
-    # Audit log
     AuditService.log(
         actor_id=current_user["id"],
         action="user.delete",
@@ -730,40 +546,9 @@ def list_all_comments(
     current_user: dict = Depends(require_admin),
 ):
     """List all comments for moderation (admin only)."""
-    from rivaflow.db.database import convert_query, get_connection
+    from rivaflow.core.services.admin_service import AdminService
 
-    with get_connection() as conn:
-        cursor = conn.cursor()
-
-        cursor.execute(
-            convert_query("""
-            SELECT
-                c.id, c.user_id, c.activity_type, c.activity_id,
-                c.comment_text, c.created_at,
-                u.email, u.first_name, u.last_name
-            FROM activity_comments c
-            LEFT JOIN users u ON c.user_id = u.id
-            ORDER BY c.created_at DESC
-            LIMIT ? OFFSET ?
-        """),
-            (limit, offset),
-        )
-
-        comments = [dict(row) for row in cursor.fetchall()]
-
-        cursor.execute(convert_query("SELECT COUNT(*) FROM activity_comments"))
-        row = cursor.fetchone()
-        # Handle both PostgreSQL (dict) and SQLite (Row) results
-        total = (
-            list(row.values())[0] if isinstance(row, dict) else (row[0] if row else 0)
-        )
-
-        return {
-            "comments": comments,
-            "total": total,
-            "limit": limit,
-            "offset": offset,
-        }
+    return AdminService.list_comments(limit=limit, offset=offset)
 
 
 @router.delete("/comments/{comment_id}")
@@ -804,38 +589,13 @@ def list_techniques(
     current_user: dict = Depends(require_admin),
 ):
     """List all techniques for admin management."""
-    from rivaflow.db.database import convert_query, get_connection
+    from rivaflow.core.services.admin_service import AdminService
 
-    with get_connection() as conn:
-        cursor = conn.cursor()
-
-        query = """
-            SELECT id, name, category, subcategory, custom, user_id,
-                   gi_applicable, nogi_applicable
-            FROM movements_glossary WHERE 1=1
-        """
-        params = []
-
-        if search:
-            query += " AND name LIKE ?"
-            params.append(f"%{search}%")
-
-        if category:
-            query += " AND category = ?"
-            params.append(category)
-
-        if custom_only:
-            query += " AND custom = 1"
-
-        query += " ORDER BY name"
-
-        cursor.execute(convert_query(query), params)
-        techniques = [dict(row) for row in cursor.fetchall()]
-
-        return {
-            "techniques": techniques,
-            "count": len(techniques),
-        }
+    return AdminService.list_techniques(
+        search=search,
+        category=category,
+        custom_only=custom_only,
+    )
 
 
 @router.delete("/techniques/{technique_id}")
@@ -846,38 +606,18 @@ def delete_technique(
     current_user: dict = Depends(require_admin),
 ):
     """Delete a technique (admin only)."""
-    from rivaflow.db.database import convert_query, get_connection
+    from rivaflow.core.services.admin_service import AdminService
 
-    # Get technique name before deleting
-    technique_name = None
-    with get_connection() as conn:
-        cursor = conn.cursor()
-        cursor.execute(
-            convert_query("SELECT name FROM movements_glossary WHERE id = ?"),
-            (technique_id,),
-        )
-        row = cursor.fetchone()
-        if row:
-            technique_name = row["name"] if hasattr(row, "__getitem__") else row[0]
+    technique_name = AdminService.delete_technique(technique_id)
+    if technique_name is None:
+        raise NotFoundError(f"Technique {technique_id} not found")
 
-    with get_connection() as conn:
-        cursor = conn.cursor()
-        cursor.execute(
-            convert_query("DELETE FROM movements_glossary WHERE id = ?"),
-            (technique_id,),
-        )
-        conn.commit()
-
-        if cursor.rowcount == 0:
-            raise NotFoundError(f"Technique {technique_id} not found")
-
-    # Audit log
     AuditService.log(
         actor_id=current_user["id"],
         action="technique.delete",
         target_type="technique",
         target_id=technique_id,
-        details={"name": technique_name} if technique_name else {},
+        details={"name": technique_name},
         ip_address=get_client_ip(request),
     )
 
@@ -1246,19 +986,16 @@ def broadcast_email(
     current_user: dict = Depends(require_admin),
 ):
     """Send a broadcast email to all active users (admin only)."""
-    from rivaflow.db.database import convert_query, get_connection
-
-    with get_connection() as conn:
-        cursor = conn.cursor()
-        cursor.execute(
-            convert_query(
-                "SELECT id, email, first_name FROM users" " WHERE is_active = ?"
-            ),
-            (True,),
+    # Sanitize: reject HTML that contains script tags (XSS protection)
+    if "<script" in body.html_body.lower():
+        raise ValidationError(
+            message="HTML body contains disallowed content",
+            action="Remove any <script> tags from the email body.",
         )
-        rows = cursor.fetchall()
-        users = [dict(r) for r in rows]
 
+    from rivaflow.core.services.admin_service import AdminService
+
+    users = AdminService.get_broadcast_users()
     recipient_count = len(users)
 
     # Audit log
