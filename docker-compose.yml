@@ -1,0 +1,33 @@
+services:
+  api:
+    build: .
+    ports:
+      - "8000:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      - DATABASE_URL=postgresql://rivaflow:rivaflow@db:5432/rivaflow
+      - SECRET_KEY=local-dev-secret-key-change-in-production
+      - ENV=development
+      - PORT=8000
+    restart: unless-stopped
+
+  db:
+    image: postgres:18
+    environment:
+      - POSTGRES_USER=rivaflow
+      - POSTGRES_PASSWORD=rivaflow
+      - POSTGRES_DB=rivaflow
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U rivaflow"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  pgdata:

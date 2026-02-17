@@ -75,6 +75,8 @@ jobs:
           --tb=short \
           -v \
 
+    # NOTE: CODECOV_TOKEN secret must be configured in GitHub repo settings
+    # (Settings -> Secrets and variables -> Actions) for the upload to work.
     - name: Upload coverage to Codecov
       uses: codecov/codecov-action@v5
       with:
