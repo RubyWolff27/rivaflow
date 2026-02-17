@@ -84,6 +84,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  // Listen for session-expired events dispatched by the API client
+  useEffect(() => {
+    const handleSessionExpired = () => {
+      logout();
+    };
+    window.addEventListener('auth:session-expired', handleSessionExpired);
+    return () => {
+      window.removeEventListener('auth:session-expired', handleSessionExpired);
+    };
+  });
+
   const logout = () => {
     // Call logout API (fire and forget) — cookie sent automatically
     authApi.logout().catch(() => {

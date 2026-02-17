@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { getLocalDateString } from '../utils/date';
+import { HH_MM_RE } from '../utils/validation';
 import { useNavigate } from 'react-router-dom';
 import { usePageTitle } from '../hooks/usePageTitle';
 import { sessionsApi, readinessApi, profileApi, friendsApi, socialApi, glossaryApi, restApi, whoopApi } from '../api/client';
@@ -19,9 +20,9 @@ import ClassTimePicker from '../components/sessions/ClassTimePicker';
 import WhoopIntegrationPanel from '../components/sessions/WhoopIntegrationPanel';
 import FightDynamicsPanel from '../components/sessions/FightDynamicsPanel';
 import { useSessionForm, mergePartners, mapSocialFriends } from '../hooks/useSessionForm';
+import { useDraftSaving } from '../hooks/useDraftSaving';
 
 const DURATION_QUICK_SELECT = [60, 75, 90, 120] as const;
-const HH_MM_RE = /^([01]\d|2[0-3]):([0-5]\d)$/;
 
 export default function LogSession() {
   usePageTitle('Log Session');
@@ -36,6 +37,8 @@ export default function LogSession() {
   const form = useSessionForm({
     initialData: { session_date: getLocalDateString() },
   });
+
+  const { clearDraft } = useDraftSaving('log-session', form.sessionData, form.setSessionData);
 
   const [readinessData, setReadinessData] = useState({
     check_date: getLocalDateString(),
@@ -217,6 +220,7 @@ export default function LogSession() {
       }
 
       const response = await sessionsApi.create(payload);
+      clearDraft();
       setSuccess(true);
       if (response.data?.id) {
         triggerInsightRefresh(response.data.id);

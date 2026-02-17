@@ -3,6 +3,7 @@ import { getLocalDateString } from '../utils/date';
 import { usePageTitle } from '../hooks/usePageTitle';
 import { profileApi, gradingsApi, friendsApi, adminApi, gymsApi, whoopApi, getErrorMessage } from '../api/client';
 import { logger } from '../utils/logger';
+import { validateImageFile } from '../utils/validation';
 import type { Profile as ProfileType, Grading, Friend, WhoopConnectionStatus } from '../types';
 import { User, Crown, Star, Settings } from 'lucide-react';
 import { Link } from 'react-router-dom';
@@ -190,17 +191,9 @@ export default function Profile() {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    // Validate file type
-    const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/gif'];
-    if (!allowedTypes.includes(file.type)) {
-      toast.error('Invalid file type. Please upload a JPG, PNG, WebP, or GIF image.');
-      return;
-    }
-
-    // Validate file size (5MB max)
-    const maxSize = 5 * 1024 * 1024;
-    if (file.size > maxSize) {
-      toast.error('File too large. Maximum size is 5MB.');
+    const validationError = validateImageFile(file);
+    if (validationError) {
+      toast.error(validationError);
       return;
     }
 
@@ -250,17 +243,9 @@ export default function Profile() {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    // Validate file type
-    const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/gif'];
-    if (!allowedTypes.includes(file.type)) {
-      toast.error('Invalid file type. Please upload a JPG, PNG, WebP, or GIF image.');
-      return;
-    }
-
-    // Validate file size (5MB max)
-    const maxSize = 5 * 1024 * 1024;
-    if (file.size > maxSize) {
-      toast.error('File too large. Maximum size is 5MB.');
+    const validationError = validateImageFile(file);
+    if (validationError) {
+      toast.error(validationError);
       return;
     }
 

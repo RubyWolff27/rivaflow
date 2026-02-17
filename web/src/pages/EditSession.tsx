@@ -3,6 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { usePageTitle } from '../hooks/usePageTitle';
 import { sessionsApi, friendsApi, socialApi, glossaryApi, whoopApi } from '../api/client';
 import { logger } from '../utils/logger';
+import { HH_MM_RE } from '../utils/validation';
 import type { Friend, Movement, Session, SessionRoll, SessionTechnique } from '../types';
 import { CheckCircle, ArrowLeft, Save, Loader, Plus, X, Search, Trash2, ToggleLeft, ToggleRight, Camera } from 'lucide-react';
 import WhoopMatchModal from '../components/WhoopMatchModal';
@@ -12,9 +13,8 @@ import PhotoUpload from '../components/PhotoUpload';
 import ConfirmDialog from '../components/ConfirmDialog';
 import { useToast } from '../contexts/ToastContext';
 import { useSessionForm, mergePartners, mapSocialFriends } from '../hooks/useSessionForm';
+import { useDraftSaving } from '../hooks/useDraftSaving';
 import { CLASS_TYPES } from '../components/ui/ClassTypeChips';
-
-const HH_MM_RE = /^([01]\d|2[0-3]):([0-5]\d)$/;
 
 export default function EditSession() {
   usePageTitle('Edit Session');
@@ -34,6 +34,8 @@ export default function EditSession() {
       session_id: parseInt(id!),
     }), [id]),
   });
+
+  const { clearDraft } = useDraftSaving(`edit-session-${id}`, form.sessionData, form.setSessionData);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -184,6 +186,7 @@ export default function EditSession() {
       }
 
       await sessionsApi.update(parseInt(id!), payload);
+      clearDraft();
       setSuccess(true);
       setTimeout(() => navigate(`/session/${id}`), 1500);
     } catch (error) {
