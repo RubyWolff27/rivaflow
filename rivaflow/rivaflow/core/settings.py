@@ -27,20 +27,14 @@ class Settings:
         self.IS_PRODUCTION: bool = self.ENV == "production"
         self.IS_DEVELOPMENT: bool = self.ENV == "development"
         self.IS_TEST: bool = self.ENV == "test"
-        self.WAITLIST_ENABLED: bool = (
-            os.getenv("WAITLIST_ENABLED", "false").lower() == "true"
-        )
+        self.WAITLIST_ENABLED: bool = os.getenv("WAITLIST_ENABLED", "false").lower() == "true"
 
         # ======================================================================
         # SECURITY
         # ======================================================================
         self._secret_key: str | None = os.getenv("SECRET_KEY")
-        self.ACCESS_TOKEN_EXPIRE_MINUTES: int = int(
-            os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "30")
-        )
-        self.REFRESH_TOKEN_EXPIRE_DAYS: int = int(
-            os.getenv("REFRESH_TOKEN_EXPIRE_DAYS", "30")
-        )
+        self.ACCESS_TOKEN_EXPIRE_MINUTES: int = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "30"))
+        self.REFRESH_TOKEN_EXPIRE_DAYS: int = int(os.getenv("REFRESH_TOKEN_EXPIRE_DAYS", "30"))
 
         # ======================================================================
         # DATABASE
@@ -61,17 +55,13 @@ class Settings:
         self.SMTP_PORT: int = int(os.getenv("SMTP_PORT", "587"))
         self.SMTP_USER: str | None = os.getenv("SMTP_USER")
         self.SMTP_PASSWORD: str | None = os.getenv("SMTP_PASSWORD")
-        self.FROM_EMAIL: str = os.getenv(
-            "FROM_EMAIL", self.SMTP_USER or "noreply@rivaflow.com"
-        )
+        self.FROM_EMAIL: str = os.getenv("FROM_EMAIL", self.SMTP_USER or "noreply@rivaflow.com")
         self.FROM_NAME: str = os.getenv("FROM_NAME", "RivaFlow")
 
         # ======================================================================
         # APPLICATION URLs
         # ======================================================================
-        self.APP_BASE_URL: str = os.getenv(
-            "APP_BASE_URL", "https://rivaflow.onrender.com"
-        )
+        self.APP_BASE_URL: str = os.getenv("APP_BASE_URL", "https://rivaflow.onrender.com")
         self.API_BASE_URL: str = os.getenv("API_BASE_URL", self.APP_BASE_URL)
 
         # ======================================================================
@@ -91,9 +81,7 @@ class Settings:
         # ======================================================================
         # FEATURE FLAGS
         # ======================================================================
-        self.ENABLE_GRAPPLE: bool = (
-            os.getenv("ENABLE_GRAPPLE", "true").lower() == "true"
-        )
+        self.ENABLE_GRAPPLE: bool = os.getenv("ENABLE_GRAPPLE", "true").lower() == "true"
         self.ENABLE_WHOOP_INTEGRATION: bool = (
             os.getenv("ENABLE_WHOOP_INTEGRATION", "false").lower() == "true"
         )
@@ -111,9 +99,7 @@ class Settings:
         # ======================================================================
         # RATE LIMITING
         # ======================================================================
-        self.RATE_LIMIT_ENABLED: bool = (
-            os.getenv("RATE_LIMIT_ENABLED", "true").lower() == "true"
-        )
+        self.RATE_LIMIT_ENABLED: bool = os.getenv("RATE_LIMIT_ENABLED", "true").lower() == "true"
         self.RATE_LIMIT_PER_MINUTE: int = int(os.getenv("RATE_LIMIT_PER_MINUTE", "60"))
         self.RATE_LIMIT_PER_HOUR: int = int(os.getenv("RATE_LIMIT_PER_HOUR", "1000"))
 
@@ -122,9 +108,7 @@ class Settings:
         # ======================================================================
         self.MAX_UPLOAD_SIZE_MB: int = int(os.getenv("MAX_UPLOAD_SIZE_MB", "10"))
         self.MAX_UPLOAD_SIZE_BYTES: int = self.MAX_UPLOAD_SIZE_MB * 1024 * 1024
-        self._upload_dir_path: str = os.getenv(
-            "UPLOAD_DIR", str(self.APP_DIR / "uploads")
-        )
+        self._upload_dir_path: str = os.getenv("UPLOAD_DIR", str(self.APP_DIR / "uploads"))
 
         # ======================================================================
         # S3 / CLOUDFLARE R2 STORAGE
@@ -136,27 +120,29 @@ class Settings:
         # ======================================================================
         # LOGGING
         # ======================================================================
-        self.LOG_LEVEL: str = os.getenv(
-            "LOG_LEVEL", "INFO" if self.IS_PRODUCTION else "DEBUG"
-        )
+        self.LOG_LEVEL: str = os.getenv("LOG_LEVEL", "INFO" if self.IS_PRODUCTION else "DEBUG")
         log_file = os.getenv("LOG_FILE")
         self.LOG_FILE: Path | None = Path(log_file) if log_file else None
 
         # ======================================================================
         # TESTING
         # ======================================================================
-        self.TEST_DATABASE_URL: str = os.getenv(
-            "TEST_DATABASE_URL", "sqlite:///:memory:"
-        )
+        self.TEST_DATABASE_URL: str = os.getenv("TEST_DATABASE_URL", "sqlite:///:memory:")
 
         # ======================================================================
         # CORS
         # ======================================================================
-        origins = os.getenv(
-            "CORS_ORIGINS",
-            "http://localhost:3000,http://localhost:8000",
-        )
-        self.CORS_ORIGINS: list[str] = [origin.strip() for origin in origins.split(",")]
+        origins = os.getenv("ALLOWED_ORIGINS", "")
+        if origins:
+            self.CORS_ORIGINS: list[str] = [origin.strip() for origin in origins.split(",")]
+        else:
+            self.CORS_ORIGINS: list[str] = [
+                "http://localhost:5173",
+                "http://localhost:5174",
+                "http://localhost:5175",
+                "http://localhost:5176",
+                "http://localhost:3000",
+            ]
 
     @property
     def SECRET_KEY(self) -> str:
