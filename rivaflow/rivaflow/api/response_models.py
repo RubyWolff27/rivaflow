@@ -182,35 +182,26 @@ class ReadinessResponse(BaseModel):
 # ---------------------------------------------------------------------------
 
 
-class GoalDimensionProgress(BaseModel):
-    """Progress on a single goal dimension (sessions, hours, rolls)."""
-
-    model_config = ConfigDict(extra="ignore")
-
-    target: int | float | None = None
-    current: int | float | None = None
-    percentage: float | None = None
-    completed: bool | None = None
-
-
 class WeeklyGoalProgress(BaseModel):
     """Current week goal progress."""
 
-    model_config = ConfigDict(extra="ignore")
+    model_config = ConfigDict(extra="allow")
 
-    sessions: GoalDimensionProgress | None = None
-    hours: GoalDimensionProgress | None = None
-    rolls: GoalDimensionProgress | None = None
-    days_remaining: int | None = None
     week_start: str | None = None
     week_end: str | None = None
+    targets: dict | None = None
+    actual: dict | None = None
+    progress: dict | None = None
+    completed: bool | None = None
+    days_remaining: int | None = None
 
 
 class GoalsSummaryResponse(BaseModel):
     """Comprehensive goals summary."""
 
-    model_config = ConfigDict(extra="ignore")
+    model_config = ConfigDict(extra="allow")
 
     current_week: dict | None = None
-    streaks: dict | None = None
-    trend: list | None = None
+    training_streaks: dict | None = None
+    goal_streaks: dict | None = None
+    recent_trend: list | None = None
