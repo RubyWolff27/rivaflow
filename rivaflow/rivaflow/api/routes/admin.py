@@ -1,10 +1,9 @@
 """Admin routes for gym and data management."""
 
 import logging
-import threading
 import time
 
-from fastapi import APIRouter, Body, Depends, Path, Query, Request
+from fastapi import APIRouter, BackgroundTasks, Body, Depends, Path, Query, Request
 from pydantic import BaseModel, Field
 
 from rivaflow.api.rate_limit import limiter
@@ -1242,6 +1241,7 @@ def _send_broadcast_background(
 @limiter.limit("5/hour")
 def broadcast_email(
     request: Request,
+    background_tasks: BackgroundTasks,
     body: BroadcastEmailRequest = Body(...),
     current_user: dict = Depends(require_admin),
 ):
@@ -1274,13 +1274,14 @@ def broadcast_email(
         ip_address=get_client_ip(request),
     )
 
-    # Send in background thread
-    t = threading.Thread(
-        target=_send_broadcast_background,
-        args=(users, body.subject, body.html_body, body.text_body),
-        daemon=True,
+    # Send in background task
+    background_tasks.add_task(
+        _send_broadcast_background,
+        users,
+        body.subject,
+        body.html_body,
+        body.text_body,
     )
-    t.start()
 
     return {
         "success": True,

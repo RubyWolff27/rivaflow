@@ -197,24 +197,10 @@ app.add_exception_handler(RivaFlowException, rivaflow_exception_handler)
 app.add_exception_handler(RequestValidationError, validation_exception_handler)
 app.add_exception_handler(Exception, generic_exception_handler)
 
-# CORS configuration - read from environment or use defaults
-allowed_origins_str = os.getenv("ALLOWED_ORIGINS", "")
-if allowed_origins_str:
-    # Production: use environment variable (comma-separated list)
-    allowed_origins = [origin.strip() for origin in allowed_origins_str.split(",")]
-else:
-    # Development: default to localhost ports
-    allowed_origins = [
-        "http://localhost:5173",
-        "http://localhost:5174",
-        "http://localhost:5175",
-        "http://localhost:5176",
-        "http://localhost:3000",
-    ]
-
+# CORS configuration - use settings.CORS_ORIGINS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=allowed_origins,
+    allow_origins=settings.CORS_ORIGINS,
     allow_credentials=True,
     allow_methods=[
         "GET",

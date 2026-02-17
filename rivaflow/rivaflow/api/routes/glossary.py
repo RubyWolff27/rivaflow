@@ -169,9 +169,19 @@ def delete_custom_video(
     video_id: int,
     current_user: dict = Depends(get_current_user),
 ):
-    """Delete a custom video link."""
+    """Delete a custom video link (admin only)."""
+    from fastapi import HTTPException, status
+
     service = GlossaryService()
-    deleted = service.delete_custom_video(user_id=current_user["id"], video_id=video_id)
+    try:
+        deleted = service.delete_custom_video(
+            user_id=current_user["id"], video_id=video_id
+        )
+    except PermissionError:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only admins can delete videos",
+        )
     if not deleted:
         raise NotFoundError("Video not found")
     return {"message": "Video deleted successfully"}

@@ -1,12 +1,12 @@
 """Fernet-based encryption for storing OAuth tokens at rest."""
 
-from cryptography.fernet import Fernet, InvalidToken
+import os
 
-from rivaflow.core.settings import settings
+from cryptography.fernet import Fernet, InvalidToken
 
 
 def _get_fernet() -> Fernet:
-    key = settings.WHOOP_ENCRYPTION_KEY
+    key = os.getenv("WHOOP_ENCRYPTION_KEY")
     if not key:
         raise ValueError(
             "WHOOP_ENCRYPTION_KEY is required for token encryption. "

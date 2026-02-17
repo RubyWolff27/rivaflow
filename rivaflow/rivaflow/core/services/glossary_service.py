@@ -169,8 +169,16 @@ class GlossaryService:
         )
 
     def delete_custom_video(self, user_id: int, video_id: int) -> bool:
-        """Delete a custom video link."""
-        # Custom videos are global
+        """Delete a custom video link.
+
+        Only admin users can delete videos since videos are global resources
+        without per-user ownership.
+        """
+        from rivaflow.db.repositories.user_repo import UserRepository
+
+        user = UserRepository().get_by_id(user_id)
+        if not user or not user.get("is_admin"):
+            raise PermissionError("Only admins can delete videos")
         return self.repo.delete_custom_video(video_id)
 
     def list_trained_movements(
@@ -226,7 +234,15 @@ class GlossaryService:
         )
 
     def delete_video(self, user_id: int, video_id: int) -> bool:
-        """Delete a movement video."""
+        """Delete a movement video.
+
+        Only admin users can delete videos since videos are global resources.
+        """
+        from rivaflow.db.repositories.user_repo import UserRepository
+
+        user = UserRepository().get_by_id(user_id)
+        if not user or not user.get("is_admin"):
+            raise PermissionError("Only admins can delete videos")
         return self.repo.delete_custom_video(video_id)
 
     def _invalidate_movement_cache(self) -> None:

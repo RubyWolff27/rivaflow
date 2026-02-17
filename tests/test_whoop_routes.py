@@ -10,6 +10,9 @@ import pytest
 def enable_whoop(monkeypatch):
     """Enable the WHOOP feature flag for all tests in this module."""
     monkeypatch.setenv("ENABLE_WHOOP_INTEGRATION", "true")
+    from rivaflow.core.settings import settings
+
+    monkeypatch.setattr(settings, "ENABLE_WHOOP_INTEGRATION", True)
 
 
 @pytest.fixture()
@@ -456,6 +459,9 @@ class TestWhoopFeatureFlagDisabled:
     @pytest.fixture(autouse=True)
     def disable_whoop(self, monkeypatch):
         monkeypatch.setenv("ENABLE_WHOOP_INTEGRATION", "false")
+        from rivaflow.core.settings import settings
+
+        monkeypatch.setattr(settings, "ENABLE_WHOOP_INTEGRATION", False)
 
     def test_authorize_returns_404(self, authenticated_client, test_user):
         response = authenticated_client.get("/api/v1/integrations/whoop/authorize")

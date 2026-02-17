@@ -1,5 +1,6 @@
 """Secure error handling utilities."""
 
+import asyncio
 import functools
 import logging
 
@@ -27,8 +28,10 @@ def route_error_handler(
 
     def decorator(func):
         @functools.wraps(func)
-        def wrapper(*args, **kwargs):
+        async def wrapper(*args, **kwargs):
             try:
+                if asyncio.iscoroutinefunction(func):
+                    return await func(*args, **kwargs)
                 return func(*args, **kwargs)
             except HTTPException:
                 raise

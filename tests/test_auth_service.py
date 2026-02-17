@@ -137,7 +137,9 @@ class TestAuthServiceRegister:
         """Test registration with already existing email."""
         auth_service = AuthService()
 
-        with pytest.raises(ValidationError, match="Email already registered"):
+        with pytest.raises(
+            ValidationError, match="Unable to create account with this email"
+        ):
             auth_service.register(
                 email="test@example.com",  # Already exists from test_user fixture
                 password="SecurePass123",

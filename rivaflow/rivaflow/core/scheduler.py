@@ -8,9 +8,11 @@ gunicorn workers each start their own scheduler instance.
 """
 
 import logging
-from datetime import datetime, timedelta
+from datetime import timedelta
 
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
+
+from rivaflow.core.time_utils import utcnow
 
 logger = logging.getLogger(__name__)
 
@@ -80,7 +82,7 @@ async def _weekly_insights_job() -> None:
         from rivaflow.db.database import convert_query, get_connection
 
         # Find users with sessions in the last 14 days
-        cutoff = (datetime.now() - timedelta(days=14)).strftime("%Y-%m-%d")
+        cutoff = (utcnow() - timedelta(days=14)).strftime("%Y-%m-%d")
         with get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(
@@ -205,9 +207,7 @@ async def _drip_email_job() -> None:
         total_sent = 0
 
         for days_ago, email_key, method_name in drips:
-            target_date = (datetime.now() - timedelta(days=days_ago)).strftime(
-                "%Y-%m-%d"
-            )
+            target_date = (utcnow() - timedelta(days=days_ago)).strftime("%Y-%m-%d")
             with get_connection() as conn:
                 cursor = conn.cursor()
                 cursor.execute(
@@ -268,7 +268,7 @@ async def _coach_settings_reminder_job() -> None:
         )
 
         # Versioned key so users get re-reminded each quarter
-        now = datetime.now()
+        now = utcnow()
         quarter = (now.month - 1) // 3 + 1
         email_key = f"coach_settings_reminder_{now.year}_Q{quarter}"
 

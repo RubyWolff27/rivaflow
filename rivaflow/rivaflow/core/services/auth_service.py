@@ -53,10 +53,14 @@ class AuthService:
             ValueError: If validation fails or email already exists
         """
         # Validate email format and block disposable emails
+        # Allow disposable emails in test/development environments
+        from rivaflow.core.settings import settings
+
+        allow_disposable = not settings.IS_PRODUCTION
         is_valid, normalized_email, error = validate_email_address(
             email,
             check_deliverability=False,  # Skip MX check for performance
-            allow_disposable=True,  # Allow disposable emails for testing/beta
+            allow_disposable=allow_disposable,
         )
         if not is_valid:
             error_code = error.get("code", "INVALID_EMAIL")
@@ -81,8 +85,8 @@ class AuthService:
         existing_user = self.user_repo.get_by_email(email)
         if existing_user:
             raise ValidationError(
-                message="Email already registered",
-                action="If you already have an account, please login instead. If you forgot your password, use the 'Forgot Password' link.",
+                message="Unable to create account with this email",
+                action="Please try logging in, or use the 'Forgot Password' link if you need to reset your credentials.",
             )
 
         # Hash password
@@ -99,34 +103,22 @@ class AuthService:
         except (ConnectionError, OSError, ValueError) as e:
             raise ValueError(f"Failed to create user: {str(e)}")
 
-        # Create profile + streaks in a single transaction
+        # Create profile + streaks using repositories
         try:
-            import logging
+            from rivaflow.db.repositories.streak_repo import StreakRepository
 
-            from rivaflow.db.database import convert_query, get_connection
+            # Create profile (update creates if doesn't exist)
+            self.profile_repo.update(
+                user_id=user["id"],
+                first_name=first_name,
+                last_name=last_name,
+            )
 
-            logger = logging.getLogger(__name__)
+            # Initialize streaks (get_streak creates if doesn't exist)
+            streak_repo = StreakRepository()
+            for streak_type in ("checkin", "training", "readiness"):
+                streak_repo.get_streak(user_id=user["id"], streak_type=streak_type)
 
-            with get_connection() as conn:
-                cursor = conn.cursor()
-
-                # Profile
-                cursor.execute(
-                    convert_query("""
-                    INSERT INTO profile (user_id, first_name, last_name, email)
-                    VALUES (?, ?, ?, ?)
-                    """),
-                    (user["id"], first_name, last_name, email),
-                )
-
-                # Streaks
-                for streak_type in ("checkin", "training", "readiness"):
-                    cursor.execute(
-                        convert_query(
-                            "INSERT INTO streaks (streak_type, current_streak, longest_streak, user_id) VALUES (?, ?, ?, ?)"
-                        ),
-                        (streak_type, 0, 0, user["id"]),
-                    )
         except (ConnectionError, OSError, ValueError) as e:
             logger.error(f"Failed to create profile/streaks for user {user['id']}: {e}")
             try:
@@ -350,14 +342,10 @@ class AuthService:
         Returns:
             True (always, for security)
         """
-        import logging
-
         from rivaflow.core.services.email_service import EmailService
         from rivaflow.db.repositories.password_reset_token_repo import (
             PasswordResetTokenRepository,
         )
-
-        logger = logging.getLogger(__name__)
 
         # Get user by email
         user = self.user_repo.get_by_email(email)
@@ -411,14 +399,10 @@ class AuthService:
         Raises:
             ValueError: If password validation fails
         """
-        import logging
-
         from rivaflow.core.services.email_service import EmailService
         from rivaflow.db.repositories.password_reset_token_repo import (
             PasswordResetTokenRepository,
         )
-
-        logger = logging.getLogger(__name__)
 
         # Validate password strength (same rules as registration)
         AuthService._validate_password_strength(new_password)
@@ -461,6 +445,9 @@ class AuthService:
 
             # Invalidate all refresh tokens (logout from all devices for security)
             self.refresh_token_repo.delete_by_user_id(user_id)
+
+            # Clear any login lockout so user can log in immediately
+            AuthService._reset_login_attempts(user_id)
 
             # Send confirmation email
             email_service = EmailService()

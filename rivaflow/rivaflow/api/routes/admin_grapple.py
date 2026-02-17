@@ -7,8 +7,7 @@ from typing import Any
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel
 
-from rivaflow.core.dependencies import get_current_user
-from rivaflow.core.middleware.feature_access import require_admin
+from rivaflow.core.dependencies import get_admin_user, get_current_user
 from rivaflow.core.time_utils import utcnow
 
 router = APIRouter(prefix="/admin/grapple", tags=["admin", "grapple"])
@@ -121,10 +120,9 @@ def submit_feedback(
 
 
 @router.get("/stats/global", response_model=UsageStatsResponse)
-@require_admin
 def get_global_stats(
     days: int = 30,
-    current_user: dict = Depends(get_current_user),
+    current_user: dict = Depends(get_admin_user),
 ):
     """
     Get global Grapple usage statistics.
@@ -216,9 +214,8 @@ def get_global_stats(
 
 
 @router.get("/stats/projections")
-@require_admin
 def get_cost_projections(
-    current_user: dict = Depends(get_current_user),
+    current_user: dict = Depends(get_admin_user),
 ):
     """
     Get cost projections for current month.
@@ -303,10 +300,9 @@ def get_cost_projections(
 
 
 @router.get("/stats/providers")
-@require_admin
 def get_provider_stats(
     days: int = 7,
-    current_user: dict = Depends(get_current_user),
+    current_user: dict = Depends(get_admin_user),
 ):
     """
     Get LLM provider usage breakdown.
@@ -369,10 +365,9 @@ def get_provider_stats(
 
 
 @router.get("/stats/users")
-@require_admin
 def get_user_stats(
     limit: int = 50,
-    current_user: dict = Depends(get_current_user),
+    current_user: dict = Depends(get_admin_user),
 ):
     """
     Get top users by usage.
@@ -437,11 +432,10 @@ def get_user_stats(
 
 
 @router.get("/feedback")
-@require_admin
 def get_feedback(
     limit: int = 100,
     rating: str | None = None,
-    current_user: dict = Depends(get_current_user),
+    current_user: dict = Depends(get_admin_user),
 ):
     """
     Get user feedback on Grapple responses.
@@ -501,9 +495,8 @@ def get_feedback(
 
 
 @router.get("/health")
-@require_admin
 def get_grapple_health(
-    current_user: dict = Depends(get_current_user),
+    current_user: dict = Depends(get_admin_user),
 ):
     """
     Get Grapple system health status.

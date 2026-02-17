@@ -8,6 +8,12 @@ from typing import Any
 
 logger = logging.getLogger(__name__)
 
+# Sentinel object to distinguish "not in cache" from cached None/falsy values
+_MISSING = object()
+
+# Maximum cache entries to prevent unbounded memory growth
+MAX_CACHE_SIZE = 10_000
+
 
 class CacheEntry:
     """Cache entry with expiration time."""
@@ -24,30 +30,32 @@ class CacheEntry:
 class SimpleCache:
     """Simple in-memory cache with TTL support."""
 
-    def __init__(self):
+    def __init__(self, max_size: int = MAX_CACHE_SIZE):
         self._cache: dict[str, CacheEntry] = {}
         self._hits = 0
         self._misses = 0
+        self._max_size = max_size
 
-    def get(self, key: str) -> Any | None:
+    def get(self, key: str, default: Any = _MISSING) -> Any:
         """
         Get value from cache if it exists and hasn't expired.
 
         Args:
             key: Cache key
+            default: Value to return if not found (defaults to _MISSING sentinel)
 
         Returns:
-            Cached value or None if not found/expired
+            Cached value or default if not found/expired
         """
         if key not in self._cache:
             self._misses += 1
-            return None
+            return default
 
         entry = self._cache[key]
         if entry.is_expired():
             del self._cache[key]
             self._misses += 1
-            return None
+            return default
 
         self._hits += 1
         return entry.value
@@ -61,6 +69,17 @@ class SimpleCache:
             value: Value to cache
             ttl_seconds: Time to live in seconds (default: 5 minutes)
         """
+        # Evict expired entries if at capacity
+        if len(self._cache) >= self._max_size:
+            self.cleanup_expired()
+
+        # If still at capacity after cleanup, evict oldest entries
+        if len(self._cache) >= self._max_size:
+            entries = sorted(self._cache.items(), key=lambda x: x[1].expires_at)
+            to_remove = len(self._cache) - self._max_size + 1
+            for k, _ in entries[:to_remove]:
+                del self._cache[k]
+
         self._cache[key] = CacheEntry(value, ttl_seconds)
 
     def delete(self, key: str):
@@ -72,6 +91,12 @@ class SimpleCache:
         """
         if key in self._cache:
             del self._cache[key]
+
+    def delete_pattern(self, pattern: str):
+        """Delete all keys matching a prefix pattern."""
+        keys_to_delete = [k for k in self._cache if k.startswith(pattern)]
+        for k in keys_to_delete:
+            del self._cache[k]
 
     def clear(self):
         """Clear all cache entries."""
@@ -94,6 +119,7 @@ class SimpleCache:
 
         return {
             "entries": len(self._cache),
+            "max_size": self._max_size,
             "hits": self._hits,
             "misses": self._misses,
             "hit_rate": f"{hit_rate:.1f}%",
@@ -140,9 +166,9 @@ def cached(ttl_seconds: int = 300, key_prefix: str = ""):
 
             cache_key = ":".join(cache_key_parts)
 
-            # Try to get from cache
+            # Try to get from cache (use sentinel to handle falsy values)
             cached_value = _cache.get(cache_key)
-            if cached_value is not None:
+            if cached_value is not _MISSING:
                 logger.debug(f"Cache HIT: {cache_key}")
                 return cached_value
 

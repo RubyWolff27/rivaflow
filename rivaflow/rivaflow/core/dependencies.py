@@ -7,10 +7,13 @@ from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from jwt.exceptions import PyJWTError
 
 from rivaflow.core.auth import decode_access_token
+from rivaflow.core.utils.cache import get_cache
 from rivaflow.db.repositories.user_repo import UserRepository
 
 logger = logging.getLogger(__name__)
 
+# User cache TTL — short enough that permission changes propagate quickly
+_USER_CACHE_TTL = 60  # seconds
 
 # HTTP Bearer token security scheme
 security = HTTPBearer()
@@ -21,6 +24,9 @@ async def get_current_user(
 ) -> dict:
     """
     Dependency to extract and validate JWT token from Authorization header.
+
+    Uses a short-lived in-memory cache to avoid hitting the database
+    on every single authenticated request.
 
     Args:
         credentials: HTTP Authorization credentials (Bearer token)
@@ -52,7 +58,16 @@ async def get_current_user(
                 headers={"WWW-Authenticate": "Bearer"},
             )
 
-        # Get user from database
+        # Check cache first
+        cache = get_cache()
+        cache_key = f"user:{user_id}"
+        from rivaflow.core.utils.cache import _MISSING
+
+        cached_user = cache.get(cache_key)
+        if cached_user is not _MISSING:
+            return cached_user
+
+        # Cache miss — fetch from database
         user_repo = UserRepository()
         user = user_repo.get_by_id(user_id)
 
@@ -74,6 +89,9 @@ async def get_current_user(
         # Remove sensitive fields
         user.pop("hashed_password", None)
 
+        # Cache the user for subsequent requests
+        cache.set(cache_key, user, _USER_CACHE_TTL)
+
         return user
 
     except PyJWTError:
@@ -93,28 +111,6 @@ async def get_current_user(
             detail="Authentication failed",
             headers={"WWW-Authenticate": "Bearer"},
         )
-
-
-def get_current_active_user(current_user: dict = Depends(get_current_user)) -> dict:
-    """
-    Dependency that ensures the current user is active.
-    This is redundant with get_current_user but kept for semantic clarity.
-
-    Args:
-        current_user: User from get_current_user dependency
-
-    Returns:
-        Active user dictionary
-
-    Raises:
-        HTTPException: 401 if user is not active
-    """
-    if not current_user.get("is_active"):
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Inactive user",
-        )
-    return current_user
 
 
 def get_admin_user(current_user: dict = Depends(get_current_user)) -> dict:

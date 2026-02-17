@@ -50,10 +50,10 @@ class TestGetVideo:
 class TestDeleteVideo:
     """Delete video endpoint tests."""
 
-    def test_delete_nonexistent_returns_404(self, authenticated_client, test_user):
-        """Test DELETE /api/v1/videos/999999 returns 404."""
+    def test_delete_non_admin_returns_403(self, authenticated_client, test_user):
+        """Test DELETE /api/v1/videos/999999 returns 403 for non-admin users."""
         response = authenticated_client.delete("/api/v1/videos/999999")
-        assert response.status_code == 404
+        assert response.status_code == 403
 
     def test_delete_requires_auth(self, client, temp_db):
         """Test delete video requires auth."""

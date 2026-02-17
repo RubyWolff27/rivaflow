@@ -491,11 +491,23 @@ class SessionRepository:
 
     @staticmethod
     def delete(user_id: int, session_id: int) -> bool:
-        """Delete a session and all related records atomically."""
+        """Delete a session and all related records atomically.
+
+        Verifies ownership BEFORE deleting child records to prevent
+        orphan deletion of another user's data.
+        """
         with get_connection() as conn:
             cursor = conn.cursor()
 
-            # Delete related child records in same transaction
+            # Verify ownership first
+            cursor.execute(
+                convert_query("SELECT id FROM sessions WHERE id = ? AND user_id = ?"),
+                (session_id, user_id),
+            )
+            if not cursor.fetchone():
+                return False
+
+            # Now safe to delete child records
             cursor.execute(
                 convert_query("DELETE FROM session_rolls WHERE session_id = ?"),
                 (session_id,),

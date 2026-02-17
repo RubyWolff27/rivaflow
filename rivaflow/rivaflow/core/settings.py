@@ -2,6 +2,10 @@
 
 This module provides a single source of truth for all configuration,
 including environment variables, API keys, and runtime settings.
+
+All environment variables are read ONCE at import time and cached as
+instance attributes. This avoids repeated os.getenv() syscalls on every
+property access.
 """
 
 import os
@@ -12,45 +16,147 @@ class Settings:
     """
     Application settings with environment variable support.
 
-    All settings are loaded from environment variables with sensible defaults.
+    All settings are loaded from environment variables at init time.
     """
 
-    # ==============================================================================
-    # ENVIRONMENT
-    # ==============================================================================
+    def __init__(self):
+        # ======================================================================
+        # ENVIRONMENT
+        # ======================================================================
+        self.ENV: str = os.getenv("ENV", "development")
+        self.IS_PRODUCTION: bool = self.ENV == "production"
+        self.IS_DEVELOPMENT: bool = self.ENV == "development"
+        self.IS_TEST: bool = self.ENV == "test"
+        self.WAITLIST_ENABLED: bool = (
+            os.getenv("WAITLIST_ENABLED", "false").lower() == "true"
+        )
 
-    @property
-    def ENV(self) -> str:
-        """Application environment (development, production, test)."""
-        return os.getenv("ENV", "development")
+        # ======================================================================
+        # SECURITY
+        # ======================================================================
+        self._secret_key: str | None = os.getenv("SECRET_KEY")
+        self.ACCESS_TOKEN_EXPIRE_MINUTES: int = int(
+            os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "30")
+        )
+        self.REFRESH_TOKEN_EXPIRE_DAYS: int = int(
+            os.getenv("REFRESH_TOKEN_EXPIRE_DAYS", "30")
+        )
 
-    @property
-    def IS_PRODUCTION(self) -> bool:
-        """Check if running in production."""
-        return self.ENV == "production"
+        # ======================================================================
+        # DATABASE
+        # ======================================================================
+        raw_db_url = os.getenv("DATABASE_URL")
+        if raw_db_url and raw_db_url.startswith("postgres://"):
+            raw_db_url = raw_db_url.replace("postgres://", "postgresql://", 1)
+        self.DATABASE_URL: str | None = raw_db_url
+        self.DB_TYPE: str = "postgresql" if self.DATABASE_URL else "sqlite"
+        self.APP_DIR: Path = Path.home() / ".rivaflow"
+        self.DB_PATH: Path = self.APP_DIR / "rivaflow.db"
 
-    @property
-    def IS_DEVELOPMENT(self) -> bool:
-        """Check if running in development."""
-        return self.ENV == "development"
+        # ======================================================================
+        # EMAIL / NOTIFICATIONS
+        # ======================================================================
+        self.SENDGRID_API_KEY: str | None = os.getenv("SENDGRID_API_KEY")
+        self.SMTP_HOST: str = os.getenv("SMTP_HOST", "smtp.gmail.com")
+        self.SMTP_PORT: int = int(os.getenv("SMTP_PORT", "587"))
+        self.SMTP_USER: str | None = os.getenv("SMTP_USER")
+        self.SMTP_PASSWORD: str | None = os.getenv("SMTP_PASSWORD")
+        self.FROM_EMAIL: str = os.getenv(
+            "FROM_EMAIL", self.SMTP_USER or "noreply@rivaflow.com"
+        )
+        self.FROM_NAME: str = os.getenv("FROM_NAME", "RivaFlow")
 
-    @property
-    def IS_TEST(self) -> bool:
-        """Check if running in test environment."""
-        return self.ENV == "test"
+        # ======================================================================
+        # APPLICATION URLs
+        # ======================================================================
+        self.APP_BASE_URL: str = os.getenv(
+            "APP_BASE_URL", "https://rivaflow.onrender.com"
+        )
+        self.API_BASE_URL: str = os.getenv("API_BASE_URL", self.APP_BASE_URL)
 
-    @property
-    def WAITLIST_ENABLED(self) -> bool:
-        """Whether new signups require a waitlist invite token.
+        # ======================================================================
+        # REDIS / CACHING
+        # ======================================================================
+        self.REDIS_URL: str = os.getenv("REDIS_URL", "redis://localhost:6379")
+        self.CACHE_ENABLED: bool = os.getenv("CACHE_ENABLED", "false").lower() == "true"
 
-        Set to 'true' to gate registration behind the waitlist.
-        Defaults to false (open signups) during beta.
-        """
-        return os.getenv("WAITLIST_ENABLED", "false").lower() == "true"
+        # ======================================================================
+        # AI / LLM INTEGRATION
+        # ======================================================================
+        self.GROQ_API_KEY: str | None = os.getenv("GROQ_API_KEY")
+        self.TOGETHER_API_KEY: str | None = os.getenv("TOGETHER_API_KEY")
+        self.OPENAI_API_KEY: str | None = os.getenv("OPENAI_API_KEY")
+        self.OLLAMA_URL: str = os.getenv("OLLAMA_URL", "http://localhost:11434")
 
-    # ==============================================================================
-    # SECURITY
-    # ==============================================================================
+        # ======================================================================
+        # FEATURE FLAGS
+        # ======================================================================
+        self.ENABLE_GRAPPLE: bool = (
+            os.getenv("ENABLE_GRAPPLE", "true").lower() == "true"
+        )
+        self.ENABLE_WHOOP_INTEGRATION: bool = (
+            os.getenv("ENABLE_WHOOP_INTEGRATION", "false").lower() == "true"
+        )
+        self.WHOOP_CLIENT_ID: str | None = os.getenv("WHOOP_CLIENT_ID")
+        self.WHOOP_CLIENT_SECRET: str | None = os.getenv("WHOOP_CLIENT_SECRET")
+        self.WHOOP_REDIRECT_URI: str = os.getenv(
+            "WHOOP_REDIRECT_URI",
+            f"{self.API_BASE_URL}/api/v1/integrations/whoop/callback",
+        )
+        self.WHOOP_ENCRYPTION_KEY: str | None = os.getenv("WHOOP_ENCRYPTION_KEY")
+        self.ENABLE_SOCIAL_FEATURES: bool = (
+            os.getenv("ENABLE_SOCIAL_FEATURES", "true").lower() == "true"
+        )
+
+        # ======================================================================
+        # RATE LIMITING
+        # ======================================================================
+        self.RATE_LIMIT_ENABLED: bool = (
+            os.getenv("RATE_LIMIT_ENABLED", "true").lower() == "true"
+        )
+        self.RATE_LIMIT_PER_MINUTE: int = int(os.getenv("RATE_LIMIT_PER_MINUTE", "60"))
+        self.RATE_LIMIT_PER_HOUR: int = int(os.getenv("RATE_LIMIT_PER_HOUR", "1000"))
+
+        # ======================================================================
+        # FILE UPLOADS
+        # ======================================================================
+        self.MAX_UPLOAD_SIZE_MB: int = int(os.getenv("MAX_UPLOAD_SIZE_MB", "10"))
+        self.MAX_UPLOAD_SIZE_BYTES: int = self.MAX_UPLOAD_SIZE_MB * 1024 * 1024
+        self._upload_dir_path: str = os.getenv(
+            "UPLOAD_DIR", str(self.APP_DIR / "uploads")
+        )
+
+        # ======================================================================
+        # S3 / CLOUDFLARE R2 STORAGE
+        # ======================================================================
+        self.S3_BUCKET_NAME: str | None = os.getenv("S3_BUCKET_NAME")
+        self.S3_PUBLIC_URL: str | None = os.getenv("S3_PUBLIC_URL")
+        self.STORAGE_BACKEND: str = "s3" if self.S3_BUCKET_NAME else "local"
+
+        # ======================================================================
+        # LOGGING
+        # ======================================================================
+        self.LOG_LEVEL: str = os.getenv(
+            "LOG_LEVEL", "INFO" if self.IS_PRODUCTION else "DEBUG"
+        )
+        log_file = os.getenv("LOG_FILE")
+        self.LOG_FILE: Path | None = Path(log_file) if log_file else None
+
+        # ======================================================================
+        # TESTING
+        # ======================================================================
+        self.TEST_DATABASE_URL: str = os.getenv(
+            "TEST_DATABASE_URL", "sqlite:///:memory:"
+        )
+
+        # ======================================================================
+        # CORS
+        # ======================================================================
+        origins = os.getenv(
+            "CORS_ORIGINS",
+            "http://localhost:3000,http://localhost:8000",
+        )
+        self.CORS_ORIGINS: list[str] = [origin.strip() for origin in origins.split(",")]
 
     @property
     def SECRET_KEY(self) -> str:
@@ -59,284 +165,19 @@ class Settings:
 
         REQUIRED in all environments. Raises ValueError if not set.
         """
-        secret = os.getenv("SECRET_KEY")
-        if not secret:
+        if not self._secret_key:
             raise ValueError(
                 "SECRET_KEY environment variable is required. "
                 "Generate one with: python -c 'import secrets; print(secrets.token_urlsafe(32))'"
             )
-        return secret
-
-    @property
-    def ACCESS_TOKEN_EXPIRE_MINUTES(self) -> int:
-        """JWT access token expiration time in minutes."""
-        return int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "30"))
-
-    @property
-    def REFRESH_TOKEN_EXPIRE_DAYS(self) -> int:
-        """JWT refresh token expiration time in days."""
-        return int(os.getenv("REFRESH_TOKEN_EXPIRE_DAYS", "30"))
-
-    # ==============================================================================
-    # DATABASE
-    # ==============================================================================
-
-    @property
-    def DATABASE_URL(self) -> str | None:
-        """
-        Database connection URL.
-
-        If not set, defaults to SQLite at ~/.rivaflow/rivaflow.db
-        Format: postgresql://user:pass@host:port/dbname
-        """
-        url = os.getenv("DATABASE_URL")
-        if url and url.startswith("postgres://"):
-            # Render uses postgres:// but psycopg2 expects postgresql://
-            url = url.replace("postgres://", "postgresql://", 1)
-        return url
-
-    @property
-    def DB_TYPE(self) -> str:
-        """Database type (sqlite or postgresql)."""
-        return "postgresql" if self.DATABASE_URL else "sqlite"
-
-    @property
-    def APP_DIR(self) -> Path:
-        """Application data directory (~/.rivaflow)."""
-        return Path.home() / ".rivaflow"
-
-    @property
-    def DB_PATH(self) -> Path:
-        """SQLite database file path."""
-        return self.APP_DIR / "rivaflow.db"
-
-    # ==============================================================================
-    # EMAIL / NOTIFICATIONS
-    # ==============================================================================
-
-    @property
-    def SENDGRID_API_KEY(self) -> str | None:
-        """SendGrid API key for email delivery."""
-        return os.getenv("SENDGRID_API_KEY")
-
-    @property
-    def SMTP_HOST(self) -> str:
-        """SMTP server hostname."""
-        return os.getenv("SMTP_HOST", "smtp.gmail.com")
-
-    @property
-    def SMTP_PORT(self) -> int:
-        """SMTP server port."""
-        return int(os.getenv("SMTP_PORT", "587"))
-
-    @property
-    def SMTP_USER(self) -> str | None:
-        """SMTP username."""
-        return os.getenv("SMTP_USER")
-
-    @property
-    def SMTP_PASSWORD(self) -> str | None:
-        """SMTP password."""
-        return os.getenv("SMTP_PASSWORD")
-
-    @property
-    def FROM_EMAIL(self) -> str:
-        """Default sender email address."""
-        return os.getenv("FROM_EMAIL", self.SMTP_USER or "noreply@rivaflow.com")
-
-    @property
-    def FROM_NAME(self) -> str:
-        """Default sender name."""
-        return os.getenv("FROM_NAME", "RivaFlow")
-
-    # ==============================================================================
-    # APPLICATION URLs
-    # ==============================================================================
-
-    @property
-    def APP_BASE_URL(self) -> str:
-        """Base URL for the application (used in emails, redirects)."""
-        return os.getenv("APP_BASE_URL", "https://rivaflow.onrender.com")
-
-    @property
-    def API_BASE_URL(self) -> str:
-        """Base URL for the API."""
-        return os.getenv("API_BASE_URL", self.APP_BASE_URL)
-
-    # ==============================================================================
-    # REDIS / CACHING
-    # ==============================================================================
-
-    @property
-    def REDIS_URL(self) -> str:
-        """Redis connection URL for caching."""
-        return os.getenv("REDIS_URL", "redis://localhost:6379")
-
-    @property
-    def CACHE_ENABLED(self) -> bool:
-        """Enable caching (Redis)."""
-        return os.getenv("CACHE_ENABLED", "false").lower() == "true"
-
-    # ==============================================================================
-    # AI / LLM INTEGRATION
-    # ==============================================================================
-
-    @property
-    def GROQ_API_KEY(self) -> str | None:
-        """Groq API key for LLM features."""
-        return os.getenv("GROQ_API_KEY")
-
-    @property
-    def TOGETHER_API_KEY(self) -> str | None:
-        """Together AI API key."""
-        return os.getenv("TOGETHER_API_KEY")
-
-    @property
-    def OPENAI_API_KEY(self) -> str | None:
-        """OpenAI API key for Whisper transcription."""
-        return os.getenv("OPENAI_API_KEY")
-
-    @property
-    def OLLAMA_URL(self) -> str:
-        """Ollama server URL for local LLM."""
-        return os.getenv("OLLAMA_URL", "http://localhost:11434")
-
-    # ==============================================================================
-    # FEATURE FLAGS
-    # ==============================================================================
-
-    @property
-    def ENABLE_GRAPPLE(self) -> bool:
-        """Enable Grapple AI coaching features."""
-        return os.getenv("ENABLE_GRAPPLE", "true").lower() == "true"
-
-    @property
-    def ENABLE_WHOOP_INTEGRATION(self) -> bool:
-        """Enable WHOOP fitness tracker integration."""
-        return os.getenv("ENABLE_WHOOP_INTEGRATION", "false").lower() == "true"
-
-    @property
-    def WHOOP_CLIENT_ID(self) -> str | None:
-        """WHOOP OAuth client ID from developer.whoop.com."""
-        return os.getenv("WHOOP_CLIENT_ID")
-
-    @property
-    def WHOOP_CLIENT_SECRET(self) -> str | None:
-        """WHOOP OAuth client secret from developer.whoop.com."""
-        return os.getenv("WHOOP_CLIENT_SECRET")
-
-    @property
-    def WHOOP_REDIRECT_URI(self) -> str:
-        """WHOOP OAuth redirect URI."""
-        return os.getenv(
-            "WHOOP_REDIRECT_URI",
-            f"{self.API_BASE_URL}/api/v1/integrations/whoop/callback",
-        )
-
-    @property
-    def WHOOP_ENCRYPTION_KEY(self) -> str | None:
-        """Fernet encryption key for WHOOP tokens (32-byte base64)."""
-        return os.getenv("WHOOP_ENCRYPTION_KEY")
-
-    @property
-    def ENABLE_SOCIAL_FEATURES(self) -> bool:
-        """Enable social features (friends, likes, comments)."""
-        return os.getenv("ENABLE_SOCIAL_FEATURES", "true").lower() == "true"
-
-    # ==============================================================================
-    # RATE LIMITING
-    # ==============================================================================
-
-    @property
-    def RATE_LIMIT_ENABLED(self) -> bool:
-        """Enable rate limiting."""
-        return os.getenv("RATE_LIMIT_ENABLED", "true").lower() == "true"
-
-    @property
-    def RATE_LIMIT_PER_MINUTE(self) -> int:
-        """Maximum requests per minute per user."""
-        return int(os.getenv("RATE_LIMIT_PER_MINUTE", "60"))
-
-    @property
-    def RATE_LIMIT_PER_HOUR(self) -> int:
-        """Maximum requests per hour per user."""
-        return int(os.getenv("RATE_LIMIT_PER_HOUR", "1000"))
-
-    # ==============================================================================
-    # FILE UPLOADS
-    # ==============================================================================
-
-    @property
-    def MAX_UPLOAD_SIZE_MB(self) -> int:
-        """Maximum file upload size in megabytes."""
-        return int(os.getenv("MAX_UPLOAD_SIZE_MB", "10"))
-
-    @property
-    def MAX_UPLOAD_SIZE_BYTES(self) -> int:
-        """Maximum file upload size in bytes."""
-        return self.MAX_UPLOAD_SIZE_MB * 1024 * 1024
+        return self._secret_key
 
     @property
     def UPLOAD_DIR(self) -> Path:
-        """Directory for file uploads."""
-        upload_dir = Path(os.getenv("UPLOAD_DIR", str(self.APP_DIR / "uploads")))
+        """Directory for file uploads (creates on first access)."""
+        upload_dir = Path(self._upload_dir_path)
         upload_dir.mkdir(parents=True, exist_ok=True)
         return upload_dir
-
-    # ==============================================================================
-    # S3 / CLOUDFLARE R2 STORAGE
-    # ==============================================================================
-
-    @property
-    def S3_BUCKET_NAME(self) -> str | None:
-        """S3-compatible bucket name. If unset, local filesystem is used."""
-        return os.getenv("S3_BUCKET_NAME")
-
-    @property
-    def S3_PUBLIC_URL(self) -> str | None:
-        """Public URL prefix for S3 objects (e.g. R2 custom domain)."""
-        return os.getenv("S3_PUBLIC_URL")
-
-    @property
-    def STORAGE_BACKEND(self) -> str:
-        """Active storage backend: 's3' or 'local'."""
-        return "s3" if self.S3_BUCKET_NAME else "local"
-
-    # ==============================================================================
-    # LOGGING
-    # ==============================================================================
-
-    @property
-    def LOG_LEVEL(self) -> str:
-        """Logging level (DEBUG, INFO, WARNING, ERROR, CRITICAL)."""
-        return os.getenv("LOG_LEVEL", "INFO" if self.IS_PRODUCTION else "DEBUG")
-
-    @property
-    def LOG_FILE(self) -> Path | None:
-        """Log file path (None for stdout only)."""
-        log_file = os.getenv("LOG_FILE")
-        return Path(log_file) if log_file else None
-
-    # ==============================================================================
-    # TESTING
-    # ==============================================================================
-
-    @property
-    def TEST_DATABASE_URL(self) -> str:
-        """Database URL for testing (in-memory SQLite)."""
-        return os.getenv("TEST_DATABASE_URL", "sqlite:///:memory:")
-
-    # ==============================================================================
-    # CORS
-    # ==============================================================================
-
-    @property
-    def CORS_ORIGINS(self) -> list[str]:
-        """Allowed CORS origins (comma-separated)."""
-        origins = os.getenv(
-            "CORS_ORIGINS", "http://localhost:3000,http://localhost:8000"
-        )
-        return [origin.strip() for origin in origins.split(",")]
 
     # ==============================================================================
     # UTILITY METHODS
