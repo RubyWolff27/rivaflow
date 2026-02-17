@@ -1,10 +1,13 @@
-import { useState, useEffect, memo } from 'react';
+import { useState, useEffect, useMemo, memo } from 'react';
 import { usePageTitle } from '../hooks/usePageTitle';
 import { techniquesApi } from '../api/client';
 import { logger } from '../utils/logger';
 import type { TrainedMovement } from '../types';
-import { Book, AlertCircle } from 'lucide-react';
+import { Book, AlertCircle, ArrowUp, ArrowDown } from 'lucide-react';
 import { CardSkeleton } from '../components/ui';
+
+type SortKey = 'name' | 'category' | 'last_trained_date' | 'train_count';
+type SortDir = 'asc' | 'desc';
 
 // Memoized technique row component
 const TechniqueRow = memo(function TechniqueRow({ tech }: { tech: TrainedMovement }) {
@@ -26,11 +29,44 @@ const TechniqueRow = memo(function TechniqueRow({ tech }: { tech: TrainedMovemen
   );
 });
 
+function SortHeader({
+  label,
+  sortKey,
+  currentSort,
+  currentDir,
+  onSort,
+}: {
+  label: string;
+  sortKey: SortKey;
+  currentSort: SortKey;
+  currentDir: SortDir;
+  onSort: (key: SortKey) => void;
+}) {
+  const active = currentSort === sortKey;
+  return (
+    <th
+      className="text-left py-3 px-4 cursor-pointer select-none hover:opacity-70"
+      onClick={() => onSort(sortKey)}
+    >
+      <span className="inline-flex items-center gap-1">
+        {label}
+        {active && (currentDir === 'asc' ? (
+          <ArrowUp className="w-3 h-3" />
+        ) : (
+          <ArrowDown className="w-3 h-3" />
+        ))}
+      </span>
+    </th>
+  );
+}
+
 export default function Techniques() {
   usePageTitle('Techniques');
   const [techniques, setTechniques] = useState<TrainedMovement[]>([]);
   const [staleTechniques, setStaleTechniques] = useState<TrainedMovement[]>([]);
   const [loading, setLoading] = useState(true);
+  const [sortBy, setSortBy] = useState<SortKey>('name');
+  const [sortDir, setSortDir] = useState<SortDir>('asc');
 
   useEffect(() => {
     let cancelled = false;
@@ -58,6 +94,41 @@ export default function Techniques() {
     doLoad();
     return () => { cancelled = true; };
   }, []);
+
+  const handleSort = (key: SortKey) => {
+    if (sortBy === key) {
+      setSortDir((d) => (d === 'asc' ? 'desc' : 'asc'));
+    } else {
+      setSortBy(key);
+      setSortDir(key === 'train_count' || key === 'last_trained_date' ? 'desc' : 'asc');
+    }
+  };
+
+  const sorted = useMemo(() => {
+    const list = [...techniques];
+    list.sort((a, b) => {
+      let cmp = 0;
+      switch (sortBy) {
+        case 'name':
+          cmp = (a.name || '').localeCompare(b.name || '');
+          break;
+        case 'category':
+          cmp = (a.category || '').localeCompare(b.category || '');
+          break;
+        case 'last_trained_date': {
+          const da = a.last_trained_date || '';
+          const db = b.last_trained_date || '';
+          cmp = da.localeCompare(db);
+          break;
+        }
+        case 'train_count':
+          cmp = (a.train_count ?? 0) - (b.train_count ?? 0);
+          break;
+      }
+      return sortDir === 'asc' ? cmp : -cmp;
+    });
+    return list;
+  }, [techniques, sortBy, sortDir]);
 
   if (loading) {
     return (
@@ -112,14 +183,14 @@ export default function Techniques() {
             <table className="w-full">
               <thead className="border-b border-[var(--border)]">
                 <tr>
-                  <th className="text-left py-3 px-4">Name</th>
-                  <th className="text-left py-3 px-4">Category</th>
-                  <th className="text-left py-3 px-4">Last Trained</th>
-                  <th className="text-left py-3 px-4">Train Count</th>
+                  <SortHeader label="Name" sortKey="name" currentSort={sortBy} currentDir={sortDir} onSort={handleSort} />
+                  <SortHeader label="Category" sortKey="category" currentSort={sortBy} currentDir={sortDir} onSort={handleSort} />
+                  <SortHeader label="Last Trained" sortKey="last_trained_date" currentSort={sortBy} currentDir={sortDir} onSort={handleSort} />
+                  <SortHeader label="Train Count" sortKey="train_count" currentSort={sortBy} currentDir={sortDir} onSort={handleSort} />
                 </tr>
               </thead>
               <tbody>
-                {techniques.map((tech) => (
+                {sorted.map((tech) => (
                   <TechniqueRow key={tech.id} tech={tech} />
                 ))}
               </tbody>
