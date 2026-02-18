@@ -108,7 +108,6 @@ def submit_feedback(
     )
 
     return {
-        "success": True,
         "feedback_id": feedback_id,
         "message": "Thank you for your feedback!",
     }

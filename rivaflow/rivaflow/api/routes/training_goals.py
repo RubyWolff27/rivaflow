@@ -120,6 +120,6 @@ def delete_goal(
     service = TrainingGoalsService()
     try:
         service.delete_goal(user_id=current_user["id"], goal_id=goal_id)
-        return {"success": True}
+        return {"message": "Goal deleted"}
     except NotFoundError:
         raise NotFoundError("Goal not found")

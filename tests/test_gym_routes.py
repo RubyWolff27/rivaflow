@@ -416,7 +416,6 @@ class TestAdminTimetableAPI:
         )
         assert resp.status_code == 200
         data = resp.json()
-        assert data["success"] is True
         assert data["classes_created"] == 2
 
     def test_admin_add_single_class(self, client, test_user, temp_db):
@@ -438,7 +437,6 @@ class TestAdminTimetableAPI:
         )
         assert resp.status_code == 200
         data = resp.json()
-        assert data["success"] is True
         assert data["class_id"] > 0
 
     def test_admin_delete_class(self, client, test_user, temp_db):
@@ -461,7 +459,6 @@ class TestAdminTimetableAPI:
             headers=headers,
         )
         assert resp.status_code == 200
-        assert resp.json()["success"] is True
 
         # Verify deletion
         assert repo.get_by_gym(gym_id) == []

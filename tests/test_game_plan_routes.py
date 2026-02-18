@@ -115,7 +115,6 @@ class TestGamePlanRoutes:
         plan_id = self._create_plan(test_user["id"])
         resp = authenticated_client.delete(f"/api/v1/game-plans/{plan_id}")
         assert resp.status_code == 200
-        assert resp.json()["success"] is True
 
     def test_delete_plan_not_found(self, authenticated_client):
         """Test DELETE on nonexistent plan returns 404."""
@@ -171,7 +170,6 @@ class TestGamePlanRoutes:
             f"/api/v1/game-plans/{plan_id}/nodes/{node_id}"
         )
         assert resp.status_code == 200
-        assert resp.json()["success"] is True
 
     def test_delete_node_not_found(self, authenticated_client, test_user):
         """Test DELETE node that doesn't exist returns 404."""
@@ -215,7 +213,6 @@ class TestGamePlanRoutes:
             f"/api/v1/game-plans/{plan_id}/edges/{edge_id}"
         )
         assert resp.status_code == 200
-        assert resp.json()["success"] is True
 
     def test_delete_edge_not_found(self, authenticated_client, test_user):
         """Test DELETE edge that doesn't exist returns 404."""

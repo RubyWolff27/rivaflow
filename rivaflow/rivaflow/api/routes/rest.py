@@ -9,8 +9,8 @@ from rivaflow.api.rate_limit import limiter
 from rivaflow.core.dependencies import get_current_user
 from rivaflow.core.error_handling import route_error_handler
 from rivaflow.core.exceptions import NotFoundError, ValidationError
+from rivaflow.core.services.checkin_service import CheckinService
 from rivaflow.core.services.streak_service import StreakService
-from rivaflow.db.repositories.checkin_repo import CheckinRepository
 
 router = APIRouter(prefix="/rest", tags=["rest"])
 
@@ -26,7 +26,7 @@ def get_recent_rest_days(
     """Get recent rest day check-ins."""
     end_date = date.today()
     start_date = end_date - timedelta(days=days)
-    checkins = CheckinRepository.get_checkins_range(
+    checkins = CheckinService().get_checkins_range(
         current_user["id"], start_date, end_date
     )
     rest_days = [c for c in checkins if c["checkin_type"] == "rest"]
@@ -61,7 +61,7 @@ def log_rest_day(
     current_user: dict = Depends(get_current_user),
 ):
     """Log a rest day."""
-    repo = CheckinRepository()
+    repo = CheckinService()
     check_date = (
         date.fromisoformat(data.check_date) if data.check_date else date.today()
     )
@@ -81,7 +81,6 @@ def log_rest_day(
     )
 
     return {
-        "success": True,
         "checkin_id": checkin_id,
         "check_date": check_date.isoformat(),
         "checkin_type": "rest",
@@ -103,7 +102,7 @@ def get_rest_by_date(
     except ValueError:
         raise ValidationError("Invalid date format")
 
-    checkin = CheckinRepository.get_checkin(
+    checkin = CheckinService().get_checkin(
         current_user["id"], check_date, checkin_slot="morning"
     )
     if not checkin or checkin["checkin_type"] != "rest":
@@ -128,7 +127,7 @@ def delete_rest_day(
     current_user: dict = Depends(get_current_user),
 ):
     """Delete a rest day check-in."""
-    repo = CheckinRepository()
+    repo = CheckinService()
     # Verify it exists and is a rest-type checkin
     checkin = repo.get_checkin_by_id(current_user["id"], checkin_id)
     if not checkin:
@@ -137,4 +136,4 @@ def delete_rest_day(
         raise ValidationError("Not a rest day check-in")
 
     repo.delete_checkin(current_user["id"], checkin_id)
-    return {"success": True, "deleted_id": checkin_id}
+    return {"deleted_id": checkin_id}

@@ -11,10 +11,10 @@ from rivaflow.core.error_handling import route_error_handler
 from rivaflow.core.services.analytics_service import AnalyticsService
 from rivaflow.core.services.goals_service import GoalsService
 from rivaflow.core.services.milestone_service import MilestoneService
+from rivaflow.core.services.readiness_service import ReadinessService
+from rivaflow.core.services.session_service import SessionService
 from rivaflow.core.services.streak_service import StreakService
 from rivaflow.core.utils.cache import cached
-from rivaflow.db.repositories.readiness_repo import ReadinessRepository
-from rivaflow.db.repositories.session_repo import SessionRepository
 
 logger = logging.getLogger(__name__)
 
@@ -38,8 +38,8 @@ def _get_dashboard_summary_cached(
     milestone_service = MilestoneService()
     streak_service = StreakService()
     goals_service = GoalsService()
-    session_repo = SessionRepository()
-    readiness_repo = ReadinessRepository()
+    session_service = SessionService()
+    readiness_service = ReadinessService()
 
     # Fetch data
     performance = analytics.get_performance_overview(
@@ -51,7 +51,7 @@ def _get_dashboard_summary_cached(
     checkin_streak = streak_service.get_streak(user_id, "checkin")
 
     # Get recent sessions
-    recent_sessions = session_repo.get_recent(user_id, limit=10)
+    recent_sessions = session_service.get_recent_sessions(user_id, limit=10)
 
     # Get milestones
     closest_milestone = milestone_service.get_closest_milestone(user_id)
@@ -61,7 +61,7 @@ def _get_dashboard_summary_cached(
     weekly_goals = goals_service.get_current_week_progress(user_id, tz=tz)
 
     # Get latest readiness
-    latest_readiness = readiness_repo.get_latest(user_id)
+    latest_readiness = readiness_service.get_latest_readiness(user_id)
 
     # Get class type distribution
     class_type_distribution = {}
@@ -159,12 +159,12 @@ def get_quick_stats(
     """
     user_id = current_user["id"]
 
-    session_repo = SessionRepository()
+    session_service = SessionService()
     streak_service = StreakService()
     milestone_service = MilestoneService()
 
     # Get user stats efficiently (no unbounded query)
-    stats = session_repo.get_user_stats(user_id)
+    stats = session_service.session_repo.get_user_stats(user_id)
 
     # Current streak
     session_streak = streak_service.get_streak(user_id, "session")
@@ -213,10 +213,10 @@ def get_week_summary(
     week_start = current_week_start + timedelta(weeks=week_offset)
     week_end = week_start + timedelta(days=6)
 
-    session_repo = SessionRepository()
+    session_service = SessionService()
 
     # Get sessions for the week
-    sessions = session_repo.get_by_date_range(user_id, week_start, week_end)
+    sessions = session_service.get_sessions_by_date_range(user_id, week_start, week_end)
 
     # Calculate stats
     total_sessions = len(sessions)

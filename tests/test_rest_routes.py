@@ -26,7 +26,6 @@ class TestLogRestDay:
         )
         assert response.status_code == 201
         data = response.json()
-        assert data["success"] is True
         assert "checkin_id" in data
         assert data["checkin_type"] == "rest"
         assert data["rest_type"] == "active"
@@ -39,7 +38,6 @@ class TestLogRestDay:
         )
         assert response.status_code == 201
         data = response.json()
-        assert data["success"] is True
         assert data["checkin_type"] == "rest"
 
     def test_log_rest_day_with_intention(self, authenticated_client, test_user):
@@ -140,5 +138,4 @@ class TestDeleteRestDay:
         response = authenticated_client.delete(f"/api/v1/rest/{checkin_id}")
         assert response.status_code == 200
         data = response.json()
-        assert data["success"] is True
         assert data["deleted_id"] == checkin_id

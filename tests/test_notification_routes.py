@@ -50,22 +50,16 @@ class TestMarkRead:
         """Test marking all notifications as read."""
         response = authenticated_client.post("/api/v1/notifications/read-all")
         assert response.status_code == 200
-        data = response.json()
-        assert data["success"] is True
 
     def test_mark_feed_read(self, authenticated_client, test_user):
         """Test marking feed notifications as read."""
         response = authenticated_client.post("/api/v1/notifications/feed/read")
         assert response.status_code == 200
-        data = response.json()
-        assert data["success"] is True
 
     def test_mark_follows_read(self, authenticated_client, test_user):
         """Test marking follow notifications as read."""
         response = authenticated_client.post("/api/v1/notifications/follows/read")
         assert response.status_code == 200
-        data = response.json()
-        assert data["success"] is True
 
     def test_mark_single_read(self, authenticated_client, test_user):
         """Test marking a single notification as read (nonexistent ID)."""

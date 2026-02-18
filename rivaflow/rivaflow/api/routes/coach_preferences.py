@@ -6,8 +6,8 @@ from pydantic import BaseModel
 from rivaflow.api.rate_limit import limiter
 from rivaflow.core.dependencies import get_current_user
 from rivaflow.core.error_handling import route_error_handler
-from rivaflow.db.repositories.coach_preferences_repo import (
-    CoachPreferencesRepository,
+from rivaflow.core.services.coach_preferences_service import (
+    CoachPreferencesService,
 )
 
 router = APIRouter()
@@ -98,7 +98,7 @@ DEFAULTS = {
 @route_error_handler("get_preferences", detail="Failed to get coach preferences")
 def get_preferences(request: Request, current_user: dict = Depends(get_current_user)):
     """Get coach preferences for the current user."""
-    prefs = CoachPreferencesRepository.get(current_user["id"])
+    prefs = CoachPreferencesService().get(current_user["id"])
     if not prefs:
         return {"data": {**DEFAULTS}}
     # Strip internal fields
@@ -171,7 +171,7 @@ def update_preferences(
             for inj in fields["injuries"]
         ]
 
-    result = CoachPreferencesRepository.upsert(current_user["id"], **fields)
+    result = CoachPreferencesService().upsert(current_user["id"], **fields)
     if result:
         result.pop("id", None)
         result.pop("user_id", None)

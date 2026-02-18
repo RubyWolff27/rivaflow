@@ -320,7 +320,7 @@ export default function EditSession() {
             {form.instructors.map(instructor => (
               <option key={instructor.id} value={instructor.id}>
                 {instructor.name}
-                {instructor.belt_rank && ` (${instructor.belt_rank} belt)`}
+                {instructor.belt_rank && ` (${instructor.belt_rank.charAt(0).toUpperCase() + instructor.belt_rank.slice(1)} belt)`}
               </option>
             ))}
           </select>

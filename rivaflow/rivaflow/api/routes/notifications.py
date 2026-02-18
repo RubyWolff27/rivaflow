@@ -94,11 +94,11 @@ def mark_all_notifications_as_read(
     user_id = current_user["id"]
     try:
         count = NotificationService.mark_all_as_read(user_id)
-        return {"success": True, "count": count}
+        return {"count": count}
     except Exception as e:
         # Gracefully handle if notifications table doesn't exist yet
         logger.error(f"Error marking all notifications as read: {e}", exc_info=True)
-        return {"success": True, "count": 0}
+        return {"count": 0}
 
 
 @router.post("/feed/read", status_code=status.HTTP_200_OK)
@@ -126,7 +126,7 @@ def mark_feed_notifications_as_read(
         logger.info(
             f"Successfully marked {count} feed notifications as read for user {user_id}"
         )
-        return {"success": True, "count": count}
+        return {"count": count}
     except HTTPException:
         raise
     except Exception as e:
@@ -135,8 +135,8 @@ def mark_feed_notifications_as_read(
             f"Error marking feed notifications as read for user {current_user.get('id', 'UNKNOWN')}: {type(e).__name__}: {e}",
             exc_info=True,
         )
-        # Return success anyway to prevent frontend errors
-        return {"success": True, "count": 0}
+        # Return fallback to prevent frontend errors
+        return {"count": 0}
 
 
 @router.post("/follows/read", status_code=status.HTTP_200_OK)
@@ -164,7 +164,7 @@ def mark_follow_notifications_as_read(
         logger.info(
             f"Successfully marked {count} follow notifications as read for user {user_id}"
         )
-        return {"success": True, "count": count}
+        return {"count": count}
     except HTTPException:
         raise
     except Exception as e:
@@ -173,7 +173,7 @@ def mark_follow_notifications_as_read(
             f"Error marking follow notifications as read for user {current_user.get('id', 'UNKNOWN')}: {type(e).__name__}: {e}",
             exc_info=True,
         )
-        return {"success": True, "count": 0}
+        return {"count": 0}
 
 
 @router.post("/{notification_id}/read")
@@ -189,12 +189,12 @@ def mark_notification_as_read(
     """Mark a single notification as read."""
     user_id = current_user["id"]
     try:
-        success = NotificationService.mark_as_read(notification_id, user_id)
-        return {"success": success}
+        marked = NotificationService.mark_as_read(notification_id, user_id)
+        return {"marked": marked}
     except Exception as e:
         # Gracefully handle if notifications table doesn't exist yet
         logger.error(f"Error marking notification as read: {e}", exc_info=True)
-        return {"success": False}
+        return {"marked": False}
 
 
 @router.delete("/{notification_id}")
@@ -208,9 +208,9 @@ def delete_notification(
     """Delete a notification."""
     user_id = current_user["id"]
     try:
-        success = NotificationService.delete_notification(notification_id, user_id)
-        if not success:
-            return {"success": False}
+        deleted = NotificationService.delete_notification(notification_id, user_id)
+        if not deleted:
+            return {"deleted": False}
         return Response(status_code=status.HTTP_204_NO_CONTENT)
     except Exception as e:
         # Gracefully handle if notifications table doesn't exist yet
@@ -218,4 +218,4 @@ def delete_notification(
             f"Error deleting notification: {e}",
             exc_info=True,
         )
-        return {"success": False}
+        return {"deleted": False}

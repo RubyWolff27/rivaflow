@@ -12,10 +12,9 @@ from rivaflow.core.dependencies import get_admin_user
 from rivaflow.core.error_handling import route_error_handler
 from rivaflow.core.exceptions import NotFoundError, ValidationError
 from rivaflow.core.services.audit_service import AuditService
+from rivaflow.core.services.feedback_service import FeedbackService
 from rivaflow.core.services.gym_service import GymService
-from rivaflow.db.repositories.feedback_repo import FeedbackRepository
 from rivaflow.db.repositories.gym_class_repo import GymClassRepository
-from rivaflow.db.repositories.gym_repo import GymRepository
 
 logger = logging.getLogger(__name__)
 
@@ -184,7 +183,7 @@ def create_gym(
         ip_address=get_client_ip(request),
     )
 
-    return {"success": True, "gym": gym}
+    return gym
 
 
 @router.put("/gyms/{gym_id}")
@@ -217,7 +216,7 @@ def update_gym(
         ip_address=get_client_ip(request),
     )
 
-    return {"success": True, "gym": updated_gym}
+    return updated_gym
 
 
 @router.delete("/gyms/{gym_id}")
@@ -248,7 +247,7 @@ def delete_gym(
             ip_address=get_client_ip(request),
         )
 
-    return {"success": success}
+    return {"message": "Gym deleted"} if success else {"message": "Gym deletion failed"}
 
 
 @router.post("/gyms/{gym_id}/verify")
@@ -276,8 +275,7 @@ def verify_gym(
         raise NotFoundError(f"Gym with id {gym_id} not found")
 
     # Update gym to verified
-    gym_repo = GymRepository()
-    updated = gym_repo.update(gym_id, verified=True)
+    updated = gym_service.update(gym_id, verified=True)
 
     if not updated:
         raise ValidationError("Failed to verify gym")
@@ -293,7 +291,6 @@ def verify_gym(
     )
 
     return {
-        "success": True,
         "gym": updated,
         "message": f"Gym '{gym['name']}' has been verified",
     }
@@ -329,8 +326,7 @@ def reject_gym(
         raise NotFoundError(f"Gym with id {gym_id} not found")
 
     # Update gym to unverified
-    gym_repo = GymRepository()
-    updated = gym_repo.update(gym_id, verified=False)
+    updated = gym_service.update(gym_id, verified=False)
 
     if not updated:
         raise ValidationError("Failed to reject gym")
@@ -346,7 +342,6 @@ def reject_gym(
     )
 
     return {
-        "success": True,
         "gym": updated,
         "message": f"Gym '{gym['name']}' verification has been rejected",
     }
@@ -376,7 +371,7 @@ def merge_gyms(
         raise NotFoundError(f"Target gym {merge_data.target_gym_id} not found")
 
     try:
-        success = gym_service.merge_gyms(
+        gym_service.merge_gyms(
             merge_data.source_gym_id, merge_data.target_gym_id
         )
 
@@ -395,7 +390,6 @@ def merge_gyms(
         )
 
         return {
-            "success": success,
             "message": f"Merged '{source['name']}' into '{target['name']}'",
         }
     except Exception as e:
@@ -492,9 +486,9 @@ def update_user(
 ):
     """Update user (admin only)."""
     from rivaflow.core.services.admin_service import AdminService
-    from rivaflow.db.repositories.user_repo import UserRepository
+    from rivaflow.core.services.user_service import UserService
 
-    user = UserRepository.get_by_id(user_id)
+    user = UserService().get_user_by_id(user_id)
     if not user:
         raise NotFoundError(f"User {user_id} not found")
 
@@ -521,7 +515,7 @@ def update_user(
             ip_address=get_client_ip(request),
         )
 
-    return {"success": True, "user": updated_user}
+    return updated_user
 
 
 @router.delete("/users/{user_id}")
@@ -534,12 +528,12 @@ def delete_user(
 ):
     """Delete user (admin only). Cascades to all related data."""
     from rivaflow.core.services.admin_service import AdminService
-    from rivaflow.db.repositories.user_repo import UserRepository
+    from rivaflow.core.services.user_service import UserService
 
     if user_id == current_user["id"]:
         raise ValidationError("Cannot delete your own account")
 
-    user = UserRepository.get_by_id(user_id)
+    user = UserService().get_user_by_id(user_id)
     if not user:
         raise NotFoundError(f"User {user_id} not found")
 
@@ -555,7 +549,7 @@ def delete_user(
         ip_address=get_client_ip(request),
     )
 
-    return {"success": True, "message": f"User {user_email} deleted"}
+    return {"message": f"User {user_email} deleted"}
 
 
 # Content moderation endpoints
@@ -599,7 +593,7 @@ def delete_comment(
         ip_address=get_client_ip(request),
     )
 
-    return {"success": True, "message": "Comment deleted"}
+    return {"message": "Comment deleted"}
 
 
 # Technique management endpoints
@@ -647,7 +641,7 @@ def delete_technique(
         ip_address=get_client_ip(request),
     )
 
-    return {"success": True, "message": "Technique deleted"}
+    return {"message": "Technique deleted"}
 
 
 # Audit log endpoints
@@ -718,14 +712,14 @@ def get_all_feedback(
     Returns:
         List of all feedback submissions with statistics
     """
-    repo = FeedbackRepository()
-    feedback_list = repo.list_all(
+    service = FeedbackService()
+    feedback_list = service.list_all(
         status=status,
         category=category,
         limit=limit,
         offset=offset,
     )
-    stats = repo.get_stats()
+    stats = service.get_stats()
 
     return {
         "feedback": feedback_list,
@@ -755,15 +749,15 @@ def update_feedback_status(
     Returns:
         Updated feedback submission
     """
-    repo = FeedbackRepository()
+    service = FeedbackService()
 
     # Check if feedback exists
-    feedback = repo.get_by_id(feedback_id)
+    feedback = service.get_by_id(feedback_id)
     if not feedback:
         raise NotFoundError("Feedback not found")
 
     # Update status
-    success = repo.update_status(
+    success = service.update_status(
         feedback_id=feedback_id,
         status=request.status,
         admin_notes=request.admin_notes,
@@ -773,12 +767,9 @@ def update_feedback_status(
         raise ValidationError("Failed to update feedback status")
 
     # Get updated feedback
-    updated = repo.get_by_id(feedback_id)
+    updated = service.get_by_id(feedback_id)
 
-    return {
-        "success": True,
-        "feedback": updated,
-    }
+    return updated
 
 
 @router.get("/feedback/stats")
@@ -790,8 +781,8 @@ def get_feedback_stats(current_user: dict = Depends(get_admin_user)):
     Returns:
         Statistics about feedback submissions
     """
-    repo = FeedbackRepository()
-    stats = repo.get_stats()
+    service = FeedbackService()
+    stats = service.get_stats()
 
     return stats
 
@@ -850,7 +841,6 @@ def set_timetable(
     )
 
     return {
-        "success": True,
         "gym_id": gym_id,
         "classes_created": len(ids),
     }
@@ -896,7 +886,7 @@ def add_class(
         ip_address=get_client_ip(request),
     )
 
-    return {"success": True, "class_id": class_id}
+    return {"class_id": class_id}
 
 
 @router.put("/gyms/{gym_id}/classes/{class_id}")
@@ -926,7 +916,7 @@ def update_class(
     gym_service = GymService()
     gym_service._invalidate_timetable_cache(gym_id)
 
-    return {"success": True, "class": updated}
+    return updated
 
 
 @router.delete("/gyms/{gym_id}/classes/{class_id}")
@@ -956,7 +946,7 @@ def delete_class(
         ip_address=get_client_ip(request),
     )
 
-    return {"success": True}
+    return {"message": "Class deleted"}
 
 
 # Email broadcast
@@ -1058,7 +1048,6 @@ def broadcast_email(
     )
 
     return {
-        "success": True,
         "message": f"Broadcast queued for {recipient_count} recipients",
         "recipient_count": recipient_count,
     }

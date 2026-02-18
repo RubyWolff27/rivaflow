@@ -21,6 +21,15 @@ interface FeedResponse {
   has_more: boolean;
 }
 
+/** Capitalize class type names in feed summary text */
+function formatSummary(summary: string): string {
+  return summary
+    .replace(/\bno-gi\b/gi, 'No-Gi')
+    .replace(/\bgi\b/g, 'Gi')
+    .replace(/\bs&c\b/gi, 'S&C')
+    .replace(/\bmma\b/gi, 'MMA');
+}
+
 // Memoized feed item component to prevent unnecessary re-renders
 const FeedItemComponent = memo(function FeedItemComponent({
   item,
@@ -68,6 +77,7 @@ const FeedItemComponent = memo(function FeedItemComponent({
   const getRestTypeStyle = (type: string): React.CSSProperties => {
     const styles: Record<string, React.CSSProperties> = {
       'active': { backgroundColor: 'rgba(59,130,246,0.1)', color: 'var(--accent)' },
+      'passive': { backgroundColor: 'rgba(107,114,128,0.1)', color: '#6b7280' },
       'full': { backgroundColor: 'rgba(168,85,247,0.1)', color: '#a855f7' },
       'injury': { backgroundColor: 'rgba(239,68,68,0.1)', color: 'var(--error)' },
       'sick': { backgroundColor: 'rgba(234,179,8,0.1)', color: '#ca8a04' },
@@ -80,6 +90,7 @@ const FeedItemComponent = memo(function FeedItemComponent({
   const getRestTypeLabel = (type: string): string => {
     const labels: Record<string, string> = {
       'active': '\u{1F3C3} Active Recovery',
+      'passive': '\u{1F6B6} Passive Recovery',
       'full': '\u{1F6CC} Full Rest',
       'injury': '\u{1F915} Injury / Rehab',
       'sick': '\u{1F912} Sick Day',
@@ -137,7 +148,7 @@ const FeedItemComponent = memo(function FeedItemComponent({
                 <div className="flex items-center gap-2">
                   <Moon className="w-5 h-5 text-purple-500" />
                   <p className="text-sm font-medium" style={{ color: 'var(--text)' }}>
-                    {item.summary}
+                    {formatSummary(item.summary)}
                   </p>
                 </div>
                 <div className="flex items-center gap-2 shrink-0">
@@ -196,7 +207,7 @@ const FeedItemComponent = memo(function FeedItemComponent({
               {/* Summary + actions row */}
               <div className="flex items-start justify-between gap-2 mb-1">
                 <p className="text-sm font-medium" style={{ color: 'var(--text)' }}>
-                  {item.summary}
+                  {formatSummary(item.summary)}
                 </p>
                 <div className="flex items-center gap-2 shrink-0">
                   {isActivityEditable(item) && (
@@ -573,8 +584,17 @@ export default function Feed() {
   }, [feed]);
 
   const filteredItems = useMemo(
-    () => feed?.items.filter(matchesSessionFilter) ?? [],
-    [feed, matchesSessionFilter]
+    () => {
+      let items = feed?.items ?? [];
+      // In friends view, exclude the current user's own items
+      if (view === 'friends' && currentUserId) {
+        items = items.filter(
+          (item) => item.owner_user_id && item.owner_user_id !== currentUserId
+        );
+      }
+      return items.filter(matchesSessionFilter);
+    },
+    [feed, matchesSessionFilter, view, currentUserId]
   );
 
   if (loading) {
@@ -629,7 +649,7 @@ export default function Feed() {
               }}
             >
               {f.label}
-              {f.key !== 'all' && count > 0 && (
+              {f.key !== 'all' && (
                 <span
                   className="text-xs px-1.5 py-0.5 rounded-full font-semibold"
                   style={{
@@ -694,7 +714,7 @@ export default function Feed() {
         </div>
       )}
 
-      {feed && feed.total > 0 && (
+      {feed && feed.total > 0 && filteredItems.length > 0 && (
         <div className="text-center py-4 space-y-2">
           <p className="text-sm text-[var(--muted)]">
             Showing {feed.items.length} of {feed.total} activities

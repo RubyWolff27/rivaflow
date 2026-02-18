@@ -10,7 +10,7 @@ from rivaflow.core.dependencies import get_current_user
 from rivaflow.core.error_handling import route_error_handler
 from rivaflow.core.exceptions import NotFoundError, ValidationError
 from rivaflow.core.services.email_service import EmailService
-from rivaflow.db.repositories.feedback_repo import FeedbackRepository
+from rivaflow.core.services.feedback_service import FeedbackService
 
 logger = logging.getLogger(__name__)
 
@@ -56,7 +56,7 @@ def submit_feedback(
     Returns:
         Created feedback submission
     """
-    repo = FeedbackRepository()
+    repo = FeedbackService()
 
     try:
         feedback_id = repo.create(
@@ -92,10 +92,7 @@ def submit_feedback(
             # Log but don't fail the request if email fails
             logger.warning(f"Failed to send feedback notification email: {str(e)}")
 
-        return {
-            "success": True,
-            "feedback": created,
-        }
+        return created
     except (ConnectionError, OSError, ValueError) as e:
         raise ValidationError(f"Failed to submit feedback: {str(e)}")
 
@@ -114,7 +111,7 @@ def get_my_feedback(
     Returns:
         List of user's feedback submissions
     """
-    repo = FeedbackRepository()
+    repo = FeedbackService()
     feedback_list = repo.list_by_user(current_user["id"], limit=limit)
 
     return {
@@ -139,7 +136,7 @@ def get_feedback(
     Returns:
         Feedback submission
     """
-    repo = FeedbackRepository()
+    repo = FeedbackService()
     feedback = repo.get_by_id(feedback_id)
 
     if not feedback:

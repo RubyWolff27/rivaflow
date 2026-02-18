@@ -78,14 +78,36 @@ class SocialService:
         return UserRelationshipRepository.unfollow(follower_user_id, following_user_id)
 
     @staticmethod
-    def get_followers(user_id: int) -> list[dict[str, Any]]:
-        """Get all users who follow this user."""
-        return UserRelationshipRepository.get_followers(user_id)
+    def get_followers(
+        user_id: int,
+        limit: int | None = None,
+        offset: int = 0,
+    ) -> list[dict[str, Any]]:
+        """Get users who follow this user, with optional pagination."""
+        return UserRelationshipRepository.get_followers(
+            user_id, limit=limit, offset=offset
+        )
 
     @staticmethod
-    def get_following(user_id: int) -> list[dict[str, Any]]:
-        """Get all users that this user follows."""
-        return UserRelationshipRepository.get_following(user_id)
+    def get_following(
+        user_id: int,
+        limit: int | None = None,
+        offset: int = 0,
+    ) -> list[dict[str, Any]]:
+        """Get users that this user follows, with optional pagination."""
+        return UserRelationshipRepository.get_following(
+            user_id, limit=limit, offset=offset
+        )
+
+    @staticmethod
+    def count_followers(user_id: int) -> int:
+        """Count total followers for a user."""
+        return UserRelationshipRepository.count_followers(user_id)
+
+    @staticmethod
+    def count_following(user_id: int) -> int:
+        """Count total following for a user."""
+        return UserRelationshipRepository.count_following(user_id)
 
     @staticmethod
     def is_following(follower_user_id: int, following_user_id: int) -> bool:
@@ -316,6 +338,111 @@ class SocialService:
             True if deleted, False if not found or user doesn't own it
         """
         return ActivityCommentRepository.delete(comment_id, user_id)
+
+    # ── Friend Connection methods ──
+
+    @staticmethod
+    def send_friend_request(
+        requester_id: int,
+        recipient_id: int,
+        connection_source: str | None = None,
+        request_message: str | None = None,
+    ) -> dict[str, Any]:
+        """Send a friend request to another user."""
+        from rivaflow.db.repositories.social_connection_repo import (
+            SocialConnectionRepository,
+        )
+
+        return SocialConnectionRepository.send_friend_request(
+            requester_id=requester_id,
+            recipient_id=recipient_id,
+            connection_source=connection_source,
+            request_message=request_message,
+        )
+
+    @staticmethod
+    def accept_friend_request(connection_id: int, recipient_id: int) -> dict[str, Any]:
+        """Accept a friend request (must be the recipient)."""
+        from rivaflow.db.repositories.social_connection_repo import (
+            SocialConnectionRepository,
+        )
+
+        return SocialConnectionRepository.accept_friend_request(
+            connection_id=connection_id, recipient_id=recipient_id
+        )
+
+    @staticmethod
+    def decline_friend_request(connection_id: int, recipient_id: int) -> dict[str, Any]:
+        """Decline a friend request (must be the recipient)."""
+        from rivaflow.db.repositories.social_connection_repo import (
+            SocialConnectionRepository,
+        )
+
+        return SocialConnectionRepository.decline_friend_request(
+            connection_id=connection_id, recipient_id=recipient_id
+        )
+
+    @staticmethod
+    def cancel_friend_request(connection_id: int, requester_id: int) -> bool:
+        """Cancel a sent friend request (must be the requester)."""
+        from rivaflow.db.repositories.social_connection_repo import (
+            SocialConnectionRepository,
+        )
+
+        return SocialConnectionRepository.cancel_friend_request(
+            connection_id=connection_id, requester_id=requester_id
+        )
+
+    @staticmethod
+    def get_friends(
+        user_id: int, limit: int = 50, offset: int = 0
+    ) -> list[dict[str, Any]]:
+        """Get list of accepted friends for a user."""
+        from rivaflow.db.repositories.social_connection_repo import (
+            SocialConnectionRepository,
+        )
+
+        return SocialConnectionRepository.get_friends(
+            user_id=user_id, limit=limit, offset=offset
+        )
+
+    @staticmethod
+    def unfriend(user_id: int, friend_user_id: int) -> bool:
+        """Remove a friend connection."""
+        from rivaflow.db.repositories.social_connection_repo import (
+            SocialConnectionRepository,
+        )
+
+        return SocialConnectionRepository.unfriend(
+            user_id=user_id, friend_user_id=friend_user_id
+        )
+
+    @staticmethod
+    def get_pending_requests_received(user_id: int) -> list[dict[str, Any]]:
+        """Get pending friend requests received by user."""
+        from rivaflow.db.repositories.social_connection_repo import (
+            SocialConnectionRepository,
+        )
+
+        return SocialConnectionRepository.get_pending_requests_received(user_id)
+
+    @staticmethod
+    def get_pending_requests_sent(user_id: int) -> list[dict[str, Any]]:
+        """Get pending friend requests sent by user."""
+        from rivaflow.db.repositories.social_connection_repo import (
+            SocialConnectionRepository,
+        )
+
+        return SocialConnectionRepository.get_pending_requests_sent(user_id)
+
+    @staticmethod
+    def are_friends(user_id: int, other_user_id: int) -> bool:
+        """Check if two users are friends."""
+        from rivaflow.db.repositories.social_connection_repo import (
+            SocialConnectionRepository,
+        )
+
+        return SocialConnectionRepository.are_friends(user_id, other_user_id)
 
     @staticmethod
     def _get_activity(activity_type: str, activity_id: int) -> dict[str, Any] | None:

@@ -233,9 +233,21 @@ export default function ReadinessTab({ dateRange, selectedTypes }: ReadinessTabP
   const avgScore = summary.avg_composite_score != null
     ? Number(summary.avg_composite_score).toFixed(1)
     : '0';
-  const bestDay = summary.best_day ?? '-';
-  const worstDay = summary.worst_day ?? '-';
   const daysLogged = summary.days_logged ?? trends.length;
+
+  const formatDayWithScore = (dayStr?: string): string => {
+    if (!dayStr || dayStr === '-') return '-';
+    const d = new Date(dayStr + 'T00:00:00');
+    const formatted = d.toLocaleDateString('en-US', { weekday: 'short', day: 'numeric', month: 'short' });
+    const match = trends.find(
+      (t) => (t.check_date || t.date) === dayStr
+    );
+    const score = match?.composite_score;
+    return score != null ? `${formatted} (${score}/20)` : formatted;
+  };
+
+  const bestDay = formatDayWithScore(summary.best_day);
+  const worstDay = formatDayWithScore(summary.worst_day);
 
   return (
     <div className="space-y-6">

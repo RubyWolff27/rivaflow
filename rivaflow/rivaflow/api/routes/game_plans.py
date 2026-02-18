@@ -141,8 +141,8 @@ def update_plan(
     current_user: dict = Depends(get_current_user),
 ):
     """Update plan metadata."""
-    from rivaflow.db.repositories.game_plan_repo import (
-        GamePlanRepository,
+    from rivaflow.core.services.game_plan_service import (
+        update_plan as svc_update_plan,
     )
 
     user_id = current_user["id"]
@@ -150,7 +150,7 @@ def update_plan(
     if not updates:
         raise ValidationError("No fields to update")
 
-    result = GamePlanRepository.update(plan_id, user_id, **updates)
+    result = svc_update_plan(plan_id, user_id, **updates)
     if not result:
         raise NotFoundError("Game plan not found")
     return result
@@ -165,15 +165,15 @@ def delete_plan(
     current_user: dict = Depends(get_current_user),
 ):
     """Delete a game plan."""
-    from rivaflow.db.repositories.game_plan_repo import (
-        GamePlanRepository,
+    from rivaflow.core.services.game_plan_service import (
+        delete_plan as svc_delete_plan,
     )
 
     user_id = current_user["id"]
-    deleted = GamePlanRepository.delete(plan_id, user_id)
+    deleted = svc_delete_plan(plan_id, user_id)
     if not deleted:
         raise NotFoundError("Game plan not found")
-    return {"success": True}
+    return {"message": "Game plan deleted"}
 
 
 @router.post("/{plan_id}/nodes")
@@ -242,7 +242,7 @@ def delete_node(
     deleted = svc_delete_node(plan_id, user_id, node_id)
     if not deleted:
         raise NotFoundError("Node not found")
-    return {"success": True}
+    return {"message": "Node deleted"}
 
 
 @router.post("/{plan_id}/edges")
@@ -287,7 +287,7 @@ def delete_edge(
     deleted = svc_delete_edge(plan_id, user_id, edge_id)
     if not deleted:
         raise NotFoundError("Edge not found")
-    return {"success": True}
+    return {"message": "Edge deleted"}
 
 
 @router.post("/{plan_id}/focus")

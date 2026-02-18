@@ -19,8 +19,8 @@ from rivaflow.core.exceptions import (
     ValidationError,
 )
 from rivaflow.core.services.auth_service import AuthService
+from rivaflow.core.services.waitlist_service import WaitlistService
 from rivaflow.core.settings import settings
-from rivaflow.db.repositories.waitlist_repo import WaitlistRepository
 
 logger = logging.getLogger(__name__)
 
@@ -81,7 +81,7 @@ def register(request: Request, req: RegisterRequest, response: Response):
 
     Returns access token, refresh token, and user information.
     """
-    waitlist_repo = WaitlistRepository()
+    waitlist_service = WaitlistService()
 
     # When waitlist is enabled, require a valid invite token
     if settings.WAITLIST_ENABLED:
@@ -91,7 +91,7 @@ def register(request: Request, req: RegisterRequest, response: Response):
                 detail="Registration requires an invite. Join the waitlist at rivaflow.app/waitlist",
             )
 
-        if not waitlist_repo.is_invite_valid(req.invite_token):
+        if not waitlist_service.is_invite_valid(req.invite_token):
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="Invalid or expired invite token. Please request a new invite.",
@@ -99,7 +99,7 @@ def register(request: Request, req: RegisterRequest, response: Response):
 
     # If invite_token is provided but waitlist is not enforced, still validate
     if req.invite_token and not settings.WAITLIST_ENABLED:
-        if not waitlist_repo.is_invite_valid(req.invite_token):
+        if not waitlist_service.is_invite_valid(req.invite_token):
             logger.warning(
                 f"Invalid invite token used in {settings.ENV} for {req.email[:3]}***"
             )
@@ -119,7 +119,7 @@ def register(request: Request, req: RegisterRequest, response: Response):
         # Mark the waitlist entry as registered if an invite token was used
         if req.invite_token:
             try:
-                waitlist_repo.mark_registered(req.email)
+                waitlist_service.mark_registered(req.email)
             except (ConnectionError, OSError) as e:
                 logger.error(
                     f"Failed to mark waitlist entry as registered for {req.email[:3]}***: {e}"

@@ -22,8 +22,7 @@ from rivaflow.api.rate_limit import limiter
 from rivaflow.core.dependencies import get_current_user
 from rivaflow.core.error_handling import route_error_handler
 from rivaflow.core.exceptions import NotFoundError, ValidationError
-from rivaflow.core.services.storage_service import get_storage
-from rivaflow.db.repositories import ActivityPhotoRepository
+from rivaflow.core.services.photo_service import PhotoService
 
 logger = logging.getLogger(__name__)
 
@@ -101,7 +100,7 @@ async def upload_photo(
     Accepts image files (jpg, png, webp, gif) up to 5MB.
     Maximum 3 photos per activity.
     """
-    photo_repo = ActivityPhotoRepository()
+    photo_repo = PhotoService()
     # Validate activity type
     if activity_type not in ["session", "readiness", "rest"]:
         raise ValidationError("Invalid activity type")
@@ -151,8 +150,7 @@ async def upload_photo(
     filename = f"{activity_type}_{current_user['id']}_{timestamp}_{unique_id}{file_ext}"
 
     # Upload via storage service (local or S3/R2)
-    storage = get_storage()
-    photo_url = storage.upload("activities", filename, content)
+    photo_url = photo_repo.upload_file("activities", filename, content)
     photo_id = photo_repo.create(
         user_id=current_user["id"],
         activity_type=activity_type,
@@ -185,7 +183,7 @@ def get_activity_photos(
     """
     Get photos for an activity (session, readiness, or rest).
     """
-    photo_repo = ActivityPhotoRepository()
+    photo_repo = PhotoService()
     photos = photo_repo.get_by_activity(current_user["id"], activity_type, activity_id)
     # Map file_path → url so frontend can use photo.url
     for photo in photos:
@@ -200,7 +198,7 @@ def get_photo(photo_id: int, current_user: dict = Depends(get_current_user)):
     """
     Get photo by ID.
     """
-    photo_repo = ActivityPhotoRepository()
+    photo_repo = PhotoService()
     photo = photo_repo.get_by_id(current_user["id"], photo_id)
     if not photo:
         raise NotFoundError("Photo not found")
@@ -216,7 +214,7 @@ def delete_photo(photo_id: int, current_user: dict = Depends(get_current_user)):
     """
     Delete a photo.
     """
-    photo_repo = ActivityPhotoRepository()
+    photo_repo = PhotoService()
     # Get photo info to delete file
     photo = photo_repo.get_by_id(current_user["id"], photo_id)
     if not photo:
@@ -229,8 +227,7 @@ def delete_photo(photo_id: int, current_user: dict = Depends(get_current_user)):
 
     # Delete file from storage
     try:
-        storage = get_storage()
-        storage.delete("activities", photo["file_name"])
+        photo_repo.delete_file("activities", photo["file_name"])
     except Exception as e:
         # Log error but don't fail the request - database record is already deleted
         logger.warning(f"Error deleting file {photo['file_name']}: {e}")
@@ -248,7 +245,7 @@ def update_caption(
     """
     Update photo caption.
     """
-    photo_repo = ActivityPhotoRepository()
+    photo_repo = PhotoService()
     updated = photo_repo.update_caption(current_user["id"], photo_id, caption)
     if not updated:
         raise NotFoundError("Photo not found")

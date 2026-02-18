@@ -10,19 +10,11 @@ from rivaflow.api.rate_limit import limiter
 from rivaflow.core.dependencies import get_current_user
 from rivaflow.core.error_handling import route_error_handler
 from rivaflow.core.exceptions import NotFoundError
+from rivaflow.core.services.checkin_service import CheckinService
 from rivaflow.core.services.streak_service import StreakService
-from rivaflow.core.time_utils import user_today
-from rivaflow.db.repositories.checkin_repo import CheckinRepository
-from rivaflow.db.repositories.profile_repo import ProfileRepository
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/checkins", tags=["checkins"])
-
-
-def _get_user_tz(user_id: int) -> str | None:
-    """Get user's timezone from profile."""
-    profile = ProfileRepository.get(user_id)
-    return profile.get("timezone") if profile else None
 
 
 class TomorrowIntentionUpdate(BaseModel):
@@ -54,10 +46,9 @@ class EveningCheckinCreate(BaseModel):
 @route_error_handler("get_today_checkin", detail="Failed to get today's check-in")
 def get_today_checkin(request: Request, current_user: dict = Depends(get_current_user)):
     """Get today's check-in status (all slots), using user's timezone."""
-    repo = CheckinRepository()
-    tz = _get_user_tz(current_user["id"])
-    today = user_today(tz)
-    slots = repo.get_day_checkins(user_id=current_user["id"], check_date=today)
+    svc = CheckinService()
+    today = svc.get_today(current_user["id"])
+    slots = svc.get_day_checkins(user_id=current_user["id"], check_date=today)
     checked_in = any(v is not None for v in slots.values())
 
     return {
@@ -74,15 +65,14 @@ def get_today_checkin(request: Request, current_user: dict = Depends(get_current
 @route_error_handler("get_week_checkins", detail="Failed to get week check-ins")
 def get_week_checkins(request: Request, current_user: dict = Depends(get_current_user)):
     """Get this week's check-ins with slot breakdown."""
-    repo = CheckinRepository()
-    tz = _get_user_tz(current_user["id"])
-    today = user_today(tz)
+    svc = CheckinService()
+    today = svc.get_today(current_user["id"])
     week_start = today - timedelta(days=today.weekday())
 
     checkins = []
     for i in range(7):
         check_date = week_start + timedelta(days=i)
-        slots = repo.get_day_checkins(user_id=current_user["id"], check_date=check_date)
+        slots = svc.get_day_checkins(user_id=current_user["id"], check_date=check_date)
         slots_filled = sum(1 for v in slots.values() if v is not None)
         checkins.append(
             {
@@ -108,22 +98,21 @@ def update_tomorrow_intention(
     current_user: dict = Depends(get_current_user),
 ):
     """Update tomorrow's intention for today's check-in."""
-    repo = CheckinRepository()
-    tz = _get_user_tz(current_user["id"])
-    today = user_today(tz)
+    svc = CheckinService()
+    today = svc.get_today(current_user["id"])
 
     # Check if any slot exists today
-    slots = repo.get_day_checkins(user_id=current_user["id"], check_date=today)
+    slots = svc.get_day_checkins(user_id=current_user["id"], check_date=today)
     if not any(v is not None for v in slots.values()):
         raise NotFoundError("No check-in found for today")
 
-    repo.update_tomorrow_intention(
+    svc.update_tomorrow_intention(
         user_id=current_user["id"],
         check_date=today,
         intention=data.tomorrow_intention,
     )
 
-    return {"success": True, "tomorrow_intention": data.tomorrow_intention}
+    return {"tomorrow_intention": data.tomorrow_intention}
 
 
 @router.post("/midday")
@@ -135,10 +124,9 @@ def create_midday_checkin(
     current_user: dict = Depends(get_current_user),
 ):
     """Create or update midday check-in."""
-    repo = CheckinRepository()
-    tz = _get_user_tz(current_user["id"])
-    today = user_today(tz)
-    checkin_id = repo.upsert_midday(
+    svc = CheckinService()
+    today = svc.get_today(current_user["id"])
+    checkin_id = svc.upsert_midday(
         user_id=current_user["id"],
         check_date=today,
         energy_level=data.energy_level,
@@ -148,7 +136,7 @@ def create_midday_checkin(
     StreakService().record_checkin(
         current_user["id"], checkin_type="midday", checkin_date=today
     )
-    return {"success": True, "id": checkin_id}
+    return {"id": checkin_id}
 
 
 @router.post("/evening")
@@ -162,10 +150,9 @@ def create_evening_checkin(
     current_user: dict = Depends(get_current_user),
 ):
     """Create or update evening check-in."""
-    repo = CheckinRepository()
-    tz = _get_user_tz(current_user["id"])
-    today = user_today(tz)
-    checkin_id = repo.upsert_evening(
+    svc = CheckinService()
+    today = svc.get_today(current_user["id"])
+    checkin_id = svc.upsert_evening(
         user_id=current_user["id"],
         check_date=today,
         training_quality=data.training_quality,
@@ -180,7 +167,7 @@ def create_evening_checkin(
     StreakService().record_checkin(
         current_user["id"], checkin_type=checkin_type, checkin_date=today
     )
-    return {"success": True, "id": checkin_id}
+    return {"id": checkin_id}
 
 
 @router.get("/yesterday")
@@ -192,10 +179,9 @@ def get_yesterday_checkin(
     request: Request, current_user: dict = Depends(get_current_user)
 ):
     """Get yesterday's check-in data (for tomorrow_intention recall)."""
-    repo = CheckinRepository()
-    tz = _get_user_tz(current_user["id"])
-    yesterday = user_today(tz) - timedelta(days=1)
-    slots = repo.get_day_checkins(user_id=current_user["id"], check_date=yesterday)
+    svc = CheckinService()
+    yesterday = svc.get_today(current_user["id"]) - timedelta(days=1)
+    slots = svc.get_day_checkins(user_id=current_user["id"], check_date=yesterday)
     return {
         "date": yesterday.isoformat(),
         "morning": slots["morning"],

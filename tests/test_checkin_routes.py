@@ -44,8 +44,6 @@ class TestTomorrowIntention:
             json={"tomorrow_intention": "Train hard"},
         )
         assert response.status_code == 200
-        data = response.json()
-        assert data["success"] is True
 
     def test_update_tomorrow_no_checkin(self, authenticated_client, test_user):
         """Test setting tomorrow intention when no checkin exists."""
@@ -67,7 +65,6 @@ class TestMiddayCheckin:
         )
         assert response.status_code in (200, 201)
         data = response.json()
-        assert data["success"] is True
         assert "id" in data
 
     def test_create_midday_minimal(self, authenticated_client, test_user):
@@ -94,7 +91,6 @@ class TestEveningCheckin:
         )
         assert response.status_code in (200, 201)
         data = response.json()
-        assert data["success"] is True
         assert "id" in data
 
     def test_create_evening_minimal(self, authenticated_client, test_user):

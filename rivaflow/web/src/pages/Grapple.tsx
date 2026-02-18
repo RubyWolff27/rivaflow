@@ -332,7 +332,7 @@ export default function Grapple() {
                   {session.title}
                 </div>
                 <div className="text-xs" style={{ color: 'var(--muted)' }}>
-                  {session.message_count} messages
+                  {session.message_count} {session.message_count === 1 ? 'message' : 'messages'}
                 </div>
               </div>
               <button

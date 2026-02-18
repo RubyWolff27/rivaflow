@@ -14,7 +14,7 @@ from rivaflow.core.exceptions import (
     ValidationError,
 )
 from rivaflow.core.services.email_service import EmailService
-from rivaflow.db.repositories.waitlist_repo import WaitlistRepository
+from rivaflow.core.services.waitlist_service import WaitlistService
 
 logger = logging.getLogger(__name__)
 
@@ -79,7 +79,7 @@ def join_waitlist(request: Request, req: WaitlistJoinRequest):
 
     Returns your position on the waitlist.
     """
-    repo = WaitlistRepository()
+    repo = WaitlistService()
 
     # Check for existing entry
     existing = repo.get_by_email(req.email)
@@ -110,7 +110,7 @@ def get_waitlist_count():
 
     Returns the count of entries with status 'waiting'.
     """
-    repo = WaitlistRepository()
+    repo = WaitlistService()
     count = repo.get_waiting_count()
     return {"count": count}
 
@@ -137,7 +137,7 @@ def list_waitlist(
     - **limit**: Maximum results to return (default 50)
     - **offset**: Number of results to skip (default 0)
     """
-    repo = WaitlistRepository()
+    repo = WaitlistService()
 
     entries = repo.list_all(status=status, search=search, limit=limit, offset=offset)
     total = repo.get_count(status=status)
@@ -168,7 +168,7 @@ def invite_entry(
     if req is None:
         req = InviteRequest()
 
-    repo = WaitlistRepository()
+    repo = WaitlistService()
 
     # Verify the entry exists
     entry = repo.get_by_id(waitlist_id)
@@ -201,7 +201,7 @@ def invite_entry(
         f"{waitlist_id} ({entry['email']}) with tier={req.tier}"
     )
 
-    return {"success": True, "invite_token": token}
+    return {"invite_token": token}
 
 
 @admin_router.post("/bulk-invite")
@@ -218,7 +218,7 @@ def bulk_invite_entries(
     - **ids**: List of waitlist entry IDs to invite
     - **tier**: Tier to assign to all entries (free, premium, lifetime_premium)
     """
-    repo = WaitlistRepository()
+    repo = WaitlistService()
     results = repo.bulk_invite(req.ids, assigned_tier=req.tier)
 
     # Send invite emails for each successful invite
@@ -255,7 +255,7 @@ def decline_entry(
 
     Sets the entry status to 'declined'.
     """
-    repo = WaitlistRepository()
+    repo = WaitlistService()
 
     entry = repo.get_by_id(waitlist_id)
     if not entry:
@@ -270,7 +270,7 @@ def decline_entry(
         f"{waitlist_id} ({entry['email']})"
     )
 
-    return {"success": True}
+    return {"message": "Entry declined"}
 
 
 @admin_router.put("/{waitlist_id}/notes")
@@ -283,7 +283,7 @@ def update_entry_notes(
     """
     Update admin notes for a waitlist entry.
     """
-    repo = WaitlistRepository()
+    repo = WaitlistService()
 
     entry = repo.get_by_id(waitlist_id)
     if not entry:
@@ -293,7 +293,7 @@ def update_entry_notes(
     if not success:
         raise ServiceError("Failed to update notes")
 
-    return {"success": True}
+    return {"message": "Notes updated"}
 
 
 @admin_router.get("/stats")
@@ -306,7 +306,7 @@ def get_waitlist_stats(
 
     Returns counts for each status: total, waiting, invited, registered, declined.
     """
-    repo = WaitlistRepository()
+    repo = WaitlistService()
 
     total = repo.get_count()
     waiting = repo.get_count(status="waiting")

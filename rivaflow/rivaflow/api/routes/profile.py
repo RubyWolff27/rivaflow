@@ -51,8 +51,8 @@ def get_onboarding_status(
     request: Request, current_user: dict = Depends(get_current_user)
 ):
     """Get onboarding checklist status derived from existing data."""
-    from rivaflow.db.repositories.readiness_repo import ReadinessRepository
-    from rivaflow.db.repositories.session_repo import SessionRepository
+    from rivaflow.core.services.readiness_service import ReadinessService
+    from rivaflow.core.services.session_service import SessionService
 
     service = ProfileService()
     user_id = current_user["id"]
@@ -70,8 +70,8 @@ def get_onboarding_status(
     total_fields = len(profile_fields)
     missing = [k for k, v in profile_fields.items() if not v]
 
-    has_readiness = ReadinessRepository.get_latest(user_id) is not None
-    stats = SessionRepository.get_user_stats(user_id)
+    has_readiness = ReadinessService().get_latest_readiness(user_id) is not None
+    stats = SessionService().session_repo.get_user_stats(user_id)
     has_session = stats.get("total_sessions", 0) > 0
     has_goals = bool(
         profile

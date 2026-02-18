@@ -396,7 +396,7 @@ export default function OverviewTab({
                     className="text-sm"
                     style={{ color: 'var(--muted)' }}
                   >
-                    {ct.avg_duration} min avg ({ct.sessions} sessions)
+                    {ct.avg_duration} min avg ({ct.sessions} {ct.sessions === 1 ? 'session' : 'sessions'})
                   </span>
                 </div>
               ))}

@@ -42,6 +42,16 @@ def get_active_plan_tree(user_id: int) -> dict | None:
     return get_plan_tree(plan["id"], user_id)
 
 
+def update_plan(plan_id: int, user_id: int, **kwargs) -> dict | None:
+    """Update plan metadata."""
+    return GamePlanRepository.update(plan_id, user_id, **kwargs)
+
+
+def delete_plan(plan_id: int, user_id: int) -> bool:
+    """Delete a game plan."""
+    return GamePlanRepository.delete(plan_id, user_id)
+
+
 def add_node(
     plan_id: int,
     user_id: int,

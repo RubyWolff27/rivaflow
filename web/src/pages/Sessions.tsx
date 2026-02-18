@@ -168,7 +168,7 @@ export default function Sessions() {
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--muted)]" />
             <input
               type="text"
-              placeholder="Search by gym, location, notes..."
+              placeholder="Search sessions..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="input pl-10 w-full"
@@ -286,7 +286,7 @@ export default function Sessions() {
                   <span className="font-semibold text-emerald-500">{session.submissions_for}</span>
                   {' / '}
                   <span className="font-semibold text-[var(--error)]">{session.submissions_against}</span>
-                  {' '}submissions
+                  {' '}{(session.submissions_for ?? 0) + (session.submissions_against ?? 0) === 1 ? 'submission' : 'submissions'}
                 </span>
               </div>
 

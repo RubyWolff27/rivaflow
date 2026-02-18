@@ -180,12 +180,11 @@ async def _handle_chat(
     request: ChatRequest, user_id: int, user_tier: str
 ) -> ChatResponse:
     """Inner chat handler with step-by-step error reporting."""
+    from rivaflow.core.services.chat_service import ChatService
     from rivaflow.core.services.grapple.context_builder import GrappleContextBuilder
     from rivaflow.core.services.grapple.llm_client import GrappleLLMClient
     from rivaflow.core.services.grapple.rate_limiter import GrappleRateLimiter
     from rivaflow.core.services.grapple.token_monitor import GrappleTokenMonitor
-    from rivaflow.db.repositories.chat_message_repo import ChatMessageRepository
-    from rivaflow.db.repositories.chat_session_repo import ChatSessionRepository
 
     # Step 1: Check rate limit
     try:
@@ -218,18 +217,17 @@ async def _handle_chat(
 
     # Step 2: Get or create session
     try:
-        session_repo = ChatSessionRepository()
-        message_repo = ChatMessageRepository()
+        chat_service = ChatService()
 
         if request.session_id:
-            session = session_repo.get_by_id(request.session_id, user_id)
+            session = chat_service.get_session_by_id(request.session_id, user_id)
             if not session:
                 raise HTTPException(
                     status_code=status.HTTP_404_NOT_FOUND,
                     detail="Session not found or access denied",
                 )
         else:
-            session = session_repo.create(user_id, title="New Chat")
+            session = chat_service.create_session(user_id, title="New Chat")
 
         session_id = session["id"]
     except HTTPException:
@@ -243,7 +241,7 @@ async def _handle_chat(
 
     # Step 3: Store user message
     try:
-        message_repo.create(
+        chat_service.create_message(
             session_id=session_id,
             role="user",
             content=request.message,
@@ -258,7 +256,7 @@ async def _handle_chat(
     # Step 4: Build context
     try:
         context_builder = GrappleContextBuilder(user_id)
-        recent_messages = message_repo.get_recent_context(session_id, max_messages=10)
+        recent_messages = chat_service.get_recent_context(session_id, max_messages=10)
         messages = context_builder.get_conversation_context(recent_messages)
     except (ConnectionError, OSError, KeyError) as e:
         logger.error(f"Context build failed: {e}", exc_info=True)
@@ -285,7 +283,7 @@ async def _handle_chat(
 
     # Steps 6-9: Post-LLM bookkeeping (non-fatal — don't fail the response)
     try:
-        assistant_message = message_repo.create(
+        assistant_message = chat_service.create_message(
             session_id=session_id,
             role="assistant",
             content=llm_response["content"],
@@ -313,7 +311,7 @@ async def _handle_chat(
         logger.error(f"Failed to log token usage: {e}", exc_info=True)
 
     try:
-        session_repo.update_stats(
+        chat_service.update_session_stats(
             session_id=session_id,
             message_count_delta=2,
             tokens_delta=llm_response["total_tokens"],
@@ -357,13 +355,13 @@ def get_chat_sessions(
 
     Requires beta, premium, or admin subscription tier.
     """
-    from rivaflow.db.repositories.chat_session_repo import ChatSessionRepository
+    from rivaflow.core.services.chat_service import ChatService
 
     user_id = current_user["id"]
     logger.info(f"Fetching sessions for user {user_id}")
 
-    session_repo = ChatSessionRepository()
-    sessions = session_repo.get_by_user(user_id, limit=limit, offset=offset)
+    chat_service = ChatService()
+    sessions = chat_service.get_sessions_by_user(user_id, limit=limit, offset=offset)
 
     return SessionListResponse(sessions=sessions)
 
@@ -380,17 +378,15 @@ def get_chat_session(
 
     Requires beta, premium, or admin subscription tier.
     """
-    from rivaflow.db.repositories.chat_message_repo import ChatMessageRepository
-    from rivaflow.db.repositories.chat_session_repo import ChatSessionRepository
+    from rivaflow.core.services.chat_service import ChatService
 
     user_id = current_user["id"]
     logger.info(f"Fetching session {session_id} for user {user_id}")
 
-    session_repo = ChatSessionRepository()
-    message_repo = ChatMessageRepository()
+    chat_service = ChatService()
 
     # Get session (includes ownership check)
-    session = session_repo.get_by_id(session_id, user_id)
+    session = chat_service.get_session_by_id(session_id, user_id)
     if not session:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -398,7 +394,7 @@ def get_chat_session(
         )
 
     # Get messages
-    messages = message_repo.get_by_session(session_id)
+    messages = chat_service.get_messages_by_session(session_id)
 
     return {
         "session": session,
@@ -418,13 +414,13 @@ def delete_chat_session(
 
     Requires beta, premium, or admin subscription tier.
     """
-    from rivaflow.db.repositories.chat_session_repo import ChatSessionRepository
+    from rivaflow.core.services.chat_service import ChatService
 
     user_id = current_user["id"]
     logger.info(f"Deleting session {session_id} for user {user_id}")
 
-    session_repo = ChatSessionRepository()
-    deleted = session_repo.delete(session_id, user_id)
+    chat_service = ChatService()
+    deleted = chat_service.delete_session(session_id, user_id)
 
     if not deleted:
         raise HTTPException(
@@ -432,7 +428,7 @@ def delete_chat_session(
             detail="Session not found or access denied",
         )
 
-    return {"success": True, "message": "Session deleted"}
+    return {"message": "Session deleted"}
 
 
 @router.get("/usage")
@@ -573,16 +569,15 @@ def save_extracted_session(
     """Save a previously extracted session."""
     from datetime import date
 
+    from rivaflow.core.services.session_service import SessionService
     from rivaflow.db.repositories.session_event_repo import (
         SessionEventRepository,
-    )
-    from rivaflow.db.repositories.session_repo import (
-        SessionRepository,
     )
 
     user_id = current_user["id"]
 
-    session_id = SessionRepository.create(
+    session_service = SessionService()
+    session_id = session_service.create_session(
         user_id=user_id,
         session_date=date.fromisoformat(request.session_date),
         class_type=request.class_type,
@@ -704,9 +699,8 @@ async def create_insight_chat(
 
 async def _handle_insight_chat(insight_id: int, user_id: int):
     """Inner handler for insight chat creation."""
+    from rivaflow.core.services.chat_service import ChatService
     from rivaflow.db.repositories.ai_insight_repo import AIInsightRepository
-    from rivaflow.db.repositories.chat_message_repo import ChatMessageRepository
-    from rivaflow.db.repositories.chat_session_repo import ChatSessionRepository
 
     insight = AIInsightRepository.get_by_id(insight_id, user_id)
     if not insight:
@@ -715,29 +709,27 @@ async def _handle_insight_chat(insight_id: int, user_id: int):
             detail="Insight not found",
         )
 
+    chat_service = ChatService()
+
     # If already has a chat session, return it (idempotent)
     existing_id = (insight.get("data") or {}).get("chat_session_id")
     if existing_id:
-        session_repo = ChatSessionRepository()
-        existing = session_repo.get_by_id(existing_id, user_id)
+        existing = chat_service.get_session_by_id(existing_id, user_id)
         if existing:
             return {"chat_session_id": existing_id, "insight": insight}
 
     # Create new chat session seeded with the insight
-    session_repo = ChatSessionRepository()
-    message_repo = ChatMessageRepository()
-
     title = f"Insight: {insight['title']}"
-    session = session_repo.create(user_id, title=title)
+    session = chat_service.create_session(user_id, title=title)
     session_id = session["id"]
 
     seed_content = f"**{insight['title']}**\n\n{insight['content']}"
-    message_repo.create(
+    chat_service.create_message(
         session_id=session_id,
         role="assistant",
         content=seed_content,
     )
-    session_repo.update_stats(
+    chat_service.update_session_stats(
         session_id=session_id,
         message_count_delta=1,
     )

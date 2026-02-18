@@ -123,8 +123,6 @@ class TestAdminUserDeactivation:
             json={"is_active": False},
         )
         assert resp.status_code == 200
-        data = resp.json()
-        assert data["success"] is True
 
         # Verify the user is now inactive
         updated = UserRepository.get_by_id(target_id)
@@ -256,8 +254,6 @@ class TestAdminDeleteUser:
             headers=headers,
         )
         assert resp.status_code == 200
-        data = resp.json()
-        assert data["success"] is True
 
         # Verify deletion
         deleted = UserRepository.get_by_id(target_id)

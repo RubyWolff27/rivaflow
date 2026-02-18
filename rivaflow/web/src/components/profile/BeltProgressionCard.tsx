@@ -180,7 +180,7 @@ export default function BeltProgressionCard({
               {instructors.map((instructor) => (
                 <option key={instructor.id} value={instructor.id}>
                   {instructor.name ?? 'Unknown'}
-                  {instructor.belt_rank && ` (${instructor.belt_rank} belt)`}
+                  {instructor.belt_rank && ` (${instructor.belt_rank.charAt(0).toUpperCase() + instructor.belt_rank.slice(1)} belt)`}
                   {instructor.instructor_certification && ` - ${instructor.instructor_certification}`}
                 </option>
               ))}

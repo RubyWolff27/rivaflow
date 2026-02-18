@@ -188,7 +188,7 @@ export default function WhoopAnalyticsTab({ days = 90 }: Props) {
                   <p className="text-xl font-bold mt-1" style={{ color: 'var(--text)' }}>
                     {info.avg_sub_rate}
                   </p>
-                  <p className="text-xs" style={{ color: 'var(--muted)' }}>sub ratio ({info.sessions} sessions)</p>
+                  <p className="text-xs" style={{ color: 'var(--muted)' }}>sub ratio ({info.sessions} {info.sessions === 1 ? 'session' : 'sessions'})</p>
                 </div>
               );
             })}
@@ -410,7 +410,7 @@ export default function WhoopAnalyticsTab({ days = 90 }: Props) {
                     <span className="text-sm font-semibold capitalize" style={{ color: ZONE_COLORS[zone] }}>
                       {zone} Recovery ({zone === 'green' ? '67-100%' : zone === 'yellow' ? '34-66%' : '0-33%'})
                     </span>
-                    <span className="text-xs" style={{ color: 'var(--muted)' }}>{info.sessions} sessions</span>
+                    <span className="text-xs" style={{ color: 'var(--muted)' }}>{info.sessions} {info.sessions === 1 ? 'session' : 'sessions'}</span>
                   </div>
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-center text-xs">
                     <div>

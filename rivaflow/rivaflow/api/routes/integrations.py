@@ -10,6 +10,7 @@ from pydantic import BaseModel
 from rivaflow.core.dependencies import get_current_user
 from rivaflow.core.error_handling import route_error_handler
 from rivaflow.core.exceptions import ExternalServiceError, NotFoundError
+from rivaflow.core.services.session_service import SessionService
 from rivaflow.core.services.whoop_service import WhoopService
 from rivaflow.core.settings import settings
 
@@ -303,7 +304,6 @@ def get_session_context(
     service = WhoopService()
     user_id = current_user["id"]
 
-    from rivaflow.db.repositories.session_repo import SessionRepository
     from rivaflow.db.repositories.whoop_recovery_cache_repo import (
         WhoopRecoveryCacheRepository,
     )
@@ -311,7 +311,7 @@ def get_session_context(
         WhoopWorkoutCacheRepository,
     )
 
-    session = SessionRepository.get_by_id(user_id, session_id)
+    session = SessionService().get_session(user_id, session_id)
     if not session:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -478,7 +478,6 @@ def get_zones_batch(
     """Get HR zone data for multiple sessions at once."""
     _require_whoop_enabled()
 
-    from rivaflow.db.repositories.session_repo import SessionRepository
     from rivaflow.db.repositories.whoop_workout_cache_repo import (
         WhoopWorkoutCacheRepository,
     )
@@ -490,7 +489,7 @@ def get_zones_batch(
     user_id = current_user["id"]
 
     # Batch ownership check (single query instead of N get_by_id calls)
-    owned_ids = SessionRepository.get_owned_ids(user_id, ids)
+    owned_ids = SessionService().session_repo.get_owned_ids(user_id, ids)
 
     # Batch fetch all linked workouts (single query instead of N loops)
     owned_list = [sid for sid in ids if sid in owned_ids]
@@ -540,7 +539,6 @@ def get_zones_weekly(
     from datetime import timedelta
 
     from rivaflow.core.services.report_service import today_in_tz
-    from rivaflow.db.repositories.session_repo import SessionRepository
     from rivaflow.db.repositories.whoop_workout_cache_repo import (
         WhoopWorkoutCacheRepository,
     )
@@ -549,7 +547,9 @@ def get_zones_weekly(
     week_start = today - timedelta(days=today.weekday()) + timedelta(weeks=week_offset)
     week_end = week_start + timedelta(days=6)
 
-    sessions = SessionRepository.get_by_date_range(user_id, week_start, week_end)
+    sessions = SessionService().get_sessions_by_date_range(
+        user_id, week_start, week_end
+    )
 
     zone_keys = [
         "zone_one_milli",

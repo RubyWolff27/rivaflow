@@ -95,6 +95,7 @@ export default function RestDetail() {
   const getRestTypeLabel = (type: string) => {
     const labels: { [key: string]: string } = {
       'active': '\u{1F3C3} Active Recovery',
+      'passive': '\u{1F6B6} Passive Recovery',
       'full': '\u{1F6CC} Full Rest',
       'injury': '\u{1F915} Injury / Rehab',
       'sick': '\u{1F912} Sick Day',
@@ -107,6 +108,7 @@ export default function RestDetail() {
   const getRestTypeStyle = (type: string): React.CSSProperties => {
     const styles: { [key: string]: React.CSSProperties } = {
       'active': { backgroundColor: 'rgba(59,130,246,0.1)', color: 'var(--accent)' },
+      'passive': { backgroundColor: 'rgba(107,114,128,0.1)', color: '#6b7280' },
       'full': { backgroundColor: 'rgba(168,85,247,0.1)', color: '#a855f7' },
       'injury': { backgroundColor: 'rgba(239,68,68,0.1)', color: 'var(--error)' },
       'sick': { backgroundColor: 'rgba(234,179,8,0.1)', color: '#ca8a04' },

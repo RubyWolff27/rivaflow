@@ -10,8 +10,6 @@ class TestFollowUnfollow:
             f"/api/v1/social/follow/{test_user2['id']}"
         )
         assert response.status_code == 200
-        data = response.json()
-        assert data["success"] is True
 
     def test_cannot_follow_self(self, authenticated_client, test_user):
         """Test that a user cannot follow themselves."""
@@ -80,7 +78,6 @@ class TestLikes:
             json={"activity_type": "session", "activity_id": session_id},
         )
         assert response.status_code == 200
-        assert response.json()["success"] is True
 
     def test_unlike_activity(self, authenticated_client, test_user, session_factory):
         """Test unliking a session."""
@@ -129,8 +126,7 @@ class TestComments:
         )
         assert response.status_code == 200
         data = response.json()
-        assert data["success"] is True
-        assert "comment" in data
+        assert "comment_text" in data
 
     def test_update_comment(self, authenticated_client, test_user, session_factory):
         """Test updating a comment."""
@@ -143,14 +139,13 @@ class TestComments:
                 "comment_text": "Original text",
             },
         )
-        comment_id = create_resp.json()["comment"]["id"]
+        comment_id = create_resp.json()["id"]
 
         response = authenticated_client.put(
             f"/api/v1/social/comment/{comment_id}",
             json={"comment_text": "Updated text"},
         )
         assert response.status_code == 200
-        assert response.json()["success"] is True
 
     def test_delete_comment(self, authenticated_client, test_user, session_factory):
         """Test deleting a comment."""
@@ -163,7 +158,7 @@ class TestComments:
                 "comment_text": "To be deleted",
             },
         )
-        comment_id = create_resp.json()["comment"]["id"]
+        comment_id = create_resp.json()["id"]
 
         response = authenticated_client.delete(f"/api/v1/social/comment/{comment_id}")
         assert response.status_code == 204
@@ -200,8 +195,6 @@ class TestFriendRequests:
             json={},
         )
         assert response.status_code == 200
-        data = response.json()
-        assert data["success"] is True
 
     def test_get_sent_requests(self, authenticated_client, test_user, test_user2):
         """Test getting sent friend requests."""
@@ -221,7 +214,7 @@ class TestFriendRequests:
             f"/api/v1/social/friend-requests/{test_user2['id']}",
             json={},
         )
-        connection_id = send_resp.json()["connection"]["id"]
+        connection_id = send_resp.json()["id"]
 
         response = authenticated_client.delete(
             f"/api/v1/social/friend-requests/{connection_id}"

@@ -28,9 +28,7 @@ class TestSubmitFeedback:
         )
         assert resp.status_code == 201
         data = resp.json()
-        assert data["success"] is True
-        assert "feedback" in data
-        assert data["feedback"]["category"] == "bug"
+        assert data["category"] == "bug"
 
     def test_submit_feature_request(self, authenticated_client, test_user):
         """Can submit a feature request."""
@@ -43,8 +41,7 @@ class TestSubmitFeedback:
         )
         assert resp.status_code == 201
         data = resp.json()
-        assert data["success"] is True
-        assert data["feedback"]["category"] == "feature"
+        assert data["category"] == "feature"
 
     def test_submit_invalid_category(self, authenticated_client, test_user):
         """Invalid category returns 422 validation error."""
@@ -82,7 +79,7 @@ class TestSubmitFeedback:
             },
         )
         assert resp.status_code == 201
-        fb = resp.json()["feedback"]
+        fb = resp.json()
         assert fb["subject"] == "Better charts"
         assert fb["platform"] == "web"
 
@@ -141,7 +138,7 @@ class TestGetFeedbackById:
                 "message": "Just wanted to say the app is great!",
             },
         )
-        feedback_id = create_resp.json()["feedback"]["id"]
+        feedback_id = create_resp.json()["id"]
         resp = authenticated_client.get(f"/api/v1/feedback/{feedback_id}")
         assert resp.status_code == 200
         assert resp.json()["id"] == feedback_id

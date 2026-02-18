@@ -11,8 +11,8 @@ from rivaflow.api.rate_limit import limiter
 from rivaflow.core.dependencies import get_current_user
 from rivaflow.core.error_handling import route_error_handler
 from rivaflow.core.services.privacy_service import PrivacyService
-from rivaflow.db.repositories.session_repo import SessionRepository
-from rivaflow.db.repositories.user_repo import UserRepository
+from rivaflow.core.services.session_service import SessionService
+from rivaflow.core.services.user_service import UserService
 
 router = APIRouter(prefix="/chat", tags=["chat"])
 logger = logging.getLogger(__name__)
@@ -41,16 +41,16 @@ class ChatResponse(BaseModel):
 
 def build_user_context(user_id: int) -> str:
     """Build context about user's training history for the LLM."""
-    session_repo = SessionRepository()
-    user_repo = UserRepository()
+    session_svc = SessionService()
+    user_svc = UserService()
 
     # Get user profile
-    user = user_repo.get_by_id(user_id)
+    user = user_svc.get_user_by_id(user_id)
     if not user:
         return "User profile not found."
 
     # Get ALL sessions (limit to 200 most recent to avoid context overflow)
-    sessions = session_repo.get_recent(user_id, limit=200)
+    sessions = session_svc.get_recent_sessions(user_id, limit=200)
 
     # Redact all sessions for LLM
     all_sessions = []

@@ -270,7 +270,7 @@ export default function PersonalInformationForm({
           </div>
           <p className="text-sm text-[var(--muted)] mt-1">
             {formData.timezone
-              ? `Server date: ${new Date().toLocaleDateString('en-CA', { timeZone: formData.timezone })}`
+              ? `Timezone set to ${formData.timezone}`
               : 'Used for daily check-in timing. Click Detect to use your browser timezone.'}
           </p>
         </div>
@@ -359,14 +359,14 @@ export default function PersonalInformationForm({
             {instructors.map((instructor) => (
               <option key={instructor.id} value={instructor.id}>
                 {instructor.name ?? 'Unknown'}
-                {instructor.belt_rank && ` - ${instructor.belt_rank}`}
+                {instructor.belt_rank && ` - ${instructor.belt_rank.charAt(0).toUpperCase() + instructor.belt_rank.slice(1)}`}
               </option>
             ))}
           </select>
           <p className="text-sm text-[var(--muted)] mt-1">
             {gymHeadCoach
-              ? `Head coach from your selected gym is available, or add other instructors in Contacts.`
-              : 'This will auto-populate when logging sessions. Add instructors in Contacts first.'}
+              ? `Head coach from your selected gym is available, or add other instructors in Friends.`
+              : 'This will auto-populate when logging sessions. Add instructors in Friends first.'}
           </p>
         </div>
 

@@ -9,8 +9,7 @@ from rivaflow.api.rate_limit import limiter
 from rivaflow.core.dependencies import get_current_user
 from rivaflow.core.error_handling import route_error_handler
 from rivaflow.core.exceptions import NotFoundError
-from rivaflow.db.repositories.events_repo import EventRepository
-from rivaflow.db.repositories.weight_log_repo import WeightLogRepository
+from rivaflow.core.services.events_service import EventsService
 
 router = APIRouter()
 
@@ -63,9 +62,8 @@ class WeightLogCreate(BaseModel):
 @route_error_handler("get_next_event", detail="Failed to get next event")
 def get_next_event(request: Request, current_user: dict = Depends(get_current_user)):
     """Get the next upcoming event with countdown information."""
-    event_repo = EventRepository()
-    weight_repo = WeightLogRepository()
-    event = event_repo.get_next_upcoming(user_id=current_user["id"])
+    svc = EventsService()
+    event = svc.get_next_upcoming(user_id=current_user["id"])
     if not event:
         return {"event": None, "days_until": None}
 
@@ -73,7 +71,7 @@ def get_next_event(request: Request, current_user: dict = Depends(get_current_us
     days_until = (event_date - date.today()).days
 
     # Get latest weight for comparison
-    latest_weight = weight_repo.get_latest(user_id=current_user["id"])
+    latest_weight = svc.get_latest_weight(user_id=current_user["id"])
 
     return {
         "event": event,
@@ -89,12 +87,12 @@ def create_event(
     request: Request, event: EventCreate, current_user: dict = Depends(get_current_user)
 ):
     """Create a new event."""
-    event_repo = EventRepository()
-    event_id = event_repo.create(
+    svc = EventsService()
+    event_id = svc.create_event(
         user_id=current_user["id"],
         data=event.model_dump(),
     )
-    created = event_repo.get_by_id(user_id=current_user["id"], event_id=event_id)
+    created = svc.get_event_by_id(user_id=current_user["id"], event_id=event_id)
     return created
 
 
@@ -107,8 +105,8 @@ def list_events(
     current_user: dict = Depends(get_current_user),
 ):
     """List events for the current user."""
-    event_repo = EventRepository()
-    events = event_repo.list_by_user(user_id=current_user["id"], status=status)
+    svc = EventsService()
+    events = svc.list_events(user_id=current_user["id"], status=status)
     return {"events": events, "total": len(events)}
 
 
@@ -119,8 +117,8 @@ def get_event(
     request: Request, event_id: int, current_user: dict = Depends(get_current_user)
 ):
     """Get a specific event by ID."""
-    event_repo = EventRepository()
-    event = event_repo.get_by_id(user_id=current_user["id"], event_id=event_id)
+    svc = EventsService()
+    event = svc.get_event_by_id(user_id=current_user["id"], event_id=event_id)
     if not event:
         raise NotFoundError("Event not found")
     return event
@@ -136,14 +134,12 @@ def update_event(
     current_user: dict = Depends(get_current_user),
 ):
     """Update an event."""
-    event_repo = EventRepository()
+    svc = EventsService()
     data = {k: v for k, v in event.model_dump().items() if v is not None}
-    updated = event_repo.update(
-        user_id=current_user["id"], event_id=event_id, data=data
-    )
+    updated = svc.update_event(user_id=current_user["id"], event_id=event_id, data=data)
     if not updated:
         raise NotFoundError("Event not found")
-    return event_repo.get_by_id(user_id=current_user["id"], event_id=event_id)
+    return svc.get_event_by_id(user_id=current_user["id"], event_id=event_id)
 
 
 @router.delete("/{event_id}")
@@ -153,8 +149,8 @@ def delete_event(
     request: Request, event_id: int, current_user: dict = Depends(get_current_user)
 ):
     """Delete an event."""
-    event_repo = EventRepository()
-    deleted = event_repo.delete(user_id=current_user["id"], event_id=event_id)
+    svc = EventsService()
+    deleted = svc.delete_event(user_id=current_user["id"], event_id=event_id)
     if not deleted:
         raise NotFoundError("Event not found")
     return Response(status_code=status.HTTP_204_NO_CONTENT)
@@ -175,11 +171,11 @@ def create_weight_log(
     current_user: dict = Depends(get_current_user),
 ):
     """Log a weight entry."""
-    weight_repo = WeightLogRepository()
+    svc = EventsService()
     data = log.model_dump()
     if not data.get("logged_date"):
         data["logged_date"] = date.today().isoformat()
-    log_id = weight_repo.create(user_id=current_user["id"], data=data)
+    log_id = svc.create_weight_log(user_id=current_user["id"], data=data)
     return {"id": log_id, "message": "Weight logged successfully"}
 
 
@@ -193,8 +189,8 @@ def list_weight_logs(
     current_user: dict = Depends(get_current_user),
 ):
     """Get weight history with optional date range."""
-    weight_repo = WeightLogRepository()
-    logs = weight_repo.list_by_user(
+    svc = EventsService()
+    logs = svc.list_weight_logs(
         user_id=current_user["id"],
         start_date=start_date,
         end_date=end_date,
@@ -210,8 +206,8 @@ def get_latest_weight(
     current_user: dict = Depends(get_current_user),
 ):
     """Get the most recent weight log."""
-    weight_repo = WeightLogRepository()
-    latest = weight_repo.get_latest(user_id=current_user["id"])
+    svc = EventsService()
+    latest = svc.get_latest_weight(user_id=current_user["id"])
     if not latest:
         return {"weight": None, "logged_date": None}
     return latest
@@ -226,6 +222,6 @@ def get_weight_averages(
     current_user: dict = Depends(get_current_user),
 ):
     """Get weight averages grouped by week or month."""
-    weight_repo = WeightLogRepository()
-    averages = weight_repo.get_averages(user_id=current_user["id"], period=period)
+    svc = EventsService()
+    averages = svc.get_weight_averages(user_id=current_user["id"], period=period)
     return {"averages": averages, "period": period}

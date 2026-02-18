@@ -19,8 +19,7 @@ from rivaflow.core.exceptions import NotFoundError, ValidationError
 from rivaflow.core.services.friend_suggestions_service import FriendSuggestionsService
 from rivaflow.core.services.notification_service import NotificationService
 from rivaflow.core.services.social_service import SocialService
-from rivaflow.db.repositories.social_connection_repo import SocialConnectionRepository
-from rivaflow.db.repositories.user_repo import UserRepository
+from rivaflow.core.services.user_service import UserService
 
 router = APIRouter(prefix="/social", tags=["social"])
 
@@ -79,7 +78,7 @@ def follow_user(
     """
     try:
         relationship = SocialService.follow_user(current_user["id"], user_id)
-        return {"success": True, "relationship": relationship}
+        return relationship
     except ValueError as e:
 
         raise ValidationError(str(e))
@@ -104,9 +103,9 @@ def unfollow_user(
     Raises:
         500: Database error
     """
-    success = SocialService.unfollow_user(current_user["id"], user_id)
-    if not success:
-        return {"success": False}
+    unfollowed = SocialService.unfollow_user(current_user["id"], user_id)
+    if not unfollowed:
+        return {"unfollowed": False}
     return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
@@ -123,12 +122,10 @@ def get_followers(
     Returns:
         Paginated list of follower users with basic info
     """
-    from rivaflow.db.repositories.relationship_repo import UserRelationshipRepository
-
-    followers = UserRelationshipRepository.get_followers(
+    followers = SocialService.get_followers(
         current_user["id"], limit=limit, offset=offset
     )
-    total = UserRelationshipRepository.count_followers(current_user["id"])
+    total = SocialService.count_followers(current_user["id"])
 
     return {"followers": followers, "total": total, "limit": limit, "offset": offset}
 
@@ -146,12 +143,10 @@ def get_following(
     Returns:
         Paginated list of followed users with basic info
     """
-    from rivaflow.db.repositories.relationship_repo import UserRelationshipRepository
-
-    following = UserRelationshipRepository.get_following(
+    following = SocialService.get_following(
         current_user["id"], limit=limit, offset=offset
     )
-    total = UserRelationshipRepository.count_following(current_user["id"])
+    total = SocialService.count_following(current_user["id"])
 
     return {"following": following, "total": total, "limit": limit, "offset": offset}
 
@@ -200,7 +195,7 @@ def like_activity(
         like = SocialService.like_activity(
             current_user["id"], like_req.activity_type, like_req.activity_id
         )
-        return {"success": True, "like": like}
+        return like
     except ValueError as e:
 
         raise ValidationError(str(e))
@@ -222,13 +217,13 @@ def unlike_activity(
     Returns:
         Success status
     """
-    success = SocialService.unlike_activity(
+    unliked = SocialService.unlike_activity(
         current_user["id"],
         request.activity_type,
         request.activity_id,
     )
-    if not success:
-        return {"success": False}
+    if not unliked:
+        return {"unliked": False}
     return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
@@ -286,7 +281,7 @@ def add_comment(
             comment_req.comment_text,
             comment_req.parent_comment_id,
         )
-        return {"success": True, "comment": comment}
+        return comment
     except ValueError as e:
 
         raise ValidationError(str(e))
@@ -322,7 +317,7 @@ def update_comment(
         )
         if not comment:
             raise NotFoundError("Comment not found or you don't own it")
-        return {"success": True, "comment": comment}
+        return comment
     except ValueError as e:
         raise ValidationError(str(e))
 
@@ -397,12 +392,10 @@ def search_users(
         return {"users": []}
 
     # SQL-level search with LIMIT (avoids loading all users into memory)
-    filtered_users = UserRepository.search(q, limit=21)
-
-    # Exclude current user
-    filtered_users = [
-        user for user in filtered_users if user["id"] != current_user["id"]
-    ][:20]
+    user_service = UserService()
+    filtered_users = user_service.search_users(
+        q, limit=21, exclude_user_id=current_user["id"]
+    )[:20]
 
     # Add follow status and strip sensitive fields
     for user in filtered_users:
@@ -505,8 +498,8 @@ def dismiss_friend_suggestion(
         Success status
     """
     service = FriendSuggestionsService()
-    success = service.dismiss_suggestion(current_user["id"], suggested_user_id)
-    return {"success": success}
+    dismissed = service.dismiss_suggestion(current_user["id"], suggested_user_id)
+    return {"dismissed": dismissed}
 
 
 @router.post("/friend-suggestions/regenerate")
@@ -525,7 +518,6 @@ def regenerate_friend_suggestions(current_user: dict = Depends(get_current_user)
     service = FriendSuggestionsService()
     count = service.generate_suggestions(current_user["id"])
     return {
-        "success": True,
         "suggestions_created": count,
     }
 
@@ -551,7 +543,7 @@ def send_friend_request(
 ):
     """Send a friend request to another user."""
     try:
-        connection = SocialConnectionRepository.send_friend_request(
+        connection = SocialService.send_friend_request(
             requester_id=current_user["id"],
             recipient_id=user_id,
             connection_source=body.connection_source,
@@ -560,7 +552,7 @@ def send_friend_request(
         NotificationService.create_friend_request_notification(
             user_id, current_user["id"]
         )
-        return {"success": True, "connection": connection}
+        return connection
     except ValueError as e:
         raise ValidationError(str(e))
 
@@ -572,7 +564,7 @@ def accept_friend_request(
 ):
     """Accept a friend request (must be the recipient)."""
     try:
-        connection = SocialConnectionRepository.accept_friend_request(
+        connection = SocialService.accept_friend_request(
             connection_id=connection_id, recipient_id=current_user["id"]
         )
         # Notify the requester that their request was accepted
@@ -581,7 +573,7 @@ def accept_friend_request(
             NotificationService.create_friend_accepted_notification(
                 requester_id, current_user["id"]
             )
-        return {"success": True, "connection": connection}
+        return connection
     except ValueError as e:
         raise ValidationError(str(e))
 
@@ -595,10 +587,10 @@ def decline_friend_request(
 ):
     """Decline a friend request (must be the recipient)."""
     try:
-        connection = SocialConnectionRepository.decline_friend_request(
+        connection = SocialService.decline_friend_request(
             connection_id=connection_id, recipient_id=current_user["id"]
         )
-        return {"success": True, "connection": connection}
+        return connection
     except ValueError as e:
         raise ValidationError(str(e))
 
@@ -609,7 +601,7 @@ def cancel_friend_request(
     connection_id: int = Path(..., gt=0), current_user: dict = Depends(get_current_user)
 ):
     """Cancel a sent friend request (must be the requester)."""
-    success = SocialConnectionRepository.cancel_friend_request(
+    success = SocialService.cancel_friend_request(
         connection_id=connection_id,
         requester_id=current_user["id"],
     )
@@ -622,9 +614,7 @@ def cancel_friend_request(
 @route_error_handler("get_received_requests", detail="Failed to get friend requests")
 def get_received_friend_requests(current_user: dict = Depends(get_current_user)):
     """Get pending friend requests received by the current user."""
-    requests = SocialConnectionRepository.get_pending_requests_received(
-        current_user["id"]
-    )
+    requests = SocialService.get_pending_requests_received(current_user["id"])
     return {"requests": requests, "count": len(requests)}
 
 
@@ -632,7 +622,7 @@ def get_received_friend_requests(current_user: dict = Depends(get_current_user))
 @route_error_handler("get_sent_requests", detail="Failed to get sent requests")
 def get_sent_friend_requests(current_user: dict = Depends(get_current_user)):
     """Get pending friend requests sent by the current user."""
-    requests = SocialConnectionRepository.get_pending_requests_sent(current_user["id"])
+    requests = SocialService.get_pending_requests_sent(current_user["id"])
     return {"requests": requests, "count": len(requests)}
 
 
@@ -644,7 +634,7 @@ def get_friends(
     current_user: dict = Depends(get_current_user),
 ):
     """Get list of accepted friends for the current user."""
-    friends = SocialConnectionRepository.get_friends(
+    friends = SocialService.get_friends(
         user_id=current_user["id"], limit=limit, offset=offset
     )
     return {"friends": friends, "count": len(friends)}
@@ -656,7 +646,7 @@ def unfriend_user(
     user_id: int = Path(..., gt=0), current_user: dict = Depends(get_current_user)
 ):
     """Remove a friend connection."""
-    success = SocialConnectionRepository.unfriend(
+    success = SocialService.unfriend(
         user_id=current_user["id"],
         friend_user_id=user_id,
     )
@@ -671,14 +661,12 @@ def get_friendship_status(
     user_id: int = Path(..., gt=0), current_user: dict = Depends(get_current_user)
 ):
     """Get friendship status with another user."""
-    are_friends = SocialConnectionRepository.are_friends(current_user["id"], user_id)
+    are_friends = SocialService.are_friends(current_user["id"], user_id)
 
     if not are_friends:
         # Check for pending requests
-        received = SocialConnectionRepository.get_pending_requests_received(
-            current_user["id"]
-        )
-        sent = SocialConnectionRepository.get_pending_requests_sent(current_user["id"])
+        received = SocialService.get_pending_requests_received(current_user["id"])
+        sent = SocialService.get_pending_requests_sent(current_user["id"])
 
         pending_from_them = any(r["requester_id"] == user_id for r in received)
         pending_from_me = any(r["recipient_id"] == user_id for r in sent)

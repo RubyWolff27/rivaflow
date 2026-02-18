@@ -210,8 +210,6 @@ class TestDeleteTrainingGoal:
 
         response = authenticated_client.delete(f"/api/v1/training-goals/{goal_id}")
         assert response.status_code == 200
-        data = response.json()
-        assert data["success"] is True
 
     def test_delete_nonexistent_returns_404(self, authenticated_client, test_user):
         """Delete non-existent goal returns 404."""
