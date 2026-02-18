@@ -14,6 +14,7 @@ from rivaflow.db.repositories import (
     UserRepository,
 )
 from rivaflow.db.repositories.checkin_repo import CheckinRepository
+from rivaflow.db.repositories.feed_repo import FeedRepository
 
 
 class FeedService:
@@ -196,21 +197,22 @@ class FeedService:
         Enrich feed items with social data (like count, comment count, has_liked).
         Also enriches with cached user profiles for feed owners.
         Uses batch queries to avoid N+1 query problem.
-
-        Args:
-            user_id: Current user ID (to check if they liked)
-            feed_items: List of feed items
-
-        Returns:
-            Enriched feed items with social data and user profiles
         """
         if not feed_items:
             return feed_items
 
-        # Batch load all like counts, comment counts, and user likes in single queries
-        like_counts = FeedService._batch_get_like_counts(feed_items)
-        comment_counts = FeedService._batch_get_comment_counts(feed_items)
-        user_likes = FeedService._batch_get_user_likes(user_id, feed_items)
+        # Build items_by_type for batch queries
+        items_by_type: dict[str, list[int]] = {}
+        for item in feed_items:
+            activity_type = item["type"]
+            if activity_type not in items_by_type:
+                items_by_type[activity_type] = []
+            items_by_type[activity_type].append(item["id"])
+
+        # Batch load all like counts, comment counts, and user likes
+        like_counts = FeedRepository.batch_get_like_counts(items_by_type)
+        comment_counts = FeedRepository.batch_get_comment_counts(items_by_type)
+        user_likes = FeedRepository.batch_get_user_likes(user_id, items_by_type)
 
         # Batch load user profiles with caching
         owner_profiles = FeedService._batch_get_user_profiles(feed_items)
@@ -233,216 +235,52 @@ class FeedService:
     def _batch_load_friend_activities(
         user_ids: list[int], start_date: date, end_date: date
     ) -> list[dict[str, Any]]:
-        """
-        Batch load session activities from multiple users in optimized queries.
-
-        Args:
-            user_ids: List of user IDs to load activities from
-            start_date: Start date for activity range
-            end_date: End date for activity range
-
-        Returns:
-            List of feed items from all users
-        """
-        from rivaflow.db.database import convert_query, get_connection
-
+        """Batch load session activities from multiple users in optimized queries."""
         if not user_ids:
             return []
 
+        rows = FeedRepository.batch_load_friend_sessions(user_ids, start_date, end_date)
+
         feed_items = []
-        placeholders = ",".join("?" * len(user_ids))
+        for session in rows:
+            visibility = session.get("visibility_level", "private")
 
-        with get_connection() as conn:
-            cursor = conn.cursor()
+            # Apply privacy redaction
+            redacted_session = PrivacyService.redact_session(session, visibility)
+            if not redacted_session:
+                continue
 
-            # Batch load sessions from all followed users
-            query = convert_query(f"""
-                SELECT
-                    id, user_id, session_date, class_type, gym_name, location,
-                    duration_mins, intensity, rolls, submissions_for, submissions_against,
-                    partners, techniques, notes, visibility_level, instructor_name
-                FROM sessions
-                WHERE user_id IN ({placeholders})
-                    AND session_date BETWEEN ? AND ?
-                    AND visibility_level != 'private'
-                ORDER BY session_date DESC
-            """)
-            cursor.execute(query, user_ids + [start_date, end_date])
+            session_date = redacted_session.get("session_date")
+            if hasattr(session_date, "isoformat"):
+                session_date = session_date.isoformat()
 
-            for row in cursor.fetchall():
-                session = dict(row)
-                visibility = session.get("visibility_level", "private")
+            # Build summary based on what's available after redaction
+            summary_parts = []
+            if redacted_session.get("class_type"):
+                summary_parts.append(redacted_session["class_type"])
+            if redacted_session.get("gym_name"):
+                summary_parts.append(f"at {redacted_session['gym_name']}")
+            if redacted_session.get("duration_mins"):
+                summary_parts.append(f"{redacted_session['duration_mins']}min")
+            if redacted_session.get("rolls") is not None:
+                summary_parts.append(f"{redacted_session['rolls']} rolls")
 
-                # Apply privacy redaction
-                redacted_session = PrivacyService.redact_session(session, visibility)
-                if not redacted_session:
-                    continue
+            summary = (
+                " \u2022 ".join(summary_parts) if summary_parts else "Training session"
+            )
 
-                session_date = redacted_session.get("session_date")
-                if hasattr(session_date, "isoformat"):
-                    session_date = session_date.isoformat()
-
-                # Build summary based on what's available after redaction
-                summary_parts = []
-                if redacted_session.get("class_type"):
-                    summary_parts.append(redacted_session["class_type"])
-                if redacted_session.get("gym_name"):
-                    summary_parts.append(f"at {redacted_session['gym_name']}")
-                if redacted_session.get("duration_mins"):
-                    summary_parts.append(f"{redacted_session['duration_mins']}min")
-                if redacted_session.get("rolls") is not None:
-                    summary_parts.append(f"{redacted_session['rolls']} rolls")
-
-                summary = (
-                    " \u2022 ".join(summary_parts)
-                    if summary_parts
-                    else "Training session"
-                )
-
-                feed_items.append(
-                    {
-                        "type": "session",
-                        "date": session_date,
-                        "id": session["id"],
-                        "data": redacted_session,
-                        "summary": summary,
-                        "owner_user_id": session["user_id"],
-                    }
-                )
+            feed_items.append(
+                {
+                    "type": "session",
+                    "date": session_date,
+                    "id": session["id"],
+                    "data": redacted_session,
+                    "summary": summary,
+                    "owner_user_id": session["user_id"],
+                }
+            )
 
         return feed_items
-
-    @staticmethod
-    def _batch_get_like_counts(feed_items: list[dict[str, Any]]) -> dict[tuple, int]:
-        """
-        Batch load like counts for all feed items in a single query.
-
-        Args:
-            feed_items: List of feed items
-
-        Returns:
-            Dictionary mapping (activity_type, activity_id) to like count
-        """
-        from rivaflow.db.database import convert_query, get_connection
-
-        if not feed_items:
-            return {}
-
-        # Group items by type for efficient querying
-        items_by_type = {}
-        for item in feed_items:
-            activity_type = item["type"]
-            if activity_type not in items_by_type:
-                items_by_type[activity_type] = []
-            items_by_type[activity_type].append(item["id"])
-
-        like_counts = {}
-        with get_connection() as conn:
-            cursor = conn.cursor()
-            for activity_type, activity_ids in items_by_type.items():
-                if not activity_ids:
-                    continue
-
-                placeholders = ",".join("?" * len(activity_ids))
-                query = convert_query(f"""
-                    SELECT activity_id, COUNT(*) as count
-                    FROM activity_likes
-                    WHERE activity_type = ? AND activity_id IN ({placeholders})
-                    GROUP BY activity_id
-                """)
-                cursor.execute(query, [activity_type] + activity_ids)
-                for row in cursor.fetchall():
-                    like_counts[(activity_type, row["activity_id"])] = row["count"]
-
-        return like_counts
-
-    @staticmethod
-    def _batch_get_comment_counts(feed_items: list[dict[str, Any]]) -> dict[tuple, int]:
-        """
-        Batch load comment counts for all feed items in a single query.
-
-        Args:
-            feed_items: List of feed items
-
-        Returns:
-            Dictionary mapping (activity_type, activity_id) to comment count
-        """
-        from rivaflow.db.database import convert_query, get_connection
-
-        if not feed_items:
-            return {}
-
-        # Group items by type for efficient querying
-        items_by_type = {}
-        for item in feed_items:
-            activity_type = item["type"]
-            if activity_type not in items_by_type:
-                items_by_type[activity_type] = []
-            items_by_type[activity_type].append(item["id"])
-
-        comment_counts = {}
-        with get_connection() as conn:
-            cursor = conn.cursor()
-            for activity_type, activity_ids in items_by_type.items():
-                if not activity_ids:
-                    continue
-
-                placeholders = ",".join("?" * len(activity_ids))
-                query = convert_query(f"""
-                    SELECT activity_id, COUNT(*) as count
-                    FROM activity_comments
-                    WHERE activity_type = ? AND activity_id IN ({placeholders})
-                    GROUP BY activity_id
-                """)
-                cursor.execute(query, [activity_type] + activity_ids)
-                for row in cursor.fetchall():
-                    comment_counts[(activity_type, row["activity_id"])] = row["count"]
-
-        return comment_counts
-
-    @staticmethod
-    def _batch_get_user_likes(user_id: int, feed_items: list[dict[str, Any]]) -> set:
-        """
-        Batch load user's likes for all feed items in a single query.
-
-        Args:
-            user_id: User ID to check likes for
-            feed_items: List of feed items
-
-        Returns:
-            Set of (activity_type, activity_id) tuples that the user has liked
-        """
-        from rivaflow.db.database import convert_query, get_connection
-
-        if not feed_items:
-            return set()
-
-        # Group items by type for efficient querying
-        items_by_type = {}
-        for item in feed_items:
-            activity_type = item["type"]
-            if activity_type not in items_by_type:
-                items_by_type[activity_type] = []
-            items_by_type[activity_type].append(item["id"])
-
-        user_likes = set()
-        with get_connection() as conn:
-            cursor = conn.cursor()
-            for activity_type, activity_ids in items_by_type.items():
-                if not activity_ids:
-                    continue
-
-                placeholders = ",".join("?" * len(activity_ids))
-                query = convert_query(f"""
-                    SELECT activity_type, activity_id
-                    FROM activity_likes
-                    WHERE user_id = ? AND activity_type = ? AND activity_id IN ({placeholders})
-                """)
-                cursor.execute(query, [user_id, activity_type] + activity_ids)
-                for row in cursor.fetchall():
-                    user_likes.add((row["activity_type"], row["activity_id"]))
-
-        return user_likes
 
     @staticmethod
     def get_user_public_activities(
@@ -453,15 +291,6 @@ class FeedService:
     ) -> dict[str, Any]:
         """
         Get a user's public activities (for profile viewing).
-
-        Args:
-            user_id: ID of user whose activities to retrieve
-            limit: Maximum items to return
-            offset: Pagination offset
-            requesting_user_id: ID of user requesting the activities
-
-        Returns:
-            Feed response with public items only
         """
         session_repo = SessionRepository()
 
@@ -525,17 +354,8 @@ class FeedService:
     def _batch_get_user_profiles(
         feed_items: list[dict[str, Any]],
     ) -> dict[int, dict[str, Any]]:
-        """
-        Batch load user profiles for feed item owners with Redis caching.
-
-        Args:
-            feed_items: List of feed items
-
-        Returns:
-            Dictionary mapping user_id to user profile info
-        """
+        """Batch load user profiles for feed item owners with Redis caching."""
         cache = get_redis_client()
-        UserRepository()
 
         # Collect unique owner user IDs
         owner_user_ids = set()
@@ -547,53 +367,42 @@ class FeedService:
         if not owner_user_ids:
             return {}
 
-        profiles = {}
+        profiles: dict[int, dict[str, Any]] = {}
         uncached_user_ids = []
 
         # Try to get from cache first
-        for user_id in owner_user_ids:
-            cache_key = CacheKeys.user_basic(user_id)
+        for uid in owner_user_ids:
+            cache_key = CacheKeys.user_basic(uid)
             cached_profile = cache.get(cache_key)
 
             if cached_profile:
-                profiles[user_id] = {
+                profiles[uid] = {
                     "id": cached_profile.get("id"),
                     "first_name": cached_profile.get("first_name"),
                     "last_name": cached_profile.get("last_name"),
                 }
             else:
-                uncached_user_ids.append(user_id)
+                uncached_user_ids.append(uid)
 
         # Batch load uncached users from database
         if uncached_user_ids:
-            from rivaflow.db.database import convert_query, get_connection
+            users = UserRepository.get_users_by_ids(uncached_user_ids)
 
-            with get_connection() as conn:
-                cursor = conn.cursor()
-                placeholders = ",".join("?" * len(uncached_user_ids))
-                query = convert_query(f"""
-                    SELECT id, first_name, last_name, email
-                    FROM users
-                    WHERE id IN ({placeholders})
-                """)
-                cursor.execute(query, uncached_user_ids)
+            for user in users:
+                uid = user["id"]
 
-                for row in cursor.fetchall():
-                    user = dict(row)
-                    user_id = user["id"]
+                # Cache full user profile
+                cache.set(
+                    CacheKeys.user_basic(uid),
+                    user,
+                    ttl=CacheKeys.TTL_15_MINUTES,
+                )
 
-                    # Cache full user profile
-                    cache.set(
-                        CacheKeys.user_basic(user_id),
-                        user,
-                        ttl=CacheKeys.TTL_15_MINUTES,
-                    )
-
-                    # Add to profiles (minimal info for feed)
-                    profiles[user_id] = {
-                        "id": user_id,
-                        "first_name": user.get("first_name"),
-                        "last_name": user.get("last_name"),
-                    }
+                # Add to profiles (minimal info for feed)
+                profiles[uid] = {
+                    "id": uid,
+                    "first_name": user.get("first_name"),
+                    "last_name": user.get("last_name"),
+                }
 
         return profiles

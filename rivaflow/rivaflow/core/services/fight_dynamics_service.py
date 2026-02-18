@@ -4,7 +4,7 @@ import logging
 from datetime import date, timedelta
 from typing import Any
 
-from rivaflow.db.database import convert_query, get_connection
+from rivaflow.db.repositories.session_repo import SessionRepository
 
 logger = logging.getLogger(__name__)
 
@@ -31,17 +31,13 @@ class FightDynamicsService:
         Returns:
             List of period objects with aggregated fight dynamics data.
         """
-        with get_connection() as conn:
-            cursor = conn.cursor()
-
-            if view == "monthly":
-                return self._get_monthly_data(cursor, user_id, months)
-            else:
-                return self._get_weekly_data(cursor, user_id, weeks)
+        if view == "monthly":
+            return self._get_monthly_data(user_id, months)
+        else:
+            return self._get_weekly_data(user_id, weeks)
 
     def _get_weekly_data(
         self,
-        cursor: Any,
         user_id: int,
         weeks: int,
     ) -> list[dict[str, Any]]:
@@ -49,26 +45,9 @@ class FightDynamicsService:
         today = date.today()
         start_date = today - timedelta(weeks=weeks)
 
-        cursor.execute(
-            convert_query("""
-                SELECT
-                    session_date,
-                    attacks_attempted,
-                    attacks_successful,
-                    defenses_attempted,
-                    defenses_successful
-                FROM sessions
-                WHERE user_id = ?
-                    AND session_date >= ?
-                    AND (
-                        attacks_attempted > 0
-                        OR defenses_attempted > 0
-                    )
-                ORDER BY session_date ASC
-                """),
-            (user_id, start_date.isoformat()),
+        rows = SessionRepository.get_fight_dynamics_sessions(
+            user_id, start_date.isoformat()
         )
-        rows = cursor.fetchall()
 
         # Build weekly buckets
         weekly_buckets: dict[str, dict[str, Any]] = {}
@@ -93,8 +72,7 @@ class FightDynamicsService:
             }
 
         # Fill buckets with data
-        for row in rows:
-            row_dict = dict(row)
+        for row_dict in rows:
             session_date = row_dict["session_date"]
             if isinstance(session_date, str):
                 session_date = date.fromisoformat(session_date)
@@ -115,7 +93,6 @@ class FightDynamicsService:
 
     def _get_monthly_data(
         self,
-        cursor: Any,
         user_id: int,
         months: int,
     ) -> list[dict[str, Any]]:
@@ -155,29 +132,11 @@ class FightDynamicsService:
         earliest_key = min(monthly_buckets.keys())
         start_date = date.fromisoformat(monthly_buckets[earliest_key]["period_start"])
 
-        cursor.execute(
-            convert_query("""
-                SELECT
-                    session_date,
-                    attacks_attempted,
-                    attacks_successful,
-                    defenses_attempted,
-                    defenses_successful
-                FROM sessions
-                WHERE user_id = ?
-                    AND session_date >= ?
-                    AND (
-                        attacks_attempted > 0
-                        OR defenses_attempted > 0
-                    )
-                ORDER BY session_date ASC
-                """),
-            (user_id, start_date.isoformat()),
+        rows = SessionRepository.get_fight_dynamics_sessions(
+            user_id, start_date.isoformat()
         )
-        rows = cursor.fetchall()
 
-        for row in rows:
-            row_dict = dict(row)
+        for row_dict in rows:
             session_date = row_dict["session_date"]
             if isinstance(session_date, str):
                 session_date = date.fromisoformat(session_date)
@@ -208,16 +167,15 @@ class FightDynamicsService:
         recent_start = today - timedelta(weeks=4)
         previous_start = today - timedelta(weeks=8)
 
-        with get_connection() as conn:
-            cursor = conn.cursor()
+        # Get recent period data (last 4 weeks)
+        recent = SessionRepository.get_fight_dynamics_totals(
+            user_id, recent_start.isoformat(), today.isoformat()
+        )
 
-            # Get recent period data (last 4 weeks)
-            recent = self._get_period_totals(cursor, user_id, recent_start, today)
-
-            # Get previous period data (4-8 weeks ago)
-            previous = self._get_period_totals(
-                cursor, user_id, previous_start, recent_start
-            )
+        # Get previous period data (4-8 weeks ago)
+        previous = SessionRepository.get_fight_dynamics_totals(
+            user_id, previous_start.isoformat(), recent_start.isoformat()
+        )
 
         # Check minimum data threshold
         total_sessions = recent["session_count"] + previous["session_count"]
@@ -307,51 +265,6 @@ class FightDynamicsService:
             "defense_success_rate": defense_success_rate,
             "imbalance_detection": imbalance,
             "suggested_focus": suggested_focus,
-        }
-
-    def _get_period_totals(
-        self,
-        cursor: Any,
-        user_id: int,
-        start_date: date,
-        end_date: date,
-    ) -> dict[str, int]:
-        """Get aggregated fight dynamics totals for a date range."""
-        cursor.execute(
-            convert_query("""
-                SELECT
-                    COUNT(*) as session_count,
-                    COALESCE(SUM(attacks_attempted), 0) as attacks_attempted,
-                    COALESCE(SUM(attacks_successful), 0) as attacks_successful,
-                    COALESCE(SUM(defenses_attempted), 0) as defenses_attempted,
-                    COALESCE(SUM(defenses_successful), 0) as defenses_successful
-                FROM sessions
-                WHERE user_id = ?
-                    AND session_date >= ?
-                    AND session_date < ?
-                    AND (
-                        attacks_attempted > 0
-                        OR defenses_attempted > 0
-                    )
-                """),
-            (user_id, start_date.isoformat(), end_date.isoformat()),
-        )
-        row = cursor.fetchone()
-        if row is None:
-            return {
-                "session_count": 0,
-                "attacks_attempted": 0,
-                "attacks_successful": 0,
-                "defenses_attempted": 0,
-                "defenses_successful": 0,
-            }
-        row_dict = dict(row)
-        return {
-            "session_count": row_dict["session_count"] or 0,
-            "attacks_attempted": row_dict["attacks_attempted"] or 0,
-            "attacks_successful": row_dict["attacks_successful"] or 0,
-            "defenses_attempted": row_dict["defenses_attempted"] or 0,
-            "defenses_successful": row_dict["defenses_successful"] or 0,
         }
 
     @staticmethod

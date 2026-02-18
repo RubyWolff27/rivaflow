@@ -33,7 +33,10 @@ from rivaflow.api.middleware.security_headers import SecurityHeadersMiddleware
 from rivaflow.api.middleware.versioning import VersioningMiddleware
 from rivaflow.api.routes import (
     admin,
+    admin_broadcast,
     admin_grapple,
+    admin_gyms,
+    admin_users,
     analytics,
     auth,
     checkins,
@@ -48,6 +51,8 @@ from rivaflow.api.routes import (
     goals,
     gradings,
     grapple,
+    grapple_insights,
+    grapple_usage,
     groups,
     gyms,
     health,
@@ -61,6 +66,9 @@ from rivaflow.api.routes import (
     rest,
     sessions,
     social,
+    social_comments,
+    social_connections,
+    social_likes,
     streaks,
     suggestions,
     techniques,
@@ -280,11 +288,19 @@ app.include_router(streaks.router, prefix="/api/v1")
 app.include_router(milestones.router, prefix="/api/v1")
 app.include_router(photos.router, prefix="/api/v1")
 app.include_router(social.router, prefix="/api/v1")
+app.include_router(social_likes.router, prefix="/api/v1/social", tags=["social"])
+app.include_router(social_comments.router, prefix="/api/v1/social", tags=["social"])
+app.include_router(social_connections.router, prefix="/api/v1/social", tags=["social"])
 # AI features (Grapple + Game Plans)
 app.include_router(grapple.router, prefix="/api/v1")
+app.include_router(grapple_insights.router, prefix="/api/v1/grapple", tags=["grapple"])
+app.include_router(grapple_usage.router, prefix="/api/v1/grapple", tags=["grapple"])
 app.include_router(game_plans.router, prefix="/api/v1")
 app.include_router(notifications.router, prefix="/api/v1")
 app.include_router(admin.router, prefix="/api/v1")
+app.include_router(admin_gyms.router, prefix="/api/v1/admin", tags=["admin"])
+app.include_router(admin_users.router, prefix="/api/v1/admin", tags=["admin"])
+app.include_router(admin_broadcast.router, prefix="/api/v1/admin", tags=["admin"])
 app.include_router(admin_grapple.router, prefix="/api/v1")
 app.include_router(gyms.router, prefix="/api/v1")
 app.include_router(feedback.router, prefix="/api/v1")

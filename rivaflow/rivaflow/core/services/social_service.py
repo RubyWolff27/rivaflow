@@ -480,8 +480,10 @@ class SocialService:
         from collections import Counter
         from datetime import date, timedelta
 
-        from rivaflow.db.database import convert_query, get_connection
         from rivaflow.db.repositories.profile_repo import ProfileRepository
+        from rivaflow.db.repositories.social_connection_repo import (
+            SocialConnectionRepository,
+        )
         from rivaflow.db.repositories.user_repo import UserRepository
 
         # Get current user's profile gym
@@ -511,25 +513,12 @@ class SocialService:
         }
 
         # Get existing friend IDs from friend_connections
-        existing_friend_ids: set[int] = set()
         try:
-            with get_connection() as conn:
-                cursor = conn.cursor()
-                cursor.execute(
-                    convert_query(
-                        "SELECT requester_id, recipient_id "
-                        "FROM friend_connections "
-                        "WHERE (requester_id = ? OR recipient_id = ?) "
-                        "AND status IN ('accepted', 'pending')"
-                    ),
-                    (user_id, user_id),
-                )
-                for row in cursor.fetchall():
-                    req_id = row["requester_id"] if hasattr(row, "keys") else row[0]
-                    rec_id = row["recipient_id"] if hasattr(row, "keys") else row[1]
-                    existing_friend_ids.add(rec_id if req_id == user_id else req_id)
+            existing_friend_ids = (
+                SocialConnectionRepository.get_existing_connection_ids(user_id)
+            )
         except Exception:
-            pass
+            existing_friend_ids = set()
 
         # Get all other users
         all_users = UserRepository.list_all()

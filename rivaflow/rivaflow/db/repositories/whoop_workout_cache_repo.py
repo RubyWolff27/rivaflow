@@ -230,6 +230,68 @@ class WhoopWorkoutCacheRepository:
             ]
 
     @staticmethod
+    def exists_by_whoop_id(user_id: int, whoop_workout_id: str) -> bool:
+        """Check if a workout exists for user + whoop_workout_id."""
+        with get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                convert_query("""
+                    SELECT id FROM whoop_workout_cache
+                    WHERE user_id = ? AND whoop_workout_id = ?
+                """),
+                (user_id, whoop_workout_id),
+            )
+            return cursor.fetchone() is not None
+
+    @staticmethod
+    def get_by_id_and_user(workout_cache_id: int, user_id: int) -> dict | None:
+        """Get a cached workout by ID and user_id."""
+        with get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                convert_query("""
+                    SELECT * FROM whoop_workout_cache
+                    WHERE id = ? AND user_id = ?
+                """),
+                (workout_cache_id, user_id),
+            )
+            row = cursor.fetchone()
+            if not row:
+                return None
+            return WhoopWorkoutCacheRepository._row_to_dict(row)
+
+    @staticmethod
+    def get_linked_sessions_with_tz(user_id: int) -> list[dict]:
+        """Get linked workout cache entries with timezone offset."""
+        with get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                convert_query(
+                    "SELECT wc.session_id, wc.start_time, "
+                    "wc.timezone_offset "
+                    "FROM whoop_workout_cache wc "
+                    "WHERE wc.user_id = ? AND wc.session_id IS NOT NULL "
+                    "AND wc.timezone_offset IS NOT NULL"
+                ),
+                (user_id,),
+            )
+            rows = cursor.fetchall()
+
+        results = []
+        for row in rows:
+            if hasattr(row, "keys"):
+                results.append(dict(row))
+            else:
+                results.append(
+                    {
+                        "session_id": row[0],
+                        "start_time": row[1],
+                        "timezone_offset": row[2],
+                    }
+                )
+        return results
+
+    @staticmethod
     def _row_to_dict(row) -> dict:
         """Convert a database row to a dictionary."""
         if hasattr(row, "keys"):

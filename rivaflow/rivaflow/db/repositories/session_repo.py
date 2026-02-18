@@ -525,6 +525,564 @@ class SessionRepository:
             return cursor.rowcount > 0
 
     @staticmethod
+    def get_active_user_count(since_date: str) -> int:
+        """Count distinct users with sessions since a given date."""
+        with get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                convert_query(
+                    "SELECT COUNT(DISTINCT user_id) FROM sessions"
+                    " WHERE session_date >= ?"
+                ),
+                (since_date,),
+            )
+            row = cursor.fetchone()
+            if not row:
+                return 0
+            if isinstance(row, dict):
+                return list(row.values())[0] or 0
+            try:
+                return row[0]
+            except (KeyError, IndexError, TypeError):
+                return 0
+
+    @staticmethod
+    def get_total_count() -> int:
+        """Get total session count across all users."""
+        with get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(convert_query("SELECT COUNT(*) FROM sessions"))
+            row = cursor.fetchone()
+            if not row:
+                return 0
+            if isinstance(row, dict):
+                return list(row.values())[0] or 0
+            try:
+                return row[0]
+            except (KeyError, IndexError, TypeError):
+                return 0
+
+    @staticmethod
+    def get_total_comment_count() -> int:
+        """Get total activity_comments count across all users."""
+        with get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(convert_query("SELECT COUNT(*) FROM activity_comments"))
+            row = cursor.fetchone()
+            if not row:
+                return 0
+            if isinstance(row, dict):
+                return list(row.values())[0] or 0
+            try:
+                return row[0]
+            except (KeyError, IndexError, TypeError):
+                return 0
+
+    @staticmethod
+    def get_adjacent_ids(user_id: int, session_id: int) -> dict:
+        """Get previous and next session IDs using window functions."""
+        with get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                convert_query("""
+                    WITH ranked AS (
+                        SELECT
+                            id,
+                            LAG(id) OVER (
+                                ORDER BY session_date DESC, id DESC
+                            ) AS next_id,
+                            LEAD(id) OVER (
+                                ORDER BY session_date DESC, id DESC
+                            ) AS prev_id
+                        FROM sessions
+                        WHERE user_id = ?
+                    )
+                    SELECT next_id, prev_id
+                    FROM ranked
+                    WHERE id = ?
+                """),
+                (user_id, session_id),
+            )
+            row = cursor.fetchone()
+
+        if not row:
+            return {"previous_session_id": None, "next_session_id": None}
+
+        return {
+            "previous_session_id": row["prev_id"],
+            "next_session_id": row["next_id"],
+        }
+
+    @staticmethod
+    def get_new_techniques_for_session(user_id: int, session_id: int) -> list[dict]:
+        """Get techniques in a session that the user has never trained before."""
+        with get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                convert_query("""
+                    SELECT DISTINCT st.movement_id, mg.name
+                    FROM session_techniques st
+                    JOIN sessions s ON st.session_id = s.id
+                    JOIN movements_glossary mg ON st.movement_id = mg.id
+                    WHERE st.session_id = ? AND s.user_id = ?
+                    AND st.movement_id NOT IN (
+                        SELECT st2.movement_id FROM session_techniques st2
+                        JOIN sessions s2 ON st2.session_id = s2.id
+                        WHERE s2.user_id = ? AND s2.id != ?
+                    )
+                """),
+                (session_id, user_id, user_id, session_id),
+            )
+            rows = cursor.fetchall()
+            results = []
+            for row in rows:
+                name = row["name"] if hasattr(row, "keys") else row[1]
+                results.append({"name": name})
+            return results
+
+    @staticmethod
+    def get_session_techniques_with_names(user_id: int, session_id: int) -> list[dict]:
+        """Get techniques for a session with movement_id, name, and total count."""
+        with get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                convert_query("""
+                    SELECT DISTINCT st.movement_id, mg.name
+                    FROM session_techniques st
+                    JOIN sessions s ON st.session_id = s.id
+                    JOIN movements_glossary mg ON st.movement_id = mg.id
+                    WHERE st.session_id = ? AND s.user_id = ?
+                """),
+                (session_id, user_id),
+            )
+            session_techs = cursor.fetchall()
+
+            results = []
+            for row in session_techs:
+                movement_id = row["movement_id"] if hasattr(row, "keys") else row[0]
+                name = row["name"] if hasattr(row, "keys") else row[1]
+
+                cursor.execute(
+                    convert_query("""
+                        SELECT COUNT(DISTINCT st.session_id)
+                        FROM session_techniques st
+                        JOIN sessions s ON st.session_id = s.id
+                        WHERE st.movement_id = ? AND s.user_id = ?
+                    """),
+                    (movement_id, user_id),
+                )
+                count_row = cursor.fetchone()
+                if hasattr(count_row, "keys"):
+                    count = list(dict(count_row).values())[0] or 0
+                else:
+                    count = count_row[0] or 0
+
+                results.append(
+                    {
+                        "movement_id": movement_id,
+                        "name": name,
+                        "session_count": count,
+                    }
+                )
+            return results
+
+    @staticmethod
+    def count_rolls_with_partner(
+        user_id: int,
+        partner_id: int | None,
+        partner_name: str,
+    ) -> int:
+        """Count total rolls with a specific partner."""
+        with get_connection() as conn:
+            cursor = conn.cursor()
+            if partner_id:
+                cursor.execute(
+                    convert_query("""
+                        SELECT COUNT(*) as cnt FROM session_rolls sr
+                        JOIN sessions s ON sr.session_id = s.id
+                        WHERE s.user_id = ? AND sr.partner_id = ?
+                    """),
+                    (user_id, partner_id),
+                )
+            else:
+                cursor.execute(
+                    convert_query("""
+                        SELECT COUNT(*) as cnt FROM session_rolls sr
+                        JOIN sessions s ON sr.session_id = s.id
+                        WHERE s.user_id = ? AND sr.partner_name = ?
+                    """),
+                    (user_id, partner_name),
+                )
+            row = cursor.fetchone()
+            return row["cnt"] if hasattr(row, "keys") else row[0]
+
+    @staticmethod
+    def count_partner_sessions(user_id: int, partner_name: str) -> int:
+        """Count sessions where partner appears in the simple partners list."""
+        with get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                convert_query("""
+                    SELECT partners FROM sessions
+                    WHERE user_id = ? AND partners IS NOT NULL
+                """),
+                (user_id,),
+            )
+
+            count = 0
+            for row in cursor.fetchall():
+                raw = row["partners"] if hasattr(row, "keys") else row[0]
+                try:
+                    partners = json.loads(raw) if isinstance(raw, str) else raw
+                    if partner_name in partners:
+                        count += 1
+                except (json.JSONDecodeError, TypeError):
+                    pass
+            return count
+
+    @staticmethod
+    def get_max_rolls_excluding(user_id: int, exclude_id: int) -> int:
+        """Get maximum rolls count excluding a specific session."""
+        with get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                convert_query("""
+                    SELECT MAX(rolls) as max_rolls FROM sessions
+                    WHERE user_id = ? AND id != ?
+                """),
+                (user_id, exclude_id),
+            )
+            row = cursor.fetchone()
+            return (row["max_rolls"] if hasattr(row, "keys") else row[0]) or 0
+
+    @staticmethod
+    def get_max_duration_excluding(user_id: int, exclude_id: int) -> int:
+        """Get maximum duration_mins excluding a specific session."""
+        with get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                convert_query("""
+                    SELECT MAX(duration_mins) as max_dur FROM sessions
+                    WHERE user_id = ? AND id != ?
+                """),
+                (user_id, exclude_id),
+            )
+            row = cursor.fetchone()
+            return (row["max_dur"] if hasattr(row, "keys") else row[0]) or 0
+
+    @staticmethod
+    def count_sessions_on_date(user_id: int, date_str: str) -> int:
+        """Count sessions for a user on a specific date."""
+        with get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                convert_query("""
+                    SELECT COUNT(*) as cnt FROM sessions
+                    WHERE user_id = ? AND session_date = ?
+                """),
+                (user_id, date_str),
+            )
+            row = cursor.fetchone()
+            return row["cnt"] if hasattr(row, "keys") else row[0]
+
+    @staticmethod
+    def get_week_duration_sum(user_id: int, week_start: str) -> int:
+        """Get sum of duration_mins for sessions in the current week."""
+        with get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                convert_query("""
+                    SELECT SUM(duration_mins) as total FROM sessions
+                    WHERE session_date >= ? AND user_id = ?
+                """),
+                (week_start, user_id),
+            )
+            result = cursor.fetchone()
+            return result["total"] or 0
+
+    @staticmethod
+    def get_avg_weekly_duration(
+        user_id: int,
+        start_date: str,
+        end_date: str,
+        week_format: str,
+    ) -> float:
+        """Get average weekly duration_mins across a date range."""
+        with get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                convert_query(f"""
+                    SELECT AVG(weekly_mins) as avg FROM (
+                        SELECT SUM(duration_mins) as weekly_mins
+                        FROM sessions
+                        WHERE session_date >= ? AND session_date < ?
+                          AND user_id = ?
+                        GROUP BY {week_format}
+                    ) subq
+                """),
+                (start_date, end_date, user_id),
+            )
+            result = cursor.fetchone()
+            return result["avg"] or 0
+
+    @staticmethod
+    def count_sessions_since(user_id: int, since_date: str) -> int:
+        """Count sessions since a given date (for recovery insights)."""
+        with get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                convert_query("""
+                    SELECT COUNT(*) as count FROM sessions
+                    WHERE session_date >= ? AND user_id = ?
+                """),
+                (since_date, user_id),
+            )
+            result = cursor.fetchone()
+            return result["count"] or 0
+
+    @staticmethod
+    def get_submission_stats(
+        user_id: int, start_date: str, end_date: str | None = None
+    ) -> dict:
+        """Get submission totals and session count for a date range."""
+        with get_connection() as conn:
+            cursor = conn.cursor()
+            if end_date:
+                cursor.execute(
+                    convert_query("""
+                        SELECT
+                            SUM(submissions_for) as subs,
+                            COUNT(*) as sessions
+                        FROM sessions
+                        WHERE session_date >= ?
+                          AND session_date < ?
+                          AND user_id = ?
+                    """),
+                    (start_date, end_date, user_id),
+                )
+            else:
+                cursor.execute(
+                    convert_query("""
+                        SELECT
+                            SUM(submissions_for) as subs,
+                            COUNT(*) as sessions
+                        FROM sessions
+                        WHERE session_date >= ? AND user_id = ?
+                    """),
+                    (start_date, user_id),
+                )
+            row = cursor.fetchone()
+            if row:
+                d = dict(row)
+                return {
+                    "subs": d["subs"],
+                    "sessions": d["sessions"],
+                }
+            return {"subs": 0, "sessions": 0}
+
+    @staticmethod
+    def get_fight_dynamics_sessions(user_id: int, start_date: str) -> list[dict]:
+        """Get sessions with fight dynamics data since a date."""
+        with get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                convert_query("""
+                    SELECT
+                        session_date,
+                        attacks_attempted,
+                        attacks_successful,
+                        defenses_attempted,
+                        defenses_successful
+                    FROM sessions
+                    WHERE user_id = ?
+                        AND session_date >= ?
+                        AND (
+                            attacks_attempted > 0
+                            OR defenses_attempted > 0
+                        )
+                    ORDER BY session_date ASC
+                """),
+                (user_id, start_date),
+            )
+            return [dict(row) for row in cursor.fetchall()]
+
+    @staticmethod
+    def get_fight_dynamics_totals(
+        user_id: int, start_date: str, end_date: str
+    ) -> dict[str, int]:
+        """Get aggregated fight dynamics totals for a date range."""
+        with get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                convert_query("""
+                    SELECT
+                        COUNT(*) as session_count,
+                        COALESCE(SUM(attacks_attempted), 0)
+                            as attacks_attempted,
+                        COALESCE(SUM(attacks_successful), 0)
+                            as attacks_successful,
+                        COALESCE(SUM(defenses_attempted), 0)
+                            as defenses_attempted,
+                        COALESCE(SUM(defenses_successful), 0)
+                            as defenses_successful
+                    FROM sessions
+                    WHERE user_id = ?
+                        AND session_date >= ?
+                        AND session_date < ?
+                        AND (
+                            attacks_attempted > 0
+                            OR defenses_attempted > 0
+                        )
+                """),
+                (user_id, start_date, end_date),
+            )
+            row = cursor.fetchone()
+            if row is None:
+                return {
+                    "session_count": 0,
+                    "attacks_attempted": 0,
+                    "attacks_successful": 0,
+                    "defenses_attempted": 0,
+                    "defenses_successful": 0,
+                }
+            row_dict = dict(row)
+            return {
+                "session_count": row_dict["session_count"] or 0,
+                "attacks_attempted": row_dict["attacks_attempted"] or 0,
+                "attacks_successful": row_dict["attacks_successful"] or 0,
+                "defenses_attempted": row_dict["defenses_attempted"] or 0,
+                "defenses_successful": row_dict["defenses_successful"] or 0,
+            }
+
+    @staticmethod
+    def get_user_averages(user_id: int) -> dict:
+        """Get last-30-session averages for scoring normalisation."""
+        with get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                convert_query("""
+                    SELECT
+                        AVG(duration_mins) as avg_duration,
+                        AVG(intensity) as avg_intensity,
+                        AVG(rolls) as avg_rolls
+                    FROM (
+                        SELECT duration_mins, intensity, rolls
+                        FROM sessions
+                        WHERE user_id = ?
+                        ORDER BY session_date DESC
+                        LIMIT 30
+                    ) recent
+                """),
+                (user_id,),
+            )
+            row = cursor.fetchone()
+            if not row:
+                return {
+                    "avg_duration": 60,
+                    "avg_intensity": 3,
+                    "avg_rolls": 5,
+                }
+            if hasattr(row, "keys"):
+                return {
+                    "avg_duration": float(row["avg_duration"] or 60),
+                    "avg_intensity": float(row["avg_intensity"] or 3),
+                    "avg_rolls": float(row["avg_rolls"] or 5),
+                }
+            return {
+                "avg_duration": float(row[0] or 60),
+                "avg_intensity": float(row[1] or 3),
+                "avg_rolls": float(row[2] or 5),
+            }
+
+    @staticmethod
+    def clear_whoop_fields(user_id: int) -> None:
+        """Clear WHOOP fields from all sessions for a user."""
+        with get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                convert_query("""
+                    UPDATE sessions
+                    SET whoop_strain = NULL,
+                        whoop_calories = NULL,
+                        whoop_avg_hr = NULL,
+                        whoop_max_hr = NULL
+                    WHERE user_id = ?
+                      AND (whoop_strain IS NOT NULL
+                           OR whoop_calories IS NOT NULL
+                           OR whoop_avg_hr IS NOT NULL
+                           OR whoop_max_hr IS NOT NULL)
+                """),
+                (user_id,),
+            )
+
+    @staticmethod
+    def get_milestone_totals(user_id: int) -> dict:
+        """Get hours, sessions, rolls, partners, techniques totals."""
+        with get_connection() as conn:
+            cursor = conn.cursor()
+
+            cursor.execute(
+                convert_query(
+                    "SELECT SUM(duration_mins) as total"
+                    " FROM sessions WHERE user_id = ?"
+                ),
+                (user_id,),
+            )
+            result = cursor.fetchone()
+            total_mins = result["total"] or 0
+            hours = int(total_mins / 60)
+
+            cursor.execute(
+                convert_query(
+                    "SELECT COUNT(*) as count" " FROM sessions WHERE user_id = ?"
+                ),
+                (user_id,),
+            )
+            result = cursor.fetchone()
+            sessions = result["count"] or 0
+
+            cursor.execute(
+                convert_query(
+                    "SELECT SUM(rolls) as total" " FROM sessions WHERE user_id = ?"
+                ),
+                (user_id,),
+            )
+            result = cursor.fetchone()
+            rolls = result["total"] or 0
+
+            cursor.execute(
+                convert_query("""
+                    SELECT COUNT(DISTINCT sr.partner_id) as count
+                    FROM session_rolls sr
+                    JOIN sessions s ON sr.session_id = s.id
+                    WHERE sr.partner_id IS NOT NULL AND s.user_id = ?
+                """),
+                (user_id,),
+            )
+            result = cursor.fetchone()
+            partners = result["count"] or 0
+
+            cursor.execute(
+                convert_query("""
+                    SELECT COUNT(DISTINCT st.movement_id) as count
+                    FROM session_techniques st
+                    JOIN sessions s ON st.session_id = s.id
+                    WHERE s.user_id = ?
+                """),
+                (user_id,),
+            )
+            result = cursor.fetchone()
+            techniques = result["count"] or 0
+
+        return {
+            "hours": hours,
+            "sessions": sessions,
+            "rolls": rolls,
+            "partners": partners,
+            "techniques": techniques,
+        }
+
+    @staticmethod
     def _row_to_dict(row) -> dict:
         """Convert a database row to a dictionary."""
         data = dict(row)

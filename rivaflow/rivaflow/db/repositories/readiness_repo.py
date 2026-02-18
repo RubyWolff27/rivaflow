@@ -172,6 +172,28 @@ class ReadinessRepository:
             return [ReadinessRepository._row_to_dict(row) for row in cursor.fetchall()]
 
     @staticmethod
+    def get_readiness_with_composite(user_id: int, date_str: str) -> dict | None:
+        """Get readiness for a date with composite_score calculated."""
+        with get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                convert_query(
+                    "SELECT * FROM readiness" " WHERE user_id = ? AND check_date = ?"
+                ),
+                (user_id, date_str),
+            )
+            row = cursor.fetchone()
+            if not row:
+                return None
+            data = dict(row)
+            s = data.get("sleep") or 3
+            st = data.get("stress") or 3
+            so = data.get("soreness") or 3
+            e = data.get("energy") or 3
+            data["composite_score"] = s + (6 - st) + (6 - so) + e
+            return data
+
+    @staticmethod
     def _row_to_dict(row) -> dict:
         """Convert a database row to a dictionary."""
         data = dict(row)

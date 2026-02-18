@@ -4,8 +4,10 @@ from rivaflow.db.repositories.activity_comment_repo import ActivityCommentReposi
 from rivaflow.db.repositories.activity_like_repo import ActivityLikeRepository
 from rivaflow.db.repositories.activity_photo_repo import ActivityPhotoRepository
 from rivaflow.db.repositories.ai_insight_repo import AIInsightRepository
+from rivaflow.db.repositories.audit_log_repo import AuditLogRepository
 from rivaflow.db.repositories.checkin_repo import CheckinRepository
 from rivaflow.db.repositories.coach_preferences_repo import CoachPreferencesRepository
+from rivaflow.db.repositories.feed_repo import FeedRepository
 from rivaflow.db.repositories.feedback_repo import FeedbackRepository
 from rivaflow.db.repositories.friend_repo import FriendRepository
 from rivaflow.db.repositories.friend_suggestions_repo import FriendSuggestionsRepository
@@ -15,6 +17,7 @@ from rivaflow.db.repositories.game_plan_repo import GamePlanRepository
 from rivaflow.db.repositories.glossary_repo import GlossaryRepository
 from rivaflow.db.repositories.goal_progress_repo import GoalProgressRepository
 from rivaflow.db.repositories.grading_repo import GradingRepository
+from rivaflow.db.repositories.grapple_usage_repo import GrappleUsageRepository
 from rivaflow.db.repositories.groups_repo import GroupsRepository
 from rivaflow.db.repositories.gym_class_repo import GymClassRepository
 from rivaflow.db.repositories.gym_repo import GymRepository
@@ -36,8 +39,10 @@ __all__ = [
     "ActivityCommentRepository",
     "ActivityLikeRepository",
     "ActivityPhotoRepository",
+    "AuditLogRepository",
     "CheckinRepository",
     "CoachPreferencesRepository",
+    "FeedRepository",
     "FeedbackRepository",
     "FriendRepository",
     "FriendSuggestionsRepository",
@@ -47,6 +52,7 @@ __all__ = [
     "GlossaryRepository",
     "GoalProgressRepository",
     "GradingRepository",
+    "GrappleUsageRepository",
     "GroupsRepository",
     "GymClassRepository",
     "GymRepository",

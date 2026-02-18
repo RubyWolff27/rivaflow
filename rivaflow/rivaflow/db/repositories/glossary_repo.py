@@ -343,6 +343,65 @@ class GlossaryRepository:
             return dict(row) if row else None
 
     @staticmethod
+    def admin_list_techniques(
+        search: str | None = None,
+        category: str | None = None,
+        custom_only: bool = False,
+    ) -> list[dict]:
+        """List techniques for admin management."""
+        with get_connection() as conn:
+            cursor = conn.cursor()
+
+            query = (
+                "SELECT id, name, category, subcategory, custom,"
+                " user_id, gi_applicable, nogi_applicable"
+                " FROM movements_glossary WHERE 1=1"
+            )
+            params: list = []
+
+            if search:
+                query += " AND name LIKE ?"
+                params.append(f"%{search}%")
+
+            if category:
+                query += " AND category = ?"
+                params.append(category)
+
+            if custom_only:
+                query += " AND custom = 1"
+
+            query += " ORDER BY name"
+
+            cursor.execute(convert_query(query), params)
+            return [dict(row) for row in cursor.fetchall()]
+
+    @staticmethod
+    def admin_delete_technique(technique_id: int) -> str | None:
+        """Delete a technique by ID. Returns the name if found, else None."""
+        technique_name = None
+        with get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                convert_query("SELECT name FROM movements_glossary WHERE id = ?"),
+                (technique_id,),
+            )
+            row = cursor.fetchone()
+            if row:
+                technique_name = row["name"] if hasattr(row, "__getitem__") else row[0]
+
+        with get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                convert_query("DELETE FROM movements_glossary WHERE id = ?"),
+                (technique_id,),
+            )
+            conn.commit()
+            if cursor.rowcount == 0:
+                return None
+
+        return technique_name
+
+    @staticmethod
     def _row_to_dict(row) -> dict:
         """Convert a database row to a dictionary."""
         data = dict(row)

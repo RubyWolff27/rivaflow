@@ -8,7 +8,7 @@ import logging
 from datetime import date
 
 from rivaflow.core.constants import SPARRING_CLASS_TYPES
-from rivaflow.db.database import convert_query, get_connection
+from rivaflow.db.repositories.readiness_repo import ReadinessRepository
 from rivaflow.db.repositories.session_repo import SessionRepository
 
 logger = logging.getLogger(__name__)
@@ -427,38 +427,7 @@ class SessionScoringService:
 
     def _get_user_averages(self, user_id: int) -> dict:
         """Get last-30-session averages for normalisation."""
-        with get_connection() as conn:
-            cursor = conn.cursor()
-            cursor.execute(
-                convert_query("""
-                    SELECT
-                        AVG(duration_mins) as avg_duration,
-                        AVG(intensity) as avg_intensity,
-                        AVG(rolls) as avg_rolls
-                    FROM (
-                        SELECT duration_mins, intensity, rolls
-                        FROM sessions
-                        WHERE user_id = ?
-                        ORDER BY session_date DESC
-                        LIMIT 30
-                    ) recent
-                """),
-                (user_id,),
-            )
-            row = cursor.fetchone()
-            if not row:
-                return {"avg_duration": 60, "avg_intensity": 3, "avg_rolls": 5}
-            if hasattr(row, "keys"):
-                return {
-                    "avg_duration": float(row["avg_duration"] or 60),
-                    "avg_intensity": float(row["avg_intensity"] or 3),
-                    "avg_rolls": float(row["avg_rolls"] or 5),
-                }
-            return {
-                "avg_duration": float(row[0] or 60),
-                "avg_intensity": float(row[1] or 3),
-                "avg_rolls": float(row[2] or 5),
-            }
+        return SessionRepository.get_user_averages(user_id)
 
     def _get_readiness_for_date(self, user_id: int, session: dict) -> dict | None:
         """Fetch readiness check-in for the session date."""
@@ -470,25 +439,7 @@ class SessionScoringService:
         else:
             date_str = str(session_date)[:10]
 
-        with get_connection() as conn:
-            cursor = conn.cursor()
-            cursor.execute(
-                convert_query(
-                    "SELECT * FROM readiness WHERE user_id = ? AND check_date = ?"
-                ),
-                (user_id, date_str),
-            )
-            row = cursor.fetchone()
-            if not row:
-                return None
-            data = dict(row)
-            # Calculate composite_score: sleep + (6-stress) + (6-soreness) + energy
-            s = data.get("sleep") or 3
-            st = data.get("stress") or 3
-            so = data.get("soreness") or 3
-            e = data.get("energy") or 3
-            data["composite_score"] = s + (6 - st) + (6 - so) + e
-            return data
+        return ReadinessRepository.get_readiness_with_composite(user_id, date_str)
 
     def _has_whoop_data(self, session: dict) -> bool:
         return bool(

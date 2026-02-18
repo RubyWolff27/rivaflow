@@ -5,7 +5,7 @@ from datetime import date, timedelta
 
 from rivaflow.core.services.milestone_service import MilestoneService
 from rivaflow.core.settings import settings
-from rivaflow.db.database import convert_query, get_connection
+from rivaflow.db.repositories.session_repo import SessionRepository
 from rivaflow.db.repositories.streak_repo import StreakRepository
 
 
@@ -59,71 +59,55 @@ class InsightService:
         """Generate insights comparing current week to average."""
         insights = []
 
-        with get_connection() as conn:
-            cursor = conn.cursor()
+        today = date.today()
+        week_start = today - timedelta(days=today.weekday())
 
-            # Get this week's hours
-            today = date.today()
-            week_start = today - timedelta(days=today.weekday())
+        # Get this week's hours
+        week_mins = SessionRepository.get_week_duration_sum(
+            user_id, week_start.isoformat()
+        )
+        week_hours = round(week_mins / 60, 1)
 
-            cursor.execute(
-                convert_query("""
-                SELECT SUM(duration_mins) as total FROM sessions
-                WHERE session_date >= ? AND user_id = ?
-            """),
-                (week_start.isoformat(), user_id),
-            )
-            result = cursor.fetchone()
-            week_mins = result["total"] or 0
-            week_hours = round(week_mins / 60, 1)
+        # Get 4-week average
+        four_weeks_ago = today - timedelta(days=28)
 
-            # Get 4-week average
-            four_weeks_ago = today - timedelta(days=28)
+        # Database-specific week formatting
+        if settings.DB_TYPE == "postgresql":
+            week_format = "to_char(session_date::date, 'IYYY-IW')"
+        else:
+            week_format = "strftime('%Y-%W', session_date)"
 
-            # Database-specific week formatting
-            if settings.DB_TYPE == "postgresql":
-                week_format = "to_char(session_date::date, 'IYYY-IW')"
-            else:
-                week_format = "strftime('%Y-%W', session_date)"
+        avg_mins = SessionRepository.get_avg_weekly_duration(
+            user_id,
+            four_weeks_ago.isoformat(),
+            week_start.isoformat(),
+            week_format,
+        )
+        avg_hours = round(avg_mins / 60, 1)
 
-            cursor.execute(
-                convert_query(f"""
-                SELECT AVG(weekly_mins) as avg FROM (
-                    SELECT SUM(duration_mins) as weekly_mins
-                    FROM sessions
-                    WHERE session_date >= ? AND session_date < ? AND user_id = ?
-                    GROUP BY {week_format}
-                ) subq
-            """),
-                (four_weeks_ago.isoformat(), week_start.isoformat(), user_id),
-            )
-            result = cursor.fetchone()
-            avg_mins = result["avg"] or 0
-            avg_hours = round(avg_mins / 60, 1)
+        if avg_hours > 0 and week_hours > 0:
+            percent_diff = round(((week_hours - avg_hours) / avg_hours) * 100)
 
-            if avg_hours > 0 and week_hours > 0:
-                percent_diff = round(((week_hours - avg_hours) / avg_hours) * 100)
-
-                if percent_diff > 15:
-                    insights.append(
-                        {
-                            "type": "stat",
-                            "title": "Training volume up",
-                            "message": f"You've trained {week_hours} hours this week — {percent_diff}% more than your 4-week average.",
-                            "action": None,
-                            "icon": "📈",
-                        }
-                    )
-                elif percent_diff < -15:
-                    insights.append(
-                        {
-                            "type": "stat",
-                            "title": "Recovery week",
-                            "message": f"You've trained {week_hours} hours this week — {abs(percent_diff)}% less than average. Recovery matters.",
-                            "action": None,
-                            "icon": "📉",
-                        }
-                    )
+            if percent_diff > 15:
+                insights.append(
+                    {
+                        "type": "stat",
+                        "title": "Training volume up",
+                        "message": f"You've trained {week_hours} hours this week \u2014 {percent_diff}% more than your 4-week average.",
+                        "action": None,
+                        "icon": "\U0001f4c8",
+                    }
+                )
+            elif percent_diff < -15:
+                insights.append(
+                    {
+                        "type": "stat",
+                        "title": "Recovery week",
+                        "message": f"You've trained {week_hours} hours this week \u2014 {abs(percent_diff)}% less than average. Recovery matters.",
+                        "action": None,
+                        "icon": "\U0001f4c9",
+                    }
+                )
 
         return insights
 
@@ -142,7 +126,7 @@ class InsightService:
                     "title": "Consistency wins",
                     "message": f"You've checked in {current} days in a row. This is who you are now.",
                     "action": None,
-                    "icon": "🔥",
+                    "icon": "\U0001f525",
                 }
             )
         elif current >= 14:
@@ -152,7 +136,7 @@ class InsightService:
                     "title": "Habit forming",
                     "message": f"{current}-day check-in streak. Two weeks of consistency builds champions.",
                     "action": None,
-                    "icon": "🔥",
+                    "icon": "\U0001f525",
                 }
             )
         elif current >= 7:
@@ -162,7 +146,7 @@ class InsightService:
                     "title": "One week down",
                     "message": f"{current}-day streak. Keep the momentum going.",
                     "action": None,
-                    "icon": "🔥",
+                    "icon": "\U0001f525",
                 }
             )
 
@@ -180,7 +164,7 @@ class InsightService:
                     "title": "Almost there",
                     "message": f"{closest['remaining']} more {closest['type']} to hit {closest['next_label']}.",
                     "action": "You're so close!",
-                    "icon": "🎯",
+                    "icon": "\U0001f3af",
                 }
             )
 
@@ -190,31 +174,22 @@ class InsightService:
         """Generate insights about rest and recovery."""
         insights = []
 
-        with get_connection() as conn:
-            cursor = conn.cursor()
+        # Check consecutive training days
+        six_days_ago = date.today() - timedelta(days=6)
+        recent_days = SessionRepository.count_sessions_since(
+            user_id, six_days_ago.isoformat()
+        )
 
-            # Check consecutive training days
-            six_days_ago = date.today() - timedelta(days=6)
-            cursor.execute(
-                convert_query("""
-                SELECT COUNT(*) as count FROM sessions
-                WHERE session_date >= ? AND user_id = ?
-            """),
-                (six_days_ago.isoformat(), user_id),
+        if recent_days >= 6:
+            insights.append(
+                {
+                    "type": "recovery",
+                    "title": "Rest is training",
+                    "message": f"You've trained {recent_days} of the last 7 days. Consider a recovery day.",
+                    "action": "Your body needs time to adapt",
+                    "icon": "\U0001f634",
+                }
             )
-            result = cursor.fetchone()
-            recent_days = result["count"] or 0
-
-            if recent_days >= 6:
-                insights.append(
-                    {
-                        "type": "recovery",
-                        "title": "Rest is training",
-                        "message": f"You've trained {recent_days} of the last 7 days. Consider a recovery day.",
-                        "action": "Your body needs time to adapt",
-                        "icon": "😴",
-                    }
-                )
 
         return insights
 
@@ -227,67 +202,32 @@ class InsightService:
         thirty_days_ago = (today - timedelta(days=30)).isoformat()
         sixty_days_ago = (today - timedelta(days=60)).isoformat()
 
-        with get_connection() as conn:
-            cursor = conn.cursor()
+        # Check submission rate trend
+        recent = SessionRepository.get_submission_stats(user_id, thirty_days_ago)
+        if recent and recent["sessions"] and recent["sessions"] > 0:
+            recent_rate = (recent["subs"] or 0) / recent["sessions"]
+        else:
+            recent_rate = 0
 
-            # Check submission rate trend
-            cursor.execute(
-                convert_query("""
-                SELECT
-                    SUM(submissions_for) as subs,
-                    COUNT(*) as sessions
-                FROM sessions
-                WHERE session_date >= ? AND user_id = ?
-            """),
-                (thirty_days_ago, user_id),
+        previous = SessionRepository.get_submission_stats(
+            user_id, sixty_days_ago, thirty_days_ago
+        )
+        if previous and previous["sessions"] and previous["sessions"] > 0:
+            previous_rate = (previous["subs"] or 0) / previous["sessions"]
+        else:
+            previous_rate = 0
+
+        if previous_rate > 0 and recent_rate > previous_rate * 1.15:
+            percent_up = round(((recent_rate - previous_rate) / previous_rate) * 100)
+            insights.append(
+                {
+                    "type": "trend",
+                    "title": "Submissions trending up",
+                    "message": f"Your submission rate is up {percent_up}% this month. The work is paying off.",
+                    "action": None,
+                    "icon": "\U0001f4ca",
+                }
             )
-            recent = cursor.fetchone()
-            if recent:
-                recent_dict = dict(recent)
-                recent_rate = (
-                    (recent_dict["subs"] / recent_dict["sessions"])
-                    if recent_dict["sessions"] and recent_dict["sessions"] > 0
-                    else 0
-                )
-            else:
-                recent_rate = 0
-
-            cursor.execute(
-                convert_query("""
-                SELECT
-                    SUM(submissions_for) as subs,
-                    COUNT(*) as sessions
-                FROM sessions
-                WHERE session_date >= ?
-                  AND session_date < ?
-                  AND user_id = ?
-            """),
-                (sixty_days_ago, thirty_days_ago, user_id),
-            )
-            previous = cursor.fetchone()
-            if previous:
-                previous_dict = dict(previous)
-                previous_rate = (
-                    (previous_dict["subs"] / previous_dict["sessions"])
-                    if previous_dict["sessions"] and previous_dict["sessions"] > 0
-                    else 0
-                )
-            else:
-                previous_rate = 0
-
-            if previous_rate > 0 and recent_rate > previous_rate * 1.15:
-                percent_up = round(
-                    ((recent_rate - previous_rate) / previous_rate) * 100
-                )
-                insights.append(
-                    {
-                        "type": "trend",
-                        "title": "Submissions trending up",
-                        "message": f"Your submission rate is up {percent_up}% this month. The work is paying off.",
-                        "action": None,
-                        "icon": "📊",
-                    }
-                )
 
         return insights
 
@@ -299,21 +239,21 @@ class InsightService:
                 "title": "Keep showing up",
                 "message": "Consistency beats intensity. You're building something.",
                 "action": None,
-                "icon": "💪",
+                "icon": "\U0001f4aa",
             },
             {
                 "type": "encouragement",
                 "title": "Trust the process",
                 "message": "Every session is an investment in your future self.",
                 "action": None,
-                "icon": "🥋",
+                "icon": "\U0001f94b",
             },
             {
                 "type": "encouragement",
                 "title": "Small wins compound",
                 "message": "You don't need to be great today. Just better than yesterday.",
                 "action": None,
-                "icon": "📈",
+                "icon": "\U0001f4c8",
             },
         ]
 

@@ -334,19 +334,7 @@ class GoalsService:
             if key not in valid_goal_fields:
                 raise ValueError(f"Invalid field: {key}")
 
-        from rivaflow.db.database import convert_query, get_connection
-
-        with get_connection() as conn:
-            cursor = conn.cursor()
-            set_clause = ", ".join([f"{k} = ?" for k in updates.keys()])
-            values = list(updates.values()) + [user_id]
-
-            cursor.execute(
-                convert_query(
-                    f"UPDATE profile SET {set_clause}, updated_at = CURRENT_TIMESTAMP WHERE user_id = ?"
-                ),
-                values,
-            )
+        ProfileRepository.update_goal_fields(user_id, updates)
 
         return self.profile_repo.get(user_id)
 

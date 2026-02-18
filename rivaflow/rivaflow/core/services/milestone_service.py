@@ -3,8 +3,8 @@
 import random
 
 from rivaflow.core.constants import MILESTONE_QUOTES
-from rivaflow.db.database import get_connection
 from rivaflow.db.repositories.milestone_repo import MilestoneRepository
+from rivaflow.db.repositories.session_repo import SessionRepository
 from rivaflow.db.repositories.streak_repo import StreakRepository
 
 
@@ -37,85 +37,13 @@ class MilestoneService:
 
     def _get_current_totals(self, user_id: int) -> dict:
         """Calculate current totals for all milestone types."""
-        from rivaflow.db.database import convert_query
+        totals = SessionRepository.get_milestone_totals(user_id)
 
-        with get_connection() as conn:
-            cursor = conn.cursor()
+        # Streak: current checkin streak
+        checkin_streak = self.streak_repo.get_streak(user_id, "checkin")
+        totals["streak"] = checkin_streak["current_streak"]
 
-            # Hours: sum of duration_mins / 60 from sessions
-            cursor.execute(
-                convert_query(
-                    "SELECT SUM(duration_mins) as total FROM sessions WHERE user_id = ?"
-                ),
-                (user_id,),
-            )
-            result = cursor.fetchone()
-            total_mins = result["total"] or 0
-            hours = int(total_mins / 60)
-
-            # Sessions: count of sessions
-            cursor.execute(
-                convert_query(
-                    "SELECT COUNT(*) as count FROM sessions WHERE user_id = ?"
-                ),
-                (user_id,),
-            )
-            result = cursor.fetchone()
-            sessions = result["count"] or 0
-
-            # Rolls: sum of rolls from sessions
-            cursor.execute(
-                convert_query(
-                    "SELECT SUM(rolls) as total FROM sessions WHERE user_id = ?"
-                ),
-                (user_id,),
-            )
-            result = cursor.fetchone()
-            rolls = result["total"] or 0
-
-            # Partners: count of unique partners from sessions (JSON partners field)
-            # Note: This is simplified - in reality we'd need to parse JSON
-            # session_rolls doesn't have user_id, need to JOIN with sessions
-            cursor.execute(
-                convert_query("""
-                SELECT COUNT(DISTINCT sr.partner_id) as count
-                FROM session_rolls sr
-                JOIN sessions s ON sr.session_id = s.id
-                WHERE sr.partner_id IS NOT NULL AND s.user_id = ?
-            """),
-                (user_id,),
-            )
-            result = cursor.fetchone()
-            partners = result["count"] or 0
-
-            # Techniques: count from techniques table with times_trained > 0
-            # Note: This assumes a techniques table - adjust based on actual schema
-            # For now, use count of unique technique names from session_techniques
-            # session_techniques doesn't have user_id, need to JOIN with sessions
-            cursor.execute(
-                convert_query("""
-                SELECT COUNT(DISTINCT st.movement_id) as count
-                FROM session_techniques st
-                JOIN sessions s ON st.session_id = s.id
-                WHERE s.user_id = ?
-            """),
-                (user_id,),
-            )
-            result = cursor.fetchone()
-            techniques = result["count"] or 0
-
-            # Streak: current checkin streak
-            checkin_streak = self.streak_repo.get_streak(user_id, "checkin")
-            streak = checkin_streak["current_streak"]
-
-        return {
-            "hours": hours,
-            "sessions": sessions,
-            "rolls": rolls,
-            "partners": partners,
-            "techniques": techniques,
-            "streak": streak,
-        }
+        return totals
 
     def get_celebration_display(self, milestone: dict) -> dict:
         """

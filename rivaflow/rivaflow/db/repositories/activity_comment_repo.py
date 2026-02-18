@@ -253,6 +253,45 @@ class ActivityCommentRepository:
             return [ActivityCommentRepository._row_to_dict(row) for row in rows]
 
     @staticmethod
+    def admin_list_comments(limit: int = 100, offset: int = 0) -> dict:
+        """List all comments with user info for admin moderation.
+
+        Returns dict with 'comments', 'total', 'limit', 'offset'.
+        """
+        with get_connection() as conn:
+            cursor = conn.cursor()
+
+            cursor.execute(
+                convert_query(
+                    "SELECT"
+                    " c.id, c.user_id, c.activity_type,"
+                    " c.activity_id, c.comment_text, c.created_at,"
+                    " u.email, u.first_name, u.last_name"
+                    " FROM activity_comments c"
+                    " LEFT JOIN users u ON c.user_id = u.id"
+                    " ORDER BY c.created_at DESC"
+                    " LIMIT ? OFFSET ?"
+                ),
+                (limit, offset),
+            )
+            comments = [dict(row) for row in cursor.fetchall()]
+
+            cursor.execute(convert_query("SELECT COUNT(*) FROM activity_comments"))
+            row = cursor.fetchone()
+            total = (
+                list(row.values())[0]
+                if isinstance(row, dict)
+                else (row[0] if row else 0)
+            )
+
+        return {
+            "comments": comments,
+            "total": total,
+            "limit": limit,
+            "offset": offset,
+        }
+
+    @staticmethod
     def _row_to_dict(row) -> dict:
         """Convert a database row to a dictionary."""
         if not row:

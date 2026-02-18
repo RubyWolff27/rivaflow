@@ -3,10 +3,9 @@
 import logging
 from datetime import datetime, timedelta
 from typing import Any
-from uuid import uuid4
 
 from rivaflow.core.time_utils import utcnow
-from rivaflow.db.database import convert_query, get_connection
+from rivaflow.db.repositories.grapple_usage_repo import GrappleUsageRepository
 
 logger = logging.getLogger(__name__)
 
@@ -54,40 +53,25 @@ class GrappleTokenMonitor:
         Returns:
             Log entry ID
         """
-        log_id = str(uuid4())
         total_tokens = input_tokens + output_tokens
 
-        query = convert_query("""
-            INSERT INTO token_usage_logs (
-                id, user_id, session_id, message_id, provider, model,
-                input_tokens, output_tokens, total_tokens, cost_usd
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        """)
-
         try:
-            with get_connection() as conn:
-                cursor = conn.cursor()
-                cursor.execute(
-                    query,
-                    (
-                        log_id,
-                        user_id,
-                        session_id,
-                        message_id,
-                        provider,
-                        model,
-                        input_tokens,
-                        output_tokens,
-                        total_tokens,
-                        cost_usd,
-                    ),
-                )
-                cursor.close()
+            log_id = GrappleUsageRepository.log_token_usage(
+                user_id=user_id,
+                session_id=session_id,
+                message_id=message_id,
+                provider=provider,
+                model=model,
+                input_tokens=input_tokens,
+                output_tokens=output_tokens,
+                total_tokens=total_tokens,
+                cost_usd=cost_usd,
+            )
 
-                logger.info(
-                    f"Logged usage for user {user_id}: {total_tokens} tokens, ${cost_usd:.6f} via {provider}"
-                )
-                return log_id
+            logger.info(
+                f"Logged usage for user {user_id}: {total_tokens} tokens, ${cost_usd:.6f} via {provider}"
+            )
+            return log_id
 
         except (ConnectionError, OSError) as e:
             logger.error(f"Failed to log token usage for user {user_id}: {e}")
@@ -115,83 +99,55 @@ class GrappleTokenMonitor:
         if not end_date:
             end_date = utcnow()
 
-        query = convert_query("""
-            SELECT
-                COUNT(*) as request_count,
-                SUM(total_tokens) as total_tokens,
-                SUM(input_tokens) as total_input_tokens,
-                SUM(output_tokens) as total_output_tokens,
-                SUM(cost_usd) as total_cost_usd,
-                AVG(total_tokens) as avg_tokens_per_request,
-                provider
-            FROM token_usage_logs
-            WHERE user_id = ? AND created_at >= ? AND created_at <= ?
-            GROUP BY provider
-        """)
-
         try:
-            with get_connection() as conn:
-                cursor = conn.cursor()
-                cursor.execute(query, (user_id, start_date, end_date))
-                rows = cursor.fetchall()
-                cursor.close()
+            rows = GrappleUsageRepository.get_user_usage_by_provider(
+                user_id, start_date, end_date
+            )
 
-                # Aggregate by provider
-                by_provider = {}
-                totals = {
-                    "request_count": 0,
-                    "total_tokens": 0,
-                    "total_input_tokens": 0,
-                    "total_output_tokens": 0,
-                    "total_cost_usd": 0.0,
+            # Aggregate by provider
+            by_provider = {}
+            totals = {
+                "request_count": 0,
+                "total_tokens": 0,
+                "total_input_tokens": 0,
+                "total_output_tokens": 0,
+                "total_cost_usd": 0.0,
+            }
+
+            for r in rows:
+                provider = r["provider"]
+                by_provider[provider] = {
+                    "request_count": r["request_count"],
+                    "total_tokens": r["total_tokens"],
+                    "total_input_tokens": r["total_input_tokens"],
+                    "total_output_tokens": r["total_output_tokens"],
+                    "total_cost_usd": round(float(r["total_cost_usd"] or 0), 6),
+                    "avg_tokens_per_request": round(
+                        float(r["avg_tokens_per_request"] or 0), 2
+                    ),
                 }
 
-                for row in rows:
-                    if hasattr(row, "keys"):
-                        r = dict(row)
-                    else:
-                        r = {
-                            "request_count": row[0],
-                            "total_tokens": row[1],
-                            "total_input_tokens": row[2],
-                            "total_output_tokens": row[3],
-                            "total_cost_usd": row[4],
-                            "avg_tokens_per_request": row[5],
-                            "provider": row[6],
-                        }
-                    provider = r["provider"]
-                    by_provider[provider] = {
-                        "request_count": r["request_count"],
-                        "total_tokens": r["total_tokens"],
-                        "total_input_tokens": r["total_input_tokens"],
-                        "total_output_tokens": r["total_output_tokens"],
-                        "total_cost_usd": round(float(r["total_cost_usd"] or 0), 6),
-                        "avg_tokens_per_request": round(
-                            float(r["avg_tokens_per_request"] or 0), 2
-                        ),
-                    }
+                # Add to totals
+                totals["request_count"] += r["request_count"]
+                totals["total_tokens"] += r["total_tokens"]
+                totals["total_input_tokens"] += r["total_input_tokens"]
+                totals["total_output_tokens"] += r["total_output_tokens"]
+                totals["total_cost_usd"] += float(r["total_cost_usd"] or 0)
 
-                    # Add to totals
-                    totals["request_count"] += r["request_count"]
-                    totals["total_tokens"] += r["total_tokens"]
-                    totals["total_input_tokens"] += r["total_input_tokens"]
-                    totals["total_output_tokens"] += r["total_output_tokens"]
-                    totals["total_cost_usd"] += float(r["total_cost_usd"] or 0)
+            totals["total_cost_usd"] = round(totals["total_cost_usd"], 6)
+            totals["avg_tokens_per_request"] = (
+                round(totals["total_tokens"] / totals["request_count"], 2)
+                if totals["request_count"] > 0
+                else 0
+            )
 
-                totals["total_cost_usd"] = round(totals["total_cost_usd"], 6)
-                totals["avg_tokens_per_request"] = (
-                    round(totals["total_tokens"] / totals["request_count"], 2)
-                    if totals["request_count"] > 0
-                    else 0
-                )
-
-                return {
-                    "user_id": user_id,
-                    "start_date": start_date.isoformat(),
-                    "end_date": end_date.isoformat(),
-                    "totals": totals,
-                    "by_provider": by_provider,
-                }
+            return {
+                "user_id": user_id,
+                "start_date": start_date.isoformat(),
+                "end_date": end_date.isoformat(),
+                "totals": totals,
+                "by_provider": by_provider,
+            }
 
         except (ConnectionError, OSError) as e:
             logger.error(f"Failed to get usage for user {user_id}: {e}")
@@ -356,84 +312,48 @@ class GrappleTokenMonitor:
         if not end_date:
             end_date = utcnow()
 
-        query = convert_query("""
-            SELECT
-                COUNT(DISTINCT user_id) as unique_users,
-                COUNT(*) as total_requests,
-                SUM(total_tokens) as total_tokens,
-                SUM(cost_usd) as total_cost_usd,
-                AVG(total_tokens) as avg_tokens_per_request,
-                provider
-            FROM token_usage_logs
-            WHERE created_at >= ? AND created_at <= ?
-            GROUP BY provider
-        """)
-
         try:
-            with get_connection() as conn:
-                cursor = conn.cursor()
-                cursor.execute(query, (start_date, end_date))
-                rows = cursor.fetchall()
-                cursor.close()
+            rows = GrappleUsageRepository.get_global_usage_by_provider(
+                start_date, end_date
+            )
 
-                by_provider = {}
-                totals = {
-                    "unique_users": 0,
-                    "total_requests": 0,
-                    "total_tokens": 0,
-                    "total_cost_usd": 0.0,
+            by_provider = {}
+            totals = {
+                "unique_users": 0,
+                "total_requests": 0,
+                "total_tokens": 0,
+                "total_cost_usd": 0.0,
+            }
+
+            for r in rows:
+                provider = r["provider"]
+                by_provider[provider] = {
+                    "unique_users": r["unique_users"],
+                    "total_requests": r["total_requests"],
+                    "total_tokens": r["total_tokens"],
+                    "total_cost_usd": round(float(r["total_cost_usd"] or 0), 6),
+                    "avg_tokens_per_request": round(
+                        float(r["avg_tokens_per_request"] or 0), 2
+                    ),
                 }
 
-                for row in rows:
-                    if hasattr(row, "keys"):
-                        r = dict(row)
-                    else:
-                        r = {
-                            "unique_users": row[0],
-                            "total_requests": row[1],
-                            "total_tokens": row[2],
-                            "total_cost_usd": row[3],
-                            "avg_tokens_per_request": row[4],
-                            "provider": row[5],
-                        }
-                    provider = r["provider"]
-                    by_provider[provider] = {
-                        "unique_users": r["unique_users"],
-                        "total_requests": r["total_requests"],
-                        "total_tokens": r["total_tokens"],
-                        "total_cost_usd": round(float(r["total_cost_usd"] or 0), 6),
-                        "avg_tokens_per_request": round(
-                            float(r["avg_tokens_per_request"] or 0), 2
-                        ),
-                    }
+                totals["total_requests"] += r["total_requests"]
+                totals["total_tokens"] += r["total_tokens"]
+                totals["total_cost_usd"] += float(r["total_cost_usd"] or 0)
 
-                    totals["total_requests"] += r["total_requests"]
-                    totals["total_tokens"] += r["total_tokens"]
-                    totals["total_cost_usd"] += float(r["total_cost_usd"] or 0)
+            # Get unique users across all providers
+            totals["unique_users"] = GrappleUsageRepository.get_global_unique_users(
+                start_date, end_date
+            )
 
-                # Get unique users across all providers
-                user_query = convert_query("""
-                    SELECT COUNT(DISTINCT user_id)
-                    FROM token_usage_logs
-                    WHERE created_at >= ? AND created_at <= ?
-                """)
-                cursor = conn.cursor()
-                cursor.execute(user_query, (start_date, end_date))
-                urow = cursor.fetchone()
-                if hasattr(urow, "keys"):
-                    totals["unique_users"] = list(urow.values())[0] or 0
-                else:
-                    totals["unique_users"] = urow[0] or 0
-                cursor.close()
+            totals["total_cost_usd"] = round(totals["total_cost_usd"], 6)
 
-                totals["total_cost_usd"] = round(totals["total_cost_usd"], 6)
-
-                return {
-                    "start_date": start_date.isoformat(),
-                    "end_date": end_date.isoformat(),
-                    "totals": totals,
-                    "by_provider": by_provider,
-                }
+            return {
+                "start_date": start_date.isoformat(),
+                "end_date": end_date.isoformat(),
+                "totals": totals,
+                "by_provider": by_provider,
+            }
 
         except (ConnectionError, OSError) as e:
             logger.error(f"Failed to get global usage stats: {e}")

@@ -471,6 +471,37 @@ class SocialConnectionRepository:
             return cursor.fetchone() is not None
 
     @staticmethod
+    def get_existing_connection_ids(user_id: int) -> set[int]:
+        """Get IDs of users with accepted/pending/blocked connections."""
+        existing_ids: set[int] = set()
+        with get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                convert_query("""
+                    SELECT requester_id, recipient_id FROM friend_connections
+                    WHERE (requester_id = ? OR recipient_id = ?)
+                    AND status IN ('accepted', 'pending', 'blocked')
+                """),
+                (user_id, user_id),
+            )
+            rows = cursor.fetchall()
+
+            for row in rows:
+                if hasattr(row, "keys"):
+                    req_id = row["requester_id"]
+                    rec_id = row["recipient_id"]
+                else:
+                    req_id = row[0]
+                    rec_id = row[1]
+
+                if req_id == user_id:
+                    existing_ids.add(rec_id)
+                else:
+                    existing_ids.add(req_id)
+
+        return existing_ids
+
+    @staticmethod
     def _row_to_dict(row) -> dict[str, Any]:
         """Convert database row to dictionary."""
         if not row:

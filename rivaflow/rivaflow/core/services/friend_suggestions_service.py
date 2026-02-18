@@ -2,7 +2,6 @@
 
 from typing import Any
 
-from rivaflow.db.database import convert_query, get_connection
 from rivaflow.db.repositories.friend_suggestions_repo import FriendSuggestionsRepository
 from rivaflow.db.repositories.profile_repo import ProfileRepository
 from rivaflow.db.repositories.session_repo import SessionRepository
@@ -140,79 +139,13 @@ class FriendSuggestionsService:
 
     def _get_existing_connection_ids(self, user_id: int) -> set[int]:
         """Get IDs of users already connected or with pending requests."""
-        existing_ids = set()
-
-        # Get all connections (accepted, pending, blocked)
-        with get_connection() as conn:
-            cursor = conn.cursor()
-            cursor.execute(
-                convert_query("""
-                    SELECT requester_id, recipient_id FROM friend_connections
-                    WHERE (requester_id = ? OR recipient_id = ?)
-                    AND status IN ('accepted', 'pending', 'blocked')
-                """),
-                (user_id, user_id),
-            )
-            rows = cursor.fetchall()
-
-            for row in rows:
-                if hasattr(row, "keys"):
-                    req_id = row["requester_id"]
-                    rec_id = row["recipient_id"]
-                else:
-                    req_id = row[0]
-                    rec_id = row[1]
-
-                if req_id == user_id:
-                    existing_ids.add(rec_id)
-                else:
-                    existing_ids.add(req_id)
-
-        return existing_ids
+        return SocialConnectionRepository.get_existing_connection_ids(user_id)
 
     def _get_candidate_users(
         self, user_id: int, exclude_ids: set[int]
     ) -> list[dict[str, Any]]:
         """Get all users who could be suggested (excluding self and connections)."""
-        with get_connection() as conn:
-            cursor = conn.cursor()
-
-            # Get all users except self and existing connections
-            exclude_list = list(exclude_ids) + [user_id]
-            placeholders = ", ".join("?" * len(exclude_list))
-
-            cursor.execute(
-                convert_query(f"""
-                    SELECT
-                        id, username, display_name, belt_rank, belt_stripes,
-                        location_city, location_state, primary_gym_id
-                    FROM users
-                    WHERE id NOT IN ({placeholders})
-                    LIMIT 500
-                """),
-                exclude_list,
-            )
-            rows = cursor.fetchall()
-
-            candidates = []
-            for row in rows:
-                if hasattr(row, "keys"):
-                    candidates.append(dict(row))
-                else:
-                    candidates.append(
-                        {
-                            "id": row[0],
-                            "username": row[1],
-                            "display_name": row[2],
-                            "belt_rank": row[3],
-                            "belt_stripes": row[4],
-                            "location_city": row[5],
-                            "location_state": row[6],
-                            "primary_gym_id": row[7],
-                        }
-                    )
-
-            return candidates
+        return UserRepository.get_candidate_users(user_id, exclude_ids)
 
     def _calculate_score(
         self, current_user: dict[str, Any], candidate: dict[str, Any], user_id: int

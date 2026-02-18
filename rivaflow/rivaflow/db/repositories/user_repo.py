@@ -443,6 +443,239 @@ class UserRepository:
             return cursor.rowcount > 0
 
     @staticmethod
+    def get_dashboard_stats() -> dict:
+        """Get platform-level user counts for admin dashboard."""
+        from datetime import timedelta
+
+        with get_connection() as conn:
+            cursor = conn.cursor()
+
+            def get_count(result):
+                if not result:
+                    return 0
+                if isinstance(result, dict):
+                    return list(result.values())[0] or 0
+                try:
+                    return result[0]
+                except (KeyError, IndexError, TypeError):
+                    return 0
+
+            cursor.execute(convert_query("SELECT COUNT(*) FROM users"))
+            total_users = get_count(cursor.fetchone())
+
+            week_ago = (datetime.now() - timedelta(days=7)).strftime("%Y-%m-%d")
+            cursor.execute(
+                convert_query("SELECT COUNT(*) FROM users WHERE created_at >= ?"),
+                (week_ago,),
+            )
+            new_users_week = get_count(cursor.fetchone())
+
+        return {
+            "total_users": total_users,
+            "new_users_week": new_users_week,
+        }
+
+    @staticmethod
+    def admin_list_users(
+        search: str | None = None,
+        is_active: bool | None = None,
+        is_admin: bool | None = None,
+        limit: int = 50,
+        offset: int = 0,
+    ) -> dict:
+        """List users with optional filters for admin.
+
+        Returns dict with 'users', 'total', 'limit', 'offset'.
+        """
+        with get_connection() as conn:
+            cursor = conn.cursor()
+
+            query = (
+                "SELECT id, email, first_name, last_name,"
+                " is_active, is_admin, subscription_tier,"
+                " is_beta_user, created_at"
+                " FROM users WHERE 1=1"
+            )
+            params: list = []
+
+            if search:
+                query += (
+                    " AND (email LIKE ? OR first_name LIKE ?" " OR last_name LIKE ?)"
+                )
+                search_term = f"%{search}%"
+                params.extend([search_term, search_term, search_term])
+
+            if is_active is not None:
+                query += " AND is_active = ?"
+                params.append(is_active)
+
+            if is_admin is not None:
+                query += " AND is_admin = ?"
+                params.append(is_admin)
+
+            # Count query (before LIMIT/OFFSET)
+            count_query = query.replace(
+                "SELECT id, email, first_name, last_name,"
+                " is_active, is_admin, subscription_tier,"
+                " is_beta_user, created_at"
+                " FROM users",
+                "SELECT COUNT(*) FROM users",
+            )
+            cursor.execute(convert_query(count_query), params)
+            row = cursor.fetchone()
+            total_count = (
+                list(row.values())[0]
+                if isinstance(row, dict)
+                else (row[0] if row else 0)
+            )
+
+            query += " ORDER BY created_at DESC LIMIT ? OFFSET ?"
+            params.extend([limit, offset])
+            cursor.execute(convert_query(query), params)
+            users = [dict(row) for row in cursor.fetchall()]
+
+        return {
+            "users": users,
+            "total": total_count,
+            "limit": limit,
+            "offset": offset,
+        }
+
+    @staticmethod
+    def admin_update_user(user_id: int, updates: list, params: list) -> None:
+        """Execute an admin field update on a user."""
+        with get_connection() as conn:
+            cursor = conn.cursor()
+            query = f"UPDATE users SET {', '.join(updates)} WHERE id = ?"
+            params.append(user_id)
+            cursor.execute(convert_query(query), params)
+            conn.commit()
+
+    @staticmethod
+    def get_user_stats_for_admin(user_id: int) -> dict:
+        """Get session/comment/follower/following counts for admin user detail."""
+        with get_connection() as conn:
+            cursor = conn.cursor()
+
+            def extract_count(result):
+                if not result:
+                    return 0
+                return (
+                    list(result.values())[0] if isinstance(result, dict) else result[0]
+                )
+
+            cursor.execute(
+                convert_query("SELECT COUNT(*) FROM sessions WHERE user_id = ?"),
+                (user_id,),
+            )
+            session_count = extract_count(cursor.fetchone())
+
+            cursor.execute(
+                convert_query(
+                    "SELECT COUNT(*) FROM activity_comments" " WHERE user_id = ?"
+                ),
+                (user_id,),
+            )
+            comment_count = extract_count(cursor.fetchone())
+
+            cursor.execute(
+                convert_query(
+                    "SELECT COUNT(*) FROM user_relationships"
+                    " WHERE following_user_id = ?"
+                ),
+                (user_id,),
+            )
+            followers_count = extract_count(cursor.fetchone())
+
+            cursor.execute(
+                convert_query(
+                    "SELECT COUNT(*) FROM user_relationships"
+                    " WHERE follower_user_id = ?"
+                ),
+                (user_id,),
+            )
+            following_count = extract_count(cursor.fetchone())
+
+        return {
+            "sessions": session_count,
+            "comments": comment_count,
+            "followers": followers_count,
+            "following": following_count,
+        }
+
+    @staticmethod
+    def get_broadcast_users() -> list[dict]:
+        """Get all active users for email broadcast (id, email, first_name)."""
+        with get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                convert_query(
+                    "SELECT id, email, first_name FROM users" " WHERE is_active = ?"
+                ),
+                (True,),
+            )
+            return [dict(r) for r in cursor.fetchall()]
+
+    @staticmethod
+    def get_users_by_ids(user_ids: list[int]) -> list[dict]:
+        """Get basic user profiles for a list of user IDs."""
+        if not user_ids:
+            return []
+        with get_connection() as conn:
+            cursor = conn.cursor()
+            placeholders = ",".join("?" * len(user_ids))
+            query = convert_query(f"""
+                SELECT id, first_name, last_name, email
+                FROM users
+                WHERE id IN ({placeholders})
+            """)
+            cursor.execute(query, user_ids)
+            return [dict(row) for row in cursor.fetchall()]
+
+    @staticmethod
+    def get_candidate_users(
+        exclude_ids: list[int],
+    ) -> list[dict]:
+        """Get all users excluding a given set of IDs (for friend suggestions)."""
+        if not exclude_ids:
+            exclude_ids = [0]  # placeholder to avoid empty IN clause
+        placeholders = ", ".join("?" * len(exclude_ids))
+
+        with get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                convert_query(f"""
+                    SELECT
+                        id, username, display_name, belt_rank, belt_stripes,
+                        location_city, location_state, primary_gym_id
+                    FROM users
+                    WHERE id NOT IN ({placeholders})
+                    LIMIT 500
+                """),
+                exclude_ids,
+            )
+            rows = cursor.fetchall()
+
+            candidates = []
+            for row in rows:
+                if hasattr(row, "keys"):
+                    candidates.append(dict(row))
+                else:
+                    candidates.append(
+                        {
+                            "id": row[0],
+                            "username": row[1],
+                            "display_name": row[2],
+                            "belt_rank": row[3],
+                            "belt_stripes": row[4],
+                            "location_city": row[5],
+                            "location_state": row[6],
+                            "primary_gym_id": row[7],
+                        }
+                    )
+            return candidates
+
+    @staticmethod
     def _row_to_dict(row, include_password: bool = False) -> dict:
         """Convert a database row to a dictionary.
 

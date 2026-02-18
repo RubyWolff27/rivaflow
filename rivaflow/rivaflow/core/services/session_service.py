@@ -167,33 +167,7 @@ class SessionService:
         Uses SQL LAG/LEAD window functions to fetch only adjacent rows
         instead of loading all sessions into memory.
         """
-        from rivaflow.db.database import convert_query, get_connection
-
-        query = convert_query("""
-            WITH ranked AS (
-                SELECT
-                    id,
-                    LAG(id) OVER (ORDER BY session_date DESC, id DESC) AS next_id,
-                    LEAD(id) OVER (ORDER BY session_date DESC, id DESC) AS prev_id
-                FROM sessions
-                WHERE user_id = ?
-            )
-            SELECT next_id, prev_id
-            FROM ranked
-            WHERE id = ?
-            """)
-        with get_connection() as conn:
-            cursor = conn.cursor()
-            cursor.execute(query, (user_id, session_id))
-            row = cursor.fetchone()
-
-        if not row:
-            return {"previous_session_id": None, "next_session_id": None}
-
-        return {
-            "previous_session_id": row["prev_id"],
-            "next_session_id": row["next_id"],
-        }
+        return SessionRepository.get_adjacent_ids(user_id, session_id)
 
     def update_session(
         self,

@@ -3,11 +3,10 @@
 import logging
 from datetime import datetime, timedelta
 from typing import Any
-from uuid import uuid4
 
 from rivaflow.core.middleware.feature_access import FeatureAccess
 from rivaflow.core.time_utils import utcnow
-from rivaflow.db.database import convert_query, get_connection
+from rivaflow.db.repositories.grapple_usage_repo import GrappleUsageRepository
 
 logger = logging.getLogger(__name__)
 
@@ -109,26 +108,12 @@ class GrappleRateLimiter:
         window_start = utcnow().replace(minute=0, second=0, microsecond=0)
         window_end = window_start + timedelta(hours=1)
 
-        query = convert_query("""
-            INSERT INTO grapple_rate_limits (id, user_id, window_start, window_end, message_count)
-            VALUES (?, ?, ?, ?, 1)
-            ON CONFLICT (user_id, window_start) DO UPDATE SET
-                message_count = grapple_rate_limits.message_count + 1
-        """)
-
         try:
-            with get_connection() as conn:
-                cursor = conn.cursor()
-                cursor.execute(
-                    query,
-                    (
-                        str(uuid4()),
-                        user_id,
-                        window_start.isoformat(),
-                        window_end.isoformat(),
-                    ),
-                )
-                cursor.close()
+            GrappleUsageRepository.record_message(
+                user_id=user_id,
+                window_start=window_start.isoformat(),
+                window_end=window_end.isoformat(),
+            )
         except (ConnectionError, OSError) as e:
             logger.error(f"Failed to record message for user {user_id}: {e}")
             # Don't fail the request if we can't record - just log it
@@ -143,25 +128,13 @@ class GrappleRateLimiter:
         window_start = utcnow().replace(minute=0, second=0, microsecond=0)
         window_end = window_start + timedelta(hours=1)
 
-        query = convert_query("""
-            SELECT message_count, window_end
-            FROM grapple_rate_limits
-            WHERE user_id = ? AND window_start = ?
-        """)
-
         try:
-            with get_connection() as conn:
-                cursor = conn.cursor()
-                cursor.execute(query, (user_id, window_start.isoformat()))
-                row = cursor.fetchone()
-                cursor.close()
-
-                if row:
-                    if hasattr(row, "keys"):
-                        return row["message_count"], row["window_end"]
-                    return row[0], row[1]
-                else:
-                    return 0, window_end
+            result = GrappleUsageRepository.get_user_message_count(
+                user_id, window_start.isoformat()
+            )
+            if result:
+                return result[0], result[1]
+            return 0, window_end
         except (ConnectionError, OSError) as e:
             logger.error(f"Failed to get message count for user {user_id}: {e}")
             return 0, window_end
@@ -170,23 +143,10 @@ class GrappleRateLimiter:
         """Get total message count across all users in current hour."""
         window_start = utcnow().replace(minute=0, second=0, microsecond=0)
 
-        query = convert_query("""
-            SELECT COALESCE(SUM(message_count), 0)
-            FROM grapple_rate_limits
-            WHERE window_start = ?
-        """)
-
         try:
-            with get_connection() as conn:
-                cursor = conn.cursor()
-                cursor.execute(query, (window_start.isoformat(),))
-                row = cursor.fetchone()
-                cursor.close()
-                if row:
-                    if hasattr(row, "keys"):
-                        return list(row.values())[0] or 0
-                    return row[0] or 0
-                return 0
+            return GrappleUsageRepository.get_global_message_count(
+                window_start.isoformat()
+            )
         except (ConnectionError, OSError) as e:
             logger.error(f"Failed to get global message count: {e}")
             return 0
@@ -209,51 +169,26 @@ class GrappleRateLimiter:
         """
         start_date = utcnow() - timedelta(days=days)
 
-        query = convert_query("""
-            SELECT
-                COUNT(*) as window_count,
-                SUM(message_count) as total_messages,
-                MAX(message_count) as peak_hourly_usage,
-                AVG(message_count) as avg_hourly_usage
-            FROM grapple_rate_limits
-            WHERE user_id = ? AND window_start >= ?
-        """)
-
         try:
-            with get_connection() as conn:
-                cursor = conn.cursor()
-                cursor.execute(query, (user_id, start_date.isoformat()))
-                row = cursor.fetchone()
-                cursor.close()
-
-                if row:
-                    if hasattr(row, "keys"):
-                        r = dict(row)
-                    else:
-                        r = {
-                            "window_count": row[0],
-                            "total_messages": row[1],
-                            "peak_hourly_usage": row[2],
-                            "avg_hourly_usage": row[3],
-                        }
-                    if r["window_count"] and r["window_count"] > 0:
-                        return {
-                            "active_hours": r["window_count"],
-                            "total_messages": r["total_messages"] or 0,
-                            "peak_hourly_usage": r["peak_hourly_usage"] or 0,
-                            "avg_hourly_usage": round(
-                                float(r["avg_hourly_usage"] or 0), 2
-                            ),
-                            "days_analyzed": days,
-                        }
-
+            r = GrappleUsageRepository.get_user_usage_stats(
+                user_id, start_date.isoformat()
+            )
+            if r:
                 return {
-                    "active_hours": 0,
-                    "total_messages": 0,
-                    "peak_hourly_usage": 0,
-                    "avg_hourly_usage": 0,
+                    "active_hours": r["window_count"],
+                    "total_messages": r["total_messages"] or 0,
+                    "peak_hourly_usage": r["peak_hourly_usage"] or 0,
+                    "avg_hourly_usage": round(float(r["avg_hourly_usage"] or 0), 2),
                     "days_analyzed": days,
                 }
+
+            return {
+                "active_hours": 0,
+                "total_messages": 0,
+                "peak_hourly_usage": 0,
+                "avg_hourly_usage": 0,
+                "days_analyzed": days,
+            }
         except (ConnectionError, OSError) as e:
             logger.error(f"Failed to get usage stats for user {user_id}: {e}")
             return {
@@ -277,16 +212,12 @@ class GrappleRateLimiter:
         """
         cutoff_date = utcnow() - timedelta(days=days_to_keep)
 
-        query = convert_query("DELETE FROM grapple_rate_limits WHERE window_start < ?")
-
         try:
-            with get_connection() as conn:
-                cursor = conn.cursor()
-                cursor.execute(query, (cutoff_date.isoformat(),))
-                deleted_count = cursor.rowcount
-                cursor.close()
-                logger.info(f"Cleaned up {deleted_count} old rate limit records")
-                return deleted_count
+            deleted_count = GrappleUsageRepository.cleanup_old_records(
+                cutoff_date.isoformat()
+            )
+            logger.info(f"Cleaned up {deleted_count} old rate limit records")
+            return deleted_count
         except (ConnectionError, OSError) as e:
             logger.error(f"Failed to cleanup old rate limit records: {e}")
             return 0

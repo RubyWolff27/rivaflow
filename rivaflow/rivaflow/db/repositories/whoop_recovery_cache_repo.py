@@ -172,6 +172,20 @@ class WhoopRecoveryCacheRepository:
             return cursor.rowcount
 
     @staticmethod
+    def exists_by_cycle_id(user_id: int, whoop_cycle_id: str) -> bool:
+        """Check if a recovery entry exists for user + cycle_id."""
+        with get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                convert_query(
+                    "SELECT id FROM whoop_recovery_cache "
+                    "WHERE user_id = ? AND whoop_cycle_id = ?"
+                ),
+                (user_id, whoop_cycle_id),
+            )
+            return cursor.fetchone() is not None
+
+    @staticmethod
     def _row_to_dict(row) -> dict:
         """Convert a database row to a dictionary."""
         if hasattr(row, "keys"):

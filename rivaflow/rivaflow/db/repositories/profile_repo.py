@@ -286,6 +286,23 @@ class ProfileRepository:
                 raise Exception("Failed to create or update profile")
 
     @staticmethod
+    def update_goal_fields(user_id: int, updates: dict) -> None:
+        """Update goal-related fields on the profile table."""
+        with get_connection() as conn:
+            cursor = conn.cursor()
+            set_clause = ", ".join([f"{k} = ?" for k in updates.keys()])
+            values = list(updates.values()) + [user_id]
+
+            cursor.execute(
+                convert_query(
+                    f"UPDATE profile SET {set_clause},"
+                    " updated_at = CURRENT_TIMESTAMP"
+                    " WHERE user_id = ?"
+                ),
+                values,
+            )
+
+    @staticmethod
     def _row_to_dict(row) -> dict:
         """Convert a database row to a dictionary."""
         data = dict(row)
