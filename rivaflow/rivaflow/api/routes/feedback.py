@@ -7,6 +7,7 @@ from pydantic import BaseModel, Field
 
 from rivaflow.api.rate_limit import limiter
 from rivaflow.core.dependencies import get_current_user
+from rivaflow.core.error_handling import route_error_handler
 from rivaflow.core.exceptions import NotFoundError, ValidationError
 from rivaflow.core.services.email_service import EmailService
 from rivaflow.db.repositories.feedback_repo import FeedbackRepository
@@ -36,6 +37,7 @@ class FeedbackUpdateStatus(BaseModel):
 
 @router.post("/", status_code=status.HTTP_201_CREATED)
 @limiter.limit("30/minute")
+@route_error_handler("submit_feedback", detail="Failed to submit feedback")
 def submit_feedback(
     request: Request,
     feedback: FeedbackCreate,
@@ -100,6 +102,7 @@ def submit_feedback(
 
 @router.get("/my")
 @limiter.limit("30/minute")
+@route_error_handler("get_my_feedback", detail="Failed to get feedback")
 def get_my_feedback(
     request: Request,
     limit: int = Query(50, ge=1, le=100),
@@ -122,6 +125,7 @@ def get_my_feedback(
 
 @router.get("/{feedback_id}")
 @limiter.limit("30/minute")
+@route_error_handler("get_feedback_item", detail="Failed to get feedback")
 def get_feedback(
     request: Request,
     feedback_id: int = Path(..., gt=0),

@@ -4,7 +4,6 @@ from fastapi import (
     APIRouter,
     Body,
     Depends,
-    HTTPException,
     Path,
     Query,
     Request,
@@ -15,6 +14,7 @@ from pydantic import BaseModel, Field
 
 from rivaflow.api.rate_limit import limiter
 from rivaflow.core.dependencies import get_current_user
+from rivaflow.core.error_handling import route_error_handler
 from rivaflow.core.exceptions import NotFoundError, ValidationError
 from rivaflow.core.services.friend_suggestions_service import FriendSuggestionsService
 from rivaflow.core.services.notification_service import NotificationService
@@ -58,6 +58,7 @@ class CommentUpdateRequest(BaseModel):
 # Relationship endpoints
 @router.post("/follow/{user_id}")
 @limiter.limit("30/minute")
+@route_error_handler("follow_user", detail="Failed to follow user")
 def follow_user(
     request: Request,
     user_id: int = Path(..., gt=0),
@@ -87,6 +88,7 @@ def follow_user(
 
 
 @router.delete("/follow/{user_id}")
+@route_error_handler("unfollow_user", detail="Failed to unfollow user")
 def unfollow_user(
     user_id: int = Path(..., gt=0), current_user: dict = Depends(get_current_user)
 ):
@@ -109,6 +111,7 @@ def unfollow_user(
 
 
 @router.get("/followers")
+@route_error_handler("get_followers", detail="Failed to get followers")
 def get_followers(
     limit: int = Query(default=50, ge=1, le=200, description="Max results to return"),
     offset: int = Query(default=0, ge=0, description="Number of results to skip"),
@@ -131,6 +134,7 @@ def get_followers(
 
 
 @router.get("/following")
+@route_error_handler("get_following", detail="Failed to get following")
 def get_following(
     limit: int = Query(default=50, ge=1, le=200, description="Max results to return"),
     offset: int = Query(default=0, ge=0, description="Number of results to skip"),
@@ -153,6 +157,7 @@ def get_following(
 
 
 @router.get("/following/{user_id}")
+@route_error_handler("check_following", detail="Failed to check following status")
 def check_following(
     user_id: int = Path(..., gt=0), current_user: dict = Depends(get_current_user)
 ):
@@ -172,6 +177,7 @@ def check_following(
 # Like endpoints
 @router.post("/like")
 @limiter.limit("60/minute")
+@route_error_handler("like_activity", detail="Failed to like activity")
 def like_activity(
     request: Request,
     like_req: LikeRequest,
@@ -203,6 +209,7 @@ def like_activity(
 
 
 @router.delete("/like")
+@route_error_handler("unlike_activity", detail="Failed to unlike activity")
 def unlike_activity(
     request: UnlikeRequest, current_user: dict = Depends(get_current_user)
 ):
@@ -226,6 +233,7 @@ def unlike_activity(
 
 
 @router.get("/likes/{activity_type}/{activity_id}")
+@route_error_handler("get_activity_likes", detail="Failed to get likes")
 def get_activity_likes(
     activity_type: str = Path(..., pattern="^(session|readiness|rest)$"),
     activity_id: int = Path(..., gt=0),
@@ -251,6 +259,7 @@ def get_activity_likes(
 # Comment endpoints
 @router.post("/comment")
 @limiter.limit("20/minute")
+@route_error_handler("add_comment", detail="Failed to add comment")
 def add_comment(
     request: Request,
     comment_req: CommentRequest,
@@ -286,6 +295,7 @@ def add_comment(
 
 
 @router.put("/comment/{comment_id}")
+@route_error_handler("update_comment", detail="Failed to update comment")
 def update_comment(
     comment_id: int = Path(..., gt=0),
     request: CommentUpdateRequest = Body(...),
@@ -315,11 +325,10 @@ def update_comment(
         return {"success": True, "comment": comment}
     except ValueError as e:
         raise ValidationError(str(e))
-    except HTTPException:
-        raise
 
 
 @router.delete("/comment/{comment_id}")
+@route_error_handler("delete_comment", detail="Failed to delete comment")
 def delete_comment(
     comment_id: int = Path(..., gt=0), current_user: dict = Depends(get_current_user)
 ):
@@ -336,16 +345,14 @@ def delete_comment(
         404: If comment not found or user doesn't own it
         500: Database error
     """
-    try:
-        success = SocialService.delete_comment(comment_id, current_user["id"])
-        if not success:
-            raise NotFoundError("Comment not found or you don't own it")
-        return Response(status_code=status.HTTP_204_NO_CONTENT)
-    except HTTPException:
-        raise
+    success = SocialService.delete_comment(comment_id, current_user["id"])
+    if not success:
+        raise NotFoundError("Comment not found or you don't own it")
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
 @router.get("/comments/{activity_type}/{activity_id}")
+@route_error_handler("get_activity_comments", detail="Failed to get comments")
 def get_activity_comments(
     activity_type: str = Path(..., pattern="^(session|readiness|rest)$"),
     activity_id: int = Path(..., gt=0),
@@ -371,6 +378,7 @@ def get_activity_comments(
 # User search endpoint
 @router.get("/users/search")
 @limiter.limit("60/minute")
+@route_error_handler("search_users", detail="Failed to search users")
 def search_users(
     request: Request,
     q: str = Query(..., min_length=2),
@@ -412,6 +420,7 @@ def search_users(
 
 # Friend recommendations endpoint
 @router.get("/users/recommended")
+@route_error_handler("get_recommended_users", detail="Failed to get recommendations")
 def get_recommended_users(current_user: dict = Depends(get_current_user)):
     """
     Get recommended users to follow based on gym overlap (Strava-style).
@@ -434,6 +443,9 @@ def get_recommended_users(current_user: dict = Depends(get_current_user)):
 
 # Friend suggestions endpoints
 @router.get("/friend-suggestions")
+@route_error_handler(
+    "get_friend_suggestions", detail="Failed to get friend suggestions"
+)
 def get_friend_suggestions(
     limit: int = Query(10, ge=1, le=50, description="Max number of suggestions"),
     current_user: dict = Depends(get_current_user),
@@ -461,6 +473,7 @@ def get_friend_suggestions(
 
 
 @router.get("/friend-suggestions/browse")
+@route_error_handler("browse_all_users", detail="Failed to browse users")
 def browse_all_users(
     limit: int = Query(20, ge=1, le=50),
     current_user: dict = Depends(get_current_user),
@@ -477,6 +490,7 @@ def browse_all_users(
 
 
 @router.post("/friend-suggestions/{suggested_user_id}/dismiss")
+@route_error_handler("dismiss_suggestion", detail="Failed to dismiss suggestion")
 def dismiss_friend_suggestion(
     suggested_user_id: int = Path(..., gt=0),
     current_user: dict = Depends(get_current_user),
@@ -496,6 +510,9 @@ def dismiss_friend_suggestion(
 
 
 @router.post("/friend-suggestions/regenerate")
+@route_error_handler(
+    "regenerate_suggestions", detail="Failed to regenerate suggestions"
+)
 def regenerate_friend_suggestions(current_user: dict = Depends(get_current_user)):
     """
     Regenerate friend suggestions.
@@ -525,6 +542,7 @@ class FriendRequestBody(BaseModel):
 
 @router.post("/friend-requests/{user_id}")
 @limiter.limit("20/minute")
+@route_error_handler("send_friend_request", detail="Failed to send friend request")
 def send_friend_request(
     request: Request,
     user_id: int = Path(..., gt=0),
@@ -548,6 +566,7 @@ def send_friend_request(
 
 
 @router.post("/friend-requests/{connection_id}/accept")
+@route_error_handler("accept_friend_request", detail="Failed to accept friend request")
 def accept_friend_request(
     connection_id: int = Path(..., gt=0), current_user: dict = Depends(get_current_user)
 ):
@@ -568,6 +587,9 @@ def accept_friend_request(
 
 
 @router.post("/friend-requests/{connection_id}/decline")
+@route_error_handler(
+    "decline_friend_request", detail="Failed to decline friend request"
+)
 def decline_friend_request(
     connection_id: int = Path(..., gt=0), current_user: dict = Depends(get_current_user)
 ):
@@ -582,6 +604,7 @@ def decline_friend_request(
 
 
 @router.delete("/friend-requests/{connection_id}")
+@route_error_handler("cancel_friend_request", detail="Failed to cancel friend request")
 def cancel_friend_request(
     connection_id: int = Path(..., gt=0), current_user: dict = Depends(get_current_user)
 ):
@@ -596,6 +619,7 @@ def cancel_friend_request(
 
 
 @router.get("/friend-requests/received")
+@route_error_handler("get_received_requests", detail="Failed to get friend requests")
 def get_received_friend_requests(current_user: dict = Depends(get_current_user)):
     """Get pending friend requests received by the current user."""
     requests = SocialConnectionRepository.get_pending_requests_received(
@@ -605,6 +629,7 @@ def get_received_friend_requests(current_user: dict = Depends(get_current_user))
 
 
 @router.get("/friend-requests/sent")
+@route_error_handler("get_sent_requests", detail="Failed to get sent requests")
 def get_sent_friend_requests(current_user: dict = Depends(get_current_user)):
     """Get pending friend requests sent by the current user."""
     requests = SocialConnectionRepository.get_pending_requests_sent(current_user["id"])
@@ -612,6 +637,7 @@ def get_sent_friend_requests(current_user: dict = Depends(get_current_user)):
 
 
 @router.get("/friends")
+@route_error_handler("get_friends", detail="Failed to get friends")
 def get_friends(
     limit: int = Query(50, ge=1, le=100),
     offset: int = Query(0, ge=0),
@@ -625,6 +651,7 @@ def get_friends(
 
 
 @router.delete("/friends/{user_id}")
+@route_error_handler("unfriend_user", detail="Failed to unfriend user")
 def unfriend_user(
     user_id: int = Path(..., gt=0), current_user: dict = Depends(get_current_user)
 ):
@@ -639,6 +666,7 @@ def unfriend_user(
 
 
 @router.get("/friends/{user_id}/status")
+@route_error_handler("get_friendship_status", detail="Failed to get friendship status")
 def get_friendship_status(
     user_id: int = Path(..., gt=0), current_user: dict = Depends(get_current_user)
 ):

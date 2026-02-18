@@ -4,6 +4,7 @@ from fastapi import APIRouter, Depends, Request
 
 from rivaflow.api.rate_limit import limiter
 from rivaflow.core.dependencies import get_current_user
+from rivaflow.core.error_handling import route_error_handler
 from rivaflow.core.services.streak_service import StreakService
 
 router = APIRouter(prefix="/streaks", tags=["streaks"])
@@ -11,6 +12,7 @@ router = APIRouter(prefix="/streaks", tags=["streaks"])
 
 @router.get("/status")
 @limiter.limit("120/minute")
+@route_error_handler("get_streak_status", detail="Failed to get streak status")
 def get_streak_status(request: Request, current_user: dict = Depends(get_current_user)):
     """Get all streak status (checkin, training, readiness)."""
     service = StreakService()
@@ -26,6 +28,7 @@ def get_streak_status(request: Request, current_user: dict = Depends(get_current
 
 @router.get("/{streak_type}")
 @limiter.limit("120/minute")
+@route_error_handler("get_streak", detail="Failed to get streak")
 def get_streak(
     request: Request, streak_type: str, current_user: dict = Depends(get_current_user)
 ):

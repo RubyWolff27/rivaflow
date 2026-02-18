@@ -10,6 +10,7 @@ from pydantic import BaseModel, Field
 from rivaflow.api.rate_limit import limiter
 from rivaflow.api.response_models import ReadinessResponse
 from rivaflow.core.dependencies import get_current_user
+from rivaflow.core.error_handling import route_error_handler
 from rivaflow.core.models import ReadinessCreate
 from rivaflow.core.services.readiness_service import ReadinessService
 
@@ -47,6 +48,7 @@ def _trigger_readiness_streak(user_id: int, check_date: str) -> None:
 
 @router.post("/", status_code=status.HTTP_201_CREATED, response_model=ReadinessResponse)
 @limiter.limit("30/minute")
+@route_error_handler("log_readiness", detail="Failed to log readiness")
 def log_readiness(
     request: Request,
     readiness: ReadinessCreate,
@@ -81,6 +83,7 @@ def log_readiness(
 
 @router.get("/latest", response_model=ReadinessResponse | None)
 @limiter.limit("120/minute")
+@route_error_handler("get_latest_readiness", detail="Failed to get latest readiness")
 def get_latest_readiness(
     request: Request, current_user: dict = Depends(get_current_user)
 ):
@@ -94,6 +97,7 @@ def get_latest_readiness(
 
 @router.get("/{check_date}")
 @limiter.limit("120/minute")
+@route_error_handler("get_readiness", detail="Failed to get readiness")
 def get_readiness(
     request: Request, check_date: date, current_user: dict = Depends(get_current_user)
 ):
@@ -110,6 +114,7 @@ def get_readiness(
 
 @router.get("/range/{start_date}/{end_date}")
 @limiter.limit("120/minute")
+@route_error_handler("get_readiness_range", detail="Failed to get readiness range")
 def get_readiness_range(
     request: Request,
     start_date: date,
@@ -132,6 +137,7 @@ class WeightLogRequest(BaseModel):
 
 @router.post("/weight")
 @limiter.limit("30/minute")
+@route_error_handler("log_weight_only", detail="Failed to log weight")
 def log_weight_only(
     request: Request,
     data: WeightLogRequest,

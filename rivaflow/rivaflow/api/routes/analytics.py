@@ -2,12 +2,12 @@
 
 from datetime import date
 
-from fastapi import APIRouter, Depends, HTTPException, Query, Request
+from fastapi import APIRouter, Depends, Query, Request
 
 from rivaflow.api.rate_limit import limiter
 from rivaflow.core.dependencies import get_current_user
 from rivaflow.core.error_handling import route_error_handler
-from rivaflow.core.exceptions import NotFoundError
+from rivaflow.core.exceptions import NotFoundError, ValidationError
 from rivaflow.core.services.analytics_service import AnalyticsService
 from rivaflow.core.services.fight_dynamics_service import FightDynamicsService
 from rivaflow.core.services.whoop_analytics_engine import WhoopAnalyticsEngine
@@ -83,13 +83,9 @@ def get_performance_overview(
     # Validate date range
     if start_date and end_date:
         if start_date > end_date:
-            raise HTTPException(
-                status_code=400, detail="start_date must be before end_date"
-            )
+            raise ValidationError("start_date must be before end_date")
         if (end_date - start_date).days > 730:  # 2 years max
-            raise HTTPException(
-                status_code=400, detail="Date range cannot exceed 2 years"
-            )
+            raise ValidationError("Date range cannot exceed 2 years")
 
     return _get_performance_overview_cached(
         user_id=current_user["id"],

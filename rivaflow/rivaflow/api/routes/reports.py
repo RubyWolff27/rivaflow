@@ -9,6 +9,7 @@ from fastapi.responses import StreamingResponse
 
 from rivaflow.api.rate_limit import limiter
 from rivaflow.core.dependencies import get_current_user
+from rivaflow.core.error_handling import route_error_handler
 from rivaflow.core.services.report_service import ReportService
 
 router = APIRouter()
@@ -16,6 +17,7 @@ router = APIRouter()
 
 @router.get("/week")
 @limiter.limit("60/minute")
+@route_error_handler("get_week_report", detail="Failed to get week report")
 def get_week_report(
     request: Request,
     target_date: date = None,
@@ -32,6 +34,7 @@ def get_week_report(
 
 @router.get("/month")
 @limiter.limit("60/minute")
+@route_error_handler("get_month_report", detail="Failed to get month report")
 def get_month_report(
     request: Request,
     target_date: date = None,
@@ -48,6 +51,7 @@ def get_month_report(
 
 @router.get("/range/{start_date}/{end_date}")
 @limiter.limit("60/minute")
+@route_error_handler("get_range_report", detail="Failed to get range report")
 def get_range_report(
     request: Request,
     start_date: date,
@@ -64,6 +68,7 @@ def get_range_report(
 
 @router.get("/week/csv")
 @limiter.limit("60/minute")
+@route_error_handler("export_week_csv", detail="Failed to export CSV")
 def export_week_csv(
     request: Request,
     target_date: date = None,

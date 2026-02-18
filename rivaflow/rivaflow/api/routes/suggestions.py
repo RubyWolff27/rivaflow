@@ -6,6 +6,7 @@ from fastapi import APIRouter, Depends, Request
 
 from rivaflow.api.rate_limit import limiter
 from rivaflow.core.dependencies import get_current_user
+from rivaflow.core.error_handling import route_error_handler
 from rivaflow.core.services.suggestion_engine import SuggestionEngine
 
 router = APIRouter()
@@ -14,6 +15,7 @@ engine = SuggestionEngine()
 
 @router.get("/today")
 @limiter.limit("60/minute")
+@route_error_handler("get_today_suggestion", detail="Failed to get suggestion")
 def get_today_suggestion(
     request: Request,
     target_date: date | None = None,

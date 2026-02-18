@@ -6,6 +6,7 @@ import os
 from fastapi import APIRouter, status
 from fastapi.responses import JSONResponse
 
+from rivaflow.core.error_handling import route_error_handler
 from rivaflow.db.database import get_connection
 
 logger = logging.getLogger(__name__)
@@ -16,6 +17,7 @@ router = APIRouter()
 
 
 @router.get("/health", tags=["monitoring"])
+@route_error_handler("health_check", detail="Health check failed")
 def health_check():
     """
     Health check endpoint for load balancers and monitoring.
@@ -63,6 +65,7 @@ def health_check():
 
 
 @router.get("/health/ready", tags=["monitoring"])
+@route_error_handler("readiness_check", detail="Readiness check failed")
 def readiness_check():
     """
     Readiness check - indicates service is ready to accept traffic.
@@ -73,6 +76,7 @@ def readiness_check():
 
 
 @router.get("/health/live", tags=["monitoring"])
+@route_error_handler("liveness_check", detail="Liveness check failed")
 def liveness_check():
     """
     Liveness check - indicates service process is alive.

@@ -4,6 +4,7 @@ from fastapi import APIRouter, Depends, Query, Request
 
 from rivaflow.api.rate_limit import limiter
 from rivaflow.core.dependencies import get_current_user
+from rivaflow.core.error_handling import route_error_handler
 from rivaflow.core.exceptions import NotFoundError
 from rivaflow.core.services.user_service import UserService
 
@@ -12,6 +13,7 @@ router = APIRouter()
 
 @router.get("/search")
 @limiter.limit("120/minute")
+@route_error_handler("search_users", detail="Failed to search users")
 def search_users(
     request: Request,
     q: str = Query(..., min_length=1, description="Search query (name or email)"),
@@ -34,6 +36,7 @@ def search_users(
 
 @router.get("/{user_id}")
 @limiter.limit("120/minute")
+@route_error_handler("get_user_profile", detail="Failed to get user profile")
 def get_user_profile(
     request: Request,
     user_id: int,
@@ -53,6 +56,7 @@ def get_user_profile(
 
 @router.get("/{user_id}/stats")
 @limiter.limit("120/minute")
+@route_error_handler("get_user_stats", detail="Failed to get user stats")
 def get_user_stats(
     request: Request,
     user_id: int,
@@ -70,6 +74,7 @@ def get_user_stats(
 
 @router.get("/{user_id}/activity")
 @limiter.limit("120/minute")
+@route_error_handler("get_user_activity", detail="Failed to get user activity")
 def get_user_activity(
     request: Request,
     user_id: int,

@@ -13,6 +13,7 @@ from pydantic import BaseModel
 
 from rivaflow.api.rate_limit import limiter
 from rivaflow.core.dependencies import get_current_user
+from rivaflow.core.error_handling import route_error_handler
 
 router = APIRouter(prefix="/llm-tools", tags=["llm-tools"])
 
@@ -32,6 +33,7 @@ class PartnersSummaryResponse(BaseModel):
 
 @router.get("/report/week", response_model=WeekReportResponse)
 @limiter.limit("20/minute")
+@route_error_handler("get_week_report_llm", detail="Failed to get week report")
 def get_week_report_for_llm(
     request: Request, week_start: date, current_user: dict = Depends(get_current_user)
 ):
@@ -68,6 +70,9 @@ def get_week_report_for_llm(
 
 @router.get("/partners/summary", response_model=PartnersSummaryResponse)
 @limiter.limit("20/minute")
+@route_error_handler(
+    "get_partners_summary_llm", detail="Failed to get partners summary"
+)
 def get_partners_summary_for_llm(
     request: Request,
     start: date,

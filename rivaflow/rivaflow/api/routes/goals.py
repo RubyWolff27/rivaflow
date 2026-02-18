@@ -2,7 +2,7 @@
 
 import logging
 
-from fastapi import APIRouter, Depends, HTTPException, Query, Request
+from fastapi import APIRouter, Depends, Query, Request
 from pydantic import BaseModel
 
 from rivaflow.api.rate_limit import limiter
@@ -54,6 +54,7 @@ def get_current_week_progress(
 
 @router.get("/summary", response_model=GoalsSummaryResponse)
 @limiter.limit("120/minute")
+@route_error_handler("get_goals_summary", detail="Failed to get goals summary")
 def get_goals_summary(
     request: Request,
     tz: str | None = Query(None, description="IANA timezone, e.g. Australia/Sydney"),
@@ -73,6 +74,7 @@ def get_goals_summary(
 
 @router.get("/streaks/training")
 @limiter.limit("120/minute")
+@route_error_handler("get_training_streaks", detail="Failed to get training streaks")
 def get_training_streaks(
     request: Request, current_user: dict = Depends(get_current_user)
 ):
@@ -83,6 +85,7 @@ def get_training_streaks(
 
 @router.get("/streaks/goals")
 @limiter.limit("120/minute")
+@route_error_handler("get_goal_completion_streaks", detail="Failed to get goal streaks")
 def get_goal_completion_streaks(
     request: Request, current_user: dict = Depends(get_current_user)
 ):
@@ -93,6 +96,7 @@ def get_goal_completion_streaks(
 
 @router.get("/trend")
 @limiter.limit("120/minute")
+@route_error_handler("get_recent_trend", detail="Failed to get recent trend")
 def get_recent_trend(
     request: Request, weeks: int = 12, current_user: dict = Depends(get_current_user)
 ):
@@ -102,16 +106,14 @@ def get_recent_trend(
         weeks: Number of recent weeks to include (default 12)
     """
     service = GoalsService()
-    try:
-        if weeks < 1 or weeks > 52:
-            raise ValidationError("Weeks must be between 1 and 52")
-        return service.get_recent_weeks_trend(user_id=current_user["id"], weeks=weeks)
-    except HTTPException:
-        raise
+    if weeks < 1 or weeks > 52:
+        raise ValidationError("Weeks must be between 1 and 52")
+    return service.get_recent_weeks_trend(user_id=current_user["id"], weeks=weeks)
 
 
 @router.put("/targets")
 @limiter.limit("30/minute")
+@route_error_handler("update_goal_targets", detail="Failed to update goal targets")
 def update_goal_targets(
     request: Request,
     targets: GoalTargetsUpdate,

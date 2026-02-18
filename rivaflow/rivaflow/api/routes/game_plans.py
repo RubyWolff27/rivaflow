@@ -2,11 +2,13 @@
 
 import logging
 
-from fastapi import APIRouter, Depends, HTTPException, Request, status
+from fastapi import APIRouter, Depends, Request
 from pydantic import BaseModel, Field
 
 from rivaflow.api.rate_limit import limiter
 from rivaflow.core.dependencies import get_current_user
+from rivaflow.core.error_handling import route_error_handler
+from rivaflow.core.exceptions import NotFoundError, ValidationError
 
 router = APIRouter(prefix="/game-plans", tags=["game-plans"])
 logger = logging.getLogger(__name__)
@@ -65,6 +67,7 @@ class SetFocusRequest(BaseModel):
 
 @router.post("/generate")
 @limiter.limit("20/minute")
+@route_error_handler("generate_plan", detail="Failed to generate game plan")
 def generate_plan(
     request: Request,
     body: GeneratePlanRequest,
@@ -84,16 +87,14 @@ def generate_plan(
             style=body.style,
         )
     except FileNotFoundError:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="No template available for that combination",
-        )
+        raise ValidationError("No template available for that combination")
 
     return plan
 
 
 @router.get("/")
 @limiter.limit("60/minute")
+@route_error_handler("get_current_plan", detail="Failed to get game plan")
 def get_current_plan(
     request: Request,
     current_user: dict = Depends(get_current_user),
@@ -112,6 +113,7 @@ def get_current_plan(
 
 @router.get("/{plan_id}")
 @limiter.limit("60/minute")
+@route_error_handler("get_plan", detail="Failed to get game plan")
 def get_plan(
     request: Request,
     plan_id: int,
@@ -125,15 +127,13 @@ def get_plan(
     user_id = current_user["id"]
     plan = get_plan_tree(plan_id, user_id)
     if not plan:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Game plan not found",
-        )
+        raise NotFoundError("Game plan not found")
     return plan
 
 
 @router.patch("/{plan_id}")
 @limiter.limit("30/minute")
+@route_error_handler("update_plan", detail="Failed to update game plan")
 def update_plan(
     request: Request,
     plan_id: int,
@@ -148,22 +148,17 @@ def update_plan(
     user_id = current_user["id"]
     updates = body.model_dump(exclude_none=True)
     if not updates:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="No fields to update",
-        )
+        raise ValidationError("No fields to update")
 
     result = GamePlanRepository.update(plan_id, user_id, **updates)
     if not result:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Game plan not found",
-        )
+        raise NotFoundError("Game plan not found")
     return result
 
 
 @router.delete("/{plan_id}")
 @limiter.limit("30/minute")
+@route_error_handler("delete_plan", detail="Failed to delete game plan")
 def delete_plan(
     request: Request,
     plan_id: int,
@@ -177,15 +172,13 @@ def delete_plan(
     user_id = current_user["id"]
     deleted = GamePlanRepository.delete(plan_id, user_id)
     if not deleted:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Game plan not found",
-        )
+        raise NotFoundError("Game plan not found")
     return {"success": True}
 
 
 @router.post("/{plan_id}/nodes")
 @limiter.limit("20/minute")
+@route_error_handler("add_node", detail="Failed to add node")
 def add_node(
     request: Request,
     plan_id: int,
@@ -205,15 +198,13 @@ def add_node(
         glossary_id=body.glossary_id,
     )
     if not node:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Game plan not found",
-        )
+        raise NotFoundError("Game plan not found")
     return node
 
 
 @router.patch("/{plan_id}/nodes/{node_id}")
 @limiter.limit("30/minute")
+@route_error_handler("update_node", detail="Failed to update node")
 def update_node(
     request: Request,
     plan_id: int,
@@ -227,22 +218,17 @@ def update_node(
     user_id = current_user["id"]
     updates = body.model_dump(exclude_none=True)
     if not updates:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="No fields to update",
-        )
+        raise ValidationError("No fields to update")
 
     node = svc_update_node(plan_id, user_id, node_id, **updates)
     if not node:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Node not found",
-        )
+        raise NotFoundError("Node not found")
     return node
 
 
 @router.delete("/{plan_id}/nodes/{node_id}")
 @limiter.limit("30/minute")
+@route_error_handler("delete_node", detail="Failed to delete node")
 def delete_node(
     request: Request,
     plan_id: int,
@@ -255,15 +241,13 @@ def delete_node(
     user_id = current_user["id"]
     deleted = svc_delete_node(plan_id, user_id, node_id)
     if not deleted:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Node not found",
-        )
+        raise NotFoundError("Node not found")
     return {"success": True}
 
 
 @router.post("/{plan_id}/edges")
 @limiter.limit("20/minute")
+@route_error_handler("add_edge", detail="Failed to add edge")
 def add_edge(
     request: Request,
     plan_id: int,
@@ -283,15 +267,13 @@ def add_edge(
         label=body.label,
     )
     if edge_id is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Game plan not found",
-        )
+        raise NotFoundError("Game plan not found")
     return {"id": edge_id}
 
 
 @router.delete("/{plan_id}/edges/{edge_id}")
 @limiter.limit("30/minute")
+@route_error_handler("delete_edge", detail="Failed to delete edge")
 def delete_edge(
     request: Request,
     plan_id: int,
@@ -304,15 +286,13 @@ def delete_edge(
     user_id = current_user["id"]
     deleted = svc_delete_edge(plan_id, user_id, edge_id)
     if not deleted:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Edge not found",
-        )
+        raise NotFoundError("Edge not found")
     return {"success": True}
 
 
 @router.post("/{plan_id}/focus")
 @limiter.limit("20/minute")
+@route_error_handler("set_focus", detail="Failed to set focus nodes")
 def set_focus(
     request: Request,
     plan_id: int,

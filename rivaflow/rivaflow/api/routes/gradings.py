@@ -18,6 +18,7 @@ from pydantic import BaseModel
 
 from rivaflow.api.rate_limit import limiter
 from rivaflow.core.dependencies import get_current_user
+from rivaflow.core.error_handling import route_error_handler
 from rivaflow.core.exceptions import NotFoundError
 from rivaflow.core.services.grading_service import GradingService
 from rivaflow.core.services.storage_service import get_storage
@@ -53,6 +54,7 @@ class GradingUpdate(BaseModel):
 
 @router.get("/")
 @limiter.limit("120/minute")
+@route_error_handler("list_gradings", detail="Failed to list gradings")
 def list_gradings(request: Request, current_user: dict = Depends(get_current_user)):
     """Get all gradings, ordered by date (newest first)."""
     service = GradingService()
@@ -62,6 +64,7 @@ def list_gradings(request: Request, current_user: dict = Depends(get_current_use
 
 @router.post("/", status_code=status.HTTP_201_CREATED)
 @limiter.limit("30/minute")
+@route_error_handler("create_grading", detail="Failed to create grading")
 def create_grading(
     request: Request,
     grading: GradingCreate,
@@ -83,6 +86,7 @@ def create_grading(
 
 @router.get("/latest")
 @limiter.limit("120/minute")
+@route_error_handler("get_latest_grading", detail="Failed to get latest grading")
 def get_latest_grading(
     request: Request, current_user: dict = Depends(get_current_user)
 ):
@@ -96,6 +100,7 @@ def get_latest_grading(
 
 @router.put("/{grading_id}")
 @limiter.limit("30/minute")
+@route_error_handler("update_grading", detail="Failed to update grading")
 def update_grading(
     request: Request,
     grading_id: int,
@@ -124,6 +129,7 @@ def update_grading(
 
 @router.delete("/{grading_id}")
 @limiter.limit("30/minute")
+@route_error_handler("delete_grading", detail="Failed to delete grading")
 def delete_grading(
     request: Request, grading_id: int, current_user: dict = Depends(get_current_user)
 ):
@@ -140,6 +146,7 @@ def delete_grading(
 
 @router.post("/photo", status_code=status.HTTP_201_CREATED)
 @limiter.limit("30/minute")
+@route_error_handler("upload_grading_photo", detail="Failed to upload grading photo")
 async def upload_grading_photo(
     request: Request,
     file: UploadFile = File(...),

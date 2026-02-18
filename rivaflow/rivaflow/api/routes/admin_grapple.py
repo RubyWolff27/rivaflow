@@ -4,10 +4,12 @@ import logging
 from datetime import timedelta
 from typing import Any
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends
 from pydantic import BaseModel
 
 from rivaflow.core.dependencies import get_admin_user, get_current_user
+from rivaflow.core.error_handling import route_error_handler
+from rivaflow.core.exceptions import NotFoundError
 from rivaflow.core.time_utils import utcnow
 
 router = APIRouter(prefix="/admin/grapple", tags=["admin", "grapple"])
@@ -47,6 +49,7 @@ class UsageStatsResponse(BaseModel):
 
 
 @router.post("/feedback")
+@route_error_handler("submit_grapple_feedback", detail="Failed to submit feedback")
 def submit_feedback(
     feedback: FeedbackRequest,
     current_user: dict = Depends(get_current_user),
@@ -76,10 +79,7 @@ def submit_feedback(
         result = cursor.fetchone()
 
         if not result:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Message not found or access denied",
-            )
+            raise NotFoundError("Message not found or access denied")
 
         session_id = result["session_id"]
 
@@ -120,6 +120,7 @@ def submit_feedback(
 
 
 @router.get("/stats/global", response_model=UsageStatsResponse)
+@route_error_handler("get_global_stats", detail="Failed to get global stats")
 def get_global_stats(
     days: int = 30,
     current_user: dict = Depends(get_admin_user),
@@ -214,6 +215,7 @@ def get_global_stats(
 
 
 @router.get("/stats/projections")
+@route_error_handler("get_cost_projections", detail="Failed to get cost projections")
 def get_cost_projections(
     current_user: dict = Depends(get_admin_user),
 ):
@@ -300,6 +302,7 @@ def get_cost_projections(
 
 
 @router.get("/stats/providers")
+@route_error_handler("get_provider_stats", detail="Failed to get provider stats")
 def get_provider_stats(
     days: int = 7,
     current_user: dict = Depends(get_admin_user),
@@ -365,6 +368,7 @@ def get_provider_stats(
 
 
 @router.get("/stats/users")
+@route_error_handler("get_user_stats", detail="Failed to get user stats")
 def get_user_stats(
     limit: int = 50,
     current_user: dict = Depends(get_admin_user),
@@ -432,6 +436,7 @@ def get_user_stats(
 
 
 @router.get("/feedback")
+@route_error_handler("get_grapple_feedback", detail="Failed to get feedback")
 def get_feedback(
     limit: int = 100,
     rating: str | None = None,
@@ -495,6 +500,7 @@ def get_feedback(
 
 
 @router.get("/health")
+@route_error_handler("get_grapple_health", detail="Failed to get Grapple health")
 def get_grapple_health(
     current_user: dict = Depends(get_admin_user),
 ):

@@ -12,7 +12,8 @@ from pydantic import BaseModel
 
 from rivaflow.api.rate_limit import limiter
 from rivaflow.core.dependencies import get_current_user
-from rivaflow.core.exceptions import NotFoundError
+from rivaflow.core.error_handling import route_error_handler
+from rivaflow.core.exceptions import ConflictError, NotFoundError
 from rivaflow.db.repositories.groups_repo import GroupsRepository
 
 router = APIRouter()
@@ -49,6 +50,7 @@ class MemberAdd(BaseModel):
 
 @router.post("/", status_code=status.HTTP_201_CREATED)
 @limiter.limit("30/minute")
+@route_error_handler("create_group", detail="Failed to create group")
 def create_group(
     request: Request,
     group: GroupCreate,
@@ -66,6 +68,7 @@ def create_group(
 
 @router.get("/")
 @limiter.limit("120/minute")
+@route_error_handler("list_groups", detail="Failed to list groups")
 def list_groups(
     request: Request,
     current_user: dict = Depends(get_current_user),
@@ -81,6 +84,7 @@ def list_groups(
 
 @router.get("/discover")
 @limiter.limit("60/minute")
+@route_error_handler("discover_groups", detail="Failed to discover groups")
 def discover_groups(
     request: Request,
     current_user: dict = Depends(get_current_user),
@@ -93,6 +97,7 @@ def discover_groups(
 
 @router.get("/{group_id}")
 @limiter.limit("120/minute")
+@route_error_handler("get_group", detail="Failed to get group")
 def get_group(
     request: Request,
     group_id: int,
@@ -117,6 +122,7 @@ def get_group(
 
 @router.put("/{group_id}")
 @limiter.limit("30/minute")
+@route_error_handler("update_group", detail="Failed to update group")
 def update_group(
     request: Request,
     group_id: int,
@@ -140,6 +146,7 @@ def update_group(
 
 @router.delete("/{group_id}")
 @limiter.limit("30/minute")
+@route_error_handler("delete_group", detail="Failed to delete group")
 def delete_group(
     request: Request,
     group_id: int,
@@ -158,6 +165,7 @@ def delete_group(
 
 @router.post("/{group_id}/members")
 @limiter.limit("30/minute")
+@route_error_handler("add_member", detail="Failed to add member")
 def add_member(
     request: Request,
     group_id: int,
@@ -183,15 +191,13 @@ def add_member(
         role=member.role,
     )
     if not added:
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail="User is already a member of this group",
-        )
+        raise ConflictError("User is already a member of this group")
     return {"message": "Member added successfully"}
 
 
 @router.delete("/{group_id}/members/{user_id}")
 @limiter.limit("30/minute")
+@route_error_handler("remove_member", detail="Failed to remove member")
 def remove_member(
     request: Request,
     group_id: int,
@@ -215,6 +221,7 @@ def remove_member(
 
 @router.post("/{group_id}/join")
 @limiter.limit("30/minute")
+@route_error_handler("join_group", detail="Failed to join group")
 def join_group(
     request: Request,
     group_id: int,
@@ -234,15 +241,13 @@ def join_group(
 
     added = repo.add_member(group_id=group_id, user_id=current_user["id"])
     if not added:
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail="You are already a member of this group",
-        )
+        raise ConflictError("You are already a member of this group")
     return {"message": "Joined group successfully"}
 
 
 @router.post("/{group_id}/leave")
 @limiter.limit("30/minute")
+@route_error_handler("leave_group", detail="Failed to leave group")
 def leave_group(
     request: Request,
     group_id: int,

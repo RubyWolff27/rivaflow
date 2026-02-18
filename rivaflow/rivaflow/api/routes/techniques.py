@@ -5,6 +5,7 @@ from pydantic import BaseModel, Field
 
 from rivaflow.api.rate_limit import limiter
 from rivaflow.core.dependencies import get_current_user
+from rivaflow.core.error_handling import route_error_handler
 from rivaflow.core.exceptions import NotFoundError
 from rivaflow.core.services.glossary_service import GlossaryService
 
@@ -20,6 +21,7 @@ class TechniqueCreateRequest(BaseModel):
 
 @router.post("/")
 @limiter.limit("120/minute")
+@route_error_handler("add_technique", detail="Failed to add technique")
 def add_technique(
     request: Request,
     technique: TechniqueCreateRequest,
@@ -36,6 +38,7 @@ def add_technique(
 
 @router.get("/")
 @limiter.limit("120/minute")
+@route_error_handler("list_techniques", detail="Failed to list techniques")
 def list_techniques(
     request: Request,
     limit: int = Query(default=50, ge=1, le=200, description="Max results to return"),
@@ -60,6 +63,7 @@ def list_techniques(
 
 @router.get("/stale")
 @limiter.limit("120/minute")
+@route_error_handler("get_stale_techniques", detail="Failed to get stale techniques")
 def get_stale_techniques(
     request: Request, days: int = 7, current_user: dict = Depends(get_current_user)
 ):
@@ -70,6 +74,7 @@ def get_stale_techniques(
 
 @router.get("/search")
 @limiter.limit("120/minute")
+@route_error_handler("search_techniques", detail="Failed to search techniques")
 def search_techniques(
     request: Request,
     q: str = Query(..., min_length=2),
@@ -82,6 +87,7 @@ def search_techniques(
 
 @router.get("/{technique_id}")
 @limiter.limit("120/minute")
+@route_error_handler("get_technique", detail="Failed to get technique")
 def get_technique(
     request: Request, technique_id: int, current_user: dict = Depends(get_current_user)
 ):

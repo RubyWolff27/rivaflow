@@ -12,7 +12,7 @@ from rivaflow.api.response_models import (
     TokenResponse,
 )
 from rivaflow.core.dependencies import get_current_user
-from rivaflow.core.error_handling import handle_service_error
+from rivaflow.core.error_handling import handle_service_error, route_error_handler
 from rivaflow.core.exceptions import (
     AuthenticationError,
     RivaFlowException,
@@ -68,6 +68,7 @@ class LoginRequest(BaseModel):
     "/register", response_model=TokenResponse, status_code=status.HTTP_201_CREATED
 )
 @limiter.limit("5/minute")
+@route_error_handler("register", detail="Registration failed")
 def register(request: Request, req: RegisterRequest, response: Response):
     """
     Register a new user account.
@@ -141,6 +142,7 @@ def register(request: Request, req: RegisterRequest, response: Response):
 
 @router.post("/login", response_model=TokenResponse)
 @limiter.limit("5/minute")
+@route_error_handler("login", detail="Login failed")
 def login(request: Request, req: LoginRequest, response: Response):
     """
     Login with email and password.
@@ -174,6 +176,7 @@ def login(request: Request, req: LoginRequest, response: Response):
 
 @router.post("/refresh", response_model=AccessTokenResponse)
 @limiter.limit("10/minute")
+@route_error_handler("refresh_token", detail="Token refresh failed")
 def refresh_token(request: Request, response: Response):
     """
     Refresh access token using the httpOnly refresh token cookie.
@@ -216,6 +219,7 @@ def refresh_token(request: Request, response: Response):
 
 
 @router.post("/logout")
+@route_error_handler("logout", detail="Logout failed")
 def logout(
     request: Request,
     response: Response,
@@ -247,6 +251,7 @@ def logout(
 
 
 @router.post("/logout-all")
+@route_error_handler("logout_all_devices", detail="Logout failed")
 def logout_all_devices(
     response: Response, current_user: dict = Depends(get_current_user)
 ):
@@ -274,6 +279,7 @@ def logout_all_devices(
 
 
 @router.get("/me", response_model=CurrentUserResponse)
+@route_error_handler("get_current_user", detail="Failed to get user info")
 def get_current_user_info(current_user: dict = Depends(get_current_user)):
     """
     Get current authenticated user information.
@@ -298,6 +304,7 @@ class ResetPasswordRequest(BaseModel):
 
 @router.post("/forgot-password")
 @limiter.limit("3/hour")
+@route_error_handler("forgot_password", detail="Password reset request failed")
 def forgot_password(request: Request, req: ForgotPasswordRequest):
     """
     Request a password reset email.
@@ -327,6 +334,7 @@ def forgot_password(request: Request, req: ForgotPasswordRequest):
 
 @router.post("/reset-password")
 @limiter.limit("5/hour")
+@route_error_handler("reset_password", detail="Password reset failed")
 def reset_password(request: Request, req: ResetPasswordRequest):
     """
     Reset password using reset token.

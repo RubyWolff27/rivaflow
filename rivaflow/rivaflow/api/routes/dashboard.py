@@ -7,7 +7,7 @@ from fastapi import APIRouter, Depends, Query, Request
 
 from rivaflow.api.rate_limit import limiter
 from rivaflow.core.dependencies import get_current_user
-from rivaflow.core.exceptions import ServiceError
+from rivaflow.core.error_handling import route_error_handler
 from rivaflow.core.services.analytics_service import AnalyticsService
 from rivaflow.core.services.goals_service import GoalsService
 from rivaflow.core.services.milestone_service import MilestoneService
@@ -98,6 +98,7 @@ def _get_dashboard_summary_cached(
 
 @router.get("/summary")
 @limiter.limit("60/minute")
+@route_error_handler("get_dashboard_summary", detail="Failed to load dashboard")
 def get_dashboard_summary(
     request: Request,
     start_date: date | None = Query(None, description="Start date for analytics"),
@@ -131,19 +132,15 @@ def get_dashboard_summary(
     if not end_date:
         end_date = _today
 
-    try:
-        # Use cached function (5-minute TTL)
-        return _get_dashboard_summary_cached(
-            user_id, start_date, end_date, types=types if types else None, tz=tz
-        )
-
-    except Exception as e:
-        logger.error(f"Failed to load dashboard: {e}")
-        raise ServiceError("Failed to load dashboard data")
+    # Use cached function (5-minute TTL)
+    return _get_dashboard_summary_cached(
+        user_id, start_date, end_date, types=types if types else None, tz=tz
+    )
 
 
 @router.get("/quick-stats")
 @limiter.limit("60/minute")
+@route_error_handler("get_quick_stats", detail="Failed to load quick stats")
 def get_quick_stats(
     request: Request,
     current_user: dict = Depends(get_current_user),
@@ -162,34 +159,30 @@ def get_quick_stats(
     """
     user_id = current_user["id"]
 
-    try:
-        session_repo = SessionRepository()
-        streak_service = StreakService()
-        milestone_service = MilestoneService()
+    session_repo = SessionRepository()
+    streak_service = StreakService()
+    milestone_service = MilestoneService()
 
-        # Get user stats efficiently (no unbounded query)
-        stats = session_repo.get_user_stats(user_id)
+    # Get user stats efficiently (no unbounded query)
+    stats = session_repo.get_user_stats(user_id)
 
-        # Current streak
-        session_streak = streak_service.get_streak(user_id, "session")
+    # Current streak
+    session_streak = streak_service.get_streak(user_id, "session")
 
-        # Next milestone
-        closest_milestone = milestone_service.get_closest_milestone(user_id)
+    # Next milestone
+    closest_milestone = milestone_service.get_closest_milestone(user_id)
 
-        return {
-            "total_sessions": stats["total_sessions"],
-            "total_hours": stats["total_hours"],
-            "current_streak": session_streak.get("current_streak", 0),
-            "next_milestone": closest_milestone,
-        }
-
-    except Exception as e:
-        logger.error(f"Failed to load quick stats: {e}")
-        raise ServiceError("Failed to load quick stats")
+    return {
+        "total_sessions": stats["total_sessions"],
+        "total_hours": stats["total_hours"],
+        "current_streak": session_streak.get("current_streak", 0),
+        "next_milestone": closest_milestone,
+    }
 
 
 @router.get("/week-summary")
 @limiter.limit("60/minute")
+@route_error_handler("get_week_summary", detail="Failed to load week summary")
 def get_week_summary(
     request: Request,
     week_offset: int = Query(
@@ -212,48 +205,43 @@ def get_week_summary(
     """
     user_id = current_user["id"]
 
-    try:
-        # Calculate week start/end
-        from rivaflow.core.services.report_service import today_in_tz
+    # Calculate week start/end
+    from rivaflow.core.services.report_service import today_in_tz
 
-        today = today_in_tz(tz)
-        current_week_start = today - timedelta(days=today.weekday())
-        week_start = current_week_start + timedelta(weeks=week_offset)
-        week_end = week_start + timedelta(days=6)
+    today = today_in_tz(tz)
+    current_week_start = today - timedelta(days=today.weekday())
+    week_start = current_week_start + timedelta(weeks=week_offset)
+    week_end = week_start + timedelta(days=6)
 
-        session_repo = SessionRepository()
+    session_repo = SessionRepository()
 
-        # Get sessions for the week
-        sessions = session_repo.get_by_date_range(user_id, week_start, week_end)
+    # Get sessions for the week
+    sessions = session_repo.get_by_date_range(user_id, week_start, week_end)
 
-        # Calculate stats
-        total_sessions = len(sessions)
-        total_hours = sum(s.get("duration_mins", 60) for s in sessions) / 60
-        total_rolls = sum(s.get("rolls", 0) for s in sessions)
+    # Calculate stats
+    total_sessions = len(sessions)
+    total_hours = sum(s.get("duration_mins", 60) for s in sessions) / 60
+    total_rolls = sum(s.get("rolls", 0) for s in sessions)
 
-        # Class type breakdown
-        class_types = {}
-        for session in sessions:
-            ct = session.get("class_type", "unknown")
-            class_types[ct] = class_types.get(ct, 0) + 1
+    # Class type breakdown
+    class_types = {}
+    for session in sessions:
+        ct = session.get("class_type", "unknown")
+        class_types[ct] = class_types.get(ct, 0) + 1
 
-        # Weekly goals - just return None for now, goals are tracked separately
-        weekly_goals = None
+    # Weekly goals - just return None for now, goals are tracked separately
+    weekly_goals = None
 
-        return {
-            "week_start": week_start.isoformat(),
-            "week_end": week_end.isoformat(),
-            "is_current_week": week_offset == 0,
-            "stats": {
-                "total_sessions": total_sessions,
-                "total_hours": round(total_hours, 1),
-                "total_rolls": total_rolls,
-            },
-            "class_types": class_types,
-            "goals": weekly_goals,
-            "sessions": sessions,
-        }
-
-    except Exception as e:
-        logger.error(f"Failed to load week summary: {e}")
-        raise ServiceError("Failed to load week summary")
+    return {
+        "week_start": week_start.isoformat(),
+        "week_end": week_end.isoformat(),
+        "is_current_week": week_offset == 0,
+        "stats": {
+            "total_sessions": total_sessions,
+            "total_hours": round(total_hours, 1),
+            "total_rolls": total_rolls,
+        },
+        "class_types": class_types,
+        "goals": weekly_goals,
+        "sessions": sessions,
+    }

@@ -93,7 +93,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => {
       window.removeEventListener('auth:session-expired', handleSessionExpired);
     };
-  });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const logout = () => {
     // Call logout API (fire and forget) — cookie sent automatically

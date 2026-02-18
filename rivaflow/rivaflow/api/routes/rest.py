@@ -2,11 +2,13 @@
 
 from datetime import date, timedelta
 
-from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
+from fastapi import APIRouter, Depends, Query, Request, status
 from pydantic import BaseModel
 
 from rivaflow.api.rate_limit import limiter
 from rivaflow.core.dependencies import get_current_user
+from rivaflow.core.error_handling import route_error_handler
+from rivaflow.core.exceptions import NotFoundError, ValidationError
 from rivaflow.core.services.streak_service import StreakService
 from rivaflow.db.repositories.checkin_repo import CheckinRepository
 
@@ -15,6 +17,7 @@ router = APIRouter(prefix="/rest", tags=["rest"])
 
 @router.get("/recent")
 @limiter.limit("30/minute")
+@route_error_handler("get_recent_rest_days", detail="Failed to get rest days")
 def get_recent_rest_days(
     request: Request,
     days: int = Query(30, ge=1, le=365),
@@ -51,6 +54,7 @@ class RestDayCreate(BaseModel):
 
 @router.post("/", status_code=status.HTTP_201_CREATED)
 @limiter.limit("30/minute")
+@route_error_handler("log_rest_day", detail="Failed to log rest day")
 def log_rest_day(
     request: Request,
     data: RestDayCreate,
@@ -87,6 +91,7 @@ def log_rest_day(
 
 @router.get("/by-date/{rest_date}")
 @limiter.limit("30/minute")
+@route_error_handler("get_rest_by_date", detail="Failed to get rest day")
 def get_rest_by_date(
     request: Request,
     rest_date: str,
@@ -96,13 +101,13 @@ def get_rest_by_date(
     try:
         check_date = date.fromisoformat(rest_date)
     except ValueError:
-        raise HTTPException(status_code=400, detail="Invalid date format")
+        raise ValidationError("Invalid date format")
 
     checkin = CheckinRepository.get_checkin(
         current_user["id"], check_date, checkin_slot="morning"
     )
     if not checkin or checkin["checkin_type"] != "rest":
-        raise HTTPException(status_code=404, detail="Rest day not found")
+        raise NotFoundError("Rest day not found")
 
     return {
         "id": checkin["id"],
@@ -116,6 +121,7 @@ def get_rest_by_date(
 
 @router.delete("/{checkin_id}", status_code=status.HTTP_200_OK)
 @limiter.limit("10/minute")
+@route_error_handler("delete_rest_day", detail="Failed to delete rest day")
 def delete_rest_day(
     request: Request,
     checkin_id: int,
@@ -126,9 +132,9 @@ def delete_rest_day(
     # Verify it exists and is a rest-type checkin
     checkin = repo.get_checkin_by_id(current_user["id"], checkin_id)
     if not checkin:
-        raise HTTPException(status_code=404, detail="Rest day not found")
+        raise NotFoundError("Rest day not found")
     if checkin["checkin_type"] != "rest":
-        raise HTTPException(status_code=400, detail="Not a rest day check-in")
+        raise ValidationError("Not a rest day check-in")
 
     repo.delete_checkin(current_user["id"], checkin_id)
     return {"success": True, "deleted_id": checkin_id}

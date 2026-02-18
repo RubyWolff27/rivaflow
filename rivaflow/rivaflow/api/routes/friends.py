@@ -5,6 +5,7 @@ from pydantic import BaseModel
 
 from rivaflow.api.rate_limit import limiter
 from rivaflow.core.dependencies import get_current_user
+from rivaflow.core.error_handling import route_error_handler
 from rivaflow.core.exceptions import NotFoundError
 from rivaflow.core.services.friend_service import FriendService
 
@@ -39,6 +40,7 @@ class FriendUpdate(BaseModel):
 
 @router.get("/")
 @limiter.limit("120/minute")
+@route_error_handler("list_contacts", detail="Failed to list contacts")
 def list_contacts(
     request: Request,
     search: str | None = Query(None, min_length=2, description="Search by name"),
@@ -67,6 +69,7 @@ def list_contacts(
 
 @router.get("/instructors")
 @limiter.limit("120/minute")
+@route_error_handler("list_instructors", detail="Failed to list instructors")
 def list_instructors(request: Request, current_user: dict = Depends(get_current_user)):
     """Get all friends who are instructors."""
     service = FriendService()
@@ -76,6 +79,9 @@ def list_instructors(request: Request, current_user: dict = Depends(get_current_
 
 @router.get("/partners")
 @limiter.limit("120/minute")
+@route_error_handler(
+    "list_training_partners", detail="Failed to list training partners"
+)
 def list_training_partners(
     request: Request, current_user: dict = Depends(get_current_user)
 ):
@@ -87,6 +93,7 @@ def list_training_partners(
 
 @router.get("/{friend_id}")
 @limiter.limit("120/minute")
+@route_error_handler("get_contact", detail="Failed to get contact")
 def get_contact(
     request: Request, friend_id: int, current_user: dict = Depends(get_current_user)
 ):
@@ -100,6 +107,7 @@ def get_contact(
 
 @router.post("/", status_code=status.HTTP_201_CREATED)
 @limiter.limit("30/minute")
+@route_error_handler("create_contact", detail="Failed to create contact")
 def create_contact(
     request: Request,
     friend: FriendCreate,
@@ -124,6 +132,7 @@ def create_contact(
 
 @router.put("/{friend_id}")
 @limiter.limit("30/minute")
+@route_error_handler("update_contact", detail="Failed to update contact")
 def update_contact(
     request: Request,
     friend_id: int,
@@ -151,6 +160,7 @@ def update_contact(
 
 @router.delete("/{friend_id}")
 @limiter.limit("30/minute")
+@route_error_handler("delete_contact", detail="Failed to delete contact")
 def delete_contact(
     request: Request, friend_id: int, current_user: dict = Depends(get_current_user)
 ):

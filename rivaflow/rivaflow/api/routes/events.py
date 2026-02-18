@@ -7,6 +7,7 @@ from pydantic import BaseModel
 
 from rivaflow.api.rate_limit import limiter
 from rivaflow.core.dependencies import get_current_user
+from rivaflow.core.error_handling import route_error_handler
 from rivaflow.core.exceptions import NotFoundError
 from rivaflow.db.repositories.events_repo import EventRepository
 from rivaflow.db.repositories.weight_log_repo import WeightLogRepository
@@ -59,6 +60,7 @@ class WeightLogCreate(BaseModel):
 
 @router.get("/next")
 @limiter.limit("120/minute")
+@route_error_handler("get_next_event", detail="Failed to get next event")
 def get_next_event(request: Request, current_user: dict = Depends(get_current_user)):
     """Get the next upcoming event with countdown information."""
     event_repo = EventRepository()
@@ -82,6 +84,7 @@ def get_next_event(request: Request, current_user: dict = Depends(get_current_us
 
 @router.post("/", status_code=status.HTTP_201_CREATED)
 @limiter.limit("30/minute")
+@route_error_handler("create_event", detail="Failed to create event")
 def create_event(
     request: Request, event: EventCreate, current_user: dict = Depends(get_current_user)
 ):
@@ -97,6 +100,7 @@ def create_event(
 
 @router.get("/")
 @limiter.limit("120/minute")
+@route_error_handler("list_events", detail="Failed to list events")
 def list_events(
     request: Request,
     status: str | None = Query(None, description="Filter by status"),
@@ -110,6 +114,7 @@ def list_events(
 
 @router.get("/{event_id}")
 @limiter.limit("120/minute")
+@route_error_handler("get_event", detail="Failed to get event")
 def get_event(
     request: Request, event_id: int, current_user: dict = Depends(get_current_user)
 ):
@@ -123,6 +128,7 @@ def get_event(
 
 @router.put("/{event_id}")
 @limiter.limit("30/minute")
+@route_error_handler("update_event", detail="Failed to update event")
 def update_event(
     request: Request,
     event_id: int,
@@ -142,6 +148,7 @@ def update_event(
 
 @router.delete("/{event_id}")
 @limiter.limit("30/minute")
+@route_error_handler("delete_event", detail="Failed to delete event")
 def delete_event(
     request: Request, event_id: int, current_user: dict = Depends(get_current_user)
 ):
@@ -161,6 +168,7 @@ def delete_event(
     status_code=status.HTTP_201_CREATED,
 )
 @limiter.limit("30/minute")
+@route_error_handler("create_weight_log", detail="Failed to log weight")
 def create_weight_log(
     request: Request,
     log: WeightLogCreate,
@@ -177,6 +185,7 @@ def create_weight_log(
 
 @router.get("/weight-logs/")
 @limiter.limit("120/minute")
+@route_error_handler("list_weight_logs", detail="Failed to list weight logs")
 def list_weight_logs(
     request: Request,
     start_date: str | None = Query(None, description="Start date YYYY-MM-DD"),
@@ -195,6 +204,7 @@ def list_weight_logs(
 
 @router.get("/weight-logs/latest")
 @limiter.limit("120/minute")
+@route_error_handler("get_latest_weight", detail="Failed to get latest weight")
 def get_latest_weight(
     request: Request,
     current_user: dict = Depends(get_current_user),
@@ -209,6 +219,7 @@ def get_latest_weight(
 
 @router.get("/weight-logs/averages")
 @limiter.limit("120/minute")
+@route_error_handler("get_weight_averages", detail="Failed to get weight averages")
 def get_weight_averages(
     request: Request,
     period: str = Query("weekly", description="Grouping period: weekly or monthly"),

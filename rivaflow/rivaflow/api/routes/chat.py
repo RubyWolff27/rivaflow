@@ -9,6 +9,7 @@ from pydantic import BaseModel
 
 from rivaflow.api.rate_limit import limiter
 from rivaflow.core.dependencies import get_current_user
+from rivaflow.core.error_handling import route_error_handler
 from rivaflow.core.services.privacy_service import PrivacyService
 from rivaflow.db.repositories.session_repo import SessionRepository
 from rivaflow.db.repositories.user_repo import UserRepository
@@ -149,6 +150,7 @@ Now respond to the user's questions using this context. Reference their specific
 
 @router.post("/", response_model=ChatResponse)
 @limiter.limit("20/minute")
+@route_error_handler("chat", detail="Chat service error")
 async def chat(
     request: Request,
     chat_request: ChatRequest,

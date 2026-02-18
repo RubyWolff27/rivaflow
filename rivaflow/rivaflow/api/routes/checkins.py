@@ -8,6 +8,7 @@ from pydantic import BaseModel, Field
 
 from rivaflow.api.rate_limit import limiter
 from rivaflow.core.dependencies import get_current_user
+from rivaflow.core.error_handling import route_error_handler
 from rivaflow.core.exceptions import NotFoundError
 from rivaflow.core.services.streak_service import StreakService
 from rivaflow.core.time_utils import user_today
@@ -50,6 +51,7 @@ class EveningCheckinCreate(BaseModel):
 
 @router.get("/today")
 @limiter.limit("60/minute")
+@route_error_handler("get_today_checkin", detail="Failed to get today's check-in")
 def get_today_checkin(request: Request, current_user: dict = Depends(get_current_user)):
     """Get today's check-in status (all slots), using user's timezone."""
     repo = CheckinRepository()
@@ -69,6 +71,7 @@ def get_today_checkin(request: Request, current_user: dict = Depends(get_current
 
 @router.get("/week")
 @limiter.limit("60/minute")
+@route_error_handler("get_week_checkins", detail="Failed to get week check-ins")
 def get_week_checkins(request: Request, current_user: dict = Depends(get_current_user)):
     """Get this week's check-ins with slot breakdown."""
     repo = CheckinRepository()
@@ -98,6 +101,7 @@ def get_week_checkins(request: Request, current_user: dict = Depends(get_current
 
 @router.put("/today/tomorrow")
 @limiter.limit("60/minute")
+@route_error_handler("update_tomorrow_intention", detail="Failed to update intention")
 def update_tomorrow_intention(
     request: Request,
     data: TomorrowIntentionUpdate,
@@ -124,6 +128,7 @@ def update_tomorrow_intention(
 
 @router.post("/midday")
 @limiter.limit("60/minute")
+@route_error_handler("create_midday_checkin", detail="Failed to create midday check-in")
 def create_midday_checkin(
     request: Request,
     data: MiddayCheckinCreate,
@@ -148,41 +153,41 @@ def create_midday_checkin(
 
 @router.post("/evening")
 @limiter.limit("60/minute")
+@route_error_handler(
+    "create_evening_checkin", detail="Failed to create evening check-in"
+)
 def create_evening_checkin(
     request: Request,
     data: EveningCheckinCreate,
     current_user: dict = Depends(get_current_user),
 ):
     """Create or update evening check-in."""
-    try:
-        repo = CheckinRepository()
-        tz = _get_user_tz(current_user["id"])
-        today = user_today(tz)
-        checkin_id = repo.upsert_evening(
-            user_id=current_user["id"],
-            check_date=today,
-            training_quality=data.training_quality,
-            recovery_note=data.recovery_note,
-            tomorrow_intention=data.tomorrow_intention,
-            did_not_train=data.did_not_train,
-            rest_type=data.rest_type,
-            rest_note=data.rest_note,
-        )
-        # Update check-in streak (rest days count too)
-        checkin_type = "rest" if data.did_not_train else "evening"
-        StreakService().record_checkin(
-            current_user["id"], checkin_type=checkin_type, checkin_date=today
-        )
-        return {"success": True, "id": checkin_id}
-    except Exception as e:
-        logger.exception(
-            "Evening checkin failed for user %s: %s", current_user["id"], e
-        )
-        raise
+    repo = CheckinRepository()
+    tz = _get_user_tz(current_user["id"])
+    today = user_today(tz)
+    checkin_id = repo.upsert_evening(
+        user_id=current_user["id"],
+        check_date=today,
+        training_quality=data.training_quality,
+        recovery_note=data.recovery_note,
+        tomorrow_intention=data.tomorrow_intention,
+        did_not_train=data.did_not_train,
+        rest_type=data.rest_type,
+        rest_note=data.rest_note,
+    )
+    # Update check-in streak (rest days count too)
+    checkin_type = "rest" if data.did_not_train else "evening"
+    StreakService().record_checkin(
+        current_user["id"], checkin_type=checkin_type, checkin_date=today
+    )
+    return {"success": True, "id": checkin_id}
 
 
 @router.get("/yesterday")
 @limiter.limit("60/minute")
+@route_error_handler(
+    "get_yesterday_checkin", detail="Failed to get yesterday's check-in"
+)
 def get_yesterday_checkin(
     request: Request, current_user: dict = Depends(get_current_user)
 ):

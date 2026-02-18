@@ -6,6 +6,7 @@ from pydantic import BaseModel
 from rivaflow.api.rate_limit import limiter
 from rivaflow.api.response_models import ProfileResponse
 from rivaflow.core.dependencies import get_current_user
+from rivaflow.core.error_handling import route_error_handler
 from rivaflow.core.services.profile_service import ProfileService
 
 router = APIRouter()
@@ -45,6 +46,7 @@ class ProfileUpdate(BaseModel):
 
 @router.get("/onboarding-status")
 @limiter.limit("120/minute")
+@route_error_handler("get_onboarding_status", detail="Failed to get onboarding status")
 def get_onboarding_status(
     request: Request, current_user: dict = Depends(get_current_user)
 ):
@@ -120,6 +122,7 @@ def get_onboarding_status(
 
 @router.get("/", response_model=ProfileResponse)
 @limiter.limit("120/minute")
+@route_error_handler("get_profile", detail="Failed to get profile")
 def get_profile(request: Request, current_user: dict = Depends(get_current_user)):
     """Get the user profile."""
     service = ProfileService()
@@ -144,6 +147,7 @@ def get_profile(request: Request, current_user: dict = Depends(get_current_user)
 
 @router.put("/", response_model=ProfileResponse)
 @limiter.limit("30/minute")
+@route_error_handler("update_profile", detail="Failed to update profile")
 def update_profile(
     request: Request,
     profile: ProfileUpdate,
@@ -185,6 +189,7 @@ def update_profile(
 
 @router.post("/photo")
 @limiter.limit("30/minute")
+@route_error_handler("upload_profile_photo", detail="Failed to upload photo")
 async def upload_profile_photo(
     request: Request,
     file: UploadFile = File(...),
@@ -212,6 +217,7 @@ async def upload_profile_photo(
 
 @router.delete("/photo")
 @limiter.limit("30/minute")
+@route_error_handler("delete_profile_photo", detail="Failed to delete photo")
 def delete_profile_photo(
     request: Request, current_user: dict = Depends(get_current_user)
 ):

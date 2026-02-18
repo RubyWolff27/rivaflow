@@ -82,3 +82,28 @@ class ExternalServiceError(ServiceError):
 
     status_code = 503
     default_message = "External service unavailable"
+
+
+# ---------------------------------------------------------------------------
+# Additional HTTP-mapped exceptions
+# ---------------------------------------------------------------------------
+
+
+class ForbiddenError(AuthorizationError):
+    """Alias for AuthorizationError — use when '403 Forbidden' semantics are clearer."""
+
+    default_message = "Forbidden"
+
+
+class GoneError(RivaFlowException):
+    """Raised when a resource has expired or been permanently removed (410)."""
+
+    status_code = 410
+    default_message = "Resource is no longer available"
+
+
+class PayloadTooLargeError(RivaFlowException):
+    """Raised when a request payload exceeds the allowed size (413)."""
+
+    status_code = 413
+    default_message = "Payload too large"

@@ -14,11 +14,17 @@ logger = logging.getLogger(__name__)
 def route_error_handler(
     operation: str,
     detail: str = "An error occurred",
+    catch_all: bool = True,
 ):
     """Decorator that wraps route handlers with standardized error handling.
 
     Re-raises RivaFlowException and HTTPException unchanged.
     Catches ValueError/KeyError/TypeError, logs with exc_info, and raises HTTP 500.
+
+    When ``catch_all=True`` (the default), any other unhandled ``Exception``
+    is also caught, logged, and converted to an HTTP 500 response.  Set
+    ``catch_all=False`` to preserve the previous behaviour where unexpected
+    exceptions propagate to the framework.
 
     Usage::
 
@@ -42,6 +48,15 @@ def route_error_handler(
             except (ValueError, KeyError, TypeError):
                 logger.error("%s failed", operation, exc_info=True)
                 raise HTTPException(status_code=500, detail=detail)
+            except Exception:
+                if catch_all:
+                    logger.error(
+                        "%s failed (unhandled)",
+                        operation,
+                        exc_info=True,
+                    )
+                    raise HTTPException(status_code=500, detail=detail)
+                raise
 
         return wrapper
 

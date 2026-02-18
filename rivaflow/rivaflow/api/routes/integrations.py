@@ -8,6 +8,7 @@ from fastapi.responses import RedirectResponse
 from pydantic import BaseModel
 
 from rivaflow.core.dependencies import get_current_user
+from rivaflow.core.error_handling import route_error_handler
 from rivaflow.core.exceptions import ExternalServiceError, NotFoundError
 from rivaflow.core.services.whoop_service import WhoopService
 from rivaflow.core.settings import settings
@@ -50,6 +51,7 @@ class AutoCreateRequest(BaseModel):
 
 
 @router.get("/whoop/authorize")
+@route_error_handler("whoop_authorize", detail="Failed to initiate WHOOP authorization")
 def authorize(
     request: Request,
     current_user: dict = Depends(get_current_user),
@@ -63,6 +65,7 @@ def authorize(
 
 
 @router.get("/whoop/callback")
+@route_error_handler("whoop_callback", detail="Failed to process WHOOP callback")
 def callback(
     request: Request,
     code: str = Query(None),
@@ -103,6 +106,7 @@ def callback(
 
 
 @router.get("/whoop/status")
+@route_error_handler("whoop_status", detail="Failed to get WHOOP status")
 def get_status(
     request: Request,
     current_user: dict = Depends(get_current_user),
@@ -114,6 +118,7 @@ def get_status(
 
 
 @router.post("/whoop/sync")
+@route_error_handler("whoop_sync_workouts", detail="Failed to sync workouts")
 def sync_workouts(
     request: Request,
     days: int = Query(7, ge=1, le=90, description="Days to sync (1-90)"),
@@ -138,6 +143,7 @@ def sync_workouts(
 
 
 @router.get("/whoop/workouts")
+@route_error_handler("whoop_get_workouts", detail="Failed to get workouts")
 def get_workouts(
     request: Request,
     session_id: int | None = Query(None),
@@ -182,6 +188,7 @@ def get_workouts(
 
 
 @router.post("/whoop/match")
+@route_error_handler("whoop_match_workout", detail="Failed to match workout")
 def match_workout(
     request: Request,
     body: MatchRequest,
@@ -203,6 +210,7 @@ def match_workout(
 
 
 @router.post("/whoop/sync-recovery")
+@route_error_handler("whoop_sync_recovery", detail="Failed to sync recovery")
 def sync_recovery(
     request: Request,
     days: int = Query(7, ge=1, le=90, description="Days to sync (1-90)"),
@@ -227,6 +235,7 @@ def sync_recovery(
 
 
 @router.get("/whoop/recovery/latest")
+@route_error_handler("whoop_get_recovery", detail="Failed to get recovery data")
 def get_latest_recovery(
     request: Request,
     current_user: dict = Depends(get_current_user),
@@ -245,6 +254,7 @@ def get_latest_recovery(
 
 
 @router.get("/whoop/scope-check")
+@route_error_handler("whoop_scope_check", detail="Failed to check WHOOP scopes")
 def scope_check(
     request: Request,
     current_user: dict = Depends(get_current_user),
@@ -256,6 +266,7 @@ def scope_check(
 
 
 @router.get("/whoop/readiness/auto-fill")
+@route_error_handler("whoop_readiness_autofill", detail="Failed to auto-fill readiness")
 def readiness_auto_fill(
     request: Request,
     date: str = Query(None, description="Date in YYYY-MM-DD format"),
@@ -281,6 +292,7 @@ def readiness_auto_fill(
 
 
 @router.get("/whoop/session/{session_id}/context")
+@route_error_handler("whoop_session_context", detail="Failed to get session context")
 def get_session_context(
     request: Request,
     session_id: int,
@@ -457,6 +469,7 @@ def get_session_context(
 
 
 @router.get("/whoop/zones/batch")
+@route_error_handler("whoop_zones_batch", detail="Failed to get zones batch")
 def get_zones_batch(
     request: Request,
     session_ids: str = Query(..., description="Comma-separated session IDs"),
@@ -513,6 +526,7 @@ def get_zones_batch(
 
 
 @router.get("/whoop/zones/weekly")
+@route_error_handler("whoop_zones_weekly", detail="Failed to get weekly zones")
 def get_zones_weekly(
     request: Request,
     week_offset: int = Query(0, ge=-52, le=0, description="Weeks back (0=current)"),
@@ -571,6 +585,7 @@ def get_zones_weekly(
 
 
 @router.post("/whoop/auto-create-sessions")
+@route_error_handler("whoop_auto_create", detail="Failed to set auto-create")
 def set_auto_create(
     body: AutoCreateRequest,
     current_user: dict = Depends(get_current_user),
@@ -582,6 +597,7 @@ def set_auto_create(
 
 
 @router.post("/whoop/auto-fill-readiness")
+@route_error_handler("whoop_auto_fill", detail="Failed to set auto-fill readiness")
 def set_auto_fill_readiness(
     body: AutoCreateRequest,
     current_user: dict = Depends(get_current_user),
@@ -593,6 +609,7 @@ def set_auto_fill_readiness(
 
 
 @router.delete("/whoop")
+@route_error_handler("whoop_disconnect", detail="Failed to disconnect WHOOP")
 def disconnect(
     request: Request,
     current_user: dict = Depends(get_current_user),

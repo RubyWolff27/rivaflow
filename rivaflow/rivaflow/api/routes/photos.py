@@ -20,6 +20,8 @@ from fastapi import (
 
 from rivaflow.api.rate_limit import limiter
 from rivaflow.core.dependencies import get_current_user
+from rivaflow.core.error_handling import route_error_handler
+from rivaflow.core.exceptions import NotFoundError, ValidationError
 from rivaflow.core.services.storage_service import get_storage
 from rivaflow.db.repositories import ActivityPhotoRepository
 
@@ -83,6 +85,7 @@ def validate_image_content(content: bytes, filename: str) -> str | None:
     status_code=status.HTTP_201_CREATED,
 )
 @limiter.limit("10/minute")
+@route_error_handler("upload_photo", detail="Failed to upload photo")
 async def upload_photo(
     request: Request,
     file: UploadFile = File(...),
@@ -101,7 +104,7 @@ async def upload_photo(
     photo_repo = ActivityPhotoRepository()
     # Validate activity type
     if activity_type not in ["session", "readiness", "rest"]:
-        raise HTTPException(status_code=400, detail="Invalid activity type")
+        raise ValidationError("Invalid activity type")
 
     # Check photo count limit
     photo_count = photo_repo.count_by_activity(
@@ -173,6 +176,7 @@ async def upload_photo(
 
 
 @router.get("/photos/activity/{activity_type}/{activity_id}")
+@route_error_handler("get_activity_photos", detail="Failed to get activity photos")
 def get_activity_photos(
     activity_type: str,
     activity_id: int,
@@ -191,6 +195,7 @@ def get_activity_photos(
 
 
 @router.get("/photos/{photo_id}")
+@route_error_handler("get_photo", detail="Failed to get photo")
 def get_photo(photo_id: int, current_user: dict = Depends(get_current_user)):
     """
     Get photo by ID.
@@ -198,7 +203,7 @@ def get_photo(photo_id: int, current_user: dict = Depends(get_current_user)):
     photo_repo = ActivityPhotoRepository()
     photo = photo_repo.get_by_id(current_user["id"], photo_id)
     if not photo:
-        raise HTTPException(status_code=404, detail="Photo not found")
+        raise NotFoundError("Photo not found")
     # Map file_path → url so frontend can use photo.url
     if "file_path" in photo and "url" not in photo:
         photo["url"] = photo["file_path"]
@@ -206,6 +211,7 @@ def get_photo(photo_id: int, current_user: dict = Depends(get_current_user)):
 
 
 @router.delete("/photos/{photo_id}")
+@route_error_handler("delete_photo", detail="Failed to delete photo")
 def delete_photo(photo_id: int, current_user: dict = Depends(get_current_user)):
     """
     Delete a photo.
@@ -214,12 +220,12 @@ def delete_photo(photo_id: int, current_user: dict = Depends(get_current_user)):
     # Get photo info to delete file
     photo = photo_repo.get_by_id(current_user["id"], photo_id)
     if not photo:
-        raise HTTPException(status_code=404, detail="Photo not found")
+        raise NotFoundError("Photo not found")
 
     # Delete from database
     deleted = photo_repo.delete(current_user["id"], photo_id)
     if not deleted:
-        raise HTTPException(status_code=404, detail="Photo not found")
+        raise NotFoundError("Photo not found")
 
     # Delete file from storage
     try:
@@ -233,6 +239,7 @@ def delete_photo(photo_id: int, current_user: dict = Depends(get_current_user)):
 
 
 @router.put("/photos/{photo_id}/caption")
+@route_error_handler("update_caption", detail="Failed to update caption")
 def update_caption(
     photo_id: int,
     caption: str = Form(...),
@@ -244,7 +251,7 @@ def update_caption(
     photo_repo = ActivityPhotoRepository()
     updated = photo_repo.update_caption(current_user["id"], photo_id, caption)
     if not updated:
-        raise HTTPException(status_code=404, detail="Photo not found")
+        raise NotFoundError("Photo not found")
 
     photo = photo_repo.get_by_id(current_user["id"], photo_id)
     return photo

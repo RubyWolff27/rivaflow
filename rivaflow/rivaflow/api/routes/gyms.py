@@ -4,6 +4,7 @@ from fastapi import APIRouter, Depends, Path, Query, Request
 
 from rivaflow.api.rate_limit import limiter
 from rivaflow.core.dependencies import get_current_user
+from rivaflow.core.error_handling import route_error_handler
 from rivaflow.core.exceptions import NotFoundError
 from rivaflow.core.services.gym_service import GymService
 
@@ -12,6 +13,7 @@ router = APIRouter(prefix="/gyms", tags=["gyms"])
 
 @router.get("")
 @limiter.limit("120/minute")
+@route_error_handler("list_gyms", detail="Failed to list gyms")
 def list_gyms(
     request: Request,
     verified_only: bool = Query(True),
@@ -28,6 +30,7 @@ def list_gyms(
 
 @router.get("/search")
 @limiter.limit("120/minute")
+@route_error_handler("search_gyms", detail="Failed to search gyms")
 def search_gyms(
     request: Request,
     q: str = "",
@@ -48,6 +51,7 @@ def search_gyms(
 
 @router.get("/{gym_id}/timetable")
 @limiter.limit("120/minute")
+@route_error_handler("get_timetable", detail="Failed to get timetable")
 def get_timetable(
     request: Request,
     gym_id: int = Path(..., gt=0),
@@ -64,6 +68,7 @@ def get_timetable(
 
 @router.get("/{gym_id}/timetable/today")
 @limiter.limit("120/minute")
+@route_error_handler("get_todays_classes", detail="Failed to get today's classes")
 def get_todays_classes(
     request: Request,
     gym_id: int = Path(..., gt=0),

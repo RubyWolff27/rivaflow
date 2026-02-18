@@ -7,6 +7,7 @@ from pydantic import BaseModel
 
 from rivaflow.api.rate_limit import limiter
 from rivaflow.core.dependencies import get_current_user
+from rivaflow.core.error_handling import route_error_handler
 from rivaflow.core.exceptions import NotFoundError, ValidationError
 from rivaflow.core.services.glossary_service import GlossaryService
 from rivaflow.core.validation import validate_video_url
@@ -39,6 +40,7 @@ class CustomVideoCreate(BaseModel):
 
 @router.get("/")
 @limiter.limit("120/minute")
+@route_error_handler("list_movements", detail="Failed to list movements")
 def list_movements(
     request: Request,
     category: str | None = Query(None, description="Filter by category"),
@@ -70,6 +72,7 @@ def list_movements(
 
 @router.get("/categories")
 @limiter.limit("120/minute")
+@route_error_handler("get_categories", detail="Failed to get categories")
 def get_categories(request: Request, current_user: dict = Depends(get_current_user)):
     """Get list of all movement categories."""
     service = GlossaryService()
@@ -79,6 +82,7 @@ def get_categories(request: Request, current_user: dict = Depends(get_current_us
 
 @router.get("/{movement_id}")
 @limiter.limit("120/minute")
+@route_error_handler("get_movement", detail="Failed to get movement")
 def get_movement(
     request: Request,
     movement_id: int,
@@ -99,6 +103,7 @@ def get_movement(
 
 @router.post("/")
 @limiter.limit("120/minute")
+@route_error_handler("create_custom_movement", detail="Failed to create movement")
 def create_custom_movement(
     request: Request,
     movement: MovementCreate,
@@ -122,6 +127,7 @@ def create_custom_movement(
 
 @router.delete("/{movement_id}")
 @limiter.limit("120/minute")
+@route_error_handler("delete_custom_movement", detail="Failed to delete movement")
 def delete_custom_movement(
     request: Request, movement_id: int, current_user: dict = Depends(get_current_user)
 ):
@@ -137,6 +143,7 @@ def delete_custom_movement(
 
 @router.post("/{movement_id}/videos")
 @limiter.limit("120/minute")
+@route_error_handler("add_custom_video", detail="Failed to add video")
 def add_custom_video(
     request: Request,
     movement_id: int,
@@ -163,6 +170,7 @@ def add_custom_video(
 
 @router.delete("/{movement_id}/videos/{video_id}")
 @limiter.limit("120/minute")
+@route_error_handler("delete_custom_video", detail="Failed to delete video")
 def delete_custom_video(
     request: Request,
     movement_id: int,

@@ -7,6 +7,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 
 from rivaflow.core.dependencies import get_current_user
+from rivaflow.core.error_handling import route_error_handler
 from rivaflow.core.exceptions import NotFoundError, ValidationError
 from rivaflow.core.services.training_goals_service import TrainingGoalsService
 
@@ -34,6 +35,7 @@ class UpdateTrainingGoal(BaseModel):
 
 
 @router.post("/")
+@route_error_handler("create_goal", detail="Failed to create goal")
 def create_goal(
     body: CreateTrainingGoal,
     current_user: dict = Depends(get_current_user),
@@ -55,6 +57,7 @@ def create_goal(
 
 
 @router.get("/")
+@route_error_handler("list_goals", detail="Failed to list goals")
 def list_goals(
     month: str | None = None,
     current_user: dict = Depends(get_current_user),
@@ -70,6 +73,7 @@ def list_goals(
 
 
 @router.get("/{goal_id}")
+@route_error_handler("get_goal", detail="Failed to get goal")
 def get_goal(
     goal_id: int,
     current_user: dict = Depends(get_current_user),
@@ -81,10 +85,11 @@ def get_goal(
             user_id=current_user["id"], goal_id=goal_id
         )
     except NotFoundError:
-        raise HTTPException(status_code=404, detail="Goal not found")
+        raise NotFoundError("Goal not found")
 
 
 @router.put("/{goal_id}")
+@route_error_handler("update_goal", detail="Failed to update goal")
 def update_goal(
     goal_id: int,
     body: UpdateTrainingGoal,
@@ -100,12 +105,13 @@ def update_goal(
             is_active=body.is_active,
         )
     except NotFoundError:
-        raise HTTPException(status_code=404, detail="Goal not found")
+        raise NotFoundError("Goal not found")
     except ValidationError as e:
         raise HTTPException(status_code=400, detail=str(e))
 
 
 @router.delete("/{goal_id}")
+@route_error_handler("delete_goal", detail="Failed to delete goal")
 def delete_goal(
     goal_id: int,
     current_user: dict = Depends(get_current_user),
@@ -116,4 +122,4 @@ def delete_goal(
         service.delete_goal(user_id=current_user["id"], goal_id=goal_id)
         return {"success": True}
     except NotFoundError:
-        raise HTTPException(status_code=404, detail="Goal not found")
+        raise NotFoundError("Goal not found")

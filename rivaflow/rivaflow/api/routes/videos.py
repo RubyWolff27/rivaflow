@@ -5,6 +5,7 @@ from pydantic import BaseModel, Field
 
 from rivaflow.api.rate_limit import limiter
 from rivaflow.core.dependencies import get_current_user
+from rivaflow.core.error_handling import route_error_handler
 from rivaflow.core.exceptions import NotFoundError
 from rivaflow.core.services.glossary_service import GlossaryService
 
@@ -22,6 +23,7 @@ class VideoCreateRequest(BaseModel):
 
 @router.post("/")
 @limiter.limit("120/minute")
+@route_error_handler("add_video", detail="Failed to add video")
 def add_video(
     request: Request,
     video: VideoCreateRequest,
@@ -42,6 +44,7 @@ def add_video(
 
 @router.get("/")
 @limiter.limit("120/minute")
+@route_error_handler("list_videos", detail="Failed to list videos")
 def list_videos(
     request: Request,
     limit: int = Query(default=50, ge=1, le=200, description="Max results to return"),
@@ -63,6 +66,7 @@ def list_videos(
 
 @router.delete("/{video_id}")
 @limiter.limit("120/minute")
+@route_error_handler("delete_video", detail="Failed to delete video")
 def delete_video(
     request: Request, video_id: int, current_user: dict = Depends(get_current_user)
 ):
@@ -84,6 +88,7 @@ def delete_video(
 
 @router.get("/{video_id}")
 @limiter.limit("120/minute")
+@route_error_handler("get_video", detail="Failed to get video")
 def get_video(
     request: Request, video_id: int, current_user: dict = Depends(get_current_user)
 ):

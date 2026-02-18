@@ -8,6 +8,7 @@ from fastapi.responses import JSONResponse
 
 from rivaflow.api.rate_limit import limiter
 from rivaflow.core.dependencies import get_current_user
+from rivaflow.core.error_handling import route_error_handler
 from rivaflow.core.settings import settings
 
 router = APIRouter(prefix="/transcribe", tags=["transcribe"])
@@ -48,6 +49,7 @@ MIME_TO_EXT = {
 
 @router.post("/")
 @limiter.limit("20/minute")
+@route_error_handler("transcribe_audio", detail="Transcription failed")
 async def transcribe_audio(
     request: Request,
     file: UploadFile,

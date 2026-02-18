@@ -5,6 +5,7 @@ from pydantic import BaseModel
 
 from rivaflow.api.rate_limit import limiter
 from rivaflow.core.dependencies import get_current_user
+from rivaflow.core.error_handling import route_error_handler
 from rivaflow.db.repositories.coach_preferences_repo import (
     CoachPreferencesRepository,
 )
@@ -94,6 +95,7 @@ DEFAULTS = {
 
 @router.get("/")
 @limiter.limit("60/minute")
+@route_error_handler("get_preferences", detail="Failed to get coach preferences")
 def get_preferences(request: Request, current_user: dict = Depends(get_current_user)):
     """Get coach preferences for the current user."""
     prefs = CoachPreferencesRepository.get(current_user["id"])
@@ -109,6 +111,7 @@ def get_preferences(request: Request, current_user: dict = Depends(get_current_u
 
 @router.put("/")
 @limiter.limit("30/minute")
+@route_error_handler("update_preferences", detail="Failed to update coach preferences")
 def update_preferences(
     body: CoachPreferencesUpdate,
     request: Request,

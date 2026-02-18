@@ -7,6 +7,7 @@ from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 
 from rivaflow.core.dependencies import get_current_user
+from rivaflow.core.error_handling import route_error_handler
 from rivaflow.core.middleware.feature_access import (
     get_user_tier_info,
     require_beta_or_premium,
@@ -67,6 +68,7 @@ class TierInfoResponse(BaseModel):
 
 
 @router.get("/info", response_model=TierInfoResponse)
+@route_error_handler("get_grapple_info", detail="Failed to get Grapple info")
 def get_grapple_info(current_user: dict = Depends(get_current_user)):
     """
     Get information about Grapple AI Coach and user's access level.
@@ -85,6 +87,7 @@ def get_grapple_info(current_user: dict = Depends(get_current_user)):
 
 
 @router.get("/teaser")
+@route_error_handler("get_grapple_teaser", detail="Failed to get Grapple teaser")
 def get_grapple_teaser(current_user: dict = Depends(get_current_user)):
     """
     Teaser endpoint showing free users what they're missing.
@@ -133,6 +136,7 @@ def get_grapple_teaser(current_user: dict = Depends(get_current_user)):
 
 @router.post("/chat", response_model=ChatResponse)
 @require_beta_or_premium
+@route_error_handler("chat_with_grapple", detail="Chat service error")
 async def chat_with_grapple(
     request: ChatRequest,
     current_user: dict = Depends(get_current_user),
@@ -342,6 +346,7 @@ async def _handle_chat(
 
 @router.get("/sessions", response_model=SessionListResponse)
 @require_beta_or_premium
+@route_error_handler("get_chat_sessions", detail="Failed to get chat sessions")
 def get_chat_sessions(
     current_user: dict = Depends(get_current_user),
     limit: int = 20,
@@ -365,6 +370,7 @@ def get_chat_sessions(
 
 @router.get("/sessions/{session_id}")
 @require_beta_or_premium
+@route_error_handler("get_chat_session", detail="Failed to get chat session")
 def get_chat_session(
     session_id: str,
     current_user: dict = Depends(get_current_user),
@@ -402,6 +408,7 @@ def get_chat_session(
 
 @router.delete("/sessions/{session_id}")
 @require_beta_or_premium
+@route_error_handler("delete_chat_session", detail="Failed to delete chat session")
 def delete_chat_session(
     session_id: str,
     current_user: dict = Depends(get_current_user),
@@ -430,6 +437,7 @@ def delete_chat_session(
 
 @router.get("/usage")
 @require_beta_or_premium
+@route_error_handler("get_usage_stats", detail="Failed to get usage stats")
 def get_usage_stats(
     current_user: dict = Depends(get_current_user),
 ):
@@ -533,6 +541,7 @@ class TechniqueQARequest(BaseModel):
 
 @router.post("/extract-session")
 @require_beta_or_premium
+@route_error_handler("extract_session", detail="Failed to extract session")
 async def extract_session(
     request: ExtractSessionRequest,
     current_user: dict = Depends(get_current_user),
@@ -556,6 +565,7 @@ async def extract_session(
 
 @router.post("/save-extracted-session")
 @require_beta_or_premium
+@route_error_handler("save_extracted_session", detail="Failed to save session")
 def save_extracted_session(
     request: SaveExtractedSessionRequest,
     current_user: dict = Depends(get_current_user),
@@ -613,6 +623,7 @@ def save_extracted_session(
 
 @router.get("/insights")
 @require_beta_or_premium
+@route_error_handler("list_insights", detail="Failed to list insights")
 def list_insights(
     current_user: dict = Depends(get_current_user),
     limit: int = 20,
@@ -635,6 +646,7 @@ def list_insights(
 
 @router.post("/insights/generate")
 @require_beta_or_premium
+@route_error_handler("generate_insight", detail="Failed to generate insight")
 async def generate_insight(
     request: GenerateInsightRequest,
     current_user: dict = Depends(get_current_user),
@@ -668,6 +680,7 @@ async def generate_insight(
 
 @router.post("/insights/{insight_id}/chat")
 @require_beta_or_premium
+@route_error_handler("create_insight_chat", detail="Failed to create insight chat")
 async def create_insight_chat(
     insight_id: int,
     current_user: dict = Depends(get_current_user),
@@ -742,6 +755,7 @@ async def _handle_insight_chat(insight_id: int, user_id: int):
 
 @router.post("/technique-qa")
 @require_beta_or_premium
+@route_error_handler("technique_qa", detail="Failed to process technique Q&A")
 async def technique_qa_endpoint(
     request: TechniqueQARequest,
     current_user: dict = Depends(get_current_user),

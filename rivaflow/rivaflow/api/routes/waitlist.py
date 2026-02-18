@@ -2,12 +2,17 @@
 
 import logging
 
-from fastapi import APIRouter, Depends, HTTPException, Path, Request, status
+from fastapi import APIRouter, Depends, Path, Request, status
 from pydantic import BaseModel, EmailStr, Field
 
 from rivaflow.api.rate_limit import limiter
 from rivaflow.core.dependencies import get_admin_user
-from rivaflow.core.exceptions import RivaFlowException
+from rivaflow.core.error_handling import route_error_handler
+from rivaflow.core.exceptions import (
+    NotFoundError,
+    ServiceError,
+    ValidationError,
+)
 from rivaflow.core.services.email_service import EmailService
 from rivaflow.db.repositories.waitlist_repo import WaitlistRepository
 
@@ -61,6 +66,7 @@ class NotesUpdateRequest(BaseModel):
 
 @router.post("/join", status_code=status.HTTP_201_CREATED)
 @limiter.limit("5/minute")
+@route_error_handler("join_waitlist", detail="Failed to join waitlist")
 def join_waitlist(request: Request, req: WaitlistJoinRequest):
     """
     Join the RivaFlow waitlist.
@@ -83,29 +89,21 @@ def join_waitlist(request: Request, req: WaitlistJoinRequest):
             "message": "You're already on the list!",
         }
 
-    try:
-        entry = repo.create(
-            email=req.email,
-            first_name=req.first_name,
-            gym_name=req.gym_name,
-            belt_rank=req.belt_rank,
-            referral_source=req.referral_source,
-        )
-        return {
-            "position": entry["position"],
-            "message": "You've been added to the waitlist! We'll notify you when it's your turn.",
-        }
-    except (RivaFlowException, HTTPException):
-        raise
-    except Exception as e:
-        logger.error(f"Failed to add {req.email} to waitlist: {e}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to join waitlist. Please try again.",
-        )
+    entry = repo.create(
+        email=req.email,
+        first_name=req.first_name,
+        gym_name=req.gym_name,
+        belt_rank=req.belt_rank,
+        referral_source=req.referral_source,
+    )
+    return {
+        "position": entry["position"],
+        "message": "You've been added to the waitlist! We'll notify you when it's your turn.",
+    }
 
 
 @router.get("/count")
+@route_error_handler("get_waitlist_count", detail="Failed to get waitlist count")
 def get_waitlist_count():
     """
     Get the number of people currently waiting on the waitlist.
@@ -123,6 +121,7 @@ def get_waitlist_count():
 
 
 @admin_router.get("/")
+@route_error_handler("list_waitlist", detail="Failed to list waitlist")
 def list_waitlist(
     status: str | None = None,
     search: str | None = None,
@@ -152,6 +151,7 @@ def list_waitlist(
 
 
 @admin_router.post("/{waitlist_id}/invite")
+@route_error_handler("invite_entry", detail="Failed to invite entry")
 def invite_entry(
     waitlist_id: int = Path(..., gt=0),
     req: InviteRequest = None,
@@ -173,29 +173,17 @@ def invite_entry(
     # Verify the entry exists
     entry = repo.get_by_id(waitlist_id)
     if not entry:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Waitlist entry not found",
-        )
+        raise NotFoundError("Waitlist entry not found")
 
     if entry["status"] == "invited":
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="This entry has already been invited",
-        )
+        raise ValidationError("This entry has already been invited")
 
     if entry["status"] == "registered":
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="This entry has already registered",
-        )
+        raise ValidationError("This entry has already registered")
 
     token = repo.invite(waitlist_id, assigned_tier=req.tier)
     if not token:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to generate invite",
-        )
+        raise ServiceError("Failed to generate invite")
 
     # Send invite email
     try:
@@ -217,6 +205,7 @@ def invite_entry(
 
 
 @admin_router.post("/bulk-invite")
+@route_error_handler("bulk_invite_entries", detail="Failed to bulk invite")
 def bulk_invite_entries(
     req: BulkInviteRequest,
     current_user: dict = Depends(get_admin_user),
@@ -256,6 +245,7 @@ def bulk_invite_entries(
 
 
 @admin_router.post("/{waitlist_id}/decline")
+@route_error_handler("decline_entry", detail="Failed to decline entry")
 def decline_entry(
     waitlist_id: int = Path(..., gt=0),
     current_user: dict = Depends(get_admin_user),
@@ -269,17 +259,11 @@ def decline_entry(
 
     entry = repo.get_by_id(waitlist_id)
     if not entry:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Waitlist entry not found",
-        )
+        raise NotFoundError("Waitlist entry not found")
 
     success = repo.decline(waitlist_id)
     if not success:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to decline entry",
-        )
+        raise ServiceError("Failed to decline entry")
 
     logger.info(
         f"Admin {current_user.get('email')} declined waitlist entry "
@@ -290,6 +274,7 @@ def decline_entry(
 
 
 @admin_router.put("/{waitlist_id}/notes")
+@route_error_handler("update_entry_notes", detail="Failed to update notes")
 def update_entry_notes(
     req: NotesUpdateRequest,
     waitlist_id: int = Path(..., gt=0),
@@ -302,22 +287,17 @@ def update_entry_notes(
 
     entry = repo.get_by_id(waitlist_id)
     if not entry:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Waitlist entry not found",
-        )
+        raise NotFoundError("Waitlist entry not found")
 
     success = repo.update_notes(waitlist_id, req.notes)
     if not success:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to update notes",
-        )
+        raise ServiceError("Failed to update notes")
 
     return {"success": True}
 
 
 @admin_router.get("/stats")
+@route_error_handler("get_waitlist_stats", detail="Failed to get waitlist stats")
 def get_waitlist_stats(
     current_user: dict = Depends(get_admin_user),
 ):

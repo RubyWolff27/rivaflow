@@ -22,4 +22,15 @@ class RequestSizeLimitMiddleware(BaseHTTPMiddleware):
                     "max_bytes": self.max_bytes,
                 },
             )
+        # Protect against chunked transfers without Content-Length
+        if request.method in ("POST", "PUT", "PATCH") and not content_length:
+            body = await request.body()
+            if len(body) > self.max_bytes:
+                return JSONResponse(
+                    status_code=413,
+                    content={
+                        "detail": "Request body too large",
+                        "max_bytes": self.max_bytes,
+                    },
+                )
         return await call_next(request)

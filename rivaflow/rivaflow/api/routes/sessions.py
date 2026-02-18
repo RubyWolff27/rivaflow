@@ -7,7 +7,6 @@ from fastapi import (
     APIRouter,
     BackgroundTasks,
     Depends,
-    HTTPException,
     Query,
     Request,
     Response,
@@ -20,6 +19,7 @@ from rivaflow.api.response_models import (
     SessionScoreResponse,
 )
 from rivaflow.core.dependencies import get_current_user
+from rivaflow.core.error_handling import route_error_handler
 from rivaflow.core.exceptions import AuthorizationError, NotFoundError
 from rivaflow.core.models import SessionCreate, SessionUpdate
 from rivaflow.core.services.privacy_service import PrivacyService
@@ -89,6 +89,7 @@ def _trigger_post_session_hooks(user_id: int, session_date: str) -> None:
 
 @router.post("/", status_code=status.HTTP_201_CREATED, response_model=SessionResponse)
 @limiter.limit("60/minute")
+@route_error_handler("create_session", detail="Failed to create session")
 def create_session(
     request: Request,
     session: SessionCreate,
@@ -159,6 +160,7 @@ def create_session(
 
 @router.put("/{session_id}", response_model=SessionResponse)
 @limiter.limit("60/minute")
+@route_error_handler("update_session", detail="Failed to update session")
 def update_session(
     request: Request,
     session_id: int,
@@ -167,61 +169,59 @@ def update_session(
 ):
     """Update an existing training session."""
     service = SessionService()
-    try:
-        # Convert SessionRollData models to dicts if present
-        session_rolls_dict = None
-        if session.session_rolls is not None:
-            session_rolls_dict = [roll.model_dump() for roll in session.session_rolls]
+    # Convert SessionRollData models to dicts if present
+    session_rolls_dict = None
+    if session.session_rolls is not None:
+        session_rolls_dict = [roll.model_dump() for roll in session.session_rolls]
 
-        # Convert SessionTechniqueCreate models to dicts if present
-        session_techniques_dict = None
-        if session.session_techniques is not None:
-            session_techniques_dict = [
-                tech.model_dump() for tech in session.session_techniques
-            ]
+    # Convert SessionTechniqueCreate models to dicts if present
+    session_techniques_dict = None
+    if session.session_techniques is not None:
+        session_techniques_dict = [
+            tech.model_dump() for tech in session.session_techniques
+        ]
 
-        updated = service.update_session(
-            user_id=current_user["id"],
-            session_id=session_id,
-            session_date=session.session_date,
-            class_time=session.class_time,
-            class_type=session.class_type.value if session.class_type else None,
-            gym_name=session.gym_name,
-            location=session.location,
-            duration_mins=session.duration_mins,
-            intensity=session.intensity,
-            rolls=session.rolls,
-            submissions_for=session.submissions_for,
-            submissions_against=session.submissions_against,
-            partners=session.partners,
-            techniques=session.techniques,
-            notes=session.notes,
-            visibility_level=(
-                session.visibility_level.value if session.visibility_level else None
-            ),
-            instructor_id=session.instructor_id,
-            instructor_name=session.instructor_name,
-            session_rolls=session_rolls_dict,
-            session_techniques=session_techniques_dict,
-            whoop_strain=session.whoop_strain,
-            whoop_calories=session.whoop_calories,
-            whoop_avg_hr=session.whoop_avg_hr,
-            whoop_max_hr=session.whoop_max_hr,
-            attacks_attempted=session.attacks_attempted,
-            attacks_successful=session.attacks_successful,
-            defenses_attempted=session.defenses_attempted,
-            defenses_successful=session.defenses_successful,
-            needs_review=session.needs_review,
-        )
-        if not updated:
-            raise NotFoundError(f"Session {session_id} not found or access denied")
-        return updated
-    except HTTPException:
-        raise
+    updated = service.update_session(
+        user_id=current_user["id"],
+        session_id=session_id,
+        session_date=session.session_date,
+        class_time=session.class_time,
+        class_type=session.class_type.value if session.class_type else None,
+        gym_name=session.gym_name,
+        location=session.location,
+        duration_mins=session.duration_mins,
+        intensity=session.intensity,
+        rolls=session.rolls,
+        submissions_for=session.submissions_for,
+        submissions_against=session.submissions_against,
+        partners=session.partners,
+        techniques=session.techniques,
+        notes=session.notes,
+        visibility_level=(
+            session.visibility_level.value if session.visibility_level else None
+        ),
+        instructor_id=session.instructor_id,
+        instructor_name=session.instructor_name,
+        session_rolls=session_rolls_dict,
+        session_techniques=session_techniques_dict,
+        whoop_strain=session.whoop_strain,
+        whoop_calories=session.whoop_calories,
+        whoop_avg_hr=session.whoop_avg_hr,
+        whoop_max_hr=session.whoop_max_hr,
+        attacks_attempted=session.attacks_attempted,
+        attacks_successful=session.attacks_successful,
+        defenses_attempted=session.defenses_attempted,
+        defenses_successful=session.defenses_successful,
+        needs_review=session.needs_review,
+    )
+    if not updated:
+        raise NotFoundError(f"Session {session_id} not found or access denied")
+    return updated
 
 
 @router.delete("/{session_id}")
 @limiter.limit("60/minute")
+@route_error_handler("delete_session", detail="Failed to delete session")
 def delete_session(
     request: Request, session_id: int, current_user: dict = Depends(get_current_user)
 ):
@@ -234,6 +234,7 @@ def delete_session(
 
 
 @router.get("/{session_id}", response_model=SessionResponse)
+@route_error_handler("get_session", detail="Failed to get session")
 def get_session(
     session_id: int,
     apply_privacy: bool = False,
@@ -272,6 +273,7 @@ def get_session(
 
 
 @router.get("/", response_model=list[SessionResponse])
+@route_error_handler("list_sessions", detail="Failed to list sessions")
 def list_sessions(
     limit: int = Query(default=10, ge=1, le=1000),
     apply_privacy: bool = False,
@@ -296,6 +298,7 @@ def list_sessions(
 
 
 @router.get("/range/{start_date}/{end_date}")
+@route_error_handler("get_sessions_by_range", detail="Failed to get sessions")
 def get_sessions_by_range(
     start_date: date,
     end_date: date,
@@ -324,6 +327,7 @@ def get_sessions_by_range(
 
 
 @router.get("/autocomplete/data")
+@route_error_handler("get_autocomplete_data", detail="Failed to get autocomplete data")
 def get_autocomplete_data(current_user: dict = Depends(get_current_user)):
     """Get data for autocomplete suggestions."""
     service = SessionService()
@@ -331,6 +335,7 @@ def get_autocomplete_data(current_user: dict = Depends(get_current_user)):
 
 
 @router.get("/{session_id}/insights")
+@route_error_handler("get_session_insights", detail="Failed to get session insights")
 def get_session_insights(
     session_id: int,
     current_user: dict = Depends(get_current_user),
@@ -350,6 +355,9 @@ def get_session_insights(
 
 
 @router.get("/{session_id}/with-rolls")
+@route_error_handler(
+    "get_session_with_rolls", detail="Failed to get session with rolls"
+)
 def get_session_with_rolls(
     session_id: int,
     apply_privacy: bool = False,
@@ -381,6 +389,7 @@ def get_session_with_rolls(
 
 
 @router.get("/partner/{partner_id}/stats")
+@route_error_handler("get_partner_stats", detail="Failed to get partner stats")
 def get_partner_stats(partner_id: int, current_user: dict = Depends(get_current_user)):
     """Get training statistics for a specific partner."""
     service = SessionService()
@@ -392,6 +401,7 @@ def get_partner_stats(partner_id: int, current_user: dict = Depends(get_current_
 
 
 @router.get("/{session_id}/score", response_model=SessionScoreResponse)
+@route_error_handler("get_session_score", detail="Failed to get session score")
 def get_session_score(
     session_id: int,
     current_user: dict = Depends(get_current_user),
@@ -412,6 +422,7 @@ def get_session_score(
 
 @router.post("/{session_id}/score/recalculate")
 @limiter.limit("30/minute")
+@route_error_handler("recalculate_session_score", detail="Failed to recalculate score")
 def recalculate_session_score(
     request: Request,
     session_id: int,
@@ -435,6 +446,7 @@ def recalculate_session_score(
 
 @router.post("/scores/backfill")
 @limiter.limit("5/minute")
+@route_error_handler("backfill_scores", detail="Failed to backfill scores")
 def backfill_scores(
     request: Request,
     current_user: dict = Depends(get_current_user),

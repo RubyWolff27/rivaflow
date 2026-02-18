@@ -1,6 +1,7 @@
 """Admin routes for gym and data management."""
 
 import logging
+import re
 import time
 
 from fastapi import APIRouter, BackgroundTasks, Body, Depends, Path, Query, Request
@@ -8,6 +9,7 @@ from pydantic import BaseModel, Field
 
 from rivaflow.api.rate_limit import limiter
 from rivaflow.core.dependencies import get_admin_user
+from rivaflow.core.error_handling import route_error_handler
 from rivaflow.core.exceptions import NotFoundError, ValidationError
 from rivaflow.core.services.audit_service import AuditService
 from rivaflow.core.services.gym_service import GymService
@@ -16,6 +18,11 @@ from rivaflow.db.repositories.gym_class_repo import GymClassRepository
 from rivaflow.db.repositories.gym_repo import GymRepository
 
 logger = logging.getLogger(__name__)
+
+_DANGEROUS_HTML_RE = re.compile(
+    r"<\s*(script|iframe|object|embed|form|base|meta|link|svg)\b" r"|on\w+\s*=",
+    re.IGNORECASE,
+)
 
 router = APIRouter(prefix="/admin", tags=["admin"])
 
@@ -81,7 +88,8 @@ def get_client_ip(request: Request) -> str:
     # Check X-Forwarded-For header first (for reverse proxies)
     forwarded = request.headers.get("X-Forwarded-For")
     if forwarded:
-        return forwarded.split(",")[0].strip()
+        # Rightmost entry is added by the trusted reverse proxy
+        return forwarded.split(",")[-1].strip()
     # Fall back to direct client IP
     if request.client:
         return request.client.host
@@ -91,6 +99,7 @@ def get_client_ip(request: Request) -> str:
 # Gym management endpoints
 @router.get("/gyms")
 @limiter.limit("60/minute")
+@route_error_handler("list_gyms", detail="Failed to list gyms")
 def list_gyms(
     request: Request,
     verified_only: bool = False,
@@ -107,6 +116,7 @@ def list_gyms(
 
 @router.get("/gyms/pending")
 @limiter.limit("60/minute")
+@route_error_handler("get_pending_gyms", detail="Failed to get pending gyms")
 def get_pending_gyms(request: Request, current_user: dict = Depends(require_admin)):
     """Get all pending (unverified) gyms."""
     gym_service = GymService()
@@ -119,6 +129,7 @@ def get_pending_gyms(request: Request, current_user: dict = Depends(require_admi
 
 @router.get("/gyms/search")
 @limiter.limit("60/minute")
+@route_error_handler("search_gyms", detail="Failed to search gyms")
 def search_gyms(
     request: Request,
     q: str = "",
@@ -139,6 +150,7 @@ def search_gyms(
 
 @router.post("/gyms")
 @limiter.limit("30/minute")
+@route_error_handler("create_gym", detail="Failed to create gym")
 def create_gym(
     request: Request,
     gym_data: GymCreateRequest = Body(...),
@@ -177,6 +189,7 @@ def create_gym(
 
 @router.put("/gyms/{gym_id}")
 @limiter.limit("30/minute")
+@route_error_handler("update_gym", detail="Failed to update gym")
 def update_gym(
     request: Request,
     gym_id: int = Path(..., gt=0),
@@ -209,6 +222,7 @@ def update_gym(
 
 @router.delete("/gyms/{gym_id}")
 @limiter.limit("10/minute")
+@route_error_handler("delete_gym", detail="Failed to delete gym")
 def delete_gym(
     request: Request,
     gym_id: int = Path(..., gt=0),
@@ -239,6 +253,7 @@ def delete_gym(
 
 @router.post("/gyms/{gym_id}/verify")
 @limiter.limit("30/minute")
+@route_error_handler("verify_gym", detail="Failed to verify gym")
 def verify_gym(
     request: Request,
     gym_id: int = Path(..., gt=0),
@@ -286,6 +301,7 @@ def verify_gym(
 
 @router.post("/gyms/{gym_id}/reject")
 @limiter.limit("30/minute")
+@route_error_handler("reject_gym", detail="Failed to reject gym")
 def reject_gym(
     request: Request,
     gym_id: int = Path(..., gt=0),
@@ -338,6 +354,7 @@ def reject_gym(
 
 @router.post("/gyms/merge")
 @limiter.limit("10/minute")
+@route_error_handler("merge_gyms", detail="Failed to merge gyms")
 def merge_gyms(
     request: Request,
     merge_data: GymMergeRequest = Body(...),
@@ -390,6 +407,7 @@ def merge_gyms(
 # Dashboard endpoints
 @router.get("/dashboard/stats")
 @limiter.limit("60/minute")
+@route_error_handler("get_dashboard_stats", detail="Failed to get dashboard stats")
 def get_dashboard_stats(request: Request, current_user: dict = Depends(require_admin)):
     """Get platform statistics for admin dashboard."""
     from rivaflow.core.services.admin_service import AdminService
@@ -424,6 +442,7 @@ class UserUpdateRequest(BaseModel):
 
 @router.get("/users")
 @limiter.limit("60/minute")
+@route_error_handler("list_users", detail="Failed to list users")
 def list_users(
     request: Request,
     search: str | None = None,
@@ -447,6 +466,7 @@ def list_users(
 
 @router.get("/users/{user_id}")
 @limiter.limit("60/minute")
+@route_error_handler("get_user_details", detail="Failed to get user details")
 def get_user_details(
     request: Request,
     user_id: int = Path(..., gt=0),
@@ -463,6 +483,7 @@ def get_user_details(
 
 @router.put("/users/{user_id}")
 @limiter.limit("30/minute")
+@route_error_handler("update_user", detail="Failed to update user")
 def update_user(
     request: Request,
     user_id: int = Path(..., gt=0),
@@ -505,6 +526,7 @@ def update_user(
 
 @router.delete("/users/{user_id}")
 @limiter.limit("10/minute")
+@route_error_handler("delete_user", detail="Failed to delete user")
 def delete_user(
     request: Request,
     user_id: int = Path(..., gt=0),
@@ -539,6 +561,7 @@ def delete_user(
 # Content moderation endpoints
 @router.get("/comments")
 @limiter.limit("60/minute")
+@route_error_handler("list_all_comments", detail="Failed to list comments")
 def list_all_comments(
     request: Request,
     limit: int = Query(100, ge=1, le=500),
@@ -553,6 +576,7 @@ def list_all_comments(
 
 @router.delete("/comments/{comment_id}")
 @limiter.limit("10/minute")
+@route_error_handler("delete_comment", detail="Failed to delete comment")
 def delete_comment(
     request: Request,
     comment_id: int = Path(..., gt=0),
@@ -581,6 +605,7 @@ def delete_comment(
 # Technique management endpoints
 @router.get("/techniques")
 @limiter.limit("60/minute")
+@route_error_handler("list_techniques", detail="Failed to list techniques")
 def list_techniques(
     request: Request,
     search: str | None = None,
@@ -600,6 +625,7 @@ def list_techniques(
 
 @router.delete("/techniques/{technique_id}")
 @limiter.limit("10/minute")
+@route_error_handler("delete_technique", detail="Failed to delete technique")
 def delete_technique(
     request: Request,
     technique_id: int = Path(..., gt=0),
@@ -627,6 +653,7 @@ def delete_technique(
 # Audit log endpoints
 @router.get("/audit-logs")
 @limiter.limit("60/minute")
+@route_error_handler("get_audit_logs", detail="Failed to get audit logs")
 def get_audit_logs(
     request: Request,
     limit: int = Query(100, ge=1, le=500),
@@ -671,6 +698,7 @@ class FeedbackUpdateStatusRequest(BaseModel):
 
 
 @router.get("/feedback")
+@route_error_handler("get_all_feedback", detail="Failed to get feedback")
 def get_all_feedback(
     status: str | None = Query(None, pattern="^(new|reviewing|resolved|closed)$"),
     category: str | None = Query(
@@ -707,6 +735,9 @@ def get_all_feedback(
 
 
 @router.put("/feedback/{feedback_id}/status")
+@route_error_handler(
+    "update_feedback_status", detail="Failed to update feedback status"
+)
 def update_feedback_status(
     feedback_id: int = Path(..., gt=0),
     request: FeedbackUpdateStatusRequest = Body(...),
@@ -751,6 +782,7 @@ def update_feedback_status(
 
 
 @router.get("/feedback/stats")
+@route_error_handler("get_feedback_stats", detail="Failed to get feedback stats")
 def get_feedback_stats(current_user: dict = Depends(get_admin_user)):
     """
     Get feedback statistics (admin endpoint).
@@ -786,6 +818,7 @@ class BulkTimetableRequest(BaseModel):
 
 @router.post("/gyms/{gym_id}/timetable")
 @limiter.limit("30/minute")
+@route_error_handler("set_timetable", detail="Failed to set timetable")
 def set_timetable(
     request: Request,
     gym_id: int = Path(..., gt=0),
@@ -825,6 +858,7 @@ def set_timetable(
 
 @router.post("/gyms/{gym_id}/classes")
 @limiter.limit("30/minute")
+@route_error_handler("add_class", detail="Failed to add class")
 def add_class(
     request: Request,
     gym_id: int = Path(..., gt=0),
@@ -867,6 +901,7 @@ def add_class(
 
 @router.put("/gyms/{gym_id}/classes/{class_id}")
 @limiter.limit("30/minute")
+@route_error_handler("update_class", detail="Failed to update class")
 def update_class(
     request: Request,
     gym_id: int = Path(..., gt=0),
@@ -896,6 +931,7 @@ def update_class(
 
 @router.delete("/gyms/{gym_id}/classes/{class_id}")
 @limiter.limit("30/minute")
+@route_error_handler("delete_class", detail="Failed to delete class")
 def delete_class(
     request: Request,
     gym_id: int = Path(..., gt=0),
@@ -979,6 +1015,7 @@ def _send_broadcast_background(
 
 @router.post("/email/broadcast")
 @limiter.limit("5/hour")
+@route_error_handler("broadcast_email", detail="Failed to send broadcast email")
 def broadcast_email(
     request: Request,
     background_tasks: BackgroundTasks,
@@ -986,11 +1023,11 @@ def broadcast_email(
     current_user: dict = Depends(require_admin),
 ):
     """Send a broadcast email to all active users (admin only)."""
-    # Sanitize: reject HTML that contains script tags (XSS protection)
-    if "<script" in body.html_body.lower():
+    # Sanitize: reject HTML with dangerous tags/attributes (XSS protection)
+    if _DANGEROUS_HTML_RE.search(body.html_body):
         raise ValidationError(
             message="HTML body contains disallowed content",
-            action="Remove any <script> tags from the email body.",
+            action="Remove any script tags, iframes, event handlers, or other dangerous HTML from the email body.",
         )
 
     from rivaflow.core.services.admin_service import AdminService

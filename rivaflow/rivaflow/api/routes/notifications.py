@@ -15,6 +15,7 @@ from fastapi import (
 
 from rivaflow.api.rate_limit import limiter
 from rivaflow.core.dependencies import get_current_user
+from rivaflow.core.error_handling import route_error_handler
 from rivaflow.core.services.notification_service import NotificationService
 
 logger = logging.getLogger(__name__)
@@ -23,6 +24,9 @@ router = APIRouter(prefix="/notifications", tags=["notifications"])
 
 @router.get("/counts")
 @limiter.limit("120/minute")
+@route_error_handler(
+    "get_notification_counts", detail="Failed to get notification counts"
+)
 def get_notification_counts(
     request: Request, current_user: dict = Depends(get_current_user)
 ):
@@ -49,6 +53,7 @@ def get_notification_counts(
 
 @router.get("/")
 @limiter.limit("120/minute")
+@route_error_handler("get_notifications", detail="Failed to get notifications")
 def get_notifications(
     request: Request,
     current_user: dict = Depends(get_current_user),
@@ -81,6 +86,7 @@ def get_notifications(
 
 @router.post("/read-all")
 @limiter.limit("30/minute")
+@route_error_handler("mark_all_read", detail="Failed to mark notifications as read")
 def mark_all_notifications_as_read(
     request: Request, current_user: dict = Depends(get_current_user)
 ):
@@ -97,6 +103,9 @@ def mark_all_notifications_as_read(
 
 @router.post("/feed/read", status_code=status.HTTP_200_OK)
 @limiter.limit("30/minute")
+@route_error_handler(
+    "mark_feed_read", detail="Failed to mark feed notifications as read"
+)
 def mark_feed_notifications_as_read(
     request: Request, current_user: dict = Depends(get_current_user)
 ):
@@ -132,6 +141,9 @@ def mark_feed_notifications_as_read(
 
 @router.post("/follows/read", status_code=status.HTTP_200_OK)
 @limiter.limit("30/minute")
+@route_error_handler(
+    "mark_follows_read", detail="Failed to mark follow notifications as read"
+)
 def mark_follow_notifications_as_read(
     request: Request, current_user: dict = Depends(get_current_user)
 ):
@@ -166,6 +178,9 @@ def mark_follow_notifications_as_read(
 
 @router.post("/{notification_id}/read")
 @limiter.limit("30/minute")
+@route_error_handler(
+    "mark_notification_read", detail="Failed to mark notification as read"
+)
 def mark_notification_as_read(
     request: Request,
     notification_id: int = Path(..., gt=0),
@@ -184,6 +199,7 @@ def mark_notification_as_read(
 
 @router.delete("/{notification_id}")
 @limiter.limit("30/minute")
+@route_error_handler("delete_notification", detail="Failed to delete notification")
 def delete_notification(
     request: Request,
     notification_id: int = Path(..., gt=0),

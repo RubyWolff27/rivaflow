@@ -4,6 +4,7 @@ from fastapi import APIRouter, Depends, Query, Request
 
 from rivaflow.api.rate_limit import limiter
 from rivaflow.core.dependencies import get_current_user
+from rivaflow.core.error_handling import route_error_handler
 from rivaflow.core.services.feed_service import FeedService
 
 router = APIRouter(prefix="/feed", tags=["feed"])
@@ -11,6 +12,7 @@ router = APIRouter(prefix="/feed", tags=["feed"])
 
 @router.get("/activity")
 @limiter.limit("120/minute")
+@route_error_handler("get_activity_feed", detail="Failed to get activity feed")
 def get_activity_feed(
     request: Request,
     limit: int = Query(default=50, ge=1, le=200),
@@ -39,6 +41,7 @@ def get_activity_feed(
 
 @router.get("/friends")
 @limiter.limit("120/minute")
+@route_error_handler("get_friends_feed", detail="Failed to get friends feed")
 def get_friends_feed(
     request: Request,
     limit: int = Query(default=50, ge=1, le=200),

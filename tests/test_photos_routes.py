@@ -93,7 +93,9 @@ class TestUploadPhoto:
             files={"file": ("test.png", png_bytes, "image/png")},
         )
         assert resp.status_code == 400
-        assert "Invalid activity type" in resp.json()["detail"]
+        body = resp.json()
+        msg = body.get("detail") or body.get("error", {}).get("message", "")
+        assert "Invalid activity type" in msg
 
     def test_upload_invalid_extension(self, authenticated_client, test_user):
         """Unsupported file extension returns 400."""

@@ -7,6 +7,7 @@ import logging
 
 from fastapi import APIRouter, HTTPException, Request, status
 
+from rivaflow.core.error_handling import route_error_handler
 from rivaflow.core.services.whoop_service import WhoopService
 from rivaflow.core.settings import settings
 
@@ -51,6 +52,7 @@ def _lookup_user_by_whoop_id(whoop_user_id: str) -> int | None:
 
 
 @router.post("/whoop")
+@route_error_handler("whoop_webhook", detail="Webhook processing failed")
 async def whoop_webhook(request: Request):
     """Receive and process webhook events from WHOOP.
 
