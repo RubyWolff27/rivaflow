@@ -99,11 +99,7 @@ class GlossaryRepository:
                 )
             )
             rows = cursor.fetchall()
-            # Handle both dict (PostgreSQL RealDictCursor) and tuple (SQLite) results
-            if rows and hasattr(rows[0], "keys"):
-                return [row["category"] for row in rows]
-            else:
-                return [row[0] for row in rows]
+            return [row["category"] for row in rows]
 
     @staticmethod
     def create_custom(
@@ -308,9 +304,7 @@ class GlossaryRepository:
             """
             cursor.execute(convert_query(query), [user_id])
             rows = cursor.fetchall()
-            if rows and hasattr(rows[0], "keys"):
-                return [row["name"] for row in rows]
-            return [row[0] for row in rows]
+            return [row["name"] for row in rows]
 
     @staticmethod
     def list_all_videos(limit: int = 50, offset: int = 0) -> list[dict]:
@@ -387,7 +381,7 @@ class GlossaryRepository:
             )
             row = cursor.fetchone()
             if row:
-                technique_name = row["name"] if hasattr(row, "__getitem__") else row[0]
+                technique_name = row["name"]
 
         with get_connection() as conn:
             cursor = conn.cursor()

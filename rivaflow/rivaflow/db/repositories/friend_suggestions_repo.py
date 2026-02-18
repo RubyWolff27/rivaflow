@@ -134,37 +134,13 @@ class FriendSuggestionsRepository:
                 (user_id, suggested_user_id),
             )
             row = cursor.fetchone()
-            count = row["count"] if hasattr(row, "keys") else row[0]
+            count = row["count"]
             return count > 0
 
     @staticmethod
     def _row_to_dict(row) -> dict[str, Any]:
         """Convert database row to dictionary."""
-        if hasattr(row, "keys"):
-            result = dict(row)
-        else:
-            # Tuple-based result (SQLite)
-            result = {
-                "id": row[0],
-                "user_id": row[1],
-                "suggested_user_id": row[2],
-                "score": row[3],
-                "reasons": json.loads(row[4]) if row[4] else [],
-                "mutual_friends_count": row[5],
-                "dismissed": bool(row[6]),
-                "dismissed_at": row[7],
-                "generated_at": row[8],
-                "expires_at": row[9],
-                "username": row[10] if len(row) > 10 else None,
-                "display_name": row[11] if len(row) > 11 else None,
-                "profile_photo_url": row[12] if len(row) > 12 else None,
-                "belt_rank": row[13] if len(row) > 13 else None,
-                "belt_stripes": row[14] if len(row) > 14 else None,
-                "location_city": row[15] if len(row) > 15 else None,
-                "location_state": row[16] if len(row) > 16 else None,
-                "primary_gym_id": row[17] if len(row) > 17 else None,
-                "primary_gym_name": row[18] if len(row) > 18 else None,
-            }
+        result = dict(row)
 
         # Parse JSON fields if they're strings
         if isinstance(result.get("reasons"), str):

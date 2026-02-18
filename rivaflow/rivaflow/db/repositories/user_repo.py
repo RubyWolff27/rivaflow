@@ -658,21 +658,7 @@ class UserRepository:
 
             candidates = []
             for row in rows:
-                if hasattr(row, "keys"):
-                    candidates.append(dict(row))
-                else:
-                    candidates.append(
-                        {
-                            "id": row[0],
-                            "username": row[1],
-                            "display_name": row[2],
-                            "belt_rank": row[3],
-                            "belt_stripes": row[4],
-                            "location_city": row[5],
-                            "location_state": row[6],
-                            "primary_gym_id": row[7],
-                        }
-                    )
+                candidates.append(dict(row))
             return candidates
 
     @staticmethod

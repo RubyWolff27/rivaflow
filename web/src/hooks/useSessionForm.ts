@@ -53,10 +53,19 @@ export interface UseSessionFormOptions {
   whoopSyncParams?: () => WhoopSyncParams;
 }
 
+export type SessionFormErrors = Partial<Record<keyof SessionFormData, string>>;
+
 export interface UseSessionFormReturn {
   // Session form data
   sessionData: SessionFormData;
   setSessionData: React.Dispatch<React.SetStateAction<SessionFormData>>;
+
+  // Validation
+  errors: SessionFormErrors;
+  touched: Partial<Record<keyof SessionFormData, boolean>>;
+  validateField: (field: keyof SessionFormData) => string | undefined;
+  validateAll: () => boolean;
+  markTouched: (field: keyof SessionFormData) => void;
 
   // Roll tracking
   detailedMode: boolean;
@@ -322,6 +331,57 @@ export function useSessionForm(
     ...DEFAULT_SESSION_DATA,
     ...initialData,
   });
+
+  // ── Validation ─────────────────────────────────────────────────────
+  const [errors, setErrors] = useState<SessionFormErrors>({});
+  const [touched, setTouched] = useState<Partial<Record<keyof SessionFormData, boolean>>>({});
+
+  const validateField = useCallback(
+    (field: keyof SessionFormData): string | undefined => {
+      let error: string | undefined;
+      const data = sessionData;
+      switch (field) {
+        case 'session_date':
+          if (!data.session_date) error = 'Date is required';
+          break;
+        case 'duration_mins':
+          if (!data.duration_mins || data.duration_mins <= 0)
+            error = 'Duration must be greater than 0';
+          break;
+        case 'class_type':
+          if (!data.class_type) error = 'Class type is required';
+          break;
+      }
+      setErrors((prev) => {
+        if (error) return { ...prev, [field]: error };
+        const next = { ...prev };
+        delete next[field];
+        return next;
+      });
+      return error;
+    },
+    [sessionData]
+  );
+
+  const markTouched = useCallback((field: keyof SessionFormData) => {
+    setTouched((prev) => ({ ...prev, [field]: true }));
+  }, []);
+
+  const validateAll = useCallback((): boolean => {
+    const fields: (keyof SessionFormData)[] = [
+      'session_date',
+      'duration_mins',
+      'class_type',
+    ];
+    let valid = true;
+    const newTouched: Partial<Record<keyof SessionFormData, boolean>> = {};
+    for (const f of fields) {
+      newTouched[f] = true;
+      if (validateField(f)) valid = false;
+    }
+    setTouched((prev) => ({ ...prev, ...newTouched }));
+    return valid;
+  }, [validateField]);
 
   // ── Roll tracking ──────────────────────────────────────────────────
   const [detailedMode, setDetailedMode] = useState(
@@ -837,6 +897,13 @@ export function useSessionForm(
     // Session form data
     sessionData,
     setSessionData,
+
+    // Validation
+    errors,
+    touched,
+    validateField,
+    validateAll,
+    markTouched,
 
     // Roll tracking
     detailedMode,

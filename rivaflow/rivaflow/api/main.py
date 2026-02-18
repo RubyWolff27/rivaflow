@@ -82,6 +82,10 @@ from rivaflow.api.routes import (
 from rivaflow.core.exceptions import RivaFlowException
 from rivaflow.core.settings import settings
 
+# Read version from single source of truth
+_VERSION_FILE = Path(__file__).parent.parent / "VERSION"
+_APP_VERSION = _VERSION_FILE.read_text().strip() if _VERSION_FILE.exists() else "0.5.0"
+
 # Configure logging — JSON in production, plain text elsewhere
 if settings.IS_PRODUCTION:
     try:
@@ -192,7 +196,7 @@ async def _lifespan(_app: FastAPI):
 app = FastAPI(
     title="RivaFlow API",
     description="Training OS for the mat — Web API",
-    version="0.5.0",
+    version=_APP_VERSION,
     docs_url=_docs_url,
     redoc_url=_redoc_url,
     openapi_url=_openapi_url,
@@ -357,6 +361,6 @@ else:
         """Root endpoint when frontend is not available."""
         return {
             "message": "RivaFlow API",
-            "version": "0.5.0",
+            "version": _APP_VERSION,
             "docs": "/docs",
         }

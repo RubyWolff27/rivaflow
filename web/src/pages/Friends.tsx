@@ -7,7 +7,7 @@ import { useNavigate } from 'react-router-dom';
 import { Users, Plus, Search, Filter } from 'lucide-react';
 import ConfirmDialog from '../components/ConfirmDialog';
 import { useToast } from '../contexts/ToastContext';
-import { CardSkeleton } from '../components/ui';
+import { CardSkeleton, EmptyState } from '../components/ui';
 import FriendCard from '../components/friends/FriendCard';
 import FriendRequestCard, { SocialFriendsList } from '../components/friends/FriendRequestCard';
 import type { PendingRequest, SocialFriend } from '../components/friends/FriendRequestCard';
@@ -347,9 +347,11 @@ export default function Friends() {
       </div>
 
       {filteredFriends.length === 0 && (
-        <div className="text-center py-12 text-[var(--muted)]">
-          No friends found. Add your first friend to get started!
-        </div>
+        <EmptyState
+          icon={Users}
+          title="No friends found"
+          description="Add your first friend to get started!"
+        />
       )}
 
       <ConfirmDialog

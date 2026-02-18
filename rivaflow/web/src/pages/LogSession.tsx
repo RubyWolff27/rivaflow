@@ -319,9 +319,17 @@ export default function LogSession() {
 
           {/* Date */}
           <div>
-            <label className="label">Date</label>
-            <input type="date" className="input" value={form.sessionData.session_date}
-              onChange={(e) => form.setSessionData(prev => ({ ...prev, session_date: e.target.value }))} required />
+            <label className="label" htmlFor="log-session-date">Date</label>
+            <input type="date"
+              id="log-session-date"
+              className={`input ${form.touched.session_date && form.errors.session_date ? 'border-red-500' : ''}`}
+              value={form.sessionData.session_date}
+              onChange={(e) => form.setSessionData(prev => ({ ...prev, session_date: e.target.value }))}
+              onBlur={() => { form.markTouched('session_date'); form.validateField('session_date'); }}
+              required />
+            {form.touched.session_date && form.errors.session_date && (
+              <p className="text-xs text-red-500 mt-1">{form.errors.session_date}</p>
+            )}
           </div>
 
           {/* Class Time */}
@@ -342,7 +350,10 @@ export default function LogSession() {
           <div>
             <label className="label">Class Type</label>
             <ClassTypeChips value={form.sessionData.class_type} size="sm"
-              onChange={(val) => form.setSessionData(prev => ({ ...prev, class_type: val }))} />
+              onChange={(val) => { form.setSessionData(prev => ({ ...prev, class_type: val })); form.markTouched('class_type'); }} />
+            {form.touched.class_type && form.errors.class_type && (
+              <p className="text-xs text-red-500 mt-1">{form.errors.class_type}</p>
+            )}
           </div>
 
           {/* Gym Name */}
@@ -380,7 +391,7 @@ export default function LogSession() {
                   <div className="flex flex-wrap gap-2" role="group" aria-label="Duration options">
                     {DURATION_QUICK_SELECT.map((mins) => (
                       <button key={mins} type="button"
-                        onClick={() => { form.setSessionData(prev => ({ ...prev, duration_mins: mins })); form.setShowCustomDuration(false); }}
+                        onClick={() => { form.setSessionData(prev => ({ ...prev, duration_mins: mins })); form.setShowCustomDuration(false); form.markTouched('duration_mins'); }}
                         className="flex-1 min-h-[36px] py-2 rounded-lg font-medium text-xs transition-all"
                         style={{
                           backgroundColor: form.sessionData.duration_mins === mins && !form.showCustomDuration ? 'var(--accent)' : 'var(--surfaceElev)',
@@ -406,9 +417,15 @@ export default function LogSession() {
                     </button>
                   </div>
                   {isCustomActive && (
-                    <input type="number" className="input text-sm mt-2" value={form.sessionData.duration_mins}
+                    <input type="number"
+                      className={`input text-sm mt-2 ${form.touched.duration_mins && form.errors.duration_mins ? 'border-red-500' : ''}`}
+                      value={form.sessionData.duration_mins}
                       onChange={(e) => form.setSessionData(prev => ({ ...prev, duration_mins: parseInt(e.target.value) || 0 }))}
+                      onBlur={() => { form.markTouched('duration_mins'); form.validateField('duration_mins'); }}
                       placeholder="Enter duration in minutes" min="1" autoFocus />
+                  )}
+                  {form.touched.duration_mins && form.errors.duration_mins && (
+                    <p className="text-xs text-red-500 mt-1">{form.errors.duration_mins}</p>
                   )}
                 </>
               );
@@ -424,14 +441,14 @@ export default function LogSession() {
 
           {/* Notes */}
           <div>
-            <label className="label">
+            <label className="label" htmlFor="log-session-notes">
               {form.isSparringType ? 'Notes' : 'Session Details'}
               {!form.isSparringType && (
                 <span className="text-sm font-normal text-[var(--muted)] ml-2">(Workout details, exercises, distances, times, etc.)</span>
               )}
             </label>
             <div className="relative">
-              <textarea className="input" value={form.sessionData.notes}
+              <textarea className="input" id="log-session-notes" value={form.sessionData.notes}
                 onChange={(e) => form.setSessionData(prev => ({ ...prev, notes: e.target.value }))}
                 rows={form.isSparringType ? 3 : 5}
                 placeholder={form.isSparringType
@@ -479,8 +496,8 @@ export default function LogSession() {
               <div className="space-y-4 mt-3">
                 {/* Instructor */}
                 <div>
-                  <label className="label">Instructor (optional)</label>
-                  <select className="input" value={form.sessionData.instructor_id || ''}
+                  <label className="label" htmlFor="log-session-instructor">Instructor (optional)</label>
+                  <select className="input" id="log-session-instructor" value={form.sessionData.instructor_id || ''}
                     onChange={(e) => {
                       const instructorId = e.target.value ? parseInt(e.target.value) : null;
                       const instructor = form.instructors.find(i => i.id === instructorId);
@@ -502,8 +519,8 @@ export default function LogSession() {
 
                 {/* Location */}
                 <div>
-                  <label className="label">Location (optional)</label>
-                  <input type="text" className="input" value={form.sessionData.location}
+                  <label className="label" htmlFor="log-session-location">Location (optional)</label>
+                  <input type="text" className="input" id="log-session-location" value={form.sessionData.location}
                     onChange={(e) => form.setSessionData(prev => ({ ...prev, location: e.target.value }))}
                     placeholder="e.g., Sydney, NSW" list="locations" />
                   {form.autocomplete.locations && (
@@ -618,12 +635,12 @@ export default function LogSession() {
       {activityType === 'rest' && (
         <form onSubmit={handleSubmit} className="card space-y-4">
           <div>
-            <label className="label">Date</label>
-            <input type="date" className="input" value={restData.rest_date}
+            <label className="label" htmlFor="rest-date">Date</label>
+            <input type="date" className="input" id="rest-date" value={restData.rest_date}
               onChange={(e) => setRestData({ ...restData, rest_date: e.target.value })} required />
           </div>
           <div>
-            <label className="label">Rest Type</label>
+            <label className="label" htmlFor="rest-type">Rest Type</label>
             <div className="grid grid-cols-3 gap-2" role="group" aria-label="Rest type options">
               {([
                 { value: 'active', label: '\u{1F3C3} Active Recovery' },
@@ -649,8 +666,8 @@ export default function LogSession() {
             </div>
           </div>
           <div>
-            <label className="label">Note (optional)</label>
-            <textarea className="input" rows={4} value={restData.rest_note}
+            <label className="label" htmlFor="rest-note">Note (optional)</label>
+            <textarea className="input" id="rest-note" rows={4} value={restData.rest_note}
               onChange={(e) => setRestData({ ...restData, rest_note: e.target.value })}
               placeholder="Any notes about your rest day, recovery activities, or how you're feeling..." />
           </div>

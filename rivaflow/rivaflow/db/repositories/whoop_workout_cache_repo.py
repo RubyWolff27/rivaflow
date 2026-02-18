@@ -279,45 +279,13 @@ class WhoopWorkoutCacheRepository:
 
         results = []
         for row in rows:
-            if hasattr(row, "keys"):
-                results.append(dict(row))
-            else:
-                results.append(
-                    {
-                        "session_id": row[0],
-                        "start_time": row[1],
-                        "timezone_offset": row[2],
-                    }
-                )
+            results.append(dict(row))
         return results
 
     @staticmethod
     def _row_to_dict(row) -> dict:
         """Convert a database row to a dictionary."""
-        if hasattr(row, "keys"):
-            d = dict(row)
-        else:
-            columns = [
-                "id",
-                "user_id",
-                "whoop_workout_id",
-                "sport_id",
-                "sport_name",
-                "start_time",
-                "end_time",
-                "timezone_offset",
-                "strain",
-                "avg_heart_rate",
-                "max_heart_rate",
-                "kilojoules",
-                "calories",
-                "score_state",
-                "zone_durations",
-                "raw_data",
-                "session_id",
-                "synced_at",
-            ]
-            d = {col: row[i] for i, col in enumerate(columns)}
+        d = dict(row)
 
         # Parse JSON fields
         for field in ("zone_durations", "raw_data"):

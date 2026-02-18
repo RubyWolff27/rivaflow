@@ -6,6 +6,7 @@ import { logger } from '../utils/logger';
 import type { CompEvent, WeightLog } from '../types';
 import { useToast } from '../contexts/ToastContext';
 import ConfirmDialog from '../components/ConfirmDialog';
+import EmptyState from '../components/ui/EmptyState';
 import PrepChecklist from '../components/events/PrepChecklist';
 
 /* ------------------------------------------------------------------ */
@@ -563,9 +564,11 @@ export default function Events() {
           Upcoming Events ({upcoming.length})
         </h3>
         {upcoming.length === 0 ? (
-          <p className="text-sm" style={{ color: 'var(--muted)' }}>
-            No upcoming events. Add one to start your competition prep.
-          </p>
+          <EmptyState
+            icon={Calendar}
+            title="No upcoming events"
+            description="Add one to start your competition prep."
+          />
         ) : (
           <div className="space-y-3">
             {upcoming.map((ev) => {

@@ -7,7 +7,7 @@ from pydantic import BaseModel
 
 from rivaflow.api.rate_limit import limiter
 from rivaflow.api.response_models import GoalsSummaryResponse, WeeklyGoalProgress
-from rivaflow.core.dependencies import get_current_user
+from rivaflow.core.dependencies import get_current_user, get_goals_service
 from rivaflow.core.error_handling import route_error_handler
 from rivaflow.core.exceptions import ValidationError
 from rivaflow.core.services.goals_service import GoalsService
@@ -34,6 +34,7 @@ def get_current_week_progress(
     request: Request,
     tz: str | None = Query(None, description="IANA timezone, e.g. Australia/Sydney"),
     current_user: dict = Depends(get_current_user),
+    service: GoalsService = Depends(get_goals_service),
 ):
     """Get current week's goal progress.
 
@@ -43,7 +44,6 @@ def get_current_week_progress(
     - Days remaining
     - Completion status
     """
-    service = GoalsService()
     logger.info(f"Getting current week progress for user_id={current_user['id']}")
     result = service.get_current_week_progress(user_id=current_user["id"], tz=tz)
     logger.info(
@@ -59,6 +59,7 @@ def get_goals_summary(
     request: Request,
     tz: str | None = Query(None, description="IANA timezone, e.g. Australia/Sydney"),
     current_user: dict = Depends(get_current_user),
+    service: GoalsService = Depends(get_goals_service),
 ):
     """Get comprehensive goals and streaks overview.
 
@@ -68,7 +69,6 @@ def get_goals_summary(
     - Goal completion streaks (consecutive weeks)
     - Recent 12-week trend
     """
-    service = GoalsService()
     return service.get_goals_summary(user_id=current_user["id"], tz=tz)
 
 
@@ -76,10 +76,11 @@ def get_goals_summary(
 @limiter.limit("120/minute")
 @route_error_handler("get_training_streaks", detail="Failed to get training streaks")
 def get_training_streaks(
-    request: Request, current_user: dict = Depends(get_current_user)
+    request: Request,
+    current_user: dict = Depends(get_current_user),
+    service: GoalsService = Depends(get_goals_service),
 ):
     """Get training session streaks (consecutive days trained)."""
-    service = GoalsService()
     return service.get_training_streaks(user_id=current_user["id"])
 
 
@@ -87,10 +88,11 @@ def get_training_streaks(
 @limiter.limit("120/minute")
 @route_error_handler("get_goal_completion_streaks", detail="Failed to get goal streaks")
 def get_goal_completion_streaks(
-    request: Request, current_user: dict = Depends(get_current_user)
+    request: Request,
+    current_user: dict = Depends(get_current_user),
+    service: GoalsService = Depends(get_goals_service),
 ):
     """Get weekly goal completion streaks."""
-    service = GoalsService()
     return service.get_goal_completion_streak(user_id=current_user["id"])
 
 
@@ -98,14 +100,16 @@ def get_goal_completion_streaks(
 @limiter.limit("120/minute")
 @route_error_handler("get_recent_trend", detail="Failed to get recent trend")
 def get_recent_trend(
-    request: Request, weeks: int = 12, current_user: dict = Depends(get_current_user)
+    request: Request,
+    weeks: int = 12,
+    current_user: dict = Depends(get_current_user),
+    service: GoalsService = Depends(get_goals_service),
 ):
     """Get goal completion trend for recent weeks.
 
     Args:
         weeks: Number of recent weeks to include (default 12)
     """
-    service = GoalsService()
     if weeks < 1 or weeks > 52:
         raise ValidationError("Weeks must be between 1 and 52")
     return service.get_recent_weeks_trend(user_id=current_user["id"], weeks=weeks)
@@ -118,6 +122,7 @@ def update_goal_targets(
     request: Request,
     targets: GoalTargetsUpdate,
     current_user: dict = Depends(get_current_user),
+    service: GoalsService = Depends(get_goals_service),
 ):
     """Update weekly goal targets in profile.
 
@@ -128,7 +133,6 @@ def update_goal_targets(
 
     Returns updated profile.
     """
-    service = GoalsService()
     profile = service.update_profile_goals(
         user_id=current_user["id"],
         weekly_sessions_target=targets.weekly_sessions_target,

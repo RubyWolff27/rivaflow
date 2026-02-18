@@ -249,9 +249,10 @@ export default function EditSession() {
       <form onSubmit={handleSubmit} className="card space-y-4">
         {/* Date */}
         <div>
-          <label className="label">Date</label>
+          <label className="label" htmlFor="edit-session-date">Date</label>
           <input
             type="date"
+            id="edit-session-date"
             className="input"
             value={form.sessionData.session_date}
             onChange={(e) => form.setSessionData(prev => ({ ...prev, session_date: e.target.value }))}
@@ -285,8 +286,9 @@ export default function EditSession() {
 
         {/* Instructor */}
         <div>
-          <label className="label">Instructor (optional)</label>
+          <label className="label" htmlFor="edit-session-instructor">Instructor (optional)</label>
           <select
+            id="edit-session-instructor"
             className="input"
             value={form.sessionData.instructor_id || ''}
             onChange={(e) => form.setSessionData(prev => ({
@@ -328,9 +330,10 @@ export default function EditSession() {
 
         {/* Location */}
         <div>
-          <label className="label">Location (optional)</label>
+          <label className="label" htmlFor="edit-session-location">Location (optional)</label>
           <input
             type="text"
+            id="edit-session-location"
             className="input"
             value={form.sessionData.location}
             onChange={(e) => form.setSessionData(prev => ({ ...prev, location: e.target.value }))}
@@ -349,9 +352,10 @@ export default function EditSession() {
         {/* Duration & Intensity */}
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <label className="label">Duration (mins)</label>
+            <label className="label" htmlFor="edit-session-duration">Duration (mins)</label>
             <input
               type="number"
+              id="edit-session-duration"
               className="input"
               value={form.sessionData.duration_mins}
               onChange={(e) => form.setSessionData(prev => ({ ...prev, duration_mins: parseInt(e.target.value) }))}
@@ -441,11 +445,12 @@ export default function EditSession() {
 
         {/* Session Details / Notes */}
         <div className={!form.isSparringType ? 'border-t border-[var(--border)] pt-4' : ''}>
-          <label className="label">
+          <label className="label" htmlFor="edit-session-notes">
             {!form.isSparringType ? 'Session Details' : 'Notes'}
             {!form.isSparringType && <span className="text-sm font-normal text-[var(--muted)] ml-2">(Workout details, exercises, distances, times, etc.)</span>}
           </label>
           <textarea
+            id="edit-session-notes"
             className="input"
             value={form.sessionData.notes}
             onChange={(e) => form.setSessionData(prev => ({ ...prev, notes: e.target.value }))}

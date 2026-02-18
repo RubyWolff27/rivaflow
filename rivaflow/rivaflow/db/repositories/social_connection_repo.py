@@ -487,12 +487,8 @@ class SocialConnectionRepository:
             rows = cursor.fetchall()
 
             for row in rows:
-                if hasattr(row, "keys"):
-                    req_id = row["requester_id"]
-                    rec_id = row["recipient_id"]
-                else:
-                    req_id = row[0]
-                    rec_id = row[1]
+                req_id = row["requester_id"]
+                rec_id = row["recipient_id"]
 
                 if req_id == user_id:
                     existing_ids.add(rec_id)

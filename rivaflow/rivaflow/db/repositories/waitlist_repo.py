@@ -43,10 +43,7 @@ class WaitlistRepository:
                 )
             )
             row = cursor.fetchone()
-            if hasattr(row, "keys"):
-                next_position = row["next_pos"]
-            else:
-                next_position = row[0]
+            next_position = row["next_pos"]
 
             # Insert the entry
             entry_id = execute_insert(
@@ -205,11 +202,7 @@ class WaitlistRepository:
             row = cursor.fetchone()
             if not row:
                 return 0
-            # Handle both dict (PostgreSQL) and tuple (SQLite) results
-            if hasattr(row, "keys"):
-                return row["cnt"]
-            else:
-                return row[0]
+            return row["cnt"]
 
     @staticmethod
     def invite(waitlist_id: int, assigned_tier: str = "free") -> str | None:
@@ -403,8 +396,4 @@ class WaitlistRepository:
             row = cursor.fetchone()
             if not row:
                 return 0
-            # Handle both dict (PostgreSQL) and tuple (SQLite) results
-            if hasattr(row, "keys"):
-                return row["cnt"]
-            else:
-                return row[0]
+            return row["cnt"]

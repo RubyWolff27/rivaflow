@@ -37,22 +37,7 @@ class ChatSessionRepository:
             row = cursor.fetchone()
 
             if row:
-                # Handle both dict (PostgreSQL) and tuple (SQLite) results
-                if hasattr(row, "keys"):
-                    # PostgreSQL RealDictCursor
-                    return dict(row)
-                else:
-                    # SQLite tuple
-                    return {
-                        "id": row[0],
-                        "user_id": row[1],
-                        "title": row[2],
-                        "message_count": row[3],
-                        "total_tokens": row[4],
-                        "total_cost_usd": float(row[5]) if row[5] else 0.0,
-                        "created_at": row[6],
-                        "updated_at": row[7],
-                    }
+                return dict(row)
             return {}
 
     @staticmethod
@@ -79,22 +64,7 @@ class ChatSessionRepository:
             row = cursor.fetchone()
 
             if row:
-                # Handle both dict (PostgreSQL) and tuple (SQLite) results
-                if hasattr(row, "keys"):
-                    # PostgreSQL RealDictCursor
-                    return dict(row)
-                else:
-                    # SQLite tuple
-                    return {
-                        "id": row[0],
-                        "user_id": row[1],
-                        "title": row[2],
-                        "message_count": row[3],
-                        "total_tokens": row[4],
-                        "total_cost_usd": float(row[5]) if row[5] else 0.0,
-                        "created_at": row[6],
-                        "updated_at": row[7],
-                    }
+                return dict(row)
             return None
 
     @staticmethod
@@ -125,25 +95,7 @@ class ChatSessionRepository:
             cursor.execute(query, (user_id, limit, offset))
             rows = cursor.fetchall()
 
-            # Handle both dict (PostgreSQL) and tuple (SQLite) results
-            if rows and hasattr(rows[0], "keys"):
-                # PostgreSQL RealDictCursor
-                return [dict(row) for row in rows]
-            else:
-                # SQLite tuple
-                return [
-                    {
-                        "id": row[0],
-                        "user_id": row[1],
-                        "title": row[2],
-                        "message_count": row[3],
-                        "total_tokens": row[4],
-                        "total_cost_usd": float(row[5]) if row[5] else 0.0,
-                        "created_at": row[6],
-                        "updated_at": row[7],
-                    }
-                    for row in rows
-                ]
+            return [dict(row) for row in rows]
 
     @staticmethod
     def update_stats(

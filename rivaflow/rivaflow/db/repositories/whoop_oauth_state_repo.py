@@ -73,13 +73,4 @@ class WhoopOAuthStateRepository:
     @staticmethod
     def _row_to_dict(row) -> dict:
         """Convert a database row to a dictionary."""
-        if hasattr(row, "keys"):
-            return dict(row)
-        columns = [
-            "id",
-            "state_token",
-            "user_id",
-            "expires_at",
-            "created_at",
-        ]
-        return {col: row[i] for i, col in enumerate(columns)}
+        return dict(row)

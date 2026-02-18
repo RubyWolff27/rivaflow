@@ -188,32 +188,7 @@ class WhoopRecoveryCacheRepository:
     @staticmethod
     def _row_to_dict(row) -> dict:
         """Convert a database row to a dictionary."""
-        if hasattr(row, "keys"):
-            d = dict(row)
-        else:
-            columns = [
-                "id",
-                "user_id",
-                "whoop_cycle_id",
-                "recovery_score",
-                "resting_hr",
-                "hrv_ms",
-                "spo2",
-                "skin_temp",
-                "sleep_performance",
-                "sleep_duration_ms",
-                "sleep_need_ms",
-                "sleep_debt_ms",
-                "light_sleep_ms",
-                "slow_wave_ms",
-                "rem_sleep_ms",
-                "awake_ms",
-                "cycle_start",
-                "cycle_end",
-                "raw_data",
-                "synced_at",
-            ]
-            d = {col: row[i] for i, col in enumerate(columns)}
+        d = dict(row)
 
         # Parse JSON fields
         val = d.get("raw_data")

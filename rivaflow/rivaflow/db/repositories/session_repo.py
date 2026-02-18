@@ -400,13 +400,10 @@ class SessionRepository:
                 (user_id,),
             )
             row = cursor.fetchone()
-            if hasattr(row, "keys"):  # PostgreSQL dict result
-                return {
-                    "total_sessions": row["total_sessions"],
-                    "total_hours": round(row["total_minutes"] / 60, 1),
-                }
-            else:  # SQLite tuple result
-                return {"total_sessions": row[0], "total_hours": round(row[1] / 60, 1)}
+            return {
+                "total_sessions": row["total_sessions"],
+                "total_hours": round(row["total_minutes"] / 60, 1),
+            }
 
     @staticmethod
     def get_unique_gyms(user_id: int) -> list[str]:
@@ -420,11 +417,7 @@ class SessionRepository:
                 (user_id,),
             )
             rows = cursor.fetchall()
-            # Handle both dict (PostgreSQL) and tuple (SQLite) results
-            if rows and hasattr(rows[0], "keys"):
-                return [row["gym_name"] for row in rows]
-            else:
-                return [row[0] for row in rows]
+            return [row["gym_name"] for row in rows]
 
     @staticmethod
     def get_unique_locations(user_id: int) -> list[str]:
@@ -440,11 +433,7 @@ class SessionRepository:
                 (user_id,),
             )
             rows = cursor.fetchall()
-            # Handle both dict (PostgreSQL) and tuple (SQLite) results
-            if rows and hasattr(rows[0], "keys"):
-                return [row["location"] for row in rows]
-            else:
-                return [row[0] for row in rows]
+            return [row["location"] for row in rows]
 
     @staticmethod
     def get_unique_partners(user_id: int) -> list[str]:
@@ -460,11 +449,7 @@ class SessionRepository:
             partners_set = set()
             rows = cursor.fetchall()
             for row in rows:
-                # Handle both dict (PostgreSQL) and tuple (SQLite) results
-                if hasattr(row, "keys"):
-                    partners_list = json.loads(row["partners"])
-                else:
-                    partners_list = json.loads(row[0])
+                partners_list = json.loads(row["partners"])
                 partners_set.update(partners_list)
             return sorted(partners_set)
 
@@ -483,11 +468,7 @@ class SessionRepository:
                 (user_id, n),
             )
             rows = cursor.fetchall()
-            # Handle both dict (PostgreSQL) and tuple (SQLite) results
-            if rows and hasattr(rows[0], "keys"):
-                return [row["class_type"] for row in rows]
-            else:
-                return [row[0] for row in rows]
+            return [row["class_type"] for row in rows]
 
     @staticmethod
     def delete(user_id: int, session_id: int) -> bool:
@@ -636,8 +617,7 @@ class SessionRepository:
             rows = cursor.fetchall()
             results = []
             for row in rows:
-                name = row["name"] if hasattr(row, "keys") else row[1]
-                results.append({"name": name})
+                results.append({"name": row["name"]})
             return results
 
     @staticmethod
@@ -659,12 +639,12 @@ class SessionRepository:
 
             results = []
             for row in session_techs:
-                movement_id = row["movement_id"] if hasattr(row, "keys") else row[0]
-                name = row["name"] if hasattr(row, "keys") else row[1]
+                movement_id = row["movement_id"]
+                name = row["name"]
 
                 cursor.execute(
                     convert_query("""
-                        SELECT COUNT(DISTINCT st.session_id)
+                        SELECT COUNT(DISTINCT st.session_id) as cnt
                         FROM session_techniques st
                         JOIN sessions s ON st.session_id = s.id
                         WHERE st.movement_id = ? AND s.user_id = ?
@@ -672,10 +652,7 @@ class SessionRepository:
                     (movement_id, user_id),
                 )
                 count_row = cursor.fetchone()
-                if hasattr(count_row, "keys"):
-                    count = list(dict(count_row).values())[0] or 0
-                else:
-                    count = count_row[0] or 0
+                count = count_row["cnt"] or 0
 
                 results.append(
                     {
@@ -714,7 +691,7 @@ class SessionRepository:
                     (user_id, partner_name),
                 )
             row = cursor.fetchone()
-            return row["cnt"] if hasattr(row, "keys") else row[0]
+            return row["cnt"]
 
     @staticmethod
     def count_partner_sessions(user_id: int, partner_name: str) -> int:
@@ -731,7 +708,7 @@ class SessionRepository:
 
             count = 0
             for row in cursor.fetchall():
-                raw = row["partners"] if hasattr(row, "keys") else row[0]
+                raw = row["partners"]
                 try:
                     partners = json.loads(raw) if isinstance(raw, str) else raw
                     if partner_name in partners:
@@ -753,7 +730,7 @@ class SessionRepository:
                 (user_id, exclude_id),
             )
             row = cursor.fetchone()
-            return (row["max_rolls"] if hasattr(row, "keys") else row[0]) or 0
+            return row["max_rolls"] or 0
 
     @staticmethod
     def get_max_duration_excluding(user_id: int, exclude_id: int) -> int:
@@ -768,7 +745,7 @@ class SessionRepository:
                 (user_id, exclude_id),
             )
             row = cursor.fetchone()
-            return (row["max_dur"] if hasattr(row, "keys") else row[0]) or 0
+            return row["max_dur"] or 0
 
     @staticmethod
     def count_sessions_on_date(user_id: int, date_str: str) -> int:
@@ -783,7 +760,7 @@ class SessionRepository:
                 (user_id, date_str),
             )
             row = cursor.fetchone()
-            return row["cnt"] if hasattr(row, "keys") else row[0]
+            return row["cnt"]
 
     @staticmethod
     def get_week_duration_sum(user_id: int, week_start: str) -> int:
@@ -982,16 +959,10 @@ class SessionRepository:
                     "avg_intensity": 3,
                     "avg_rolls": 5,
                 }
-            if hasattr(row, "keys"):
-                return {
-                    "avg_duration": float(row["avg_duration"] or 60),
-                    "avg_intensity": float(row["avg_intensity"] or 3),
-                    "avg_rolls": float(row["avg_rolls"] or 5),
-                }
             return {
-                "avg_duration": float(row[0] or 60),
-                "avg_intensity": float(row[1] or 3),
-                "avg_rolls": float(row[2] or 5),
+                "avg_duration": float(row["avg_duration"] or 60),
+                "avg_intensity": float(row["avg_intensity"] or 3),
+                "avg_rolls": float(row["avg_rolls"] or 5),
             }
 
     @staticmethod

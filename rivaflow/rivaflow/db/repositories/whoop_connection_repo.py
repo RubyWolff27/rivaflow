@@ -190,22 +190,4 @@ class WhoopConnectionRepository:
     @staticmethod
     def _row_to_dict(row) -> dict:
         """Convert a database row to a dictionary."""
-        if hasattr(row, "keys"):
-            return dict(row)
-        columns = [
-            "id",
-            "user_id",
-            "whoop_user_id",
-            "access_token_encrypted",
-            "refresh_token_encrypted",
-            "token_expires_at",
-            "scopes",
-            "connected_at",
-            "last_synced_at",
-            "is_active",
-            "created_at",
-            "updated_at",
-            "auto_create_sessions",
-            "auto_fill_readiness",
-        ]
-        return {col: row[i] for i, col in enumerate(columns)}
+        return dict(row)

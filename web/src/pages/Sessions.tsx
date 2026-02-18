@@ -5,7 +5,7 @@ import { sessionsApi, whoopApi } from '../api/client';
 import { logger } from '../utils/logger';
 import type { Session } from '../types';
 import { Calendar, MapPin, Clock, Activity, Target, Filter, Search } from 'lucide-react';
-import { CardSkeleton } from '../components/ui';
+import { CardSkeleton, EmptyState } from '../components/ui';
 import { useToast } from '../contexts/ToastContext';
 import MiniZoneBar from '../components/MiniZoneBar';
 import SessionScoreBadge from '../components/sessions/SessionScoreBadge';
@@ -205,13 +205,13 @@ export default function Sessions() {
 
       {/* Sessions List */}
       {filteredSessions.length === 0 ? (
-        <div className="card text-center py-12">
-          <p className="text-[var(--muted)]">
-            {searchTerm || filterType !== 'all'
-              ? 'No sessions match your filters'
-              : 'No sessions logged yet. Start training!'}
-          </p>
-        </div>
+        <EmptyState
+          icon={Activity}
+          title={searchTerm || filterType !== 'all' ? 'No sessions match your filters' : 'No sessions logged yet'}
+          description={searchTerm || filterType !== 'all' ? 'Try adjusting your search or filter criteria.' : 'Start training and log your first session!'}
+          actionLabel={searchTerm || filterType !== 'all' ? undefined : 'Log Session'}
+          actionPath={searchTerm || filterType !== 'all' ? undefined : '/log'}
+        />
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {filteredSessions.map((session) => (

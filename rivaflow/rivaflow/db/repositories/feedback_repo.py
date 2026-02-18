@@ -154,10 +154,7 @@ class FeedbackRepository:
                 """))
             status_counts = {}
             for row in cursor.fetchall():
-                if hasattr(row, "keys"):
-                    status_counts[row["status"]] = row["count"]
-                else:
-                    status_counts[row[0]] = row[1]
+                status_counts[row["status"]] = row["count"]
 
             # Count by category
             cursor.execute(convert_query("""
@@ -167,10 +164,7 @@ class FeedbackRepository:
                 """))
             category_counts = {}
             for row in cursor.fetchall():
-                if hasattr(row, "keys"):
-                    category_counts[row["category"]] = row["count"]
-                else:
-                    category_counts[row[0]] = row[1]
+                category_counts[row["category"]] = row["count"]
 
             return {
                 "total": total_count,
@@ -181,22 +175,4 @@ class FeedbackRepository:
     @staticmethod
     def _row_to_dict(row) -> dict[str, Any]:
         """Convert database row to dictionary."""
-        if hasattr(row, "keys"):
-            return dict(row)
-        else:
-            # Tuple-based result (SQLite)
-            return {
-                "id": row[0],
-                "user_id": row[1],
-                "category": row[2],
-                "subject": row[3],
-                "message": row[4],
-                "platform": row[5],
-                "version": row[6],
-                "url": row[7],
-                "status": row[8],
-                "admin_notes": row[9],
-                "resolved_at": row[10],
-                "created_at": row[11],
-                "updated_at": row[12],
-            }
+        return dict(row)

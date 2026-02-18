@@ -176,10 +176,6 @@ class GymClassRepository:
     @staticmethod
     def _row_to_dict(row) -> dict[str, Any]:
         """Convert a database row to a dictionary."""
-        if hasattr(row, "keys"):
-            d = dict(row)
-        else:
-            # SQLite Row — use dict() which works on sqlite3.Row
-            d = dict(row)
+        d = dict(row)
         d["day_name"] = DAY_NAMES[d["day_of_week"]]
         return d

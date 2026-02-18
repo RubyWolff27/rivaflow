@@ -181,16 +181,10 @@ class ActivityPhotoRepository:
             cursor = conn.cursor()
             cursor.execute(
                 convert_query("""
-                SELECT COUNT(*) FROM activity_photos
+                SELECT COUNT(*) as count FROM activity_photos
                 WHERE user_id = ? AND activity_type = ? AND activity_id = ?
                 """),
                 (user_id, activity_type, activity_id),
             )
             row = cursor.fetchone()
-            # Handle both dict (PostgreSQL) and tuple (SQLite) results
-            if hasattr(row, "keys"):
-                # PostgreSQL RealDictCursor - get first value
-                return list(row.values())[0]
-            else:
-                # SQLite tuple
-                return row[0]
+            return row["count"]

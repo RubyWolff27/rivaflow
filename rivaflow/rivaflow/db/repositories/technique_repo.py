@@ -27,11 +27,7 @@ class TechniqueRepository:
                     (name.lower().strip(),),
                 )
                 row = cursor.fetchone()
-                # Handle both dict (PostgreSQL) and tuple (SQLite) results
-                if hasattr(row, "keys"):
-                    return row["id"]
-                else:
-                    return row[0]
+                return row["id"]
 
     @staticmethod
     def get_by_id(technique_id: int) -> dict | None:
@@ -131,11 +127,7 @@ class TechniqueRepository:
             cursor = conn.cursor()
             cursor.execute(convert_query("SELECT name FROM techniques ORDER BY name"))
             rows = cursor.fetchall()
-            # Handle both dict (PostgreSQL) and tuple (SQLite) results
-            if rows and hasattr(rows[0], "keys"):
-                return [row["name"] for row in rows]
-            else:
-                return [row[0] for row in rows]
+            return [row["name"] for row in rows]
 
     @staticmethod
     def _row_to_dict(row) -> dict:

@@ -5,6 +5,7 @@ import { logger } from '../utils/logger';
 import type { Group, GroupMember } from '../types';
 import { Users, Plus, Globe } from 'lucide-react';
 import { useToast } from '../contexts/ToastContext';
+import EmptyState from '../components/ui/EmptyState';
 import GroupCard, { DiscoverGroupCard } from '../components/groups/GroupCard';
 import GroupForm from '../components/groups/GroupForm';
 import GroupDetailView from '../components/groups/GroupDetailView';
@@ -246,33 +247,31 @@ export default function Groups() {
         </div>
       ) : tab === 'my' ? (
         groups.length === 0 ? (
-          <div className="text-center py-16">
-            <Users className="w-12 h-12 mx-auto mb-4" style={{ color: 'var(--muted)' }} />
-            <h3 className="text-lg font-semibold mb-2" style={{ color: 'var(--text)' }}>
-              No groups yet
-            </h3>
-            <p className="text-sm mb-6" style={{ color: 'var(--muted)' }}>
-              Create a group or discover open groups to join.
-            </p>
-            <div className="flex justify-center gap-3">
-              <button
-                onClick={() => setShowCreateForm(true)}
-                className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium"
-                style={{ backgroundColor: 'var(--accent)', color: '#FFFFFF' }}
-              >
-                <Plus className="w-4 h-4" />
-                Create Group
-              </button>
-              <button
-                onClick={() => handleTabChange('discover')}
-                className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium"
-                style={{ color: 'var(--text)', border: '1px solid var(--border)' }}
-              >
-                <Globe className="w-4 h-4" />
-                Discover
-              </button>
-            </div>
-          </div>
+          <EmptyState
+            icon={Users}
+            title="No groups yet"
+            description="Create a group or discover open groups to join."
+            action={
+              <div className="flex justify-center gap-3">
+                <button
+                  onClick={() => setShowCreateForm(true)}
+                  className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium"
+                  style={{ backgroundColor: 'var(--accent)', color: '#FFFFFF' }}
+                >
+                  <Plus className="w-4 h-4" />
+                  Create Group
+                </button>
+                <button
+                  onClick={() => handleTabChange('discover')}
+                  className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium"
+                  style={{ color: 'var(--text)', border: '1px solid var(--border)' }}
+                >
+                  <Globe className="w-4 h-4" />
+                  Discover
+                </button>
+              </div>
+            }
+          />
         ) : (
           <div className="space-y-3">
             {groups.map((group) => (
@@ -287,15 +286,11 @@ export default function Groups() {
       ) : (
         /* Discover Tab */
         discoverGroups.length === 0 ? (
-          <div className="text-center py-16">
-            <Globe className="w-12 h-12 mx-auto mb-4" style={{ color: 'var(--muted)' }} />
-            <h3 className="text-lg font-semibold mb-2" style={{ color: 'var(--text)' }}>
-              No open groups to discover
-            </h3>
-            <p className="text-sm" style={{ color: 'var(--muted)' }}>
-              All open groups have been joined, or none exist yet.
-            </p>
-          </div>
+          <EmptyState
+            icon={Globe}
+            title="No open groups to discover"
+            description="All open groups have been joined, or none exist yet."
+          />
         ) : (
           <div className="space-y-3">
             {discoverGroups.map((group) => (

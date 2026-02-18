@@ -42,8 +42,13 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
         # modern browsers ignore it, and CSP provides the real protection)
         response.headers["X-XSS-Protection"] = "0"
 
-        # Control referrer information
-        response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+        # Control referrer information — stricter for auth endpoints
+        # to prevent tokens/credentials leaking via Referer header
+        path = request.url.path
+        if path.startswith("/api/v1/auth") or path.startswith("/api/v1/users/login"):
+            response.headers["Referrer-Policy"] = "no-referrer"
+        else:
+            response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
 
         # Content Security Policy - only apply to non-JSON responses
         # API JSON responses don't need CSP; it can cause issues with clients

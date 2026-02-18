@@ -9,6 +9,7 @@ import GreetingBar from '../components/dashboard/GreetingBar';
 import HeroScore from '../components/dashboard/HeroScore';
 import ActiveCheckinPrompt from '../components/dashboard/ActiveCheckinPrompt';
 import WeeklyProgress from '../components/dashboard/WeeklyProgress';
+import WeekComparison from '../components/dashboard/WeekComparison';
 import QuickLinks from '../components/dashboard/QuickLinks';
 import GettingStarted from '../components/dashboard/GettingStarted';
 import ErrorBoundary from '../components/ErrorBoundary';
@@ -84,6 +85,9 @@ export default function Dashboard() {
 
         {/* 4. Weekly hours progress */}
         <WeeklyProgress weeklyGoals={data.weeklyGoals} />
+
+        {/* 4b. Week-over-week comparison */}
+        <WeekComparison />
 
         {/* 5. Last session (compact) */}
         <LastSession />

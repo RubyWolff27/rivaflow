@@ -6,7 +6,7 @@ import type { Video, Movement } from '../types';
 import { Video as VideoIcon, ExternalLink, Plus, X } from 'lucide-react';
 import { useToast } from '../contexts/ToastContext';
 import ConfirmDialog from '../components/ConfirmDialog';
-import { CardSkeleton } from '../components/ui';
+import { CardSkeleton, EmptyState } from '../components/ui';
 
 interface VideoForm {
   url: string;
@@ -267,13 +267,11 @@ export default function Videos() {
 
       {/* Videos List */}
       {videos.length === 0 ? (
-        <div className="card text-center py-12">
-          <VideoIcon className="w-12 h-12 text-[var(--muted)] mx-auto mb-4" />
-          <p className="text-[var(--muted)] mb-4">No videos in your library yet</p>
-          <p className="text-sm text-[var(--muted)]">
-            Click the "Add Video" button above to get started
-          </p>
-        </div>
+        <EmptyState
+          icon={VideoIcon}
+          title="No videos in your library yet"
+          description="Click the &quot;Add Video&quot; button above to get started."
+        />
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {videos.map((video) => (

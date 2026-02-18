@@ -76,6 +76,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
         style={{ maxWidth: '420px' }}
         role="region"
         aria-label="Notifications"
+        aria-live="polite"
       >
         {toasts.map((toast) => (
           <Toast

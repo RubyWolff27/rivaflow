@@ -2,6 +2,7 @@
 
 import logging
 import os
+from pathlib import Path
 
 from fastapi import APIRouter, status
 from fastapi.responses import JSONResponse
@@ -12,6 +13,8 @@ from rivaflow.db.database import get_connection
 logger = logging.getLogger(__name__)
 
 _GIT_SHA = os.getenv("RENDER_GIT_COMMIT", "unknown")
+_VERSION_FILE = Path(__file__).parent.parent.parent / "VERSION"
+_APP_VERSION = _VERSION_FILE.read_text().strip() if _VERSION_FILE.exists() else "0.5.0"
 
 router = APIRouter()
 
@@ -34,7 +37,7 @@ def health_check():
     health_status = {
         "status": "healthy",
         "service": "rivaflow-api",
-        "version": "0.5.0",
+        "version": _APP_VERSION,
         "commit": _GIT_SHA,
     }
 

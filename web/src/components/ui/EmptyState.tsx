@@ -1,5 +1,6 @@
 import { LucideIcon, TrendingUp } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { ReactNode } from 'react';
 
 interface EmptyStateProps {
   icon?: LucideIcon;
@@ -7,6 +8,7 @@ interface EmptyStateProps {
   description: string;
   actionLabel?: string;
   actionPath?: string;
+  action?: ReactNode;
 }
 
 export default function EmptyState({
@@ -15,9 +17,13 @@ export default function EmptyState({
   description,
   actionLabel,
   actionPath,
+  action,
 }: EmptyStateProps) {
   return (
-    <div className="flex flex-col items-center justify-center py-12 px-4 text-center">
+    <div
+      className="flex flex-col items-center justify-center py-12 px-4 text-center rounded-[14px]"
+      style={{ backgroundColor: 'var(--surface)' }}
+    >
       <div
         className="flex items-center justify-center w-16 h-16 rounded-full mb-4"
         style={{ backgroundColor: 'var(--surfaceElev)' }}
@@ -42,6 +48,7 @@ export default function EmptyState({
           {actionLabel}
         </Link>
       )}
+      {action}
     </div>
   );
 }

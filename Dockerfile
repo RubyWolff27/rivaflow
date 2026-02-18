@@ -15,6 +15,10 @@ RUN pip install --no-cache-dir -r rivaflow/requirements.txt
 COPY rivaflow/ rivaflow/
 COPY start.sh start.sh
 
+# Create non-root user for running the app
+RUN adduser --disabled-password --gecos '' appuser
+USER appuser
+
 # Default port
 ENV PORT=8000
 EXPOSE 8000

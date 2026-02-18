@@ -5,7 +5,7 @@ from pydantic import BaseModel
 
 from rivaflow.api.rate_limit import limiter
 from rivaflow.api.response_models import ProfileResponse
-from rivaflow.core.dependencies import get_current_user
+from rivaflow.core.dependencies import get_current_user, get_profile_service
 from rivaflow.core.error_handling import route_error_handler
 from rivaflow.core.services.profile_service import ProfileService
 
@@ -48,13 +48,14 @@ class ProfileUpdate(BaseModel):
 @limiter.limit("120/minute")
 @route_error_handler("get_onboarding_status", detail="Failed to get onboarding status")
 def get_onboarding_status(
-    request: Request, current_user: dict = Depends(get_current_user)
+    request: Request,
+    current_user: dict = Depends(get_current_user),
+    service: ProfileService = Depends(get_profile_service),
 ):
     """Get onboarding checklist status derived from existing data."""
     from rivaflow.core.services.readiness_service import ReadinessService
     from rivaflow.core.services.session_service import SessionService
 
-    service = ProfileService()
     user_id = current_user["id"]
     profile = service.get_profile(user_id=user_id)
 
@@ -123,9 +124,12 @@ def get_onboarding_status(
 @router.get("/", response_model=ProfileResponse)
 @limiter.limit("120/minute")
 @route_error_handler("get_profile", detail="Failed to get profile")
-def get_profile(request: Request, current_user: dict = Depends(get_current_user)):
+def get_profile(
+    request: Request,
+    current_user: dict = Depends(get_current_user),
+    service: ProfileService = Depends(get_profile_service),
+):
     """Get the user profile."""
-    service = ProfileService()
     profile = service.get_profile(user_id=current_user["id"])
     if not profile:
         # Return empty profile if none exists
@@ -152,9 +156,9 @@ def update_profile(
     request: Request,
     profile: ProfileUpdate,
     current_user: dict = Depends(get_current_user),
+    service: ProfileService = Depends(get_profile_service),
 ):
     """Update the user profile."""
-    service = ProfileService()
     updated = service.update_profile(
         user_id=current_user["id"],
         first_name=profile.first_name,
@@ -194,6 +198,7 @@ async def upload_profile_photo(
     request: Request,
     file: UploadFile = File(...),
     current_user: dict = Depends(get_current_user),
+    service: ProfileService = Depends(get_profile_service),
 ):
     """
     Upload a profile photo.
@@ -201,7 +206,6 @@ async def upload_profile_photo(
     Accepts image files (jpg, png, webp, gif) up to 5MB.
     Returns the URL of the uploaded photo.
     """
-    service = ProfileService()
     # Read file content
     content = await file.read()
 
@@ -219,14 +223,15 @@ async def upload_profile_photo(
 @limiter.limit("30/minute")
 @route_error_handler("delete_profile_photo", detail="Failed to delete photo")
 def delete_profile_photo(
-    request: Request, current_user: dict = Depends(get_current_user)
+    request: Request,
+    current_user: dict = Depends(get_current_user),
+    service: ProfileService = Depends(get_profile_service),
 ):
     """
     Delete the current profile photo.
 
     Removes the file from disk and clears the avatar_url in the database.
     """
-    service = ProfileService()
     # Delegate to service layer
     result = service.delete_profile_photo(user_id=current_user["id"])
     return result

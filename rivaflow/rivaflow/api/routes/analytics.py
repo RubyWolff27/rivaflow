@@ -5,7 +5,7 @@ from datetime import date
 from fastapi import APIRouter, Depends, Query, Request
 
 from rivaflow.api.rate_limit import limiter
-from rivaflow.core.dependencies import get_current_user
+from rivaflow.core.dependencies import get_analytics_service, get_current_user
 from rivaflow.core.error_handling import route_error_handler
 from rivaflow.core.exceptions import NotFoundError, ValidationError
 from rivaflow.core.services.analytics_service import AnalyticsService
@@ -124,9 +124,9 @@ def get_head_to_head(
     partner1_id: int = Query(...),
     partner2_id: int = Query(...),
     current_user: dict = Depends(get_current_user),
+    service: AnalyticsService = Depends(get_analytics_service),
 ):
     """Get head-to-head comparison between two partners."""
-    service = AnalyticsService()
     result = service.get_head_to_head(
         user_id=current_user["id"],
         partner1_id=partner1_id,
@@ -148,9 +148,9 @@ def get_readiness_trends(
         None, description="Filter by class types (e.g., gi, no-gi, s&c)"
     ),
     current_user: dict = Depends(get_current_user),
+    service: AnalyticsService = Depends(get_analytics_service),
 ):
     """Get readiness and recovery analytics."""
-    service = AnalyticsService()
     return service.get_readiness_trends(
         user_id=current_user["id"],
         start_date=start_date,
@@ -170,9 +170,9 @@ def get_whoop_analytics(
         None, description="Filter by class types (e.g., gi, no-gi, s&c)"
     ),
     current_user: dict = Depends(get_current_user),
+    service: AnalyticsService = Depends(get_analytics_service),
 ):
     """Get Whoop fitness tracker analytics."""
-    service = AnalyticsService()
     return service.get_whoop_analytics(
         user_id=current_user["id"],
         start_date=start_date,
@@ -213,9 +213,9 @@ def get_consistency_analytics(
         None, description="Filter by class types (e.g., gi, no-gi, s&c)"
     ),
     current_user: dict = Depends(get_current_user),
+    service: AnalyticsService = Depends(get_analytics_service),
 ):
     """Get training consistency analytics."""
-    service = AnalyticsService()
     return service.get_consistency_analytics(
         user_id=current_user["id"],
         start_date=start_date,
@@ -227,9 +227,12 @@ def get_consistency_analytics(
 @router.get("/milestones")
 @limiter.limit("60/minute")
 @route_error_handler("milestones")
-def get_milestones(request: Request, current_user: dict = Depends(get_current_user)):
+def get_milestones(
+    request: Request,
+    current_user: dict = Depends(get_current_user),
+    service: AnalyticsService = Depends(get_analytics_service),
+):
     """Get progression and milestone data."""
-    service = AnalyticsService()
     return service.get_milestones(user_id=current_user["id"])
 
 
@@ -244,9 +247,9 @@ def get_instructor_analytics(
         None, description="Filter by class types (e.g., gi, no-gi, s&c)"
     ),
     current_user: dict = Depends(get_current_user),
+    service: AnalyticsService = Depends(get_analytics_service),
 ):
     """Get instructor insights analytics."""
-    service = AnalyticsService()
     return service.get_instructor_analytics(
         user_id=current_user["id"],
         start_date=start_date,
@@ -776,9 +779,9 @@ def get_checkin_trends(
     request: Request,
     days: int = Query(default=30, ge=7, le=365),
     current_user: dict = Depends(get_current_user),
+    service: AnalyticsService = Depends(get_analytics_service),
 ):
     """Get daily check-in trends: energy, quality, rest patterns."""
-    service = AnalyticsService()
     return service.get_checkin_trends(user_id=current_user["id"], days=days)
 
 

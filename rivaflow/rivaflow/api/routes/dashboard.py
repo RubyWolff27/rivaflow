@@ -6,7 +6,7 @@ from datetime import date, timedelta
 from fastapi import APIRouter, Depends, Query, Request
 
 from rivaflow.api.rate_limit import limiter
-from rivaflow.core.dependencies import get_current_user
+from rivaflow.core.dependencies import get_current_user, get_session_service
 from rivaflow.core.error_handling import route_error_handler
 from rivaflow.core.services.analytics_service import AnalyticsService
 from rivaflow.core.services.goals_service import GoalsService
@@ -144,6 +144,7 @@ def get_dashboard_summary(
 def get_quick_stats(
     request: Request,
     current_user: dict = Depends(get_current_user),
+    session_service: SessionService = Depends(get_session_service),
 ):
     """
     Get quick stats for minimal dashboard.
@@ -159,7 +160,6 @@ def get_quick_stats(
     """
     user_id = current_user["id"]
 
-    session_service = SessionService()
     streak_service = StreakService()
     milestone_service = MilestoneService()
 
@@ -193,6 +193,7 @@ def get_week_summary(
     ),
     tz: str | None = Query(None, description="IANA timezone, e.g. Australia/Sydney"),
     current_user: dict = Depends(get_current_user),
+    session_service: SessionService = Depends(get_session_service),
 ):
     """
     Get summary for a specific week.
@@ -212,8 +213,6 @@ def get_week_summary(
     current_week_start = today - timedelta(days=today.weekday())
     week_start = current_week_start + timedelta(weeks=week_offset)
     week_end = week_start + timedelta(days=6)
-
-    session_service = SessionService()
 
     # Get sessions for the week
     sessions = session_service.get_sessions_by_date_range(user_id, week_start, week_end)

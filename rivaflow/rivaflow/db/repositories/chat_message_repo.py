@@ -11,25 +11,11 @@ class ChatMessageRepository:
 
     @staticmethod
     def _row_to_dict(row) -> dict[str, Any]:
-        """Convert database row to dictionary (handles both SQLite tuples and PostgreSQL dicts)."""
-        if hasattr(row, "keys"):
-            # PostgreSQL - row is already a dict
-            result = dict(row)
-            if result.get("cost_usd") is not None:
-                result["cost_usd"] = float(result["cost_usd"])
-            return result
-        else:
-            # SQLite - row is a tuple
-            return {
-                "id": row[0],
-                "session_id": row[1],
-                "role": row[2],
-                "content": row[3],
-                "input_tokens": row[4],
-                "output_tokens": row[5],
-                "cost_usd": float(row[6]) if row[6] else 0.0,
-                "created_at": row[7],
-            }
+        """Convert database row to dictionary."""
+        result = dict(row)
+        if result.get("cost_usd") is not None:
+            result["cost_usd"] = float(result["cost_usd"])
+        return result
 
     @staticmethod
     def create(
@@ -139,10 +125,7 @@ class ChatMessageRepository:
             # Reverse to get chronological order
             messages = []
             for row in reversed(rows):
-                if hasattr(row, "keys"):
-                    messages.append({"role": row["role"], "content": row["content"]})
-                else:
-                    messages.append({"role": row[0], "content": row[1]})
+                messages.append({"role": row["role"], "content": row["content"]})
             return messages
 
     @staticmethod

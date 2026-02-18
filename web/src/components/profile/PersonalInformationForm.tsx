@@ -124,9 +124,10 @@ export default function PersonalInformationForm({
         {/* Name */}
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <label className="label">First Name</label>
+            <label className="label" htmlFor="profile-first-name">First Name</label>
             <input
               type="text"
+              id="profile-first-name"
               className="input"
               value={formData.first_name}
               onChange={(e) => onChange({ ...formData, first_name: e.target.value })}
@@ -135,9 +136,10 @@ export default function PersonalInformationForm({
             />
           </div>
           <div>
-            <label className="label">Last Name</label>
+            <label className="label" htmlFor="profile-last-name">Last Name</label>
             <input
               type="text"
+              id="profile-last-name"
               className="input"
               value={formData.last_name}
               onChange={(e) => onChange({ ...formData, last_name: e.target.value })}
@@ -149,9 +151,10 @@ export default function PersonalInformationForm({
 
         {/* Date of Birth */}
         <div>
-          <label className="label">Date of Birth</label>
+          <label className="label" htmlFor="profile-dob">Date of Birth</label>
           <input
             type="date"
+            id="profile-dob"
             className="input"
             value={formData.date_of_birth}
             onChange={(e) => onChange({ ...formData, date_of_birth: e.target.value })}
@@ -166,8 +169,9 @@ export default function PersonalInformationForm({
 
         {/* Sex */}
         <div>
-          <label className="label">Sex</label>
+          <label className="label" htmlFor="profile-sex">Sex</label>
           <select
+            id="profile-sex"
             className="input"
             value={formData.sex}
             onChange={(e) => onChange({ ...formData, sex: e.target.value })}
@@ -183,9 +187,10 @@ export default function PersonalInformationForm({
         {/* Height and Target Weight */}
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <label className="label">Height (cm)</label>
+            <label className="label" htmlFor="profile-height">Height (cm)</label>
             <input
               type="number"
+              id="profile-height"
               className="input"
               value={formData.height_cm}
               onChange={(e) => onChange({ ...formData, height_cm: e.target.value })}
@@ -195,9 +200,10 @@ export default function PersonalInformationForm({
             />
           </div>
           <div>
-            <label className="label">Target Weight (kg)</label>
+            <label className="label" htmlFor="profile-target-weight">Target Weight (kg)</label>
             <input
               type="number"
+              id="profile-target-weight"
               className="input"
               value={formData.target_weight_kg}
               onChange={(e) => onChange({ ...formData, target_weight_kg: e.target.value })}
@@ -210,9 +216,10 @@ export default function PersonalInformationForm({
         </div>
         {formData.target_weight_kg && (
           <div>
-            <label className="label">Target Date (optional)</label>
+            <label className="label" htmlFor="profile-target-date">Target Date (optional)</label>
             <input
               type="date"
+              id="profile-target-date"
               className="input"
               value={formData.target_weight_date}
               onChange={(e) => onChange({ ...formData, target_weight_date: e.target.value })}
@@ -223,9 +230,10 @@ export default function PersonalInformationForm({
         {/* Location */}
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <label className="label">City</label>
+            <label className="label" htmlFor="profile-city">City</label>
             <input
               type="text"
+              id="profile-city"
               className="input"
               value={formData.city}
               onChange={(e) => onChange({ ...formData, city: e.target.value })}
@@ -234,9 +242,10 @@ export default function PersonalInformationForm({
             />
           </div>
           <div>
-            <label className="label">State</label>
+            <label className="label" htmlFor="profile-state">State</label>
             <input
               type="text"
+              id="profile-state"
               className="input"
               value={formData.state}
               onChange={(e) => onChange({ ...formData, state: e.target.value })}
@@ -248,10 +257,11 @@ export default function PersonalInformationForm({
 
         {/* Timezone */}
         <div>
-          <label className="label">Timezone</label>
+          <label className="label" htmlFor="profile-timezone">Timezone</label>
           <div className="flex gap-2">
             <input
               type="text"
+              id="profile-timezone"
               className="input flex-1"
               value={formData.timezone}
               onChange={(e) => onChange({ ...formData, timezone: e.target.value })}
@@ -311,9 +321,10 @@ export default function PersonalInformationForm({
 
         {/* Default Location */}
         <div>
-          <label className="label">Default Location</label>
+          <label className="label" htmlFor="profile-default-location">Default Location</label>
           <input
             type="text"
+            id="profile-default-location"
             className="input"
             value={formData.default_location}
             onChange={(e) => onChange({ ...formData, default_location: e.target.value })}
@@ -326,8 +337,9 @@ export default function PersonalInformationForm({
 
         {/* Current Coach/Instructor */}
         <div>
-          <label className="label">Current Coach / Instructor</label>
+          <label className="label" htmlFor="profile-instructor">Current Coach / Instructor</label>
           <select
+            id="profile-instructor"
             className="input"
             value={formData.current_instructor_id ?? ''}
             onChange={(e) => {
@@ -372,8 +384,9 @@ export default function PersonalInformationForm({
 
         {/* Primary Training Type */}
         <div>
-          <label className="label">Primary Training Type</label>
+          <label className="label" htmlFor="profile-training-type">Primary Training Type</label>
           <select
+            id="profile-training-type"
             className="input"
             value={formData.primary_training_type}
             onChange={(e) => onChange({ ...formData, primary_training_type: e.target.value })}

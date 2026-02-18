@@ -1,4 +1,4 @@
-"""FastAPI dependency injection for authentication."""
+"""FastAPI dependency injection for authentication and services."""
 
 import logging
 
@@ -137,3 +137,43 @@ def get_admin_user(current_user: dict = Depends(get_current_user)) -> dict:
             detail="Admin access required. This incident will be logged.",
         )
     return current_user
+
+
+# ---------------------------------------------------------------------------
+# Service provider functions for Depends() injection
+# ---------------------------------------------------------------------------
+
+
+def get_session_service():
+    """Provide a SessionService instance."""
+    from rivaflow.core.services.session_service import SessionService
+
+    return SessionService()
+
+
+def get_analytics_service():
+    """Provide an AnalyticsService instance."""
+    from rivaflow.core.services.analytics_service import AnalyticsService
+
+    return AnalyticsService()
+
+
+def get_goals_service():
+    """Provide a GoalsService instance."""
+    from rivaflow.core.services.goals_service import GoalsService
+
+    return GoalsService()
+
+
+def get_social_service():
+    """Provide a SocialService instance."""
+    from rivaflow.core.services.social_service import SocialService
+
+    return SocialService()
+
+
+def get_profile_service():
+    """Provide a ProfileService instance."""
+    from rivaflow.core.services.profile_service import ProfileService
+
+    return ProfileService()

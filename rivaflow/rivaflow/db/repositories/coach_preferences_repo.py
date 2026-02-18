@@ -75,10 +75,7 @@ class CoachPreferencesRepository:
     @staticmethod
     def _row_to_dict(row) -> dict:
         """Convert a database row to a dict with JSON deserialization."""
-        if hasattr(row, "keys"):
-            d = dict(row)
-        else:
-            d = dict(row)
+        d = dict(row)
 
         # Deserialize JSON fields
         for key in JSON_FIELDS:

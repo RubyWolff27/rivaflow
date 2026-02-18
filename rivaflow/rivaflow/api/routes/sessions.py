@@ -18,7 +18,7 @@ from rivaflow.api.response_models import (
     SessionResponse,
     SessionScoreResponse,
 )
-from rivaflow.core.dependencies import get_current_user
+from rivaflow.core.dependencies import get_current_user, get_session_service
 from rivaflow.core.error_handling import route_error_handler
 from rivaflow.core.exceptions import AuthorizationError, NotFoundError
 from rivaflow.core.models import SessionCreate, SessionUpdate
@@ -95,9 +95,9 @@ def create_session(
     session: SessionCreate,
     background_tasks: BackgroundTasks,
     current_user: dict = Depends(get_current_user),
+    service: SessionService = Depends(get_session_service),
 ):
     """Create a new training session."""
-    service = SessionService()
     # Convert SessionRollData models to dicts if present
     session_rolls_dict = None
     if session.session_rolls:
@@ -166,9 +166,9 @@ def update_session(
     session_id: int,
     session: SessionUpdate,
     current_user: dict = Depends(get_current_user),
+    service: SessionService = Depends(get_session_service),
 ):
     """Update an existing training session."""
-    service = SessionService()
     # Convert SessionRollData models to dicts if present
     session_rolls_dict = None
     if session.session_rolls is not None:
@@ -223,10 +223,12 @@ def update_session(
 @limiter.limit("60/minute")
 @route_error_handler("delete_session", detail="Failed to delete session")
 def delete_session(
-    request: Request, session_id: int, current_user: dict = Depends(get_current_user)
+    request: Request,
+    session_id: int,
+    current_user: dict = Depends(get_current_user),
+    service: SessionService = Depends(get_session_service),
 ):
     """Delete a training session."""
-    service = SessionService()
     deleted = service.delete_session(user_id=current_user["id"], session_id=session_id)
     if not deleted:
         raise NotFoundError(f"Session {session_id} not found or access denied")
@@ -242,6 +244,7 @@ def get_session(
         default=True, description="Include previous/next session IDs for navigation"
     ),
     current_user: dict = Depends(get_current_user),
+    service: SessionService = Depends(get_session_service),
 ):
     """Get a session by ID with optional navigation info.
 
@@ -252,7 +255,6 @@ def get_session(
                       Future: Will be True when viewer_id != owner_id.
         include_navigation: If True, include previous_session_id and next_session_id for navigation.
     """
-    service = SessionService()
     session = service.get_session(user_id=current_user["id"], session_id=session_id)
     if not session:
         raise NotFoundError(f"Session {session_id} not found or access denied")
@@ -278,6 +280,7 @@ def list_sessions(
     limit: int = Query(default=10, ge=1, le=1000),
     apply_privacy: bool = False,
     current_user: dict = Depends(get_current_user),
+    service: SessionService = Depends(get_session_service),
 ):
     """List recent sessions.
 
@@ -286,7 +289,6 @@ def list_sessions(
         apply_privacy: If True, apply privacy redaction to each session.
                       Default False for owner access (current single-user mode).
     """
-    service = SessionService()
     sessions = service.get_recent_sessions(user_id=current_user["id"], limit=limit)
 
     if apply_privacy:
@@ -304,6 +306,7 @@ def get_sessions_by_range(
     end_date: date,
     apply_privacy: bool = False,
     current_user: dict = Depends(get_current_user),
+    service: SessionService = Depends(get_session_service),
 ):
     """Get sessions within a date range.
 
@@ -313,7 +316,6 @@ def get_sessions_by_range(
         apply_privacy: If True, apply privacy redaction to each session.
                       Default False for owner access (current single-user mode).
     """
-    service = SessionService()
     sessions = service.get_sessions_by_date_range(
         user_id=current_user["id"], start_date=start_date, end_date=end_date
     )
@@ -328,9 +330,11 @@ def get_sessions_by_range(
 
 @router.get("/autocomplete/data")
 @route_error_handler("get_autocomplete_data", detail="Failed to get autocomplete data")
-def get_autocomplete_data(current_user: dict = Depends(get_current_user)):
+def get_autocomplete_data(
+    current_user: dict = Depends(get_current_user),
+    service: SessionService = Depends(get_session_service),
+):
     """Get data for autocomplete suggestions."""
-    service = SessionService()
     return service.get_autocomplete_data(user_id=current_user["id"])
 
 
@@ -362,6 +366,7 @@ def get_session_with_rolls(
     session_id: int,
     apply_privacy: bool = False,
     current_user: dict = Depends(get_current_user),
+    service: SessionService = Depends(get_session_service),
 ):
     """Get a session with detailed roll records.
 
@@ -372,7 +377,6 @@ def get_session_with_rolls(
                       excluded unless visibility is "full".
                       Default False for owner access (current single-user mode).
     """
-    service = SessionService()
     session = service.get_session_with_rolls(
         user_id=current_user["id"], session_id=session_id
     )
@@ -390,9 +394,12 @@ def get_session_with_rolls(
 
 @router.get("/partner/{partner_id}/stats")
 @route_error_handler("get_partner_stats", detail="Failed to get partner stats")
-def get_partner_stats(partner_id: int, current_user: dict = Depends(get_current_user)):
+def get_partner_stats(
+    partner_id: int,
+    current_user: dict = Depends(get_current_user),
+    service: SessionService = Depends(get_session_service),
+):
     """Get training statistics for a specific partner."""
-    service = SessionService()
     stats = service.get_partner_stats(user_id=current_user["id"], partner_id=partner_id)
     return stats
 
@@ -405,9 +412,9 @@ def get_partner_stats(partner_id: int, current_user: dict = Depends(get_current_
 def get_session_score(
     session_id: int,
     current_user: dict = Depends(get_current_user),
+    service: SessionService = Depends(get_session_service),
 ):
     """Get the performance score and breakdown for a session."""
-    service = SessionService()
     session = service.get_session(user_id=current_user["id"], session_id=session_id)
     if not session:
         raise NotFoundError(f"Session {session_id} not found")

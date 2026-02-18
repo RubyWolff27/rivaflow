@@ -57,16 +57,14 @@ class GrappleUsageRepository:
             cursor.close()
 
             if row:
-                if hasattr(row, "keys"):
-                    return row["message_count"], row["window_end"]
-                return row[0], row[1]
+                return row["message_count"], row["window_end"]
             return None
 
     @staticmethod
     def get_global_message_count(window_start: str) -> int:
         """Get total message count across all users for a window."""
         query = convert_query("""
-            SELECT COALESCE(SUM(message_count), 0)
+            SELECT COALESCE(SUM(message_count), 0) as total
             FROM grapple_rate_limits
             WHERE window_start = ?
         """)
@@ -77,9 +75,7 @@ class GrappleUsageRepository:
             row = cursor.fetchone()
             cursor.close()
             if row:
-                if hasattr(row, "keys"):
-                    return list(row.values())[0] or 0
-                return row[0] or 0
+                return row["total"] or 0
             return 0
 
     @staticmethod
@@ -106,15 +102,7 @@ class GrappleUsageRepository:
             cursor.close()
 
             if row:
-                if hasattr(row, "keys"):
-                    r = dict(row)
-                else:
-                    r = {
-                        "window_count": row[0],
-                        "total_messages": row[1],
-                        "peak_hourly_usage": row[2],
-                        "avg_hourly_usage": row[3],
-                    }
+                r = dict(row)
                 if r["window_count"] and r["window_count"] > 0:
                     return r
             return None
@@ -205,20 +193,7 @@ class GrappleUsageRepository:
 
             results = []
             for row in rows:
-                if hasattr(row, "keys"):
-                    results.append(dict(row))
-                else:
-                    results.append(
-                        {
-                            "request_count": row[0],
-                            "total_tokens": row[1],
-                            "total_input_tokens": row[2],
-                            "total_output_tokens": row[3],
-                            "total_cost_usd": row[4],
-                            "avg_tokens_per_request": row[5],
-                            "provider": row[6],
-                        }
-                    )
+                results.append(dict(row))
             return results
 
     @staticmethod
@@ -248,19 +223,7 @@ class GrappleUsageRepository:
 
             results = []
             for row in rows:
-                if hasattr(row, "keys"):
-                    results.append(dict(row))
-                else:
-                    results.append(
-                        {
-                            "unique_users": row[0],
-                            "total_requests": row[1],
-                            "total_tokens": row[2],
-                            "total_cost_usd": row[3],
-                            "avg_tokens_per_request": row[4],
-                            "provider": row[5],
-                        }
-                    )
+                results.append(dict(row))
             return results
 
     @staticmethod

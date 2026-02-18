@@ -250,8 +250,4 @@ class PasswordResetTokenRepository:
             row = cursor.fetchone()
             if not row:
                 return 0
-            # Handle both dict (PostgreSQL) and tuple (SQLite) results
-            if hasattr(row, "keys"):
-                return row["count"]
-            else:
-                return row[0]
+            return row["count"]
