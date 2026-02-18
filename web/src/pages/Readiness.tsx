@@ -68,7 +68,7 @@ export default function Readiness() {
       // Fetch profile for weight goal
       try {
         const profileRes = await profileApi.get();
-        const p = (profileRes as any).data;
+        const p = profileRes.data;
         if (!cancelled && p?.target_weight_kg && p?.target_weight_date) {
           setWeightGoal({
             target_weight_kg: p.target_weight_kg,

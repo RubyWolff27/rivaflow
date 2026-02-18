@@ -68,7 +68,7 @@ export default function Glossary() {
           glossaryApi.getCategories(),
         ]);
         if (!cancelled) {
-          const movementsData = movementsRes.data as any;
+          const movementsData = movementsRes.data as Movement[] | { movements: Movement[] };
           setMovements(Array.isArray(movementsData) ? movementsData : movementsData.movements || []);
           setCategories(categoriesRes.data.categories);
         }
@@ -122,7 +122,7 @@ export default function Glossary() {
         glossaryApi.list(),
         glossaryApi.getCategories(),
       ]);
-      const movementsData = movementsRes.data as any;
+      const movementsData = movementsRes.data as Movement[] | { movements: Movement[] };
       setMovements(Array.isArray(movementsData) ? movementsData : movementsData.movements || []);
       setCategories(categoriesRes.data.categories);
     } catch (error) {

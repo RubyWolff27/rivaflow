@@ -42,9 +42,9 @@ export default function Videos() {
           glossaryApi.list(),
         ]);
         if (!cancelled) {
-          const vData = videosRes.data as any;
+          const vData = videosRes.data as Video[] | { videos: Video[] };
           setVideos(Array.isArray(vData) ? vData : vData?.videos || []);
-          const mData = movementsRes.data as any;
+          const mData = movementsRes.data as Movement[] | { movements: Movement[] };
           setMovements(Array.isArray(mData) ? mData : mData?.movements || []);
         }
       } catch (error) {
@@ -67,9 +67,9 @@ export default function Videos() {
         videosApi.list(),
         glossaryApi.list(),
       ]);
-      const vData = videosRes.data as any;
+      const vData = videosRes.data as Video[] | { videos: Video[] };
       setVideos(Array.isArray(vData) ? vData : vData?.videos || []);
-      const mData = movementsRes.data as any;
+      const mData = movementsRes.data as Movement[] | { movements: Movement[] };
       setMovements(Array.isArray(mData) ? mData : mData?.movements || []);
     } catch (error) {
       logger.error('Error loading data:', error);

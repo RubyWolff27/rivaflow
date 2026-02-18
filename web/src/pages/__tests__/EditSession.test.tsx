@@ -153,15 +153,16 @@ describe("EditSession", () => {
     await waitFor(() => {
       expect(screen.getByDisplayValue("2026-02-15")).toBeInTheDocument();
     });
-    // Class type select shows "gi"
-    const classSelect = screen.getByDisplayValue("Gi");
-    expect(classSelect).toBeInTheDocument();
+    // Class type chip for "gi" is selected
+    const giChip = screen.getByRole("button", { name: "Gi" });
+    expect(giChip).toHaveAttribute("aria-pressed", "true");
     // Gym name
     expect(screen.getByDisplayValue("Test Gym")).toBeInTheDocument();
     // Duration
     expect(screen.getByDisplayValue("60")).toBeInTheDocument();
-    // Intensity
-    expect(screen.getByDisplayValue("4")).toBeInTheDocument();
+    // Intensity chip for "4" is selected
+    const intensityChip = screen.getByRole("button", { name: /Intensity level 4 of 5/ });
+    expect(intensityChip).toHaveAttribute("aria-pressed", "true");
   });
 
   it("has save button", async () => {

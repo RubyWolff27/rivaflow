@@ -1,86 +1,36 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { usePageTitle } from '../hooks/usePageTitle';
-import { ArrowLeft, Sparkles, Trophy, Heart, Brain, Shield, Plus, X } from 'lucide-react';
-import { Card, PrimaryButton } from '../components/ui';
+import { ArrowLeft, Sparkles } from 'lucide-react';
+import { PrimaryButton } from '../components/ui';
 import { coachPreferencesApi, profileApi } from '../api/client';
 import { useToast } from '../contexts/ToastContext';
+import CoachSettingsForm from '../components/coach/CoachSettingsForm';
+import InjuryManager from '../components/coach/InjuryManager';
+import type { Injury } from '../components/coach/InjuryManager';
 
-interface Injury {
-  area: string;
-  side: string;
-  severity: string;
-  notes: string;
-  status: string;
-  resolved_date: string;
-  start_date: string;
+interface CoachPreferencesData {
+  competition_ruleset?: string;
+  training_mode?: string;
+  comp_date?: string;
+  comp_name?: string;
+  comp_division?: string;
+  comp_weight_class?: string;
+  coaching_style?: string;
+  primary_position?: string;
+  focus_areas?: string[];
+  weaknesses?: string;
+  injuries?: Partial<Injury>[];
+  training_start_date?: string;
+  years_training?: number;
+  competition_experience?: string;
+  available_days_per_week?: number;
+  motivations?: string[];
+  additional_context?: string;
+  gi_nogi_preference?: string;
+  gi_bias_pct?: number;
+  data?: CoachPreferencesData;
 }
-
-const BELT_COLORS: Record<string, string> = {
-  white: '#E5E7EB',
-  blue: '#3B82F6',
-  purple: '#8B5CF6',
-  brown: '#92400E',
-  black: '#1F2937',
-};
-
-const COMPETITION_RULESETS = [
-  { id: 'none', label: 'No Preference' },
-  { id: 'ibjjf', label: 'IBJJF' },
-  { id: 'adcc', label: 'ADCC' },
-  { id: 'sub_only', label: 'Sub Only' },
-  { id: 'naga', label: 'NAGA' },
-  { id: 'other', label: 'Other' },
-];
-
-const TRAINING_MODES = [
-  { id: 'lifestyle', label: 'Lifestyle & Health', icon: Heart, desc: 'Training for enjoyment, fitness, and longevity' },
-  { id: 'competition_prep', label: 'Competition Prep', icon: Trophy, desc: 'Peaking for a specific event' },
-  { id: 'skill_development', label: 'Skill Development', icon: Brain, desc: 'Focused on technical growth' },
-  { id: 'recovery', label: 'Recovery', icon: Shield, desc: 'Coming back from injury or overtraining' },
-];
-
-const COACHING_STYLES = [
-  { id: 'balanced', label: 'Balanced' },
-  { id: 'motivational', label: 'Motivational' },
-  { id: 'analytical', label: 'Analytical' },
-  { id: 'tough_love', label: 'Tough Love' },
-  { id: 'technical', label: 'Technical' },
-];
-
-const FOCUS_AREAS = [
-  'guard', 'passing', 'takedowns', 'leg_locks', 'back_attacks',
-  'submissions', 'escapes', 'sweeps', 'pressure', 'wrestling',
-];
-
-const FOCUS_LABELS: Record<string, string> = {
-  guard: 'Guard', passing: 'Passing', takedowns: 'Takedowns',
-  leg_locks: 'Leg Locks', back_attacks: 'Back Attacks',
-  submissions: 'Submissions', escapes: 'Escapes', sweeps: 'Sweeps',
-  pressure: 'Pressure', wrestling: 'Wrestling',
-};
-
-const MOTIVATIONS = [
-  { id: 'fitness', label: 'Fitness' },
-  { id: 'competition', label: 'Competition' },
-  { id: 'self_defense', label: 'Self-Defense' },
-  { id: 'social', label: 'Social' },
-  { id: 'mental_health', label: 'Mental Health' },
-  { id: 'fun', label: 'Fun' },
-];
-
-const INJURY_AREAS = [
-  'knee', 'shoulder', 'back', 'neck', 'elbow', 'wrist',
-  'ankle', 'hip', 'ribs', 'fingers', 'other',
-];
-
-const INJURY_SIDES = ['left', 'right', 'both', 'n/a'];
-const INJURY_SEVERITIES = ['mild', 'moderate', 'severe'];
-const INJURY_STATUSES = [
-  { id: 'active', label: 'Active', color: '#EF4444' },
-  { id: 'managing', label: 'Managing', color: '#F59E0B' },
-  { id: 'recovered', label: 'Recovered', color: '#10B981' },
-];
 
 export default function CoachSettings() {
   usePageTitle('Coach Settings');
@@ -112,15 +62,15 @@ export default function CoachSettings() {
   useEffect(() => {
     const load = async () => {
       try {
-        // Fetch profile for belt (source of truth)
         try {
           const profileRes = await profileApi.get();
-          const p = (profileRes as any).data;
+          const p = profileRes.data;
           if (p?.current_grade) setCurrentGrade(p.current_grade);
         } catch { /* profile not set yet */ }
 
         const res = await coachPreferencesApi.get();
-        const d = (res.data as any)?.data || res.data;
+        const raw = res.data as CoachPreferencesData;
+        const d = raw?.data || raw;
         if (d) {
           setCompetitionRuleset(d.competition_ruleset || 'none');
           setTrainingMode(d.training_mode || 'lifestyle');
@@ -255,421 +205,53 @@ export default function CoachSettings() {
         </div>
       </div>
 
-      {/* 1. Your Belt (read-only from Profile) */}
-      <Card className="p-5">
-        <h2 className="text-sm font-semibold mb-1" style={{ color: 'var(--text)' }}>Your Belt</h2>
-        <p className="text-xs mb-3" style={{ color: 'var(--muted)' }}>Grapple adapts its coaching depth and terminology to your level</p>
-        {currentGrade ? (
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div
-                className="w-8 h-3 rounded-sm"
-                style={{
-                  backgroundColor: BELT_COLORS[currentGrade.toLowerCase().split(' ')[0]] || '#9CA3AF',
-                  border: currentGrade.toLowerCase().startsWith('white') ? '1px solid var(--border)' : 'none',
-                }}
-              />
-              <span className="text-sm font-semibold" style={{ color: 'var(--text)' }}>{currentGrade}</span>
-            </div>
-            <Link to="/profile" className="text-xs hover:underline" style={{ color: 'var(--accent)' }}>
-              Update in Profile
-            </Link>
-          </div>
-        ) : (
-          <Link to="/profile" className="flex items-center justify-between p-3 rounded-lg" style={{ backgroundColor: 'var(--surfaceElev)' }}>
-            <span className="text-sm" style={{ color: 'var(--muted)' }}>Set your belt in Profile to personalise coaching</span>
-            <span className="text-xs font-medium" style={{ color: 'var(--accent)' }}>Set up</span>
-          </Link>
-        )}
-      </Card>
+      <CoachSettingsForm
+        currentGrade={currentGrade}
+        trainingMode={trainingMode}
+        onTrainingModeChange={setTrainingMode}
+        compDate={compDate}
+        onCompDateChange={setCompDate}
+        compName={compName}
+        onCompNameChange={setCompName}
+        compDivision={compDivision}
+        onCompDivisionChange={setCompDivision}
+        compWeightClass={compWeightClass}
+        onCompWeightClassChange={setCompWeightClass}
+        competitionRuleset={competitionRuleset}
+        onCompetitionRulesetChange={setCompetitionRuleset}
+        coachingStyle={coachingStyle}
+        onCoachingStyleChange={setCoachingStyle}
+        giNogiPreference={giNogiPreference}
+        onGiNogiPreferenceChange={setGiNogiPreference}
+        giBiasPct={giBiasPct}
+        onGiBiasPctChange={setGiBiasPct}
+        primaryPosition={primaryPosition}
+        onPrimaryPositionChange={setPrimaryPosition}
+        focusAreas={focusAreas}
+        onToggleFocusArea={toggleFocusArea}
+        weaknesses={weaknesses}
+        onWeaknessesChange={setWeaknesses}
+        trainingStartDate={trainingStartDate}
+        onTrainingStartDateChange={setTrainingStartDate}
+        yearsTraining={yearsTraining}
+        onYearsTrainingChange={setYearsTraining}
+        competitionExp={competitionExp}
+        onCompetitionExpChange={setCompetitionExp}
+        availableDays={availableDays}
+        onAvailableDaysChange={setAvailableDays}
+        motivations={motivations}
+        onToggleMotivation={toggleMotivation}
+        additionalContext={additionalContext}
+        onAdditionalContextChange={setAdditionalContext}
+        daysUntilComp={daysUntilComp}
+      />
 
-      {/* 2. Training Mode */}
-      <Card className="p-5">
-        <h2 className="text-sm font-semibold mb-3" style={{ color: 'var(--text)' }}>Training Mode</h2>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          {TRAINING_MODES.map(mode => {
-            const Icon = mode.icon;
-            const selected = trainingMode === mode.id;
-            return (
-              <button
-                key={mode.id}
-                onClick={() => setTrainingMode(mode.id)}
-                className="flex items-start gap-3 p-3 rounded-xl text-left transition-all"
-                style={{
-                  backgroundColor: selected ? 'var(--accent)' + '15' : 'var(--surfaceElev)',
-                  border: selected ? '2px solid var(--accent)' : '2px solid transparent',
-                }}
-              >
-                <Icon className="w-5 h-5 mt-0.5 shrink-0" style={{ color: selected ? 'var(--accent)' : 'var(--muted)' }} />
-                <div>
-                  <p className="text-sm font-medium" style={{ color: 'var(--text)' }}>{mode.label}</p>
-                  <p className="text-xs mt-0.5" style={{ color: 'var(--muted)' }}>{mode.desc}</p>
-                </div>
-              </button>
-            );
-          })}
-        </div>
-      </Card>
-
-      {/* 2. Competition Details (conditional) */}
-      {trainingMode === 'competition_prep' && (
-        <Card className="p-5">
-          <h2 className="text-sm font-semibold mb-3" style={{ color: 'var(--text)' }}>
-            Competition Details
-            {daysUntilComp != null && daysUntilComp > 0 && (
-              <span className="ml-2 text-xs font-bold px-2 py-0.5 rounded" style={{ backgroundColor: daysUntilComp <= 14 ? 'var(--danger-bg)' : 'var(--warning-bg)', color: daysUntilComp <= 14 ? 'var(--danger)' : 'var(--warning)' }}>
-                {daysUntilComp} days
-              </span>
-            )}
-          </h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div>
-              <label className="text-xs font-medium block mb-1" style={{ color: 'var(--muted)' }}>Competition Name</label>
-              <input className="input w-full text-sm" placeholder="e.g. IBJJF Sydney Open" value={compName} onChange={e => setCompName(e.target.value)} />
-            </div>
-            <div>
-              <label className="text-xs font-medium block mb-1" style={{ color: 'var(--muted)' }}>Date</label>
-              <input type="date" className="input w-full text-sm" value={compDate} onChange={e => setCompDate(e.target.value)} />
-            </div>
-            <div>
-              <label className="text-xs font-medium block mb-1" style={{ color: 'var(--muted)' }}>Division</label>
-              <select className="input w-full text-sm" value={compDivision} onChange={e => setCompDivision(e.target.value)}>
-                <option value="">Select...</option>
-                <option value="gi">Gi</option>
-                <option value="no-gi">No-Gi</option>
-                <option value="both">Both</option>
-              </select>
-            </div>
-            <div>
-              <label className="text-xs font-medium block mb-1" style={{ color: 'var(--muted)' }}>Weight Class</label>
-              <input className="input w-full text-sm" placeholder="e.g. Medium Heavy" value={compWeightClass} onChange={e => setCompWeightClass(e.target.value)} />
-            </div>
-          </div>
-        </Card>
-      )}
-
-      {/* Competition Ruleset */}
-      <Card className="p-5">
-        <h2 className="text-sm font-semibold mb-1" style={{ color: 'var(--text)' }}>Competition Ruleset</h2>
-        <p className="text-xs mb-3" style={{ color: 'var(--muted)' }}>Grapple adjusts strategy advice based on the rules you compete under</p>
-        <div className="flex flex-wrap gap-2">
-          {COMPETITION_RULESETS.map(rs => (
-            <button
-              key={rs.id}
-              onClick={() => setCompetitionRuleset(rs.id)}
-              className="px-3 py-1.5 rounded-full text-xs font-medium transition-all"
-              style={{
-                backgroundColor: competitionRuleset === rs.id ? 'var(--accent)' : 'var(--surfaceElev)',
-                color: competitionRuleset === rs.id ? '#fff' : 'var(--text)',
-              }}
-            >
-              {rs.label}
-            </button>
-          ))}
-        </div>
-      </Card>
-
-      {/* Coaching Style */}
-      <Card className="p-5">
-        <h2 className="text-sm font-semibold mb-3" style={{ color: 'var(--text)' }}>Coaching Style</h2>
-        <div className="flex flex-wrap gap-2">
-          {COACHING_STYLES.map(style => (
-            <button
-              key={style.id}
-              onClick={() => setCoachingStyle(style.id)}
-              className="px-3 py-1.5 rounded-full text-xs font-medium transition-all"
-              style={{
-                backgroundColor: coachingStyle === style.id ? 'var(--accent)' : 'var(--surfaceElev)',
-                color: coachingStyle === style.id ? '#fff' : 'var(--text)',
-              }}
-            >
-              {style.label}
-            </button>
-          ))}
-        </div>
-      </Card>
-
-      {/* Gi / No-Gi Preference */}
-      <Card className="p-5">
-        <h2 className="text-sm font-semibold mb-1" style={{ color: 'var(--text)' }}>Gi / No-Gi Preference</h2>
-        <p className="text-xs mb-3" style={{ color: 'var(--muted)' }}>Grapple skews technique recommendations based on your preference</p>
-        <div className="flex gap-2 mb-3">
-          {[
-            { id: 'gi_only', label: 'Gi Only' },
-            { id: 'both', label: 'Both' },
-            { id: 'nogi_only', label: 'No-Gi Only' },
-          ].map((opt) => (
-            <button
-              key={opt.id}
-              onClick={() => setGiNogiPreference(opt.id)}
-              className="flex-1 py-2 rounded-lg text-xs font-medium transition-all"
-              style={{
-                backgroundColor: giNogiPreference === opt.id ? 'var(--accent)' : 'var(--surfaceElev)',
-                color: giNogiPreference === opt.id ? '#fff' : 'var(--text)',
-              }}
-            >
-              {opt.label}
-            </button>
-          ))}
-        </div>
-        {giNogiPreference === 'both' && (
-          <div>
-            <div className="flex justify-between text-xs mb-1" style={{ color: 'var(--muted)' }}>
-              <span>No-Gi</span>
-              <span>{giBiasPct}% Gi / {100 - giBiasPct}% No-Gi</span>
-              <span>Gi</span>
-            </div>
-            <input
-              type="range"
-              min={0}
-              max={100}
-              step={5}
-              value={giBiasPct}
-              onChange={(e) => setGiBiasPct(parseInt(e.target.value))}
-              className="w-full"
-            />
-          </div>
-        )}
-      </Card>
-
-      {/* 4. Your Game */}
-      <Card className="p-5">
-        <h2 className="text-sm font-semibold mb-3" style={{ color: 'var(--text)' }}>Your Game</h2>
-
-        <div className="mb-4">
-          <label className="text-xs font-medium block mb-2" style={{ color: 'var(--muted)' }}>Primary Position</label>
-          <div className="flex gap-2">
-            {['top', 'bottom', 'both'].map(pos => (
-              <button
-                key={pos}
-                onClick={() => setPrimaryPosition(pos)}
-                className="flex-1 py-2 rounded-lg text-xs font-medium transition-all"
-                style={{
-                  backgroundColor: primaryPosition === pos ? 'var(--accent)' : 'var(--surfaceElev)',
-                  color: primaryPosition === pos ? '#fff' : 'var(--text)',
-                }}
-              >
-                {pos.charAt(0).toUpperCase() + pos.slice(1)}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        <div className="mb-4">
-          <label className="text-xs font-medium block mb-2" style={{ color: 'var(--muted)' }}>Focus Areas</label>
-          <div className="flex flex-wrap gap-2">
-            {FOCUS_AREAS.map(area => (
-              <button
-                key={area}
-                onClick={() => toggleFocusArea(area)}
-                className="px-3 py-1.5 rounded-full text-xs font-medium transition-all"
-                style={{
-                  backgroundColor: focusAreas.includes(area) ? 'var(--accent)' + '20' : 'var(--surfaceElev)',
-                  color: focusAreas.includes(area) ? 'var(--accent)' : 'var(--text)',
-                  border: focusAreas.includes(area) ? '1px solid var(--accent)' : '1px solid transparent',
-                }}
-              >
-                {FOCUS_LABELS[area]}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        <div>
-          <label className="text-xs font-medium block mb-1" style={{ color: 'var(--muted)' }}>What do you want to improve?</label>
-          <textarea
-            className="input w-full text-sm"
-            rows={2}
-            placeholder="e.g. my guard retention under pressure, staying calm in bottom side control..."
-            value={weaknesses}
-            onChange={e => setWeaknesses(e.target.value)}
-          />
-        </div>
-      </Card>
-
-      {/* 5. Injuries */}
-      <Card className="p-5">
-        <div className="flex items-center justify-between mb-3">
-          <div>
-            <h2 className="text-sm font-semibold" style={{ color: 'var(--text)' }}>Injuries</h2>
-            <p className="text-xs" style={{ color: 'var(--muted)' }}>Persist across sessions, unlike your daily check-in hotspot</p>
-          </div>
-          <button
-            onClick={addInjury}
-            className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-colors"
-            style={{ backgroundColor: 'var(--surfaceElev)', color: 'var(--accent)' }}
-          >
-            <Plus className="w-3.5 h-3.5" /> Add
-          </button>
-        </div>
-
-        {injuries.length === 0 && (
-          <p className="text-xs py-4 text-center" style={{ color: 'var(--muted)' }}>
-            No injuries recorded. Grapple will assume you're healthy.
-          </p>
-        )}
-
-        <div className="space-y-3">
-          {injuries.map((inj, i) => (
-            <div
-              key={i}
-              className="p-3 rounded-lg"
-              style={{ backgroundColor: 'var(--surfaceElev)', border: '1px solid var(--border)' }}
-            >
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-xs font-medium" style={{ color: 'var(--text)' }}>Injury {i + 1}</span>
-                <button onClick={() => removeInjury(i)} className="p-1 rounded hover:bg-[var(--border)]">
-                  <X className="w-3.5 h-3.5" style={{ color: 'var(--muted)' }} />
-                </button>
-              </div>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 mb-2">
-                <select className="input text-xs" value={inj.area} onChange={e => updateInjury(i, 'area', e.target.value)}>
-                  {INJURY_AREAS.map(a => <option key={a} value={a}>{a.charAt(0).toUpperCase() + a.slice(1)}</option>)}
-                </select>
-                <select className="input text-xs" value={inj.side} onChange={e => updateInjury(i, 'side', e.target.value)}>
-                  {INJURY_SIDES.map(s => <option key={s} value={s}>{s === 'n/a' ? 'N/A' : s.charAt(0).toUpperCase() + s.slice(1)}</option>)}
-                </select>
-                <select className="input text-xs" value={inj.severity} onChange={e => updateInjury(i, 'severity', e.target.value)}>
-                  {INJURY_SEVERITIES.map(s => <option key={s} value={s}>{s.charAt(0).toUpperCase() + s.slice(1)}</option>)}
-                </select>
-              </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mb-2">
-                <div>
-                  <label className="text-[10px] font-medium block mb-0.5" style={{ color: 'var(--muted)' }}>Status</label>
-                  <div className="flex gap-1.5">
-                    {INJURY_STATUSES.map(st => (
-                      <button
-                        key={st.id}
-                        type="button"
-                        onClick={() => updateInjury(i, 'status', st.id)}
-                        className="flex-1 py-1 rounded-md text-[10px] font-semibold transition-all"
-                        style={{
-                          backgroundColor: (inj.status || 'active') === st.id ? `${st.color}20` : 'var(--surface)',
-                          color: (inj.status || 'active') === st.id ? st.color : 'var(--muted)',
-                          border: (inj.status || 'active') === st.id ? `1px solid ${st.color}` : '1px solid var(--border)',
-                        }}
-                      >
-                        {st.label}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-                <div>
-                  <label className="text-[10px] font-medium block mb-0.5" style={{ color: 'var(--muted)' }}>Start Date</label>
-                  <input
-                    type="date"
-                    className="input w-full text-xs"
-                    value={inj.start_date || ''}
-                    onChange={e => updateInjury(i, 'start_date', e.target.value)}
-                  />
-                </div>
-              </div>
-              {(inj.status || 'active') === 'recovered' && (
-                <div className="mb-2">
-                  <label className="text-[10px] font-medium block mb-0.5" style={{ color: 'var(--muted)' }}>Resolved Date</label>
-                  <input
-                    type="date"
-                    className="input w-full text-xs"
-                    value={inj.resolved_date || ''}
-                    onChange={e => updateInjury(i, 'resolved_date', e.target.value)}
-                  />
-                </div>
-              )}
-              <input
-                className="input w-full text-xs"
-                placeholder="Notes (e.g. ACL sprain, 3 months ago)"
-                value={inj.notes}
-                onChange={e => updateInjury(i, 'notes', e.target.value)}
-              />
-            </div>
-          ))}
-        </div>
-      </Card>
-
-      {/* 6. Training Background */}
-      <Card className="p-5">
-        <h2 className="text-sm font-semibold mb-1" style={{ color: 'var(--text)' }}>Training Background</h2>
-        <p className="text-xs mb-3" style={{ color: 'var(--muted)' }}>Fill in one or both — if you took breaks, add your active mat time separately</p>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
-          <div>
-            <label className="text-xs font-medium block mb-1" style={{ color: 'var(--muted)' }}>When did you start?</label>
-            <input
-              type="date"
-              className="input w-full text-sm"
-              value={trainingStartDate}
-              onChange={e => setTrainingStartDate(e.target.value)}
-            />
-          </div>
-          <div>
-            <label className="text-xs font-medium block mb-1" style={{ color: 'var(--muted)' }}>Active mat time (years)</label>
-            <input
-              type="number"
-              className="input w-full text-sm"
-              placeholder="e.g. 3.5 — leave blank to auto-calculate"
-              step="0.5"
-              min="0"
-              value={yearsTraining}
-              onChange={e => setYearsTraining(e.target.value)}
-            />
-          </div>
-        </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <div>
-            <label className="text-xs font-medium block mb-1" style={{ color: 'var(--muted)' }}>Comp Experience</label>
-            <select className="input w-full text-sm" value={competitionExp} onChange={e => setCompetitionExp(e.target.value)}>
-              <option value="none">None</option>
-              <option value="beginner">Beginner (1-3)</option>
-              <option value="regular">Regular (4-10)</option>
-              <option value="active">Active (10+)</option>
-            </select>
-          </div>
-          <div>
-            <label className="text-xs font-medium block mb-1" style={{ color: 'var(--muted)' }}>Days / Week</label>
-            <input
-              type="number"
-              className="input w-full text-sm"
-              min="1"
-              max="7"
-              value={availableDays}
-              onChange={e => setAvailableDays(e.target.value)}
-            />
-          </div>
-        </div>
-      </Card>
-
-      {/* 7. Why You Train */}
-      <Card className="p-5">
-        <h2 className="text-sm font-semibold mb-3" style={{ color: 'var(--text)' }}>Why Do You Train?</h2>
-        <div className="flex flex-wrap gap-2">
-          {MOTIVATIONS.map(m => (
-            <button
-              key={m.id}
-              onClick={() => toggleMotivation(m.id)}
-              className="px-3 py-1.5 rounded-full text-xs font-medium transition-all"
-              style={{
-                backgroundColor: motivations.includes(m.id) ? 'var(--accent)' + '20' : 'var(--surfaceElev)',
-                color: motivations.includes(m.id) ? 'var(--accent)' : 'var(--text)',
-                border: motivations.includes(m.id) ? '1px solid var(--accent)' : '1px solid transparent',
-              }}
-            >
-              {m.label}
-            </button>
-          ))}
-        </div>
-      </Card>
-
-      {/* 8. Anything Else */}
-      <Card className="p-5">
-        <h2 className="text-sm font-semibold mb-1" style={{ color: 'var(--text)' }}>Anything Else?</h2>
-        <p className="text-xs mb-3" style={{ color: 'var(--muted)' }}>Tell Grapple anything else about you or your training</p>
-        <textarea
-          className="input w-full text-sm"
-          rows={3}
-          placeholder="e.g. I have a desk job and sit 8 hours a day, I'm left-handed, I recently switched gyms..."
-          value={additionalContext}
-          onChange={e => setAdditionalContext(e.target.value)}
-        />
-      </Card>
+      <InjuryManager
+        injuries={injuries}
+        onAdd={addInjury}
+        onRemove={removeInjury}
+        onUpdate={updateInjury}
+      />
 
       {/* Save */}
       <PrimaryButton

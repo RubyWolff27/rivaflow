@@ -4,37 +4,15 @@ import { friendsApi, socialApi } from '../api/client';
 import { logger } from '../utils/logger';
 import type { Friend } from '../types';
 import { useNavigate } from 'react-router-dom';
-import { Users, Plus, Edit2, Trash2, Award, Filter, Search, UserCheck, X } from 'lucide-react';
+import { Users, Plus, Search, Filter } from 'lucide-react';
 import ConfirmDialog from '../components/ConfirmDialog';
 import { useToast } from '../contexts/ToastContext';
 import { CardSkeleton } from '../components/ui';
-
-interface PendingRequest {
-  id: number;
-  requester_id: number;
-  requester_first_name: string;
-  requester_last_name: string;
-  requester_email: string;
-  requester_avatar_url?: string;
-  requested_at: string;
-}
-
-interface SocialFriend {
-  id: number;
-  first_name: string;
-  last_name: string;
-  email?: string;
-  avatar_url?: string;
-  friends_since?: string;
-}
-
-const BELT_STYLES: Record<string, React.CSSProperties> = {
-  white: { backgroundColor: 'var(--surfaceElev)', color: 'var(--text)', borderColor: 'var(--border)' },
-  blue: { backgroundColor: 'rgba(59, 130, 246, 0.15)', color: 'rgb(96, 165, 250)', borderColor: 'rgba(59, 130, 246, 0.3)' },
-  purple: { backgroundColor: 'rgba(168, 85, 247, 0.15)', color: 'rgb(192, 132, 252)', borderColor: 'rgba(168, 85, 247, 0.3)' },
-  brown: { backgroundColor: 'rgba(180, 120, 60, 0.15)', color: 'rgb(200, 150, 80)', borderColor: 'rgba(180, 120, 60, 0.3)' },
-  black: { backgroundColor: 'rgba(0, 0, 0, 0.6)', color: '#fff', borderColor: 'rgba(100, 100, 100, 0.5)' },
-};
+import FriendCard from '../components/friends/FriendCard';
+import FriendRequestCard, { SocialFriendsList } from '../components/friends/FriendRequestCard';
+import type { PendingRequest, SocialFriend } from '../components/friends/FriendRequestCard';
+import FriendForm from '../components/friends/FriendForm';
+import type { FriendFormData } from '../components/friends/FriendForm';
 
 export default function Friends() {
   usePageTitle('Friends');
@@ -52,10 +30,10 @@ export default function Friends() {
   const [socialFriends, setSocialFriends] = useState<SocialFriend[]>([]);
   const toast = useToast();
 
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<FriendFormData>({
     name: '',
-    friend_type: 'training-partner' as 'instructor' | 'training-partner' | 'both',
-    belt_rank: '' as '' | 'white' | 'blue' | 'purple' | 'brown' | 'black',
+    friend_type: 'training-partner',
+    belt_rank: '',
     belt_stripes: 0,
     instructor_certification: '',
     phone: '',
@@ -151,7 +129,6 @@ export default function Friends() {
     setLoading(true);
     try {
       const response = await friendsApi.list();
-      // API returns {friends: [], total: 0}, extract the friends array
       const data = response.data as any;
       setFriends(data.friends || data || []);
     } catch (error) {
@@ -255,26 +232,6 @@ export default function Friends() {
     setShowAddForm(false);
   };
 
-  const renderBeltBadge = (friend: Friend) => {
-    if (!friend.belt_rank) return null;
-
-    const style = BELT_STYLES[friend.belt_rank];
-    const stripes = friend.belt_stripes || 0;
-
-    return (
-      <span className="inline-flex items-center gap-1 px-2 py-1 rounded text-xs font-medium border" style={style}>
-        {friend.belt_rank.charAt(0).toUpperCase() + friend.belt_rank.slice(1)} Belt
-        {stripes > 0 && (
-          <span className="flex gap-0.5 ml-1">
-            {Array.from({ length: stripes }).map((_, i) => (
-              <div key={i} className="w-1 h-3 bg-current opacity-70" />
-            ))}
-          </span>
-        )}
-      </span>
-    );
-  };
-
   if (loading) {
     return (
       <div className="space-y-4">
@@ -317,229 +274,25 @@ export default function Friends() {
       </div>
 
       {/* Pending Friend Requests */}
-      {pendingRequests.length > 0 && (
-        <div className="card bg-[var(--surface)] border border-[var(--accent)]/20">
-          <h3 className="text-lg font-semibold text-[var(--text)] mb-3">
-            Friend Requests ({pendingRequests.length})
-          </h3>
-          <div className="space-y-3">
-            {pendingRequests.map((request) => (
-              <div
-                key={request.id}
-                className="flex items-center justify-between p-3 rounded-[14px] bg-[var(--surfaceElev)]"
-              >
-                <div
-                  className="flex items-center gap-3 cursor-pointer flex-1"
-                  onClick={() => navigate(`/users/${request.requester_id}`)}
-                >
-                  {request.requester_avatar_url ? (
-                    <img
-                      src={request.requester_avatar_url}
-                      alt={request.requester_first_name}
-                      className="w-10 h-10 rounded-full object-cover"
-                    />
-                  ) : (
-                    <div
-                      className="w-10 h-10 rounded-full flex items-center justify-center text-white font-bold"
-                      style={{ background: 'linear-gradient(135deg, var(--accent), #FF8C42)' }}
-                    >
-                      {request.requester_first_name?.charAt(0) || '?'}
-                    </div>
-                  )}
-                  <div>
-                    <p className="font-medium text-[var(--text)]">
-                      {request.requester_first_name} {request.requester_last_name}
-                    </p>
-                    <p className="text-xs text-[var(--muted)]">
-                      Sent {new Date(request.requested_at).toLocaleDateString()}
-                    </p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={() => handleAcceptRequest(request)}
-                    disabled={requestActionLoading === request.id}
-                    className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-sm font-medium text-white hover:opacity-90 disabled:opacity-50"
-                    style={{ backgroundColor: 'var(--accent)' }}
-                  >
-                    <UserCheck className="w-4 h-4" />
-                    Accept
-                  </button>
-                  <button
-                    onClick={() => handleDeclineRequest(request)}
-                    disabled={requestActionLoading === request.id}
-                    className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-sm font-medium text-[var(--muted)] bg-[var(--surface)] hover:opacity-80 disabled:opacity-50 border border-[var(--border)]"
-                  >
-                    <X className="w-4 h-4" />
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
+      <FriendRequestCard
+        pendingRequests={pendingRequests}
+        requestActionLoading={requestActionLoading}
+        onAccept={handleAcceptRequest}
+        onDecline={handleDeclineRequest}
+      />
 
       {/* Social Friends (RivaFlow users) */}
-      {socialFriends.length > 0 && (
-        <div className="card bg-[var(--surface)]">
-          <div className="flex items-center justify-between mb-3">
-            <h3 className="text-lg font-semibold text-[var(--text)]">
-              RivaFlow Friends ({socialFriends.length})
-            </h3>
-            <button
-              onClick={() => navigate('/find-friends')}
-              className="text-sm text-[var(--accent)] hover:opacity-80"
-            >
-              Find more
-            </button>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-            {socialFriends.map((sf) => (
-              <div
-                key={sf.id}
-                className="flex items-center gap-3 p-3 rounded-[14px] bg-[var(--surfaceElev)] cursor-pointer hover:shadow-md transition-shadow"
-                onClick={() => navigate(`/users/${sf.id}`)}
-              >
-                {sf.avatar_url ? (
-                  <img
-                    src={sf.avatar_url}
-                    alt={sf.first_name}
-                    className="w-10 h-10 rounded-full object-cover"
-                  />
-                ) : (
-                  <div
-                    className="w-10 h-10 rounded-full flex items-center justify-center text-white font-bold"
-                    style={{ background: 'linear-gradient(135deg, var(--accent), #FF8C42)' }}
-                  >
-                    {sf.first_name?.charAt(0) || '?'}
-                  </div>
-                )}
-                <div className="flex-1 min-w-0">
-                  <p className="font-medium text-[var(--text)] truncate">
-                    {sf.first_name} {sf.last_name}
-                  </p>
-                  <p className="text-xs text-[var(--muted)]">
-                    <UserCheck className="w-3 h-3 inline mr-1" />
-                    Friends
-                  </p>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
+      <SocialFriendsList socialFriends={socialFriends} />
 
       {/* Add/Edit Form */}
       {showAddForm && (
-        <form onSubmit={handleSubmit} className="card bg-[var(--surfaceElev)] space-y-4">
-          <h3 className="text-lg font-semibold">
-            {editingFriend ? 'Edit Friend' : 'Add New Friend'}
-          </h3>
-
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="label">Name *</label>
-              <input
-                type="text"
-                className="input"
-                value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                required
-              />
-            </div>
-            <div>
-              <label className="label">Type</label>
-              <select
-                className="input"
-                value={formData.friend_type}
-                onChange={(e) => setFormData({ ...formData, friend_type: e.target.value as any })}
-              >
-                <option value="training-partner">Training Partner</option>
-                <option value="instructor">Instructor</option>
-                <option value="both">Both</option>
-              </select>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <div>
-              <label className="label">Belt Rank</label>
-              <select
-                className="input"
-                value={formData.belt_rank}
-                onChange={(e) => setFormData({ ...formData, belt_rank: e.target.value as any })}
-              >
-                <option value="">None</option>
-                <option value="white">White</option>
-                <option value="blue">Blue</option>
-                <option value="purple">Purple</option>
-                <option value="brown">Brown</option>
-                <option value="black">Black</option>
-              </select>
-            </div>
-            <div>
-              <label className="label">Stripes</label>
-              <input
-                type="number"
-                className="input"
-                value={formData.belt_stripes}
-                onChange={(e) => setFormData({ ...formData, belt_stripes: parseInt(e.target.value) || 0 })}
-                min="0"
-                max="4"
-              />
-            </div>
-            <div>
-              <label className="label">Instructor Cert</label>
-              <input
-                type="text"
-                className="input"
-                value={formData.instructor_certification}
-                onChange={(e) => setFormData({ ...formData, instructor_certification: e.target.value })}
-                placeholder="e.g., 1st degree"
-              />
-            </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="label">Phone</label>
-              <input
-                type="tel"
-                className="input"
-                value={formData.phone}
-                onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-              />
-            </div>
-            <div>
-              <label className="label">Email</label>
-              <input
-                type="email"
-                className="input"
-                value={formData.email}
-                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-              />
-            </div>
-          </div>
-
-          <div>
-            <label className="label">Notes</label>
-            <textarea
-              className="input"
-              value={formData.notes}
-              onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-              rows={2}
-            />
-          </div>
-
-          <div className="flex gap-2">
-            <button type="submit" className="btn-primary">
-              {editingFriend ? 'Update Friend' : 'Add Friend'}
-            </button>
-            <button type="button" onClick={resetForm} className="btn-secondary">
-              Cancel
-            </button>
-          </div>
-        </form>
+        <FriendForm
+          formData={formData}
+          onFormDataChange={setFormData}
+          onSubmit={handleSubmit}
+          onCancel={resetForm}
+          isEditing={!!editingFriend}
+        />
       )}
 
       {/* Filters */}
@@ -584,64 +337,12 @@ export default function Friends() {
       {/* Contacts List */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {filteredFriends.map(friend => (
-          <div key={friend.id} className="card hover:shadow-lg transition-shadow">
-            <div className="flex items-start justify-between mb-3">
-              <div className="flex-1">
-                <h3 className="font-semibold text-lg text-[var(--text)]">
-                  {friend.name}
-                </h3>
-                <p className="text-sm text-[var(--muted)] capitalize">
-                  {friend.friend_type.replace('-', ' ')}
-                </p>
-              </div>
-              <div className="flex gap-2">
-                <button
-                  onClick={() => handleEdit(friend)}
-                  className="text-[var(--accent)] hover:opacity-80"
-                  title="Edit friend"
-                >
-                  <Edit2 className="w-4 h-4" />
-                </button>
-                <button
-                  onClick={() => setFriendToDelete(friend.id)}
-                  className="text-[var(--error)] hover:opacity-80"
-                  title="Delete friend"
-                  aria-label="Delete friend"
-                >
-                  <Trash2 className="w-4 h-4" />
-                </button>
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              {renderBeltBadge(friend)}
-
-              {friend.instructor_certification && (
-                <div className="flex items-center gap-1 text-sm text-[var(--muted)]">
-                  <Award className="w-4 h-4" />
-                  <span>{friend.instructor_certification}</span>
-                </div>
-              )}
-
-              {friend.phone && (
-                <p className="text-sm text-[var(--muted)]">
-                  📱 {friend.phone}
-                </p>
-              )}
-
-              {friend.email && (
-                <p className="text-sm text-[var(--muted)]">
-                  📧 {friend.email}
-                </p>
-              )}
-
-              {friend.notes && (
-                <p className="text-sm text-[var(--muted)] italic">
-                  {friend.notes}
-                </p>
-              )}
-            </div>
-          </div>
+          <FriendCard
+            key={friend.id}
+            friend={friend}
+            onEdit={handleEdit}
+            onDelete={setFriendToDelete}
+          />
         ))}
       </div>
 

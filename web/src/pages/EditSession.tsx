@@ -5,16 +5,20 @@ import { sessionsApi, friendsApi, socialApi, glossaryApi, whoopApi } from '../ap
 import { logger } from '../utils/logger';
 import { HH_MM_RE } from '../utils/validation';
 import type { Friend, Movement, Session, SessionRoll, SessionTechnique } from '../types';
-import { CheckCircle, ArrowLeft, Save, Loader, Plus, X, Search, Trash2, ToggleLeft, ToggleRight, Camera } from 'lucide-react';
+import { CheckCircle, ArrowLeft, Save, Loader, Trash2, Camera } from 'lucide-react';
 import WhoopMatchModal from '../components/WhoopMatchModal';
 import WhoopIntegrationPanel from '../components/sessions/WhoopIntegrationPanel';
+import TechniqueTracker from '../components/sessions/TechniqueTracker';
+import RollTracker from '../components/sessions/RollTracker';
+import ClassTimePicker from '../components/sessions/ClassTimePicker';
+import GymSelector from '../components/GymSelector';
+import { ClassTypeChips, IntensityChips } from '../components/ui';
 import PhotoGallery from '../components/PhotoGallery';
 import PhotoUpload from '../components/PhotoUpload';
 import ConfirmDialog from '../components/ConfirmDialog';
 import { useToast } from '../contexts/ToastContext';
 import { useSessionForm, mergePartners, mapSocialFriends } from '../hooks/useSessionForm';
 import { useDraftSaving } from '../hooks/useDraftSaving';
-import { CLASS_TYPES } from '../components/ui/ClassTypeChips';
 
 export default function EditSession() {
   usePageTitle('Edit Session');
@@ -256,53 +260,27 @@ export default function EditSession() {
         </div>
 
         {/* Class Time */}
-        <div>
-          <label className="label">Class Time (optional)</label>
-          <div className="flex gap-2 mb-2" role="group" aria-label="Common class times">
-            {[
-              { label: '6:30am', value: '06:30' },
-              { label: '12pm', value: '12:00' },
-              { label: '5:30pm', value: '17:30' },
-              { label: '7pm', value: '19:00' },
-            ].map((time) => (
-              <button
-                key={time.value}
-                type="button"
-                onClick={() => form.setSessionData(prev => ({ ...prev, class_time: time.value }))}
-                className="flex-1 min-h-[44px] py-2 rounded-lg font-medium text-sm transition-all"
-                style={{
-                  backgroundColor: form.sessionData.class_time === time.value ? 'var(--accent)' : 'var(--surfaceElev)',
-                  color: form.sessionData.class_time === time.value ? '#FFFFFF' : 'var(--text)',
-                  border: form.sessionData.class_time === time.value ? 'none' : '1px solid var(--border)',
-                }}
-                aria-pressed={form.sessionData.class_time === time.value}
-              >
-                {time.label}
-              </button>
-            ))}
-          </div>
-          <input
-            type="text"
-            className="input text-sm"
-            value={form.sessionData.class_time}
-            onChange={(e) => form.setSessionData(prev => ({ ...prev, class_time: e.target.value }))}
-            placeholder="Or type custom time (e.g., 18:30, morning)"
-          />
-        </div>
+        <ClassTimePicker
+          gymId={form.sessionData.gym_id}
+          classTime={form.sessionData.class_time}
+          onSelect={(classTime, classType, durationMins) => {
+            form.setSessionData(prev => ({
+              ...prev,
+              class_time: classTime,
+              ...(classType ? { class_type: classType } : {}),
+              ...(durationMins ? { duration_mins: durationMins } : {}),
+            }));
+          }}
+        />
 
         {/* Class Type */}
         <div>
           <label className="label">Class Type</label>
-          <select
-            className="input"
+          <ClassTypeChips
             value={form.sessionData.class_type}
-            onChange={(e) => form.setSessionData(prev => ({ ...prev, class_type: e.target.value }))}
-            required
-          >
-            {CLASS_TYPES.map((type) => (
-              <option key={type.value} value={type.value}>{type.label}</option>
-            ))}
-          </select>
+            size="sm"
+            onChange={(val) => form.setSessionData(prev => ({ ...prev, class_type: val }))}
+          />
         </div>
 
         {/* Instructor */}
@@ -328,22 +306,24 @@ export default function EditSession() {
 
         {/* Gym Name */}
         <div>
-          <label className="label">Gym Name</label>
-          <input
-            type="text"
-            className="input"
+          <label className="label">Gym</label>
+          <GymSelector
             value={form.sessionData.gym_name}
-            onChange={(e) => form.setSessionData(prev => ({ ...prev, gym_name: e.target.value }))}
-            list="gyms"
-            required
+            onChange={(gymName, isCustom) => {
+              form.setSessionData(prev => ({
+                ...prev,
+                gym_name: gymName,
+                gym_id: isCustom ? null : prev.gym_id,
+              }));
+            }}
+            onGymSelected={(gym) => {
+              form.setSessionData(prev => ({
+                ...prev,
+                gym_name: [gym.name, gym.city, gym.state, gym.country].filter(Boolean).join(', '),
+                gym_id: gym.id,
+              }));
+            }}
           />
-          {form.autocomplete.gyms && (
-            <datalist id="gyms">
-              {form.autocomplete.gyms.map((gym: string) => (
-                <option key={gym} value={gym} />
-              ))}
-            </datalist>
-          )}
         </div>
 
         {/* Location */}
@@ -380,454 +360,63 @@ export default function EditSession() {
             />
           </div>
           <div>
-            <label className="label">Intensity (1-5)</label>
-            <input
-              type="number"
-              className="input"
+            <label className="label">Intensity</label>
+            <IntensityChips
               value={form.sessionData.intensity}
-              onChange={(e) => form.setSessionData(prev => ({ ...prev, intensity: parseInt(e.target.value) }))}
-              min="1"
-              max="5"
-              required
+              size="sm"
+              showDescription={false}
+              onChange={(val) => form.setSessionData(prev => ({ ...prev, intensity: val }))}
             />
           </div>
         </div>
 
         {/* Roll Tracking (Sparring only) */}
         {form.isSparringType && (
-          <div className="border-t border-[var(--border)] pt-4 space-y-4">
-            <div className="flex items-center justify-between">
-              <h3 className="font-semibold text-lg">Roll Tracking</h3>
-              <button
-                type="button"
-                onClick={() => form.setDetailedMode(prev => !prev)}
-                className="flex items-center gap-2 text-sm text-[var(--accent)] hover:opacity-80"
-              >
-                {form.detailedMode ? (
-                  <>
-                    <ToggleRight className="w-5 h-5" />
-                    Detailed Mode
-                  </>
-                ) : (
-                  <>
-                    <ToggleLeft className="w-5 h-5" />
-                    Simple Mode
-                  </>
-                )}
-              </button>
-            </div>
-
-            {!form.detailedMode ? (
-              /* Simple Mode: Aggregate counts */
-              <>
-                <div>
-                  <label className="label">Rolls</label>
-                  <input
-                    type="number"
-                    className="input"
-                    value={form.sessionData.rolls}
-                    onChange={(e) => form.setSessionData(prev => ({ ...prev, rolls: parseInt(e.target.value) }))}
-                    min="0"
-                  />
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="label">Submissions For</label>
-                    <input
-                      type="number"
-                      className="input"
-                      value={form.sessionData.submissions_for}
-                      onChange={(e) => form.setSessionData(prev => ({ ...prev, submissions_for: parseInt(e.target.value) }))}
-                      min="0"
-                    />
-                  </div>
-                  <div>
-                    <label className="label">Submissions Against</label>
-                    <input
-                      type="number"
-                      className="input"
-                      value={form.sessionData.submissions_against}
-                      onChange={(e) => form.setSessionData(prev => ({ ...prev, submissions_against: parseInt(e.target.value) }))}
-                      min="0"
-                    />
-                  </div>
-                </div>
-              </>
-            ) : (
-              /* Detailed Mode: Individual roll records */
-              <div className="space-y-3">
-                {form.rolls.length === 0 ? (
-                  <p className="text-sm text-[var(--muted)]">
-                    Click "Add Roll" to track individual rolls with partners and submissions
-                  </p>
-                ) : (
-                  form.rolls.map((roll, index) => (
-                    <div key={index} className="border border-[var(--border)] rounded-lg p-4 space-y-3">
-                      <div className="flex items-center justify-between">
-                        <h4 className="font-semibold">Roll #{roll.roll_number}</h4>
-                        <button
-                          type="button"
-                          onClick={() => form.handleRemoveRoll(index)}
-                          className="text-red-600 hover:text-red-700"
-                          aria-label={`Remove roll ${roll.roll_number}`}
-                        >
-                          <X className="w-4 h-4" />
-                        </button>
-                      </div>
-
-                      {/* Partner Selection */}
-                      <div>
-                        <label className="label text-sm">Partner</label>
-                        <select
-                          className="input"
-                          value={roll.partner_id || ''}
-                          onChange={(e) => {
-                            const partnerId = e.target.value ? parseInt(e.target.value) : null;
-                            const partner = form.partners.find(p => p.id === partnerId);
-                            form.handleRollChange(index, 'partner_id', partnerId);
-                            form.handleRollChange(index, 'partner_name', partner ? partner.name : '');
-                          }}
-                        >
-                          <option value="">Select partner...</option>
-                          {form.partners.map(partner => (
-                            <option key={partner.id} value={partner.id}>
-                              {partner.name}
-                              {partner.belt_rank && ` (${partner.belt_rank} belt)`}
-                            </option>
-                          ))}
-                        </select>
-                        {!roll.partner_id && (
-                          <input
-                            type="text"
-                            className="input mt-2 text-sm"
-                            placeholder="Or enter partner name"
-                            value={roll.partner_name}
-                            onChange={(e) => form.handleRollChange(index, 'partner_name', e.target.value)}
-                          />
-                        )}
-                      </div>
-
-                      {/* Duration */}
-                      <div>
-                        <label className="label text-sm">Duration (mins)</label>
-                        <input
-                          type="number"
-                          className="input"
-                          value={roll.duration_mins}
-                          onChange={(e) => form.handleRollChange(index, 'duration_mins', parseInt(e.target.value) || 0)}
-                          min="0"
-                        />
-                      </div>
-
-                      {/* Submissions For */}
-                      <div>
-                        <label className="label text-sm">Submissions For ({roll.submissions_for.length})</label>
-                        <div className="relative mb-2">
-                          <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 w-4 h-4 text-[var(--muted)]" />
-                          <input
-                            type="text"
-                            className="input pl-8 text-sm"
-                            placeholder="Search submissions..."
-                            value={form.submissionSearchFor[index] || ''}
-                            onChange={(e) => form.setSubmissionSearchFor(prev => ({ ...prev, [index]: e.target.value }))}
-                          />
-                        </div>
-                        <div className="max-h-32 overflow-y-auto border border-[var(--border)] rounded p-2 space-y-1 mb-2">
-                          {form.movements
-                            .filter(m => {
-                              const search = form.submissionSearchFor[index]?.toLowerCase() || '';
-                              return (m.name.toLowerCase().includes(search) ||
-                                     m.category?.toLowerCase().includes(search)) &&
-                                     m.category === 'submission';
-                            })
-                            .slice(0, 10)
-                            .map(movement => (
-                              <button
-                                key={movement.id}
-                                type="button"
-                                onClick={() => form.handleToggleSubmission(index, movement.id, 'for')}
-                                className="w-full text-left px-2 py-1 rounded text-sm hover:bg-[var(--surfaceElev)]"
-                                disabled={roll.submissions_for.includes(movement.id)}
-                              >
-                                {movement.name} {roll.submissions_for.includes(movement.id) && '\u2713'}
-                              </button>
-                            ))}
-                        </div>
-                        <div className="flex flex-wrap gap-1">
-                          {roll.submissions_for.map(movementId => {
-                            const movement = form.movements.find(m => m.id === movementId);
-                            return movement ? (
-                              <span
-                                key={movementId}
-                                className="text-xs px-2 py-1 rounded flex items-center gap-1"
-                                style={{ backgroundColor: 'rgba(34,197,94,0.1)', color: 'var(--success)' }}
-                              >
-                                {movement.name}
-                                <button
-                                  type="button"
-                                  onClick={() => form.handleToggleSubmission(index, movementId, 'for')}
-                                  className="hover:text-red-600"
-                                  aria-label={`Remove ${movement.name} submission`}
-                                >
-                                  <X className="w-3 h-3" />
-                                </button>
-                              </span>
-                            ) : null;
-                          })}
-                        </div>
-                      </div>
-
-                      {/* Submissions Against */}
-                      <div>
-                        <label className="label text-sm">Submissions Against ({roll.submissions_against.length})</label>
-                        <div className="relative mb-2">
-                          <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 w-4 h-4 text-[var(--muted)]" />
-                          <input
-                            type="text"
-                            className="input pl-8 text-sm"
-                            placeholder="Search submissions..."
-                            value={form.submissionSearchAgainst[index] || ''}
-                            onChange={(e) => form.setSubmissionSearchAgainst(prev => ({ ...prev, [index]: e.target.value }))}
-                          />
-                        </div>
-                        <div className="max-h-32 overflow-y-auto border border-[var(--border)] rounded p-2 space-y-1 mb-2">
-                          {form.movements
-                            .filter(m => {
-                              const search = form.submissionSearchAgainst[index]?.toLowerCase() || '';
-                              return (m.name.toLowerCase().includes(search) ||
-                                     m.category?.toLowerCase().includes(search)) &&
-                                     m.category === 'submission';
-                            })
-                            .slice(0, 10)
-                            .map(movement => (
-                              <button
-                                key={movement.id}
-                                type="button"
-                                onClick={() => form.handleToggleSubmission(index, movement.id, 'against')}
-                                className="w-full text-left px-2 py-1 rounded text-sm hover:bg-[var(--surfaceElev)]"
-                                disabled={roll.submissions_against.includes(movement.id)}
-                              >
-                                {movement.name} {roll.submissions_against.includes(movement.id) && '\u2713'}
-                              </button>
-                            ))}
-                        </div>
-                        <div className="flex flex-wrap gap-1">
-                          {roll.submissions_against.map(movementId => {
-                            const movement = form.movements.find(m => m.id === movementId);
-                            return movement ? (
-                              <span
-                                key={movementId}
-                                className="text-xs px-2 py-1 rounded flex items-center gap-1"
-                                style={{ backgroundColor: 'rgba(239,68,68,0.1)', color: 'var(--error)' }}
-                              >
-                                {movement.name}
-                                <button
-                                  type="button"
-                                  onClick={() => form.handleToggleSubmission(index, movementId, 'against')}
-                                  className="hover:text-red-600"
-                                  aria-label={`Remove ${movement.name} submission against`}
-                                >
-                                  <X className="w-3 h-3" />
-                                </button>
-                              </span>
-                            ) : null;
-                          })}
-                        </div>
-                      </div>
-
-                      {/* Notes */}
-                      <div>
-                        <label className="label text-sm">Notes</label>
-                        <textarea
-                          className="input resize-none text-sm"
-                          rows={2}
-                          value={roll.notes}
-                          onChange={(e) => form.handleRollChange(index, 'notes', e.target.value)}
-                          placeholder="Key moments, positions, what worked/didn't work..."
-                        />
-                      </div>
-                    </div>
-                  ))
-                )}
-                <button
-                  type="button"
-                  onClick={form.handleAddRoll}
-                  className="btn-secondary w-full flex items-center justify-center gap-2"
-                >
-                  <Plus className="w-4 h-4" />
-                  Add Roll
-                </button>
-              </div>
-            )}
+          <div className="border-t border-[var(--border)] pt-4">
+            <RollTracker
+              detailedMode={form.detailedMode}
+              onToggleMode={() => form.setDetailedMode(prev => !prev)}
+              rolls={form.rolls}
+              partners={form.partners}
+              simpleData={{
+                rolls: form.sessionData.rolls,
+                submissions_for: form.sessionData.submissions_for,
+                submissions_against: form.sessionData.submissions_against,
+                partners: form.sessionData.partners,
+              }}
+              onSimpleChange={(field, value) => form.setSessionData(prev => ({ ...prev, [field]: value }))}
+              submissionSearchFor={form.submissionSearchFor}
+              submissionSearchAgainst={form.submissionSearchAgainst}
+              onSubmissionSearchForChange={(index, value) => form.setSubmissionSearchFor(prev => ({ ...prev, [index]: value }))}
+              onSubmissionSearchAgainstChange={(index, value) => form.setSubmissionSearchAgainst(prev => ({ ...prev, [index]: value }))}
+              filterSubmissions={form.filterSubmissions}
+              onAddRoll={form.handleAddRoll}
+              onRemoveRoll={form.handleRemoveRoll}
+              onRollChange={form.handleRollChange}
+              onToggleSubmission={form.handleToggleSubmission}
+              topPartners={form.topPartners}
+              selectedPartnerIds={form.selectedPartnerIds}
+              onTogglePartner={form.handleTogglePartner}
+            />
           </div>
         )}
 
         {/* Technique Focus */}
-        <div className="space-y-4 border-t border-[var(--border)] pt-4">
-          <div className="flex items-center justify-between">
-            <h3 className="font-semibold text-lg">Technique of the Day</h3>
-            <button
-              type="button"
-              onClick={form.handleAddTechnique}
-              className="flex items-center gap-2 px-3 py-1 bg-[var(--accent)] text-white rounded-md hover:opacity-90 text-sm"
-            >
-              <Plus className="w-4 h-4" />
-              Add Technique
-            </button>
-          </div>
-
-          {form.techniques.length === 0 ? (
-            <p className="text-sm text-[var(--muted)]">
-              Click "Add Technique" to track techniques you focused on
-            </p>
-          ) : (
-            <div className="space-y-4">
-              {form.techniques.map((tech, index) => (
-                <div key={index} className="border border-[var(--border)] rounded-lg p-4 space-y-3">
-                  <div className="flex items-center justify-between">
-                    <h4 className="font-semibold">Technique #{tech.technique_number}</h4>
-                    <button
-                      type="button"
-                      onClick={() => form.handleRemoveTechnique(index)}
-                      className="text-red-600 hover:text-red-700"
-                      aria-label={`Remove technique ${tech.technique_number}`}
-                    >
-                      <X className="w-4 h-4" />
-                    </button>
-                  </div>
-
-                  {/* Movement Selection */}
-                  <div>
-                    <label className="label text-sm">Movement</label>
-                    <div className="relative mb-2">
-                      <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 w-4 h-4 text-[var(--muted)]" />
-                      <input
-                        type="text"
-                        className="input pl-8 text-sm"
-                        placeholder="Search movements..."
-                        value={form.techniqueSearch[index] || ''}
-                        onChange={(e) => form.setTechniqueSearch(prev => ({ ...prev, [index]: e.target.value }))}
-                      />
-                    </div>
-                    <div className="max-h-48 overflow-y-auto border border-[var(--border)] rounded p-2 space-y-1">
-                      {form.filterMovements(form.techniqueSearch[index] || '')
-                        .map(movement => (
-                          <button
-                            key={movement.id}
-                            type="button"
-                            onClick={() => form.handleSelectMovement(index, movement.id, movement.name)}
-                            className={`w-full text-left px-2 py-1 rounded text-sm ${
-                              tech.movement_id === movement.id
-                                ? 'bg-[var(--accent)] text-white'
-                                : 'hover:bg-[var(--surfaceElev)]'
-                            }`}
-                          >
-                            <span className="font-medium">{movement.name}</span>
-                            <span className="text-xs ml-2 opacity-75">
-                              {movement.category}
-                              {movement.subcategory && ` - ${movement.subcategory}`}
-                            </span>
-                          </button>
-                        ))}
-                      {form.filterMovements(form.techniqueSearch[index] || '').length === 0 && (
-                        <p className="text-xs text-[var(--muted)] text-center py-2">No movements found</p>
-                      )}
-                    </div>
-                    {tech.movement_id && (
-                      <p className="text-sm text-[var(--muted)] mt-1">
-                        Selected: <span className="font-medium">{tech.movement_name}</span>
-                      </p>
-                    )}
-                  </div>
-
-                  {/* Notes */}
-                  <div>
-                    <label className="label text-sm">Notes / Key Points</label>
-                    <textarea
-                      className="input resize-none"
-                      rows={3}
-                      value={tech.notes}
-                      onChange={(e) => form.handleTechniqueChange(index, 'notes', e.target.value)}
-                      placeholder="What did you learn? Key details, insights, or observations..."
-                    />
-                  </div>
-
-                  {/* Media URLs */}
-                  <div>
-                    <div className="flex items-center justify-between mb-2">
-                      <label className="label text-sm mb-0">Reference Media</label>
-                      <button
-                        type="button"
-                        onClick={() => form.handleAddMediaUrl(index)}
-                        className="text-xs text-[var(--accent)] hover:opacity-80 flex items-center gap-1"
-                      >
-                        <Plus className="w-3 h-3" />
-                        Add Link
-                      </button>
-                    </div>
-                    {tech.media_urls.length === 0 ? (
-                      <p className="text-xs text-[var(--muted)]">No media links added</p>
-                    ) : (
-                      <div className="space-y-2">
-                        {tech.media_urls.map((media, mediaIndex) => (
-                          <div key={mediaIndex} className="border border-[var(--border)] rounded p-2 space-y-2">
-                            <div className="flex items-center justify-between">
-                              <select
-                                className="input-sm text-xs"
-                                value={media.type}
-                                onChange={(e) => form.handleMediaUrlChange(index, mediaIndex, 'type', e.target.value as 'video' | 'image')}
-                              >
-                                <option value="video">Video</option>
-                                <option value="image">Image</option>
-                              </select>
-                              <button
-                                type="button"
-                                onClick={() => form.handleRemoveMediaUrl(index, mediaIndex)}
-                                className="text-red-600 hover:text-red-700"
-                                aria-label="Remove media URL"
-                              >
-                                <X className="w-3 h-3" />
-                              </button>
-                            </div>
-                            <input
-                              type="text"
-                              className="input text-xs"
-                              placeholder="URL (YouTube, Instagram, etc.)"
-                              value={media.url}
-                              onChange={(e) => form.handleMediaUrlChange(index, mediaIndex, 'url', e.target.value)}
-                            />
-                            <input
-                              type="text"
-                              className="input text-xs"
-                              placeholder="Title (optional)"
-                              value={media.title || ''}
-                              onChange={(e) => form.handleMediaUrlChange(index, mediaIndex, 'title', e.target.value)}
-                            />
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
+        <div className="border-t border-[var(--border)] pt-4">
+          <TechniqueTracker
+            techniques={form.techniques}
+            techniqueSearch={form.techniqueSearch}
+            onSearchChange={(index, value) => form.setTechniqueSearch(prev => ({ ...prev, [index]: value }))}
+            filterMovements={form.filterMovements}
+            onAdd={form.handleAddTechnique}
+            onRemove={form.handleRemoveTechnique}
+            onChange={form.handleTechniqueChange}
+            onSelectMovement={form.handleSelectMovement}
+            onAddMediaUrl={form.handleAddMediaUrl}
+            onRemoveMediaUrl={form.handleRemoveMediaUrl}
+            onMediaUrlChange={form.handleMediaUrlChange}
+          />
         </div>
-
-        {/* Partners (Simple mode sparring only) */}
-        {!form.detailedMode && form.isSparringType && (
-          <div>
-            <label className="label">Partners (comma-separated)</label>
-            <input
-              type="text"
-              className="input"
-              value={form.sessionData.partners}
-              onChange={(e) => form.setSessionData(prev => ({ ...prev, partners: e.target.value }))}
-              placeholder="e.g., John, Sarah"
-            />
-          </div>
-        )}
 
         {/* Whoop Stats */}
         <WhoopIntegrationPanel

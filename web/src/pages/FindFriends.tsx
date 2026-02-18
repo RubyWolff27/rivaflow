@@ -166,15 +166,15 @@ export default function FindFriends() {
     }
   };
 
-  const updateUserStatus = (userId: number, status: string) => {
+  const updateUserStatus = (userId: number, status: SearchUser['friendship_status']) => {
     setSearchResults((prev) =>
       prev.map((user) =>
-        user.id === userId ? { ...user, friendship_status: status as any } : user
+        user.id === userId ? { ...user, friendship_status: status } : user
       )
     );
     setRecommended((prev) =>
       prev.map((user) =>
-        user.id === userId ? { ...user, friendship_status: status as any } : user
+        user.id === userId ? { ...user, friendship_status: status } : user
       )
     );
   };
