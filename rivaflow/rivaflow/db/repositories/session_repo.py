@@ -178,7 +178,7 @@ class SessionRepository:
                 (user_id, *session_ids),
             )
             rows = cursor.fetchall()
-        return {(r["id"] if hasattr(r, "keys") else r[0]) for r in rows}
+        return {r["id"] for r in rows}
 
     @staticmethod
     def get_by_id_any_user(session_id: int) -> dict | None:

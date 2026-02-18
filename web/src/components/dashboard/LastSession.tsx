@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { sessionsApi } from '../../api/client';
 import { logger } from '../../utils/logger';
 import { Calendar } from 'lucide-react';
-import { ACTIVITY_COLORS } from '../../constants/activity';
+import { ACTIVITY_COLORS, formatClassType } from '../../constants/activity';
 import { Card } from '../ui';
 import SessionScoreBadge from '../sessions/SessionScoreBadge';
 
@@ -96,7 +96,7 @@ export function LastSession() {
               className="px-2 py-0.5 rounded-full text-xs font-semibold uppercase shrink-0"
               style={{ backgroundColor: `${color}20`, color }}
             >
-              {session.class_type}
+              {formatClassType(session.class_type)}
             </div>
             <span className="text-sm truncate" style={{ color: 'var(--text)' }}>
               {session.gym_name}

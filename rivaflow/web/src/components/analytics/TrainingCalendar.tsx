@@ -1,5 +1,6 @@
 import { useMemo } from 'react';
 import { Card } from '../ui';
+import { formatCount } from '../../utils/text';
 
 interface CalendarDay {
   date: string;
@@ -131,7 +132,7 @@ export default function TrainingCalendar({ calendar, totalActiveDays, activityRa
                         height: '12px',
                         backgroundColor: day.date ? getColor(day.count, day.intensity) : 'transparent',
                       }}
-                      title={day.date ? `${day.date}: ${day.count} session${day.count !== 1 ? 's' : ''}, intensity ${day.intensity}` : ''}
+                      title={day.date ? `${day.date}: ${formatCount(day.count, 'session')}, intensity ${day.intensity}` : ''}
                     />
                   ))}
                 </div>

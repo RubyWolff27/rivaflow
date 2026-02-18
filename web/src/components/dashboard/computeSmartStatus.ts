@@ -1,4 +1,5 @@
 import type { Session, WeeklyGoalProgress, GymClass } from '../../types';
+import { pluralize } from '../../utils/text';
 
 export function parseTimeToday(timeStr: string): Date {
   const parts = timeStr.split(':').map(Number);
@@ -109,8 +110,8 @@ export function computeSmartStatus(
       const top = gaps[0];
       return {
         type: 'goal-nudge',
-        headline: `You still need ${top.needed} ${top.label} session${top.needed > 1 ? 's' : ''} this week`,
-        subtext: `${goals.days_remaining} day${goals.days_remaining > 1 ? 's' : ''} remaining`,
+        headline: `You still need ${top.needed} ${top.label} ${pluralize(top.needed, 'session')} this week`,
+        subtext: `${goals.days_remaining} ${pluralize(goals.days_remaining, 'day')} remaining`,
         icon: 'alert',
         iconColor: 'var(--warning)',
         iconBg: 'var(--warning-bg)',

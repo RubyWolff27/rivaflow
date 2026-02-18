@@ -11,6 +11,7 @@ import SessionInsights from '../components/SessionInsights';
 import SessionScoreCard from '../components/sessions/SessionScoreCard';
 import { useToast } from '../contexts/ToastContext';
 import { CardSkeleton } from '../components/ui';
+import { formatClassType } from '../constants/activity';
 
 export default function SessionDetail() {
   usePageTitle('Session Detail');
@@ -142,7 +143,7 @@ export default function SessionDetail() {
             <div className="flex items-center gap-2 mb-2">
               <span className="px-3 py-1 rounded-full text-sm font-semibold uppercase"
                 style={{ backgroundColor: 'rgba(var(--accent-rgb), 0.12)', color: 'var(--accent)' }}>
-                {session.class_type}
+                {formatClassType(session.class_type)}
               </span>
               {session.intensity > 0 && (
                 <span className="flex items-center gap-1 text-sm">
@@ -219,7 +220,7 @@ export default function SessionDetail() {
             <div>
               <div className="flex items-center gap-2 mb-1">
                 <Activity className="w-5 h-5 text-amber-500" />
-                <h3 className="font-semibold text-lg" style={{ color: 'var(--text)' }}>Review Auto-Created Session</h3>
+                <h2 className="font-semibold text-lg" style={{ color: 'var(--text)' }}>Review Auto-Created Session</h2>
               </div>
               <p className="text-sm" style={{ color: 'var(--muted)' }}>
                 Created from WHOOP BJJ workout. Review details and add rolls/techniques.
@@ -240,7 +241,7 @@ export default function SessionDetail() {
         <div className="card" style={{ borderColor: 'var(--accent)', borderWidth: '2px' }}>
           <div className="flex items-center justify-between">
             <div>
-              <h3 className="font-semibold text-lg" style={{ color: 'var(--text)' }}>Add Roll Details</h3>
+              <h2 className="font-semibold text-lg" style={{ color: 'var(--text)' }}>Add Roll Details</h2>
               <p className="text-sm" style={{ color: 'var(--muted)' }}>
                 Add partners, rolls, and techniques to unlock insights
               </p>
@@ -261,7 +262,7 @@ export default function SessionDetail() {
         <div className="card">
           <div className="flex items-center gap-2 mb-2">
             <User className="w-5 h-5 text-[var(--muted)]" />
-            <h3 className="font-semibold text-lg">Instructor</h3>
+            <h2 className="font-semibold text-lg">Instructor</h2>
           </div>
           <p className="text-[var(--text)]">{session.instructor_name}</p>
         </div>
@@ -272,7 +273,7 @@ export default function SessionDetail() {
         <div className="card">
           <div className="flex items-center gap-2 mb-3">
             <Users className="w-5 h-5 text-[var(--muted)]" />
-            <h3 className="font-semibold text-lg">Training Partners</h3>
+            <h2 className="font-semibold text-lg">Training Partners</h2>
           </div>
           <div className="flex flex-wrap gap-2">
             {session.partners.map((partner) => (
@@ -292,7 +293,7 @@ export default function SessionDetail() {
         <div className="card">
           <div className="flex items-center gap-2 mb-3">
             <Activity className="w-5 h-5 text-[var(--muted)]" />
-            <h3 className="font-semibold text-lg">Roll Details</h3>
+            <h2 className="font-semibold text-lg">Roll Details</h2>
           </div>
           <div className="space-y-3">
             {session.detailed_rolls.map((roll) => (
@@ -332,7 +333,7 @@ export default function SessionDetail() {
         <div className="card">
           <div className="flex items-center gap-2 mb-3">
             <Book className="w-5 h-5 text-[var(--muted)]" />
-            <h3 className="font-semibold text-lg">Techniques Practiced</h3>
+            <h2 className="font-semibold text-lg">Techniques Practiced</h2>
           </div>
           <div className="flex flex-wrap gap-2">
             {session.techniques.map((technique) => (
@@ -350,7 +351,7 @@ export default function SessionDetail() {
       {/* Detailed Techniques */}
       {session.session_techniques && Array.isArray(session.session_techniques) && session.session_techniques.length > 0 && (
         <div className="card">
-          <h3 className="font-semibold text-lg mb-4">Technique Details</h3>
+          <h2 className="font-semibold text-lg mb-4">Technique Details</h2>
           <div className="space-y-4">
             {session.session_techniques.map((tech) => (
               <div key={tech.technique_number ?? tech.movement_name} className="border border-[var(--border)] rounded-lg p-4">
@@ -394,7 +395,7 @@ export default function SessionDetail() {
         <div className="card">
           <div className="flex items-center gap-2 mb-4">
             <Heart className="w-5 h-5" style={{ color: '#8B5CF6' }} />
-            <h3 className="font-semibold text-lg">Recovery Going In</h3>
+            <h2 className="font-semibold text-lg">Recovery Going In</h2>
           </div>
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-4">
             {whoopCtx.recovery.score != null && (
@@ -456,7 +457,7 @@ export default function SessionDetail() {
       {/* Whoop Stats */}
       {(session.whoop_strain || session.whoop_calories || session.whoop_avg_hr || session.whoop_max_hr) && (
         <div className="card">
-          <h3 className="font-semibold text-lg mb-4">WHOOP Stats</h3>
+          <h2 className="font-semibold text-lg mb-4">WHOOP Stats</h2>
 
           {/* Strain gauge */}
           {session.whoop_strain != null && (
@@ -528,7 +529,7 @@ export default function SessionDetail() {
         if (!hasZones && !whoopCtx.workout.score_state) return null;
         return (
           <div className="card">
-            <h3 className="font-semibold text-lg mb-4">HR Zone Distribution</h3>
+            <h2 className="font-semibold text-lg mb-4">HR Zone Distribution</h2>
             {hasZones ? (
               <>
                 {/* Stacked bar */}
@@ -574,7 +575,7 @@ export default function SessionDetail() {
       {/* Notes */}
       {session.notes && (
         <div className="card">
-          <h3 className="font-semibold text-lg mb-3">Notes</h3>
+          <h2 className="font-semibold text-lg mb-3">Notes</h2>
           <p className="text-[var(--text)] whitespace-pre-wrap">
             {session.notes}
           </p>
@@ -585,7 +586,7 @@ export default function SessionDetail() {
       <div className="card">
         <div className="flex items-center gap-2 mb-4">
           <Camera className="w-5 h-5 text-[var(--muted)]" />
-          <h3 className="font-semibold text-lg">Photos</h3>
+          <h2 className="font-semibold text-lg">Photos</h2>
           <span className="text-sm text-[var(--muted)]">({photoCount}/3)</span>
         </div>
 

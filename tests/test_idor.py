@@ -13,10 +13,13 @@ import pytest
 from rivaflow.core.auth import create_access_token
 from rivaflow.db.database import convert_query, get_connection
 from rivaflow.db.repositories import (
+    ActivityPhotoRepository,
+    GradingRepository,
     ReadinessRepository,
     SessionRepository,
 )
 from rivaflow.db.repositories.game_plan_repo import GamePlanRepository
+from rivaflow.db.repositories.glossary_repo import GlossaryRepository
 
 
 @pytest.fixture()
@@ -457,3 +460,205 @@ class TestFeedIDOR:
         for item in items:
             assert item.get("gym_name") != "User2 Secret Gym"
             assert item.get("user_id", test_user["id"]) == test_user["id"]
+
+
+# ============================================================================
+# Photos IDOR Tests
+# ============================================================================
+
+
+class TestPhotosIDOR:
+    """User1 must not be able to access or delete User2's photos."""
+
+    def _create_user2_session_and_photo(self, user2_id):
+        """Create a session and photo for user2, return (session_id, photo_id)."""
+        repo = SessionRepository()
+        session_id = repo.create(
+            user_id=user2_id,
+            session_date=date.today(),
+            class_type="gi",
+            gym_name="User2 Photo Gym",
+            location="User2 City",
+            duration_mins=60,
+            intensity=3,
+            rolls=2,
+            submissions_for=0,
+            submissions_against=0,
+        )
+        photo_repo = ActivityPhotoRepository()
+        photo_id = photo_repo.create(
+            user_id=user2_id,
+            activity_type="session",
+            activity_id=session_id,
+            activity_date=date.today().isoformat(),
+            file_path="/fake/path/photo.jpg",
+            file_name="test_photo.jpg",
+            file_size=1024,
+            mime_type="image/jpeg",
+            caption="User2 secret photo",
+        )
+        return session_id, photo_id
+
+    def test_get_photo_idor(self, authenticated_client, test_user, test_user2):
+        """User1 cannot GET User2's photo by ID."""
+        _, photo_id = self._create_user2_session_and_photo(test_user2["id"])
+        response = authenticated_client.get(f"/api/v1/photos/{photo_id}")
+        assert response.status_code in (
+            403,
+            404,
+        ), f"Expected 403/404, got {response.status_code}"
+
+    def test_delete_photo_idor(self, authenticated_client, test_user, test_user2):
+        """User1 cannot DELETE User2's photo."""
+        _, photo_id = self._create_user2_session_and_photo(test_user2["id"])
+        response = authenticated_client.delete(f"/api/v1/photos/{photo_id}")
+        assert response.status_code in (
+            403,
+            404,
+        ), f"Expected 403/404, got {response.status_code}"
+
+    def test_get_activity_photos_idor(
+        self, authenticated_client, test_user, test_user2
+    ):
+        """User1 cannot GET photos for User2's activity."""
+        session_id, _ = self._create_user2_session_and_photo(test_user2["id"])
+        response = authenticated_client.get(
+            f"/api/v1/photos/activity/session/{session_id}"
+        )
+        assert response.status_code == 200
+        data = response.json()
+        # Should return empty list — user1 has no photos for this activity
+        assert len(data) == 0, "User1 should not see User2's photos"
+
+    def test_update_caption_idor(self, authenticated_client, test_user, test_user2):
+        """User1 cannot update caption on User2's photo."""
+        _, photo_id = self._create_user2_session_and_photo(test_user2["id"])
+        response = authenticated_client.put(
+            f"/api/v1/photos/{photo_id}/caption",
+            data={"caption": "HACKED caption"},
+        )
+        assert response.status_code in (
+            403,
+            404,
+        ), f"Expected 403/404, got {response.status_code}"
+
+
+# ============================================================================
+# Videos IDOR Tests
+# ============================================================================
+
+
+class TestVideosIDOR:
+    """User1 (non-admin) must not be able to delete videos."""
+
+    def _create_movement_and_video(self):
+        """Create a glossary movement and a video, return video_id."""
+        from rivaflow.db.database import execute_insert, get_connection
+
+        with get_connection() as conn:
+            cursor = conn.cursor()
+            movement_id = execute_insert(
+                cursor,
+                """
+                INSERT INTO movements_glossary (name, category, description)
+                VALUES (?, ?, ?)
+                """,
+                ("Test Armbar", "submission", "A test armbar movement"),
+            )
+        video = GlossaryRepository.add_custom_video(
+            movement_id=movement_id,
+            url="https://example.com/video.mp4",
+            title="User2 Secret Video",
+            video_type="general",
+        )
+        return video["id"]
+
+    def test_delete_video_idor(self, authenticated_client, test_user, test_user2):
+        """Non-admin User1 cannot DELETE a video."""
+        video_id = self._create_movement_and_video()
+        response = authenticated_client.delete(f"/api/v1/videos/{video_id}")
+        assert response.status_code in (
+            403,
+            404,
+        ), f"Expected 403/404, got {response.status_code}"
+
+    def test_get_video_accessible(self, authenticated_client, test_user, test_user2):
+        """Videos are global resources — any authenticated user can GET."""
+        video_id = self._create_movement_and_video()
+        response = authenticated_client.get(f"/api/v1/videos/{video_id}")
+        # Videos are shared resources, so GET should succeed
+        assert response.status_code == 200
+
+    def test_list_videos_accessible(self, authenticated_client, test_user, test_user2):
+        """Any authenticated user can list videos (they are global)."""
+        self._create_movement_and_video()
+        response = authenticated_client.get("/api/v1/videos/")
+        assert response.status_code == 200
+        data = response.json()
+        assert "videos" in data
+
+
+# ============================================================================
+# Gradings IDOR Tests
+# ============================================================================
+
+
+class TestGradingsIDOR:
+    """User1 must not be able to access or modify User2's gradings."""
+
+    def _create_user2_grading(self, user2_id):
+        """Create a grading for user2, return grading dict."""
+        _ensure_profile({"id": user2_id, "first_name": "User", "last_name": "Two"})
+        repo = GradingRepository()
+        grading = repo.create(
+            user_id=user2_id,
+            grade="blue",
+            date_graded=date.today().isoformat(),
+            professor="Prof User2",
+            notes="User2 secret grading",
+        )
+        return grading
+
+    def test_list_gradings_isolation(self, authenticated_client, test_user, test_user2):
+        """User1's grading list must not contain User2's gradings."""
+        self._create_user2_grading(test_user2["id"])
+        response = authenticated_client.get("/api/v1/gradings/")
+        assert response.status_code == 200
+        data = response.json()
+        for g in data:
+            assert g.get("user_id", test_user["id"]) == test_user["id"]
+            assert g.get("notes") != "User2 secret grading"
+
+    def test_update_grading_idor(self, authenticated_client, test_user, test_user2):
+        """User1 cannot PUT User2's grading."""
+        grading = self._create_user2_grading(test_user2["id"])
+        response = authenticated_client.put(
+            f"/api/v1/gradings/{grading['id']}",
+            json={"grade": "black", "notes": "HACKED by User1"},
+        )
+        assert response.status_code in (
+            403,
+            404,
+        ), f"Expected 403/404, got {response.status_code}"
+
+    def test_delete_grading_idor(self, authenticated_client, test_user, test_user2):
+        """User1 cannot DELETE User2's grading."""
+        grading = self._create_user2_grading(test_user2["id"])
+        response = authenticated_client.delete(f"/api/v1/gradings/{grading['id']}")
+        assert response.status_code in (
+            403,
+            404,
+        ), f"Expected 403/404, got {response.status_code}"
+
+    def test_latest_grading_isolation(
+        self, authenticated_client, test_user, test_user2
+    ):
+        """User1's latest grading must not return User2's grading."""
+        self._create_user2_grading(test_user2["id"])
+        response = authenticated_client.get("/api/v1/gradings/latest")
+        assert response.status_code == 200
+        data = response.json()
+        # User1 has no gradings, so result should be null/None
+        if data is not None:
+            assert data.get("user_id", test_user["id"]) == test_user["id"]
+            assert data.get("notes") != "User2 secret grading"

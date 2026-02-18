@@ -455,7 +455,6 @@ export interface FeedItemData {
   tomorrow_intention?: string;
   visibility?: string;
   visibility_level?: string;
-  [key: string]: unknown;
 }
 
 export interface FeedItem {

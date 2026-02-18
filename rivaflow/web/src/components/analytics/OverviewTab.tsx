@@ -18,6 +18,8 @@ import {
 import TrainingCalendar from './TrainingCalendar';
 import MiniZoneBar from '../MiniZoneBar';
 import ErrorBoundary from '../ErrorBoundary';
+import { formatClassType } from '../../constants/activity';
+import { formatCount } from '../../utils/text';
 import type {
   PerformanceOverview,
   CalendarData,
@@ -72,12 +74,12 @@ function getQuickInsights(
   // Session frequency insights
   if (sessionsDelta > 0) {
     allInsights.push({
-      text: `Training frequency up ${Math.abs(sessionsDelta)} sessions this period.`,
+      text: `Training frequency up ${formatCount(Math.abs(sessionsDelta), 'session')} this period.`,
       priority: Math.abs(sessionsDelta) >= 2 ? 10 : 5,
     });
   } else if (sessionsDelta < 0) {
     allInsights.push({
-      text: `Training frequency down ${Math.abs(sessionsDelta)} sessions this period.`,
+      text: `Training frequency down ${formatCount(Math.abs(sessionsDelta), 'session')} this period.`,
       priority: Math.abs(sessionsDelta) >= 2 ? 10 : 5,
     });
   }
@@ -139,7 +141,7 @@ function getQuickInsights(
   // Top class type insight
   if (summary.top_class_type) {
     allInsights.push({
-      text: `Most trained class type: ${summary.top_class_type}.`,
+      text: `Most trained class type: ${formatClassType(summary.top_class_type)}.`,
       priority: 3,
     });
   }
@@ -151,7 +153,7 @@ function getQuickInsights(
       priority: 3,
     });
     allInsights.push({
-      text: `Logged ${sessionsValue} sessions this period.`,
+      text: `Logged ${formatCount(sessionsValue, 'session')} this period.`,
       priority: 2,
     });
   }
@@ -390,13 +392,13 @@ export default function OverviewTab({
                     className="text-sm font-medium"
                     style={{ color: 'var(--text)' }}
                   >
-                    {ct.class_type}
+                    {formatClassType(ct.class_type ?? '')}
                   </span>
                   <span
                     className="text-sm"
                     style={{ color: 'var(--muted)' }}
                   >
-                    {ct.avg_duration} min avg ({ct.sessions} {ct.sessions === 1 ? 'session' : 'sessions'})
+                    {ct.avg_duration} min avg ({formatCount(ct.sessions ?? 0, 'session')})
                   </span>
                 </div>
               ))}
@@ -612,13 +614,13 @@ export default function OverviewTab({
                         className="text-sm font-medium"
                         style={{ color: 'var(--text)' }}
                       >
-                        {ct.class_type}
+                        {formatClassType(ct.class_type ?? '')}
                       </p>
                       <p
                         className="text-xs"
                         style={{ color: 'var(--muted)' }}
                       >
-                        {ct.sessions} sessions, {ct.avg_rolls} avg rolls
+                        {formatCount(ct.sessions ?? 0, 'session')}, {ct.avg_rolls} avg rolls
                       </p>
                     </div>
                     <div className="text-right">

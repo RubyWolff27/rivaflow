@@ -40,7 +40,7 @@ export default function FriendForm({ formData, onFormDataChange, onSubmit, onCan
           <select
             className="input"
             value={formData.friend_type}
-            onChange={(e) => onFormDataChange({ ...formData, friend_type: e.target.value as any })}
+            onChange={(e) => onFormDataChange({ ...formData, friend_type: e.target.value as FriendFormData['friend_type'] })}
           >
             <option value="training-partner">Training Partner</option>
             <option value="instructor">Instructor</option>
@@ -55,7 +55,7 @@ export default function FriendForm({ formData, onFormDataChange, onSubmit, onCan
           <select
             className="input"
             value={formData.belt_rank}
-            onChange={(e) => onFormDataChange({ ...formData, belt_rank: e.target.value as any })}
+            onChange={(e) => onFormDataChange({ ...formData, belt_rank: e.target.value as FriendFormData['belt_rank'] })}
           >
             <option value="">None</option>
             <option value="white">White</option>

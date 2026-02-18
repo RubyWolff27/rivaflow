@@ -10,6 +10,8 @@ import { useToast } from '../contexts/ToastContext';
 import MiniZoneBar from '../components/MiniZoneBar';
 import SessionScoreBadge from '../components/sessions/SessionScoreBadge';
 import TodayClassesWidget from '../components/dashboard/TodayClassesWidget';
+import { formatClassType } from '../constants/activity';
+import { pluralize } from '../utils/text';
 
 type ZoneData = { zone_durations: Record<string, number> | null; strain: number | null; calories: number | null; score_state: string | null };
 
@@ -185,7 +187,7 @@ export default function Sessions() {
             >
               <option value="all">All Types</option>
               {uniqueClassTypes.map(type => (
-                <option key={type} value={type}>{type}</option>
+                <option key={type} value={type}>{formatClassType(type)}</option>
               ))}
             </select>
           </div>
@@ -219,13 +221,15 @@ export default function Sessions() {
               key={session.id}
               to={`/session/${session.id}`}
               className="card hover:shadow-lg transition-shadow"
+              role="article"
+              aria-label={`${session.class_type} session at ${session.gym_name} on ${formatDate(session.session_date)}`}
             >
               {/* Header */}
               <div className="flex items-start justify-between mb-3">
                 <div className="flex-1">
                   <div className="flex items-center gap-2 mb-1">
                     <span className="px-2 py-0.5 bg-[rgba(var(--accent-rgb),0.12)] text-[var(--accent)] rounded text-xs font-semibold uppercase">
-                      {session.class_type}
+                      {formatClassType(session.class_type)}
                     </span>
                     {session.needs_review && (
                       <span className="px-2 py-0.5 bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 rounded text-xs font-semibold">
@@ -286,7 +290,7 @@ export default function Sessions() {
                   <span className="font-semibold text-emerald-500">{session.submissions_for}</span>
                   {' / '}
                   <span className="font-semibold text-[var(--error)]">{session.submissions_against}</span>
-                  {' '}{(session.submissions_for ?? 0) + (session.submissions_against ?? 0) === 1 ? 'submission' : 'submissions'}
+                  {' '}{pluralize((session.submissions_for ?? 0) + (session.submissions_against ?? 0), 'submission')}
                 </span>
               </div>
 

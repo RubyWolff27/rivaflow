@@ -3,6 +3,7 @@ import { getLocalDateString } from '../utils/date';
 import { profileApi, gradingsApi, friendsApi, adminApi, gymsApi, whoopApi, getErrorMessage } from '../api/client';
 import { logger } from '../utils/logger';
 import { validateImageFile } from '../utils/validation';
+import { formatCount } from '../utils/text';
 import type { Profile, Grading, Friend, WhoopConnectionStatus } from '../types';
 import { useToast } from '../contexts/ToastContext';
 
@@ -513,8 +514,8 @@ export function useProfileData() {
       const res = await whoopApi.sync();
       const { total_fetched, auto_sessions_created } = res.data;
       const msg = auto_sessions_created
-        ? `Synced ${total_fetched} workouts — ${auto_sessions_created} session(s) auto-created`
-        : `Synced ${total_fetched} workouts from WHOOP`;
+        ? `Synced ${formatCount(total_fetched, 'workout')} — ${formatCount(auto_sessions_created, 'session')} auto-created`
+        : `Synced ${formatCount(total_fetched, 'workout')} from WHOOP`;
       toast.success(msg);
       const statusRes = await whoopApi.getStatus();
       setWhoopStatus(statusRes.data);

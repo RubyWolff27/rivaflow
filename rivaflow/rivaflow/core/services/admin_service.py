@@ -128,6 +128,11 @@ class AdminService:
         return ActivityCommentRepository.admin_list_comments(limit, offset)
 
     @staticmethod
+    def delete_comment(comment_id: int) -> bool:
+        """Delete a comment by ID (admin moderation)."""
+        return ActivityCommentRepository.delete_admin(comment_id)
+
+    @staticmethod
     def list_techniques(
         search: str | None = None,
         category: str | None = None,

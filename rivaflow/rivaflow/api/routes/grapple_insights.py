@@ -2,12 +2,18 @@
 
 import logging
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 
 from rivaflow.core.dependencies import get_current_user
 from rivaflow.core.error_handling import route_error_handler
+from rivaflow.core.exceptions import (
+    ExternalServiceError,
+    NotFoundError,
+    RivaFlowException,
+    ValidationError,
+)
 from rivaflow.core.middleware.feature_access import require_beta_or_premium
 
 router = APIRouter(tags=["grapple"])
@@ -78,9 +84,8 @@ async def extract_session(
         return result
     except RuntimeError as e:
         logger.error(f"Session extraction failed: {e}")
-        raise HTTPException(
-            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail="Session extraction service is temporarily unavailable",
+        raise ExternalServiceError(
+            "Session extraction service is temporarily unavailable"
         )
 
 
@@ -184,16 +189,10 @@ async def generate_insight(
     elif request.insight_type == "weekly":
         insight = await generate_weekly_insight(user_id)
     else:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=("Invalid insight_type or missing" " session_id"),
-        )
+        raise ValidationError("Invalid insight_type or missing session_id")
 
     if not insight:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Could not generate insight",
-        )
+        raise NotFoundError("Could not generate insight")
 
     return insight
 
@@ -210,7 +209,7 @@ async def create_insight_chat(
 
     try:
         return await _handle_insight_chat(insight_id, user_id)
-    except HTTPException:
+    except (HTTPException, RivaFlowException):
         raise
     except Exception:
         logger.exception(f"Unhandled error in insight chat for user {user_id}")
@@ -229,10 +228,7 @@ async def _handle_insight_chat(insight_id: int, user_id: int):
 
     insight = AIInsightRepository.get_by_id(insight_id, user_id)
     if not insight:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Insight not found",
-        )
+        raise NotFoundError("Insight not found")
 
     chat_service = ChatService()
 
@@ -288,7 +284,4 @@ async def technique_qa_endpoint(
         return result
     except RuntimeError as e:
         logger.error(f"Technique QA failed: {e}")
-        raise HTTPException(
-            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail="Technique QA service is temporarily unavailable",
-        )
+        raise ExternalServiceError("Technique QA service is temporarily unavailable")

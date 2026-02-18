@@ -50,7 +50,7 @@ class WhoopRecoveryCacheRepository:
             existing = cursor.fetchone()
 
             if existing:
-                row_id = existing["id"] if hasattr(existing, "keys") else existing[0]
+                row_id = existing["id"]
                 cursor.execute(
                     convert_query("""
                         UPDATE whoop_recovery_cache

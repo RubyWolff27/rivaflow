@@ -1,6 +1,7 @@
 import { render, screen, waitFor } from '@testing-library/react'
 import { BrowserRouter } from 'react-router-dom'
 import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { createMockToast, createMockTier } from '../../__tests__/test-utils'
 
 vi.mock('../../api/client', () => ({
   profileApi: {
@@ -53,23 +54,8 @@ vi.mock('../../api/client', () => ({
   getErrorMessage: vi.fn((e: unknown) => String(e)),
 }))
 
-vi.mock('../../contexts/ToastContext', () => ({
-  useToast: () => ({
-    showToast: vi.fn(),
-    success: vi.fn(),
-    error: vi.fn(),
-  }),
-}))
-
-vi.mock('../../hooks/useTier', () => ({
-  useTier: () => ({
-    tier: 'beta',
-    isFree: false,
-    isBeta: true,
-    isPro: false,
-    label: 'Beta',
-  }),
-}))
+vi.mock('../../contexts/ToastContext', () => createMockToast())
+vi.mock('../../hooks/useTier', () => createMockTier())
 
 vi.mock('../../components/GymSelector', () => ({
   default: ({ value }: { value: string }) => (

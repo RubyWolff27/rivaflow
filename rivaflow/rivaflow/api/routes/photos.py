@@ -110,10 +110,7 @@ async def upload_photo(
         current_user["id"], activity_type, activity_id
     )
     if photo_count >= MAX_PHOTOS_PER_ACTIVITY:
-        raise HTTPException(
-            status_code=400,
-            detail=f"Maximum {MAX_PHOTOS_PER_ACTIVITY} photos per activity",
-        )
+        raise ValidationError(f"Maximum {MAX_PHOTOS_PER_ACTIVITY} photos per activity")
 
     # Validate file extension
     file_ext = Path(file.filename).suffix.lower() if file.filename else ""

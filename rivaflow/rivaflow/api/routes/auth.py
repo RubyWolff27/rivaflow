@@ -15,7 +15,9 @@ from rivaflow.core.dependencies import get_current_user
 from rivaflow.core.error_handling import handle_service_error, route_error_handler
 from rivaflow.core.exceptions import (
     AuthenticationError,
+    AuthorizationError,
     RivaFlowException,
+    ServiceError,
     ValidationError,
 )
 from rivaflow.core.services.auth_service import AuthService
@@ -86,15 +88,13 @@ def register(request: Request, req: RegisterRequest, response: Response):
     # When waitlist is enabled, require a valid invite token
     if settings.WAITLIST_ENABLED:
         if not req.invite_token:
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail="Registration requires an invite. Join the waitlist at rivaflow.app/waitlist",
+            raise AuthorizationError(
+                "Registration requires an invite. Join the waitlist at rivaflow.app/waitlist"
             )
 
         if not waitlist_service.is_invite_valid(req.invite_token):
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail="Invalid or expired invite token. Please request a new invite.",
+            raise AuthorizationError(
+                "Invalid or expired invite token. Please request a new invite."
             )
 
     # If invite_token is provided but waitlist is not enforced, still validate
@@ -134,10 +134,7 @@ def register(request: Request, req: RegisterRequest, response: Response):
         raise
     except KeyError as e:
         error_msg = handle_service_error(e, "Registration failed", operation="register")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=error_msg,
-        )
+        raise ServiceError(error_msg)
 
 
 @router.post("/login", response_model=TokenResponse)
@@ -168,10 +165,7 @@ def login(request: Request, req: LoginRequest, response: Response):
         )
     except KeyError as e:
         error_msg = handle_service_error(e, "Login failed", operation="login")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=error_msg,
-        )
+        raise ServiceError(error_msg)
 
 
 @router.post("/refresh", response_model=AccessTokenResponse)
@@ -212,10 +206,7 @@ def refresh_token(request: Request, response: Response):
         error_msg = handle_service_error(
             e, "Token refresh failed", operation="refresh_token"
         )
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=error_msg,
-        )
+        raise ServiceError(error_msg)
 
 
 @router.post("/logout")
@@ -241,10 +232,7 @@ def logout(
             error_msg = handle_service_error(
                 e, "Logout failed", user_id=current_user["id"], operation="logout"
             )
-            raise HTTPException(
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail=error_msg,
-            )
+            raise ServiceError(error_msg)
 
     _clear_refresh_cookie(response)
     return {"message": "Logged out successfully"}
@@ -272,10 +260,7 @@ def logout_all_devices(
         error_msg = handle_service_error(
             e, "Logout failed", user_id=current_user["id"], operation="logout_all"
         )
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=error_msg,
-        )
+        raise ServiceError(error_msg)
 
 
 @router.get("/me", response_model=CurrentUserResponse)
@@ -358,17 +343,11 @@ def reset_password(request: Request, req: ResetPasswordRequest):
         error_msg = handle_service_error(
             e, "Password reset failed", operation="reset_password"
         )
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=error_msg,
-        )
+        raise ServiceError(error_msg)
 
     if success:
         return {
             "message": "Password reset successfully. You can now log in with your new password."
         }
     else:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Invalid or expired reset token",
-        )
+        raise ValidationError("Invalid or expired reset token")

@@ -196,7 +196,7 @@ export default function RestDetail() {
       {/* Rest Note */}
       {restDay.rest_note && (
         <div className="card">
-          <h3 className="font-semibold text-lg mb-3">Notes</h3>
+          <h2 className="font-semibold text-lg mb-3">Notes</h2>
           <p className="text-[var(--text)] whitespace-pre-wrap">
             {restDay.rest_note}
           </p>
@@ -206,7 +206,7 @@ export default function RestDetail() {
       {/* Tomorrow's Intention */}
       {restDay.tomorrow_intention && (
         <div className="card" style={{ backgroundColor: 'rgba(59,130,246,0.1)', borderColor: 'var(--accent)' }}>
-          <h3 className="font-semibold text-lg mb-3">Tomorrow's Intention</h3>
+          <h2 className="font-semibold text-lg mb-3">Tomorrow's Intention</h2>
           <p className="text-[var(--text)]">
             → {restDay.tomorrow_intention}
           </p>
@@ -217,7 +217,7 @@ export default function RestDetail() {
       <div className="card">
         <div className="flex items-center gap-2 mb-4">
           <Camera className="w-5 h-5 text-[var(--muted)]" />
-          <h3 className="font-semibold text-lg">Photos</h3>
+          <h2 className="font-semibold text-lg">Photos</h2>
           <span className="text-sm text-[var(--muted)]">({photoCount}/3)</span>
         </div>
 

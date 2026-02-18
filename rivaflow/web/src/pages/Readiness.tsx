@@ -214,7 +214,7 @@ export default function Readiness() {
       {latest && (
         <div className="card bg-primary-50 dark:bg-primary-900/20 border-primary-200 dark:border-primary-800">
           <div className="flex items-center justify-between mb-2">
-            <h3 className="font-semibold">Latest Check-in</h3>
+            <h2 className="font-semibold">Latest Check-in</h2>
             <Link
               to={`/readiness/edit/${latest.check_date}`}
               className="flex items-center gap-1 text-xs font-medium hover:underline"
@@ -245,7 +245,7 @@ export default function Readiness() {
       {/* Trend chart — shown whenever data is available */}
       {trendData.length > 1 && (
         <div className="card">
-          <h3 className="font-semibold mb-3" style={{ color: 'var(--text)' }}>7-Day Readiness Trend</h3>
+          <h2 className="font-semibold mb-3" style={{ color: 'var(--text)' }}>7-Day Readiness Trend</h2>
           <ReadinessTrendChart data={trendData} />
         </div>
       )}

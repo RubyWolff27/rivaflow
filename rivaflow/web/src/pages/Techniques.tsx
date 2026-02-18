@@ -156,7 +156,7 @@ export default function Techniques() {
           <div className="flex items-start gap-3">
             <AlertCircle className="w-5 h-5 text-yellow-600 mt-0.5" />
             <div>
-              <h3 className="font-semibold mb-2">Stale Techniques (7+ days)</h3>
+              <h2 className="font-semibold mb-2">Stale Techniques (7+ days)</h2>
               <div className="flex flex-wrap gap-2">
                 {staleTechniques.map((tech) => (
                   <span

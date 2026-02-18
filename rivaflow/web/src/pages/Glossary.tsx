@@ -221,7 +221,7 @@ export default function Glossary() {
       {/* Add Custom Form */}
       {showAddCustom && (
         <form onSubmit={handleAddCustom} className="card bg-[var(--surfaceElev)] space-y-4">
-          <h3 className="text-lg font-semibold">Add Custom Technique</h3>
+          <h2 className="text-lg font-semibold">Add Custom Technique</h2>
 
           <div className="grid grid-cols-2 gap-4">
             <div>

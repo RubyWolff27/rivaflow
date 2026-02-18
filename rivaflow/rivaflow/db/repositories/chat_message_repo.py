@@ -140,9 +140,5 @@ class ChatMessageRepository:
             cursor.execute(query, (session_id,))
             result = cursor.fetchone()
             if result:
-                # Handle both dict (PostgreSQL) and tuple (SQLite)
-                if hasattr(result, "keys"):
-                    return result["count"]
-                else:
-                    return result[0]
+                return result["count"]
             return 0

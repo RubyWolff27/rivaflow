@@ -48,8 +48,8 @@ export default function Friends() {
       try {
         const response = await friendsApi.list();
         if (!cancelled) {
-          const data = response.data as any;
-          setFriends(data.friends || data || []);
+          const data = response.data as Friend[] | { friends: Friend[] };
+          setFriends(Array.isArray(data) ? data : data.friends || []);
         }
       } catch (error) {
         if (!cancelled) {
@@ -129,8 +129,8 @@ export default function Friends() {
     setLoading(true);
     try {
       const response = await friendsApi.list();
-      const data = response.data as any;
-      setFriends(data.friends || data || []);
+      const data = response.data as Friend[] | { friends: Friend[] };
+      setFriends(Array.isArray(data) ? data : data.friends || []);
     } catch (error) {
       logger.error('Error loading contacts:', error);
       toast.error('Failed to load friends');
@@ -299,9 +299,11 @@ export default function Friends() {
       <div className="card">
         <div className="flex items-center gap-2">
           <Filter className="w-5 h-5 text-[var(--muted)]" />
-          <div className="flex gap-2">
+          <div className="flex gap-2" role="tablist" aria-label="Friend type filter">
             <button
               onClick={() => setSelectedFilter('all')}
+              role="tab"
+              aria-selected={selectedFilter === 'all'}
               className={`px-3 py-1 rounded-full text-sm font-medium transition-colors ${
                 selectedFilter === 'all'
                   ? 'bg-[var(--accent)] text-white'
@@ -312,6 +314,8 @@ export default function Friends() {
             </button>
             <button
               onClick={() => setSelectedFilter('instructors')}
+              role="tab"
+              aria-selected={selectedFilter === 'instructors'}
               className={`px-3 py-1 rounded-full text-sm font-medium transition-colors ${
                 selectedFilter === 'instructors'
                   ? 'bg-[var(--accent)] text-white'
@@ -322,6 +326,8 @@ export default function Friends() {
             </button>
             <button
               onClick={() => setSelectedFilter('partners')}
+              role="tab"
+              aria-selected={selectedFilter === 'partners'}
               className={`px-3 py-1 rounded-full text-sm font-medium transition-colors ${
                 selectedFilter === 'partners'
                   ? 'bg-[var(--accent)] text-white'

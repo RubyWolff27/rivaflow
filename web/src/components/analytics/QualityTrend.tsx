@@ -1,3 +1,6 @@
+import { formatClassType } from '../../constants/activity';
+import { formatCount } from '../../utils/text';
+
 interface ScoredSession {
   session_id: number;
   date: string;
@@ -69,7 +72,7 @@ export default function QualityTrend({ avgQuality, topSessions, weeklyTrend, ins
                 <div
                   className="w-full rounded-t-md transition-all"
                   style={{ height: `${barH}%`, backgroundColor: color, minHeight: '4px' }}
-                  title={`${w.week}: ${w.avg_quality}/100 (${w.sessions} sessions)`}
+                  title={`${w.week}: ${w.avg_quality}/100 (${formatCount(w.sessions, 'session')})`}
                 />
               </div>
             );
@@ -102,7 +105,7 @@ export default function QualityTrend({ avgQuality, topSessions, weeklyTrend, ins
                   <span className="text-xs" style={{ color: 'var(--text)' }}>{s.date}</span>
                 </div>
                 <p className="text-lg font-bold" style={{ color: 'var(--text)' }}>{s.quality}/100</p>
-                <p className="text-[10px]" style={{ color: 'var(--muted)' }}>{s.class_type} @ {s.gym}</p>
+                <p className="text-[10px]" style={{ color: 'var(--muted)' }}>{formatClassType(s.class_type)} @ {s.gym}</p>
               </div>
             ))}
           </div>

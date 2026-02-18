@@ -144,7 +144,7 @@ class FeedbackRepository:
             # Total count
             cursor.execute(convert_query("SELECT COUNT(*) as count FROM app_feedback"))
             total = cursor.fetchone()
-            total_count = total["count"] if hasattr(total, "keys") else total[0]
+            total_count = total["count"]
 
             # Count by status
             cursor.execute(convert_query("""

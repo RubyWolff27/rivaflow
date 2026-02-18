@@ -585,6 +585,7 @@ def _apply_migrations(
         "091_fix_needs_review_type_v3.sql",
         "092_hash_refresh_tokens.sql",
         "093_login_lockout.sql",
+        "094_restore_admin.sql",
     ]
 
     migrations_dir = Path(__file__).parent / "migrations"

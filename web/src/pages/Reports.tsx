@@ -233,7 +233,7 @@ export default function Reports() {
       )}
 
       {/* Tabs */}
-      <div className="flex gap-1 border-b border-[var(--border)] pb-0 overflow-x-auto scrollbar-hide">
+      <div className="flex gap-1 border-b border-[var(--border)] pb-0 overflow-x-auto scrollbar-hide" role="tablist" aria-label="Analytics tabs">
         {tabs.map((tab) => {
           const Icon = tab.icon;
           const isActive = activeTab === tab.id;
@@ -241,6 +241,8 @@ export default function Reports() {
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
+              role="tab"
+              aria-selected={isActive}
               className="relative flex items-center gap-2 px-4 py-3 text-sm font-medium transition-colors flex-shrink-0"
               style={{
                 color: isActive ? 'var(--accent)' : 'var(--muted)',

@@ -243,6 +243,4 @@ class GrappleUsageRepository:
             cursor.execute(user_query, (start_date, end_date))
             urow = cursor.fetchone()
             cursor.close()
-            if hasattr(urow, "keys"):
-                return list(urow.values())[0] or 0
-            return urow[0] or 0
+            return list(urow.values())[0] or 0

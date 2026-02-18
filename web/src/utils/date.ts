@@ -22,7 +22,7 @@ export function formatRelativeDate(dateStr: string): string {
 
   if (diffDays === 0) return 'Today';
   if (diffDays === 1) return 'Yesterday';
-  if (diffDays < 7) return `${diffDays} days ago`;
+  if (diffDays < 7) return `${diffDays} ${diffDays === 1 ? 'day' : 'days'} ago`;
   return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 }
 

@@ -177,6 +177,38 @@ class GymService:
         self.cache.set(cache_key, classes, ttl=CacheKeys.TTL_1_HOUR)
         return classes
 
+    # ── Gym class admin methods ──
+
+    def bulk_replace_classes(self, gym_id: int, class_dicts: list[dict]) -> list[int]:
+        """Replace all classes for a gym with new ones."""
+        repo = GymClassRepository()
+        ids = repo.bulk_replace(gym_id, class_dicts)
+        self._invalidate_timetable_cache(gym_id)
+        return ids
+
+    def add_class(self, gym_id: int, **kwargs) -> int:
+        """Add a single class to a gym timetable."""
+        repo = GymClassRepository()
+        class_id = repo.create(gym_id=gym_id, **kwargs)
+        self._invalidate_timetable_cache(gym_id)
+        return class_id
+
+    def update_class(self, class_id: int, gym_id: int, **kwargs) -> dict | None:
+        """Update a gym class."""
+        repo = GymClassRepository()
+        updated = repo.update(class_id, **kwargs)
+        if updated:
+            self._invalidate_timetable_cache(gym_id)
+        return updated
+
+    def delete_class(self, class_id: int, gym_id: int) -> bool:
+        """Delete a gym class."""
+        repo = GymClassRepository()
+        deleted = repo.delete(class_id)
+        if deleted:
+            self._invalidate_timetable_cache(gym_id)
+        return deleted
+
     def _invalidate_timetable_cache(self, gym_id: int) -> None:
         """Invalidate timetable cache for a gym."""
         self.cache.delete_pattern(f"gym:timetable:{gym_id}*")

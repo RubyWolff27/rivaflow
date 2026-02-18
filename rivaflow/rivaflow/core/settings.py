@@ -69,9 +69,7 @@ class Settings:
         # ======================================================================
         # APPLICATION URLs
         # ======================================================================
-        self.APP_BASE_URL: str = os.getenv(
-            "APP_BASE_URL", "https://rivaflow.onrender.com"
-        )
+        self.APP_BASE_URL: str = os.getenv("APP_BASE_URL", "https://api.rivaflow.app")
         self.API_BASE_URL: str = os.getenv("API_BASE_URL", self.APP_BASE_URL)
 
         # ======================================================================

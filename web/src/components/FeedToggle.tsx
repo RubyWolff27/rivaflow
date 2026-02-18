@@ -7,9 +7,11 @@ interface FeedToggleProps {
 
 export default function FeedToggle({ view, onChange }: FeedToggleProps) {
   return (
-    <div className="flex gap-2 mb-6">
+    <div className="flex gap-2 mb-6" role="tablist" aria-label="Feed view">
       <button
         onClick={() => onChange('my')}
+        role="tab"
+        aria-selected={view === 'my'}
         className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all ${
           view === 'my'
             ? 'bg-[var(--accent)] text-white shadow-sm'
@@ -22,6 +24,8 @@ export default function FeedToggle({ view, onChange }: FeedToggleProps) {
 
       <button
         onClick={() => onChange('friends')}
+        role="tab"
+        aria-selected={view === 'friends'}
         className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all ${
           view === 'friends'
             ? 'bg-[var(--accent)] text-white shadow-sm'

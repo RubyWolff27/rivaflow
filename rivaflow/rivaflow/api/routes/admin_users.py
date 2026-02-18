@@ -174,9 +174,9 @@ def delete_comment(
     current_user: dict = Depends(require_admin),
 ):
     """Delete a comment (admin only)."""
-    from rivaflow.db.repositories.activity_comment_repo import ActivityCommentRepository
+    from rivaflow.core.services.admin_service import AdminService
 
-    success = ActivityCommentRepository.delete_admin(comment_id)
+    success = AdminService.delete_comment(comment_id)
     if not success:
         raise NotFoundError(f"Comment {comment_id} not found")
 

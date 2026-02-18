@@ -10,7 +10,6 @@ from rivaflow.core.error_handling import route_error_handler
 from rivaflow.core.exceptions import NotFoundError, ValidationError
 from rivaflow.core.services.audit_service import AuditService
 from rivaflow.core.services.gym_service import GymService
-from rivaflow.db.repositories.gym_class_repo import GymClassRepository
 
 from .admin import get_client_ip, require_admin
 
@@ -373,11 +372,8 @@ def set_timetable(
     if not gym:
         raise NotFoundError(f"Gym {gym_id} not found")
 
-    repo = GymClassRepository()
     class_dicts = [c.model_dump() for c in body.classes]
-    ids = repo.bulk_replace(gym_id, class_dicts)
-
-    gym_service._invalidate_timetable_cache(gym_id)
+    ids = gym_service.bulk_replace_classes(gym_id, class_dicts)
 
     AuditService.log(
         actor_id=current_user["id"],
@@ -412,8 +408,7 @@ def add_class(
     if not gym:
         raise NotFoundError(f"Gym {gym_id} not found")
 
-    repo = GymClassRepository()
-    class_id = repo.create(
+    class_id = gym_service.add_class(
         gym_id=gym_id,
         day_of_week=body.day_of_week,
         start_time=body.start_time,
@@ -422,8 +417,6 @@ def add_class(
         class_type=body.class_type,
         level=body.level,
     )
-
-    gym_service._invalidate_timetable_cache(gym_id)
 
     AuditService.log(
         actor_id=current_user["id"],
@@ -451,9 +444,10 @@ def update_class(
     current_user: dict = Depends(require_admin),
 ):
     """Update a gym class."""
-    repo = GymClassRepository()
-    updated = repo.update(
+    gym_service = GymService()
+    updated = gym_service.update_class(
         class_id,
+        gym_id=gym_id,
         day_of_week=body.day_of_week,
         start_time=body.start_time,
         end_time=body.end_time,
@@ -463,9 +457,6 @@ def update_class(
     )
     if not updated:
         raise NotFoundError(f"Class {class_id} not found")
-
-    gym_service = GymService()
-    gym_service._invalidate_timetable_cache(gym_id)
 
     return updated
 
@@ -480,13 +471,10 @@ def delete_class(
     current_user: dict = Depends(require_admin),
 ):
     """Delete a gym class."""
-    repo = GymClassRepository()
-    deleted = repo.delete(class_id)
+    gym_service = GymService()
+    deleted = gym_service.delete_class(class_id, gym_id)
     if not deleted:
         raise NotFoundError(f"Class {class_id} not found")
-
-    gym_service = GymService()
-    gym_service._invalidate_timetable_cache(gym_id)
 
     AuditService.log(
         actor_id=current_user["id"],

@@ -3,7 +3,6 @@
 from fastapi import (
     APIRouter,
     Depends,
-    HTTPException,
     Request,
     Response,
     status,
@@ -13,7 +12,11 @@ from pydantic import BaseModel
 from rivaflow.api.rate_limit import limiter
 from rivaflow.core.dependencies import get_current_user
 from rivaflow.core.error_handling import route_error_handler
-from rivaflow.core.exceptions import ConflictError, NotFoundError
+from rivaflow.core.exceptions import (
+    AuthorizationError,
+    ConflictError,
+    NotFoundError,
+)
 from rivaflow.core.services.groups_service import GroupsService
 
 router = APIRouter()
@@ -137,10 +140,7 @@ def update_group(
         data=group.model_dump(exclude_none=True),
     )
     if not updated:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Only group admins can update the group",
-        )
+        raise AuthorizationError("Only group admins can update the group")
     return repo.get_by_id(group_id)
 
 
@@ -156,10 +156,7 @@ def delete_group(
     repo = GroupsService()
     deleted = repo.delete(group_id=group_id, user_id=current_user["id"])
     if not deleted:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Only group admins can delete the group",
-        )
+        raise AuthorizationError("Only group admins can delete the group")
     return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
@@ -176,10 +173,7 @@ def add_member(
     repo = GroupsService()
     role = repo.get_member_role(group_id, current_user["id"])
     if role != "admin":
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Only group admins can add members",
-        )
+        raise AuthorizationError("Only group admins can add members")
 
     group = repo.get_by_id(group_id)
     if not group:
@@ -208,10 +202,7 @@ def remove_member(
     repo = GroupsService()
     caller_role = repo.get_member_role(group_id, current_user["id"])
     if caller_role != "admin" and current_user["id"] != user_id:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Only admins can remove other members",
-        )
+        raise AuthorizationError("Only admins can remove other members")
 
     removed = repo.remove_member(group_id=group_id, user_id=user_id)
     if not removed:
@@ -234,10 +225,7 @@ def join_group(
         raise NotFoundError("Group not found")
 
     if group.get("privacy") != "open":
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="This group is invite-only",
-        )
+        raise AuthorizationError("This group is invite-only")
 
     added = repo.add_member(group_id=group_id, user_id=current_user["id"])
     if not added:

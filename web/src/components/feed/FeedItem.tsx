@@ -96,7 +96,7 @@ const FeedItemComponent = memo(function FeedItemComponent({
         </div>
       )}
 
-      <div className="rounded-[14px] overflow-hidden" style={{ backgroundColor: 'var(--surface)', border: '1px solid var(--border)' }}>
+      <div className="rounded-[14px] overflow-hidden" role="article" aria-label={item.summary} style={{ backgroundColor: 'var(--surface)', border: '1px solid var(--border)' }}>
         {/* Friend name header */}
         {isFriend && ownerName && (
           <div className="px-4 pt-3 pb-0">

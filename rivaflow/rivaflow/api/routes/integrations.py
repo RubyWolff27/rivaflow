@@ -9,7 +9,11 @@ from pydantic import BaseModel
 
 from rivaflow.core.dependencies import get_current_user
 from rivaflow.core.error_handling import route_error_handler
-from rivaflow.core.exceptions import ExternalServiceError, NotFoundError
+from rivaflow.core.exceptions import (
+    ExternalServiceError,
+    NotFoundError,
+    ValidationError,
+)
 from rivaflow.core.services.session_service import SessionService
 from rivaflow.core.services.whoop_service import WhoopService
 from rivaflow.core.settings import settings
@@ -26,10 +30,7 @@ logger = logging.getLogger(__name__)
 def _require_whoop_enabled():
     """Raise 404 if the WHOOP feature flag is off."""
     if not settings.ENABLE_WHOOP_INTEGRATION:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="WHOOP integration is not enabled",
-        )
+        raise NotFoundError("WHOOP integration is not enabled")
 
 
 # ============================================================================
@@ -132,9 +133,9 @@ def sync_workouts(
         result = service.sync_workouts(current_user["id"], days_back=days)
         return result
     except NotFoundError:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="WHOOP not connected",
+        raise ValidationError(
+            "WHOOP not connected",
+            action="Connect your WHOOP device in Profile settings",
         )
     except ExternalServiceError:
         raise HTTPException(
@@ -182,10 +183,7 @@ def get_workouts(
 
         return {"workouts": matches, "count": len(matches)}
     except NotFoundError:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Workout not found",
-        )
+        raise NotFoundError("Workout not found")
 
 
 @router.post("/whoop/match")
@@ -204,10 +202,7 @@ def match_workout(
         )
         return updated
     except NotFoundError:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Workout or session not found",
-        )
+        raise NotFoundError("Workout or session not found")
 
 
 @router.post("/whoop/sync-recovery")
@@ -224,9 +219,9 @@ def sync_recovery(
         result = service.sync_recovery(current_user["id"], days_back=days)
         return result
     except NotFoundError:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="WHOOP not connected",
+        raise ValidationError(
+            "WHOOP not connected",
+            action="Connect your WHOOP device in Profile settings",
         )
     except ExternalServiceError:
         raise HTTPException(
@@ -248,9 +243,9 @@ def get_latest_recovery(
         data = service.get_latest_recovery(current_user["id"])
         return data or {"message": "No recovery data available"}
     except NotFoundError:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="WHOOP not connected",
+        raise ValidationError(
+            "WHOOP not connected",
+            action="Connect your WHOOP device in Profile settings",
         )
 
 
@@ -286,9 +281,9 @@ def readiness_auto_fill(
             return {"auto_fill": None, "message": "No WHOOP data for this date"}
         return {"auto_fill": result}
     except NotFoundError:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="WHOOP not connected",
+        raise ValidationError(
+            "WHOOP not connected",
+            action="Connect your WHOOP device in Profile settings",
         )
 
 
@@ -313,10 +308,7 @@ def get_session_context(
 
     session = SessionService().get_session(user_id, session_id)
     if not session:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Session not found",
-        )
+        raise NotFoundError("Session not found")
 
     s_date = str(session.get("session_date", ""))
     if not s_date:

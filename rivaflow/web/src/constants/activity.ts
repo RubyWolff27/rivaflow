@@ -10,8 +10,15 @@ export const ACTIVITY_COLORS: Record<string, string> = {
 export const ACTIVITY_LABELS: Record<string, string> = {
   'gi': 'Gi',
   'no-gi': 'No-Gi',
+  'nogi': 'No-Gi',
   's&c': 'S&C',
   'drilling': 'Drilling',
   'open-mat': 'Open Mat',
+  'open_mat': 'Open Mat',
   'competition': 'Competition',
 };
+
+/** Format a raw class_type value for display (e.g. "gi" -> "Gi", "no-gi" -> "No-Gi"). */
+export function formatClassType(classType: string): string {
+  return ACTIVITY_LABELS[classType] || classType;
+}

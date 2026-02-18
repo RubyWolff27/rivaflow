@@ -54,11 +54,7 @@ class GymRepository:
             cursor.execute(convert_query("SELECT * FROM gyms WHERE id = ?"), (gym_id,))
             result = cursor.fetchone()
 
-            if hasattr(result, "keys"):
-                return dict(result)
-            else:
-                columns = [desc[0] for desc in cursor.description]
-                return dict(zip(columns, result))
+            return dict(result)
 
     @staticmethod
     def get_by_id(gym_id: int) -> dict[str, Any] | None:
@@ -71,11 +67,7 @@ class GymRepository:
             if not result:
                 return None
 
-            if hasattr(result, "keys"):
-                return dict(result)
-            else:
-                columns = [desc[0] for desc in cursor.description]
-                return dict(zip(columns, result))
+            return dict(result)
 
     @staticmethod
     def list_all(verified_only: bool = False) -> list[dict[str, Any]]:
@@ -99,11 +91,7 @@ class GymRepository:
             if not results:
                 return []
 
-            if hasattr(results[0], "keys"):
-                return [dict(row) for row in results]
-            else:
-                columns = [desc[0] for desc in cursor.description]
-                return [dict(zip(columns, row)) for row in results]
+            return [dict(row) for row in results]
 
     @staticmethod
     def search(query: str, verified_only: bool = False) -> list[dict[str, Any]]:
@@ -139,11 +127,7 @@ class GymRepository:
             if not results:
                 return []
 
-            if hasattr(results[0], "keys"):
-                return [dict(row) for row in results]
-            else:
-                columns = [desc[0] for desc in cursor.description]
-                return [dict(zip(columns, row)) for row in results]
+            return [dict(row) for row in results]
 
     @staticmethod
     def update(gym_id: int, **kwargs) -> dict[str, Any] | None:
@@ -211,11 +195,7 @@ class GymRepository:
             if not results:
                 return []
 
-            if hasattr(results[0], "keys"):
-                return [dict(row) for row in results]
-            else:
-                columns = [desc[0] for desc in cursor.description]
-                return [dict(zip(columns, row)) for row in results]
+            return [dict(row) for row in results]
 
     @staticmethod
     def merge_gyms(source_gym_id: int, target_gym_id: int) -> bool:

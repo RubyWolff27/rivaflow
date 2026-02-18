@@ -8,6 +8,12 @@ from pydantic import BaseModel
 
 from rivaflow.core.dependencies import get_current_user
 from rivaflow.core.error_handling import route_error_handler
+from rivaflow.core.exceptions import (
+    ExternalServiceError,
+    NotFoundError,
+    RivaFlowException,
+    ServiceError,
+)
 from rivaflow.core.middleware.feature_access import require_beta_or_premium
 
 router = APIRouter(prefix="/grapple", tags=["grapple"])
@@ -85,7 +91,7 @@ async def chat_with_grapple(
     # (never an unhandled exception that strips CORS headers)
     try:
         return await _handle_chat(request, user_id, user_tier)
-    except HTTPException:
+    except (HTTPException, RivaFlowException):
         raise  # Let FastAPI handle these normally (they keep CORS headers)
     except Exception:
         logger.exception(f"Unhandled error in grapple chat for user {user_id}")
@@ -115,9 +121,8 @@ async def _handle_chat(
         logger.critical(
             f"Rate limit service down for user {user_id}: {e}", exc_info=True
         )
-        raise HTTPException(
-            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail="Rate limiting service unavailable. Please try again shortly.",
+        raise ExternalServiceError(
+            "Rate limiting service unavailable. Please try again shortly."
         )
 
     if not rate_check["allowed"]:
@@ -143,22 +148,16 @@ async def _handle_chat(
         if request.session_id:
             session = chat_service.get_session_by_id(request.session_id, user_id)
             if not session:
-                raise HTTPException(
-                    status_code=status.HTTP_404_NOT_FOUND,
-                    detail="Session not found or access denied",
-                )
+                raise NotFoundError("Session not found or access denied")
         else:
             session = chat_service.create_session(user_id, title="New Chat")
 
         session_id = session["id"]
-    except HTTPException:
+    except (HTTPException, RivaFlowException):
         raise
     except (ConnectionError, OSError, KeyError) as e:
         logger.error(f"Session create/get failed: {e}", exc_info=True)
-        raise HTTPException(
-            status_code=500,
-            detail="Failed to create chat session",
-        )
+        raise ServiceError("Failed to create chat session")
 
     # Step 3: Store user message
     try:
@@ -169,10 +168,19 @@ async def _handle_chat(
         )
     except (ConnectionError, OSError, KeyError) as e:
         logger.error(f"Failed to store user message: {e}", exc_info=True)
-        raise HTTPException(
-            status_code=500,
-            detail="Failed to store message",
-        )
+        raise ServiceError("Failed to store message")
+
+    # Auto-name chat: if the session still has the default title, set it
+    # to the first ~50 chars of the user's message.
+    try:
+        if session.get("title") == "New Chat":
+            auto_title = request.message.strip()[:50]
+            if len(request.message.strip()) > 50:
+                auto_title = auto_title.rsplit(" ", 1)[0] or auto_title
+                auto_title += "..."
+            chat_service.update_session_title(session_id, user_id, auto_title)
+    except (ConnectionError, OSError) as e:
+        logger.error(f"Failed to auto-name chat session: {e}", exc_info=True)
 
     # Step 4: Build context
     try:
@@ -181,10 +189,7 @@ async def _handle_chat(
         messages = context_builder.get_conversation_context(recent_messages)
     except (ConnectionError, OSError, KeyError) as e:
         logger.error(f"Context build failed: {e}", exc_info=True)
-        raise HTTPException(
-            status_code=500,
-            detail="Failed to build context",
-        )
+        raise ServiceError("Failed to build context")
 
     # Step 5: Call LLM
     try:
@@ -197,10 +202,7 @@ async def _handle_chat(
         )
     except (ConnectionError, OSError, TimeoutError, RuntimeError) as e:
         logger.error(f"LLM call failed for user {user_id}: {e}", exc_info=True)
-        raise HTTPException(
-            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail="AI service is temporarily unavailable",
-        )
+        raise ExternalServiceError("AI service is temporarily unavailable")
 
     # Steps 6-9: Post-LLM bookkeeping (non-fatal — don't fail the response)
     try:
@@ -309,10 +311,7 @@ def get_chat_session(
     # Get session (includes ownership check)
     session = chat_service.get_session_by_id(session_id, user_id)
     if not session:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Session not found or access denied",
-        )
+        raise NotFoundError("Session not found or access denied")
 
     # Get messages
     messages = chat_service.get_messages_by_session(session_id)
@@ -344,9 +343,6 @@ def delete_chat_session(
     deleted = chat_service.delete_session(session_id, user_id)
 
     if not deleted:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Session not found or access denied",
-        )
+        raise NotFoundError("Session not found or access denied")
 
     return {"message": "Session deleted"}
