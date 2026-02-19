@@ -110,7 +110,7 @@ describe('MyGame', () => {
     await waitFor(() => {
       expect(screen.getByText('Build Your Game')).toBeInTheDocument()
     })
-    expect(screen.getByText('Create a strategy mind map based on your belt and style')).toBeInTheDocument()
+    expect(screen.getByText(/technique mind map/)).toBeInTheDocument()
   })
 
   it('shows belt selection options in wizard', async () => {

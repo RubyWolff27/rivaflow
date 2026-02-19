@@ -178,11 +178,10 @@ describe("CoachSettings", () => {
     });
   });
 
-  it("renders navigation links (Grapple and Profile)", async () => {
+  it("renders back button for navigation", async () => {
     renderCoachSettings();
     await waitFor(() => {
-      expect(screen.getByText("Grapple")).toBeInTheDocument();
-      expect(screen.getByText("Profile")).toBeInTheDocument();
+      expect(screen.getByLabelText("Go back")).toBeInTheDocument();
     });
   });
 

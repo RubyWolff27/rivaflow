@@ -24,14 +24,19 @@ export default function GreetingBar({ streakCount, longestStreak }: GreetingBarP
         {getGreeting()}{firstName ? `, ${firstName}` : ''}
       </h1>
       {streakCount > 0 && (
-        <div className="flex items-center gap-1.5">
+        <div
+          className="flex items-center gap-1.5"
+          title={isPersonalBest && streakCount >= 3
+            ? `${streakCount}-day check-in streak (personal best!)`
+            : `${streakCount}-day check-in streak`}
+        >
           <Flame className="w-5 h-5" style={{ color: 'var(--accent)' }} />
-          <span className="text-lg font-bold tabular-nums" style={{ color: 'var(--accent)' }}>
-            {streakCount}
+          <span className="text-sm font-bold tabular-nums" style={{ color: 'var(--accent)' }}>
+            {streakCount}-day streak
           </span>
           {isPersonalBest && streakCount >= 3 && (
             <span className="text-xs font-medium ml-1" style={{ color: 'var(--accent)' }}>
-              Personal best!
+              PB!
             </span>
           )}
         </div>

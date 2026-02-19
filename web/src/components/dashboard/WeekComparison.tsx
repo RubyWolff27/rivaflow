@@ -81,14 +81,25 @@ const WeekComparison = memo(function WeekComparison() {
   if (!currentWeek && !previousWeek) return null;
 
   const sessions = currentWeek?.total_sessions ?? 0;
-  const prevSessions = previousWeek?.total_sessions ?? 0;
   const hours = currentWeek?.total_hours ?? 0;
-  const prevHours = previousWeek?.total_hours ?? 0;
-
-  // Derive average intensity from total_hours / total_sessions (as rough proxy)
-  // The API doesn't return avg intensity, so we use total_rolls as a training volume proxy
   const rolls = currentWeek?.total_rolls ?? 0;
+  const prevSessions = previousWeek?.total_sessions ?? 0;
+  const prevHours = previousWeek?.total_hours ?? 0;
   const prevRolls = previousWeek?.total_rolls ?? 0;
+
+  const allZero = sessions === 0 && hours === 0 && rolls === 0 && prevSessions === 0 && prevHours === 0 && prevRolls === 0;
+
+  if (allZero) {
+    return (
+      <div
+        className="rounded-[14px] px-4 py-4 text-center"
+        style={{ backgroundColor: 'var(--surface)', border: '1px solid var(--border)' }}
+      >
+        <p className="text-sm font-medium" style={{ color: 'var(--text)' }}>Your first week starts now</p>
+        <p className="text-xs mt-1" style={{ color: 'var(--muted)' }}>Log a session to see weekly stats</p>
+      </div>
+    );
+  }
 
   return (
     <div

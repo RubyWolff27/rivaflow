@@ -10,7 +10,7 @@ import { useToast } from '../contexts/ToastContext';
 import MiniZoneBar from '../components/MiniZoneBar';
 import SessionScoreBadge from '../components/sessions/SessionScoreBadge';
 import TodayClassesWidget from '../components/dashboard/TodayClassesWidget';
-import { formatClassType } from '../constants/activity';
+import { formatClassType, ACTIVITY_COLORS } from '../constants/activity';
 import { pluralize } from '../utils/text';
 
 type ZoneData = { zone_durations: Record<string, number> | null; strain: number | null; calories: number | null; score_state: string | null };
@@ -228,7 +228,13 @@ export default function Sessions() {
               <div className="flex items-start justify-between mb-3">
                 <div className="flex-1">
                   <div className="flex items-center gap-2 mb-1">
-                    <span className="px-2 py-0.5 bg-[rgba(var(--accent-rgb),0.12)] text-[var(--accent)] rounded text-xs font-semibold uppercase">
+                    <span
+                      className="px-2 py-0.5 rounded text-xs font-semibold uppercase"
+                      style={{
+                        backgroundColor: (ACTIVITY_COLORS[session.class_type] || 'var(--accent)') + '1A',
+                        color: ACTIVITY_COLORS[session.class_type] || 'var(--accent)',
+                      }}
+                    >
                       {formatClassType(session.class_type)}
                     </span>
                     {session.needs_review && (
@@ -237,7 +243,10 @@ export default function Sessions() {
                       </span>
                     )}
                     {session.intensity > 0 && (
-                      <span className="text-xs text-[var(--muted)]">
+                      <span
+                        className="text-xs font-medium"
+                        style={{ color: session.intensity >= 4 ? '#EF4444' : session.intensity === 3 ? '#F59E0B' : '#10B981' }}
+                      >
                         Intensity: {session.intensity}/5
                       </span>
                     )}
@@ -252,7 +261,7 @@ export default function Sessions() {
                     </p>
                   )}
                 </div>
-                <SessionScoreBadge score={session.session_score} />
+                <SessionScoreBadge score={session.session_score} size="md" />
               </div>
 
               {/* Stats */}

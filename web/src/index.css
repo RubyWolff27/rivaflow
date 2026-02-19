@@ -36,7 +36,7 @@
       --surface: #121622;
       --surfaceElev: #171C2A;
       --text: #F4F6FA;
-      --muted: rgba(244, 246, 250, 0.72);
+      --muted: rgba(244, 246, 250, 0.78);
       --border: rgba(244, 246, 250, 0.08);
       --accent: #FF4D2D;
       --accentPressed: #E63F24;
@@ -54,6 +54,16 @@
       --error-bg: rgba(239, 68, 68, 0.1);
       --accent-rgb: 255, 77, 45;
     }
+  }
+
+  /* Global focus-visible styles for accessibility */
+  :focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+
+  :focus:not(:focus-visible) {
+    outline: none;
   }
 
   /* Apply design tokens to body */

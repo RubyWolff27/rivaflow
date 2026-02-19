@@ -1,8 +1,9 @@
 import { memo } from 'react';
-import { Calendar, Edit2, Eye, Moon, Trash2 } from 'lucide-react';
+import { Calendar, Edit2, Eye, Lock, Moon, Trash2, Users2, Globe } from 'lucide-react';
 import ActivitySocialActions from '../ActivitySocialActions';
 import CommentSection from '../CommentSection';
 import type { FeedItem } from '../../types';
+import { ACTIVITY_COLORS } from '../../constants/activity';
 
 /** Capitalize class type names in feed summary text */
 function formatSummary(summary: string): string {
@@ -96,7 +97,16 @@ const FeedItemComponent = memo(function FeedItemComponent({
         </div>
       )}
 
-      <div className="rounded-[14px] overflow-hidden" role="article" aria-label={item.summary} style={{ backgroundColor: 'var(--surface)', border: '1px solid var(--border)' }}>
+      <div
+        className="rounded-[14px] overflow-hidden"
+        role="article"
+        aria-label={item.summary}
+        style={{
+          backgroundColor: 'var(--surface)',
+          border: '1px solid var(--border)',
+          borderLeft: `3px solid ${isRest ? '#A855F7' : ACTIVITY_COLORS[item.data?.class_type ?? ''] || 'var(--accent)'}`,
+        }}
+      >
         {/* Friend name header */}
         {isFriend && ownerName && (
           <div className="px-4 pt-3 pb-0">
@@ -212,19 +222,39 @@ const FeedItemComponent = memo(function FeedItemComponent({
                       </button>
                     </>
                   )}
-                  {isActivityEditable(item) && (
-                    <select
-                      value={item.data?.visibility_level || item.data?.visibility || 'friends'}
-                      onChange={(e) => handleVisibilityChange(item.type, item.id, e.target.value)}
-                      className="text-xs px-2 py-1 bg-white/50 dark:bg-black/20 rounded cursor-pointer border-none outline-none"
-                      aria-label="Change visibility"
-                      title="Who can see this"
-                    >
-                      <option value="private">Private</option>
-                      <option value="friends">Friends</option>
-                      <option value="public">Public</option>
-                    </select>
-                  )}
+                  {isActivityEditable(item) && (() => {
+                    const vis = item.data?.visibility_level || item.data?.visibility || 'friends';
+                    const options = [
+                      { value: 'private', icon: Lock, label: 'Private' },
+                      { value: 'friends', icon: Users2, label: 'Friends' },
+                      { value: 'public', icon: Globe, label: 'Public' },
+                    ] as const;
+                    return (
+                      <div className="flex rounded-lg overflow-hidden" style={{ border: '1px solid var(--border)' }} role="group" aria-label="Visibility">
+                        {options.map(opt => {
+                          const Icon = opt.icon;
+                          const active = vis === opt.value;
+                          return (
+                            <button
+                              key={opt.value}
+                              onClick={() => handleVisibilityChange(item.type, item.id, opt.value)}
+                              className="p-1.5 transition-colors"
+                              style={{
+                                backgroundColor: active ? 'var(--accent)' : 'transparent',
+                                color: active ? '#FFFFFF' : 'var(--muted)',
+                                opacity: active ? 1 : 0.5,
+                              }}
+                              title={opt.label}
+                              aria-label={opt.label}
+                              aria-pressed={active}
+                            >
+                              <Icon className="w-3.5 h-3.5" />
+                            </button>
+                          );
+                        })}
+                      </div>
+                    );
+                  })()}
                 </div>
               </div>
 

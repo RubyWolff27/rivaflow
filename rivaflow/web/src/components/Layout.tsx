@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, memo } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { Home, BarChart3, Users, Activity, Shield, Calendar, Sparkles, HelpCircle, MessageSquare, Target, Settings } from 'lucide-react';
+import { Home, BarChart3, Users, Activity, Shield, Calendar, Sparkles, Target, Settings } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import QuickLog from './QuickLog';
 import Sidebar from './Sidebar';
@@ -92,13 +92,6 @@ const Layout = memo(function Layout({ children }: { children: React.ReactNode })
         { name: 'Friends', href: '/friends', icon: Users, badge: notificationCounts.friend_requests },
       ],
     },
-    {
-      label: 'Support',
-      items: [
-        { name: 'FAQ', href: '/faq', icon: HelpCircle },
-        { name: 'Contact', href: '/contact', icon: MessageSquare },
-      ],
-    },
     ...(user?.is_admin ? [{
       label: 'Admin',
       items: [
@@ -155,6 +148,8 @@ const Layout = memo(function Layout({ children }: { children: React.ReactNode })
                 <a href="/privacy" className="hover:underline" style={{ color: 'var(--muted)' }}>Privacy</a>
                 <span>&middot;</span>
                 <a href="/contact" className="hover:underline" style={{ color: 'var(--muted)' }}>Contact</a>
+                <span>&middot;</span>
+                <a href="/faq" className="hover:underline" style={{ color: 'var(--muted)' }}>FAQ</a>
               </div>
             </footer>
           )}

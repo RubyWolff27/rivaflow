@@ -1,5 +1,6 @@
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Activity, RefreshCw, Flame } from 'lucide-react';
+import { Activity, RefreshCw, Flame, Info } from 'lucide-react';
 import { Card, PrimaryButton } from '../ui';
 import type { WeeklyGoalProgress, StreakStatus } from '../../types';
 
@@ -129,6 +130,8 @@ export default function HeroScore({
   streaks,
 }: HeroScoreProps) {
   const navigate = useNavigate();
+  const [showReadinessInfo, setShowReadinessInfo] = useState(false);
+  const [expandedRule, setExpandedRule] = useState<string | null>(null);
   const score = readinessScore ?? 0;
 
   // Determine label + colors (exact logic from DailyActionHero)
@@ -257,7 +260,7 @@ export default function HeroScore({
   return (
     <Card variant="hero">
       {/* Triple gauge row */}
-      <div className="flex items-center justify-center gap-4 sm:gap-6">
+      <div className="flex items-center justify-center gap-3 sm:gap-6">
         {/* Left ring: WHOOP or Streak */}
         <div className="flex flex-col items-center gap-1">
           <ScoreGauge
@@ -295,8 +298,15 @@ export default function HeroScore({
               {centerLabel}
             </span>
           </ScoreGauge>
-          <span className="text-[10px] font-medium" style={{ color: 'var(--muted)' }}>
+          <span className="flex items-center gap-1 text-[10px] font-medium" style={{ color: 'var(--muted)' }}>
             Readiness
+            <button
+              onClick={(e) => { e.stopPropagation(); setShowReadinessInfo(!showReadinessInfo); }}
+              className="p-0.5 rounded-full hover:opacity-80"
+              aria-label="What is readiness?"
+            >
+              <Info className="w-3 h-3" />
+            </button>
           </span>
         </div>
 
@@ -318,6 +328,13 @@ export default function HeroScore({
           </span>
         </div>
       </div>
+
+      {/* Readiness info tooltip */}
+      {showReadinessInfo && (
+        <p className="text-xs text-center mt-2 px-4 py-2 rounded-lg" style={{ backgroundColor: 'var(--surfaceElev)', color: 'var(--muted)' }}>
+          Readiness (0–20) combines stress, energy, soreness, and sleep. Higher = train harder.
+        </p>
+      )}
 
       {/* Label badge + suggestion */}
       <div className="text-center mt-3">
@@ -346,17 +363,18 @@ export default function HeroScore({
         {(suggestion?.triggered_rules?.length || hasWhoop) && (
           <div className="flex flex-wrap justify-center items-center gap-1.5 mt-2">
             {suggestion?.triggered_rules?.slice(0, 3).map((rule, i) => (
-              <span
+              <button
                 key={i}
-                className="text-xs px-2 py-0.5 rounded-full"
+                className="text-xs px-2 py-0.5 rounded-full transition-colors"
                 style={{
-                  backgroundColor: 'var(--surfaceElev)',
-                  color: 'var(--muted)',
-                  border: '1px solid var(--border)',
+                  backgroundColor: expandedRule === rule.name ? 'var(--accent)' : 'var(--surfaceElev)',
+                  color: expandedRule === rule.name ? '#FFFFFF' : 'var(--muted)',
+                  border: expandedRule === rule.name ? 'none' : '1px solid var(--border)',
                 }}
+                onClick={() => setExpandedRule(expandedRule === rule.name ? null : rule.name)}
               >
                 {RULE_LABELS[rule.name] || rule.name.replace(/_/g, ' ')}
-              </span>
+              </button>
             ))}
             {hasWhoop && (
               <button
@@ -377,6 +395,13 @@ export default function HeroScore({
             )}
           </div>
         )}
+
+        {/* Expanded rule recommendation */}
+        {expandedRule && suggestion?.triggered_rules?.find(r => r.name === expandedRule) && (
+          <p className="text-xs mt-2 px-3 py-2 rounded-lg" style={{ backgroundColor: 'var(--surfaceElev)', color: 'var(--text)' }}>
+            {suggestion!.triggered_rules!.find(r => r.name === expandedRule)!.recommendation}
+          </p>
+        )}
       </div>
 
       {/* Not checked in prompt */}
@@ -395,13 +420,15 @@ export default function HeroScore({
         </button>
       )}
 
-      {/* Full-width Log Session CTA */}
-      <PrimaryButton
-        onClick={() => navigate('/log')}
-        className="w-full mt-3 py-4 text-base font-bold"
-      >
-        + Log Session
-      </PrimaryButton>
+      {/* Log Session CTA */}
+      <div className="flex justify-center mt-3">
+        <PrimaryButton
+          onClick={() => navigate('/log')}
+          className="w-3/4 sm:w-2/3 py-3 text-sm font-bold"
+        >
+          + Log Session
+        </PrimaryButton>
+      </div>
     </Card>
   );
 }

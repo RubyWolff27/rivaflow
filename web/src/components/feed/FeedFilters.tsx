@@ -49,11 +49,13 @@ export default function FeedFilters({
   const filterButtons = useMemo(() => SESSION_FILTERS.map((f) => {
     const count = getFilterCount(f.key);
     const isActive = sessionFilter === f.key;
+    const isDisabled = f.key !== 'all' && count === 0;
     return (
       <button
         key={f.key}
-        onClick={() => onFilterChange(f.key)}
-        className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium whitespace-nowrap transition-all"
+        onClick={() => !isDisabled && onFilterChange(f.key)}
+        disabled={isDisabled}
+        className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium whitespace-nowrap transition-all disabled:opacity-40 disabled:cursor-not-allowed"
         style={{
           backgroundColor: isActive ? 'var(--accent)' : 'var(--surfaceElev)',
           color: isActive ? '#FFFFFF' : 'var(--text)',

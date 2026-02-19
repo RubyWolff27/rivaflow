@@ -1,5 +1,6 @@
 /** Full score breakdown card for session detail page. */
-import { RefreshCw } from 'lucide-react';
+import { useState } from 'react';
+import { RefreshCw, Info } from 'lucide-react';
 import type { SessionScoreBreakdown } from '../../types';
 
 interface Props {
@@ -34,6 +35,8 @@ const PILLAR_LABELS: Record<string, string> = {
 };
 
 export default function SessionScoreCard({ score, breakdown, onRecalculate, recalculating }: Props) {
+  const [showInfo, setShowInfo] = useState(false);
+
   if (score == null || !breakdown) return null;
 
   const color = tierColor(score);
@@ -42,7 +45,17 @@ export default function SessionScoreCard({ score, breakdown, onRecalculate, reca
   return (
     <div className="card">
       <div className="flex items-center justify-between mb-4">
-        <h3 className="font-semibold text-lg">Performance Score</h3>
+        <div className="flex items-center gap-2">
+          <h3 className="font-semibold text-lg">Performance Score</h3>
+          <button
+            onClick={() => setShowInfo(!showInfo)}
+            className="p-0.5 rounded-full hover:opacity-80"
+            style={{ color: 'var(--muted)' }}
+            aria-label="Score explanation"
+          >
+            <Info className="w-4 h-4" />
+          </button>
+        </div>
         {onRecalculate && (
           <button
             onClick={onRecalculate}
@@ -54,6 +67,14 @@ export default function SessionScoreCard({ score, breakdown, onRecalculate, reca
           </button>
         )}
       </div>
+
+      {/* Score info panel */}
+      {showInfo && (
+        <div className="text-xs mb-4 p-3 rounded-lg space-y-1" style={{ backgroundColor: 'var(--surfaceElev)', color: 'var(--muted)' }}>
+          <p><strong style={{ color: 'var(--text)' }}>Tiers:</strong> Peak (85+), Excellent (70–84), Strong (50–69), Solid (30–49), Light (&lt;30)</p>
+          <p><strong style={{ color: 'var(--text)' }}>Pillars:</strong> Effort (duration + intensity), Engagement (rolls + partners), Effectiveness (subs + techniques), Readiness Alignment, Biometric Validation (WHOOP), Consistency (streak bonus)</p>
+        </div>
+      )}
 
       {/* Score gauge + label */}
       <div className="flex items-center gap-5 mb-5">

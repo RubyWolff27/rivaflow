@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { usePageTitle } from '../hooks/usePageTitle';
 import { ArrowLeft, Sparkles } from 'lucide-react';
 import { PrimaryButton } from '../components/ui';
@@ -34,6 +34,7 @@ interface CoachPreferencesData {
 
 export default function CoachSettings() {
   usePageTitle('Coach Settings');
+  const navigate = useNavigate();
   const toast = useToast();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -184,24 +185,20 @@ export default function CoachSettings() {
   return (
     <div className="max-w-2xl mx-auto space-y-6">
       {/* Header */}
-      <div>
-        <div className="flex items-center gap-4 mb-3">
-          <Link to="/grapple" className="flex items-center gap-1 text-sm hover:underline" style={{ color: 'var(--accent)' }}>
-            <ArrowLeft className="w-4 h-4" /> Grapple
-          </Link>
-          <span className="text-xs" style={{ color: 'var(--muted)' }}>|</span>
-          <Link to="/profile" className="flex items-center gap-1 text-sm hover:underline" style={{ color: 'var(--muted)' }}>
-            Profile
-          </Link>
+      <div className="flex items-center gap-3">
+        <button
+          onClick={() => navigate(-1)}
+          style={{ color: 'var(--muted)' }}
+          aria-label="Go back"
+        >
+          <ArrowLeft className="w-6 h-6" />
+        </button>
+        <div className="w-10 h-10 rounded-lg flex items-center justify-center" style={{ backgroundColor: 'var(--accent)' }}>
+          <Sparkles className="w-5 h-5 text-white" />
         </div>
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-lg flex items-center justify-center" style={{ backgroundColor: 'var(--accent)' }}>
-            <Sparkles className="w-5 h-5 text-white" />
-          </div>
-          <div>
-            <h1 className="text-xl font-semibold" style={{ color: 'var(--text)' }}>Coach Settings</h1>
-            <p className="text-sm" style={{ color: 'var(--muted)' }}>Personalise how Grapple coaches you</p>
-          </div>
+        <div>
+          <h1 className="text-xl font-semibold" style={{ color: 'var(--text)' }}>Coach Settings</h1>
+          <p className="text-sm" style={{ color: 'var(--muted)' }}>Personalise how Grapple coaches you</p>
         </div>
       </div>
 

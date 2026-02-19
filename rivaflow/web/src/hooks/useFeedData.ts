@@ -119,7 +119,6 @@ export function useFeedData(daysBack: number, view: 'my' | 'friends') {
 
   const handleDeleteRest = useCallback(async (checkinId: number) => {
     if (!feed) return;
-    if (!window.confirm('Delete this rest day? This cannot be undone.')) return;
 
     setFeed({
       ...feed,

@@ -10,6 +10,7 @@ import type { FeedItem } from '../types';
 import FeedItemComponent from '../components/feed/FeedItem';
 import FeedFilters, { matchesSessionFilter } from '../components/feed/FeedFilters';
 import { useFeedData } from '../hooks/useFeedData';
+import ConfirmDialog from '../components/ConfirmDialog';
 
 export default function Feed() {
   usePageTitle('Feed');
@@ -19,6 +20,7 @@ export default function Feed() {
   const [view, setView] = useState<'my' | 'friends'>('my');
   const [sessionFilter, setSessionFilter] = useState<string>('all');
   const [expandedComments, setExpandedComments] = useState<Set<string>>(new Set());
+  const [restToDelete, setRestToDelete] = useState<number | null>(null);
 
   const currentUserId = user?.id ?? null;
 
@@ -73,6 +75,10 @@ export default function Feed() {
   const isActivityEditable = useCallback((_item: FeedItem) => {
     return view === 'my';
   }, [view]);
+
+  const confirmDeleteRest = useCallback((id: number) => {
+    setRestToDelete(id);
+  }, []);
 
   const filteredItems = useMemo(
     () => {
@@ -170,11 +176,25 @@ export default function Feed() {
               shouldShowSocialActions={shouldShowSocialActions}
               isActivityEditable={isActivityEditable}
               handleVisibilityChange={handleVisibilityChange}
-              handleDeleteRest={handleDeleteRest}
+              handleDeleteRest={confirmDeleteRest}
             />
           ))}
         </div>
       )}
+
+      {/* Delete rest day confirmation */}
+      <ConfirmDialog
+        isOpen={restToDelete !== null}
+        onClose={() => setRestToDelete(null)}
+        onConfirm={() => {
+          if (restToDelete !== null) handleDeleteRest(restToDelete);
+          setRestToDelete(null);
+        }}
+        title="Delete Rest Day"
+        message="Delete this rest day? This cannot be undone."
+        confirmText="Delete"
+        variant="danger"
+      />
 
       {feed && feed.total > 0 && filteredItems.length > 0 && (
         <div className="text-center py-4 space-y-2">

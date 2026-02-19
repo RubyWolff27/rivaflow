@@ -390,6 +390,17 @@ export default function SessionDetail() {
         </div>
       )}
 
+      {/* WHOOP empty state */}
+      {!whoopCtx?.recovery && !session.whoop_strain && !session.whoop_calories && (
+        <div className="card text-center py-6">
+          <Heart className="w-8 h-8 mx-auto mb-2" style={{ color: 'var(--muted)' }} />
+          <p className="text-sm font-medium" style={{ color: 'var(--text)' }}>Connect WHOOP to see HR zones and strain</p>
+          <Link to="/coach-settings" className="text-xs mt-1 inline-block underline" style={{ color: 'var(--accent)' }}>
+            Set up WHOOP integration
+          </Link>
+        </div>
+      )}
+
       {/* WHOOP Recovery Context */}
       {whoopCtx?.recovery && (
         <div className="card">

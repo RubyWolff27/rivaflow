@@ -228,7 +228,9 @@ function PlanWizard({ onGenerate }: { onGenerate: () => void }) {
           Build Your Game
         </h2>
         <p className="text-sm" style={{ color: 'var(--muted)' }}>
-          Create a strategy mind map based on your belt and style
+          Your game plan is a technique mind map — a visual tree of positions,
+          submissions, sweeps, and escapes tailored to your belt level and style.
+          Track proficiency and focus areas as you progress.
         </p>
       </div>
 
@@ -505,6 +507,17 @@ export default function MyGame() {
           </div>
         </div>
       )}
+
+      {/* Proficiency Legend */}
+      <div
+        className="flex flex-wrap items-center gap-4 px-4 py-2.5 rounded-[14px] text-xs"
+        style={{ backgroundColor: 'var(--surfaceElev)', border: '1px solid var(--border)', color: 'var(--muted)' }}
+      >
+        <span className="font-medium" style={{ color: 'var(--text)' }}>Proficiency:</span>
+        <span className="flex items-center gap-1.5"><ConfidenceDots level={1} /> Learning</span>
+        <span className="flex items-center gap-1.5"><ConfidenceDots level={3} /> Comfortable</span>
+        <span className="flex items-center gap-1.5"><ConfidenceDots level={5} /> Mastered</span>
+      </div>
 
       {/* Tree View */}
       <div

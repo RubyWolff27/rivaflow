@@ -13,6 +13,12 @@ import type { Friend } from '../types';
 
 const HH_MM_RE = /^([01]\d|2[0-3]):([0-5]\d)$/;
 
+/** Extract gym name before comma (strips address suffix like ", City, State"). */
+function extractGymName(fullName: string): string {
+  const commaIdx = fullName.indexOf(',');
+  return commaIdx > 0 ? fullName.substring(0, commaIdx).trim() : fullName;
+}
+
 const TIME_OPTIONS = [
   { label: '6:30am', value: '06:30' },
   { label: '12pm', value: '12:00' },
@@ -46,6 +52,10 @@ export default function QuickLog({ isOpen, onClose, onSuccess }: QuickLogProps) 
   // Partner pills
   const [topPartners, setTopPartners] = useState<Friend[]>([]);
   const [selectedPartnerIds, setSelectedPartnerIds] = useState<Set<number>>(new Set());
+
+  // Custom inputs
+  const [customDuration, setCustomDuration] = useState(false);
+  const [customTime, setCustomTime] = useState(false);
 
   // Voice-to-text
   const onTranscript = useCallback((transcript: string) => {
@@ -85,12 +95,12 @@ export default function QuickLog({ isOpen, onClose, onSuccess }: QuickLogProps) 
           setClassType(profileRes.data.primary_training_type);
         }
         if (profileRes.data?.default_gym) {
-          setGym(profileRes.data.default_gym);
+          setGym(extractGymName(profileRes.data.default_gym));
         } else {
           const res = await sessionsApi.list(1);
           if (!cancelled && res.data && res.data.length > 0) {
             const last = res.data[0].gym_name || '';
-            setGym(last);
+            setGym(extractGymName(last));
           }
         }
         if (partnersRes.data) {
@@ -284,19 +294,40 @@ export default function QuickLog({ isOpen, onClose, onSuccess }: QuickLogProps) 
                   {TIME_OPTIONS.map((opt) => (
                     <button
                       key={opt.value}
-                      onClick={() => setClassTime(classTime === opt.value ? '' : opt.value)}
+                      onClick={() => { setClassTime(classTime === opt.value ? '' : opt.value); setCustomTime(false); }}
                       className="flex-1 py-2 rounded-lg font-medium text-xs transition-all"
                       style={{
-                        backgroundColor: classTime === opt.value ? 'var(--accent)' : 'var(--surfaceElev)',
-                        color: classTime === opt.value ? '#FFFFFF' : 'var(--text)',
-                        border: classTime === opt.value ? 'none' : '1px solid var(--border)',
+                        backgroundColor: !customTime && classTime === opt.value ? 'var(--accent)' : 'var(--surfaceElev)',
+                        color: !customTime && classTime === opt.value ? '#FFFFFF' : 'var(--text)',
+                        border: !customTime && classTime === opt.value ? 'none' : '1px solid var(--border)',
                       }}
-                      aria-pressed={classTime === opt.value}
+                      aria-pressed={!customTime && classTime === opt.value}
                     >
                       {opt.label}
                     </button>
                   ))}
+                  <button
+                    onClick={() => setCustomTime(!customTime)}
+                    className="flex-1 py-2 rounded-lg font-medium text-xs transition-all"
+                    style={{
+                      backgroundColor: customTime ? 'var(--accent)' : 'var(--surfaceElev)',
+                      color: customTime ? '#FFFFFF' : 'var(--text)',
+                      border: customTime ? 'none' : '1px solid var(--border)',
+                    }}
+                    aria-pressed={customTime}
+                  >
+                    Other
+                  </button>
                 </div>
+                {customTime && (
+                  <input
+                    type="time"
+                    value={classTime}
+                    onChange={(e) => setClassTime(e.target.value)}
+                    className="input w-full mt-2"
+                    autoFocus
+                  />
+                )}
               </div>
 
               {/* Gym */}
@@ -324,20 +355,44 @@ export default function QuickLog({ isOpen, onClose, onSuccess }: QuickLogProps) 
                   {durationOptions.map((mins) => (
                     <button
                       key={mins}
-                      onClick={() => setDuration(mins)}
+                      onClick={() => { setDuration(mins); setCustomDuration(false); }}
                       className="flex-1 py-3 rounded-lg font-medium text-sm transition-all"
                       style={{
-                        backgroundColor: duration === mins ? 'var(--accent)' : 'var(--surfaceElev)',
-                        color: duration === mins ? '#FFFFFF' : 'var(--text)',
-                        border: duration === mins ? 'none' : '1px solid var(--border)',
+                        backgroundColor: !customDuration && duration === mins ? 'var(--accent)' : 'var(--surfaceElev)',
+                        color: !customDuration && duration === mins ? '#FFFFFF' : 'var(--text)',
+                        border: !customDuration && duration === mins ? 'none' : '1px solid var(--border)',
                       }}
                       aria-label={`${mins} minutes`}
-                      aria-pressed={duration === mins}
+                      aria-pressed={!customDuration && duration === mins}
                     >
                       {mins}m
                     </button>
                   ))}
+                  <button
+                    onClick={() => setCustomDuration(!customDuration)}
+                    className="flex-1 py-3 rounded-lg font-medium text-sm transition-all"
+                    style={{
+                      backgroundColor: customDuration ? 'var(--accent)' : 'var(--surfaceElev)',
+                      color: customDuration ? '#FFFFFF' : 'var(--text)',
+                      border: customDuration ? 'none' : '1px solid var(--border)',
+                    }}
+                    aria-pressed={customDuration}
+                  >
+                    Custom
+                  </button>
                 </div>
+                {customDuration && (
+                  <input
+                    type="number"
+                    value={duration}
+                    onChange={(e) => setDuration(parseInt(e.target.value) || 0)}
+                    className="input w-full mt-2"
+                    placeholder="Minutes"
+                    min="1"
+                    max="600"
+                    autoFocus
+                  />
+                )}
               </div>
 
               {/* Intensity */}
@@ -354,14 +409,33 @@ export default function QuickLog({ isOpen, onClose, onSuccess }: QuickLogProps) 
                   <label className="block text-sm font-medium mb-2" style={{ color: 'var(--text)' }}>
                     Rolls
                   </label>
-                  <input
-                    type="number"
-                    value={quickRolls}
-                    onChange={(e) => setQuickRolls(parseInt(e.target.value) || 0)}
-                    className="input w-full"
-                    placeholder="0"
-                    min="0"
-                  />
+                  <div className="flex items-center gap-3">
+                    <button
+                      type="button"
+                      onClick={() => setQuickRolls(Math.max(0, quickRolls - 1))}
+                      className="w-10 h-10 rounded-lg flex items-center justify-center text-lg font-bold transition-colors"
+                      style={{ backgroundColor: 'var(--surfaceElev)', color: 'var(--text)', border: '1px solid var(--border)' }}
+                      aria-label="Decrease rolls"
+                    >
+                      &minus;
+                    </button>
+                    <input
+                      type="number"
+                      value={quickRolls}
+                      onChange={(e) => setQuickRolls(parseInt(e.target.value) || 0)}
+                      className="input w-20 text-center"
+                      min="0"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setQuickRolls(quickRolls + 1)}
+                      className="w-10 h-10 rounded-lg flex items-center justify-center text-lg font-bold transition-colors"
+                      style={{ backgroundColor: 'var(--surfaceElev)', color: 'var(--text)', border: '1px solid var(--border)' }}
+                      aria-label="Increase rolls"
+                    >
+                      +
+                    </button>
+                  </div>
                 </div>
               )}
 
@@ -504,9 +578,8 @@ export default function QuickLog({ isOpen, onClose, onSuccess }: QuickLogProps) 
 
         {/* Full log link */}
         <p className="text-xs text-center" style={{ color: 'var(--muted)' }}>
-          Need more details?{' '}
           <Link to="/log" className="underline" style={{ color: 'var(--accent)' }}>
-            Use full form
+            Add roll details, techniques &amp; photos &rarr;
           </Link>
         </p>
       </div>
