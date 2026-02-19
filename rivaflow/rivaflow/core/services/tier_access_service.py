@@ -129,7 +129,6 @@ class TierAccessService:
                 (user_id, feature, period_start, datetime.now(), datetime.now()),
             )
 
-            conn.commit()
         finally:
             conn.close()
 

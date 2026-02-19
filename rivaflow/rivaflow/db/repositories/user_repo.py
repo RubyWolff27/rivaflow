@@ -549,7 +549,6 @@ class UserRepository:
             query = f"UPDATE users SET {', '.join(updates)} WHERE id = ?"
             params.append(user_id)
             cursor.execute(convert_query(query), params)
-            conn.commit()
 
     @staticmethod
     def get_user_stats_for_admin(user_id: int) -> dict:

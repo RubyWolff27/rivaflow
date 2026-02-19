@@ -29,10 +29,12 @@ echo "==> PORT: $PORT"
 echo "==> Running database migrations..."
 python rivaflow/db/migrate.py
 
-# Start uvicorn
-echo "==> Starting uvicorn on 0.0.0.0:${PORT}..."
-exec python -m uvicorn rivaflow.api.main:app \
-    --host 0.0.0.0 \
-    --port "${PORT}" \
-    --workers 2 \
-    --log-level info
+# Start gunicorn with uvicorn workers
+echo "==> Starting gunicorn on 0.0.0.0:${PORT}..."
+exec gunicorn rivaflow.api.main:app \
+    -w 2 \
+    -k uvicorn.workers.UvicornWorker \
+    --bind "0.0.0.0:${PORT}" \
+    --log-level info \
+    --timeout 120 \
+    --graceful-timeout 30

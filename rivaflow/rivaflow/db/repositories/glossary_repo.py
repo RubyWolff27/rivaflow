@@ -389,7 +389,6 @@ class GlossaryRepository:
                 convert_query("DELETE FROM movements_glossary WHERE id = ?"),
                 (technique_id,),
             )
-            conn.commit()
             if cursor.rowcount == 0:
                 return None
 
