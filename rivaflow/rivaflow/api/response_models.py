@@ -24,6 +24,9 @@ class AuthUser(BaseModel):
     email: str
     first_name: str | None = None
     last_name: str | None = None
+    is_admin: bool | None = None
+    subscription_tier: str | None = None
+    is_beta_user: bool | None = None
 
 
 class TokenResponse(BaseModel):
@@ -54,6 +57,9 @@ class CurrentUserResponse(BaseModel):
     email: str
     first_name: str | None = None
     last_name: str | None = None
+    is_admin: bool | None = None
+    subscription_tier: str | None = None
+    is_beta_user: bool | None = None
 
 
 class MessageResponse(BaseModel):
