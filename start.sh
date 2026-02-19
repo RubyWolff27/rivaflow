@@ -29,12 +29,21 @@ echo "==> PORT: $PORT"
 echo "==> Running database migrations..."
 python rivaflow/db/migrate.py
 
-# Start gunicorn with uvicorn workers
-echo "==> Starting gunicorn on 0.0.0.0:${PORT}..."
-exec python -m gunicorn rivaflow.api.main:app \
-    -w 2 \
-    -k uvicorn.workers.UvicornWorker \
-    --bind "0.0.0.0:${PORT}" \
-    --log-level info \
-    --timeout 120 \
-    --graceful-timeout 30
+# Start server — use gunicorn if available, fall back to uvicorn
+if python -c "import gunicorn" 2>/dev/null; then
+    echo "==> Starting gunicorn on 0.0.0.0:${PORT}..."
+    exec python -m gunicorn rivaflow.api.main:app \
+        -w 2 \
+        -k uvicorn.workers.UvicornWorker \
+        --bind "0.0.0.0:${PORT}" \
+        --log-level info \
+        --timeout 120 \
+        --graceful-timeout 30
+else
+    echo "==> gunicorn not found, starting uvicorn on 0.0.0.0:${PORT}..."
+    exec python -m uvicorn rivaflow.api.main:app \
+        --host 0.0.0.0 \
+        --port "${PORT}" \
+        --workers 2 \
+        --log-level info
+fi
