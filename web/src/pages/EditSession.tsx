@@ -25,6 +25,7 @@ export default function EditSession() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [success, setSuccess] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -46,12 +47,13 @@ export default function EditSession() {
     const doLoad = async () => {
       setLoading(true);
       try {
-        const [sessionRes, instructorsRes, partnersRes, autocompleteRes, movementsRes, socialFriendsRes] = await Promise.all([
-          sessionsApi.getWithRolls(parseInt(id!)),
-          friendsApi.listInstructors(),
-          friendsApi.listPartners(),
-          sessionsApi.getAutocomplete(),
-          glossaryApi.list(),
+        // Session data is critical; supporting data can fail gracefully
+        const sessionRes = await sessionsApi.getWithRolls(parseInt(id!));
+        const [instructorsRes, partnersRes, autocompleteRes, movementsRes, socialFriendsRes] = await Promise.all([
+          friendsApi.listInstructors().catch(() => ({ data: [] })),
+          friendsApi.listPartners().catch(() => ({ data: [] })),
+          sessionsApi.getAutocomplete().catch(() => ({ data: {} })),
+          glossaryApi.list().catch(() => ({ data: [] })),
           socialApi.getFriends().catch(() => ({ data: { friends: [] } })),
         ]);
         if (controller.signal.aborted) return;
@@ -62,11 +64,19 @@ export default function EditSession() {
         form.setInstructors(loadedInstructors);
         const pData = partnersRes.data as Friend[] | { friends: Friend[] };
         const manualPartners: Friend[] = Array.isArray(pData) ? pData : pData?.friends || [];
-        const socialFriends = mapSocialFriends(socialFriendsRes.data.friends || []);
+        const socialFriends = mapSocialFriends(socialFriendsRes.data?.friends || []);
         form.setPartners(mergePartners(manualPartners, loadedInstructors, socialFriends));
-        form.setAutocomplete(autocompleteRes.data);
+        form.setAutocomplete(autocompleteRes.data || {});
         const mData = movementsRes.data as Movement[] | { movements: Movement[] };
         form.setMovements(Array.isArray(mData) ? mData : mData?.movements || []);
+
+        // Safely convert partners/techniques to comma string (may be array or string)
+        const partnersStr = Array.isArray(sessionData.partners)
+          ? sessionData.partners.join(', ')
+          : (typeof sessionData.partners === 'string' ? sessionData.partners : '');
+        const techniquesStr = Array.isArray(sessionData.techniques)
+          ? sessionData.techniques.join(', ')
+          : (typeof sessionData.techniques === 'string' ? sessionData.techniques : '');
 
         // Populate form
         form.setSessionData({
@@ -83,8 +93,8 @@ export default function EditSession() {
           rolls: sessionData.rolls,
           submissions_for: sessionData.submissions_for,
           submissions_against: sessionData.submissions_against,
-          partners: sessionData.partners?.join(', ') || '',
-          techniques: sessionData.techniques?.join(', ') || '',
+          partners: partnersStr,
+          techniques: techniquesStr,
           notes: sessionData.notes || '',
           whoop_strain: sessionData.whoop_strain?.toString() || '',
           whoop_calories: sessionData.whoop_calories?.toString() || '',
@@ -136,8 +146,8 @@ export default function EditSession() {
       } catch (error) {
         if (!controller.signal.aborted) {
           logger.error('Error loading session:', error);
-          toast.error('Failed to load session. Redirecting to dashboard.');
-          navigate('/');
+          const msg = error instanceof Error ? error.message : 'Unknown error';
+          setLoadError(`Failed to load session: ${msg}`);
         }
       } finally {
         if (!controller.signal.aborted) setLoading(false);
@@ -219,6 +229,22 @@ export default function EditSession() {
       <div className="max-w-2xl mx-auto text-center py-12">
         <Loader className="w-8 h-8 text-[var(--accent)] animate-spin mx-auto mb-4" />
         <p className="text-[var(--muted)]">Loading session...</p>
+      </div>
+    );
+  }
+
+  if (loadError) {
+    return (
+      <div className="max-w-md mx-auto text-center py-12">
+        <p className="text-red-500 mb-4">{loadError}</p>
+        <div className="flex gap-2 justify-center">
+          <button onClick={() => navigate(-1)} className="btn-secondary">
+            Go Back
+          </button>
+          <button onClick={() => window.location.reload()} className="btn-primary">
+            Retry
+          </button>
+        </div>
       </div>
     );
   }
