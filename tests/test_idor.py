@@ -169,13 +169,14 @@ class TestReadinessIDOR:
         response = authenticated_client.get(
             f"/api/v1/readiness/{check_date.isoformat()}"
         )
-        # Should return 404 (not found for user1) or user1's own (empty)
+        # Should return 200 with null/own data, or 403/404
         if response.status_code == 200:
             data = response.json()
-            # If it returns data, it must be user1's, not user2's
-            assert (
-                data.get("user_id", test_user["id"]) == test_user["id"]
-            ), "Returned readiness belongs to wrong user"
+            if data is not None:
+                # If it returns data, it must be user1's, not user2's
+                assert (
+                    data.get("user_id", test_user["id"]) == test_user["id"]
+                ), "Returned readiness belongs to wrong user"
         else:
             assert response.status_code in (403, 404)
 

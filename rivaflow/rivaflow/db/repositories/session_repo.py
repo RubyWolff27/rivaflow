@@ -444,7 +444,7 @@ class SessionRepository:
                 cursor.execute(
                     "SELECT DISTINCT value FROM sessions, "
                     "json_array_elements_text(partners::json) "
-                    "WHERE user_id = $1 AND partners IS NOT NULL "
+                    "WHERE user_id = %s AND partners IS NOT NULL "
                     "ORDER BY value",
                     (user_id,),
                 )

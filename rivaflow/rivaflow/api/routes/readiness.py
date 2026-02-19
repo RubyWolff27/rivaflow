@@ -4,7 +4,6 @@ import logging
 from datetime import date
 
 from fastapi import APIRouter, BackgroundTasks, Depends, Request, status
-from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
 
 from rivaflow.api.rate_limit import limiter
@@ -111,10 +110,7 @@ def get_readiness(
     """Get readiness for a specific date."""
     entry = service.get_readiness(user_id=current_user["id"], check_date=check_date)
     if not entry:
-        # Return 404 without raising exception to avoid error logging for expected behavior
-        return JSONResponse(
-            status_code=404, content={"detail": "Readiness entry not found"}
-        )
+        return None
     return entry
 
 
