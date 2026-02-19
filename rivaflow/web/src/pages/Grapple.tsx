@@ -288,7 +288,7 @@ export default function Grapple() {
 
   const quickActions = [
     { id: 'chat' as ActivePanel, label: 'Chat', icon: MessageCircle },
-    { id: 'extract' as ActivePanel, label: 'Log Session', icon: Zap },
+    { id: 'extract' as ActivePanel, label: 'Voice Log', icon: Zap },
     { id: 'technique-qa' as ActivePanel, label: 'Ask Technique', icon: BookOpen },
     { id: 'insights' as ActivePanel, label: 'Insights', icon: Brain },
   ];
@@ -348,7 +348,8 @@ export default function Grapple() {
         {tierInfo.is_beta && (
           <div className="mt-4 pt-4" style={{ borderTop: '1px solid var(--border)' }}>
             <div className="text-xs" style={{ color: 'var(--muted)' }}>
-              <span className="inline-block px-2 py-1 rounded font-medium" style={{ backgroundColor: 'var(--accent)', color: '#fff' }}>
+              <span className="inline-block px-1.5 py-0.5 rounded text-[10px] font-medium"
+              style={{ backgroundColor: 'var(--surfaceElev)', color: 'var(--muted)', border: '1px solid var(--border)' }}>
                 BETA
               </span>
               <p className="mt-2">

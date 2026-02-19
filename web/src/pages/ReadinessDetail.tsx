@@ -168,7 +168,7 @@ export default function ReadinessDetail() {
         <div className="flex items-center gap-2 mb-4">
           <Camera className="w-5 h-5 text-[var(--muted)]" />
           <h2 className="font-semibold text-lg">Photos</h2>
-          <span className="text-sm text-[var(--muted)]">({photoCount}/3)</span>
+          <span className="text-sm text-[var(--muted)]">({photoCount}/10)</span>
         </div>
 
         <div className="space-y-4">

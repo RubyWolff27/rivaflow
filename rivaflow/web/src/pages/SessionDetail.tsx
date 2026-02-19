@@ -22,6 +22,7 @@ export default function SessionDetail() {
   const [photoCount, setPhotoCount] = useState(0);
   const [whoopCtx, setWhoopCtx] = useState<WhoopSessionContext | null>(null);
   const [recalculating, setRecalculating] = useState(false);
+  const [showAllRolls, setShowAllRolls] = useState(false);
   const toast = useToast();
 
   useEffect(() => {
@@ -296,7 +297,7 @@ export default function SessionDetail() {
             <h2 className="font-semibold text-lg">Roll Details</h2>
           </div>
           <div className="space-y-3">
-            {session.detailed_rolls.map((roll) => (
+            {(showAllRolls ? session.detailed_rolls : session.detailed_rolls.slice(0, 3)).map((roll) => (
               <div
                 key={roll.roll_number ?? roll.id}
                 className="flex items-center gap-4 p-3 rounded-lg"
@@ -324,6 +325,15 @@ export default function SessionDetail() {
                 </div>
               </div>
             ))}
+            {!showAllRolls && session.detailed_rolls.length > 3 && (
+              <button
+                onClick={() => setShowAllRolls(true)}
+                className="w-full text-center text-sm font-medium py-2 rounded-lg transition-colors hover:opacity-80"
+                style={{ color: 'var(--accent)', backgroundColor: 'var(--surfaceElev)' }}
+              >
+                Show all {session.detailed_rolls.length} rolls
+              </button>
+            )}
           </div>
         </div>
       )}
@@ -391,7 +401,7 @@ export default function SessionDetail() {
       )}
 
       {/* WHOOP empty state */}
-      {!whoopCtx?.recovery && !session.whoop_strain && !session.whoop_calories && (
+      {!whoopCtx?.recovery && !session.whoop_strain && !session.whoop_calories && !session.whoop_avg_hr && !session.whoop_max_hr && (
         <div className="card text-center py-6">
           <Heart className="w-8 h-8 mx-auto mb-2" style={{ color: 'var(--muted)' }} />
           <p className="text-sm font-medium" style={{ color: 'var(--text)' }}>Connect WHOOP to see HR zones and strain</p>
@@ -598,7 +608,7 @@ export default function SessionDetail() {
         <div className="flex items-center gap-2 mb-4">
           <Camera className="w-5 h-5 text-[var(--muted)]" />
           <h2 className="font-semibold text-lg">Photos</h2>
-          <span className="text-sm text-[var(--muted)]">({photoCount}/3)</span>
+          <span className="text-sm text-[var(--muted)]">({photoCount}/10)</span>
         </div>
 
         <div className="space-y-4">

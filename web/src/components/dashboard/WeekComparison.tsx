@@ -7,12 +7,13 @@ interface StatCardProps {
   label: string;
   value: string;
   delta: number;
-  format?: (v: number) => string;
+  currentValue?: number;
 }
 
-function StatCard({ label, value, delta }: StatCardProps) {
+function StatCard({ label, value, delta, currentValue }: StatCardProps) {
+  const notStarted = currentValue === 0 && delta < 0;
   const isPositive = delta > 0;
-  const isNeutral = delta === 0;
+  const isNeutral = delta === 0 || notStarted;
 
   const Icon = isNeutral ? Minus : isPositive ? TrendingUp : TrendingDown;
   const color = isNeutral
@@ -36,7 +37,7 @@ function StatCard({ label, value, delta }: StatCardProps) {
         style={{ backgroundColor: `${color}15`, color }}
       >
         <Icon className="w-3 h-3" />
-        {sign}{delta === Math.floor(delta) ? delta : delta.toFixed(1)}
+        {notStarted ? '—' : `${sign}${delta === Math.floor(delta) ? delta : delta.toFixed(1)}`}
       </span>
     </div>
   );
@@ -114,16 +115,19 @@ const WeekComparison = memo(function WeekComparison() {
           label="Sessions"
           value={String(sessions)}
           delta={sessions - prevSessions}
+          currentValue={sessions}
         />
         <StatCard
           label="Hours"
           value={hours.toFixed(1)}
           delta={parseFloat((hours - prevHours).toFixed(1))}
+          currentValue={hours}
         />
         <StatCard
           label="Rolls"
           value={String(rolls)}
           delta={rolls - prevRolls}
+          currentValue={rolls}
         />
       </div>
     </div>

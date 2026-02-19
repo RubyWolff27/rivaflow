@@ -356,7 +356,9 @@ export default function Friends() {
         <EmptyState
           icon={Users}
           title="No friends found"
-          description="Add your first friend to get started!"
+          description={friends.length > 0
+            ? `No ${selectedFilter} found. Try a different filter.`
+            : 'Add your first friend to get started!'}
         />
       )}
 

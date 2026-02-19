@@ -25,7 +25,7 @@ export default function PhotoUpload({
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const toast = useToast();
 
-  const maxPhotos = 3;
+  const maxPhotos = 10;
   const canUpload = currentPhotoCount < maxPhotos;
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {

@@ -187,7 +187,7 @@ describe('Grapple', () => {
     await waitFor(() => {
       expect(screen.getByRole('tab', { name: /chat/i })).toBeInTheDocument()
     })
-    expect(screen.getByRole('tab', { name: /log session/i })).toBeInTheDocument()
+    expect(screen.getByRole('tab', { name: /voice log/i })).toBeInTheDocument()
     expect(screen.getByRole('tab', { name: /ask technique/i })).toBeInTheDocument()
     expect(screen.getByRole('tab', { name: /insights/i })).toBeInTheDocument()
   })
@@ -229,16 +229,16 @@ describe('Grapple', () => {
     expect(screen.getByText('30 messages/hour')).toBeInTheDocument()
   })
 
-  it('switches to extraction panel when Log Session tab is clicked', async () => {
+  it('switches to extraction panel when Voice Log tab is clicked', async () => {
     mockGetInfo.mockResolvedValue({ data: tierInfoEnabled })
     mockGetSessions.mockResolvedValue({ data: { sessions: [] } })
     renderGrapple()
 
     await waitFor(() => {
-      expect(screen.getByRole('tab', { name: /log session/i })).toBeInTheDocument()
+      expect(screen.getByRole('tab', { name: /voice log/i })).toBeInTheDocument()
     })
 
-    fireEvent.click(screen.getByRole('tab', { name: /log session/i }))
+    fireEvent.click(screen.getByRole('tab', { name: /voice log/i }))
 
     await waitFor(() => {
       expect(screen.getByTestId('extraction-panel')).toBeInTheDocument()

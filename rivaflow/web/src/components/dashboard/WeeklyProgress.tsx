@@ -32,15 +32,20 @@ export default function WeeklyProgress({
           </span>
         </div>
         {targetHours > 0 && (
-          <div className="w-full h-1.5 rounded-full" style={{ backgroundColor: 'var(--border)' }}>
-            <div
-              className="h-1.5 rounded-full transition-all"
-              style={{
-                width: `${pct}%`,
-                backgroundColor: isComplete ? 'var(--success)' : 'var(--accent)',
-              }}
-            />
-          </div>
+          <>
+            <div className="w-full h-1.5 rounded-full" style={{ backgroundColor: 'var(--border)' }}>
+              <div
+                className="h-1.5 rounded-full transition-all"
+                style={{
+                  width: `${pct}%`,
+                  backgroundColor: isComplete ? 'var(--success)' : 'var(--accent)',
+                }}
+              />
+            </div>
+            {actualHours === 0 && (
+              <p className="text-[10px] mt-0.5" style={{ color: 'var(--muted)' }}>Start your week!</p>
+            )}
+          </>
         )}
       </div>
 
