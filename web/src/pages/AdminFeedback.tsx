@@ -3,7 +3,7 @@ import { usePageTitle } from '../hooks/usePageTitle';
 import { adminApi } from '../api/client';
 import { logger } from '../utils/logger';
 import { MessageCircle, CheckCircle, Clock, BarChart3, User, Calendar } from 'lucide-react';
-import { Card } from '../components/ui';
+import { Card, EmptyState } from '../components/ui';
 import AdminNav from '../components/AdminNav';
 import { useToast } from '../contexts/ToastContext';
 
@@ -281,17 +281,7 @@ export default function AdminFeedback() {
       {loading ? (
         <div className="text-center py-12">Loading...</div>
       ) : filteredFeedback.length === 0 ? (
-        <Card>
-          <div className="text-center py-12">
-            <MessageCircle className="w-12 h-12 mx-auto mb-4" style={{ color: 'var(--muted)' }} />
-            <h3 className="text-lg font-semibold mb-2" style={{ color: 'var(--text)' }}>
-              No Feedback Found
-            </h3>
-            <p className="text-sm" style={{ color: 'var(--muted)' }}>
-              Try adjusting your filters or wait for users to submit feedback
-            </p>
-          </div>
-        </Card>
+        <EmptyState icon={MessageCircle} title="No Feedback Found" description="Try adjusting your filters or wait for users to submit feedback." />
       ) : (
         <div className="space-y-3">
           {filteredFeedback.map((item) => (

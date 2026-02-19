@@ -5,9 +5,14 @@ import hashlib
 import hmac
 import logging
 
-from fastapi import APIRouter, HTTPException, Request, status
+from fastapi import APIRouter, Request
 
 from rivaflow.core.error_handling import route_error_handler
+from rivaflow.core.exceptions import (
+    AuthenticationError,
+    ExternalServiceError,
+    ValidationError,
+)
 from rivaflow.core.services.whoop_service import WhoopService
 from rivaflow.core.settings import settings
 
@@ -68,26 +73,17 @@ async def whoop_webhook(request: Request):
     secret = settings.WHOOP_CLIENT_SECRET
     if not secret:
         logger.error("WHOOP_CLIENT_SECRET not set — rejecting webhook")
-        raise HTTPException(
-            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail="Webhook verification unavailable",
-        )
+        raise ExternalServiceError(message="Webhook verification unavailable")
     signature = request.headers.get("X-WHOOP-Signature", "")
     timestamp = request.headers.get("X-WHOOP-Signature-Timestamp", "")
     if not signature or not _verify_whoop_signature(body, signature, timestamp):
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid webhook signature",
-        )
+        raise AuthenticationError(message="Invalid webhook signature")
 
     # Parse event
     try:
         payload = await request.json()
     except Exception:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Invalid JSON body",
-        )
+        raise ValidationError(message="Invalid JSON body")
 
     event_type = payload.get("type", "")
     whoop_user_id = str(payload.get("user_id", ""))

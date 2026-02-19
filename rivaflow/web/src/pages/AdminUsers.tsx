@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
 import { usePageTitle } from '../hooks/usePageTitle';
 import { adminApi } from '../api/client';
-import { Search, Shield, ShieldOff, UserX, Eye, CheckCircle, XCircle, Crown } from 'lucide-react';
-import { Card, PrimaryButton, SecondaryButton } from '../components/ui';
+import { Search, Shield, ShieldOff, UserX, Eye, CheckCircle, XCircle, Crown, Users } from 'lucide-react';
+import { Card, PrimaryButton, SecondaryButton, EmptyState } from '../components/ui';
 import AdminNav from '../components/AdminNav';
 import ConfirmDialog from '../components/ConfirmDialog';
 import { useToast } from '../contexts/ToastContext';
@@ -250,11 +250,7 @@ export default function AdminUsers() {
       {loading ? (
         <div className="text-center py-12">Loading...</div>
       ) : users.length === 0 ? (
-        <Card>
-          <div className="text-center py-12">
-            <p style={{ color: 'var(--muted)' }}>No users found</p>
-          </div>
-        </Card>
+        <EmptyState icon={Users} title="No Users Found" description="No users match the current filters." />
       ) : (
         <div className="space-y-3">
           {users.map((user) => (

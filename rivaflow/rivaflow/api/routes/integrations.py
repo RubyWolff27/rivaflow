@@ -3,11 +3,15 @@
 import logging
 from datetime import UTC
 
-from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
+from fastapi import APIRouter, Depends, Query, Request
 from fastapi.responses import RedirectResponse
 from pydantic import BaseModel
 
-from rivaflow.core.dependencies import get_current_user
+from rivaflow.core.dependencies import (
+    get_current_user,
+    get_session_service,
+    get_whoop_service,
+)
 from rivaflow.core.error_handling import route_error_handler
 from rivaflow.core.exceptions import (
     ExternalServiceError,
@@ -57,10 +61,10 @@ class AutoCreateRequest(BaseModel):
 def authorize(
     request: Request,
     current_user: dict = Depends(get_current_user),
+    service: WhoopService = Depends(get_whoop_service),
 ):
     """Return the WHOOP OAuth authorization URL."""
     _require_whoop_enabled()
-    service = WhoopService()
     user_id = current_user["id"]
     url = service.initiate_oauth(user_id)
     return {"authorization_url": url}
@@ -73,6 +77,7 @@ def callback(
     code: str = Query(None),
     state: str = Query(None),
     error: str = Query(None),
+    service: WhoopService = Depends(get_whoop_service),
 ):
     """Process the OAuth callback from WHOOP.
 
@@ -95,8 +100,6 @@ def callback(
         return RedirectResponse(
             f"{frontend_url}/profile?whoop=error&reason=missing_params"
         )
-
-    service = WhoopService()
     try:
         service.handle_callback(code, state)
         return RedirectResponse(f"{frontend_url}/profile?whoop=connected")
@@ -112,10 +115,10 @@ def callback(
 def get_status(
     request: Request,
     current_user: dict = Depends(get_current_user),
+    service: WhoopService = Depends(get_whoop_service),
 ):
     """Return the user's WHOOP connection status."""
     _require_whoop_enabled()
-    service = WhoopService()
     return service.get_connection_status(current_user["id"])
 
 
@@ -125,10 +128,10 @@ def sync_workouts(
     request: Request,
     days: int = Query(7, ge=1, le=90, description="Days to sync (1-90)"),
     current_user: dict = Depends(get_current_user),
+    service: WhoopService = Depends(get_whoop_service),
 ):
     """Trigger a workout sync from WHOOP."""
     _require_whoop_enabled()
-    service = WhoopService()
     try:
         result = service.sync_workouts(current_user["id"], days_back=days)
         return result
@@ -138,10 +141,7 @@ def sync_workouts(
             action="Connect your WHOOP device in Profile settings",
         )
     except ExternalServiceError:
-        raise HTTPException(
-            status_code=status.HTTP_502_BAD_GATEWAY,
-            detail="Failed to sync workouts from WHOOP",
-        )
+        raise ExternalServiceError(message="Failed to sync workouts from WHOOP")
 
 
 @router.get("/whoop/workouts")
@@ -153,6 +153,7 @@ def get_workouts(
     class_time: str | None = Query(None),
     duration_mins: int | None = Query(None),
     current_user: dict = Depends(get_current_user),
+    service: WhoopService = Depends(get_whoop_service),
 ):
     """Get cached WHOOP workouts, optionally matched to a session.
 
@@ -161,7 +162,6 @@ def get_workouts(
     by those parameters (for new/unsaved sessions).
     """
     _require_whoop_enabled()
-    service = WhoopService()
     user_id = current_user["id"]
 
     try:
@@ -192,10 +192,10 @@ def match_workout(
     request: Request,
     body: MatchRequest,
     current_user: dict = Depends(get_current_user),
+    service: WhoopService = Depends(get_whoop_service),
 ):
     """Link a cached WHOOP workout to a session."""
     _require_whoop_enabled()
-    service = WhoopService()
     try:
         updated = service.apply_workout_to_session(
             current_user["id"], body.session_id, body.workout_cache_id
@@ -211,10 +211,10 @@ def sync_recovery(
     request: Request,
     days: int = Query(7, ge=1, le=90, description="Days to sync (1-90)"),
     current_user: dict = Depends(get_current_user),
+    service: WhoopService = Depends(get_whoop_service),
 ):
     """Trigger a recovery/sleep data sync from WHOOP."""
     _require_whoop_enabled()
-    service = WhoopService()
     try:
         result = service.sync_recovery(current_user["id"], days_back=days)
         return result
@@ -224,10 +224,7 @@ def sync_recovery(
             action="Connect your WHOOP device in Profile settings",
         )
     except ExternalServiceError:
-        raise HTTPException(
-            status_code=status.HTTP_502_BAD_GATEWAY,
-            detail="Failed to sync recovery data from WHOOP",
-        )
+        raise ExternalServiceError(message="Failed to sync recovery data from WHOOP")
 
 
 @router.get("/whoop/recovery/latest")
@@ -235,10 +232,10 @@ def sync_recovery(
 def get_latest_recovery(
     request: Request,
     current_user: dict = Depends(get_current_user),
+    service: WhoopService = Depends(get_whoop_service),
 ):
     """Get the latest WHOOP recovery data."""
     _require_whoop_enabled()
-    service = WhoopService()
     try:
         data = service.get_latest_recovery(current_user["id"])
         return data or {"message": "No recovery data available"}
@@ -254,10 +251,10 @@ def get_latest_recovery(
 def scope_check(
     request: Request,
     current_user: dict = Depends(get_current_user),
+    service: WhoopService = Depends(get_whoop_service),
 ):
     """Check if the user's WHOOP scopes need re-authorization."""
     _require_whoop_enabled()
-    service = WhoopService()
     return service.check_scope_compatibility(current_user["id"])
 
 
@@ -267,10 +264,10 @@ def readiness_auto_fill(
     request: Request,
     date: str = Query(None, description="Date in YYYY-MM-DD format"),
     current_user: dict = Depends(get_current_user),
+    service: WhoopService = Depends(get_whoop_service),
 ):
     """Get auto-fill readiness values from WHOOP recovery data."""
     _require_whoop_enabled()
-    service = WhoopService()
     if not date:
         from datetime import date as date_cls
 
@@ -293,10 +290,11 @@ def get_session_context(
     request: Request,
     session_id: int,
     current_user: dict = Depends(get_current_user),
+    service: WhoopService = Depends(get_whoop_service),
+    session_svc: SessionService = Depends(get_session_service),
 ):
     """Get WHOOP recovery context for a specific session."""
     _require_whoop_enabled()
-    service = WhoopService()
     user_id = current_user["id"]
 
     from rivaflow.db.repositories.whoop_recovery_cache_repo import (
@@ -306,7 +304,7 @@ def get_session_context(
         WhoopWorkoutCacheRepository,
     )
 
-    session = SessionService().get_session(user_id, session_id)
+    session = session_svc.get_session(user_id, session_id)
     if not session:
         raise NotFoundError("Session not found")
 
@@ -466,6 +464,7 @@ def get_zones_batch(
     request: Request,
     session_ids: str = Query(..., description="Comma-separated session IDs"),
     current_user: dict = Depends(get_current_user),
+    session_svc: SessionService = Depends(get_session_service),
 ):
     """Get HR zone data for multiple sessions at once."""
     _require_whoop_enabled()
@@ -481,7 +480,7 @@ def get_zones_batch(
     user_id = current_user["id"]
 
     # Batch ownership check (single query instead of N get_by_id calls)
-    owned_ids = SessionService().session_repo.get_owned_ids(user_id, ids)
+    owned_ids = session_svc.session_repo.get_owned_ids(user_id, ids)
 
     # Batch fetch all linked workouts (single query instead of N loops)
     owned_list = [sid for sid in ids if sid in owned_ids]
@@ -523,6 +522,7 @@ def get_zones_weekly(
     week_offset: int = Query(0, ge=-52, le=0, description="Weeks back (0=current)"),
     tz: str | None = Query(None, description="IANA timezone"),
     current_user: dict = Depends(get_current_user),
+    session_svc: SessionService = Depends(get_session_service),
 ):
     """Get aggregated HR zone totals for a week."""
     _require_whoop_enabled()
@@ -539,9 +539,7 @@ def get_zones_weekly(
     week_start = today - timedelta(days=today.weekday()) + timedelta(weeks=week_offset)
     week_end = week_start + timedelta(days=6)
 
-    sessions = SessionService().get_sessions_by_date_range(
-        user_id, week_start, week_end
-    )
+    sessions = session_svc.get_sessions_by_date_range(user_id, week_start, week_end)
 
     zone_keys = [
         "zone_one_milli",
@@ -581,10 +579,10 @@ def get_zones_weekly(
 def set_auto_create(
     body: AutoCreateRequest,
     current_user: dict = Depends(get_current_user),
+    service: WhoopService = Depends(get_whoop_service),
 ):
     """Toggle auto-creation of sessions from WHOOP BJJ workouts."""
     _require_whoop_enabled()
-    service = WhoopService()
     return service.set_auto_create_sessions(current_user["id"], body.enabled)
 
 
@@ -593,10 +591,10 @@ def set_auto_create(
 def set_auto_fill_readiness(
     body: AutoCreateRequest,
     current_user: dict = Depends(get_current_user),
+    service: WhoopService = Depends(get_whoop_service),
 ):
     """Toggle auto-fill readiness from WHOOP recovery data."""
     _require_whoop_enabled()
-    service = WhoopService()
     return service.set_auto_fill_readiness(current_user["id"], body.enabled)
 
 
@@ -605,9 +603,9 @@ def set_auto_fill_readiness(
 def disconnect(
     request: Request,
     current_user: dict = Depends(get_current_user),
+    service: WhoopService = Depends(get_whoop_service),
 ):
     """Disconnect WHOOP and clear all synced data."""
     _require_whoop_enabled()
-    service = WhoopService()
     service.disconnect(current_user["id"])
     return {"disconnected": True}

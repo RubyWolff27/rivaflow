@@ -5,6 +5,8 @@ from unittest.mock import MagicMock
 
 import pytest
 
+from rivaflow.core.dependencies import get_whoop_service
+
 
 @pytest.fixture(autouse=True)
 def enable_whoop(monkeypatch):
@@ -16,14 +18,12 @@ def enable_whoop(monkeypatch):
 
 
 @pytest.fixture()
-def mock_whoop_service(monkeypatch):
-    """Patch WhoopService so each endpoint gets the same mock instance."""
+def mock_whoop_service(client):
+    """Override get_whoop_service DI so endpoints use a mock instance."""
     svc = MagicMock()
-    monkeypatch.setattr(
-        "rivaflow.api.routes.integrations.WhoopService",
-        lambda: svc,
-    )
-    return svc
+    client.app.dependency_overrides[get_whoop_service] = lambda: svc
+    yield svc
+    client.app.dependency_overrides.pop(get_whoop_service, None)
 
 
 # ============================================================================

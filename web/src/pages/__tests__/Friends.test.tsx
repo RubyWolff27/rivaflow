@@ -1,6 +1,7 @@
 import { render, screen, waitFor, fireEvent } from "@testing-library/react";
 import { BrowserRouter } from "react-router-dom";
 import { describe, it, expect, vi, beforeEach } from "vitest";
+import { createMockToast, createMockLogger, createMockPageTitle } from "../../__tests__/test-utils";
 
 const mockNavigate = vi.fn();
 
@@ -60,27 +61,9 @@ vi.mock("../../api/client", () => ({
   },
 }));
 
-vi.mock("../../contexts/ToastContext", () => ({
-  useToast: () => ({
-    showToast: vi.fn(),
-    success: vi.fn(),
-    error: vi.fn(),
-    warning: vi.fn(),
-  }),
-}));
-
-vi.mock("../../utils/logger", () => ({
-  logger: {
-    log: vi.fn(),
-    warn: vi.fn(),
-    error: vi.fn(),
-    info: vi.fn(),
-  },
-}));
-
-vi.mock("../../hooks/usePageTitle", () => ({
-  usePageTitle: vi.fn(),
-}));
+vi.mock("../../contexts/ToastContext", () => createMockToast());
+vi.mock("../../utils/logger", () => createMockLogger());
+vi.mock("../../hooks/usePageTitle", () => createMockPageTitle());
 
 vi.mock("../../components/ConfirmDialog", () => ({
   default: () => <div data-testid="confirm-dialog" />,

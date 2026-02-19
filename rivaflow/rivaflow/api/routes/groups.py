@@ -10,7 +10,7 @@ from fastapi import (
 from pydantic import BaseModel
 
 from rivaflow.api.rate_limit import limiter
-from rivaflow.core.dependencies import get_current_user
+from rivaflow.core.dependencies import get_current_user, get_groups_service
 from rivaflow.core.error_handling import route_error_handler
 from rivaflow.core.exceptions import (
     AuthorizationError,
@@ -58,9 +58,9 @@ def create_group(
     request: Request,
     group: GroupCreate,
     current_user: dict = Depends(get_current_user),
+    repo: GroupsService = Depends(get_groups_service),
 ):
     """Create a new group."""
-    repo = GroupsService()
     group_id = repo.create(
         user_id=current_user["id"],
         data=group.model_dump(),
@@ -75,9 +75,9 @@ def create_group(
 def list_groups(
     request: Request,
     current_user: dict = Depends(get_current_user),
+    repo: GroupsService = Depends(get_groups_service),
 ):
     """List groups the current user belongs to."""
-    repo = GroupsService()
     groups = repo.list_by_user(user_id=current_user["id"])
     # Add member count to each group
     for g in groups:
@@ -91,9 +91,9 @@ def list_groups(
 def discover_groups(
     request: Request,
     current_user: dict = Depends(get_current_user),
+    repo: GroupsService = Depends(get_groups_service),
 ):
     """List open groups user can join."""
-    repo = GroupsService()
     groups = repo.list_discoverable(user_id=current_user["id"])
     return {"groups": groups, "count": len(groups)}
 
@@ -105,9 +105,9 @@ def get_group(
     request: Request,
     group_id: int,
     current_user: dict = Depends(get_current_user),
+    repo: GroupsService = Depends(get_groups_service),
 ):
     """Get group detail with members."""
-    repo = GroupsService()
     group = repo.get_by_id(group_id)
     if not group:
         raise NotFoundError("Group not found")
@@ -131,9 +131,9 @@ def update_group(
     group_id: int,
     group: GroupUpdate,
     current_user: dict = Depends(get_current_user),
+    repo: GroupsService = Depends(get_groups_service),
 ):
     """Update a group. Admin only."""
-    repo = GroupsService()
     updated = repo.update(
         group_id=group_id,
         user_id=current_user["id"],
@@ -151,9 +151,9 @@ def delete_group(
     request: Request,
     group_id: int,
     current_user: dict = Depends(get_current_user),
+    repo: GroupsService = Depends(get_groups_service),
 ):
     """Delete a group. Admin only."""
-    repo = GroupsService()
     deleted = repo.delete(group_id=group_id, user_id=current_user["id"])
     if not deleted:
         raise AuthorizationError("Only group admins can delete the group")
@@ -168,9 +168,9 @@ def add_member(
     group_id: int,
     member: MemberAdd,
     current_user: dict = Depends(get_current_user),
+    repo: GroupsService = Depends(get_groups_service),
 ):
     """Add a member to a group (invite). Must be admin."""
-    repo = GroupsService()
     role = repo.get_member_role(group_id, current_user["id"])
     if role != "admin":
         raise AuthorizationError("Only group admins can add members")
@@ -197,9 +197,9 @@ def remove_member(
     group_id: int,
     user_id: int,
     current_user: dict = Depends(get_current_user),
+    repo: GroupsService = Depends(get_groups_service),
 ):
     """Remove a member from a group. Must be admin or self."""
-    repo = GroupsService()
     caller_role = repo.get_member_role(group_id, current_user["id"])
     if caller_role != "admin" and current_user["id"] != user_id:
         raise AuthorizationError("Only admins can remove other members")
@@ -217,9 +217,9 @@ def join_group(
     request: Request,
     group_id: int,
     current_user: dict = Depends(get_current_user),
+    repo: GroupsService = Depends(get_groups_service),
 ):
     """Join an open group."""
-    repo = GroupsService()
     group = repo.get_by_id(group_id)
     if not group:
         raise NotFoundError("Group not found")
@@ -240,9 +240,9 @@ def leave_group(
     request: Request,
     group_id: int,
     current_user: dict = Depends(get_current_user),
+    repo: GroupsService = Depends(get_groups_service),
 ):
     """Leave a group."""
-    repo = GroupsService()
     removed = repo.remove_member(group_id=group_id, user_id=current_user["id"])
     if not removed:
         raise NotFoundError("You are not a member of this group")

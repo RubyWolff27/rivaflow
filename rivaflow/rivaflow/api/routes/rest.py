@@ -6,7 +6,11 @@ from fastapi import APIRouter, Depends, Query, Request, status
 from pydantic import BaseModel
 
 from rivaflow.api.rate_limit import limiter
-from rivaflow.core.dependencies import get_current_user
+from rivaflow.core.dependencies import (
+    get_checkin_service,
+    get_current_user,
+    get_streak_service,
+)
 from rivaflow.core.error_handling import route_error_handler
 from rivaflow.core.exceptions import NotFoundError, ValidationError
 from rivaflow.core.services.checkin_service import CheckinService
@@ -22,13 +26,12 @@ def get_recent_rest_days(
     request: Request,
     days: int = Query(30, ge=1, le=365),
     current_user: dict = Depends(get_current_user),
+    checkin_svc: CheckinService = Depends(get_checkin_service),
 ):
     """Get recent rest day check-ins."""
     end_date = date.today()
     start_date = end_date - timedelta(days=days)
-    checkins = CheckinService().get_checkins_range(
-        current_user["id"], start_date, end_date
-    )
+    checkins = checkin_svc.get_checkins_range(current_user["id"], start_date, end_date)
     rest_days = [c for c in checkins if c["checkin_type"] == "rest"]
     return [
         {
@@ -59,9 +62,10 @@ def log_rest_day(
     request: Request,
     data: RestDayCreate,
     current_user: dict = Depends(get_current_user),
+    repo: CheckinService = Depends(get_checkin_service),
+    streak_svc: StreakService = Depends(get_streak_service),
 ):
     """Log a rest day."""
-    repo = CheckinService()
     check_date = (
         date.fromisoformat(data.check_date) if data.check_date else date.today()
     )
@@ -76,7 +80,7 @@ def log_rest_day(
     )
 
     # Update check-in streak (rest days count toward consistency)
-    StreakService().record_checkin(
+    streak_svc.record_checkin(
         current_user["id"], checkin_type="rest", checkin_date=check_date
     )
 
@@ -95,6 +99,7 @@ def get_rest_by_date(
     request: Request,
     rest_date: str,
     current_user: dict = Depends(get_current_user),
+    checkin_svc: CheckinService = Depends(get_checkin_service),
 ):
     """Get a rest day check-in by date."""
     try:
@@ -102,7 +107,7 @@ def get_rest_by_date(
     except ValueError:
         raise ValidationError("Invalid date format")
 
-    checkin = CheckinService().get_checkin(
+    checkin = checkin_svc.get_checkin(
         current_user["id"], check_date, checkin_slot="morning"
     )
     if not checkin or checkin["checkin_type"] != "rest":
@@ -125,9 +130,9 @@ def delete_rest_day(
     request: Request,
     checkin_id: int,
     current_user: dict = Depends(get_current_user),
+    repo: CheckinService = Depends(get_checkin_service),
 ):
     """Delete a rest day check-in."""
-    repo = CheckinService()
     # Verify it exists and is a rest-type checkin
     checkin = repo.get_checkin_by_id(current_user["id"], checkin_id)
     if not checkin:

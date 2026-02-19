@@ -60,12 +60,12 @@ def validate_environment():
                 f"Expected postgresql:// or sqlite:/// but got: {database_url[:20]}..."
             )
 
-    # Check ALLOWED_ORIGINS for CORS (recommended for production)
+    # Check ALLOWED_ORIGINS for CORS (required for production)
     allowed_origins = os.getenv("ALLOWED_ORIGINS")
     if env == "production" and not allowed_origins:
-        logger.warning(
-            "ALLOWED_ORIGINS not set. Using default localhost origins. "
-            "Set ALLOWED_ORIGINS=https://yourdomain.com for production."
+        errors.append(
+            "ALLOWED_ORIGINS environment variable is required in production. "
+            "Set ALLOWED_ORIGINS=https://yourdomain.com (comma-separated for multiple)."
         )
 
     # Validate optional but recommended settings

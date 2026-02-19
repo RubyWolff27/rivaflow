@@ -6,7 +6,10 @@ from fastapi import APIRouter, Body, Depends, Path, Query, Request
 from pydantic import BaseModel, Field
 
 from rivaflow.api.rate_limit import limiter
-from rivaflow.core.dependencies import get_admin_user
+from rivaflow.core.dependencies import (
+    get_admin_user,
+    get_feedback_service,
+)
 from rivaflow.core.error_handling import route_error_handler
 from rivaflow.core.exceptions import NotFoundError, ValidationError
 from rivaflow.core.services.audit_service import AuditService
@@ -298,6 +301,7 @@ def get_all_feedback(
     limit: int = Query(100, ge=1, le=500),
     offset: int = Query(0, ge=0),
     current_user: dict = Depends(get_admin_user),
+    service: FeedbackService = Depends(get_feedback_service),
 ):
     """
     Get all feedback submissions (admin endpoint).
@@ -309,7 +313,6 @@ def get_all_feedback(
     Returns:
         List of all feedback submissions with statistics
     """
-    service = FeedbackService()
     feedback_list = service.list_all(
         status=status,
         category=category,
@@ -333,6 +336,7 @@ def update_feedback_status(
     feedback_id: int = Path(..., gt=0),
     request: FeedbackUpdateStatusRequest = Body(...),
     current_user: dict = Depends(get_admin_user),
+    service: FeedbackService = Depends(get_feedback_service),
 ):
     """
     Update the status of a feedback submission (admin endpoint).
@@ -346,7 +350,6 @@ def update_feedback_status(
     Returns:
         Updated feedback submission
     """
-    service = FeedbackService()
 
     # Check if feedback exists
     feedback = service.get_by_id(feedback_id)
@@ -371,14 +374,16 @@ def update_feedback_status(
 
 @router.get("/feedback/stats")
 @route_error_handler("get_feedback_stats", detail="Failed to get feedback stats")
-def get_feedback_stats(current_user: dict = Depends(get_admin_user)):
+def get_feedback_stats(
+    current_user: dict = Depends(get_admin_user),
+    service: FeedbackService = Depends(get_feedback_service),
+):
     """
     Get feedback statistics (admin endpoint).
 
     Returns:
         Statistics about feedback submissions
     """
-    service = FeedbackService()
     stats = service.get_stats()
 
     return stats

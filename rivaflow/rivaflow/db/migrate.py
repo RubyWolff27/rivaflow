@@ -104,16 +104,6 @@ def _ensure_critical_columns(conn):
     cursor.close()
 
 
-def get_migration_files():
-    """Get all PostgreSQL migration files in order."""
-    migrations_dir = Path(__file__).parent / "migrations"
-
-    # Get all _pg.sql files (PostgreSQL versions)
-    pg_migrations = sorted(migrations_dir.glob("*_pg.sql"))
-
-    return pg_migrations
-
-
 def create_migrations_table(conn):
     """Create migrations tracking table if it doesn't exist."""
     cursor = conn.cursor()

@@ -4,7 +4,10 @@ from fastapi import APIRouter, Depends, Request
 from pydantic import BaseModel
 
 from rivaflow.api.rate_limit import limiter
-from rivaflow.core.dependencies import get_current_user
+from rivaflow.core.dependencies import (
+    get_coach_preferences_service,
+    get_current_user,
+)
 from rivaflow.core.error_handling import route_error_handler
 from rivaflow.core.services.coach_preferences_service import (
     CoachPreferencesService,
@@ -96,9 +99,13 @@ DEFAULTS = {
 @router.get("/")
 @limiter.limit("60/minute")
 @route_error_handler("get_preferences", detail="Failed to get coach preferences")
-def get_preferences(request: Request, current_user: dict = Depends(get_current_user)):
+def get_preferences(
+    request: Request,
+    current_user: dict = Depends(get_current_user),
+    service: CoachPreferencesService = Depends(get_coach_preferences_service),
+):
     """Get coach preferences for the current user."""
-    prefs = CoachPreferencesService().get(current_user["id"])
+    prefs = service.get(current_user["id"])
     if not prefs:
         return {"data": {**DEFAULTS}}
     # Strip internal fields
@@ -116,6 +123,7 @@ def update_preferences(
     body: CoachPreferencesUpdate,
     request: Request,
     current_user: dict = Depends(get_current_user),
+    service: CoachPreferencesService = Depends(get_coach_preferences_service),
 ):
     """Create or update coach preferences."""
     fields = body.model_dump(exclude_none=True)
@@ -171,7 +179,7 @@ def update_preferences(
             for inj in fields["injuries"]
         ]
 
-    result = CoachPreferencesService().upsert(current_user["id"], **fields)
+    result = service.upsert(current_user["id"], **fields)
     if result:
         result.pop("id", None)
         result.pop("user_id", None)

@@ -3,7 +3,10 @@
 from fastapi import APIRouter, Depends, Request
 
 from rivaflow.api.rate_limit import limiter
-from rivaflow.core.dependencies import get_current_user
+from rivaflow.core.dependencies import (
+    get_current_user,
+    get_milestone_service,
+)
 from rivaflow.core.error_handling import route_error_handler
 from rivaflow.core.services.milestone_service import MilestoneService
 
@@ -14,10 +17,11 @@ router = APIRouter(prefix="/milestones", tags=["milestones"])
 @limiter.limit("120/minute")
 @route_error_handler("get_achieved_milestones", detail="Failed to get milestones")
 def get_achieved_milestones(
-    request: Request, current_user: dict = Depends(get_current_user)
+    request: Request,
+    current_user: dict = Depends(get_current_user),
+    service: MilestoneService = Depends(get_milestone_service),
 ):
     """Get all achieved milestones."""
-    service = MilestoneService()
     achieved = service.get_all_achieved(user_id=current_user["id"])
 
     return {"milestones": achieved, "count": len(achieved)}
@@ -29,10 +33,11 @@ def get_achieved_milestones(
     "get_milestone_progress", detail="Failed to get milestone progress"
 )
 def get_milestone_progress(
-    request: Request, current_user: dict = Depends(get_current_user)
+    request: Request,
+    current_user: dict = Depends(get_current_user),
+    service: MilestoneService = Depends(get_milestone_service),
 ):
     """Get progress toward next milestones."""
-    service = MilestoneService()
     progress = service.get_progress_to_next(user_id=current_user["id"])
 
     return {"progress": progress}
@@ -42,10 +47,11 @@ def get_milestone_progress(
 @limiter.limit("120/minute")
 @route_error_handler("get_closest_milestone", detail="Failed to get closest milestone")
 def get_closest_milestone(
-    request: Request, current_user: dict = Depends(get_current_user)
+    request: Request,
+    current_user: dict = Depends(get_current_user),
+    service: MilestoneService = Depends(get_milestone_service),
 ):
     """Get the closest upcoming milestone."""
-    service = MilestoneService()
     closest = service.get_closest_milestone(user_id=current_user["id"])
 
     if not closest:
@@ -58,10 +64,11 @@ def get_closest_milestone(
 @limiter.limit("120/minute")
 @route_error_handler("get_current_totals", detail="Failed to get current totals")
 def get_current_totals(
-    request: Request, current_user: dict = Depends(get_current_user)
+    request: Request,
+    current_user: dict = Depends(get_current_user),
+    service: MilestoneService = Depends(get_milestone_service),
 ):
     """Get current totals for all milestone types."""
-    service = MilestoneService()
     totals = service.get_current_totals(user_id=current_user["id"])
 
     return totals

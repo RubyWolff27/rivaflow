@@ -6,7 +6,11 @@ from fastapi import APIRouter, Depends, Path, Query, Request, status
 from pydantic import BaseModel, Field
 
 from rivaflow.api.rate_limit import limiter
-from rivaflow.core.dependencies import get_current_user
+from rivaflow.core.dependencies import (
+    get_current_user,
+    get_email_service,
+    get_feedback_service,
+)
 from rivaflow.core.error_handling import route_error_handler
 from rivaflow.core.exceptions import NotFoundError, ValidationError
 from rivaflow.core.services.email_service import EmailService
@@ -42,6 +46,8 @@ def submit_feedback(
     request: Request,
     feedback: FeedbackCreate,
     current_user: dict = Depends(get_current_user),
+    repo: FeedbackService = Depends(get_feedback_service),
+    email_service: EmailService = Depends(get_email_service),
 ):
     """
     Submit feedback about the app.
@@ -56,8 +62,6 @@ def submit_feedback(
     Returns:
         Created feedback submission
     """
-    repo = FeedbackService()
-
     try:
         feedback_id = repo.create(
             user_id=current_user["id"],
@@ -73,7 +77,6 @@ def submit_feedback(
 
         # Send email notification to admins (async, don't block on failure)
         try:
-            email_service = EmailService()
             user_name = (
                 f"{current_user.get('first_name', '')} {current_user.get('last_name', '')}".strip()
                 or "Unknown User"
@@ -104,6 +107,7 @@ def get_my_feedback(
     request: Request,
     limit: int = Query(50, ge=1, le=100),
     current_user: dict = Depends(get_current_user),
+    repo: FeedbackService = Depends(get_feedback_service),
 ):
     """
     Get all feedback submissions from the current user.
@@ -111,7 +115,6 @@ def get_my_feedback(
     Returns:
         List of user's feedback submissions
     """
-    repo = FeedbackService()
     feedback_list = repo.list_by_user(current_user["id"], limit=limit)
 
     return {
@@ -127,6 +130,7 @@ def get_feedback(
     request: Request,
     feedback_id: int = Path(..., gt=0),
     current_user: dict = Depends(get_current_user),
+    repo: FeedbackService = Depends(get_feedback_service),
 ):
     """
     Get a specific feedback submission.
@@ -136,7 +140,6 @@ def get_feedback(
     Returns:
         Feedback submission
     """
-    repo = FeedbackService()
     feedback = repo.get_by_id(feedback_id)
 
     if not feedback:

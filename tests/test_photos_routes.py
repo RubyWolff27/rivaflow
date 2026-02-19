@@ -109,7 +109,10 @@ class TestUploadPhoto:
             files={"file": ("test.bmp", b"fake", "image/bmp")},
         )
         assert resp.status_code == 400
-        assert "Invalid file type" in resp.json()["detail"]
+        body = resp.json()
+        err = body.get("error", body)
+        msg = err.get("message") or body.get("detail", "")
+        assert "Invalid file type" in msg
 
     def test_upload_valid_png(
         self,
@@ -157,7 +160,10 @@ class TestUploadPhoto:
             },
         )
         assert resp.status_code == 400
-        assert "too large" in resp.json()["detail"].lower()
+        body = resp.json()
+        err = body.get("error", body)
+        msg = err.get("message") or body.get("detail", "")
+        assert "too large" in msg.lower()
 
 
 class TestGetActivityPhotos:

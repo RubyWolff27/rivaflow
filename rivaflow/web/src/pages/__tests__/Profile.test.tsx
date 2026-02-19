@@ -69,6 +69,9 @@ vi.mock('../../components/ConfirmDialog', () => ({
 
 vi.mock('../../components/ui', () => ({
   CardSkeleton: () => <div data-testid="card-skeleton" />,
+  EmptyState: ({ title, description }: { title: string; description: string; icon?: unknown }) => (
+    <div data-testid="empty-state"><p>{title}</p><p>{description}</p></div>
+  ),
 }))
 
 import Profile from '../Profile'

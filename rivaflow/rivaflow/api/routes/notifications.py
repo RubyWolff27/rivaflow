@@ -5,7 +5,6 @@ import logging
 from fastapi import (
     APIRouter,
     Depends,
-    HTTPException,
     Path,
     Query,
     Request,
@@ -16,6 +15,7 @@ from fastapi import (
 from rivaflow.api.rate_limit import limiter
 from rivaflow.core.dependencies import get_current_user
 from rivaflow.core.error_handling import route_error_handler
+from rivaflow.core.exceptions import AuthenticationError, RivaFlowException
 from rivaflow.core.services.notification_service import NotificationService
 
 logger = logging.getLogger(__name__)
@@ -117,17 +117,14 @@ def mark_feed_notifications_as_read(
         user_id = current_user.get("id")
         if not user_id:
             logger.error("No user_id in current_user dict")
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Authentication required",
-            )
+            raise AuthenticationError(message="Authentication required")
 
         count = NotificationService.mark_feed_as_read(user_id)
         logger.info(
             f"Successfully marked {count} feed notifications as read for user {user_id}"
         )
         return {"count": count}
-    except HTTPException:
+    except RivaFlowException:
         raise
     except Exception as e:
         # Gracefully handle if notifications table doesn't exist yet
@@ -155,17 +152,14 @@ def mark_follow_notifications_as_read(
         user_id = current_user.get("id")
         if not user_id:
             logger.error("No user_id in current_user dict")
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Authentication required",
-            )
+            raise AuthenticationError(message="Authentication required")
 
         count = NotificationService.mark_follows_as_read(user_id)
         logger.info(
             f"Successfully marked {count} follow notifications as read for user {user_id}"
         )
         return {"count": count}
-    except HTTPException:
+    except RivaFlowException:
         raise
     except Exception as e:
         # Gracefully handle if notifications table doesn't exist yet

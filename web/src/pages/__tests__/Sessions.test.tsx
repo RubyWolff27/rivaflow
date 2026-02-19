@@ -183,11 +183,11 @@ describe('Sessions', () => {
       expect(screen.getAllByText('Gracie Barra').length).toBe(2)
     })
 
-    // class_type text should appear - gi appears in badges and filter dropdown
-    const giBadges = screen.getAllByText('gi')
+    // class_type text should appear formatted - "gi" displays as "Gi"
+    const giBadges = screen.getAllByText('Gi')
     expect(giBadges.length).toBeGreaterThanOrEqual(2) // 2 gi sessions + option
-    // no-gi appears in badge and also in the filter dropdown option
-    const noGiElements = screen.getAllByText('no-gi')
+    // "no-gi" displays as "No-Gi" in badge and filter dropdown
+    const noGiElements = screen.getAllByText('No-Gi')
     expect(noGiElements.length).toBeGreaterThanOrEqual(1)
   })
 

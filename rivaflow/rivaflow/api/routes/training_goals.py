@@ -3,10 +3,10 @@
 import logging
 from datetime import date
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends
 from pydantic import BaseModel
 
-from rivaflow.core.dependencies import get_current_user
+from rivaflow.core.dependencies import get_current_user, get_training_goals_service
 from rivaflow.core.error_handling import route_error_handler
 from rivaflow.core.exceptions import NotFoundError, ValidationError
 from rivaflow.core.services.training_goals_service import TrainingGoalsService
@@ -39,9 +39,9 @@ class UpdateTrainingGoal(BaseModel):
 def create_goal(
     body: CreateTrainingGoal,
     current_user: dict = Depends(get_current_user),
+    service: TrainingGoalsService = Depends(get_training_goals_service),
 ):
     """Create a new monthly training goal."""
-    service = TrainingGoalsService()
     try:
         return service.create_goal(
             user_id=current_user["id"],
@@ -52,8 +52,8 @@ def create_goal(
             movement_id=body.movement_id,
             class_type_filter=body.class_type_filter,
         )
-    except ValidationError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+    except ValidationError:
+        raise
 
 
 @router.get("/")
@@ -61,15 +61,15 @@ def create_goal(
 def list_goals(
     month: str | None = None,
     current_user: dict = Depends(get_current_user),
+    service: TrainingGoalsService = Depends(get_training_goals_service),
 ):
     """List training goals for a month with progress. Defaults to current month."""
-    service = TrainingGoalsService()
     if not month:
         month = date.today().strftime("%Y-%m")
     try:
         return service.get_goals_with_progress(user_id=current_user["id"], month=month)
-    except ValidationError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+    except ValidationError:
+        raise
 
 
 @router.get("/{goal_id}")
@@ -77,9 +77,9 @@ def list_goals(
 def get_goal(
     goal_id: int,
     current_user: dict = Depends(get_current_user),
+    service: TrainingGoalsService = Depends(get_training_goals_service),
 ):
     """Get a single training goal with progress."""
-    service = TrainingGoalsService()
     try:
         return service.get_goal_with_progress(
             user_id=current_user["id"], goal_id=goal_id
@@ -94,9 +94,9 @@ def update_goal(
     goal_id: int,
     body: UpdateTrainingGoal,
     current_user: dict = Depends(get_current_user),
+    service: TrainingGoalsService = Depends(get_training_goals_service),
 ):
     """Update a training goal's target_value or is_active."""
-    service = TrainingGoalsService()
     try:
         return service.update_goal(
             user_id=current_user["id"],
@@ -106,8 +106,8 @@ def update_goal(
         )
     except NotFoundError:
         raise NotFoundError("Goal not found")
-    except ValidationError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+    except ValidationError:
+        raise
 
 
 @router.delete("/{goal_id}")
@@ -115,9 +115,9 @@ def update_goal(
 def delete_goal(
     goal_id: int,
     current_user: dict = Depends(get_current_user),
+    service: TrainingGoalsService = Depends(get_training_goals_service),
 ):
     """Delete a training goal."""
-    service = TrainingGoalsService()
     try:
         service.delete_goal(user_id=current_user["id"], goal_id=goal_id)
         return {"message": "Goal deleted"}

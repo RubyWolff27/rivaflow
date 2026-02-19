@@ -137,7 +137,7 @@ describe("SessionDetail", () => {
   it("shows session date and class type", async () => {
     renderSessionDetail();
     await waitFor(() => {
-      expect(screen.getByText("gi")).toBeInTheDocument();
+      expect(screen.getByText("Gi")).toBeInTheDocument();
     });
     // Date is formatted as "Sunday, February 15, 2026"
     expect(

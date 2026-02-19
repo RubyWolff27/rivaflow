@@ -7,7 +7,11 @@ from fastapi import APIRouter, Depends, Request
 from pydantic import BaseModel, Field
 
 from rivaflow.api.rate_limit import limiter
-from rivaflow.core.dependencies import get_current_user
+from rivaflow.core.dependencies import (
+    get_checkin_service,
+    get_current_user,
+    get_streak_service,
+)
 from rivaflow.core.error_handling import route_error_handler
 from rivaflow.core.exceptions import NotFoundError
 from rivaflow.core.services.checkin_service import CheckinService
@@ -44,9 +48,12 @@ class EveningCheckinCreate(BaseModel):
 @router.get("/today")
 @limiter.limit("60/minute")
 @route_error_handler("get_today_checkin", detail="Failed to get today's check-in")
-def get_today_checkin(request: Request, current_user: dict = Depends(get_current_user)):
+def get_today_checkin(
+    request: Request,
+    current_user: dict = Depends(get_current_user),
+    svc: CheckinService = Depends(get_checkin_service),
+):
     """Get today's check-in status (all slots), using user's timezone."""
-    svc = CheckinService()
     today = svc.get_today(current_user["id"])
     slots = svc.get_day_checkins(user_id=current_user["id"], check_date=today)
     checked_in = any(v is not None for v in slots.values())
@@ -63,9 +70,12 @@ def get_today_checkin(request: Request, current_user: dict = Depends(get_current
 @router.get("/week")
 @limiter.limit("60/minute")
 @route_error_handler("get_week_checkins", detail="Failed to get week check-ins")
-def get_week_checkins(request: Request, current_user: dict = Depends(get_current_user)):
+def get_week_checkins(
+    request: Request,
+    current_user: dict = Depends(get_current_user),
+    svc: CheckinService = Depends(get_checkin_service),
+):
     """Get this week's check-ins with slot breakdown."""
-    svc = CheckinService()
     today = svc.get_today(current_user["id"])
     week_start = today - timedelta(days=today.weekday())
 
@@ -96,9 +106,9 @@ def update_tomorrow_intention(
     request: Request,
     data: TomorrowIntentionUpdate,
     current_user: dict = Depends(get_current_user),
+    svc: CheckinService = Depends(get_checkin_service),
 ):
     """Update tomorrow's intention for today's check-in."""
-    svc = CheckinService()
     today = svc.get_today(current_user["id"])
 
     # Check if any slot exists today
@@ -122,9 +132,10 @@ def create_midday_checkin(
     request: Request,
     data: MiddayCheckinCreate,
     current_user: dict = Depends(get_current_user),
+    svc: CheckinService = Depends(get_checkin_service),
+    streak_svc: StreakService = Depends(get_streak_service),
 ):
     """Create or update midday check-in."""
-    svc = CheckinService()
     today = svc.get_today(current_user["id"])
     checkin_id = svc.upsert_midday(
         user_id=current_user["id"],
@@ -133,7 +144,7 @@ def create_midday_checkin(
         midday_note=data.midday_note,
     )
     # Update check-in streak
-    StreakService().record_checkin(
+    streak_svc.record_checkin(
         current_user["id"], checkin_type="midday", checkin_date=today
     )
     return {"id": checkin_id}
@@ -148,9 +159,10 @@ def create_evening_checkin(
     request: Request,
     data: EveningCheckinCreate,
     current_user: dict = Depends(get_current_user),
+    svc: CheckinService = Depends(get_checkin_service),
+    streak_svc: StreakService = Depends(get_streak_service),
 ):
     """Create or update evening check-in."""
-    svc = CheckinService()
     today = svc.get_today(current_user["id"])
     checkin_id = svc.upsert_evening(
         user_id=current_user["id"],
@@ -164,7 +176,7 @@ def create_evening_checkin(
     )
     # Update check-in streak (rest days count too)
     checkin_type = "rest" if data.did_not_train else "evening"
-    StreakService().record_checkin(
+    streak_svc.record_checkin(
         current_user["id"], checkin_type=checkin_type, checkin_date=today
     )
     return {"id": checkin_id}
@@ -176,10 +188,11 @@ def create_evening_checkin(
     "get_yesterday_checkin", detail="Failed to get yesterday's check-in"
 )
 def get_yesterday_checkin(
-    request: Request, current_user: dict = Depends(get_current_user)
+    request: Request,
+    current_user: dict = Depends(get_current_user),
+    svc: CheckinService = Depends(get_checkin_service),
 ):
     """Get yesterday's check-in data (for tomorrow_intention recall)."""
-    svc = CheckinService()
     yesterday = svc.get_today(current_user["id"]) - timedelta(days=1)
     slots = svc.get_day_checkins(user_id=current_user["id"], check_date=yesterday)
     return {

@@ -2,7 +2,7 @@
 
 import logging
 
-from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
+from fastapi import APIRouter, Depends, Request, Response, status
 from pydantic import BaseModel, EmailStr, Field
 
 from rivaflow.api.rate_limit import limiter
@@ -158,11 +158,7 @@ def login(request: Request, req: LoginRequest, response: Response):
     except (ValueError, AuthenticationError):
         # Auth failures - use generic message to prevent user enumeration
         logger.warning(f"Login attempt failed for {req.email[:3]}***")
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid email or password",
-            headers={"WWW-Authenticate": "Bearer"},
-        )
+        raise AuthenticationError(message="Invalid email or password")
     except KeyError as e:
         error_msg = handle_service_error(e, "Login failed", operation="login")
         raise ServiceError(error_msg)
@@ -179,11 +175,7 @@ def refresh_token(request: Request, response: Response):
     """
     token = request.cookies.get("rf_token")
     if not token:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="No refresh token",
-            headers={"WWW-Authenticate": "Bearer"},
-        )
+        raise AuthenticationError(message="No refresh token")
 
     service = AuthService()
 
@@ -195,11 +187,7 @@ def refresh_token(request: Request, response: Response):
     except ValueError:
         logger.warning("Token refresh failed")
         _clear_refresh_cookie(response)
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid or expired refresh token",
-            headers={"WWW-Authenticate": "Bearer"},
-        )
+        raise AuthenticationError(message="Invalid or expired refresh token")
     except RivaFlowException:
         raise
     except KeyError as e:
@@ -337,7 +325,7 @@ def reset_password(request: Request, req: ResetPasswordRequest):
         success = service.reset_password(token=req.token, new_password=req.new_password)
     except ValueError as e:
         raise ValidationError(str(e))
-    except HTTPException:
+    except RivaFlowException:
         raise
     except KeyError as e:
         error_msg = handle_service_error(

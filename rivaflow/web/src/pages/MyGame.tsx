@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { usePageTitle } from '../hooks/usePageTitle';
 import { ChevronRight, ChevronDown, Plus, Target, Star, Trash2, Edit3, Sparkles } from 'lucide-react';
+import { EmptyState } from '../components/ui';
 import { useToast } from '../contexts/ToastContext';
 import { gamePlansApi, getErrorMessage } from '../api/client';
 import type { GamePlan, GamePlanNode } from '../types';
@@ -521,9 +522,7 @@ export default function MyGame() {
             />
           ))
         ) : (
-          <div className="text-center py-8" style={{ color: 'var(--muted)' }}>
-            <p>No techniques yet. Add your first node!</p>
-          </div>
+          <EmptyState icon={Target} title="No Techniques Yet" description="Add your first node to start building your game plan." actionLabel="Add Node" />
         )}
       </div>
 

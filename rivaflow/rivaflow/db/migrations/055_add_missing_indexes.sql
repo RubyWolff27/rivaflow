@@ -11,5 +11,3 @@ CREATE INDEX IF NOT EXISTS idx_gradings_user_date ON gradings(user_id, date_grad
 -- Composite index on notifications for unread queries
 CREATE INDEX IF NOT EXISTS idx_notifications_user_read ON notifications(user_id, is_read, created_at DESC);
 
--- Index on movement_videos.user_id if user-specific videos exist
-CREATE INDEX IF NOT EXISTS idx_movement_videos_user ON movement_videos(user_id);

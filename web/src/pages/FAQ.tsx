@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { usePageTitle } from '../hooks/usePageTitle';
 import { HelpCircle, Search, ChevronDown, ChevronUp, MessageSquare } from 'lucide-react';
+import { EmptyState } from '../components/ui';
 
 interface FAQItem { question: string; answer: string; }
 interface FAQCategory { name: string; icon: string; items: FAQItem[]; }
@@ -137,9 +138,7 @@ export default function FAQ() {
       </div>
 
       {filteredCategories.length === 0 && (
-        <div className="text-center py-12">
-          <p className="text-sm" style={{ color: 'var(--muted)' }}>No results found for &ldquo;{searchQuery}&rdquo;</p>
-        </div>
+        <EmptyState icon={Search} title="No Results Found" description={'No results found for "' + searchQuery + '". Try different keywords.'} />
       )}
 
       <div className="mt-8 rounded-xl p-6 text-center" style={{ backgroundColor: 'var(--surface)', border: '1px solid var(--border)' }}>

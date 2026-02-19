@@ -64,7 +64,11 @@ class TestChatEndpoint:
                 },
             )
             assert resp.status_code == 503
-            assert "unavailable" in resp.json()["detail"].lower()
+            body = resp.json()
+            # Custom exception handler nests under "error"
+            err = body.get("error", body)
+            msg = err.get("message") or body.get("detail", "")
+            assert "unavailable" in msg.lower()
 
     def test_chat_returns_503_when_ollama_unreachable(
         self, authed_chat_client, test_user

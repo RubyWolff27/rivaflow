@@ -82,6 +82,7 @@ vi.mock('../../components/dashboard/MorningPrompt', () => ({ default: () => <div
 vi.mock('../../components/dashboard/MiddayPrompt', () => ({ default: () => <div data-testid="midday-prompt" /> }))
 vi.mock('../../components/dashboard/EveningPrompt', () => ({ default: () => <div data-testid="evening-prompt" /> }))
 vi.mock('../../components/dashboard/CheckinBadges', () => ({ default: () => null }))
+vi.mock('../../components/dashboard/WeekComparison', () => ({ default: () => <div data-testid="week-comparison" /> }))
 
 import Dashboard from '../Dashboard'
 

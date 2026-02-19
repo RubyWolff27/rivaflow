@@ -2,7 +2,7 @@
 
 import logging
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 
@@ -11,6 +11,7 @@ from rivaflow.core.error_handling import route_error_handler
 from rivaflow.core.exceptions import (
     ExternalServiceError,
     NotFoundError,
+    RateLimitError,
     RivaFlowException,
     ServiceError,
 )
@@ -91,7 +92,7 @@ async def chat_with_grapple(
     # (never an unhandled exception that strips CORS headers)
     try:
         return await _handle_chat(request, user_id, user_tier)
-    except (HTTPException, RivaFlowException):
+    except RivaFlowException:
         raise  # Let FastAPI handle these normally (they keep CORS headers)
     except Exception:
         logger.exception(f"Unhandled error in grapple chat for user {user_id}")
@@ -130,11 +131,10 @@ async def _handle_chat(
         reset_str = (
             reset_at.isoformat() if hasattr(reset_at, "isoformat") else str(reset_at)
         )
-        raise HTTPException(
-            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
-            detail={
+        raise RateLimitError(
+            message=rate_check["reason"],
+            details={
                 "error": "rate_limit_exceeded",
-                "message": rate_check["reason"],
                 "limit": rate_check["limit"],
                 "remaining": rate_check["remaining"],
                 "reset_at": reset_str,
@@ -153,7 +153,7 @@ async def _handle_chat(
             session = chat_service.create_session(user_id, title="New Chat")
 
         session_id = session["id"]
-    except (HTTPException, RivaFlowException):
+    except RivaFlowException:
         raise
     except (ConnectionError, OSError, KeyError) as e:
         logger.error(f"Session create/get failed: {e}", exc_info=True)

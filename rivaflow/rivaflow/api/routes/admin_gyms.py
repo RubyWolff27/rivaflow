@@ -6,6 +6,7 @@ from fastapi import APIRouter, Body, Depends, Path, Request
 from pydantic import BaseModel, Field
 
 from rivaflow.api.rate_limit import limiter
+from rivaflow.core.dependencies import get_gym_service
 from rivaflow.core.error_handling import route_error_handler
 from rivaflow.core.exceptions import NotFoundError, ValidationError
 from rivaflow.core.services.audit_service import AuditService
@@ -85,9 +86,9 @@ def list_gyms(
     request: Request,
     verified_only: bool = False,
     current_user: dict = Depends(require_admin),
+    gym_service: GymService = Depends(get_gym_service),
 ):
     """List all gyms (admin only)."""
-    gym_service = GymService()
     gyms = gym_service.list_all(verified_only=verified_only)
     return {
         "gyms": gyms,
@@ -98,9 +99,12 @@ def list_gyms(
 @router.get("/gyms/pending")
 @limiter.limit("60/minute")
 @route_error_handler("get_pending_gyms", detail="Failed to get pending gyms")
-def get_pending_gyms(request: Request, current_user: dict = Depends(require_admin)):
+def get_pending_gyms(
+    request: Request,
+    current_user: dict = Depends(require_admin),
+    gym_service: GymService = Depends(get_gym_service),
+):
     """Get all pending (unverified) gyms."""
-    gym_service = GymService()
     pending = gym_service.get_pending_gyms()
     return {
         "pending_gyms": pending,
@@ -116,12 +120,11 @@ def search_gyms(
     q: str = "",
     verified_only: bool = False,
     current_user: dict = Depends(require_admin),
+    gym_service: GymService = Depends(get_gym_service),
 ):
     """Search gyms by name or location."""
     if not q or len(q) < 2:
         return {"gyms": []}
-
-    gym_service = GymService()
     gyms = gym_service.search(q, verified_only=verified_only)
     return {
         "gyms": gyms,
@@ -136,9 +139,9 @@ def create_gym(
     request: Request,
     gym_data: GymCreateRequest = Body(...),
     current_user: dict = Depends(require_admin),
+    gym_service: GymService = Depends(get_gym_service),
 ):
     """Create a new gym (admin only)."""
-    gym_service = GymService()
     gym = gym_service.create(
         name=gym_data.name,
         city=gym_data.city,
@@ -176,9 +179,9 @@ def update_gym(
     gym_id: int = Path(..., gt=0),
     gym_data: GymUpdateRequest = Body(...),
     current_user: dict = Depends(require_admin),
+    gym_service: GymService = Depends(get_gym_service),
 ):
     """Update a gym (admin only)."""
-    gym_service = GymService()
     gym = gym_service.get_by_id(gym_id)
     if not gym:
         raise NotFoundError(f"Gym with id {gym_id} not found")
@@ -208,9 +211,9 @@ def delete_gym(
     request: Request,
     gym_id: int = Path(..., gt=0),
     current_user: dict = Depends(require_admin),
+    gym_service: GymService = Depends(get_gym_service),
 ):
     """Delete a gym (admin only)."""
-    gym_service = GymService()
     gym = gym_service.get_by_id(gym_id)
     if not gym:
         raise NotFoundError(f"Gym with id {gym_id} not found")
@@ -239,9 +242,9 @@ def verify_gym(
     request: Request,
     gym_id: int = Path(..., gt=0),
     current_user: dict = Depends(require_admin),
+    gym_service: GymService = Depends(get_gym_service),
 ):
     """Verify a gym (mark as verified by admin)."""
-    gym_service = GymService()
     gym = gym_service.get_by_id(gym_id)
     if not gym:
         raise NotFoundError(f"Gym with id {gym_id} not found")
@@ -276,9 +279,9 @@ def reject_gym(
     gym_id: int = Path(..., gt=0),
     reason: str | None = Body(None, embed=True),
     current_user: dict = Depends(require_admin),
+    gym_service: GymService = Depends(get_gym_service),
 ):
     """Reject a gym verification (mark as unverified)."""
-    gym_service = GymService()
     gym = gym_service.get_by_id(gym_id)
     if not gym:
         raise NotFoundError(f"Gym with id {gym_id} not found")
@@ -312,6 +315,7 @@ def merge_gyms(
     request: Request,
     merge_data: GymMergeRequest = Body(...),
     current_user: dict = Depends(require_admin),
+    gym_service: GymService = Depends(get_gym_service),
 ):
     """Merge duplicate gyms (admin only)."""
     # Prevent merging a gym into itself
@@ -319,7 +323,6 @@ def merge_gyms(
         raise ValidationError("Cannot merge a gym into itself")
 
     # Verify both gyms exist
-    gym_service = GymService()
     source = gym_service.get_by_id(merge_data.source_gym_id)
     target = gym_service.get_by_id(merge_data.target_gym_id)
 
@@ -365,9 +368,9 @@ def set_timetable(
     gym_id: int = Path(..., gt=0),
     body: BulkTimetableRequest = Body(...),
     current_user: dict = Depends(require_admin),
+    gym_service: GymService = Depends(get_gym_service),
 ):
     """Bulk-set timetable for a gym (replaces all existing classes)."""
-    gym_service = GymService()
     gym = gym_service.get_by_id(gym_id)
     if not gym:
         raise NotFoundError(f"Gym {gym_id} not found")
@@ -401,9 +404,9 @@ def add_class(
     gym_id: int = Path(..., gt=0),
     body: GymClassRequest = Body(...),
     current_user: dict = Depends(require_admin),
+    gym_service: GymService = Depends(get_gym_service),
 ):
     """Add a single class to a gym timetable."""
-    gym_service = GymService()
     gym = gym_service.get_by_id(gym_id)
     if not gym:
         raise NotFoundError(f"Gym {gym_id} not found")
@@ -442,9 +445,9 @@ def update_class(
     class_id: int = Path(..., gt=0),
     body: GymClassRequest = Body(...),
     current_user: dict = Depends(require_admin),
+    gym_service: GymService = Depends(get_gym_service),
 ):
     """Update a gym class."""
-    gym_service = GymService()
     updated = gym_service.update_class(
         class_id,
         gym_id=gym_id,
@@ -469,9 +472,9 @@ def delete_class(
     gym_id: int = Path(..., gt=0),
     class_id: int = Path(..., gt=0),
     current_user: dict = Depends(require_admin),
+    gym_service: GymService = Depends(get_gym_service),
 ):
     """Delete a gym class."""
-    gym_service = GymService()
     deleted = gym_service.delete_class(class_id, gym_id)
     if not deleted:
         raise NotFoundError(f"Class {class_id} not found")

@@ -8,7 +8,7 @@ from fastapi import APIRouter, Depends, Request
 from fastapi.responses import StreamingResponse
 
 from rivaflow.api.rate_limit import limiter
-from rivaflow.core.dependencies import get_current_user
+from rivaflow.core.dependencies import get_current_user, get_report_service
 from rivaflow.core.error_handling import route_error_handler
 from rivaflow.core.services.report_service import ReportService
 
@@ -22,9 +22,9 @@ def get_week_report(
     request: Request,
     target_date: date = None,
     current_user: dict = Depends(get_current_user),
+    service: ReportService = Depends(get_report_service),
 ):
     """Get current week report."""
-    service = ReportService()
     start_date, end_date = service.get_week_dates(target_date)
     report = service.generate_report(
         user_id=current_user["id"], start_date=start_date, end_date=end_date
@@ -39,9 +39,9 @@ def get_month_report(
     request: Request,
     target_date: date = None,
     current_user: dict = Depends(get_current_user),
+    service: ReportService = Depends(get_report_service),
 ):
     """Get current month report."""
-    service = ReportService()
     start_date, end_date = service.get_month_dates(target_date)
     report = service.generate_report(
         user_id=current_user["id"], start_date=start_date, end_date=end_date
@@ -57,9 +57,9 @@ def get_range_report(
     start_date: date,
     end_date: date,
     current_user: dict = Depends(get_current_user),
+    service: ReportService = Depends(get_report_service),
 ):
     """Get report for custom date range."""
-    service = ReportService()
     report = service.generate_report(
         user_id=current_user["id"], start_date=start_date, end_date=end_date
     )
@@ -73,9 +73,9 @@ def export_week_csv(
     request: Request,
     target_date: date = None,
     current_user: dict = Depends(get_current_user),
+    service: ReportService = Depends(get_report_service),
 ):
     """Export week report as CSV."""
-    service = ReportService()
     start_date, end_date = service.get_week_dates(target_date)
     report = service.generate_report(
         user_id=current_user["id"], start_date=start_date, end_date=end_date

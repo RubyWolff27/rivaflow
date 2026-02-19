@@ -11,7 +11,6 @@ from fastapi import (
     Depends,
     File,
     Form,
-    HTTPException,
     Request,
     Response,
     UploadFile,
@@ -19,7 +18,10 @@ from fastapi import (
 )
 
 from rivaflow.api.rate_limit import limiter
-from rivaflow.core.dependencies import get_current_user
+from rivaflow.core.dependencies import (
+    get_current_user,
+    get_photo_service,
+)
 from rivaflow.core.error_handling import route_error_handler
 from rivaflow.core.exceptions import NotFoundError, ValidationError
 from rivaflow.core.services.photo_service import PhotoService
@@ -93,6 +95,7 @@ async def upload_photo(
     activity_date: str = Form(...),
     caption: str = Form(None),
     current_user: dict = Depends(get_current_user),
+    photo_repo: PhotoService = Depends(get_photo_service),
 ):
     """
     Upload photo for an activity.
@@ -100,7 +103,6 @@ async def upload_photo(
     Accepts image files (jpg, png, webp, gif) up to 5MB.
     Maximum 3 photos per activity.
     """
-    photo_repo = PhotoService()
     # Validate activity type
     if activity_type not in ["session", "readiness", "rest"]:
         raise ValidationError("Invalid activity type")
@@ -115,29 +117,26 @@ async def upload_photo(
     # Validate file extension
     file_ext = Path(file.filename).suffix.lower() if file.filename else ""
     if file_ext not in ALLOWED_EXTENSIONS:
-        raise HTTPException(
-            status_code=400,
-            detail=f"Invalid file type. Allowed types: {', '.join(ALLOWED_EXTENSIONS)}",
+        raise ValidationError(
+            message=f"Invalid file type. Allowed types: {', '.join(ALLOWED_EXTENSIONS)}"
         )
 
     # Read file content and validate size
     content = await file.read()
     if len(content) > MAX_FILE_SIZE:
-        raise HTTPException(
-            status_code=400,
-            detail=f"File too large. Maximum size: {MAX_FILE_SIZE // (1024 * 1024)}MB",
+        raise ValidationError(
+            message=f"File too large. Maximum size: {MAX_FILE_SIZE // (1024 * 1024)}MB"
         )
 
     # Validate actual file content (magic bytes check)
     content_error = validate_image_content(content, file.filename or "unknown")
     if content_error:
-        raise HTTPException(status_code=400, detail=content_error)
+        raise ValidationError(message=content_error)
 
     # Validate MIME type
     if file.content_type and file.content_type not in ALLOWED_MIME_TYPES:
-        raise HTTPException(
-            status_code=400,
-            detail=f"Invalid MIME type: {file.content_type}. Allowed: {', '.join(ALLOWED_MIME_TYPES)}",
+        raise ValidationError(
+            message=f"Invalid MIME type: {file.content_type}. Allowed: {', '.join(ALLOWED_MIME_TYPES)}"
         )
 
     # Generate unique filename: {activity_type}_{user_id}_{timestamp}_{uuid}.{ext}
@@ -176,11 +175,11 @@ def get_activity_photos(
     activity_type: str,
     activity_id: int,
     current_user: dict = Depends(get_current_user),
+    photo_repo: PhotoService = Depends(get_photo_service),
 ):
     """
     Get photos for an activity (session, readiness, or rest).
     """
-    photo_repo = PhotoService()
     photos = photo_repo.get_by_activity(current_user["id"], activity_type, activity_id)
     # Map file_path → url so frontend can use photo.url
     for photo in photos:
@@ -191,11 +190,14 @@ def get_activity_photos(
 
 @router.get("/photos/{photo_id}")
 @route_error_handler("get_photo", detail="Failed to get photo")
-def get_photo(photo_id: int, current_user: dict = Depends(get_current_user)):
+def get_photo(
+    photo_id: int,
+    current_user: dict = Depends(get_current_user),
+    photo_repo: PhotoService = Depends(get_photo_service),
+):
     """
     Get photo by ID.
     """
-    photo_repo = PhotoService()
     photo = photo_repo.get_by_id(current_user["id"], photo_id)
     if not photo:
         raise NotFoundError("Photo not found")
@@ -207,11 +209,14 @@ def get_photo(photo_id: int, current_user: dict = Depends(get_current_user)):
 
 @router.delete("/photos/{photo_id}")
 @route_error_handler("delete_photo", detail="Failed to delete photo")
-def delete_photo(photo_id: int, current_user: dict = Depends(get_current_user)):
+def delete_photo(
+    photo_id: int,
+    current_user: dict = Depends(get_current_user),
+    photo_repo: PhotoService = Depends(get_photo_service),
+):
     """
     Delete a photo.
     """
-    photo_repo = PhotoService()
     # Get photo info to delete file
     photo = photo_repo.get_by_id(current_user["id"], photo_id)
     if not photo:
@@ -238,11 +243,11 @@ def update_caption(
     photo_id: int,
     caption: str = Form(...),
     current_user: dict = Depends(get_current_user),
+    photo_repo: PhotoService = Depends(get_photo_service),
 ):
     """
     Update photo caption.
     """
-    photo_repo = PhotoService()
     updated = photo_repo.update_caption(current_user["id"], photo_id, caption)
     if not updated:
         raise NotFoundError("Photo not found")

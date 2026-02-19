@@ -4,12 +4,18 @@ import logging
 import os
 
 import httpx
-from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi import APIRouter, Depends, Request
 from pydantic import BaseModel
 
 from rivaflow.api.rate_limit import limiter
-from rivaflow.core.dependencies import get_current_user
+from rivaflow.core.dependencies import (
+    get_current_user,
+    get_privacy_service,
+    get_session_service,
+    get_user_service,
+)
 from rivaflow.core.error_handling import route_error_handler
+from rivaflow.core.exceptions import ExternalServiceError, ServiceError
 from rivaflow.core.services.privacy_service import PrivacyService
 from rivaflow.core.services.session_service import SessionService
 from rivaflow.core.services.user_service import UserService
@@ -39,10 +45,13 @@ class ChatResponse(BaseModel):
     reply: str
 
 
-def build_user_context(user_id: int) -> str:
+def build_user_context(
+    user_id: int,
+    session_svc: SessionService,
+    user_svc: UserService,
+    privacy_svc: PrivacyService,
+) -> str:
     """Build context about user's training history for the LLM."""
-    session_svc = SessionService()
-    user_svc = UserService()
 
     # Get user profile
     user = user_svc.get_user_by_id(user_id)
@@ -55,7 +64,7 @@ def build_user_context(user_id: int) -> str:
     # Redact all sessions for LLM
     all_sessions = []
     for session in sessions:
-        redacted = PrivacyService.redact_for_llm(session, include_notes=True)
+        redacted = privacy_svc.redact_for_llm(session, include_notes=True)
         all_sessions.append(redacted)
 
     # Calculate summary stats
@@ -155,6 +164,9 @@ async def chat(
     request: Request,
     chat_request: ChatRequest,
     current_user: dict = Depends(get_current_user),
+    session_svc: SessionService = Depends(get_session_service),
+    user_svc: UserService = Depends(get_user_service),
+    privacy_svc: PrivacyService = Depends(get_privacy_service),
 ):
     """
     Chat endpoint with BJJ coaching context.
@@ -169,14 +181,15 @@ async def chat(
     """
     # Check if chat is enabled
     if not CHAT_ENABLED:
-        raise HTTPException(
-            status_code=503,
-            detail="Chat service is currently unavailable. Please try again later.",
+        raise ExternalServiceError(
+            message="Chat service is currently unavailable. Please try again later."
         )
 
     try:
         # Build user context and system prompt
-        user_context = build_user_context(current_user["id"])
+        user_context = build_user_context(
+            current_user["id"], session_svc, user_svc, privacy_svc
+        )
         system_prompt = build_system_prompt(user_context)
 
         # Prepend system message to conversation
@@ -200,28 +213,24 @@ async def chat(
 
     except httpx.TimeoutException:
         logger.warning(f"Ollama LLM request timed out for user {current_user['id']}")
-        raise HTTPException(
-            status_code=504,
-            detail="The AI coach is taking too long to respond. Please try again.",
+        raise ExternalServiceError(
+            message="The AI coach is taking too long to respond. Please try again."
         )
     except httpx.ConnectError:
         logger.error(f"Cannot connect to Ollama service at {OLLAMA_URL}")
-        raise HTTPException(
-            status_code=503,
-            detail="Chat service is temporarily unavailable. Please try again later.",
+        raise ExternalServiceError(
+            message="Chat service is temporarily unavailable. Please try again later."
         )
     except httpx.HTTPError as e:
         logger.error(f"Ollama HTTP error for user {current_user['id']}: {str(e)}")
-        raise HTTPException(
-            status_code=502,
-            detail="The AI coach encountered an error. Please try again.",
+        raise ExternalServiceError(
+            message="The AI coach encountered an error. Please try again."
         )
     except Exception as e:
         logger.error(
             f"Unexpected chat error for user {current_user['id']}: {type(e).__name__}",
             exc_info=True,
         )
-        raise HTTPException(
-            status_code=500,
-            detail="An unexpected error occurred. Please try again later.",
+        raise ServiceError(
+            message="An unexpected error occurred. Please try again later."
         )

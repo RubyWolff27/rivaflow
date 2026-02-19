@@ -6,9 +6,9 @@ from fastapi import APIRouter, Depends, Query, Request
 from pydantic import BaseModel
 
 from rivaflow.api.rate_limit import limiter
-from rivaflow.core.dependencies import get_current_user
+from rivaflow.core.dependencies import get_current_user, get_glossary_service
 from rivaflow.core.error_handling import route_error_handler
-from rivaflow.core.exceptions import NotFoundError, ValidationError
+from rivaflow.core.exceptions import ForbiddenError, NotFoundError, ValidationError
 from rivaflow.core.services.glossary_service import GlossaryService
 from rivaflow.core.validation import validate_video_url
 
@@ -52,9 +52,9 @@ def list_movements(
     limit: int = Query(default=50, ge=1, le=1000, description="Max results to return"),
     offset: int = Query(default=0, ge=0, description="Number of results to skip"),
     current_user: dict = Depends(get_current_user),
+    service: GlossaryService = Depends(get_glossary_service),
 ):
     """Get all movements with optional filtering and pagination."""
-    service = GlossaryService()
     all_movements = service.list_movements(
         user_id=current_user["id"],
         category=category,
@@ -73,9 +73,12 @@ def list_movements(
 @router.get("/categories")
 @limiter.limit("120/minute")
 @route_error_handler("get_categories", detail="Failed to get categories")
-def get_categories(request: Request, current_user: dict = Depends(get_current_user)):
+def get_categories(
+    request: Request,
+    current_user: dict = Depends(get_current_user),
+    service: GlossaryService = Depends(get_glossary_service),
+):
     """Get list of all movement categories."""
-    service = GlossaryService()
     categories = service.get_categories(user_id=current_user["id"])
     return {"categories": categories}
 
@@ -88,9 +91,9 @@ def get_movement(
     movement_id: int,
     include_videos: bool = Query(True, description="Include custom video links"),
     current_user: dict = Depends(get_current_user),
+    service: GlossaryService = Depends(get_glossary_service),
 ):
     """Get a specific movement by ID with optional video links."""
-    service = GlossaryService()
     movement = service.get_movement(
         user_id=current_user["id"],
         movement_id=movement_id,
@@ -108,9 +111,9 @@ def create_custom_movement(
     request: Request,
     movement: MovementCreate,
     current_user: dict = Depends(get_current_user),
+    service: GlossaryService = Depends(get_glossary_service),
 ):
     """Create a custom user-added movement."""
-    service = GlossaryService()
     created = service.create_custom_movement(
         user_id=current_user["id"],
         name=movement.name,
@@ -129,10 +132,12 @@ def create_custom_movement(
 @limiter.limit("120/minute")
 @route_error_handler("delete_custom_movement", detail="Failed to delete movement")
 def delete_custom_movement(
-    request: Request, movement_id: int, current_user: dict = Depends(get_current_user)
+    request: Request,
+    movement_id: int,
+    current_user: dict = Depends(get_current_user),
+    service: GlossaryService = Depends(get_glossary_service),
 ):
     """Delete a custom movement. Can only delete custom movements."""
-    service = GlossaryService()
     deleted = service.delete_custom_movement(
         user_id=current_user["id"], movement_id=movement_id
     )
@@ -149,6 +154,7 @@ def add_custom_video(
     movement_id: int,
     video: CustomVideoCreate,
     current_user: dict = Depends(get_current_user),
+    service: GlossaryService = Depends(get_glossary_service),
 ):
     """Add a custom video link to a movement."""
     # Validate URL for security
@@ -156,8 +162,6 @@ def add_custom_video(
         validate_video_url(video.url)
     except ValueError as e:
         raise ValidationError(str(e))
-
-    service = GlossaryService()
     created = service.add_custom_video(
         user_id=current_user["id"],
         movement_id=movement_id,
@@ -176,20 +180,15 @@ def delete_custom_video(
     movement_id: int,
     video_id: int,
     current_user: dict = Depends(get_current_user),
+    service: GlossaryService = Depends(get_glossary_service),
 ):
     """Delete a custom video link (admin only)."""
-    from fastapi import HTTPException, status
-
-    service = GlossaryService()
     try:
         deleted = service.delete_custom_video(
             user_id=current_user["id"], video_id=video_id
         )
     except PermissionError:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Only admins can delete videos",
-        )
+        raise ForbiddenError(message="Only admins can delete videos")
     if not deleted:
         raise NotFoundError("Video not found")
     return {"message": "Video deleted successfully"}

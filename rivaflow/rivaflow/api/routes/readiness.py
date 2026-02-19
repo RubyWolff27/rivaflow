@@ -9,7 +9,10 @@ from pydantic import BaseModel, Field
 
 from rivaflow.api.rate_limit import limiter
 from rivaflow.api.response_models import ReadinessResponse
-from rivaflow.core.dependencies import get_current_user
+from rivaflow.core.dependencies import (
+    get_current_user,
+    get_readiness_service,
+)
 from rivaflow.core.error_handling import route_error_handler
 from rivaflow.core.models import ReadinessCreate
 from rivaflow.core.services.readiness_service import ReadinessService
@@ -54,9 +57,9 @@ def log_readiness(
     readiness: ReadinessCreate,
     background_tasks: BackgroundTasks,
     current_user: dict = Depends(get_current_user),
+    service: ReadinessService = Depends(get_readiness_service),
 ):
     """Log daily readiness check-in."""
-    service = ReadinessService()
     service.log_readiness(
         user_id=current_user["id"],
         check_date=readiness.check_date,
@@ -85,10 +88,11 @@ def log_readiness(
 @limiter.limit("120/minute")
 @route_error_handler("get_latest_readiness", detail="Failed to get latest readiness")
 def get_latest_readiness(
-    request: Request, current_user: dict = Depends(get_current_user)
+    request: Request,
+    current_user: dict = Depends(get_current_user),
+    service: ReadinessService = Depends(get_readiness_service),
 ):
     """Get the most recent readiness entry."""
-    service = ReadinessService()
     entry = service.get_latest_readiness(user_id=current_user["id"])
     if not entry:
         return None
@@ -99,10 +103,12 @@ def get_latest_readiness(
 @limiter.limit("120/minute")
 @route_error_handler("get_readiness", detail="Failed to get readiness")
 def get_readiness(
-    request: Request, check_date: date, current_user: dict = Depends(get_current_user)
+    request: Request,
+    check_date: date,
+    current_user: dict = Depends(get_current_user),
+    service: ReadinessService = Depends(get_readiness_service),
 ):
     """Get readiness for a specific date."""
-    service = ReadinessService()
     entry = service.get_readiness(user_id=current_user["id"], check_date=check_date)
     if not entry:
         # Return 404 without raising exception to avoid error logging for expected behavior
@@ -120,9 +126,9 @@ def get_readiness_range(
     start_date: date,
     end_date: date,
     current_user: dict = Depends(get_current_user),
+    service: ReadinessService = Depends(get_readiness_service),
 ):
     """Get readiness entries within a date range."""
-    service = ReadinessService()
     return service.get_readiness_range(
         user_id=current_user["id"], start_date=start_date, end_date=end_date
     )
@@ -142,9 +148,9 @@ def log_weight_only(
     request: Request,
     data: WeightLogRequest,
     current_user: dict = Depends(get_current_user),
+    service: ReadinessService = Depends(get_readiness_service),
 ):
     """Log weight only for a date (quick logging for rest days)."""
-    service = ReadinessService()
     check_date = date.fromisoformat(
         data.check_date if data.check_date else date.today().isoformat()
     )

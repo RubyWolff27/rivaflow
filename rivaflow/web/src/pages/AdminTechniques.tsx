@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
 import { usePageTitle } from '../hooks/usePageTitle';
 import { adminApi, glossaryApi } from '../api/client';
-import { Search, Trash2, Plus } from 'lucide-react';
-import { Card, PrimaryButton, SecondaryButton } from '../components/ui';
+import { Search, Trash2, Plus, Target } from 'lucide-react';
+import { Card, PrimaryButton, SecondaryButton, EmptyState } from '../components/ui';
 import AdminNav from '../components/AdminNav';
 import ConfirmDialog from '../components/ConfirmDialog';
 import { useToast } from '../contexts/ToastContext';
@@ -206,11 +206,7 @@ export default function AdminTechniques() {
       {loading ? (
         <div className="text-center py-12">Loading...</div>
       ) : techniques.length === 0 ? (
-        <Card>
-          <div className="text-center py-12">
-            <p style={{ color: 'var(--muted)' }}>No techniques found</p>
-          </div>
-        </Card>
+        <EmptyState icon={Target} title="No Techniques Found" description="No techniques match the current filters." />
       ) : (
         <div className="space-y-3">
           {techniques.map((technique) => (

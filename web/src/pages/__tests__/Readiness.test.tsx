@@ -1,6 +1,7 @@
 import { render, screen, waitFor } from '@testing-library/react'
 import { BrowserRouter } from 'react-router-dom'
 import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { createMockToast, createMockInsightRefresh } from '../../__tests__/test-utils'
 
 vi.mock('../../api/client', () => ({
   readinessApi: {
@@ -35,17 +36,8 @@ vi.mock('../../api/client', () => ({
   },
 }))
 
-vi.mock('../../contexts/ToastContext', () => ({
-  useToast: () => ({
-    showToast: vi.fn(),
-    success: vi.fn(),
-    error: vi.fn(),
-  }),
-}))
-
-vi.mock('../../utils/insightRefresh', () => ({
-  triggerInsightRefresh: vi.fn(),
-}))
+vi.mock('../../contexts/ToastContext', () => createMockToast())
+vi.mock('../../utils/insightRefresh', () => createMockInsightRefresh())
 
 vi.mock('../../components/ReadinessResult', () => ({
   default: () => <div data-testid="readiness-result" />,

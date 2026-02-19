@@ -440,17 +440,25 @@ class SessionRepository:
         """Get list of unique partner names from history."""
         with get_connection() as conn:
             cursor = conn.cursor()
+            if settings.DB_TYPE == "postgresql":
+                cursor.execute(
+                    "SELECT DISTINCT value FROM sessions, "
+                    "json_array_elements_text(partners::json) "
+                    "WHERE user_id = $1 AND partners IS NOT NULL "
+                    "ORDER BY value",
+                    (user_id,),
+                )
+                return [row["value"] for row in cursor.fetchall()]
             cursor.execute(
                 convert_query(
-                    "SELECT partners FROM sessions WHERE user_id = ? AND partners IS NOT NULL"
+                    "SELECT DISTINCT partners FROM sessions "
+                    "WHERE user_id = ? AND partners IS NOT NULL"
                 ),
                 (user_id,),
             )
-            partners_set = set()
-            rows = cursor.fetchall()
-            for row in rows:
-                partners_list = json.loads(row["partners"])
-                partners_set.update(partners_list)
+            partners_set: set[str] = set()
+            for row in cursor.fetchall():
+                partners_set.update(json.loads(row["partners"]))
             return sorted(partners_set)
 
     @staticmethod

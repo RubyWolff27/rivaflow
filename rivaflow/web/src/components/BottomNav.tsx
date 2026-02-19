@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { Home, Activity, Plus, BarChart3, User, LogOut, X } from 'lucide-react';
+import { Home, Calendar, Plus, BarChart3, User, LogOut, X } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 
 interface NavSectionItem {
@@ -21,7 +21,7 @@ interface BottomNavProps {
   onQuickLog: () => void;
 }
 
-export default function BottomNav({ navigation, moreNavSections, onQuickLog }: BottomNavProps) {
+export default function BottomNav({ moreNavSections, onQuickLog }: BottomNavProps) {
   const location = useLocation();
   const navigate = useNavigate();
   const { logout } = useAuth();
@@ -45,11 +45,10 @@ export default function BottomNav({ navigation, moreNavSections, onQuickLog }: B
     navigate('/login');
   };
 
-  // 5 bottom items: Home, Feed, Log(accent, centered), Progress, You
-  const feedBadge = navigation.find(n => n.href === '/feed')?.badge;
+  // 5 bottom items: Home, Sessions, Log(accent, centered), Progress, You
   const bottomItems = [
     { name: 'Home', href: '/', icon: Home },
-    { name: 'Feed', href: '/feed', icon: Activity, badge: feedBadge },
+    { name: 'Sessions', href: '/sessions', icon: Calendar },
     { name: 'Log', href: '#quicklog', icon: Plus, isAccent: true },
     { name: 'Progress', href: '/reports', icon: BarChart3 },
     { name: 'You', href: '#you', icon: User },
@@ -200,7 +199,6 @@ export default function BottomNav({ navigation, moreNavSections, onQuickLog }: B
               );
             }
 
-            const hasBadge = 'badge' in item && item.badge != null && item.badge > 0;
             return (
               <Link
                 key={item.name}
@@ -210,14 +208,6 @@ export default function BottomNav({ navigation, moreNavSections, onQuickLog }: B
               >
                 <Icon className="w-5 h-5" />
                 <span className="text-[10px] font-medium">{item.name}</span>
-                {hasBadge && (
-                  <span
-                    className="absolute top-0 right-0 flex items-center justify-center min-w-[16px] h-[16px] px-1 text-[9px] font-bold rounded-full"
-                    style={{ backgroundColor: 'var(--error)', color: '#FFFFFF' }}
-                  >
-                    {item.badge! > 99 ? '99+' : item.badge}
-                  </span>
-                )}
               </Link>
             );
           })}

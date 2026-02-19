@@ -6,7 +6,11 @@ from fastapi import APIRouter, Depends, Path, Request, status
 from pydantic import BaseModel, EmailStr, Field
 
 from rivaflow.api.rate_limit import limiter
-from rivaflow.core.dependencies import get_admin_user
+from rivaflow.core.dependencies import (
+    get_admin_user,
+    get_email_service,
+    get_waitlist_service,
+)
 from rivaflow.core.error_handling import route_error_handler
 from rivaflow.core.exceptions import (
     NotFoundError,
@@ -67,7 +71,11 @@ class NotesUpdateRequest(BaseModel):
 @router.post("/join", status_code=status.HTTP_201_CREATED)
 @limiter.limit("5/minute")
 @route_error_handler("join_waitlist", detail="Failed to join waitlist")
-def join_waitlist(request: Request, req: WaitlistJoinRequest):
+def join_waitlist(
+    request: Request,
+    req: WaitlistJoinRequest,
+    repo: WaitlistService = Depends(get_waitlist_service),
+):
     """
     Join the RivaFlow waitlist.
 
@@ -79,7 +87,6 @@ def join_waitlist(request: Request, req: WaitlistJoinRequest):
 
     Returns your position on the waitlist.
     """
-    repo = WaitlistService()
 
     # Check for existing entry
     existing = repo.get_by_email(req.email)
@@ -104,13 +111,14 @@ def join_waitlist(request: Request, req: WaitlistJoinRequest):
 
 @router.get("/count")
 @route_error_handler("get_waitlist_count", detail="Failed to get waitlist count")
-def get_waitlist_count():
+def get_waitlist_count(
+    repo: WaitlistService = Depends(get_waitlist_service),
+):
     """
     Get the number of people currently waiting on the waitlist.
 
     Returns the count of entries with status 'waiting'.
     """
-    repo = WaitlistService()
     count = repo.get_waiting_count()
     return {"count": count}
 
@@ -128,6 +136,7 @@ def list_waitlist(
     limit: int = 50,
     offset: int = 0,
     current_user: dict = Depends(get_admin_user),
+    repo: WaitlistService = Depends(get_waitlist_service),
 ):
     """
     List all waitlist entries with optional filters.
@@ -137,7 +146,6 @@ def list_waitlist(
     - **limit**: Maximum results to return (default 50)
     - **offset**: Number of results to skip (default 0)
     """
-    repo = WaitlistService()
 
     entries = repo.list_all(status=status, search=search, limit=limit, offset=offset)
     total = repo.get_count(status=status)
@@ -156,6 +164,8 @@ def invite_entry(
     waitlist_id: int = Path(..., gt=0),
     req: InviteRequest = None,
     current_user: dict = Depends(get_admin_user),
+    repo: WaitlistService = Depends(get_waitlist_service),
+    email_service: EmailService = Depends(get_email_service),
 ):
     """
     Invite a specific waitlist entry.
@@ -167,8 +177,6 @@ def invite_entry(
     """
     if req is None:
         req = InviteRequest()
-
-    repo = WaitlistService()
 
     # Verify the entry exists
     entry = repo.get_by_id(waitlist_id)
@@ -187,7 +195,6 @@ def invite_entry(
 
     # Send invite email
     try:
-        email_service = EmailService()
         email_service.send_waitlist_invite_email(
             email=entry["email"],
             first_name=entry.get("first_name"),
@@ -209,6 +216,8 @@ def invite_entry(
 def bulk_invite_entries(
     req: BulkInviteRequest,
     current_user: dict = Depends(get_admin_user),
+    repo: WaitlistService = Depends(get_waitlist_service),
+    email_service: EmailService = Depends(get_email_service),
 ):
     """
     Bulk invite multiple waitlist entries.
@@ -218,11 +227,9 @@ def bulk_invite_entries(
     - **ids**: List of waitlist entry IDs to invite
     - **tier**: Tier to assign to all entries (free, premium, lifetime_premium)
     """
-    repo = WaitlistService()
     results = repo.bulk_invite(req.ids, assigned_tier=req.tier)
 
     # Send invite emails for each successful invite
-    email_service = EmailService()
     for wid, email, token in results:
         try:
             # Look up first_name for the email
@@ -249,13 +256,13 @@ def bulk_invite_entries(
 def decline_entry(
     waitlist_id: int = Path(..., gt=0),
     current_user: dict = Depends(get_admin_user),
+    repo: WaitlistService = Depends(get_waitlist_service),
 ):
     """
     Decline a waitlist entry.
 
     Sets the entry status to 'declined'.
     """
-    repo = WaitlistService()
 
     entry = repo.get_by_id(waitlist_id)
     if not entry:
@@ -279,11 +286,11 @@ def update_entry_notes(
     req: NotesUpdateRequest,
     waitlist_id: int = Path(..., gt=0),
     current_user: dict = Depends(get_admin_user),
+    repo: WaitlistService = Depends(get_waitlist_service),
 ):
     """
     Update admin notes for a waitlist entry.
     """
-    repo = WaitlistService()
 
     entry = repo.get_by_id(waitlist_id)
     if not entry:
@@ -300,14 +307,13 @@ def update_entry_notes(
 @route_error_handler("get_waitlist_stats", detail="Failed to get waitlist stats")
 def get_waitlist_stats(
     current_user: dict = Depends(get_admin_user),
+    repo: WaitlistService = Depends(get_waitlist_service),
 ):
     """
     Get waitlist statistics.
 
     Returns counts for each status: total, waiting, invited, registered, declined.
     """
-    repo = WaitlistService()
-
     total = repo.get_count()
     waiting = repo.get_count(status="waiting")
     invited = repo.get_count(status="invited")

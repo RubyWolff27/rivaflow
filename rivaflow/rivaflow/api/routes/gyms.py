@@ -3,7 +3,10 @@
 from fastapi import APIRouter, Depends, Path, Query, Request
 
 from rivaflow.api.rate_limit import limiter
-from rivaflow.core.dependencies import get_current_user
+from rivaflow.core.dependencies import (
+    get_current_user,
+    get_gym_service,
+)
 from rivaflow.core.error_handling import route_error_handler
 from rivaflow.core.exceptions import NotFoundError
 from rivaflow.core.services.gym_service import GymService
@@ -18,9 +21,10 @@ def list_gyms(
     request: Request,
     verified_only: bool = Query(True),
     current_user: dict = Depends(get_current_user),
+    gym_service: GymService = Depends(get_gym_service),
 ):
     """List gyms available for selection (authenticated users)."""
-    gym_service = GymService()
+
     gyms = gym_service.list_all(verified_only=verified_only)
     return {
         "gyms": gyms,
@@ -36,12 +40,12 @@ def search_gyms(
     q: str = "",
     verified_only: bool = Query(True),
     current_user: dict = Depends(get_current_user),
+    gym_service: GymService = Depends(get_gym_service),
 ):
     """Search gyms by name or location (authenticated users)."""
     if not q or len(q) < 2:
         return {"gyms": []}
 
-    gym_service = GymService()
     gyms = gym_service.search(q, verified_only=verified_only)
     return {
         "gyms": gyms,
@@ -56,9 +60,10 @@ def get_timetable(
     request: Request,
     gym_id: int = Path(..., gt=0),
     current_user: dict = Depends(get_current_user),
+    gym_service: GymService = Depends(get_gym_service),
 ):
     """Get full weekly timetable for a gym."""
-    gym_service = GymService()
+
     gym = gym_service.get_by_id(gym_id)
     if not gym:
         raise NotFoundError(f"Gym {gym_id} not found")
@@ -73,9 +78,10 @@ def get_todays_classes(
     request: Request,
     gym_id: int = Path(..., gt=0),
     current_user: dict = Depends(get_current_user),
+    gym_service: GymService = Depends(get_gym_service),
 ):
     """Get today's classes at a gym."""
-    gym_service = GymService()
+
     gym = gym_service.get_by_id(gym_id)
     if not gym:
         raise NotFoundError(f"Gym {gym_id} not found")

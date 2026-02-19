@@ -4,6 +4,7 @@ from unittest.mock import MagicMock
 
 import pytest
 
+from rivaflow.core.dependencies import get_whoop_service
 from rivaflow.core.exceptions import ExternalServiceError, NotFoundError
 
 
@@ -17,14 +18,12 @@ def enable_whoop(monkeypatch):
 
 
 @pytest.fixture()
-def mock_whoop_service(monkeypatch):
-    """Patch WhoopService so endpoints use a mock instance."""
+def mock_whoop_service(authenticated_client):
+    """Override get_whoop_service DI so endpoints use a mock instance."""
     svc = MagicMock()
-    monkeypatch.setattr(
-        "rivaflow.api.routes.integrations.WhoopService",
-        lambda: svc,
-    )
-    return svc
+    authenticated_client.app.dependency_overrides[get_whoop_service] = lambda: svc
+    yield svc
+    authenticated_client.app.dependency_overrides.pop(get_whoop_service, None)
 
 
 class TestWhoopStatus:
@@ -109,12 +108,12 @@ class TestWhoopSync:
     def test_sync_external_error(
         self, authenticated_client, test_user, mock_whoop_service
     ):
-        """Test sync returns 502 on external service failure."""
+        """Test sync returns 503 on external service failure."""
         mock_whoop_service.sync_workouts.side_effect = ExternalServiceError(
             "WHOOP API down"
         )
         response = authenticated_client.post("/api/v1/integrations/whoop/sync")
-        assert response.status_code == 502
+        assert response.status_code == 503
 
     def test_sync_requires_auth(self, client, temp_db):
         """Test WHOOP sync requires authentication."""

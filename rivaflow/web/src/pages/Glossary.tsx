@@ -4,10 +4,10 @@ import { usePageTitle } from '../hooks/usePageTitle';
 import { glossaryApi } from '../api/client';
 import { logger } from '../utils/logger';
 import type { Movement } from '../types';
-import { Book, Search, Plus, Trash2, Award } from 'lucide-react';
+import { Book, BookOpen, Search, Plus, Trash2, Award } from 'lucide-react';
 import ConfirmDialog from '../components/ConfirmDialog';
 import { useToast } from '../contexts/ToastContext';
-import { CardSkeleton } from '../components/ui';
+import { CardSkeleton, EmptyState } from '../components/ui';
 
 const CATEGORY_LABELS: Record<string, string> = {
   position: 'Positions',
@@ -456,9 +456,7 @@ export default function Glossary() {
       </div>
 
       {filteredMovements.length === 0 && (
-        <div className="text-center py-12 text-[var(--muted)]">
-          No techniques found matching your filters.
-        </div>
+        <EmptyState icon={BookOpen} title="No Techniques Found" description="No techniques found matching your filters. Try adjusting your search." />
       )}
 
       <ConfirmDialog

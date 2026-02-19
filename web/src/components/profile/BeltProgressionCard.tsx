@@ -1,4 +1,5 @@
 import { Award, Plus, Trash2, Edit2 } from 'lucide-react';
+import { EmptyState } from '../ui';
 import { BELT_GRADES } from '../../constants/belts';
 import { getLocalDateString } from '../../utils/date';
 import type { Profile, Grading, Friend } from '../../types';
@@ -328,9 +329,7 @@ export default function BeltProgressionCard({
           })}
         </div>
       ) : (
-        <p className="text-[var(--muted)] text-center py-6">
-          No gradings recorded yet. Click "Add Grading" to track your belt progression.
-        </p>
+        <EmptyState icon={Award} title="No Gradings Yet" description="Click 'Add Grading' to track your belt progression." />
       )}
     </div>
   );

@@ -5,9 +5,11 @@ Tests exception handling, validation errors, and error messages.
 """
 
 import os
+import sqlite3
 from datetime import date, timedelta
 
 import pytest
+from pydantic import ValidationError as PydanticValidationError
 
 # Set SECRET_KEY for testing
 os.environ.setdefault(
@@ -43,7 +45,7 @@ class TestSessionValidationErrors:
         # so use a date far enough in the future to trigger rejection
         future_date = date.today() + timedelta(days=7)
 
-        with pytest.raises(Exception):
+        with pytest.raises(PydanticValidationError):
             SessionCreate(
                 session_date=future_date,
                 class_type="gi",
@@ -57,7 +59,7 @@ class TestSessionValidationErrors:
         """Test invalid class type raises validation error."""
         from rivaflow.core.models import SessionCreate
 
-        with pytest.raises(Exception):
+        with pytest.raises(PydanticValidationError):
             SessionCreate(
                 session_date=date.today(),
                 class_type="invalid_type",
@@ -71,7 +73,7 @@ class TestSessionValidationErrors:
         """Test negative duration raises validation error."""
         from rivaflow.core.models import SessionCreate
 
-        with pytest.raises(Exception):
+        with pytest.raises(PydanticValidationError):
             SessionCreate(
                 session_date=date.today(),
                 class_type="gi",
@@ -86,7 +88,7 @@ class TestSessionValidationErrors:
         from rivaflow.core.models import SessionCreate
 
         # Test too low
-        with pytest.raises(Exception):
+        with pytest.raises(PydanticValidationError):
             SessionCreate(
                 session_date=date.today(),
                 class_type="gi",
@@ -97,7 +99,7 @@ class TestSessionValidationErrors:
             )
 
         # Test too high
-        with pytest.raises(Exception):
+        with pytest.raises(PydanticValidationError):
             SessionCreate(
                 session_date=date.today(),
                 class_type="gi",
@@ -111,7 +113,7 @@ class TestSessionValidationErrors:
         """Test empty gym name raises validation error."""
         from rivaflow.core.models import SessionCreate
 
-        with pytest.raises(Exception):
+        with pytest.raises(PydanticValidationError):
             SessionCreate(
                 session_date=date.today(),
                 class_type="gi",
@@ -272,7 +274,7 @@ class TestDatabaseConstraintErrors:
 
             try:
                 # Try to create duplicate
-                with pytest.raises(Exception):  # Database constraint error
+                with pytest.raises(sqlite3.IntegrityError):
                     cursor.execute(
                         convert_query("""
                         INSERT INTO users (email, hashed_password, created_at)
@@ -414,7 +416,7 @@ class TestErrorMessages:
         """Test validation error messages are clear."""
         from rivaflow.core.models import SessionCreate
 
-        with pytest.raises(Exception) as exc_info:
+        with pytest.raises(PydanticValidationError) as exc_info:
             SessionCreate(
                 session_date=date.today() + timedelta(days=7),
                 class_type="gi",

@@ -5,12 +5,14 @@ from datetime import date
 from fastapi import APIRouter, Depends, Request
 
 from rivaflow.api.rate_limit import limiter
-from rivaflow.core.dependencies import get_current_user
+from rivaflow.core.dependencies import (
+    get_current_user,
+    get_suggestion_engine,
+)
 from rivaflow.core.error_handling import route_error_handler
 from rivaflow.core.services.suggestion_engine import SuggestionEngine
 
 router = APIRouter()
-engine = SuggestionEngine()
 
 
 @router.get("/today")
@@ -20,6 +22,7 @@ def get_today_suggestion(
     request: Request,
     target_date: date | None = None,
     current_user: dict = Depends(get_current_user),
+    engine: SuggestionEngine = Depends(get_suggestion_engine),
 ):
     """Get today's training suggestion."""
     return engine.get_suggestion(user_id=current_user["id"], target_date=target_date)

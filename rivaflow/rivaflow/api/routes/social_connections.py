@@ -4,10 +4,15 @@ from fastapi import APIRouter, Body, Depends, Path, Query, Request, Response, st
 from pydantic import BaseModel, Field
 
 from rivaflow.api.rate_limit import limiter
-from rivaflow.core.dependencies import get_current_user
+from rivaflow.core.dependencies import (
+    get_current_user,
+    get_friend_suggestions_service,
+)
 from rivaflow.core.error_handling import route_error_handler
 from rivaflow.core.exceptions import NotFoundError, ValidationError
-from rivaflow.core.services.friend_suggestions_service import FriendSuggestionsService
+from rivaflow.core.services.friend_suggestions_service import (
+    FriendSuggestionsService,
+)
 from rivaflow.core.services.notification_service import NotificationService
 from rivaflow.core.services.social_service import SocialService
 
@@ -22,6 +27,7 @@ router = APIRouter(tags=["social"])
 def get_friend_suggestions(
     limit: int = Query(10, ge=1, le=50, description="Max number of suggestions"),
     current_user: dict = Depends(get_current_user),
+    service: FriendSuggestionsService = Depends(get_friend_suggestions_service),
 ):
     """
     Get friend suggestions based on AI scoring algorithm.
@@ -37,7 +43,6 @@ def get_friend_suggestions(
     Returns:
         List of suggested users with score and reasons
     """
-    service = FriendSuggestionsService()
     suggestions = service.get_suggestions(current_user["id"], limit=limit)
     return {
         "suggestions": suggestions,
@@ -50,6 +55,7 @@ def get_friend_suggestions(
 def browse_all_users(
     limit: int = Query(20, ge=1, le=50),
     current_user: dict = Depends(get_current_user),
+    service: FriendSuggestionsService = Depends(get_friend_suggestions_service),
 ):
     """
     Browse all discoverable users on the platform.
@@ -57,7 +63,6 @@ def browse_all_users(
     Used as a fallback when scoring produces no suggestions.
     Returns users not already connected, excluding self.
     """
-    service = FriendSuggestionsService()
     users = service.get_browsable_users(current_user["id"], limit=limit)
     return {"users": users, "count": len(users)}
 
@@ -67,6 +72,7 @@ def browse_all_users(
 def dismiss_friend_suggestion(
     suggested_user_id: int = Path(..., gt=0),
     current_user: dict = Depends(get_current_user),
+    service: FriendSuggestionsService = Depends(get_friend_suggestions_service),
 ):
     """
     Dismiss a friend suggestion.
@@ -77,7 +83,6 @@ def dismiss_friend_suggestion(
     Returns:
         Success status
     """
-    service = FriendSuggestionsService()
     dismissed = service.dismiss_suggestion(current_user["id"], suggested_user_id)
     return {"dismissed": dismissed}
 
@@ -86,7 +91,10 @@ def dismiss_friend_suggestion(
 @route_error_handler(
     "regenerate_suggestions", detail="Failed to regenerate suggestions"
 )
-def regenerate_friend_suggestions(current_user: dict = Depends(get_current_user)):
+def regenerate_friend_suggestions(
+    current_user: dict = Depends(get_current_user),
+    service: FriendSuggestionsService = Depends(get_friend_suggestions_service),
+):
     """
     Regenerate friend suggestions.
 
@@ -95,7 +103,6 @@ def regenerate_friend_suggestions(current_user: dict = Depends(get_current_user)
     Returns:
         Number of suggestions created
     """
-    service = FriendSuggestionsService()
     count = service.generate_suggestions(current_user["id"])
     return {
         "suggestions_created": count,

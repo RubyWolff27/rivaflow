@@ -11,7 +11,10 @@ from fastapi import (
 )
 
 from rivaflow.api.rate_limit import limiter
-from rivaflow.core.dependencies import get_current_user
+from rivaflow.core.dependencies import (
+    get_current_user,
+    get_user_service,
+)
 from rivaflow.core.error_handling import route_error_handler
 from rivaflow.core.exceptions import ValidationError
 from rivaflow.core.services.social_service import SocialService
@@ -143,6 +146,7 @@ def search_users(
     request: Request,
     q: str = Query(..., min_length=2),
     current_user: dict = Depends(get_current_user),
+    user_service: UserService = Depends(get_user_service),
 ):
     """
     Search for users by name or email.
@@ -155,9 +159,6 @@ def search_users(
     """
     if not q or len(q) < 2:
         return {"users": []}
-
-    # SQL-level search with LIMIT (avoids loading all users into memory)
-    user_service = UserService()
     filtered_users = user_service.search_users(
         q, limit=21, exclude_user_id=current_user["id"]
     )[:20]
