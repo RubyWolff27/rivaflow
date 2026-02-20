@@ -28,6 +28,8 @@ export default function Feed() {
     feed,
     loading,
     loadingMore,
+    error,
+    retry,
     handleLike,
     handleUnlike,
     handleDeleteRest,
@@ -133,7 +135,19 @@ export default function Feed() {
         onFilterChange={setSessionFilter}
       />
 
-      {feed && feed.items.length === 0 ? (
+      {!loading && error && !feed ? (
+        <div className="card text-center py-12">
+          <Activity className="w-16 h-16 text-[var(--muted)] mx-auto mb-4" />
+          <p className="text-[var(--muted)] text-lg">Couldn't load activity feed</p>
+          <button
+            onClick={retry}
+            className="text-sm mt-2 underline"
+            style={{ color: 'var(--accent)' }}
+          >
+            Try again
+          </button>
+        </div>
+      ) : feed && feed.items.length === 0 ? (
         <div className="card text-center py-12">
           <Activity className="w-16 h-16 text-[var(--muted)] mx-auto mb-4" />
           <p className="text-[var(--muted)] text-lg">

@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, memo } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { Home, BarChart3, Users, Activity, Shield, Sparkles, Target, Settings } from 'lucide-react';
+import { Home, BarChart3, Users, Activity, Shield, Sparkles, Target, Settings, Calendar } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import QuickLog from './QuickLog';
 import Sidebar from './Sidebar';
@@ -80,6 +80,7 @@ const Layout = memo(function Layout({ children }: { children: React.ReactNode })
     {
       label: 'Training',
       items: [
+        { name: 'Sessions', href: '/sessions', icon: Calendar },
         { name: 'Grapple AI', href: '/grapple', icon: Sparkles },
         { name: 'My Game', href: '/my-game', icon: Target },
         { name: 'Coach Settings', href: '/coach-settings', icon: Settings },

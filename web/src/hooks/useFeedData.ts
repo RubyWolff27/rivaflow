@@ -17,11 +17,13 @@ export function useFeedData(daysBack: number, view: 'my' | 'friends') {
   const [feed, setFeed] = useState<FeedResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
+  const [error, setError] = useState(false);
 
   useEffect(() => {
     const controller = new AbortController();
     const doLoad = async () => {
       setLoading(true);
+      setError(false);
       try {
         if (view === 'my') {
           const response = await feedApi.getActivity({
@@ -41,6 +43,7 @@ export function useFeedData(daysBack: number, view: 'my' | 'friends') {
         if (!controller.signal.aborted) {
           logger.error('Error loading feed:', error);
           toast.error('Failed to load feed');
+          setError(true);
         }
       } finally {
         if (!controller.signal.aborted) setLoading(false);
@@ -52,6 +55,7 @@ export function useFeedData(daysBack: number, view: 'my' | 'friends') {
 
   const loadFeed = async () => {
     setLoading(true);
+    setError(false);
     try {
       if (view === 'my') {
         const response = await feedApi.getActivity({
@@ -70,6 +74,7 @@ export function useFeedData(daysBack: number, view: 'my' | 'friends') {
     } catch (error) {
       logger.error('Error loading feed:', error);
       toast.error('Failed to load feed');
+      setError(true);
     } finally {
       setLoading(false);
     }
@@ -190,6 +195,8 @@ export function useFeedData(daysBack: number, view: 'my' | 'friends') {
     feed,
     loading,
     loadingMore,
+    error,
+    retry: loadFeed,
     handleLike,
     handleUnlike,
     handleDeleteRest,

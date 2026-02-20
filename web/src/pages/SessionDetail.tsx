@@ -586,7 +586,9 @@ export default function SessionDetail() {
                   ? 'HR zone data is still processing on WHOOP. Try syncing again later.'
                   : whoopCtx.workout.score_state === 'UNSCORABLE'
                     ? 'This workout could not be scored by WHOOP.'
-                    : 'HR zone data not available. Try syncing your WHOOP data.'}
+                    : (session.whoop_strain || session.whoop_calories || session.whoop_avg_hr || session.whoop_max_hr)
+                      ? 'HR zone breakdown is not available for this session.'
+                      : 'HR zone data not available. Try syncing your WHOOP data.'}
               </p>
             )}
           </div>
