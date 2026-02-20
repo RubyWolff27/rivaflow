@@ -174,6 +174,9 @@ class StreakRepository(BaseRepository):
         a current streak cannot span more than 60 days without a gap,
         and longest_streak is preserved from the existing record.
         """
+        from datetime import timedelta
+
+        cutoff = (date.today() - timedelta(days=60)).isoformat()
         with get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(
@@ -181,10 +184,10 @@ class StreakRepository(BaseRepository):
                     SELECT DISTINCT check_date
                     FROM daily_checkins
                     WHERE user_id = ?
-                      AND check_date >= date('now', '-60 days')
+                      AND check_date >= ?
                     ORDER BY check_date DESC
                     """),
-                (user_id,),
+                (user_id, cutoff),
             )
             rows = cursor.fetchall()
 
