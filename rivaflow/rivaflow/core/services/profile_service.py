@@ -284,7 +284,7 @@ class ProfileService:
             storage = get_storage()
             storage.delete("avatars", filename)
         except Exception as e:
-            logger.warning(f"Error deleting avatar file {filename}: {e}")
+            logger.warning("Error deleting avatar file %s: %s", filename, e)
 
         # Clear avatar_url in database
         self.user_repo.update_avatar(user_id, None)

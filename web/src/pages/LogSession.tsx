@@ -6,6 +6,7 @@ import { usePageTitle } from '../hooks/usePageTitle';
 import { sessionsApi, readinessApi, profileApi, friendsApi, socialApi, glossaryApi, restApi, whoopApi } from '../api/client';
 import { logger } from '../utils/logger';
 import type { Readiness, Movement } from '../types';
+import type { SessionFormData } from '../hooks/useSessionForm';
 import { CheckCircle, Mic, MicOff, ChevronDown, ChevronUp } from 'lucide-react';
 import WhoopMatchModal from '../components/WhoopMatchModal';
 import GymSelector from '../components/GymSelector';
@@ -91,7 +92,7 @@ export default function LogSession() {
         const movementsData = movementsRes.data as Movement[] | { movements: Movement[] };
         form.setMovements(Array.isArray(movementsData) ? movementsData : movementsData?.movements || []);
 
-        const updates: Record<string, string | number | null> = {};
+        const updates: Partial<Pick<SessionFormData, 'gym_name' | 'gym_id' | 'location' | 'instructor_id' | 'instructor_name' | 'class_type'>> = {};
         if (profileRes.data?.default_gym) {
           updates.gym_name = profileRes.data.default_gym;
         }
@@ -129,8 +130,8 @@ export default function LogSession() {
             setSkippedReadiness(true);
             setReadinessAlreadyLogged(true);
           }
-        } catch {
-          // No readiness logged today
+        } catch (err) {
+          logger.debug('No readiness logged today', err);
         }
 
         try {
@@ -138,8 +139,8 @@ export default function LogSession() {
           if (!controller.signal.aborted && whoopRes.data?.connected) {
             form.setWhoopConnected(true);
           }
-        } catch {
-          // Feature flag off or not available
+        } catch (err) {
+          logger.debug('WHOOP feature flag off or not available', err);
         }
       } catch (error) {
         if (!controller.signal.aborted) {
@@ -150,7 +151,8 @@ export default function LogSession() {
     };
     doLoad();
     return () => { controller.abort(); };
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- mount-only: loads profile defaults, readiness, WHOOP status
+  }, [toast]);
 
   const handleSkipReadiness = useCallback(() => {
     setSkippedReadiness(true);
@@ -173,7 +175,7 @@ export default function LogSession() {
       }
 
       if (!skippedReadiness) {
-        const readinessPayload: Partial<Readiness> & Record<string, unknown> = {
+        const readinessPayload: Partial<Readiness> = {
           ...readinessData,
           weight_kg: readinessData.weight_kg ? parseFloat(readinessData.weight_kg as string) : undefined,
         };

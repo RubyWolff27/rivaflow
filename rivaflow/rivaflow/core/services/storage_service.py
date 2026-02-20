@@ -97,14 +97,14 @@ class _S3Backend:
             Body=content,
             ContentType=content_type,
         )
-        logger.info(f"Uploaded {key} to S3 bucket {self._bucket}")
+        logger.info("Uploaded %s to S3 bucket %s", key, self._bucket)
         return f"{self._public_url}/{key}"
 
     def delete(self, category: str, filename: str) -> None:
         """Delete file from S3."""
         key = f"{category}/{filename}"
         self._client.delete_object(Bucket=self._bucket, Key=key)
-        logger.info(f"Deleted {key} from S3 bucket {self._bucket}")
+        logger.info("Deleted %s from S3 bucket %s", key, self._bucket)
 
     def get_url(self, category: str, filename: str) -> str:
         """Return public URL for the file."""
@@ -125,5 +125,5 @@ def get_storage():
     if _storage is None:
         _storage = _get_backend()
         backend_type = "local" if _storage.is_local else "S3"
-        logger.info(f"Storage backend initialised: {backend_type}")
+        logger.info("Storage backend initialised: %s", backend_type)
     return _storage

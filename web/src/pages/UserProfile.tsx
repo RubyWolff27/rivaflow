@@ -91,8 +91,8 @@ export default function UserProfile() {
           if (!cancelled) {
             setFriendshipStatus(statusRes.data.status as FriendshipStatus);
           }
-        } catch {
-          // Ignore — defaults to 'none'
+        } catch (err) {
+          logger.debug('Friendship status unavailable, defaults to none', err);
         }
       } catch (err: unknown) {
         if (!cancelled) {
@@ -120,8 +120,8 @@ export default function UserProfile() {
         try {
           await socialApi.follow(profile.id);
           setProfile({ ...profile, is_following: true, follower_count: (profile.follower_count ?? 0) + 1 });
-        } catch {
-          // Follow is best-effort
+        } catch (err) {
+          logger.debug('Follow is best-effort', err);
         }
       }
       setFriendshipStatus('pending_sent');

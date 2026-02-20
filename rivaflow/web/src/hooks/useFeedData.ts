@@ -51,9 +51,9 @@ export function useFeedData(daysBack: number, view: 'my' | 'friends') {
     };
     doLoad();
     return () => { controller.abort(); };
-  }, [daysBack, view]);
+  }, [daysBack, view, toast]);
 
-  const loadFeed = async () => {
+  const loadFeed = useCallback(async () => {
     setLoading(true);
     setError(false);
     try {
@@ -78,7 +78,7 @@ export function useFeedData(daysBack: number, view: 'my' | 'friends') {
     } finally {
       setLoading(false);
     }
-  };
+  }, [daysBack, view, toast]);
 
   const handleLike = useCallback(async (activityType: string, activityId: number) => {
     if (!feed) return;
@@ -99,7 +99,7 @@ export function useFeedData(daysBack: number, view: 'my' | 'friends') {
       toast.error('Failed to like activity');
       loadFeed();
     }
-  }, [feed]);
+  }, [feed, loadFeed, toast]);
 
   const handleUnlike = useCallback(async (activityType: string, activityId: number) => {
     if (!feed) return;
@@ -120,7 +120,7 @@ export function useFeedData(daysBack: number, view: 'my' | 'friends') {
       toast.error('Failed to update like');
       loadFeed();
     }
-  }, [feed]);
+  }, [feed, loadFeed, toast]);
 
   const handleDeleteRest = useCallback(async (checkinId: number) => {
     if (!feed) return;
@@ -138,7 +138,7 @@ export function useFeedData(daysBack: number, view: 'my' | 'friends') {
       toast.error('Failed to delete rest day');
       loadFeed();
     }
-  }, [feed]);
+  }, [feed, loadFeed, toast]);
 
   const handleVisibilityChange = useCallback(async (activityType: string, activityId: number, visibility: string) => {
     if (!feed) return;
@@ -166,7 +166,7 @@ export function useFeedData(daysBack: number, view: 'my' | 'friends') {
       toast.error('Failed to update visibility');
       loadFeed();
     }
-  }, [feed]);
+  }, [feed, loadFeed, toast]);
 
   const handleLoadMore = useCallback(async () => {
     if (!feed || loadingMore) return;
@@ -189,7 +189,7 @@ export function useFeedData(daysBack: number, view: 'my' | 'friends') {
     } finally {
       setLoadingMore(false);
     }
-  }, [feed, loadingMore, view, daysBack]);
+  }, [feed, loadingMore, view, daysBack, toast]);
 
   return {
     feed,

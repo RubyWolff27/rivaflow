@@ -80,8 +80,8 @@ export default function Friends() {
         if (friendsRes.status === 'fulfilled') {
           setSocialFriends(friendsRes.value.data.friends || []);
         }
-      } catch {
-        // Best-effort
+      } catch (err) {
+        logger.debug('Social data load best-effort', err);
       }
     };
     loadSocial();
@@ -101,7 +101,8 @@ export default function Friends() {
         friends_since: new Date().toISOString(),
       }]);
       toast.success(`You and ${request.requester_first_name} are now friends!`);
-    } catch {
+    } catch (err) {
+      logger.warn('Failed to accept friend request', err);
       toast.error('Failed to accept friend request');
     } finally {
       setRequestActionLoading(null);
@@ -114,7 +115,8 @@ export default function Friends() {
       await socialApi.declineFriendRequest(request.id);
       setPendingRequests((prev) => prev.filter((r) => r.id !== request.id));
       toast.success('Friend request declined');
-    } catch {
+    } catch (err) {
+      logger.warn('Failed to decline friend request', err);
       toast.error('Failed to decline friend request');
     } finally {
       setRequestActionLoading(null);

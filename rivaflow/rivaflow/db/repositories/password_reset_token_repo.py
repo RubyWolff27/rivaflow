@@ -6,9 +6,10 @@ from datetime import datetime, timedelta
 
 from rivaflow.core.time_utils import utcnow
 from rivaflow.db.database import convert_query, get_connection
+from rivaflow.db.repositories.base_repository import BaseRepository
 
 
-class PasswordResetTokenRepository:
+class PasswordResetTokenRepository(BaseRepository):
     """Data access layer for password reset tokens."""
 
     @staticmethod

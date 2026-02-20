@@ -155,6 +155,12 @@ class Settings:
             self.CORS_ORIGINS: list[str] = [
                 origin.strip() for origin in origins.split(",")
             ]
+        elif self.IS_PRODUCTION:
+            raise ValueError(
+                "ALLOWED_ORIGINS environment variable is required in production. "
+                "Set it to a comma-separated list of allowed origins, e.g. "
+                "'https://rivaflow.app,https://www.rivaflow.app'"
+            )
         else:
             self.CORS_ORIGINS: list[str] = [
                 "http://localhost:5173",

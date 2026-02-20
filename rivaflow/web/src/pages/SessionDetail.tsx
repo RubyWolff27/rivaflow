@@ -48,8 +48,8 @@ export default function SessionDetail() {
       try {
         const res = await whoopApi.sessionContext(parseInt(id ?? '0'));
         if (!cancelled) setWhoopCtx(res.data ?? null);
-      } catch {
-        // WHOOP context not available
+      } catch (err) {
+        logger.debug('WHOOP context not available', err);
       }
     };
 
@@ -71,7 +71,8 @@ export default function SessionDetail() {
         });
         toast.success('Score recalculated');
       }
-    } catch {
+    } catch (err) {
+      logger.warn('Failed to recalculate score', err);
       toast.error('Failed to recalculate score');
     } finally {
       setRecalculating(false);

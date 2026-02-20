@@ -54,7 +54,8 @@ export default function FindFriends() {
               try {
                 const statusResponse = await socialApi.getFriendshipStatus(user.id);
                 return { ...user, friendship_status: statusResponse.data.status };
-              } catch {
+              } catch (err) {
+                logger.debug('Friendship status unavailable for user', err);
                 return { ...user, friendship_status: 'none' };
               }
             })
@@ -91,7 +92,8 @@ export default function FindFriends() {
               try {
                 const statusResponse = await socialApi.getFriendshipStatus(user.id);
                 return { ...user, friendship_status: statusResponse.data.status };
-              } catch {
+              } catch (err) {
+                logger.debug('Friendship status unavailable for recommended user', err);
                 return { ...user, friendship_status: 'none' };
               }
             })

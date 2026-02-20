@@ -4,7 +4,6 @@ import logging
 from datetime import date
 
 from fastapi import APIRouter, BackgroundTasks, Depends, Request, status
-from pydantic import BaseModel, Field
 
 from rivaflow.api.rate_limit import limiter
 from rivaflow.api.response_models import ReadinessResponse
@@ -13,7 +12,7 @@ from rivaflow.core.dependencies import (
     get_readiness_service,
 )
 from rivaflow.core.error_handling import route_error_handler
-from rivaflow.core.models import ReadinessCreate
+from rivaflow.core.models import ReadinessCreate, WeightLogRequest
 from rivaflow.core.services.readiness_service import ReadinessService
 
 logger = logging.getLogger(__name__)
@@ -128,13 +127,6 @@ def get_readiness_range(
     return service.get_readiness_range(
         user_id=current_user["id"], start_date=start_date, end_date=end_date
     )
-
-
-class WeightLogRequest(BaseModel):
-    """Weight logging request model."""
-
-    weight_kg: float = Field(..., ge=20, le=400)
-    check_date: str | None = None
 
 
 @router.post("/weight")

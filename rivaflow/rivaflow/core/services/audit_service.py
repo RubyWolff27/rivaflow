@@ -59,7 +59,7 @@ class AuditService:
             return log_id
 
         except (ConnectionError, OSError) as e:
-            logger.error(f"Failed to create audit log: {e}")
+            logger.error("Failed to create audit log: %s", e)
             # Don't raise - we don't want audit logging failures to break operations
             # But log the error for monitoring
             return 0
@@ -98,7 +98,7 @@ class AuditService:
             )
 
         except (ConnectionError, OSError) as e:
-            logger.error(f"Failed to retrieve audit logs: {e}")
+            logger.error("Failed to retrieve audit logs: %s", e)
             return []
 
     @staticmethod
@@ -129,7 +129,7 @@ class AuditService:
             )
 
         except (ConnectionError, OSError) as e:
-            logger.error(f"Failed to count audit logs: {e}")
+            logger.error("Failed to count audit logs: %s", e)
             return 0
 
     @staticmethod
@@ -148,7 +148,7 @@ class AuditService:
             return AuditLogRepository.get_user_activity_summary(user_id, days)
 
         except (ConnectionError, OSError) as e:
-            logger.error(f"Failed to get user activity summary: {e}")
+            logger.error("Failed to get user activity summary: %s", e)
             return {
                 "user_id": user_id,
                 "days": days,

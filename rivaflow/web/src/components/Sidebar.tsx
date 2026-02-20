@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Plus, User, LogOut, ChevronLeft, ChevronRight, ChevronDown } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
+import { logger } from '../utils/logger';
 
 interface NavSection {
   label: string;
@@ -21,22 +22,22 @@ export default function Sidebar({ navigation, moreNavSections, onQuickLog }: Sid
   const navigate = useNavigate();
   const { user, logout } = useAuth();
   const [collapsed, setCollapsed] = useState(() => {
-    try { return localStorage.getItem('sidebar-collapsed') === 'true'; } catch { return false; }
+    try { return localStorage.getItem('sidebar-collapsed') === 'true'; } catch (err) { logger.debug('localStorage read failed for sidebar-collapsed', err); return false; }
   });
   const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>(() => {
     try {
       const stored = localStorage.getItem('sidebar-sections');
       if (stored) return JSON.parse(stored);
-    } catch { /* noop */ }
+    } catch (err) { logger.debug('localStorage read failed for sidebar-sections', err); }
     return Object.fromEntries(DEFAULT_EXPANDED.map(s => [s, true]));
   });
 
   useEffect(() => {
-    try { localStorage.setItem('sidebar-collapsed', String(collapsed)); } catch { /* noop */ }
+    try { localStorage.setItem('sidebar-collapsed', String(collapsed)); } catch (err) { logger.debug('localStorage write failed for sidebar-collapsed', err); }
   }, [collapsed]);
 
   useEffect(() => {
-    try { localStorage.setItem('sidebar-sections', JSON.stringify(expandedSections)); } catch { /* noop */ }
+    try { localStorage.setItem('sidebar-sections', JSON.stringify(expandedSections)); } catch (err) { logger.debug('localStorage write failed for sidebar-sections', err); }
   }, [expandedSections]);
 
   const toggleSection = (label: string) => {

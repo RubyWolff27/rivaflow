@@ -63,7 +63,6 @@ jobs:
 
     - name: Run inner test suite (rivaflow/tests/)
       if: always()
-      continue-on-error: true
       env:
         DATABASE_URL: postgresql://rivaflow_test:test_password@localhost:5432/rivaflow_test
         SECRET_KEY: test-secret-key-for-ci-only-min-32-chars
@@ -139,6 +138,7 @@ jobs:
       uses: actions/setup-python@v6
       with:
         python-version: '3.11'
+        cache: 'pip'
 
     - name: Install linting tools
       run: |

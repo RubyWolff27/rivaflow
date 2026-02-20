@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { CheckCircle2, Circle, ChevronRight } from 'lucide-react';
 import { Card } from '../ui';
 import { profileApi } from '../../api/client';
+import { logger } from '../../utils/logger';
 
 interface Step {
   key: string;
@@ -40,8 +41,8 @@ export default function GettingStarted() {
           setCompleted(res.data.completed);
           setTotal(res.data.total);
         }
-      } catch {
-        // Endpoint not available — hide widget
+      } catch (err) {
+        logger.debug('Onboarding endpoint not available', err);
       } finally {
         if (!cancelled) setLoading(false);
       }

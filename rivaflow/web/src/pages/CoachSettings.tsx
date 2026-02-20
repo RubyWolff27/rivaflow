@@ -4,6 +4,7 @@ import { usePageTitle } from '../hooks/usePageTitle';
 import { ArrowLeft, Sparkles } from 'lucide-react';
 import { PrimaryButton } from '../components/ui';
 import { coachPreferencesApi, profileApi } from '../api/client';
+import { logger } from '../utils/logger';
 import { useToast } from '../contexts/ToastContext';
 import CoachSettingsForm from '../components/coach/CoachSettingsForm';
 import InjuryManager from '../components/coach/InjuryManager';
@@ -67,7 +68,7 @@ export default function CoachSettings() {
           const profileRes = await profileApi.get();
           const p = profileRes.data;
           if (p?.current_grade) setCurrentGrade(p.current_grade);
-        } catch { /* profile not set yet */ }
+        } catch (err) { logger.debug('Profile not set yet', err); }
 
         const res = await coachPreferencesApi.get();
         const raw = res.data as CoachPreferencesData;
@@ -101,8 +102,8 @@ export default function CoachSettings() {
           setGiNogiPreference(d.gi_nogi_preference || 'both');
           setGiBiasPct(d.gi_bias_pct != null ? d.gi_bias_pct : 50);
         }
-      } catch {
-        // First time — use defaults
+      } catch (err) {
+        logger.debug('Coach preferences first time — use defaults', err);
       } finally {
         setLoading(false);
       }
@@ -159,7 +160,8 @@ export default function CoachSettings() {
         gi_bias_pct: giNogiPreference === 'both' ? giBiasPct : 50,
       });
       toast.success('Coach preferences saved');
-    } catch {
+    } catch (err) {
+      logger.warn('Failed to save preferences', err);
       toast.error('Failed to save preferences');
     } finally {
       setSaving(false);

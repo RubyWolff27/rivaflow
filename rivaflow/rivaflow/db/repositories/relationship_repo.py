@@ -1,9 +1,10 @@
 """Repository for user relationships (social graph) data access."""
 
 from rivaflow.db.database import convert_query, execute_insert, get_connection
+from rivaflow.db.repositories.base_repository import BaseRepository
 
 
-class UserRelationshipRepository:
+class UserRelationshipRepository(BaseRepository):
     """Data access layer for user relationships (following/followers)."""
 
     @staticmethod
@@ -270,10 +271,3 @@ class UserRelationshipRepository:
             )
             rows = cursor.fetchall()
             return [row["following_user_id"] for row in rows]
-
-    @staticmethod
-    def _row_to_dict(row) -> dict:
-        """Convert a database row to a dictionary."""
-        if not row:
-            return {}
-        return dict(row)

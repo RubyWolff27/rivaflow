@@ -120,7 +120,7 @@ def get_usage_stats(
     user_id = current_user["id"]
     user_tier = current_user.get("subscription_tier", "free")
 
-    logger.info(f"Fetching usage stats for user {user_id}")
+    logger.info("Fetching usage stats for user %s", user_id)
 
     # Get token usage stats
     token_monitor = GrappleTokenMonitor()

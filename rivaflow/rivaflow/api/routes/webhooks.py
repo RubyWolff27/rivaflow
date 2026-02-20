@@ -95,7 +95,7 @@ async def whoop_webhook(request: Request):
     # Look up internal user
     user_id = _lookup_user_by_whoop_id(whoop_user_id)
     if not user_id:
-        logger.info(f"Webhook for unknown whoop_user_id={whoop_user_id}")
+        logger.info("Webhook for unknown whoop_user_id=%s", whoop_user_id)
         return {"status": "ignored", "reason": "unknown user"}
 
     # Dispatch based on event type
@@ -115,7 +115,7 @@ async def whoop_webhook(request: Request):
                 f"body_measurement.updated for user {user_id} (not yet handled)"
             )
         else:
-            logger.info(f"Unhandled WHOOP event type: {event_type}")
+            logger.info("Unhandled WHOOP event type: %s", event_type)
     except Exception:
         logger.error(
             f"Error processing webhook {event_type} for user {user_id}",

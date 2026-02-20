@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { analyticsApi } from '../../api/client';
+import { logger } from '../../utils/logger';
 import { Heart, Activity, TrendingDown, TrendingUp, Moon, Zap, Shield, Brain } from 'lucide-react';
 import { Card, CardSkeleton } from '../ui';
 
@@ -131,8 +132,8 @@ export default function WhoopAnalyticsTab({ days = 90 }: Props) {
           setSleepDebt(debtRes.data);
           setReadinessModel(readyRes.data);
         }
-      } catch {
-        if (!cancelled) setError('Failed to load WHOOP analytics');
+      } catch (err) {
+        if (!cancelled) { logger.warn('Failed to load WHOOP analytics', err); setError('Failed to load WHOOP analytics'); }
       } finally {
         if (!cancelled) setLoading(false);
       }

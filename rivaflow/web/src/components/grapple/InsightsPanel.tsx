@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useToast } from '../../contexts/ToastContext';
 import { grappleApi, getErrorMessage } from '../../api/client';
+import { logger } from '../../utils/logger';
 import type { AIInsight } from '../../types';
 import InsightCard from './InsightCard';
 
@@ -16,8 +17,8 @@ export default function InsightsPanel() {
       try {
         const response = await grappleApi.getInsights({ limit: 10 });
         if (!cancelled) setInsights(response.data.insights || []);
-      } catch {
-        // Insights not available
+      } catch (err) {
+        logger.debug('Insights not available', err);
       } finally {
         if (!cancelled) setLoading(false);
       }

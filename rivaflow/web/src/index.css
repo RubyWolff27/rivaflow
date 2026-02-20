@@ -2,6 +2,31 @@
 @tailwind components;
 @tailwind utilities;
 
+/*
+ * RIVAFLOW CSS Architecture
+ * -------------------------
+ * Three-layer structure (Tailwind convention):
+ *   @layer base      — Design tokens (CSS custom properties), global resets, body defaults
+ *   @layer components — Reusable classes: .card, .btn-primary, .btn-secondary, .input, .label
+ *   @layer utilities  — One-off helpers: .text-muted, .accent-badge, .sr-only, .scrollbar-hide
+ *
+ * Design tokens:
+ *   Layout:  --bg, --surface, --surfaceElev
+ *   Text:    --text, --muted
+ *   Border:  --border
+ *   Brand:   --accent, --accentPressed, --accent-rgb
+ *   Status:  --primary, --success, --danger, --warning, --error (+ -bg variants)
+ *
+ * Dark mode: @media (prefers-color-scheme: dark) overrides the same custom properties.
+ *
+ * Conventions:
+ *   - Tailwind for layout/spacing (flex, grid, p-*, m-*, rounded-*)
+ *   - CSS custom properties for colors (never raw hex in components)
+ *   - .card / .card-hero / .card-compact for surface containers (14px radius)
+ *   - .input / .label for form elements
+ *   - .btn-primary / .btn-secondary for actions
+ */
+
 @layer base {
   /* RIVAFLOW Design Tokens - Performance Athlete + Minimal Premium */
   :root {
@@ -37,7 +62,7 @@
       --surfaceElev: #171C2A;
       --text: #F4F6FA;
       --muted: rgba(244, 246, 250, 0.78);
-      --border: rgba(244, 246, 250, 0.08);
+      --border: rgba(244, 246, 250, 0.12);
       --accent: #FF4D2D;
       --accentPressed: #E63F24;
 

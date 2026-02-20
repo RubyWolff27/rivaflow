@@ -2,24 +2,10 @@
 
 import json
 from datetime import date, datetime
-from typing import Any
 
 from rivaflow.core.settings import settings
 from rivaflow.db.database import convert_query, execute_insert, get_connection
-
-
-def _pg_bool(value: bool) -> Any:
-    """Adapt a Python bool for PostgreSQL INTEGER or BOOLEAN columns.
-
-    For PostgreSQL: returns string '0' or '1'. PG's assignment cast
-    converts text to either INTEGER or BOOLEAN, so this works regardless
-    of the column's current type on production.
-    For SQLite: returns int (1/0) since SQLite has no boolean type.
-    """
-    if settings.DB_TYPE == "postgresql":
-        return str(int(value))
-    return int(value)
-
+from rivaflow.db.repositories.base_repository import BaseRepository
 
 # Explicit column list for sessions table (avoids SELECT *)
 _SESSION_COLS = (
@@ -38,7 +24,7 @@ _SESSION_COLS = (
 )
 
 
-class SessionRepository:
+class SessionRepository(BaseRepository):
     """Data access layer for training sessions."""
 
     @staticmethod
@@ -116,7 +102,7 @@ class SessionRepository:
                     defenses_attempted,
                     defenses_successful,
                     source,
-                    _pg_bool(needs_review),
+                    bool(needs_review),
                 ),
             )
 
@@ -223,7 +209,7 @@ class SessionRepository:
                 "techniques": lambda v: (
                     json.dumps(v) if v is not None else json.dumps([])
                 ),
-                "needs_review": lambda v: _pg_bool(bool(v)),
+                "needs_review": lambda v: bool(v),
                 "score_breakdown": lambda v: (
                     json.dumps(v) if isinstance(v, dict) else v
                 ),
@@ -352,32 +338,23 @@ class SessionRepository:
             return [SessionRepository._row_to_dict(row) for row in cursor.fetchall()]
 
     @staticmethod
-    def list_by_user(user_id: int, limit: int = None) -> list[dict]:
-        """Get all sessions for a user.
+    def list_by_user(user_id: int, limit: int = 200) -> list[dict]:
+        """Get sessions for a user.
 
         Args:
             user_id: User ID
-            limit: Optional limit on number of sessions to return
+            limit: Maximum sessions to return (default 200)
         """
         with get_connection() as conn:
             cursor = conn.cursor()
-            if limit:
-                cursor.execute(
-                    convert_query(
-                        f"SELECT {_SESSION_COLS} FROM sessions"
-                        " WHERE user_id = ? ORDER BY session_date DESC"
-                        " LIMIT ?"
-                    ),
-                    (user_id, limit),
-                )
-            else:
-                cursor.execute(
-                    convert_query(
-                        f"SELECT {_SESSION_COLS} FROM sessions"
-                        " WHERE user_id = ? ORDER BY session_date DESC"
-                    ),
-                    (user_id,),
-                )
+            cursor.execute(
+                convert_query(
+                    f"SELECT {_SESSION_COLS} FROM sessions"
+                    " WHERE user_id = ? ORDER BY session_date DESC"
+                    " LIMIT ?"
+                ),
+                (user_id, limit),
+            )
             return [SessionRepository._row_to_dict(row) for row in cursor.fetchall()]
 
     @staticmethod
@@ -569,37 +546,59 @@ class SessionRepository:
 
     @staticmethod
     def get_adjacent_ids(user_id: int, session_id: int) -> dict:
-        """Get previous and next session IDs using window functions."""
+        """Get previous and next session IDs for navigation.
+
+        Uses two simple queries instead of a window function over the
+        entire user session history, which is cheaper for large tables.
+        """
         with get_connection() as conn:
             cursor = conn.cursor()
-            cursor.execute(
-                convert_query("""
-                    WITH ranked AS (
-                        SELECT
-                            id,
-                            LAG(id) OVER (
-                                ORDER BY session_date DESC, id DESC
-                            ) AS next_id,
-                            LEAD(id) OVER (
-                                ORDER BY session_date DESC, id DESC
-                            ) AS prev_id
-                        FROM sessions
-                        WHERE user_id = ?
-                    )
-                    SELECT next_id, prev_id
-                    FROM ranked
-                    WHERE id = ?
-                """),
-                (user_id, session_id),
-            )
-            row = cursor.fetchone()
 
-        if not row:
-            return {"previous_session_id": None, "next_session_id": None}
+            # Get current session's date for ordering context
+            cursor.execute(
+                convert_query(
+                    "SELECT session_date FROM sessions" " WHERE id = ? AND user_id = ?"
+                ),
+                (session_id, user_id),
+            )
+            current = cursor.fetchone()
+            if not current:
+                return {
+                    "previous_session_id": None,
+                    "next_session_id": None,
+                }
+
+            cur_date = current["session_date"]
+
+            # Previous (older) session
+            cursor.execute(
+                convert_query(
+                    "SELECT id FROM sessions"
+                    " WHERE user_id = ?"
+                    "   AND (session_date < ? OR (session_date = ? AND id < ?))"
+                    " ORDER BY session_date DESC, id DESC"
+                    " LIMIT 1"
+                ),
+                (user_id, cur_date, cur_date, session_id),
+            )
+            prev_row = cursor.fetchone()
+
+            # Next (newer) session
+            cursor.execute(
+                convert_query(
+                    "SELECT id FROM sessions"
+                    " WHERE user_id = ?"
+                    "   AND (session_date > ? OR (session_date = ? AND id > ?))"
+                    " ORDER BY session_date ASC, id ASC"
+                    " LIMIT 1"
+                ),
+                (user_id, cur_date, cur_date, session_id),
+            )
+            next_row = cursor.fetchone()
 
         return {
-            "previous_session_id": row["prev_id"],
-            "next_session_id": row["next_id"],
+            "previous_session_id": prev_row["id"] if prev_row else None,
+            "next_session_id": next_row["id"] if next_row else None,
         }
 
     @staticmethod
@@ -630,46 +629,40 @@ class SessionRepository:
 
     @staticmethod
     def get_session_techniques_with_names(user_id: int, session_id: int) -> list[dict]:
-        """Get techniques for a session with movement_id, name, and total count."""
+        """Get techniques for a session with movement_id, name, and total count.
+
+        Uses a single query with a correlated subquery instead of N+1.
+        """
         with get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(
                 convert_query("""
-                    SELECT DISTINCT st.movement_id, mg.name
+                    SELECT
+                        st.movement_id,
+                        mg.name,
+                        (
+                            SELECT COUNT(DISTINCT st2.session_id)
+                            FROM session_techniques st2
+                            JOIN sessions s2 ON st2.session_id = s2.id
+                            WHERE st2.movement_id = st.movement_id
+                              AND s2.user_id = ?
+                        ) AS session_count
                     FROM session_techniques st
                     JOIN sessions s ON st.session_id = s.id
                     JOIN movements_glossary mg ON st.movement_id = mg.id
                     WHERE st.session_id = ? AND s.user_id = ?
+                    GROUP BY st.movement_id, mg.name
                 """),
-                (session_id, user_id),
+                (user_id, session_id, user_id),
             )
-            session_techs = cursor.fetchall()
-
-            results = []
-            for row in session_techs:
-                movement_id = row["movement_id"]
-                name = row["name"]
-
-                cursor.execute(
-                    convert_query("""
-                        SELECT COUNT(DISTINCT st.session_id) as cnt
-                        FROM session_techniques st
-                        JOIN sessions s ON st.session_id = s.id
-                        WHERE st.movement_id = ? AND s.user_id = ?
-                    """),
-                    (movement_id, user_id),
-                )
-                count_row = cursor.fetchone()
-                count = count_row["cnt"] or 0
-
-                results.append(
-                    {
-                        "movement_id": movement_id,
-                        "name": name,
-                        "session_count": count,
-                    }
-                )
-            return results
+            return [
+                {
+                    "movement_id": row["movement_id"],
+                    "name": row["name"],
+                    "session_count": row["session_count"] or 0,
+                }
+                for row in cursor.fetchall()
+            ]
 
     @staticmethod
     def count_rolls_with_partner(
@@ -703,27 +696,25 @@ class SessionRepository:
 
     @staticmethod
     def count_partner_sessions(user_id: int, partner_name: str) -> int:
-        """Count sessions where partner appears in the simple partners list."""
+        """Count sessions where partner appears in the partners JSON list.
+
+        Uses SQL LIKE filter to push matching to the database instead of
+        fetching all rows and parsing JSON in Python.
+        """
         with get_connection() as conn:
             cursor = conn.cursor()
+            # JSON list stores names as quoted strings; LIKE is safe here
+            # because partner_name comes from our own data, not user input.
             cursor.execute(
                 convert_query("""
-                    SELECT partners FROM sessions
+                    SELECT COUNT(*) as cnt FROM sessions
                     WHERE user_id = ? AND partners IS NOT NULL
+                      AND partners LIKE ?
                 """),
-                (user_id,),
+                (user_id, f"%{partner_name}%"),
             )
-
-            count = 0
-            for row in cursor.fetchall():
-                raw = row["partners"]
-                try:
-                    partners = json.loads(raw) if isinstance(raw, str) else raw
-                    if partner_name in partners:
-                        count += 1
-                except (json.JSONDecodeError, TypeError):
-                    pass
-            return count
+            result = cursor.fetchone()
+            return result["cnt"] or 0
 
     @staticmethod
     def get_max_rolls_excluding(user_id: int, exclude_id: int) -> int:
@@ -785,6 +776,17 @@ class SessionRepository:
             result = cursor.fetchone()
             return result["total"] or 0
 
+    # Whitelist of allowed GROUP BY expressions for week_format to prevent
+    # SQL injection — callers must pass one of these exact strings.
+    _VALID_WEEK_FORMATS = frozenset(
+        {
+            "strftime('%Y-%W', session_date)",
+            "strftime('%W', session_date)",
+            "to_char(session_date::date, 'IYYY-IW')",
+            "to_char(session_date::date, 'IW')",
+        }
+    )
+
     @staticmethod
     def get_avg_weekly_duration(
         user_id: int,
@@ -793,6 +795,11 @@ class SessionRepository:
         week_format: str,
     ) -> float:
         """Get average weekly duration_mins across a date range."""
+        if week_format not in SessionRepository._VALID_WEEK_FORMATS:
+            raise ValueError(
+                f"Invalid week_format: {week_format!r}. "
+                f"Must be one of {sorted(SessionRepository._VALID_WEEK_FORMATS)}"
+            )
         with get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(
@@ -996,65 +1003,51 @@ class SessionRepository:
 
     @staticmethod
     def get_milestone_totals(user_id: int) -> dict:
-        """Get hours, sessions, rolls, partners, techniques totals."""
+        """Get hours, sessions, rolls, partners, techniques totals.
+
+        Consolidated from 5 queries into 2 for better performance.
+        """
         with get_connection() as conn:
             cursor = conn.cursor()
 
+            # Query 1: session-level aggregates (hours, count, rolls)
             cursor.execute(
                 convert_query(
-                    "SELECT SUM(duration_mins) as total"
+                    "SELECT COUNT(*) as cnt,"
+                    " COALESCE(SUM(duration_mins), 0) as total_mins,"
+                    " COALESCE(SUM(rolls), 0) as total_rolls"
                     " FROM sessions WHERE user_id = ?"
                 ),
                 (user_id,),
             )
-            result = cursor.fetchone()
-            total_mins = result["total"] or 0
-            hours = int(total_mins / 60)
+            row = cursor.fetchone()
+            total_mins = row["total_mins"] or 0
+            sessions = row["cnt"] or 0
+            rolls = row["total_rolls"] or 0
 
-            cursor.execute(
-                convert_query(
-                    "SELECT COUNT(*) as count" " FROM sessions WHERE user_id = ?"
-                ),
-                (user_id,),
-            )
-            result = cursor.fetchone()
-            sessions = result["count"] or 0
-
-            cursor.execute(
-                convert_query(
-                    "SELECT SUM(rolls) as total" " FROM sessions WHERE user_id = ?"
-                ),
-                (user_id,),
-            )
-            result = cursor.fetchone()
-            rolls = result["total"] or 0
-
+            # Query 2: distinct partners + distinct techniques via UNION
             cursor.execute(
                 convert_query("""
-                    SELECT COUNT(DISTINCT sr.partner_id) as count
-                    FROM session_rolls sr
-                    JOIN sessions s ON sr.session_id = s.id
-                    WHERE sr.partner_id IS NOT NULL AND s.user_id = ?
+                    SELECT
+                        (SELECT COUNT(DISTINCT sr.partner_id)
+                         FROM session_rolls sr
+                         JOIN sessions s ON sr.session_id = s.id
+                         WHERE sr.partner_id IS NOT NULL AND s.user_id = ?
+                        ) AS partners,
+                        (SELECT COUNT(DISTINCT st.movement_id)
+                         FROM session_techniques st
+                         JOIN sessions s ON st.session_id = s.id
+                         WHERE s.user_id = ?
+                        ) AS techniques
                 """),
-                (user_id,),
+                (user_id, user_id),
             )
-            result = cursor.fetchone()
-            partners = result["count"] or 0
-
-            cursor.execute(
-                convert_query("""
-                    SELECT COUNT(DISTINCT st.movement_id) as count
-                    FROM session_techniques st
-                    JOIN sessions s ON st.session_id = s.id
-                    WHERE s.user_id = ?
-                """),
-                (user_id,),
-            )
-            result = cursor.fetchone()
-            techniques = result["count"] or 0
+            row2 = cursor.fetchone()
+            partners = row2["partners"] or 0
+            techniques = row2["techniques"] or 0
 
         return {
-            "hours": hours,
+            "hours": int(total_mins / 60),
             "sessions": sessions,
             "rolls": rolls,
             "partners": partners,

@@ -5,9 +5,10 @@ from datetime import datetime, timedelta
 from typing import Any
 
 from rivaflow.db.database import convert_query, execute_insert, get_connection
+from rivaflow.db.repositories.base_repository import BaseRepository
 
 
-class FriendSuggestionsRepository:
+class FriendSuggestionsRepository(BaseRepository):
     """Data access layer for friend suggestions."""
 
     @staticmethod

@@ -6,6 +6,7 @@ from datetime import date, timedelta
 from rivaflow.core.services.insight_service import InsightService
 from rivaflow.core.services.milestone_service import MilestoneService
 from rivaflow.core.services.streak_service import StreakService
+from rivaflow.core.utils.cache import get_cache
 from rivaflow.db.repositories.checkin_repo import CheckinRepository
 
 
@@ -68,6 +69,11 @@ class RestService:
 
         # Check for new milestones
         new_milestones = self.milestone_service.check_all_milestones(user_id)
+
+        # Invalidate analytics caches affected by rest day changes
+        cache = get_cache()
+        cache.delete_pattern("analytics_calendar")
+        cache.delete_pattern("insights_")
 
         return {
             "checkin_id": checkin_id,

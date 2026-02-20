@@ -77,12 +77,7 @@ export default function Login() {
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="appearance-none rounded-md relative block w-full px-3 py-2 border focus:outline-none focus:ring-2 sm:text-sm"
-                style={{
-                  borderColor: 'var(--border)',
-                  backgroundColor: 'var(--surface)',
-                  color: 'var(--text)',
-                }}
+                className="input"
                 placeholder="your@email.com"
               />
             </div>
@@ -99,12 +94,7 @@ export default function Login() {
                 required
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="appearance-none rounded-md relative block w-full px-3 py-2 border focus:outline-none focus:ring-2 sm:text-sm"
-                style={{
-                  borderColor: 'var(--border)',
-                  backgroundColor: 'var(--surface)',
-                  color: 'var(--text)',
-                }}
+                className="input"
                 placeholder="Password"
               />
             </div>

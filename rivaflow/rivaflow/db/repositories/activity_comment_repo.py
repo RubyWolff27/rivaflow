@@ -1,9 +1,10 @@
 """Repository for activity comments data access."""
 
 from rivaflow.db.database import convert_query, execute_insert, get_connection
+from rivaflow.db.repositories.base_repository import BaseRepository
 
 
-class ActivityCommentRepository:
+class ActivityCommentRepository(BaseRepository):
     """Data access layer for activity comments (polymorphic across activity types)."""
 
     @staticmethod
@@ -286,10 +287,3 @@ class ActivityCommentRepository:
             "limit": limit,
             "offset": offset,
         }
-
-    @staticmethod
-    def _row_to_dict(row) -> dict:
-        """Convert a database row to a dictionary."""
-        if not row:
-            return {}
-        return dict(row)

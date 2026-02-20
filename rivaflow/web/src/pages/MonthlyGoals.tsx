@@ -57,7 +57,8 @@ export default function MonthlyGoals() {
       await trainingGoalsApi.delete(confirmDeleteId);
       setGoals((prev) => prev.filter((g) => g.id !== confirmDeleteId));
       toast.success('Goal deleted');
-    } catch {
+    } catch (err) {
+      logger.warn('Failed to delete goal', err);
       toast.error('Failed to delete goal');
     } finally {
       setConfirmDeleteId(null);
@@ -80,7 +81,8 @@ export default function MonthlyGoals() {
       setGoals((prev) => prev.map((g) => (g.id === editingGoal.id ? res.data : g)));
       toast.success('Goal updated');
       setEditingGoal(null);
-    } catch {
+    } catch (err) {
+      logger.warn('Failed to update goal', err);
       toast.error('Failed to update goal');
     }
   };

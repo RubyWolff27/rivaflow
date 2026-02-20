@@ -291,6 +291,13 @@ class Readiness(ReadinessCreate):
     updated_at: datetime
 
 
+class WeightLogRequest(BaseModel):
+    """Weight logging request model."""
+
+    weight_kg: float = Field(..., ge=20, le=400)
+    check_date: str | None = None
+
+
 class TechniqueCreate(BaseModel):
     """Input model for creating a technique."""
 

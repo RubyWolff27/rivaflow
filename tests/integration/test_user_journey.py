@@ -22,7 +22,7 @@ class TestNewUserJourney:
         # Step 1: User registers
         registration = auth_service.register(
             email="newuser@example.com",
-            password="SecurePass123",
+            password="SecurePass123!",
             first_name="John",
             last_name="Doe",
         )
@@ -149,66 +149,6 @@ class TestAnalyticsJourney:
 
         assert monthly_stats is not None
         assert monthly_stats["summary"]["total_sessions"] > 0
-
-
-# class TestMultiUserInteraction:
-#     """Test interactions between multiple users."""
-#
-#     NOTE: Tests commented out because rivaflow.db.repositories.user_relationship_repo
-#     module does not exist.
-#
-#     def test_user_follow_workflow(self, temp_db, test_user, test_user2):
-#         """Test: User follows another user -> views their profile."""
-#         from rivaflow.db.repositories.user_relationship_repo import (
-#             UserRelationshipRepository,
-#         )
-#
-#         user1_id = test_user["id"]
-#         user2_id = test_user2["id"]
-#
-#         # User1 follows User2
-#         relationship_repo = UserRelationshipRepository()
-#         relationship_repo.create_relationship(
-#             follower_id=user1_id, following_id=user2_id
-#         )
-#
-#         # Verify relationship exists
-#         is_following = relationship_repo.is_following(
-#             follower_id=user1_id, following_id=user2_id
-#         )
-#
-#         assert is_following is True
-#
-#         # Get User2's followers
-#         followers = relationship_repo.get_followers(user_id=user2_id)
-#         assert len(followers) > 0
-#
-#     def test_social_feed_workflow(
-#         self, temp_db, test_user, test_user2, session_factory
-#     ):
-#         """Test: Users follow each other -> view social feed."""
-#         from rivaflow.db.repositories.user_relationship_repo import (
-#             UserRelationshipRepository,
-#         )
-#
-#         user1_id = test_user["id"]
-#         user2_id = test_user2["id"]
-#
-#         # Create mutual following
-#         relationship_repo = UserRelationshipRepository()
-#         relationship_repo.create_relationship(user1_id, user2_id)
-#         relationship_repo.create_relationship(user2_id, user1_id)
-#
-#         # Both users log sessions
-#         session_factory(user_id=user1_id, gym_name="Gym A")
-#         session_factory(user_id=user2_id, gym_name="Gym B")
-#
-#         # Get follower sessions
-#         following_ids = [
-#             rel["following_id"] for rel in relationship_repo.get_following(user1_id)
-#         ]
-#
-#         assert user2_id in following_ids
 
 
 class TestDataExportImport:

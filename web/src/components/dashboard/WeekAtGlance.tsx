@@ -34,7 +34,7 @@ export function WeekAtGlance() {
             setWeeklyZones(zRes.data.totals);
             setWeeklyZoneCount(zRes.data.session_count);
           }
-        } catch { /* WHOOP not connected */ }
+        } catch (err) { logger.debug('WHOOP not connected', err); }
       } catch (error) {
         if (!cancelled) logger.error('Failed to load week summary:', error);
       } finally {

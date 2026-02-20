@@ -232,7 +232,7 @@ def delete_photo(
         photo_repo.delete_file("activities", photo["file_name"])
     except Exception as e:
         # Log error but don't fail the request - database record is already deleted
-        logger.warning(f"Error deleting file {photo['file_name']}: {e}")
+        logger.warning("Error deleting file %s: %s", photo["file_name"], e)
 
     return Response(status_code=status.HTTP_204_NO_CONTENT)
 

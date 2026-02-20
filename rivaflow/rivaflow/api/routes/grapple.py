@@ -1,5 +1,6 @@
 """Grapple AI Coach — chat endpoints (create session, send message, list/get/delete sessions)."""
 
+import asyncio
 import logging
 
 from fastapi import APIRouter, Depends
@@ -86,7 +87,7 @@ async def chat_with_grapple(
     user_id = current_user["id"]
     user_tier = current_user.get("subscription_tier", "free")
 
-    logger.info(f"Grapple chat request from user {user_id} (tier: {user_tier})")
+    logger.info("Grapple chat request from user %s (tier: %s)", user_id, user_tier)
 
     # Top-level try/except ensures we ALWAYS return a proper JSON response
     # (never an unhandled exception that strips CORS headers)
@@ -95,7 +96,7 @@ async def chat_with_grapple(
     except RivaFlowException:
         raise  # Let FastAPI handle these normally (they keep CORS headers)
     except Exception:
-        logger.exception(f"Unhandled error in grapple chat for user {user_id}")
+        logger.exception("Unhandled error in grapple chat for user %s", user_id)
         return JSONResponse(
             status_code=500,
             content={
@@ -104,15 +105,14 @@ async def chat_with_grapple(
         )
 
 
-async def _handle_chat(
-    request: ChatRequest, user_id: int, user_tier: str
-) -> ChatResponse:
-    """Inner chat handler with step-by-step error reporting."""
+def _pre_llm_work(request: ChatRequest, user_id: int, user_tier: str) -> dict:
+    """Sync pre-LLM work: rate-limit check, session management, context building.
+
+    Returns a dict with all data needed for the LLM call and post-LLM steps.
+    """
     from rivaflow.core.services.chat_service import ChatService
     from rivaflow.core.services.grapple.context_builder import GrappleContextBuilder
-    from rivaflow.core.services.grapple.llm_client import GrappleLLMClient
     from rivaflow.core.services.grapple.rate_limiter import GrappleRateLimiter
-    from rivaflow.core.services.grapple.token_monitor import GrappleTokenMonitor
 
     # Step 1: Check rate limit
     try:
@@ -156,7 +156,7 @@ async def _handle_chat(
     except RivaFlowException:
         raise
     except (ConnectionError, OSError, KeyError) as e:
-        logger.error(f"Session create/get failed: {e}", exc_info=True)
+        logger.error("Session create/get failed: %s", e, exc_info=True)
         raise ServiceError("Failed to create chat session")
 
     # Step 3: Store user message
@@ -167,7 +167,7 @@ async def _handle_chat(
             content=request.message,
         )
     except (ConnectionError, OSError, KeyError) as e:
-        logger.error(f"Failed to store user message: {e}", exc_info=True)
+        logger.error("Failed to store user message: %s", e, exc_info=True)
         raise ServiceError("Failed to store message")
 
     # Auto-name chat: if the session still has the default title, set it
@@ -180,7 +180,7 @@ async def _handle_chat(
                 auto_title += "..."
             chat_service.update_session_title(session_id, user_id, auto_title)
     except (ConnectionError, OSError) as e:
-        logger.error(f"Failed to auto-name chat session: {e}", exc_info=True)
+        logger.error("Failed to auto-name chat session: %s", e, exc_info=True)
 
     # Step 4: Build context
     try:
@@ -188,23 +188,30 @@ async def _handle_chat(
         recent_messages = chat_service.get_recent_context(session_id, max_messages=10)
         messages = context_builder.get_conversation_context(recent_messages)
     except (ConnectionError, OSError, KeyError) as e:
-        logger.error(f"Context build failed: {e}", exc_info=True)
+        logger.error("Context build failed: %s", e, exc_info=True)
         raise ServiceError("Failed to build context")
 
-    # Step 5: Call LLM
-    try:
-        llm_client = GrappleLLMClient(environment="production")
-        llm_response = await llm_client.chat(
-            messages=messages,
-            user_id=user_id,
-            temperature=0.7,
-            max_tokens=1024,
-        )
-    except (ConnectionError, OSError, TimeoutError, RuntimeError) as e:
-        logger.error(f"LLM call failed for user {user_id}: {e}", exc_info=True)
-        raise ExternalServiceError("AI service is temporarily unavailable")
+    return {
+        "rate_limiter": rate_limiter,
+        "rate_check": rate_check,
+        "chat_service": chat_service,
+        "session_id": session_id,
+        "messages": messages,
+    }
 
-    # Steps 6-9: Post-LLM bookkeeping (non-fatal — don't fail the response)
+
+def _post_llm_work(pre: dict, user_id: int, llm_response: dict) -> dict:
+    """Sync post-LLM bookkeeping: store assistant message, log tokens, update stats.
+
+    Returns the assistant_message dict.
+    """
+    from rivaflow.core.services.grapple.token_monitor import GrappleTokenMonitor
+
+    chat_service = pre["chat_service"]
+    session_id = pre["session_id"]
+    rate_limiter = pre["rate_limiter"]
+
+    # Step 6: Store assistant message
     try:
         assistant_message = chat_service.create_message(
             session_id=session_id,
@@ -215,9 +222,10 @@ async def _handle_chat(
             cost_usd=llm_response["cost_usd"],
         )
     except (ConnectionError, OSError) as e:
-        logger.error(f"Failed to store assistant message: {e}", exc_info=True)
+        logger.error("Failed to store assistant message: %s", e, exc_info=True)
         assistant_message = {"id": "unknown"}
 
+    # Step 7: Log token usage
     try:
         token_monitor = GrappleTokenMonitor()
         token_monitor.log_usage(
@@ -231,8 +239,9 @@ async def _handle_chat(
             cost_usd=llm_response["cost_usd"],
         )
     except (ConnectionError, OSError) as e:
-        logger.error(f"Failed to log token usage: {e}", exc_info=True)
+        logger.error("Failed to log token usage: %s", e, exc_info=True)
 
+    # Step 8: Update session stats
     try:
         chat_service.update_session_stats(
             session_id=session_id,
@@ -241,12 +250,43 @@ async def _handle_chat(
             cost_delta=llm_response["cost_usd"],
         )
     except (ConnectionError, OSError) as e:
-        logger.error(f"Failed to update session stats: {e}", exc_info=True)
+        logger.error("Failed to update session stats: %s", e, exc_info=True)
 
+    # Step 9: Record rate-limit usage
     try:
         rate_limiter.record_message(user_id)
     except (ConnectionError, OSError) as e:
-        logger.error(f"Failed to record rate limit: {e}", exc_info=True)
+        logger.error("Failed to record rate limit: %s", e, exc_info=True)
+
+    return assistant_message
+
+
+async def _handle_chat(
+    request: ChatRequest, user_id: int, user_tier: str
+) -> ChatResponse:
+    """Inner chat handler with step-by-step error reporting."""
+    from rivaflow.core.services.grapple.llm_client import GrappleLLMClient
+
+    # Steps 1-4: Run all sync pre-LLM work off the event loop
+    pre = await asyncio.to_thread(_pre_llm_work, request, user_id, user_tier)
+
+    # Step 5: Call LLM (already async)
+    try:
+        llm_client = GrappleLLMClient(environment="production")
+        llm_response = await llm_client.chat(
+            messages=pre["messages"],
+            user_id=user_id,
+            temperature=0.7,
+            max_tokens=1024,
+        )
+    except (ConnectionError, OSError, TimeoutError, RuntimeError) as e:
+        logger.error("LLM call failed for user %s: %s", user_id, e, exc_info=True)
+        raise ExternalServiceError("AI service is temporarily unavailable")
+
+    # Steps 6-9: Run all sync post-LLM bookkeeping off the event loop
+    assistant_message = await asyncio.to_thread(
+        _post_llm_work, pre, user_id, llm_response
+    )
 
     # Step 10: Return response
     logger.info(
@@ -256,12 +296,12 @@ async def _handle_chat(
     )
 
     return ChatResponse(
-        session_id=session_id,
+        session_id=pre["session_id"],
         message_id=assistant_message["id"],
         reply=llm_response["content"],
         tokens_used=llm_response["total_tokens"],
         cost_usd=llm_response["cost_usd"],
-        rate_limit_remaining=max(0, rate_check.get("remaining", 1) - 1),
+        rate_limit_remaining=max(0, pre["rate_check"].get("remaining", 1) - 1),
     )
 
 
@@ -281,7 +321,7 @@ def get_chat_sessions(
     from rivaflow.core.services.chat_service import ChatService
 
     user_id = current_user["id"]
-    logger.info(f"Fetching sessions for user {user_id}")
+    logger.info("Fetching sessions for user %s", user_id)
 
     chat_service = ChatService()
     sessions = chat_service.get_sessions_by_user(user_id, limit=limit, offset=offset)
@@ -304,7 +344,7 @@ def get_chat_session(
     from rivaflow.core.services.chat_service import ChatService
 
     user_id = current_user["id"]
-    logger.info(f"Fetching session {session_id} for user {user_id}")
+    logger.info("Fetching session %s for user %s", session_id, user_id)
 
     chat_service = ChatService()
 
@@ -337,7 +377,7 @@ def delete_chat_session(
     from rivaflow.core.services.chat_service import ChatService
 
     user_id = current_user["id"]
-    logger.info(f"Deleting session {session_id} for user {user_id}")
+    logger.info("Deleting session %s for user %s", session_id, user_id)
 
     chat_service = ChatService()
     deleted = chat_service.delete_session(session_id, user_id)

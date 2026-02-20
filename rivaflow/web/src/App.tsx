@@ -1,12 +1,13 @@
-import { lazy, Suspense } from 'react';
+import { lazy, Suspense, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { AuthProvider } from './contexts/AuthContext';
 import { ToastProvider } from './contexts/ToastContext';
 import PrivateRoute from './components/PrivateRoute';
 import AdminRoute from './components/AdminRoute';
 import Layout from './components/Layout';
-import LoadingSkeleton from './components/LoadingSkeleton';
+import PageSkeleton from './components/PageSkeleton';
 import ErrorBoundary from './components/ErrorBoundary';
+import { logger } from './utils/logger';
 
 // Lazy load all route components for code splitting
 const Dashboard = lazy(() => import('./pages/Dashboard'));
@@ -58,12 +59,20 @@ const ResetPassword = lazy(() => import('./pages/ResetPassword'));
 const NotFound = lazy(() => import('./pages/NotFound'));
 
 function App() {
+  useEffect(() => {
+    const handler = (event: PromiseRejectionEvent) => {
+      logger.error('Unhandled promise rejection:', event.reason);
+    };
+    window.addEventListener('unhandledrejection', handler);
+    return () => window.removeEventListener('unhandledrejection', handler);
+  }, []);
+
   return (
     <ErrorBoundary>
       <Router>
         <AuthProvider>
           <ToastProvider>
-            <Suspense fallback={<LoadingSkeleton />}>
+            <Suspense fallback={<PageSkeleton />}>
             <Routes>
               <Route path="/login" element={<Login />} />
               <Route path="/register" element={<Register />} />
@@ -75,7 +84,7 @@ function App() {
                 element={
                   <PrivateRoute>
                     <Layout>
-                      <Suspense fallback={<LoadingSkeleton />}>
+                      <Suspense fallback={<PageSkeleton />}>
                         <Routes>
                           <Route path="/" element={<Dashboard />} />
                           <Route path="/log" element={<LogSession />} />

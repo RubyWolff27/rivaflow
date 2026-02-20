@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { getAccessToken } from './_client';
 
 // API base URL - use environment variable if set, otherwise default to versioned path
 const API_BASE = import.meta.env.VITE_API_URL || '/api/v1';
@@ -59,14 +60,14 @@ export const authApi = {
   logout: () =>
     authClient.post('/auth/logout', null, {
       headers: {
-        Authorization: `Bearer ${localStorage.getItem('access_token')}`,
+        Authorization: `Bearer ${getAccessToken()}`,
       },
     }),
 
   getCurrentUser: () =>
     authClient.get('/auth/me', {
       headers: {
-        Authorization: `Bearer ${localStorage.getItem('access_token')}`,
+        Authorization: `Bearer ${getAccessToken()}`,
       },
     }),
 

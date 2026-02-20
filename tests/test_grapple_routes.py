@@ -12,7 +12,7 @@ def _make_beta_user(temp_db):
     user_repo = UserRepository()
     user = user_repo.create(
         email="beta@example.com",
-        hashed_password=hash_password("testpass123"),
+        hashed_password=hash_password("TestPass123!secure"),
         first_name="Beta",
         last_name="User",
         subscription_tier="beta",

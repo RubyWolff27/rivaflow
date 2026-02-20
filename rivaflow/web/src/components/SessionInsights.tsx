@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { sessionsApi } from '../api/client';
+import { logger } from '../utils/logger';
 import { Star, Trophy, Users, Flame, Target, Zap, UserPlus } from 'lucide-react';
 
 interface Insight {
@@ -39,8 +40,8 @@ export default function SessionInsights({ sessionId }: { sessionId: number }) {
       try {
         const res = await sessionsApi.getInsights(sessionId);
         if (!cancelled) setInsights(res.data?.insights || []);
-      } catch {
-        // Silently fail — insights are non-critical
+      } catch (err) {
+        logger.debug('Session insights not available', err);
       } finally {
         if (!cancelled) setLoading(false);
       }

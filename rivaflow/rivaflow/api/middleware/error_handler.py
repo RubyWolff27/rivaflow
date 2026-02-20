@@ -143,7 +143,7 @@ async def validation_exception_handler(
         )
 
         # Only include input value in development mode AND for non-sensitive fields
-        env = os.getenv("ENV", "development")
+        env = os.getenv("ENV", "production")
         include_input = (
             env == "development" and not is_sensitive and error.get("input") is not None
         )
@@ -213,7 +213,7 @@ async def generic_exception_handler(request: Request, exc: Exception) -> JSONRes
     message = "An unexpected error occurred. Please try again later."
     details = None
 
-    if os.getenv("ENV", "development") == "development":
+    if os.getenv("ENV", "production") == "development":
         message = f"{type(exc).__name__}: {str(exc)}"
         details = {
             "type": type(exc).__name__,

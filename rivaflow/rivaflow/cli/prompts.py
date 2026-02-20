@@ -24,7 +24,7 @@ def prompt_text(
 
 def prompt_int(
     message: str, default: int | None = None, min_val: int = 0, max_val: int = 999
-) -> int:
+) -> int | None:
     """Prompt for integer input."""
     while True:
         value = IntPrompt.ask(message, default=default)

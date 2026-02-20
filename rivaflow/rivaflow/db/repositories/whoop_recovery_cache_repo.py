@@ -4,9 +4,10 @@ import json
 from datetime import UTC, datetime
 
 from rivaflow.db.database import convert_query, execute_insert, get_connection
+from rivaflow.db.repositories.base_repository import BaseRepository
 
 
-class WhoopRecoveryCacheRepository:
+class WhoopRecoveryCacheRepository(BaseRepository):
     """Data access layer for whoop_recovery_cache table."""
 
     @staticmethod

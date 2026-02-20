@@ -1,9 +1,10 @@
 """Repository for game plan data access."""
 
 from rivaflow.db.database import convert_query, execute_insert, get_connection
+from rivaflow.db.repositories.base_repository import BaseRepository
 
 
-class GamePlanRepository:
+class GamePlanRepository(BaseRepository):
     """Data access layer for game plans."""
 
     @staticmethod
@@ -53,7 +54,7 @@ class GamePlanRepository:
             return dict(row) if row else None
 
     @staticmethod
-    def list_by_user(user_id: int) -> list[dict]:
+    def list_by_user(user_id: int, limit: int = 200) -> list[dict]:
         with get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(
@@ -61,8 +62,9 @@ class GamePlanRepository:
                     "SELECT * FROM game_plans"
                     " WHERE user_id = ?"
                     " ORDER BY updated_at DESC"
+                    " LIMIT ?"
                 ),
-                (user_id,),
+                (user_id, limit),
             )
             return [dict(row) for row in cursor.fetchall()]
 

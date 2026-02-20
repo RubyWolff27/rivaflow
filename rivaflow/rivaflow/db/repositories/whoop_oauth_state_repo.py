@@ -3,9 +3,10 @@
 from datetime import UTC, datetime
 
 from rivaflow.db.database import convert_query, execute_insert, get_connection
+from rivaflow.db.repositories.base_repository import BaseRepository
 
 
-class WhoopOAuthStateRepository:
+class WhoopOAuthStateRepository(BaseRepository):
     """Data access layer for whoop_oauth_states table."""
 
     @staticmethod
@@ -69,8 +70,3 @@ class WhoopOAuthStateRepository:
                 (datetime.now(UTC).isoformat(),),
             )
             return cursor.rowcount
-
-    @staticmethod
-    def _row_to_dict(row) -> dict:
-        """Convert a database row to a dictionary."""
-        return dict(row)

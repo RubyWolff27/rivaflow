@@ -2,6 +2,7 @@ import { useState } from 'react';
 import type { Group, GroupMember, UserBasic } from '../../types';
 import { Users, X, LogOut, Trash2, ChevronRight, Shield, UserPlus, Search } from 'lucide-react';
 import { socialApi } from '../../api/client';
+import { logger } from '../../utils/logger';
 import { GROUP_TYPE_LABELS, GROUP_TYPE_COLORS } from './GroupCard';
 
 type GroupDetail = Group & { members: GroupMember[]; member_count: number; user_role: string | null };
@@ -43,7 +44,8 @@ export default function GroupDetailView({
       const results = response.data?.users || response.data || [];
       const memberIds = new Set((group.members || []).map(m => m.user_id));
       setSearchResults(results.filter((u: UserBasic) => !memberIds.has(u.id)));
-    } catch {
+    } catch (err) {
+      logger.debug('Member search fallback', err);
       setSearchResults([]);
     } finally {
       setSearching(false);

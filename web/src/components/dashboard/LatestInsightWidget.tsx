@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Brain, ChevronRight, Loader2 } from 'lucide-react';
 import { grappleApi } from '../../api/client';
+import { logger } from '../../utils/logger';
 import { Card } from '../ui';
 import type { AIInsight } from '../../types';
 
@@ -20,8 +21,8 @@ export default function LatestInsightWidget() {
           const insights = response.data.insights || [];
           setInsight(insights.length > 0 ? insights[0] : null);
         }
-      } catch {
-        // Insights not available
+      } catch (err) {
+        logger.debug('Insights not available', err);
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -59,7 +60,8 @@ export default function LatestInsightWidget() {
     try {
       const res = await grappleApi.createInsightChat(insight.id);
       navigate(`/grapple?session=${res.data.chat_session_id}`);
-    } catch {
+    } catch (err) {
+      logger.debug('Insight chat creation fallback to grapple page', err);
       navigate('/grapple');
     }
   };

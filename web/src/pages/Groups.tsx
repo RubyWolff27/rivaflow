@@ -53,7 +53,8 @@ export default function Groups() {
     try {
       const response = await groupsApi.list();
       setGroups(response.data.groups || []);
-    } catch {
+    } catch (err) {
+      logger.warn('Failed to load groups', err);
       toast.error('Failed to load groups');
     } finally {
       setLoading(false);
@@ -65,7 +66,8 @@ export default function Groups() {
     try {
       const response = await groupsApi.discover();
       setDiscoverGroups(response.data.groups || []);
-    } catch {
+    } catch (err) {
+      logger.warn('Failed to load discoverable groups', err);
       toast.error('Failed to load discoverable groups');
     } finally {
       setLoading(false);
@@ -77,7 +79,8 @@ export default function Groups() {
     try {
       const response = await groupsApi.get(groupId);
       setSelectedGroup(response.data);
-    } catch {
+    } catch (err) {
+      logger.warn('Failed to load group details', err);
       toast.error('Failed to load group details');
     } finally {
       setDetailLoading(false);
@@ -94,7 +97,8 @@ export default function Groups() {
       setShowCreateForm(false);
       setFormData({ name: '', description: '', group_type: 'training_crew', privacy: 'invite_only' });
       loadGroups();
-    } catch {
+    } catch (err) {
+      logger.warn('Failed to create group', err);
       toast.error('Failed to create group');
     }
   };
@@ -105,7 +109,8 @@ export default function Groups() {
       toast.success('Left group');
       setSelectedGroup(null);
       loadGroups();
-    } catch {
+    } catch (err) {
+      logger.warn('Failed to leave group', err);
       toast.error('Failed to leave group');
     }
   };
@@ -116,7 +121,8 @@ export default function Groups() {
       toast.success('Group deleted');
       setSelectedGroup(null);
       loadGroups();
-    } catch {
+    } catch (err) {
+      logger.warn('Failed to delete group', err);
       toast.error('Failed to delete group');
     }
   };
@@ -127,7 +133,8 @@ export default function Groups() {
       toast.success('Joined group!');
       loadGroups();
       loadDiscover();
-    } catch {
+    } catch (err) {
+      logger.warn('Failed to join group', err);
       toast.error('Failed to join group');
     }
   };
@@ -138,7 +145,8 @@ export default function Groups() {
       await groupsApi.addMember(selectedGroup.id, userId);
       toast.success('Member added!');
       loadGroupDetail(selectedGroup.id);
-    } catch {
+    } catch (err) {
+      logger.warn('Failed to add member', err);
       toast.error('Failed to add member');
     }
   };
@@ -149,7 +157,8 @@ export default function Groups() {
       await groupsApi.removeMember(selectedGroup.id, userId);
       toast.success('Member removed');
       loadGroupDetail(selectedGroup.id);
-    } catch {
+    } catch (err) {
+      logger.warn('Failed to remove member', err);
       toast.error('Failed to remove member');
     }
   };

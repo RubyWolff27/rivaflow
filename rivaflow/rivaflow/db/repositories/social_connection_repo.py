@@ -3,9 +3,10 @@
 from typing import Any
 
 from rivaflow.db.database import convert_query, execute_insert, get_connection
+from rivaflow.db.repositories.base_repository import BaseRepository
 
 
-class SocialConnectionRepository:
+class SocialConnectionRepository(BaseRepository):
     """Data access layer for friend connections."""
 
     @staticmethod
@@ -496,10 +497,3 @@ class SocialConnectionRepository:
                     existing_ids.add(req_id)
 
         return existing_ids
-
-    @staticmethod
-    def _row_to_dict(row) -> dict[str, Any]:
-        """Convert database row to dictionary."""
-        if not row:
-            return {}
-        return dict(row)

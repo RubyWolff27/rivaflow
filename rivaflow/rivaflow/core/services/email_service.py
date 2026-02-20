@@ -143,7 +143,7 @@ class EmailService:
             response = sg.send(mail)
 
             if response.status_code in [200, 201, 202]:
-                logger.info(f"Email sent successfully to {to_email} via SendGrid")
+                logger.info("Email sent successfully to %s via SendGrid", to_email)
                 return True
             else:
                 logger.error(
@@ -171,11 +171,11 @@ class EmailService:
                     f"and API key permissions. Error: {e}"
                 )
             else:
-                logger.error(f"Failed to send email via SendGrid to {to_email}: {e}")
+                logger.error("Failed to send email via SendGrid to %s: %s", to_email, e)
 
             # Try SMTP fallback if configured
             if self.smtp_user and self.smtp_password:
-                logger.info(f"Attempting SMTP fallback for {to_email}")
+                logger.info("Attempting SMTP fallback for %s", to_email)
                 return self._send_via_smtp(
                     to_email, subject, html_content, text_content
                 )
@@ -208,9 +208,9 @@ class EmailService:
                 server.login(self.smtp_user, self.smtp_password)
                 server.send_message(msg)
 
-            logger.info(f"Email sent successfully to {to_email} via SMTP")
+            logger.info("Email sent successfully to %s via SMTP", to_email)
             return True
 
         except (ConnectionError, OSError, smtplib.SMTPException) as e:
-            logger.error(f"Failed to send email via SMTP to {to_email}: {e}")
+            logger.error("Failed to send email via SMTP to %s: %s", to_email, e)
             return False

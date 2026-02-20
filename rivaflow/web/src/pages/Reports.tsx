@@ -125,7 +125,7 @@ export default function Reports() {
                   setZoneTrendsData(trends.length > 0 ? trends : null);
                 }
               }
-            } catch { /* WHOOP not connected */ }
+            } catch (err) { logger.debug('WHOOP not connected', err); }
           } else if (activeTab === 'partners') {
             const [partnersRes, beltRes] = await Promise.all([
               analyticsApi.partnerStats(params),

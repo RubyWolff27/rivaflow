@@ -201,7 +201,7 @@ def invite_entry(
             invite_token=token,
         )
     except (ConnectionError, OSError, RuntimeError) as e:
-        logger.error(f"Failed to send invite email to {entry['email']}: {e}")
+        logger.error("Failed to send invite email to %s: %s", entry["email"], e)
 
     logger.info(
         f"Admin {current_user.get('email')} invited waitlist entry "
@@ -241,7 +241,7 @@ def bulk_invite_entries(
                 invite_token=token,
             )
         except (ConnectionError, OSError, RuntimeError) as e:
-            logger.error(f"Failed to send invite email to {email}: {e}")
+            logger.error("Failed to send invite email to %s: %s", email, e)
 
     logger.info(
         f"Admin {current_user.get('email')} bulk invited "

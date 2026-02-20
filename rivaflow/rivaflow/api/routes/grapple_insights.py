@@ -1,5 +1,6 @@
 """Grapple AI Coach — insight generation, history, and feedback endpoints."""
 
+import asyncio
 import logging
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -83,7 +84,7 @@ async def extract_session(
         result = await extract_session_from_text(request.text, user_id)
         return result
     except RuntimeError as e:
-        logger.error(f"Session extraction failed: {e}")
+        logger.error("Session extraction failed: %s", e)
         raise ExternalServiceError(
             "Session extraction service is temporarily unavailable"
         )
@@ -212,7 +213,7 @@ async def create_insight_chat(
     except (HTTPException, RivaFlowException):
         raise
     except Exception:
-        logger.exception(f"Unhandled error in insight chat for user {user_id}")
+        logger.exception("Unhandled error in insight chat for user %s", user_id)
         return JSONResponse(
             status_code=500,
             content={
@@ -221,8 +222,11 @@ async def create_insight_chat(
         )
 
 
-async def _handle_insight_chat(insight_id: int, user_id: int):
-    """Inner handler for insight chat creation."""
+def _insight_chat_sync(insight_id: int, user_id: int) -> dict:
+    """Sync DB work for creating an insight-seeded chat session.
+
+    Returns a dict with the chat_session_id and insight data.
+    """
     from rivaflow.core.services.chat_service import ChatService
     from rivaflow.db.repositories.ai_insight_repo import AIInsightRepository
 
@@ -266,6 +270,11 @@ async def _handle_insight_chat(insight_id: int, user_id: int):
     return {"chat_session_id": session_id, "insight": insight}
 
 
+async def _handle_insight_chat(insight_id: int, user_id: int):
+    """Inner handler for insight chat creation — runs sync DB work off the event loop."""
+    return await asyncio.to_thread(_insight_chat_sync, insight_id, user_id)
+
+
 @router.post("/technique-qa")
 @require_beta_or_premium
 @route_error_handler("technique_qa", detail="Failed to process technique Q&A")
@@ -283,5 +292,5 @@ async def technique_qa_endpoint(
         result = await technique_qa(request.question, user_id)
         return result
     except RuntimeError as e:
-        logger.error(f"Technique QA failed: {e}")
+        logger.error("Technique QA failed: %s", e)
         raise ExternalServiceError("Technique QA service is temporarily unavailable")

@@ -4,9 +4,10 @@ from datetime import date
 from typing import Any
 
 from rivaflow.db.database import convert_query, get_connection
+from rivaflow.db.repositories.base_repository import BaseRepository
 
 
-class FeedRepository:
+class FeedRepository(BaseRepository):
     """Data access layer for feed-related batch queries."""
 
     @staticmethod

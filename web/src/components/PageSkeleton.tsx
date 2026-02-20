@@ -1,4 +1,4 @@
-export default function LoadingSkeleton() {
+export default function PageSkeleton() {
   return (
     <div className="space-y-6 animate-pulse">
       <div className="flex items-center justify-between">

@@ -1,9 +1,10 @@
 """Repository for session event data access."""
 
 from rivaflow.db.database import convert_query, execute_insert, get_connection
+from rivaflow.db.repositories.base_repository import BaseRepository
 
 
-class SessionEventRepository:
+class SessionEventRepository(BaseRepository):
     """Data access layer for session events (extracted technique events)."""
 
     @staticmethod

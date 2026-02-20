@@ -44,7 +44,7 @@ def get_current_week_progress(
     - Days remaining
     - Completion status
     """
-    logger.info(f"Getting current week progress for user_id={current_user['id']}")
+    logger.info("Getting current week progress for user_id=%s", current_user["id"])
     result = service.get_current_week_progress(user_id=current_user["id"], tz=tz)
     logger.info(
         f"Successfully retrieved current week progress for user_id={current_user['id']}"

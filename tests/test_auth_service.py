@@ -20,7 +20,7 @@ class TestAuthServiceRegister:
 
         result = auth_service.register(
             email="newuser@example.com",
-            password="SecurePass123",
+            password="SecurePass123!",
             first_name="New",
             last_name="User",
         )
@@ -40,7 +40,7 @@ class TestAuthServiceRegister:
 
         result = auth_service.register(
             email="newuser@example.com",
-            password="SecurePass123",
+            password="SecurePass123!",
             first_name="New",
             last_name="User",
         )
@@ -61,7 +61,7 @@ class TestAuthServiceRegister:
 
         result = auth_service.register(
             email="newuser@example.com",
-            password="SecurePass123",
+            password="SecurePass123!",
             first_name="New",
             last_name="User",
         )
@@ -92,7 +92,7 @@ class TestAuthServiceRegister:
         with pytest.raises(ValidationError, match="Email must contain an @ sign"):
             auth_service.register(
                 email="not-an-email",
-                password="SecurePass123",
+                password="SecurePass123!",
                 first_name="New",
                 last_name="User",
             )
@@ -101,7 +101,7 @@ class TestAuthServiceRegister:
         """Test registration with password too short."""
         auth_service = AuthService()
 
-        with pytest.raises(ValidationError, match="at least 8 characters"):
+        with pytest.raises(ValidationError, match="at least 10 characters"):
             auth_service.register(
                 email="newuser@example.com",
                 password="short",
@@ -116,7 +116,7 @@ class TestAuthServiceRegister:
         with pytest.raises(ValidationError, match="uppercase letter"):
             auth_service.register(
                 email="newuser@example.com",
-                password="nouppercase1",
+                password="nouppercase1!",
                 first_name="New",
                 last_name="User",
             )
@@ -128,7 +128,19 @@ class TestAuthServiceRegister:
         with pytest.raises(ValidationError, match="one number"):
             auth_service.register(
                 email="newuser@example.com",
-                password="NoDigitHere",
+                password="NoDigitHere!",
+                first_name="New",
+                last_name="User",
+            )
+
+    def test_register_no_special_char(self, temp_db):
+        """Test registration with password missing a special character."""
+        auth_service = AuthService()
+
+        with pytest.raises(ValidationError, match="special character"):
+            auth_service.register(
+                email="newuser@example.com",
+                password="NoSpecialChar1",
                 first_name="New",
                 last_name="User",
             )
@@ -140,7 +152,7 @@ class TestAuthServiceRegister:
         with pytest.raises(ValidationError, match="Unable to create account"):
             auth_service.register(
                 email="test@example.com",  # Already exists from test_user fixture
-                password="SecurePass123",
+                password="SecurePass123!",
                 first_name="Duplicate",
                 last_name="User",
             )
@@ -151,7 +163,7 @@ class TestAuthServiceRegister:
 
         result = auth_service.register(
             email="newuser@example.com",
-            password="SecurePass123",
+            password="SecurePass123!",
             first_name="New",
             last_name="User",
         )
@@ -171,7 +183,9 @@ class TestAuthServiceLogin:
         """Test successful login with valid credentials."""
         auth_service = AuthService()
 
-        result = auth_service.login(email="test@example.com", password="testpass123")
+        result = auth_service.login(
+            email="test@example.com", password="TestPass123!secure"
+        )
 
         assert result is not None
         assert "access_token" in result
@@ -198,7 +212,9 @@ class TestAuthServiceLogin:
         """Test that login generates a valid JWT token."""
         auth_service = AuthService()
 
-        result = auth_service.login(email="test@example.com", password="testpass123")
+        result = auth_service.login(
+            email="test@example.com", password="TestPass123!secure"
+        )
 
         # Decode and verify token
         payload = decode_access_token(result["access_token"])
@@ -208,7 +224,9 @@ class TestAuthServiceLogin:
         """Test that login stores refresh token in database."""
         auth_service = AuthService()
 
-        result = auth_service.login(email="test@example.com", password="testpass123")
+        result = auth_service.login(
+            email="test@example.com", password="TestPass123!secure"
+        )
 
         # Check that refresh token was stored
         refresh_token_repo = RefreshTokenRepository()
@@ -225,7 +243,7 @@ class TestAuthServiceLogin:
 
         user = user_repo.create(
             email="inactive@example.com",
-            hashed_password=hash_password("testpass123"),
+            hashed_password=hash_password("TestPass123!secure"),
             first_name="Inactive",
             last_name="User",
         )
@@ -243,7 +261,9 @@ class TestAuthServiceLogin:
         auth_service = AuthService()
 
         with pytest.raises(AuthenticationError, match="Account is inactive"):
-            auth_service.login(email="inactive@example.com", password="testpass123")
+            auth_service.login(
+                email="inactive@example.com", password="TestPass123!secure"
+            )
 
 
 class TestAuthServiceRefreshToken:
@@ -255,7 +275,7 @@ class TestAuthServiceRefreshToken:
 
         # First login to get refresh token
         login_result = auth_service.login(
-            email="test@example.com", password="testpass123"
+            email="test@example.com", password="TestPass123!secure"
         )
 
         # Refresh access token
@@ -287,7 +307,7 @@ class TestAuthServiceLogout:
 
         # Login first
         login_result = auth_service.login(
-            email="test@example.com", password="testpass123"
+            email="test@example.com", password="TestPass123!secure"
         )
 
         # Logout
@@ -304,8 +324,12 @@ class TestAuthServiceLogout:
         auth_service = AuthService()
 
         # Create multiple sessions
-        login1 = auth_service.login(email="test@example.com", password="testpass123")
-        login2 = auth_service.login(email="test@example.com", password="testpass123")
+        login1 = auth_service.login(
+            email="test@example.com", password="TestPass123!secure"
+        )
+        login2 = auth_service.login(
+            email="test@example.com", password="TestPass123!secure"
+        )
 
         # Logout from all devices
         count = auth_service.logout_all_devices(test_user["id"])

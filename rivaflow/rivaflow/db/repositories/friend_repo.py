@@ -2,9 +2,10 @@
 
 from rivaflow.core.constants import FRIEND_SORT_OPTIONS
 from rivaflow.db.database import convert_query, execute_insert, get_connection
+from rivaflow.db.repositories.base_repository import BaseRepository
 
 
-class FriendRepository:
+class FriendRepository(BaseRepository):
     """Data access layer for friends."""
 
     @staticmethod

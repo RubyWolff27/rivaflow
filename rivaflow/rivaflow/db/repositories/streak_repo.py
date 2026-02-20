@@ -4,9 +4,10 @@ from datetime import date
 
 from rivaflow.core.constants import STREAK_GRACE_DAYS
 from rivaflow.db.database import convert_query, execute_insert, get_connection
+from rivaflow.db.repositories.base_repository import BaseRepository
 
 
-class StreakRepository:
+class StreakRepository(BaseRepository):
     """Data access layer for streak tracking."""
 
     @staticmethod
@@ -168,6 +169,10 @@ class StreakRepository:
         Scans distinct check-in dates backwards from today, counting
         consecutive days (with grace-day tolerance). Updates the streaks
         table with the correct values and returns the updated streak.
+
+        Only queries the last 60 days of check-ins for performance —
+        a current streak cannot span more than 60 days without a gap,
+        and longest_streak is preserved from the existing record.
         """
         with get_connection() as conn:
             cursor = conn.cursor()
@@ -176,6 +181,7 @@ class StreakRepository:
                     SELECT DISTINCT check_date
                     FROM daily_checkins
                     WHERE user_id = ?
+                      AND check_date >= date('now', '-60 days')
                     ORDER BY check_date DESC
                     """),
                 (user_id,),

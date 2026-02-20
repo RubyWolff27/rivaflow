@@ -3,6 +3,7 @@ import { Camera, Upload, X } from 'lucide-react';
 import { photosApi } from '../api/client';
 import { logger } from '../utils/logger';
 import { useToast } from '../contexts/ToastContext';
+import { compressImage } from '../utils/imageCompression';
 
 interface PhotoUploadProps {
   activityType: 'session' | 'readiness' | 'rest';
@@ -55,8 +56,9 @@ export default function PhotoUpload({
 
     setUploading(true);
     try {
+      const compressed = await compressImage(selectedFile);
       const formData = new FormData();
-      formData.append('file', selectedFile);
+      formData.append('file', compressed);
       formData.append('activity_type', activityType);
       formData.append('activity_id', activityId.toString());
       formData.append('activity_date', activityDate);

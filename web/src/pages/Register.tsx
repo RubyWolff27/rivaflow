@@ -4,6 +4,27 @@ import { useAuth } from '../contexts/AuthContext';
 import { BELT_GRADES } from '../constants/belts';
 import { usePageTitle } from '../hooks/usePageTitle';
 
+type StrengthLevel = 'weak' | 'fair' | 'strong';
+
+function getPasswordStrength(password: string): { level: StrengthLevel; score: number; label: string } {
+  let score = 0;
+  if (password.length >= 10) score++;
+  if (/[A-Z]/.test(password)) score++;
+  if (/[a-z]/.test(password)) score++;
+  if (/[0-9]/.test(password)) score++;
+  if (/[!@#$%^&*(),.?":{}|<>_\-+=[\]\\/~`]/.test(password)) score++;
+
+  if (score >= 4) return { level: 'strong', score, label: 'Strong' };
+  if (score >= 3) return { level: 'fair', score, label: 'Fair' };
+  return { level: 'weak', score, label: 'Weak' };
+}
+
+const strengthColors: Record<StrengthLevel, string> = {
+  weak: 'var(--error)',
+  fair: 'var(--warning)',
+  strong: 'var(--success)',
+};
+
 export default function Register() {
   usePageTitle('Register');
   const { register } = useAuth();
@@ -21,13 +42,20 @@ export default function Register() {
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
+  const passwordStrength = getPasswordStrength(password);
+
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     setError('');
 
     // Validation
-    if (password.length < 8) {
-      setError('Password must be at least 8 characters long');
+    if (password.length < 10) {
+      setError('Password must be at least 10 characters long');
+      return;
+    }
+
+    if (!/[!@#$%^&*(),.?":{}|<>_\-+=[\]\\/~`]/.test(password)) {
+      setError('Password must contain at least one special character');
       return;
     }
 
@@ -114,12 +142,7 @@ export default function Register() {
                   required
                   value={firstName}
                   onChange={(e) => setFirstName(e.target.value)}
-                  className="appearance-none rounded-md relative block w-full px-3 py-2 border focus:outline-none focus:ring-2 sm:text-sm"
-                  style={{
-                    borderColor: 'var(--border)',
-                    backgroundColor: 'var(--surface)',
-                    color: 'var(--text)',
-                  }}
+                  className="input"
                   placeholder="John"
                 />
               </div>
@@ -136,12 +159,7 @@ export default function Register() {
                   required
                   value={lastName}
                   onChange={(e) => setLastName(e.target.value)}
-                  className="appearance-none rounded-md relative block w-full px-3 py-2 border focus:outline-none focus:ring-2 sm:text-sm"
-                  style={{
-                    borderColor: 'var(--border)',
-                    backgroundColor: 'var(--surface)',
-                    color: 'var(--text)',
-                  }}
+                  className="input"
                   placeholder="Doe"
                 />
               </div>
@@ -159,12 +177,7 @@ export default function Register() {
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="appearance-none rounded-md relative block w-full px-3 py-2 border focus:outline-none focus:ring-2 sm:text-sm"
-                style={{
-                  borderColor: 'var(--border)',
-                  backgroundColor: 'var(--surface)',
-                  color: 'var(--text)',
-                }}
+                className="input"
                 placeholder="your@email.com"
               />
             </div>
@@ -181,15 +194,25 @@ export default function Register() {
                 required
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="appearance-none rounded-md relative block w-full px-3 py-2 border focus:outline-none focus:ring-2 sm:text-sm"
-                style={{
-                  borderColor: 'var(--border)',
-                  backgroundColor: 'var(--surface)',
-                  color: 'var(--text)',
-                }}
-                placeholder="Minimum 8 characters"
+                className="input"
+                placeholder="Minimum 10 characters"
+                aria-describedby="password-strength"
               />
-              <p className="mt-1 text-xs" style={{ color: 'var(--muted)' }}>Must be at least 8 characters</p>
+              {password.length > 0 && (
+                <div id="password-strength" className="mt-2">
+                  <div
+                    className="h-1 rounded-full transition-all duration-300"
+                    style={{
+                      width: passwordStrength.level === 'weak' ? '33%' : passwordStrength.level === 'fair' ? '66%' : '100%',
+                      backgroundColor: strengthColors[passwordStrength.level],
+                    }}
+                  />
+                  <p className="mt-1 text-xs font-medium" style={{ color: strengthColors[passwordStrength.level] }}>
+                    {passwordStrength.label}
+                  </p>
+                </div>
+              )}
+              <p className="mt-1 text-xs" style={{ color: 'var(--muted)' }}>Must be at least 10 characters with a special character</p>
             </div>
 
             <div>
@@ -204,12 +227,7 @@ export default function Register() {
                 required
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
-                className="appearance-none rounded-md relative block w-full px-3 py-2 border focus:outline-none focus:ring-2 sm:text-sm"
-                style={{
-                  borderColor: 'var(--border)',
-                  backgroundColor: 'var(--surface)',
-                  color: 'var(--text)',
-                }}
+                className="input"
                 placeholder="Re-enter password"
               />
             </div>
@@ -225,12 +243,7 @@ export default function Register() {
                 autoComplete="organization"
                 value={defaultGym}
                 onChange={(e) => setDefaultGym(e.target.value)}
-                className="appearance-none rounded-md relative block w-full px-3 py-2 border focus:outline-none focus:ring-2 sm:text-sm"
-                style={{
-                  borderColor: 'var(--border)',
-                  backgroundColor: 'var(--surface)',
-                  color: 'var(--text)',
-                }}
+                className="input"
                 placeholder="Your gym or academy"
               />
             </div>
@@ -244,12 +257,8 @@ export default function Register() {
                 name="beltGrade"
                 value={beltGrade}
                 onChange={(e) => setBeltGrade(e.target.value)}
-                className="appearance-none rounded-md relative block w-full px-3 py-2 border focus:outline-none focus:ring-2 sm:text-sm"
-                style={{
-                  borderColor: 'var(--border)',
-                  backgroundColor: 'var(--surface)',
-                  color: beltGrade ? 'var(--text)' : 'var(--muted)',
-                }}
+                className="input"
+                style={{ color: beltGrade ? undefined : 'var(--muted)' }}
               >
                 <option value="">Select your belt</option>
                 {BELT_GRADES.map((grade) => (

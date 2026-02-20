@@ -76,9 +76,8 @@ def execute_insert(cursor, query: str, params: tuple) -> int:
 
         try:
             cursor.execute(converted, params)
-        except psycopg2.errors.UniqueViolation as exc:
-            # Serial sequence broken — bypass it with explicit id
-            logger.warning(f"UniqueViolation on INSERT: {exc}")
+        except psycopg2.errors.UniqueViolation:
+            # Serial sequence out of sync — reset it and retry once
             conn = cursor.connection
             conn.rollback()
 
@@ -87,35 +86,23 @@ def execute_insert(cursor, query: str, params: tuple) -> int:
                 raise
 
             tbl_name = tbl_match.group(1)
-            cursor.execute(
-                f"SELECT COALESCE(MAX(id), 0) + 1 FROM {tbl_name}"
-            )  # noqa: S608
-            row = cursor.fetchone()
-            next_id = list(row.values())[0] if hasattr(row, "values") else row[0]
-            logger.info(f"Retrying INSERT into {tbl_name} with explicit id={next_id}")
+            logger.warning(
+                "UniqueViolation on INSERT into %s, resetting sequence",
+                tbl_name,
+            )
 
-            # Rebuild query with explicit id column
-            explicit_q = _re.sub(
-                rf"(INSERT\s+INTO\s+{tbl_name}\s*\()",
-                r"\g<1>id, ",
-                query,
-                count=1,
-                flags=_re.IGNORECASE,
+            # Reset the sequence to max(id) so the next insert succeeds
+            cursor.execute(
+                "SELECT setval(pg_get_serial_sequence(%s, 'id'), "
+                "COALESCE(MAX(id), 1)) FROM " + tbl_name,
+                (tbl_name,),
             )
-            explicit_q = _re.sub(
-                r"(VALUES\s*\()",
-                rf"\g<1>{next_id}, ",
-                explicit_q,
-                count=1,
-                flags=_re.IGNORECASE,
-            )
-            explicit_q = explicit_q.rstrip().rstrip(";") + " RETURNING id"
-            cursor.execute(convert_query(explicit_q), params)
+            cursor.execute(converted, params)
 
         result = cursor.fetchone()
 
         if result is None:
-            logger.error(f"INSERT query returned no rows. Query: {query[:100]}...")
+            logger.error("INSERT query returned no rows. Query: %s...", query[:100])
             raise ValueError("INSERT did not return an ID")
 
         # Handle both dict-like and tuple-like results
@@ -125,7 +112,7 @@ def execute_insert(cursor, query: str, params: tuple) -> int:
             else:
                 return result[0]
         except (KeyError, IndexError, TypeError) as e:
-            logger.error(f"Failed to extract ID from result: {result}, error: {e}")
+            logger.error("Failed to extract ID from result: %s, error: %s", result, e)
             raise ValueError(f"Could not extract ID from INSERT result: {result}")
     else:
         # SQLite: Use lastrowid
@@ -133,7 +120,7 @@ def execute_insert(cursor, query: str, params: tuple) -> int:
         inserted_id = cursor.lastrowid
 
         if not inserted_id or inserted_id == 0:
-            logger.error(f"SQLite INSERT returned invalid lastrowid: {inserted_id}")
+            logger.error("SQLite INSERT returned invalid lastrowid: %s", inserted_id)
             raise ValueError(f"INSERT did not return a valid ID (got {inserted_id})")
 
         return inserted_id
@@ -164,11 +151,19 @@ def _get_connection_pool() -> "psycopg2.pool.ThreadedConnectionPool":
         if not DATABASE_URL:
             raise ValueError("DATABASE_URL environment variable is required")
 
-        # Create thread-safe connection pool with min=2, max=10 connections
+        # Create thread-safe connection pool
         # minconn=2: Keep 2 warm connections ready
-        # maxconn=10: Conservative for Render starter tier (max ~97 connections)
+        # maxconn=20: Allows more concurrent requests while staying
+        #   within Render managed PG limits (~97 connections)
         _connection_pool = psycopg2.pool.ThreadedConnectionPool(
-            minconn=2, maxconn=10, dsn=DATABASE_URL
+            minconn=2,
+            maxconn=20,
+            dsn=DATABASE_URL,
+            connect_timeout=10,
+            keepalives=1,
+            keepalives_idle=30,
+            keepalives_interval=10,
+            keepalives_count=5,
         )
 
     return _connection_pool
@@ -201,7 +196,7 @@ def init_db() -> None:
 
         seed_glossary()
     except Exception as e:
-        logger.warning(f"Could not seed glossary (table may not exist yet): {e}")
+        logger.warning("Could not seed glossary (table may not exist yet): %s", e)
 
 
 def _init_sqlite_db() -> None:
@@ -212,6 +207,10 @@ def _init_sqlite_db() -> None:
     APP_DIR.mkdir(parents=True, exist_ok=True)
 
     conn = sqlite3.connect(DB_PATH)
+    # Note: PRAGMA foreign_keys is NOT enabled during migrations because
+    # some migrations (e.g. 019) add columns with REFERENCES + DEFAULT
+    # which SQLite rejects when FK enforcement is on. FKs are enforced
+    # at runtime via get_connection() instead.
     try:
         # Create migrations tracking table if it doesn't exist
         conn.execute("""
@@ -236,7 +235,7 @@ def _init_sqlite_db() -> None:
     # This ensures other users on the system cannot access the database
     if DB_PATH.exists():
         os.chmod(DB_PATH, 0o600)
-        logger.info(f"Set secure file permissions (0o600) on {DB_PATH}")
+        logger.info("Set secure file permissions (0o600) on %s", DB_PATH)
 
 
 def _init_postgresql_db() -> None:
@@ -278,7 +277,7 @@ def _init_postgresql_db() -> None:
             _reset_postgresql_sequences(conn)
         except Exception as e:
             # Sequences might not exist yet if this is first run
-            logger.debug(f"Skipping sequence reset (tables may not exist yet): {e}")
+            logger.debug("Skipping sequence reset (tables may not exist yet): %s", e)
 
     finally:
         conn.close()
@@ -377,13 +376,13 @@ def _reset_postgresql_sequences(conn) -> None:
                     "SELECT setval(%s, %s, false)",
                     (seq_name, max_id + 1),
                 )
-                logger.info(f"Reset {seq_name} to {max_id + 1} for {table}")
+                logger.info("Reset %s to %s for %s", seq_name, max_id + 1, table)
 
             conn.commit()
         except Exception as e:
             # Rollback this table's transaction and continue with next table
             conn.rollback()
-            logger.warning(f"Skipped sequence reset for table {table}: {e}")
+            logger.warning("Skipped sequence reset for table %s: %s", table, e)
 
 
 def _convert_sqlite_to_postgresql(sql: str) -> str:
@@ -509,7 +508,7 @@ def _apply_migrations(
     # Run only new migrations
     for migration in migrations:
         if migration in applied_migrations:
-            logger.info(f"Skipping already applied migration: {migration}")
+            logger.info("Skipping already applied migration: %s", migration)
             continue
 
         migration_path = migrations_dir / migration
@@ -519,7 +518,7 @@ def _apply_migrations(
             if pg_path.exists():
                 migration_path = pg_path
         if migration_path.exists():
-            logger.info(f"Applying migration: {migration}")
+            logger.info("Applying migration: %s", migration)
             with open(migration_path) as f:
                 sql = f.read()
 
@@ -582,8 +581,8 @@ def _apply_migrations(
                     try:
                         conn.executescript(sql)
                     except Exception as e:
-                        logger.error(f"Failed to apply migration {migration}: {e}")
-                        logger.error(f"SQL content (first 1000 chars): {sql[:1000]}")
+                        logger.error("Failed to apply migration %s: %s", migration, e)
+                        logger.error("SQL content (first 1000 chars): %s", sql[:1000])
                         raise
 
             # Record this migration as applied
@@ -596,9 +595,9 @@ def _apply_migrations(
                 (migration,),
             )
             conn.commit()
-            logger.info(f"Successfully applied migration: {migration}")
+            logger.info("Successfully applied migration: %s", migration)
         else:
-            logger.warning(f"Migration file not found: {migration}")
+            logger.warning("Migration file not found: %s", migration)
 
 
 @contextmanager
@@ -619,6 +618,10 @@ def get_connection():
                 pass
 
         conn = sqlite3.connect(DB_PATH)
+        # Note: PRAGMA foreign_keys is NOT enabled because the schema
+        # contains stale FK references (e.g. contacts table was renamed
+        # to friends but old FK refs remain). Enable this after a schema
+        # cleanup migration fixes all FK references.
         conn.row_factory = sqlite3.Row  # Enable column access by name
         try:
             yield conn

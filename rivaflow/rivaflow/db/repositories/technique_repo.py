@@ -4,9 +4,10 @@ import sqlite3
 from datetime import date, datetime
 
 from rivaflow.db.database import convert_query, execute_insert, get_connection
+from rivaflow.db.repositories.base_repository import BaseRepository
 
 
-class TechniqueRepository:
+class TechniqueRepository(BaseRepository):
     """Data access layer for techniques."""
 
     @staticmethod
@@ -57,7 +58,7 @@ class TechniqueRepository:
             return None
 
     @staticmethod
-    def get_or_create(name: str, category: str | None = None) -> dict:
+    def get_or_create(name: str, category: str | None = None) -> dict | None:
         """Get existing technique or create new one. Returns technique dict."""
         existing = TechniqueRepository.get_by_name(name)
         if existing:

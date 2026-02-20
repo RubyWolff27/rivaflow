@@ -1,7 +1,7 @@
-import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
 import type { AuthUser } from '../types';
 import { authApi } from '../api/auth';
-import { getErrorMessage } from '../api/client';
+import { getErrorMessage, setAccessToken } from '../api/client';
 import { logger } from '../utils/logger';
 
 interface AuthContextType {
@@ -18,39 +18,41 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Load user from localStorage on mount
+  // On mount, try to obtain a fresh access token via the httpOnly refresh
+  // cookie.  This replaces the old localStorage-based token persistence and
+  // keeps the access token in memory only.
   useEffect(() => {
     let cancelled = false;
-    const loadUser = async () => {
-      const token = localStorage.getItem('access_token');
-      if (token) {
-        try {
-          const response = await authApi.getCurrentUser();
-          if (!cancelled) {
-            setUser(response.data);
-            localStorage.setItem('user', JSON.stringify(response.data));
-          }
-        } catch (error) {
-          if (!cancelled) {
-            logger.error('Failed to load user:', error);
-            // Clear invalid tokens
-            localStorage.removeItem('access_token');
-            localStorage.removeItem('user');
-          }
+    const bootstrap = async () => {
+      try {
+        // The refresh endpoint uses the httpOnly cookie automatically
+        const refreshRes = await authApi.refresh();
+        if (cancelled) return;
+        const newToken = refreshRes.data.access_token;
+        setAccessToken(newToken);
+
+        // Fetch current user with the fresh token
+        const userRes = await authApi.getCurrentUser();
+        if (!cancelled) {
+          setUser(userRes.data);
+        }
+      } catch (err) {
+        if (!cancelled) {
+          logger.debug('No valid refresh cookie — user is not logged in', err);
+          setAccessToken(null);
         }
       }
       if (!cancelled) setIsLoading(false);
     };
 
-    loadUser();
+    bootstrap();
     return () => { cancelled = true; };
   }, []);
 
   const login = async (email: string, password: string) => {
     try {
       const response = await authApi.login({ email, password });
-      localStorage.setItem('access_token', response.data.access_token);
-      localStorage.setItem('user', JSON.stringify(response.data.user));
+      setAccessToken(response.data.access_token);
       setUser(response.data.user);
     } catch (error: unknown) {
       throw new Error(getErrorMessage(error));
@@ -76,13 +78,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         ...(defaultGym ? { default_gym: defaultGym } : {}),
         ...(currentGrade ? { current_grade: currentGrade } : {}),
       });
-      localStorage.setItem('access_token', response.data.access_token);
-      localStorage.setItem('user', JSON.stringify(response.data.user));
+      setAccessToken(response.data.access_token);
       setUser(response.data.user);
     } catch (error: unknown) {
       throw new Error(getErrorMessage(error));
     }
   };
+
+  const logout = useCallback(() => {
+    // Call logout API (fire and forget) — cookie sent automatically
+    authApi.logout().catch(err => {
+      logger.debug('Logout API call failed (fire-and-forget)', err);
+    });
+
+    setAccessToken(null);
+    setUser(null);
+  }, []);
 
   // Listen for session-expired events dispatched by the API client
   useEffect(() => {
@@ -93,19 +104,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => {
       window.removeEventListener('auth:session-expired', handleSessionExpired);
     };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  const logout = () => {
-    // Call logout API (fire and forget) — cookie sent automatically
-    authApi.logout().catch(() => {
-      // Ignore errors - we're logging out anyway
-    });
-
-    localStorage.removeItem('access_token');
-    localStorage.removeItem('user');
-    setUser(null);
-  };
+  }, [logout]);
 
   return (
     <AuthContext.Provider value={{ user, login, register, logout, isLoading }}>

@@ -3,6 +3,7 @@ import { getLocalDateString } from '../../utils/date';
 import { Link } from 'react-router-dom';
 import { Sparkles } from 'lucide-react';
 import { suggestionsApi, readinessApi } from '../../api/client';
+import { logger } from '../../utils/logger';
 import { Card, CardSkeleton } from '../ui';
 
 interface TriggeredRule {
@@ -48,7 +49,8 @@ export default function ReadinessRecommendation() {
             setCompositeScore(res.data.readiness.composite_score);
           }
         }
-      } catch {
+      } catch (err) {
+        logger.debug('Suggestion not available, trying readiness fallback', err);
         // Fallback: try to get readiness score directly
         try {
           const today = getLocalDateString();
@@ -56,8 +58,8 @@ export default function ReadinessRecommendation() {
           if (!cancelled && readRes.data?.composite_score != null) {
             setCompositeScore(readRes.data.composite_score);
           }
-        } catch {
-          // No readiness data today
+        } catch (err2) {
+          logger.debug('No readiness data today', err2);
         }
       } finally {
         if (!cancelled) setLoading(false);

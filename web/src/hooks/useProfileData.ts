@@ -3,6 +3,7 @@ import { getLocalDateString } from '../utils/date';
 import { profileApi, gradingsApi, friendsApi, adminApi, gymsApi, whoopApi, getErrorMessage } from '../api/client';
 import { logger } from '../utils/logger';
 import { validateImageFile } from '../utils/validation';
+import { compressImage } from '../utils/imageCompression';
 import { formatCount } from '../utils/text';
 import type { Profile, Grading, Friend, WhoopConnectionStatus } from '../types';
 import { useToast } from '../contexts/ToastContext';
@@ -102,12 +103,12 @@ export function useProfileData() {
             if (!cancelled && scopeRes.data?.needs_reauth) {
               setWhoopNeedsReauth(true);
             }
-          } catch {
-            // Scope check not available — that's fine
+          } catch (err) {
+            logger.debug('Scope check not available', err);
           }
         }
-      } catch {
-        // Feature flag off or not available — that's fine
+      } catch (err) {
+        logger.debug('WHOOP feature flag off or not available', err);
       }
     };
     doLoad();
@@ -206,11 +207,12 @@ export function useProfileData() {
     };
     reader.readAsDataURL(file);
 
-    // Upload file
+    // Compress and upload file
     setUploadingPhoto(true);
     try {
+      const compressed = await compressImage(file, { maxWidth: 512, maxHeight: 512 });
       const fd = new FormData();
-      fd.append('file', file);
+      fd.append('file', compressed);
 
       const response = await profileApi.uploadPhoto(fd);
 
@@ -258,11 +260,12 @@ export function useProfileData() {
     };
     reader.readAsDataURL(file);
 
-    // Upload file
+    // Compress and upload file
     setUploadingGradingPhoto(true);
     try {
+      const compressed = await compressImage(file);
       const fd = new FormData();
-      fd.append('file', file);
+      fd.append('file', compressed);
 
       const response = await gradingsApi.uploadPhoto(fd);
 
@@ -486,7 +489,7 @@ export function useProfileData() {
     if (whoopParam === 'connected') {
       toast.success('WHOOP connected successfully!');
       // Refresh status
-      whoopApi.getStatus().then(r => setWhoopStatus(r.data)).catch(() => {});
+      whoopApi.getStatus().then(r => setWhoopStatus(r.data)).catch(err => logger.debug('WHOOP status refresh failed', err));
       // Clean URL
       window.history.replaceState({}, '', '/profile');
     } else if (whoopParam === 'error') {

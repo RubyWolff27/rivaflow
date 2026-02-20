@@ -41,7 +41,7 @@ export default function Readiness() {
     soreness: 2,
     energy: 3,
     hotspot_note: '',
-    weight_kg: '' as string | number,
+    weight_kg: '',
     data_source: 'manual' as string,
     hrv_ms: null as number | null,
     resting_hr: null as number | null,
@@ -75,8 +75,8 @@ export default function Readiness() {
             target_weight_date: p.target_weight_date,
           });
         }
-      } catch {
-        // Profile not available
+      } catch (err) {
+        logger.debug('Profile not available', err);
       }
 
       // Fetch 7-day trend on page load
@@ -95,8 +95,8 @@ export default function Readiness() {
             }))
           );
         }
-      } catch {
-        // Trend data not available
+      } catch (err) {
+        logger.debug('Trend data not available', err);
       }
 
       // Try WHOOP auto-fill
@@ -120,13 +120,13 @@ export default function Readiness() {
           }));
           setWhoopApplied(true);
         }
-      } catch {
-        // WHOOP not connected or no data — that's fine
+      } catch (err) {
+        logger.debug('WHOOP not connected or no data', err);
       }
     };
     doLoad();
     return () => { cancelled = true; };
-  }, []);
+  }, [toast]);
 
   const loadLatest = async () => {
     try {
@@ -173,8 +173,8 @@ export default function Readiness() {
             triggered_rules: sugRes.data.triggered_rules,
           });
         }
-      } catch {
-        // Suggestion not available, still show result
+      } catch (err) {
+        logger.debug('Suggestion not available', err);
       }
       // Fetch 7-day trend for chart
       try {
@@ -190,8 +190,8 @@ export default function Readiness() {
             score: r.composite_score ?? 0,
           }))
         );
-      } catch {
-        // Trend data not available
+      } catch (err) {
+        logger.debug('Trend data not available', err);
       }
     } catch (error) {
       logger.error('Error logging readiness:', error);

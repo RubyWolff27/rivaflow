@@ -4,9 +4,10 @@ from typing import Any
 from uuid import uuid4
 
 from rivaflow.db.database import convert_query, get_connection
+from rivaflow.db.repositories.base_repository import BaseRepository
 
 
-class ChatMessageRepository:
+class ChatMessageRepository(BaseRepository):
     """Repository for managing Grapple AI Coach chat messages."""
 
     @staticmethod

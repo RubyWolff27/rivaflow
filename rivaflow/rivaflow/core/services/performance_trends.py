@@ -276,7 +276,7 @@ def compute_class_type_effectiveness(
             }
         )
 
-    effectiveness.sort(key=lambda x: x["sessions"], reverse=True)
+    effectiveness.sort(key=lambda x: x["sessions"], reverse=True)  # type: ignore[return-value]
     return {"class_types": effectiveness}
 
 

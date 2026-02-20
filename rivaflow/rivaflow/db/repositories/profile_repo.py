@@ -4,6 +4,7 @@ import logging
 from datetime import date, datetime
 
 from rivaflow.db.database import convert_query, get_connection
+from rivaflow.db.repositories.base_repository import BaseRepository
 
 logger = logging.getLogger(__name__)
 
@@ -29,7 +30,7 @@ _PROFILE_JOIN_COLS = (
 )
 
 
-class ProfileRepository:
+class ProfileRepository(BaseRepository):
     """Data access layer for user profile (single row table)."""
 
     @staticmethod
@@ -82,7 +83,7 @@ class ProfileRepository:
                 cur.close()
             cls._tz_col_checked = True
         except Exception as exc:
-            logger.error(f"_ensure_timezone_column failed: {exc}")
+            logger.error("_ensure_timezone_column failed: %s", exc)
 
     @staticmethod
     def update(
@@ -285,9 +286,34 @@ class ProfileRepository:
             else:
                 raise Exception("Failed to create or update profile")
 
+    # Whitelist of columns that may be updated via update_goal_fields to
+    # prevent SQL injection through arbitrary column names.
+    _VALID_GOAL_FIELDS = frozenset(
+        {
+            "weekly_sessions_target",
+            "weekly_hours_target",
+            "weekly_rolls_target",
+            "weekly_bjj_sessions_target",
+            "weekly_sc_sessions_target",
+            "weekly_mobility_sessions_target",
+            "target_weight_kg",
+            "target_weight_date",
+            "show_streak_on_dashboard",
+            "show_weekly_goals",
+        }
+    )
+
     @staticmethod
     def update_goal_fields(user_id: int, updates: dict) -> None:
         """Update goal-related fields on the profile table."""
+        invalid_keys = set(updates.keys()) - ProfileRepository._VALID_GOAL_FIELDS
+        if invalid_keys:
+            raise ValueError(
+                f"Invalid goal fields: {sorted(invalid_keys)}. "
+                f"Allowed: {sorted(ProfileRepository._VALID_GOAL_FIELDS)}"
+            )
+        if not updates:
+            return
         with get_connection() as conn:
             cursor = conn.cursor()
             set_clause = ", ".join([f"{k} = ?" for k in updates.keys()])

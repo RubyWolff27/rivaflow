@@ -1,9 +1,10 @@
 """Repository for weight log data access."""
 
 from rivaflow.db.database import convert_query, execute_insert, get_connection
+from rivaflow.db.repositories.base_repository import BaseRepository
 
 
-class WeightLogRepository:
+class WeightLogRepository(BaseRepository):
     """Data access layer for weight logs."""
 
     @staticmethod

@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { X } from 'lucide-react';
 import { trainingGoalsApi, glossaryApi } from '../../api/client';
+import { logger } from '../../utils/logger';
 import type { Movement } from '../../types';
 import { useToast } from '../../contexts/ToastContext';
 
@@ -32,7 +33,8 @@ export default function CreateGoalModal({ month, onClose, onCreated }: CreateGoa
       try {
         const res = await glossaryApi.list({ search: movementSearch, limit: 10 });
         if (!cancelled) setMovements(res.data);
-      } catch {
+      } catch (err) {
+        logger.debug('Movement search fallback', err);
         if (!cancelled) setMovements([]);
       }
     };

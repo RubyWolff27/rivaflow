@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import type { WhoopWorkoutMatch } from '../types';
 import { X, Heart, Flame, Zap } from 'lucide-react';
+import { logger } from '../utils/logger';
 
 interface WhoopMatchModalProps {
   isOpen: boolean;
@@ -14,7 +15,8 @@ function formatTime(isoStr: string): string {
   try {
     const d = new Date(isoStr);
     return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-  } catch {
+  } catch (err) {
+    logger.debug('Time format fallback', err);
     return isoStr;
   }
 }

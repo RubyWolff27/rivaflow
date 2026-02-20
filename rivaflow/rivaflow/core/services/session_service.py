@@ -5,6 +5,7 @@ from datetime import date
 from typing import Any
 
 from rivaflow.core.constants import SPARRING_CLASS_TYPES
+from rivaflow.core.utils.cache import get_cache
 from rivaflow.db.repositories import (
     SessionRepository,
     SessionRollRepository,
@@ -15,6 +16,19 @@ from rivaflow.db.repositories.glossary_repo import GlossaryRepository
 from rivaflow.db.repositories.session_technique_repo import SessionTechniqueRepository
 
 logger = logging.getLogger(__name__)
+
+_SESSION_CACHE_PREFIXES = (
+    "analytics_",
+    "insights_",
+    "whoop_",
+)
+
+
+def _invalidate_session_caches() -> None:
+    """Clear analytics/insights caches after session mutations."""
+    cache = get_cache()
+    for prefix in _SESSION_CACHE_PREFIXES:
+        cache.delete_pattern(prefix)
 
 
 class SessionService:
@@ -91,57 +105,8 @@ class SessionService:
             defenses_successful=defenses_successful,
         )
 
-        # Create detailed roll records if provided
-        if session_rolls:
-            for roll_data in session_rolls:
-                self.roll_repo.create(
-                    user_id=user_id,
-                    session_id=session_id,
-                    roll_number=roll_data.get("roll_number", 1),
-                    partner_id=roll_data.get("partner_id"),
-                    partner_name=roll_data.get("partner_name"),
-                    duration_mins=roll_data.get("duration_mins"),
-                    submissions_for=roll_data.get("submissions_for"),
-                    submissions_against=roll_data.get("submissions_against"),
-                    notes=roll_data.get("notes"),
-                )
-        elif partners and not session_rolls:
-            for i, partner_name in enumerate(partners, start=1):
-                friend = FriendRepository.get_by_name(user_id, partner_name)
-                partner_id = friend["id"] if friend else None
-                self.roll_repo.create(
-                    user_id=user_id,
-                    session_id=session_id,
-                    roll_number=i,
-                    partner_id=partner_id,
-                    partner_name=partner_name,
-                )
-
-        # Create detailed technique records if provided
-        if session_techniques:
-            for tech_data in session_techniques:
-                self.technique_detail_repo.create(
-                    user_id=user_id,
-                    session_id=session_id,
-                    movement_id=tech_data.get("movement_id"),
-                    technique_number=tech_data.get("technique_number", 1),
-                    notes=tech_data.get("notes"),
-                    media_urls=tech_data.get("media_urls"),
-                )
-
-        # Create session_techniques records from simple techniques list
-        if techniques:
-            for tech_name in techniques:
-                movement = self.glossary_repo.get_by_name(tech_name)
-                if not movement:
-                    movement = self.glossary_repo.create_custom(
-                        name=tech_name, category="submission"
-                    )
-                self.technique_detail_repo.create(
-                    user_id=user_id,
-                    session_id=session_id,
-                    movement_id=movement["id"],
-                )
+        self._create_rolls(user_id, session_id, session_rolls, partners)
+        self._create_techniques(user_id, session_id, session_techniques, techniques)
 
         # Create check-in record for this session
         self.checkin_repo.upsert_checkin(
@@ -153,6 +118,8 @@ class SessionService:
 
         # Best-effort session scoring
         self._score_session(user_id, session_id)
+
+        _invalidate_session_caches()
 
         return session_id
 
@@ -207,63 +174,36 @@ class SessionService:
         if not updated:
             return None
 
-        # Update detailed roll records if provided
+        # Replace rolls if provided
         if session_rolls is not None:
             self.roll_repo.delete_by_session(session_id)
-            for roll_data in session_rolls:
-                self.roll_repo.create(
-                    user_id=user_id,
-                    session_id=session_id,
-                    roll_number=roll_data.get("roll_number", 1),
-                    partner_id=roll_data.get("partner_id"),
-                    partner_name=roll_data.get("partner_name"),
-                    duration_mins=roll_data.get("duration_mins"),
-                    submissions_for=roll_data.get("submissions_for"),
-                    submissions_against=roll_data.get("submissions_against"),
-                    notes=roll_data.get("notes"),
-                )
+            self._create_rolls(user_id, session_id, session_rolls)
 
-        # Update detailed technique records if provided
+        # Replace techniques if provided
         if session_techniques is not None:
-            # Delete existing technique records
             self.technique_detail_repo.delete_by_session(session_id)
-            # Create new technique records
-            for tech_data in session_techniques:
-                self.technique_detail_repo.create(
-                    user_id=user_id,
-                    session_id=session_id,
-                    movement_id=tech_data.get("movement_id"),
-                    technique_number=tech_data.get("technique_number", 1),
-                    notes=tech_data.get("notes"),
-                    media_urls=tech_data.get("media_urls"),
-                )
+            self._create_techniques(user_id, session_id, session_techniques)
 
-        # Create session_techniques records from simple techniques list
+        # Handle simple techniques list from kwargs
         techniques = kwargs.get("techniques")
         if techniques is not None:
-            # Delete old simple-technique records if no detailed techs were provided
             if session_techniques is None:
                 self.technique_detail_repo.delete_by_session(session_id)
-            for tech_name in techniques:
-                movement = self.glossary_repo.get_by_name(tech_name)
-                if not movement:
-                    movement = self.glossary_repo.create_custom(
-                        name=tech_name, category="submission"
-                    )
-                self.technique_detail_repo.create(
-                    user_id=user_id,
-                    session_id=session_id,
-                    movement_id=movement["id"],
-                )
+            self._create_techniques(user_id, session_id, None, techniques)
 
         # Best-effort session scoring recalc
         self._score_session(user_id, session_id)
+
+        _invalidate_session_caches()
 
         return updated
 
     def delete_session(self, user_id: int, session_id: int) -> bool:
         """Delete a session by ID. Returns True if deleted, False if not found."""
-        return self.session_repo.delete(user_id, session_id)
+        result = self.session_repo.delete(user_id, session_id)
+        if result:
+            _invalidate_session_caches()
+        return result
 
     def get_sessions_by_date_range(
         self, user_id: int, start_date: date, end_date: date
@@ -404,6 +344,70 @@ class SessionService:
     def get_partner_stats(self, user_id: int, partner_id: int) -> dict[str, Any]:
         """Get analytics for a specific training partner."""
         return self.roll_repo.get_partner_stats(user_id, partner_id)
+
+    def _create_rolls(
+        self,
+        user_id: int,
+        session_id: int,
+        session_rolls: list[dict[str, Any]] | None = None,
+        partners: list[str] | None = None,
+    ) -> None:
+        """Create roll records from detailed rolls or partner names."""
+        if session_rolls:
+            for roll_data in session_rolls:
+                self.roll_repo.create(
+                    user_id=user_id,
+                    session_id=session_id,
+                    roll_number=roll_data.get("roll_number", 1),
+                    partner_id=roll_data.get("partner_id"),
+                    partner_name=roll_data.get("partner_name"),
+                    duration_mins=roll_data.get("duration_mins"),
+                    submissions_for=roll_data.get("submissions_for"),
+                    submissions_against=roll_data.get("submissions_against"),
+                    notes=roll_data.get("notes"),
+                )
+        elif partners:
+            for i, partner_name in enumerate(partners, start=1):
+                friend = FriendRepository.get_by_name(user_id, partner_name)
+                partner_id = friend["id"] if friend else None
+                self.roll_repo.create(
+                    user_id=user_id,
+                    session_id=session_id,
+                    roll_number=i,
+                    partner_id=partner_id,
+                    partner_name=partner_name,
+                )
+
+    def _create_techniques(
+        self,
+        user_id: int,
+        session_id: int,
+        session_techniques: list[dict[str, Any]] | None = None,
+        techniques: list[str] | None = None,
+    ) -> None:
+        """Create technique records from detailed data or simple name list."""
+        if session_techniques:
+            for tech_data in session_techniques:
+                self.technique_detail_repo.create(
+                    user_id=user_id,
+                    session_id=session_id,
+                    movement_id=tech_data.get("movement_id"),
+                    technique_number=tech_data.get("technique_number", 1),
+                    notes=tech_data.get("notes"),
+                    media_urls=tech_data.get("media_urls"),
+                )
+        if techniques:
+            for tech_name in techniques:
+                movement = self.glossary_repo.get_by_name(tech_name)
+                if not movement:
+                    movement = self.glossary_repo.create_custom(
+                        name=tech_name, category="submission"
+                    )
+                self.technique_detail_repo.create(
+                    user_id=user_id,
+                    session_id=session_id,
+                    movement_id=movement["id"],
+                )
 
     @staticmethod
     def _score_session(user_id: int, session_id: int) -> None:

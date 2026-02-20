@@ -115,7 +115,7 @@ class GrappleRateLimiter:
                 window_end=window_end.isoformat(),
             )
         except (ConnectionError, OSError) as e:
-            logger.error(f"Failed to record message for user {user_id}: {e}")
+            logger.error("Failed to record message for user %s: %s", user_id, e)
             # Don't fail the request if we can't record - just log it
 
     def _get_user_message_count(self, user_id: int) -> tuple[int, datetime]:
@@ -136,7 +136,7 @@ class GrappleRateLimiter:
                 return result[0], result[1]
             return 0, window_end
         except (ConnectionError, OSError) as e:
-            logger.error(f"Failed to get message count for user {user_id}: {e}")
+            logger.error("Failed to get message count for user %s: %s", user_id, e)
             return 0, window_end
 
     def _get_global_message_count(self) -> int:
@@ -148,7 +148,7 @@ class GrappleRateLimiter:
                 window_start.isoformat()
             )
         except (ConnectionError, OSError) as e:
-            logger.error(f"Failed to get global message count: {e}")
+            logger.error("Failed to get global message count: %s", e)
             return 0
 
     def _get_next_hour_start(self) -> datetime:
@@ -190,7 +190,7 @@ class GrappleRateLimiter:
                 "days_analyzed": days,
             }
         except (ConnectionError, OSError) as e:
-            logger.error(f"Failed to get usage stats for user {user_id}: {e}")
+            logger.error("Failed to get usage stats for user %s: %s", user_id, e)
             return {
                 "active_hours": 0,
                 "total_messages": 0,
@@ -216,8 +216,8 @@ class GrappleRateLimiter:
             deleted_count = GrappleUsageRepository.cleanup_old_records(
                 cutoff_date.isoformat()
             )
-            logger.info(f"Cleaned up {deleted_count} old rate limit records")
+            logger.info("Cleaned up %s old rate limit records", deleted_count)
             return deleted_count
         except (ConnectionError, OSError) as e:
-            logger.error(f"Failed to cleanup old rate limit records: {e}")
+            logger.error("Failed to cleanup old rate limit records: %s", e)
             return 0

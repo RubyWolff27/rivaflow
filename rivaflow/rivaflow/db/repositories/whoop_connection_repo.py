@@ -3,13 +3,14 @@
 from datetime import UTC, datetime
 
 from rivaflow.db.database import convert_query, execute_insert, get_connection
+from rivaflow.db.repositories.base_repository import BaseRepository
 
 
 def _now_iso() -> str:
     return datetime.now(UTC).isoformat()
 
 
-class WhoopConnectionRepository:
+class WhoopConnectionRepository(BaseRepository):
     """Data access layer for whoop_connections table."""
 
     @staticmethod
@@ -186,8 +187,3 @@ class WhoopConnectionRepository:
                 (enabled, _now_iso(), user_id),
             )
             return cursor.rowcount > 0
-
-    @staticmethod
-    def _row_to_dict(row) -> dict:
-        """Convert a database row to a dictionary."""
-        return dict(row)

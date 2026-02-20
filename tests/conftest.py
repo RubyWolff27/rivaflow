@@ -5,7 +5,6 @@ import shutil
 import tempfile
 from datetime import date, timedelta
 from pathlib import Path
-from unittest.mock import patch
 
 import pytest
 
@@ -26,6 +25,9 @@ os.environ.setdefault("SECRET_KEY", "test-secret-key-for-testing-only-not-produc
 # Do NOT delete DATABASE_URL - let CI use PostgreSQL
 
 from rivaflow.core.auth import create_access_token, hash_password  # noqa: E402
+
+# Shared test password constant — used across all test files
+TEST_PASSWORD = "TestPass123!secure"
 from rivaflow.db.database import init_db  # noqa: E402
 from rivaflow.db.repositories import (  # noqa: E402
     FriendRepository,
@@ -53,11 +55,7 @@ def temp_db(monkeypatch):
 
         # Initialize database schema and run migrations
         init_db()  # Creates migrations tracking table
-        try:
-            run_migrations()  # Applies all migrations
-        except Exception as e:
-            # Migrations may already be applied
-            print(f"Note: Migrations may already be applied: {e}")
+        run_migrations()  # Applies all migrations (idempotent)
 
         # Clean all tables before EACH test
         def cleanup_tables():
@@ -122,29 +120,25 @@ def temp_db(monkeypatch):
 @pytest.fixture
 def session_repo(temp_db):
     """Session repository with temp database."""
-    with patch("rivaflow.config.DB_PATH", temp_db):
-        return SessionRepository()
+    return SessionRepository()
 
 
 @pytest.fixture
 def readiness_repo(temp_db):
     """Readiness repository with temp database."""
-    with patch("rivaflow.config.DB_PATH", temp_db):
-        return ReadinessRepository()
+    return ReadinessRepository()
 
 
 @pytest.fixture
 def technique_repo(temp_db):
     """Technique repository with temp database."""
-    with patch("rivaflow.config.DB_PATH", temp_db):
-        return TechniqueRepository()
+    return TechniqueRepository()
 
 
 @pytest.fixture
 def video_repo(temp_db):
     """Video repository with temp database."""
-    with patch("rivaflow.config.DB_PATH", temp_db):
-        return VideoRepository()
+    return VideoRepository()
 
 
 @pytest.fixture
@@ -188,7 +182,7 @@ def test_user(temp_db):
     user_repo = UserRepository()
     user = user_repo.create(
         email="test@example.com",
-        hashed_password=hash_password("testpass123"),
+        hashed_password=hash_password(TEST_PASSWORD),
         first_name="Test",
         last_name="User",
     )
@@ -201,11 +195,49 @@ def test_user2(temp_db):
     user_repo = UserRepository()
     user = user_repo.create(
         email="test2@example.com",
-        hashed_password=hash_password("testpass123"),
+        hashed_password=hash_password(TEST_PASSWORD),
         first_name="Test2",
         last_name="User2",
     )
     return user
+
+
+@pytest.fixture
+def admin_user(temp_db):
+    """Create an admin user for admin-only route tests."""
+    user_repo = UserRepository()
+    user = user_repo.create(
+        email="admin@example.com",
+        hashed_password=hash_password("AdminPass123!secure"),
+        first_name="Admin",
+        last_name="User",
+    )
+    # Mark as admin
+    from rivaflow.db.database import convert_query, get_connection
+
+    with get_connection() as conn:
+        cursor = conn.cursor()
+        cursor.execute(
+            convert_query("UPDATE users SET is_admin = ? WHERE id = ?"),
+            (True, user["id"]),
+        )
+        conn.commit()
+    user["is_admin"] = True
+    return user
+
+
+@pytest.fixture
+def admin_token(admin_user):
+    """Generate a valid JWT token for admin_user."""
+    return create_access_token(
+        data={"sub": str(admin_user["id"])}, expires_delta=timedelta(hours=1)
+    )
+
+
+@pytest.fixture
+def admin_headers(admin_token):
+    """Return Authorization headers with admin JWT token."""
+    return {"Authorization": f"Bearer {admin_token}"}
 
 
 @pytest.fixture
@@ -228,7 +260,9 @@ def client(temp_db):
     from fastapi.testclient import TestClient
 
     from rivaflow.api.main import app
+    from rivaflow.api.rate_limit import limiter
 
+    limiter.reset()
     return TestClient(app)
 
 

@@ -1,5 +1,6 @@
 """Chat API routes - proxy to Ollama LLM with BJJ coaching context."""
 
+import asyncio
 import logging
 import os
 
@@ -186,9 +187,9 @@ async def chat(
         )
 
     try:
-        # Build user context and system prompt
-        user_context = build_user_context(
-            current_user["id"], session_svc, user_svc, privacy_svc
+        # Build user context off the event loop (sync DB calls)
+        user_context = await asyncio.to_thread(
+            build_user_context, current_user["id"], session_svc, user_svc, privacy_svc
         )
         system_prompt = build_system_prompt(user_context)
 
@@ -197,7 +198,7 @@ async def chat(
             msg.model_dump() for msg in chat_request.messages
         ]
 
-        # Call Ollama with full context
+        # Call Ollama with full context (already async)
         async with httpx.AsyncClient(timeout=TIMEOUT) as client:
             response = await client.post(
                 OLLAMA_URL,
@@ -212,17 +213,17 @@ async def chat(
             return ChatResponse(reply=data["message"]["content"])
 
     except httpx.TimeoutException:
-        logger.warning(f"Ollama LLM request timed out for user {current_user['id']}")
+        logger.warning("Ollama LLM request timed out for user %s", current_user["id"])
         raise ExternalServiceError(
             message="The AI coach is taking too long to respond. Please try again."
         )
     except httpx.ConnectError:
-        logger.error(f"Cannot connect to Ollama service at {OLLAMA_URL}")
+        logger.error("Cannot connect to Ollama service at %s", OLLAMA_URL)
         raise ExternalServiceError(
             message="Chat service is temporarily unavailable. Please try again later."
         )
     except httpx.HTTPError as e:
-        logger.error(f"Ollama HTTP error for user {current_user['id']}: {str(e)}")
+        logger.error("Ollama HTTP error for user %s: %s", current_user["id"], str(e))
         raise ExternalServiceError(
             message="The AI coach encountered an error. Please try again."
         )

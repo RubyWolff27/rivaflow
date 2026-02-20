@@ -3,6 +3,7 @@ import { Search, Send, X, Users, Clock, CheckCircle, XCircle } from 'lucide-reac
 import { usePageTitle } from '../hooks/usePageTitle';
 import AdminNav from '../components/AdminNav';
 import { adminApi } from '../api/client';
+import { logger } from '../utils/logger';
 import { useToast } from '../contexts/ToastContext';
 import ConfirmDialog from '../components/ConfirmDialog';
 
@@ -64,7 +65,8 @@ export default function AdminWaitlist() {
       });
       setEntries(res.data.entries);
       setTotal(res.data.total);
-    } catch {
+    } catch (err) {
+      logger.warn('Failed to load waitlist', err);
       toast.error('Failed to load waitlist');
     } finally {
       setLoading(false);
@@ -75,8 +77,8 @@ export default function AdminWaitlist() {
     try {
       const res = await adminApi.getWaitlistStats();
       setStats(res.data);
-    } catch {
-      // ignore
+    } catch (err) {
+      logger.debug('Waitlist stats not available', err);
     }
   };
 
@@ -99,8 +101,8 @@ export default function AdminWaitlist() {
           setTotal(entriesRes.data.total);
           setStats(statsRes.data);
         }
-      } catch {
-        if (!cancelled) toast.error('Failed to load waitlist');
+      } catch (err) {
+        if (!cancelled) { logger.warn('Failed to load waitlist', err); toast.error('Failed to load waitlist'); }
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -168,7 +170,8 @@ export default function AdminWaitlist() {
       toast.success('Notes saved');
       setShowDetail(null);
       loadEntries();
-    } catch {
+    } catch (err) {
+      logger.warn('Failed to save notes', err);
       toast.error('Failed to save notes');
     }
   };

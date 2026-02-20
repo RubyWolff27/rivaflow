@@ -1,4 +1,5 @@
 import { useEffect, useRef, useCallback } from 'react';
+import { logger } from '../utils/logger';
 
 /**
  * Saves form data to localStorage as the user types, and restores it on mount.
@@ -24,8 +25,8 @@ export function useDraftSaving<T>(
         const parsed = JSON.parse(saved) as Partial<T>;
         setData(prev => ({ ...prev, ...parsed }));
       }
-    } catch {
-      // Ignore invalid JSON
+    } catch (err) {
+      logger.debug('Draft restore failed — invalid JSON', err);
     }
   }, [storageKey, setData]);
 
@@ -34,8 +35,8 @@ export function useDraftSaving<T>(
     const timer = setTimeout(() => {
       try {
         localStorage.setItem(storageKey, JSON.stringify(data));
-      } catch {
-        // localStorage full or unavailable
+      } catch (err) {
+        logger.debug('Draft save failed — localStorage unavailable', err);
       }
     }, debounceMs);
     return () => clearTimeout(timer);

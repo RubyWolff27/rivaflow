@@ -95,7 +95,6 @@ disable_error_code = [
     "assignment",
     "var-annotated",
     "union-attr",
-    "return-value",
     "call-arg",
     "index",
     "list-item",
@@ -109,5 +108,5 @@ disable_error_code = [
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-addopts = "-v --cov=rivaflow"
+addopts = "-v --cov=rivaflow --cov-fail-under=55 --strict-markers"
 pythonpath = ["rivaflow"]

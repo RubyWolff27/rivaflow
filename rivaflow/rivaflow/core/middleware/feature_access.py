@@ -50,7 +50,7 @@ class FeatureAccess:
             True if tier has access, False otherwise
         """
         if feature not in cls.FEATURE_TIERS:
-            logger.warning(f"Unknown feature: {feature}")
+            logger.warning("Unknown feature: %s", feature)
             return False
 
         allowed_tiers = cls.FEATURE_TIERS[feature]

@@ -4,9 +4,10 @@ import json
 from datetime import date, datetime, timedelta
 
 from rivaflow.db.database import convert_query, execute_insert, get_connection
+from rivaflow.db.repositories.base_repository import BaseRepository
 
 
-class GlossaryRepository:
+class GlossaryRepository(BaseRepository):
     """Data access layer for movements glossary."""
 
     @staticmethod

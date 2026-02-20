@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Plus, X, CheckCircle } from 'lucide-react';
+import { logger } from '../../utils/logger';
 
 const TEMPLATES: Record<string, string[]> = {
   competition: ['Weight check', 'Gi / No-Gi gear ready', 'IBJJF card / registration', 'Game plan reviewed', 'Mouth guard', 'Tape / knee pads'],
@@ -26,7 +27,7 @@ export default function PrepChecklist({ eventId, eventType }: PrepChecklistProps
     try {
       const stored = localStorage.getItem(storageKey);
       if (stored) return JSON.parse(stored);
-    } catch { /* use template */ }
+    } catch (err) { logger.debug('Prep checklist localStorage read failed', err); }
     const template = TEMPLATES[eventType] || TEMPLATES.other;
     return template.map(text => ({ text, checked: false }));
   });
@@ -36,7 +37,7 @@ export default function PrepChecklist({ eventId, eventType }: PrepChecklistProps
   useEffect(() => {
     try {
       localStorage.setItem(storageKey, JSON.stringify(items));
-    } catch { /* noop */ }
+    } catch (err) { logger.debug('Prep checklist localStorage write failed', err); }
   }, [items, storageKey]);
 
   const toggleItem = useCallback((index: number) => {

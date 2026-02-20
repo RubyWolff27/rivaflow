@@ -86,6 +86,18 @@ function WeightChart({ logs }: { logs: WeightLog[] }) {
 /*  Event Form                                                         */
 /* ------------------------------------------------------------------ */
 
+interface EventFormData {
+  name: string;
+  event_type: string;
+  event_date: string;
+  location: string;
+  weight_class: string;
+  target_weight: number | undefined;
+  division: string;
+  notes: string;
+  status: string;
+}
+
 const EMPTY_FORM = {
   name: '',
   event_type: 'competition',
@@ -104,7 +116,7 @@ function EventForm({
   onCancel,
 }: {
   initial?: Partial<CompEvent>;
-  onSubmit: (data: Record<string, unknown>) => Promise<void>;
+  onSubmit: (data: EventFormData) => Promise<void>;
   onCancel: () => void;
 }) {
   const [form, setForm] = useState({ ...EMPTY_FORM, ...initial });
@@ -391,15 +403,15 @@ export default function Events() {
     return () => { cancelled = true; };
   }, [fetchAll]);
 
-  const handleCreate = async (data: Record<string, unknown>) => {
-    await eventsApi.create(data as Partial<CompEvent>);
+  const handleCreate = async (data: EventFormData) => {
+    await eventsApi.create(data);
     setShowForm(false);
     fetchAll();
   };
 
-  const handleUpdate = async (data: Record<string, unknown>) => {
+  const handleUpdate = async (data: EventFormData) => {
     if (!editingEvent) return;
-    await eventsApi.update(editingEvent.id, data as Partial<CompEvent>);
+    await eventsApi.update(editingEvent.id, data);
     setEditingEvent(null);
     fetchAll();
   };

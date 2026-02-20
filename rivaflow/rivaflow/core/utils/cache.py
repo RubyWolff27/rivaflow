@@ -110,7 +110,7 @@ class SimpleCache:
         after_count = len(self._cache)
         removed = before_count - after_count
         if removed > 0:
-            logger.info(f"Cleaned up {removed} expired cache entries")
+            logger.info("Cleaned up %s expired cache entries", removed)
 
     def get_stats(self) -> dict:
         """Get cache statistics."""
@@ -169,11 +169,11 @@ def cached(ttl_seconds: int = 300, key_prefix: str = ""):
             # Try to get from cache (use sentinel to handle falsy values)
             cached_value = _cache.get(cache_key)
             if cached_value is not _MISSING:
-                logger.debug(f"Cache HIT: {cache_key}")
+                logger.debug("Cache HIT: %s", cache_key)
                 return cached_value
 
             # Cache miss - call function
-            logger.debug(f"Cache MISS: {cache_key}")
+            logger.debug("Cache MISS: %s", cache_key)
             result = func(*args, **kwargs)
 
             # Store in cache

@@ -93,7 +93,7 @@ def submit_feedback(
             )
         except (ConnectionError, OSError, RuntimeError) as e:
             # Log but don't fail the request if email fails
-            logger.warning(f"Failed to send feedback notification email: {str(e)}")
+            logger.warning("Failed to send feedback notification email: %s", str(e))
 
         return created
     except (ConnectionError, OSError, ValueError) as e:

@@ -8,7 +8,7 @@ services:
         condition: service_healthy
     environment:
       - DATABASE_URL=postgresql://rivaflow:rivaflow@db:5432/rivaflow
-      - SECRET_KEY=local-dev-secret-key-change-in-production
+      - SECRET_KEY=${SECRET_KEY:-local-dev-secret-key-change-in-production-min32}
       - ENV=development
       - PORT=8000
     restart: unless-stopped

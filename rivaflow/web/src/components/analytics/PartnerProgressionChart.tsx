@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { analyticsApi } from '../../api/client';
+import { logger } from '../../utils/logger';
 import { CardSkeleton } from '../ui';
 
 interface ProgressionPoint {
@@ -30,7 +31,7 @@ export default function PartnerProgressionChart({ partnerId }: PartnerProgressio
     setLoading(true);
     analyticsApi.partnerProgression(partnerId)
       .then(res => { if (!cancelled) setData(res.data); })
-      .catch(() => { if (!cancelled) setData(null); })
+      .catch((err) => { logger.debug('Partner progression not available', err); if (!cancelled) setData(null); })
       .finally(() => { if (!cancelled) setLoading(false); });
     return () => { cancelled = true; };
   }, [partnerId]);

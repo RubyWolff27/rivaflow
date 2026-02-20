@@ -12,10 +12,10 @@ try:
 except ImportError:
     SENTRY_AVAILABLE = False
 
-from fastapi import FastAPI
+from fastapi import Depends, FastAPI
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
@@ -261,8 +261,8 @@ app.include_router(health.router)
 app.include_router(auth.router, prefix="/api/v1/auth", tags=["auth"])
 app.include_router(sessions.router, prefix="/api/v1/sessions", tags=["sessions"])
 app.include_router(readiness.router, prefix="/api/v1/readiness", tags=["readiness"])
-app.include_router(rest.router, prefix="/api/v1")
-app.include_router(feed.router, prefix="/api/v1")
+app.include_router(rest.router, prefix="/api/v1", tags=["rest"])
+app.include_router(feed.router, prefix="/api/v1", tags=["feed"])
 app.include_router(reports.router, prefix="/api/v1/reports", tags=["reports"])
 app.include_router(
     suggestions.router, prefix="/api/v1/suggestions", tags=["suggestions"]
@@ -287,29 +287,29 @@ app.include_router(
     prefix="/api/v1/coach-preferences",
     tags=["coach-preferences"],
 )
-app.include_router(checkins.router, prefix="/api/v1")
-app.include_router(streaks.router, prefix="/api/v1")
-app.include_router(milestones.router, prefix="/api/v1")
-app.include_router(photos.router, prefix="/api/v1")
-app.include_router(social.router, prefix="/api/v1")
+app.include_router(checkins.router, prefix="/api/v1", tags=["checkins"])
+app.include_router(streaks.router, prefix="/api/v1", tags=["streaks"])
+app.include_router(milestones.router, prefix="/api/v1", tags=["milestones"])
+app.include_router(photos.router, prefix="/api/v1", tags=["photos"])
+app.include_router(social.router, prefix="/api/v1", tags=["social"])
 app.include_router(social_likes.router, prefix="/api/v1/social", tags=["social"])
 app.include_router(social_comments.router, prefix="/api/v1/social", tags=["social"])
 app.include_router(social_connections.router, prefix="/api/v1/social", tags=["social"])
 # AI features (Grapple + Game Plans)
-app.include_router(grapple.router, prefix="/api/v1")
+app.include_router(grapple.router, prefix="/api/v1", tags=["grapple"])
 app.include_router(grapple_insights.router, prefix="/api/v1/grapple", tags=["grapple"])
 app.include_router(grapple_usage.router, prefix="/api/v1/grapple", tags=["grapple"])
-app.include_router(game_plans.router, prefix="/api/v1")
-app.include_router(notifications.router, prefix="/api/v1")
-app.include_router(admin.router, prefix="/api/v1")
+app.include_router(game_plans.router, prefix="/api/v1", tags=["game-plans"])
+app.include_router(notifications.router, prefix="/api/v1", tags=["notifications"])
+app.include_router(admin.router, prefix="/api/v1", tags=["admin"])
 app.include_router(admin_gyms.router, prefix="/api/v1/admin", tags=["admin"])
 app.include_router(admin_users.router, prefix="/api/v1/admin", tags=["admin"])
 app.include_router(admin_broadcast.router, prefix="/api/v1/admin", tags=["admin"])
-app.include_router(admin_grapple.router, prefix="/api/v1")
-app.include_router(gyms.router, prefix="/api/v1")
-app.include_router(feedback.router, prefix="/api/v1")
-app.include_router(dashboard.router, prefix="/api/v1")
-app.include_router(transcribe.router, prefix="/api/v1")
+app.include_router(admin_grapple.router, prefix="/api/v1", tags=["admin-grapple"])
+app.include_router(gyms.router, prefix="/api/v1", tags=["gyms"])
+app.include_router(feedback.router, prefix="/api/v1", tags=["feedback"])
+app.include_router(dashboard.router, prefix="/api/v1", tags=["dashboard"])
+app.include_router(transcribe.router, prefix="/api/v1", tags=["transcribe"])
 app.include_router(events.router, prefix="/api/v1/events", tags=["events"])
 app.include_router(integrations.router, prefix="/api/v1", tags=["integrations"])
 app.include_router(webhooks.router, prefix="/api/v1", tags=["webhooks"])
@@ -319,11 +319,27 @@ app.include_router(
 )
 
 
-# Serve uploaded files locally (only when S3 is not configured)
+# Serve uploaded files locally with auth check (only when S3 is not configured)
 if not os.getenv("S3_BUCKET_NAME"):
     uploads_path = Path(__file__).parent.parent.parent / "uploads"
     uploads_path.mkdir(parents=True, exist_ok=True)
-    app.mount("/uploads", StaticFiles(directory=str(uploads_path)), name="uploads")
+
+    from rivaflow.core.dependencies import get_current_user  # noqa: E402
+
+    @app.get("/uploads/{file_path:path}")
+    async def serve_upload(
+        file_path: str,
+        _current_user: dict = Depends(get_current_user),
+    ):
+        """Serve uploaded files with authentication required."""
+        # Prevent path traversal
+        safe_path = (uploads_path / file_path).resolve()
+        if not str(safe_path).startswith(str(uploads_path.resolve())):
+            return JSONResponse(status_code=403, content={"error": "Access denied"})
+        if not safe_path.is_file():
+            return JSONResponse(status_code=404, content={"error": "File not found"})
+        return FileResponse(safe_path)
+
 
 # Serve static files from the React build (for production)
 # This allows serving both API and frontend from the same domain

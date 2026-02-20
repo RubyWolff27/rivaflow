@@ -1,4 +1,12 @@
-"""Authentication utilities for JWT tokens and password hashing."""
+"""Authentication utilities for JWT tokens and password hashing.
+
+Security notes:
+- CSRF protection: All mutating API endpoints require a Bearer token in the
+  Authorization header.  Since browsers never send Authorization headers
+  automatically (unlike cookies), cross-site requests cannot forge
+  authenticated calls.  This is an established CSRF-mitigation pattern
+  (see OWASP "Using a Custom Request Header").
+"""
 
 import secrets
 from datetime import timedelta
@@ -11,9 +19,14 @@ from rivaflow.core.settings import settings
 from rivaflow.core.time_utils import utcnow
 
 # Password hashing configuration
+# Note on passlib: passlib is in maintenance mode but bcrypt support is
+# stable and widely deployed.  Consider migrating to argon2-cffi in a
+# future sprint if passlib is formally deprecated.
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 ALGORITHM = "HS256"
+_JWT_ISSUER = "rivaflow"
+_JWT_AUDIENCE = "rivaflow-api"
 
 
 def _get_secret_key() -> str:
@@ -73,12 +86,20 @@ def create_access_token(data: dict, expires_delta: timedelta | None = None) -> s
     """
     to_encode = data.copy()
 
+    now = utcnow()
     if expires_delta:
-        expire = utcnow() + expires_delta
+        expire = now + expires_delta
     else:
-        expire = utcnow() + timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
+        expire = now + timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
 
-    to_encode.update({"exp": expire})
+    to_encode.update(
+        {
+            "exp": expire,
+            "iat": now,
+            "iss": _JWT_ISSUER,
+            "aud": _JWT_AUDIENCE,
+        }
+    )
     encoded_jwt = jwt.encode(to_encode, _get_secret_key(), algorithm=ALGORITHM)
     return encoded_jwt
 
@@ -97,7 +118,13 @@ def decode_access_token(token: str) -> dict | None:
         PyJWTError: If token is invalid or expired
     """
     try:
-        payload = jwt.decode(token, _get_secret_key(), algorithms=[ALGORITHM])
+        payload = jwt.decode(
+            token,
+            _get_secret_key(),
+            algorithms=[ALGORITHM],
+            issuer=_JWT_ISSUER,
+            audience=_JWT_AUDIENCE,
+        )
         return payload
     except PyJWTError:
         return None

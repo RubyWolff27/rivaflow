@@ -5,9 +5,10 @@ from uuid import uuid4
 
 from rivaflow.core.time_utils import utcnow
 from rivaflow.db.database import convert_query, get_connection
+from rivaflow.db.repositories.base_repository import BaseRepository
 
 
-class ChatSessionRepository:
+class ChatSessionRepository(BaseRepository):
     """Repository for managing Grapple AI Coach chat sessions."""
 
     @staticmethod

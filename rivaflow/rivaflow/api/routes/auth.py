@@ -157,7 +157,7 @@ def login(request: Request, req: LoginRequest, response: Response):
         return result
     except (ValueError, AuthenticationError):
         # Auth failures - use generic message to prevent user enumeration
-        logger.warning(f"Login attempt failed for {req.email[:3]}***")
+        logger.warning("Login attempt failed for %s***", req.email[:3])
         raise AuthenticationError(message="Invalid email or password")
     except KeyError as e:
         error_msg = handle_service_error(e, "Login failed", operation="login")
@@ -298,7 +298,7 @@ def forgot_password(request: Request, req: ForgotPasswordRequest):
             "message": "If an account exists with this email, you will receive a password reset link."
         }
     except Exception as e:
-        logger.error(f"Forgot password error for {req.email[:3]}***: {e}")
+        logger.error("Forgot password error for %s***: %s", req.email[:3], e)
         # Still return success to prevent info leakage
         return {
             "message": "If an account exists with this email, you will receive a password reset link."

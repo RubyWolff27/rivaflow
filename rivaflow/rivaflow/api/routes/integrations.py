@@ -88,7 +88,7 @@ def callback(
     frontend_url = settings.APP_BASE_URL
 
     if error:
-        logger.warning(f"WHOOP OAuth error: {error}")
+        logger.warning("WHOOP OAuth error: %s", error)
         from urllib.parse import quote
 
         safe_error = quote(error, safe="")
@@ -104,7 +104,7 @@ def callback(
         service.handle_callback(code, state)
         return RedirectResponse(f"{frontend_url}/profile?whoop=connected")
     except Exception as e:
-        logger.error(f"WHOOP callback failed: {e}", exc_info=True)
+        logger.error("WHOOP callback failed: %s", e, exc_info=True)
         return RedirectResponse(
             f"{frontend_url}/profile?whoop=error&reason=callback_failed"
         )
@@ -551,8 +551,12 @@ def get_zones_weekly(
     totals = {k: 0 for k in zone_keys}
     session_count = 0
 
+    # Batch-fetch all workout caches in one query instead of N+1
+    session_ids = [s["id"] for s in sessions]
+    workout_map = WhoopWorkoutCacheRepository.get_by_session_ids(session_ids)
+
     for s in sessions:
-        wo = WhoopWorkoutCacheRepository.get_by_session_id(s["id"])
+        wo = workout_map.get(s["id"])
         if not wo:
             continue
         zones = wo.get("zone_durations")

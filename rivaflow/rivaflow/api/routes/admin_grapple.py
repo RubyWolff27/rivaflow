@@ -84,7 +84,7 @@ def get_global_stats(
 
     Admin only. Shows usage across all users.
     """
-    logger.info(f"Admin {current_user['id']} fetching global Grapple stats")
+    logger.info("Admin %s fetching global Grapple stats", current_user["id"])
 
     stats = GrappleAdminService.get_global_stats(days=days)
 
@@ -110,7 +110,7 @@ def get_cost_projections(
 
     Admin only. Projects total costs based on current usage.
     """
-    logger.info(f"Admin {current_user['id']} fetching cost projections")
+    logger.info("Admin %s fetching cost projections", current_user["id"])
 
     return GrappleAdminService.get_projections()
 
@@ -126,7 +126,7 @@ def get_provider_stats(
 
     Admin only. Shows which providers are being used and their reliability.
     """
-    logger.info(f"Admin {current_user['id']} fetching provider stats")
+    logger.info("Admin %s fetching provider stats", current_user["id"])
 
     return GrappleAdminService.get_provider_stats(days=days)
 
@@ -142,7 +142,7 @@ def get_user_stats(
 
     Admin only. Shows which users are using Grapple most.
     """
-    logger.info(f"Admin {current_user['id']} fetching user stats")
+    logger.info("Admin %s fetching user stats", current_user["id"])
 
     return GrappleAdminService.get_top_users(limit=limit)
 
@@ -159,7 +159,7 @@ def get_feedback(
 
     Admin only. Shows feedback to improve the system.
     """
-    logger.info(f"Admin {current_user['id']} fetching feedback")
+    logger.info("Admin %s fetching feedback", current_user["id"])
 
     return GrappleAdminService.get_feedback(limit=limit, rating=rating)
 
@@ -174,6 +174,6 @@ def get_grapple_health(
 
     Admin only. Shows LLM provider availability and system status.
     """
-    logger.info(f"Admin {current_user['id']} checking Grapple health")
+    logger.info("Admin %s checking Grapple health", current_user["id"])
 
     return GrappleAdminService.check_health()

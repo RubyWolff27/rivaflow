@@ -1,5 +1,5 @@
 import { api } from './_client';
-import type { Session, SessionScoreBreakdown, Readiness, Report, Suggestion, TrainedMovement } from '../types';
+import type { Session, SessionScoreBreakdown, SessionRoll, SessionTechnique, Readiness, Report, Suggestion, TrainedMovement } from '../types';
 
 interface PaginatedResponse<T> {
   techniques: T[];
@@ -8,13 +8,20 @@ interface PaginatedResponse<T> {
   offset: number;
 }
 
+/** Payload for creating or updating a session — all Session fields optional plus roll/technique arrays */
+interface SessionPayload extends Partial<Session> {
+  session_rolls?: SessionRoll[];
+  session_techniques?: SessionTechnique[];
+  visibility_level?: string;
+}
+
 export const sessionsApi = {
-  create: (data: Partial<Session> & Record<string, unknown>) => api.post<Session>('/sessions/', data),
+  create: (data: SessionPayload) => api.post<Session>('/sessions/', data),
   list: (limit = 10) => api.get<Session[]>(`/sessions/?limit=${limit}`),
   getById: (id: number) => api.get<Session>(`/sessions/${id}`),
   getWithRolls: (id: number) => api.get<Session>(`/sessions/${id}/with-rolls`),
   getInsights: (id: number) => api.get<{ insights: { type: string; title: string; description: string; icon: string }[] }>(`/sessions/${id}/insights`),
-  update: (id: number, data: Partial<Session> & Record<string, unknown>) => api.put<Session>(`/sessions/${id}`, data),
+  update: (id: number, data: SessionPayload) => api.put<Session>(`/sessions/${id}`, data),
   delete: (id: number) => api.delete(`/sessions/${id}`),
   getByRange: (startDate: string, endDate: string) =>
     api.get<Session[]>(`/sessions/range/${startDate}/${endDate}`),
@@ -25,7 +32,7 @@ export const sessionsApi = {
 };
 
 export const readinessApi = {
-  create: (data: Partial<Readiness> & Record<string, unknown>) => api.post<Readiness>('/readiness/', data),
+  create: (data: Partial<Readiness>) => api.post<Readiness>('/readiness/', data),
   getLatest: () => api.get<Readiness | null>('/readiness/latest'),
   getByDate: (date: string) => api.get<Readiness>(`/readiness/${date}`),
   getByRange: (startDate: string, endDate: string) =>

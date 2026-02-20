@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Clock } from 'lucide-react';
 import { Card } from '../ui';
 import { profileApi, gymsApi } from '../../api/client';
+import { logger } from '../../utils/logger';
 import type { GymClass } from '../../types';
 
 function classBadge(classType: string | null) {
@@ -40,8 +41,8 @@ export default function TodayClassesWidget() {
         const { data } = await gymsApi.getTodaysClasses(gymId);
         setClasses(data.classes || []);
         setGymName(data.gym_name || '');
-      } catch {
-        /* best-effort */
+      } catch (err) {
+        logger.debug('Today classes best-effort load failed', err);
       } finally {
         setLoading(false);
       }

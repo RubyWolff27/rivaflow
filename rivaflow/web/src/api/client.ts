@@ -1,5 +1,5 @@
 // Barrel re-export — all existing import sites continue working unchanged
-export { api, getErrorMessage } from './_client';
+export { api, getErrorMessage, setAccessToken, getAccessToken } from './_client';
 export { sessionsApi, readinessApi, reportsApi, suggestionsApi, techniquesApi } from './training';
 export { analyticsApi, grappleApi } from './analytics';
 export { socialApi, feedApi, checkinsApi, streaksApi } from './social';

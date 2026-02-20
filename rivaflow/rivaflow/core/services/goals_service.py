@@ -57,7 +57,7 @@ class GoalsService:
 
         # Get current week date range (Monday-Sunday)
         week_start, week_end = self.report_service.get_week_dates(tz=tz)
-        logger.info(f"[DEBUG] Week range: {week_start} to {week_end} (tz={tz})")
+        logger.info("[DEBUG] Week range: %s to %s (tz=%s)", week_start, week_end, tz)
 
         # Get profile targets
         profile = self.profile_repo.get(user_id)
@@ -72,7 +72,7 @@ class GoalsService:
 
         # Get actual progress from sessions this week
         sessions = self.session_repo.get_by_date_range(user_id, week_start, week_end)
-        logger.info(f"[DEBUG] Retrieved {len(sessions)} sessions for week")
+        logger.info("[DEBUG] Retrieved %s sessions for week", len(sessions))
         for s in sessions:
             logger.info(
                 f"[DEBUG] Session: date={s.get('session_date')}, type={s.get('class_type')}, duration={s.get('duration_mins')}"

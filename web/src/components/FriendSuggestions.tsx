@@ -60,8 +60,8 @@ export function FriendSuggestions() {
         try {
           const browseRes = await socialApi.browseFriends(20);
           setBrowseUsers(browseRes.data.users);
-        } catch {
-          // Browse is best-effort
+        } catch (err) {
+          logger.debug('Browse is best-effort', err);
         }
       } else {
         setBrowseUsers([]);

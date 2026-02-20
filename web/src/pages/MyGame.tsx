@@ -4,6 +4,7 @@ import { ChevronRight, ChevronDown, Plus, Target, Star, Trash2, Edit3, Sparkles 
 import { EmptyState } from '../components/ui';
 import { useToast } from '../contexts/ToastContext';
 import { gamePlansApi, getErrorMessage } from '../api/client';
+import { logger } from '../utils/logger';
 import type { GamePlan, GamePlanNode } from '../types';
 
 const NODE_TYPE_COLORS: Record<string, string> = {
@@ -322,7 +323,8 @@ export default function MyGame() {
     try {
       const response = await gamePlansApi.getCurrent();
       setPlan(response.data.plan !== undefined ? (response.data.plan === null ? null : response.data) : response.data.id ? response.data : null);
-    } catch {
+    } catch (err) {
+      logger.debug('No game plan available', err);
       setPlan(null);
     } finally {
       setLoading(false);

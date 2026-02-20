@@ -1,9 +1,10 @@
 """Repository for activity likes data access."""
 
 from rivaflow.db.database import convert_query, execute_insert, get_connection
+from rivaflow.db.repositories.base_repository import BaseRepository
 
 
-class ActivityLikeRepository:
+class ActivityLikeRepository(BaseRepository):
     """Data access layer for activity likes (polymorphic across activity types)."""
 
     @staticmethod
@@ -175,10 +176,3 @@ class ActivityLikeRepository:
             )
             rows = cursor.fetchall()
             return [ActivityLikeRepository._row_to_dict(row) for row in rows]
-
-    @staticmethod
-    def _row_to_dict(row) -> dict:
-        """Convert a database row to a dictionary."""
-        if not row:
-            return {}
-        return dict(row)

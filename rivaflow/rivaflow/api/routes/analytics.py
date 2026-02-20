@@ -2,7 +2,7 @@
 
 from datetime import date
 
-from fastapi import APIRouter, Depends, Query, Request
+from fastapi import APIRouter, Depends, Query, Request, Response
 
 from rivaflow.api.rate_limit import limiter
 from rivaflow.core.dependencies import get_analytics_service, get_current_user
@@ -13,7 +13,13 @@ from rivaflow.core.services.fight_dynamics_service import FightDynamicsService
 from rivaflow.core.services.whoop_analytics_engine import WhoopAnalyticsEngine
 from rivaflow.core.utils.cache import cached
 
-router = APIRouter()
+
+def _set_analytics_cache_control(response: Response):
+    """Set Cache-Control for analytics GET endpoints (private, 60s)."""
+    response.headers["Cache-Control"] = "private, max-age=60"
+
+
+router = APIRouter(dependencies=[Depends(_set_analytics_cache_control)])
 
 
 @cached(ttl_seconds=600, key_prefix="analytics_performance")
@@ -137,6 +143,19 @@ def get_head_to_head(
     return result
 
 
+@cached(ttl_seconds=600, key_prefix="analytics_readiness")
+def _get_readiness_trends_cached(
+    user_id: int,
+    start_date: date | None,
+    end_date: date | None,
+    types: list[str] | None,
+):
+    service = AnalyticsService()
+    return service.get_readiness_trends(
+        user_id=user_id, start_date=start_date, end_date=end_date, types=types
+    )
+
+
 @router.get("/readiness/trends")
 @limiter.limit("60/minute")
 @route_error_handler("readiness trends")
@@ -148,10 +167,9 @@ def get_readiness_trends(
         None, description="Filter by class types (e.g., gi, no-gi, s&c)"
     ),
     current_user: dict = Depends(get_current_user),
-    service: AnalyticsService = Depends(get_analytics_service),
 ):
-    """Get readiness and recovery analytics."""
-    return service.get_readiness_trends(
+    """Get readiness and recovery analytics. Cached for 10 minutes."""
+    return _get_readiness_trends_cached(
         user_id=current_user["id"],
         start_date=start_date,
         end_date=end_date,
@@ -202,6 +220,19 @@ def get_technique_analytics(
     )
 
 
+@cached(ttl_seconds=600, key_prefix="analytics_consistency")
+def _get_consistency_cached(
+    user_id: int,
+    start_date: date | None,
+    end_date: date | None,
+    types: list[str] | None,
+):
+    service = AnalyticsService()
+    return service.get_consistency_analytics(
+        user_id=user_id, start_date=start_date, end_date=end_date, types=types
+    )
+
+
 @router.get("/consistency/metrics")
 @limiter.limit("60/minute")
 @route_error_handler("consistency analytics")
@@ -213,15 +244,20 @@ def get_consistency_analytics(
         None, description="Filter by class types (e.g., gi, no-gi, s&c)"
     ),
     current_user: dict = Depends(get_current_user),
-    service: AnalyticsService = Depends(get_analytics_service),
 ):
-    """Get training consistency analytics."""
-    return service.get_consistency_analytics(
+    """Get training consistency analytics. Cached for 10 minutes."""
+    return _get_consistency_cached(
         user_id=current_user["id"],
         start_date=start_date,
         end_date=end_date,
         types=types,
     )
+
+
+@cached(ttl_seconds=600, key_prefix="analytics_milestones")
+def _get_milestones_cached(user_id: int):
+    service = AnalyticsService()
+    return service.get_milestones(user_id=user_id)
 
 
 @router.get("/milestones")
@@ -230,10 +266,22 @@ def get_consistency_analytics(
 def get_milestones(
     request: Request,
     current_user: dict = Depends(get_current_user),
-    service: AnalyticsService = Depends(get_analytics_service),
 ):
-    """Get progression and milestone data."""
-    return service.get_milestones(user_id=current_user["id"])
+    """Get progression and milestone data. Cached for 10 minutes."""
+    return _get_milestones_cached(user_id=current_user["id"])
+
+
+@cached(ttl_seconds=600, key_prefix="analytics_instructor")
+def _get_instructor_cached(
+    user_id: int,
+    start_date: date | None,
+    end_date: date | None,
+    types: list[str] | None,
+):
+    service = AnalyticsService()
+    return service.get_instructor_analytics(
+        user_id=user_id, start_date=start_date, end_date=end_date, types=types
+    )
 
 
 @router.get("/instructors/insights")
@@ -247,10 +295,9 @@ def get_instructor_analytics(
         None, description="Filter by class types (e.g., gi, no-gi, s&c)"
     ),
     current_user: dict = Depends(get_current_user),
-    service: AnalyticsService = Depends(get_analytics_service),
 ):
-    """Get instructor insights analytics."""
-    return service.get_instructor_analytics(
+    """Get instructor insights analytics. Cached for 10 minutes."""
+    return _get_instructor_cached(
         user_id=current_user["id"],
         start_date=start_date,
         end_date=end_date,

@@ -1,9 +1,10 @@
 """Repository for game plan edge data access."""
 
 from rivaflow.db.database import convert_query, execute_insert, get_connection
+from rivaflow.db.repositories.base_repository import BaseRepository
 
 
-class GamePlanEdgeRepository:
+class GamePlanEdgeRepository(BaseRepository):
     """Data access layer for game plan edges."""
 
     @staticmethod

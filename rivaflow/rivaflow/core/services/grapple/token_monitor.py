@@ -74,7 +74,7 @@ class GrappleTokenMonitor:
             return log_id
 
         except (ConnectionError, OSError) as e:
-            logger.error(f"Failed to log token usage for user {user_id}: {e}")
+            logger.error("Failed to log token usage for user %s: %s", user_id, e)
             raise
 
     def get_user_usage(
@@ -150,7 +150,7 @@ class GrappleTokenMonitor:
             }
 
         except (ConnectionError, OSError) as e:
-            logger.error(f"Failed to get usage for user {user_id}: {e}")
+            logger.error("Failed to get usage for user %s: %s", user_id, e)
             return {
                 "user_id": user_id,
                 "start_date": start_date.isoformat(),
@@ -356,7 +356,7 @@ class GrappleTokenMonitor:
             }
 
         except (ConnectionError, OSError) as e:
-            logger.error(f"Failed to get global usage stats: {e}")
+            logger.error("Failed to get global usage stats: %s", e)
             return {
                 "start_date": start_date.isoformat(),
                 "end_date": end_date.isoformat(),

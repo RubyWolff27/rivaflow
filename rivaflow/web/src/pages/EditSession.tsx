@@ -24,6 +24,14 @@ export default function EditSession() {
   usePageTitle('Edit Session');
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const sessionId = Number(id);
+
+  useEffect(() => {
+    if (!id || isNaN(sessionId)) {
+      navigate('/', { replace: true });
+    }
+  }, [id, sessionId, navigate]);
+
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
@@ -111,8 +119,8 @@ export default function EditSession() {
               form.setWhoopSynced(true);
             }
           }
-        } catch {
-          // WHOOP not available, keep manual mode
+        } catch (err) {
+          logger.debug('WHOOP not available, keep manual mode', err);
         }
 
         // Load detailed_rolls if present

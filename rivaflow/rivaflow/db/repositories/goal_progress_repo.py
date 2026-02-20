@@ -3,14 +3,11 @@
 from datetime import date
 
 from rivaflow.db.database import convert_query, execute_insert, get_connection
+from rivaflow.db.repositories.base_repository import BaseRepository
 
 
-class GoalProgressRepository:
+class GoalProgressRepository(BaseRepository):
     """Data access layer for weekly goal progress."""
-
-    def _row_to_dict(self, row) -> dict:
-        """Convert database row to dictionary."""
-        return dict(row)
 
     def get_by_week(self, user_id: int, week_start_date: date) -> dict | None:
         """Get goal progress for a specific week."""

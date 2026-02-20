@@ -23,7 +23,7 @@ def _make_user(email="concurrent@example.com"):
     """Create a user for concurrency tests."""
     return UserRepository.create(
         email=email,
-        hashed_password=hash_password("testpass123"),
+        hashed_password=hash_password("TestPass123!secure"),
         first_name="Concurrent",
         last_name="Tester",
     )

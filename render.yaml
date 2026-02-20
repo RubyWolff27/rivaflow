@@ -55,7 +55,7 @@ services:
   - type: web
     name: rivaflow-web
     runtime: static
-    region: singapore
+    # Static sites are served globally via Render CDN regardless of region
     branch: main
     rootDir: web
     buildCommand: npm install && npm run build

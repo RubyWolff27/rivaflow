@@ -3,6 +3,7 @@
 from typing import Any
 
 from rivaflow.db.database import convert_query, execute_insert, get_connection
+from rivaflow.db.repositories.base_repository import BaseRepository
 
 DAY_NAMES = [
     "Monday",
@@ -15,7 +16,7 @@ DAY_NAMES = [
 ]
 
 
-class GymClassRepository:
+class GymClassRepository(BaseRepository):
     """Data access layer for gym_classes table."""
 
     @staticmethod

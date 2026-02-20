@@ -1,9 +1,10 @@
 """Repository for email drip log tracking."""
 
 from rivaflow.db.database import convert_query, get_connection
+from rivaflow.db.repositories.base_repository import BaseRepository
 
 
-class EmailDripRepository:
+class EmailDripRepository(BaseRepository):
     """Track which drip emails have been sent to which users."""
 
     @staticmethod

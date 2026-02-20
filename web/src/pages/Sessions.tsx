@@ -15,6 +15,8 @@ import { pluralize } from '../utils/text';
 
 type ZoneData = { zone_durations: Record<string, number> | null; strain: number | null; calories: number | null; score_state: string | null };
 
+const SESSIONS_PER_PAGE = 30;
+
 export default function Sessions() {
   usePageTitle('Sessions');
   const toast = useToast();
@@ -24,6 +26,7 @@ export default function Sessions() {
   const [filterType, setFilterType] = useState<string>('all');
   const [sortBy, setSortBy] = useState<'date' | 'duration' | 'intensity'>('date');
   const [zoneMap, setZoneMap] = useState<Record<string, ZoneData | null>>({});
+  const [visibleCount, setVisibleCount] = useState(SESSIONS_PER_PAGE);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -42,7 +45,7 @@ export default function Sessions() {
               if (!controller.signal.aborted && zRes.data?.zones) {
                 setZoneMap(zRes.data.zones);
               }
-            } catch { /* WHOOP not connected */ }
+            } catch (err) { logger.debug('WHOOP not connected', err); }
           }
         }
       } catch (error) {
@@ -90,6 +93,11 @@ export default function Sessions() {
 
     return filtered;
   }, [sessions, searchTerm, filterType, sortBy]);
+
+  // Reset pagination when filters/search change
+  useEffect(() => {
+    setVisibleCount(SESSIONS_PER_PAGE);
+  }, [searchTerm, filterType, sortBy]);
 
   const formatDate = (dateStr: string) => {
     const date = new Date(dateStr);
@@ -184,6 +192,7 @@ export default function Sessions() {
               value={filterType}
               onChange={(e) => setFilterType(e.target.value)}
               className="input pl-10 w-full"
+              aria-label="Filter by class type"
             >
               <option value="all">All Types</option>
               {uniqueClassTypes.map(type => (
@@ -197,6 +206,7 @@ export default function Sessions() {
             value={sortBy}
             onChange={(e) => setSortBy(e.target.value as 'date' | 'duration' | 'intensity')}
             className="input w-full"
+            aria-label="Sort sessions by"
           >
             <option value="date">Sort by Date</option>
             <option value="duration">Sort by Duration</option>
@@ -215,110 +225,123 @@ export default function Sessions() {
           actionPath={searchTerm || filterType !== 'all' ? undefined : '/log'}
         />
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {filteredSessions.map((session) => (
-            <Link
-              key={session.id}
-              to={`/session/${session.id}`}
-              className="card hover:shadow-lg transition-shadow"
-              role="article"
-              aria-label={`${session.class_type} session at ${session.gym_name} on ${formatDate(session.session_date)}`}
-            >
-              {/* Header */}
-              <div className="flex items-start justify-between mb-3">
-                <div className="flex-1">
-                  <div className="flex items-center gap-2 mb-1">
-                    <span
-                      className="px-2 py-0.5 rounded text-xs font-semibold uppercase"
-                      style={{
-                        backgroundColor: (ACTIVITY_COLORS[session.class_type] || 'var(--accent)') + '1A',
-                        color: ACTIVITY_COLORS[session.class_type] || 'var(--accent)',
-                      }}
-                    >
-                      {formatClassType(session.class_type)}
-                    </span>
-                    {session.needs_review && (
-                      <span className="px-2 py-0.5 bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 rounded text-xs font-semibold">
-                        Review
-                      </span>
-                    )}
-                    {session.intensity > 0 && (
+        <>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {filteredSessions.slice(0, visibleCount).map((session) => (
+              <Link
+                key={session.id}
+                to={`/session/${session.id}`}
+                className="card hover:shadow-lg transition-shadow"
+                role="article"
+                aria-label={`${session.class_type} session at ${session.gym_name} on ${formatDate(session.session_date)}`}
+              >
+                {/* Header */}
+                <div className="flex items-start justify-between mb-3">
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2 mb-1">
                       <span
-                        className="text-xs font-medium"
-                        style={{ color: session.intensity >= 4 ? '#EF4444' : session.intensity === 3 ? '#F59E0B' : '#10B981' }}
+                        className="px-2 py-0.5 rounded text-xs font-semibold uppercase"
+                        style={{
+                          backgroundColor: (ACTIVITY_COLORS[session.class_type] || 'var(--accent)') + '1A',
+                          color: ACTIVITY_COLORS[session.class_type] || 'var(--accent)',
+                        }}
                       >
-                        Intensity: {session.intensity}/5
+                        {formatClassType(session.class_type)}
                       </span>
+                      {session.needs_review && (
+                        <span className="px-2 py-0.5 bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 rounded text-xs font-semibold">
+                          Review
+                        </span>
+                      )}
+                      {session.intensity > 0 && (
+                        <span
+                          className="text-xs font-medium"
+                          style={{ color: session.intensity >= 4 ? '#EF4444' : session.intensity === 3 ? '#F59E0B' : '#10B981' }}
+                        >
+                          Intensity: {session.intensity}/5
+                        </span>
+                      )}
+                    </div>
+                    <h3 className="font-semibold text-[var(--text)]">
+                      {session.gym_name}
+                    </h3>
+                    {session.location && (
+                      <p className="flex items-center gap-1 text-xs text-[var(--muted)] mt-1">
+                        <MapPin className="w-3 h-3" />
+                        {session.location}
+                      </p>
                     )}
                   </div>
-                  <h3 className="font-semibold text-[var(--text)]">
-                    {session.gym_name}
-                  </h3>
-                  {session.location && (
-                    <p className="flex items-center gap-1 text-xs text-[var(--muted)] mt-1">
-                      <MapPin className="w-3 h-3" />
-                      {session.location}
-                    </p>
-                  )}
+                  <SessionScoreBadge score={session.session_score} size="md" />
                 </div>
-                <SessionScoreBadge score={session.session_score} size="md" />
-              </div>
 
-              {/* Stats */}
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 py-3 border-t border-[var(--border)]">
-                <div>
-                  <div className="flex items-center gap-1 text-xs text-[var(--muted)] mb-1">
-                    <Calendar className="w-3 h-3" />
-                    Date
+                {/* Stats */}
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 py-3 border-t border-[var(--border)]">
+                  <div>
+                    <div className="flex items-center gap-1 text-xs text-[var(--muted)] mb-1">
+                      <Calendar className="w-3 h-3" />
+                      Date
+                    </div>
+                    <p className="text-sm font-semibold">{formatDate(session.session_date)}</p>
+                    {session.class_time && (
+                      <p className="text-xs text-[var(--muted)]">{session.class_time}</p>
+                    )}
                   </div>
-                  <p className="text-sm font-semibold">{formatDate(session.session_date)}</p>
-                  {session.class_time && (
-                    <p className="text-xs text-[var(--muted)]">{session.class_time}</p>
-                  )}
-                </div>
-                <div>
-                  <div className="flex items-center gap-1 text-xs text-[var(--muted)] mb-1">
-                    <Clock className="w-3 h-3" />
-                    Duration
+                  <div>
+                    <div className="flex items-center gap-1 text-xs text-[var(--muted)] mb-1">
+                      <Clock className="w-3 h-3" />
+                      Duration
+                    </div>
+                    <p className="text-sm font-semibold">{session.duration_mins} min</p>
                   </div>
-                  <p className="text-sm font-semibold">{session.duration_mins} min</p>
-                </div>
-                <div>
-                  <div className="flex items-center gap-1 text-xs text-[var(--muted)] mb-1">
-                    <Activity className="w-3 h-3" />
-                    Rolls
+                  <div>
+                    <div className="flex items-center gap-1 text-xs text-[var(--muted)] mb-1">
+                      <Activity className="w-3 h-3" />
+                      Rolls
+                    </div>
+                    <p className="text-sm font-semibold">{session.rolls}</p>
                   </div>
-                  <p className="text-sm font-semibold">{session.rolls}</p>
                 </div>
-              </div>
 
-              {/* Submissions */}
-              <div className="flex items-center gap-2 pt-2 border-t border-[var(--border)]">
-                <Target className="w-4 h-4 text-[var(--muted)]" />
-                <span className="text-sm text-[var(--muted)]">
-                  <span className="font-semibold text-emerald-500">{session.submissions_for}</span>
-                  {' / '}
-                  <span className="font-semibold text-[var(--error)]">{session.submissions_against}</span>
-                  {' '}{pluralize((session.submissions_for ?? 0) + (session.submissions_against ?? 0), 'submission')}
-                </span>
-              </div>
-
-              {/* HR Zone Mini Bar */}
-              {zoneMap[String(session.id)]?.zone_durations && (
-                <div className="pt-2 border-t border-[var(--border)]">
-                  <MiniZoneBar zones={zoneMap[String(session.id)]!.zone_durations!} />
+                {/* Submissions */}
+                <div className="flex items-center gap-2 pt-2 border-t border-[var(--border)]">
+                  <Target className="w-4 h-4 text-[var(--muted)]" />
+                  <span className="text-sm text-[var(--muted)]">
+                    <span className="font-semibold text-emerald-500">{session.submissions_for}</span>
+                    {' / '}
+                    <span className="font-semibold text-[var(--error)]">{session.submissions_against}</span>
+                    {' '}{pluralize((session.submissions_for ?? 0) + (session.submissions_against ?? 0), 'submission')}
+                  </span>
                 </div>
-              )}
 
-              {/* Notes Preview */}
-              {session.notes && (
-                <p className="text-xs text-[var(--muted)] mt-2 line-clamp-2">
-                  {session.notes}
-                </p>
-              )}
-            </Link>
-          ))}
-        </div>
+                {/* HR Zone Mini Bar */}
+                {zoneMap[String(session.id)]?.zone_durations && (
+                  <div className="pt-2 border-t border-[var(--border)]">
+                    <MiniZoneBar zones={zoneMap[String(session.id)]!.zone_durations!} />
+                  </div>
+                )}
+
+                {/* Notes Preview */}
+                {session.notes && (
+                  <p className="text-xs text-[var(--muted)] mt-2 line-clamp-2">
+                    {session.notes}
+                  </p>
+                )}
+              </Link>
+            ))}
+          </div>
+
+          {visibleCount < filteredSessions.length && (
+            <div className="flex justify-center">
+              <button
+                className="btn-secondary"
+                onClick={() => setVisibleCount(prev => prev + SESSIONS_PER_PAGE)}
+              >
+                Show More ({filteredSessions.length - visibleCount} more)
+              </button>
+            </div>
+          )}
+        </>
       )}
     </div>
   );

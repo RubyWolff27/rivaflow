@@ -3,6 +3,7 @@
 from datetime import datetime
 
 from rivaflow.db.database import convert_query, execute_insert, get_connection
+from rivaflow.db.repositories.base_repository import BaseRepository
 
 # Columns returned by default (excludes hashed_password for security)
 _USER_COLS = (
@@ -22,7 +23,7 @@ _USER_COLS_WITH_PASSWORD = (
 )
 
 
-class UserRepository:
+class UserRepository(BaseRepository):
     """Data access layer for user accounts."""
 
     @staticmethod
@@ -633,11 +634,14 @@ class UserRepository:
 
     @staticmethod
     def get_candidate_users(
-        exclude_ids: list[int],
+        user_id: int,
+        exclude_ids: list[int] | set[int] | None = None,
     ) -> list[dict]:
         """Get all users excluding a given set of IDs (for friend suggestions)."""
-        if not exclude_ids:
-            exclude_ids = [0]  # placeholder to avoid empty IN clause
+        all_excludes = list(exclude_ids or [])
+        if user_id not in all_excludes:
+            all_excludes.append(user_id)
+        exclude_ids = all_excludes if all_excludes else [0]
         placeholders = ", ".join("?" * len(exclude_ids))
 
         with get_connection() as conn:

@@ -5,9 +5,10 @@ from datetime import datetime, timedelta
 
 from rivaflow.core.time_utils import utcnow
 from rivaflow.db.database import convert_query, execute_insert, get_connection
+from rivaflow.db.repositories.base_repository import BaseRepository
 
 
-class WaitlistRepository:
+class WaitlistRepository(BaseRepository):
     """Data access layer for waitlist entries."""
 
     @staticmethod
@@ -64,8 +65,8 @@ class WaitlistRepository:
                 ),
             )
 
-        # Return the created entry
-        return WaitlistRepository.get_by_id(entry_id)
+        # Return the created entry (always exists after insert)
+        return WaitlistRepository.get_by_id(entry_id)  # type: ignore[return-value]
 
     @staticmethod
     def get_by_id(waitlist_id: int) -> dict | None:

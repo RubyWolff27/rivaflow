@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { MessageCircle, Mic, Brain } from 'lucide-react';
 import { grappleApi } from '../../api/client';
+import { logger } from '../../utils/logger';
 import { Card } from '../ui';
 
 export default function QuickLinks() {
@@ -19,7 +20,7 @@ export default function QuickLinks() {
         if (list && list.length > 0) {
           setInsightTitle(list[0].title || list[0].insight_type || 'Training Insight');
         }
-      } catch { /* best-effort */ }
+      } catch (err) { logger.debug('Latest insight best-effort load failed', err); }
     };
     load();
     return () => { cancelled = true; };

@@ -775,13 +775,13 @@ def seed_glossary():
             except Exception as e:
                 # Handle IntegrityError from both sqlite3 and psycopg2
                 if "unique" in str(e).lower() or "duplicate" in str(e).lower():
-                    logger.warning(f"Skipping duplicate: {movement['name']}")
+                    logger.warning("Skipping duplicate: %s", movement["name"])
                     continue
                 else:
                     raise
 
         conn.commit()
-        logger.info(f"Successfully seeded {inserted} techniques into glossary!")
+        logger.info("Successfully seeded %s techniques into glossary!", inserted)
 
 
 if __name__ == "__main__":

@@ -3,9 +3,10 @@
 import json
 
 from rivaflow.db.database import convert_query, execute_insert, get_connection
+from rivaflow.db.repositories.base_repository import BaseRepository
 
 
-class AIInsightRepository:
+class AIInsightRepository(BaseRepository):
     """Data access layer for AI-generated insights."""
 
     @staticmethod

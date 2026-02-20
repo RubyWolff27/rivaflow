@@ -241,7 +241,7 @@ async def generate_post_session_insight(user_id: int, session_id: int) -> dict |
             max_tokens=256,
         )
     except (ConnectionError, OSError, TimeoutError, RuntimeError) as e:
-        logger.error(f"Insight generation failed: {e}")
+        logger.error("Insight generation failed: %s", e)
         return None
 
     content = result["content"].strip()
@@ -413,7 +413,7 @@ async def generate_weekly_insight(
             max_tokens=256,
         )
     except (ConnectionError, OSError, TimeoutError, RuntimeError) as e:
-        logger.error(f"Weekly insight failed: {e}")
+        logger.error("Weekly insight failed: %s", e)
         return None
 
     content = result["content"].strip()

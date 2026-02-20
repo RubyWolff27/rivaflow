@@ -63,7 +63,7 @@ class TestLogin:
         """Test successful login."""
         response = client.post(
             "/api/v1/auth/login",
-            json={"email": "test@example.com", "password": "testpass123"},
+            json={"email": "test@example.com", "password": "TestPass123!secure"},
         )
         assert response.status_code == 200
         data = response.json()
@@ -83,7 +83,7 @@ class TestLogin:
         """Test login with nonexistent email fails."""
         response = client.post(
             "/api/v1/auth/login",
-            json={"email": "nobody@example.com", "password": "testpass123"},
+            json={"email": "nobody@example.com", "password": "TestPass123!secure"},
         )
         assert response.status_code in (401, 400)
 

@@ -3,9 +3,10 @@
 import json
 
 from rivaflow.db.database import convert_query, execute_insert, get_connection
+from rivaflow.db.repositories.base_repository import BaseRepository
 
 
-class SessionTechniqueRepository:
+class SessionTechniqueRepository(BaseRepository):
     """Data access layer for session techniques."""
 
     @staticmethod

@@ -3,11 +3,12 @@
 import json
 
 from rivaflow.db.database import convert_query, get_connection
+from rivaflow.db.repositories.base_repository import BaseRepository
 
 JSON_FIELDS = ("focus_areas", "injuries", "motivations")
 
 
-class CoachPreferencesRepository:
+class CoachPreferencesRepository(BaseRepository):
     """Data access layer for coach preferences."""
 
     @staticmethod

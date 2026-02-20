@@ -1,4 +1,5 @@
 import { grappleApi } from '../api/client';
+import { logger } from './logger';
 
 /**
  * Fire-and-forget call to generate a new insight.
@@ -10,8 +11,8 @@ export function triggerInsightRefresh(sessionId?: number): void {
     ? { insight_type: 'post_session', session_id: sessionId }
     : { insight_type: 'weekly' };
 
-  grappleApi.generateInsight(data).catch(() => {
-    // Fire-and-forget — don't surface errors to user
+  grappleApi.generateInsight(data).catch((err) => {
+    logger.debug('Insight generation fire-and-forget failed', err);
   });
 }
 
@@ -34,7 +35,7 @@ export function refreshIfStale(): void {
         triggerInsightRefresh();
       }
     })
-    .catch(() => {
-      // Silently fail — user may not have grapple access
+    .catch((err) => {
+      logger.debug('Insight staleness check failed — user may not have grapple access', err);
     });
 }

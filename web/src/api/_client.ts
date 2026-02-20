@@ -6,6 +6,19 @@ import axios from 'axios';
 // Using /api/v1 for versioned endpoints with backward compatibility via redirect middleware
 const API_BASE = import.meta.env.VITE_API_URL || '/api/v1';
 
+// In-memory token store — access tokens are NEVER persisted to localStorage
+// to reduce XSS token-theft risk.  On page reload the token is obtained via
+// the httpOnly refresh-token cookie (/auth/refresh).
+let _accessToken: string | null = null;
+
+export function setAccessToken(token: string | null) {
+  _accessToken = token;
+}
+
+export function getAccessToken(): string | null {
+  return _accessToken;
+}
+
 export const api = axios.create({
   baseURL: API_BASE,
   withCredentials: true,
@@ -14,12 +27,11 @@ export const api = axios.create({
   },
 });
 
-// Request interceptor - add auth header
+// Request interceptor - add auth header from in-memory store
 api.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem('access_token');
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
+    if (_accessToken) {
+      config.headers.Authorization = `Bearer ${_accessToken}`;
     }
     return config;
   },
@@ -74,7 +86,7 @@ api.interceptors.response.use(
             const { authApi } = await import('./auth');
             const response = await authApi.refresh();
             const newToken = response.data.access_token;
-            localStorage.setItem('access_token', newToken);
+            setAccessToken(newToken);
             return newToken;
           })().finally(() => {
             refreshPromise = null;
@@ -88,8 +100,7 @@ api.interceptors.response.use(
         return api.request(originalRequest);
       } catch (refreshError) {
         // Refresh failed - logout user
-        localStorage.removeItem('access_token');
-        localStorage.removeItem('user');
+        setAccessToken(null);
         window.dispatchEvent(new CustomEvent('auth:session-expired'));
         return Promise.reject(refreshError);
       }

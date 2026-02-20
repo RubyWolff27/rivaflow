@@ -3,9 +3,10 @@
 from datetime import date, datetime
 
 from rivaflow.db.database import convert_query, execute_insert, get_connection
+from rivaflow.db.repositories.base_repository import BaseRepository
 
 
-class ReadinessRepository:
+class ReadinessRepository(BaseRepository):
     """Data access layer for daily readiness check-ins."""
 
     @staticmethod
@@ -159,15 +160,21 @@ class ReadinessRepository:
             return [ReadinessRepository._row_to_dict(row) for row in cursor.fetchall()]
 
     @staticmethod
-    def list_by_user(user_id: int) -> list[dict]:
-        """Get all readiness entries for a user (no limit)."""
+    def list_by_user(user_id: int, limit: int = 200) -> list[dict]:
+        """Get readiness entries for a user.
+
+        Args:
+            user_id: User ID
+            limit: Maximum entries to return (default 200)
+        """
         with get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(
                 convert_query(
-                    "SELECT * FROM readiness WHERE user_id = ? ORDER BY check_date DESC"
+                    "SELECT * FROM readiness WHERE user_id = ?"
+                    " ORDER BY check_date DESC LIMIT ?"
                 ),
-                (user_id,),
+                (user_id, limit),
             )
             return [ReadinessRepository._row_to_dict(row) for row in cursor.fetchall()]
 

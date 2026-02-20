@@ -185,10 +185,10 @@ class TestPasswordResetTokenSecurity:
         with get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(
-                """
+                convert_query("""
                 INSERT INTO users (email, hashed_password, created_at)
                 VALUES (?, ?, CURRENT_TIMESTAMP)
-            """,
+            """),
                 ("test_reset_hash@example.com", "hash"),
             )
             conn.commit()
@@ -205,7 +205,9 @@ class TestPasswordResetTokenSecurity:
             with get_connection() as conn:
                 cursor = conn.cursor()
                 cursor.execute(
-                    "SELECT token FROM password_reset_tokens WHERE user_id = ?",
+                    convert_query(
+                        "SELECT token FROM password_reset_tokens WHERE user_id = ?"
+                    ),
                     (user_id,),
                 )
                 row = cursor.fetchone()
@@ -217,13 +219,18 @@ class TestPasswordResetTokenSecurity:
 
                 # Cleanup
                 cursor.execute(
-                    "DELETE FROM password_reset_tokens WHERE user_id = ?", (user_id,)
+                    convert_query(
+                        "DELETE FROM password_reset_tokens WHERE user_id = ?"
+                    ),
+                    (user_id,),
                 )
                 conn.commit()
         finally:
             with get_connection() as conn:
                 cursor = conn.cursor()
-                cursor.execute("DELETE FROM users WHERE id = ?", (user_id,))
+                cursor.execute(
+                    convert_query("DELETE FROM users WHERE id = ?"), (user_id,)
+                )
                 conn.commit()
 
     def test_reset_token_single_use(self):
@@ -231,10 +238,10 @@ class TestPasswordResetTokenSecurity:
         with get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(
-                """
+                convert_query("""
                 INSERT INTO users (email, hashed_password, created_at)
                 VALUES (?, ?, CURRENT_TIMESTAMP)
-            """,
+            """),
                 ("test_single_use@example.com", "hash"),
             )
             conn.commit()
@@ -256,13 +263,18 @@ class TestPasswordResetTokenSecurity:
             with get_connection() as conn:
                 cursor = conn.cursor()
                 cursor.execute(
-                    "DELETE FROM password_reset_tokens WHERE user_id = ?", (user_id,)
+                    convert_query(
+                        "DELETE FROM password_reset_tokens WHERE user_id = ?"
+                    ),
+                    (user_id,),
                 )
                 conn.commit()
         finally:
             with get_connection() as conn:
                 cursor = conn.cursor()
-                cursor.execute("DELETE FROM users WHERE id = ?", (user_id,))
+                cursor.execute(
+                    convert_query("DELETE FROM users WHERE id = ?"), (user_id,)
+                )
                 conn.commit()
 
     def test_reset_token_expires(self):
@@ -270,10 +282,10 @@ class TestPasswordResetTokenSecurity:
         with get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(
-                """
+                convert_query("""
                 INSERT INTO users (email, hashed_password, created_at)
                 VALUES (?, ?, CURRENT_TIMESTAMP)
-            """,
+            """),
                 ("test_expire@example.com", "hash"),
             )
             conn.commit()
@@ -295,13 +307,18 @@ class TestPasswordResetTokenSecurity:
             with get_connection() as conn:
                 cursor = conn.cursor()
                 cursor.execute(
-                    "DELETE FROM password_reset_tokens WHERE user_id = ?", (user_id,)
+                    convert_query(
+                        "DELETE FROM password_reset_tokens WHERE user_id = ?"
+                    ),
+                    (user_id,),
                 )
                 conn.commit()
         finally:
             with get_connection() as conn:
                 cursor = conn.cursor()
-                cursor.execute("DELETE FROM users WHERE id = ?", (user_id,))
+                cursor.execute(
+                    convert_query("DELETE FROM users WHERE id = ?"), (user_id,)
+                )
                 conn.commit()
 
 
@@ -318,9 +335,9 @@ class TestSQLInjectionPrevention:
 
             # This should safely escape the input
             cursor.execute(
-                """
+                convert_query("""
                 SELECT * FROM users WHERE email = ?
-            """,
+            """),
                 (malicious_email,),
             )
 
@@ -338,10 +355,10 @@ class TestSQLInjectionPrevention:
         with get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(
-                """
+                convert_query("""
                 INSERT INTO users (email, hashed_password, created_at)
                 VALUES (?, ?, CURRENT_TIMESTAMP)
-            """,
+            """),
                 ("test_special@example.com", "hash"),
             )
             conn.commit()
@@ -354,13 +371,13 @@ class TestSQLInjectionPrevention:
             with get_connection() as conn:
                 cursor = conn.cursor()
                 cursor.execute(
-                    """
+                    convert_query("""
                     INSERT INTO sessions (
                         user_id, session_date, class_type, gym_name,
                         duration_mins, intensity, rolls, created_at
                     )
                     VALUES (?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
-                """,
+                """),
                     (user_id, "2026-02-01", "gi", special_input, 90, 4, 5),
                 )
                 conn.commit()
@@ -368,7 +385,8 @@ class TestSQLInjectionPrevention:
 
                 # Retrieve and verify stored correctly
                 cursor.execute(
-                    "SELECT gym_name FROM sessions WHERE id = ?", (session_id,)
+                    convert_query("SELECT gym_name FROM sessions WHERE id = ?"),
+                    (session_id,),
                 )
                 row = cursor.fetchone()
                 gym_name = row[0] if isinstance(row, tuple) else row["gym_name"]
@@ -376,12 +394,16 @@ class TestSQLInjectionPrevention:
                 assert gym_name == special_input
 
                 # Cleanup
-                cursor.execute("DELETE FROM sessions WHERE id = ?", (session_id,))
+                cursor.execute(
+                    convert_query("DELETE FROM sessions WHERE id = ?"), (session_id,)
+                )
                 conn.commit()
         finally:
             with get_connection() as conn:
                 cursor = conn.cursor()
-                cursor.execute("DELETE FROM users WHERE id = ?", (user_id,))
+                cursor.execute(
+                    convert_query("DELETE FROM users WHERE id = ?"), (user_id,)
+                )
                 conn.commit()
 
 

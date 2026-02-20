@@ -6,11 +6,12 @@ from typing import Any
 from uuid import uuid4
 
 from rivaflow.db.database import convert_query, get_connection
+from rivaflow.db.repositories.base_repository import BaseRepository
 
 logger = logging.getLogger(__name__)
 
 
-class GrappleUsageRepository:
+class GrappleUsageRepository(BaseRepository):
     """Data access layer for grapple_rate_limits and token_usage_logs tables."""
 
     # ---- Rate limiting ----

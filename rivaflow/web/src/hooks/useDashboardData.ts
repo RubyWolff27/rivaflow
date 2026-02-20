@@ -1,5 +1,6 @@
 import { useEffect, useState, useCallback } from 'react';
 import { getLocalDateString } from '../utils/date';
+import { logger } from '../utils/logger';
 import {
   suggestionsApi,
   readinessApi,
@@ -165,7 +166,7 @@ export function useDashboardData(): DashboardData {
       const res = await checkinsApi.getToday();
       setDayCheckins(res.data);
       setHasCheckedIn(res.data.checked_in);
-    } catch { /* best-effort */ }
+    } catch (err) { logger.debug('Refetch checkins best-effort failed', err); }
   }, []);
 
   const syncWhoop = useCallback(async () => {
@@ -174,7 +175,7 @@ export function useDashboardData(): DashboardData {
       await whoopApi.sync();
       const res = await whoopApi.getLatestRecovery();
       if (res.data?.recovery_score != null) setWhoopRecovery(res.data);
-    } catch { /* best-effort */ }
+    } catch (err) { logger.debug('WHOOP sync best-effort failed', err); }
     setWhoopSyncing(false);
   }, []);
 

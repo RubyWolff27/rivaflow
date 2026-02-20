@@ -4,11 +4,12 @@ import logging
 from datetime import date, datetime
 
 from rivaflow.db.database import convert_query, execute_insert, get_connection
+from rivaflow.db.repositories.base_repository import BaseRepository
 
 logger = logging.getLogger(__name__)
 
 
-class CheckinRepository:
+class CheckinRepository(BaseRepository):
     """Data access layer for daily check-ins."""
 
     @staticmethod

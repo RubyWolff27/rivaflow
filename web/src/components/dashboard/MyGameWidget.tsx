@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Target, ChevronRight } from 'lucide-react';
 import { gamePlansApi } from '../../api/client';
+import { logger } from '../../utils/logger';
 import { Card } from '../ui';
 import type { GamePlan } from '../../types';
 
@@ -18,8 +19,8 @@ export default function MyGameWidget() {
           const data = response.data;
           setPlan(data.plan !== undefined ? (data.plan === null ? null : data) : data.id ? data : null);
         }
-      } catch {
-        // No plan yet
+      } catch (err) {
+        logger.debug('No game plan yet', err);
       } finally {
         if (!cancelled) setLoading(false);
       }

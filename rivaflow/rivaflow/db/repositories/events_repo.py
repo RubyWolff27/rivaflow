@@ -3,9 +3,10 @@
 from datetime import date
 
 from rivaflow.db.database import convert_query, execute_insert, get_connection
+from rivaflow.db.repositories.base_repository import BaseRepository
 
 
-class EventRepository:
+class EventRepository(BaseRepository):
     """Data access layer for events."""
 
     @staticmethod
@@ -49,7 +50,9 @@ class EventRepository:
             return EventRepository._row_to_dict(row) if row else None
 
     @staticmethod
-    def list_by_user(user_id: int, status: str | None = None) -> list[dict]:
+    def list_by_user(
+        user_id: int, status: str | None = None, limit: int = 200
+    ) -> list[dict]:
         """List events for a user, optionally filtered by status."""
         with get_connection() as conn:
             cursor = conn.cursor()
@@ -57,17 +60,17 @@ class EventRepository:
                 cursor.execute(
                     convert_query(
                         "SELECT * FROM events WHERE user_id = ? AND status = ? "
-                        "ORDER BY event_date ASC"
+                        "ORDER BY event_date ASC LIMIT ?"
                     ),
-                    (user_id, status),
+                    (user_id, status, limit),
                 )
             else:
                 cursor.execute(
                     convert_query(
                         "SELECT * FROM events WHERE user_id = ? "
-                        "ORDER BY event_date ASC"
+                        "ORDER BY event_date ASC LIMIT ?"
                     ),
-                    (user_id,),
+                    (user_id, limit),
                 )
             rows = cursor.fetchall()
             return [EventRepository._row_to_dict(row) for row in rows]

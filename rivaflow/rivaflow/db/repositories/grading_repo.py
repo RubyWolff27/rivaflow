@@ -4,9 +4,10 @@ from datetime import date, datetime
 
 from rivaflow.core.constants import GRADING_SORT_OPTIONS
 from rivaflow.db.database import convert_query, execute_insert, get_connection
+from rivaflow.db.repositories.base_repository import BaseRepository
 
 
-class GradingRepository:
+class GradingRepository(BaseRepository):
     """Data access layer for belt gradings."""
 
     @staticmethod

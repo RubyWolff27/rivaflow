@@ -6,11 +6,12 @@ from typing import Any
 from uuid import uuid4
 
 from rivaflow.db.database import convert_query, get_connection
+from rivaflow.db.repositories.base_repository import BaseRepository
 
 logger = logging.getLogger(__name__)
 
 
-class GrappleStatsRepository:
+class GrappleStatsRepository(BaseRepository):
     """Data access layer for Grapple admin stats, feedback, and health checks."""
 
     # ---- Session / message counts ----
@@ -200,11 +201,13 @@ class GrappleStatsRepository:
     # ---- Top users ----
 
     @staticmethod
-    def get_top_users(limit: int = 20) -> list[dict[str, Any]]:
+    def get_top_users(limit: int = 20, since_days: int = 90) -> list[dict[str, Any]]:
         """Get top users by message count.
 
         Args:
             limit: Max users to return.
+            since_days: Only include activity from the last N days
+                        (default 90). Prevents scanning entire history.
 
         Returns:
             List of dicts with user_id, email, subscription_tier,
@@ -222,9 +225,13 @@ class GrappleStatsRepository:
                 COALESCE(SUM(tul.cost_usd), 0) as total_cost_usd,
                 MAX(cs.updated_at) as last_activity
             FROM users u
-            LEFT JOIN chat_sessions cs ON u.id = cs.user_id
+            LEFT JOIN chat_sessions cs
+                ON u.id = cs.user_id
+                AND cs.created_at >= date('now', '-' || ? || ' days')
             LEFT JOIN chat_messages cm ON cs.id = cm.session_id
-            LEFT JOIN token_usage_logs tul ON u.id = tul.user_id
+            LEFT JOIN token_usage_logs tul
+                ON u.id = tul.user_id
+                AND tul.created_at >= date('now', '-' || ? || ' days')
             WHERE u.subscription_tier IN ('beta', 'premium', 'admin')
             GROUP BY u.id, u.email, u.subscription_tier
             HAVING COUNT(cs.id) > 0
@@ -234,7 +241,7 @@ class GrappleStatsRepository:
 
         with get_connection() as conn:
             cursor = conn.cursor()
-            cursor.execute(query, (limit,))
+            cursor.execute(query, (since_days, since_days, limit))
             rows = cursor.fetchall()
             cursor.close()
             return [dict(row) for row in rows]

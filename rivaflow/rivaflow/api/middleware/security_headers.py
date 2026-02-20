@@ -54,6 +54,12 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
         # API JSON responses don't need CSP; it can cause issues with clients
         content_type = response.headers.get("content-type", "")
         if "application/json" not in content_type:
+            # 'unsafe-inline' in style-src is required because Tailwind CSS
+            # injects styles at runtime via <style> tags and inline style
+            # attributes.  Removing it would break all Tailwind utility
+            # classes.  A nonce-based approach is possible but would require
+            # server-side rendering of the nonce into every page load, which
+            # is non-trivial for our SPA architecture.
             csp_policy = (
                 "default-src 'self'; "
                 "script-src 'self'; "

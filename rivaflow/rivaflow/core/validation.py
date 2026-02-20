@@ -88,6 +88,6 @@ def validate_video_url(url: str) -> bool:
         import logging
 
         logger = logging.getLogger(__name__)
-        logger.warning(f"Video URL from non-standard domain: {parsed.netloc}")
+        logger.warning("Video URL from non-standard domain: %s", parsed.netloc)
 
     return True

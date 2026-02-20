@@ -85,7 +85,7 @@ async def get_current_user(
         raise
     except (ValueError, KeyError, TypeError) as e:
         # Log unexpected errors and return generic 401
-        logger.error(f"Authentication error: {e}")
+        logger.error("Authentication error: %s", e)
         raise AuthenticationError(message="Authentication failed")
 
 

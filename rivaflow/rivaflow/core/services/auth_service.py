@@ -120,7 +120,9 @@ class AuthService:
                 streak_repo.get_streak(user_id=user["id"], streak_type=streak_type)
 
         except (ConnectionError, OSError, ValueError) as e:
-            logger.error(f"Failed to create profile/streaks for user {user['id']}: {e}")
+            logger.error(
+                "Failed to create profile/streaks for user %s: %s", user["id"], e
+            )
             try:
                 self.user_repo.delete_by_id(user["id"])
             except (ConnectionError, OSError):
@@ -136,7 +138,7 @@ class AuthService:
                     current_grade=current_grade,
                 )
             except (ConnectionError, OSError, ValueError) as e:
-                logger.warning(f"Failed to set gym/belt for user {user['id']}: {e}")
+                logger.warning("Failed to set gym/belt for user %s: %s", user["id"], e)
 
         # Generate tokens (sub must be string for JWT)
         access_token = create_access_token(data={"sub": str(user["id"])})
@@ -158,7 +160,7 @@ class AuthService:
                 first_name=first_name,
             )
         except (ConnectionError, OSError, RuntimeError) as e:
-            logger.warning(f"Failed to send welcome email to {email[:3]}***: {e}")
+            logger.warning("Failed to send welcome email to %s***: %s", email[:3], e)
 
         return {
             "access_token": access_token,
@@ -366,9 +368,9 @@ class AuthService:
             )
 
             if success:
-                logger.info(f"Password reset email sent to {email[:3]}***")
+                logger.info("Password reset email sent to %s***", email[:3])
             else:
-                logger.error(f"Failed to send password reset email to {email[:3]}***")
+                logger.error("Failed to send password reset email to %s***", email[:3])
 
         else:
             logger.info(
@@ -437,11 +439,11 @@ class AuthService:
                 to_email=user["email"], user_name=user.get("first_name")
             )
 
-            logger.info(f"Password reset successful for user {user_id}")
+            logger.info("Password reset successful for user %s", user_id)
             return True
 
         except Exception as e:
-            logger.error(f"Password reset failed for user {user_id}: {e}")
+            logger.error("Password reset failed for user %s: %s", user_id, e)
             raise
 
     MAX_FAILED_ATTEMPTS = 5
@@ -476,10 +478,10 @@ class AuthService:
         Raises:
             ValidationError: If password doesn't meet requirements
         """
-        if len(password) < 8:
+        if len(password) < 10:
             raise ValidationError(
-                message="Password must be at least 8 characters long",
-                action="Choose a password with at least 8 characters.",
+                message="Password must be at least 10 characters long",
+                action="Choose a password with at least 10 characters.",
             )
         if not any(c.isupper() for c in password):
             raise ValidationError(
@@ -495,6 +497,11 @@ class AuthService:
             raise ValidationError(
                 message="Password must contain at least one number",
                 action="Add a number to your password.",
+            )
+        if not any(c in "!@#$%^&*()_+-=[]{}|;:',.<>?/`~" for c in password):
+            raise ValidationError(
+                message="Password must contain at least one special character",
+                action="Add a special character (e.g. !@#$%^&*) to your password.",
             )
 
         from rivaflow.core.constants import COMMON_PASSWORDS

@@ -62,7 +62,7 @@ class RedisClient:
             )
             # Test connection
             self._client.ping()
-            logger.info(f"Redis client connected to {self.redis_url}")
+            logger.info("Redis client connected to %s", self.redis_url)
         except (RedisError, ConnectionError, Exception) as e:
             logger.warning(
                 f"Failed to connect to Redis: {e}. Running in fallback mode (no caching)."
@@ -89,7 +89,7 @@ class RedisClient:
                 return None
             return json.loads(value)
         except (RedisError, ConnectionError, TimeoutError, json.JSONDecodeError) as e:
-            logger.warning(f"Redis GET error for key '{key}': {e}")
+            logger.warning("Redis GET error for key '%s': %s", key, e)
             return None
 
     def set(self, key: str, value: Any, ttl: int | None = None) -> bool:
@@ -121,7 +121,7 @@ class RedisClient:
             TypeError,
             json.JSONEncodeError,
         ) as e:
-            logger.warning(f"Redis SET error for key '{key}': {e}")
+            logger.warning("Redis SET error for key '%s': %s", key, e)
             return False
 
     def delete(self, key: str) -> bool:
@@ -140,7 +140,7 @@ class RedisClient:
         try:
             return bool(self._client.delete(key))
         except (RedisError, ConnectionError, TimeoutError) as e:
-            logger.warning(f"Redis DELETE error for key '{key}': {e}")
+            logger.warning("Redis DELETE error for key '%s': %s", key, e)
             return False
 
     def delete_pattern(self, pattern: str) -> int:
@@ -162,7 +162,9 @@ class RedisClient:
                 return self._client.delete(*keys)
             return 0
         except (RedisError, ConnectionError, TimeoutError) as e:
-            logger.warning(f"Redis DELETE_PATTERN error for pattern '{pattern}': {e}")
+            logger.warning(
+                "Redis DELETE_PATTERN error for pattern '%s': %s", pattern, e
+            )
             return 0
 
     def exists(self, key: str) -> bool:
@@ -181,7 +183,7 @@ class RedisClient:
         try:
             return bool(self._client.exists(key))
         except (RedisError, ConnectionError, TimeoutError) as e:
-            logger.warning(f"Redis EXISTS error for key '{key}': {e}")
+            logger.warning("Redis EXISTS error for key '%s': %s", key, e)
             return False
 
     def flush_all(self) -> bool:
@@ -199,7 +201,7 @@ class RedisClient:
             logger.info("Redis cache flushed")
             return True
         except (RedisError, ConnectionError, TimeoutError) as e:
-            logger.warning(f"Redis FLUSH error: {e}")
+            logger.warning("Redis FLUSH error: %s", e)
             return False
 
     @contextmanager
@@ -219,7 +221,7 @@ class RedisClient:
             yield pipe
             pipe.execute()
         except (RedisError, ConnectionError, TimeoutError) as e:
-            logger.warning(f"Redis PIPELINE error: {e}")
+            logger.warning("Redis PIPELINE error: %s", e)
             yield None
 
     def is_available(self) -> bool:

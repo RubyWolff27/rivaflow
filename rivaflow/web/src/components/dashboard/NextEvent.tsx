@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Trophy, Calendar } from 'lucide-react';
 import { eventsApi } from '../../api/client';
+import { logger } from '../../utils/logger';
 import { Card, CardSkeleton } from '../ui';
 import type { CompEvent } from '../../types';
 
@@ -19,8 +20,8 @@ export default function NextEvent() {
       try {
         const res = await eventsApi.getNext();
         if (!cancelled) setEventData(res.data);
-      } catch {
-        // No events
+      } catch (err) {
+        logger.debug('No upcoming events', err);
       } finally {
         if (!cancelled) setLoading(false);
       }

@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { usePageTitle } from '../hooks/usePageTitle';
 import { adminApi } from '../api/client';
+import { logger } from '../utils/logger';
 import { Search, Plus } from 'lucide-react';
 import { Card, PrimaryButton } from '../components/ui';
 import AdminNav from '../components/AdminNav';
@@ -44,8 +45,8 @@ export default function AdminGyms() {
           setGyms(gymsRes.data.gyms || []);
           setPendingGyms(pendingRes.data.pending_gyms || []);
         }
-      } catch {
-        if (!cancelled) toast.error('Failed to load gyms. Please try again.');
+      } catch (err) {
+        if (!cancelled) { logger.warn('Failed to load gyms', err); toast.error('Failed to load gyms. Please try again.'); }
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -61,8 +62,8 @@ export default function AdminGyms() {
         try {
           const response = await adminApi.searchGyms(searchQuery, false);
           if (!cancelled) setGyms(response.data.gyms || []);
-        } catch {
-          if (!cancelled) toast.error('Failed to search gyms. Please try again.');
+        } catch (err) {
+          if (!cancelled) { logger.warn('Failed to search gyms', err); toast.error('Failed to search gyms. Please try again.'); }
         }
       } else if (searchQuery.length === 0) {
         try {
@@ -85,7 +86,8 @@ export default function AdminGyms() {
     try {
       const response = await adminApi.listGyms(false);
       setGyms(response.data.gyms || []);
-    } catch {
+    } catch (err) {
+      logger.warn('Failed to load gyms', err);
       toast.error('Failed to load gyms. Please try again.');
     } finally {
       setLoading(false);
@@ -96,7 +98,8 @@ export default function AdminGyms() {
     try {
       const response = await adminApi.getPendingGyms();
       setPendingGyms(response.data.pending_gyms || []);
-    } catch {
+    } catch (err) {
+      logger.warn('Failed to load pending gyms', err);
       toast.error('Failed to load pending gyms. Please try again.');
     }
   };
@@ -110,7 +113,8 @@ export default function AdminGyms() {
       toast.success(`Gym "${formData.name}" created successfully!`);
       loadGyms();
       loadPendingGyms();
-    } catch {
+    } catch (err) {
+      logger.warn('Failed to create gym', err);
       toast.error('Failed to create gym. Please try again.');
     }
   };
@@ -125,7 +129,8 @@ export default function AdminGyms() {
       toast.success(`Gym "${formData.name}" updated successfully!`);
       loadGyms();
       loadPendingGyms();
-    } catch {
+    } catch (err) {
+      logger.warn('Failed to update gym', err);
       toast.error('Failed to update gym. Please try again.');
     }
   };
@@ -138,7 +143,8 @@ export default function AdminGyms() {
       setConfirmDelete(null);
       loadGyms();
       loadPendingGyms();
-    } catch {
+    } catch (err) {
+      logger.warn('Failed to delete gym', err);
       toast.error('Failed to delete gym. Please try again.');
       setConfirmDelete(null);
     }
@@ -150,7 +156,8 @@ export default function AdminGyms() {
       toast.success(`Gym "${gym.name}" verified successfully!`);
       loadGyms();
       loadPendingGyms();
-    } catch {
+    } catch (err) {
+      logger.warn('Failed to verify gym', err);
       toast.error('Failed to verify gym. Please try again.');
     }
   };
@@ -164,7 +171,8 @@ export default function AdminGyms() {
       toast.success(`Gym "${gym.name}" rejected`);
       loadGyms();
       loadPendingGyms();
-    } catch {
+    } catch (err) {
+      logger.warn('Failed to reject gym', err);
       toast.error('Failed to reject gym. Please try again.');
     }
   };

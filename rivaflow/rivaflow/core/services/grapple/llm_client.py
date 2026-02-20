@@ -100,7 +100,7 @@ class GrappleLLMClient:
         last_error = None
         for provider in self.providers:
             try:
-                logger.info(f"Attempting chat with provider: {provider}")
+                logger.info("Attempting chat with provider: %s", provider)
                 if provider == "groq":
                     result = await self._call_groq(messages, temperature, max_tokens)
                 elif provider == "together":

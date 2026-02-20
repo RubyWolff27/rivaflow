@@ -2,8 +2,24 @@
 
 from datetime import date
 
+from rivaflow.core.utils.cache import get_cache
 from rivaflow.db.repositories import ReadinessRepository
 from rivaflow.db.repositories.checkin_repo import CheckinRepository
+
+_READINESS_CACHE_PREFIXES = (
+    "analytics_weight",
+    "insights_readiness",
+    "insights_risk",
+    "insights_recovery",
+    "whoop_readiness",
+)
+
+
+def _invalidate_readiness_caches() -> None:
+    """Clear readiness-related analytics caches."""
+    cache = get_cache()
+    for prefix in _READINESS_CACHE_PREFIXES:
+        cache.delete_pattern(prefix)
 
 
 class ReadinessService:
@@ -58,6 +74,8 @@ class ReadinessService:
             checkin_type="readiness",
             readiness_id=readiness_id,
         )
+
+        _invalidate_readiness_caches()
 
         return readiness_id
 
@@ -116,6 +134,8 @@ class ReadinessService:
             checkin_type="readiness",
             readiness_id=readiness_id,
         )
+
+        _invalidate_readiness_caches()
 
         return readiness_id
 

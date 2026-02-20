@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 import { usePageTitle } from '../hooks/usePageTitle';
 import { useDashboardData } from '../hooks/useDashboardData';
 import { profileApi } from '../api/client';
+import { logger } from '../utils/logger';
 import { refreshIfStale } from '../utils/insightRefresh';
 import { CardSkeleton } from '../components/ui';
 import { LastSession } from '../components/dashboard/LastSession';
@@ -34,7 +35,7 @@ export default function Dashboard() {
         }
         await profileApi.update({ timezone: browserTz });
         sessionStorage.setItem('tz_synced', browserTz);
-      } catch { /* best-effort */ }
+      } catch (err) { logger.debug('Timezone sync best-effort', err); }
     })();
   }, []);
 
@@ -54,6 +55,7 @@ export default function Dashboard() {
 
   return (
     <div className="space-y-4 sm:space-y-5">
+      <h1 className="sr-only">Dashboard</h1>
       <ErrorBoundary compact>
         {/* 1. Greeting bar */}
         <GreetingBar

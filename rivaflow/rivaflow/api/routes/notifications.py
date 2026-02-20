@@ -80,7 +80,7 @@ def get_notifications(
         return {"notifications": notifications, "count": len(notifications)}
     except Exception as e:
         # Gracefully handle if notifications table doesn't exist yet
-        logger.error(f"Error getting notifications: {e}", exc_info=True)
+        logger.error("Error getting notifications: %s", e, exc_info=True)
         return {"notifications": [], "count": 0}
 
 
@@ -97,7 +97,7 @@ def mark_all_notifications_as_read(
         return {"count": count}
     except Exception as e:
         # Gracefully handle if notifications table doesn't exist yet
-        logger.error(f"Error marking all notifications as read: {e}", exc_info=True)
+        logger.error("Error marking all notifications as read: %s", e, exc_info=True)
         return {"count": 0}
 
 
@@ -187,7 +187,7 @@ def mark_notification_as_read(
         return {"marked": marked}
     except Exception as e:
         # Gracefully handle if notifications table doesn't exist yet
-        logger.error(f"Error marking notification as read: {e}", exc_info=True)
+        logger.error("Error marking notification as read: %s", e, exc_info=True)
         return {"marked": False}
 
 

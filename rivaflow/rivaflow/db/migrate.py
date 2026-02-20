@@ -60,14 +60,14 @@ def _ensure_critical_columns(conn):
                 (table, column),
             )
             if cursor.fetchone() is None:
-                logger.warning(f"Column {table}.{column} missing — adding it now")
+                logger.warning("Column %s.%s missing — adding it now", table, column)
                 cursor.execute(f"ALTER TABLE {table} ADD COLUMN {column} {col_def}")
                 conn.commit()
-                logger.info(f"Added missing column {table}.{column}")
+                logger.info("Added missing column %s.%s", table, column)
             else:
-                logger.info(f"Column {table}.{column} exists — OK")
+                logger.info("Column %s.%s exists — OK", table, column)
         except psycopg2.Error as e:
-            logger.error(f"Failed to ensure {table}.{column}: {e}")
+            logger.error("Failed to ensure %s.%s: %s", table, column, e)
             conn.rollback()
 
     # Ensure needs_review is BOOLEAN (migrations 089/090 failed due to
@@ -79,7 +79,7 @@ def _ensure_critical_columns(conn):
         )
         row = cursor.fetchone()
         if row and row[0] != "boolean":
-            logger.warning(f"sessions.needs_review is {row[0]}, converting to BOOLEAN")
+            logger.warning("sessions.needs_review is %s, converting to BOOLEAN", row[0])
             # Must drop default before type change, then re-add
             cursor.execute(
                 "ALTER TABLE sessions ALTER COLUMN needs_review DROP DEFAULT"
@@ -98,7 +98,7 @@ def _ensure_critical_columns(conn):
         else:
             logger.info("sessions.needs_review is BOOLEAN — OK")
     except psycopg2.Error as e:
-        logger.error(f"Failed to fix needs_review type: {e}")
+        logger.error("Failed to fix needs_review type: %s", e)
         conn.rollback()
 
     cursor.close()
@@ -125,7 +125,7 @@ def create_migrations_table(conn):
             cursor.execute("DROP TABLE IF EXISTS schema_migrations")
             conn.commit()
     except psycopg2.Error as e:
-        logger.warning(f"Error checking schema_migrations table: {e}")
+        logger.warning("Error checking schema_migrations table: %s", e)
         conn.rollback()
 
     # Create table with correct schema
@@ -148,7 +148,7 @@ def get_applied_migrations(conn):
         cursor.close()
         return set(applied)
     except psycopg2.Error as e:
-        logger.error(f"Error getting applied migrations: {e}")
+        logger.error("Error getting applied migrations: %s", e)
         cursor.close()
         return set()  # Return empty set if table doesn't exist or has issues
 
@@ -157,7 +157,7 @@ def apply_migration(conn, migration_file):
     """Apply a single migration file."""
     version = migration_file.stem  # Filename without extension
 
-    logger.info(f"Applying migration: {version}")
+    logger.info("Applying migration: %s", version)
 
     # Read migration SQL
     with open(migration_file) as f:
@@ -174,12 +174,12 @@ def apply_migration(conn, migration_file):
         )
 
         conn.commit()
-        logger.info(f"✓ Applied: {version}")
+        logger.info("✓ Applied: %s", version)
         return True
 
     except psycopg2.Error as e:
         conn.rollback()
-        logger.error(f"✗ Failed to apply {version}: {e}", exc_info=True)
+        logger.error("✗ Failed to apply %s: %s", version, e, exc_info=True)
         return False
     finally:
         cursor.close()
@@ -207,7 +207,7 @@ def run_migrations():
     try:
         conn = psycopg2.connect(database_url)
     except psycopg2.Error as e:
-        logger.error(f"ERROR: Could not connect to database: {e}", exc_info=True)
+        logger.error("ERROR: Could not connect to database: %s", e, exc_info=True)
         raise RuntimeError(f"Could not connect to database: {e}") from e
 
     # Acquire advisory lock to prevent concurrent migrations
@@ -224,7 +224,7 @@ def run_migrations():
 
         logger.info("Acquired migration advisory lock")
     except psycopg2.Error as e:
-        logger.warning(f"Could not acquire advisory lock, proceeding anyway: {e}")
+        logger.warning("Could not acquire advisory lock, proceeding anyway: %s", e)
 
     try:
         # Create migrations tracking table
@@ -235,7 +235,7 @@ def run_migrations():
 
         # Get applied migrations
         applied = get_applied_migrations(conn)
-        logger.info(f"Already applied: {len(applied)} migrations")
+        logger.info("Already applied: %s migrations", len(applied))
 
         # Use database.py's _apply_migrations which handles SQLite-to-PG conversion
         from rivaflow.db.database import _apply_migrations
@@ -245,7 +245,7 @@ def run_migrations():
         logger.info("✓ All migrations applied successfully")
         logger.info("=" * 60)
     except (psycopg2.Error, RuntimeError) as e:
-        logger.error(f"Migration failed: {e}", exc_info=True)
+        logger.error("Migration failed: %s", e, exc_info=True)
         raise RuntimeError(f"Database migration failed: {e}") from e
     finally:
         # Release advisory lock

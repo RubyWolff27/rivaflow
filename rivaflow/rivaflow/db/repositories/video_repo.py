@@ -4,9 +4,10 @@ import json
 from datetime import datetime
 
 from rivaflow.db.database import convert_query, execute_insert, get_connection
+from rivaflow.db.repositories.base_repository import BaseRepository
 
 
-class VideoRepository:
+class VideoRepository(BaseRepository):
     """Data access layer for training videos."""
 
     @staticmethod

@@ -171,7 +171,7 @@ const Layout = memo(function Layout({ children }: { children: React.ReactNode })
           if (sessionId) {
             navigate(`/session/${sessionId}`);
           } else if (location.pathname === '/') {
-            window.location.reload();
+            navigate(0);
           }
         }}
       />

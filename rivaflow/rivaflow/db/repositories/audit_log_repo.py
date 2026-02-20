@@ -5,11 +5,12 @@ import logging
 from typing import Any
 
 from rivaflow.db.database import convert_query, execute_insert, get_connection
+from rivaflow.db.repositories.base_repository import BaseRepository
 
 logger = logging.getLogger(__name__)
 
 
-class AuditLogRepository:
+class AuditLogRepository(BaseRepository):
     """Data access layer for audit logs."""
 
     @staticmethod

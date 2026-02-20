@@ -96,12 +96,12 @@ def validate_environment():
 
     # Log successful validation
     logger.info("✓ Environment configuration validated successfully")
-    logger.info(f"  Environment: {env}")
+    logger.info("  Environment: %s", env)
     logger.info(
         f"  Database: {'PostgreSQL' if database_url and 'postgres' in database_url else 'SQLite'}"
     )
-    logger.info(f"  Redis caching: {'enabled' if redis_url else 'disabled'}")
-    logger.info(f"  Email notifications: {'enabled' if sendgrid_key else 'disabled'}")
+    logger.info("  Redis caching: %s", "enabled" if redis_url else "disabled")
+    logger.info("  Email notifications: %s", "enabled" if sendgrid_key else "disabled")
 
 
 if __name__ == "__main__":

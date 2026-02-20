@@ -1,9 +1,10 @@
 """Repository for groups data access."""
 
 from rivaflow.db.database import convert_query, execute_insert, get_connection
+from rivaflow.db.repositories.base_repository import BaseRepository
 
 
-class GroupsRepository:
+class GroupsRepository(BaseRepository):
     """Data access layer for groups and group members."""
 
     @staticmethod

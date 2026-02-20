@@ -62,7 +62,7 @@ def generate_plan_from_template(
     belt_level: str,
     archetype: str,
     style: str = "balanced",
-) -> dict:
+) -> dict | None:
     """Generate a game plan from a template file.
 
     Args:
@@ -78,7 +78,7 @@ def generate_plan_from_template(
     template_path = TEMPLATES_DIR / template_name
 
     if not template_path.exists():
-        logger.warning(f"Template not found: {template_name}, " "using fallback")
+        logger.warning("Template not found: %s, using fallback", template_name)
         template_path = TEMPLATES_DIR / "white_guard_player.json"
 
     if not template_path.exists():

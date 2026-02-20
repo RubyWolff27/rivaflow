@@ -4,9 +4,10 @@ from datetime import datetime
 from typing import Any
 
 from rivaflow.db.database import convert_query, execute_insert, get_connection
+from rivaflow.db.repositories.base_repository import BaseRepository
 
 
-class FeedbackRepository:
+class FeedbackRepository(BaseRepository):
     """Data access layer for app feedback."""
 
     @staticmethod
@@ -171,8 +172,3 @@ class FeedbackRepository:
                 "by_status": status_counts,
                 "by_category": category_counts,
             }
-
-    @staticmethod
-    def _row_to_dict(row) -> dict[str, Any]:
-        """Convert database row to dictionary."""
-        return dict(row)
