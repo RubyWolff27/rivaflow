@@ -17,6 +17,7 @@ interface User {
   subscription_tier?: string;
   is_beta_user?: boolean;
   created_at: string;
+  last_login?: string | null;
 }
 
 interface UserDetails extends User {
@@ -291,6 +292,15 @@ export default function AdminUsers() {
                   </p>
                   <p className="text-xs mt-1" style={{ color: 'var(--muted)' }}>
                     Joined: {new Date(user.created_at).toLocaleDateString()}
+                    {user.last_login && (
+                      <span className="ml-3">
+                        Last login: {new Date(user.last_login).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}{' '}
+                        {new Date(user.last_login).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                      </span>
+                    )}
+                    {!user.last_login && (
+                      <span className="ml-3">Last login: never</span>
+                    )}
                   </p>
                 </div>
 
@@ -432,6 +442,14 @@ export default function AdminUsers() {
                   <span className="text-sm font-medium" style={{ color: 'var(--muted)' }}>Joined: </span>
                   <span className="text-sm" style={{ color: 'var(--text)' }}>
                     {new Date(selectedUser.created_at).toLocaleString()}
+                  </span>
+                </div>
+                <div>
+                  <span className="text-sm font-medium" style={{ color: 'var(--muted)' }}>Last login: </span>
+                  <span className="text-sm" style={{ color: 'var(--text)' }}>
+                    {selectedUser.last_login
+                      ? new Date(selectedUser.last_login).toLocaleString()
+                      : 'Never'}
                   </span>
                 </div>
               </div>

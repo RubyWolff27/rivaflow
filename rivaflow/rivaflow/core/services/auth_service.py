@@ -219,8 +219,9 @@ class AuthService:
                 action="Double-check your email and password. If you forgot your password, click 'Forgot Password' to reset it.",
             )
 
-        # Successful login — reset lockout counters
+        # Successful login — reset lockout counters and stamp last_login
         self._reset_login_attempts(user["id"])
+        self.user_repo.update_last_login(user["id"])
 
         # Generate tokens (sub must be string for JWT)
         access_token = create_access_token(data={"sub": str(user["id"])})

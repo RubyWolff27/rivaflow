@@ -426,6 +426,22 @@ class UserRepository(BaseRepository):
             return cursor.rowcount > 0
 
     @staticmethod
+    def update_last_login(user_id: int) -> None:
+        """Stamp last_login with current UTC time on successful login.
+
+        Args:
+            user_id: User's ID
+        """
+        from rivaflow.core.time_utils import utcnow
+
+        with get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                convert_query("UPDATE users SET last_login = ? WHERE id = ?"),
+                (utcnow(), user_id),
+            )
+
+    @staticmethod
     def delete_by_id(user_id: int) -> bool:
         """Hard-delete a user by ID.
 
@@ -494,7 +510,7 @@ class UserRepository(BaseRepository):
             query = (
                 "SELECT id, email, first_name, last_name,"
                 " is_active, is_admin, subscription_tier,"
-                " is_beta_user, created_at"
+                " is_beta_user, created_at, last_login"
                 " FROM users WHERE 1=1"
             )
             params: list = []
@@ -518,7 +534,7 @@ class UserRepository(BaseRepository):
             count_query = query.replace(
                 "SELECT id, email, first_name, last_name,"
                 " is_active, is_admin, subscription_tier,"
-                " is_beta_user, created_at"
+                " is_beta_user, created_at, last_login"
                 " FROM users",
                 "SELECT COUNT(*) FROM users",
             )
