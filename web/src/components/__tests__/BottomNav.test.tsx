@@ -25,7 +25,7 @@ import BottomNav from '../BottomNav'
 
 const navigation = [
   { name: 'Home', href: '/', icon: () => <span>H</span> },
-  { name: 'Sessions', href: '/sessions', icon: () => <span>S</span> },
+  { name: 'Feed', href: '/feed', icon: () => <span>F</span>, badge: 0 },
 ]
 
 const moreNavSections = [
@@ -57,7 +57,7 @@ describe('BottomNav', () => {
   it('renders 5 bottom nav items', () => {
     renderBottomNav()
     expect(screen.getByText('Home')).toBeInTheDocument()
-    expect(screen.getByText('Sessions')).toBeInTheDocument()
+    expect(screen.getByText('Feed')).toBeInTheDocument()
     expect(screen.getByText('Progress')).toBeInTheDocument()
     expect(screen.getByText('You')).toBeInTheDocument()
     expect(screen.getByLabelText('Quick Log')).toBeInTheDocument()
