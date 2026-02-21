@@ -252,7 +252,7 @@ export default function PartnersTab({
                         className="text-lg font-semibold"
                         style={{ color: 'var(--text)' }}
                       >
-                        {partner.total_rolls ?? 0} rolls
+                        {partner.total_rolls ?? 0} {(partner.total_rolls ?? 0) === 1 ? 'roll' : 'rolls'}
                       </p>
                     </div>
                   </div>

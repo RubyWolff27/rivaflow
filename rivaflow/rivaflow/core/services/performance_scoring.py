@@ -441,11 +441,15 @@ def compute_partner_analytics(
 
         total_rolls = detailed_count + simple_count
 
-        # Per-partner submissions: prefer per-roll technique data,
-        # else attribute session-level subs ONLY for single-partner
-        # sessions (we can't attribute multi-partner session subs)
-        roll_subs_for = stats.get("total_submissions_for", 0)
-        roll_subs_against = stats.get("total_submissions_against", 0)
+        # Per-partner submissions: count from date-range-filtered rolls only.
+        # stats.get("total_submissions_for") is all-time and must NOT be used
+        # here — it causes subs from outside the selected period to bleed in.
+        roll_subs_for = sum(
+            len(r.get("submissions_for") or []) for r in all_partner_rolls
+        )
+        roll_subs_against = sum(
+            len(r.get("submissions_against") or []) for r in all_partner_rolls
+        )
 
         if roll_subs_for > 0 or roll_subs_against > 0:
             subs_for = roll_subs_for
