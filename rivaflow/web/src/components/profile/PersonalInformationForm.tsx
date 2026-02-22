@@ -41,7 +41,7 @@ export interface PersonalInformationFormProps {
   onGymVerificationPending: (pending: boolean) => void;
   gymHeadCoach: string | null;
   onCreateGym: (gymName: string) => Promise<void>;
-  onGymSelected: (gym: { id: number }) => void;
+  onGymSelected: (gym: { id: number; head_coach?: string }) => void;
 }
 
 export default function PersonalInformationForm({

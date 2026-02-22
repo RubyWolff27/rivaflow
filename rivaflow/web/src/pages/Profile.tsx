@@ -97,7 +97,11 @@ export default function Profile() {
         gymHeadCoach={gymHeadCoach}
         onCreateGym={handleCreateGym}
         onGymSelected={(gym) => {
-          setFormData(prev => ({ ...prev, primary_gym_id: gym.id }));
+          setFormData(prev => ({
+            ...prev,
+            primary_gym_id: gym.id,
+            ...(gym.head_coach ? { current_professor: gym.head_coach, current_instructor_id: null } : {}),
+          }));
         }}
       />
 
