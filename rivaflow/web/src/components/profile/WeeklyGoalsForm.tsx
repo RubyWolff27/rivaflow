@@ -143,15 +143,6 @@ export default function WeeklyGoalsForm({
             <span className="text-sm">Show training streaks on dashboard</span>
           </label>
 
-          <label className="flex items-center gap-2 cursor-pointer">
-            <input
-              type="checkbox"
-              checked={formData.activity_visibility === 'friends'}
-              onChange={(e) => onChange({ ...formData, activity_visibility: e.target.checked ? 'friends' : 'private' })}
-              className="rounded"
-            />
-            <span className="text-sm">Show my sessions on friends' feeds</span>
-          </label>
         </div>
 
         <button

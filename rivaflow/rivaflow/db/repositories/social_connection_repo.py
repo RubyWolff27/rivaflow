@@ -235,6 +235,25 @@ class SocialConnectionRepository(BaseRepository):
             return cursor.rowcount > 0
 
     @staticmethod
+    def get_friend_ids(user_id: int) -> list[int]:
+        """Get IDs of all accepted friends for a user (bidirectional)."""
+        with get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                convert_query("""
+                    SELECT
+                        CASE WHEN requester_id = ? THEN recipient_id ELSE requester_id END
+                        AS friend_id
+                    FROM friend_connections
+                    WHERE status = 'accepted'
+                      AND (requester_id = ? OR recipient_id = ?)
+                """),
+                (user_id, user_id, user_id),
+            )
+            rows = cursor.fetchall()
+            return [row["friend_id"] for row in rows]
+
+    @staticmethod
     def get_friends(
         user_id: int, limit: int = 50, offset: int = 0
     ) -> list[dict[str, Any]]:

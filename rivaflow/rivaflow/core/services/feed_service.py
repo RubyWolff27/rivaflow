@@ -10,9 +10,9 @@ from rivaflow.core.services.privacy_service import PrivacyService
 from rivaflow.db.repositories import (
     ActivityPhotoRepository,
     SessionRepository,
-    UserRelationshipRepository,
     UserRepository,
 )
+from rivaflow.db.repositories.social_connection_repo import SocialConnectionRepository
 from rivaflow.db.repositories.checkin_repo import CheckinRepository
 from rivaflow.db.repositories.feed_repo import FeedRepository
 
@@ -146,8 +146,8 @@ class FeedService:
         end_date = date.today()
         start_date = end_date - timedelta(days=days_back)
 
-        # Get list of users this user follows
-        following_user_ids = UserRelationshipRepository.get_following_user_ids(user_id)
+        # Get list of accepted friends (bidirectional via friend_connections)
+        following_user_ids = SocialConnectionRepository.get_friend_ids(user_id)
 
         if not following_user_ids:
             return {

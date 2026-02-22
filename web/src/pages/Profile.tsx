@@ -108,6 +108,30 @@ export default function Profile() {
         onSubmit={handleGoalsSubmit}
       />
 
+      {/* Sharing & Privacy */}
+      <form onSubmit={handleGoalsSubmit} className="card space-y-4">
+        <h3 className="text-base font-semibold" style={{ color: 'var(--text)' }}>Sharing &amp; Privacy</h3>
+        <div className="flex items-center justify-between gap-4">
+          <div>
+            <p className="text-sm font-medium" style={{ color: 'var(--text)' }}>Show sessions on friends&apos; feeds</p>
+            <p className="text-xs mt-0.5" style={{ color: 'var(--muted)' }}>
+              When off, your activity is hidden from all friends&apos; feeds.
+            </p>
+          </div>
+          <input
+            type="checkbox"
+            checked={formData.activity_visibility !== 'private'}
+            onChange={(e) =>
+              setFormData(prev => ({ ...prev, activity_visibility: e.target.checked ? 'friends' : 'private' }))
+            }
+            className="rounded w-4 h-4 cursor-pointer"
+          />
+        </div>
+        <button type="submit" disabled={saving} className="btn-primary w-full">
+          {saving ? 'Saving…' : 'Save Privacy Settings'}
+        </button>
+      </form>
+
       {whoopStatus !== null && (
         <ConnectedDevicesSection
           whoopStatus={whoopStatus}
