@@ -41,7 +41,6 @@ const AdminGrapple = lazy(() => import('./pages/AdminGrapple'));
 const AdminFeedback = lazy(() => import('./pages/AdminFeedback'));
 const AdminWaitlist = lazy(() => import('./pages/AdminWaitlist'));
 const AdminEmail = lazy(() => import('./pages/AdminEmail'));
-const Waitlist = lazy(() => import('./pages/Waitlist'));
 const Events = lazy(() => import('./pages/Events'));
 const FightDynamics = lazy(() => import('./pages/FightDynamics'));
 const ContactUs = lazy(() => import('./pages/ContactUs'));
