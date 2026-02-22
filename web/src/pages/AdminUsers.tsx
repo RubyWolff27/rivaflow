@@ -1,6 +1,25 @@
 import { useState, useEffect } from 'react';
 import { usePageTitle } from '../hooks/usePageTitle';
 import { adminApi } from '../api/client';
+
+function formatRelativeTime(dateStr: string | null | undefined): { label: string; title: string } {
+  if (!dateStr) return { label: 'never', title: 'Never logged in' };
+  const date = new Date(dateStr);
+  const now = new Date();
+  const diffMs = now.getTime() - date.getTime();
+  const diffMins = Math.floor(diffMs / 60000);
+  const diffHours = Math.floor(diffMs / 3600000);
+  const diffDays = Math.floor(diffMs / 86400000);
+  const title = date.toLocaleString();
+  if (diffMins < 2) return { label: 'just now', title };
+  if (diffMins < 60) return { label: `${diffMins}m ago`, title };
+  if (diffHours < 24) return { label: `${diffHours}h ago`, title };
+  if (diffDays === 1) return { label: 'yesterday', title };
+  if (diffDays < 7) return { label: `${diffDays}d ago`, title };
+  if (diffDays < 30) return { label: `${Math.floor(diffDays / 7)}w ago`, title };
+  if (diffDays < 365) return { label: `${Math.floor(diffDays / 30)}mo ago`, title };
+  return { label: `${Math.floor(diffDays / 365)}y ago`, title };
+}
 import { Search, Shield, ShieldOff, UserX, Eye, CheckCircle, XCircle, Crown, Users } from 'lucide-react';
 import { Card, PrimaryButton, SecondaryButton, EmptyState } from '../components/ui';
 import AdminNav from '../components/AdminNav';
@@ -292,15 +311,14 @@ export default function AdminUsers() {
                   </p>
                   <p className="text-xs mt-1" style={{ color: 'var(--muted)' }}>
                     Joined: {new Date(user.created_at).toLocaleDateString()}
-                    {user.last_login && (
-                      <span className="ml-3">
-                        Last login: {new Date(user.last_login).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}{' '}
-                        {new Date(user.last_login).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                      </span>
-                    )}
-                    {!user.last_login && (
-                      <span className="ml-3">Last login: never</span>
-                    )}
+                    {(() => {
+                      const rel = formatRelativeTime(user.last_login);
+                      return (
+                        <span className="ml-3" title={rel.title}>
+                          Last active: <span style={{ color: user.last_login ? 'var(--text)' : undefined }}>{rel.label}</span>
+                        </span>
+                      );
+                    })()}
                   </p>
                 </div>
 
@@ -445,12 +463,20 @@ export default function AdminUsers() {
                   </span>
                 </div>
                 <div>
-                  <span className="text-sm font-medium" style={{ color: 'var(--muted)' }}>Last login: </span>
-                  <span className="text-sm" style={{ color: 'var(--text)' }}>
-                    {selectedUser.last_login
-                      ? new Date(selectedUser.last_login).toLocaleString()
-                      : 'Never'}
-                  </span>
+                  <span className="text-sm font-medium" style={{ color: 'var(--muted)' }}>Last active: </span>
+                  {(() => {
+                    const rel = formatRelativeTime(selectedUser.last_login);
+                    return (
+                      <span className="text-sm" style={{ color: 'var(--text)' }} title={rel.title}>
+                        {rel.label}
+                        {selectedUser.last_login && (
+                          <span className="ml-2 text-xs" style={{ color: 'var(--muted)' }}>
+                            ({new Date(selectedUser.last_login).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })})
+                          </span>
+                        )}
+                      </span>
+                    );
+                  })()}
                 </div>
               </div>
 
