@@ -223,11 +223,11 @@ const FeedItemComponent = memo(function FeedItemComponent({
                     </>
                   )}
                   {isActivityEditable(item) && (() => {
-                    const vis = item.data?.visibility_level || item.data?.visibility || 'friends';
+                    const vis = item.data?.visibility_level || item.data?.visibility || 'summary';
                     const options = [
                       { value: 'private', icon: Lock, label: 'Private' },
-                      { value: 'friends', icon: Users2, label: 'Friends' },
-                      { value: 'public', icon: Globe, label: 'Public' },
+                      { value: 'summary', icon: Users2, label: 'Friends' },
+                      { value: 'full', icon: Globe, label: 'Public' },
                     ] as const;
                     return (
                       <div className="flex rounded-lg overflow-hidden" style={{ border: '1px solid var(--border)' }} role="group" aria-label="Visibility">
