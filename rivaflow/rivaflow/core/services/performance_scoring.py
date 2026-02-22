@@ -18,7 +18,21 @@ from rivaflow.db.repositories import (
 )
 
 
-def calculate_period_summary(sessions: list[dict]) -> dict[str, Any]:
+def _count_rolls(sessions: list[dict], rolls_by_session: dict | None = None) -> int:
+    """Count total rolls using entry records where available, session.rolls as fallback."""
+    total = 0
+    for session in sessions:
+        entries = rolls_by_session.get(session["id"], []) if rolls_by_session else []
+        if entries:
+            total += len(entries)
+        else:
+            total += session.get("rolls", 0) or 0
+    return total
+
+
+def calculate_period_summary(
+    sessions: list[dict], rolls_by_session: dict | None = None
+) -> dict[str, Any]:
     """Calculate summary metrics for a period with safe null handling."""
     if not sessions:
         return {
@@ -37,7 +51,7 @@ def calculate_period_summary(sessions: list[dict]) -> dict[str, Any]:
         "total_submissions_against": sum(
             s.get("submissions_against", 0) or 0 for s in sessions
         ),
-        "total_rolls": sum(s.get("rolls", 0) or 0 for s in sessions),
+        "total_rolls": _count_rolls(sessions, rolls_by_session),
         "avg_intensity": round(
             (
                 statistics.mean([s.get("intensity", 0) or 0 for s in sessions])
@@ -50,7 +64,10 @@ def calculate_period_summary(sessions: list[dict]) -> dict[str, Any]:
 
 
 def calculate_daily_timeseries(
-    sessions: list[dict], start_date: date, end_date: date
+    sessions: list[dict],
+    start_date: date,
+    end_date: date,
+    rolls_by_session: dict | None = None,
 ) -> dict[str, list[float]]:
     """Calculate daily aggregated time series data for sparklines."""
     # Create a dict for each day in the range
@@ -68,7 +85,9 @@ def calculate_daily_timeseries(
         day_key = session["session_date"].isoformat()
         daily_data[day_key]["sessions"] += 1
         daily_data[day_key]["total_intensity"] += session["intensity"]
-        daily_data[day_key]["rolls"] += session.get("rolls", 0)
+        entries = rolls_by_session.get(session["id"], []) if rolls_by_session else []
+        roll_count = len(entries) if entries else (session.get("rolls", 0) or 0)
+        daily_data[day_key]["rolls"] += roll_count
         daily_data[day_key]["submissions"] += session["submissions_for"]
 
     # Build ordered time series arrays
@@ -323,16 +342,24 @@ def compute_performance_overview(
     gradings = grading_repo.list_all(user_id)
     belt_performance = calculate_performance_by_belt(sessions, gradings)
 
-    # Daily time series for sparklines
-    daily_timeseries = calculate_daily_timeseries(sessions, start_date, end_date)
+    # Daily time series for sparklines (use roll entry counts)
+    daily_timeseries = calculate_daily_timeseries(
+        sessions, start_date, end_date, rolls_by_session
+    )
 
     # Previous period comparison for deltas
     period_length = (end_date - start_date).days
     prev_start = start_date - timedelta(days=period_length)
     prev_end = start_date - timedelta(days=1)
     prev_sessions = session_repo.get_by_date_range(user_id, prev_start, prev_end)
-    prev_summary = calculate_period_summary(prev_sessions)
-    current_summary = calculate_period_summary(sessions)
+    prev_session_ids = [s["id"] for s in prev_sessions]
+    prev_rolls_by_session = (
+        roll_repo.get_by_session_ids(user_id, prev_session_ids)
+        if prev_session_ids
+        else {}
+    )
+    prev_summary = calculate_period_summary(prev_sessions, prev_rolls_by_session)
+    current_summary = calculate_period_summary(sessions, rolls_by_session)
 
     # Calculate deltas
     deltas = {

@@ -6,6 +6,7 @@ from datetime import UTC, date, datetime, timedelta
 from zoneinfo import ZoneInfo
 
 from rivaflow.db.repositories import ReadinessRepository, SessionRepository
+from rivaflow.db.repositories.session_roll_repo import SessionRollRepository
 
 
 def today_in_tz(tz: str | None = None) -> date:
@@ -27,6 +28,7 @@ class ReportService:
     def __init__(self):
         self.session_repo = SessionRepository()
         self.readiness_repo = ReadinessRepository()
+        self.roll_repo = SessionRollRepository()
 
     def get_week_dates(
         self, target_date: date | None = None, tz: str | None = None
@@ -82,9 +84,13 @@ class ReportService:
                 "weight_tracking": self._calculate_weight_stats(readiness_entries),
             }
 
+        # Load roll entries for accurate roll counts
+        session_ids = [s["id"] for s in sessions]
+        rolls_by_session = self.roll_repo.get_by_session_ids(user_id, session_ids)
+
         # Calculate all analytics in a single pass to avoid multiple iterations
-        summary = self._calculate_summary(sessions)
-        breakdown_by_type = self._breakdown_by_type(sessions)
+        summary = self._calculate_summary(sessions, rolls_by_session)
+        breakdown_by_type = self._breakdown_by_type(sessions, rolls_by_session)
         breakdown_by_gym = self._breakdown_by_gym(sessions)
 
         return {
@@ -114,12 +120,20 @@ class ReportService:
             "sub_ratio": 0.0,
         }
 
-    def _calculate_summary(self, sessions: list[dict]) -> dict:
+    def _calculate_summary(
+        self, sessions: list[dict], rolls_by_session: dict | None = None
+    ) -> dict:
         """Calculate aggregate statistics for sessions."""
         total_classes = len(sessions)
         total_mins = sum(s["duration_mins"] for s in sessions)
         total_hours = round(total_mins / 60, 1)
-        total_rolls = sum(s["rolls"] for s in sessions)
+        # Use roll entry count where available, fall back to session.rolls aggregate
+        total_rolls = sum(
+            len(rolls_by_session.get(s["id"], [])) or (s.get("rolls", 0) or 0)
+            if rolls_by_session is not None
+            else (s.get("rolls", 0) or 0)
+            for s in sessions
+        )
         submissions_for = sum(s["submissions_for"] for s in sessions)
         submissions_against = sum(s["submissions_against"] for s in sessions)
         avg_intensity = round(sum(s["intensity"] for s in sessions) / total_classes, 1)
@@ -164,7 +178,9 @@ class ReportService:
             "sub_ratio": sub_ratio,
         }
 
-    def _breakdown_by_type(self, sessions: list[dict]) -> dict:
+    def _breakdown_by_type(
+        self, sessions: list[dict], rolls_by_session: dict | None = None
+    ) -> dict:
         """Break down statistics by class type."""
         by_type = defaultdict(lambda: {"classes": 0, "hours": 0.0, "rolls": 0})
 
@@ -172,7 +188,9 @@ class ReportService:
             class_type = session["class_type"]
             by_type[class_type]["classes"] += 1
             by_type[class_type]["hours"] += round(session["duration_mins"] / 60, 1)
-            by_type[class_type]["rolls"] += session["rolls"]
+            entries = rolls_by_session.get(session["id"], []) if rolls_by_session else []
+            roll_count = len(entries) if entries else (session.get("rolls", 0) or 0)
+            by_type[class_type]["rolls"] += roll_count
 
         return dict(by_type)
 
