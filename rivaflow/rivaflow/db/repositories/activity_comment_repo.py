@@ -48,7 +48,7 @@ class ActivityCommentRepository(BaseRepository):
                 (comment_id,),
             )
             row = cursor.fetchone()
-            return ActivityCommentRepository._row_to_dict(row)
+            return ActivityCommentRepository._row_to_dict(row) or {}
 
     @staticmethod
     def get_by_activity(activity_type: str, activity_id: int) -> list[dict]:

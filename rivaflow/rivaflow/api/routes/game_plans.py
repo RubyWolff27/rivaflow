@@ -141,9 +141,7 @@ def update_plan(
     current_user: dict = Depends(get_current_user),
 ):
     """Update plan metadata."""
-    from rivaflow.core.services.game_plan_service import (
-        update_plan as svc_update_plan,
-    )
+    from rivaflow.core.services.game_plan_service import update_plan as svc_update_plan
 
     user_id = current_user["id"]
     updates = body.model_dump(exclude_none=True)
@@ -165,9 +163,7 @@ def delete_plan(
     current_user: dict = Depends(get_current_user),
 ):
     """Delete a game plan."""
-    from rivaflow.core.services.game_plan_service import (
-        delete_plan as svc_delete_plan,
-    )
+    from rivaflow.core.services.game_plan_service import delete_plan as svc_delete_plan
 
     user_id = current_user["id"]
     deleted = svc_delete_plan(plan_id, user_id)

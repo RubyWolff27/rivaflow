@@ -2,7 +2,6 @@
 
 from unittest.mock import MagicMock, patch
 
-
 from rivaflow.core.services.photo_service import PhotoService
 
 

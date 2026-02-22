@@ -3,7 +3,6 @@
 from datetime import date
 from unittest.mock import patch
 
-
 from rivaflow.core.services.streak_service import StreakService
 
 

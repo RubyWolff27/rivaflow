@@ -2,7 +2,6 @@
 
 from unittest.mock import patch
 
-
 from rivaflow.core.services.feed_service import FeedService
 
 

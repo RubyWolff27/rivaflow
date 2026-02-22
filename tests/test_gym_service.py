@@ -3,7 +3,6 @@
 from datetime import date
 from unittest.mock import MagicMock, patch
 
-
 from rivaflow.core.services.gym_service import GymService
 
 

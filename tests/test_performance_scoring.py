@@ -3,7 +3,6 @@
 from datetime import date
 from unittest.mock import MagicMock
 
-
 from rivaflow.core.services.performance_scoring import (
     calculate_daily_timeseries,
     calculate_performance_by_belt,

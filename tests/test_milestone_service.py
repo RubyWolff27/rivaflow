@@ -2,7 +2,6 @@
 
 from unittest.mock import patch
 
-
 from rivaflow.core.services.milestone_service import MilestoneService
 
 

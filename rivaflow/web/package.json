@@ -7,7 +7,7 @@
     "dev": "vite",
     "build": "tsc && vite build",
     "preview": "vite preview",
-    "serve": "serve dist -s",
+    "serve": "vite preview",
     "test": "vitest run",
     "type-check": "tsc --noEmit"
   },
@@ -24,14 +24,13 @@
     "@testing-library/user-event": "^14.6.1",
     "@types/react": "^19.2.13",
     "@types/react-dom": "^19.2.3",
-    "serve": "^14.2.0",
     "@vitejs/plugin-react": "^4.2.1",
     "autoprefixer": "^10.4.24",
     "jsdom": "^28.0.0",
     "postcss": "^8.4.32",
     "tailwindcss": "^3.3.6",
     "typescript": "^5.3.3",
-    "vite": "^5.0.8",
+    "vite": "^6.4.1",
     "vitest": "^4.0.18"
   }
 }

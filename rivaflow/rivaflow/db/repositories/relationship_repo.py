@@ -38,7 +38,7 @@ class UserRelationshipRepository(BaseRepository):
                 (relationship_id,),
             )
             row = cursor.fetchone()
-            return UserRelationshipRepository._row_to_dict(row)
+            return UserRelationshipRepository._row_to_dict(row) or {}
 
     @staticmethod
     def unfollow(follower_user_id: int, following_user_id: int) -> bool:

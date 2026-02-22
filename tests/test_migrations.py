@@ -2,7 +2,7 @@
 
 import pytest
 
-from rivaflow.db.database import get_connection, convert_query, DB_TYPE
+from rivaflow.db.database import DB_TYPE, convert_query, get_connection
 
 
 class TestMigrationCorrectness:

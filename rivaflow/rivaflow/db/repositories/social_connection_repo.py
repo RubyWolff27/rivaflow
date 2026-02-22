@@ -85,7 +85,7 @@ class SocialConnectionRepository(BaseRepository):
                 (connection_id,),
             )
             row = cursor.fetchone()
-            return SocialConnectionRepository._row_to_dict(row)
+            return SocialConnectionRepository._row_to_dict(row) or {}
 
     @staticmethod
     def accept_friend_request(connection_id: int, recipient_id: int) -> dict[str, Any]:
@@ -134,7 +134,7 @@ class SocialConnectionRepository(BaseRepository):
                 (connection_id,),
             )
             row = cursor.fetchone()
-            return SocialConnectionRepository._row_to_dict(row)
+            return SocialConnectionRepository._row_to_dict(row) or {}
 
     @staticmethod
     def decline_friend_request(connection_id: int, recipient_id: int) -> dict[str, Any]:
@@ -179,7 +179,7 @@ class SocialConnectionRepository(BaseRepository):
                 (connection_id,),
             )
             row = cursor.fetchone()
-            return SocialConnectionRepository._row_to_dict(row)
+            return SocialConnectionRepository._row_to_dict(row) or {}
 
     @staticmethod
     def cancel_friend_request(connection_id: int, requester_id: int) -> bool:
@@ -414,7 +414,7 @@ class SocialConnectionRepository(BaseRepository):
                 convert_query("SELECT * FROM blocked_users WHERE id = ?"), (block_id,)
             )
             row = cursor.fetchone()
-            return SocialConnectionRepository._row_to_dict(row)
+            return SocialConnectionRepository._row_to_dict(row) or {}
 
     @staticmethod
     def unblock_user(blocker_id: int, blocked_id: int) -> bool:

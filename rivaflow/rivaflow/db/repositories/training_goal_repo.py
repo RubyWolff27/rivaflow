@@ -7,7 +7,8 @@ from rivaflow.db.repositories.base_repository import BaseRepository
 class TrainingGoalRepository(BaseRepository):
     """Data access layer for monthly training goals."""
 
-    def _row_to_dict(self, row) -> dict:
+    @staticmethod
+    def _row_to_dict(row) -> dict:
         """Convert database row to dictionary."""
         if not row:
             return {}

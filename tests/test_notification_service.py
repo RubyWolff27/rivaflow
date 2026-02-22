@@ -2,7 +2,6 @@
 
 from unittest.mock import patch
 
-
 from rivaflow.core.services.notification_service import NotificationService
 
 

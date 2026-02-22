@@ -5,10 +5,10 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from rivaflow.core.services.whoop_service import WhoopService
-
 # Generate a valid Fernet key for test encryption
 from cryptography.fernet import Fernet
+
+from rivaflow.core.services.whoop_service import WhoopService
 
 _TEST_FERNET_KEY = Fernet.generate_key().decode()
 

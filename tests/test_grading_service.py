@@ -2,7 +2,6 @@
 
 from unittest.mock import patch
 
-
 from rivaflow.core.services.grading_service import GradingService
 
 

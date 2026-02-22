@@ -38,7 +38,7 @@ class ActivityLikeRepository(BaseRepository):
                 convert_query("SELECT * FROM activity_likes WHERE id = ?"), (like_id,)
             )
             row = cursor.fetchone()
-            return ActivityLikeRepository._row_to_dict(row)
+            return ActivityLikeRepository._row_to_dict(row) or {}
 
     @staticmethod
     def delete(user_id: int, activity_type: str, activity_id: int) -> bool:
