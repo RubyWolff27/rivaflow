@@ -5,7 +5,6 @@ Tests exception handling, validation errors, and error messages.
 """
 
 import os
-import sqlite3
 from datetime import date, timedelta
 
 import pytest
