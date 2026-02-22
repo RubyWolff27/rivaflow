@@ -195,7 +195,7 @@ export default function LogSession() {
           return all.length > 0 ? all : undefined;
         })(),
         techniques: form.sessionData.techniques ? form.sessionData.techniques.split(',').map(t => t.trim()) : undefined,
-        visibility_level: 'private',
+        visibility_level: 'summary',
         ...form.buildWhoopPayload(),
         ...form.buildFightDynamicsPayload(),
       };
