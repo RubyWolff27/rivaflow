@@ -38,7 +38,7 @@ class TestLikeActivity:
         self, client, test_user, auth_headers, session_factory
     ):
         """Like a public session succeeds."""
-        session_id = session_factory(visibility_level="public")
+        session_id = session_factory(visibility_level="full")
         response = client.post(
             "/api/v1/social/like",
             headers=auth_headers,
@@ -96,7 +96,7 @@ class TestLikeActivity:
         self, client, test_user, auth_headers, session_factory
     ):
         """Liking the same activity twice fails (400)."""
-        session_id = session_factory(visibility_level="public")
+        session_id = session_factory(visibility_level="full")
         client.post(
             "/api/v1/social/like",
             headers=auth_headers,
@@ -124,7 +124,7 @@ class TestLikeActivity:
         session_factory,
     ):
         """Two different users can like the same session."""
-        session_id = session_factory(visibility_level="public")
+        session_id = session_factory(visibility_level="full")
 
         # test_user likes
         resp1 = client.post(
@@ -168,7 +168,7 @@ class TestGetLikes:
 
     def test_get_likes_count(self, client, test_user, auth_headers, session_factory):
         """After liking, count is at least 1."""
-        session_id = session_factory(visibility_level="public")
+        session_id = session_factory(visibility_level="full")
         client.post(
             "/api/v1/social/like",
             headers=auth_headers,
@@ -191,7 +191,7 @@ class TestGetLikes:
 
     def test_get_likes_empty(self, client, test_user, auth_headers, session_factory):
         """Session with no likes returns count 0."""
-        session_id = session_factory(visibility_level="public")
+        session_id = session_factory(visibility_level="full")
         response = client.get(
             f"/api/v1/social/likes/session/{session_id}",
             headers=auth_headers,
@@ -218,7 +218,7 @@ class TestGetLikes:
         session_factory,
     ):
         """Likes from multiple users appear in the list."""
-        session_id = session_factory(visibility_level="public")
+        session_id = session_factory(visibility_level="full")
 
         # test_user likes
         client.post(
@@ -258,7 +258,7 @@ class TestUnlikeActivity:
 
     def test_unlike_returns_204(self, client, test_user, auth_headers, session_factory):
         """Unlike a previously liked session returns 204."""
-        session_id = session_factory(visibility_level="public")
+        session_id = session_factory(visibility_level="full")
         client.post(
             "/api/v1/social/like",
             headers=auth_headers,
@@ -283,7 +283,7 @@ class TestUnlikeActivity:
         self, client, test_user, auth_headers, session_factory
     ):
         """After unliking, count drops back to 0."""
-        session_id = session_factory(visibility_level="public")
+        session_id = session_factory(visibility_level="full")
         client.post(
             "/api/v1/social/like",
             headers=auth_headers,
@@ -313,7 +313,7 @@ class TestUnlikeActivity:
         self, client, test_user, auth_headers, session_factory
     ):
         """Unlike something never liked returns {unliked: false}."""
-        session_id = session_factory(visibility_level="public")
+        session_id = session_factory(visibility_level="full")
         response = client.request(
             "DELETE",
             "/api/v1/social/like",

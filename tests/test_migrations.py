@@ -16,8 +16,7 @@ class TestMigrationCorrectness:
                 convert_query("SELECT COUNT(*) AS cnt FROM schema_migrations")
             )
             row = cursor.fetchone()
-            # sqlite3.Row and RealDictRow both support int index
-            count = row[0]
+            count = row["cnt"]
             assert count > 0, "No migrations recorded"
 
     def test_core_tables_exist(self, temp_db):

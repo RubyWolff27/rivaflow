@@ -91,7 +91,7 @@ def test_submit_feedback_nonexistent_message(temp_db, test_user):
     with pytest.raises(NotFoundError):
         GrappleAdminService.submit_feedback(
             user_id=test_user["id"],
-            message_id="no-such-message",
+            message_id="00000000-0000-0000-0000-000000000000",
             rating="negative",
         )
 

@@ -114,7 +114,7 @@ def test_get_connection_status_connected(temp_db, test_user):
         cursor = conn.cursor()
         cursor.execute(
             convert_query(
-                "UPDATE whoop_connections" " SET is_active = 1 WHERE user_id = ?"
+                "UPDATE whoop_connections SET is_active = TRUE WHERE user_id = ?"
             ),
             (test_user["id"],),
         )

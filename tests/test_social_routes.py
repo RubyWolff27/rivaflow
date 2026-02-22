@@ -72,7 +72,7 @@ class TestLikes:
 
     def test_like_activity(self, authenticated_client, test_user, session_factory):
         """Test liking a session."""
-        session_id = session_factory(visibility_level="public")
+        session_id = session_factory(visibility_level="full")
         response = authenticated_client.post(
             "/api/v1/social/like",
             json={"activity_type": "session", "activity_id": session_id},
@@ -81,7 +81,7 @@ class TestLikes:
 
     def test_unlike_activity(self, authenticated_client, test_user, session_factory):
         """Test unliking a session."""
-        session_id = session_factory(visibility_level="public")
+        session_id = session_factory(visibility_level="full")
         authenticated_client.post(
             "/api/v1/social/like",
             json={"activity_type": "session", "activity_id": session_id},
@@ -96,7 +96,7 @@ class TestLikes:
 
     def test_get_activity_likes(self, authenticated_client, test_user, session_factory):
         """Test getting likes for an activity."""
-        session_id = session_factory(visibility_level="public")
+        session_id = session_factory(visibility_level="full")
         authenticated_client.post(
             "/api/v1/social/like",
             json={"activity_type": "session", "activity_id": session_id},
@@ -115,7 +115,7 @@ class TestComments:
 
     def test_create_comment(self, authenticated_client, test_user, session_factory):
         """Test creating a comment on a session."""
-        session_id = session_factory(visibility_level="public")
+        session_id = session_factory(visibility_level="full")
         response = authenticated_client.post(
             "/api/v1/social/comment",
             json={
@@ -130,7 +130,7 @@ class TestComments:
 
     def test_update_comment(self, authenticated_client, test_user, session_factory):
         """Test updating a comment."""
-        session_id = session_factory(visibility_level="public")
+        session_id = session_factory(visibility_level="full")
         create_resp = authenticated_client.post(
             "/api/v1/social/comment",
             json={
@@ -149,7 +149,7 @@ class TestComments:
 
     def test_delete_comment(self, authenticated_client, test_user, session_factory):
         """Test deleting a comment."""
-        session_id = session_factory(visibility_level="public")
+        session_id = session_factory(visibility_level="full")
         create_resp = authenticated_client.post(
             "/api/v1/social/comment",
             json={
@@ -167,7 +167,7 @@ class TestComments:
         self, authenticated_client, test_user, session_factory
     ):
         """Test getting comments for an activity."""
-        session_id = session_factory(visibility_level="public")
+        session_id = session_factory(visibility_level="full")
         authenticated_client.post(
             "/api/v1/social/comment",
             json={

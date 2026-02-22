@@ -46,7 +46,7 @@ class TestCreateComment:
         self, client, test_user, auth_headers, session_factory
     ):
         """Create a comment on a public session succeeds."""
-        session_id = session_factory(visibility_level="public")
+        session_id = session_factory(visibility_level="full")
         response = client.post(
             "/api/v1/social/comment",
             headers=auth_headers,
@@ -66,7 +66,7 @@ class TestCreateComment:
         self, client, test_user, auth_headers, session_factory
     ):
         """Create a reply comment (with parent_comment_id) succeeds."""
-        session_id = session_factory(visibility_level="public")
+        session_id = session_factory(visibility_level="full")
         # Create parent comment
         parent_resp = client.post(
             "/api/v1/social/comment",
@@ -144,7 +144,7 @@ class TestCreateComment:
         self, client, test_user, auth_headers, session_factory
     ):
         """Comment with empty text fails validation (422)."""
-        session_id = session_factory(visibility_level="public")
+        session_id = session_factory(visibility_level="full")
         response = client.post(
             "/api/v1/social/comment",
             headers=auth_headers,
@@ -164,7 +164,7 @@ class TestGetComments:
         self, client, test_user, auth_headers, session_factory
     ):
         """Get comments returns list with count."""
-        session_id = session_factory(visibility_level="public")
+        session_id = session_factory(visibility_level="full")
         # Create two comments
         for text in ["First comment", "Second comment"]:
             client.post(
@@ -192,7 +192,7 @@ class TestGetComments:
         self, client, test_user, auth_headers, session_factory
     ):
         """Activity with no comments returns empty list and count 0."""
-        session_id = session_factory(visibility_level="public")
+        session_id = session_factory(visibility_level="full")
         response = client.get(
             f"/api/v1/social/comments/session/{session_id}",
             headers=auth_headers,
@@ -216,7 +216,7 @@ class TestUpdateComment:
 
     def test_update_own_comment(self, client, test_user, auth_headers, session_factory):
         """User can update their own comment."""
-        session_id = session_factory(visibility_level="public")
+        session_id = session_factory(visibility_level="full")
         create_resp = client.post(
             "/api/v1/social/comment",
             headers=auth_headers,
@@ -244,7 +244,7 @@ class TestUpdateComment:
         self, client, test_user, test_user2, auth_headers, session_factory
     ):
         """User cannot update another user's comment (404)."""
-        session_id = session_factory(visibility_level="public")
+        session_id = session_factory(visibility_level="full")
         # test_user creates comment
         create_resp = client.post(
             "/api/v1/social/comment",
@@ -286,7 +286,7 @@ class TestDeleteComment:
 
     def test_delete_own_comment(self, client, test_user, auth_headers, session_factory):
         """User can delete their own comment (204)."""
-        session_id = session_factory(visibility_level="public")
+        session_id = session_factory(visibility_level="full")
         create_resp = client.post(
             "/api/v1/social/comment",
             headers=auth_headers,
@@ -308,7 +308,7 @@ class TestDeleteComment:
         self, client, test_user, auth_headers, session_factory
     ):
         """After deletion, comment no longer appears in activity comments."""
-        session_id = session_factory(visibility_level="public")
+        session_id = session_factory(visibility_level="full")
         create_resp = client.post(
             "/api/v1/social/comment",
             headers=auth_headers,
@@ -338,7 +338,7 @@ class TestDeleteComment:
         self, client, test_user, test_user2, auth_headers, session_factory
     ):
         """User cannot delete another user's comment (404)."""
-        session_id = session_factory(visibility_level="public")
+        session_id = session_factory(visibility_level="full")
         # test_user creates comment
         create_resp = client.post(
             "/api/v1/social/comment",

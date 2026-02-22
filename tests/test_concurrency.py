@@ -301,7 +301,7 @@ class TestDataIntegrityAfterConcurrentWrites:
             sid = repo.create(
                 user_id=user_id,
                 session_date=date(2026, 1, 10 + idx),
-                class_type="gi" if idx % 2 == 0 else "nogi",
+                class_type="gi" if idx % 2 == 0 else "no-gi",
                 gym_name=f"Gym-{idx}",
                 duration_mins=30 + idx * 10,
                 intensity=idx + 1,
@@ -322,5 +322,5 @@ class TestDataIntegrityAfterConcurrentWrites:
             assert session["gym_name"] == f"Gym-{idx}"
             assert session["intensity"] == idx + 1
             assert session["rolls"] == idx
-            expected_type = "gi" if idx % 2 == 0 else "nogi"
+            expected_type = "gi" if idx % 2 == 0 else "no-gi"
             assert session["class_type"] == expected_type

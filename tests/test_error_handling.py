@@ -168,8 +168,9 @@ class TestAuthenticationErrors:
             """),
                 ("test_wrong_pass@example.com", hashed, True),
             )
+            _row = cursor.fetchone()
+            user_id = _row["id"] if isinstance(_row, dict) else _row[0]
             conn.commit()
-            user_id = cursor.lastrowid
 
         try:
             # Try login with wrong password -- should raise
@@ -266,15 +267,18 @@ class TestDatabaseConstraintErrors:
                 convert_query("""
                 INSERT INTO users (email, hashed_password, created_at)
                 VALUES (?, ?, CURRENT_TIMESTAMP)
+                RETURNING id
             """),
                 ("duplicate@example.com", "hash1"),
             )
+            _row = cursor.fetchone()
+            user1_id = _row["id"] if isinstance(_row, dict) else _row[0]
             conn.commit()
-            user1_id = cursor.lastrowid
 
             try:
-                # Try to create duplicate
-                with pytest.raises(sqlite3.IntegrityError):
+                # Try to create duplicate - raises IntegrityError on SQLite,
+                # UniqueViolation on PG — both are subclasses of Exception
+                with pytest.raises(Exception):
                     cursor.execute(
                         convert_query("""
                         INSERT INTO users (email, hashed_password, created_at)
@@ -283,6 +287,8 @@ class TestDatabaseConstraintErrors:
                         ("duplicate@example.com", "hash2"),
                     )
                     conn.commit()
+                # Clear aborted transaction state on PG before cleanup
+                conn.rollback()
             finally:
                 # Cleanup
                 cursor.execute(
@@ -305,11 +311,13 @@ class TestInputSanitization:
                 convert_query("""
                 INSERT INTO users (email, hashed_password, created_at)
                 VALUES (?, ?, CURRENT_TIMESTAMP)
+                RETURNING id
             """),
                 ("test_injection@example.com", "hash"),
             )
+            _row = cursor.fetchone()
+            user_id = _row["id"] if isinstance(_row, dict) else _row[0]
             conn.commit()
-            user_id = cursor.lastrowid
 
             try:
                 # Attempt SQL injection via gym_name
@@ -322,6 +330,7 @@ class TestInputSanitization:
                         duration_mins, intensity, rolls, created_at
                     )
                     VALUES (?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+                    RETURNING id
                 """),
                     (
                         user_id,
@@ -333,8 +342,9 @@ class TestInputSanitization:
                         5,
                     ),
                 )
+                _srow = cursor.fetchone()
+                session_id = _srow["id"] if isinstance(_srow, dict) else _srow[0]
                 conn.commit()
-                session_id = cursor.lastrowid
 
                 # Verify sessions table still exists and data is safe
                 cursor.execute(
@@ -375,11 +385,13 @@ class TestInputSanitization:
                 convert_query("""
                 INSERT INTO users (email, hashed_password, created_at)
                 VALUES (?, ?, CURRENT_TIMESTAMP)
+                RETURNING id
             """),
                 ("test_special@example.com", "hash"),
             )
+            _row = cursor.fetchone()
+            user_id = _row["id"] if isinstance(_row, dict) else _row[0]
             conn.commit()
-            user_id = cursor.lastrowid
 
         try:
             # Test various special characters
@@ -454,8 +466,9 @@ class TestErrorMessages:
             """),
                 ("test_secure_msg@example.com", hashed, True),
             )
+            _row = cursor.fetchone()
+            user_id = _row["id"] if isinstance(_row, dict) else _row[0]
             conn.commit()
-            user_id = cursor.lastrowid
 
         try:
             # Wrong password should also raise AuthenticationError
@@ -482,11 +495,13 @@ class TestExceptionRecovery:
                 convert_query("""
                 INSERT INTO users (email, hashed_password, created_at)
                 VALUES (?, ?, CURRENT_TIMESTAMP)
+                RETURNING id
             """),
                 ("test_recovery@example.com", "hash"),
             )
+            _row = cursor.fetchone()
+            user_id = _row["id"] if isinstance(_row, dict) else _row[0]
             conn.commit()
-            user_id = cursor.lastrowid
 
         try:
             with get_connection() as conn:

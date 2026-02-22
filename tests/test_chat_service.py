@@ -41,7 +41,9 @@ def test_get_session_by_id(temp_db, test_user):
 def test_get_nonexistent_session_returns_none(temp_db, test_user):
     """Getting a non-existent session returns None."""
     svc = ChatService()
-    result = svc.get_session_by_id("no-such-id", test_user["id"])
+    result = svc.get_session_by_id(
+        "00000000-0000-0000-0000-000000000000", test_user["id"]
+    )
 
     assert result is None
 
@@ -118,7 +120,7 @@ def test_delete_session(temp_db, test_user):
 def test_delete_nonexistent_session(temp_db, test_user):
     """Deleting a session that does not exist returns False."""
     svc = ChatService()
-    ok = svc.delete_session("no-such-id", test_user["id"])
+    ok = svc.delete_session("00000000-0000-0000-0000-000000000000", test_user["id"])
 
     assert ok is False
 

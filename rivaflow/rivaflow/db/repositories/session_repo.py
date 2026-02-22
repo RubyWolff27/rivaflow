@@ -774,7 +774,7 @@ class SessionRepository(BaseRepository):
                 (week_start, user_id),
             )
             result = cursor.fetchone()
-            return result["total"] or 0
+            return int(result["total"]) if result["total"] is not None else 0
 
     # Whitelist of allowed GROUP BY expressions for week_format to prevent
     # SQL injection — callers must pass one of these exact strings.
@@ -815,7 +815,7 @@ class SessionRepository(BaseRepository):
                 (start_date, end_date, user_id),
             )
             result = cursor.fetchone()
-            return result["avg"] or 0
+            return float(result["avg"]) if result["avg"] is not None else 0.0
 
     @staticmethod
     def count_sessions_since(user_id: int, since_date: str) -> int:

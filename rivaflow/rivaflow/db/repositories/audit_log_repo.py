@@ -2,6 +2,7 @@
 
 import json
 import logging
+from datetime import datetime, timedelta
 from typing import Any
 
 from rivaflow.db.database import convert_query, execute_insert, get_connection
@@ -147,7 +148,7 @@ class AuditLogRepository(BaseRepository):
 
             cursor.execute(convert_query(query), params)
             row = cursor.fetchone()
-            return row[0] if row else 0
+            return list(row.values())[0] if row else 0
 
     @staticmethod
     def get_user_activity_summary(user_id: int, days: int = 30) -> dict[str, Any]:
@@ -155,18 +156,22 @@ class AuditLogRepository(BaseRepository):
         with get_connection() as conn:
             cursor = conn.cursor()
 
+            cutoff = (datetime.utcnow() - timedelta(days=days)).isoformat(
+                timespec="seconds"
+            )
+
             query = """
                 SELECT
                     action,
                     COUNT(*) as count
                 FROM audit_logs
                 WHERE actor_user_id = ?
-                    AND created_at >= datetime('now', '-' || ? || ' days')
+                    AND created_at >= ?
                 GROUP BY action
                 ORDER BY count DESC
             """
 
-            cursor.execute(convert_query(query), (user_id, days))
+            cursor.execute(convert_query(query), (user_id, cutoff))
             rows = cursor.fetchall()
 
             action_counts = {row["action"]: row["count"] for row in rows}

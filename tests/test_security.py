@@ -188,11 +188,13 @@ class TestPasswordResetTokenSecurity:
                 convert_query("""
                 INSERT INTO users (email, hashed_password, created_at)
                 VALUES (?, ?, CURRENT_TIMESTAMP)
+                RETURNING id
             """),
                 ("test_reset_hash@example.com", "hash"),
             )
+            _row = cursor.fetchone()
+            user_id = _row["id"] if isinstance(_row, dict) else _row[0]
             conn.commit()
-            user_id = cursor.lastrowid
 
         try:
             # Create reset token
@@ -241,11 +243,13 @@ class TestPasswordResetTokenSecurity:
                 convert_query("""
                 INSERT INTO users (email, hashed_password, created_at)
                 VALUES (?, ?, CURRENT_TIMESTAMP)
+                RETURNING id
             """),
                 ("test_single_use@example.com", "hash"),
             )
+            _row = cursor.fetchone()
+            user_id = _row["id"] if isinstance(_row, dict) else _row[0]
             conn.commit()
-            user_id = cursor.lastrowid
 
         try:
             token = PasswordResetTokenRepository.create_token(user_id)
@@ -285,11 +289,13 @@ class TestPasswordResetTokenSecurity:
                 convert_query("""
                 INSERT INTO users (email, hashed_password, created_at)
                 VALUES (?, ?, CURRENT_TIMESTAMP)
+                RETURNING id
             """),
                 ("test_expire@example.com", "hash"),
             )
+            _row = cursor.fetchone()
+            user_id = _row["id"] if isinstance(_row, dict) else _row[0]
             conn.commit()
-            user_id = cursor.lastrowid
 
         try:
             # Create token with very short expiry
@@ -358,11 +364,13 @@ class TestSQLInjectionPrevention:
                 convert_query("""
                 INSERT INTO users (email, hashed_password, created_at)
                 VALUES (?, ?, CURRENT_TIMESTAMP)
+                RETURNING id
             """),
                 ("test_special@example.com", "hash"),
             )
+            _row = cursor.fetchone()
+            user_id = _row["id"] if isinstance(_row, dict) else _row[0]
             conn.commit()
-            user_id = cursor.lastrowid
 
         try:
             # Input with special SQL characters
@@ -377,11 +385,13 @@ class TestSQLInjectionPrevention:
                         duration_mins, intensity, rolls, created_at
                     )
                     VALUES (?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+                    RETURNING id
                 """),
                     (user_id, "2026-02-01", "gi", special_input, 90, 4, 5),
                 )
+                _srow = cursor.fetchone()
+                session_id = _srow["id"] if isinstance(_srow, dict) else _srow[0]
                 conn.commit()
-                session_id = cursor.lastrowid
 
                 # Retrieve and verify stored correctly
                 cursor.execute(
@@ -421,21 +431,25 @@ class TestAuthorizationChecks:
                 convert_query("""
                 INSERT INTO users (email, hashed_password, created_at)
                 VALUES (?, ?, CURRENT_TIMESTAMP)
+                RETURNING id
             """),
                 (f"sec_user1_{id(self)}@example.com", "hash"),
             )
+            _row = cursor.fetchone()
+            user1_id = _row["id"] if isinstance(_row, dict) else _row[0]
             conn.commit()
-            user1_id = cursor.lastrowid
 
             cursor.execute(
                 convert_query("""
                 INSERT INTO users (email, hashed_password, created_at)
                 VALUES (?, ?, CURRENT_TIMESTAMP)
+                RETURNING id
             """),
                 (f"sec_user2_{id(self)}@example.com", "hash"),
             )
+            _row = cursor.fetchone()
+            user2_id = _row["id"] if isinstance(_row, dict) else _row[0]
             conn.commit()
-            user2_id = cursor.lastrowid
 
         try:
             # User 1 creates a session

@@ -127,7 +127,7 @@ def test_score_session_competition(temp_db, test_user):
 def test_score_session_supplementary(temp_db, test_user):
     """S&C sessions use the supplementary rubric."""
     svc = SessionScoringService()
-    sid = _create_session(test_user["id"], class_type="strength_conditioning")
+    sid = _create_session(test_user["id"], class_type="s&c")
 
     result = svc.score_session(test_user["id"], sid)
     assert result["rubric"] == "supplementary"
