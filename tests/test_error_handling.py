@@ -164,6 +164,7 @@ class TestAuthenticationErrors:
                 convert_query("""
                 INSERT INTO users (email, hashed_password, is_active, created_at)
                 VALUES (?, ?, ?, CURRENT_TIMESTAMP)
+                RETURNING id
             """),
                 ("test_wrong_pass@example.com", hashed, True),
             )
@@ -462,6 +463,7 @@ class TestErrorMessages:
                 convert_query("""
                 INSERT INTO users (email, hashed_password, is_active, created_at)
                 VALUES (?, ?, ?, CURRENT_TIMESTAMP)
+                RETURNING id
             """),
                 ("test_secure_msg@example.com", hashed, True),
             )
