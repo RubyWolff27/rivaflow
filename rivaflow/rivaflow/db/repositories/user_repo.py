@@ -14,7 +14,7 @@ _USER_COLS = (
     "location_city, location_state, location_country, "
     "belt_rank, belt_stripes, searchable, "
     "profile_visibility, activity_visibility, bio, preferred_style, "
-    "tier_expires_at, beta_joined_at"
+    "tier_expires_at, beta_joined_at, last_login"
 )
 
 # All columns including auth-sensitive fields (for auth queries only)

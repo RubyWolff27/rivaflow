@@ -12,6 +12,7 @@ import SessionScoreBadge from '../components/sessions/SessionScoreBadge';
 import TodayClassesWidget from '../components/dashboard/TodayClassesWidget';
 import { formatClassType, ACTIVITY_COLORS } from '../constants/activity';
 import { pluralize } from '../utils/text';
+import { GYM_TYPES, SPARRING_TYPES } from '../components/sessions/sessionTypes';
 
 type ZoneData = { zone_durations: Record<string, number> | null; strain: number | null; calories: number | null; score_state: string | null };
 
@@ -233,7 +234,7 @@ export default function Sessions() {
                 to={`/session/${session.id}`}
                 className="card hover:shadow-lg transition-shadow"
                 role="article"
-                aria-label={`${session.class_type} session at ${session.gym_name} on ${formatDate(session.session_date)}`}
+                aria-label={`${formatClassType(session.class_type)} session${GYM_TYPES.includes(session.class_type) && session.gym_name ? ` at ${session.gym_name}` : ''} on ${formatDate(session.session_date)}`}
               >
                 {/* Header */}
                 <div className="flex items-start justify-between mb-3">
@@ -262,9 +263,11 @@ export default function Sessions() {
                         </span>
                       )}
                     </div>
-                    <h3 className="font-semibold text-[var(--text)]">
-                      {session.gym_name}
-                    </h3>
+                    {GYM_TYPES.includes(session.class_type) && session.gym_name && (
+                      <h3 className="font-semibold text-[var(--text)]">
+                        {session.gym_name}
+                      </h3>
+                    )}
                     {session.location && (
                       <p className="flex items-center gap-1 text-xs text-[var(--muted)] mt-1">
                         <MapPin className="w-3 h-3" />
@@ -276,7 +279,7 @@ export default function Sessions() {
                 </div>
 
                 {/* Stats */}
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 py-3 border-t border-[var(--border)]">
+                <div className={`grid grid-cols-1 ${SPARRING_TYPES.includes(session.class_type) ? 'sm:grid-cols-3' : 'sm:grid-cols-2'} gap-3 py-3 border-t border-[var(--border)]`}>
                   <div>
                     <div className="flex items-center gap-1 text-xs text-[var(--muted)] mb-1">
                       <Calendar className="w-3 h-3" />
@@ -294,25 +297,29 @@ export default function Sessions() {
                     </div>
                     <p className="text-sm font-semibold">{session.duration_mins} min</p>
                   </div>
-                  <div>
-                    <div className="flex items-center gap-1 text-xs text-[var(--muted)] mb-1">
-                      <Activity className="w-3 h-3" />
-                      Rolls
+                  {SPARRING_TYPES.includes(session.class_type) && (
+                    <div>
+                      <div className="flex items-center gap-1 text-xs text-[var(--muted)] mb-1">
+                        <Activity className="w-3 h-3" />
+                        Rolls
+                      </div>
+                      <p className="text-sm font-semibold">{session.rolls}</p>
                     </div>
-                    <p className="text-sm font-semibold">{session.rolls}</p>
-                  </div>
+                  )}
                 </div>
 
-                {/* Submissions */}
-                <div className="flex items-center gap-2 pt-2 border-t border-[var(--border)]">
-                  <Target className="w-4 h-4 text-[var(--muted)]" />
-                  <span className="text-sm text-[var(--muted)]">
-                    <span className="font-semibold text-emerald-500">{session.submissions_for}</span>
-                    {' / '}
-                    <span className="font-semibold text-[var(--error)]">{session.submissions_against}</span>
-                    {' '}{pluralize((session.submissions_for ?? 0) + (session.submissions_against ?? 0), 'submission')}
-                  </span>
-                </div>
+                {/* Submissions — sparring types only */}
+                {SPARRING_TYPES.includes(session.class_type) && (
+                  <div className="flex items-center gap-2 pt-2 border-t border-[var(--border)]">
+                    <Target className="w-4 h-4 text-[var(--muted)]" />
+                    <span className="text-sm text-[var(--muted)]">
+                      <span className="font-semibold text-emerald-500">{session.submissions_for}</span>
+                      {' / '}
+                      <span className="font-semibold text-[var(--error)]">{session.submissions_against}</span>
+                      {' '}{pluralize((session.submissions_for ?? 0) + (session.submissions_against ?? 0), 'submission')}
+                    </span>
+                  </div>
+                )}
 
                 {/* HR Zone Mini Bar */}
                 {zoneMap[String(session.id)]?.zone_durations && (

@@ -314,9 +314,11 @@ class FeedService:
                 session_date = session_date.isoformat()
 
             # Apply privacy redaction based on visibility
-            session_data = PrivacyService.redact_session_for_visibility(
+            session_data = PrivacyService.redact_session(
                 session, visibility
             )
+            if not session_data:
+                continue
 
             feed_items.append(
                 {
