@@ -1,7 +1,7 @@
 import { useState, useMemo, useCallback } from 'react';
 import type { Friend, Movement, MediaUrl, WhoopWorkoutMatch } from '../types';
 import type { RollEntry, TechniqueEntry } from '../components/sessions/sessionTypes';
-import { SPARRING_TYPES } from '../components/sessions/sessionTypes';
+import { GYM_TYPES, SPARRING_TYPES } from '../components/sessions/sessionTypes';
 import { whoopApi, getErrorMessage } from '../api/client';
 import { useToast } from '../contexts/ToastContext';
 
@@ -163,6 +163,7 @@ export interface UseSessionFormReturn {
   topPartners: Friend[];
 
   // Computed values
+  isGymType: boolean;
   isSparringType: boolean;
   submissionMovements: Movement[];
   filterMovements: (search: string) => Movement[];
@@ -763,6 +764,11 @@ export function useSessionForm(
 
   // ── Computed values ────────────────────────────────────────────────
 
+  const isGymType = useMemo(
+    () => GYM_TYPES.includes(sessionData.class_type),
+    [sessionData.class_type]
+  );
+
   const isSparringType = useMemo(
     () => SPARRING_TYPES.includes(sessionData.class_type),
     [sessionData.class_type]
@@ -971,6 +977,7 @@ export function useSessionForm(
     topPartners,
 
     // Computed values
+    isGymType,
     isSparringType,
     submissionMovements,
     filterMovements,

@@ -129,6 +129,21 @@ class AuthService:
                 pass  # Best effort cleanup
             raise ValueError("Registration failed - unable to initialize user data")
 
+        # Auto-friend founder (bilateral, pre-accepted)
+        if settings.FOUNDER_USER_ID and settings.FOUNDER_USER_ID != user["id"]:
+            try:
+                from rivaflow.db.repositories.social_connection_repo import (
+                    SocialConnectionRepository,
+                )
+
+                SocialConnectionRepository.create_accepted_connection(
+                    settings.FOUNDER_USER_ID, user["id"]
+                )
+            except Exception as e:
+                logger.warning(
+                    "Failed to auto-friend founder for user %s: %s", user["id"], e
+                )
+
         # Update profile with gym/belt if provided during registration
         if default_gym or current_grade:
             try:

@@ -491,6 +491,44 @@ class SocialConnectionRepository(BaseRepository):
             return cursor.fetchone() is not None
 
     @staticmethod
+    def create_accepted_connection(
+        requester_id: int, recipient_id: int
+    ) -> None:
+        """
+        Create a pre-accepted bilateral friendship (e.g., auto-friend founder).
+
+        Uses INSERT ... ON CONFLICT DO NOTHING for idempotency — safe to call
+        even if the connection already exists.
+        """
+        if requester_id == recipient_id:
+            return
+
+        with get_connection() as conn:
+            cursor = conn.cursor()
+
+            # Check if any connection already exists (either direction)
+            cursor.execute(
+                convert_query("""
+                    SELECT id FROM friend_connections
+                    WHERE (requester_id = ? AND recipient_id = ?)
+                       OR (requester_id = ? AND recipient_id = ?)
+                """),
+                (requester_id, recipient_id, recipient_id, requester_id),
+            )
+            if cursor.fetchone():
+                return  # Connection already exists, skip
+
+            execute_insert(
+                cursor,
+                """
+                INSERT INTO friend_connections
+                (requester_id, recipient_id, status, connection_source, responded_at)
+                VALUES (?, ?, 'accepted', 'founder', CURRENT_TIMESTAMP)
+                """,
+                (requester_id, recipient_id),
+            )
+
+    @staticmethod
     def get_existing_connection_ids(user_id: int) -> set[int]:
         """Get IDs of users with accepted/pending/blocked connections."""
         existing_ids: set[int] = set()

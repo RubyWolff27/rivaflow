@@ -18,4 +18,5 @@ export interface TechniqueEntry {
   media_urls: MediaUrl[];
 }
 
+export const GYM_TYPES = ['gi', 'no-gi', 'open-mat', 'competition', 'drilling'];
 export const SPARRING_TYPES = ['gi', 'no-gi', 'open-mat', 'competition'];

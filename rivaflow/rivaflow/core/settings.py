@@ -105,6 +105,10 @@ class Settings:
         self.ENABLE_SOCIAL_FEATURES: bool = (
             os.getenv("ENABLE_SOCIAL_FEATURES", "true").lower() == "true"
         )
+        _founder_id = os.getenv("FOUNDER_USER_ID")
+        self.FOUNDER_USER_ID: int | None = (
+            int(_founder_id) if _founder_id else None
+        )
 
         # ======================================================================
         # RATE LIMITING

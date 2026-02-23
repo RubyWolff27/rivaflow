@@ -6,7 +6,7 @@ import { logger } from '../utils/logger';
 
 interface NavSection {
   label: string;
-  items: { name: string; href: string; icon: React.ComponentType<{ className?: string }> }[];
+  items: { name: string; href: string; icon: React.ComponentType<{ className?: string }>; badge?: number }[];
 }
 
 interface SidebarProps {
@@ -170,13 +170,14 @@ export default function Sidebar({ navigation, moreNavSections, onQuickLog }: Sid
               {(collapsed || isExpanded || hasActiveItem) && section.items.map((item) => {
                 const isActive = location.pathname === item.href;
                 const Icon = item.icon;
+                const hasBadge = item.badge != null && item.badge > 0;
                 // When collapsed section has active item but section not expanded, only show active item
                 if (!collapsed && !isExpanded && !isActive) return null;
                 return (
                   <Link
                     key={item.name}
                     to={item.href}
-                    className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors"
+                    className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors relative"
                     style={{
                       color: isActive ? 'var(--accent)' : 'var(--muted)',
                       backgroundColor: isActive ? 'var(--surfaceElev)' : 'transparent',
@@ -185,6 +186,21 @@ export default function Sidebar({ navigation, moreNavSections, onQuickLog }: Sid
                   >
                     <Icon className="w-4 h-4 shrink-0" />
                     {!collapsed && item.name}
+                    {hasBadge && (
+                      <span
+                        className="flex items-center justify-center min-w-[18px] h-[18px] px-1 text-[10px] font-bold rounded-full"
+                        style={{
+                          backgroundColor: 'var(--error)',
+                          color: '#FFFFFF',
+                          position: collapsed ? 'absolute' : 'static',
+                          top: collapsed ? 0 : undefined,
+                          right: collapsed ? 0 : undefined,
+                          marginLeft: collapsed ? 0 : 'auto',
+                        }}
+                      >
+                        {item.badge! > 99 ? '99+' : item.badge}
+                      </span>
+                    )}
                   </Link>
                 );
               })}

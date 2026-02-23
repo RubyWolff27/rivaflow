@@ -358,7 +358,8 @@ export default function LogSession() {
             )}
           </div>
 
-          {/* Gym Name */}
+          {/* Gym Name — only for gym/BJJ session types */}
+          {form.isGymType && (
           <div>
             <label className="label">Gym</label>
             <GymSelector
@@ -381,6 +382,7 @@ export default function LogSession() {
               }}
             />
           </div>
+          )}
 
           {/* Duration */}
           <div>
@@ -496,7 +498,8 @@ export default function LogSession() {
             </button>
             {form.showMoreDetails && (
               <div className="space-y-4 mt-3">
-                {/* Instructor */}
+                {/* Instructor — only for gym/BJJ session types */}
+                {form.isGymType && (
                 <div>
                   <label className="label" htmlFor="log-session-instructor">Instructor (optional)</label>
                   <select className="input" id="log-session-instructor" value={form.sessionData.instructor_id || ''}
@@ -518,6 +521,7 @@ export default function LogSession() {
                     Select from your list. <a href="/friends" className="text-[var(--accent)] hover:underline">Manage instructors in Friends</a>
                   </p>
                 </div>
+                )}
 
                 {/* Location */}
                 <div>
@@ -535,7 +539,8 @@ export default function LogSession() {
             )}
           </div>
 
-          {/* Technique Tracker */}
+          {/* Technique Tracker — only for gym/BJJ session types */}
+          {form.isGymType && (
           <TechniqueTracker
             techniques={form.techniques}
             techniqueSearch={form.techniqueSearch}
@@ -549,6 +554,7 @@ export default function LogSession() {
             onRemoveMediaUrl={form.handleRemoveMediaUrl}
             onMediaUrlChange={form.handleMediaUrlChange}
           />
+          )}
 
           {/* Roll Tracking */}
           {form.isSparringType && (
