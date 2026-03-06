@@ -205,6 +205,31 @@ class NotificationService:
         )
 
     @staticmethod
+    def create_mention_notification(
+        mentioned_user_id: int,
+        actor_id: int,
+        activity_type: str,
+        activity_id: int,
+    ) -> dict[str, Any] | None:
+        """Create a notification when a user is tagged/mentioned in a session roll."""
+        if mentioned_user_id == actor_id:
+            return None
+
+        if NotificationRepository.check_duplicate(
+            mentioned_user_id, actor_id, "mention", activity_type, activity_id
+        ):
+            return None
+
+        return NotificationRepository.create(
+            user_id=mentioned_user_id,
+            actor_id=actor_id,
+            notification_type="mention",
+            activity_type=activity_type,
+            activity_id=activity_id,
+            message=f"tagged you in a {activity_type}",
+        )
+
+    @staticmethod
     def get_notification_counts(user_id: int) -> dict[str, int]:
         """
         Get notification counts for a user.

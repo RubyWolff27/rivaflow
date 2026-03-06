@@ -24,6 +24,7 @@ from rivaflow.core.exceptions import AuthorizationError, NotFoundError
 from rivaflow.core.models import SessionCreate, SessionUpdate
 from rivaflow.core.services.privacy_service import PrivacyService
 from rivaflow.core.services.session_service import SessionService
+from rivaflow.core.utils.cache import get_cache
 
 logger = logging.getLogger(__name__)
 
@@ -45,8 +46,10 @@ async def _trigger_post_session_insight(user_id: int, session_id: int) -> None:
         )
 
 
-def _trigger_post_session_hooks(user_id: int, session_date: str) -> None:
-    """Best-effort milestone check and streak recording after session."""
+def _trigger_post_session_hooks(
+    user_id: int, session_date: str, session_id: int | None = None
+) -> None:
+    """Best-effort milestone check, streak recording, and partner tagging after session."""
     try:
         from rivaflow.core.services.milestone_service import MilestoneService
         from rivaflow.core.services.notification_service import (
@@ -85,6 +88,41 @@ def _trigger_post_session_hooks(user_id: int, session_date: str) -> None:
                 logger.debug("Streak notification failed", exc_info=True)
     except Exception:
         logger.debug("Post-session streak recording skipped", exc_info=True)
+
+    # Auto-tag roll partners who are RivaFlow friends
+    if session_id:
+        try:
+            from rivaflow.core.services.notification_service import (
+                NotificationService,
+            )
+            from rivaflow.db.repositories import SessionRollRepository
+            from rivaflow.db.repositories.friend_repo import FriendRepository
+            from rivaflow.db.repositories.social_connection_repo import (
+                SocialConnectionRepository,
+            )
+
+            roll_repo = SessionRollRepository()
+            friend_repo = FriendRepository()
+            rolls = roll_repo.list_by_session(user_id, session_id)
+            friend_user_ids = SocialConnectionRepository.get_friend_ids(user_id)
+
+            for roll in rolls:
+                partner_id = roll.get("partner_id")
+                if not partner_id:
+                    continue
+                partner = friend_repo.get_by_id(user_id, partner_id)
+                if not partner or not partner.get("user_id"):
+                    continue
+                partner_user_id = partner["user_id"]
+                if partner_user_id in friend_user_ids:
+                    try:
+                        NotificationService.create_mention_notification(
+                            partner_user_id, user_id, "session", session_id
+                        )
+                    except Exception:
+                        logger.debug("Partner tag notification failed", exc_info=True)
+        except Exception:
+            logger.debug("Partner auto-tag skipped", exc_info=True)
 
 
 @router.post("/", status_code=status.HTTP_201_CREATED, response_model=SessionResponse)
@@ -143,6 +181,9 @@ def create_session(
         user_id=current_user["id"], session_id=session_id
     )
 
+    # Invalidate analytics cache so partners/performance data refreshes immediately
+    get_cache().delete_pattern("analytics_")
+
     # Best-effort background hooks
     background_tasks.add_task(
         _trigger_post_session_insight,
@@ -153,6 +194,7 @@ def create_session(
         _trigger_post_session_hooks,
         current_user["id"],
         str(session.session_date),
+        session_id,
     )
 
     return created_session
@@ -216,6 +258,10 @@ def update_session(
     )
     if not updated:
         raise NotFoundError(f"Session {session_id} not found or access denied")
+
+    # Invalidate analytics cache so partners/performance data refreshes immediately
+    get_cache().delete_pattern("analytics_")
+
     return updated
 
 
@@ -232,7 +278,54 @@ def delete_session(
     deleted = service.delete_session(user_id=current_user["id"], session_id=session_id)
     if not deleted:
         raise NotFoundError(f"Session {session_id} not found or access denied")
+
+    # Invalidate analytics cache so partners/performance data refreshes immediately
+    get_cache().delete_pattern("analytics_")
+
     return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+
+@router.post("/{session_id}/tag-partners")
+@limiter.limit("30/minute")
+@route_error_handler("tag_partners", detail="Failed to tag partners")
+def tag_partners(
+    request: Request,
+    session_id: int,
+    partner_ids: list[int] = [],
+    current_user: dict = Depends(get_current_user),
+    service: SessionService = Depends(get_session_service),
+):
+    """Manually tag rolling partners to notify them."""
+    from rivaflow.core.services.notification_service import NotificationService
+    from rivaflow.db.repositories.friend_repo import FriendRepository
+    from rivaflow.db.repositories.social_connection_repo import (
+        SocialConnectionRepository,
+    )
+
+    session = service.get_session(user_id=current_user["id"], session_id=session_id)
+    if not session:
+        raise NotFoundError(f"Session {session_id} not found")
+
+    friend_repo = FriendRepository()
+    friend_user_ids = SocialConnectionRepository.get_friend_ids(current_user["id"])
+    tagged = 0
+
+    for pid in partner_ids:
+        partner = friend_repo.get_by_id(current_user["id"], pid)
+        if not partner or not partner.get("user_id"):
+            continue
+        partner_user_id = partner["user_id"]
+        if partner_user_id not in friend_user_ids:
+            continue
+        try:
+            NotificationService.create_mention_notification(
+                partner_user_id, current_user["id"], "session", session_id
+            )
+            tagged += 1
+        except Exception:
+            logger.debug("Tag notification failed for partner %s", pid, exc_info=True)
+
+    return {"tagged": tagged}
 
 
 @router.get("/{session_id}", response_model=SessionResponse)

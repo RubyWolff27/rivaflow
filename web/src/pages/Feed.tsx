@@ -11,6 +11,8 @@ import FeedItemComponent from '../components/feed/FeedItem';
 import FeedFilters, { matchesSessionFilter } from '../components/feed/FeedFilters';
 import { useFeedData } from '../hooks/useFeedData';
 import ConfirmDialog from '../components/ConfirmDialog';
+import WeeklySummaryCard from '../components/analytics/WeeklySummaryCard';
+import FeedSuggestions from '../components/feed/FeedSuggestions';
 
 export default function Feed() {
   usePageTitle('Feed');
@@ -128,6 +130,14 @@ export default function Feed() {
       </div>
 
       <FeedToggle view={view} onChange={setView} />
+
+      {/* Weekly summary + partner suggestions */}
+      {view === 'my' && (
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <WeeklySummaryCard />
+          <FeedSuggestions />
+        </div>
+      )}
 
       <FeedFilters
         feed={feed}

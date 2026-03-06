@@ -448,6 +448,14 @@ export interface FeedItemData {
   techniques?: string[];
   notes?: string;
   instructor_name?: string;
+  session_score?: number;
+  score_breakdown?: Record<string, unknown>;
+  session_rolls?: Array<{
+    partner_name?: string;
+    partner_id?: number;
+    submissions_for?: unknown[];
+    submissions_against?: unknown[];
+  }>;
   // Rest fields
   rest_type?: string;
   rest_note?: string;

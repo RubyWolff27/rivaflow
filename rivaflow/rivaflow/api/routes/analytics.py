@@ -122,6 +122,88 @@ def get_partner_analytics(
     )
 
 
+@router.get("/weekly-summary")
+@limiter.limit("60/minute")
+@route_error_handler("weekly summary")
+def get_weekly_summary(
+    request: Request,
+    current_user: dict = Depends(get_current_user),
+):
+    """Get this week's aggregated training summary for sharing."""
+    from datetime import timedelta
+
+    from rivaflow.db.repositories import SessionRepository, SessionRollRepository
+
+    today = date.today()
+    week_start = today - timedelta(days=today.weekday())
+    session_repo = SessionRepository()
+    roll_repo = SessionRollRepository()
+
+    sessions = session_repo.get_by_date_range(
+        current_user["id"], week_start, today
+    )
+    session_ids = [s["id"] for s in sessions]
+    rolls_by_session = (
+        roll_repo.get_by_session_ids(current_user["id"], session_ids)
+        if session_ids
+        else {}
+    )
+    total_rolls = sum(len(v) for v in rolls_by_session.values())
+    total_minutes = sum(s.get("duration_mins", 0) or 0 for s in sessions)
+    total_hours = round(total_minutes / 60, 1)
+
+    # Get streak info
+    streak_days = 0
+    try:
+        from rivaflow.core.services.streak_service import StreakService
+
+        streak_status = StreakService().get_streak_status(current_user["id"])
+        checkin = streak_status.get("checkin_streak", {})
+        streak_days = checkin.get("current_streak", 0)
+    except Exception:
+        pass
+
+    return {
+        "week_start": week_start.isoformat(),
+        "week_end": today.isoformat(),
+        "total_sessions": len(sessions),
+        "total_rolls": total_rolls,
+        "total_hours": total_hours,
+        "streak_days": streak_days,
+        "class_types": list({s["class_type"] for s in sessions}),
+    }
+
+
+@router.get("/partners/{partner_id}/relationship")
+@limiter.limit("60/minute")
+@route_error_handler("partner relationship")
+def get_partner_relationship(
+    request: Request,
+    partner_id: int,
+    current_user: dict = Depends(get_current_user),
+):
+    """Get relationship stats between user and a specific partner."""
+    from rivaflow.core.services.performance_scoring import (
+        compute_partner_relationship,
+    )
+    from rivaflow.db.repositories import (
+        FriendRepository,
+        SessionRepository,
+        SessionRollRepository,
+    )
+
+    result = compute_partner_relationship(
+        session_repo=SessionRepository(),
+        roll_repo=SessionRollRepository(),
+        friend_repo=FriendRepository(),
+        user_id=current_user["id"],
+        partner_id=partner_id,
+    )
+    if not result:
+        raise NotFoundError(f"Partner {partner_id} not found")
+    return result
+
+
 @router.get("/partners/head-to-head")
 @limiter.limit("60/minute")
 @route_error_handler("head-to-head comparison")

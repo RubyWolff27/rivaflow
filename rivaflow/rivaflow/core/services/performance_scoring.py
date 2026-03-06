@@ -521,6 +521,76 @@ def compute_partner_analytics(
             }
         )
 
+    # Discover unfriended partners from session_rolls not already in partner_matrix
+    known_ids = {p["id"] for p in partner_matrix}
+    known_names = {p["name"].strip().lower() for p in partner_matrix}
+
+    # Collect distinct partner names from session_rolls and session.partners JSON
+    unfriended: dict[str, dict] = {}  # lowercase name -> stats
+    session_ids = [s["id"] for s in sessions]
+    if session_ids:
+        rolls_by_session = roll_repo.get_by_session_ids(user_id, session_ids)
+        for sid, rolls in rolls_by_session.items():
+            for roll in rolls:
+                pid = roll.get("partner_id")
+                pname = (roll.get("partner_name") or "").strip()
+                pname_lower = pname.lower()
+                if pid and pid in known_ids:
+                    continue
+                if not pname or pname_lower in known_names:
+                    continue
+                if pname_lower not in unfriended:
+                    unfriended[pname_lower] = {
+                        "name": pname,
+                        "total_rolls": 0,
+                        "subs_for": 0,
+                        "subs_against": 0,
+                    }
+                unfriended[pname_lower]["total_rolls"] += 1
+                unfriended[pname_lower]["subs_for"] += len(
+                    roll.get("submissions_for") or []
+                )
+                unfriended[pname_lower]["subs_against"] += len(
+                    roll.get("submissions_against") or []
+                )
+
+    # Also check partners JSON for names not covered
+    for s in sessions:
+        for name_lower in session_partners_json.get(s["id"], set()):
+            if name_lower in known_names or name_lower in unfriended:
+                continue
+            unfriended[name_lower] = {
+                "name": name_lower.title(),
+                "total_rolls": 1,
+                "subs_for": 0,
+                "subs_against": 0,
+            }
+
+    # Add unfriended partners to the matrix
+    for entry in unfriended.values():
+        sfor = entry["subs_for"]
+        sagainst = entry["subs_against"]
+        if sagainst > 0:
+            ratio = round(sfor / sagainst, 2)
+        elif sfor > 0:
+            ratio = float(sfor)
+        else:
+            ratio = 0.0
+        partner_matrix.append(
+            {
+                "id": None,
+                "name": entry["name"],
+                "belt_rank": None,
+                "belt_stripes": 0,
+                "total_rolls": entry["total_rolls"],
+                "submissions_for": sfor,
+                "submissions_against": sagainst,
+                "sub_ratio": ratio,
+                "subs_per_roll_for": 0,
+                "subs_per_roll_against": 0,
+            }
+        )
+
     # Sort by total rolls
     partner_matrix.sort(key=lambda p: p["total_rolls"], reverse=True)
 
@@ -530,8 +600,10 @@ def compute_partner_analytics(
     new_partners = len([p for p in active_partners if p["total_rolls"] <= 3])
     recurring_partners = len([p for p in active_partners if p["total_rolls"] > 3])
 
-    # Top partners summary (top 5)
-    top_partners = partner_matrix[:5] if len(partner_matrix) >= 5 else partner_matrix
+    # Top partners summary (top 10)
+    top_partners = (
+        partner_matrix[:10] if len(partner_matrix) >= 10 else partner_matrix
+    )
 
     # Calculate session distribution by partner
     session_distribution = calculate_partner_session_distribution(
@@ -559,6 +631,72 @@ def compute_partner_analytics(
             "total_submissions_for": total_subs_for,
             "total_submissions_against": total_subs_against,
         },
+    }
+
+
+def compute_partner_relationship(
+    session_repo: SessionRepository,
+    roll_repo: SessionRollRepository,
+    friend_repo: FriendRepository,
+    user_id: int,
+    partner_id: int,
+) -> dict[str, Any]:
+    """Get relationship stats between user and a specific partner."""
+    partner = friend_repo.get_by_id(user_id, partner_id)
+    if not partner:
+        return {}
+
+    # All rolls with this partner (linked by ID)
+    rolls = roll_repo.get_by_partner_id(user_id, partner_id)
+    # Also unlinked rolls matched by name
+    unlinked = roll_repo.list_by_partner_name(user_id, partner["name"])
+
+    # Deduplicate by roll ID
+    seen_ids: set[int] = set()
+    all_rolls = []
+    for r in rolls + unlinked:
+        if r["id"] not in seen_ids:
+            seen_ids.add(r["id"])
+            all_rolls.append(r)
+
+    if not all_rolls:
+        return {
+            "partner_id": partner_id,
+            "partner_name": partner["name"],
+            "belt_rank": partner.get("belt_rank"),
+            "total_rolls": 0,
+            "total_minutes": 0,
+            "first_rolled": None,
+            "last_rolled": None,
+            "submissions_for": 0,
+            "submissions_against": 0,
+        }
+
+    # Get session dates for each roll
+    session_dates = []
+    total_minutes = 0
+    subs_for = 0
+    subs_against = 0
+    for roll in all_rolls:
+        sid = roll["session_id"]
+        session = session_repo.get_by_id(user_id, sid)
+        if session:
+            session_dates.append(session["session_date"])
+            total_minutes += roll.get("duration_seconds", 0) / 60
+        subs_for += len(roll.get("submissions_for") or [])
+        subs_against += len(roll.get("submissions_against") or [])
+
+    session_dates.sort()
+    return {
+        "partner_id": partner_id,
+        "partner_name": partner["name"],
+        "belt_rank": partner.get("belt_rank"),
+        "total_rolls": len(all_rolls),
+        "total_minutes": round(total_minutes),
+        "first_rolled": session_dates[0].isoformat() if session_dates else None,
+        "last_rolled": session_dates[-1].isoformat() if session_dates else None,
+        "submissions_for": subs_for,
+        "submissions_against": subs_against,
     }
 
 

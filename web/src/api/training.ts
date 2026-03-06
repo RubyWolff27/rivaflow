@@ -29,6 +29,8 @@ export const sessionsApi = {
   getScore: (id: number) => api.get<{ session_id: number; session_score: number | null; score_breakdown: SessionScoreBreakdown | null }>(`/sessions/${id}/score`),
   recalculateScore: (id: number) => api.post<{ session_id: number; session_score: number; score_breakdown: SessionScoreBreakdown }>(`/sessions/${id}/score/recalculate`),
   backfillScores: () => api.post<{ scored: number; skipped: number; total: number }>('/sessions/scores/backfill'),
+  tagPartners: (sessionId: number, partnerIds: number[]) =>
+    api.post(`/sessions/${sessionId}/tag-partners`, { partner_ids: partnerIds }),
 };
 
 export const readinessApi = {
