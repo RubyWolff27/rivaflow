@@ -28,6 +28,7 @@ interface UserStats {
   total_sessions?: number;
   total_hours?: number;
   total_rolls?: number;
+  tagged_in_rolls?: number;
   sessions_this_week?: number;
   [key: string]: unknown;
 }
@@ -356,7 +357,7 @@ export default function UserProfile() {
               <Users className="w-4 h-4" />
               <span className="text-sm">Total Rolls</span>
             </div>
-            <p className="text-2xl font-bold text-[var(--text)]">{stats.total_rolls ?? 0}</p>
+            <p className="text-2xl font-bold text-[var(--text)]">{(stats.total_rolls ?? 0) + (stats.tagged_in_rolls ?? 0)}</p>
           </div>
 
           <div className="bg-[var(--surface)] rounded-lg shadow-sm p-4">

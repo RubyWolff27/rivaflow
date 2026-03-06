@@ -202,20 +202,28 @@ class UserService:
         total_sessions = len(all_sessions) if all_sessions else 0
 
         # Calculate total training time (hours)
-        total_minutes = sum(s.get("duration_minutes", 0) for s in (all_sessions or []))
+        total_minutes = sum(
+            s.get("duration_mins", 0) or 0 for s in (all_sessions or [])
+        )
         total_hours = round(total_minutes / 60, 1)
 
         # Calculate total rolls
-        total_rolls = sum(s.get("roll_count", 0) for s in (all_sessions or []))
+        total_rolls = sum(s.get("rolls", 0) or 0 for s in (all_sessions or []))
 
-        # Recent activity counts
-        recent_sessions = [
-            s
-            for s in (all_sessions or [])
-            if s.get("session_date")
-            and datetime.fromisoformat(s["session_date"].replace("Z", "+00:00"))
-            >= week_ago
-        ]
+        # Recent activity counts — session_date may be date object or string
+        recent_sessions = []
+        for s in all_sessions or []:
+            sd = s.get("session_date")
+            if not sd:
+                continue
+            if hasattr(sd, "isoformat"):
+                sd = sd.isoformat()
+            try:
+                session_dt = datetime.fromisoformat(sd.replace("Z", "+00:00"))
+            except (ValueError, AttributeError):
+                continue
+            if session_dt >= week_ago:
+                recent_sessions.append(s)
         sessions_this_week = len(recent_sessions)
 
         # Get readiness check-in stats
