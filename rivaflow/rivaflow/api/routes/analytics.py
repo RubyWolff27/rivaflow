@@ -170,7 +170,16 @@ def get_weekly_summary(
         "total_rolls": total_rolls,
         "total_hours": total_hours,
         "streak_days": streak_days,
-        "class_types": list({s["class_type"] for s in sessions}),
+        "class_types": dict(
+            sorted(
+                (
+                    (ct, sum(1 for s in sessions if s["class_type"] == ct))
+                    for ct in {s["class_type"] for s in sessions}
+                ),
+                key=lambda x: x[1],
+                reverse=True,
+            )
+        ),
     }
 
 

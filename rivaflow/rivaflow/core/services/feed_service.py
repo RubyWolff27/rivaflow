@@ -10,6 +10,7 @@ from rivaflow.core.services.privacy_service import PrivacyService
 from rivaflow.db.repositories import (
     ActivityPhotoRepository,
     SessionRepository,
+    SessionRollRepository,
     UserRepository,
 )
 from rivaflow.db.repositories.social_connection_repo import SocialConnectionRepository
@@ -101,6 +102,16 @@ class FeedService:
                     "photo_count": 0,
                 }
             )
+
+        # Batch load session_rolls and attach to session data
+        session_ids = [item["id"] for item in feed_items if item["type"] == "session"]
+        if session_ids:
+            rolls_by_session = SessionRollRepository.get_by_session_ids(
+                user_id, session_ids
+            )
+            for item in feed_items:
+                if item["type"] == "session" and item["id"] in rolls_by_session:
+                    item["data"]["session_rolls"] = rolls_by_session[item["id"]]
 
         # Batch load all photos
         if photo_keys:
