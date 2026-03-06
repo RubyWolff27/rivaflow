@@ -11,6 +11,7 @@ from rivaflow.db.repositories import (
 )
 from rivaflow.db.repositories.readiness_repo import ReadinessRepository
 from rivaflow.db.repositories.session_repo import SessionRepository
+from rivaflow.db.repositories.session_roll_repo import SessionRollRepository
 
 
 class UserService:
@@ -221,11 +222,15 @@ class UserService:
         all_readiness = self.readiness_repo.list_by_user(user_id=user_id)
         total_check_ins = len(all_readiness) if all_readiness else 0
 
+        # Count rolls where this user was tagged as partner
+        tagged_in_rolls = SessionRollRepository.count_tagged_in_rolls(user_id)
+
         stats = {
             "user_id": user_id,
             "total_sessions": total_sessions,
             "total_hours": total_hours,
             "total_rolls": total_rolls,
+            "tagged_in_rolls": tagged_in_rolls,
             "sessions_this_week": sessions_this_week,
             "total_check_ins": total_check_ins,
             "member_since": user.get("created_at"),

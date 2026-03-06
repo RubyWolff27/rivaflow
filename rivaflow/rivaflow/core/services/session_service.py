@@ -14,6 +14,8 @@ from rivaflow.db.repositories.checkin_repo import CheckinRepository
 from rivaflow.db.repositories.friend_repo import FriendRepository
 from rivaflow.db.repositories.glossary_repo import GlossaryRepository
 from rivaflow.db.repositories.session_technique_repo import SessionTechniqueRepository
+from rivaflow.db.repositories.social_connection_repo import SocialConnectionRepository
+from rivaflow.db.repositories.user_repo import UserRepository
 
 logger = logging.getLogger(__name__)
 
@@ -352,15 +354,27 @@ class SessionService:
         session_rolls: list[dict[str, Any]] | None = None,
         partners: list[str] | None = None,
     ) -> None:
-        """Create roll records from detailed rolls or partner names."""
+        """Create roll records from detailed rolls or partner names.
+
+        Auto-links partner_user_id by matching partner_name against
+        the user's social connections (friend_connections).
+        """
+        # Build name-to-user-id lookup for auto-linking
+        name_to_user_id = self._build_partner_name_lookup(user_id)
+
         if session_rolls:
             for roll_data in session_rolls:
+                pname = roll_data.get("partner_name", "")
+                p_user_id = roll_data.get("partner_user_id")
+                if not p_user_id and pname:
+                    p_user_id = name_to_user_id.get(pname.strip().lower())
                 self.roll_repo.create(
                     user_id=user_id,
                     session_id=session_id,
                     roll_number=roll_data.get("roll_number", 1),
                     partner_id=roll_data.get("partner_id"),
-                    partner_name=roll_data.get("partner_name"),
+                    partner_name=pname,
+                    partner_user_id=p_user_id,
                     duration_mins=roll_data.get("duration_mins"),
                     submissions_for=roll_data.get("submissions_for"),
                     submissions_against=roll_data.get("submissions_against"),
@@ -370,13 +384,33 @@ class SessionService:
             for i, partner_name in enumerate(partners, start=1):
                 friend = FriendRepository.get_by_name(user_id, partner_name)
                 partner_id = friend["id"] if friend else None
+                p_user_id = name_to_user_id.get(partner_name.strip().lower())
                 self.roll_repo.create(
                     user_id=user_id,
                     session_id=session_id,
                     roll_number=i,
                     partner_id=partner_id,
                     partner_name=partner_name,
+                    partner_user_id=p_user_id,
                 )
+
+    @staticmethod
+    def _build_partner_name_lookup(user_id: int) -> dict[str, int]:
+        """Build a lowercase name -> user_id lookup from social connections."""
+        friend_user_ids = SocialConnectionRepository.get_friend_ids(user_id)
+        if not friend_user_ids:
+            return {}
+        users = UserRepository.get_users_by_ids(friend_user_ids)
+        lookup: dict[str, int] = {}
+        for user in users:
+            first = (user.get("first_name") or "").strip()
+            last = (user.get("last_name") or "").strip()
+            full_name = f"{first} {last}".strip().lower()
+            if full_name:
+                lookup[full_name] = user["id"]
+            if first:
+                lookup[first.lower()] = user["id"]
+        return lookup
 
     def _create_techniques(
         self,

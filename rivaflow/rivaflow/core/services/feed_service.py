@@ -13,9 +13,9 @@ from rivaflow.db.repositories import (
     SessionRollRepository,
     UserRepository,
 )
-from rivaflow.db.repositories.social_connection_repo import SocialConnectionRepository
 from rivaflow.db.repositories.checkin_repo import CheckinRepository
 from rivaflow.db.repositories.feed_repo import FeedRepository
+from rivaflow.db.repositories.social_connection_repo import SocialConnectionRepository
 
 
 class FeedService:
@@ -302,6 +302,7 @@ class FeedService:
     ) -> dict[str, Any]:
         """
         Get a user's public activities (for profile viewing).
+        Includes both sessions they created AND sessions where they were tagged.
         """
         session_repo = SessionRepository()
 
@@ -313,6 +314,7 @@ class FeedService:
 
         # Build unified feed
         feed_items = []
+        seen_session_ids: set[int] = set()
 
         # Add sessions (only non-private ones)
         for session in sessions:
@@ -325,12 +327,11 @@ class FeedService:
                 session_date = session_date.isoformat()
 
             # Apply privacy redaction based on visibility
-            session_data = PrivacyService.redact_session(
-                session, visibility
-            )
+            session_data = PrivacyService.redact_session(session, visibility)
             if not session_data:
                 continue
 
+            seen_session_ids.add(session["id"])
             feed_items.append(
                 {
                     "type": "session",
@@ -341,6 +342,34 @@ class FeedService:
                     "owner_user_id": user_id,
                 }
             )
+
+        # Add sessions where this user was tagged as a roll partner
+        tagged_rolls = SessionRollRepository.get_tagged_in_rolls(
+            user_id, start_date, end_date
+        )
+        # Group by session to avoid duplicates (multiple rolls in same session)
+        tagged_sessions: dict[int, dict] = {}
+        for roll in tagged_rolls:
+            sid = roll["session_id"]
+            if sid in seen_session_ids or sid in tagged_sessions:
+                continue
+            session_date = roll.get("session_date", "")
+            if hasattr(session_date, "isoformat"):
+                session_date = session_date.isoformat()
+            tagged_sessions[sid] = {
+                "type": "tagged_session",
+                "date": session_date,
+                "id": sid,
+                "data": {
+                    "class_type": roll.get("class_type"),
+                    "gym_name": roll.get("gym_name"),
+                    "duration_mins": roll.get("session_duration"),
+                    "session_date": session_date,
+                },
+                "summary": f"Tagged in {roll.get('class_type', 'Training')} at {roll.get('gym_name', 'Gym')}",
+                "owner_user_id": roll.get("session_owner_id"),
+            }
+        feed_items.extend(tagged_sessions.values())
 
         # Sort by date descending
         feed_items.sort(key=lambda x: x["date"], reverse=True)

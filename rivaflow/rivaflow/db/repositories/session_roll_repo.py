@@ -16,6 +16,7 @@ class SessionRollRepository(BaseRepository):
         roll_number: int = 1,
         partner_id: int | None = None,
         partner_name: str | None = None,
+        partner_user_id: int | None = None,
         duration_mins: int | None = None,
         submissions_for: list[int] | None = None,
         submissions_against: list[int] | None = None,
@@ -25,6 +26,7 @@ class SessionRollRepository(BaseRepository):
 
         Note: user_id parameter is kept for API compatibility but not used
         since session_rolls table doesn't have user_id column.
+        partner_user_id links to the actual app user account (users.id).
         """
         with get_connection() as conn:
             cursor = conn.cursor()
@@ -32,14 +34,15 @@ class SessionRollRepository(BaseRepository):
                 cursor,
                 """
                 INSERT INTO session_rolls
-                (session_id, roll_number, partner_id, partner_name, duration_mins, submissions_for, submissions_against, notes)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                (session_id, roll_number, partner_id, partner_name, partner_user_id, duration_mins, submissions_for, submissions_against, notes)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
                     session_id,
                     roll_number,
                     partner_id,
                     partner_name,
+                    partner_user_id,
                     duration_mins,
                     json.dumps(submissions_for) if submissions_for else None,
                     json.dumps(submissions_against) if submissions_against else None,
@@ -239,6 +242,7 @@ class SessionRollRepository(BaseRepository):
             "roll_number",
             "partner_id",
             "partner_name",
+            "partner_user_id",
             "duration_mins",
             "submissions_for",
             "submissions_against",
@@ -309,6 +313,57 @@ class SessionRollRepository(BaseRepository):
             return cursor.rowcount
 
     @staticmethod
+    def get_tagged_in_rolls(user_id: int, start_date: str, end_date: str) -> list[dict]:
+        """Get rolls where this user was tagged as partner (via partner_user_id).
+
+        Returns roll data joined with session info for feed display.
+        """
+        with get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                convert_query("""
+                    SELECT sr.*, s.session_date, s.class_type, s.gym_name,
+                           s.user_id as session_owner_id, s.duration_mins as session_duration,
+                           s.rolls as session_rolls_count
+                    FROM session_rolls sr
+                    JOIN sessions s ON sr.session_id = s.id
+                    WHERE sr.partner_user_id = ?
+                      AND s.session_date >= ? AND s.session_date <= ?
+                    ORDER BY s.session_date DESC, sr.roll_number ASC
+                """),
+                (user_id, str(start_date), str(end_date)),
+            )
+            rows = cursor.fetchall()
+            return [dict(row) for row in rows]
+
+    @staticmethod
+    def count_tagged_in_rolls(user_id: int) -> int:
+        """Count total rolls where this user was tagged as partner."""
+        with get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                convert_query("""
+                    SELECT COUNT(*) as count FROM session_rolls
+                    WHERE partner_user_id = ?
+                """),
+                (user_id,),
+            )
+            result = cursor.fetchone()
+            return int(result["count"]) if result else 0
+
+    @staticmethod
+    def set_partner_user_id(roll_id: int, partner_user_id: int) -> None:
+        """Set the partner_user_id on a roll (for backfill/auto-linking)."""
+        with get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                convert_query(
+                    "UPDATE session_rolls SET partner_user_id = ? WHERE id = ?"
+                ),
+                (partner_user_id, roll_id),
+            )
+
+    @staticmethod
     def _row_to_dict(row) -> dict:
         """Convert a database row to a dictionary."""
         if not row:
@@ -323,6 +378,8 @@ class SessionRollRepository(BaseRepository):
             data["session_id"] = int(data["session_id"])
         if "partner_id" in data and data["partner_id"] is not None:
             data["partner_id"] = int(data["partner_id"])
+        if "partner_user_id" in data and data["partner_user_id"] is not None:
+            data["partner_user_id"] = int(data["partner_user_id"])
         if "roll_number" in data and data["roll_number"] is not None:
             data["roll_number"] = int(data["roll_number"])
         if "duration_mins" in data and data["duration_mins"] is not None:
