@@ -20,6 +20,7 @@ import RollTracker from '../components/sessions/RollTracker';
 import ClassTimePicker from '../components/sessions/ClassTimePicker';
 import WhoopIntegrationPanel from '../components/sessions/WhoopIntegrationPanel';
 import FightDynamicsPanel from '../components/sessions/FightDynamicsPanel';
+import TagPartnersModal from '../components/sessions/TagPartnersModal';
 import { useSessionForm, mergePartners, mapSocialFriends } from '../hooks/useSessionForm';
 import { useDraftSaving } from '../hooks/useDraftSaving';
 
@@ -34,6 +35,11 @@ export default function LogSession() {
   const [success, setSuccess] = useState(false);
   const [skippedReadiness, setSkippedReadiness] = useState(false);
   const [readinessAlreadyLogged, setReadinessAlreadyLogged] = useState(false);
+  const [tagModal, setTagModal] = useState<{
+    sessionId: number;
+    partnerNames: string[];
+    taggablePartners: Array<{ id: number; name: string }>;
+  } | null>(null);
 
   const form = useSessionForm({
     initialData: { session_date: getLocalDateString() },
@@ -227,13 +233,49 @@ export default function LogSession() {
       const response = await sessionsApi.create(payload);
       clearDraft();
       setSuccess(true);
-      if (response.data?.id) {
-        triggerInsightRefresh(response.data.id);
-        setTimeout(() => navigate(`/session/${response.data.id}`), 1500);
+
+      const sessionId = response.data?.id;
+      if (sessionId) {
+        triggerInsightRefresh(sessionId);
       } else {
         triggerInsightRefresh();
-        setTimeout(() => navigate('/'), 1500);
       }
+
+      // Check if session has roll partners who are friends — offer tagging
+      const rollPartnerNames: string[] = [];
+      if (rollsPayload.session_rolls) {
+        for (const roll of rollsPayload.session_rolls) {
+          if (roll.partner_name) rollPartnerNames.push(roll.partner_name);
+        }
+      }
+
+      if (sessionId && rollPartnerNames.length > 0) {
+        // Find which partners are RivaFlow friends (they have a social user ID)
+        const taggable: Array<{ id: number; name: string }> = [];
+        try {
+          const friendsRes = await socialApi.getFriends();
+          const friends = friendsRes.data?.friends || [];
+          for (const name of rollPartnerNames) {
+            const match = friends.find(
+              (f: { first_name?: string; last_name?: string; id?: number }) => {
+                const fullName = `${f.first_name || ''} ${f.last_name || ''}`.trim();
+                return fullName.toLowerCase() === name.toLowerCase() && f.id;
+              }
+            );
+            if (match?.id) taggable.push({ id: match.id, name });
+          }
+        } catch {
+          // Friends fetch failed — skip tagging
+        }
+
+        if (taggable.length > 0) {
+          setTagModal({ sessionId, partnerNames: rollPartnerNames, taggablePartners: taggable });
+          return; // Don't auto-navigate — wait for modal
+        }
+      }
+
+      // No taggable partners — navigate directly
+      setTimeout(() => navigate(sessionId ? `/session/${sessionId}` : '/'), 1500);
     } catch (error) {
       logger.error('Error creating session:', error);
       toast.error('Failed to log session. Please try again.');
@@ -271,6 +313,19 @@ export default function LogSession() {
           <p className="text-[var(--muted)]">{activityType === 'rest' ? 'Redirecting to home...' : 'Redirecting to session details...'}</p>
           {activityType === 'training' && <p className="text-sm text-[var(--muted)] mt-2">You can add photos on the next page</p>}
         </div>
+
+        {tagModal && (
+          <TagPartnersModal
+            isOpen
+            sessionId={tagModal.sessionId}
+            partnerNames={tagModal.partnerNames}
+            taggablePartners={tagModal.taggablePartners}
+            onClose={() => {
+              setTagModal(null);
+              navigate(`/session/${tagModal.sessionId}`);
+            }}
+          />
+        )}
       </div>
     );
   }

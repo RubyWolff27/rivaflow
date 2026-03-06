@@ -59,6 +59,14 @@ export const analyticsApi = {
   checkinTrends: (params?: { days?: number }) =>
     api.get('/analytics/insights/checkin-trends', { params }),
 
+  // Partner relationship stats
+  partnerRelationship: (partnerId: number) =>
+    api.get(`/analytics/partners/${partnerId}/relationship`),
+
+  // Weekly training summary (for sharing)
+  weeklySummary: () =>
+    api.get('/analytics/weekly-summary'),
+
   // Phase 3: WHOOP Performance Science
   whoopPerformanceCorrelation: (params?: { days?: number }) =>
     api.get('/analytics/whoop/performance-correlation', { params }),

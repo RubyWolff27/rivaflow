@@ -2,8 +2,38 @@ import { memo } from 'react';
 import { Calendar, Edit2, Eye, Lock, Moon, Trash2, Users2, Globe } from 'lucide-react';
 import ActivitySocialActions from '../ActivitySocialActions';
 import CommentSection from '../CommentSection';
+import SessionScoreBadge from '../sessions/SessionScoreBadge';
 import type { FeedItem } from '../../types';
 import { ACTIVITY_COLORS } from '../../constants/activity';
+
+/** Badge colours for session class types */
+const CLASS_TYPE_STYLES: Record<string, { bg: string; text: string; label: string }> = {
+  'gi': { bg: 'rgba(59,130,246,0.12)', text: '#3B82F6', label: 'Gi' },
+  'no-gi': { bg: 'rgba(168,85,247,0.12)', text: '#A855F7', label: 'No-Gi' },
+  'competition': { bg: 'rgba(239,68,68,0.12)', text: '#EF4444', label: 'Competition' },
+  'open-mat': { bg: 'rgba(34,197,94,0.12)', text: '#22C55E', label: 'Open Mat' },
+  'mma': { bg: 'rgba(234,179,8,0.12)', text: '#CA8A04', label: 'MMA' },
+  's&c': { bg: 'rgba(107,114,128,0.12)', text: '#6B7280', label: 'S&C' },
+  'drilling': { bg: 'rgba(14,165,233,0.12)', text: '#0EA5E9', label: 'Drilling' },
+};
+
+/** Get partner names from session data (rolls or JSON partners list) */
+function getPartnerNames(data: FeedItem['data']): string[] {
+  const names = new Set<string>();
+  // Prefer session_rolls for partner names
+  if (data?.session_rolls && Array.isArray(data.session_rolls)) {
+    for (const roll of data.session_rolls) {
+      if (roll.partner_name) names.add(roll.partner_name);
+    }
+  }
+  // Also include from partners JSON
+  if (data?.partners && Array.isArray(data.partners)) {
+    for (const name of data.partners) {
+      if (name) names.add(name);
+    }
+  }
+  return Array.from(names);
+}
 
 /** Capitalize class type names in feed summary text */
 function formatSummary(summary: string): string {
@@ -198,11 +228,14 @@ const FeedItemComponent = memo(function FeedItemComponent({
           ) : (
             /* Session card */
             <>
-              {/* Summary + actions row */}
+              {/* Summary + score + actions row */}
               <div className="flex items-start justify-between gap-2 mb-1">
-                <p className="text-sm font-medium" style={{ color: 'var(--text)' }}>
-                  {formatSummary(item.summary)}
-                </p>
+                <div className="flex items-center gap-2 min-w-0">
+                  <SessionScoreBadge score={item.data?.session_score} size="sm" />
+                  <p className="text-sm font-medium truncate" style={{ color: 'var(--text)' }}>
+                    {formatSummary(item.summary)}
+                  </p>
+                </div>
                 <div className="flex items-center gap-2 shrink-0">
                   {isActivityEditable(item) && (
                     <>
@@ -258,14 +291,32 @@ const FeedItemComponent = memo(function FeedItemComponent({
                 </div>
               </div>
 
+              {/* Class type badge */}
+              {item.data?.class_type && (() => {
+                const style = CLASS_TYPE_STYLES[item.data.class_type.toLowerCase()] || {
+                  bg: 'var(--surfaceElev)', text: 'var(--muted)', label: item.data.class_type,
+                };
+                return (
+                  <span
+                    className="inline-block px-2 py-0.5 rounded-full text-xs font-semibold mt-1"
+                    style={{ backgroundColor: style.bg, color: style.text }}
+                  >
+                    {style.label}
+                  </span>
+                );
+              })()}
+
               {/* Session details */}
               <div className="mt-2 text-sm space-y-1" style={{ color: 'var(--muted)' }}>
                 {item.data?.class_time && <div>🕐 {item.data.class_time}</div>}
                 {item.data?.location && <div>📍 {item.data.location}</div>}
                 {item.data?.instructor_name && <div>👨‍🏫 {item.data.instructor_name}</div>}
-                {item.data?.partners && Array.isArray(item.data.partners) && item.data.partners.length > 0 && (
-                  <div>🤝 Partners: {item.data.partners.join(', ')}</div>
-                )}
+                {(() => {
+                  const partnerNames = getPartnerNames(item.data);
+                  return partnerNames.length > 0 ? (
+                    <div>🤝 Rolled with {partnerNames.join(', ')}</div>
+                  ) : null;
+                })()}
                 {item.data?.techniques && Array.isArray(item.data.techniques) && item.data.techniques.length > 0 && (
                   <div>🎯 Techniques: {item.data.techniques.join(', ')}</div>
                 )}

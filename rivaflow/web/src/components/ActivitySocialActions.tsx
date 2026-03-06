@@ -1,5 +1,5 @@
 import { memo } from 'react';
-import { Heart, MessageCircle } from 'lucide-react';
+import { MessageCircle } from 'lucide-react';
 
 interface ActivitySocialActionsProps {
   activityType: 'session' | 'readiness' | 'rest';
@@ -11,6 +11,18 @@ interface ActivitySocialActionsProps {
   onUnlike: () => void;
   onToggleComments: () => void;
   disabled?: boolean;
+}
+
+/** OSS fist-bump icon (BJJ respect gesture) */
+function OssIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M18 11V6a2 2 0 0 0-2-2 2 2 0 0 0-2 2" />
+      <path d="M14 10V4a2 2 0 0 0-2-2 2 2 0 0 0-2 2v2" />
+      <path d="M10 10.5V6a2 2 0 0 0-2-2 2 2 0 0 0-2 2v8" />
+      <path d="M18 8a2 2 0 1 1 4 0v6a8 8 0 0 1-8 8h-2c-2.8 0-4.5-.86-5.99-2.34l-3.6-3.6a2 2 0 0 1 2.83-2.82L7 16" />
+    </svg>
+  );
 }
 
 const ActivitySocialActions = memo(function ActivitySocialActions({
@@ -40,14 +52,14 @@ const ActivitySocialActions = memo(function ActivitySocialActions({
         disabled={disabled}
         className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${
           hasLiked
-            ? 'bg-red-50 text-red-600'
+            ? 'bg-[rgba(59,130,246,0.12)] text-[var(--accent)]'
             : 'bg-[var(--surfaceElev)] text-[var(--muted)] hover:opacity-80'
         } ${disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
-        aria-label={hasLiked ? `Unlike (${likeCount} likes)` : `Like (${likeCount} likes)`}
+        aria-label={hasLiked ? `Un-OSS (${likeCount})` : `OSS (${likeCount})`}
         aria-pressed={hasLiked}
       >
-        <Heart className={`w-4 h-4 ${hasLiked ? 'fill-current' : ''}`} />
-        <span>{likeCount > 0 ? likeCount : 'Like'}</span>
+        <OssIcon className={`w-4 h-4 ${hasLiked ? 'stroke-[2.5]' : ''}`} />
+        <span>{likeCount > 0 ? likeCount : 'OSS'}</span>
       </button>
 
       <button

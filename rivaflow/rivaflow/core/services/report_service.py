@@ -129,9 +129,11 @@ class ReportService:
         total_hours = round(total_mins / 60, 1)
         # Use roll entry count where available, fall back to session.rolls aggregate
         total_rolls = sum(
-            len(rolls_by_session.get(s["id"], [])) or (s.get("rolls", 0) or 0)
-            if rolls_by_session is not None
-            else (s.get("rolls", 0) or 0)
+            (
+                len(rolls_by_session.get(s["id"], [])) or (s.get("rolls", 0) or 0)
+                if rolls_by_session is not None
+                else (s.get("rolls", 0) or 0)
+            )
             for s in sessions
         )
         submissions_for = sum(s["submissions_for"] for s in sessions)
@@ -188,7 +190,9 @@ class ReportService:
             class_type = session["class_type"]
             by_type[class_type]["classes"] += 1
             by_type[class_type]["hours"] += round(session["duration_mins"] / 60, 1)
-            entries = rolls_by_session.get(session["id"], []) if rolls_by_session else []
+            entries = (
+                rolls_by_session.get(session["id"], []) if rolls_by_session else []
+            )
             roll_count = len(entries) if entries else (session.get("rolls", 0) or 0)
             by_type[class_type]["rolls"] += roll_count
 

@@ -85,6 +85,14 @@ vi.mock('../../components/ui', () => ({
   CardSkeleton: () => <div data-testid="card-skeleton" />,
 }))
 
+vi.mock('../../components/analytics/WeeklySummaryCard', () => ({
+  default: () => <div data-testid="weekly-summary" />,
+}))
+
+vi.mock('../../components/feed/FeedSuggestions', () => ({
+  default: () => <div data-testid="feed-suggestions" />,
+}))
+
 import Feed from '../Feed'
 
 function renderFeed() {

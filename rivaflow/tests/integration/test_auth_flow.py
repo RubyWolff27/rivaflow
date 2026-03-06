@@ -108,7 +108,11 @@ class TestRegistration:
             msg = data["error"].get("message", "")
         else:
             msg = str(data)
-        assert "already" in msg.lower() or "registered" in msg.lower() or "unable" in msg.lower()
+        assert (
+            "already" in msg.lower()
+            or "registered" in msg.lower()
+            or "unable" in msg.lower()
+        )
 
     def test_registration_invalid_email(self, test_client):
         """Test registration fails with invalid email."""
@@ -203,7 +207,9 @@ class TestLogin:
 
         assert response.status_code == 401
         data = response.json()
-        msg = data.get("detail", data.get("error", {}).get("message", str(data))).lower()
+        msg = data.get(
+            "detail", data.get("error", {}).get("message", str(data))
+        ).lower()
         assert "invalid" in msg
 
     def test_login_nonexistent_user(self, test_client):
@@ -218,7 +224,9 @@ class TestLogin:
 
         assert response.status_code == 401
         data = response.json()
-        msg = data.get("detail", data.get("error", {}).get("message", str(data))).lower()
+        msg = data.get(
+            "detail", data.get("error", {}).get("message", str(data))
+        ).lower()
         assert "invalid" in msg
 
     def test_login_case_insensitive_email(self, test_client, registered_user):

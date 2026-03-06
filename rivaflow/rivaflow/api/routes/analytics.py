@@ -139,9 +139,7 @@ def get_weekly_summary(
     session_repo = SessionRepository()
     roll_repo = SessionRollRepository()
 
-    sessions = session_repo.get_by_date_range(
-        current_user["id"], week_start, today
-    )
+    sessions = session_repo.get_by_date_range(current_user["id"], week_start, today)
     session_ids = [s["id"] for s in sessions]
     rolls_by_session = (
         roll_repo.get_by_session_ids(current_user["id"], session_ids)

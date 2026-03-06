@@ -601,9 +601,7 @@ def compute_partner_analytics(
     recurring_partners = len([p for p in active_partners if p["total_rolls"] > 3])
 
     # Top partners summary (top 10)
-    top_partners = (
-        partner_matrix[:10] if len(partner_matrix) >= 10 else partner_matrix
-    )
+    top_partners = partner_matrix[:10] if len(partner_matrix) >= 10 else partner_matrix
 
     # Calculate session distribution by partner
     session_distribution = calculate_partner_session_distribution(

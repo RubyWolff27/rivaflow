@@ -491,9 +491,7 @@ class SocialConnectionRepository(BaseRepository):
             return cursor.fetchone() is not None
 
     @staticmethod
-    def create_accepted_connection(
-        requester_id: int, recipient_id: int
-    ) -> None:
+    def create_accepted_connection(requester_id: int, recipient_id: int) -> None:
         """
         Create a pre-accepted bilateral friendship (e.g., auto-friend founder).
 

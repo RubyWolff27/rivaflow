@@ -157,7 +157,6 @@ export function useFeedData(daysBack: number, view: 'my' | 'friends') {
       const session = feed.items.find(item => item.type === 'session' && item.id === activityId);
       if (session?.data) {
         await sessionsApi.update(activityId, {
-          ...session.data,
           visibility_level: visibility,
         });
       }
