@@ -71,15 +71,17 @@ export default function Sidebar({ navigation, moreNavSections, onQuickLog }: Sid
     >
       {/* Logo + Collapse */}
       <div className="flex items-center justify-between px-4 h-16 shrink-0">
-        {!collapsed && (
-          <Link
-            to="/"
-            className="text-lg font-bold hover:opacity-80 transition-opacity"
-            style={{ color: 'var(--text)' }}
-          >
-            RIVAFLOW
-          </Link>
-        )}
+        <Link
+          to="/"
+          className="flex items-center gap-2 hover:opacity-80 transition-opacity"
+        >
+          <img src="/logo.webp" alt="RivaFlow" className="w-8 h-8 rounded-lg" />
+          {!collapsed && (
+            <span className="text-lg font-bold" style={{ color: 'var(--text)' }}>
+              RIVAFLOW
+            </span>
+          )}
+        </Link>
         <button
           onClick={() => setCollapsed(!collapsed)}
           className="p-1.5 rounded-lg transition-colors"

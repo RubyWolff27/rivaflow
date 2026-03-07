@@ -253,7 +253,9 @@ export default function Friends() {
           <div>
             <h1 className="text-3xl font-bold">Friends</h1>
             <p className="text-[var(--muted)]">
-              {filteredFriends.length} of {friends.length} friends
+              {filteredFriends.length === friends.length
+                ? `${friends.length} Friends`
+                : `${filteredFriends.length} of ${friends.length} Friends`}
             </p>
           </div>
         </div>

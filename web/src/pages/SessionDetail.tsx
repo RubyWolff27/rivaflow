@@ -588,8 +588,8 @@ export default function SessionDetail() {
                   : whoopCtx.workout.score_state === 'UNSCORABLE'
                     ? 'This workout could not be scored by WHOOP.'
                     : (session.whoop_strain || session.whoop_calories || session.whoop_avg_hr || session.whoop_max_hr)
-                      ? 'HR zone breakdown is not available for this session.'
-                      : 'HR zone data not available. Try syncing your WHOOP data.'}
+                      ? 'Zone breakdown not available for this session.'
+                      : 'Zone data not available — try syncing WHOOP.'}
               </p>
             )}
           </div>

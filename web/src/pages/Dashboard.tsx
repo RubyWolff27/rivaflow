@@ -85,17 +85,17 @@ export default function Dashboard() {
           onCheckinUpdated={data.refetchCheckins}
         />
 
-        {/* 4. Weekly hours progress */}
+        {/* 4. Grapple AI quick actions */}
+        <QuickLinks />
+
+        {/* 5. Weekly hours progress */}
         <WeeklyProgress weeklyGoals={data.weeklyGoals} />
 
-        {/* 4b. Week-over-week comparison */}
+        {/* 5b. Week-over-week comparison */}
         <WeekComparison />
 
-        {/* 5. Last session (compact) */}
+        {/* 6. Last session (compact) */}
         <LastSession />
-
-        {/* 6. Grapple AI quick actions */}
-        <QuickLinks />
       </ErrorBoundary>
     </div>
   );
