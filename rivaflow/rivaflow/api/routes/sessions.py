@@ -203,6 +203,7 @@ def create_session(
         submissions_against=session.submissions_against,
         partners=session.partners,
         attendees=session.attendees,
+        intensity_tags=session.intensity_tags,
         techniques=session.techniques,
         notes=session.notes,
         visibility_level=session.visibility_level.value,
@@ -290,6 +291,7 @@ def update_session(
         submissions_against=session.submissions_against,
         partners=session.partners,
         attendees=session.attendees,
+        intensity_tags=session.intensity_tags,
         techniques=session.techniques,
         notes=session.notes,
         visibility_level=(

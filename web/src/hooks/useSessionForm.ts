@@ -198,6 +198,7 @@ export interface UseSessionFormReturn {
       partner_id?: number | null;
       partner_name?: string;
       duration_mins?: number;
+      intensity?: number[];
       submissions_for?: number[];
       submissions_against?: number[];
       notes?: string;
@@ -448,6 +449,7 @@ export function useSessionForm(
         partner_id: null,
         partner_name: '',
         duration_mins: 5,
+        intensity: [],
         submissions_for: [],
         submissions_against: [],
         notes: '',
@@ -816,6 +818,10 @@ export function useSessionForm(
         partner_id: roll.partner_id || undefined,
         partner_name: roll.partner_name || undefined,
         duration_mins: roll.duration_mins || undefined,
+        intensity:
+          roll.intensity && roll.intensity.length > 0
+            ? roll.intensity
+            : undefined,
         submissions_for:
           roll.submissions_for.length > 0
             ? roll.submissions_for

@@ -34,6 +34,7 @@ class SessionRollData(BaseModel):
     partner_id: int | None = None
     partner_name: str | None = None
     duration_mins: int | None = None
+    intensity: list[int] | None = None  # Per-roll intensity tags (1-5 values)
     submissions_for: list[int] | None = None  # Movement IDs from glossary
     submissions_against: list[int] | None = None  # Movement IDs from glossary
     notes: str | None = None
@@ -106,6 +107,10 @@ class SessionCreate(BaseModel):
         default=None,
         description="List of classmates/training partners in the same class",
     )
+    intensity_tags: list[int] | None = Field(
+        default=None,
+        description="Multi-select intensity tags (1=Technical, 2=Flow, 3=Moderate, 4=Hard, 5=War)",
+    )
     techniques: list[str] | None = Field(
         default=None, description="Techniques worked on during the session"
     )
@@ -155,7 +160,7 @@ class SessionCreate(BaseModel):
             return None
         return v
 
-    @field_validator("partners", "attendees", "techniques", mode="before")
+    @field_validator("partners", "attendees", "intensity_tags", "techniques", mode="before")
     @classmethod
     def empty_list_to_none(cls, v):
         """Convert empty lists to None for optional list fields."""
@@ -215,6 +220,7 @@ class SessionUpdate(BaseModel):
     submissions_against: int | None = Field(default=None, ge=0)
     partners: list[str] | None = None
     attendees: list[str] | None = None
+    intensity_tags: list[int] | None = None
     techniques: list[str] | None = None
     notes: str | None = None
     visibility_level: VisibilityLevel | None = None

@@ -5,6 +5,7 @@ export interface RollEntry {
   partner_id: number | null;
   partner_name: string;
   duration_mins: number;
+  intensity: number[];
   submissions_for: number[];
   submissions_against: number[];
   notes: string;

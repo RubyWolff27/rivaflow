@@ -5,7 +5,7 @@ import { sessionsApi, friendsApi, socialApi, glossaryApi, whoopApi } from '../ap
 import { logger } from '../utils/logger';
 import { HH_MM_RE } from '../utils/validation';
 import type { Friend, Movement, Session, SessionRoll, SessionTechnique } from '../types';
-import { CheckCircle, ArrowLeft, Save, Loader, Trash2, Camera } from 'lucide-react';
+import { CheckCircle, ArrowLeft, Save, Loader, Trash2, Camera, Users2, X } from 'lucide-react';
 import WhoopMatchModal from '../components/WhoopMatchModal';
 import WhoopIntegrationPanel from '../components/sessions/WhoopIntegrationPanel';
 import TechniqueTracker from '../components/sessions/TechniqueTracker';
@@ -41,6 +41,13 @@ export default function EditSession() {
 
   // Photo tracking
   const [photoCount, setPhotoCount] = useState(0);
+
+  // Attendees / classmates
+  const [attendees, setAttendees] = useState<string[]>([]);
+  const [attendeeInput, setAttendeeInput] = useState('');
+
+  // Multi-select intensity tags
+  const [intensityTags, setIntensityTags] = useState<number[]>([]);
 
   const form = useSessionForm({
     whoopSyncParams: useCallback(() => ({
@@ -86,6 +93,10 @@ export default function EditSession() {
           ? sessionData.techniques.join(', ')
           : (typeof sessionData.techniques === 'string' ? sessionData.techniques : '');
 
+        // Find instructor name for free text display
+        const instructor = loadedInstructors.find(i => i.id === sessionData.instructor_id);
+        const instructorName = instructor?.name || sessionData.instructor_name || '';
+
         // Populate form
         form.setSessionData({
           session_date: sessionData.session_date,
@@ -97,7 +108,7 @@ export default function EditSession() {
           duration_mins: sessionData.duration_mins,
           intensity: sessionData.intensity,
           instructor_id: sessionData.instructor_id || null,
-          instructor_name: '',
+          instructor_name: instructorName,
           rolls: sessionData.rolls,
           submissions_for: sessionData.submissions_for,
           submissions_against: sessionData.submissions_against,
@@ -109,6 +120,18 @@ export default function EditSession() {
           whoop_avg_hr: sessionData.whoop_avg_hr?.toString() || '',
           whoop_max_hr: sessionData.whoop_max_hr?.toString() || '',
         });
+
+        // Load intensity tags if stored, otherwise initialize from single intensity value
+        if (sessionData.intensity_tags && Array.isArray(sessionData.intensity_tags)) {
+          setIntensityTags(sessionData.intensity_tags);
+        } else if (sessionData.intensity) {
+          setIntensityTags([sessionData.intensity]);
+        }
+
+        // Load attendees
+        if (sessionData.attendees && Array.isArray(sessionData.attendees)) {
+          setAttendees(sessionData.attendees);
+        }
 
         // Check WHOOP connection status
         try {
@@ -132,6 +155,7 @@ export default function EditSession() {
               partner_id: roll.partner_id || null,
               partner_name: roll.partner_name || '',
               duration_mins: roll.duration_mins || 5,
+              intensity: Array.isArray(roll.intensity) ? roll.intensity : [],
               submissions_for: Array.isArray(roll.submissions_for) ? roll.submissions_for : [],
               submissions_against: Array.isArray(roll.submissions_against) ? roll.submissions_against : [],
               notes: roll.notes || '',
@@ -177,14 +201,17 @@ export default function EditSession() {
         gym_name: form.sessionData.gym_name,
         location: form.sessionData.location || undefined,
         duration_mins: form.sessionData.duration_mins,
-        intensity: form.sessionData.intensity,
+        intensity: intensityTags.length > 0 ? Math.max(...intensityTags) : form.sessionData.intensity,
         instructor_id: form.sessionData.instructor_id || undefined,
+        instructor_name: form.sessionData.instructor_name || undefined,
         rolls: form.sessionData.rolls,
         submissions_for: form.sessionData.submissions_for,
         submissions_against: form.sessionData.submissions_against,
         partners: form.sessionData.partners ? form.sessionData.partners.split(',').map(p => p.trim()).filter(p => p !== '') : [],
         techniques: form.sessionData.techniques ? form.sessionData.techniques.split(',').map(t => t.trim()).filter(t => t !== '') : [],
         notes: form.sessionData.notes || undefined,
+        attendees: attendees.length > 0 ? attendees : undefined,
+        intensity_tags: intensityTags.length > 0 ? intensityTags : undefined,
         ...form.buildWhoopPayload(),
         needs_review: false,
       };
@@ -203,7 +230,6 @@ export default function EditSession() {
         const techniquesPayload = form.buildTechniquesPayload();
         payload.session_techniques = techniquesPayload.session_techniques || [];
       } else {
-        // Explicitly set empty array to clear techniques if all removed
         payload.session_techniques = [];
       }
 
@@ -231,6 +257,14 @@ export default function EditSession() {
       setSaving(false);
     }
   };
+
+  // Build instructor name datalist
+  const instructorNames = form.instructors.map(i => {
+    const name = i.name ?? 'Unknown';
+    return i.belt_rank
+      ? `${name} (${i.belt_rank.charAt(0).toUpperCase() + i.belt_rank.slice(1)} belt)`
+      : name;
+  });
 
   if (loading) {
     return (
@@ -318,26 +352,55 @@ export default function EditSession() {
           />
         </div>
 
-        {/* Instructor */}
+        {/* WHOOP Stats — positioned high for visibility */}
+        <WhoopIntegrationPanel
+          whoopConnected={form.whoopConnected}
+          whoopSyncing={form.whoopSyncing}
+          whoopSynced={form.whoopSynced}
+          whoopManualMode={form.whoopManualMode}
+          showWhoop={true}
+          classTime={form.sessionData.class_time}
+          whoopData={{
+            whoop_strain: form.sessionData.whoop_strain,
+            whoop_calories: form.sessionData.whoop_calories,
+            whoop_avg_hr: form.sessionData.whoop_avg_hr,
+            whoop_max_hr: form.sessionData.whoop_max_hr,
+          }}
+          onWhoopDataChange={(field, value) => form.setSessionData(prev => ({ ...prev, [field]: value }))}
+          onSync={form.handleWhoopSync}
+          onClear={form.handleWhoopClear}
+          onToggleManualMode={(manual) => form.setWhoopManualMode(manual)}
+          onToggleShow={() => {}}
+        />
+
+        {/* Instructor — free text with suggestions */}
         <div>
           <label className="label" htmlFor="edit-session-instructor">Instructor (optional)</label>
-          <select
+          <input
+            type="text"
             id="edit-session-instructor"
             className="input"
-            value={form.sessionData.instructor_id || ''}
-            onChange={(e) => form.setSessionData(prev => ({
-              ...prev,
-              instructor_id: e.target.value ? parseInt(e.target.value) : null
-            }))}
-          >
-            <option value="">Select instructor...</option>
-            {form.instructors.map(instructor => (
-              <option key={instructor.id} value={instructor.id}>
-                {instructor.name}
-                {instructor.belt_rank && ` (${instructor.belt_rank.charAt(0).toUpperCase() + instructor.belt_rank.slice(1)} belt)`}
-              </option>
+            value={form.sessionData.instructor_name}
+            onChange={(e) => {
+              const name = e.target.value;
+              // Try to match to a known instructor for the ID
+              const match = form.instructors.find(
+                i => i.name?.toLowerCase() === name.toLowerCase()
+              );
+              form.setSessionData(prev => ({
+                ...prev,
+                instructor_name: name,
+                instructor_id: match ? match.id : null,
+              }));
+            }}
+            placeholder="Type instructor name..."
+            list="instructor-suggestions"
+          />
+          <datalist id="instructor-suggestions">
+            {instructorNames.map((name) => (
+              <option key={name} value={name} />
             ))}
-          </select>
+          </datalist>
         </div>
 
         {/* Gym Name */}
@@ -384,7 +447,7 @@ export default function EditSession() {
         </div>
 
         {/* Duration & Intensity */}
-        <div className="grid grid-cols-2 gap-4">
+        <div className="space-y-4">
           <div>
             <label className="label" htmlFor="edit-session-duration">Duration (mins)</label>
             <input
@@ -398,14 +461,76 @@ export default function EditSession() {
             />
           </div>
           <div>
-            <label className="label">Intensity</label>
+            <label className="label">Intensity (select all that apply)</label>
             <IntensityChips
-              value={form.sessionData.intensity}
+              value={0}
+              onChange={() => {}}
+              multi
+              selectedValues={intensityTags}
+              onToggle={(val) => {
+                setIntensityTags(prev =>
+                  prev.includes(val)
+                    ? prev.filter(v => v !== val)
+                    : [...prev, val]
+                );
+              }}
               size="sm"
-              showDescription={false}
-              onChange={(val) => form.setSessionData(prev => ({ ...prev, intensity: val }))}
+              showDescription
             />
           </div>
+        </div>
+
+        {/* Classmates / Who was in class? */}
+        <div>
+          <label className="label flex items-center gap-1.5">
+            <Users2 className="w-4 h-4" />
+            Who was in class?
+          </label>
+          {attendees.length > 0 && (
+            <div className="flex flex-wrap gap-1.5 mb-2">
+              {attendees.map((name, i) => (
+                <span
+                  key={i}
+                  className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium"
+                  style={{ backgroundColor: 'rgba(59,130,246,0.1)', color: '#3B82F6' }}
+                >
+                  {name}
+                  <button
+                    type="button"
+                    onClick={() => setAttendees(prev => prev.filter((_, idx) => idx !== i))}
+                    className="ml-0.5 hover:opacity-70"
+                  >
+                    <X className="w-3 h-3" />
+                  </button>
+                </span>
+              ))}
+            </div>
+          )}
+          <input
+            type="text"
+            className="input text-sm"
+            value={attendeeInput}
+            onChange={(e) => setAttendeeInput(e.target.value)}
+            onKeyDown={(e) => {
+              if ((e.key === 'Enter' || e.key === ',') && attendeeInput.trim()) {
+                e.preventDefault();
+                const name = attendeeInput.trim().replace(/,+$/, '');
+                if (name && !attendees.includes(name)) {
+                  setAttendees(prev => [...prev, name]);
+                }
+                setAttendeeInput('');
+              }
+            }}
+            onBlur={() => {
+              const name = attendeeInput.trim().replace(/,+$/, '');
+              if (name && !attendees.includes(name)) {
+                setAttendees(prev => [...prev, name]);
+              }
+              setAttendeeInput('');
+            }}
+            placeholder="Type a name and press Enter..."
+          />
+          <p className="text-xs text-[var(--muted)] mt-1">Press Enter or comma to add each classmate</p>
         </div>
 
         {/* Roll Tracking (Sparring only) */}
@@ -455,27 +580,6 @@ export default function EditSession() {
             onMediaUrlChange={form.handleMediaUrlChange}
           />
         </div>
-
-        {/* Whoop Stats */}
-        <WhoopIntegrationPanel
-          whoopConnected={form.whoopConnected}
-          whoopSyncing={form.whoopSyncing}
-          whoopSynced={form.whoopSynced}
-          whoopManualMode={form.whoopManualMode}
-          showWhoop={true}
-          classTime={form.sessionData.class_time}
-          whoopData={{
-            whoop_strain: form.sessionData.whoop_strain,
-            whoop_calories: form.sessionData.whoop_calories,
-            whoop_avg_hr: form.sessionData.whoop_avg_hr,
-            whoop_max_hr: form.sessionData.whoop_max_hr,
-          }}
-          onWhoopDataChange={(field, value) => form.setSessionData(prev => ({ ...prev, [field]: value }))}
-          onSync={form.handleWhoopSync}
-          onClear={form.handleWhoopClear}
-          onToggleManualMode={(manual) => form.setWhoopManualMode(manual)}
-          onToggleShow={() => {}}
-        />
 
         {/* Session Details / Notes */}
         <div className={!form.isSparringType ? 'border-t border-[var(--border)] pt-4' : ''}>

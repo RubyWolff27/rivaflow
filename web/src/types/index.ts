@@ -21,6 +21,8 @@ export interface Session {
   submissions_for: number;
   submissions_against: number;
   partners?: string[];
+  attendees?: string[];
+  intensity_tags?: number[];
   techniques?: string[];
   notes?: string;
   instructor_id?: number;
@@ -252,6 +254,7 @@ export interface SessionRoll {
   partner_name?: string;
   roll_number: number;
   duration_mins?: number;
+  intensity?: number[];
   submissions_for?: number[];  // Movement IDs from glossary
   submissions_against?: number[];  // Movement IDs from glossary
   notes?: string;

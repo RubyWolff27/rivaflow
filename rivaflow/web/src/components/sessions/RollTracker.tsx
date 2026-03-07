@@ -1,6 +1,7 @@
 import { Plus, X, Search, ToggleLeft, ToggleRight } from 'lucide-react';
 import type { Friend, Movement } from '../../types';
 import type { RollEntry } from './sessionTypes';
+import IntensityChips from '../ui/IntensityChips';
 
 interface RollTrackerProps {
   detailedMode: boolean;
@@ -50,6 +51,9 @@ export default function RollTracker({
   selectedPartnerIds,
   onTogglePartner,
 }: RollTrackerProps) {
+  // Build datalist options from partner names
+  const partnerNames = partners.map(p => p.name).filter(Boolean);
+
   return (
     <>
       <div className="space-y-3">
@@ -128,24 +132,46 @@ export default function RollTracker({
 
                 <div>
                   <label className="label text-sm">Partner</label>
-                  <select
+                  <input
+                    type="text"
                     className="input"
-                    value={roll.partner_id || ''}
+                    value={roll.partner_name}
                     onChange={(e) => {
-                      const partnerId = e.target.value ? parseInt(e.target.value) : null;
-                      const partner = partners.find(p => p.id === partnerId);
-                      onRollChange(index, 'partner_id', partnerId);
-                      onRollChange(index, 'partner_name', partner ? partner.name : '');
+                      onRollChange(index, 'partner_name', e.target.value);
+                      // Try to match to a known partner for the ID
+                      const match = partners.find(
+                        p => p.name.toLowerCase() === e.target.value.toLowerCase()
+                      );
+                      onRollChange(index, 'partner_id', match ? match.id : null);
                     }}
-                  >
-                    <option value="">Select partner...</option>
-                    {partners.map(partner => (
-                      <option key={partner.id} value={partner.id}>
-                        {partner.name ?? 'Unknown'}
-                        {partner.belt_rank && ` (${partner.belt_rank} belt)`}
-                      </option>
+                    placeholder="Type partner name..."
+                    list={`roll-partners-${index}`}
+                  />
+                  <datalist id={`roll-partners-${index}`}>
+                    {partnerNames.map((name) => (
+                      <option key={name} value={name} />
                     ))}
-                  </select>
+                  </datalist>
+                </div>
+
+                {/* Per-roll intensity */}
+                <div>
+                  <label className="label text-sm">Intensity</label>
+                  <IntensityChips
+                    value={0}
+                    onChange={() => {}}
+                    multi
+                    selectedValues={roll.intensity || []}
+                    onToggle={(val) => {
+                      const current = roll.intensity || [];
+                      const next = current.includes(val)
+                        ? current.filter(v => v !== val)
+                        : [...current, val];
+                      onRollChange(index, 'intensity', next);
+                    }}
+                    size="sm"
+                    showDescription={false}
+                  />
                 </div>
 
                 <div>

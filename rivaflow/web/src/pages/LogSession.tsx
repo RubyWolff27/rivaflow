@@ -500,7 +500,8 @@ export default function LogSession() {
           <div>
             <label className="label">Intensity</label>
             <IntensityChips value={form.sessionData.intensity} size="sm" showDescription={false}
-              onChange={(val) => form.setSessionData(prev => ({ ...prev, intensity: val }))} />
+              onChange={(val) => form.setSessionData(prev => ({ ...prev, intensity: val }))}
+            />
           </div>
 
           {/* Notes */}
@@ -562,24 +563,24 @@ export default function LogSession() {
                 {form.isGymType && (
                 <div>
                   <label className="label" htmlFor="log-session-instructor">Instructor (optional)</label>
-                  <select className="input" id="log-session-instructor" value={form.sessionData.instructor_id || ''}
+                  <input
+                    type="text"
+                    className="input"
+                    id="log-session-instructor"
+                    value={form.sessionData.instructor_name}
                     onChange={(e) => {
-                      const instructorId = e.target.value ? parseInt(e.target.value) : null;
-                      const instructor = form.instructors.find(i => i.id === instructorId);
-                      form.setSessionData(prev => ({ ...prev, instructor_id: instructorId, instructor_name: instructor?.name || '' }));
-                    }}>
-                    <option value="">Select instructor...</option>
+                      const name = e.target.value;
+                      const match = form.instructors.find(i => i.name?.toLowerCase() === name.toLowerCase());
+                      form.setSessionData(prev => ({ ...prev, instructor_name: name, instructor_id: match ? match.id : null }));
+                    }}
+                    placeholder="Type instructor name..."
+                    list="instructor-suggestions"
+                  />
+                  <datalist id="instructor-suggestions">
                     {form.instructors.map(instructor => (
-                      <option key={instructor.id} value={instructor.id}>
-                        {instructor.name ?? 'Unknown'}
-                        {instructor.belt_rank && ` (${instructor.belt_rank.charAt(0).toUpperCase() + instructor.belt_rank.slice(1)} belt)`}
-                        {instructor.instructor_certification && ` - ${instructor.instructor_certification}`}
-                      </option>
+                      <option key={instructor.id} value={instructor.name ?? 'Unknown'} />
                     ))}
-                  </select>
-                  <p className="text-xs text-[var(--muted)] mt-1">
-                    Select from your list. <a href="/friends" className="text-[var(--accent)] hover:underline">Manage instructors in Friends</a>
-                  </p>
+                  </datalist>
                 </div>
                 )}
 
