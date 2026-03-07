@@ -35,7 +35,6 @@ export default function WeeklySummaryCard() {
 
   const handleShare = async () => {
     if (!navigator.share) return;
-    // Use native share with text fallback — no html2canvas dependency needed
     try {
       await navigator.share({
         title: 'My Training Week',
@@ -54,76 +53,77 @@ export default function WeeklySummaryCard() {
     .slice(0, 3);
 
   return (
-    <div className="relative">
-      <div
-        className="rounded-[14px] p-5 space-y-4"
-        style={{
-          background: 'linear-gradient(135deg, #1E3A5F 0%, #0F172A 100%)',
-          border: '1px solid rgba(59,130,246,0.2)',
-        }}
-      >
-        <div className="flex items-center justify-between">
-          <div>
-            <h3 className="text-sm font-semibold text-blue-300 uppercase tracking-wider">
-              This Week
-            </h3>
-            <p className="text-xs text-blue-400/60 mt-0.5">
-              {data.week_start} — {data.week_end}
-            </p>
-          </div>
-          <div className="text-right">
-            <div className="text-2xl font-bold text-white">{data.total_sessions}</div>
-            <div className="text-xs text-blue-300">sessions</div>
-          </div>
+    <div
+      className="rounded-[14px] p-4 sm:p-5"
+      style={{
+        background: 'linear-gradient(135deg, #1E3A5F 0%, #0F172A 100%)',
+        border: '1px solid rgba(59,130,246,0.2)',
+      }}
+    >
+      {/* Header row: title + share button */}
+      <div className="flex items-center justify-between mb-3">
+        <div>
+          <h3 className="text-sm font-semibold text-blue-300 uppercase tracking-wider">
+            This Week
+          </h3>
+          <p className="text-xs text-blue-400/60 mt-0.5">
+            {data.week_start} — {data.week_end}
+          </p>
         </div>
+        <button
+          onClick={handleShare}
+          className="p-2 rounded-full transition-colors hover:bg-white/10 shrink-0"
+          aria-label="Share weekly summary"
+        >
+          <Share2 className="w-4 h-4 text-blue-300" />
+        </button>
+      </div>
 
-        <div className="grid grid-cols-3 gap-3">
-          <div className="text-center">
-            <Users2 className="w-4 h-4 text-blue-400 mx-auto mb-1" />
-            <div className="text-lg font-bold text-white">{data.total_rolls}</div>
-            <div className="text-xs text-blue-300/70">rolls</div>
-          </div>
-          <div className="text-center">
-            <Clock className="w-4 h-4 text-blue-400 mx-auto mb-1" />
-            <div className="text-lg font-bold text-white">{data.total_hours.toFixed(1)}</div>
-            <div className="text-xs text-blue-300/70">hours</div>
-          </div>
-          <div className="text-center">
-            <Flame className="w-4 h-4 text-orange-400 mx-auto mb-1" />
-            <div className="text-lg font-bold text-white">{data.streak_days}</div>
-            <div className="text-xs text-blue-300/70">day streak</div>
-          </div>
+      {/* Stats row — all 4 metrics in one row */}
+      <div className="grid grid-cols-4 gap-2">
+        <div className="text-center">
+          <Dumbbell className="w-4 h-4 text-blue-400 mx-auto mb-1" />
+          <div className="text-lg font-bold text-white">{data.total_sessions}</div>
+          <div className="text-[10px] text-blue-300/70">sessions</div>
         </div>
-
-        {classTypeList.length > 0 && (
-          <div className="flex flex-wrap gap-2">
-            {classTypeList.map(([type, count]) => (
-              <span
-                key={type}
-                className="px-2 py-0.5 rounded-full text-xs font-medium"
-                style={{ backgroundColor: 'rgba(59,130,246,0.15)', color: '#93C5FD' }}
-              >
-                {type} × {count}
-              </span>
-            ))}
-          </div>
-        )}
-
-        <div className="flex items-center gap-1 pt-1">
-          <Dumbbell className="w-3 h-3 text-blue-500/40" />
-          <span className="text-[10px] text-blue-400/40 font-medium tracking-wider uppercase">
-            RivaFlow
-          </span>
+        <div className="text-center">
+          <Users2 className="w-4 h-4 text-blue-400 mx-auto mb-1" />
+          <div className="text-lg font-bold text-white">{data.total_rolls}</div>
+          <div className="text-[10px] text-blue-300/70">rolls</div>
+        </div>
+        <div className="text-center">
+          <Clock className="w-4 h-4 text-blue-400 mx-auto mb-1" />
+          <div className="text-lg font-bold text-white">{data.total_hours.toFixed(1)}</div>
+          <div className="text-[10px] text-blue-300/70">hours</div>
+        </div>
+        <div className="text-center">
+          <Flame className="w-4 h-4 text-orange-400 mx-auto mb-1" />
+          <div className="text-lg font-bold text-white">{data.streak_days}</div>
+          <div className="text-[10px] text-blue-300/70">day streak</div>
         </div>
       </div>
 
-      <button
-        onClick={handleShare}
-        className="absolute top-3 right-3 p-2 rounded-full transition-colors hover:bg-white/10"
-        aria-label="Share weekly summary"
-      >
-        <Share2 className="w-4 h-4 text-blue-300" />
-      </button>
+      {/* Class type pills + branding */}
+      {classTypeList.length > 0 && (
+        <div className="flex flex-wrap gap-2 mt-3">
+          {classTypeList.map(([type, count]) => (
+            <span
+              key={type}
+              className="px-2 py-0.5 rounded-full text-xs font-medium"
+              style={{ backgroundColor: 'rgba(59,130,246,0.15)', color: '#93C5FD' }}
+            >
+              {type} × {count}
+            </span>
+          ))}
+        </div>
+      )}
+
+      <div className="flex items-center gap-1 mt-3">
+        <Dumbbell className="w-3 h-3 text-blue-500/40" />
+        <span className="text-[10px] text-blue-400/40 font-medium tracking-wider uppercase">
+          RivaFlow
+        </span>
+      </div>
     </div>
   );
 }
