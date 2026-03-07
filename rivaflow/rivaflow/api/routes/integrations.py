@@ -284,6 +284,25 @@ def readiness_auto_fill(
         )
 
 
+def _fetch_live_debug(service, user_id: int, whoop_workout_id: str | None) -> dict | None:
+    """Temporary debug: fetch live workout data from WHOOP API."""
+    if not whoop_workout_id:
+        return None
+    try:
+        token = service.get_valid_access_token(user_id)
+        fresh = service.client.get_workout_by_id(token, whoop_workout_id)
+        fresh_score = fresh.get("score") or {}
+        return {
+            "score_state": fresh.get("score_state"),
+            "score_keys": list(fresh_score.keys()),
+            "zone_duration": fresh_score.get("zone_duration"),
+            "top_keys": list(fresh.keys()),
+            "has_strain": fresh_score.get("strain") is not None,
+        }
+    except Exception as e:
+        return {"error": str(e)}
+
+
 @router.get("/whoop/session/{session_id}/context")
 @route_error_handler("whoop_session_context", detail="Failed to get session context")
 def get_session_context(
@@ -446,8 +465,13 @@ def get_session_context(
                     wo["raw_data"].get("score", {}).get("zone_duration")
                     if isinstance(wo.get("raw_data"), dict) else None
                 ),
+                "raw_data_score_keys": (
+                    list((wo["raw_data"].get("score") or {}).keys())
+                    if isinstance(wo.get("raw_data"), dict) else None
+                ),
                 "whoop_workout_id": wo.get("whoop_workout_id"),
                 "wo_source": wo_source,
+                "live_api": _fetch_live_debug(service, user_id, wo.get("whoop_workout_id")),
             },
         }
         logger.info(
