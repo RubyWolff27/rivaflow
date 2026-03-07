@@ -126,7 +126,8 @@ describe('Feed', () => {
   it('renders feed items', async () => {
     renderFeed()
     await waitFor(() => {
-      expect(screen.getByText(/Gi session at Test Gym/)).toBeInTheDocument()
+      expect(screen.getByText('Gi')).toBeInTheDocument()
+      expect(screen.getByText('Test Gym')).toBeInTheDocument()
     })
   })
 

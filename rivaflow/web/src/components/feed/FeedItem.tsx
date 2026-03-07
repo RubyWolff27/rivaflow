@@ -1,32 +1,34 @@
-import { memo } from 'react';
-import { Calendar, Edit2, Eye, Lock, Moon, Trash2, Users2, Globe } from 'lucide-react';
+import { memo, useState } from 'react';
+import { Calendar, Edit2, Eye, Lock, Moon, Trash2, Users2, Globe, ChevronDown, Dumbbell, Trophy, Flame, Zap } from 'lucide-react';
 import ActivitySocialActions from '../ActivitySocialActions';
 import CommentSection from '../CommentSection';
-import SessionScoreBadge from '../sessions/SessionScoreBadge';
 import type { FeedItem } from '../../types';
-import { ACTIVITY_COLORS } from '../../constants/activity';
+import { ACTIVITY_COLORS, ACTIVITY_LABELS } from '../../constants/activity';
 
-/** Badge colours for session class types */
-const CLASS_TYPE_STYLES: Record<string, { bg: string; text: string; label: string }> = {
-  'gi': { bg: 'rgba(59,130,246,0.12)', text: '#3B82F6', label: 'Gi' },
-  'no-gi': { bg: 'rgba(168,85,247,0.12)', text: '#A855F7', label: 'No-Gi' },
-  'competition': { bg: 'rgba(239,68,68,0.12)', text: '#EF4444', label: 'Competition' },
-  'open-mat': { bg: 'rgba(34,197,94,0.12)', text: '#22C55E', label: 'Open Mat' },
-  'mma': { bg: 'rgba(234,179,8,0.12)', text: '#CA8A04', label: 'MMA' },
-  's&c': { bg: 'rgba(107,114,128,0.12)', text: '#6B7280', label: 'S&C' },
-  'drilling': { bg: 'rgba(14,165,233,0.12)', text: '#0EA5E9', label: 'Drilling' },
-};
+/* ── Score tier system ── */
+const SCORE_TIERS: { min: number; label: string; color: string }[] = [
+  { min: 85, label: 'Peak', color: 'var(--accent)' },
+  { min: 70, label: 'Excellent', color: '#F59E0B' },
+  { min: 50, label: 'Strong', color: '#10B981' },
+  { min: 30, label: 'Solid', color: '#3B82F6' },
+  { min: 0, label: 'Light', color: 'var(--muted)' },
+];
 
-/** Get partner names from session data (rolls or JSON partners list) */
+function getScoreTier(score: number) {
+  for (const tier of SCORE_TIERS) {
+    if (score >= tier.min) return tier;
+  }
+  return SCORE_TIERS[SCORE_TIERS.length - 1];
+}
+
+/** Get partner names from session data */
 function getPartnerNames(data: FeedItem['data']): string[] {
   const names = new Set<string>();
-  // Prefer session_rolls for partner names
   if (data?.session_rolls && Array.isArray(data.session_rolls)) {
     for (const roll of data.session_rolls) {
       if (roll.partner_name) names.add(roll.partner_name);
     }
   }
-  // Also include from partners JSON
   if (data?.partners && Array.isArray(data.partners)) {
     for (const name of data.partners) {
       if (name) names.add(name);
@@ -42,6 +44,180 @@ function formatSummary(summary: string): string {
     .replace(/\bgi\b/g, 'Gi')
     .replace(/\bs&c\b/gi, 'S&C')
     .replace(/\bmma\b/gi, 'MMA');
+}
+
+/** Compute contextual achievements from session data */
+function getAchievements(item: FeedItem): { icon: typeof Trophy; label: string; color: string }[] {
+  const badges: { icon: typeof Trophy; label: string; color: string }[] = [];
+  const data = item.data;
+  if (!data) return badges;
+
+  const score = data.session_score;
+  if (score != null && score >= 85) {
+    badges.push({ icon: Trophy, label: 'Peak Session', color: 'var(--accent)' });
+  }
+  if (data.duration_mins && data.duration_mins >= 120) {
+    badges.push({ icon: Flame, label: 'Endurance', color: '#F59E0B' });
+  }
+  if (data.rolls && data.rolls >= 8) {
+    badges.push({ icon: Zap, label: `${data.rolls} Rolls`, color: '#8B5CF6' });
+  }
+  const subs = (data.submissions_for || 0);
+  if (subs >= 3) {
+    badges.push({ icon: Trophy, label: `${subs} Subs`, color: '#10B981' });
+  }
+  if (data.class_type === 'competition') {
+    badges.push({ icon: Trophy, label: 'Competition', color: '#EC4899' });
+  }
+
+  return badges.slice(0, 3);
+}
+
+/* ── Gradient Score Bar ── */
+function GradientScoreBar({ score }: { score: number }) {
+  const tier = getScoreTier(score);
+  const pct = Math.min(100, Math.max(0, score));
+
+  return (
+    <div className="mt-2.5 mb-1">
+      <div className="flex items-center justify-between mb-1">
+        <span className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: tier.color }}>
+          {tier.label}
+        </span>
+        <span className="text-[10px] font-bold tabular-nums" style={{ color: 'var(--muted)' }}>
+          {Math.round(score)}/100
+        </span>
+      </div>
+      <div className="h-1.5 rounded-full w-full" style={{ backgroundColor: 'var(--surfaceElev)' }}>
+        <div
+          className="h-1.5 rounded-full transition-all duration-500"
+          style={{ width: `${pct}%`, backgroundColor: tier.color }}
+        />
+      </div>
+    </div>
+  );
+}
+
+/* ── Hero Metric Row (Strava-style) ── */
+function HeroMetrics({ duration, rolls, score }: { duration?: number; rolls?: number; score?: number | null }) {
+  const metrics: { value: string; label: string }[] = [];
+
+  if (duration) {
+    const h = Math.floor(duration / 60);
+    const m = duration % 60;
+    metrics.push({ value: h > 0 ? `${h}h ${m}m` : `${m}m`, label: 'Duration' });
+  }
+  if (rolls != null && rolls > 0) {
+    metrics.push({ value: String(rolls), label: 'Rolls' });
+  }
+  if (score != null) {
+    metrics.push({ value: String(Math.round(score)), label: 'Score' });
+  }
+
+  if (metrics.length === 0) return null;
+
+  return (
+    <div className="flex items-center gap-6 mt-3">
+      {metrics.map((m, i) => (
+        <div key={i}>
+          <p className="text-lg font-bold tabular-nums leading-tight" style={{ color: 'var(--text)' }}>
+            {m.value}
+          </p>
+          <p className="text-[10px] uppercase tracking-wider" style={{ color: 'var(--muted)' }}>
+            {m.label}
+          </p>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+/* ── Achievement Badges ── */
+function AchievementBadges({ achievements }: { achievements: { icon: typeof Trophy; label: string; color: string }[] }) {
+  if (achievements.length === 0) return null;
+  return (
+    <div className="flex items-center gap-1.5 mt-2.5 flex-wrap">
+      {achievements.map((a, i) => {
+        const Icon = a.icon;
+        return (
+          <span
+            key={i}
+            className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold"
+            style={{ backgroundColor: `${a.color}15`, color: a.color }}
+          >
+            <Icon className="w-3 h-3" />
+            {a.label}
+          </span>
+        );
+      })}
+    </div>
+  );
+}
+
+/* ── Score Breakdown Mini Bars ── */
+function ScoreBreakdown({ breakdown }: { breakdown: Record<string, unknown> }) {
+  const pillars = (breakdown as { pillars?: Record<string, { score: number; max: number; pct: number }> })?.pillars;
+  if (!pillars) return null;
+
+  const PILLAR_LABELS: Record<string, string> = {
+    technique: 'Technique',
+    intensity: 'Intensity',
+    consistency: 'Consistency',
+    progression: 'Progression',
+    duration: 'Duration',
+    volume: 'Volume',
+    engagement: 'Engagement',
+  };
+
+  return (
+    <div className="space-y-1.5">
+      <p className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: 'var(--muted)' }}>
+        Score Breakdown
+      </p>
+      {Object.entries(pillars).map(([key, pillar]) => {
+        const pct = Math.round(pillar.pct * 100);
+        return (
+          <div key={key} className="flex items-center gap-2">
+            <span className="text-[11px] w-20 shrink-0" style={{ color: 'var(--muted)' }}>
+              {PILLAR_LABELS[key] || key}
+            </span>
+            <div className="flex-1 h-1.5 rounded-full" style={{ backgroundColor: 'var(--surfaceElev)' }}>
+              <div
+                className="h-1.5 rounded-full"
+                style={{ width: `${pct}%`, backgroundColor: 'var(--accent)' }}
+              />
+            </div>
+            <span className="text-[10px] tabular-nums w-7 text-right" style={{ color: 'var(--muted)' }}>
+              {pct}%
+            </span>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+/* ── Technique Chips ── */
+function TechniqueChips({ techniques }: { techniques: string[] }) {
+  if (techniques.length === 0) return null;
+  return (
+    <div>
+      <p className="text-[10px] font-semibold uppercase tracking-wider mb-1.5" style={{ color: 'var(--muted)' }}>
+        Techniques
+      </p>
+      <div className="flex flex-wrap gap-1.5">
+        {techniques.map((t, i) => (
+          <span
+            key={i}
+            className="px-2 py-0.5 rounded-full text-[11px] font-medium"
+            style={{ backgroundColor: 'var(--surfaceElev)', color: 'var(--text)' }}
+          >
+            {t}
+          </span>
+        ))}
+      </div>
+    </div>
+  );
 }
 
 export interface FeedItemComponentProps {
@@ -77,6 +253,7 @@ const FeedItemComponent = memo(function FeedItemComponent({
   handleVisibilityChange,
   handleDeleteRest,
 }: FeedItemComponentProps) {
+  const [expanded, setExpanded] = useState(false);
   const showDateHeader = !prevItem || prevItem.date !== item.date;
   const commentKey = `${item.type}-${item.id}`;
   const isCommentsOpen = expandedComments.has(commentKey);
@@ -88,6 +265,9 @@ const FeedItemComponent = memo(function FeedItemComponent({
   const ownerInitial = ownerName ? ownerName[0].toUpperCase() : '?';
 
   const isRest = item.type === 'rest';
+  const classType = item.data?.class_type?.toLowerCase() ?? '';
+  const activityColor = ACTIVITY_COLORS[classType] || 'var(--accent)';
+  const achievements = isRest ? [] : getAchievements(item);
 
   const getRestTypeStyle = (type: string): React.CSSProperties => {
     const styles: Record<string, React.CSSProperties> = {
@@ -115,6 +295,16 @@ const FeedItemComponent = memo(function FeedItemComponent({
     return labels[type] || type || 'Rest';
   };
 
+  // Expandable detail content for sessions
+  const partnerNames = !isRest ? getPartnerNames(item.data) : [];
+  const techniques = (!isRest && item.data?.techniques && Array.isArray(item.data.techniques)) ? item.data.techniques : [];
+  const hasExpandableContent = !isRest && (
+    (item.data?.score_breakdown && typeof item.data.score_breakdown === 'object') ||
+    techniques.length > 0 ||
+    partnerNames.length > 0 ||
+    item.data?.notes
+  );
+
   return (
     <div>
       {showDateHeader && (
@@ -134,7 +324,6 @@ const FeedItemComponent = memo(function FeedItemComponent({
         style={{
           backgroundColor: 'var(--surface)',
           border: '1px solid var(--border)',
-          borderLeft: `3px solid ${isRest ? '#A855F7' : ACTIVITY_COLORS[item.data?.class_type ?? ''] || 'var(--accent)'}`,
         }}
       >
         {/* Friend name header */}
@@ -166,7 +355,7 @@ const FeedItemComponent = memo(function FeedItemComponent({
 
         <div className="p-4">
           {isRest ? (
-            /* Rest day card */
+            /* ═══ Rest day card (unchanged) ═══ */
             <>
               <div className="flex items-start justify-between gap-2 mb-2">
                 <div className="flex items-center gap-2">
@@ -226,29 +415,54 @@ const FeedItemComponent = memo(function FeedItemComponent({
               )}
             </>
           ) : (
-            /* Session card */
+            /* ═══ Session card — redesigned two-tier layout ═══ */
             <>
-              {/* Summary + score + actions row */}
-              <div className="flex items-start justify-between gap-2 mb-1">
-                <div className="flex items-center gap-2 min-w-0">
-                  <SessionScoreBadge score={item.data?.session_score} size="sm" />
-                  <p className="text-sm font-medium truncate" style={{ color: 'var(--text)' }}>
-                    {formatSummary(item.summary)}
-                  </p>
+              {/* ── Header: Session identity + actions ── */}
+              <div className="flex items-start justify-between gap-2">
+                <div className="flex items-center gap-2.5 min-w-0">
+                  {/* Activity type icon */}
+                  <div
+                    className="w-9 h-9 rounded-lg flex items-center justify-center shrink-0"
+                    style={{ backgroundColor: `${activityColor}15` }}
+                  >
+                    <Dumbbell className="w-4.5 h-4.5" style={{ color: activityColor }} />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-sm font-bold leading-tight" style={{ color: 'var(--text)' }}>
+                      {ACTIVITY_LABELS[classType] || item.data?.class_type || 'Session'}
+                    </p>
+                    <div className="flex items-center gap-1.5 mt-0.5">
+                      {item.data?.class_time && (
+                        <span className="text-xs" style={{ color: 'var(--muted)' }}>
+                          {item.data.class_time}
+                        </span>
+                      )}
+                      {item.data?.class_time && item.data?.gym_name && (
+                        <span className="text-xs" style={{ color: 'var(--border)' }}>&middot;</span>
+                      )}
+                      {item.data?.gym_name && (
+                        <span className="text-xs truncate" style={{ color: 'var(--muted)' }}>
+                          {item.data.gym_name}
+                        </span>
+                      )}
+                    </div>
+                  </div>
                 </div>
-                <div className="flex items-center gap-2 shrink-0">
+
+                {/* Action buttons */}
+                <div className="flex items-center gap-1.5 shrink-0">
                   {isActivityEditable(item) && (
                     <>
                       <button
                         onClick={() => navigate(`/session/${item.id}`)}
-                        className="p-1 hover:bg-white/50 dark:hover:bg-black/20 rounded transition-colors"
+                        className="p-1.5 hover:bg-white/50 dark:hover:bg-black/20 rounded transition-colors"
                         aria-label="View session details"
                       >
                         <Eye className="w-4 h-4 text-[var(--muted)]" />
                       </button>
                       <button
                         onClick={() => navigate(`/session/edit/${item.id}`)}
-                        className="p-1 hover:bg-white/50 dark:hover:bg-black/20 rounded transition-colors"
+                        className="p-1.5 hover:bg-white/50 dark:hover:bg-black/20 rounded transition-colors"
                         aria-label="Edit session"
                       >
                         <Edit2 className="w-4 h-4 text-[var(--muted)]" />
@@ -291,43 +505,22 @@ const FeedItemComponent = memo(function FeedItemComponent({
                 </div>
               </div>
 
-              {/* Class type badge */}
-              {item.data?.class_type && (() => {
-                const style = CLASS_TYPE_STYLES[item.data.class_type.toLowerCase()] || {
-                  bg: 'var(--surfaceElev)', text: 'var(--muted)', label: item.data.class_type,
-                };
-                return (
-                  <span
-                    className="inline-block px-2 py-0.5 rounded-full text-xs font-semibold mt-1"
-                    style={{ backgroundColor: style.bg, color: style.text }}
-                  >
-                    {style.label}
-                  </span>
-                );
-              })()}
+              {/* ── Gradient score bar ── */}
+              {item.data?.session_score != null && (
+                <GradientScoreBar score={item.data.session_score} />
+              )}
 
-              {/* Session details */}
-              <div className="mt-2 text-sm space-y-1" style={{ color: 'var(--muted)' }}>
-                {item.data?.class_time && <div>🕐 {item.data.class_time}</div>}
-                {item.data?.location && <div>📍 {item.data.location}</div>}
-                {item.data?.instructor_name && <div>👨‍🏫 {item.data.instructor_name}</div>}
-                {(() => {
-                  const partnerNames = getPartnerNames(item.data);
-                  return partnerNames.length > 0 ? (
-                    <div>🤝 Rolled with {partnerNames.join(', ')}</div>
-                  ) : null;
-                })()}
-                {item.data?.techniques && Array.isArray(item.data.techniques) && item.data.techniques.length > 0 && (
-                  <div>🎯 Techniques: {item.data.techniques.join(', ')}</div>
-                )}
-                {item.data?.notes && (
-                  <div className="mt-2 italic" style={{ color: 'var(--text)' }}>
-                    &ldquo;{item.data.notes}&rdquo;
-                  </div>
-                )}
-              </div>
+              {/* ── Hero metrics row (Strava-style bold numbers) ── */}
+              <HeroMetrics
+                duration={item.data?.duration_mins}
+                rolls={item.data?.rolls}
+                score={item.data?.session_score}
+              />
 
-              {/* Photo — full-width for social feel */}
+              {/* ── Achievement badges ── */}
+              <AchievementBadges achievements={achievements} />
+
+              {/* ── Photo (contained, not background) ── */}
               {item.thumbnail && (
                 <div
                   className="mt-3 cursor-pointer"
@@ -338,7 +531,7 @@ const FeedItemComponent = memo(function FeedItemComponent({
                       src={item.thumbnail}
                       alt="Session photo"
                       loading="lazy"
-                      className="w-full max-h-48 rounded-lg object-cover border border-[var(--border)]"
+                      className="w-full max-h-56 rounded-lg object-cover border border-[var(--border)]"
                       onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
                     />
                     {(item.photo_count ?? 0) > 1 && (
@@ -347,6 +540,103 @@ const FeedItemComponent = memo(function FeedItemComponent({
                       </span>
                     )}
                   </div>
+                </div>
+              )}
+
+              {/* ── Notes preview (collapsed) ── */}
+              {item.data?.notes && !expanded && (
+                <p className="text-sm mt-2.5 line-clamp-2 italic" style={{ color: 'var(--text)', opacity: 0.8 }}>
+                  &ldquo;{item.data.notes}&rdquo;
+                </p>
+              )}
+
+              {/* ── Expand/collapse toggle ── */}
+              {hasExpandableContent && (
+                <button
+                  onClick={() => setExpanded(!expanded)}
+                  className="flex items-center gap-1 mt-2.5 text-xs font-medium"
+                  style={{ color: 'var(--accent)' }}
+                >
+                  <ChevronDown
+                    className="w-3.5 h-3.5 transition-transform"
+                    style={{ transform: expanded ? 'rotate(180deg)' : 'rotate(0deg)' }}
+                  />
+                  {expanded ? 'Less detail' : 'More detail'}
+                </button>
+              )}
+
+              {/* ── Expanded detail panel ── */}
+              {expanded && (
+                <div
+                  className="mt-3 pt-3 space-y-3"
+                  style={{ borderTop: '1px solid var(--border)' }}
+                >
+                  {/* Score breakdown */}
+                  {item.data?.score_breakdown && typeof item.data.score_breakdown === 'object' && (
+                    <ScoreBreakdown breakdown={item.data.score_breakdown} />
+                  )}
+
+                  {/* Technique chips */}
+                  {techniques.length > 0 && <TechniqueChips techniques={techniques} />}
+
+                  {/* Rolling partners */}
+                  {partnerNames.length > 0 && (
+                    <div>
+                      <p className="text-[10px] font-semibold uppercase tracking-wider mb-1" style={{ color: 'var(--muted)' }}>
+                        Rolling Partners
+                      </p>
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        {partnerNames.map((name, i) => (
+                          <span
+                            key={i}
+                            className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium"
+                            style={{ backgroundColor: 'var(--surfaceElev)', color: 'var(--text)' }}
+                          >
+                            <Users2 className="w-3 h-3" style={{ color: 'var(--muted)' }} />
+                            {name}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Full notes */}
+                  {item.data?.notes && (
+                    <div>
+                      <p className="text-[10px] font-semibold uppercase tracking-wider mb-1" style={{ color: 'var(--muted)' }}>
+                        Notes
+                      </p>
+                      <p className="text-sm" style={{ color: 'var(--text)' }}>
+                        {item.data.notes}
+                      </p>
+                    </div>
+                  )}
+
+                  {/* Submissions stats */}
+                  {((item.data?.submissions_for ?? 0) > 0 || (item.data?.submissions_against ?? 0) > 0) && (
+                    <div className="flex items-center gap-4">
+                      {(item.data?.submissions_for ?? 0) > 0 && (
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: 'var(--muted)' }}>
+                            Subs Hit
+                          </span>
+                          <span className="text-sm font-bold" style={{ color: '#10B981' }}>
+                            {item.data?.submissions_for}
+                          </span>
+                        </div>
+                      )}
+                      {(item.data?.submissions_against ?? 0) > 0 && (
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: 'var(--muted)' }}>
+                            Caught
+                          </span>
+                          <span className="text-sm font-bold" style={{ color: '#EF4444' }}>
+                            {item.data?.submissions_against}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
               )}
 
