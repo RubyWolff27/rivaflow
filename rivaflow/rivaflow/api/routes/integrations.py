@@ -284,24 +284,6 @@ def readiness_auto_fill(
         )
 
 
-def _fetch_live_debug(service, user_id: int, whoop_workout_id: str | None) -> dict | None:
-    """Temporary debug: fetch live workout data from WHOOP API."""
-    if not whoop_workout_id:
-        return None
-    try:
-        token = service.get_valid_access_token(user_id)
-        fresh = service.client.get_workout_by_id(token, whoop_workout_id)
-        fresh_score = fresh.get("score") or {}
-        return {
-            "score_state": fresh.get("score_state"),
-            "score_keys": list(fresh_score.keys()),
-            "zone_duration": fresh_score.get("zone_durations"),
-            "top_keys": list(fresh.keys()),
-            "has_strain": fresh_score.get("strain") is not None,
-        }
-    except Exception as e:
-        return {"error": str(e)}
-
 
 @router.get("/whoop/session/{session_id}/context")
 @route_error_handler("whoop_session_context", detail="Failed to get session context")
@@ -379,7 +361,6 @@ def get_session_context(
     # Find workout linked to session (or fall back to date match)
     workout_data = None
     wo = WhoopWorkoutCacheRepository.get_by_session_id(session_id)
-    wo_source = "linked" if wo else None
     if not wo:
         # Fall back: find workout on same day
         from datetime import timedelta
@@ -395,7 +376,6 @@ def get_session_context(
             )
             if candidates:
                 wo = candidates[0]
-                wo_source = "date_match"
                 # Link it for future lookups
                 if wo.get("id"):
                     WhoopWorkoutCacheRepository.link_to_session(wo["id"], session_id)
@@ -404,15 +384,12 @@ def get_session_context(
 
     if wo:
         zones = wo.get("zone_durations")
-        zone_source = "cache" if zones else None
-        # Fallback: extract zone_duration from raw_data if not cached directly
+        # Fallback: extract zone_durations from raw_data if not cached directly
         if not zones and wo.get("raw_data"):
             raw = wo["raw_data"]
             if isinstance(raw, dict):
                 score = raw.get("score") or {}
                 zones = score.get("zone_durations")
-                if zones:
-                    zone_source = "raw_data"
         # Auto-refresh from WHOOP API if zone data is missing
         if not zones and wo.get("whoop_workout_id"):
             try:
@@ -421,7 +398,6 @@ def get_session_context(
                 fresh_score = fresh.get("score") or {}
                 zones = fresh_score.get("zone_durations")
                 if zones:
-                    zone_source = "api_refresh"
                     # Update cache for future requests
                     import json
 
@@ -465,30 +441,11 @@ def get_session_context(
             "kilojoules": wo.get("kilojoules"),
             "sport_name": wo.get("sport_name"),
             "percent_recorded": percent_recorded,
-            "_debug": {
-                "zone_source": zone_source,
-                "cache_zone_durations": wo.get("zone_durations"),
-                "cache_zone_type": type(wo.get("zone_durations")).__name__,
-                "raw_data_zone": (
-                    wo["raw_data"].get("score", {}).get("zone_durations")
-                    if isinstance(wo.get("raw_data"), dict) else None
-                ),
-                "raw_data_score_keys": (
-                    list((wo["raw_data"].get("score") or {}).keys())
-                    if isinstance(wo.get("raw_data"), dict) else None
-                ),
-                "whoop_workout_id": wo.get("whoop_workout_id"),
-                "wo_source": wo_source,
-                "live_api": _fetch_live_debug(service, user_id, wo.get("whoop_workout_id")),
-            },
         }
         logger.info(
-            "Session %s context: workout=%s score_state=%s "
-            "zone_source=%s has_raw=%s",
+            "Session %s context: workout found score_state=%s has_raw=%s",
             session_id,
-            wo_source,
             wo.get("score_state"),
-            zone_source,
             bool(wo.get("raw_data")),
         )
     else:
@@ -498,76 +455,52 @@ def get_session_context(
             s_date,
         )
 
-    return {"recovery": recovery_data, "workout": workout_data}
+    # ISC-26,27: Compute user averages for contextual comparison
+    user_averages = None
+    try:
+        from rivaflow.db.repositories.session_repo import SessionRepository
 
-
-@router.get("/whoop/session/{session_id}/debug-zones")
-@route_error_handler("whoop_debug_zones", detail="Failed to debug zones")
-def debug_session_zones(
-    request: Request,
-    session_id: int,
-    current_user: dict = Depends(get_current_user),
-    service: WhoopService = Depends(get_whoop_service),
-    session_svc: SessionService = Depends(get_session_service),
-):
-    """Debug endpoint: show raw zone data from cache and live API."""
-    _require_whoop_enabled()
-    user_id = current_user["id"]
-
-    from rivaflow.db.repositories.whoop_workout_cache_repo import (
-        WhoopWorkoutCacheRepository,
-    )
-
-    session = session_svc.get_session(user_id, session_id)
-    if not session:
-        raise NotFoundError("Session not found")
-
-    wo = WhoopWorkoutCacheRepository.get_by_session_id(session_id)
-    cache_info = None
-    live_info = None
-
-    if wo:
-        cache_info = {
-            "id": wo.get("id"),
-            "whoop_workout_id": wo.get("whoop_workout_id"),
-            "score_state": wo.get("score_state"),
-            "zone_durations": wo.get("zone_durations"),
-            "zone_durations_type": type(wo.get("zone_durations")).__name__,
-            "strain": wo.get("strain"),
-            "raw_data_has_score": bool(
-                wo.get("raw_data", {}).get("score") if isinstance(wo.get("raw_data"), dict) else False
+        all_sessions = SessionRepository.list_by_user(user_id, limit=500)
+        class_type = session.get("class_type", "")
+        strain_vals = [
+            float(s["whoop_strain"])
+            for s in all_sessions
+            if s.get("whoop_strain") is not None
+        ]
+        class_strain_vals = [
+            float(s["whoop_strain"])
+            for s in all_sessions
+            if s.get("whoop_strain") is not None and s.get("class_type") == class_type
+        ]
+        hr_vals = [
+            float(s["whoop_avg_hr"])
+            for s in all_sessions
+            if s.get("whoop_avg_hr") is not None
+        ]
+        user_averages = {
+            "avg_strain": (
+                round(sum(strain_vals) / len(strain_vals), 1) if strain_vals else None
             ),
-            "raw_zone_duration": (
-                wo["raw_data"].get("score", {}).get("zone_durations")
-                if isinstance(wo.get("raw_data"), dict) else None
+            "avg_strain_class_type": (
+                round(sum(class_strain_vals) / len(class_strain_vals), 1)
+                if class_strain_vals
+                else None
             ),
+            "class_type": class_type,
+            "avg_hr": (
+                round(sum(hr_vals) / len(hr_vals)) if hr_vals else None
+            ),
+            "session_count": len(all_sessions),
         }
-
-        # Live fetch from WHOOP API
-        if wo.get("whoop_workout_id"):
-            try:
-                token = service.get_valid_access_token(user_id)
-                fresh = service.client.get_workout_by_id(
-                    token, wo["whoop_workout_id"]
-                )
-                fresh_score = fresh.get("score") or {}
-                live_info = {
-                    "score_state": fresh.get("score_state"),
-                    "zone_duration": fresh_score.get("zone_durations"),
-                    "strain": fresh_score.get("strain"),
-                    "score_keys": list(fresh_score.keys()) if fresh_score else [],
-                    "top_level_keys": list(fresh.keys()),
-                }
-            except Exception as e:
-                live_info = {"error": str(e)}
+    except Exception:
+        logger.warning("Failed to compute user averages", exc_info=True)
 
     return {
-        "session_id": session_id,
-        "session_date": session.get("session_date"),
-        "workout_found": wo is not None,
-        "cache": cache_info,
-        "live_api": live_info,
+        "recovery": recovery_data,
+        "workout": workout_data,
+        "user_averages": user_averages,
     }
+
 
 
 @router.get("/whoop/zones/batch")
@@ -581,6 +514,9 @@ def get_zones_batch(
     """Get HR zone data for multiple sessions at once."""
     _require_whoop_enabled()
 
+    from rivaflow.db.repositories.whoop_recovery_cache_repo import (
+        WhoopRecoveryCacheRepository,
+    )
     from rivaflow.db.repositories.whoop_workout_cache_repo import (
         WhoopWorkoutCacheRepository,
     )
@@ -598,31 +534,50 @@ def get_zones_batch(
     owned_list = [sid for sid in ids if sid in owned_ids]
     workouts_map = WhoopWorkoutCacheRepository.get_by_session_ids(owned_list)
 
+    # Batch fetch recovery scores by session dates (single query)
+    sessions_for_recovery = session_svc.session_repo.get_by_ids(user_id, owned_list)
+    recovery_by_date: dict[str, float | None] = {}
+    if sessions_for_recovery:
+        dates = [str(s.get("session_date", ""))[:10] for s in sessions_for_recovery]
+        if dates:
+            min_date = min(dates)
+            max_date = max(dates)
+            recs = WhoopRecoveryCacheRepository.get_by_date_range(
+                user_id, min_date, max_date + "T23:59:59"
+            )
+            for rec in recs:
+                cycle_date = str(rec.get("cycle_start", ""))[:10]
+                recovery_by_date[cycle_date] = rec.get("recovery_score")
+    # Map session_id → session_date for recovery lookup
+    sid_to_date: dict[int, str] = {}
+    for s in (sessions_for_recovery or []):
+        sid_to_date[s["id"]] = str(s.get("session_date", ""))[:10]
+
     result: dict[str, dict | None] = {}
     for sid in ids:
         if sid not in owned_ids:
             result[str(sid)] = None
             continue
         wo = workouts_map.get(sid)
-        if not wo:
-            result[str(sid)] = None
-            continue
-        zones = wo.get("zone_durations")
-        if not zones and wo.get("raw_data"):
-            raw = wo["raw_data"]
-            if isinstance(raw, dict):
-                score = raw.get("score") or {}
-                zones = score.get("zone_durations")
-        result[str(sid)] = (
-            {
+        entry: dict = {}
+        if wo:
+            zones = wo.get("zone_durations")
+            if not zones and wo.get("raw_data"):
+                raw = wo["raw_data"]
+                if isinstance(raw, dict):
+                    score = raw.get("score") or {}
+                    zones = score.get("zone_durations")
+            entry = {
                 "zone_durations": zones,
                 "strain": wo.get("strain"),
                 "calories": wo.get("calories"),
                 "score_state": wo.get("score_state"),
             }
-            if zones or wo.get("score_state")
-            else None
-        )
+        # Add recovery score by session date
+        s_date = sid_to_date.get(sid, "")
+        if s_date and s_date in recovery_by_date:
+            entry["recovery_score"] = recovery_by_date[s_date]
+        result[str(sid)] = entry if entry else None
 
     return {"zones": result}
 

@@ -275,6 +275,7 @@ export interface SessionTechnique {
   technique_number: number;
   notes?: string;
   media_urls?: MediaUrl[];
+  train_count?: number;  // How many sessions this technique has been trained
   created_at?: string;
 }
 
@@ -728,6 +729,13 @@ export interface WhoopSessionContext {
     kilojoules?: number | null;
     sport_name?: string | null;
     percent_recorded?: number | null;
+  } | null;
+  user_averages?: {
+    avg_strain: number | null;
+    avg_strain_class_type: number | null;
+    class_type: string;
+    avg_hr: number | null;
+    session_count: number;
   } | null;
 }
 

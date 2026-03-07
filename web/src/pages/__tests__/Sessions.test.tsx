@@ -143,18 +143,16 @@ describe('Sessions', () => {
     expect(screen.getByText('Alliance BJJ')).toBeInTheDocument()
   })
 
-  it('shows stats overview with correct totals', async () => {
+  it('shows stats overview labels', async () => {
     mockList.mockResolvedValueOnce({ data: sampleSessions })
     renderSessions()
 
     await waitFor(() => {
-      expect(screen.getByText('3')).toBeInTheDocument() // Total sessions
+      expect(screen.getByText('This Week')).toBeInTheDocument()
+      expect(screen.getByText('Avg Score')).toBeInTheDocument()
+      expect(screen.getByText('Streak')).toBeInTheDocument()
+      expect(screen.getByText('Weekly Hours')).toBeInTheDocument()
     })
-
-    // Total hours = (60 + 90 + 75) / 60 = 3.75 -> 3.8
-    expect(screen.getByText('3.8')).toBeInTheDocument()
-    // Total rolls = 5 + 8 + 4 = 17
-    expect(screen.getByText('17')).toBeInTheDocument()
   })
 
   it('shows page title "All Sessions"', async () => {
@@ -316,12 +314,13 @@ describe('Sessions', () => {
     expect(forSpan!.textContent).toBe('2')
   })
 
-  it('renders session notes preview', async () => {
+  it('renders session story preview', async () => {
     mockList.mockResolvedValueOnce({ data: [sampleSessions[0]] })
     renderSessions()
 
     await waitFor(() => {
-      expect(screen.getByText('Good session')).toBeInTheDocument()
+      // Story preview format: "60min Gi · 5 rolls"
+      expect(screen.getByText(/60min Gi/)).toBeInTheDocument()
     })
   })
 
@@ -360,10 +359,10 @@ describe('Sessions', () => {
     renderSessions()
 
     await waitFor(() => {
-      expect(screen.getByText('Total Sessions')).toBeInTheDocument()
-      expect(screen.getByText('Total Hours')).toBeInTheDocument()
-      expect(screen.getByText('Total Rolls')).toBeInTheDocument()
-      expect(screen.getByText('Avg Intensity')).toBeInTheDocument()
+      expect(screen.getByText('This Week')).toBeInTheDocument()
+      expect(screen.getByText('Avg Score')).toBeInTheDocument()
+      expect(screen.getByText('Streak')).toBeInTheDocument()
+      expect(screen.getByText('Weekly Hours')).toBeInTheDocument()
     })
   })
 })

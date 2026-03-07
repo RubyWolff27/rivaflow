@@ -171,6 +171,22 @@ class SessionRepository(BaseRepository):
         return {r["id"] for r in rows}
 
     @staticmethod
+    def get_by_ids(user_id: int, session_ids: list[int]) -> list[dict]:
+        """Return id and session_date for owned sessions."""
+        if not session_ids:
+            return []
+        placeholders = ",".join("?" for _ in session_ids)
+        with get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                convert_query(
+                    f"SELECT id, session_date FROM sessions WHERE user_id = ? AND id IN ({placeholders})"
+                ),
+                (user_id, *session_ids),
+            )
+            return [dict(r) for r in cursor.fetchall()]
+
+    @staticmethod
     def get_by_id_any_user(session_id: int) -> dict | None:
         """Get a session by ID without user scope (for validation/privacy checks)."""
         with get_connection() as conn:

@@ -180,6 +180,23 @@ class SessionTechniqueRepository(BaseRepository):
             return dict(row)["cnt"] if row else 0
 
     @staticmethod
+    def count_all_movements_for_user(user_id: int) -> dict[int, int]:
+        """Count how many sessions each movement has been trained in for a user."""
+        with get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                convert_query("""
+                    SELECT st.movement_id, COUNT(DISTINCT st.session_id) as train_count
+                    FROM session_techniques st
+                    JOIN sessions s ON s.id = st.session_id
+                    WHERE s.user_id = ?
+                    GROUP BY st.movement_id
+                """),
+                (user_id,),
+            )
+            return {dict(row)["movement_id"]: dict(row)["train_count"] for row in cursor.fetchall()}
+
+    @staticmethod
     def batch_get_by_session_ids(session_ids: list[int]) -> dict:
         """
         Batch load techniques for multiple sessions with movement names.

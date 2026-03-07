@@ -308,6 +308,23 @@ class SessionService:
         rolls = self.roll_repo.get_by_session_id(user_id, session_id)
         session["detailed_rolls"] = rolls
 
+        # ISC-29: Add technique train counts
+        if session.get("session_techniques"):
+            try:
+                from rivaflow.db.repositories.session_technique_repo import (
+                    SessionTechniqueRepository,
+                )
+
+                counts = SessionTechniqueRepository.count_all_movements_for_user(
+                    user_id
+                )
+                for tech in session["session_techniques"]:
+                    mid = tech.get("movement_id")
+                    if mid:
+                        tech["train_count"] = counts.get(mid, 0)
+            except Exception:
+                pass  # non-critical
+
         return session
 
     def get_session_with_details(

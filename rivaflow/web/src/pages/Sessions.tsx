@@ -4,7 +4,7 @@ import { Link } from 'react-router-dom';
 import { sessionsApi, whoopApi } from '../api/client';
 import { logger } from '../utils/logger';
 import type { Session } from '../types';
-import { Calendar, MapPin, Clock, Activity, Target, Filter, Search } from 'lucide-react';
+import { Calendar, MapPin, Clock, Activity, Target, Filter, Search, Zap } from 'lucide-react';
 import { CardSkeleton, EmptyState } from '../components/ui';
 import { useToast } from '../contexts/ToastContext';
 import MiniZoneBar from '../components/MiniZoneBar';
@@ -14,9 +14,20 @@ import { formatClassType, ACTIVITY_COLORS } from '../constants/activity';
 import { pluralize } from '../utils/text';
 import { GYM_TYPES, SPARRING_TYPES } from '../components/sessions/sessionTypes';
 
-type ZoneData = { zone_durations: Record<string, number> | null; strain: number | null; calories: number | null; score_state: string | null };
+type ZoneData = { zone_durations: Record<string, number> | null; strain: number | null; calories: number | null; score_state: string | null; recovery_score?: number | null };
 
 const SESSIONS_PER_PAGE = 20;
+
+/** One-line session story for list cards. */
+function sessionStoryPreview(session: Session): string {
+  const duration = session.duration_mins ?? 0;
+  const classType = formatClassType(session.class_type);
+  const rolls = session.rolls ?? 0;
+  let story = `${duration}min ${classType}`;
+  if (rolls > 0) story += ` · ${rolls} roll${rolls !== 1 ? 's' : ''}`;
+  if (session.whoop_strain != null) story += ` · Strain ${Number(session.whoop_strain).toFixed(1)}`;
+  return story;
+}
 
 export default function Sessions() {
   usePageTitle('Sessions');
@@ -114,17 +125,58 @@ export default function Sessions() {
     [sessions]
   );
 
-  const stats = useMemo(() => ({
-    total: sessions.length,
-    totalHours: sessions.reduce((sum, s) => sum + (s.duration_mins ?? 0), 0) / 60,
-    totalRolls: sessions.reduce((sum, s) => sum + (s.rolls ?? 0), 0),
-    avgIntensity: (() => {
-      const rated = sessions.filter(s => (s.intensity ?? 0) > 0);
-      return rated.length > 0
-        ? rated.reduce((sum, s) => sum + (s.intensity ?? 0), 0) / rated.length
-        : 0;
-    })(),
-  }), [sessions]);
+  const stats = useMemo(() => {
+    const now = new Date();
+    const startOfWeek = new Date(now);
+    startOfWeek.setDate(now.getDate() - now.getDay());
+    startOfWeek.setHours(0, 0, 0, 0);
+    const startOfLastWeek = new Date(startOfWeek);
+    startOfLastWeek.setDate(startOfLastWeek.getDate() - 7);
+
+    const thisWeek = sessions.filter(s => new Date(s.session_date) >= startOfWeek);
+    const lastWeek = sessions.filter(s => {
+      const d = new Date(s.session_date);
+      return d >= startOfLastWeek && d < startOfWeek;
+    });
+
+    // Average score this week vs last week
+    const scoredThisWeek = thisWeek.filter(s => s.session_score != null && s.session_score > 0);
+    const scoredLastWeek = lastWeek.filter(s => s.session_score != null && s.session_score > 0);
+    const avgScoreThisWeek = scoredThisWeek.length > 0
+      ? scoredThisWeek.reduce((sum, s) => sum + (s.session_score ?? 0), 0) / scoredThisWeek.length
+      : 0;
+    const avgScoreLastWeek = scoredLastWeek.length > 0
+      ? scoredLastWeek.reduce((sum, s) => sum + (s.session_score ?? 0), 0) / scoredLastWeek.length
+      : 0;
+
+    // Training streak (consecutive days with at least one session)
+    let streak = 0;
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const sessionDates = new Set(sessions.map(s => new Date(s.session_date).toDateString()));
+    for (let d = new Date(today); ; d.setDate(d.getDate() - 1)) {
+      if (sessionDates.has(d.toDateString())) {
+        streak++;
+      } else {
+        // Allow skipping today if no session yet
+        if (d.getTime() === today.getTime()) continue;
+        break;
+      }
+    }
+
+    // Weekly hours comparison
+    const hoursThisWeek = thisWeek.reduce((sum, s) => sum + (s.duration_mins ?? 0), 0) / 60;
+    const hoursLastWeek = lastWeek.reduce((sum, s) => sum + (s.duration_mins ?? 0), 0) / 60;
+
+    return {
+      sessionsThisWeek: thisWeek.length,
+      avgScore: avgScoreThisWeek,
+      scoreTrend: avgScoreThisWeek - avgScoreLastWeek,
+      streak,
+      hoursThisWeek,
+      hoursLastWeek,
+    };
+  }, [sessions]);
 
   if (loading) {
     return (
@@ -151,23 +203,37 @@ export default function Sessions() {
       {/* Today's Classes */}
       <TodayClassesWidget />
 
-      {/* Stats Overview */}
+      {/* ISC-22,23,24,25: Trailing Stats Bar */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <div className="card">
-          <p className="text-sm text-[var(--muted)] mb-1">Total Sessions</p>
-          <p className="text-2xl font-bold text-[var(--text)]">{stats.total}</p>
+          <p className="text-sm text-[var(--muted)] mb-1">This Week</p>
+          <p className="text-2xl font-bold text-[var(--text)]">{stats.sessionsThisWeek} <span className="text-sm font-normal text-[var(--muted)]">{stats.sessionsThisWeek === 1 ? 'session' : 'sessions'}</span></p>
         </div>
         <div className="card">
-          <p className="text-sm text-[var(--muted)] mb-1">Total Hours</p>
-          <p className="text-2xl font-bold text-[var(--text)]">{stats.totalHours.toFixed(1)}</p>
+          <p className="text-sm text-[var(--muted)] mb-1">Avg Score</p>
+          <div className="flex items-baseline gap-2">
+            <p className="text-2xl font-bold text-[var(--text)]">{stats.avgScore > 0 ? Math.round(stats.avgScore) : '—'}</p>
+            {stats.scoreTrend !== 0 && stats.avgScore > 0 && (
+              <span className={`text-sm font-medium ${stats.scoreTrend > 0 ? 'text-emerald-500' : 'text-red-400'}`}>
+                {stats.scoreTrend > 0 ? '↑' : '↓'}{Math.abs(Math.round(stats.scoreTrend))}
+              </span>
+            )}
+          </div>
         </div>
         <div className="card">
-          <p className="text-sm text-[var(--muted)] mb-1">Total Rolls</p>
-          <p className="text-2xl font-bold text-[var(--text)]">{stats.totalRolls}</p>
+          <p className="text-sm text-[var(--muted)] mb-1">Streak</p>
+          <p className="text-2xl font-bold text-[var(--text)]">{stats.streak} <span className="text-sm font-normal text-[var(--muted)]">{stats.streak === 1 ? 'day' : 'days'}</span></p>
         </div>
         <div className="card">
-          <p className="text-sm text-[var(--muted)] mb-1">Avg Intensity</p>
-          <p className="text-2xl font-bold text-[var(--text)]">{stats.avgIntensity.toFixed(1)}/5</p>
+          <p className="text-sm text-[var(--muted)] mb-1">Weekly Hours</p>
+          <div className="flex items-baseline gap-2">
+            <p className="text-2xl font-bold text-[var(--text)]">{stats.hoursThisWeek.toFixed(1)}</p>
+            {stats.hoursLastWeek > 0 && (
+              <span className="text-xs text-[var(--muted)]">
+                vs {stats.hoursLastWeek.toFixed(1)} last wk
+              </span>
+            )}
+          </div>
         </div>
       </div>
 
@@ -321,18 +387,44 @@ export default function Sessions() {
                   </div>
                 )}
 
+                {/* ISC-18,19: Strain + Recovery indicators */}
+                {(session.whoop_strain != null || zoneMap[String(session.id)]?.recovery_score != null) && (
+                  <div className="flex items-center gap-3 pt-2 border-t border-[var(--border)]">
+                    {session.whoop_strain != null && (
+                      <span
+                        className="px-2 py-0.5 rounded-full text-xs font-bold flex items-center gap-1"
+                        style={{
+                          backgroundColor: session.whoop_strain <= 7 ? '#10B98120' : session.whoop_strain <= 14 ? '#F59E0B20' : '#EF444420',
+                          color: session.whoop_strain <= 7 ? '#10B981' : session.whoop_strain <= 14 ? '#F59E0B' : '#EF4444',
+                        }}
+                      >
+                        <Zap className="w-3 h-3" />
+                        {Number(session.whoop_strain).toFixed(1)}
+                      </span>
+                    )}
+                    {zoneMap[String(session.id)]?.recovery_score != null && (() => {
+                      const score = zoneMap[String(session.id)]!.recovery_score!;
+                      const color = score >= 67 ? '#10B981' : score >= 34 ? '#F59E0B' : '#EF4444';
+                      return (
+                        <span className="flex items-center gap-1 text-xs">
+                          <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: color }} />
+                          <span style={{ color }}>{Math.round(score)}%</span>
+                        </span>
+                      );
+                    })()}
+                  </div>
+                )}
+
+                {/* ISC-30: Session story preview */}
+                <p className="text-xs text-[var(--muted)] mt-2">
+                  {sessionStoryPreview(session)}
+                </p>
+
                 {/* HR Zone Mini Bar */}
                 {zoneMap[String(session.id)]?.zone_durations && (
                   <div className="pt-2 border-t border-[var(--border)]">
                     <MiniZoneBar zones={zoneMap[String(session.id)]!.zone_durations!} />
                   </div>
-                )}
-
-                {/* Notes Preview */}
-                {session.notes && (
-                  <p className="text-xs text-[var(--muted)] mt-2 line-clamp-2">
-                    {session.notes}
-                  </p>
                 )}
               </Link>
             ))}
