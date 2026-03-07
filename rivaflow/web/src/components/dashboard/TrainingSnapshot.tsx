@@ -71,8 +71,11 @@ function ProfileCard({ profile, totalSessions, totalHours, totalRolls }: {
         </p>
       )}
 
-      {/* Stats row — like Strava's Following / Followers / Activities */}
-      <div className="flex items-center justify-center gap-6 mt-3 pt-3 w-full" style={{ borderTop: '1px solid var(--border)' }}>
+      {/* Stats row — this week's training */}
+      <p className="text-[10px] uppercase tracking-wide mt-3 pt-3" style={{ color: 'var(--muted)', borderTop: '1px solid var(--border)' }}>
+        This Week
+      </p>
+      <div className="flex items-center justify-center gap-6 mt-1 w-full">
         <div>
           <p className="text-base font-bold tabular-nums" style={{ color: 'var(--text)' }}>{totalSessions}</p>
           <p className="text-[10px] uppercase tracking-wide" style={{ color: 'var(--muted)' }}>Sessions</p>

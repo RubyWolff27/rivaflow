@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { sessionsApi, dashboardApi, profileApi } from '../api/client';
+import { sessionsApi, profileApi } from '../api/client';
 import type { Session } from '../types';
 
 export interface WeekDay {
@@ -79,7 +79,6 @@ export function useTrainingSnapshot(): TrainingSnapshotData {
 
       const results = await Promise.allSettled([
         sessionsApi.getByRange(formatDate(monday), formatDate(sunday)),
-        dashboardApi.getWeekSummary(0),
         profileApi.get(),
         sessionsApi.list(1),
       ]);
@@ -93,45 +92,47 @@ export function useTrainingSnapshot(): TrainingSnapshotData {
         return { label, date: formatDate(date), sessions: [] };
       });
 
+      const typeCounts: Record<string, number> = {};
       const typeHours: Record<string, number> = {};
       let weekRolls = 0;
+      let weekSessions = 0;
+      let weekHours = 0;
 
       if (results[0].status === 'fulfilled') {
         const sessions: Session[] = Array.isArray(results[0].value.data)
           ? results[0].value.data
           : [];
+        weekSessions = sessions.length;
         for (const s of sessions) {
           const day = days.find(d => d.date === s.session_date);
           if (day) {
             day.sessions.push({ class_type: s.class_type, duration_mins: s.duration_mins });
           }
-          typeHours[s.class_type] = (typeHours[s.class_type] || 0) + (s.duration_mins || 0) / 60;
+          const hrs = (s.duration_mins || 0) / 60;
+          typeHours[s.class_type] = (typeHours[s.class_type] || 0) + hrs;
+          typeCounts[s.class_type] = (typeCounts[s.class_type] || 0) + 1;
+          weekHours += hrs;
           weekRolls += s.rolls || 0;
         }
       }
       setWeekDays(days);
+      setTotalSessions(weekSessions);
+      setTotalHours(weekHours);
       setTotalRolls(weekRolls);
 
-      // Build volume breakdown from week stats
-      if (results[1].status === 'fulfilled') {
-        const stats = results[1].value.data?.stats;
-        if (stats?.class_types) {
-          const vols: ClassTypeVolume[] = Object.entries(stats.class_types as Record<string, number>)
-            .map(([type, count]) => ({
-              type,
-              count,
-              hours: typeHours[type] || 0,
-            }))
-            .sort((a, b) => b.count - a.count);
-          setVolumes(vols);
-          setTotalSessions(stats.total_sessions || 0);
-          setTotalHours(stats.total_hours || 0);
-        }
-      }
+      // Build volume breakdown from session data
+      const vols: ClassTypeVolume[] = Object.entries(typeCounts)
+        .map(([type, count]) => ({
+          type,
+          count,
+          hours: typeHours[type] || 0,
+        }))
+        .sort((a, b) => b.count - a.count);
+      setVolumes(vols);
 
       // Profile
-      if (results[2].status === 'fulfilled') {
-        const p = results[2].value.data;
+      if (results[1].status === 'fulfilled') {
+        const p = results[1].value.data;
         setProfile({
           first_name: p.first_name || '',
           last_name: p.last_name || '',
@@ -141,8 +142,8 @@ export function useTrainingSnapshot(): TrainingSnapshotData {
       }
 
       // Last session
-      if (results[3].status === 'fulfilled') {
-        const list = results[3].value.data;
+      if (results[2].status === 'fulfilled') {
+        const list = results[2].value.data;
         const sessions: Session[] = Array.isArray(list) ? list : [];
         if (sessions.length > 0) {
           const s = sessions[0];

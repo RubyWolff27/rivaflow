@@ -188,10 +188,10 @@ describe('Dashboard - loaded state details', () => {
     })
   })
 
-  it('renders the last-session widget', async () => {
+  it('renders the week-comparison widget in main column', async () => {
     renderDashboard()
     await waitFor(() => {
-      expect(screen.getByTestId('last-session')).toBeInTheDocument()
+      expect(screen.getByTestId('week-comparison')).toBeInTheDocument()
     })
   })
 

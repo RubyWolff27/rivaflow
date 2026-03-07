@@ -5,7 +5,6 @@ import { profileApi } from '../api/client';
 import { logger } from '../utils/logger';
 import { refreshIfStale } from '../utils/insightRefresh';
 import { CardSkeleton } from '../components/ui';
-import { LastSession } from '../components/dashboard/LastSession';
 import GreetingBar from '../components/dashboard/GreetingBar';
 import HeroScore from '../components/dashboard/HeroScore';
 import ActiveCheckinPrompt from '../components/dashboard/ActiveCheckinPrompt';
@@ -67,7 +66,7 @@ export default function Dashboard() {
         <GettingStarted />
 
         {/* 2-column layout: sidebar + main */}
-        <div className="lg:grid lg:grid-cols-[320px_1fr] lg:gap-5 space-y-4 lg:space-y-0">
+        <div className="lg:grid lg:grid-cols-[320px_1fr] lg:gap-4 space-y-4 lg:space-y-0">
           {/* Left: Training Snapshot sidebar */}
           <TrainingSnapshot
             readinessScore={data.readinessScore}
@@ -101,9 +100,6 @@ export default function Dashboard() {
 
             {/* Week-over-week comparison */}
             <WeekComparison />
-
-            {/* Last session */}
-            <LastSession />
           </div>
         </div>
       </ErrorBoundary>
