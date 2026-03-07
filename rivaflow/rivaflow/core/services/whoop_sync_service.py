@@ -115,12 +115,20 @@ def sync_workouts(self: WhoopService, user_id: int, days_back: int = 7) -> dict:
     except Exception:
         logger.warning("Timezone backfill failed", exc_info=True)
 
+    # Backfill HR zones for workouts where WHOOP was still processing
+    zones_backfilled = 0
+    try:
+        zones_backfilled = _backfill_missing_zones(self, user_id, all_workouts)
+    except Exception:
+        logger.warning("Zone backfill failed", exc_info=True)
+
     return {
         "total_fetched": len(all_workouts),
         "created": created,
         "updated": updated,
         "auto_sessions_created": len(auto_created),
         "tz_fixed": tz_fixed,
+        "zones_backfilled": zones_backfilled,
     }
 
 
@@ -379,6 +387,110 @@ def auto_fill_readiness_from_recovery(self: WhoopService, user_id: int) -> dict 
         data_source="whoop",
     )
     return fill_data
+
+
+def _backfill_missing_zones(
+    self: WhoopService, user_id: int, already_fetched: list[dict]
+) -> int:
+    """Re-fetch workouts that were cached without HR zone data.
+
+    When WHOOP is still processing a workout (score_state=PENDING_STRAIN),
+    zone_durations will be null on first sync. This backfill finds those
+    entries and extends the sync window to cover them, so zones get
+    populated on subsequent syncs without manual intervention.
+    """
+    from rivaflow.db.repositories.whoop_workout_cache_repo import (
+        WhoopWorkoutCacheRepository,
+    )
+
+    missing = WhoopWorkoutCacheRepository.get_workouts_missing_zones(user_id)
+    if not missing:
+        return 0
+
+    # Build set of whoop_workout_ids we already fetched this sync
+    already_ids = {str(w.get("id", "")) for w in already_fetched}
+
+    # Filter to workouts NOT already covered by the current sync window
+    need_backfill = [
+        w for w in missing if str(w.get("whoop_workout_id", "")) not in already_ids
+    ]
+    if not need_backfill:
+        return 0
+
+    # Find the oldest missing workout and extend sync to cover it
+    oldest_start = min(w.get("start_time", "") for w in need_backfill)
+    if not oldest_start:
+        return 0
+
+    try:
+        oldest_dt = datetime.fromisoformat(oldest_start.replace("Z", "+00:00"))
+        if oldest_dt.tzinfo is None:
+            oldest_dt = oldest_dt.replace(tzinfo=UTC)
+        days_needed = (datetime.now(UTC) - oldest_dt).days + 1
+        days_needed = min(days_needed, 90)  # API max
+    except (ValueError, TypeError):
+        days_needed = 30
+
+    logger.info(
+        "Zone backfill: user=%s missing=%d extending sync to %d days",
+        user_id,
+        len(need_backfill),
+        days_needed,
+    )
+
+    access_token = self.get_valid_access_token(user_id)
+    start = (datetime.now(UTC) - timedelta(days=days_needed)).isoformat()
+    end = datetime.now(UTC).isoformat()
+
+    backfill_workouts = []
+    next_token = None
+    while True:
+        data = self.client.get_workouts(
+            access_token, start=start, end=end, next_token=next_token
+        )
+        records = data.get("records", [])
+        backfill_workouts.extend(records)
+        next_token = data.get("next_token")
+        if not next_token or len(records) == 0:
+            break
+
+    # Only upsert workouts that we need zones for
+    missing_ids = {str(w.get("whoop_workout_id", "")) for w in need_backfill}
+    backfilled = 0
+    for workout in backfill_workouts:
+        wid = str(workout.get("id", ""))
+        if wid not in missing_ids:
+            continue
+        score = workout.get("score", {}) or {}
+        zone_durations = score.get("zone_duration")
+        if not zone_durations:
+            continue  # Still no zones — WHOOP may still be processing
+
+        kj = score.get("kilojoule")
+        calories = round(kj / 4.184) if kj else None
+
+        self.workout_cache_repo.upsert(
+            user_id=user_id,
+            whoop_workout_id=wid,
+            start_time=workout.get("start", ""),
+            end_time=workout.get("end", ""),
+            sport_id=workout.get("sport_id"),
+            sport_name=workout.get("sport_name"),
+            timezone_offset=workout.get("timezone_offset"),
+            strain=score.get("strain"),
+            avg_heart_rate=score.get("average_heart_rate"),
+            max_heart_rate=score.get("max_heart_rate"),
+            kilojoules=kj,
+            calories=calories,
+            score_state=workout.get("score_state"),
+            zone_durations=zone_durations,
+            raw_data=workout,
+        )
+        backfilled += 1
+
+    if backfilled:
+        logger.info("Zone backfill: user=%s backfilled=%d", user_id, backfilled)
+    return backfilled
 
 
 def backfill_session_timezones(self: WhoopService, user_id: int) -> int:

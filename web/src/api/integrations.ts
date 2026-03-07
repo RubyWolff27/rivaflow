@@ -16,8 +16,8 @@ export const whoopApi = {
     api.get<WhoopConnectionStatus>('/integrations/whoop/status'),
   getAuthorizeUrl: () =>
     api.get<{ authorization_url: string }>('/integrations/whoop/authorize'),
-  sync: () =>
-    api.post<{ total_fetched: number; created: number; updated: number; auto_sessions_created: number }>('/integrations/whoop/sync'),
+  sync: (days = 14) =>
+    api.post<{ total_fetched: number; created: number; updated: number; auto_sessions_created: number; zones_backfilled: number }>(`/integrations/whoop/sync?days=${days}`),
   getWorkouts: (params?: { session_id?: number; session_date?: string; class_time?: string; duration_mins?: number }) =>
     api.get<{ workouts: WhoopWorkoutMatch[]; count: number }>('/integrations/whoop/workouts', { params }),
   matchWorkout: (data: { session_id: number; workout_cache_id: number }) =>
