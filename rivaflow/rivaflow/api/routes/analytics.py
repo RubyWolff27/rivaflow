@@ -150,14 +150,32 @@ def get_weekly_summary(
     total_minutes = sum(s.get("duration_mins", 0) or 0 for s in sessions)
     total_hours = round(total_minutes / 60, 1)
 
-    # Get streak info
-    streak_days = 0
+    # Compute week streak: consecutive weeks with at least one session
+    streak_weeks = 0
     try:
-        from rivaflow.core.services.streak_service import StreakService
+        all_sessions = session_repo.get_by_date_range(
+            current_user["id"],
+            today - timedelta(days=365),
+            today,
+        )
+        # Build set of ISO week numbers (year, week) that have sessions
+        weeks_with_sessions: set[tuple[int, int]] = set()
+        for s in all_sessions:
+            sd = s.get("session_date")
+            if sd:
+                if isinstance(sd, str):
+                    sd = date.fromisoformat(sd)
+                weeks_with_sessions.add(sd.isocalendar()[:2])
 
-        streak_status = StreakService().get_streak_status(current_user["id"])
-        checkin = streak_status.get("checkin_streak", {})
-        streak_days = checkin.get("current_streak", 0)
+        # Count backwards from current week
+        check_date = today
+        while True:
+            iso = check_date.isocalendar()[:2]
+            if iso in weeks_with_sessions:
+                streak_weeks += 1
+                check_date -= timedelta(weeks=1)
+            else:
+                break
     except Exception:
         pass
 
@@ -167,7 +185,7 @@ def get_weekly_summary(
         "total_sessions": len(sessions),
         "total_rolls": total_rolls,
         "total_hours": total_hours,
-        "streak_days": streak_days,
+        "streak_weeks": streak_weeks,
         "class_types": dict(
             sorted(
                 (

@@ -9,7 +9,7 @@ interface WeeklySummary {
   total_sessions: number;
   total_rolls: number;
   total_hours: number;
-  streak_days: number;
+  streak_weeks: number;
   class_types: Record<string, number>;
 }
 
@@ -38,7 +38,7 @@ export default function WeeklySummaryCard() {
     try {
       await navigator.share({
         title: 'My Training Week',
-        text: `This week: ${data?.total_sessions} sessions, ${data?.total_rolls} rolls, ${data?.total_hours.toFixed(1)} hours${data?.streak_days ? `, ${data.streak_days}-day streak` : ''}`,
+        text: `This week: ${data?.total_sessions} sessions, ${data?.total_rolls} rolls, ${data?.total_hours.toFixed(1)} hours${data?.streak_weeks ? `, ${data.streak_weeks}-week streak` : ''}`,
       });
     } catch {
       logger.debug('Share cancelled or unavailable');
@@ -98,8 +98,8 @@ export default function WeeklySummaryCard() {
         </div>
         <div className="text-center">
           <Flame className="w-4 h-4 text-orange-400 mx-auto mb-1" />
-          <div className="text-lg font-bold text-white">{data.streak_days}</div>
-          <div className="text-[10px] text-blue-300/70">day streak</div>
+          <div className="text-lg font-bold text-white">{data.streak_weeks}</div>
+          <div className="text-[10px] text-blue-300/70">week streak</div>
         </div>
       </div>
 
