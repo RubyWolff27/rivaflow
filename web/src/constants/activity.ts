@@ -5,6 +5,8 @@ export const ACTIVITY_COLORS: Record<string, string> = {
   'drilling': '#F59E0B',
   'open-mat': '#10B981',
   'competition': '#EC4899',
+  'cardio': '#F97316',
+  'mobility': '#06B6D4',
 };
 
 export const ACTIVITY_LABELS: Record<string, string> = {
@@ -16,6 +18,8 @@ export const ACTIVITY_LABELS: Record<string, string> = {
   'open-mat': 'Open Mat',
   'open_mat': 'Open Mat',
   'competition': 'Competition',
+  'cardio': 'Cardio',
+  'mobility': 'Mobility',
 };
 
 /** Format a raw class_type value for display (e.g. "gi" -> "Gi", "no-gi" -> "No-Gi"). */

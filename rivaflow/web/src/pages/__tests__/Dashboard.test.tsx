@@ -34,6 +34,11 @@ vi.mock('../../api/client', () => ({
   gymsApi: {
     getTodaysClasses: vi.fn(() => Promise.resolve({ data: { classes: [] } })),
   },
+  dashboardApi: {
+    getWeekSummary: vi.fn(() => Promise.resolve({ data: { stats: { total_sessions: 0, total_hours: 0, class_types: {} } } })),
+    getSummary: vi.fn(() => Promise.resolve({ data: {} })),
+    getQuickStats: vi.fn(() => Promise.resolve({ data: {} })),
+  },
   grappleApi: {
     getInsights: vi.fn(() => Promise.resolve({ data: [] })),
   },
@@ -83,6 +88,7 @@ vi.mock('../../components/dashboard/MiddayPrompt', () => ({ default: () => <div 
 vi.mock('../../components/dashboard/EveningPrompt', () => ({ default: () => <div data-testid="evening-prompt" /> }))
 vi.mock('../../components/dashboard/CheckinBadges', () => ({ default: () => null }))
 vi.mock('../../components/dashboard/WeekComparison', () => ({ default: () => <div data-testid="week-comparison" /> }))
+vi.mock('../../components/dashboard/TrainingSnapshot', () => ({ default: () => <div data-testid="training-snapshot" /> }))
 
 import Dashboard from '../Dashboard'
 import {
@@ -123,10 +129,10 @@ describe('Dashboard', () => {
     })
   })
 
-  it('renders weekly progress', async () => {
+  it('renders training snapshot', async () => {
     renderDashboard()
     await waitFor(() => {
-      expect(screen.getByText(/this week/i)).toBeInTheDocument()
+      expect(screen.getByTestId('training-snapshot')).toBeInTheDocument()
     })
   })
 })

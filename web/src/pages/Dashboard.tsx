@@ -9,10 +9,10 @@ import { LastSession } from '../components/dashboard/LastSession';
 import GreetingBar from '../components/dashboard/GreetingBar';
 import HeroScore from '../components/dashboard/HeroScore';
 import ActiveCheckinPrompt from '../components/dashboard/ActiveCheckinPrompt';
-import WeeklyProgress from '../components/dashboard/WeeklyProgress';
 import WeekComparison from '../components/dashboard/WeekComparison';
 import QuickLinks from '../components/dashboard/QuickLinks';
 import GettingStarted from '../components/dashboard/GettingStarted';
+import TrainingSnapshot from '../components/dashboard/TrainingSnapshot';
 import ErrorBoundary from '../components/ErrorBoundary';
 
 export default function Dashboard() {
@@ -57,7 +57,7 @@ export default function Dashboard() {
     <div className="space-y-4 sm:space-y-5">
       <h1 className="sr-only">Dashboard</h1>
       <ErrorBoundary compact>
-        {/* 1. Greeting bar */}
+        {/* Greeting bar — full width above the grid */}
         <GreetingBar
           streakCount={data.streaks?.checkin.current_streak ?? 0}
           longestStreak={data.streaks?.checkin.longest_streak ?? 0}
@@ -66,36 +66,45 @@ export default function Dashboard() {
         {/* Getting Started — onboarding for new users */}
         <GettingStarted />
 
-        {/* 2. Hero score + Log Session CTA */}
-        <HeroScore
-          readinessScore={data.readinessScore}
-          whoopRecovery={data.whoopRecovery}
-          hasCheckedIn={data.hasCheckedIn}
-          suggestion={data.suggestion}
-          whoopSyncing={data.whoopSyncing}
-          onSyncWhoop={data.syncWhoop}
-          weeklyGoals={data.weeklyGoals}
-          streaks={data.streaks}
-        />
+        {/* 2-column layout: sidebar + main */}
+        <div className="lg:grid lg:grid-cols-[320px_1fr] lg:gap-5 space-y-4 lg:space-y-0">
+          {/* Left: Training Snapshot sidebar */}
+          <TrainingSnapshot
+            readinessScore={data.readinessScore}
+            streakCount={data.streaks?.checkin.current_streak ?? 0}
+          />
 
-        {/* 3. Active check-in prompt */}
-        <ActiveCheckinPrompt
-          dayCheckins={data.dayCheckins}
-          todayPlan={data.todayPlan}
-          onCheckinUpdated={data.refetchCheckins}
-        />
+          {/* Right: Main dashboard content */}
+          <div className="space-y-4 sm:space-y-5">
+            {/* Hero readiness score */}
+            <HeroScore
+              readinessScore={data.readinessScore}
+              whoopRecovery={data.whoopRecovery}
+              hasCheckedIn={data.hasCheckedIn}
+              suggestion={data.suggestion}
+              whoopSyncing={data.whoopSyncing}
+              onSyncWhoop={data.syncWhoop}
+              weeklyGoals={data.weeklyGoals}
+              streaks={data.streaks}
+            />
 
-        {/* 4. Grapple AI quick actions */}
-        <QuickLinks />
+            {/* Active check-in prompt */}
+            <ActiveCheckinPrompt
+              dayCheckins={data.dayCheckins}
+              todayPlan={data.todayPlan}
+              onCheckinUpdated={data.refetchCheckins}
+            />
 
-        {/* 5. Weekly hours progress */}
-        <WeeklyProgress weeklyGoals={data.weeklyGoals} />
+            {/* Grapple AI quick actions */}
+            <QuickLinks />
 
-        {/* 5b. Week-over-week comparison */}
-        <WeekComparison />
+            {/* Week-over-week comparison */}
+            <WeekComparison />
 
-        {/* 6. Last session (compact) */}
-        <LastSession />
+            {/* Last session */}
+            <LastSession />
+          </div>
+        </div>
       </ErrorBoundary>
     </div>
   );
