@@ -9,7 +9,6 @@ import { CardSkeleton, EmptyState } from '../components/ui';
 import { useToast } from '../contexts/ToastContext';
 import MiniZoneBar from '../components/MiniZoneBar';
 import SessionScoreBadge from '../components/sessions/SessionScoreBadge';
-import TodayClassesWidget from '../components/dashboard/TodayClassesWidget';
 import { formatClassType, ACTIVITY_COLORS } from '../constants/activity';
 import { pluralize } from '../utils/text';
 import { GYM_TYPES, SPARRING_TYPES } from '../components/sessions/sessionTypes';
@@ -199,9 +198,6 @@ export default function Sessions() {
         <h1 className="text-3xl font-bold text-[var(--text)] mb-2" id="page-title">All Sessions</h1>
         <p className="text-[var(--muted)]">View and manage your training history</p>
       </div>
-
-      {/* Today's Classes */}
-      <TodayClassesWidget />
 
       {/* ISC-22,23,24,25: Trailing Stats Bar */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">

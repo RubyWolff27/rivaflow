@@ -94,9 +94,9 @@ function ProfileCard({ profile, totalSessions, totalHours, totalRolls }: {
 }
 
 /* ── Latest Activity ── */
-function LatestActivity({ session }: { session: { class_type: string; gym_name: string; duration_mins: number; session_date: string; rolls: number } }) {
+function LatestActivity({ session }: { session: { id: number; class_type: string; gym_name: string; duration_mins: number; session_date: string; rolls: number } }) {
   return (
-    <Link to="/sessions" className="block group">
+    <Link to={`/session/${session.id}`} className="block group">
       <p className="text-[10px] font-medium uppercase tracking-wider mb-1.5" style={{ color: 'var(--muted)' }}>
         Latest Activity
       </p>

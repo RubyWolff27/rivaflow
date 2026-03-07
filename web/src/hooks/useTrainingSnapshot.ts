@@ -22,6 +22,7 @@ interface ProfileSummary {
 }
 
 interface LastSessionSummary {
+  id: number;
   class_type: string;
   gym_name: string;
   duration_mins: number;
@@ -148,6 +149,7 @@ export function useTrainingSnapshot(): TrainingSnapshotData {
         if (sessions.length > 0) {
           const s = sessions[0];
           setLastSession({
+            id: s.id,
             class_type: s.class_type,
             gym_name: s.gym_name,
             duration_mins: s.duration_mins,
