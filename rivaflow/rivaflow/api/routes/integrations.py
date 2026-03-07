@@ -438,6 +438,17 @@ def get_session_context(
             "calories": wo.get("calories"),
             "kilojoules": wo.get("kilojoules"),
             "sport_name": wo.get("sport_name"),
+            "_debug": {
+                "zone_source": zone_source,
+                "cache_zone_durations": wo.get("zone_durations"),
+                "cache_zone_type": type(wo.get("zone_durations")).__name__,
+                "raw_data_zone": (
+                    wo["raw_data"].get("score", {}).get("zone_duration")
+                    if isinstance(wo.get("raw_data"), dict) else None
+                ),
+                "whoop_workout_id": wo.get("whoop_workout_id"),
+                "wo_source": wo_source,
+            },
         }
         logger.info(
             "Session %s context: workout=%s score_state=%s "
