@@ -37,6 +37,7 @@ _SAFE_METHODS = frozenset({"GET", "HEAD", "OPTIONS"})
 _EXEMPT_PATHS = (
     "/auth/login",
     "/auth/register",
+    "/auth/refresh",
     "/auth/forgot-password",
     "/auth/reset-password",
     "/waitlist",
