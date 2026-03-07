@@ -600,6 +600,97 @@ export default function LogSession() {
             )}
           </div>
 
+          {/* Classmates / Who was in class? */}
+          <div className="relative">
+            <label className="label flex items-center gap-1.5">
+              <Users2 className="w-4 h-4" />
+              Who was in class?
+            </label>
+            {attendees.length > 0 && (
+              <div className="flex flex-wrap gap-1.5 mb-2">
+                {attendees.map((name, i) => (
+                  <span
+                    key={i}
+                    className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium"
+                    style={{ backgroundColor: 'rgba(59,130,246,0.1)', color: '#3B82F6' }}
+                  >
+                    {name}
+                    <button
+                      type="button"
+                      onClick={() => setAttendees(prev => prev.filter((_, idx) => idx !== i))}
+                      className="ml-0.5 hover:opacity-70"
+                    >
+                      <X className="w-3 h-3" />
+                    </button>
+                  </span>
+                ))}
+              </div>
+            )}
+            <input
+              type="text"
+              className="input text-sm"
+              value={attendeeInput}
+              onChange={(e) => setAttendeeInput(e.target.value)}
+              onKeyDown={(e) => {
+                if ((e.key === 'Enter' || e.key === ',') && attendeeInput.trim()) {
+                  e.preventDefault();
+                  const name = attendeeInput.trim().replace(/,+$/, '');
+                  if (name && !attendees.includes(name)) {
+                    setAttendees(prev => [...prev, name]);
+                  }
+                  setAttendeeInput('');
+                }
+              }}
+              onBlur={() => {
+                setTimeout(() => {
+                  const name = attendeeInput.trim().replace(/,+$/, '');
+                  if (name && !attendees.includes(name)) {
+                    setAttendees(prev => [...prev, name]);
+                  }
+                  setAttendeeInput('');
+                }, 200);
+              }}
+              placeholder="Type a name or pick from friends..."
+            />
+            {/* Friend suggestions dropdown */}
+            {attendeeInput.trim().length >= 1 && (() => {
+              const query = attendeeInput.trim().toLowerCase();
+              const suggestions = form.partners
+                .filter(p => p.name && p.name.toLowerCase().includes(query) && !attendees.includes(p.name))
+                .slice(0, 6);
+              if (suggestions.length === 0) return null;
+              return (
+                <div
+                  className="absolute left-0 right-0 mt-1 rounded-lg overflow-hidden shadow-lg z-10"
+                  style={{ backgroundColor: 'var(--surface)', border: '1px solid var(--border)' }}
+                >
+                  {suggestions.map((friend) => (
+                    <button
+                      key={friend.id}
+                      type="button"
+                      className="w-full text-left px-3 py-2 text-sm hover:bg-[var(--surfaceElev)] transition-colors"
+                      onMouseDown={(e) => {
+                        e.preventDefault();
+                        if (!attendees.includes(friend.name)) {
+                          setAttendees(prev => [...prev, friend.name]);
+                        }
+                        setAttendeeInput('');
+                      }}
+                    >
+                      <span className="font-medium text-[var(--text)]">{friend.name}</span>
+                      {friend.belt_rank && (
+                        <span className="text-xs text-[var(--muted)] ml-1.5">
+                          ({friend.belt_rank} belt)
+                        </span>
+                      )}
+                    </button>
+                  ))}
+                </div>
+              );
+            })()}
+            <p className="text-xs text-[var(--muted)] mt-1">Type to search friends, or enter any name and press Enter</p>
+          </div>
+
           {/* Technique Tracker — only for gym/BJJ session types */}
           {form.isGymType && (
           <TechniqueTracker
@@ -645,59 +736,6 @@ export default function LogSession() {
               onTogglePartner={form.handleTogglePartner}
             />
           )}
-
-          {/* Classmates / Who was in class? */}
-          <div>
-            <label className="label flex items-center gap-1.5">
-              <Users2 className="w-4 h-4" />
-              Who was in class?
-            </label>
-            {attendees.length > 0 && (
-              <div className="flex flex-wrap gap-1.5 mb-2">
-                {attendees.map((name, i) => (
-                  <span
-                    key={i}
-                    className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium"
-                    style={{ backgroundColor: 'rgba(59,130,246,0.1)', color: '#3B82F6' }}
-                  >
-                    {name}
-                    <button
-                      type="button"
-                      onClick={() => setAttendees(prev => prev.filter((_, idx) => idx !== i))}
-                      className="ml-0.5 hover:opacity-70"
-                    >
-                      <X className="w-3 h-3" />
-                    </button>
-                  </span>
-                ))}
-              </div>
-            )}
-            <input
-              type="text"
-              className="input text-sm"
-              value={attendeeInput}
-              onChange={(e) => setAttendeeInput(e.target.value)}
-              onKeyDown={(e) => {
-                if ((e.key === 'Enter' || e.key === ',') && attendeeInput.trim()) {
-                  e.preventDefault();
-                  const name = attendeeInput.trim().replace(/,+$/, '');
-                  if (name && !attendees.includes(name)) {
-                    setAttendees(prev => [...prev, name]);
-                  }
-                  setAttendeeInput('');
-                }
-              }}
-              onBlur={() => {
-                const name = attendeeInput.trim().replace(/,+$/, '');
-                if (name && !attendees.includes(name)) {
-                  setAttendees(prev => [...prev, name]);
-                }
-                setAttendeeInput('');
-              }}
-              placeholder="Type a name and press Enter..."
-            />
-            <p className="text-xs text-[var(--muted)] mt-1">Press Enter or comma to add each classmate</p>
-          </div>
 
           {/* WHOOP Integration */}
           <WhoopIntegrationPanel

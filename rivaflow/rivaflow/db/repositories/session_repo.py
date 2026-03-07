@@ -213,6 +213,9 @@ class SessionRepository(BaseRepository):
                 "attendees": lambda v: (
                     json.dumps(v) if v is not None else json.dumps([])
                 ),
+                "intensity_tags": lambda v: (
+                    json.dumps(v) if v is not None else json.dumps([])
+                ),
                 "techniques": lambda v: (
                     json.dumps(v) if v is not None else json.dumps([])
                 ),

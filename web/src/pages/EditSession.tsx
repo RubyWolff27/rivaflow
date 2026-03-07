@@ -481,7 +481,7 @@ export default function EditSession() {
         </div>
 
         {/* Classmates / Who was in class? */}
-        <div>
+        <div className="relative">
           <label className="label flex items-center gap-1.5">
             <Users2 className="w-4 h-4" />
             Who was in class?
@@ -522,49 +522,57 @@ export default function EditSession() {
               }
             }}
             onBlur={() => {
-              const name = attendeeInput.trim().replace(/,+$/, '');
-              if (name && !attendees.includes(name)) {
-                setAttendees(prev => [...prev, name]);
-              }
-              setAttendeeInput('');
+              // Delay to allow click on suggestion
+              setTimeout(() => {
+                const name = attendeeInput.trim().replace(/,+$/, '');
+                if (name && !attendees.includes(name)) {
+                  setAttendees(prev => [...prev, name]);
+                }
+                setAttendeeInput('');
+              }, 200);
             }}
-            placeholder="Type a name and press Enter..."
+            placeholder="Type a name or pick from friends..."
           />
-          <p className="text-xs text-[var(--muted)] mt-1">Press Enter or comma to add each classmate</p>
+          {/* Friend suggestions dropdown */}
+          {attendeeInput.trim().length >= 1 && (() => {
+            const query = attendeeInput.trim().toLowerCase();
+            const suggestions = form.partners
+              .filter(p => p.name && p.name.toLowerCase().includes(query) && !attendees.includes(p.name))
+              .slice(0, 6);
+            if (suggestions.length === 0) return null;
+            return (
+              <div
+                className="absolute left-0 right-0 mt-1 rounded-lg overflow-hidden shadow-lg z-10"
+                style={{ backgroundColor: 'var(--surface)', border: '1px solid var(--border)' }}
+              >
+                {suggestions.map((friend) => (
+                  <button
+                    key={friend.id}
+                    type="button"
+                    className="w-full text-left px-3 py-2 text-sm hover:bg-[var(--surfaceElev)] transition-colors"
+                    onMouseDown={(e) => {
+                      e.preventDefault();
+                      if (!attendees.includes(friend.name)) {
+                        setAttendees(prev => [...prev, friend.name]);
+                      }
+                      setAttendeeInput('');
+                    }}
+                  >
+                    <span className="font-medium text-[var(--text)]">{friend.name}</span>
+                    {friend.belt_rank && (
+                      <span className="text-xs text-[var(--muted)] ml-1.5">
+                        ({friend.belt_rank} belt)
+                      </span>
+                    )}
+                  </button>
+                ))}
+              </div>
+            );
+          })()}
+          <p className="text-xs text-[var(--muted)] mt-1">Type to search friends, or enter any name and press Enter</p>
         </div>
 
-        {/* Roll Tracking (Sparring only) */}
-        {form.isSparringType && (
-          <div className="border-t border-[var(--border)] pt-4">
-            <RollTracker
-              detailedMode={form.detailedMode}
-              onToggleMode={() => form.setDetailedMode(prev => !prev)}
-              rolls={form.rolls}
-              partners={form.partners}
-              simpleData={{
-                rolls: form.sessionData.rolls,
-                submissions_for: form.sessionData.submissions_for,
-                submissions_against: form.sessionData.submissions_against,
-                partners: form.sessionData.partners,
-              }}
-              onSimpleChange={(field, value) => form.setSessionData(prev => ({ ...prev, [field]: value }))}
-              submissionSearchFor={form.submissionSearchFor}
-              submissionSearchAgainst={form.submissionSearchAgainst}
-              onSubmissionSearchForChange={(index, value) => form.setSubmissionSearchFor(prev => ({ ...prev, [index]: value }))}
-              onSubmissionSearchAgainstChange={(index, value) => form.setSubmissionSearchAgainst(prev => ({ ...prev, [index]: value }))}
-              filterSubmissions={form.filterSubmissions}
-              onAddRoll={form.handleAddRoll}
-              onRemoveRoll={form.handleRemoveRoll}
-              onRollChange={form.handleRollChange}
-              onToggleSubmission={form.handleToggleSubmission}
-              topPartners={form.topPartners}
-              selectedPartnerIds={form.selectedPartnerIds}
-              onTogglePartner={form.handleTogglePartner}
-            />
-          </div>
-        )}
-
-        {/* Technique Focus */}
+        {/* Technique Focus — promoted above rolls */}
         <div className="border-t border-[var(--border)] pt-4">
           <TechniqueTracker
             techniques={form.techniques}
@@ -581,7 +589,7 @@ export default function EditSession() {
           />
         </div>
 
-        {/* Session Details / Notes */}
+        {/* Session Details / Notes — promoted above rolls */}
         <div className={!form.isSparringType ? 'border-t border-[var(--border)] pt-4' : ''}>
           <label className="label" htmlFor="edit-session-notes">
             {!form.isSparringType ? 'Session Details' : 'Notes'}
@@ -600,6 +608,36 @@ export default function EditSession() {
             }
           />
         </div>
+
+        {/* Roll Tracking (Sparring only) — moved to bottom */}
+        {form.isSparringType && (
+          <div className="border-t border-[var(--border)] pt-4">
+            <RollTracker
+              detailedMode={form.detailedMode}
+              onToggleMode={() => form.setDetailedMode(prev => !prev)}
+              rolls={form.rolls}
+              partners={form.partners}
+              simpleData={{
+                rolls: form.sessionData.rolls,
+                submissions_for: form.sessionData.submissions_for,
+                submissions_against: form.sessionData.submissions_against,
+                partners: form.sessionData.partners,
+              }}
+              onSimpleChange={(field, value) =>
+                form.setSessionData(prev => ({ ...prev, [field]: value }))
+              }
+              submissionSearchFor={form.submissionSearchFor}
+              submissionSearchAgainst={form.submissionSearchAgainst}
+              onSubmissionSearchForChange={(index, value) => form.setSubmissionSearchFor(prev => ({ ...prev, [index]: value }))}
+              onSubmissionSearchAgainstChange={(index, value) => form.setSubmissionSearchAgainst(prev => ({ ...prev, [index]: value }))}
+              filterSubmissions={form.filterSubmissions}
+              onAddRoll={form.handleAddRoll}
+              onRemoveRoll={form.handleRemoveRoll}
+              onRollChange={form.handleRollChange}
+              onToggleSubmission={form.handleToggleSubmission}
+            />
+          </div>
+        )}
 
         {/* Photos */}
         <div className="border-t border-[var(--border)] pt-6">
