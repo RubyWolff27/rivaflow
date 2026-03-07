@@ -39,13 +39,14 @@ def _set_refresh_cookie(response: Response, token: str):
         secure=settings.IS_PRODUCTION,
         samesite="lax",
         path="/api",
+        domain=settings.COOKIE_DOMAIN,
         max_age=settings.REFRESH_TOKEN_EXPIRE_DAYS * 24 * 60 * 60,
     )
 
 
 def _clear_refresh_cookie(response: Response):
     """Clear the refresh token cookie."""
-    response.delete_cookie(key="rf_token", path="/api")
+    response.delete_cookie(key="rf_token", path="/api", domain=settings.COOKIE_DOMAIN)
 
 
 def _set_csrf_cookie(response: Response):
@@ -63,6 +64,7 @@ def _set_csrf_cookie(response: Response):
         secure=settings.IS_PRODUCTION,
         samesite="lax",
         path="/",
+        domain=settings.COOKIE_DOMAIN,
         max_age=settings.REFRESH_TOKEN_EXPIRE_DAYS * 24 * 60 * 60,
     )
     return csrf_token
@@ -70,7 +72,7 @@ def _set_csrf_cookie(response: Response):
 
 def _clear_csrf_cookie(response: Response):
     """Clear the CSRF cookie."""
-    response.delete_cookie(key="csrf_token", path="/")
+    response.delete_cookie(key="csrf_token", path="/", domain=settings.COOKIE_DOMAIN)
 
 
 class RegisterRequest(BaseModel):

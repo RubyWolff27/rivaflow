@@ -71,6 +71,7 @@ class Settings:
         # ======================================================================
         self.APP_BASE_URL: str = os.getenv("APP_BASE_URL", "https://api.rivaflow.app")
         self.API_BASE_URL: str = os.getenv("API_BASE_URL", self.APP_BASE_URL)
+        self.COOKIE_DOMAIN: str | None = os.getenv("COOKIE_DOMAIN", ".rivaflow.app" if self.IS_PRODUCTION else None)
 
         # ======================================================================
         # REDIS / CACHING
