@@ -152,8 +152,13 @@ describe("CoachSettings", () => {
     expect(screen.getByText("Grade: blue")).toBeInTheDocument();
   });
 
-  it("renders the InjuryManager component", async () => {
+  it("renders the InjuryManager component after expanding", async () => {
     renderCoachSettings();
+    // InjuryManager is in a collapsed section — expand it first
+    await waitFor(() => {
+      expect(screen.getByText("Injuries & Medical")).toBeInTheDocument();
+    });
+    fireEvent.click(screen.getByText("Injuries & Medical"));
     await waitFor(() => {
       expect(screen.getByTestId("injury-manager")).toBeInTheDocument();
     });

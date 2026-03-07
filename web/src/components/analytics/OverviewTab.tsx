@@ -182,7 +182,7 @@ export default function OverviewTab({
   submissionsDelta,
 }: OverviewTabProps) {
   const [expandedCards, setExpandedCards] = useState<Record<string, boolean>>(
-    {}
+    { duration: true }
   );
   const toggleCard = (key: string) =>
     setExpandedCards((prev) => ({ ...prev, [key]: !prev[key] }));

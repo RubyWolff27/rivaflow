@@ -117,11 +117,34 @@ export default function MonthlyGoals() {
           ))}
         </div>
       ) : goals.length === 0 ? (
+        <>
         <EmptyState
           icon={Crosshair}
           title="No goals for this month"
           description="Create monthly goals to track your training targets. Progress updates automatically from your logged sessions."
+          actionLabel="Add Goal"
+          onAction={() => setShowCreate(true)}
         />
+        <div className="card space-y-3">
+          <h3 className="text-sm font-semibold" style={{ color: 'var(--text)' }}>Goal ideas to get started</h3>
+          {[
+            { label: 'Train 3x per week', desc: 'Build consistency with a weekly session target' },
+            { label: 'Roll 20 rounds', desc: 'Track your sparring volume for the month' },
+            { label: 'Drill 5 new techniques', desc: 'Expand your game with focused technique work' },
+          ].map((t) => (
+            <button
+              key={t.label}
+              type="button"
+              onClick={() => setShowCreate(true)}
+              className="w-full text-left p-3 rounded-lg transition-colors hover:opacity-80"
+              style={{ backgroundColor: 'var(--surfaceElev)', border: '1px solid var(--border)' }}
+            >
+              <p className="text-sm font-medium" style={{ color: 'var(--text)' }}>{t.label}</p>
+              <p className="text-xs mt-0.5" style={{ color: 'var(--muted)' }}>{t.desc}</p>
+            </button>
+          ))}
+        </div>
+        </>
       ) : (
         <div className="space-y-3">
           {goals.map((goal) => (

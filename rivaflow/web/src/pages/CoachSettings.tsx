@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { usePageTitle } from '../hooks/usePageTitle';
-import { ArrowLeft, Sparkles } from 'lucide-react';
+import { ArrowLeft, Sparkles, ChevronDown, ChevronRight } from 'lucide-react';
 import { PrimaryButton } from '../components/ui';
 import { coachPreferencesApi, profileApi } from '../api/client';
 import { logger } from '../utils/logger';
@@ -39,6 +39,7 @@ export default function CoachSettings() {
   const toast = useToast();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [showAdvanced, setShowAdvanced] = useState(false);
 
   const [currentGrade, setCurrentGrade] = useState('');
   const [competitionRuleset, setCompetitionRuleset] = useState('none');
@@ -245,12 +246,32 @@ export default function CoachSettings() {
         daysUntilComp={daysUntilComp}
       />
 
-      <InjuryManager
-        injuries={injuries}
-        onAdd={addInjury}
-        onRemove={removeInjury}
-        onUpdate={updateInjury}
-      />
+      {/* Advanced: Injuries */}
+      <div className="card">
+        <button
+          type="button"
+          onClick={() => setShowAdvanced(prev => !prev)}
+          className="flex items-center justify-between w-full text-left"
+        >
+          <h3 className="text-base font-semibold" style={{ color: 'var(--text)' }}>Injuries & Medical</h3>
+          {showAdvanced
+            ? <ChevronDown className="w-5 h-5" style={{ color: 'var(--muted)' }} />
+            : <ChevronRight className="w-5 h-5" style={{ color: 'var(--muted)' }} />}
+        </button>
+        <p className="text-xs mt-1" style={{ color: 'var(--muted)' }}>
+          {injuries.length > 0 ? `${injuries.length} injury/ies tracked` : 'No injuries tracked'}
+        </p>
+        {showAdvanced && (
+          <div className="mt-4">
+            <InjuryManager
+              injuries={injuries}
+              onAdd={addInjury}
+              onRemove={removeInjury}
+              onUpdate={updateInjury}
+            />
+          </div>
+        )}
+      </div>
 
       {/* Save */}
       <PrimaryButton

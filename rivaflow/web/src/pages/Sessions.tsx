@@ -16,7 +16,7 @@ import { GYM_TYPES, SPARRING_TYPES } from '../components/sessions/sessionTypes';
 
 type ZoneData = { zone_durations: Record<string, number> | null; strain: number | null; calories: number | null; score_state: string | null };
 
-const SESSIONS_PER_PAGE = 30;
+const SESSIONS_PER_PAGE = 20;
 
 export default function Sessions() {
   usePageTitle('Sessions');

@@ -510,15 +510,29 @@ export default function MyGame() {
         </div>
       )}
 
-      {/* Proficiency Legend */}
-      <div
-        className="flex flex-wrap items-center gap-4 px-4 py-2.5 rounded-[14px] text-xs"
-        style={{ backgroundColor: 'var(--surfaceElev)', border: '1px solid var(--border)', color: 'var(--muted)' }}
-      >
-        <span className="font-medium" style={{ color: 'var(--text)' }}>Proficiency:</span>
-        <span className="flex items-center gap-1.5"><ConfidenceDots level={1} /> Learning</span>
-        <span className="flex items-center gap-1.5"><ConfidenceDots level={3} /> Comfortable</span>
-        <span className="flex items-center gap-1.5"><ConfidenceDots level={5} /> Mastered</span>
+      {/* Legends — above the tree so they're visible without scrolling */}
+      <div className="space-y-2">
+        <div
+          className="flex flex-wrap items-center gap-4 px-4 py-2.5 rounded-[14px] text-xs"
+          style={{ backgroundColor: 'var(--surfaceElev)', border: '1px solid var(--border)', color: 'var(--muted)' }}
+        >
+          <span className="font-medium" style={{ color: 'var(--text)' }}>Proficiency:</span>
+          <span className="flex items-center gap-1.5"><ConfidenceDots level={1} /> Learning</span>
+          <span className="flex items-center gap-1.5"><ConfidenceDots level={3} /> Comfortable</span>
+          <span className="flex items-center gap-1.5"><ConfidenceDots level={5} /> Mastered</span>
+        </div>
+        <div
+          className="flex flex-wrap items-center gap-4 px-4 py-2.5 rounded-[14px] text-xs"
+          style={{ backgroundColor: 'var(--surfaceElev)', border: '1px solid var(--border)', color: 'var(--muted)' }}
+        >
+          <span className="font-medium" style={{ color: 'var(--text)' }}>Types:</span>
+          {Object.entries(NODE_TYPE_COLORS).map(([type, color]) => (
+            <span key={type} className="flex items-center gap-1.5">
+              <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: color }} />
+              {type}
+            </span>
+          ))}
+        </div>
       </div>
 
       {/* Tree View */}
@@ -541,15 +555,6 @@ export default function MyGame() {
         )}
       </div>
 
-      {/* Legend */}
-      <div className="flex flex-wrap gap-3 justify-center">
-        {Object.entries(NODE_TYPE_COLORS).map(([type, color]) => (
-          <span key={type} className="flex items-center gap-1.5 text-xs" style={{ color: 'var(--muted)' }}>
-            <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: color }} />
-            {type}
-          </span>
-        ))}
-      </div>
     </div>
   );
 }

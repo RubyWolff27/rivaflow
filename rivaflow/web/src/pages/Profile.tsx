@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { usePageTitle } from '../hooks/usePageTitle';
 import { useTier } from '../hooks/useTier';
 import { useProfileData } from '../hooks/useProfileData';
@@ -10,6 +11,24 @@ import BeltProgressionCard from '../components/profile/BeltProgressionCard';
 import ProfileHeader from '../components/profile/ProfileHeader';
 import ProfileStats from '../components/profile/ProfileStats';
 import ProfileSettings from '../components/profile/ProfileSettings';
+import { ChevronDown, ChevronRight } from 'lucide-react';
+
+function CollapsibleSection({ title, defaultOpen = false, children }: { title: string; defaultOpen?: boolean; children: React.ReactNode }) {
+  const [open, setOpen] = useState(defaultOpen);
+  return (
+    <div>
+      <button
+        type="button"
+        onClick={() => setOpen(o => !o)}
+        className="flex items-center justify-between w-full py-2 text-left"
+      >
+        <h2 className="text-lg font-semibold" style={{ color: 'var(--text)' }}>{title}</h2>
+        {open ? <ChevronDown className="w-5 h-5" style={{ color: 'var(--muted)' }} /> : <ChevronRight className="w-5 h-5" style={{ color: 'var(--muted)' }} />}
+      </button>
+      {open && <div className="space-y-6">{children}</div>}
+    </div>
+  );
+}
 
 export default function Profile() {
   usePageTitle('Profile');
@@ -78,6 +97,7 @@ export default function Profile() {
     <div className="max-w-2xl mx-auto space-y-6">
       <ProfileHeader tierInfo={tierInfo} />
 
+      <CollapsibleSection title="Personal Information" defaultOpen={true}>
       <PersonalInformationForm
         formData={formData}
         onChange={(data) => setFormData(prev => ({ ...prev, ...data }))}
@@ -104,17 +124,19 @@ export default function Profile() {
           }));
         }}
       />
+      </CollapsibleSection>
 
+      <CollapsibleSection title="Weekly Goals">
       <WeeklyGoalsForm
         formData={formData}
         onChange={(data) => setFormData(prev => ({ ...prev, ...data }))}
         saving={saving}
         onSubmit={handleGoalsSubmit}
       />
+      </CollapsibleSection>
 
-      {/* Sharing & Privacy */}
+      <CollapsibleSection title="Sharing & Privacy">
       <form onSubmit={handleGoalsSubmit} className="card space-y-4">
-        <h3 className="text-base font-semibold" style={{ color: 'var(--text)' }}>Sharing &amp; Privacy</h3>
         <div className="flex items-center justify-between gap-4">
           <div>
             <p className="text-sm font-medium" style={{ color: 'var(--text)' }}>Show sessions on friends&apos; feeds</p>
@@ -135,7 +157,9 @@ export default function Profile() {
           {saving ? 'Saving…' : 'Save Privacy Settings'}
         </button>
       </form>
+      </CollapsibleSection>
 
+      <CollapsibleSection title="Connected Devices">
       {whoopStatus !== null && (
         <ConnectedDevicesSection
           whoopStatus={whoopStatus}
@@ -151,9 +175,10 @@ export default function Profile() {
           onDisconnect={handleWhoopDisconnect}
         />
       )}
-
       <ProfileSettings />
+      </CollapsibleSection>
 
+      <CollapsibleSection title="Belt Progression">
       <BeltProgressionCard
         profile={profile}
         gradings={gradings}
@@ -174,8 +199,11 @@ export default function Profile() {
         onGradingPhotoUpload={handleGradingPhotoUpload}
         onDeleteGradingPhoto={handleDeleteGradingPhoto}
       />
+      </CollapsibleSection>
 
+      <CollapsibleSection title="About Your Profile">
       <ProfileStats />
+      </CollapsibleSection>
 
       <ConfirmDialog
         isOpen={gradingToDelete !== null}

@@ -189,7 +189,23 @@ export default function Grapple() {
 
       if (!currentSessionId) {
         setCurrentSessionId(response.data.session_id);
-        loadSessions();
+        // Auto-name chat from user's first message (truncated to 40 chars)
+        const autoTitle = userMessage.content.length > 40
+          ? userMessage.content.substring(0, 37) + '...'
+          : userMessage.content;
+        setSessions(prev => [{
+          id: response.data.session_id,
+          title: autoTitle,
+          message_count: 2,
+          updated_at: new Date().toISOString(),
+        }, ...prev]);
+      } else {
+        // Update message count in sidebar
+        setSessions(prev => prev.map(s =>
+          s.id === currentSessionId
+            ? { ...s, message_count: s.message_count + 2, updated_at: new Date().toISOString() }
+            : s
+        ));
       }
     } catch (error: unknown) {
       logger.error('Chat error:', error);
@@ -328,8 +344,8 @@ export default function Grapple() {
               onClick={() => { setCurrentSessionId(session.id); setActivePanel('chat'); setMobileSidebarOpen(false); }}
             >
               <div className="flex-1 min-w-0">
-                <div className="text-sm font-medium truncate" style={{ color: 'var(--text)' }}>
-                  {session.title}
+                <div className="text-sm font-medium truncate" style={{ color: session.title === 'New Chat' ? 'var(--muted)' : 'var(--text)' }}>
+                  {session.title === 'New Chat' ? `Chat (${session.message_count} msgs)` : session.title}
                 </div>
                 <div className="text-xs" style={{ color: 'var(--muted)' }}>
                   {session.message_count} {session.message_count === 1 ? 'message' : 'messages'}

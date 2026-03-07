@@ -30,8 +30,8 @@ export default function ClassTypeChips({ value, onChange, types, size = 'md' }: 
             key={type.value}
             type="button"
             onClick={() => onChange(type.value)}
-            className={`rounded-full font-medium transition-all ${
-              size === 'sm' ? 'px-3 py-1.5 text-xs' : 'px-4 py-2 text-sm'
+            className={`rounded-full font-medium transition-all min-h-[44px] ${
+              size === 'sm' ? 'px-3 py-2 text-xs' : 'px-4 py-2.5 text-sm'
             }`}
             style={{
               backgroundColor: selected ? type.color : 'var(--surfaceElev)',

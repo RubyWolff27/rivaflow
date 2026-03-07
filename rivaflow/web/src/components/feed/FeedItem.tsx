@@ -337,6 +337,7 @@ const FeedItemComponent = memo(function FeedItemComponent({
                     <img
                       src={item.thumbnail}
                       alt="Session photo"
+                      loading="lazy"
                       className="w-full max-h-48 rounded-lg object-cover border border-[var(--border)]"
                       onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
                     />
