@@ -270,76 +270,7 @@ export default function SessionDetail() {
         </div>
       )}
 
-      {/* Partners */}
-      {session.partners && Array.isArray(session.partners) && session.partners.length > 0 && (
-        <div className="card">
-          <div className="flex items-center gap-2 mb-3">
-            <Users className="w-5 h-5 text-[var(--muted)]" />
-            <h2 className="font-semibold text-lg">Training Partners</h2>
-          </div>
-          <div className="flex flex-wrap gap-2">
-            {session.partners.map((partner) => (
-              <span
-                key={partner}
-                className="px-3 py-1 bg-[var(--surfaceElev)] text-[var(--text)] rounded-full text-sm"
-              >
-                {partner}
-              </span>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* Detailed Rolls */}
-      {session.detailed_rolls && Array.isArray(session.detailed_rolls) && session.detailed_rolls.length > 0 && (
-        <div className="card">
-          <div className="flex items-center gap-2 mb-3">
-            <Activity className="w-5 h-5 text-[var(--muted)]" />
-            <h2 className="font-semibold text-lg">Roll Details</h2>
-          </div>
-          <div className="space-y-3">
-            {(showAllRolls ? session.detailed_rolls : session.detailed_rolls.slice(0, 3)).map((roll) => (
-              <div
-                key={roll.roll_number ?? roll.id}
-                className="flex items-center gap-4 p-3 rounded-lg"
-                style={{ backgroundColor: 'var(--surfaceElev)' }}
-              >
-                <div className="flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold" style={{ backgroundColor: 'var(--accent)', color: '#fff' }}>
-                  {roll.roll_number ?? '?'}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="font-medium text-sm" style={{ color: 'var(--text)' }}>
-                    {roll.partner_name || 'Unknown partner'}
-                  </p>
-                  <div className="flex items-center gap-3 text-xs" style={{ color: 'var(--muted)' }}>
-                    {roll.duration_mins && <span>{roll.duration_mins} min</span>}
-                    {roll.submissions_for && Array.isArray(roll.submissions_for) && roll.submissions_for.length > 0 && (
-                      <span className="text-green-500">+{roll.submissions_for.length} sub</span>
-                    )}
-                    {roll.submissions_against && Array.isArray(roll.submissions_against) && roll.submissions_against.length > 0 && (
-                      <span className="text-red-400">-{roll.submissions_against.length} sub</span>
-                    )}
-                  </div>
-                  {roll.notes && (
-                    <p className="text-xs mt-1" style={{ color: 'var(--muted)' }}>{roll.notes}</p>
-                  )}
-                </div>
-              </div>
-            ))}
-            {!showAllRolls && session.detailed_rolls.length > 3 && (
-              <button
-                onClick={() => setShowAllRolls(true)}
-                className="w-full text-center text-sm font-medium py-2 rounded-lg transition-colors hover:opacity-80"
-                style={{ color: 'var(--accent)', backgroundColor: 'var(--surfaceElev)' }}
-              >
-                Show all {session.detailed_rolls.length} rolls
-              </button>
-            )}
-          </div>
-        </div>
-      )}
-
-      {/* Techniques */}
+      {/* Techniques — promoted above rolls and biometrics */}
       {session.techniques && Array.isArray(session.techniques) && session.techniques.length > 0 && (
         <div className="card">
           <div className="flex items-center gap-2 mb-3">
@@ -401,14 +332,84 @@ export default function SessionDetail() {
         </div>
       )}
 
-      {/* WHOOP empty state */}
-      {!whoopCtx?.recovery && !session.whoop_strain && !session.whoop_calories && !session.whoop_avg_hr && !session.whoop_max_hr && (
-        <div className="card text-center py-6">
-          <Heart className="w-8 h-8 mx-auto mb-2" style={{ color: 'var(--muted)' }} />
-          <p className="text-sm font-medium" style={{ color: 'var(--text)' }}>Connect WHOOP to see HR zones and strain</p>
-          <Link to="/coach-settings" className="text-xs mt-1 inline-block underline" style={{ color: 'var(--accent)' }}>
-            Set up WHOOP integration
-          </Link>
+      {/* Notes — promoted above rolls and biometrics */}
+      {session.notes && (
+        <div className="card">
+          <h2 className="font-semibold text-lg mb-3">Notes</h2>
+          <p className="text-[var(--text)] whitespace-pre-wrap">
+            {session.notes}
+          </p>
+        </div>
+      )}
+
+      {/* Partners */}
+      {session.partners && Array.isArray(session.partners) && session.partners.length > 0 && (
+        <div className="card">
+          <div className="flex items-center gap-2 mb-3">
+            <Users className="w-5 h-5 text-[var(--muted)]" />
+            <h2 className="font-semibold text-lg">Training Partners</h2>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {session.partners.map((partner) => (
+              <span
+                key={partner}
+                className="px-3 py-1 bg-[var(--surfaceElev)] text-[var(--text)] rounded-full text-sm"
+              >
+                {partner}
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Detailed Rolls */}
+      {session.detailed_rolls && Array.isArray(session.detailed_rolls) && session.detailed_rolls.length > 0 && (
+        <div className="card">
+          <div className="flex items-center gap-2 mb-3">
+            <Activity className="w-5 h-5 text-[var(--muted)]" />
+            <h2 className="font-semibold text-lg">Roll Details</h2>
+          </div>
+          <div className="space-y-3">
+            {(showAllRolls ? session.detailed_rolls : session.detailed_rolls.slice(0, 3))
+              .filter((roll) => roll.partner_name)
+              .map((roll) => (
+              <div
+                key={roll.roll_number ?? roll.id}
+                className="flex items-center gap-4 p-3 rounded-lg"
+                style={{ backgroundColor: 'var(--surfaceElev)' }}
+              >
+                <div className="flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold" style={{ backgroundColor: 'var(--accent)', color: '#fff' }}>
+                  {roll.roll_number ?? '?'}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="font-medium text-sm" style={{ color: 'var(--text)' }}>
+                    {roll.partner_name}
+                  </p>
+                  <div className="flex items-center gap-3 text-xs" style={{ color: 'var(--muted)' }}>
+                    {roll.duration_mins && <span>{roll.duration_mins} min</span>}
+                    {roll.submissions_for && Array.isArray(roll.submissions_for) && roll.submissions_for.length > 0 && (
+                      <span className="text-green-500">+{roll.submissions_for.length} sub</span>
+                    )}
+                    {roll.submissions_against && Array.isArray(roll.submissions_against) && roll.submissions_against.length > 0 && (
+                      <span className="text-red-400">-{roll.submissions_against.length} sub</span>
+                    )}
+                  </div>
+                  {roll.notes && (
+                    <p className="text-xs mt-1" style={{ color: 'var(--muted)' }}>{roll.notes}</p>
+                  )}
+                </div>
+              </div>
+            ))}
+            {!showAllRolls && session.detailed_rolls.filter(r => r.partner_name).length > 3 && (
+              <button
+                onClick={() => setShowAllRolls(true)}
+                className="w-full text-center text-sm font-medium py-2 rounded-lg transition-colors hover:opacity-80"
+                style={{ color: 'var(--accent)', backgroundColor: 'var(--surfaceElev)' }}
+              >
+                Show all {session.detailed_rolls.filter(r => r.partner_name).length} rolls
+              </button>
+            )}
+          </div>
         </div>
       )}
 
@@ -536,7 +537,7 @@ export default function SessionDetail() {
         </div>
       )}
 
-      {/* HR Zone Distribution */}
+      {/* HR Zone Distribution — only show if zone data exists */}
       {whoopCtx?.workout && (() => {
         const zones = whoopCtx.workout.zone_durations;
         const zoneConfig = [
@@ -548,63 +549,40 @@ export default function SessionDetail() {
         ];
         const totalMs = zones ? zoneConfig.reduce((sum, z) => sum + (zones[z.key] || 0), 0) : 0;
         const hasZones = zones && totalMs > 0;
-        if (!hasZones && !whoopCtx.workout.score_state) return null;
+        // Hide entirely when there's no zone data — don't show empty placeholder
+        if (!hasZones) return null;
         return (
           <div className="card">
             <h2 className="font-semibold text-lg mb-4">HR Zone Distribution</h2>
-            {hasZones ? (
-              <>
-                {/* Stacked bar */}
-                <div className="flex rounded-full overflow-hidden h-4 mb-3">
-                  {zoneConfig.map(z => {
-                    const ms = zones![z.key] || 0;
-                    const pct = (ms / totalMs) * 100;
-                    if (pct < 1) return null;
-                    return <div key={z.key} style={{ width: `${pct}%`, backgroundColor: z.color }} title={`${z.label}: ${Math.round(ms / 60000)} min`} />;
-                  })}
-                </div>
-                <div className="space-y-2">
-                  {zoneConfig.map(z => {
-                    const ms = zones![z.key] || 0;
-                    if (ms <= 0) return null;
-                    const mins = Math.round(ms / 60000);
-                    const pct = ((ms / totalMs) * 100).toFixed(0);
-                    return (
-                      <div key={z.key} className="flex items-center justify-between text-sm">
-                        <div className="flex items-center gap-2">
-                          <span className="inline-block w-3 h-3 rounded-sm" style={{ backgroundColor: z.color }} />
-                          <span style={{ color: 'var(--text)' }}>{z.label}</span>
-                        </div>
-                        <span style={{ color: 'var(--muted)' }}>{mins} min ({pct}%)</span>
-                      </div>
-                    );
-                  })}
-                </div>
-              </>
-            ) : (
-              <p className="text-sm" style={{ color: 'var(--muted)' }}>
-                {whoopCtx.workout.score_state === 'PENDING_STRAIN'
-                  ? 'HR zone data is still processing on WHOOP. Try syncing again later.'
-                  : whoopCtx.workout.score_state === 'UNSCORABLE'
-                    ? 'This workout could not be scored by WHOOP.'
-                    : (session.whoop_strain || session.whoop_calories || session.whoop_avg_hr || session.whoop_max_hr)
-                      ? 'Zone breakdown not available for this session.'
-                      : 'Zone data not available — try syncing WHOOP.'}
-              </p>
-            )}
+            {/* Stacked bar */}
+            <div className="flex rounded-full overflow-hidden h-4 mb-3">
+              {zoneConfig.map(z => {
+                const ms = zones![z.key] || 0;
+                const pct = (ms / totalMs) * 100;
+                if (pct < 1) return null;
+                return <div key={z.key} style={{ width: `${pct}%`, backgroundColor: z.color }} title={`${z.label}: ${Math.round(ms / 60000)} min`} />;
+              })}
+            </div>
+            <div className="space-y-2">
+              {zoneConfig.map(z => {
+                const ms = zones![z.key] || 0;
+                if (ms <= 0) return null;
+                const mins = Math.round(ms / 60000);
+                const pct = ((ms / totalMs) * 100).toFixed(0);
+                return (
+                  <div key={z.key} className="flex items-center justify-between text-sm">
+                    <div className="flex items-center gap-2">
+                      <span className="inline-block w-3 h-3 rounded-sm" style={{ backgroundColor: z.color }} />
+                      <span style={{ color: 'var(--text)' }}>{z.label}</span>
+                    </div>
+                    <span style={{ color: 'var(--muted)' }}>{mins} min ({pct}%)</span>
+                  </div>
+                );
+              })}
+            </div>
           </div>
         );
       })()}
-
-      {/* Notes */}
-      {session.notes && (
-        <div className="card">
-          <h2 className="font-semibold text-lg mb-3">Notes</h2>
-          <p className="text-[var(--text)] whitespace-pre-wrap">
-            {session.notes}
-          </p>
-        </div>
-      )}
 
       {/* Photos */}
       <div className="card">

@@ -208,6 +208,7 @@ function ScoreBreakdown({ breakdown }: { breakdown: Record<string, unknown> }) {
         // pct may be 0-1 or 0-100 — normalize to 0-100
         const rawPct = pillar.pct > 1 ? pillar.pct : pillar.pct * 100;
         const pct = Math.min(100, Math.max(0, Math.round(rawPct)));
+        const barColor = pct >= 70 ? '#10B981' : pct >= 40 ? '#F59E0B' : '#EF4444';
         return (
           <div key={key} className="flex items-center gap-2">
             <span className="text-[11px] w-24 shrink-0 truncate" style={{ color: 'var(--muted)' }}>
@@ -216,7 +217,7 @@ function ScoreBreakdown({ breakdown }: { breakdown: Record<string, unknown> }) {
             <div className="flex-1 h-1.5 rounded-full" style={{ backgroundColor: 'var(--surfaceElev)' }}>
               <div
                 className="h-1.5 rounded-full"
-                style={{ width: `${pct}%`, backgroundColor: 'var(--accent)' }}
+                style={{ width: `${pct}%`, backgroundColor: barColor }}
               />
             </div>
             <span className="text-[10px] tabular-nums w-8 text-right" style={{ color: 'var(--muted)' }}>
@@ -690,7 +691,7 @@ const FeedItemComponent = memo(function FeedItemComponent({
                       {(item.data?.submissions_for ?? 0) > 0 && (
                         <div className="flex items-center gap-1.5">
                           <span className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: 'var(--muted)' }}>
-                            Subs Hit
+                            Subs For
                           </span>
                           <span className="text-sm font-bold" style={{ color: '#10B981' }}>
                             {item.data?.submissions_for}
@@ -700,7 +701,7 @@ const FeedItemComponent = memo(function FeedItemComponent({
                       {(item.data?.submissions_against ?? 0) > 0 && (
                         <div className="flex items-center gap-1.5">
                           <span className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: 'var(--muted)' }}>
-                            Caught
+                            Subs Against
                           </span>
                           <span className="text-sm font-bold" style={{ color: '#EF4444' }}>
                             {item.data?.submissions_against}
