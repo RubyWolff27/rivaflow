@@ -510,7 +510,7 @@ class ReadinessAnalyticsService:
                         raw = None
                 if isinstance(raw, dict):
                     zd = (
-                        raw.get("score", {}).get("zone_duration")
+                        raw.get("score", {}).get("zone_durations")
                         if raw.get("score")
                         else None
                     )

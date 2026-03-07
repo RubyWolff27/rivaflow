@@ -60,7 +60,7 @@ def sync_workouts(self: WhoopService, user_id: int, days_back: int = 7) -> dict:
         kj = score.get("kilojoule")
         calories = round(kj / 4.184) if kj else None
 
-        zone_durations = score.get("zone_duration")
+        zone_durations = score.get("zone_durations")
 
         self.workout_cache_repo.upsert(
             user_id=user_id,
@@ -462,7 +462,7 @@ def _backfill_missing_zones(
         if wid not in missing_ids:
             continue
         score = workout.get("score", {}) or {}
-        zone_durations = score.get("zone_duration")
+        zone_durations = score.get("zone_durations")
         if not zone_durations:
             continue  # Still no zones — WHOOP may still be processing
 

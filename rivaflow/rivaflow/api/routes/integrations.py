@@ -295,7 +295,7 @@ def _fetch_live_debug(service, user_id: int, whoop_workout_id: str | None) -> di
         return {
             "score_state": fresh.get("score_state"),
             "score_keys": list(fresh_score.keys()),
-            "zone_duration": fresh_score.get("zone_duration"),
+            "zone_duration": fresh_score.get("zone_durations"),
             "top_keys": list(fresh.keys()),
             "has_strain": fresh_score.get("strain") is not None,
         }
@@ -410,7 +410,7 @@ def get_session_context(
             raw = wo["raw_data"]
             if isinstance(raw, dict):
                 score = raw.get("score") or {}
-                zones = score.get("zone_duration")
+                zones = score.get("zone_durations")
                 if zones:
                     zone_source = "raw_data"
         # Auto-refresh from WHOOP API if zone data is missing
@@ -419,7 +419,7 @@ def get_session_context(
                 token = service.get_valid_access_token(user_id)
                 fresh = service.client.get_workout_by_id(token, wo["whoop_workout_id"])
                 fresh_score = fresh.get("score") or {}
-                zones = fresh_score.get("zone_duration")
+                zones = fresh_score.get("zone_durations")
                 if zones:
                     zone_source = "api_refresh"
                     # Update cache for future requests
@@ -462,7 +462,7 @@ def get_session_context(
                 "cache_zone_durations": wo.get("zone_durations"),
                 "cache_zone_type": type(wo.get("zone_durations")).__name__,
                 "raw_data_zone": (
-                    wo["raw_data"].get("score", {}).get("zone_duration")
+                    wo["raw_data"].get("score", {}).get("zone_durations")
                     if isinstance(wo.get("raw_data"), dict) else None
                 ),
                 "raw_data_score_keys": (
@@ -530,7 +530,7 @@ def debug_session_zones(
                 wo.get("raw_data", {}).get("score") if isinstance(wo.get("raw_data"), dict) else False
             ),
             "raw_zone_duration": (
-                wo["raw_data"].get("score", {}).get("zone_duration")
+                wo["raw_data"].get("score", {}).get("zone_durations")
                 if isinstance(wo.get("raw_data"), dict) else None
             ),
         }
@@ -545,7 +545,7 @@ def debug_session_zones(
                 fresh_score = fresh.get("score") or {}
                 live_info = {
                     "score_state": fresh.get("score_state"),
-                    "zone_duration": fresh_score.get("zone_duration"),
+                    "zone_duration": fresh_score.get("zone_durations"),
                     "strain": fresh_score.get("strain"),
                     "score_keys": list(fresh_score.keys()) if fresh_score else [],
                     "top_level_keys": list(fresh.keys()),
@@ -604,7 +604,7 @@ def get_zones_batch(
             raw = wo["raw_data"]
             if isinstance(raw, dict):
                 score = raw.get("score") or {}
-                zones = score.get("zone_duration")
+                zones = score.get("zone_durations")
         result[str(sid)] = (
             {
                 "zone_durations": zones,
@@ -668,7 +668,7 @@ def get_zones_weekly(
             raw = wo["raw_data"]
             if isinstance(raw, dict):
                 score = raw.get("score") or {}
-                zones = score.get("zone_duration")
+                zones = score.get("zone_durations")
         if zones:
             session_count += 1
             for k in zone_keys:
