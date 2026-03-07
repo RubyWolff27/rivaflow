@@ -5,12 +5,14 @@ import { sessionsApi, friendsApi, socialApi, glossaryApi, whoopApi } from '../ap
 import { logger } from '../utils/logger';
 import { HH_MM_RE } from '../utils/validation';
 import type { Friend, Movement, Session, SessionRoll, SessionTechnique } from '../types';
-import { CheckCircle, ArrowLeft, Save, Loader, Trash2, Camera, Users2, X } from 'lucide-react';
+import { CheckCircle, ArrowLeft, Save, Loader, Trash2, Camera, Users2 } from 'lucide-react';
 import WhoopMatchModal from '../components/WhoopMatchModal';
 import WhoopIntegrationPanel from '../components/sessions/WhoopIntegrationPanel';
 import TechniqueTracker from '../components/sessions/TechniqueTracker';
 import RollTracker from '../components/sessions/RollTracker';
 import ClassTimePicker from '../components/sessions/ClassTimePicker';
+import AccordionSection from '../components/sessions/AccordionSection';
+import FriendAutocomplete from '../components/sessions/FriendAutocomplete';
 import GymSelector from '../components/GymSelector';
 import { ClassTypeChips, IntensityChips } from '../components/ui';
 import PhotoGallery from '../components/PhotoGallery';
@@ -44,10 +46,18 @@ export default function EditSession() {
 
   // Attendees / classmates
   const [attendees, setAttendees] = useState<string[]>([]);
-  const [attendeeInput, setAttendeeInput] = useState('');
 
   // Multi-select intensity tags
   const [intensityTags, setIntensityTags] = useState<number[]>([]);
+
+  // Track which sections have data (for smart accordion defaults)
+  const [hasNotes, setHasNotes] = useState(false);
+  const [hasInstructor, setHasInstructor] = useState(false);
+  const [hasLocation, setHasLocation] = useState(false);
+  const [hasAttendees, setHasAttendees] = useState(false);
+  const [hasTechniques, setHasTechniques] = useState(false);
+  const [hasRolls, setHasRolls] = useState(false);
+  const [hasWhoop, setHasWhoop] = useState(false);
 
   const form = useSessionForm({
     whoopSyncParams: useCallback(() => ({
@@ -121,6 +131,12 @@ export default function EditSession() {
           whoop_max_hr: sessionData.whoop_max_hr?.toString() || '',
         });
 
+        // Track which sections have data for smart accordion defaults
+        setHasNotes(!!sessionData.notes);
+        setHasInstructor(!!instructorName || !!sessionData.location);
+        setHasLocation(!!sessionData.location);
+        setHasWhoop(!!(sessionData.whoop_strain || sessionData.whoop_calories || sessionData.whoop_avg_hr || sessionData.whoop_max_hr));
+
         // Load intensity tags if stored, otherwise initialize from single intensity value
         if (sessionData.intensity_tags && Array.isArray(sessionData.intensity_tags)) {
           setIntensityTags(sessionData.intensity_tags);
@@ -131,6 +147,7 @@ export default function EditSession() {
         // Load attendees
         if (sessionData.attendees && Array.isArray(sessionData.attendees)) {
           setAttendees(sessionData.attendees);
+          setHasAttendees(sessionData.attendees.length > 0);
         }
 
         // Check WHOOP connection status
@@ -149,6 +166,7 @@ export default function EditSession() {
         // Load detailed_rolls if present
         if (sessionData.detailed_rolls && sessionData.detailed_rolls.length > 0) {
           form.setDetailedMode(true);
+          setHasRolls(true);
           form.setRolls(
             sessionData.detailed_rolls.map((roll: SessionRoll) => ({
               roll_number: roll.roll_number,
@@ -161,10 +179,13 @@ export default function EditSession() {
               notes: roll.notes || '',
             }))
           );
+        } else if (sessionData.rolls > 0 || partnersStr) {
+          setHasRolls(true);
         }
 
         // Load session_techniques if present
         if (sessionData.session_techniques && sessionData.session_techniques.length > 0) {
+          setHasTechniques(true);
           form.setTechniques(
             sessionData.session_techniques.map((tech: SessionTechnique) => ({
               technique_number: tech.technique_number,
@@ -315,6 +336,8 @@ export default function EditSession() {
       </div>
 
       <form onSubmit={handleSubmit} className="card space-y-4">
+        {/* === CORE FIELDS (always visible) === */}
+
         {/* Date */}
         <div>
           <label className="label" htmlFor="edit-session-date">Date</label>
@@ -352,57 +375,6 @@ export default function EditSession() {
           />
         </div>
 
-        {/* WHOOP Stats — positioned high for visibility */}
-        <WhoopIntegrationPanel
-          whoopConnected={form.whoopConnected}
-          whoopSyncing={form.whoopSyncing}
-          whoopSynced={form.whoopSynced}
-          whoopManualMode={form.whoopManualMode}
-          showWhoop={true}
-          classTime={form.sessionData.class_time}
-          whoopData={{
-            whoop_strain: form.sessionData.whoop_strain,
-            whoop_calories: form.sessionData.whoop_calories,
-            whoop_avg_hr: form.sessionData.whoop_avg_hr,
-            whoop_max_hr: form.sessionData.whoop_max_hr,
-          }}
-          onWhoopDataChange={(field, value) => form.setSessionData(prev => ({ ...prev, [field]: value }))}
-          onSync={form.handleWhoopSync}
-          onClear={form.handleWhoopClear}
-          onToggleManualMode={(manual) => form.setWhoopManualMode(manual)}
-          onToggleShow={() => {}}
-        />
-
-        {/* Instructor — free text with suggestions */}
-        <div>
-          <label className="label" htmlFor="edit-session-instructor">Instructor (optional)</label>
-          <input
-            type="text"
-            id="edit-session-instructor"
-            className="input"
-            value={form.sessionData.instructor_name}
-            onChange={(e) => {
-              const name = e.target.value;
-              // Try to match to a known instructor for the ID
-              const match = form.instructors.find(
-                i => i.name?.toLowerCase() === name.toLowerCase()
-              );
-              form.setSessionData(prev => ({
-                ...prev,
-                instructor_name: name,
-                instructor_id: match ? match.id : null,
-              }));
-            }}
-            placeholder="Type instructor name..."
-            list="instructor-suggestions"
-          />
-          <datalist id="instructor-suggestions">
-            {instructorNames.map((name) => (
-              <option key={name} value={name} />
-            ))}
-          </datalist>
-        </div>
-
         {/* Gym Name */}
         <div>
           <label className="label">Gym</label>
@@ -425,155 +397,127 @@ export default function EditSession() {
           />
         </div>
 
-        {/* Location */}
+        {/* Duration */}
         <div>
-          <label className="label" htmlFor="edit-session-location">Location (optional)</label>
+          <label className="label" htmlFor="edit-session-duration">Duration (mins)</label>
           <input
-            type="text"
-            id="edit-session-location"
+            type="number"
+            id="edit-session-duration"
             className="input"
-            value={form.sessionData.location}
-            onChange={(e) => form.setSessionData(prev => ({ ...prev, location: e.target.value }))}
-            placeholder="e.g., Sydney, NSW"
-            list="locations"
+            value={form.sessionData.duration_mins}
+            onChange={(e) => form.setSessionData(prev => ({ ...prev, duration_mins: parseInt(e.target.value) }))}
+            min="1"
+            required
           />
-          {form.autocomplete.locations && (
-            <datalist id="locations">
-              {form.autocomplete.locations.map((loc: string) => (
-                <option key={loc} value={loc} />
+        </div>
+
+        {/* Intensity */}
+        <div>
+          <label className="label">Intensity (select all that apply)</label>
+          <IntensityChips
+            value={0}
+            onChange={() => {}}
+            multi
+            selectedValues={intensityTags}
+            onToggle={(val) => {
+              setIntensityTags(prev =>
+                prev.includes(val)
+                  ? prev.filter(v => v !== val)
+                  : [...prev, val]
+              );
+            }}
+            size="sm"
+            showDescription
+          />
+        </div>
+
+        {/* === ACCORDION SECTIONS === */}
+
+        {/* Notes */}
+        <AccordionSection title={!form.isSparringType ? 'Session Details' : 'Notes'} defaultOpen={hasNotes}>
+          <div>
+            <textarea
+              id="edit-session-notes"
+              className="input"
+              value={form.sessionData.notes}
+              onChange={(e) => form.setSessionData(prev => ({ ...prev, notes: e.target.value }))}
+              rows={!form.isSparringType ? 5 : 3}
+              placeholder={
+                !form.isSparringType
+                  ? "e.g., 5km run in 30 mins, Deadlifts 3x8 @ 100kg, Squats 3x10 @ 80kg..."
+                  : "Any notes about this session..."
+              }
+            />
+          </div>
+        </AccordionSection>
+
+        {/* More Details — Instructor & Location */}
+        <AccordionSection title="More Details" defaultOpen={hasInstructor || hasLocation}>
+          <div>
+            <label className="label" htmlFor="edit-session-instructor">Instructor (optional)</label>
+            <input
+              type="text"
+              id="edit-session-instructor"
+              className="input"
+              value={form.sessionData.instructor_name}
+              onChange={(e) => {
+                const name = e.target.value;
+                const match = form.instructors.find(
+                  i => i.name?.toLowerCase() === name.toLowerCase()
+                );
+                form.setSessionData(prev => ({
+                  ...prev,
+                  instructor_name: name,
+                  instructor_id: match ? match.id : null,
+                }));
+              }}
+              placeholder="Type instructor name..."
+              list="instructor-suggestions"
+            />
+            <datalist id="instructor-suggestions">
+              {instructorNames.map((name) => (
+                <option key={name} value={name} />
               ))}
             </datalist>
-          )}
-        </div>
-
-        {/* Duration & Intensity */}
-        <div className="space-y-4">
+          </div>
           <div>
-            <label className="label" htmlFor="edit-session-duration">Duration (mins)</label>
+            <label className="label" htmlFor="edit-session-location">Location (optional)</label>
             <input
-              type="number"
-              id="edit-session-duration"
+              type="text"
+              id="edit-session-location"
               className="input"
-              value={form.sessionData.duration_mins}
-              onChange={(e) => form.setSessionData(prev => ({ ...prev, duration_mins: parseInt(e.target.value) }))}
-              min="1"
-              required
+              value={form.sessionData.location}
+              onChange={(e) => form.setSessionData(prev => ({ ...prev, location: e.target.value }))}
+              placeholder="e.g., Sydney, NSW"
+              list="locations"
             />
+            {form.autocomplete.locations && (
+              <datalist id="locations">
+                {form.autocomplete.locations.map((loc: string) => (
+                  <option key={loc} value={loc} />
+                ))}
+              </datalist>
+            )}
           </div>
-          <div>
-            <label className="label">Intensity (select all that apply)</label>
-            <IntensityChips
-              value={0}
-              onChange={() => {}}
-              multi
-              selectedValues={intensityTags}
-              onToggle={(val) => {
-                setIntensityTags(prev =>
-                  prev.includes(val)
-                    ? prev.filter(v => v !== val)
-                    : [...prev, val]
-                );
-              }}
-              size="sm"
-              showDescription
-            />
-          </div>
-        </div>
+        </AccordionSection>
 
         {/* Classmates / Who was in class? */}
-        <div className="relative">
-          <label className="label flex items-center gap-1.5">
-            <Users2 className="w-4 h-4" />
-            Who was in class?
-          </label>
-          {attendees.length > 0 && (
-            <div className="flex flex-wrap gap-1.5 mb-2">
-              {attendees.map((name, i) => (
-                <span
-                  key={i}
-                  className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium"
-                  style={{ backgroundColor: 'rgba(59,130,246,0.1)', color: '#3B82F6' }}
-                >
-                  {name}
-                  <button
-                    type="button"
-                    onClick={() => setAttendees(prev => prev.filter((_, idx) => idx !== i))}
-                    className="ml-0.5 hover:opacity-70"
-                  >
-                    <X className="w-3 h-3" />
-                  </button>
-                </span>
-              ))}
-            </div>
-          )}
-          <input
-            type="text"
-            className="input text-sm"
-            value={attendeeInput}
-            onChange={(e) => setAttendeeInput(e.target.value)}
-            onKeyDown={(e) => {
-              if ((e.key === 'Enter' || e.key === ',') && attendeeInput.trim()) {
-                e.preventDefault();
-                const name = attendeeInput.trim().replace(/,+$/, '');
-                if (name && !attendees.includes(name)) {
-                  setAttendees(prev => [...prev, name]);
-                }
-                setAttendeeInput('');
-              }
-            }}
-            onBlur={() => {
-              // Delay to allow click on suggestion
-              setTimeout(() => {
-                const name = attendeeInput.trim().replace(/,+$/, '');
-                if (name && !attendees.includes(name)) {
-                  setAttendees(prev => [...prev, name]);
-                }
-                setAttendeeInput('');
-              }, 200);
-            }}
+        <AccordionSection
+          title="Who was in class?"
+          icon={<Users2 className="w-4 h-4" />}
+          defaultOpen={hasAttendees}
+        >
+          <FriendAutocomplete
+            friends={form.partners}
+            selected={attendees}
+            onAdd={(name) => setAttendees(prev => [...prev, name])}
+            onRemove={(name) => setAttendees(prev => prev.filter(n => n !== name))}
             placeholder="Type a name or pick from friends..."
           />
-          {/* Friend suggestions dropdown */}
-          {attendeeInput.trim().length >= 1 && (() => {
-            const query = attendeeInput.trim().toLowerCase();
-            const suggestions = form.partners
-              .filter(p => p.name && p.name.toLowerCase().includes(query) && !attendees.includes(p.name))
-              .slice(0, 6);
-            if (suggestions.length === 0) return null;
-            return (
-              <div
-                className="absolute left-0 right-0 mt-1 rounded-lg overflow-hidden shadow-lg z-10"
-                style={{ backgroundColor: 'var(--surface)', border: '1px solid var(--border)' }}
-              >
-                {suggestions.map((friend) => (
-                  <button
-                    key={friend.id}
-                    type="button"
-                    className="w-full text-left px-3 py-2 text-sm hover:bg-[var(--surfaceElev)] transition-colors"
-                    onMouseDown={(e) => {
-                      e.preventDefault();
-                      if (!attendees.includes(friend.name)) {
-                        setAttendees(prev => [...prev, friend.name]);
-                      }
-                      setAttendeeInput('');
-                    }}
-                  >
-                    <span className="font-medium text-[var(--text)]">{friend.name}</span>
-                    {friend.belt_rank && (
-                      <span className="text-xs text-[var(--muted)] ml-1.5">
-                        ({friend.belt_rank} belt)
-                      </span>
-                    )}
-                  </button>
-                ))}
-              </div>
-            );
-          })()}
-          <p className="text-xs text-[var(--muted)] mt-1">Type to search friends, or enter any name and press Enter</p>
-        </div>
+        </AccordionSection>
 
-        {/* Technique Focus — promoted above rolls */}
-        <div className="border-t border-[var(--border)] pt-4">
+        {/* Technique Focus */}
+        <AccordionSection title="Technique of the Day" defaultOpen={hasTechniques}>
           <TechniqueTracker
             techniques={form.techniques}
             techniqueSearch={form.techniqueSearch}
@@ -587,31 +531,11 @@ export default function EditSession() {
             onRemoveMediaUrl={form.handleRemoveMediaUrl}
             onMediaUrlChange={form.handleMediaUrlChange}
           />
-        </div>
+        </AccordionSection>
 
-        {/* Session Details / Notes — promoted above rolls */}
-        <div className={!form.isSparringType ? 'border-t border-[var(--border)] pt-4' : ''}>
-          <label className="label" htmlFor="edit-session-notes">
-            {!form.isSparringType ? 'Session Details' : 'Notes'}
-            {!form.isSparringType && <span className="text-sm font-normal text-[var(--muted)] ml-2">(Workout details, exercises, distances, times, etc.)</span>}
-          </label>
-          <textarea
-            id="edit-session-notes"
-            className="input"
-            value={form.sessionData.notes}
-            onChange={(e) => form.setSessionData(prev => ({ ...prev, notes: e.target.value }))}
-            rows={!form.isSparringType ? 5 : 3}
-            placeholder={
-              !form.isSparringType
-                ? "e.g., 5km run in 30 mins, Deadlifts 3x8 @ 100kg, Squats 3x10 @ 80kg, or Yoga flow focusing on hip mobility..."
-                : "Any notes about this session..."
-            }
-          />
-        </div>
-
-        {/* Roll Tracking (Sparring only) — moved to bottom */}
+        {/* Roll Tracking (Sparring only) */}
         {form.isSparringType && (
-          <div className="border-t border-[var(--border)] pt-4">
+          <AccordionSection title="Rolls & Submissions" defaultOpen={hasRolls}>
             <RollTracker
               detailedMode={form.detailedMode}
               onToggleMode={() => form.setDetailedMode(prev => !prev)}
@@ -636,24 +560,40 @@ export default function EditSession() {
               onRollChange={form.handleRollChange}
               onToggleSubmission={form.handleToggleSubmission}
             />
-          </div>
+          </AccordionSection>
         )}
 
-        {/* Photos */}
-        <div className="border-t border-[var(--border)] pt-6">
-          <div className="flex items-center gap-2 mb-4">
-            <Camera className="w-5 h-5 text-[var(--muted)]" />
-            <h3 className="font-semibold text-lg">Photos</h3>
-            <span className="text-sm text-[var(--muted)]">({photoCount}/3)</span>
-          </div>
+        {/* WHOOP Integration */}
+        <AccordionSection title="WHOOP Biometrics" defaultOpen={hasWhoop}>
+          <WhoopIntegrationPanel
+            whoopConnected={form.whoopConnected}
+            whoopSyncing={form.whoopSyncing}
+            whoopSynced={form.whoopSynced}
+            whoopManualMode={form.whoopManualMode}
+            showWhoop={true}
+            classTime={form.sessionData.class_time}
+            whoopData={{
+              whoop_strain: form.sessionData.whoop_strain,
+              whoop_calories: form.sessionData.whoop_calories,
+              whoop_avg_hr: form.sessionData.whoop_avg_hr,
+              whoop_max_hr: form.sessionData.whoop_max_hr,
+            }}
+            onWhoopDataChange={(field, value) => form.setSessionData(prev => ({ ...prev, [field]: value }))}
+            onSync={form.handleWhoopSync}
+            onClear={form.handleWhoopClear}
+            onToggleManualMode={(manual) => form.setWhoopManualMode(manual)}
+            onToggleShow={() => {}}
+          />
+        </AccordionSection>
 
+        {/* Photos — always open in edit mode */}
+        <AccordionSection title="Photos" icon={<Camera className="w-4 h-4" />} defaultOpen={true}>
           <div className="space-y-4">
             <PhotoGallery
               activityType="session"
               activityId={parseInt(id!)}
               onPhotoCountChange={setPhotoCount}
             />
-
             <PhotoUpload
               activityType="session"
               activityId={parseInt(id!)}
@@ -664,10 +604,10 @@ export default function EditSession() {
               }}
             />
           </div>
-        </div>
+        </AccordionSection>
 
         {/* Submit */}
-        <div className="flex gap-2">
+        <div className="flex gap-2 pt-2">
           <button
             type="button"
             onClick={() => navigate(`/session/${id}`)}

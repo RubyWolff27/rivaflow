@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { Plus, X, Search, ToggleLeft, ToggleRight } from 'lucide-react';
 import type { Friend, Movement } from '../../types';
 import type { RollEntry } from './sessionTypes';
@@ -28,6 +29,147 @@ interface RollTrackerProps {
   topPartners?: Friend[];
   selectedPartnerIds?: Set<number>;
   onTogglePartner?: (partnerId: number) => void;
+}
+
+/** Autocomplete partner input with pills — replaces dumb text field in simple mode */
+function PartnerAutocomplete({
+  partners,
+  topPartners,
+  selectedPartnerIds,
+  onTogglePartner,
+  value,
+  onChange,
+}: {
+  partners: Friend[];
+  topPartners: Friend[];
+  selectedPartnerIds?: Set<number>;
+  onTogglePartner?: (id: number) => void;
+  value: string;
+  onChange: (val: string) => void;
+}) {
+  const [input, setInput] = useState('');
+
+  // Parse existing comma-separated value into pill array
+  const pills = value ? value.split(',').map(p => p.trim()).filter(Boolean) : [];
+
+  const addPill = (name: string) => {
+    const trimmed = name.trim();
+    if (!trimmed || pills.includes(trimmed)) return;
+    const next = [...pills, trimmed].join(', ');
+    onChange(next);
+    setInput('');
+  };
+
+  const removePill = (name: string) => {
+    const next = pills.filter(p => p !== name).join(', ');
+    onChange(next);
+  };
+
+  // Filter suggestions from all partners
+  const query = input.trim().toLowerCase();
+  const suggestions = query.length >= 1
+    ? partners
+        .filter(p => p.name && p.name.toLowerCase().includes(query) && !pills.includes(p.name))
+        .slice(0, 6)
+    : [];
+
+  return (
+    <div className="relative">
+      <label className="label">Partners</label>
+      {/* Quick-select pills for top partners */}
+      {topPartners.length > 0 && selectedPartnerIds && onTogglePartner && (
+        <div className="flex flex-wrap gap-2 mb-2">
+          {topPartners.map((partner) => {
+            const selected = selectedPartnerIds.has(partner.id);
+            return (
+              <button
+                key={partner.id}
+                type="button"
+                onClick={() => onTogglePartner(partner.id)}
+                className="px-3 py-1.5 rounded-full text-xs font-medium transition-all"
+                style={{
+                  backgroundColor: selected ? 'var(--accent)' : 'var(--surfaceElev)',
+                  color: selected ? '#FFFFFF' : 'var(--text)',
+                  border: selected ? 'none' : '1px solid var(--border)',
+                }}
+              >
+                {partner.name}
+              </button>
+            );
+          })}
+        </div>
+      )}
+      {/* Typed partner pills */}
+      {pills.length > 0 && (
+        <div className="flex flex-wrap gap-1.5 mb-2">
+          {pills.map((name) => (
+            <span
+              key={name}
+              className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium"
+              style={{ backgroundColor: 'rgba(59,130,246,0.1)', color: '#3B82F6' }}
+            >
+              {name}
+              <button
+                type="button"
+                onClick={() => removePill(name)}
+                className="ml-0.5 hover:opacity-70"
+              >
+                <X className="w-3 h-3" />
+              </button>
+            </span>
+          ))}
+        </div>
+      )}
+      {/* Autocomplete input */}
+      <input
+        type="text"
+        className="input text-sm"
+        value={input}
+        onChange={(e) => setInput(e.target.value)}
+        onKeyDown={(e) => {
+          if ((e.key === 'Enter' || e.key === ',') && input.trim()) {
+            e.preventDefault();
+            addPill(input.replace(/,+$/, ''));
+          }
+        }}
+        onBlur={() => {
+          setTimeout(() => {
+            if (input.trim()) {
+              addPill(input.replace(/,+$/, ''));
+            }
+          }, 200);
+        }}
+        placeholder="Type to search partners..."
+      />
+      {/* Suggestions dropdown */}
+      {suggestions.length > 0 && (
+        <div
+          className="absolute left-0 right-0 mt-1 rounded-lg overflow-hidden shadow-lg z-10"
+          style={{ backgroundColor: 'var(--surface)', border: '1px solid var(--border)' }}
+        >
+          {suggestions.map((friend) => (
+            <button
+              key={friend.id}
+              type="button"
+              className="w-full text-left px-3 py-2 text-sm hover:bg-[var(--surfaceElev)] transition-colors"
+              onMouseDown={(e) => {
+                e.preventDefault();
+                addPill(friend.name);
+              }}
+            >
+              <span className="font-medium text-[var(--text)]">{friend.name}</span>
+              {friend.belt_rank && (
+                <span className="text-xs text-[var(--muted)] ml-1.5">
+                  ({friend.belt_rank} belt)
+                </span>
+              )}
+            </button>
+          ))}
+        </div>
+      )}
+      <p className="text-xs text-[var(--muted)] mt-1">Type to search friends, or enter any name and press Enter</p>
+    </div>
+  );
 }
 
 export default function RollTracker({
@@ -275,38 +417,14 @@ export default function RollTracker({
       </div>
 
       {!detailedMode && showPartners && (
-        <div>
-          <label className="label">Partners</label>
-          {topPartners.length > 0 && selectedPartnerIds && onTogglePartner && (
-            <div className="flex flex-wrap gap-2 mb-2">
-              {topPartners.map((partner) => {
-                const selected = selectedPartnerIds.has(partner.id);
-                return (
-                  <button
-                    key={partner.id}
-                    type="button"
-                    onClick={() => onTogglePartner(partner.id)}
-                    className="px-3 py-1.5 rounded-full text-xs font-medium transition-all"
-                    style={{
-                      backgroundColor: selected ? 'var(--accent)' : 'var(--surfaceElev)',
-                      color: selected ? '#FFFFFF' : 'var(--text)',
-                      border: selected ? 'none' : '1px solid var(--border)',
-                    }}
-                  >
-                    {partner.name}
-                  </button>
-                );
-              })}
-            </div>
-          )}
-          <input
-            type="text"
-            className="input"
-            value={simpleData.partners}
-            onChange={(e) => onSimpleChange('partners', e.target.value)}
-            placeholder={topPartners.length > 0 ? "Additional partners..." : "e.g., John, Sarah"}
-          />
-        </div>
+        <PartnerAutocomplete
+          partners={partners}
+          topPartners={topPartners}
+          selectedPartnerIds={selectedPartnerIds}
+          onTogglePartner={onTogglePartner}
+          value={simpleData.partners}
+          onChange={(val) => onSimpleChange('partners', val)}
+        />
       )}
     </>
   );

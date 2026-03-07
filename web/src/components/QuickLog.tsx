@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Link } from 'react-router-dom';
-import { X, Mic, MicOff } from 'lucide-react';
+import { Link, useNavigate } from 'react-router-dom';
+import { X, Mic, MicOff, CheckCircle } from 'lucide-react';
 import { sessionsApi, profileApi, restApi, friendsApi, socialApi } from '../api/client';
 import { logger } from '../utils/logger';
 import { PrimaryButton, SecondaryButton, ClassTypeChips, IntensityChips } from './ui';
@@ -34,6 +34,8 @@ interface QuickLogProps {
 
 export default function QuickLog({ isOpen, onClose, onSuccess }: QuickLogProps) {
   const [loading, setLoading] = useState(false);
+  const [savedSessionId, setSavedSessionId] = useState<number | null>(null);
+  const navigate = useNavigate();
   const toast = useToast();
 
   // Activity type: 'training' or 'rest'
@@ -182,6 +184,8 @@ export default function QuickLog({ isOpen, onClose, onSuccess }: QuickLogProps) 
         });
         toast.success('Session logged successfully');
         triggerInsightRefresh(response.data?.id);
+
+        const newSessionId = response.data?.id;
         // Reset training form
         setDuration(90);
         setIntensity(3);
@@ -191,7 +195,13 @@ export default function QuickLog({ isOpen, onClose, onSuccess }: QuickLogProps) 
         setNotes('');
         setSelectedPartnerIds(new Set());
 
-        if (onSuccess) onSuccess(response.data?.id);
+        if (onSuccess) onSuccess(newSessionId);
+
+        // Show post-save success state with option to add details
+        if (newSessionId) {
+          setSavedSessionId(newSessionId);
+          return;
+        }
         onClose();
         return;
       }
@@ -227,10 +237,10 @@ export default function QuickLog({ isOpen, onClose, onSuccess }: QuickLogProps) 
         {/* Header */}
         <div className="flex items-center justify-between">
           <h2 id="quick-log-title" className="text-xl font-semibold" style={{ color: 'var(--text)' }}>
-            Quick Log
+            {savedSessionId ? 'Session Logged!' : 'Quick Log'}
           </h2>
           <button
-            onClick={onClose}
+            onClick={() => { setSavedSessionId(null); onClose(); }}
             className="p-2 rounded-lg"
             style={{ color: 'var(--muted)' }}
             aria-label="Close quick log dialog"
@@ -239,8 +249,34 @@ export default function QuickLog({ isOpen, onClose, onSuccess }: QuickLogProps) 
           </button>
         </div>
 
-        {/* Quick Form */}
-        <div className="space-y-4">
+        {/* Post-save success state */}
+        {savedSessionId && (
+          <div className="text-center space-y-4 py-4">
+            <CheckCircle className="w-12 h-12 mx-auto" style={{ color: '#22c55e' }} />
+            <p className="text-sm" style={{ color: 'var(--muted)' }}>
+              Want to add roll details, techniques, or photos?
+            </p>
+            <div className="flex gap-3">
+              <button
+                onClick={() => { setSavedSessionId(null); onClose(); }}
+                className="flex-1 py-3 rounded-lg font-medium text-sm transition-all"
+                style={{ backgroundColor: 'var(--surfaceElev)', color: 'var(--text)', border: '1px solid var(--border)' }}
+              >
+                Done
+              </button>
+              <button
+                onClick={() => { setSavedSessionId(null); onClose(); navigate(`/session/edit/${savedSessionId}`); }}
+                className="flex-1 py-3 rounded-lg font-medium text-sm transition-all"
+                style={{ backgroundColor: 'var(--accent)', color: '#FFFFFF' }}
+              >
+                Add Details &rarr;
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Quick Form — hidden when showing post-save success */}
+        {!savedSessionId && <div className="space-y-4">
           {/* Activity Type Selector */}
           <div>
             <label className="block text-sm font-medium mb-2" style={{ color: 'var(--text)' }}>
@@ -564,24 +600,28 @@ export default function QuickLog({ isOpen, onClose, onSuccess }: QuickLogProps) 
               </div>
             </>
           )}
-        </div>
+        </div>}
 
-        {/* Actions */}
-        <div className="flex gap-3 pt-2">
-          <SecondaryButton onClick={onClose} className="flex-1">
-            Cancel
-          </SecondaryButton>
-          <PrimaryButton onClick={handleQuickLog} disabled={loading} className="flex-1">
-            {loading ? 'Logging...' : activityType === 'rest' ? 'Log Rest Day' : 'Log Session'}
-          </PrimaryButton>
-        </div>
+        {/* Actions — hidden when showing post-save success */}
+        {!savedSessionId && (
+          <>
+            <div className="flex gap-3 pt-2">
+              <SecondaryButton onClick={onClose} className="flex-1">
+                Cancel
+              </SecondaryButton>
+              <PrimaryButton onClick={handleQuickLog} disabled={loading} className="flex-1">
+                {loading ? 'Logging...' : activityType === 'rest' ? 'Log Rest Day' : 'Log Session'}
+              </PrimaryButton>
+            </div>
 
-        {/* Full log link */}
-        <p className="text-xs text-center" style={{ color: 'var(--muted)' }}>
-          <Link to="/log" className="underline" style={{ color: 'var(--accent)' }}>
-            Add roll details, techniques &amp; photos &rarr;
-          </Link>
-        </p>
+            {/* Full log link */}
+            <p className="text-xs text-center" style={{ color: 'var(--muted)' }}>
+              <Link to="/log" className="underline" style={{ color: 'var(--accent)' }}>
+                Need more options? Use the full form &rarr;
+              </Link>
+            </p>
+          </>
+        )}
       </div>
     </div>
   );
