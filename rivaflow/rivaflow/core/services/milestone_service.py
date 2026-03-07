@@ -1,11 +1,15 @@
 """Milestone detection and celebration."""
 
 import random
+from typing import Any
 
 from rivaflow.core.constants import MILESTONE_QUOTES
 from rivaflow.db.repositories.milestone_repo import MilestoneRepository
 from rivaflow.db.repositories.session_repo import SessionRepository
 from rivaflow.db.repositories.streak_repo import StreakRepository
+
+SESSION_MILESTONES = [50, 100, 250, 500, 1000, 2500, 5000]
+ROLL_MILESTONES = [100, 500, 1000, 5000, 10000]
 
 
 class MilestoneService:
@@ -127,3 +131,41 @@ class MilestoneService:
         # Find the milestone with highest percentage completion
         closest = max(progress_list, key=lambda x: x["percentage"])
         return closest
+
+    @staticmethod
+    def check_session_milestones(user_id: int) -> list[dict[str, Any]]:
+        """Check if user just hit a session count milestone."""
+        from rivaflow.core.services.notification_service import NotificationService
+
+        total = SessionRepository.get_total_count_for_user(user_id)
+        achieved: list[dict[str, Any]] = []
+        for milestone in SESSION_MILESTONES:
+            if total == milestone:
+                label = f"{milestone} sessions logged!"
+                try:
+                    NotificationService.create_milestone_notification(user_id, label)
+                except Exception:
+                    pass
+                achieved.append(
+                    {"type": "session_count", "value": milestone, "label": label}
+                )
+        return achieved
+
+    @staticmethod
+    def check_roll_milestones(user_id: int) -> list[dict[str, Any]]:
+        """Check if user just hit a total rolls milestone."""
+        from rivaflow.core.services.notification_service import NotificationService
+
+        total = SessionRepository.get_total_rolls_for_user(user_id)
+        achieved: list[dict[str, Any]] = []
+        for milestone in ROLL_MILESTONES:
+            if total == milestone:
+                label = f"{milestone} total rolls!"
+                try:
+                    NotificationService.create_milestone_notification(user_id, label)
+                except Exception:
+                    pass
+                achieved.append(
+                    {"type": "roll_count", "value": milestone, "label": label}
+                )
+        return achieved

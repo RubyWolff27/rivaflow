@@ -34,6 +34,7 @@ class PrivacyService:
     SENSITIVE_FIELDS = {
         "techniques",
         "partners",
+        "attendees",
         "notes",
         "submissions_for",
         "submissions_against",

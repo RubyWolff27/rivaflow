@@ -90,6 +90,18 @@ def create_grading(
         notes=grading.notes,
         photo_url=grading.photo_url,
     )
+
+    # Send promotion celebration notification
+    try:
+        from rivaflow.core.services.notification_service import NotificationService
+
+        NotificationService.create_milestone_notification(
+            current_user["id"],
+            f"Belt promotion to {grading.grade}!",
+        )
+    except Exception:
+        pass  # Non-critical
+
     return created
 
 
@@ -135,6 +147,23 @@ def update_grading(
         return updated
     except RivaFlowException:
         raise
+
+
+@router.get("/{grading_id}/stats")
+@limiter.limit("60/minute")
+@route_error_handler("get_promotion_stats", detail="Failed to get promotion stats")
+def get_promotion_stats(
+    request: Request,
+    grading_id: int,
+    current_user: dict = Depends(get_current_user),
+    service: GradingService = Depends(get_grading_service),
+):
+    """Get training stats between previous and current belt promotion."""
+    stats = service.get_promotion_stats(
+        user_id=current_user["id"],
+        grading_id=grading_id,
+    )
+    return stats
 
 
 @router.delete("/{grading_id}")

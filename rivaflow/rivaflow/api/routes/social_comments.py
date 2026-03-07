@@ -1,6 +1,6 @@
 """Social features — comment CRUD endpoints."""
 
-from fastapi import APIRouter, Body, Depends, Path, Request, Response, status
+from fastapi import APIRouter, Body, Depends, Path, Query, Request, Response, status
 from pydantic import BaseModel, Field
 
 from rivaflow.api.rate_limit import limiter
@@ -144,4 +144,28 @@ def get_activity_comments(
     return {
         "comments": comments,
         "count": len(comments),
+    }
+
+
+@router.get("/users/search")
+@route_error_handler("search_users", detail="Failed to search users")
+def search_users(
+    q: str = Query(default=""),
+    current_user: dict = Depends(get_current_user),
+):
+    """Search users by username prefix for @mention autocomplete."""
+    if len(q) < 2:
+        return {"users": []}
+    from rivaflow.db.repositories.user_repo import UserRepository
+
+    users = UserRepository.search_by_username(q, limit=10)
+    return {
+        "users": [
+            {
+                "id": u["id"],
+                "username": u["username"],
+                "display_name": u.get("display_name") or u.get("first_name", ""),
+            }
+            for u in users
+        ]
     }

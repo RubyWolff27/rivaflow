@@ -7,6 +7,7 @@ vi.mock('../../api/client', () => ({
     addComment: vi.fn(),
     deleteComment: vi.fn(),
     updateComment: vi.fn(),
+    searchUsers: vi.fn(() => Promise.resolve({ data: { users: [] } })),
   },
 }))
 
@@ -105,7 +106,7 @@ describe('CommentSection', () => {
     render(<CommentSection {...defaultProps} />)
 
     await waitFor(() => {
-      expect(screen.getByPlaceholderText('Add a comment...')).toBeInTheDocument()
+      expect(screen.getByPlaceholderText('Add a comment... (@ to mention)')).toBeInTheDocument()
     })
   })
 })

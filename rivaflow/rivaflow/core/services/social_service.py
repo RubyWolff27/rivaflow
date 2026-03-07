@@ -262,6 +262,26 @@ class SocialService:
                 activity_owner_id, user_id, activity_type, activity_id, comment["id"]
             )
 
+        # Parse @mentions from comment text
+        import re
+
+        mentions = re.findall(r"@(\w+)", comment_text)
+        if mentions:
+            from rivaflow.db.repositories.user_repo import UserRepository
+
+            for username in set(mentions):
+                try:
+                    mentioned_user = UserRepository.get_by_username(username)
+                    if mentioned_user and mentioned_user["id"] != user_id:
+                        NotificationService.create_mention_notification(
+                            mentioned_user["id"],
+                            user_id,
+                            activity_type,
+                            activity_id,
+                        )
+                except Exception:
+                    pass  # Non-critical
+
         # If this is a reply, also notify the parent comment author
         if parent_comment_id:
             parent_comment = ActivityCommentRepository.get_by_id(parent_comment_id)

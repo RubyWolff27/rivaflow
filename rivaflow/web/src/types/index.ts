@@ -459,6 +459,8 @@ export interface FeedItemData {
   // Rest fields
   rest_type?: string;
   rest_note?: string;
+  // Attendees (classmate tagging)
+  attendees?: string | string[];
   // Shared fields
   tomorrow_intention?: string;
   visibility?: string;
@@ -466,7 +468,7 @@ export interface FeedItemData {
 }
 
 export interface FeedItem {
-  type: 'session' | 'rest';
+  type: 'session' | 'rest' | 'promotion' | 'milestone';
   date: string;
   id: number;
   data: FeedItemData;
@@ -481,6 +483,16 @@ export interface FeedItem {
     first_name?: string;
     last_name?: string;
   };
+  // Promotion-specific fields
+  grade?: string;
+  professor?: string;
+  sessions_since_last?: number;
+  hours_since_last?: number;
+  rolls_since_last?: number;
+  // Milestone-specific fields
+  milestone_label?: string;
+  milestone_type?: string;
+  milestone_value?: number;
 }
 
 export interface UserRelationship {

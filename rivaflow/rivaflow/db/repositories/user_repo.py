@@ -138,6 +138,32 @@ class UserRepository(BaseRepository):
             return None
 
     @staticmethod
+    def get_by_username(username: str) -> dict | None:
+        """Get user by username."""
+        with get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                convert_query(f"SELECT {_USER_COLS} FROM users WHERE username = ?"),
+                (username,),
+            )
+            row = cursor.fetchone()
+            return UserRepository._row_to_dict(row) if row else None
+
+    @staticmethod
+    def search_by_username(query: str, limit: int = 10) -> list[dict]:
+        """Search users by username prefix."""
+        with get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                convert_query(
+                    "SELECT id, username, display_name, first_name, last_name"
+                    " FROM users WHERE username LIKE ? LIMIT ?"
+                ),
+                (f"{query}%", limit),
+            )
+            return [dict(row) for row in cursor.fetchall()]
+
+    @staticmethod
     def update(
         user_id: int,
         email: str | None = None,

@@ -7,7 +7,7 @@ import { sessionsApi, readinessApi, profileApi, friendsApi, socialApi, glossaryA
 import { logger } from '../utils/logger';
 import type { Readiness, Movement } from '../types';
 import type { SessionFormData } from '../hooks/useSessionForm';
-import { CheckCircle, Mic, MicOff, ChevronDown, ChevronUp } from 'lucide-react';
+import { CheckCircle, Mic, MicOff, ChevronDown, ChevronUp, Users2, X } from 'lucide-react';
 import WhoopMatchModal from '../components/WhoopMatchModal';
 import GymSelector from '../components/GymSelector';
 import { ClassTypeChips, IntensityChips } from '../components/ui';
@@ -44,6 +44,10 @@ export default function LogSession() {
   const form = useSessionForm({
     initialData: { session_date: getLocalDateString() },
   });
+
+  // Classmates / attendees
+  const [attendees, setAttendees] = useState<string[]>([]);
+  const [attendeeInput, setAttendeeInput] = useState('');
 
   const { clearDraft } = useDraftSaving('log-session', form.sessionData, form.setSessionData);
 
@@ -201,6 +205,7 @@ export default function LogSession() {
           return all.length > 0 ? all : undefined;
         })(),
         techniques: form.sessionData.techniques ? form.sessionData.techniques.split(',').map(t => t.trim()) : undefined,
+        attendees: attendees.length > 0 ? attendees : undefined,
         visibility_level: 'summary',
         ...form.buildWhoopPayload(),
         ...form.buildFightDynamicsPayload(),
@@ -639,6 +644,59 @@ export default function LogSession() {
               onTogglePartner={form.handleTogglePartner}
             />
           )}
+
+          {/* Classmates / Who was in class? */}
+          <div>
+            <label className="label flex items-center gap-1.5">
+              <Users2 className="w-4 h-4" />
+              Who was in class?
+            </label>
+            {attendees.length > 0 && (
+              <div className="flex flex-wrap gap-1.5 mb-2">
+                {attendees.map((name, i) => (
+                  <span
+                    key={i}
+                    className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium"
+                    style={{ backgroundColor: 'rgba(59,130,246,0.1)', color: '#3B82F6' }}
+                  >
+                    {name}
+                    <button
+                      type="button"
+                      onClick={() => setAttendees(prev => prev.filter((_, idx) => idx !== i))}
+                      className="ml-0.5 hover:opacity-70"
+                    >
+                      <X className="w-3 h-3" />
+                    </button>
+                  </span>
+                ))}
+              </div>
+            )}
+            <input
+              type="text"
+              className="input text-sm"
+              value={attendeeInput}
+              onChange={(e) => setAttendeeInput(e.target.value)}
+              onKeyDown={(e) => {
+                if ((e.key === 'Enter' || e.key === ',') && attendeeInput.trim()) {
+                  e.preventDefault();
+                  const name = attendeeInput.trim().replace(/,+$/, '');
+                  if (name && !attendees.includes(name)) {
+                    setAttendees(prev => [...prev, name]);
+                  }
+                  setAttendeeInput('');
+                }
+              }}
+              onBlur={() => {
+                const name = attendeeInput.trim().replace(/,+$/, '');
+                if (name && !attendees.includes(name)) {
+                  setAttendees(prev => [...prev, name]);
+                }
+                setAttendeeInput('');
+              }}
+              placeholder="Type a name and press Enter..."
+            />
+            <p className="text-xs text-[var(--muted)] mt-1">Press Enter or comma to add each classmate</p>
+          </div>
 
           {/* WHOOP Integration */}
           <WhoopIntegrationPanel

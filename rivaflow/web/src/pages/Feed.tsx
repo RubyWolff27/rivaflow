@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo } from 'react';
+import { useState, useCallback, useMemo, useEffect } from 'react';
 import { getLocalDateString } from '../utils/date';
 import { useNavigate } from 'react-router-dom';
 import { usePageTitle } from '../hooks/usePageTitle';
@@ -6,13 +6,15 @@ import { Activity } from 'lucide-react';
 import FeedToggle from '../components/FeedToggle';
 import { CardSkeleton } from '../components/ui';
 import { useAuth } from '../contexts/AuthContext';
-import type { FeedItem } from '../types';
+import type { FeedItem, Grading } from '../types';
 import FeedItemComponent from '../components/feed/FeedItem';
 import FeedFilters, { matchesSessionFilter } from '../components/feed/FeedFilters';
 import { useFeedData } from '../hooks/useFeedData';
 import ConfirmDialog from '../components/ConfirmDialog';
 import WeeklySummaryCard from '../components/analytics/WeeklySummaryCard';
 import FeedSuggestions from '../components/feed/FeedSuggestions';
+import { gradingsApi, notificationsApi, profileApi } from '../api/client';
+import { logger } from '../utils/logger';
 
 export default function Feed() {
   usePageTitle('Feed');
@@ -25,6 +27,67 @@ export default function Feed() {
   const [restToDelete, setRestToDelete] = useState<number | null>(null);
 
   const currentUserId = user?.id ?? null;
+  const [promotionItems, setPromotionItems] = useState<FeedItem[]>([]);
+  const [milestoneItems, setMilestoneItems] = useState<FeedItem[]>([]);
+
+  // Fetch gradings and milestones for feed integration
+  useEffect(() => {
+    let cancelled = false;
+    const loadExtra = async () => {
+      try {
+        // Fetch gradings
+        const [gradingsRes, profileRes] = await Promise.all([
+          gradingsApi.list().catch(() => ({ data: [] as Grading[] })),
+          profileApi.get().catch(() => ({ data: null })),
+        ]);
+        if (cancelled) return;
+
+        const gradings = Array.isArray(gradingsRes.data) ? gradingsRes.data : [];
+        const profile = profileRes.data;
+
+        const promoItems: FeedItem[] = gradings.map((g: Grading, idx: number) => ({
+          type: 'promotion' as const,
+          date: g.date_graded,
+          id: g.id || 10000 + idx,
+          data: {} as FeedItem['data'],
+          summary: `Promoted to ${g.grade}`,
+          grade: g.grade,
+          professor: g.professor,
+          sessions_since_last: profile?.sessions_since_promotion,
+          hours_since_last: profile?.hours_since_promotion,
+          rolls_since_last: undefined,
+        }));
+        setPromotionItems(promoItems);
+      } catch (err) {
+        logger.debug('Failed to load gradings for feed', err);
+      }
+
+      try {
+        // Fetch milestone notifications
+        const notifRes = await notificationsApi.getAll({ limit: 50 });
+        if (cancelled) return;
+
+        const notifications = notifRes.data?.notifications ?? [];
+        const milestones: FeedItem[] = notifications
+          .filter((n: Record<string, unknown>) => n.notification_type === 'milestone' || (typeof n.title === 'string' && (n.title as string).toLowerCase().includes('milestone')))
+          .map((n: Record<string, unknown>, idx: number) => ({
+            type: 'milestone' as const,
+            date: (n.created_at as string) || new Date().toISOString(),
+            id: (n.id as number) || 20000 + idx,
+            data: {} as FeedItem['data'],
+            summary: (n.title as string) || 'Milestone achieved!',
+            milestone_label: (n.title as string) || 'Milestone',
+            milestone_type: (n.data as Record<string, unknown>)?.milestone_type as string | undefined,
+            milestone_value: (n.data as Record<string, unknown>)?.milestone_value as number | undefined,
+          }));
+        setMilestoneItems(milestones);
+      } catch (err) {
+        logger.debug('Failed to load milestones for feed', err);
+      }
+    };
+    loadExtra();
+    return () => { cancelled = true; };
+  }, []);
 
   const {
     feed,
@@ -92,9 +155,18 @@ export default function Feed() {
           (item) => item.owner_user_id && item.owner_user_id !== currentUserId
         );
       }
-      return items.filter((item) => matchesSessionFilter(item, sessionFilter));
+      const filtered = items.filter((item) => matchesSessionFilter(item, sessionFilter));
+
+      // Merge promotion and milestone items into the feed (only on "my" view)
+      if (view === 'my') {
+        const merged = [...filtered, ...promotionItems, ...milestoneItems];
+        // Sort by date descending
+        merged.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+        return merged;
+      }
+      return filtered;
     },
-    [feed, sessionFilter, view, currentUserId]
+    [feed, sessionFilter, view, currentUserId, promotionItems, milestoneItems]
   );
 
   if (loading) {

@@ -124,6 +124,47 @@ def _trigger_post_session_hooks(
         except Exception:
             logger.debug("Partner auto-tag skipped", exc_info=True)
 
+    # Auto-notify attendees who are RivaFlow friends
+    if session_id:
+        try:
+            from rivaflow.core.services.notification_service import (
+                NotificationService,
+            )
+            from rivaflow.db.repositories.friend_repo import FriendRepository
+            from rivaflow.db.repositories.session_repo import SessionRepository
+            from rivaflow.db.repositories.social_connection_repo import (
+                SocialConnectionRepository,
+            )
+
+            session_data = SessionRepository.get_by_id_any_user(session_id)
+            attendees = session_data.get("attendees", []) if session_data else []
+            if attendees:
+                friend_repo = FriendRepository()
+                friend_user_ids = SocialConnectionRepository.get_friend_ids(user_id)
+                all_friends = friend_repo.list_all(user_id)
+
+                for attendee_name in attendees:
+                    for friend in all_friends:
+                        if (
+                            friend.get("name") == attendee_name
+                            and friend.get("user_id")
+                            and friend["user_id"] in friend_user_ids
+                        ):
+                            try:
+                                NotificationService.create_mention_notification(
+                                    friend["user_id"],
+                                    user_id,
+                                    "session",
+                                    session_id,
+                                )
+                            except Exception:
+                                logger.debug(
+                                    "Attendee notification failed",
+                                    exc_info=True,
+                                )
+        except Exception:
+            logger.debug("Attendee auto-tag skipped", exc_info=True)
+
 
 @router.post("/", status_code=status.HTTP_201_CREATED, response_model=SessionResponse)
 @limiter.limit("60/minute")
@@ -161,6 +202,7 @@ def create_session(
         submissions_for=session.submissions_for,
         submissions_against=session.submissions_against,
         partners=session.partners,
+        attendees=session.attendees,
         techniques=session.techniques,
         notes=session.notes,
         visibility_level=session.visibility_level.value,
@@ -195,6 +237,16 @@ def create_session(
         current_user["id"],
         str(session.session_date),
         session_id,
+    )
+
+    # Check session/roll milestones in background
+    from rivaflow.core.services.milestone_service import MilestoneService
+
+    background_tasks.add_task(
+        MilestoneService.check_session_milestones, current_user["id"]
+    )
+    background_tasks.add_task(
+        MilestoneService.check_roll_milestones, current_user["id"]
     )
 
     return created_session
@@ -237,6 +289,7 @@ def update_session(
         submissions_for=session.submissions_for,
         submissions_against=session.submissions_against,
         partners=session.partners,
+        attendees=session.attendees,
         techniques=session.techniques,
         notes=session.notes,
         visibility_level=(

@@ -102,6 +102,10 @@ class SessionCreate(BaseModel):
     partners: list[str] | None = Field(
         default=None, description="List of training partner names"
     )
+    attendees: list[str] | None = Field(
+        default=None,
+        description="List of classmates/training partners in the same class",
+    )
     techniques: list[str] | None = Field(
         default=None, description="Techniques worked on during the session"
     )
@@ -151,7 +155,7 @@ class SessionCreate(BaseModel):
             return None
         return v
 
-    @field_validator("partners", "techniques", mode="before")
+    @field_validator("partners", "attendees", "techniques", mode="before")
     @classmethod
     def empty_list_to_none(cls, v):
         """Convert empty lists to None for optional list fields."""
@@ -210,6 +214,7 @@ class SessionUpdate(BaseModel):
     submissions_for: int | None = Field(default=None, ge=0)
     submissions_against: int | None = Field(default=None, ge=0)
     partners: list[str] | None = None
+    attendees: list[str] | None = None
     techniques: list[str] | None = None
     notes: str | None = None
     visibility_level: VisibilityLevel | None = None

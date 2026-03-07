@@ -1,10 +1,30 @@
-import { useState, useEffect, memo } from 'react';
+import { useState, useEffect, useRef, useCallback, memo } from 'react';
 import { Edit2, Trash2, Send } from 'lucide-react';
 import { socialApi } from '../api/client';
 import { logger } from '../utils/logger';
 import type { ActivityComment } from '../types';
 import ConfirmDialog from './ConfirmDialog';
 import { useToast } from '../contexts/ToastContext';
+
+/** Render comment text with @mention highlighting */
+function renderCommentText(text: string): React.ReactNode {
+  const parts = text.split(/(@\w+)/g);
+  return parts.map((part, i) =>
+    part.startsWith('@') ? (
+      <span key={i} className="text-blue-400 font-semibold">{part}</span>
+    ) : (
+      <span key={i}>{part}</span>
+    )
+  );
+}
+
+interface MentionUser {
+  id: number;
+  first_name?: string;
+  last_name?: string;
+  username?: string;
+  email?: string;
+}
 
 interface CommentSectionProps {
   activityType: 'session' | 'readiness' | 'rest';
@@ -26,7 +46,67 @@ const CommentSection = memo(function CommentSection({
   const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [commentToDelete, setCommentToDelete] = useState<number | null>(null);
+  const [mentionResults, setMentionResults] = useState<MentionUser[]>([]);
+  const [showMentions, setShowMentions] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const mentionTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const toast = useToast();
+
+  const handleMentionSearch = useCallback(async (query: string) => {
+    if (query.length < 2) {
+      setMentionResults([]);
+      setShowMentions(false);
+      return;
+    }
+    try {
+      const res = await socialApi.searchUsers(query);
+      const users = res.data?.users ?? res.data ?? [];
+      setMentionResults(Array.isArray(users) ? users.slice(0, 5) : []);
+      setShowMentions(true);
+    } catch {
+      setMentionResults([]);
+      setShowMentions(false);
+    }
+  }, []);
+
+  const handleCommentInputChange = useCallback((value: string) => {
+    setNewComment(value);
+
+    // Detect @mention typing
+    const cursorPos = inputRef.current?.selectionStart ?? value.length;
+    const textBeforeCursor = value.slice(0, cursorPos);
+    const mentionMatch = textBeforeCursor.match(/@(\w*)$/);
+
+    if (mentionMatch) {
+      const query = mentionMatch[1];
+      if (mentionTimeoutRef.current) clearTimeout(mentionTimeoutRef.current);
+      mentionTimeoutRef.current = setTimeout(() => {
+        handleMentionSearch(query);
+      }, 300);
+    } else {
+      setShowMentions(false);
+      setMentionResults([]);
+    }
+  }, [handleMentionSearch]);
+
+  const insertMention = useCallback((user: MentionUser) => {
+    const displayName = user.username || `${user.first_name || ''}${user.last_name || ''}`.replace(/\s/g, '') || 'user';
+    const cursorPos = inputRef.current?.selectionStart ?? newComment.length;
+    const textBeforeCursor = newComment.slice(0, cursorPos);
+    const textAfterCursor = newComment.slice(cursorPos);
+
+    // Replace the @query with @username
+    const mentionMatch = textBeforeCursor.match(/@(\w*)$/);
+    if (mentionMatch) {
+      const beforeMention = textBeforeCursor.slice(0, mentionMatch.index);
+      const updated = `${beforeMention}@${displayName} ${textAfterCursor}`;
+      setNewComment(updated);
+    }
+
+    setShowMentions(false);
+    setMentionResults([]);
+    inputRef.current?.focus();
+  }, [newComment]);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -210,7 +290,7 @@ const CommentSection = memo(function CommentSection({
                   </div>
                 ) : (
                   <p className="text-sm text-[var(--text)] whitespace-pre-wrap">
-                    {comment.comment_text}
+                    {renderCommentText(comment.comment_text)}
                   </p>
                 )}
               </div>
@@ -224,23 +304,62 @@ const CommentSection = memo(function CommentSection({
           </div>
 
           {/* Add comment form */}
-          <form onSubmit={handleSubmit} className="flex gap-2">
-            <input
-              type="text"
-              value={newComment}
-              onChange={(e) => setNewComment(e.target.value)}
-              placeholder="Add a comment..."
-              className="flex-1 px-3 py-2 text-sm border border-[var(--border)] rounded-lg bg-[var(--surface)] text-[var(--text)] placeholder-[var(--muted)]"
-              maxLength={1000}
-            />
-            <button
-              type="submit"
-              disabled={!newComment.trim() || submitting}
-              className="px-4 py-2 bg-[var(--accent)] text-white rounded-lg hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
-            >
-              <Send className="w-4 h-4" />
-            </button>
-          </form>
+          <div className="relative">
+            <form onSubmit={handleSubmit} className="flex gap-2">
+              <input
+                ref={inputRef}
+                type="text"
+                value={newComment}
+                onChange={(e) => handleCommentInputChange(e.target.value)}
+                onBlur={() => {
+                  // Delay hiding to allow click on mention
+                  setTimeout(() => setShowMentions(false), 200);
+                }}
+                placeholder="Add a comment... (@ to mention)"
+                className="flex-1 px-3 py-2 text-sm border border-[var(--border)] rounded-lg bg-[var(--surface)] text-[var(--text)] placeholder-[var(--muted)]"
+                maxLength={1000}
+              />
+              <button
+                type="submit"
+                disabled={!newComment.trim() || submitting}
+                className="px-4 py-2 bg-[var(--accent)] text-white rounded-lg hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+              >
+                <Send className="w-4 h-4" />
+              </button>
+            </form>
+
+            {/* Mention autocomplete dropdown */}
+            {showMentions && mentionResults.length > 0 && (
+              <div
+                className="absolute bottom-full left-0 right-12 mb-1 rounded-lg overflow-hidden shadow-lg z-10"
+                style={{
+                  backgroundColor: 'var(--surface)',
+                  border: '1px solid var(--border)',
+                }}
+              >
+                {mentionResults.map((user) => {
+                  const displayName = `${user.first_name || ''} ${user.last_name || ''}`.trim();
+                  const username = user.username || user.email?.split('@')[0] || '';
+                  return (
+                    <button
+                      key={user.id}
+                      type="button"
+                      className="w-full text-left px-3 py-2 text-sm hover:bg-[var(--surfaceElev)] transition-colors"
+                      onMouseDown={(e) => {
+                        e.preventDefault(); // Prevent input blur
+                        insertMention(user);
+                      }}
+                    >
+                      <span className="font-medium text-[var(--text)]">{displayName}</span>
+                      {username && (
+                        <span className="text-xs text-[var(--muted)] ml-1.5">@{username}</span>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+          </div>
         </>
       )}
 

@@ -2,6 +2,8 @@ import { memo, useState } from 'react';
 import { Calendar, Edit2, Eye, Lock, Moon, Trash2, Users2, Globe, ChevronDown, Dumbbell, Trophy, Flame, Zap } from 'lucide-react';
 import ActivitySocialActions from '../ActivitySocialActions';
 import CommentSection from '../CommentSection';
+import PromotionCard from './PromotionCard';
+import MilestoneCard from './MilestoneCard';
 import type { FeedItem } from '../../types';
 import { ACTIVITY_COLORS, ACTIVITY_LABELS } from '../../constants/activity';
 
@@ -19,6 +21,24 @@ function getScoreTier(score: number) {
     if (score >= tier.min) return tier;
   }
   return SCORE_TIERS[SCORE_TIERS.length - 1];
+}
+
+/** Parse attendees from session data */
+function getAttendeeNames(data: FeedItem['data']): string[] {
+  if (!data?.attendees) return [];
+  if (Array.isArray(data.attendees)) {
+    return data.attendees.filter(Boolean);
+  }
+  if (typeof data.attendees === 'string') {
+    try {
+      const parsed = JSON.parse(data.attendees);
+      if (Array.isArray(parsed)) return parsed.filter(Boolean);
+    } catch {
+      // Not JSON, treat as comma-separated
+      return data.attendees.split(',').map(s => s.trim()).filter(Boolean);
+    }
+  }
+  return [];
 }
 
 /** Get partner names from session data */
@@ -276,6 +296,8 @@ const FeedItemComponent = memo(function FeedItemComponent({
     : '';
   const ownerInitial = ownerName ? ownerName[0].toUpperCase() : '?';
 
+  const isPromotion = item.type === 'promotion';
+  const isMilestone = item.type === 'milestone';
   const isRest = item.type === 'rest';
   const classType = item.data?.class_type?.toLowerCase() ?? '';
   const activityColor = ACTIVITY_COLORS[classType] || 'var(--accent)';
@@ -309,11 +331,13 @@ const FeedItemComponent = memo(function FeedItemComponent({
 
   // Expandable detail content for sessions
   const partnerNames = !isRest ? getPartnerNames(item.data) : [];
+  const attendeeNames = !isRest ? getAttendeeNames(item.data) : [];
   const techniques = (!isRest && item.data?.techniques && Array.isArray(item.data.techniques)) ? item.data.techniques : [];
   const hasExpandableContent = !isRest && (
     (item.data?.score_breakdown && typeof item.data.score_breakdown === 'object') ||
     techniques.length > 0 ||
     partnerNames.length > 0 ||
+    attendeeNames.length > 0 ||
     item.data?.notes
   );
 
@@ -366,7 +390,22 @@ const FeedItemComponent = memo(function FeedItemComponent({
         )}
 
         <div className="p-4">
-          {isRest ? (
+          {isPromotion ? (
+            <PromotionCard
+              grade={item.grade || ''}
+              date={item.date}
+              professor={item.professor}
+              sessionsSinceLastPromotion={item.sessions_since_last}
+              hoursSinceLastPromotion={item.hours_since_last}
+              rollsSinceLastPromotion={item.rolls_since_last}
+            />
+          ) : isMilestone ? (
+            <MilestoneCard
+              label={item.milestone_label || item.summary}
+              type={item.milestone_type}
+              value={item.milestone_value}
+            />
+          ) : isRest ? (
             /* ═══ Rest day card (unchanged) ═══ */
             <>
               <div className="flex items-start justify-between gap-2 mb-2">
@@ -612,6 +651,27 @@ const FeedItemComponent = memo(function FeedItemComponent({
                     </div>
                   )}
 
+                  {/* In Class (attendees) */}
+                  {attendeeNames.length > 0 && (
+                    <div>
+                      <p className="text-[10px] font-semibold uppercase tracking-wider mb-1" style={{ color: 'var(--muted)' }}>
+                        In Class
+                      </p>
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        {attendeeNames.map((name, i) => (
+                          <span
+                            key={i}
+                            className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium"
+                            style={{ backgroundColor: 'rgba(59,130,246,0.1)', color: '#3B82F6' }}
+                          >
+                            <Users2 className="w-3 h-3" style={{ color: '#3B82F6' }} />
+                            {name}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
                   {/* Full notes */}
                   {item.data?.notes && (
                     <div>
@@ -660,8 +720,8 @@ const FeedItemComponent = memo(function FeedItemComponent({
             </>
           )}
 
-          {/* Social actions bar */}
-          {shouldShowSocialActions(item) && currentUserId && (
+          {/* Social actions bar — only for session/rest types */}
+          {shouldShowSocialActions(item) && currentUserId && (item.type === 'session' || item.type === 'rest') && (
             <>
               <ActivitySocialActions
                 activityType={item.type}

@@ -1,6 +1,6 @@
 """Service layer for grading/belt progression operations."""
 
-from rivaflow.db.repositories import GradingRepository, ProfileRepository
+from rivaflow.db.repositories import GradingRepository, ProfileRepository, SessionRepository
 
 
 class GradingService:
@@ -85,6 +85,85 @@ class GradingService:
                 self.profile_repo.update(user_id, current_grade=latest["grade"])
 
         return updated
+
+    def get_promotion_stats(self, user_id: int, grading_id: int) -> dict:
+        """Get training stats since the previous belt promotion.
+
+        Returns:
+            Dict with total_sessions, total_hours, total_rolls, class_types breakdown
+        """
+        from datetime import date
+
+        from rivaflow.db.database import convert_query, get_connection
+
+        # Get all gradings ordered by date
+        gradings = self.repo.list_all(user_id, order_by="date_graded DESC, id DESC")
+
+        # Find the current grading and its predecessor
+        current_grading = None
+        previous_grading = None
+        found_current = False
+        for g in gradings:
+            if g["id"] == grading_id:
+                current_grading = g
+                found_current = True
+                continue
+            if found_current:
+                previous_grading = g
+                break
+
+        if not current_grading:
+            return {
+                "total_sessions": 0,
+                "total_hours": 0.0,
+                "total_rolls": 0,
+                "class_types": {},
+            }
+
+        current_date = str(current_grading["date_graded"])
+        start_date = str(previous_grading["date_graded"]) if previous_grading else "2000-01-01"
+
+        # Query sessions between the two dates
+        with get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                convert_query("""
+                    SELECT
+                        COUNT(*) as total_sessions,
+                        COALESCE(SUM(duration_mins), 0) as total_minutes,
+                        COALESCE(SUM(rolls), 0) as total_rolls,
+                        class_type
+                    FROM sessions
+                    WHERE user_id = ?
+                      AND session_date >= ?
+                      AND session_date <= ?
+                    GROUP BY class_type
+                """),
+                (user_id, start_date, current_date),
+            )
+            rows = cursor.fetchall()
+
+        total_sessions = 0
+        total_minutes = 0
+        total_rolls = 0
+        class_types: dict[str, int] = {}
+
+        for row in rows:
+            r = dict(row)
+            count = r["total_sessions"] or 0
+            total_sessions += count
+            total_minutes += r["total_minutes"] or 0
+            total_rolls += r["total_rolls"] or 0
+            ct = r["class_type"]
+            if ct:
+                class_types[ct] = count
+
+        return {
+            "total_sessions": total_sessions,
+            "total_hours": round(total_minutes / 60, 1),
+            "total_rolls": total_rolls,
+            "class_types": class_types,
+        }
 
     def delete_grading(self, user_id: int, grading_id: int) -> bool:
         """

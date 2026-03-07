@@ -12,7 +12,7 @@ _SESSION_COLS = (
     "id, user_id, session_date, class_time, class_type, gym_name, location, "
     "duration_mins, intensity, rolls, "
     "submissions_for, submissions_against, "
-    "partners, techniques, notes, "
+    "partners, attendees, techniques, notes, "
     "visibility_level, audience_scope, share_fields, published_at, "
     "instructor_id, instructor_name, "
     "whoop_strain, whoop_calories, whoop_avg_hr, whoop_max_hr, "
@@ -41,6 +41,7 @@ class SessionRepository(BaseRepository):
         submissions_for: int = 0,
         submissions_against: int = 0,
         partners: list[str] | None = None,
+        attendees: list[str] | None = None,
         techniques: list[str] | None = None,
         notes: str | None = None,
         visibility_level: str = "private",
@@ -67,13 +68,13 @@ class SessionRepository(BaseRepository):
                     user_id, session_date, class_time, class_type, gym_name, location,
                     duration_mins, intensity, rolls,
                     submissions_for, submissions_against,
-                    partners, techniques, notes, visibility_level,
+                    partners, attendees, techniques, notes, visibility_level,
                     instructor_id, instructor_name,
                     whoop_strain, whoop_calories, whoop_avg_hr, whoop_max_hr,
                     attacks_attempted, attacks_successful,
                     defenses_attempted, defenses_successful,
                     source, needs_review
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
                     user_id,
@@ -88,6 +89,7 @@ class SessionRepository(BaseRepository):
                     submissions_for,
                     submissions_against,
                     json.dumps(partners) if partners else None,
+                    json.dumps(attendees) if attendees else None,
                     json.dumps(techniques) if techniques else None,
                     notes,
                     visibility_level,
@@ -206,6 +208,9 @@ class SessionRepository(BaseRepository):
                 "partners": lambda v: (
                     json.dumps(v) if v is not None else json.dumps([])
                 ),
+                "attendees": lambda v: (
+                    json.dumps(v) if v is not None else json.dumps([])
+                ),
                 "techniques": lambda v: (
                     json.dumps(v) if v is not None else json.dumps([])
                 ),
@@ -216,7 +221,7 @@ class SessionRepository(BaseRepository):
             }
 
             # List fields that can be explicitly cleared with []
-            clearable_list_fields = {"partners", "techniques"}
+            clearable_list_fields = {"partners", "attendees", "techniques"}
 
             # Build update query dynamically from provided kwargs
             updates = []
@@ -235,6 +240,7 @@ class SessionRepository(BaseRepository):
                 "submissions_for",
                 "submissions_against",
                 "partners",
+                "attendees",
                 "techniques",
                 "notes",
                 "visibility_level",
@@ -1052,6 +1058,33 @@ class SessionRepository(BaseRepository):
         }
 
     @staticmethod
+    def get_total_count_for_user(user_id: int) -> int:
+        """Get total session count for a user."""
+        with get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                convert_query("SELECT COUNT(*) as cnt FROM sessions WHERE user_id = ?"),
+                (user_id,),
+            )
+            row = cursor.fetchone()
+            return row["cnt"] if row else 0
+
+    @staticmethod
+    def get_total_rolls_for_user(user_id: int) -> int:
+        """Get total rolls across all sessions for a user."""
+        with get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                convert_query(
+                    "SELECT COALESCE(SUM(rolls), 0) as total_rolls"
+                    " FROM sessions WHERE user_id = ?"
+                ),
+                (user_id,),
+            )
+            row = cursor.fetchone()
+            return row["total_rolls"] if row else 0
+
+    @staticmethod
     def _row_to_dict(row) -> dict:
         """Convert a database row to a dictionary."""
         data = dict(row)
@@ -1060,6 +1093,11 @@ class SessionRepository(BaseRepository):
             data["partners"] = json.loads(data["partners"])
         else:
             data["partners"] = []
+
+        if data.get("attendees"):
+            data["attendees"] = json.loads(data["attendees"])
+        else:
+            data["attendees"] = []
 
         if data.get("techniques"):
             data["techniques"] = json.loads(data["techniques"])
