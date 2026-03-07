@@ -1,10 +1,6 @@
 """Update movements glossary with reference video URLs."""
 
-import sqlite3
-from pathlib import Path
-
-# Get database path
-DB_PATH = Path.home() / ".rivaflow" / "rivaflow.db"
+from rivaflow.db.database import convert_query, get_connection
 
 # Video URL mappings (movement name -> {gi_url, nogi_url})
 VIDEO_URLS = {
@@ -250,8 +246,7 @@ VIDEO_URLS = {
 
 def update_video_urls():
     """Update movements glossary with reference video URLs."""
-    conn = sqlite3.connect(DB_PATH)
-    try:
+    with get_connection() as conn:
         cursor = conn.cursor()
         updated = 0
         not_found = []
@@ -259,37 +254,33 @@ def update_video_urls():
         for movement_name, urls in VIDEO_URLS.items():
             # Find the movement by name
             cursor.execute(
-                "SELECT id, name FROM movements_glossary WHERE name = ?",
+                convert_query("SELECT id, name FROM movements_glossary WHERE name = ?"),
                 (movement_name,),
             )
             row = cursor.fetchone()
 
             if row:
-                movement_id = row[0]
+                movement_id = row["id"]
                 cursor.execute(
-                    """
-                    UPDATE movements_glossary
-                    SET gi_video_url = ?, nogi_video_url = ?
-                    WHERE id = ?
-                """,
+                    convert_query("""
+                        UPDATE movements_glossary
+                        SET gi_video_url = ?, nogi_video_url = ?
+                        WHERE id = ?
+                    """),
                     (urls["gi"], urls["nogi"], movement_id),
                 )
                 updated += 1
-                print(f"✓ Updated: {movement_name}")
+                print(f"Updated: {movement_name}")
             else:
                 not_found.append(movement_name)
-                print(f"✗ Not found: {movement_name}")
+                print(f"Not found: {movement_name}")
 
-        conn.commit()
         print(f"\n{'='*60}")
         print(f"Successfully updated {updated} movements with video URLs!")
         if not_found:
             print(f"\nMovements not found in database ({len(not_found)}):")
             for name in not_found:
                 print(f"  - {name}")
-
-    finally:
-        conn.close()
 
 
 if __name__ == "__main__":

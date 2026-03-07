@@ -255,8 +255,6 @@ class GrappleStatsRepository(BaseRepository):
         Returns:
             True if all required tables are present.
         """
-        from rivaflow.core.settings import settings
-
         required_tables = {
             "chat_sessions",
             "chat_messages",
@@ -266,28 +264,16 @@ class GrappleStatsRepository(BaseRepository):
 
         with get_connection() as conn:
             cursor = conn.cursor()
-            if settings.DB_TYPE == "postgresql":
-                cursor.execute("""
-                    SELECT table_name
-                    FROM information_schema.tables
-                    WHERE table_name IN (
-                        'chat_sessions', 'chat_messages',
-                        'token_usage_logs', 'grapple_feedback'
-                    )
-                """)
-            else:
-                cursor.execute("""
-                    SELECT name FROM sqlite_master
-                    WHERE type='table' AND name IN (
-                        'chat_sessions', 'chat_messages',
-                        'token_usage_logs', 'grapple_feedback'
-                    )
-                """)
+            cursor.execute("""
+                SELECT table_name
+                FROM information_schema.tables
+                WHERE table_name IN (
+                    'chat_sessions', 'chat_messages',
+                    'token_usage_logs', 'grapple_feedback'
+                )
+            """)
 
-            found = {
-                row["table_name" if settings.DB_TYPE == "postgresql" else "name"]
-                for row in cursor.fetchall()
-            }
+            found = {row["table_name"] for row in cursor.fetchall()}
             cursor.close()
             return required_tables <= found
 

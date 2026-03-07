@@ -134,7 +134,8 @@ def register(
 
         if not password:
             password = Prompt.ask(
-                "[bold cyan]Password (min 8 characters)[/bold cyan]", password=True
+                "[bold cyan]Password (min 10 chars, include special char)[/bold cyan]",
+                password=True,
             )
             password_confirm = Prompt.ask(
                 "[bold cyan]Confirm password[/bold cyan]", password=True
@@ -148,12 +149,12 @@ def register(
                 raise typer.Exit(code=1)
 
             # Validate password length
-            if len(password) < 8:
+            if len(password) < 10:
                 console.print(
-                    "❌ [red]Password must be at least 8 characters long[/red]"
+                    "❌ [red]Password must be at least 10 characters long[/red]"
                 )
                 console.print(
-                    "[dim]Tip: Use a mix of letters, numbers, and symbols for better security[/dim]"
+                    "[dim]Tip: Use a mix of letters, numbers, and special characters[/dim]"
                 )
                 raise typer.Exit(code=1)
 

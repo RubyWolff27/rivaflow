@@ -27,11 +27,11 @@ def get_lifetime_stats(user_id: int) -> dict:
     from rivaflow.db.database import convert_query
 
     def _scalar(row):
-        """Extract scalar value from a row (handles dict, sqlite3.Row, and tuple)."""
+        """Extract scalar value from a row (handles dict and tuple)."""
         if row is None:
             return None
         if hasattr(row, "keys"):
-            # Dict-like row (PostgreSQL RealDictCursor or sqlite3.Row)
+            # Dict-like row (PostgreSQL RealDictCursor)
             keys = list(row.keys())
             return row[keys[0]] if keys else None
         return row[0]

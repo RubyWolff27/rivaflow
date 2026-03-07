@@ -1,6 +1,7 @@
 """Authentication endpoints."""
 
 import logging
+import secrets
 
 from fastapi import APIRouter, Depends, Request, Response, status
 from pydantic import BaseModel, EmailStr, Field
@@ -47,11 +48,36 @@ def _clear_refresh_cookie(response: Response):
     response.delete_cookie(key="rf_token", path="/api")
 
 
+def _set_csrf_cookie(response: Response):
+    """Set a non-httpOnly CSRF cookie (readable by JavaScript).
+
+    The frontend reads this cookie and sends it back as the X-CSRF-Token
+    header.  The CSRFMiddleware validates that they match (double-submit
+    cookie pattern).
+    """
+    csrf_token = secrets.token_urlsafe(32)
+    response.set_cookie(
+        key="csrf_token",
+        value=csrf_token,
+        httponly=False,  # Must be readable by JS
+        secure=settings.IS_PRODUCTION,
+        samesite="lax",
+        path="/",
+        max_age=settings.REFRESH_TOKEN_EXPIRE_DAYS * 24 * 60 * 60,
+    )
+    return csrf_token
+
+
+def _clear_csrf_cookie(response: Response):
+    """Clear the CSRF cookie."""
+    response.delete_cookie(key="csrf_token", path="/")
+
+
 class RegisterRequest(BaseModel):
     """User registration request model."""
 
     email: EmailStr
-    password: str = Field(..., min_length=8, max_length=128)
+    password: str = Field(..., min_length=10, max_length=128)
     first_name: str
     last_name: str
     invite_token: str | None = None
@@ -126,6 +152,7 @@ def register(request: Request, req: RegisterRequest, response: Response):
                 )
 
         _set_refresh_cookie(response, result["refresh_token"])
+        _set_csrf_cookie(response)
         return result
     except ValueError as e:
         # ValueError contains user-facing validation messages
@@ -154,6 +181,7 @@ def login(request: Request, req: LoginRequest, response: Response):
     try:
         result = service.login(email=req.email, password=req.password)
         _set_refresh_cookie(response, result["refresh_token"])
+        _set_csrf_cookie(response)
         return result
     except (ValueError, AuthenticationError):
         # Auth failures - use generic message to prevent user enumeration
@@ -183,6 +211,7 @@ def refresh_token(request: Request, response: Response):
         result = service.refresh_access_token(refresh_token=token)
         # Set the rotated refresh token cookie (not the old one)
         _set_refresh_cookie(response, result["refresh_token"])
+        _set_csrf_cookie(response)
         return result
     except ValueError:
         logger.warning("Token refresh failed")
@@ -223,6 +252,7 @@ def logout(
             raise ServiceError(error_msg)
 
     _clear_refresh_cookie(response)
+    _clear_csrf_cookie(response)
     return {"message": "Logged out successfully"}
 
 
@@ -241,6 +271,7 @@ def logout_all_devices(
     try:
         count = service.logout_all_devices(user_id=current_user["id"])
         _clear_refresh_cookie(response)
+        _clear_csrf_cookie(response)
         return {"message": f"Logged out from {count} device(s)"}
     except RivaFlowException:
         raise
@@ -272,7 +303,7 @@ class ResetPasswordRequest(BaseModel):
     """Reset password request model."""
 
     token: str
-    new_password: str = Field(..., min_length=8, max_length=128)
+    new_password: str = Field(..., min_length=10, max_length=128)
 
 
 @router.post("/forgot-password")
@@ -315,7 +346,7 @@ def reset_password(request: Request, req: ResetPasswordRequest):
     Rate limited to 5 requests per hour per IP address.
 
     - **token**: Password reset token from email
-    - **new_password**: New password (min 8 characters)
+    - **new_password**: New password (min 10 characters, must include special character)
 
     Returns success or error message.
     """

@@ -16,9 +16,8 @@ def _patch_count_by_activity():
     """Patch count_by_activity to work around SQLite Row .values() bug.
 
     The ActivityPhotoRepository.count_by_activity method uses
-    ``list(row.values())[0]`` which fails on sqlite3.Row because
-    Row has .keys() but not .values().  We mock it to return 0
-    (no photos yet) so the upload path is exercised.
+    ``list(row.values())[0]`` which needs dict-like rows.
+    We mock it to return 0 (no photos yet) so the upload path is exercised.
     """
     with patch(
         "rivaflow.db.repositories.activity_photo_repo."

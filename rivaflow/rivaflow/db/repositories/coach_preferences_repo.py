@@ -7,6 +7,22 @@ from rivaflow.db.repositories.base_repository import BaseRepository
 
 JSON_FIELDS = ("focus_areas", "injuries", "motivations")
 
+# Whitelist of valid column names to prevent SQL injection via dynamic keys.
+_VALID_COLUMNS = frozenset(
+    {
+        "training_mode",
+        "current_belt",
+        "experience_years",
+        "competition_focus",
+        "focus_areas",
+        "injuries",
+        "motivations",
+        "preferred_style",
+        "gi_preference",
+        "additional_context",
+    }
+)
+
 
 class CoachPreferencesRepository(BaseRepository):
     """Data access layer for coach preferences."""
@@ -43,12 +59,14 @@ class CoachPreferencesRepository(BaseRepository):
             existing = cursor.fetchone()
 
             if existing:
-                # Build dynamic UPDATE
+                # Build dynamic UPDATE — validate column names against whitelist
                 set_parts = []
                 values = []
                 for key, value in fields.items():
                     if key in ("id", "user_id", "created_at"):
                         continue
+                    if key not in _VALID_COLUMNS:
+                        raise ValueError(f"Invalid field: {key!r}")
                     set_parts.append(f"{key} = ?")
                     values.append(value)
                 if set_parts:
@@ -61,15 +79,30 @@ class CoachPreferencesRepository(BaseRepository):
                     )
                     cursor.execute(convert_query(sql), values)
             else:
-                # INSERT new row
+                # INSERT new row — validate column names against whitelist
+                invalid = (
+                    set(fields.keys())
+                    - _VALID_COLUMNS
+                    - {
+                        "id",
+                        "user_id",
+                        "created_at",
+                    }
+                )
+                if invalid:
+                    raise ValueError(f"Invalid fields: {sorted(invalid)}")
                 fields["user_id"] = user_id
                 columns = list(fields.keys())
                 placeholders = ", ".join(["?"] * len(columns))
                 col_str = ", ".join(columns)
                 sql = (
-                    f"INSERT INTO coach_preferences ({col_str}) VALUES ({placeholders})"
+                    f"INSERT INTO coach_preferences"
+                    f" ({col_str}) VALUES ({placeholders})"
                 )
-                cursor.execute(convert_query(sql), [fields[c] for c in columns])
+                cursor.execute(
+                    convert_query(sql),
+                    [fields[c] for c in columns],
+                )
 
         return CoachPreferencesRepository.get(user_id)  # type: ignore[return-value]
 

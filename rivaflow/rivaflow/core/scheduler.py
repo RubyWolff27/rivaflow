@@ -31,13 +31,9 @@ _LOCK_IDS = {
 def _try_advisory_lock(job_name: str) -> bool:
     """Try to acquire a PG advisory lock for a job. Returns True if acquired."""
     try:
-        from rivaflow.core.settings import settings
         from rivaflow.db.database import get_connection
 
         lock_id = _LOCK_IDS.get(job_name, hash(job_name) % 2**31)
-
-        if settings.DB_TYPE != "postgresql":
-            return True  # SQLite is single-process, no lock needed
 
         with get_connection() as conn:
             cursor = conn.cursor()
@@ -55,11 +51,7 @@ def _try_advisory_lock(job_name: str) -> bool:
 def _release_advisory_lock(job_name: str) -> None:
     """Release a PG advisory lock for a job."""
     try:
-        from rivaflow.core.settings import settings
         from rivaflow.db.database import get_connection
-
-        if settings.DB_TYPE != "postgresql":
-            return
 
         lock_id = _LOCK_IDS.get(job_name, hash(job_name) % 2**31)
         with get_connection() as conn:

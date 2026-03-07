@@ -20,7 +20,7 @@ class UserRelationshipRepository(BaseRepository):
             The created relationship
 
         Raises:
-            sqlite3.IntegrityError: If relationship already exists or users are the same
+            psycopg2.IntegrityError: If relationship already exists or users are the same
         """
         with get_connection() as conn:
             cursor = conn.cursor()

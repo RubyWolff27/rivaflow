@@ -21,6 +21,7 @@ from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 from starlette.middleware.gzip import GZipMiddleware
 
+from rivaflow.api.middleware.csrf import CSRFMiddleware
 from rivaflow.api.middleware.error_handler import (
     generic_exception_handler,
     rivaflow_exception_handler,
@@ -225,7 +226,7 @@ app.add_middleware(
         "DELETE",
         "OPTIONS",
     ],  # Restrict to necessary methods
-    allow_headers=["Content-Type", "Authorization"],  # Only allow necessary headers
+    allow_headers=["Content-Type", "Authorization", "X-CSRF-Token"],
     expose_headers=[
         "X-RateLimit-Limit",
         "X-RateLimit-Remaining",
@@ -234,6 +235,9 @@ app.add_middleware(
     ],
     max_age=3600,  # Cache preflight requests for 1 hour
 )
+
+# Add CSRF protection (double-submit cookie pattern)
+app.add_middleware(CSRFMiddleware)
 
 # Add versioning middleware for backward compatibility
 app.add_middleware(VersioningMiddleware)

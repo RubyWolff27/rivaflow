@@ -27,11 +27,28 @@ export const api = axios.create({
   },
 });
 
-// Request interceptor - add auth header from in-memory store
+/**
+ * Read a cookie value by name.  Used to extract the CSRF token from the
+ * non-httpOnly ``csrf_token`` cookie set by the backend on login/refresh.
+ */
+function getCookie(name: string): string | null {
+  const match = document.cookie.match(new RegExp('(?:^|; )' + name + '=([^;]*)'));
+  return match ? decodeURIComponent(match[1]) : null;
+}
+
+// Request interceptor - add auth header and CSRF token
 api.interceptors.request.use(
   (config) => {
     if (_accessToken) {
       config.headers.Authorization = `Bearer ${_accessToken}`;
+    }
+    // Attach CSRF token on mutating requests
+    const method = (config.method || '').toUpperCase();
+    if (method === 'POST' || method === 'PUT' || method === 'DELETE' || method === 'PATCH') {
+      const csrfToken = getCookie('csrf_token');
+      if (csrfToken) {
+        config.headers['X-CSRF-Token'] = csrfToken;
+      }
     }
     return config;
   },

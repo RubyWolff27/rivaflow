@@ -53,11 +53,10 @@ def validate_environment():
         if not (
             database_url.startswith("postgresql://")
             or database_url.startswith("postgres://")
-            or database_url.startswith("sqlite:///")
         ):
             errors.append(
                 f"DATABASE_URL has invalid format. "
-                f"Expected postgresql:// or sqlite:/// but got: {database_url[:20]}..."
+                f"Expected postgresql:// or postgres:// but got: {database_url[:20]}..."
             )
 
     # Check ALLOWED_ORIGINS for CORS (required for production)
@@ -98,7 +97,7 @@ def validate_environment():
     logger.info("✓ Environment configuration validated successfully")
     logger.info("  Environment: %s", env)
     logger.info(
-        f"  Database: {'PostgreSQL' if database_url and 'postgres' in database_url else 'SQLite'}"
+        f"  Database: PostgreSQL ({'configured' if database_url else 'URL not set'})"
     )
     logger.info("  Redis caching: %s", "enabled" if redis_url else "disabled")
     logger.info("  Email notifications: %s", "enabled" if sendgrid_key else "disabled")

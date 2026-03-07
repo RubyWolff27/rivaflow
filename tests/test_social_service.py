@@ -32,10 +32,10 @@ class TestFollowUser:
     @patch("rivaflow.core.services.social_service.UserRelationshipRepository")
     def test_follow_duplicate_raises_error(self, MockRelRepo, MockNotif):
         """Should raise ValueError when already following."""
-        import sqlite3
+        import psycopg2
 
-        MockRelRepo.follow.side_effect = sqlite3.IntegrityError(
-            "UNIQUE constraint failed"
+        MockRelRepo.follow.side_effect = psycopg2.IntegrityError(
+            "duplicate key value violates unique constraint"
         )
 
         with pytest.raises(ValueError, match="Already following"):

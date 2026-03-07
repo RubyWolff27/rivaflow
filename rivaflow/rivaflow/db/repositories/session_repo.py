@@ -3,7 +3,7 @@
 import json
 from datetime import date, datetime
 
-from rivaflow.core.settings import settings
+
 from rivaflow.db.database import convert_query, execute_insert, get_connection
 from rivaflow.db.repositories.base_repository import BaseRepository
 
@@ -417,26 +417,14 @@ class SessionRepository(BaseRepository):
         """Get list of unique partner names from history."""
         with get_connection() as conn:
             cursor = conn.cursor()
-            if settings.DB_TYPE == "postgresql":
-                cursor.execute(
-                    "SELECT DISTINCT value FROM sessions, "
-                    "json_array_elements_text(partners::json) "
-                    "WHERE user_id = %s AND partners IS NOT NULL "
-                    "ORDER BY value",
-                    (user_id,),
-                )
-                return [row["value"] for row in cursor.fetchall()]
             cursor.execute(
-                convert_query(
-                    "SELECT DISTINCT partners FROM sessions "
-                    "WHERE user_id = ? AND partners IS NOT NULL"
-                ),
+                "SELECT DISTINCT value FROM sessions, "
+                "json_array_elements_text(partners::json) "
+                "WHERE user_id = %s AND partners IS NOT NULL "
+                "ORDER BY value",
                 (user_id,),
             )
-            partners_set: set[str] = set()
-            for row in cursor.fetchall():
-                partners_set.update(json.loads(row["partners"]))
-            return sorted(partners_set)
+            return [row["value"] for row in cursor.fetchall()]
 
     @staticmethod
     def get_last_n_sessions_by_type(user_id: int, n: int = 5) -> list[str]:
@@ -631,7 +619,8 @@ class SessionRepository(BaseRepository):
     def get_session_techniques_with_names(user_id: int, session_id: int) -> list[dict]:
         """Get techniques for a session with movement_id, name, and total count.
 
-        Uses a single query with a correlated subquery instead of N+1.
+        Uses a single JOIN with a pre-aggregated subquery to avoid
+        correlated subqueries (which executed once per technique row).
         """
         with get_connection() as conn:
             cursor = conn.cursor()
@@ -640,18 +629,20 @@ class SessionRepository(BaseRepository):
                     SELECT
                         st.movement_id,
                         mg.name,
-                        (
-                            SELECT COUNT(DISTINCT st2.session_id)
-                            FROM session_techniques st2
-                            JOIN sessions s2 ON st2.session_id = s2.id
-                            WHERE st2.movement_id = st.movement_id
-                              AND s2.user_id = ?
-                        ) AS session_count
+                        COALESCE(counts.session_count, 0) AS session_count
                     FROM session_techniques st
                     JOIN sessions s ON st.session_id = s.id
                     JOIN movements_glossary mg ON st.movement_id = mg.id
+                    LEFT JOIN (
+                        SELECT st2.movement_id,
+                               COUNT(DISTINCT st2.session_id) AS session_count
+                        FROM session_techniques st2
+                        JOIN sessions s2 ON st2.session_id = s2.id
+                        WHERE s2.user_id = ?
+                        GROUP BY st2.movement_id
+                    ) counts ON counts.movement_id = st.movement_id
                     WHERE st.session_id = ? AND s.user_id = ?
-                    GROUP BY st.movement_id, mg.name
+                    GROUP BY st.movement_id, mg.name, counts.session_count
                 """),
                 (user_id, session_id, user_id),
             )
@@ -698,21 +689,41 @@ class SessionRepository(BaseRepository):
     def count_partner_sessions(user_id: int, partner_name: str) -> int:
         """Count sessions where partner appears in the partners JSON list.
 
-        Uses SQL LIKE filter to push matching to the database instead of
-        fetching all rows and parsing JSON in Python.
+        PostgreSQL: uses json_array_elements_text for exact matching.
+        SQLite: uses JSON LIKE with quoted-string pattern to avoid
+        partial matches (e.g. "John" won't match "Johnson").
         """
         with get_connection() as conn:
             cursor = conn.cursor()
-            # JSON list stores names as quoted strings; LIKE is safe here
-            # because partner_name comes from our own data, not user input.
-            cursor.execute(
-                convert_query("""
-                    SELECT COUNT(*) as cnt FROM sessions
-                    WHERE user_id = ? AND partners IS NOT NULL
-                      AND partners LIKE ?
-                """),
-                (user_id, f"%{partner_name}%"),
-            )
+            if settings.DB_TYPE == "postgresql":
+                cursor.execute(
+                    "SELECT COUNT(*) as cnt FROM sessions "
+                    "WHERE user_id = %s AND partners IS NOT NULL "
+                    "AND EXISTS ("
+                    "  SELECT 1 FROM json_array_elements_text(partners::json) elem "
+                    "  WHERE elem = %s"
+                    ")",
+                    (user_id, partner_name),
+                )
+            else:
+                # SQLite: match the JSON-encoded quoted string exactly
+                cursor.execute(
+                    convert_query("""
+                        SELECT COUNT(*) as cnt FROM sessions
+                        WHERE user_id = ? AND partners IS NOT NULL
+                          AND (partners LIKE ?
+                               OR partners LIKE ?
+                               OR partners LIKE ?
+                               OR partners LIKE ?)
+                    """),
+                    (
+                        user_id,
+                        f'["{partner_name}"]',  # sole element
+                        f'["{partner_name}",%',  # first element
+                        f'%, "{partner_name}"]',  # last element
+                        f'%, "{partner_name}",%',  # middle element
+                    ),
+                )
             result = cursor.fetchone()
             return result["cnt"] or 0
 
@@ -1005,53 +1016,39 @@ class SessionRepository(BaseRepository):
     def get_milestone_totals(user_id: int) -> dict:
         """Get hours, sessions, rolls, partners, techniques totals.
 
-        Consolidated from 5 queries into 2 for better performance.
+        Single query with scalar subqueries for all five metrics.
         """
         with get_connection() as conn:
             cursor = conn.cursor()
-
-            # Query 1: session-level aggregates (hours, count, rolls)
-            cursor.execute(
-                convert_query(
-                    "SELECT COUNT(*) as cnt,"
-                    " COALESCE(SUM(duration_mins), 0) as total_mins,"
-                    " COALESCE(SUM(rolls), 0) as total_rolls"
-                    " FROM sessions WHERE user_id = ?"
-                ),
-                (user_id,),
-            )
-            row = cursor.fetchone()
-            total_mins = row["total_mins"] or 0
-            sessions = row["cnt"] or 0
-            rolls = row["total_rolls"] or 0
-
-            # Query 2: distinct partners + distinct techniques via UNION
             cursor.execute(
                 convert_query("""
                     SELECT
+                        COUNT(*) AS cnt,
+                        COALESCE(SUM(duration_mins), 0) AS total_mins,
+                        COALESCE(SUM(rolls), 0) AS total_rolls,
                         (SELECT COUNT(DISTINCT sr.partner_id)
                          FROM session_rolls sr
-                         JOIN sessions s ON sr.session_id = s.id
-                         WHERE sr.partner_id IS NOT NULL AND s.user_id = ?
+                         JOIN sessions s2 ON sr.session_id = s2.id
+                         WHERE sr.partner_id IS NOT NULL AND s2.user_id = ?
                         ) AS partners,
                         (SELECT COUNT(DISTINCT st.movement_id)
                          FROM session_techniques st
-                         JOIN sessions s ON st.session_id = s.id
-                         WHERE s.user_id = ?
+                         JOIN sessions s3 ON st.session_id = s3.id
+                         WHERE s3.user_id = ?
                         ) AS techniques
+                    FROM sessions
+                    WHERE user_id = ?
                 """),
-                (user_id, user_id),
+                (user_id, user_id, user_id),
             )
-            row2 = cursor.fetchone()
-            partners = row2["partners"] or 0
-            techniques = row2["techniques"] or 0
+            row = cursor.fetchone()
 
         return {
-            "hours": int(total_mins / 60),
-            "sessions": sessions,
-            "rolls": rolls,
-            "partners": partners,
-            "techniques": techniques,
+            "hours": int((row["total_mins"] or 0) / 60),
+            "sessions": row["cnt"] or 0,
+            "rolls": row["total_rolls"] or 0,
+            "partners": row["partners"] or 0,
+            "techniques": row["techniques"] or 0,
         }
 
     @staticmethod

@@ -16,11 +16,11 @@ DB_TYPE = settings.DB_TYPE
 # Backwards compatibility function
 def get_db_type():
     """
-    Dynamically determine database type.
+    Return database type (always 'postgresql').
 
     DEPRECATED: Use settings.DB_TYPE instead.
     """
-    return settings.DB_TYPE
+    return "postgresql"
 
 
 # Defaults

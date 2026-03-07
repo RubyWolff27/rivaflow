@@ -49,7 +49,7 @@ class Settings:
         if raw_db_url and raw_db_url.startswith("postgres://"):
             raw_db_url = raw_db_url.replace("postgres://", "postgresql://", 1)
         self.DATABASE_URL: str | None = raw_db_url
-        self.DB_TYPE: str = "postgresql" if self.DATABASE_URL else "sqlite"
+        self.DB_TYPE: str = "postgresql"
         self.APP_DIR: Path = Path.home() / ".rivaflow"
         self.DB_PATH: Path = self.APP_DIR / "rivaflow.db"
 
@@ -145,9 +145,7 @@ class Settings:
         # ======================================================================
         # TESTING
         # ======================================================================
-        self.TEST_DATABASE_URL: str = os.getenv(
-            "TEST_DATABASE_URL", "sqlite:///:memory:"
-        )
+        self.TEST_DATABASE_URL: str = os.getenv("TEST_DATABASE_URL", "")
 
         # ======================================================================
         # CORS

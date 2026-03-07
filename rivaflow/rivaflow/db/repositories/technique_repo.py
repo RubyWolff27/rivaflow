@@ -1,7 +1,8 @@
 """Repository for technique data access."""
 
-import sqlite3
 from datetime import date, datetime
+
+import psycopg2
 
 from rivaflow.db.database import convert_query, execute_insert, get_connection
 from rivaflow.db.repositories.base_repository import BaseRepository
@@ -21,7 +22,7 @@ class TechniqueRepository(BaseRepository):
                     "INSERT INTO techniques (name, category) VALUES (?, ?)",
                     (name.lower().strip(), category),
                 )
-            except sqlite3.IntegrityError:
+            except psycopg2.IntegrityError:
                 # Technique already exists, return existing ID
                 cursor.execute(
                     convert_query("SELECT id FROM techniques WHERE name = ?"),

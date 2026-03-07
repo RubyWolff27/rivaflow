@@ -1,10 +1,10 @@
-"""Pytest fixtures for RivaFlow tests."""
+"""Pytest fixtures for RivaFlow tests.
+
+RivaFlow requires PostgreSQL. Set DATABASE_URL to a valid PostgreSQL connection string.
+"""
 
 import os
-import shutil
-import tempfile
 from datetime import date, timedelta
-from pathlib import Path
 
 import pytest
 
@@ -21,8 +21,11 @@ def _clear_analytics_cache():
 
 # Set required environment variables for testing
 os.environ.setdefault("SECRET_KEY", "test-secret-key-for-testing-only-not-production")
-# Use PostgreSQL if DATABASE_URL is set (CI), otherwise use SQLite (local)
-# Do NOT delete DATABASE_URL - let CI use PostgreSQL
+
+if not os.environ.get("DATABASE_URL"):
+    raise RuntimeError(
+        "RivaFlow requires PostgreSQL. Set DATABASE_URL environment variable."
+    )
 
 from rivaflow.core.auth import create_access_token, hash_password  # noqa: E402
 
@@ -42,79 +45,52 @@ from rivaflow.db.repositories import (  # noqa: E402
 
 @pytest.fixture(scope="function", autouse=False)
 def temp_db(monkeypatch):
-    """Create a temporary database for testing.
-
-    Uses PostgreSQL if DATABASE_URL is set (CI), otherwise SQLite (local).
-    """
+    """Create a temporary database for testing (PostgreSQL only)."""
     database_url = os.environ.get("DATABASE_URL")
 
-    if database_url:
-        # PostgreSQL mode (CI)
-        from rivaflow.db.database import get_connection
-        from rivaflow.db.migrate import run_migrations
+    from rivaflow.db.database import get_connection
+    from rivaflow.db.migrate import run_migrations
 
-        # Initialize database schema and run migrations
-        init_db()  # Creates migrations tracking table
-        run_migrations()  # Applies all migrations (idempotent)
+    # Initialize database schema and run migrations
+    init_db()  # Creates migrations tracking table
+    run_migrations()  # Applies all migrations (idempotent)
 
-        # Clean all tables before EACH test
-        def cleanup_tables():
-            try:
-                with get_connection() as conn:
-                    cursor = conn.cursor()
-                    # Get all tables except schema_migrations
-                    cursor.execute("""
-                        SELECT table_name FROM information_schema.tables
-                        WHERE table_schema = 'public'
-                        AND table_type = 'BASE TABLE'
-                        AND table_name != 'schema_migrations'
-                    """)
-                    tables = cursor.fetchall()
+    # Clean all tables before EACH test
+    def cleanup_tables():
+        try:
+            with get_connection() as conn:
+                cursor = conn.cursor()
+                # Get all tables except schema_migrations
+                cursor.execute("""
+                    SELECT table_name FROM information_schema.tables
+                    WHERE table_schema = 'public'
+                    AND table_type = 'BASE TABLE'
+                    AND table_name != 'schema_migrations'
+                """)
+                tables = cursor.fetchall()
 
-                    if tables:
-                        # Disable foreign key checks temporarily
-                        cursor.execute("SET session_replication_role = 'replica';")
-                        # Truncate each table
-                        for table_row in tables:
-                            # Handle RealDictRow from psycopg2
-                            table_name = table_row["table_name"]
-                            cursor.execute(
-                                f'TRUNCATE TABLE "{table_name}" RESTART IDENTITY CASCADE'
-                            )
-                        # Re-enable foreign key checks
-                        cursor.execute("SET session_replication_role = 'origin';")
-                        conn.commit()
-            except Exception as e:
-                print(f"Warning: Table cleanup failed: {e}")
+                if tables:
+                    # Disable foreign key checks temporarily
+                    cursor.execute("SET session_replication_role = 'replica';")
+                    # Truncate each table
+                    for table_row in tables:
+                        table_name = table_row["table_name"]
+                        cursor.execute(
+                            f'TRUNCATE TABLE "{table_name}" RESTART IDENTITY CASCADE'
+                        )
+                    # Re-enable foreign key checks
+                    cursor.execute("SET session_replication_role = 'origin';")
+                    conn.commit()
+        except Exception as e:
+            print(f"Warning: Table cleanup failed: {e}")
 
-        # Clean before test
-        cleanup_tables()
+    # Clean before test
+    cleanup_tables()
 
-        yield database_url
+    yield database_url
 
-        # Clean after test (for next test)
-        cleanup_tables()
-    else:
-        # SQLite mode (local development)
-        # Create temp directory
-        temp_dir = Path(tempfile.mkdtemp())
-        temp_db_path = temp_dir / "test.db"
-
-        # Patch config module
-        monkeypatch.setattr("rivaflow.config.APP_DIR", temp_dir)
-        monkeypatch.setattr("rivaflow.config.DB_PATH", temp_db_path)
-
-        # Also patch database module
-        monkeypatch.setattr("rivaflow.db.database.DB_PATH", temp_db_path)
-        monkeypatch.setattr("rivaflow.db.database.APP_DIR", temp_dir)
-
-        # Initialize database
-        init_db()
-
-        yield temp_db_path
-
-        # Cleanup
-        shutil.rmtree(temp_dir)
+    # Clean after test (for next test)
+    cleanup_tables()
 
 
 @pytest.fixture

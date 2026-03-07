@@ -1,7 +1,8 @@
 """Social features service for relationships, likes, and comments."""
 
-import sqlite3
 from typing import Any
+
+import psycopg2
 
 from rivaflow.core.services.notification_service import NotificationService
 from rivaflow.db.repositories import (
@@ -11,13 +12,6 @@ from rivaflow.db.repositories import (
     UserRelationshipRepository,
 )
 from rivaflow.db.repositories.readiness_repo import ReadinessRepository
-
-try:
-    import psycopg2
-
-    _PG_INTEGRITY_ERROR = psycopg2.IntegrityError
-except ImportError:
-    _PG_INTEGRITY_ERROR = type(None)
 
 
 class SocialService:
@@ -40,7 +34,7 @@ class SocialService:
 
         Raises:
             ValueError: If trying to follow yourself or user doesn't exist
-            sqlite3.IntegrityError: If already following
+            psycopg2.IntegrityError: If already following
         """
         # Validate: can't follow yourself
         if follower_user_id == following_user_id:
@@ -58,7 +52,7 @@ class SocialService:
             )
 
             return relationship
-        except (sqlite3.IntegrityError, _PG_INTEGRITY_ERROR) as e:
+        except psycopg2.IntegrityError as e:
             if "UNIQUE constraint failed" in str(e) or "duplicate key" in str(e):
                 raise ValueError("Already following this user")
             raise
@@ -143,7 +137,7 @@ class SocialService:
 
         Raises:
             ValueError: If activity type is invalid, activity doesn't exist, or is private
-            sqlite3.IntegrityError: If already liked
+            psycopg2.IntegrityError: If already liked
         """
         # Validate activity type
         if activity_type not in SocialService.VALID_ACTIVITY_TYPES:
@@ -172,7 +166,7 @@ class SocialService:
                 )
 
             return like
-        except (sqlite3.IntegrityError, _PG_INTEGRITY_ERROR) as e:
+        except psycopg2.IntegrityError as e:
             if "UNIQUE constraint failed" in str(e) or "duplicate key" in str(e):
                 raise ValueError("Already liked this activity")
             raise

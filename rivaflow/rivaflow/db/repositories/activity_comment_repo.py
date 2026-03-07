@@ -29,7 +29,7 @@ class ActivityCommentRepository(BaseRepository):
             The created comment
 
         Raises:
-            sqlite3.IntegrityError: If comment_text violates constraints
+            psycopg2.IntegrityError: If comment_text violates constraints
         """
         with get_connection() as conn:
             cursor = conn.cursor()

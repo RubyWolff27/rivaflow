@@ -36,7 +36,7 @@ def get_greeting() -> str:
 
 
 def _scalar(row):
-    """Extract scalar value from a row (handles dict, sqlite3.Row, and tuple)."""
+    """Extract scalar value from a row (handles dict and tuple)."""
     if row is None:
         return None
     if hasattr(row, "keys"):

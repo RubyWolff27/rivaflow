@@ -4,7 +4,7 @@ import random
 from datetime import date, timedelta
 
 from rivaflow.core.services.milestone_service import MilestoneService
-from rivaflow.core.settings import settings
+
 from rivaflow.db.repositories.session_repo import SessionRepository
 from rivaflow.db.repositories.streak_repo import StreakRepository
 
@@ -71,11 +71,8 @@ class InsightService:
         # Get 4-week average
         four_weeks_ago = today - timedelta(days=28)
 
-        # Database-specific week formatting
-        if settings.DB_TYPE == "postgresql":
-            week_format = "to_char(session_date::date, 'IYYY-IW')"
-        else:
-            week_format = "strftime('%Y-%W', session_date)"
+        # PostgreSQL week formatting
+        week_format = "to_char(session_date::date, 'IYYY-IW')"
 
         avg_mins = SessionRepository.get_avg_weekly_duration(
             user_id,

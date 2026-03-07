@@ -21,7 +21,7 @@ class ActivityLikeRepository(BaseRepository):
             The created like
 
         Raises:
-            sqlite3.IntegrityError: If user has already liked this activity
+            psycopg2.IntegrityError: If user has already liked this activity
         """
         with get_connection() as conn:
             cursor = conn.cursor()

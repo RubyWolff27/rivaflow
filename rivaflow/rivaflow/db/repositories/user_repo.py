@@ -52,7 +52,7 @@ class UserRepository(BaseRepository):
             Dictionary representation of the created user
 
         Raises:
-            sqlite3.IntegrityError: If email already exists
+            psycopg2.IntegrityError: If email already exists
         """
         with get_connection() as conn:
             cursor = conn.cursor()
