@@ -12,7 +12,7 @@ _SESSION_COLS = (
     "id, user_id, session_date, class_time, class_type, gym_name, location, "
     "duration_mins, intensity, rolls, "
     "submissions_for, submissions_against, "
-    "partners, attendees, intensity_tags, techniques, notes, "
+    "partners, attendees, intensity_tags, class_tags, techniques, notes, "
     "visibility_level, audience_scope, share_fields, published_at, "
     "instructor_id, instructor_name, "
     "whoop_strain, whoop_calories, whoop_avg_hr, whoop_max_hr, "
@@ -43,6 +43,7 @@ class SessionRepository(BaseRepository):
         partners: list[str] | None = None,
         attendees: list[str] | None = None,
         intensity_tags: list[int] | None = None,
+        class_tags: list[str] | None = None,
         techniques: list[str] | None = None,
         notes: str | None = None,
         visibility_level: str = "private",
@@ -69,13 +70,13 @@ class SessionRepository(BaseRepository):
                     user_id, session_date, class_time, class_type, gym_name, location,
                     duration_mins, intensity, rolls,
                     submissions_for, submissions_against,
-                    partners, attendees, intensity_tags, techniques, notes, visibility_level,
+                    partners, attendees, intensity_tags, class_tags, techniques, notes, visibility_level,
                     instructor_id, instructor_name,
                     whoop_strain, whoop_calories, whoop_avg_hr, whoop_max_hr,
                     attacks_attempted, attacks_successful,
                     defenses_attempted, defenses_successful,
                     source, needs_review
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
                     user_id,
@@ -92,6 +93,7 @@ class SessionRepository(BaseRepository):
                     json.dumps(partners) if partners else None,
                     json.dumps(attendees) if attendees else None,
                     json.dumps(intensity_tags) if intensity_tags else None,
+                    json.dumps(class_tags) if class_tags else None,
                     json.dumps(techniques) if techniques else None,
                     notes,
                     visibility_level,
@@ -232,6 +234,9 @@ class SessionRepository(BaseRepository):
                 "intensity_tags": lambda v: (
                     json.dumps(v) if v is not None else json.dumps([])
                 ),
+                "class_tags": lambda v: (
+                    json.dumps(v) if v is not None else json.dumps([])
+                ),
                 "techniques": lambda v: (
                     json.dumps(v) if v is not None else json.dumps([])
                 ),
@@ -242,7 +247,7 @@ class SessionRepository(BaseRepository):
             }
 
             # List fields that can be explicitly cleared with []
-            clearable_list_fields = {"partners", "attendees", "intensity_tags", "techniques"}
+            clearable_list_fields = {"partners", "attendees", "intensity_tags", "class_tags", "techniques"}
 
             # Build update query dynamically from provided kwargs
             updates = []
@@ -263,6 +268,7 @@ class SessionRepository(BaseRepository):
                 "partners",
                 "attendees",
                 "intensity_tags",
+                "class_tags",
                 "techniques",
                 "notes",
                 "visibility_level",
@@ -1125,6 +1131,11 @@ class SessionRepository(BaseRepository):
             data["intensity_tags"] = json.loads(data["intensity_tags"])
         else:
             data["intensity_tags"] = []
+
+        if data.get("class_tags"):
+            data["class_tags"] = json.loads(data["class_tags"])
+        else:
+            data["class_tags"] = []
 
         if data.get("techniques"):
             data["techniques"] = json.loads(data["techniques"])

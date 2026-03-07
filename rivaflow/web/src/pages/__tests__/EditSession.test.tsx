@@ -160,8 +160,8 @@ describe("EditSession", () => {
     expect(screen.getByDisplayValue("Test Gym")).toBeInTheDocument();
     // Duration
     expect(screen.getByDisplayValue("60")).toBeInTheDocument();
-    // Intensity chip for "Hard" (value 4) is selected
-    const intensityChip = screen.getByRole("button", { name: /Intensity: Hard/ });
+    // Effort chip for "Hard" (value 4) is selected in two-dimension mode
+    const intensityChip = screen.getByRole("button", { name: /Effort: Hard/ });
     expect(intensityChip).toHaveAttribute("aria-pressed", "true");
   });
 

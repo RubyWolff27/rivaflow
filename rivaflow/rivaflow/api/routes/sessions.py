@@ -204,6 +204,7 @@ def create_session(
         partners=session.partners,
         attendees=session.attendees,
         intensity_tags=session.intensity_tags,
+        class_tags=session.class_tags,
         techniques=session.techniques,
         notes=session.notes,
         visibility_level=session.visibility_level.value,
@@ -292,6 +293,7 @@ def update_session(
         partners=session.partners,
         attendees=session.attendees,
         intensity_tags=session.intensity_tags,
+        class_tags=session.class_tags,
         techniques=session.techniques,
         notes=session.notes,
         visibility_level=(

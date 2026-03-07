@@ -6,6 +6,9 @@ const LEVELS = [
   { value: 5, label: 'War', color: '#EF4444' },
 ];
 
+const STYLE_LEVELS = LEVELS.filter(l => l.value <= 2);   // Technical, Flow
+const EFFORT_LEVELS = LEVELS.filter(l => l.value >= 3);   // Moderate, Hard, War
+
 const DESCRIPTIONS: Record<number, string> = {
   1: 'Drilling, positional work, or technique-focused',
   2: 'Flow rolling or light controlled sparring',
@@ -31,6 +34,12 @@ interface IntensityChipsProps {
   multi?: boolean;
   selectedValues?: number[];
   onToggle?: (value: number) => void;
+  /** Two-dimension mode: style (multi-select) + effort (single-select) */
+  twoDimension?: boolean;
+  /** Two-dimension mode: selected style tags (1=Technical, 2=Flow) */
+  styleTags?: number[];
+  /** Two-dimension mode: toggle a style tag */
+  onToggleStyle?: (value: number) => void;
 }
 
 export default function IntensityChips({
@@ -41,7 +50,84 @@ export default function IntensityChips({
   multi = false,
   selectedValues = [],
   onToggle,
+  twoDimension = false,
+  styleTags = [],
+  onToggleStyle,
 }: IntensityChipsProps) {
+  if (twoDimension) {
+    // Two-dimension mode: Style (multi) + Effort (single)
+    return (
+      <div className="space-y-3">
+        {/* Style: Technical / Flow (multi-select) */}
+        <div>
+          <p className={`font-medium mb-1.5 ${size === 'sm' ? 'text-xs' : 'text-sm'}`} style={{ color: 'var(--muted)' }}>
+            Style
+          </p>
+          <div className="flex flex-wrap gap-2" role="group" aria-label="Training style">
+            {STYLE_LEVELS.map((level) => {
+              const selected = styleTags.includes(level.value);
+              return (
+                <button
+                  key={level.value}
+                  type="button"
+                  onClick={() => onToggleStyle?.(level.value)}
+                  className={`rounded-full font-medium transition-all ${
+                    size === 'sm' ? 'px-3 py-1.5 text-xs' : 'px-4 py-2 text-sm'
+                  }`}
+                  style={{
+                    backgroundColor: selected ? level.color : 'var(--surfaceElev)',
+                    color: selected ? '#FFFFFF' : 'var(--text)',
+                    border: selected ? 'none' : '1px solid var(--border)',
+                  }}
+                  aria-label={`Style: ${level.label}`}
+                  aria-pressed={selected}
+                >
+                  {level.label}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+        {/* Effort: Moderate / Hard / War (single-select) */}
+        <div>
+          <p className={`font-medium mb-1.5 ${size === 'sm' ? 'text-xs' : 'text-sm'}`} style={{ color: 'var(--muted)' }}>
+            Effort
+          </p>
+          <div className="flex flex-wrap gap-2" role="group" aria-label="Effort level">
+            {EFFORT_LEVELS.map((level) => {
+              const selected = value === level.value;
+              return (
+                <button
+                  key={level.value}
+                  type="button"
+                  onClick={() => onChange(level.value)}
+                  className={`rounded-full font-medium transition-all ${
+                    size === 'sm' ? 'px-3 py-1.5 text-xs' : 'px-4 py-2 text-sm'
+                  }`}
+                  style={{
+                    backgroundColor: selected ? level.color : 'var(--surfaceElev)',
+                    color: selected ? '#FFFFFF' : 'var(--text)',
+                    border: selected ? 'none' : '1px solid var(--border)',
+                  }}
+                  aria-label={`Effort: ${level.label}`}
+                  aria-pressed={selected}
+                >
+                  {level.label}
+                </button>
+              );
+            })}
+          </div>
+          {showDescription && DESCRIPTIONS[value] && (
+            <p className="text-xs mt-1.5" style={{ color: 'var(--muted)' }}>
+              {DESCRIPTIONS[value]}
+            </p>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  // Original single/multi select mode
   return (
     <div>
       <div className="flex flex-wrap gap-2" role="group" aria-label="Intensity level">

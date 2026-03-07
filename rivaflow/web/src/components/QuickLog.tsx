@@ -4,6 +4,7 @@ import { X, Mic, MicOff, CheckCircle } from 'lucide-react';
 import { sessionsApi, profileApi, restApi, friendsApi, socialApi } from '../api/client';
 import { logger } from '../utils/logger';
 import { PrimaryButton, SecondaryButton, ClassTypeChips, IntensityChips } from './ui';
+import FriendAutocomplete from './sessions/FriendAutocomplete';
 import { useToast } from '../contexts/ToastContext';
 import { getLocalDateString } from '../utils/date';
 import { triggerInsightRefresh } from '../utils/insightRefresh';
@@ -44,16 +45,17 @@ export default function QuickLog({ isOpen, onClose, onSuccess }: QuickLogProps) 
   // Training session fields
   const [gym, setGym] = useState('');
   const [classType, setClassType] = useState('gi');
+  const [classTags, setClassTags] = useState<string[]>([]);
   const [classTime, setClassTime] = useState('');
   const [duration, setDuration] = useState(90);
   const [intensity, setIntensity] = useState(3);
-  const [quickPartners, setQuickPartners] = useState('');
+  const [styleTags, setStyleTags] = useState<number[]>([]);
+  const [partnerNames, setPartnerNames] = useState<string[]>([]);
   const [quickRolls, setQuickRolls] = useState(0);
   const [notes, setNotes] = useState('');
 
-  // Partner pills
-  const [topPartners, setTopPartners] = useState<Friend[]>([]);
-  const [selectedPartnerIds, setSelectedPartnerIds] = useState<Set<number>>(new Set());
+  // Friends for autocomplete
+  const [allFriends, setAllFriends] = useState<Friend[]>([]);
 
   // Custom inputs
   const [customDuration, setCustomDuration] = useState(false);
@@ -113,7 +115,7 @@ export default function QuickLog({ isOpen, onClose, onSuccess }: QuickLogProps) 
             ...manualPartners,
             ...socialFriends.filter(sf => !manualNames.has(sf.name.toLowerCase())),
           ];
-          setTopPartners(merged.slice(0, 5));
+          setAllFriends(merged);
         }
       } catch (error) {
         if (!cancelled) {
@@ -126,16 +128,16 @@ export default function QuickLog({ isOpen, onClose, onSuccess }: QuickLogProps) 
     return () => { cancelled = true; };
   }, [isOpen]);
 
-  const togglePartner = (id: number) => {
-    setSelectedPartnerIds(prev => {
-      const next = new Set(prev);
-      if (next.has(id)) {
-        next.delete(id);
-      } else {
-        next.add(id);
-      }
-      return next;
-    });
+  const toggleClassTag = (tag: string) => {
+    setClassTags(prev =>
+      prev.includes(tag) ? prev.filter(t => t !== tag) : [...prev, tag]
+    );
+  };
+
+  const toggleStyleTag = (val: number) => {
+    setStyleTags(prev =>
+      prev.includes(val) ? prev.filter(v => v !== val) : [...prev, val]
+    );
   };
 
   const handleQuickLog = async () => {
@@ -162,24 +164,17 @@ export default function QuickLog({ isOpen, onClose, onSuccess }: QuickLogProps) 
           return;
         }
 
-        // Merge pill-selected partner names + typed names
-        const pillNames = topPartners
-          .filter(p => selectedPartnerIds.has(p.id))
-          .map(p => p.name);
-        const typedNames = quickPartners
-          ? quickPartners.split(',').map(p => p.trim()).filter(p => p !== '')
-          : [];
-        const allPartners = [...pillNames, ...typedNames];
-
         const response = await sessionsApi.create({
           gym_name: gym,
           session_date: today,
           duration_mins: duration,
           intensity,
+          intensity_tags: styleTags.length > 0 ? styleTags : undefined,
           class_type: classType,
+          class_tags: classTags.length > 0 ? classTags : undefined,
           class_time: classTime && HH_MM_RE.test(classTime) ? classTime : undefined,
           rolls: quickRolls,
-          partners: allPartners.length > 0 ? allPartners : undefined,
+          partners: partnerNames.length > 0 ? partnerNames : undefined,
           notes: notes || undefined,
         });
         toast.success('Session logged successfully');
@@ -189,11 +184,12 @@ export default function QuickLog({ isOpen, onClose, onSuccess }: QuickLogProps) 
         // Reset training form
         setDuration(90);
         setIntensity(3);
+        setStyleTags([]);
+        setClassTags([]);
         setClassTime('');
-        setQuickPartners('');
+        setPartnerNames([]);
         setQuickRolls(0);
         setNotes('');
-        setSelectedPartnerIds(new Set());
 
         if (onSuccess) onSuccess(newSessionId);
 
@@ -318,7 +314,14 @@ export default function QuickLog({ isOpen, onClose, onSuccess }: QuickLogProps) 
                 <label className="block text-sm font-medium mb-2" style={{ color: 'var(--text)' }}>
                   Class Type
                 </label>
-                <ClassTypeChips value={classType} onChange={setClassType} size="sm" />
+                <ClassTypeChips
+                  value={classType}
+                  onChange={setClassType}
+                  size="sm"
+                  multi
+                  selectedTags={classTags}
+                  onToggleTag={toggleClassTag}
+                />
               </div>
 
               {/* Class Time */}
@@ -436,11 +439,18 @@ export default function QuickLog({ isOpen, onClose, onSuccess }: QuickLogProps) 
                 <label className="block text-sm font-medium mb-2" style={{ color: 'var(--text)' }}>
                   Intensity
                 </label>
-                <IntensityChips value={intensity} onChange={setIntensity} size="sm" />
+                <IntensityChips
+                  value={intensity}
+                  onChange={setIntensity}
+                  size="sm"
+                  twoDimension
+                  styleTags={styleTags}
+                  onToggleStyle={toggleStyleTag}
+                />
               </div>
 
               {/* Rolls */}
-              {['gi', 'no-gi', 'open-mat', 'competition'].includes(classType) && (
+              {(['gi', 'no-gi', 'open-mat', 'competition'].includes(classType) || classTags.some(t => ['open-mat', 'competition'].includes(t))) && (
                 <div>
                   <label className="block text-sm font-medium mb-2" style={{ color: 'var(--text)' }}>
                     Rolls
@@ -476,40 +486,15 @@ export default function QuickLog({ isOpen, onClose, onSuccess }: QuickLogProps) 
               )}
 
               {/* Partners */}
-              <div>
-                <label className="block text-sm font-medium mb-2" style={{ color: 'var(--text)' }}>
-                  Partners <span className="font-normal" style={{ color: 'var(--muted)' }}>(optional)</span>
-                </label>
-                {topPartners.length > 0 && (
-                  <div className="flex flex-wrap gap-2 mb-2">
-                    {topPartners.map((partner) => {
-                      const selected = selectedPartnerIds.has(partner.id);
-                      return (
-                        <button
-                          key={partner.id}
-                          type="button"
-                          onClick={() => togglePartner(partner.id)}
-                          className="px-3 py-1.5 rounded-full text-xs font-medium transition-all"
-                          style={{
-                            backgroundColor: selected ? 'var(--accent)' : 'var(--surfaceElev)',
-                            color: selected ? '#FFFFFF' : 'var(--text)',
-                            border: selected ? 'none' : '1px solid var(--border)',
-                          }}
-                        >
-                          {partner.name}
-                        </button>
-                      );
-                    })}
-                  </div>
-                )}
-                <input
-                  type="text"
-                  value={quickPartners}
-                  onChange={(e) => setQuickPartners(e.target.value)}
-                  className="input w-full"
-                  placeholder="e.g., Alex, Sarah"
-                />
-              </div>
+              <FriendAutocomplete
+                label="Partners (optional)"
+                friends={allFriends}
+                selected={partnerNames}
+                onAdd={(name) => setPartnerNames(prev => [...prev, name])}
+                onRemove={(name) => setPartnerNames(prev => prev.filter(n => n !== name))}
+                placeholder="Type a name or pick from friends..."
+                hint=""
+              />
 
               {/* Notes */}
               <div>

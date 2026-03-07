@@ -16,6 +16,7 @@ class ClassType(str, Enum):
     STRENGTH_CONDITIONING = "s&c"
     CARDIO = "cardio"
     MOBILITY = "mobility"
+    DRILLING = "drilling"
 
 
 class VisibilityLevel(str, Enum):
@@ -111,6 +112,10 @@ class SessionCreate(BaseModel):
         default=None,
         description="Multi-select intensity tags (1=Technical, 2=Flow, 3=Moderate, 4=Hard, 5=War)",
     )
+    class_tags: list[str] | None = Field(
+        default=None,
+        description="Secondary class type tags (e.g., open-mat, drilling) in addition to primary class_type",
+    )
     techniques: list[str] | None = Field(
         default=None, description="Techniques worked on during the session"
     )
@@ -160,7 +165,7 @@ class SessionCreate(BaseModel):
             return None
         return v
 
-    @field_validator("partners", "attendees", "intensity_tags", "techniques", mode="before")
+    @field_validator("partners", "attendees", "intensity_tags", "class_tags", "techniques", mode="before")
     @classmethod
     def empty_list_to_none(cls, v):
         """Convert empty lists to None for optional list fields."""
@@ -221,6 +226,7 @@ class SessionUpdate(BaseModel):
     partners: list[str] | None = None
     attendees: list[str] | None = None
     intensity_tags: list[int] | None = None
+    class_tags: list[str] | None = None
     techniques: list[str] | None = None
     notes: str | None = None
     visibility_level: VisibilityLevel | None = None

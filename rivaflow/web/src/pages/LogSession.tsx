@@ -46,6 +46,10 @@ export default function LogSession() {
     initialData: { session_date: getLocalDateString() },
   });
 
+  // Class tags (secondary class types like open-mat, drilling)
+  const [classTags, setClassTags] = useState<string[]>([]);
+  // Style tags (Technical=1, Flow=2)
+  const [styleTags, setStyleTags] = useState<number[]>([]);
   // Classmates / attendees
   const [attendees, setAttendees] = useState<string[]>([]);
 
@@ -206,6 +210,8 @@ export default function LogSession() {
         })(),
         techniques: form.sessionData.techniques ? form.sessionData.techniques.split(',').map(t => t.trim()) : undefined,
         attendees: attendees.length > 0 ? attendees : undefined,
+        intensity_tags: styleTags.length > 0 ? styleTags : undefined,
+        class_tags: classTags.length > 0 ? classTags : undefined,
         visibility_level: 'summary',
         ...form.buildWhoopPayload(),
         ...form.buildFightDynamicsPayload(),
@@ -411,8 +417,14 @@ export default function LogSession() {
           {/* Class Type */}
           <div>
             <label className="label">Class Type</label>
-            <ClassTypeChips value={form.sessionData.class_type} size="sm"
-              onChange={(val) => { form.setSessionData(prev => ({ ...prev, class_type: val })); form.markTouched('class_type'); }} />
+            <ClassTypeChips
+              value={form.sessionData.class_type}
+              size="sm"
+              multi
+              selectedTags={classTags}
+              onToggleTag={(tag) => setClassTags(prev => prev.includes(tag) ? prev.filter(t => t !== tag) : [...prev, tag])}
+              onChange={(val) => { form.setSessionData(prev => ({ ...prev, class_type: val })); form.markTouched('class_type'); }}
+            />
             {form.touched.class_type && form.errors.class_type && (
               <p className="text-xs text-red-500 mt-1">{form.errors.class_type}</p>
             )}
@@ -499,7 +511,12 @@ export default function LogSession() {
           {/* Intensity */}
           <div>
             <label className="label">Intensity</label>
-            <IntensityChips value={form.sessionData.intensity} size="sm" showDescription={false}
+            <IntensityChips
+              value={form.sessionData.intensity}
+              size="sm"
+              twoDimension
+              styleTags={styleTags}
+              onToggleStyle={(val) => setStyleTags(prev => prev.includes(val) ? prev.filter(v => v !== val) : [...prev, val])}
               onChange={(val) => form.setSessionData(prev => ({ ...prev, intensity: val }))}
             />
           </div>

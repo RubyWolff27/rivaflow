@@ -47,8 +47,10 @@ export default function EditSession() {
   // Attendees / classmates
   const [attendees, setAttendees] = useState<string[]>([]);
 
-  // Multi-select intensity tags
-  const [intensityTags, setIntensityTags] = useState<number[]>([]);
+  // Style tags (Technical=1, Flow=2) — stored as intensity_tags
+  const [styleTags, setStyleTags] = useState<number[]>([]);
+  // Class tags (secondary class types)
+  const [classTags, setClassTags] = useState<string[]>([]);
 
   // Track which sections have data (for smart accordion defaults)
   const [hasNotes, setHasNotes] = useState(false);
@@ -137,11 +139,18 @@ export default function EditSession() {
         setHasLocation(!!sessionData.location);
         setHasWhoop(!!(sessionData.whoop_strain || sessionData.whoop_calories || sessionData.whoop_avg_hr || sessionData.whoop_max_hr));
 
-        // Load intensity tags if stored, otherwise initialize from single intensity value
+        // Load intensity style tags (1=Technical, 2=Flow) from intensity_tags
         if (sessionData.intensity_tags && Array.isArray(sessionData.intensity_tags)) {
-          setIntensityTags(sessionData.intensity_tags);
-        } else if (sessionData.intensity) {
-          setIntensityTags([sessionData.intensity]);
+          setStyleTags(sessionData.intensity_tags.filter((v: number) => v <= 2));
+        }
+        // Load class tags
+        if (sessionData.class_tags && Array.isArray(sessionData.class_tags)) {
+          setClassTags(sessionData.class_tags);
+        }
+        // Ensure effort level (intensity) is set — default to existing value
+        if (sessionData.intensity && sessionData.intensity < 3) {
+          // Old data where intensity was 1 or 2 (Technical/Flow) — default effort to Moderate
+          form.setSessionData(prev => ({ ...prev, intensity: 3 }));
         }
 
         // Load attendees
@@ -222,7 +231,7 @@ export default function EditSession() {
         gym_name: form.sessionData.gym_name,
         location: form.sessionData.location || undefined,
         duration_mins: form.sessionData.duration_mins,
-        intensity: intensityTags.length > 0 ? Math.max(...intensityTags) : form.sessionData.intensity,
+        intensity: form.sessionData.intensity,
         instructor_id: form.sessionData.instructor_id || undefined,
         instructor_name: form.sessionData.instructor_name || undefined,
         rolls: form.sessionData.rolls,
@@ -232,7 +241,8 @@ export default function EditSession() {
         techniques: form.sessionData.techniques ? form.sessionData.techniques.split(',').map(t => t.trim()).filter(t => t !== '') : [],
         notes: form.sessionData.notes || undefined,
         attendees: attendees.length > 0 ? attendees : undefined,
-        intensity_tags: intensityTags.length > 0 ? intensityTags : undefined,
+        intensity_tags: styleTags.length > 0 ? styleTags : undefined,
+        class_tags: classTags.length > 0 ? classTags : undefined,
         ...form.buildWhoopPayload(),
         needs_review: false,
       };
@@ -371,6 +381,9 @@ export default function EditSession() {
           <ClassTypeChips
             value={form.sessionData.class_type}
             size="sm"
+            multi
+            selectedTags={classTags}
+            onToggleTag={(tag) => setClassTags(prev => prev.includes(tag) ? prev.filter(t => t !== tag) : [...prev, tag])}
             onChange={(val) => form.setSessionData(prev => ({ ...prev, class_type: val }))}
           />
         </div>
@@ -413,21 +426,14 @@ export default function EditSession() {
 
         {/* Intensity */}
         <div>
-          <label className="label">Intensity (select all that apply)</label>
+          <label className="label">Intensity</label>
           <IntensityChips
-            value={0}
-            onChange={() => {}}
-            multi
-            selectedValues={intensityTags}
-            onToggle={(val) => {
-              setIntensityTags(prev =>
-                prev.includes(val)
-                  ? prev.filter(v => v !== val)
-                  : [...prev, val]
-              );
-            }}
+            value={form.sessionData.intensity}
+            onChange={(val) => form.setSessionData(prev => ({ ...prev, intensity: val }))}
             size="sm"
-            showDescription
+            twoDimension
+            styleTags={styleTags}
+            onToggleStyle={(val) => setStyleTags(prev => prev.includes(val) ? prev.filter(v => v !== val) : [...prev, val])}
           />
         </div>
 

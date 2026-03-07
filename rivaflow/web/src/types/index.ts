@@ -23,6 +23,7 @@ export interface Session {
   partners?: string[];
   attendees?: string[];
   intensity_tags?: number[];
+  class_tags?: string[];
   techniques?: string[];
   notes?: string;
   instructor_id?: number;
