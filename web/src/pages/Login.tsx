@@ -48,8 +48,9 @@ export default function Login() {
           </p>
         </div>
 
-        <div>
-          <h2 className="mt-6 text-center text-3xl font-extrabold" style={{ color: 'var(--text)' }}>
+        <div className="flex flex-col items-center">
+          <img src="/logo.webp" alt="RivaFlow" className="w-16 h-16 rounded-2xl mb-4" />
+          <h2 className="text-center text-3xl font-extrabold" style={{ color: 'var(--text)' }}>
             Login to RivaFlow
           </h2>
           <p className="mt-2 text-center text-sm" style={{ color: 'var(--muted)' }}>

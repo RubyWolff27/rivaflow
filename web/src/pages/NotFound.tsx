@@ -6,10 +6,10 @@ function NotFound() {
   usePageTitle('Page Not Found');
   return (
     <div className="flex flex-col items-center justify-center min-h-[60vh] px-4 text-center">
-      <h1 className="text-6xl font-bold mb-4" style={{ color: 'var(--accent)' }}>404</h1>
-      <h2 className="text-xl font-semibold mb-2" style={{ color: 'var(--text)' }}>Page Not Found</h2>
-      <p className="mb-6 max-w-md" style={{ color: 'var(--muted)' }}>
-        The page you're looking for doesn't exist or has been moved.
+      <img src="/logo.webp" alt="RivaFlow" className="w-16 h-16 rounded-2xl mb-6 opacity-40" />
+      <h1 className="text-4xl font-bold mb-2" style={{ color: 'var(--muted)' }}>404</h1>
+      <p className="text-sm mb-6 max-w-sm" style={{ color: 'var(--muted)' }}>
+        This page doesn't exist or has been moved.
       </p>
       <Link
         to="/"

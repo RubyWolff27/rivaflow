@@ -20,11 +20,6 @@ describe('NotFound', () => {
     expect(screen.getByText('404')).toBeInTheDocument()
   })
 
-  it('renders Page Not Found message', () => {
-    renderNotFound()
-    expect(screen.getByText('Page Not Found')).toBeInTheDocument()
-  })
-
   it('renders description text', () => {
     renderNotFound()
     expect(
