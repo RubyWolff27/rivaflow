@@ -72,6 +72,7 @@ export default function Dashboard() {
           <TrainingSnapshot
             readinessScore={data.readinessScore}
             streakCount={data.streaks?.checkin.current_streak ?? 0}
+            whoopRecovery={data.whoopRecovery?.recovery_score ?? null}
           />
 
           {/* Right: Main dashboard content */}
