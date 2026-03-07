@@ -123,7 +123,15 @@ export default function MonthlyGoals() {
           title="No goals for this month"
           description="Create monthly goals to track your training targets. Progress updates automatically from your logged sessions."
           actionLabel="Add Goal"
-          onAction={() => setShowCreate(true)}
+          action={
+            <button
+              onClick={() => setShowCreate(true)}
+              className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors"
+              style={{ backgroundColor: 'var(--accent)', color: '#FFFFFF' }}
+            >
+              <Plus className="w-4 h-4" /> Add Goal
+            </button>
+          }
         />
         <div className="card space-y-3">
           <h3 className="text-sm font-semibold" style={{ color: 'var(--text)' }}>Goal ideas to get started</h3>
