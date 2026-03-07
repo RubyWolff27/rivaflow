@@ -458,6 +458,75 @@ def get_session_context(
     return {"recovery": recovery_data, "workout": workout_data}
 
 
+@router.get("/whoop/session/{session_id}/debug-zones")
+@route_error_handler("whoop_debug_zones", detail="Failed to debug zones")
+def debug_session_zones(
+    request: Request,
+    session_id: int,
+    current_user: dict = Depends(get_current_user),
+    service: WhoopService = Depends(get_whoop_service),
+    session_svc: SessionService = Depends(get_session_service),
+):
+    """Debug endpoint: show raw zone data from cache and live API."""
+    _require_whoop_enabled()
+    user_id = current_user["id"]
+
+    from rivaflow.db.repositories.whoop_workout_cache_repo import (
+        WhoopWorkoutCacheRepository,
+    )
+
+    session = session_svc.get_session(user_id, session_id)
+    if not session:
+        raise NotFoundError("Session not found")
+
+    wo = WhoopWorkoutCacheRepository.get_by_session_id(session_id)
+    cache_info = None
+    live_info = None
+
+    if wo:
+        cache_info = {
+            "id": wo.get("id"),
+            "whoop_workout_id": wo.get("whoop_workout_id"),
+            "score_state": wo.get("score_state"),
+            "zone_durations": wo.get("zone_durations"),
+            "zone_durations_type": type(wo.get("zone_durations")).__name__,
+            "strain": wo.get("strain"),
+            "raw_data_has_score": bool(
+                wo.get("raw_data", {}).get("score") if isinstance(wo.get("raw_data"), dict) else False
+            ),
+            "raw_zone_duration": (
+                wo["raw_data"].get("score", {}).get("zone_duration")
+                if isinstance(wo.get("raw_data"), dict) else None
+            ),
+        }
+
+        # Live fetch from WHOOP API
+        if wo.get("whoop_workout_id"):
+            try:
+                token = service.get_valid_access_token(user_id)
+                fresh = service.client.get_workout_by_id(
+                    token, wo["whoop_workout_id"]
+                )
+                fresh_score = fresh.get("score") or {}
+                live_info = {
+                    "score_state": fresh.get("score_state"),
+                    "zone_duration": fresh_score.get("zone_duration"),
+                    "strain": fresh_score.get("strain"),
+                    "score_keys": list(fresh_score.keys()) if fresh_score else [],
+                    "top_level_keys": list(fresh.keys()),
+                }
+            except Exception as e:
+                live_info = {"error": str(e)}
+
+    return {
+        "session_id": session_id,
+        "session_date": session.get("session_date"),
+        "workout_found": wo is not None,
+        "cache": cache_info,
+        "live_api": live_info,
+    }
+
+
 @router.get("/whoop/zones/batch")
 @route_error_handler("whoop_zones_batch", detail="Failed to get zones batch")
 def get_zones_batch(
