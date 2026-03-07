@@ -167,7 +167,17 @@ function ScoreBreakdown({ breakdown }: { breakdown: Record<string, unknown> }) {
     duration: 'Duration',
     volume: 'Volume',
     engagement: 'Engagement',
+    effort: 'Effort',
+    effectiveness: 'Effectiveness',
+    readiness_alignment: 'Readiness',
+    biometric_validation: 'Biometrics',
   };
+
+  /** Normalize label from snake_case key */
+  function formatPillarLabel(key: string): string {
+    if (PILLAR_LABELS[key]) return PILLAR_LABELS[key];
+    return key.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+  }
 
   return (
     <div className="space-y-1.5">
@@ -175,11 +185,13 @@ function ScoreBreakdown({ breakdown }: { breakdown: Record<string, unknown> }) {
         Score Breakdown
       </p>
       {Object.entries(pillars).map(([key, pillar]) => {
-        const pct = Math.round(pillar.pct * 100);
+        // pct may be 0-1 or 0-100 — normalize to 0-100
+        const rawPct = pillar.pct > 1 ? pillar.pct : pillar.pct * 100;
+        const pct = Math.min(100, Math.max(0, Math.round(rawPct)));
         return (
           <div key={key} className="flex items-center gap-2">
-            <span className="text-[11px] w-20 shrink-0" style={{ color: 'var(--muted)' }}>
-              {PILLAR_LABELS[key] || key}
+            <span className="text-[11px] w-24 shrink-0 truncate" style={{ color: 'var(--muted)' }}>
+              {formatPillarLabel(key)}
             </span>
             <div className="flex-1 h-1.5 rounded-full" style={{ backgroundColor: 'var(--surfaceElev)' }}>
               <div
@@ -187,7 +199,7 @@ function ScoreBreakdown({ breakdown }: { breakdown: Record<string, unknown> }) {
                 style={{ width: `${pct}%`, backgroundColor: 'var(--accent)' }}
               />
             </div>
-            <span className="text-[10px] tabular-nums w-7 text-right" style={{ color: 'var(--muted)' }}>
+            <span className="text-[10px] tabular-nums w-8 text-right" style={{ color: 'var(--muted)' }}>
               {pct}%
             </span>
           </div>
