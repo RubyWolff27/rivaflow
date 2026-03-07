@@ -237,10 +237,10 @@ def run_migrations():
         applied = get_applied_migrations(conn)
         logger.info("Already applied: %s migrations", len(applied))
 
-        # Use database.py's _apply_migrations which handles SQLite-to-PG conversion
+        # Use database.py's _apply_migrations (PG-only)
         from rivaflow.db.database import _apply_migrations
 
-        _apply_migrations(conn, applied, "postgresql")
+        _apply_migrations(conn, applied)
         logger.info("=" * 60)
         logger.info("✓ All migrations applied successfully")
         logger.info("=" * 60)
