@@ -727,6 +727,7 @@ export interface WhoopSessionContext {
     calories?: number | null;
     kilojoules?: number | null;
     sport_name?: string | null;
+    percent_recorded?: number | null;
   } | null;
 }
 

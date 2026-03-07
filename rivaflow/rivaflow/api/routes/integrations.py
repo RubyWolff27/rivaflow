@@ -448,6 +448,13 @@ def get_session_context(
                     wo.get("whoop_workout_id"),
                     exc_info=True,
                 )
+        # Extract percent_recorded from raw_data score
+        percent_recorded = None
+        if isinstance(wo.get("raw_data"), dict):
+            percent_recorded = (wo["raw_data"].get("score") or {}).get(
+                "percent_recorded"
+            )
+
         workout_data = {
             "zone_durations": zones,
             "score_state": wo.get("score_state"),
@@ -457,6 +464,7 @@ def get_session_context(
             "calories": wo.get("calories"),
             "kilojoules": wo.get("kilojoules"),
             "sport_name": wo.get("sport_name"),
+            "percent_recorded": percent_recorded,
             "_debug": {
                 "zone_source": zone_source,
                 "cache_zone_durations": wo.get("zone_durations"),

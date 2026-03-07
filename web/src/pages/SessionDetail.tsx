@@ -534,6 +534,21 @@ export default function SessionDetail() {
               </div>
             )}
           </div>
+
+          {whoopCtx?.workout?.percent_recorded != null && (
+            <div className="flex items-center gap-2 text-xs text-[var(--muted)] mt-1">
+              <div className="flex-1 h-1.5 rounded-full overflow-hidden" style={{ backgroundColor: 'var(--surfaceElev)' }}>
+                <div
+                  className="h-full rounded-full"
+                  style={{
+                    width: `${Math.min(100, whoopCtx.workout.percent_recorded)}%`,
+                    backgroundColor: whoopCtx.workout.percent_recorded >= 90 ? '#10B981' : whoopCtx.workout.percent_recorded >= 70 ? '#F59E0B' : '#EF4444',
+                  }}
+                />
+              </div>
+              <span>{Math.round(whoopCtx.workout.percent_recorded)}% recorded</span>
+            </div>
+          )}
         </div>
       )}
 
