@@ -30,6 +30,7 @@ export interface PartnersData {
     submissions_for?: number;
     submissions_against?: number;
     sub_ratio?: number;
+    last_rolled_date?: string;
   }>;
   diversity_metrics?: { active_partners?: number };
   summary?: {

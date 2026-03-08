@@ -457,6 +457,13 @@ def compute_partner_analytics(
         detailed_count = len(all_partner_rolls)
         detailed_session_ids = {r["session_id"] for r in all_partner_rolls}
 
+        # Track most recent session date for this partner
+        last_rolled_date = None
+        for r in all_partner_rolls:
+            sd = get_session_date(session_repo, user_id, r["session_id"])
+            if last_rolled_date is None or sd > last_rolled_date:
+                last_rolled_date = sd
+
         # Simple mode: count sessions with this partner in JSON,
         # EXCLUDING sessions already counted via detailed rolls
         simple_count = 0
@@ -465,6 +472,12 @@ def compute_partner_analytics(
                 continue  # already counted via session_rolls
             if name_lower in session_partners_json.get(s["id"], set()):
                 simple_count += 1
+                sd = s.get("session_date")
+                if sd:
+                    if isinstance(sd, str):
+                        sd = date.fromisoformat(sd)
+                    if last_rolled_date is None or sd > last_rolled_date:
+                        last_rolled_date = sd
 
         total_rolls = detailed_count + simple_count
 
@@ -518,6 +531,7 @@ def compute_partner_analytics(
                 "sub_ratio": ratio,
                 "subs_per_roll_for": stats.get("subs_per_roll", 0),
                 "subs_per_roll_against": stats.get("taps_per_roll", 0),
+                "last_rolled_date": last_rolled_date.isoformat() if last_rolled_date else None,
             }
         )
 

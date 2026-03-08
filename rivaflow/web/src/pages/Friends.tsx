@@ -5,7 +5,7 @@ import { logger } from '../utils/logger';
 import type { Friend } from '../types';
 import type { PartnersData } from '../components/analytics/reportTypes';
 import { useNavigate } from 'react-router-dom';
-import { Users, Plus, Search, Filter, Activity, Target } from 'lucide-react';
+import { Users, Plus, Search, Filter, Activity, Target, Calendar } from 'lucide-react';
 import ConfirmDialog from '../components/ConfirmDialog';
 import { useToast } from '../contexts/ToastContext';
 import { CardSkeleton, EmptyState } from '../components/ui';
@@ -372,9 +372,17 @@ export default function Friends() {
                       )}
                     </div>
                   </div>
-                  <p className="text-lg font-semibold" style={{ color: 'var(--text)' }}>
-                    {partner.total_rolls ?? 0} {(partner.total_rolls ?? 0) === 1 ? 'roll' : 'rolls'}
-                  </p>
+                  <div className="text-right">
+                    <p className="text-lg font-semibold" style={{ color: 'var(--text)' }}>
+                      {partner.total_rolls ?? 0} {(partner.total_rolls ?? 0) === 1 ? 'roll' : 'rolls'}
+                    </p>
+                    {partner.last_rolled_date && (
+                      <p className="text-xs flex items-center justify-end gap-1 mt-0.5" style={{ color: 'var(--muted)' }}>
+                        <Calendar className="w-3 h-3" />
+                        {new Date(partner.last_rolled_date + 'T00:00:00').toLocaleDateString('en-AU', { day: 'numeric', month: 'short' })}
+                      </p>
+                    )}
+                  </div>
                 </div>
                 <div className="grid grid-cols-3 gap-3 pt-3" style={{ borderTop: '1px solid var(--border)' }}>
                   <div>
