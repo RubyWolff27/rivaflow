@@ -1,11 +1,15 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Target, Swords, ShieldAlert, BookOpen, AlertTriangle, ChevronRight } from 'lucide-react';
+import {
+  Target, Swords, ShieldAlert, BookOpen, AlertTriangle, ChevronRight,
+  ChevronDown, Plus, Star, Trash2, Sparkles,
+} from 'lucide-react';
 import { usePageTitle } from '../hooks/usePageTitle';
-import { analyticsApi, sessionsApi } from '../api/client';
+import { analyticsApi, sessionsApi, gamePlansApi, getErrorMessage } from '../api/client';
+import { useToast } from '../contexts/ToastContext';
 import { logger } from '../utils/logger';
 import { CardSkeleton, Chip, EmptyState } from '../components/ui';
-import type { Session } from '../types';
+import type { Session, GamePlan, GamePlanNode } from '../types';
 import type { TechniquesData } from '../components/analytics/reportTypes';
 
 const CATEGORY_COLORS: Record<string, string> = {
@@ -20,13 +24,176 @@ const CATEGORY_COLORS: Record<string, string> = {
   concept: '#64748B',
 };
 
+const NODE_TYPE_COLORS: Record<string, string> = {
+  position: '#3B82F6',
+  technique: '#8B5CF6',
+  submission: '#EF4444',
+  sweep: '#F59E0B',
+  pass: '#10B981',
+  escape: '#06B6D4',
+};
+
+const BELT_OPTIONS = [
+  { value: 'white', label: 'White', color: '#E5E7EB' },
+  { value: 'blue', label: 'Blue', color: '#3B82F6' },
+  { value: 'purple', label: 'Purple', color: '#8B5CF6' },
+  { value: 'brown', label: 'Brown', color: '#92400E' },
+  { value: 'black', label: 'Black', color: '#1F2937' },
+];
+
+const ARCHETYPE_OPTIONS = [
+  { value: 'guard_player', label: 'Guard Player', desc: 'Bottom game focused' },
+  { value: 'top_passer', label: 'Top Passer', desc: 'Passing and pressure' },
+];
+
+const NODE_TYPES = ['position', 'technique', 'submission', 'sweep', 'pass', 'escape'];
+
+// --- Sub-components ---
+
+function ConfidenceDots({ level }: { level: number }) {
+  return (
+    <div className="flex gap-0.5">
+      {[1, 2, 3, 4, 5].map((i) => (
+        <div
+          key={i}
+          className="w-2 h-2 rounded-full"
+          style={{ backgroundColor: i <= level ? 'var(--accent)' : 'var(--border)' }}
+        />
+      ))}
+    </div>
+  );
+}
+
+function TreeNode({
+  node,
+  depth,
+  onDelete,
+}: {
+  node: GamePlanNode;
+  depth: number;
+  onDelete: (id: number) => void;
+}) {
+  const [expanded, setExpanded] = useState(depth < 2);
+  const hasChildren = node.children && node.children.length > 0;
+  const color = NODE_TYPE_COLORS[node.node_type] || 'var(--muted)';
+
+  return (
+    <div style={{ paddingLeft: depth > 0 ? 16 : 0 }}>
+      <div
+        className="flex items-center gap-2 py-1.5 px-2 rounded-lg group"
+        style={{ backgroundColor: depth === 0 ? 'var(--surfaceElev)' : 'transparent' }}
+      >
+        {hasChildren ? (
+          <button onClick={() => setExpanded(!expanded)} className="p-0.5">
+            {expanded ? (
+              <ChevronDown className="w-3.5 h-3.5" style={{ color: 'var(--muted)' }} />
+            ) : (
+              <ChevronRight className="w-3.5 h-3.5" style={{ color: 'var(--muted)' }} />
+            )}
+          </button>
+        ) : (
+          <span className="w-4" />
+        )}
+
+        <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: color }} />
+
+        <span className="text-sm flex-1" style={{ color: 'var(--text)' }}>
+          {node.name}
+        </span>
+
+        <span
+          className="text-[10px] px-1.5 py-0.5 rounded"
+          style={{ backgroundColor: color + '20', color }}
+        >
+          {node.node_type}
+        </span>
+
+        {node.is_focus && (
+          <Star className="w-3 h-3" style={{ color: '#F59E0B', fill: '#F59E0B' }} />
+        )}
+
+        <ConfidenceDots level={node.confidence} />
+
+        {node.attempts > 0 && (
+          <span className="text-[10px]" style={{ color: 'var(--muted)' }}>
+            {node.successes}/{node.attempts}
+          </span>
+        )}
+
+        <button
+          onClick={() => onDelete(node.id)}
+          className="opacity-0 group-hover:opacity-100 p-0.5 transition-opacity"
+          title="Delete node"
+        >
+          <Trash2 className="w-3 h-3" style={{ color: 'var(--muted)' }} />
+        </button>
+      </div>
+
+      {expanded && hasChildren && (
+        <div className="ml-2 border-l" style={{ borderColor: 'var(--border)' }}>
+          {node.children!.map((child) => (
+            <TreeNode key={child.id} node={child} depth={depth + 1} onDelete={onDelete} />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function StatCard({
+  icon, label, value, color,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  value: number | string;
+  color?: string;
+}) {
+  return (
+    <div
+      className="p-4 rounded-[14px]"
+      style={{ backgroundColor: 'var(--surface)', border: '1px solid var(--border)' }}
+    >
+      <div className="flex items-center gap-2 mb-2">
+        <span style={{ color: 'var(--muted)' }}>{icon}</span>
+        <span className="text-xs font-medium uppercase tracking-wide" style={{ color: 'var(--muted)' }}>
+          {label}
+        </span>
+      </div>
+      <p className="text-2xl font-semibold" style={{ color: color || 'var(--text)' }}>
+        {value}
+      </p>
+    </div>
+  );
+}
+
+// --- Main Component ---
+
 export default function MyGame() {
   usePageTitle('My Game');
   const navigate = useNavigate();
+  const toast = useToast();
+
+  // Stats data
   const [techData, setTechData] = useState<TechniquesData | null>(null);
   const [recentSessions, setRecentSessions] = useState<Session[]>([]);
   const [loading, setLoading] = useState(true);
 
+  // Game plan tree
+  const [plan, setPlan] = useState<GamePlan | null>(null);
+  const [planLoading, setPlanLoading] = useState(true);
+
+  // Wizard state
+  const [selectedBelt, setSelectedBelt] = useState('white');
+  const [selectedArchetype, setSelectedArchetype] = useState('guard_player');
+  const [generating, setGenerating] = useState(false);
+
+  // Add node state
+  const [addingNode, setAddingNode] = useState(false);
+  const [newNodeName, setNewNodeName] = useState('');
+  const [newNodeType, setNewNodeType] = useState('technique');
+  const [newNodeParent, setNewNodeParent] = useState<number | undefined>(undefined);
+
+  // Load stats data
   useEffect(() => {
     let cancelled = false;
     const load = async () => {
@@ -37,7 +204,6 @@ export default function MyGame() {
         ]);
         if (!cancelled) {
           setTechData(techRes.data);
-          // Filter to sessions that have techniques or notes
           const sessions = (sessRes.data || []).filter(
             (s: Session) => (s.techniques && s.techniques.length > 0) || s.notes
           );
@@ -53,6 +219,71 @@ export default function MyGame() {
     return () => { cancelled = true; };
   }, []);
 
+  // Load game plan
+  const loadPlan = async () => {
+    setPlanLoading(true);
+    try {
+      const res = await gamePlansApi.getCurrent();
+      const data = res.data;
+      setPlan(data?.plan !== undefined ? data.plan : data?.id ? data : null);
+    } catch (err) {
+      logger.debug('No game plan available', err);
+      setPlan(null);
+    } finally {
+      setPlanLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadPlan();
+  }, []);
+
+  // Actions
+  const handleGenerate = async () => {
+    setGenerating(true);
+    try {
+      await gamePlansApi.generate({
+        belt_level: selectedBelt,
+        archetype: selectedArchetype,
+      });
+      toast.success('Game plan generated!');
+      loadPlan();
+    } catch (err) {
+      toast.error(getErrorMessage(err));
+    } finally {
+      setGenerating(false);
+    }
+  };
+
+  const handleDeleteNode = async (nodeId: number) => {
+    if (!plan) return;
+    try {
+      await gamePlansApi.deleteNode(plan.id, nodeId);
+      toast.success('Node deleted');
+      loadPlan();
+    } catch (err) {
+      toast.error(getErrorMessage(err));
+    }
+  };
+
+  const handleAddNode = async () => {
+    if (!plan || !newNodeName.trim()) return;
+    try {
+      await gamePlansApi.addNode(plan.id, {
+        name: newNodeName.trim(),
+        node_type: newNodeType,
+        parent_id: newNodeParent,
+      });
+      setNewNodeName('');
+      setAddingNode(false);
+      toast.success('Node added');
+      loadPlan();
+    } catch (err) {
+      toast.error(getErrorMessage(err));
+    }
+  };
+
+  // Loading
   if (loading) {
     return (
       <div className="space-y-4">
@@ -71,7 +302,7 @@ export default function MyGame() {
   const hasData = techData && (techData.summary?.total_unique_techniques_used ?? 0) > 0;
   const subStats = techData?.submission_stats;
 
-  if (!hasData && recentSessions.length === 0) {
+  if (!hasData && recentSessions.length === 0 && !plan && !planLoading) {
     return (
       <div className="py-8">
         <EmptyState
@@ -105,30 +336,32 @@ export default function MyGame() {
       </div>
 
       {/* Stats Row */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        <StatCard
-          icon={<BookOpen className="w-4 h-4" />}
-          label="Techniques"
-          value={techData?.summary?.total_unique_techniques_used ?? 0}
-        />
-        <StatCard
-          icon={<Swords className="w-4 h-4" />}
-          label="Subs For"
-          value={subStats?.total_submissions_for ?? 0}
-          color="var(--accent)"
-        />
-        <StatCard
-          icon={<ShieldAlert className="w-4 h-4" />}
-          label="Subs Against"
-          value={subStats?.total_submissions_against ?? 0}
-        />
-        <StatCard
-          icon={<AlertTriangle className="w-4 h-4" />}
-          label="Stale (30d)"
-          value={techData?.summary?.stale_count ?? 0}
-          color={techData?.summary?.stale_count ? '#F59E0B' : undefined}
-        />
-      </div>
+      {hasData && (
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          <StatCard
+            icon={<BookOpen className="w-4 h-4" />}
+            label="Techniques"
+            value={techData?.summary?.total_unique_techniques_used ?? 0}
+          />
+          <StatCard
+            icon={<Swords className="w-4 h-4" />}
+            label="Subs For"
+            value={subStats?.total_submissions_for ?? 0}
+            color="var(--accent)"
+          />
+          <StatCard
+            icon={<ShieldAlert className="w-4 h-4" />}
+            label="Subs Against"
+            value={subStats?.total_submissions_against ?? 0}
+          />
+          <StatCard
+            icon={<AlertTriangle className="w-4 h-4" />}
+            label="Stale (30d)"
+            value={techData?.summary?.stale_count ?? 0}
+            color={techData?.summary?.stale_count ? '#F59E0B' : undefined}
+          />
+        </div>
+      )}
 
       {/* Sub Ratio Bar */}
       {subStats && (subStats.total_submissions_for + subStats.total_submissions_against) > 0 && (
@@ -147,10 +380,7 @@ export default function MyGame() {
           <div className="w-full h-3 rounded-full overflow-hidden flex" style={{ backgroundColor: 'var(--border)' }}>
             <div
               className="h-full rounded-l-full transition-all"
-              style={{
-                width: `${subRatio}%`,
-                backgroundColor: 'var(--accent)',
-              }}
+              style={{ width: `${subRatio}%`, backgroundColor: 'var(--accent)' }}
             />
             <div
               className="h-full rounded-r-full"
@@ -171,6 +401,236 @@ export default function MyGame() {
           </div>
         </div>
       )}
+
+      {/* ═══════════════ GAME PLAN TREE ═══════════════ */}
+      <div
+        className="p-4 rounded-[14px]"
+        style={{ backgroundColor: 'var(--surface)', border: '1px solid var(--border)' }}
+      >
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-2">
+            <Sparkles className="w-4 h-4" style={{ color: 'var(--accent)' }} />
+            <h3 className="text-sm font-semibold" style={{ color: 'var(--text)' }}>
+              Technique Mind Map
+            </h3>
+          </div>
+          {plan && (
+            <button
+              onClick={() => setAddingNode(!addingNode)}
+              className="flex items-center gap-1 text-xs px-2.5 py-1 rounded-lg transition-colors"
+              style={{ backgroundColor: 'var(--accent)', color: '#fff' }}
+            >
+              <Plus className="w-3 h-3" />
+              Add Node
+            </button>
+          )}
+        </div>
+
+        {planLoading ? (
+          <div className="space-y-2">
+            <div className="h-6 rounded animate-pulse" style={{ backgroundColor: 'var(--surfaceElev)' }} />
+            <div className="h-6 rounded animate-pulse ml-4" style={{ backgroundColor: 'var(--surfaceElev)' }} />
+            <div className="h-6 rounded animate-pulse ml-4" style={{ backgroundColor: 'var(--surfaceElev)' }} />
+          </div>
+        ) : !plan ? (
+          /* ── Wizard: Create Game Plan ── */
+          <div>
+            <p className="text-sm mb-4" style={{ color: 'var(--muted)' }}>
+              A technique mind map — a visual tree of positions, submissions, sweeps, and escapes
+              tailored to your belt level and style. Track proficiency and focus areas as you progress.
+            </p>
+
+            <div className="space-y-4">
+              {/* Belt Selection */}
+              <div>
+                <label className="text-xs font-medium uppercase mb-2 block" style={{ color: 'var(--muted)' }}>
+                  Belt Level
+                </label>
+                <div className="flex gap-2">
+                  {BELT_OPTIONS.map((belt) => (
+                    <button
+                      key={belt.value}
+                      onClick={() => setSelectedBelt(belt.value)}
+                      className="px-3 py-1.5 rounded-lg text-xs font-medium transition-all"
+                      style={{
+                        border: `2px solid ${selectedBelt === belt.value ? belt.color : 'var(--border)'}`,
+                        backgroundColor: selectedBelt === belt.value ? belt.color + '20' : 'transparent',
+                        color: selectedBelt === belt.value ? belt.color : 'var(--muted)',
+                      }}
+                    >
+                      {belt.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Archetype Selection */}
+              <div>
+                <label className="text-xs font-medium uppercase mb-2 block" style={{ color: 'var(--muted)' }}>
+                  Style
+                </label>
+                <div className="flex gap-2">
+                  {ARCHETYPE_OPTIONS.map((arch) => (
+                    <button
+                      key={arch.value}
+                      onClick={() => setSelectedArchetype(arch.value)}
+                      className="px-3 py-2 rounded-lg text-left transition-all"
+                      style={{
+                        border: `2px solid ${selectedArchetype === arch.value ? 'var(--accent)' : 'var(--border)'}`,
+                        backgroundColor: selectedArchetype === arch.value ? 'var(--accent)' + '10' : 'transparent',
+                      }}
+                    >
+                      <div className="text-sm font-medium" style={{ color: 'var(--text)' }}>{arch.label}</div>
+                      <div className="text-[10px]" style={{ color: 'var(--muted)' }}>{arch.desc}</div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <button
+                onClick={handleGenerate}
+                disabled={generating}
+                className="w-full py-2.5 rounded-lg text-sm font-medium transition-colors"
+                style={{
+                  backgroundColor: generating ? 'var(--surfaceElev)' : 'var(--accent)',
+                  color: generating ? 'var(--muted)' : '#fff',
+                }}
+              >
+                {generating ? 'Generating...' : 'Generate Game Plan'}
+              </button>
+            </div>
+          </div>
+        ) : (
+          /* ── Game Plan Tree ── */
+          <div className="space-y-3">
+            {/* Plan title */}
+            {plan.title && (
+              <div className="flex items-center gap-2 mb-2">
+                <span className="text-xs font-medium" style={{ color: 'var(--muted)' }}>
+                  {plan.title}
+                </span>
+              </div>
+            )}
+
+            {/* Focus Areas */}
+            {plan.focus_nodes && plan.focus_nodes.length > 0 && (
+              <div className="mb-3">
+                <div className="flex items-center gap-1.5 mb-2">
+                  <Star className="w-3.5 h-3.5" style={{ color: '#F59E0B' }} />
+                  <span className="text-xs font-semibold uppercase" style={{ color: 'var(--muted)' }}>
+                    Focus Areas
+                  </span>
+                </div>
+                <div className="flex flex-wrap gap-1.5">
+                  {plan.focus_nodes.map((fn) => (
+                    <span
+                      key={fn.id}
+                      className="text-xs px-2 py-1 rounded-lg"
+                      style={{ backgroundColor: '#F59E0B20', color: '#F59E0B' }}
+                    >
+                      {fn.name}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Add Node Form */}
+            {addingNode && (
+              <div
+                className="p-3 rounded-lg mb-3 space-y-2"
+                style={{ backgroundColor: 'var(--surfaceElev)', border: '1px solid var(--border)' }}
+              >
+                <input
+                  type="text"
+                  value={newNodeName}
+                  onChange={(e) => setNewNodeName(e.target.value)}
+                  placeholder="Node name..."
+                  className="w-full px-3 py-1.5 text-sm rounded-lg"
+                  style={{
+                    backgroundColor: 'var(--surface)',
+                    border: '1px solid var(--border)',
+                    color: 'var(--text)',
+                  }}
+                />
+                <div className="flex gap-2">
+                  <select
+                    value={newNodeType}
+                    onChange={(e) => setNewNodeType(e.target.value)}
+                    className="flex-1 px-2 py-1.5 text-xs rounded-lg"
+                    style={{
+                      backgroundColor: 'var(--surface)',
+                      border: '1px solid var(--border)',
+                      color: 'var(--text)',
+                    }}
+                  >
+                    {NODE_TYPES.map((t) => (
+                      <option key={t} value={t}>{t}</option>
+                    ))}
+                  </select>
+                  <select
+                    value={newNodeParent ?? ''}
+                    onChange={(e) => setNewNodeParent(e.target.value ? Number(e.target.value) : undefined)}
+                    className="flex-1 px-2 py-1.5 text-xs rounded-lg"
+                    style={{
+                      backgroundColor: 'var(--surface)',
+                      border: '1px solid var(--border)',
+                      color: 'var(--text)',
+                    }}
+                  >
+                    <option value="">Root (no parent)</option>
+                    {plan.flat_nodes?.map((fn) => (
+                      <option key={fn.id} value={fn.id}>{fn.name}</option>
+                    ))}
+                  </select>
+                </div>
+                <div className="flex gap-2">
+                  <button
+                    onClick={handleAddNode}
+                    className="px-3 py-1.5 text-xs rounded-lg font-medium"
+                    style={{ backgroundColor: 'var(--accent)', color: '#fff' }}
+                  >
+                    Add
+                  </button>
+                  <button
+                    onClick={() => { setAddingNode(false); setNewNodeName(''); }}
+                    className="px-3 py-1.5 text-xs rounded-lg"
+                    style={{ backgroundColor: 'var(--surfaceElev)', color: 'var(--muted)' }}
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Tree Nodes */}
+            {plan.nodes && plan.nodes.length > 0 ? (
+              <div className="space-y-0.5">
+                {plan.nodes.map((node) => (
+                  <TreeNode key={node.id} node={node} depth={0} onDelete={handleDeleteNode} />
+                ))}
+              </div>
+            ) : (
+              <p className="text-sm py-4 text-center" style={{ color: 'var(--muted)' }}>
+                No nodes yet. Click &quot;Add Node&quot; to start building your tree.
+              </p>
+            )}
+
+            {/* Node Type Legend */}
+            <div className="flex flex-wrap gap-3 pt-3 border-t" style={{ borderColor: 'var(--border)' }}>
+              {NODE_TYPES.map((type) => (
+                <div key={type} className="flex items-center gap-1.5">
+                  <div
+                    className="w-2 h-2 rounded-full"
+                    style={{ backgroundColor: NODE_TYPE_COLORS[type] || 'var(--muted)' }}
+                  />
+                  <span className="text-[10px]" style={{ color: 'var(--muted)' }}>{type}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
 
       {/* Top Submissions */}
       {techData?.top_submissions && techData.top_submissions.length > 0 && (
@@ -334,35 +794,6 @@ export default function MyGame() {
           </div>
         </div>
       )}
-    </div>
-  );
-}
-
-function StatCard({
-  icon,
-  label,
-  value,
-  color,
-}: {
-  icon: React.ReactNode;
-  label: string;
-  value: number | string;
-  color?: string;
-}) {
-  return (
-    <div
-      className="p-4 rounded-[14px]"
-      style={{ backgroundColor: 'var(--surface)', border: '1px solid var(--border)' }}
-    >
-      <div className="flex items-center gap-2 mb-2">
-        <span style={{ color: 'var(--muted)' }}>{icon}</span>
-        <span className="text-xs font-medium uppercase tracking-wide" style={{ color: 'var(--muted)' }}>
-          {label}
-        </span>
-      </div>
-      <p className="text-2xl font-semibold" style={{ color: color || 'var(--text)' }}>
-        {value}
-      </p>
     </div>
   );
 }

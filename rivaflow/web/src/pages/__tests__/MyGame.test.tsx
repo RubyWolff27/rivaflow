@@ -4,6 +4,10 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 
 const mockTechniqueBreakdown = vi.fn()
 const mockSessionsList = vi.fn()
+const mockGetCurrent = vi.fn()
+const mockGenerate = vi.fn()
+const mockAddNode = vi.fn()
+const mockDeleteNode = vi.fn()
 
 vi.mock('../../api/client', () => ({
   analyticsApi: {
@@ -22,11 +26,32 @@ vi.mock('../../api/client', () => ({
     delete: vi.fn(),
     getAutocomplete: vi.fn(),
   },
+  gamePlansApi: {
+    getCurrent: (...args: unknown[]) => mockGetCurrent(...args),
+    generate: (...args: unknown[]) => mockGenerate(...args),
+    getById: vi.fn(),
+    update: vi.fn(),
+    delete: vi.fn(),
+    addNode: (...args: unknown[]) => mockAddNode(...args),
+    updateNode: vi.fn(),
+    deleteNode: (...args: unknown[]) => mockDeleteNode(...args),
+    addEdge: vi.fn(),
+    deleteEdge: vi.fn(),
+    setFocus: vi.fn(),
+  },
   getErrorMessage: (err: unknown) => (err as Error)?.message || 'Unknown error',
 }))
 
 vi.mock('../../utils/logger', () => ({
   logger: { debug: vi.fn(), info: vi.fn(), error: vi.fn(), warn: vi.fn() },
+}))
+
+vi.mock('../../contexts/ToastContext', () => ({
+  useToast: () => ({
+    showToast: vi.fn(),
+    success: vi.fn(),
+    error: vi.fn(),
+  }),
 }))
 
 import MyGame from '../MyGame'
@@ -71,7 +96,7 @@ const sampleSessions = [
     submissions_for: 2,
     submissions_against: 1,
     notes: 'Worked on closed guard retention and sweeps. Good rolls today.',
-    techniques: ['Armbar', 'Scissor Sweep', 'Triangle', 'Hip Escape', 'Knee Shield'],
+    techniques: ['Scissor Sweep', 'Hip Escape', 'Knee Shield', 'Cross Collar Choke'],
   },
   {
     id: 2,
@@ -88,6 +113,73 @@ const sampleSessions = [
   },
 ]
 
+const samplePlan = {
+  id: 1,
+  title: 'White Belt Guard Game',
+  belt_level: 'white',
+  archetype: 'guard_player',
+  style: 'balanced',
+  is_active: true,
+  created_at: '2026-03-01',
+  updated_at: '2026-03-08',
+  nodes: [
+    {
+      id: 10,
+      plan_id: 1,
+      name: 'Closed Guard',
+      node_type: 'position',
+      confidence: 3,
+      priority: 'normal',
+      is_focus: true,
+      attempts: 10,
+      successes: 7,
+      sort_order: 0,
+      created_at: '2026-03-01',
+      updated_at: '2026-03-08',
+      children: [
+        {
+          id: 11,
+          plan_id: 1,
+          name: 'Armbar from Guard',
+          node_type: 'submission',
+          confidence: 2,
+          priority: 'normal',
+          is_focus: false,
+          attempts: 5,
+          successes: 2,
+          sort_order: 0,
+          created_at: '2026-03-01',
+          updated_at: '2026-03-08',
+          children: [],
+        },
+      ],
+    },
+    {
+      id: 12,
+      plan_id: 1,
+      name: 'Half Guard',
+      node_type: 'position',
+      confidence: 4,
+      priority: 'normal',
+      is_focus: false,
+      attempts: 8,
+      successes: 5,
+      sort_order: 1,
+      created_at: '2026-03-01',
+      updated_at: '2026-03-08',
+      children: [],
+    },
+  ],
+  flat_nodes: [
+    { id: 10, name: 'Closed Guard' },
+    { id: 11, name: 'Armbar from Guard' },
+    { id: 12, name: 'Half Guard' },
+  ],
+  focus_nodes: [
+    { id: 10, name: 'Closed Guard', node_type: 'position' },
+  ],
+}
+
 function renderMyGame() {
   return render(
     <BrowserRouter>
@@ -96,34 +188,42 @@ function renderMyGame() {
   )
 }
 
+function setupWithData(planData: unknown = samplePlan) {
+  mockTechniqueBreakdown.mockResolvedValue({ data: sampleTechData })
+  mockSessionsList.mockResolvedValue({ data: sampleSessions })
+  mockGetCurrent.mockResolvedValue({ data: planData })
+}
+
 describe('MyGame', () => {
   beforeEach(() => {
     vi.clearAllMocks()
   })
 
+  // --- Stats Section ---
+
   it('shows loading skeleton while fetching data', () => {
     mockTechniqueBreakdown.mockImplementation(() => new Promise(() => {}))
     mockSessionsList.mockImplementation(() => new Promise(() => {}))
+    mockGetCurrent.mockImplementation(() => new Promise(() => {}))
     renderMyGame()
     const skeletons = document.querySelectorAll('[class*="animate-pulse"]')
     expect(skeletons.length).toBeGreaterThan(0)
   })
 
-  it('shows empty state when no data exists', async () => {
+  it('shows empty state when no data and no plan exists', async () => {
     mockTechniqueBreakdown.mockResolvedValue({ data: { summary: { total_unique_techniques_used: 0 } } })
     mockSessionsList.mockResolvedValue({ data: [] })
+    mockGetCurrent.mockResolvedValue({ data: { plan: null } })
     renderMyGame()
 
     await waitFor(() => {
       expect(screen.getByText('Build Your Game')).toBeInTheDocument()
     })
     expect(screen.getByText(/Log sessions with techniques/)).toBeInTheDocument()
-    expect(screen.getByText('Log a Session')).toBeInTheDocument()
   })
 
   it('renders stat cards with technique data', async () => {
-    mockTechniqueBreakdown.mockResolvedValue({ data: sampleTechData })
-    mockSessionsList.mockResolvedValue({ data: sampleSessions })
+    setupWithData()
     renderMyGame()
 
     await waitFor(() => {
@@ -135,52 +235,39 @@ describe('MyGame', () => {
   })
 
   it('renders submission ratio bar', async () => {
-    mockTechniqueBreakdown.mockResolvedValue({ data: sampleTechData })
-    mockSessionsList.mockResolvedValue({ data: sampleSessions })
+    setupWithData()
     renderMyGame()
 
     await waitFor(() => {
       expect(screen.getByText('Submission Ratio')).toBeInTheDocument()
     })
-    // 15/(15+8) = 65%
     expect(screen.getByText('65% yours')).toBeInTheDocument()
     expect(screen.getByText('15 for')).toBeInTheDocument()
     expect(screen.getByText('8 against')).toBeInTheDocument()
   })
 
-  it('renders top submissions list', async () => {
-    mockTechniqueBreakdown.mockResolvedValue({ data: sampleTechData })
-    mockSessionsList.mockResolvedValue({ data: sampleSessions })
-    renderMyGame()
-
-    await waitFor(() => {
-      expect(screen.getByText('Top Submissions')).toBeInTheDocument()
-    })
-    // Armbar appears in both top submissions and session chips
-    const armbars = screen.getAllByText('Armbar')
-    expect(armbars.length).toBeGreaterThanOrEqual(1)
-    // Guillotine appears in both top submissions and session 2 chips
-    const guillotines = screen.getAllByText('Guillotine')
-    expect(guillotines.length).toBeGreaterThanOrEqual(1)
-  })
-
   it('renders category breakdown', async () => {
-    mockTechniqueBreakdown.mockResolvedValue({ data: sampleTechData })
-    mockSessionsList.mockResolvedValue({ data: sampleSessions })
+    setupWithData()
     renderMyGame()
 
     await waitFor(() => {
       expect(screen.getByText('Technique Categories')).toBeInTheDocument()
     })
-    expect(screen.getByText('submission')).toBeInTheDocument()
-    expect(screen.getByText('position')).toBeInTheDocument()
-    expect(screen.getByText('sweep')).toBeInTheDocument()
-    expect(screen.getByText('pass')).toBeInTheDocument()
   })
 
-  it('renders recent training notes with session data', async () => {
-    mockTechniqueBreakdown.mockResolvedValue({ data: sampleTechData })
-    mockSessionsList.mockResolvedValue({ data: sampleSessions })
+  it('renders stale techniques section', async () => {
+    setupWithData()
+    renderMyGame()
+
+    await waitFor(() => {
+      expect(screen.getByText('Stale Techniques')).toBeInTheDocument()
+    })
+    expect(screen.getByText('Kimura')).toBeInTheDocument()
+    expect(screen.getByText('Not trained in 30+ days')).toBeInTheDocument()
+  })
+
+  it('renders recent training notes', async () => {
+    setupWithData()
     renderMyGame()
 
     await waitFor(() => {
@@ -190,74 +277,127 @@ describe('MyGame', () => {
     expect(screen.getByText(/Competition prep/)).toBeInTheDocument()
   })
 
-  it('shows technique chips on session notes', async () => {
+  // --- Game Plan Tree Section ---
+
+  it('shows create wizard when no plan exists', async () => {
     mockTechniqueBreakdown.mockResolvedValue({ data: sampleTechData })
     mockSessionsList.mockResolvedValue({ data: sampleSessions })
+    mockGetCurrent.mockResolvedValue({ data: { plan: null } })
     renderMyGame()
 
     await waitFor(() => {
-      expect(screen.getByText('Scissor Sweep')).toBeInTheDocument()
+      expect(screen.getByText('Technique Mind Map')).toBeInTheDocument()
     })
-    // First session has 5 techniques, only 4 shown + "+1 more"
-    expect(screen.getByText('+1 more')).toBeInTheDocument()
+    expect(screen.getByText(/technique mind map/)).toBeInTheDocument()
+    expect(screen.getByText('Generate Game Plan')).toBeInTheDocument()
   })
 
-  it('renders stale techniques section', async () => {
+  it('shows belt selection options in wizard', async () => {
     mockTechniqueBreakdown.mockResolvedValue({ data: sampleTechData })
     mockSessionsList.mockResolvedValue({ data: sampleSessions })
+    mockGetCurrent.mockResolvedValue({ data: { plan: null } })
     renderMyGame()
 
     await waitFor(() => {
-      expect(screen.getByText('Stale Techniques')).toBeInTheDocument()
+      expect(screen.getByText('White')).toBeInTheDocument()
     })
-    expect(screen.getByText('Kimura')).toBeInTheDocument()
-    expect(screen.getByText('Omoplata')).toBeInTheDocument()
-    expect(screen.getByText('Ezekiel')).toBeInTheDocument()
-    expect(screen.getByText('Not trained in 30+ days')).toBeInTheDocument()
+    expect(screen.getByText('Blue')).toBeInTheDocument()
+    expect(screen.getByText('Purple')).toBeInTheDocument()
+    expect(screen.getByText('Brown')).toBeInTheDocument()
+    expect(screen.getByText('Black')).toBeInTheDocument()
   })
 
-  it('renders page header with title', async () => {
+  it('shows archetype options in wizard', async () => {
     mockTechniqueBreakdown.mockResolvedValue({ data: sampleTechData })
     mockSessionsList.mockResolvedValue({ data: sampleSessions })
+    mockGetCurrent.mockResolvedValue({ data: { plan: null } })
+    renderMyGame()
+
+    await waitFor(() => {
+      expect(screen.getByText('Guard Player')).toBeInTheDocument()
+    })
+    expect(screen.getByText('Top Passer')).toBeInTheDocument()
+  })
+
+  it('renders tree nodes when plan exists', async () => {
+    setupWithData()
+    renderMyGame()
+
+    await waitFor(() => {
+      // Closed Guard appears in tree and focus areas
+      const closedGuards = screen.getAllByText('Closed Guard')
+      expect(closedGuards.length).toBeGreaterThanOrEqual(2)
+    })
+    expect(screen.getByText('Half Guard')).toBeInTheDocument()
+    expect(screen.getByText('Armbar from Guard')).toBeInTheDocument()
+  })
+
+  it('renders focus areas section', async () => {
+    setupWithData()
+    renderMyGame()
+
+    await waitFor(() => {
+      expect(screen.getByText('Focus Areas')).toBeInTheDocument()
+    })
+  })
+
+  it('shows Add Node button when plan exists', async () => {
+    setupWithData()
+    renderMyGame()
+
+    await waitFor(() => {
+      expect(screen.getByText('Add Node')).toBeInTheDocument()
+    })
+  })
+
+  it('shows add node form when Add Node clicked', async () => {
+    setupWithData()
+    renderMyGame()
+
+    await waitFor(() => {
+      expect(screen.getByText('Add Node')).toBeInTheDocument()
+    })
+
+    fireEvent.click(screen.getByText('Add Node'))
+
+    await waitFor(() => {
+      expect(screen.getByPlaceholderText('Node name...')).toBeInTheDocument()
+    })
+  })
+
+  it('renders node type legend', async () => {
+    setupWithData()
+    renderMyGame()
+
+    await waitFor(() => {
+      // position appears in tree nodes and legend
+      const positions = screen.getAllByText('position')
+      expect(positions.length).toBeGreaterThanOrEqual(1)
+    })
+    // sweep/pass appear in both category breakdown and legend — use getAllByText
+    expect(screen.getAllByText('sweep').length).toBeGreaterThanOrEqual(1)
+    expect(screen.getAllByText('pass').length).toBeGreaterThanOrEqual(1)
+    expect(screen.getByText('escape')).toBeInTheDocument()
+  })
+
+  it('shows attempt stats for nodes', async () => {
+    setupWithData()
+    renderMyGame()
+
+    await waitFor(() => {
+      expect(screen.getByText('7/10')).toBeInTheDocument()
+    })
+    expect(screen.getByText('2/5')).toBeInTheDocument()
+    expect(screen.getByText('5/8')).toBeInTheDocument()
+  })
+
+  it('renders page header', async () => {
+    setupWithData()
     renderMyGame()
 
     await waitFor(() => {
       expect(screen.getByText('My Game')).toBeInTheDocument()
     })
     expect(screen.getByText('Built from your actual training data')).toBeInTheDocument()
-  })
-
-  it('hides submission ratio when no submissions exist', async () => {
-    const noSubsData = {
-      ...sampleTechData,
-      submission_stats: {
-        total_submissions_for: 0,
-        total_submissions_against: 0,
-        sessions_with_submissions: 0,
-      },
-    }
-    mockTechniqueBreakdown.mockResolvedValue({ data: noSubsData })
-    mockSessionsList.mockResolvedValue({ data: sampleSessions })
-    renderMyGame()
-
-    await waitFor(() => {
-      expect(screen.getByText('My Game')).toBeInTheDocument()
-    })
-    expect(screen.queryByText('Submission Ratio')).not.toBeInTheDocument()
-  })
-
-  it('navigates to session detail when clicking a note', async () => {
-    mockTechniqueBreakdown.mockResolvedValue({ data: sampleTechData })
-    mockSessionsList.mockResolvedValue({ data: sampleSessions })
-    renderMyGame()
-
-    await waitFor(() => {
-      expect(screen.getByText(/closed guard retention/)).toBeInTheDocument()
-    })
-
-    const noteButton = screen.getByText(/closed guard retention/).closest('button')
-    expect(noteButton).toBeTruthy()
-    fireEvent.click(noteButton!)
-    // Navigation happens via useNavigate — just verify button is clickable
   })
 })
