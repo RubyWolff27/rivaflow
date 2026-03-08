@@ -1,12 +1,14 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { usePageTitle } from '../hooks/usePageTitle';
-import { usersApi, socialApi } from '../api/client';
+import { usersApi, socialApi, analyticsApi } from '../api/client';
 import { logger } from '../utils/logger';
 import { Users, MapPin, Calendar, TrendingUp, Activity, UserCheck, UserPlus, Clock } from 'lucide-react';
 import { useToast } from '../contexts/ToastContext';
 import { useAuth } from '../contexts/AuthContext';
 import { CardSkeleton } from '../components/ui';
+import BadgeDisplay, { BADGE_DEFINITIONS } from '../components/achievements/BadgeDisplay';
+import type { Badge } from '../components/achievements/BadgeDisplay';
 
 interface UserProfileData {
   id: number;
@@ -57,6 +59,7 @@ export default function UserProfile() {
   const [error, setError] = useState('');
   const [actionLoading, setActionLoading] = useState(false);
   const [friendshipStatus, setFriendshipStatus] = useState<FriendshipStatus>('none');
+  const [badges, setBadges] = useState<Badge[]>([]);
   const toast = useToast();
 
   useEffect(() => {
@@ -84,6 +87,42 @@ export default function UserProfile() {
         if (!cancelled) {
           if (statsRes.status === 'fulfilled') setStats(statsRes.value.data);
           if (activityRes.status === 'fulfilled') setActivity(activityRes.value.data?.items || []);
+        }
+
+        // Load badges for own profile (best-effort)
+        if (currentUser && parseInt(userId!) === currentUser.id) {
+          try {
+            const [perfRes, partnerRes, techRes, consistRes] = await Promise.allSettled([
+              analyticsApi.performanceOverview(),
+              analyticsApi.partnerStats(),
+              analyticsApi.techniqueBreakdown(),
+              analyticsApi.consistencyMetrics(),
+            ]);
+            if (!cancelled) {
+              const perf = perfRes.status === 'fulfilled' ? perfRes.value.data : {};
+              const partners = partnerRes.status === 'fulfilled' ? partnerRes.value.data : {};
+              const techs = techRes.status === 'fulfilled' ? techRes.value.data : {};
+              const consist = consistRes.status === 'fulfilled' ? consistRes.value.data : {};
+              const progressMap: Record<string, number> = {
+                sessions: Number(perf?.total_sessions || perf?.sessions_count || 0),
+                streak: Number(consist?.current_streak?.weeks || consist?.training_streak || 0),
+                rolls: Number(perf?.total_rolls || 0),
+                subs: Number(perf?.total_submissions_for || perf?.submissions_for || 0),
+                partners: Number(partners?.partner_diversity?.unique_partners || partners?.partner_matrix?.length || 0),
+                techniques: Number(techs?.unique_techniques || techs?.technique_count || 0),
+              };
+              const earned: Badge[] = BADGE_DEFINITIONS
+                .map(def => ({
+                  ...def,
+                  progress: progressMap[def.icon] || 0,
+                  earned: def.target ? (progressMap[def.icon] || 0) >= def.target : false,
+                }))
+                .filter(b => b.earned);
+              setBadges(earned);
+            }
+          } catch (err) {
+            logger.debug('Badges load failed (non-critical)', err);
+          }
         }
 
         // Load friendship status (best-effort, not needed for own profile)
@@ -331,6 +370,13 @@ export default function UserProfile() {
 
           {renderActionButton()}
         </div>
+
+        {/* Earned Badges */}
+        {badges.length > 0 && (
+          <div className="mt-4 pt-4" style={{ borderTop: '1px solid var(--border)' }}>
+            <BadgeDisplay badges={badges} compact />
+          </div>
+        )}
       </div>
 
       {/* Stats Grid */}

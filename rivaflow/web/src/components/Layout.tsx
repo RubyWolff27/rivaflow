@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, memo } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { Home, BarChart3, Users, Activity, Shield, Sparkles, Target, Settings, Calendar } from 'lucide-react';
+import { Home, BarChart3, Users, Activity, Shield, Sparkles, Target, Settings, Calendar, Trophy, Award, UserCircle } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import QuickLog from './QuickLog';
 import Sidebar from './Sidebar';
@@ -90,6 +90,9 @@ const Layout = memo(function Layout({ children }: { children: React.ReactNode })
       label: 'Social',
       items: [
         { name: 'Friends', href: '/friends', icon: Users, badge: notificationCounts.friend_requests },
+        { name: 'Groups', href: '/groups', icon: UserCircle },
+        { name: 'Leaderboards', href: '/leaderboards', icon: Trophy },
+        { name: 'Achievements', href: '/achievements', icon: Award },
       ],
     },
     ...(user?.is_admin ? [{

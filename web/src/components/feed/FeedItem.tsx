@@ -4,6 +4,7 @@ import ActivitySocialActions from '../ActivitySocialActions';
 import CommentSection from '../CommentSection';
 import PromotionCard from './PromotionCard';
 import MilestoneCard from './MilestoneCard';
+import BeltCelebration from './BeltCelebration';
 import type { FeedItem } from '../../types';
 import { ACTIVITY_COLORS, ACTIVITY_LABELS } from '../../constants/activity';
 
@@ -287,6 +288,7 @@ const FeedItemComponent = memo(function FeedItemComponent({
   handleDeleteRest,
 }: FeedItemComponentProps) {
   const [expanded, setExpanded] = useState(false);
+  const [celebrationOpen, setCelebrationOpen] = useState(false);
   const showDateHeader = !prevItem || prevItem.date !== item.date;
   const commentKey = `${item.type}-${item.id}`;
   const isCommentsOpen = expandedComments.has(commentKey);
@@ -392,14 +394,35 @@ const FeedItemComponent = memo(function FeedItemComponent({
 
         <div className="p-4">
           {isPromotion ? (
-            <PromotionCard
-              grade={item.grade || ''}
-              date={item.date}
-              professor={item.professor}
-              sessionsSinceLastPromotion={item.sessions_since_last}
-              hoursSinceLastPromotion={item.hours_since_last}
-              rollsSinceLastPromotion={item.rolls_since_last}
-            />
+            <>
+              <div
+                className="cursor-pointer"
+                onClick={() => setCelebrationOpen(true)}
+                role="button"
+                tabIndex={0}
+                onKeyDown={(e) => e.key === 'Enter' && setCelebrationOpen(true)}
+              >
+                <PromotionCard
+                  grade={item.grade || ''}
+                  date={item.date}
+                  professor={item.professor}
+                  sessionsSinceLastPromotion={item.sessions_since_last}
+                  hoursSinceLastPromotion={item.hours_since_last}
+                  rollsSinceLastPromotion={item.rolls_since_last}
+                />
+              </div>
+              <BeltCelebration
+                isOpen={celebrationOpen}
+                onClose={() => setCelebrationOpen(false)}
+                grade={item.grade || ''}
+                date={item.date}
+                professor={item.professor}
+                sessionsSincePromotion={item.sessions_since_last}
+                hoursSincePromotion={item.hours_since_last}
+                rollsSincePromotion={item.rolls_since_last}
+                userName={isFriend ? ownerName : undefined}
+              />
+            </>
           ) : isMilestone ? (
             <MilestoneCard
               label={item.milestone_label || item.summary}

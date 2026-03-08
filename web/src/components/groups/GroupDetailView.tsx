@@ -4,6 +4,7 @@ import { Users, X, LogOut, Trash2, ChevronRight, Shield, UserPlus, Search } from
 import { socialApi } from '../../api/client';
 import { logger } from '../../utils/logger';
 import { GROUP_TYPE_LABELS, GROUP_TYPE_COLORS } from './GroupCard';
+import GroupChallenges from './GroupChallenges';
 
 type GroupDetail = Group & { members: GroupMember[]; member_count: number; user_role: string | null };
 
@@ -261,6 +262,15 @@ export default function GroupDetailView({
           )}
         </div>
       </div>
+
+      {/* Challenges Section */}
+      <GroupChallenges
+        challenges={[]}
+        isAdmin={isAdmin}
+        onCreateChallenge={(data) => {
+          logger.info('Challenge created (backend pending):', data);
+        }}
+      />
     </div>
   );
 }
