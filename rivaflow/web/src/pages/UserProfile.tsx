@@ -409,9 +409,13 @@ export default function UserProfile() {
           <div className="bg-[var(--surface)] rounded-lg shadow-sm p-4">
             <div className="flex items-center gap-2 text-[var(--muted)] mb-1">
               <Calendar className="w-4 h-4" />
-              <span className="text-sm">This Week</span>
+              <span className="text-sm">Last Rolled</span>
             </div>
-            <p className="text-2xl font-bold text-[var(--text)]">{stats.sessions_this_week ?? 0}</p>
+            <p className="text-2xl font-bold text-[var(--text)]">
+              {activity.length > 0 && activity[0].date
+                ? new Date(activity[0].date + 'T00:00:00').toLocaleDateString('en-AU', { day: 'numeric', month: 'short' })
+                : '—'}
+            </p>
           </div>
         </div>
       )}

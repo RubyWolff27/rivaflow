@@ -239,9 +239,14 @@ def calculate_performance_by_belt(
 def get_session_date(
     session_repo: SessionRepository, user_id: int, session_id: int
 ) -> date:
-    """Helper to get session date."""
+    """Helper to get session date, always returns a date object."""
     session = session_repo.get_by_id(user_id, session_id)
-    return session["session_date"] if session else date.today()
+    if not session:
+        return date.today()
+    sd = session["session_date"]
+    if isinstance(sd, str):
+        return date.fromisoformat(sd)
+    return sd
 
 
 def compute_performance_overview(
