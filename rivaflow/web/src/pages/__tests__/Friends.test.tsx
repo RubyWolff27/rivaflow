@@ -14,6 +14,17 @@ vi.mock("react-router-dom", async () => {
 });
 
 vi.mock("../../api/client", () => ({
+  analyticsApi: {
+    partnerStats: vi.fn(() =>
+      Promise.resolve({
+        data: {
+          summary: { total_rolls: 27, total_submissions_for: 8, total_submissions_against: 11 },
+          diversity_metrics: { active_partners: 16 },
+          top_partners: [],
+        },
+      })
+    ),
+  },
   friendsApi: {
     list: vi.fn(() =>
       Promise.resolve({

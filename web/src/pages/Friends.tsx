@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react';
 import { usePageTitle } from '../hooks/usePageTitle';
-import { friendsApi, socialApi } from '../api/client';
+import { friendsApi, socialApi, analyticsApi } from '../api/client';
 import { logger } from '../utils/logger';
 import type { Friend } from '../types';
+import type { PartnersData } from '../components/analytics/reportTypes';
 import { useNavigate } from 'react-router-dom';
-import { Users, Plus, Search, Filter } from 'lucide-react';
+import { Users, Plus, Search, Filter, Activity, Target } from 'lucide-react';
 import ConfirmDialog from '../components/ConfirmDialog';
 import { useToast } from '../contexts/ToastContext';
 import { CardSkeleton, EmptyState } from '../components/ui';
@@ -28,6 +29,8 @@ export default function Friends() {
   const [pendingRequests, setPendingRequests] = useState<PendingRequest[]>([]);
   const [requestActionLoading, setRequestActionLoading] = useState<number | null>(null);
   const [socialFriends, setSocialFriends] = useState<SocialFriend[]>([]);
+  const [partnersData, setPartnersData] = useState<PartnersData | null>(null);
+  const [statsLoading, setStatsLoading] = useState(true);
   const toast = useToast();
 
   const [formData, setFormData] = useState<FriendFormData>({
@@ -122,6 +125,23 @@ export default function Friends() {
       setRequestActionLoading(null);
     }
   };
+
+  // Load partner stats for the stats banner
+  useEffect(() => {
+    let cancelled = false;
+    const loadStats = async () => {
+      try {
+        const res = await analyticsApi.partnerStats();
+        if (!cancelled) setPartnersData(res.data ?? null);
+      } catch (err) {
+        logger.debug('Partner stats not available', err);
+      } finally {
+        if (!cancelled) setStatsLoading(false);
+      }
+    };
+    loadStats();
+    return () => { cancelled = true; };
+  }, []);
 
   useEffect(() => {
     filterFriends();
@@ -276,6 +296,107 @@ export default function Friends() {
           </button>
         </div>
       </div>
+
+      {/* Training Stats Banner */}
+      {statsLoading ? (
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          {[1, 2, 3, 4].map(i => <CardSkeleton key={i} lines={1} />)}
+        </div>
+      ) : partnersData && (partnersData.summary?.total_rolls ?? 0) > 0 ? (
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          <div className="p-4 rounded-[14px]" style={{ backgroundColor: 'var(--surfaceElev)', border: '1px solid var(--border)' }}>
+            <div className="flex items-center gap-2 mb-2">
+              <Users className="w-4 h-4" style={{ color: 'var(--muted)' }} />
+              <span className="text-xs font-medium uppercase tracking-wide" style={{ color: 'var(--muted)' }}>Active Partners</span>
+            </div>
+            <p className="text-2xl font-semibold" style={{ color: 'var(--text)' }}>
+              {partnersData.diversity_metrics?.active_partners ?? 0}
+            </p>
+          </div>
+          <div className="p-4 rounded-[14px]" style={{ backgroundColor: 'var(--surfaceElev)', border: '1px solid var(--border)' }}>
+            <div className="flex items-center gap-2 mb-2">
+              <Activity className="w-4 h-4" style={{ color: 'var(--muted)' }} />
+              <span className="text-xs font-medium uppercase tracking-wide" style={{ color: 'var(--muted)' }}>Total Rolls</span>
+            </div>
+            <p className="text-2xl font-semibold" style={{ color: 'var(--text)' }}>
+              {partnersData.summary?.total_rolls ?? 0}
+            </p>
+          </div>
+          <div className="p-4 rounded-[14px]" style={{ backgroundColor: 'var(--surfaceElev)', border: '1px solid var(--border)' }}>
+            <div className="flex items-center gap-2 mb-2">
+              <Target className="w-4 h-4" style={{ color: 'var(--muted)' }} />
+              <span className="text-xs font-medium uppercase tracking-wide" style={{ color: 'var(--muted)' }}>Subs For</span>
+            </div>
+            <p className="text-2xl font-semibold" style={{ color: 'var(--text)' }}>
+              {partnersData.summary?.total_submissions_for ?? 0}
+            </p>
+          </div>
+          <div className="p-4 rounded-[14px]" style={{ backgroundColor: 'var(--surfaceElev)', border: '1px solid var(--border)' }}>
+            <div className="flex items-center gap-2 mb-2">
+              <Target className="w-4 h-4" style={{ color: 'var(--muted)' }} />
+              <span className="text-xs font-medium uppercase tracking-wide" style={{ color: 'var(--muted)' }}>Subs Against</span>
+            </div>
+            <p className="text-2xl font-semibold" style={{ color: 'var(--text)' }}>
+              {partnersData.summary?.total_submissions_against ?? 0}
+            </p>
+          </div>
+        </div>
+      ) : null}
+
+      {/* Top Training Partners */}
+      {partnersData?.top_partners && partnersData.top_partners.length > 0 && (
+        <div className="rounded-[14px] p-5" style={{ backgroundColor: 'var(--surface)', border: '1px solid var(--border)' }}>
+          <div className="mb-4">
+            <h2 className="text-lg font-semibold" style={{ color: 'var(--text)' }}>Top Training Partners</h2>
+            <p className="text-xs mt-1" style={{ color: 'var(--muted)' }}>Most frequent partners (last 30 days)</p>
+          </div>
+          <div className="space-y-3">
+            {partnersData.top_partners.slice(0, 5).map((partner, index) => (
+              <div
+                key={partner.id ?? index}
+                className="p-4 rounded-[14px]"
+                style={{ backgroundColor: 'var(--surfaceElev)', border: '1px solid var(--border)' }}
+              >
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center gap-3">
+                    <div
+                      className="w-8 h-8 rounded-full flex items-center justify-center text-sm font-semibold"
+                      style={{ backgroundColor: 'var(--accent)', color: '#FFFFFF' }}
+                    >
+                      {index + 1}
+                    </div>
+                    <div>
+                      <p className="font-medium" style={{ color: 'var(--text)' }}>{partner.name ?? 'Unknown'}</p>
+                      {partner.belt_rank && (
+                        <p className="text-xs capitalize" style={{ color: 'var(--muted)' }}>{partner.belt_rank}</p>
+                      )}
+                    </div>
+                  </div>
+                  <p className="text-lg font-semibold" style={{ color: 'var(--text)' }}>
+                    {partner.total_rolls ?? 0} {(partner.total_rolls ?? 0) === 1 ? 'roll' : 'rolls'}
+                  </p>
+                </div>
+                <div className="grid grid-cols-3 gap-3 pt-3" style={{ borderTop: '1px solid var(--border)' }}>
+                  <div>
+                    <p className="text-xs" style={{ color: 'var(--muted)' }}>Subs For</p>
+                    <p className="text-sm font-medium" style={{ color: 'var(--text)' }}>{partner.submissions_for ?? 0}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs" style={{ color: 'var(--muted)' }}>Subs Against</p>
+                    <p className="text-sm font-medium" style={{ color: 'var(--text)' }}>{partner.submissions_against ?? 0}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs" style={{ color: 'var(--muted)' }}>Ratio</p>
+                    <p className="text-sm font-medium" style={{ color: (partner.sub_ratio ?? 0) >= 1 ? 'var(--accent)' : 'var(--text)' }}>
+                      {partner.sub_ratio != null ? partner.sub_ratio.toFixed(2) : '0.00'}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Pending Friend Requests */}
       <FriendRequestCard

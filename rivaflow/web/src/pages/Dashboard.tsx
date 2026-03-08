@@ -12,6 +12,7 @@ import WeekComparison from '../components/dashboard/WeekComparison';
 import QuickLinks from '../components/dashboard/QuickLinks';
 import GettingStarted from '../components/dashboard/GettingStarted';
 import TrainingSnapshot from '../components/dashboard/TrainingSnapshot';
+import LatestInsightWidget from '../components/dashboard/LatestInsightWidget';
 import ErrorBoundary from '../components/ErrorBoundary';
 
 export default function Dashboard() {
@@ -87,6 +88,9 @@ export default function Dashboard() {
               weeklyGoals={data.weeklyGoals}
               streaks={data.streaks}
             />
+
+            {/* AI Training Insight — Strava "Holding Steady" style */}
+            <LatestInsightWidget />
 
             {/* Active check-in prompt */}
             <ActiveCheckinPrompt

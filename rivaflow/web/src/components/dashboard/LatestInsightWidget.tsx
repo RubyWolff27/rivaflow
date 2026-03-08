@@ -1,9 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Brain, ChevronRight, Loader2 } from 'lucide-react';
+import { Brain, ChevronRight, Loader2, Sparkles } from 'lucide-react';
 import { grappleApi } from '../../api/client';
 import { logger } from '../../utils/logger';
-import { Card } from '../ui';
 import type { AIInsight } from '../../types';
 
 export default function LatestInsightWidget() {
@@ -32,28 +31,16 @@ export default function LatestInsightWidget() {
   }, []);
 
   if (loading) return null;
-
-  if (!insight) {
-    return (
-      <Card variant="compact">
-        <div className="flex items-center gap-2 mb-2">
-          <Brain className="w-4 h-4" style={{ color: 'var(--accent)' }} />
-          <h3 className="text-sm font-semibold" style={{ color: 'var(--text)' }}>AI Insights</h3>
-        </div>
-        <p className="text-xs leading-relaxed" style={{ color: 'var(--muted)' }}>
-          Log a few sessions and Grapple will start spotting patterns in your training.
-        </p>
-      </Card>
-    );
-  }
+  if (!insight) return null;
 
   const categoryColors: Record<string, string> = {
     observation: '#3B82F6',
     pattern: '#8B5CF6',
     focus: '#F59E0B',
     recovery: '#10B981',
+    weekly: '#3B82F6',
   };
-  const color = categoryColors[insight.category] || '#6B7280';
+  const color = categoryColors[insight.category] || categoryColors[insight.insight_type] || 'var(--accent)';
 
   const handleClick = async () => {
     setOpening(true);
@@ -66,33 +53,61 @@ export default function LatestInsightWidget() {
     }
   };
 
+  // Format time since insight was generated
+  const hoursAgo = Math.round((Date.now() - new Date(insight.created_at).getTime()) / (1000 * 60 * 60));
+  const timeLabel = hoursAgo < 1 ? 'Just now' : hoursAgo < 24 ? `${hoursAgo}h ago` : `${Math.round(hoursAgo / 24)}d ago`;
+
   return (
-    <div onClick={handleClick} onKeyDown={e => e.key === 'Enter' && handleClick()} role="button" tabIndex={0} aria-label="View latest insight" className="cursor-pointer">
-      <Card variant="compact" interactive>
-        <div className="flex items-center justify-between mb-2">
-          <div className="flex items-center gap-2">
-            <Brain className="w-4 h-4" style={{ color: 'var(--accent)' }} />
-            <h3 className="text-sm font-semibold" style={{ color: 'var(--text)' }}>Latest Insight</h3>
-            <span
-              className="text-[10px] font-bold uppercase px-1.5 py-0.5 rounded"
-              style={{ backgroundColor: color + '20', color }}
-            >
-              {insight.category}
-            </span>
+    <div
+      onClick={handleClick}
+      onKeyDown={e => e.key === 'Enter' && handleClick()}
+      role="button"
+      tabIndex={0}
+      aria-label="View training insight"
+      className="cursor-pointer rounded-[14px] p-5 transition-all hover:scale-[1.01]"
+      style={{
+        backgroundColor: 'var(--surface)',
+        border: '1px solid var(--border)',
+      }}
+    >
+      {/* Header row */}
+      <div className="flex items-center justify-between mb-3">
+        <div className="flex items-center gap-2">
+          <div
+            className="w-7 h-7 rounded-full flex items-center justify-center"
+            style={{ backgroundColor: color + '20' }}
+          >
+            <Sparkles className="w-3.5 h-3.5" style={{ color }} />
           </div>
-          {opening ? (
-            <Loader2 className="w-4 h-4 animate-spin" style={{ color: 'var(--muted)' }} />
-          ) : (
-            <ChevronRight className="w-4 h-4" style={{ color: 'var(--muted)' }} />
-          )}
+          <div>
+            <span className="text-xs font-medium uppercase tracking-wide" style={{ color }}>
+              {insight.insight_type === 'weekly' ? 'Weekly Insight' : insight.category || 'Training Insight'}
+            </span>
+            <span className="text-[10px] ml-2" style={{ color: 'var(--muted)' }}>{timeLabel}</span>
+          </div>
         </div>
-        <p className="text-sm font-semibold mb-1" style={{ color: 'var(--text)' }}>
-          {insight.title}
-        </p>
-        <p className="text-xs line-clamp-2 leading-relaxed" style={{ color: 'var(--muted)' }}>
-          {insight.content}
-        </p>
-      </Card>
+        {opening ? (
+          <Loader2 className="w-4 h-4 animate-spin" style={{ color: 'var(--muted)' }} />
+        ) : (
+          <ChevronRight className="w-4 h-4" style={{ color: 'var(--muted)' }} />
+        )}
+      </div>
+
+      {/* Insight title — prominent like Strava's "Holding Steady" */}
+      <h3 className="text-base font-bold mb-1.5" style={{ color }}>
+        {insight.title}
+      </h3>
+
+      {/* Insight body */}
+      <p className="text-sm leading-relaxed line-clamp-3" style={{ color: 'var(--muted)' }}>
+        {insight.content}
+      </p>
+
+      {/* Tap to explore hint */}
+      <div className="flex items-center gap-1 mt-3">
+        <Brain className="w-3 h-3" style={{ color: 'var(--muted)' }} />
+        <span className="text-[10px]" style={{ color: 'var(--muted)' }}>Tap to discuss with Grapple AI</span>
+      </div>
     </div>
   );
 }
