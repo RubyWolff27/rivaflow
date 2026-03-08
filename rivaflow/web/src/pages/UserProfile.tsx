@@ -409,7 +409,7 @@ export default function UserProfile() {
           <div className="bg-[var(--surface)] rounded-lg shadow-sm p-4">
             <div className="flex items-center gap-2 text-[var(--muted)] mb-1">
               <Calendar className="w-4 h-4" />
-              <span className="text-sm">Last Rolled</span>
+              <span className="text-sm">Last Rolled Together</span>
             </div>
             <p className="text-2xl font-bold text-[var(--text)]">
               {activity.length > 0 && activity[0].date

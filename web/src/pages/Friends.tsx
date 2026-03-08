@@ -373,13 +373,14 @@ export default function Friends() {
                     </div>
                   </div>
                   <div className="text-right">
-                    <p className="text-lg font-semibold" style={{ color: 'var(--text)' }}>
-                      {partner.total_rolls ?? 0} {(partner.total_rolls ?? 0) === 1 ? 'roll' : 'rolls'}
-                    </p>
-                    {partner.last_rolled_date && (
-                      <p className="text-xs flex items-center justify-end gap-1 mt-0.5" style={{ color: 'var(--muted)' }}>
-                        <Calendar className="w-3 h-3" />
-                        {new Date(partner.last_rolled_date + 'T00:00:00').toLocaleDateString('en-AU', { day: 'numeric', month: 'short' })}
+                    {partner.last_rolled_date ? (
+                      <p className="text-sm flex items-center justify-end gap-1" style={{ color: 'var(--muted)' }}>
+                        <Calendar className="w-3.5 h-3.5" />
+                        Last rolled {new Date(partner.last_rolled_date + 'T00:00:00').toLocaleDateString('en-AU', { day: 'numeric', month: 'short' })}
+                      </p>
+                    ) : (
+                      <p className="text-lg font-semibold" style={{ color: 'var(--text)' }}>
+                        {partner.total_rolls ?? 0} {(partner.total_rolls ?? 0) === 1 ? 'session' : 'sessions'}
                       </p>
                     )}
                   </div>
