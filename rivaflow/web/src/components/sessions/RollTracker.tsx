@@ -1,8 +1,148 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { Plus, X, Search, ToggleLeft, ToggleRight } from 'lucide-react';
 import type { Friend, Movement } from '../../types';
 import type { RollEntry } from './sessionTypes';
 import IntensityChips from '../ui/IntensityChips';
+
+/** Single-select partner autocomplete for individual rolls */
+function RollPartnerInput({
+  partners,
+  value,
+  onChange,
+  onPartnerIdChange,
+}: {
+  partners: Friend[];
+  value: string;
+  onChange: (name: string) => void;
+  onPartnerIdChange: (id: number | null) => void;
+}) {
+  const [focused, setFocused] = useState(false);
+  const blurTimeout = useRef<ReturnType<typeof setTimeout>>(undefined);
+
+  const query = value.trim().toLowerCase();
+  const suggestions = focused && query.length >= 1
+    ? partners
+        .filter(p => p.name && p.name.toLowerCase().includes(query))
+        .slice(0, 6)
+    : [];
+
+  const selectPartner = (friend: Friend) => {
+    onChange(friend.name);
+    onPartnerIdChange(friend.id);
+    setFocused(false);
+  };
+
+  return (
+    <div className="relative">
+      <label className="label text-sm">Partner</label>
+      <input
+        type="text"
+        className="input"
+        value={value}
+        onChange={(e) => {
+          onChange(e.target.value);
+          const match = partners.find(
+            p => p.name.toLowerCase() === e.target.value.toLowerCase()
+          );
+          onPartnerIdChange(match ? match.id : null);
+        }}
+        onFocus={() => setFocused(true)}
+        onBlur={() => {
+          blurTimeout.current = setTimeout(() => setFocused(false), 200);
+        }}
+        placeholder="Type partner name..."
+      />
+      {suggestions.length > 0 && (
+        <div
+          className="absolute left-0 right-0 mt-1 rounded-lg overflow-hidden shadow-lg z-20"
+          style={{ backgroundColor: 'var(--surface)', border: '1px solid var(--border)' }}
+        >
+          {suggestions.map((friend) => (
+            <button
+              key={friend.id}
+              type="button"
+              className="w-full text-left px-3 py-2 text-sm hover:bg-[var(--surfaceElev)] transition-colors"
+              onMouseDown={(e) => {
+                e.preventDefault();
+                clearTimeout(blurTimeout.current);
+                selectPartner(friend);
+              }}
+            >
+              <span className="font-medium text-[var(--text)]">{friend.name}</span>
+              {friend.belt_rank && (
+                <span className="text-xs text-[var(--muted)] ml-1.5">
+                  ({friend.belt_rank} belt)
+                </span>
+              )}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/** Duration selector: 1-10 min dropdown + Custom option for longer rolls */
+function DurationSelect({
+  value,
+  onChange,
+}: {
+  value: number;
+  onChange: (mins: number) => void;
+}) {
+  const isPreset = value >= 1 && value <= 10;
+  const [customMode, setCustomMode] = useState(!isPreset);
+
+  if (customMode) {
+    return (
+      <div>
+        <label className="label text-sm">Duration (mins)</label>
+        <div className="flex gap-2">
+          <input
+            type="number"
+            className="input flex-1"
+            value={value}
+            onChange={(e) => onChange(parseInt(e.target.value) || 1)}
+            min="1"
+          />
+          <button
+            type="button"
+            className="text-xs text-[var(--accent)] whitespace-nowrap px-2"
+            onClick={() => {
+              setCustomMode(false);
+              if (value > 10) onChange(5);
+            }}
+          >
+            Use preset
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div>
+      <label className="label text-sm">Duration (mins)</label>
+      <select
+        className="input"
+        value={value}
+        onChange={(e) => {
+          const v = e.target.value;
+          if (v === 'custom') {
+            setCustomMode(true);
+          } else {
+            onChange(parseInt(v));
+          }
+        }}
+      >
+        {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(n => (
+          <option key={n} value={n}>{n} min</option>
+        ))}
+        <option value="custom">Custom...</option>
+      </select>
+    </div>
+  );
+}
 
 interface RollTrackerProps {
   detailedMode: boolean;
@@ -193,9 +333,6 @@ export default function RollTracker({
   selectedPartnerIds,
   onTogglePartner,
 }: RollTrackerProps) {
-  // Build datalist options from partner names
-  const partnerNames = partners.map(p => p.name).filter(Boolean);
-
   return (
     <>
       <div className="space-y-3">
@@ -272,29 +409,12 @@ export default function RollTracker({
                   </button>
                 </div>
 
-                <div>
-                  <label className="label text-sm">Partner</label>
-                  <input
-                    type="text"
-                    className="input"
-                    value={roll.partner_name}
-                    onChange={(e) => {
-                      onRollChange(index, 'partner_name', e.target.value);
-                      // Try to match to a known partner for the ID
-                      const match = partners.find(
-                        p => p.name.toLowerCase() === e.target.value.toLowerCase()
-                      );
-                      onRollChange(index, 'partner_id', match ? match.id : null);
-                    }}
-                    placeholder="Type partner name..."
-                    list={`roll-partners-${index}`}
-                  />
-                  <datalist id={`roll-partners-${index}`}>
-                    {partnerNames.map((name) => (
-                      <option key={name} value={name} />
-                    ))}
-                  </datalist>
-                </div>
+                <RollPartnerInput
+                  partners={partners}
+                  value={roll.partner_name}
+                  onChange={(name) => onRollChange(index, 'partner_name', name)}
+                  onPartnerIdChange={(id) => onRollChange(index, 'partner_id', id)}
+                />
 
                 {/* Per-roll intensity */}
                 <div>
@@ -316,16 +436,10 @@ export default function RollTracker({
                   />
                 </div>
 
-                <div>
-                  <label className="label text-sm">Duration (mins)</label>
-                  <input
-                    type="number"
-                    className="input"
-                    value={roll.duration_mins}
-                    onChange={(e) => onRollChange(index, 'duration_mins', parseInt(e.target.value))}
-                    min="1"
-                  />
-                </div>
+                <DurationSelect
+                  value={roll.duration_mins}
+                  onChange={(mins) => onRollChange(index, 'duration_mins', mins)}
+                />
 
                 <div>
                   <label className="label text-sm">Submissions You Got</label>

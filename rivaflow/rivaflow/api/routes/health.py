@@ -41,6 +41,18 @@ def health_check():
         "commit": _GIT_SHA,
     }
 
+    # Check email configuration
+    try:
+        from rivaflow.core.services.email_service import EmailService
+
+        _email = EmailService()
+        health_status["email"] = {
+            "enabled": _email.enabled,
+            "method": _email.method or "none",
+        }
+    except Exception:
+        health_status["email"] = {"enabled": False, "method": "error"}
+
     # Check database connectivity
     try:
         with get_connection() as conn:
