@@ -434,6 +434,7 @@ export default function EditSession() {
             twoDimension
             styleTags={styleTags}
             onToggleStyle={(val) => setStyleTags(prev => prev.includes(val) ? prev.filter(v => v !== val) : [...prev, val])}
+            hideStyle={!form.isBjjType}
           />
         </div>
 
@@ -522,7 +523,8 @@ export default function EditSession() {
           />
         </AccordionSection>
 
-        {/* Technique Focus */}
+        {/* Technique Focus — BJJ only */}
+        {form.isBjjType && (
         <AccordionSection title="Technique of the Day" defaultOpen={hasTechniques}>
           <TechniqueTracker
             techniques={form.techniques}
@@ -538,6 +540,7 @@ export default function EditSession() {
             onMediaUrlChange={form.handleMediaUrlChange}
           />
         </AccordionSection>
+        )}
 
         {/* Roll Tracking (Sparring only) */}
         {form.isSparringType && (

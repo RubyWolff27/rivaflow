@@ -12,6 +12,7 @@ import SessionScoreCard from '../components/sessions/SessionScoreCard';
 import { useToast } from '../contexts/ToastContext';
 import { CardSkeleton } from '../components/ui';
 import { formatClassType } from '../constants/activity';
+import { NON_BJJ_TYPES } from '../components/sessions/sessionTypes';
 
 /** Generate a human-readable story sentence for the session. */
 function buildSessionStory(session: Session, whoopCtx: WhoopSessionContext | null): string {
@@ -22,7 +23,8 @@ function buildSessionStory(session: Session, whoopCtx: WhoopSessionContext | nul
 
   let story = `${duration}-minute ${classType} session at ${gym}`;
 
-  if (rolls > 0) {
+  const isBjj = !NON_BJJ_TYPES.includes(session.class_type);
+  if (isBjj && rolls > 0) {
     story += ` with ${rolls} roll${rolls !== 1 ? 's' : ''}`;
   }
 
@@ -261,7 +263,7 @@ export default function SessionDetail() {
           </div>
         </div>
 
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 py-4 border-t border-[var(--border)]">
+        <div className={`grid ${!NON_BJJ_TYPES.includes(session.class_type) ? 'grid-cols-2 md:grid-cols-4' : 'grid-cols-2'} gap-4 py-4 border-t border-[var(--border)]`}>
           <div>
             <div className="flex items-center gap-1 text-sm mb-1">
               <Calendar className="w-4 h-4" />
@@ -281,6 +283,7 @@ export default function SessionDetail() {
             </div>
             <p className="font-semibold">{session.duration_mins ?? 0} mins</p>
           </div>
+          {!NON_BJJ_TYPES.includes(session.class_type) && (
           <div>
             <div className="flex items-center gap-1 text-sm mb-1">
               <Activity className="w-4 h-4" />
@@ -288,6 +291,8 @@ export default function SessionDetail() {
             </div>
             <p className="font-semibold">{session.rolls ?? 0}</p>
           </div>
+          )}
+          {!NON_BJJ_TYPES.includes(session.class_type) && (
           <div>
             <div className="flex items-center gap-1 text-sm mb-1">
               <Target className="w-4 h-4" />
@@ -296,6 +301,7 @@ export default function SessionDetail() {
             <p className="font-semibold">{session.submissions_for ?? 0} / {session.submissions_against ?? 0}</p>
             <p className="text-xs text-[var(--muted)]">For / Against</p>
           </div>
+          )}
         </div>
       </div>
 

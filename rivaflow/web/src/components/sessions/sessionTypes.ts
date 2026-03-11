@@ -21,3 +21,4 @@ export interface TechniqueEntry {
 
 export const GYM_TYPES = ['gi', 'no-gi', 'open-mat', 'competition', 'drilling'];
 export const SPARRING_TYPES = ['gi', 'no-gi', 'open-mat', 'competition'];
+export const NON_BJJ_TYPES = ['s&c', 'cardio', 'mobility'];

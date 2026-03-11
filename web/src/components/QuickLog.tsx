@@ -10,6 +10,7 @@ import { getLocalDateString } from '../utils/date';
 import { triggerInsightRefresh } from '../utils/insightRefresh';
 import { useSpeechRecognition } from '../hooks/useSpeechRecognition';
 import { mapSocialFriends } from '../hooks/useSessionForm';
+import { NON_BJJ_TYPES } from './sessions/sessionTypes';
 import type { Friend } from '../types';
 
 const HH_MM_RE = /^([01]\d|2[0-3]):([0-5]\d)$/;
@@ -446,11 +447,12 @@ export default function QuickLog({ isOpen, onClose, onSuccess }: QuickLogProps) 
                   twoDimension
                   styleTags={styleTags}
                   onToggleStyle={toggleStyleTag}
+                  hideStyle={NON_BJJ_TYPES.includes(classType)}
                 />
               </div>
 
               {/* Rolls */}
-              {(['gi', 'no-gi', 'open-mat', 'competition'].includes(classType) || classTags.some(t => ['open-mat', 'competition'].includes(t))) && (
+              {!NON_BJJ_TYPES.includes(classType) && (
                 <div>
                   <label className="block text-sm font-medium mb-2" style={{ color: 'var(--text)' }}>
                     Rolls

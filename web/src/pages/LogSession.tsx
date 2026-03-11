@@ -518,6 +518,7 @@ export default function LogSession() {
               styleTags={styleTags}
               onToggleStyle={(val) => setStyleTags(prev => prev.includes(val) ? prev.filter(v => v !== val) : [...prev, val])}
               onChange={(val) => form.setSessionData(prev => ({ ...prev, intensity: val }))}
+              hideStyle={!form.isBjjType}
             />
           </div>
 

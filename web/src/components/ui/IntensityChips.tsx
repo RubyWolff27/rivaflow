@@ -17,6 +17,12 @@ const DESCRIPTIONS: Record<number, string> = {
   5: 'Comp simulation, shark tank, or max effort',
 };
 
+const NON_BJJ_DESCRIPTIONS: Record<number, string> = {
+  3: 'Standard workout, moderate effort',
+  4: 'Tough session, pushing hard',
+  5: 'Maximum effort, everything you have',
+};
+
 /** Map numeric intensity to its label name */
 export function intensityLabel(value: number): string {
   return LEVELS.find(l => l.value === value)?.label ?? `${value}`;
@@ -40,6 +46,8 @@ interface IntensityChipsProps {
   styleTags?: number[];
   /** Two-dimension mode: toggle a style tag */
   onToggleStyle?: (value: number) => void;
+  /** Hide style section (Technical/Flow) for non-BJJ session types */
+  hideStyle?: boolean;
 }
 
 export default function IntensityChips({
@@ -53,12 +61,15 @@ export default function IntensityChips({
   twoDimension = false,
   styleTags = [],
   onToggleStyle,
+  hideStyle = false,
 }: IntensityChipsProps) {
   if (twoDimension) {
     // Two-dimension mode: Style (multi) + Effort (single)
+    const descriptions = hideStyle ? NON_BJJ_DESCRIPTIONS : DESCRIPTIONS;
     return (
       <div className="space-y-3">
-        {/* Style: Technical / Flow (multi-select) */}
+        {/* Style: Technical / Flow (multi-select) — hidden for non-BJJ */}
+        {!hideStyle && (
         <div>
           <p className={`font-medium mb-1.5 ${size === 'sm' ? 'text-xs' : 'text-sm'}`} style={{ color: 'var(--muted)' }}>
             Style
@@ -88,11 +99,14 @@ export default function IntensityChips({
             })}
           </div>
         </div>
+        )}
         {/* Effort: Moderate / Hard / War (single-select) */}
         <div>
+          {!hideStyle && (
           <p className={`font-medium mb-1.5 ${size === 'sm' ? 'text-xs' : 'text-sm'}`} style={{ color: 'var(--muted)' }}>
             Effort
           </p>
+          )}
           <div className="flex flex-wrap gap-2" role="group" aria-label="Effort level">
             {EFFORT_LEVELS.map((level) => {
               const selected = value === level.value;
@@ -117,9 +131,9 @@ export default function IntensityChips({
               );
             })}
           </div>
-          {showDescription && DESCRIPTIONS[value] && (
+          {showDescription && descriptions[value] && (
             <p className="text-xs mt-1.5" style={{ color: 'var(--muted)' }}>
-              {DESCRIPTIONS[value]}
+              {descriptions[value]}
             </p>
           )}
         </div>
