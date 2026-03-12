@@ -27,6 +27,7 @@ WHOOP_SPORT_MAPPING: dict[int, str] = {
     48: "s&c",
     52: "s&c",
     63: "s&c",
+    44: "s&c",  # Weightlifting
     # Cardio
     33: "cardio",  # Running
     56: "cardio",  # Running (outdoor)
@@ -38,6 +39,8 @@ WHOOP_SPORT_MAPPING: dict[int, str] = {
     43: "cardio",  # Stairmaster
     70: "cardio",  # Boxing
     71: "cardio",  # Kickboxing
+    82: "cardio",  # Walking
+    86: "cardio",  # Hiking
     # Mobility / flexibility
     41: "mobility",  # Yoga
     106: "mobility",  # Stretching
@@ -47,12 +50,53 @@ WHOOP_SPORT_MAPPING: dict[int, str] = {
 # Sport IDs we consider "BJJ" for auto-create (existing behaviour)
 BJJ_SPORT_IDS = {76, 84, 87, 98}
 
+# Keywords in WHOOP sport_name → fallback class_type (for unmapped sport IDs)
+_NAME_KEYWORDS: list[tuple[str, str]] = [
+    ("yoga", "mobility"),
+    ("stretch", "mobility"),
+    ("pilates", "mobility"),
+    ("run", "cardio"),
+    ("walk", "cardio"),
+    ("hike", "cardio"),
+    ("cycling", "cardio"),
+    ("swim", "cardio"),
+    ("rowing", "cardio"),
+    ("spin", "cardio"),
+    ("boxing", "s&c"),
+    ("functional", "s&c"),
+    ("crossfit", "s&c"),
+    ("weightlift", "s&c"),
+    ("strength", "s&c"),
+    ("hiit", "s&c"),
+    ("circuit", "s&c"),
+]
 
-def map_sport_to_class_type(sport_id: int | None) -> str | None:
-    """Map a WHOOP sport_id to a RivaFlow class_type, or None if unknown."""
-    if sport_id is None:
-        return None
-    return WHOOP_SPORT_MAPPING.get(sport_id)
+
+def map_sport_to_class_type(
+    sport_id: int | None, sport_name: str | None = None
+) -> str | None:
+    """Map a WHOOP sport_id to a RivaFlow class_type.
+
+    Falls back to keyword matching on sport_name for unmapped IDs.
+    Returns None only for truly unknown sports.
+    """
+    if sport_id is not None:
+        mapped = WHOOP_SPORT_MAPPING.get(sport_id)
+        if mapped:
+            return mapped
+
+    # Fallback: keyword match on sport_name
+    if sport_name:
+        name_lower = sport_name.lower()
+        for keyword, class_type in _NAME_KEYWORDS:
+            if keyword in name_lower:
+                return class_type
+
+    # Unknown sport — default to s&c (most WHOOP activities are exercise)
+    if sport_id is not None:
+        return "s&c"
+
+    return None
 
 
 def find_matching_workouts(
@@ -316,7 +360,7 @@ def auto_create_sessions_for_workouts(self: WhoopService, user_id: int) -> list[
                 strain = round(strain, 1)
 
             # Use sport_id mapping for class_type, fall back to profile default
-            mapped_type = map_sport_to_class_type(sport_id)
+            mapped_type = map_sport_to_class_type(sport_id, workout.get("sport_name"))
             class_type = mapped_type or default_class_type
 
             session_id = self.session_repo.create(
@@ -377,12 +421,14 @@ def get_importable_workouts(self: WhoopService, user_id: int) -> list[dict]:
         # Only unlinked workouts
         if w.get("session_id") is not None:
             continue
-        # Only workouts we can map to a class_type (non-BJJ)
+        # Skip BJJ workouts (those go through auto-create)
         sport_id = w.get("sport_id")
-        mapped = map_sport_to_class_type(sport_id)
-        if mapped and sport_id not in BJJ_SPORT_IDS:
-            w["suggested_class_type"] = mapped
-            importable.append(w)
+        if sport_id is not None and sport_id in BJJ_SPORT_IDS:
+            continue
+        # Map to class_type (falls back to s&c for unknown sports)
+        mapped = map_sport_to_class_type(sport_id, w.get("sport_name"))
+        w["suggested_class_type"] = mapped or "s&c"
+        importable.append(w)
 
     return importable
 
@@ -400,7 +446,8 @@ def import_workout_as_session(
         raise NotFoundError("Workout already linked to a session")
 
     sport_id = workout.get("sport_id")
-    class_type = map_sport_to_class_type(sport_id) or "s&c"
+    sport_name = workout.get("sport_name")
+    class_type = map_sport_to_class_type(sport_id, sport_name) or "s&c"
 
     start_str = str(workout.get("start_time", ""))
     end_str = str(workout.get("end_time", ""))
@@ -429,16 +476,22 @@ def import_workout_as_session(
     if strain is not None:
         strain = round(strain, 1)
 
+    # Use WHOOP sport name as gym_name for non-gym activities,
+    # profile default gym for gym-based activities
     profile = self.profile_repo.get(user_id)
-    default_gym = "(Set in Profile)"
-    if profile:
-        default_gym = profile.get("default_gym") or default_gym
+    if class_type in ("cardio", "mobility"):
+        gym_name = sport_name or class_type.capitalize()
+    else:
+        default_gym = "(Set in Profile)"
+        if profile:
+            default_gym = profile.get("default_gym") or default_gym
+        gym_name = default_gym
 
     session_id = self.session_repo.create(
         user_id=user_id,
         session_date=session_date,
         class_type=class_type,
-        gym_name=default_gym,
+        gym_name=gym_name,
         class_time=class_time,
         duration_mins=duration_mins,
         whoop_strain=strain,
