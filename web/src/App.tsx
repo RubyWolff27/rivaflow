@@ -59,6 +59,7 @@ const NotFound = lazy(() => import('./pages/NotFound'));
 const PartnerStats = lazy(() => import('./pages/PartnerStats'));
 const Leaderboards = lazy(() => import('./pages/Leaderboards'));
 const Achievements = lazy(() => import('./pages/Achievements'));
+const WhoopImport = lazy(() => import('./pages/WhoopImport'));
 
 function App() {
   useEffect(() => {
@@ -127,6 +128,7 @@ function App() {
                           <Route path="/partner/:partnerId" element={<PartnerStats />} />
                           <Route path="/leaderboards" element={<Leaderboards />} />
                           <Route path="/achievements" element={<Achievements />} />
+                          <Route path="/import" element={<WhoopImport />} />
                           <Route path="/events" element={<Events />} />
                           <Route path="/fight-dynamics" element={<FightDynamics />} />
                           <Route path="/contact" element={<ContactUs />} />

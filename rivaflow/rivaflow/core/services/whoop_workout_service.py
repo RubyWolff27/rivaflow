@@ -13,6 +13,47 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
+# WHOOP sport_id → RivaFlow class_type mapping
+# See https://developer.whoop.com/docs/developing/sport-ids
+WHOOP_SPORT_MAPPING: dict[int, str] = {
+    # BJJ
+    76: "no-gi",
+    84: "gi",
+    87: "gi",
+    98: "no-gi",
+    # Strength & Conditioning
+    0: "s&c",
+    1: "s&c",
+    48: "s&c",
+    52: "s&c",
+    63: "s&c",
+    # Cardio
+    33: "cardio",  # Running
+    56: "cardio",  # Running (outdoor)
+    57: "cardio",  # Cycling
+    58: "cardio",  # Rowing
+    59: "cardio",  # Swimming
+    16: "cardio",  # Spin
+    42: "cardio",  # Elliptical
+    43: "cardio",  # Stairmaster
+    70: "cardio",  # Boxing
+    71: "cardio",  # Kickboxing
+    # Mobility / flexibility
+    41: "mobility",  # Yoga
+    106: "mobility",  # Stretching
+    47: "mobility",  # Pilates
+}
+
+# Sport IDs we consider "BJJ" for auto-create (existing behaviour)
+BJJ_SPORT_IDS = {76, 84, 87, 98}
+
+
+def map_sport_to_class_type(sport_id: int | None) -> str | None:
+    """Map a WHOOP sport_id to a RivaFlow class_type, or None if unknown."""
+    if sport_id is None:
+        return None
+    return WHOOP_SPORT_MAPPING.get(sport_id)
+
 
 def find_matching_workouts(
     self: WhoopService, user_id: int, session_id: int
@@ -241,6 +282,11 @@ def auto_create_sessions_for_workouts(self: WhoopService, user_id: int) -> list[
 
     for workout in unlinked:
         try:
+            # Only auto-create BJJ workouts; non-BJJ are available via import page
+            sport_id = workout.get("sport_id")
+            if sport_id is not None and sport_id not in BJJ_SPORT_IDS:
+                continue
+
             start_str = str(workout.get("start_time", ""))
             end_str = str(workout.get("end_time", ""))
             if not start_str or not end_str:
@@ -269,10 +315,14 @@ def auto_create_sessions_for_workouts(self: WhoopService, user_id: int) -> list[
             if strain is not None:
                 strain = round(strain, 1)
 
+            # Use sport_id mapping for class_type, fall back to profile default
+            mapped_type = map_sport_to_class_type(sport_id)
+            class_type = mapped_type or default_class_type
+
             session_id = self.session_repo.create(
                 user_id=user_id,
                 session_date=session_date,
-                class_type=default_class_type,
+                class_type=class_type,
                 gym_name=default_gym,
                 class_time=class_time,
                 duration_mins=duration_mins,
@@ -308,6 +358,119 @@ def auto_create_sessions_for_workouts(self: WhoopService, user_id: int) -> list[
             )
 
     return created_ids
+
+
+def get_importable_workouts(self: WhoopService, user_id: int) -> list[dict]:
+    """Get unlinked non-BJJ workouts from the last 14 days for manual import."""
+    from rivaflow.db.repositories.whoop_workout_cache_repo import (
+        WhoopWorkoutCacheRepository,
+    )
+
+    end = datetime.now(UTC).isoformat()
+    start = (datetime.now(UTC) - timedelta(days=14)).isoformat()
+    all_recent = WhoopWorkoutCacheRepository.get_by_user_and_time_range(
+        user_id, start, end
+    )
+
+    importable = []
+    for w in all_recent:
+        # Only unlinked workouts
+        if w.get("session_id") is not None:
+            continue
+        # Only workouts we can map to a class_type (non-BJJ)
+        sport_id = w.get("sport_id")
+        mapped = map_sport_to_class_type(sport_id)
+        if mapped and sport_id not in BJJ_SPORT_IDS:
+            w["suggested_class_type"] = mapped
+            importable.append(w)
+
+    return importable
+
+
+def import_workout_as_session(
+    self: WhoopService, user_id: int, workout_cache_id: int
+) -> int:
+    """Import a non-BJJ WHOOP workout as a new session. Returns session ID."""
+    from rivaflow.core.services.whoop_service import _parse_tz_offset
+
+    workout = self.workout_cache_repo.get_by_id_and_user(workout_cache_id, user_id)
+    if not workout:
+        raise NotFoundError("Workout not found in cache")
+    if workout.get("session_id") is not None:
+        raise NotFoundError("Workout already linked to a session")
+
+    sport_id = workout.get("sport_id")
+    class_type = map_sport_to_class_type(sport_id) or "s&c"
+
+    start_str = str(workout.get("start_time", ""))
+    end_str = str(workout.get("end_time", ""))
+    if not start_str or not end_str:
+        raise NotFoundError("Workout missing time data")
+
+    start_dt = datetime.fromisoformat(start_str.replace("Z", "+00:00"))
+    end_dt = datetime.fromisoformat(end_str.replace("Z", "+00:00"))
+
+    local_tz = _parse_tz_offset(workout.get("timezone_offset"))
+    if local_tz:
+        start_dt = start_dt.astimezone(local_tz)
+        end_dt = end_dt.astimezone(local_tz)
+
+    session_date = start_dt.date()
+    class_time = start_dt.strftime("%H:%M")
+    duration_secs = (end_dt - start_dt).total_seconds()
+    duration_mins = max(1, round(duration_secs / 60))
+
+    kj = workout.get("kilojoules")
+    calories = workout.get("calories")
+    if not calories and kj:
+        calories = round(kj / 4.184)
+
+    strain = workout.get("strain")
+    if strain is not None:
+        strain = round(strain, 1)
+
+    profile = self.profile_repo.get(user_id)
+    default_gym = "(Set in Profile)"
+    if profile:
+        default_gym = profile.get("default_gym") or default_gym
+
+    session_id = self.session_repo.create(
+        user_id=user_id,
+        session_date=session_date,
+        class_type=class_type,
+        gym_name=default_gym,
+        class_time=class_time,
+        duration_mins=duration_mins,
+        whoop_strain=strain,
+        whoop_calories=calories,
+        whoop_avg_hr=workout.get("avg_heart_rate"),
+        whoop_max_hr=workout.get("max_heart_rate"),
+        source="whoop",
+        needs_review=True,
+    )
+
+    self.workout_cache_repo.link_to_session(workout_cache_id, session_id)
+
+    try:
+        from rivaflow.core.services.session_scoring_service import (
+            SessionScoringService,
+        )
+
+        SessionScoringService().score_session(user_id, session_id)
+    except Exception:
+        logger.warning("Scoring imported session %s failed", session_id, exc_info=True)
+
+    return session_id
+
+
+def dismiss_workout(self: WhoopService, user_id: int, workout_cache_id: int) -> bool:
+    """Dismiss a workout from the import list by linking it to session_id = -1."""
+    workout = self.workout_cache_repo.get_by_id_and_user(workout_cache_id, user_id)
+    if not workout:
+        raise NotFoundError("Workout not found in cache")
+    if workout.get("session_id") is not None:
+        raise NotFoundError("Workout already linked or dismissed")
+    return self.workout_cache_repo.link_to_session(workout_cache_id, -1)
 
 
 # ─────────────────────────────────────────────────────────────

@@ -4,7 +4,7 @@ import { Link } from 'react-router-dom';
 import { sessionsApi, whoopApi } from '../api/client';
 import { logger } from '../utils/logger';
 import type { Session } from '../types';
-import { Calendar, MapPin, Clock, Activity, Target, Filter, Search, Zap } from 'lucide-react';
+import { Calendar, MapPin, Clock, Activity, Target, Search, Zap } from 'lucide-react';
 import { CardSkeleton, EmptyState } from '../components/ui';
 import { useToast } from '../contexts/ToastContext';
 import MiniZoneBar from '../components/MiniZoneBar';
@@ -234,8 +234,8 @@ export default function Sessions() {
       </div>
 
       {/* Filters and Search */}
-      <div className="card">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="card space-y-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {/* Search */}
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--muted)]" />
@@ -246,22 +246,6 @@ export default function Sessions() {
               onChange={(e) => setSearchTerm(e.target.value)}
               className="input pl-10 w-full"
             />
-          </div>
-
-          {/* Filter by Type */}
-          <div className="relative">
-            <Filter className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--muted)]" />
-            <select
-              value={filterType}
-              onChange={(e) => setFilterType(e.target.value)}
-              className="input pl-10 w-full"
-              aria-label="Filter by class type"
-            >
-              <option value="all">All Types</option>
-              {uniqueClassTypes.map(type => (
-                <option key={type} value={type}>{formatClassType(type)}</option>
-              ))}
-            </select>
           </div>
 
           {/* Sort By */}
@@ -275,6 +259,39 @@ export default function Sessions() {
             <option value="duration">Sort by Duration</option>
             <option value="intensity">Sort by Intensity</option>
           </select>
+        </div>
+
+        {/* Activity Type Filter Chips */}
+        <div className="flex flex-wrap gap-2" role="group" aria-label="Filter by activity type">
+          <button
+            onClick={() => setFilterType('all')}
+            className="px-3 py-1.5 rounded-full text-xs font-semibold transition-all"
+            style={{
+              backgroundColor: filterType === 'all' ? 'var(--accent)' : 'var(--surfaceElev)',
+              color: filterType === 'all' ? '#FFFFFF' : 'var(--text)',
+              border: filterType === 'all' ? 'none' : '1px solid var(--border)',
+            }}
+          >
+            All
+          </button>
+          {uniqueClassTypes.map(type => {
+            const color = ACTIVITY_COLORS[type] || 'var(--accent)';
+            const selected = filterType === type;
+            return (
+              <button
+                key={type}
+                onClick={() => setFilterType(selected ? 'all' : type)}
+                className="px-3 py-1.5 rounded-full text-xs font-semibold transition-all"
+                style={{
+                  backgroundColor: selected ? color : 'var(--surfaceElev)',
+                  color: selected ? '#FFFFFF' : 'var(--text)',
+                  border: selected ? 'none' : '1px solid var(--border)',
+                }}
+              >
+                {formatClassType(type)}
+              </button>
+            );
+          })}
         </div>
       </div>
 

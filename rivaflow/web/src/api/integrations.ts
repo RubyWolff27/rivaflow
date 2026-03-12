@@ -38,6 +38,12 @@ export const whoopApi = {
     api.post('/integrations/whoop/auto-create-sessions', { enabled }),
   setAutoFillReadiness: (enabled: boolean) =>
     api.post('/integrations/whoop/auto-fill-readiness', { enabled }),
+  getImportable: () =>
+    api.get<{ workouts: (WhoopWorkoutMatch & { suggested_class_type: string })[]; count: number }>('/integrations/whoop/importable'),
+  importWorkout: (workoutCacheId: number) =>
+    api.post<{ session_id: number }>('/integrations/whoop/import', { workout_cache_id: workoutCacheId }),
+  dismissWorkout: (workoutCacheId: number) =>
+    api.post<{ dismissed: boolean }>('/integrations/whoop/dismiss', { workout_cache_id: workoutCacheId }),
   getZonesBatch: (sessionIds: number[]) =>
     api.get<{ zones: Record<string, { zone_durations: Record<string, number> | null; strain: number | null; calories: number | null; score_state: string | null } | null> }>('/integrations/whoop/zones/batch', { params: { session_ids: sessionIds.join(',') } }),
   getZonesWeekly: (weekOffset = 0, tz?: string) =>

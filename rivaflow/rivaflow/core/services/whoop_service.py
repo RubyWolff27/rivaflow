@@ -21,8 +21,11 @@ from rivaflow.core.services.whoop_sync_service import (
 from rivaflow.core.services.whoop_workout_service import (
     apply_workout_to_session,
     auto_create_sessions_for_workouts,
+    dismiss_workout,
     find_matching_workouts,
     find_matching_workouts_by_params,
+    get_importable_workouts,
+    import_workout_as_session,
 )
 from rivaflow.core.utils.encryption import (
     decrypt_token,
@@ -84,6 +87,9 @@ class WhoopService:
     find_matching_workouts_by_params = find_matching_workouts_by_params
     apply_workout_to_session = apply_workout_to_session
     auto_create_sessions_for_workouts = auto_create_sessions_for_workouts
+    get_importable_workouts = get_importable_workouts
+    import_workout_as_session = import_workout_as_session
+    dismiss_workout = dismiss_workout
 
     # ------------------------------------------------------------------
     # Core

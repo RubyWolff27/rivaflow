@@ -51,6 +51,10 @@ class AutoCreateRequest(BaseModel):
     enabled: bool
 
 
+class ImportWorkoutRequest(BaseModel):
+    workout_cache_id: int
+
+
 # ============================================================================
 # Endpoints
 # ============================================================================
@@ -667,6 +671,49 @@ def set_auto_fill_readiness(
     """Toggle auto-fill readiness from WHOOP recovery data."""
     _require_whoop_enabled()
     return service.set_auto_fill_readiness(current_user["id"], body.enabled)
+
+
+@router.get("/whoop/importable")
+@route_error_handler("whoop_importable", detail="Failed to get importable workouts")
+def get_importable_workouts(
+    request: Request,
+    current_user: dict = Depends(get_current_user),
+    service: WhoopService = Depends(get_whoop_service),
+):
+    """Get unlinked non-BJJ workouts available for import."""
+    _require_whoop_enabled()
+    workouts = service.get_importable_workouts(current_user["id"])
+    return {"workouts": workouts, "count": len(workouts)}
+
+
+@router.post("/whoop/import")
+@route_error_handler("whoop_import", detail="Failed to import workout")
+def import_workout(
+    request: Request,
+    body: ImportWorkoutRequest,
+    current_user: dict = Depends(get_current_user),
+    service: WhoopService = Depends(get_whoop_service),
+):
+    """Import a WHOOP workout as a new session."""
+    _require_whoop_enabled()
+    session_id = service.import_workout_as_session(
+        current_user["id"], body.workout_cache_id
+    )
+    return {"session_id": session_id}
+
+
+@router.post("/whoop/dismiss")
+@route_error_handler("whoop_dismiss", detail="Failed to dismiss workout")
+def dismiss_workout(
+    request: Request,
+    body: ImportWorkoutRequest,
+    current_user: dict = Depends(get_current_user),
+    service: WhoopService = Depends(get_whoop_service),
+):
+    """Dismiss a workout from the import list."""
+    _require_whoop_enabled()
+    service.dismiss_workout(current_user["id"], body.workout_cache_id)
+    return {"dismissed": True}
 
 
 @router.delete("/whoop")
