@@ -16,6 +16,7 @@ export interface PersonalInformationFormProps {
     current_professor: string;
     current_instructor_id: number | null;
     primary_training_type: string;
+    training_since: string;
     height_cm: string;
     target_weight_kg: string;
     target_weight_date: string;
@@ -406,6 +407,22 @@ export default function PersonalInformationForm({
           </select>
           <p className="text-sm text-[var(--muted)] mt-1">
             This will be the default class type when logging sessions
+          </p>
+        </div>
+
+        {/* Training Since */}
+        <div>
+          <label className="label" htmlFor="profile-training-since">Training Since</label>
+          <input
+            type="date"
+            id="profile-training-since"
+            className="input"
+            value={formData.training_since}
+            onChange={(e) => onChange({ ...formData, training_since: e.target.value })}
+            max={getLocalDateString()}
+          />
+          <p className="text-sm text-[var(--muted)] mt-1">
+            When did you start training? This is shown on your profile.
           </p>
         </div>
 

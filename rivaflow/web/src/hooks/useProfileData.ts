@@ -21,6 +21,7 @@ function mapProfileToFormData(data?: Profile | null) {
     current_professor: data?.current_professor ?? '',
     current_instructor_id: data?.current_instructor_id ?? null as number | null,
     primary_training_type: data?.primary_training_type ?? 'gi',
+    training_since: data?.training_since ?? '',
     height_cm: data?.height_cm?.toString() ?? '',
     target_weight_kg: data?.target_weight_kg?.toString() ?? '',
     target_weight_date: data?.target_weight_date ?? '',
@@ -309,6 +310,7 @@ export function useProfileData() {
         target_weight_kg: formData.target_weight_kg ? parseFloat(formData.target_weight_kg) : undefined,
         target_weight_date: formData.target_weight_date || undefined,
         avatar_url: formData.avatar_url || undefined,
+        training_since: formData.training_since || undefined,
         timezone: formData.timezone || undefined,
         primary_gym_id: formData.primary_gym_id || undefined,
       });
