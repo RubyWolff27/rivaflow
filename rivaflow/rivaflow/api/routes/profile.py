@@ -38,6 +38,7 @@ class ProfileUpdate(BaseModel):
     weekly_mobility_sessions_target: int | None = None
     show_streak_on_dashboard: bool | None = None
     show_weekly_goals: bool | None = None
+    training_since: str | None = None
     timezone: str | None = None
     avatar_url: str | None = None
     primary_gym_id: int | None = None
@@ -184,6 +185,7 @@ def update_profile(
         weekly_mobility_sessions_target=profile.weekly_mobility_sessions_target,
         show_streak_on_dashboard=profile.show_streak_on_dashboard,
         show_weekly_goals=profile.show_weekly_goals,
+        training_since=profile.training_since,
         timezone=profile.timezone,
         primary_gym_id=profile.primary_gym_id,
         activity_visibility=profile.activity_visibility,

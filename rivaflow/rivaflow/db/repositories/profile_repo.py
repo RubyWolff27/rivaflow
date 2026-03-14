@@ -20,6 +20,7 @@ _PROFILE_COLS = (
     "p.weekly_bjj_sessions_target, p.weekly_sc_sessions_target, "
     "p.weekly_mobility_sessions_target, "
     "p.show_streak_on_dashboard, p.show_weekly_goals, "
+    "p.training_since, "
     "p.timezone, "
     "p.created_at, p.updated_at"
 )
@@ -106,6 +107,7 @@ class ProfileRepository(BaseRepository):
         target_weight_date: str | None = None,
         show_streak_on_dashboard: bool | None = None,
         show_weekly_goals: bool | None = None,
+        training_since: str | None = None,
         timezone: str | None = None,
     ) -> dict:
         """Update the user profile. Creates profile if it doesn't exist. Returns updated profile."""
@@ -129,8 +131,8 @@ class ProfileRepository(BaseRepository):
                         primary_training_type, height_cm, target_weight_kg,
                         weekly_sessions_target, weekly_hours_target, weekly_rolls_target,
                         weekly_bjj_sessions_target, weekly_sc_sessions_target, weekly_mobility_sessions_target,
-                        show_streak_on_dashboard, show_weekly_goals, timezone
-                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                        show_streak_on_dashboard, show_weekly_goals, training_since, timezone
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                     """),
                     (
                         user_id,
@@ -176,6 +178,7 @@ class ProfileRepository(BaseRepository):
                             else True
                         ),
                         show_weekly_goals if show_weekly_goals is not None else True,
+                        training_since,
                         timezone if timezone is not None else "UTC",
                     ),
                 )
@@ -255,6 +258,9 @@ class ProfileRepository(BaseRepository):
                 if show_weekly_goals is not None:
                     updates.append("show_weekly_goals = ?")
                     params.append(show_weekly_goals)
+                if training_since is not None:
+                    updates.append("training_since = ?")
+                    params.append(training_since)
                 if timezone is not None:
                     updates.append("timezone = ?")
                     params.append(timezone)

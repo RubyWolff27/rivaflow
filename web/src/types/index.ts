@@ -176,6 +176,7 @@ export interface Profile {
   weekly_mobility_sessions_target?: number;
   show_streak_on_dashboard?: boolean;
   show_weekly_goals?: boolean;
+  training_since?: string;
   timezone?: string;
   avatar_url?: string;
   primary_gym_id?: number;

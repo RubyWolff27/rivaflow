@@ -116,6 +116,7 @@ class ProfileService:
         weekly_mobility_sessions_target: int | None = None,
         show_streak_on_dashboard: bool | None = None,
         show_weekly_goals: bool | None = None,
+        training_since: str | None = None,
         timezone: str | None = None,
         primary_gym_id: int | None = None,
         activity_visibility: str | None = None,
@@ -146,6 +147,7 @@ class ProfileService:
             weekly_mobility_sessions_target=weekly_mobility_sessions_target,
             show_streak_on_dashboard=show_streak_on_dashboard,
             show_weekly_goals=show_weekly_goals,
+            training_since=training_since,
             timezone=timezone,
         )
 

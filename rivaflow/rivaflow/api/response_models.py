@@ -156,6 +156,7 @@ class ProfileResponse(BaseModel):
     weekly_mobility_sessions_target: int | None = None
     show_streak_on_dashboard: bool | None = None
     show_weekly_goals: bool | None = None
+    training_since: str | None = None
     timezone: str | None = None
     avatar_url: str | None = None
     primary_gym_id: int | None = None
