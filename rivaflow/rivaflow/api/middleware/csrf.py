@@ -62,6 +62,12 @@ class CSRFMiddleware(BaseHTTPMiddleware):
         if request.method in _SAFE_METHODS or _is_exempt(request.url.path):
             return await call_next(request)
 
+        # Bearer token auth (mobile/API clients) is not vulnerable to CSRF —
+        # an attacker cannot forge the Authorization header cross-origin.
+        auth_header = request.headers.get("authorization", "")
+        if auth_header.startswith("Bearer "):
+            return await call_next(request)
+
         # Read the cookie value and the header value.
         cookie_token = request.cookies.get("csrf_token")
         header_token = request.headers.get("x-csrf-token")
