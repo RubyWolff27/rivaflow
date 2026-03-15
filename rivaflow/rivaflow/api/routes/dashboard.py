@@ -51,7 +51,8 @@ def _calculate_weekly_streak(user_id: int) -> int:
     current_year, current_week = current_iso[0], current_iso[1]
 
     # Build set of (year, week) tuples that have sessions
-    session_weeks = {(int(dict(r)["yr"]), int(dict(r)["wk"])) for r in rows}
+    # EXTRACT returns Decimal on PG — cast to int
+    session_weeks = {(int(float(dict(r)["yr"])), int(float(dict(r)["wk"]))) for r in rows}
 
     # Walk backwards from current week
     streak = 0
@@ -210,7 +211,11 @@ def get_quick_stats(
     stats = session_service.session_repo.get_user_stats(user_id)
 
     # Weekly training streak — count consecutive weeks with at least one session
-    weekly_streak = _calculate_weekly_streak(user_id)
+    try:
+        weekly_streak = _calculate_weekly_streak(user_id)
+    except Exception as e:
+        logger.warning("Weekly streak calculation failed: %s", e)
+        weekly_streak = 0
 
     # Next milestone
     closest_milestone = milestone_service.get_closest_milestone(user_id)
