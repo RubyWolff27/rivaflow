@@ -47,7 +47,7 @@ def _get_dashboard_summary_cached(
     )
 
     # Get streak data
-    session_streak = streak_service.get_streak(user_id, "session")
+    session_streak = streak_service.get_streak(user_id, "training")
     checkin_streak = streak_service.get_streak(user_id, "checkin")
 
     # Get recent sessions
@@ -167,7 +167,7 @@ def get_quick_stats(
     stats = session_service.session_repo.get_user_stats(user_id)
 
     # Current streak
-    session_streak = streak_service.get_streak(user_id, "session")
+    session_streak = streak_service.get_streak(user_id, "training")
 
     # Next milestone
     closest_milestone = milestone_service.get_closest_milestone(user_id)

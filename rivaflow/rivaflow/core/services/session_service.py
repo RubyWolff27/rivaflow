@@ -11,6 +11,7 @@ from rivaflow.db.repositories import (
     SessionRollRepository,
 )
 from rivaflow.db.repositories.checkin_repo import CheckinRepository
+from rivaflow.core.services.streak_service import StreakService
 from rivaflow.db.repositories.friend_repo import FriendRepository
 from rivaflow.db.repositories.glossary_repo import GlossaryRepository
 from rivaflow.db.repositories.session_technique_repo import SessionTechniqueRepository
@@ -42,6 +43,7 @@ class SessionService:
         self.technique_detail_repo = SessionTechniqueRepository()
         self.checkin_repo = CheckinRepository()
         self.glossary_repo = GlossaryRepository()
+        self.streak_service = StreakService()
 
     def create_session(
         self,
@@ -123,6 +125,12 @@ class SessionService:
             checkin_type="session",
             session_id=session_id,
         )
+
+        # Update training streak
+        try:
+            self.streak_service.record_checkin(user_id, "session", session_date)
+        except Exception:
+            logger.warning("Failed to update streak for session %s", session_id)
 
         # Best-effort session scoring
         self._score_session(user_id, session_id)
