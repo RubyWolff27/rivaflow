@@ -37,7 +37,7 @@ def _set_refresh_cookie(response: Response, token: str):
         value=token,
         httponly=True,
         secure=settings.IS_PRODUCTION,
-        samesite="lax",
+        samesite="none" if settings.IS_PRODUCTION else "lax",
         path="/api",
         domain=settings.COOKIE_DOMAIN,
         max_age=settings.REFRESH_TOKEN_EXPIRE_DAYS * 24 * 60 * 60,
@@ -62,7 +62,7 @@ def _set_csrf_cookie(response: Response):
         value=csrf_token,
         httponly=False,  # Must be readable by JS
         secure=settings.IS_PRODUCTION,
-        samesite="lax",
+        samesite="none" if settings.IS_PRODUCTION else "lax",
         path="/",
         domain=settings.COOKIE_DOMAIN,
         max_age=settings.REFRESH_TOKEN_EXPIRE_DAYS * 24 * 60 * 60,
