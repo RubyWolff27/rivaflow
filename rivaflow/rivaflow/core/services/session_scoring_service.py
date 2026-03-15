@@ -253,13 +253,13 @@ class SessionScoringService:
     # --- Pillar calculators -------------------------------------------------
 
     def _calc_effort(self, session: dict, avgs: dict, max_pts: float) -> dict:
-        """Intensity (1-10) + duration relative to personal averages."""
-        intensity = session.get("intensity", 5)
+        """Intensity (1-5) + duration relative to personal averages."""
+        intensity = session.get("intensity", 3)
         duration = session.get("duration_mins", 60)
         avg_duration = avgs.get("avg_duration", 60) or 60
 
-        # Intensity component (60% of effort) — 1-10 scale
-        intensity_pct = min(intensity / 10.0, 1.0)
+        # Intensity component (60% of effort) — 1-5 scale
+        intensity_pct = min(intensity / 5.0, 1.0)
 
         # Duration component (40% of effort) — ratio vs personal avg, capped
         duration_ratio = min(duration / avg_duration, 1.5) / 1.5
@@ -345,9 +345,9 @@ class SessionScoringService:
         else:
             zone = "red"
 
-        intensity_norm = intensity / 10.0
+        intensity_norm = intensity / 5.0
 
-        # Smart training logic (thresholds adjusted for 1-10 scale)
+        # Smart training logic (thresholds adjusted for 1-5 scale)
         if zone == "green" and intensity_norm >= 0.6:
             alignment = 1.0  # High recovery + high effort = great
         elif zone == "green" and intensity_norm < 0.3:
@@ -382,8 +382,8 @@ class SessionScoringService:
         # HR consistency with reported intensity (50%)
         if avg_hr > 0:
             # Higher HR should correlate with higher intensity
-            # Approximate: 100-180 bpm range mapped to intensity 1-10
-            expected_hr = 100 + (intensity * 8)
+            # Approximate: 100-180 bpm range mapped to intensity 1-5
+            expected_hr = 100 + (intensity * 16)
             hr_diff = abs(avg_hr - expected_hr)
             hr_consistency = max(0, 1.0 - (hr_diff / 50.0))
             components.append(("hr", hr_consistency, 0.5))
