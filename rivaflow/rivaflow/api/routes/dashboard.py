@@ -16,9 +16,53 @@ from rivaflow.core.services.session_service import SessionService
 from rivaflow.core.services.streak_service import StreakService
 from rivaflow.core.utils.cache import cached
 
+from rivaflow.db.database import convert_query, get_connection
+
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/dashboard", tags=["dashboard"])
+
+
+def _calculate_weekly_streak(user_id: int) -> int:
+    """Count consecutive weeks (Mon-Sun) with at least one session, working back from current week."""
+    with get_connection() as conn:
+        cursor = conn.cursor()
+        # Get distinct ISO week numbers with sessions, ordered descending
+        cursor.execute(
+            convert_query("""
+                SELECT DISTINCT
+                    EXTRACT(ISOYEAR FROM session_date::date) AS yr,
+                    EXTRACT(ISOWEEK FROM session_date::date) AS wk
+                FROM sessions
+                WHERE user_id = ?
+                ORDER BY yr DESC, wk DESC
+            """),
+            (user_id,),
+        )
+        rows = cursor.fetchall()
+
+    if not rows:
+        return 0
+
+    from datetime import date as dt_date
+
+    today = dt_date.today()
+    current_iso = today.isocalendar()
+    current_year, current_week = current_iso[0], current_iso[1]
+
+    # Build set of (year, week) tuples that have sessions
+    session_weeks = {(int(dict(r)["yr"]), int(dict(r)["wk"])) for r in rows}
+
+    # Walk backwards from current week
+    streak = 0
+    y, w = current_year, current_week
+    while (y, w) in session_weeks:
+        streak += 1
+        # Move to previous ISO week
+        prev_day = dt_date.fromisocalendar(y, w, 1) - timedelta(days=7)
+        y, w = prev_day.isocalendar()[0], prev_day.isocalendar()[1]
+
+    return streak
 
 
 @cached(ttl_seconds=300, key_prefix="dashboard_summary")
@@ -160,14 +204,13 @@ def get_quick_stats(
     """
     user_id = current_user["id"]
 
-    streak_service = StreakService()
     milestone_service = MilestoneService()
 
     # Get user stats efficiently (no unbounded query)
     stats = session_service.session_repo.get_user_stats(user_id)
 
-    # Current streak
-    session_streak = streak_service.get_streak(user_id, "training")
+    # Weekly training streak — count consecutive weeks with at least one session
+    weekly_streak = _calculate_weekly_streak(user_id)
 
     # Next milestone
     closest_milestone = milestone_service.get_closest_milestone(user_id)
@@ -175,7 +218,7 @@ def get_quick_stats(
     return {
         "total_sessions": stats["total_sessions"],
         "total_hours": stats["total_hours"],
-        "current_streak": session_streak.get("current_streak", 0),
+        "current_streak": weekly_streak,
         "next_milestone": closest_milestone,
     }
 
