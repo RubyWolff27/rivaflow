@@ -13,7 +13,7 @@ from rivaflow.db.repositories.session_repo import SessionRepository
 
 logger = logging.getLogger(__name__)
 
-SCORE_VERSION = 1
+SCORE_VERSION = 2
 
 # --- Tier labels -----------------------------------------------------------
 
@@ -81,13 +81,13 @@ class SessionScoringService:
         """Force recalculate a session score."""
         return self.score_session(user_id, session_id)
 
-    def backfill_user_scores(self, user_id: int) -> dict:
-        """Score all unscored sessions for a user.  Returns summary."""
+    def backfill_user_scores(self, user_id: int, force: bool = False) -> dict:
+        """Score sessions for a user. If force=True, rescore all. Returns summary."""
         sessions = self.session_repo.list_by_user(user_id)
         scored = 0
         skipped = 0
         for s in sessions:
-            if s.get("session_score") is not None:
+            if not force and s.get("session_score") is not None:
                 skipped += 1
                 continue
             try:
@@ -253,13 +253,13 @@ class SessionScoringService:
     # --- Pillar calculators -------------------------------------------------
 
     def _calc_effort(self, session: dict, avgs: dict, max_pts: float) -> dict:
-        """Intensity (1-5) + duration relative to personal averages."""
-        intensity = session.get("intensity", 3)
+        """Intensity (1-10) + duration relative to personal averages."""
+        intensity = session.get("intensity", 5)
         duration = session.get("duration_mins", 60)
         avg_duration = avgs.get("avg_duration", 60) or 60
 
-        # Intensity component (60% of effort)
-        intensity_pct = min(intensity / 5.0, 1.0)
+        # Intensity component (60% of effort) — 1-10 scale
+        intensity_pct = min(intensity / 10.0, 1.0)
 
         # Duration component (40% of effort) — ratio vs personal avg, capped
         duration_ratio = min(duration / avg_duration, 1.5) / 1.5
@@ -345,14 +345,14 @@ class SessionScoringService:
         else:
             zone = "red"
 
-        intensity_norm = intensity / 5.0
+        intensity_norm = intensity / 10.0
 
-        # Smart training logic
+        # Smart training logic (thresholds adjusted for 1-10 scale)
         if zone == "green" and intensity_norm >= 0.6:
             alignment = 1.0  # High recovery + high effort = great
-        elif zone == "green" and intensity_norm < 0.4:
+        elif zone == "green" and intensity_norm < 0.3:
             alignment = 0.5  # High recovery + low effort = missed opportunity
-        elif zone == "red" and intensity_norm <= 0.4:
+        elif zone == "red" and intensity_norm <= 0.3:
             alignment = 0.9  # Low recovery + low effort = smart rest
         elif zone == "red" and intensity_norm >= 0.6:
             alignment = 0.2  # Low recovery + high effort = overtraining risk
@@ -382,8 +382,8 @@ class SessionScoringService:
         # HR consistency with reported intensity (50%)
         if avg_hr > 0:
             # Higher HR should correlate with higher intensity
-            # Approximate: 120-180 bpm range mapped to intensity 1-5
-            expected_hr = 110 + (intensity * 14)
+            # Approximate: 100-180 bpm range mapped to intensity 1-10
+            expected_hr = 100 + (intensity * 8)
             hr_diff = abs(avg_hr - expected_hr)
             hr_consistency = max(0, 1.0 - (hr_diff / 50.0))
             components.append(("hr", hr_consistency, 0.5))

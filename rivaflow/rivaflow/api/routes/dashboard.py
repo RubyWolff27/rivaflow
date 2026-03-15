@@ -23,19 +23,16 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/dashboard", tags=["dashboard"])
 
 
-def _calculate_weekly_streak(user_id: int) -> int:
-    """Count consecutive weeks (Mon-Sun) with at least one session, working back from current week."""
+def _calculate_daily_streak(user_id: int) -> int:
+    """Count consecutive days with at least one session, working back from today/yesterday."""
     with get_connection() as conn:
         cursor = conn.cursor()
-        # Get distinct ISO week numbers with sessions, ordered descending
         cursor.execute(
             convert_query("""
-                SELECT DISTINCT
-                    EXTRACT(ISOYEAR FROM session_date::date) AS yr,
-                    EXTRACT(ISOWEEK FROM session_date::date) AS wk
+                SELECT DISTINCT session_date::date AS d
                 FROM sessions
                 WHERE user_id = ?
-                ORDER BY yr DESC, wk DESC
+                ORDER BY d DESC
             """),
             (user_id,),
         )
@@ -46,22 +43,22 @@ def _calculate_weekly_streak(user_id: int) -> int:
 
     from datetime import date as dt_date
 
+    session_dates = sorted(
+        [dict(r)["d"] if isinstance(dict(r)["d"], dt_date) else dt_date.fromisoformat(str(dict(r)["d"])[:10]) for r in rows],
+        reverse=True,
+    )
+
     today = dt_date.today()
-    current_iso = today.isocalendar()
-    current_year, current_week = current_iso[0], current_iso[1]
+    # Current streak starts if most recent session is today or yesterday
+    if session_dates[0] < today - timedelta(days=1):
+        return 0
 
-    # Build set of (year, week) tuples that have sessions
-    # EXTRACT returns Decimal on PG — cast to int
-    session_weeks = {(int(float(dict(r)["yr"])), int(float(dict(r)["wk"]))) for r in rows}
-
-    # Walk backwards from current week
-    streak = 0
-    y, w = current_year, current_week
-    while (y, w) in session_weeks:
-        streak += 1
-        # Move to previous ISO week
-        prev_day = dt_date.fromisocalendar(y, w, 1) - timedelta(days=7)
-        y, w = prev_day.isocalendar()[0], prev_day.isocalendar()[1]
+    streak = 1
+    for i in range(1, len(session_dates)):
+        if session_dates[i] == session_dates[i - 1] - timedelta(days=1):
+            streak += 1
+        else:
+            break
 
     return streak
 
@@ -212,7 +209,7 @@ def get_quick_stats(
 
     # Weekly training streak — count consecutive weeks with at least one session
     try:
-        weekly_streak = _calculate_weekly_streak(user_id)
+        weekly_streak = _calculate_daily_streak(user_id)
     except Exception as e:
         logger.warning("Weekly streak calculation failed: %s", e)
         weekly_streak = 0
