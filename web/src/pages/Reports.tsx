@@ -29,7 +29,7 @@ import type {
 } from '../components/analytics/reportTypes';
 
 export default function Reports() {
-  usePageTitle('Reports');
+  usePageTitle('Progress');
   const { hasAccess: hasAdvancedAnalytics } = useFeatureAccess('advanced_analytics');
   const [searchParams, setSearchParams] = useSearchParams();
   const [activeTab, setActiveTab] = useState(searchParams.get('tab') || 'overview');

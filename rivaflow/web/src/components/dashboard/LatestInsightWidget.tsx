@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Brain, ChevronRight, Loader2, Sparkles } from 'lucide-react';
+import { Brain, ChevronRight, Loader2, Share2, Sparkles } from 'lucide-react';
 import { grappleApi } from '../../api/client';
 import { logger } from '../../utils/logger';
 import type { AIInsight } from '../../types';
@@ -86,11 +86,29 @@ export default function LatestInsightWidget() {
             <span className="text-[10px] ml-2" style={{ color: 'var(--muted)' }}>{timeLabel}</span>
           </div>
         </div>
-        {opening ? (
-          <Loader2 className="w-4 h-4 animate-spin" style={{ color: 'var(--muted)' }} />
-        ) : (
-          <ChevronRight className="w-4 h-4" style={{ color: 'var(--muted)' }} />
-        )}
+        <div className="flex items-center gap-2">
+          {navigator.share && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                navigator.share({
+                  title: insight.title,
+                  text: `${insight.title}\n${insight.content}`,
+                  url: window.location.origin,
+                }).catch(() => {});
+              }}
+              className="p-1.5 rounded-lg transition-colors hover:bg-[var(--surfaceElev)]"
+              aria-label="Share insight"
+            >
+              <Share2 className="w-4 h-4" style={{ color: 'var(--muted)' }} />
+            </button>
+          )}
+          {opening ? (
+            <Loader2 className="w-4 h-4 animate-spin" style={{ color: 'var(--muted)' }} />
+          ) : (
+            <ChevronRight className="w-4 h-4" style={{ color: 'var(--muted)' }} />
+          )}
+        </div>
       </div>
 
       {/* Insight title — prominent like Strava's "Holding Steady" */}

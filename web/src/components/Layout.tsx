@@ -1,77 +1,27 @@
-import { useState, useEffect, useRef, memo } from 'react';
+import { useState, useRef, memo } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { Home, BarChart3, Users, Activity, Shield, Sparkles, Target, Settings, Calendar, Trophy, Award, UserCircle, Download } from 'lucide-react';
+import { Home, BarChart3, Activity, Shield, Sparkles, Target, Calendar, Download, Trophy } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import QuickLog from './QuickLog';
 import Sidebar from './Sidebar';
 import BottomNav from './BottomNav';
 import PageTransition from './ui/PageTransition';
-import { notificationsApi } from '../api/client';
-import { logger } from '../utils/logger';
-
 // Memoize Layout to prevent unnecessary re-renders
 const Layout = memo(function Layout({ children }: { children: React.ReactNode }) {
   const location = useLocation();
   const navigate = useNavigate();
   const { user } = useAuth();
   const [quickLogOpen, setQuickLogOpen] = useState(false);
-  const [notificationCounts, setNotificationCounts] = useState({ feed_unread: 0, friend_requests: 0, total: 0 });
   const mainContentRef = useRef<HTMLElement>(null);
 
   const skipToContent = () => {
     mainContentRef.current?.focus();
   };
 
-  // Fetch notification counts
-  useEffect(() => {
-    let cancelled = false;
-    const fetchNotifications = async () => {
-      try {
-        const response = await notificationsApi.getCounts();
-        if (!cancelled) setNotificationCounts(response.data);
-      } catch (error) {
-        if (!cancelled) logger.error('Error fetching notifications:', error);
-      }
-    };
-
-    fetchNotifications();
-
-    // Refresh every 60 seconds (skip if tab is hidden to save bandwidth)
-    const interval = setInterval(() => {
-      if (document.visibilityState === 'visible') fetchNotifications();
-    }, 60000);
-    return () => { cancelled = true; clearInterval(interval); };
-  }, []);
-
-  // Mark notifications as read when navigating to Feed or Friends
-  useEffect(() => {
-    let cancelled = false;
-    const markNotificationsRead = async () => {
-      try {
-        if (location.pathname === '/feed') {
-          await notificationsApi.markFeedAsRead();
-          if (cancelled) return;
-          const response = await notificationsApi.getCounts();
-          if (!cancelled) setNotificationCounts(response.data);
-        } else if (location.pathname === '/friends') {
-          await notificationsApi.markFollowsAsRead();
-          if (cancelled) return;
-          const response = await notificationsApi.getCounts();
-          if (!cancelled) setNotificationCounts(response.data);
-        }
-      } catch (error) {
-        if (!cancelled) logger.error('Error marking notifications as read:', error);
-      }
-    };
-
-    markNotificationsRead();
-    return () => { cancelled = true; };
-  }, [location.pathname]);
-
-  // Primary navigation — desktop sidebar + mobile uses for Feed badge
+  // Primary navigation — clean core loop for users
   const navigation = [
     { name: 'Home', href: '/', icon: Home },
-    { name: 'Feed', href: '/feed', icon: Activity, badge: notificationCounts.feed_unread },
+    { name: 'Sessions', href: '/sessions', icon: Calendar },
     { name: 'Progress', href: '/reports', icon: BarChart3 },
   ];
 
@@ -80,20 +30,11 @@ const Layout = memo(function Layout({ children }: { children: React.ReactNode })
     {
       label: 'Training',
       items: [
-        { name: 'Sessions', href: '/sessions', icon: Calendar },
-        { name: 'Import', href: '/import', icon: Download },
+        { name: 'Goals', href: '/goals', icon: Trophy },
         { name: 'Grapple AI', href: '/grapple', icon: Sparkles },
-        { name: 'My Game', href: '/my-game', icon: Target },
-        { name: 'Coach Settings', href: '/coach-settings', icon: Settings },
-      ],
-    },
-    {
-      label: 'Social',
-      items: [
-        { name: 'Friends', href: '/friends', icon: Users, badge: notificationCounts.friend_requests },
-        { name: 'Groups', href: '/groups', icon: UserCircle },
-        { name: 'Leaderboards', href: '/leaderboards', icon: Trophy },
-        { name: 'Achievements', href: '/achievements', icon: Award },
+        { name: 'Readiness', href: '/readiness', icon: Activity },
+        { name: 'Glossary', href: '/glossary', icon: Target },
+        { name: 'Import', href: '/import', icon: Download },
       ],
     },
     ...(user?.is_admin ? [{

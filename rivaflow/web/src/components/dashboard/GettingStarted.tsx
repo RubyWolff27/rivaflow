@@ -15,7 +15,7 @@ const NAV_MAP: Record<string, string> = {
   profile: '/profile',
   readiness: '/readiness',
   session: '/log',
-  goals: '/profile',
+  goals: '/goals',
 };
 
 export default function GettingStarted() {
