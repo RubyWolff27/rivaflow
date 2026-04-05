@@ -46,29 +46,29 @@ class TestConnectionAuth:
         assert response.status_code == 403
 
     def test_get_received_requests_requires_auth(self, client, temp_db):
-        """Unauthenticated GET /friend-requests/received returns 403."""
+        """Unauthenticated GET /friend-requests/received returns 401 (CSRF doesn't apply to safe methods)."""
         response = client.get("/api/v1/social/friend-requests/received")
-        assert response.status_code == 403
+        assert response.status_code == 401
 
     def test_get_sent_requests_requires_auth(self, client, temp_db):
-        """Unauthenticated GET /friend-requests/sent returns 403."""
+        """Unauthenticated GET /friend-requests/sent returns 401 (CSRF doesn't apply to safe methods)."""
         response = client.get("/api/v1/social/friend-requests/sent")
-        assert response.status_code == 403
+        assert response.status_code == 401
 
     def test_get_friends_requires_auth(self, client, temp_db):
-        """Unauthenticated GET /friends returns 403."""
+        """Unauthenticated GET /friends returns 401 (CSRF doesn't apply to safe methods)."""
         response = client.get("/api/v1/social/friends")
-        assert response.status_code == 403
+        assert response.status_code == 401
 
     def test_friendship_status_requires_auth(self, client, test_user2):
-        """Unauthenticated GET /friends/{id}/status returns 403."""
+        """Unauthenticated GET /friends/{id}/status returns 401 (CSRF doesn't apply to safe methods)."""
         response = client.get(f"/api/v1/social/friends/{test_user2['id']}/status")
-        assert response.status_code == 403
+        assert response.status_code == 401
 
     def test_friend_suggestions_requires_auth(self, client, temp_db):
-        """Unauthenticated GET /friend-suggestions returns 403."""
+        """Unauthenticated GET /friend-suggestions returns 401 (CSRF doesn't apply to safe methods)."""
         response = client.get("/api/v1/social/friend-suggestions")
-        assert response.status_code == 403
+        assert response.status_code == 401
 
 
 # ── Friend Requests ──────────────────────────────────────────────

@@ -67,9 +67,9 @@ class TestGrappleInsightsAuth:
         assert resp.status_code == 403
 
     def test_list_insights_unauthenticated(self, client, temp_db):
-        """GET /insights without auth returns 403."""
+        """GET /insights without auth returns 401 (CSRF doesn't apply to safe methods)."""
         resp = client.get("/api/v1/grapple/insights")
-        assert resp.status_code == 403
+        assert resp.status_code == 401
 
     def test_generate_insight_unauthenticated(self, client, temp_db):
         """POST /insights/generate without auth returns 403."""
