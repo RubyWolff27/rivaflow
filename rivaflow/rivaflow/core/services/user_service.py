@@ -31,7 +31,7 @@ class UserService:
         cache_key = CacheKeys.user_basic(user_id)
         cached = self.cache.get(cache_key)
         if cached is not None:
-            return cached
+            return cached  # type: ignore[no-any-return]
 
         # Fetch from database
         user = self.user_repo.get_by_id(user_id)
@@ -83,11 +83,11 @@ class UserService:
 
             # Check if current user is following this user
             is_following = self.social_repo.is_following(
-                follower_user_id=current_user_id, following_user_id=user_id
+                follower_user_id=current_user_id, following_user_id=user_id  # type: ignore[arg-type]
             )
 
             # Get follower count
-            followers = self.social_repo.get_followers(user_id=user_id)
+            followers = self.social_repo.get_followers(user_id=user_id)  # type: ignore[arg-type]
             follower_count = len(followers) if followers else 0
 
             enriched.append(
@@ -113,7 +113,7 @@ class UserService:
         cache_key = f"{CacheKeys.user_profile(user_id)}:req:{requesting_user_id}"
         cached = self.cache.get(cache_key)
         if cached is not None:
-            return cached
+            return cached  # type: ignore[no-any-return]
 
         # Get basic user info
         user = self.user_repo.get_by_id(user_id)
@@ -185,7 +185,7 @@ class UserService:
         cache_key = CacheKeys.user_stats(user_id)
         cached = self.cache.get(cache_key)
         if cached is not None:
-            return cached
+            return cached  # type: ignore[no-any-return]
 
         user = self.user_repo.get_by_id(user_id)
         if not user:

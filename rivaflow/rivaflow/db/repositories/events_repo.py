@@ -109,7 +109,7 @@ class EventRepository(BaseRepository):
                 "WHERE id = ? AND user_id = ?"
             )
             cursor.execute(convert_query(query), params)
-            return cursor.rowcount > 0
+            return bool(cursor.rowcount > 0)
 
     @staticmethod
     def delete(user_id: int, event_id: int) -> bool:
@@ -120,7 +120,7 @@ class EventRepository(BaseRepository):
                 convert_query("DELETE FROM events WHERE id = ? AND user_id = ?"),
                 (event_id, user_id),
             )
-            return cursor.rowcount > 0
+            return bool(cursor.rowcount > 0)
 
     @staticmethod
     def get_next_upcoming(user_id: int) -> dict | None:

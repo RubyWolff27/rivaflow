@@ -29,7 +29,7 @@ class TechniqueRepository(BaseRepository):
                     (name.lower().strip(),),
                 )
                 row = cursor.fetchone()
-                return row["id"]
+                return int(row["id"])
 
     @staticmethod
     def get_by_id(technique_id: int) -> dict | None:

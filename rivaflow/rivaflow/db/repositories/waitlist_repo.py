@@ -203,7 +203,7 @@ class WaitlistRepository(BaseRepository):
             row = cursor.fetchone()
             if not row:
                 return 0
-            return row["cnt"]
+            return int(row["cnt"])
 
     @staticmethod
     def invite(waitlist_id: int, assigned_tier: str = "free") -> str | None:
@@ -301,7 +301,7 @@ class WaitlistRepository(BaseRepository):
                     """),
                 (registered_at, email.lower().strip()),
             )
-            return cursor.rowcount > 0
+            return bool(cursor.rowcount > 0)
 
     @staticmethod
     def decline(waitlist_id: int) -> bool:
@@ -322,7 +322,7 @@ class WaitlistRepository(BaseRepository):
                 convert_query("UPDATE waitlist SET status = 'declined' WHERE id = ?"),
                 (waitlist_id,),
             )
-            return cursor.rowcount > 0
+            return bool(cursor.rowcount > 0)
 
     @staticmethod
     def update_notes(waitlist_id: int, notes: str) -> bool:
@@ -342,7 +342,7 @@ class WaitlistRepository(BaseRepository):
                 convert_query("UPDATE waitlist SET notes = ? WHERE id = ?"),
                 (notes, waitlist_id),
             )
-            return cursor.rowcount > 0
+            return bool(cursor.rowcount > 0)
 
     @staticmethod
     def is_invite_valid(token: str) -> bool:
@@ -397,4 +397,4 @@ class WaitlistRepository(BaseRepository):
             row = cursor.fetchone()
             if not row:
                 return 0
-            return row["cnt"]
+            return int(row["cnt"])

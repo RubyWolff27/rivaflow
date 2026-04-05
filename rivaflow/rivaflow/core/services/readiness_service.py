@@ -141,7 +141,7 @@ class ReadinessService:
 
     def calculate_composite_score(self, readiness: dict) -> int:
         """Calculate composite readiness score (4-20 range, higher is better)."""
-        return (
+        return int(
             readiness["sleep"]
             + (6 - readiness["stress"])
             + (6 - readiness["soreness"])

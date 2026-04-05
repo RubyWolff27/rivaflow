@@ -33,7 +33,7 @@ class TechniqueService:
         cache_key = CacheKeys.technique_by_id(technique_id)
         cached = self.cache.get(cache_key)
         if cached is not None:
-            return cached
+            return cached  # type: ignore[no-any-return]
 
         # Fetch from database
         technique = self.repo.get_by_id(technique_id)
@@ -50,7 +50,7 @@ class TechniqueService:
         cache_key = CacheKeys.technique_by_name(name)
         cached = self.cache.get(cache_key)
         if cached is not None:
-            return cached
+            return cached  # type: ignore[no-any-return]
 
         # Fetch from database
         technique = self.repo.get_by_name(name)
@@ -67,7 +67,7 @@ class TechniqueService:
         cache_key = CacheKeys.TECHNIQUES_ALL
         cached = self.cache.get(cache_key)
         if cached is not None:
-            return cached
+            return cached  # type: ignore[no-any-return]
 
         # Fetch from database
         techniques = self.repo.list_all()
@@ -106,7 +106,7 @@ class TechniqueService:
         if not technique.get("last_trained_date"):
             return None
 
-        return (date.today() - technique["last_trained_date"]).days
+        return (date.today() - technique["last_trained_date"]).days  # type: ignore[no-any-return]
 
     def _invalidate_technique_cache(self) -> None:
         """Invalidate all technique-related cache."""

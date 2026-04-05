@@ -46,7 +46,7 @@ async def get_current_user(
         if payload is None:
             raise AuthenticationError(message="Could not validate credentials")
         user_id_str = payload.get("sub")
-        user_id: int = int(user_id_str) if user_id_str else None
+        user_id: int = int(user_id_str) if user_id_str else None  # type: ignore[assignment]
 
         if user_id is None:
             raise AuthenticationError(message="Invalid authentication credentials")
@@ -58,7 +58,7 @@ async def get_current_user(
 
         cached_user = cache.get(cache_key)
         if cached_user is not _MISSING:
-            return cached_user
+            return cached_user  # type: ignore[no-any-return]
 
         # Cache miss — fetch from database
         user_repo = UserRepository()

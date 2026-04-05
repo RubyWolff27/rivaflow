@@ -675,7 +675,7 @@ Athlete competes under NAGA (North American Grappling Association) rules:
             from rivaflow.db.repositories.streak_repo import StreakRepository
 
             streak_repo = StreakRepository()
-            training_streak = streak_repo.get_by_type(self.user_id, "training")
+            training_streak = streak_repo.get_by_type(self.user_id, "training")  # type: ignore[attr-defined]
             if training_streak and training_streak.get("current_count", 0) > 0:
                 context_parts.append(
                     f"CURRENT TRAINING STREAK: "

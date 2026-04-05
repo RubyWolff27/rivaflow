@@ -594,7 +594,7 @@ class SocialService:
                         if overlap_gyms:
                             reason = (
                                 "Recently trained at "
-                                f"{', '.join(list(overlap_gyms)[:2])}"
+                                f"{', '.join(list(overlap_gyms)[:2])}"  # type: ignore[arg-type]
                             )
                             score = 80
 

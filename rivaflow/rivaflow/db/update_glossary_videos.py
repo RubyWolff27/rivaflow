@@ -267,7 +267,7 @@ def update_video_urls():
                         SET gi_video_url = ?, nogi_video_url = ?
                         WHERE id = ?
                     """),
-                    (urls["gi"], urls["nogi"], movement_id),
+                    (urls["gi"], urls["nogi"], movement_id),  # type: ignore[index]
                 )
                 updated += 1
                 print(f"Updated: {movement_name}")

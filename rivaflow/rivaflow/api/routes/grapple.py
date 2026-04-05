@@ -129,7 +129,7 @@ def _pre_llm_work(request: ChatRequest, user_id: int, user_tier: str) -> dict:
     if not rate_check["allowed"]:
         reset_at = rate_check.get("reset_at")
         reset_str = (
-            reset_at.isoformat() if hasattr(reset_at, "isoformat") else str(reset_at)
+            reset_at.isoformat() if hasattr(reset_at, "isoformat") else str(reset_at)  # type: ignore[union-attr]
         )
         raise RateLimitError(
             message=rate_check["reason"],
@@ -258,7 +258,7 @@ def _post_llm_work(pre: dict, user_id: int, llm_response: dict) -> dict:
     except (ConnectionError, OSError) as e:
         logger.error("Failed to record rate limit: %s", e, exc_info=True)
 
-    return assistant_message
+    return assistant_message  # type: ignore[no-any-return]
 
 
 async def _handle_chat(

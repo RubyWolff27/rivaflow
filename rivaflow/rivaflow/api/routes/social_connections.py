@@ -125,7 +125,7 @@ class FriendRequestBody(BaseModel):
 def send_friend_request(
     request: Request,
     user_id: int = Path(..., gt=0),
-    body: FriendRequestBody = Body(default=FriendRequestBody()),
+    body: FriendRequestBody = Body(default=FriendRequestBody()),  # type: ignore[call-arg]
     current_user: dict = Depends(get_current_user),
 ):
     """Send a friend request to another user."""

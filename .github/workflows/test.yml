@@ -47,6 +47,14 @@ jobs:
         pip install -e rivaflow/
         pip install pytest pytest-cov pytest-asyncio
 
+    - name: Apply database migrations
+      env:
+        DATABASE_URL: postgresql://rivaflow_test:test_password@localhost:5432/rivaflow_test
+        SECRET_KEY: test-secret-key-for-ci-only-min-32-chars
+        ENV: test
+      run: |
+        python apply_migrations.py
+
     - name: Run backend tests
       env:
         DATABASE_URL: postgresql://rivaflow_test:test_password@localhost:5432/rivaflow_test

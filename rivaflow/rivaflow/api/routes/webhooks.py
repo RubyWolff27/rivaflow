@@ -52,7 +52,7 @@ def _lookup_user_by_whoop_id(whoop_user_id: str) -> int | None:
         )
         row = cursor.fetchone()
         if row:
-            return row["user_id"] if hasattr(row, "keys") else row[0]
+            return row["user_id"] if hasattr(row, "keys") else row[0]  # type: ignore[no-any-return]
     return None
 
 

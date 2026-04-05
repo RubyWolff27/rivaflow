@@ -49,9 +49,9 @@ class WhoopOAuthStateRepository(BaseRepository):
 
             # Check expiry
             expires_at = datetime.fromisoformat(
-                state["expires_at"].replace("Z", "+00:00")
-                if isinstance(state["expires_at"], str)
-                else str(state["expires_at"])
+                state["expires_at"].replace("Z", "+00:00")  # type: ignore[index]
+                if isinstance(state["expires_at"], str)  # type: ignore[index]
+                else str(state["expires_at"])  # type: ignore[index]
             )
             if expires_at.tzinfo is None:
                 expires_at = expires_at.replace(tzinfo=UTC)
@@ -69,4 +69,4 @@ class WhoopOAuthStateRepository(BaseRepository):
                 convert_query("DELETE FROM whoop_oauth_states WHERE expires_at < ?"),
                 (datetime.now(UTC).isoformat(),),
             )
-            return cursor.rowcount
+            return int(cursor.rowcount)

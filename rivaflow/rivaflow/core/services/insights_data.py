@@ -387,8 +387,8 @@ def compute_partner_progression(
     for i in range(len(results)):
         start_idx = max(0, i - window + 1)
         window_results = results[start_idx : i + 1]
-        total_for = sum(r["subs_for"] for r in window_results)
-        total_against = sum(r["subs_against"] for r in window_results)
+        total_for = sum(r["subs_for"] for r in window_results)  # type: ignore[misc]
+        total_against = sum(r["subs_against"] for r in window_results)  # type: ignore[misc]
         rate = (
             round(total_for / total_against, 2)
             if total_against > 0
@@ -406,7 +406,7 @@ def compute_partner_progression(
     # Trend detection via slope
     if len(progression) >= 3:
         rates = [p["rolling_sub_rate"] for p in progression]
-        slope = _linear_slope(rates)
+        slope = _linear_slope(rates)  # type: ignore[arg-type]
         if slope > 0.05:
             trend = "improving"
         elif slope < -0.05:

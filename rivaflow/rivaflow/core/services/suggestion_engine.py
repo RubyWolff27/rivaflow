@@ -195,10 +195,10 @@ class SuggestionEngine:
                     {
                         "name": rule.name,
                         "recommendation": self._format_recommendation(
-                            rule.recommendation, readiness, session_context
+                            rule.recommendation, readiness, session_context  # type: ignore[arg-type]
                         ),
                         "explanation": format_explanation(
-                            rule.explanation, readiness, session_context
+                            rule.explanation, readiness, session_context  # type: ignore[arg-type]
                         ),
                         "priority": rule.priority,
                     }
@@ -210,7 +210,7 @@ class SuggestionEngine:
         else:
             # Use highest priority rule (lowest number)
             primary_rule = triggered_rules[0]
-            primary_suggestion = primary_rule["recommendation"]
+            primary_suggestion = primary_rule["recommendation"]  # type: ignore[assignment]
 
         return {
             "date": target_date,

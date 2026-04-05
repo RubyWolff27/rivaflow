@@ -79,7 +79,7 @@ class WhoopWorkoutCacheRepository(BaseRepository):
                         row_id,
                     ),
                 )
-                return row_id
+                return int(row_id)
             else:
                 return execute_insert(
                     cursor,
@@ -145,7 +145,7 @@ class WhoopWorkoutCacheRepository(BaseRepository):
                     """),
                 (session_id, workout_cache_id),
             )
-            return cursor.rowcount > 0
+            return bool(cursor.rowcount > 0)
 
     @staticmethod
     def unlink_session(session_id: int) -> bool:
@@ -160,7 +160,7 @@ class WhoopWorkoutCacheRepository(BaseRepository):
                     """),
                 (session_id,),
             )
-            return cursor.rowcount > 0
+            return bool(cursor.rowcount > 0)
 
     @staticmethod
     def get_by_session_id(session_id: int) -> dict | None:
@@ -210,7 +210,7 @@ class WhoopWorkoutCacheRepository(BaseRepository):
                 convert_query("DELETE FROM whoop_workout_cache WHERE user_id = ?"),
                 (user_id,),
             )
-            return cursor.rowcount
+            return int(cursor.rowcount)
 
     @staticmethod
     def get_unlinked_workouts(user_id: int) -> list[dict]:

@@ -12,7 +12,7 @@ from rivaflow.config.tiers import (
     has_feature,
     is_premium_tier,
 )
-from rivaflow.db.database import get_db_connection
+from rivaflow.db.database import get_db_connection  # type: ignore[attr-defined]
 
 
 class TierAccessService:
@@ -37,7 +37,7 @@ class TierAccessService:
         config = get_tier_config(user_tier)
         return (
             False,
-            f"This feature requires a Premium subscription. You are currently on {config.display_name}.",
+            f"This feature requires a Premium subscription. You are currently on {config.display_name}.",  # type: ignore[union-attr]
         )
 
     @staticmethod
@@ -74,7 +74,7 @@ class TierAccessService:
             config = get_tier_config(user_tier)
             return (
                 False,
-                f"You've reached your {config.display_name} limit of {limit} for this feature. Upgrade to Premium for unlimited access.",
+                f"You've reached your {config.display_name} limit of {limit} for this feature. Upgrade to Premium for unlimited access.",  # type: ignore[union-attr]
                 current_count,
             )
 
@@ -154,14 +154,14 @@ class TierAccessService:
         # Get usage for each limited feature
         for feature_name, limit in config.limits.items():
             if limit == -1:
-                summary["features"][feature_name] = {
+                summary["features"][feature_name] = {  # type: ignore[index]
                     "limit": "unlimited",
                     "current": "unlimited",
                     "percentage": 0,
                 }
             elif limit > 0:
                 current = TierAccessService._get_current_usage(user_id, feature_name)
-                summary["features"][feature_name] = {
+                summary["features"][feature_name] = {  # type: ignore[index]
                     "limit": limit,
                     "current": current,
                     "percentage": (current / limit * 100) if limit > 0 else 0,

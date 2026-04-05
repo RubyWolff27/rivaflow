@@ -357,7 +357,7 @@ class SessionService:
         session["detailed_rolls"] = self.roll_repo.get_by_session_id(
             user_id, session_id
         )
-        session["detailed_techniques"] = self.technique_detail_repo.get_by_session_id(
+        session["detailed_techniques"] = self.technique_detail_repo.get_by_session_id(  # type: ignore[call-arg]
             session_id
         )
 
@@ -456,7 +456,7 @@ class SessionService:
                 self.technique_detail_repo.create(
                     user_id=user_id,
                     session_id=session_id,
-                    movement_id=tech_data.get("movement_id"),
+                    movement_id=tech_data.get("movement_id"),  # type: ignore[arg-type]
                     technique_number=tech_data.get("technique_number", 1),
                     notes=tech_data.get("notes"),
                     media_urls=tech_data.get("media_urls"),

@@ -325,7 +325,7 @@ class ReadinessAnalyticsService:
             )
 
         # Heart rate zones by class type
-        hr_by_class = defaultdict(lambda: {"avg_hr": [], "max_hr": []})
+        hr_by_class = defaultdict(lambda: {"avg_hr": [], "max_hr": []})  # type: ignore[var-annotated]
         for session in whoop_sessions:
             if session.get("whoop_avg_hr"):
                 hr_by_class[session["class_type"]]["avg_hr"].append(
@@ -352,7 +352,7 @@ class ReadinessAnalyticsService:
             )
 
         # Calorie burn analysis
-        calorie_analysis = defaultdict(lambda: {"calories": [], "duration": []})
+        calorie_analysis = defaultdict(lambda: {"calories": [], "duration": []})  # type: ignore[var-annotated]
         for session in whoop_sessions:
             if session.get("whoop_calories"):
                 calorie_analysis[session["class_type"]]["calories"].append(
@@ -614,10 +614,10 @@ class ReadinessAnalyticsService:
                 "total_calories": sum(
                     s.get("whoop_calories", 0) for s in whoop_sessions
                 ),
-                "avg_hrv": (round(statistics.mean(hrv_all), 1) if hrv_all else None),
-                "avg_rhr": (round(statistics.mean(rhr_all), 1) if rhr_all else None),
+                "avg_hrv": (round(statistics.mean(hrv_all), 1) if hrv_all else None),  # type: ignore[arg-type,type-var]
+                "avg_rhr": (round(statistics.mean(rhr_all), 1) if rhr_all else None),  # type: ignore[arg-type,type-var]
                 "avg_recovery": (
-                    round(statistics.mean(rec_all), 1) if rec_all else None
+                    round(statistics.mean(rec_all), 1) if rec_all else None  # type: ignore[arg-type,type-var]
                 ),
             },
         }

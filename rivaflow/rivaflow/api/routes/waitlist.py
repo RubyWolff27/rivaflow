@@ -162,7 +162,7 @@ def list_waitlist(
 @route_error_handler("invite_entry", detail="Failed to invite entry")
 def invite_entry(
     waitlist_id: int = Path(..., gt=0),
-    req: InviteRequest = None,
+    req: InviteRequest = None,  # type: ignore[assignment]
     current_user: dict = Depends(get_admin_user),
     repo: WaitlistService = Depends(get_waitlist_service),
     email_service: EmailService = Depends(get_email_service),

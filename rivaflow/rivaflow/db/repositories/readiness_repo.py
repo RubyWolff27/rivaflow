@@ -68,7 +68,7 @@ class ReadinessRepository(BaseRepository):
                         check_date.isoformat(),
                     ),
                 )
-                return existing["id"]
+                return int(existing["id"])
             else:
                 # Insert new
                 return execute_insert(

@@ -31,7 +31,7 @@ class GlossaryService:
 
         # Generate cache key based on filters
         cache_key = CacheKeys.movements_glossary_filtered(
-            category=category,
+            category=category,  # type: ignore[arg-type]
             gi_only=gi_only,
             nogi_only=nogi_only,
         )
@@ -39,7 +39,7 @@ class GlossaryService:
         # Try to get from cache
         cached = self.cache.get(cache_key)
         if cached is not None:
-            return cached
+            return cached  # type: ignore[no-any-return]
 
         # Fetch from database
         movements = self.repo.list_all(
@@ -66,7 +66,7 @@ class GlossaryService:
         cache_key = CacheKeys.movement_by_id(movement_id)
         cached = self.cache.get(cache_key)
         if cached is not None:
-            return cached
+            return cached  # type: ignore[no-any-return]
 
         # Fetch from database
         movement = self.repo.get_by_id(movement_id, include_custom_videos=False)
@@ -83,7 +83,7 @@ class GlossaryService:
         cache_key = CacheKeys.movement_by_name(name)
         cached = self.cache.get(cache_key)
         if cached is not None:
-            return cached
+            return cached  # type: ignore[no-any-return]
 
         # Fetch from database
         movement = self.repo.get_by_name(name)
@@ -100,7 +100,7 @@ class GlossaryService:
         cache_key = CacheKeys.MOVEMENTS_GLOSSARY_CATEGORIES
         cached = self.cache.get(cache_key)
         if cached is not None:
-            return cached
+            return cached  # type: ignore[no-any-return]
 
         # Fetch from database
         categories = self.repo.get_categories()

@@ -220,11 +220,11 @@ class SessionInsightService:
         check_date = session_date
         while True:
             count = SessionRepository.count_sessions_on_date(
-                user_id, check_date.isoformat()
+                user_id, check_date.isoformat()  # type: ignore[union-attr]
             )
             if count > 0:
                 streak += 1
-                check_date = check_date - timedelta(days=1)
+                check_date = check_date - timedelta(days=1)  # type: ignore[operator]
             else:
                 break
 

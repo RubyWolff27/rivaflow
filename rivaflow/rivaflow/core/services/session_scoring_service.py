@@ -142,7 +142,7 @@ class SessionScoringService:
         # Readiness alignment
         if has_readiness:
             pillars["readiness_alignment"] = self._calc_readiness_alignment(
-                session, readiness, weights["readiness_alignment"]
+                session, readiness, weights["readiness_alignment"]  # type: ignore[arg-type]
             )
 
         # Biometric validation
@@ -189,7 +189,7 @@ class SessionScoringService:
         )
         if has_readiness:
             pillars["readiness_alignment"] = self._calc_readiness_alignment(
-                session, readiness, weights["readiness_alignment"]
+                session, readiness, weights["readiness_alignment"]  # type: ignore[arg-type]
             )
         if has_whoop:
             pillars["biometric_validation"] = self._calc_biometric(
@@ -231,7 +231,7 @@ class SessionScoringService:
         )
         if has_readiness:
             pillars["readiness_alignment"] = self._calc_readiness_alignment(
-                session, readiness, weights["readiness_alignment"]
+                session, readiness, weights["readiness_alignment"]  # type: ignore[arg-type]
             )
         if has_whoop:
             pillars["biometric_validation"] = self._calc_biometric(

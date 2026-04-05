@@ -50,4 +50,4 @@ class PhotoService:
 
     def upload_file(self, folder: str, filename: str, content: bytes) -> str:
         storage = get_storage()
-        return storage.upload(folder, filename, content)
+        return storage.upload(folder, filename, content)  # type: ignore[no-any-return]

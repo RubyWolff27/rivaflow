@@ -134,4 +134,4 @@ class TrainingGoalRepository(BaseRepository):
                 ),
                 (goal_id, user_id),
             )
-            return cursor.rowcount > 0
+            return bool(cursor.rowcount > 0)

@@ -207,11 +207,11 @@ app = FastAPI(
 # Add rate limiter to app state
 app.state.limiter = limiter
 if not settings.IS_TEST:
-    app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+    app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)  # type: ignore[arg-type]
 
 # Register custom error handlers
-app.add_exception_handler(RivaFlowException, rivaflow_exception_handler)
-app.add_exception_handler(RequestValidationError, validation_exception_handler)
+app.add_exception_handler(RivaFlowException, rivaflow_exception_handler)  # type: ignore[arg-type]
+app.add_exception_handler(RequestValidationError, validation_exception_handler)  # type: ignore[arg-type]
 app.add_exception_handler(Exception, generic_exception_handler)
 
 # CORS configuration - use settings.CORS_ORIGINS

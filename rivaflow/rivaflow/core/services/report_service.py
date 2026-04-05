@@ -184,7 +184,7 @@ class ReportService:
         self, sessions: list[dict], rolls_by_session: dict | None = None
     ) -> dict:
         """Break down statistics by class type."""
-        by_type = defaultdict(lambda: {"classes": 0, "hours": 0.0, "rolls": 0})
+        by_type = defaultdict(lambda: {"classes": 0, "hours": 0.0, "rolls": 0})  # type: ignore[var-annotated]
 
         for session in sessions:
             class_type = session["class_type"]
@@ -200,7 +200,7 @@ class ReportService:
 
     def _breakdown_by_gym(self, sessions: list[dict]) -> dict:
         """Break down statistics by gym."""
-        by_gym = defaultdict(int)
+        by_gym = defaultdict(int)  # type: ignore[var-annotated]
 
         for session in sessions:
             by_gym[session["gym_name"]] += 1

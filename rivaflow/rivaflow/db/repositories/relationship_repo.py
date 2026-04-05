@@ -61,7 +61,7 @@ class UserRelationshipRepository(BaseRepository):
                 """),
                 (follower_user_id, following_user_id),
             )
-            return cursor.rowcount > 0
+            return bool(cursor.rowcount > 0)
 
     @staticmethod
     def get_followers(
@@ -154,7 +154,7 @@ class UserRelationshipRepository(BaseRepository):
             row = cursor.fetchone()
             if not row:
                 return 0
-            return row["count"]
+            return int(row["count"])
 
     @staticmethod
     def count_following(user_id: int) -> int:
@@ -171,7 +171,7 @@ class UserRelationshipRepository(BaseRepository):
             row = cursor.fetchone()
             if not row:
                 return 0
-            return row["count"]
+            return int(row["count"])
 
     @staticmethod
     def is_following(follower_user_id: int, following_user_id: int) -> bool:
@@ -220,7 +220,7 @@ class UserRelationshipRepository(BaseRepository):
             row = cursor.fetchone()
             if not row:
                 return 0
-            return row["count"]
+            return int(row["count"])
 
     @staticmethod
     def get_following_count(user_id: int) -> int:
@@ -246,7 +246,7 @@ class UserRelationshipRepository(BaseRepository):
             row = cursor.fetchone()
             if not row:
                 return 0
-            return row["count"]
+            return int(row["count"])
 
     @staticmethod
     def get_following_user_ids(user_id: int) -> list[int]:

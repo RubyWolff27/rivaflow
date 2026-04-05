@@ -118,7 +118,7 @@ def find_matching_workouts(
     if isinstance(session_date, str):
         date_part = datetime.fromisoformat(session_date).date()
     else:
-        date_part = session_date
+        date_part = session_date  # type: ignore[assignment]
 
     # Parse class_time (HH:MM format)
     try:
@@ -137,7 +137,7 @@ def find_matching_workouts(
         profile = self.profile_repo.get(user_id)
         tz_name = profile.get("timezone") if profile else None
         if tz_name and tz_name != "UTC":
-            user_tz = zoneinfo.ZoneInfo(tz_name)
+            user_tz = zoneinfo.ZoneInfo(tz_name)  # type: ignore[assignment]
     except Exception:
         logger.debug("Could not load user timezone, defaulting to UTC")
 
@@ -286,7 +286,7 @@ def apply_workout_to_session(
             exc_info=True,
         )
 
-    return self.session_repo.get_by_id(user_id, session_id)
+    return self.session_repo.get_by_id(user_id, session_id)  # type: ignore[return-value]
 
 
 def auto_create_sessions_for_workouts(self: WhoopService, user_id: int) -> list[int]:

@@ -156,7 +156,7 @@ class GlossaryRepository(BaseRepository):
                 ),
                 (movement_id,),
             )
-            return cursor.rowcount > 0
+            return bool(cursor.rowcount > 0)
 
     @staticmethod
     def add_custom_video(
@@ -190,7 +190,7 @@ class GlossaryRepository(BaseRepository):
             cursor.execute(
                 convert_query("DELETE FROM movement_videos WHERE id = ?"), (video_id,)
             )
-            return cursor.rowcount > 0
+            return bool(cursor.rowcount > 0)
 
     @staticmethod
     def get_custom_videos(movement_id: int) -> list[dict]:

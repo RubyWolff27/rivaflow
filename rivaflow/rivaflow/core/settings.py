@@ -163,7 +163,7 @@ class Settings:
                 "'https://rivaflow.app,https://www.rivaflow.app'"
             )
         else:
-            self.CORS_ORIGINS: list[str] = [
+            self.CORS_ORIGINS: list[str] = [  # type: ignore[no-redef]
                 "http://localhost:5173",
                 "http://localhost:5174",
                 "http://localhost:5175",

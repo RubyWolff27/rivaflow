@@ -133,7 +133,7 @@ class AIInsightRepository(BaseRepository):
                 ),
                 (json.dumps(data), insight_id, user_id),
             )
-            return cursor.rowcount > 0
+            return bool(cursor.rowcount > 0)
 
     @staticmethod
     def mark_as_read(insight_id: int, user_id: int) -> bool:
@@ -145,4 +145,4 @@ class AIInsightRepository(BaseRepository):
                 ),
                 (insight_id, user_id),
             )
-            return cursor.rowcount > 0
+            return bool(cursor.rowcount > 0)

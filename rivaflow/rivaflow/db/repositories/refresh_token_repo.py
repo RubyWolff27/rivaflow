@@ -122,7 +122,7 @@ class RefreshTokenRepository(BaseRepository):
                 convert_query("DELETE FROM refresh_tokens WHERE token = ?"),
                 (token_hash,),
             )
-            return cursor.rowcount > 0
+            return bool(cursor.rowcount > 0)
 
     @staticmethod
     def delete_by_user_id(user_id: int) -> int:
@@ -141,7 +141,7 @@ class RefreshTokenRepository(BaseRepository):
                 convert_query("DELETE FROM refresh_tokens WHERE user_id = ?"),
                 (user_id,),
             )
-            return cursor.rowcount
+            return int(cursor.rowcount)
 
     @staticmethod
     def delete_expired() -> int:
@@ -157,7 +157,7 @@ class RefreshTokenRepository(BaseRepository):
             cursor.execute(
                 convert_query("DELETE FROM refresh_tokens WHERE expires_at < ?"), (now,)
             )
-            return cursor.rowcount
+            return int(cursor.rowcount)
 
     @staticmethod
     def is_valid(token: str) -> bool:

@@ -141,5 +141,5 @@ class ChatMessageRepository(BaseRepository):
             cursor.execute(query, (session_id,))
             result = cursor.fetchone()
             if result:
-                return result["count"]
+                return int(result["count"])
             return 0

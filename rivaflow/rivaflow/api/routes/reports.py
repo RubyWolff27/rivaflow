@@ -20,7 +20,7 @@ router = APIRouter()
 @route_error_handler("get_week_report", detail="Failed to get week report")
 def get_week_report(
     request: Request,
-    target_date: date = None,
+    target_date: date = None,  # type: ignore[assignment]
     current_user: dict = Depends(get_current_user),
     service: ReportService = Depends(get_report_service),
 ):
@@ -37,7 +37,7 @@ def get_week_report(
 @route_error_handler("get_month_report", detail="Failed to get month report")
 def get_month_report(
     request: Request,
-    target_date: date = None,
+    target_date: date = None,  # type: ignore[assignment]
     current_user: dict = Depends(get_current_user),
     service: ReportService = Depends(get_report_service),
 ):
@@ -71,7 +71,7 @@ def get_range_report(
 @route_error_handler("export_week_csv", detail="Failed to export CSV")
 def export_week_csv(
     request: Request,
-    target_date: date = None,
+    target_date: date = None,  # type: ignore[assignment]
     current_user: dict = Depends(get_current_user),
     service: ReportService = Depends(get_report_service),
 ):

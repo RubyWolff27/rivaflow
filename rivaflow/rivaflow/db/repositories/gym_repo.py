@@ -176,7 +176,7 @@ class GymRepository(BaseRepository):
         with get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(convert_query("DELETE FROM gyms WHERE id = ?"), (gym_id,))
-            return cursor.rowcount > 0
+            return bool(cursor.rowcount > 0)
 
     @staticmethod
     def get_pending_gyms() -> list[dict[str, Any]]:

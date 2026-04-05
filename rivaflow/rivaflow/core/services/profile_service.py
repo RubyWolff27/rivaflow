@@ -181,9 +181,9 @@ class ProfileService:
                 # Prefer exact name match
                 for gym in results:
                     if gym["name"].lower() == gym_name.lower():
-                        return gym["id"]
+                        return gym["id"]  # type: ignore[no-any-return]
                 # Fall back to first result
-                return results[0]["id"]
+                return results[0]["id"]  # type: ignore[no-any-return]
         except Exception:
             logger.debug("Gym ID resolution failed", exc_info=True)
         return None

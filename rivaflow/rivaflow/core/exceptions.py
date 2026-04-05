@@ -7,7 +7,7 @@ class RivaFlowException(Exception):
     status_code = 500
     default_message = "An unexpected error occurred"
 
-    def __init__(self, message: str = None, details: dict = None, action: str = None):
+    def __init__(self, message: str = None, details: dict = None, action: str = None):  # type: ignore[assignment]
         """
         Initialize exception with message, details, and optional actionable guidance.
 

@@ -510,7 +510,7 @@ class SessionRepository(BaseRepository):
                 convert_query("DELETE FROM sessions WHERE id = ? AND user_id = ?"),
                 (session_id, user_id),
             )
-            return cursor.rowcount > 0
+            return bool(cursor.rowcount > 0)
 
     @staticmethod
     def get_active_user_count(since_date: str) -> int:
@@ -530,7 +530,7 @@ class SessionRepository(BaseRepository):
             if isinstance(row, dict):
                 return list(row.values())[0] or 0
             try:
-                return row[0]
+                return int(row[0])
             except (KeyError, IndexError, TypeError):
                 return 0
 
@@ -546,7 +546,7 @@ class SessionRepository(BaseRepository):
             if isinstance(row, dict):
                 return list(row.values())[0] or 0
             try:
-                return row[0]
+                return int(row[0])
             except (KeyError, IndexError, TypeError):
                 return 0
 
@@ -562,7 +562,7 @@ class SessionRepository(BaseRepository):
             if isinstance(row, dict):
                 return list(row.values())[0] or 0
             try:
-                return row[0]
+                return int(row[0])
             except (KeyError, IndexError, TypeError):
                 return 0
 
@@ -717,7 +717,7 @@ class SessionRepository(BaseRepository):
                     (user_id, partner_name),
                 )
             row = cursor.fetchone()
-            return row["cnt"]
+            return int(row["cnt"])
 
     @staticmethod
     def count_partner_sessions(user_id: int, partner_name: str) -> int:
@@ -729,7 +729,7 @@ class SessionRepository(BaseRepository):
         """
         with get_connection() as conn:
             cursor = conn.cursor()
-            if settings.DB_TYPE == "postgresql":
+            if settings.DB_TYPE == "postgresql":  # type: ignore[name-defined]
                 cursor.execute(
                     "SELECT COUNT(*) as cnt FROM sessions "
                     "WHERE user_id = %s AND partners IS NOT NULL "
@@ -804,7 +804,7 @@ class SessionRepository(BaseRepository):
                 (user_id, date_str),
             )
             row = cursor.fetchone()
-            return row["cnt"]
+            return int(row["cnt"])
 
     @staticmethod
     def get_week_duration_sum(user_id: int, week_start: str) -> int:

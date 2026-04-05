@@ -221,43 +221,43 @@ class ProfileRepository(BaseRepository):
                     params.append(current_professor)
                 if current_instructor_id is not None:
                     updates.append("current_instructor_id = ?")
-                    params.append(current_instructor_id)
+                    params.append(current_instructor_id)  # type: ignore[arg-type]
                 if primary_training_type is not None:
                     updates.append("primary_training_type = ?")
                     params.append(primary_training_type)
                 if height_cm is not None:
                     updates.append("height_cm = ?")
-                    params.append(height_cm)
+                    params.append(height_cm)  # type: ignore[arg-type]
                 if target_weight_kg is not None:
                     updates.append("target_weight_kg = ?")
-                    params.append(target_weight_kg)
+                    params.append(target_weight_kg)  # type: ignore[arg-type]
                 if target_weight_date is not None:
                     updates.append("target_weight_date = ?")
                     params.append(target_weight_date)
                 if weekly_sessions_target is not None:
                     updates.append("weekly_sessions_target = ?")
-                    params.append(weekly_sessions_target)
+                    params.append(weekly_sessions_target)  # type: ignore[arg-type]
                 if weekly_hours_target is not None:
                     updates.append("weekly_hours_target = ?")
-                    params.append(weekly_hours_target)
+                    params.append(weekly_hours_target)  # type: ignore[arg-type]
                 if weekly_rolls_target is not None:
                     updates.append("weekly_rolls_target = ?")
-                    params.append(weekly_rolls_target)
+                    params.append(weekly_rolls_target)  # type: ignore[arg-type]
                 if weekly_bjj_sessions_target is not None:
                     updates.append("weekly_bjj_sessions_target = ?")
-                    params.append(weekly_bjj_sessions_target)
+                    params.append(weekly_bjj_sessions_target)  # type: ignore[arg-type]
                 if weekly_sc_sessions_target is not None:
                     updates.append("weekly_sc_sessions_target = ?")
-                    params.append(weekly_sc_sessions_target)
+                    params.append(weekly_sc_sessions_target)  # type: ignore[arg-type]
                 if weekly_mobility_sessions_target is not None:
                     updates.append("weekly_mobility_sessions_target = ?")
-                    params.append(weekly_mobility_sessions_target)
+                    params.append(weekly_mobility_sessions_target)  # type: ignore[arg-type]
                 if show_streak_on_dashboard is not None:
                     updates.append("show_streak_on_dashboard = ?")
-                    params.append(show_streak_on_dashboard)
+                    params.append(show_streak_on_dashboard)  # type: ignore[arg-type]
                 if show_weekly_goals is not None:
                     updates.append("show_weekly_goals = ?")
-                    params.append(show_weekly_goals)
+                    params.append(show_weekly_goals)  # type: ignore[arg-type]
                 if training_since is not None:
                     updates.append("training_since = ?")
                     params.append(training_since)
@@ -267,7 +267,7 @@ class ProfileRepository(BaseRepository):
 
                 if updates:
                     updates.append("updated_at = CURRENT_TIMESTAMP")
-                    params.append(user_id)
+                    params.append(user_id)  # type: ignore[arg-type]
                     query = f"UPDATE profile SET {', '.join(updates)} WHERE user_id = ?"
                     cursor.execute(convert_query(query), params)
 

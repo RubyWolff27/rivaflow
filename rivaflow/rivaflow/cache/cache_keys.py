@@ -21,7 +21,7 @@ class CacheKeys:
 
     @staticmethod
     def movements_glossary_filtered(
-        category: str = None, gi_only: bool = False, nogi_only: bool = False
+        category: str = None, gi_only: bool = False, nogi_only: bool = False  # type: ignore[assignment]
     ) -> str:
         """
         Generate cache key for filtered movements list.

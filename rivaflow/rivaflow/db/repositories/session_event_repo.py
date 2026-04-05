@@ -109,4 +109,4 @@ class SessionEventRepository(BaseRepository):
                 convert_query("DELETE FROM session_events" " WHERE session_id = ?"),
                 (session_id,),
             )
-            return cursor.rowcount
+            return int(cursor.rowcount)

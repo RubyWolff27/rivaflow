@@ -207,7 +207,7 @@ class PrivacyService:
                 is_followed_back = SocialRepository.is_following(
                     owner_user_id, viewer_id
                 )
-                return is_following and is_followed_back
+                return bool(is_following and is_followed_back)
             except Exception:
                 return False
 
@@ -362,4 +362,4 @@ def redact_for_feed(session: dict[str, Any]) -> dict[str, Any] | None:
 def is_shareable(session: dict[str, Any]) -> bool:
     """Check if session is shareable (not private)."""
     visibility = session.get("visibility_level", "private")
-    return visibility != "private"
+    return bool(visibility != "private")

@@ -118,7 +118,7 @@ class GrappleUsageRepository(BaseRepository):
             cursor.execute(query, (cutoff_date,))
             deleted_count = cursor.rowcount
             cursor.close()
-            return deleted_count
+            return int(deleted_count)
 
     # ---- Token usage logging ----
 

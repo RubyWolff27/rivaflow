@@ -88,7 +88,7 @@ def handle_service_error(
     if user_id:
         log_context["user_id"] = user_id
     if operation:
-        log_context["operation"] = operation
+        log_context["operation"] = operation  # type: ignore[assignment]
 
     logger.error(
         f"{user_message}: {type(error).__name__}", exc_info=True, extra=log_context

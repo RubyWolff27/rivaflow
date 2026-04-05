@@ -119,10 +119,10 @@ class SessionTechniqueRepository(BaseRepository):
                 params.append(technique_number)
             if notes is not None:
                 updates.append("notes = ?")
-                params.append(notes)
+                params.append(notes)  # type: ignore[arg-type]
             if media_urls is not None:
                 updates.append("media_urls = ?")
-                params.append(json.dumps(media_urls) if media_urls else None)
+                params.append(json.dumps(media_urls) if media_urls else None)  # type: ignore[arg-type]
 
             if not updates:
                 # No updates provided, just return current record
@@ -146,7 +146,7 @@ class SessionTechniqueRepository(BaseRepository):
                 convert_query("DELETE FROM session_techniques WHERE id = ?"),
                 (technique_id,),
             )
-            return cursor.rowcount > 0
+            return bool(cursor.rowcount > 0)
 
     @staticmethod
     def delete_by_session(session_id: int) -> int:
@@ -157,7 +157,7 @@ class SessionTechniqueRepository(BaseRepository):
                 convert_query("DELETE FROM session_techniques WHERE session_id = ?"),
                 (session_id,),
             )
-            return cursor.rowcount
+            return int(cursor.rowcount)
 
     @staticmethod
     def count_by_movement_in_sessions(movement_id: int, session_ids: list[int]) -> int:
@@ -229,7 +229,7 @@ class SessionTechniqueRepository(BaseRepository):
             )
 
             # Group techniques by session_id
-            techniques_by_session = {}
+            techniques_by_session = {}  # type: ignore[var-annotated]
             for row in cursor.fetchall():
                 technique = SessionTechniqueRepository._row_to_dict(row)
                 session_id = technique["session_id"]

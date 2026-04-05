@@ -250,12 +250,12 @@ def export(
     )
     console.print()
     console.print("[bold]Export Summary:[/bold]")
-    console.print(f"  Sessions: {len(data['sessions'])}")
-    console.print(f"  Readiness Entries: {len(data['readiness'])}")
-    console.print(f"  Techniques: {len(data['techniques'])}")
-    console.print(f"  Videos: {len(data['videos'])}")
-    console.print(f"  Gradings: {len(data['gradings'])}")
-    console.print(f"  Friends: {len(data['friends'])}")
+    console.print(f"  Sessions: {len(data['sessions'])}")  # type: ignore[arg-type]
+    console.print(f"  Readiness Entries: {len(data['readiness'])}")  # type: ignore[arg-type]
+    console.print(f"  Techniques: {len(data['techniques'])}")  # type: ignore[arg-type]
+    console.print(f"  Videos: {len(data['videos'])}")  # type: ignore[arg-type]
+    console.print(f"  Gradings: {len(data['gradings'])}")  # type: ignore[arg-type]
+    console.print(f"  Friends: {len(data['friends'])}")  # type: ignore[arg-type]
     console.print()
     console.print(
         "[dim]This file contains all your RivaFlow data in JSON format.[/dim]"

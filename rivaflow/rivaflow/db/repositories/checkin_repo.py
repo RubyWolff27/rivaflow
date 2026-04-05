@@ -88,7 +88,7 @@ class CheckinRepository(BaseRepository):
                         checkin_slot,
                     ),
                 )
-                return existing["id"]
+                return int(existing["id"])
             else:
                 checkin_id = execute_insert(
                     cursor,
@@ -226,7 +226,7 @@ class CheckinRepository(BaseRepository):
                 ),
                 (checkin_id, user_id),
             )
-            return cursor.rowcount > 0
+            return bool(cursor.rowcount > 0)
 
     @staticmethod
     def get_checkin_by_id(user_id: int, checkin_id: int) -> dict | None:
@@ -277,7 +277,7 @@ class CheckinRepository(BaseRepository):
                     """),
                     (energy_level, midday_note, existing["id"]),
                 )
-                return existing["id"]
+                return int(existing["id"])
             else:
                 checkin_id = execute_insert(
                     cursor,
@@ -342,7 +342,7 @@ class CheckinRepository(BaseRepository):
                         existing["id"],
                     ),
                 )
-                return existing["id"]
+                return int(existing["id"])
             else:
                 checkin_id = execute_insert(
                     cursor,

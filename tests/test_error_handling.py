@@ -163,7 +163,7 @@ class TestAuthenticationErrors:
             cursor.execute(
                 convert_query("""
                 INSERT INTO users (email, hashed_password, is_active, created_at)
-                VALUES (?, ?, ?, CURRENT_TIMESTAMP)
+                VALUES (%s, %s, %s, CURRENT_TIMESTAMP)
                 RETURNING id
             """),
                 ("test_wrong_pass@example.com", hashed, True),
@@ -233,7 +233,7 @@ class TestDatabaseConstraintErrors:
                         user_id, session_date, class_type, gym_name,
                         duration_mins, intensity, rolls, created_at
                     )
-                    VALUES (?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, CURRENT_TIMESTAMP)
                 """),
                     (
                         999999,
@@ -266,7 +266,7 @@ class TestDatabaseConstraintErrors:
             cursor.execute(
                 convert_query("""
                 INSERT INTO users (email, hashed_password, created_at)
-                VALUES (?, ?, CURRENT_TIMESTAMP)
+                VALUES (%s, %s, CURRENT_TIMESTAMP)
                 RETURNING id
             """),
                 ("duplicate@example.com", "hash1"),
@@ -282,7 +282,7 @@ class TestDatabaseConstraintErrors:
                     cursor.execute(
                         convert_query("""
                         INSERT INTO users (email, hashed_password, created_at)
-                        VALUES (?, ?, CURRENT_TIMESTAMP)
+                        VALUES (%s, %s, CURRENT_TIMESTAMP)
                     """),
                         ("duplicate@example.com", "hash2"),
                     )
@@ -310,7 +310,7 @@ class TestInputSanitization:
             cursor.execute(
                 convert_query("""
                 INSERT INTO users (email, hashed_password, created_at)
-                VALUES (?, ?, CURRENT_TIMESTAMP)
+                VALUES (%s, %s, CURRENT_TIMESTAMP)
                 RETURNING id
             """),
                 ("test_injection@example.com", "hash"),
@@ -329,7 +329,7 @@ class TestInputSanitization:
                         user_id, session_date, class_type, gym_name,
                         duration_mins, intensity, rolls, created_at
                     )
-                    VALUES (?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, CURRENT_TIMESTAMP)
                     RETURNING id
                 """),
                     (
@@ -384,7 +384,7 @@ class TestInputSanitization:
             cursor.execute(
                 convert_query("""
                 INSERT INTO users (email, hashed_password, created_at)
-                VALUES (?, ?, CURRENT_TIMESTAMP)
+                VALUES (%s, %s, CURRENT_TIMESTAMP)
                 RETURNING id
             """),
                 ("test_special@example.com", "hash"),
@@ -462,7 +462,7 @@ class TestErrorMessages:
             cursor.execute(
                 convert_query("""
                 INSERT INTO users (email, hashed_password, is_active, created_at)
-                VALUES (?, ?, ?, CURRENT_TIMESTAMP)
+                VALUES (%s, %s, %s, CURRENT_TIMESTAMP)
                 RETURNING id
             """),
                 ("test_secure_msg@example.com", hashed, True),
@@ -495,7 +495,7 @@ class TestExceptionRecovery:
             cursor.execute(
                 convert_query("""
                 INSERT INTO users (email, hashed_password, created_at)
-                VALUES (?, ?, CURRENT_TIMESTAMP)
+                VALUES (%s, %s, CURRENT_TIMESTAMP)
                 RETURNING id
             """),
                 ("test_recovery@example.com", "hash"),
@@ -515,7 +515,7 @@ class TestExceptionRecovery:
                         user_id, session_date, class_type, gym_name,
                         duration_mins, intensity, rolls, created_at
                     )
-                    VALUES (?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, CURRENT_TIMESTAMP)
                 """),
                     (
                         user_id,

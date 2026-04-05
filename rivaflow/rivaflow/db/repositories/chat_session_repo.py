@@ -138,7 +138,7 @@ class ChatSessionRepository(BaseRepository):
                     session_id,
                 ),
             )
-            return cursor.rowcount > 0
+            return bool(cursor.rowcount > 0)
 
     @staticmethod
     def update_title(session_id: str, user_id: int, title: str) -> bool:
@@ -152,7 +152,7 @@ class ChatSessionRepository(BaseRepository):
         with get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(query, (title, utcnow(), session_id, user_id))
-            return cursor.rowcount > 0
+            return bool(cursor.rowcount > 0)
 
     @staticmethod
     def delete(session_id: str, user_id: int) -> bool:
@@ -171,4 +171,4 @@ class ChatSessionRepository(BaseRepository):
         with get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(query, (session_id, user_id))
-            return cursor.rowcount > 0
+            return bool(cursor.rowcount > 0)

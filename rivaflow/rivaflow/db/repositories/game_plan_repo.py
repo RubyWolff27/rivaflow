@@ -106,4 +106,4 @@ class GamePlanRepository(BaseRepository):
                 convert_query("DELETE FROM game_plans" " WHERE id = ? AND user_id = ?"),
                 (plan_id, user_id),
             )
-            return cursor.rowcount > 0
+            return bool(cursor.rowcount > 0)

@@ -187,7 +187,7 @@ class TestPasswordResetTokenSecurity:
             cursor.execute(
                 convert_query("""
                 INSERT INTO users (email, hashed_password, created_at)
-                VALUES (?, ?, CURRENT_TIMESTAMP)
+                VALUES (%s, %s, CURRENT_TIMESTAMP)
                 RETURNING id
             """),
                 ("test_reset_hash@example.com", "hash"),
@@ -242,7 +242,7 @@ class TestPasswordResetTokenSecurity:
             cursor.execute(
                 convert_query("""
                 INSERT INTO users (email, hashed_password, created_at)
-                VALUES (?, ?, CURRENT_TIMESTAMP)
+                VALUES (%s, %s, CURRENT_TIMESTAMP)
                 RETURNING id
             """),
                 ("test_single_use@example.com", "hash"),
@@ -288,7 +288,7 @@ class TestPasswordResetTokenSecurity:
             cursor.execute(
                 convert_query("""
                 INSERT INTO users (email, hashed_password, created_at)
-                VALUES (?, ?, CURRENT_TIMESTAMP)
+                VALUES (%s, %s, CURRENT_TIMESTAMP)
                 RETURNING id
             """),
                 ("test_expire@example.com", "hash"),
@@ -342,7 +342,7 @@ class TestSQLInjectionPrevention:
             # This should safely escape the input
             cursor.execute(
                 convert_query("""
-                SELECT * FROM users WHERE email = ?
+                SELECT * FROM users WHERE email = %s
             """),
                 (malicious_email,),
             )
@@ -363,7 +363,7 @@ class TestSQLInjectionPrevention:
             cursor.execute(
                 convert_query("""
                 INSERT INTO users (email, hashed_password, created_at)
-                VALUES (?, ?, CURRENT_TIMESTAMP)
+                VALUES (%s, %s, CURRENT_TIMESTAMP)
                 RETURNING id
             """),
                 ("test_special@example.com", "hash"),
@@ -384,7 +384,7 @@ class TestSQLInjectionPrevention:
                         user_id, session_date, class_type, gym_name,
                         duration_mins, intensity, rolls, created_at
                     )
-                    VALUES (?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, CURRENT_TIMESTAMP)
                     RETURNING id
                 """),
                     (user_id, "2026-02-01", "gi", special_input, 90, 4, 5),
@@ -430,7 +430,7 @@ class TestAuthorizationChecks:
             cursor.execute(
                 convert_query("""
                 INSERT INTO users (email, hashed_password, created_at)
-                VALUES (?, ?, CURRENT_TIMESTAMP)
+                VALUES (%s, %s, CURRENT_TIMESTAMP)
                 RETURNING id
             """),
                 (f"sec_user1_{id(self)}@example.com", "hash"),
@@ -442,7 +442,7 @@ class TestAuthorizationChecks:
             cursor.execute(
                 convert_query("""
                 INSERT INTO users (email, hashed_password, created_at)
-                VALUES (?, ?, CURRENT_TIMESTAMP)
+                VALUES (%s, %s, CURRENT_TIMESTAMP)
                 RETURNING id
             """),
                 (f"sec_user2_{id(self)}@example.com", "hash"),
@@ -478,7 +478,7 @@ class TestAuthorizationChecks:
             with get_connection() as conn:
                 cursor = conn.cursor()
                 cursor.execute(
-                    convert_query("DELETE FROM users WHERE id IN (?, ?)"),
+                    convert_query("DELETE FROM users WHERE id IN (%s, %s)"),
                     (user1_id, user2_id),
                 )
                 conn.commit()

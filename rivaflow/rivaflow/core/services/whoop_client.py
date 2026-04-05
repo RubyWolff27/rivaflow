@@ -47,7 +47,7 @@ class WhoopClient:
                 timeout=TIMEOUT,
             )
             response.raise_for_status()
-            return response.json()
+            return response.json()  # type: ignore[no-any-return]
         except httpx.HTTPStatusError as e:
             logger.error("WHOOP token exchange failed: %s", e.response.text)
             raise ExternalServiceError(
@@ -70,7 +70,7 @@ class WhoopClient:
                 timeout=TIMEOUT,
             )
             response.raise_for_status()
-            return response.json()
+            return response.json()  # type: ignore[no-any-return]
         except httpx.HTTPStatusError as e:
             logger.error("WHOOP token refresh failed: %s", e.response.text)
             raise ExternalServiceError("Failed to refresh WHOOP tokens") from e
@@ -202,7 +202,7 @@ class WhoopClient:
                 timeout=TIMEOUT,
             )
             response.raise_for_status()
-            return response.json()
+            return response.json()  # type: ignore[no-any-return]
         except httpx.HTTPStatusError as e:
             logger.error("WHOOP API error: %s", e.response.status_code)
             raise ExternalServiceError(

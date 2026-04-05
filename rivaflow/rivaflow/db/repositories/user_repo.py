@@ -219,7 +219,7 @@ class UserRepository(BaseRepository):
 
             if updates:
                 updates.append("updated_at = CURRENT_TIMESTAMP")
-                params.append(user_id)
+                params.append(user_id)  # type: ignore[arg-type]
                 query = f"UPDATE users SET {', '.join(updates)} WHERE id = ?"
                 cursor.execute(convert_query(query), params)
 
@@ -298,7 +298,7 @@ class UserRepository(BaseRepository):
                 convert_query("UPDATE users SET is_active = FALSE WHERE id = ?"),
                 (user_id,),
             )
-            return cursor.rowcount > 0
+            return bool(cursor.rowcount > 0)
 
     @staticmethod
     def update_avatar(user_id: int, avatar_url: str | None) -> bool:
@@ -320,7 +320,7 @@ class UserRepository(BaseRepository):
                 ),
                 (avatar_url, user_id),
             )
-            return cursor.rowcount > 0
+            return bool(cursor.rowcount > 0)
 
     @staticmethod
     def get_activity_visibility_bulk(user_ids: list[int]) -> dict[int, str]:
@@ -370,7 +370,7 @@ class UserRepository(BaseRepository):
                 ),
                 (visibility, user_id),
             )
-            return cursor.rowcount > 0
+            return bool(cursor.rowcount > 0)
 
     @staticmethod
     def update_primary_gym(user_id: int, gym_id: int | None) -> bool:
@@ -384,7 +384,7 @@ class UserRepository(BaseRepository):
                 ),
                 (gym_id, user_id),
             )
-            return cursor.rowcount > 0
+            return bool(cursor.rowcount > 0)
 
     @staticmethod
     def update_password(user_id: int, hashed_password: str) -> bool:
@@ -405,7 +405,7 @@ class UserRepository(BaseRepository):
                 ),
                 (hashed_password, user_id),
             )
-            return cursor.rowcount > 0
+            return bool(cursor.rowcount > 0)
 
     @staticmethod
     def record_failed_login(
@@ -429,7 +429,7 @@ class UserRepository(BaseRepository):
                 ),
                 (new_attempts, locked_until, user_id),
             )
-            return cursor.rowcount > 0
+            return bool(cursor.rowcount > 0)
 
     @staticmethod
     def reset_login_attempts(user_id: int) -> bool:
@@ -449,7 +449,7 @@ class UserRepository(BaseRepository):
                 ),
                 (user_id,),
             )
-            return cursor.rowcount > 0
+            return bool(cursor.rowcount > 0)
 
     @staticmethod
     def update_last_login(user_id: int) -> None:
@@ -483,7 +483,7 @@ class UserRepository(BaseRepository):
                 convert_query("DELETE FROM users WHERE id = ?"),
                 (user_id,),
             )
-            return cursor.rowcount > 0
+            return bool(cursor.rowcount > 0)
 
     @staticmethod
     def get_dashboard_stats() -> dict:

@@ -83,7 +83,7 @@ class NotificationRepository(BaseRepository):
             result = cursor.fetchone()
             if not result:
                 return 0
-            return dict(result).get("cnt", 0)
+            return int(dict(result).get("cnt", 0))
 
     @staticmethod
     def get_unread_count_by_type(user_id: int, notification_type: str) -> int:
@@ -100,7 +100,7 @@ class NotificationRepository(BaseRepository):
             result = cursor.fetchone()
             if not result:
                 return 0
-            return dict(result).get("cnt", 0)
+            return int(dict(result).get("cnt", 0))
 
     @staticmethod
     def get_feed_unread_count(user_id: int) -> int:
@@ -119,7 +119,7 @@ class NotificationRepository(BaseRepository):
             result = cursor.fetchone()
             if not result:
                 return 0
-            return dict(result).get("cnt", 0)
+            return int(dict(result).get("cnt", 0))
 
     @staticmethod
     def get_by_user(
@@ -203,7 +203,7 @@ class NotificationRepository(BaseRepository):
         with get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(query, (True, utcnow(), notification_id, user_id))
-            return cursor.rowcount > 0
+            return bool(cursor.rowcount > 0)
 
     @staticmethod
     def mark_all_as_read(user_id: int) -> int:
@@ -217,7 +217,7 @@ class NotificationRepository(BaseRepository):
         with get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(query, (True, utcnow(), user_id))
-            return cursor.rowcount
+            return int(cursor.rowcount)
 
     @staticmethod
     def mark_feed_as_read(user_id: int) -> int:
@@ -233,7 +233,7 @@ class NotificationRepository(BaseRepository):
         with get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(query, (True, utcnow(), user_id))
-            return cursor.rowcount
+            return int(cursor.rowcount)
 
     @staticmethod
     def mark_follows_as_read(user_id: int) -> int:
@@ -249,7 +249,7 @@ class NotificationRepository(BaseRepository):
         with get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(query, (True, utcnow(), user_id))
-            return cursor.rowcount
+            return int(cursor.rowcount)
 
     @staticmethod
     def delete_by_id(notification_id: int, user_id: int) -> bool:
@@ -259,7 +259,7 @@ class NotificationRepository(BaseRepository):
         with get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(query, (notification_id, user_id))
-            return cursor.rowcount > 0
+            return bool(cursor.rowcount > 0)
 
     @staticmethod
     def check_duplicate(
@@ -303,4 +303,4 @@ class NotificationRepository(BaseRepository):
             result = cursor.fetchone()
             if not result:
                 return False
-            return dict(result).get("cnt", 0) > 0
+            return bool(dict(result).get("cnt", 0) > 0)

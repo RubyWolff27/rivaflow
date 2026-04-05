@@ -258,7 +258,7 @@ def milestones():
     console.print()
 
     # Group by type
-    by_type = {}
+    by_type = {}  # type: ignore[var-annotated]
     for milestone in achieved:
         mtype = milestone["milestone_type"]
         if mtype not in by_type:

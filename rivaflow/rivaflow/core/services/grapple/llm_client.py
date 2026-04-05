@@ -259,8 +259,8 @@ class GrappleLLMClient:
         output_tokens: int,
     ) -> float:
         config = self.MODELS.get(provider, {})
-        input_cost = (input_tokens / 1000) * config.get("cost_per_1k_input", 0.0)
-        output_cost = (output_tokens / 1000) * config.get("cost_per_1k_output", 0.0)
+        input_cost = (input_tokens / 1000) * config.get("cost_per_1k_input", 0.0)  # type: ignore[operator]
+        output_cost = (output_tokens / 1000) * config.get("cost_per_1k_output", 0.0)  # type: ignore[operator]
         return round(input_cost + output_cost, 6)
 
     def get_provider_status(self) -> dict[str, Any]:

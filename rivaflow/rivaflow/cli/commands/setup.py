@@ -134,7 +134,7 @@ def _is_setup_complete(user_id: int) -> bool:
         )
         session_count = cursor.fetchone()[0]
 
-        return session_count > 0
+        return bool(session_count > 0)
 
 
 def _collect_profile_data(user_id: int) -> dict:

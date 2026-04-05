@@ -49,7 +49,7 @@ def get_current_user_id() -> int:
 
     # Check environment variable for override (useful for testing)
     if "RIVAFLOW_USER_ID" in os.environ:
-        return int(os.environ.get("RIVAFLOW_USER_ID"))
+        return int(os.environ.get("RIVAFLOW_USER_ID"))  # type: ignore[arg-type]
 
     # Fall back to default user_id=1 for backwards compatibility
     # (legacy single-user setups)
@@ -71,7 +71,7 @@ def require_auth() -> int:
     if not CREDENTIALS_FILE.exists():
         # Check if using environment variable or default fallback
         if "RIVAFLOW_USER_ID" in os.environ:
-            return int(os.environ.get("RIVAFLOW_USER_ID"))
+            return int(os.environ.get("RIVAFLOW_USER_ID"))  # type: ignore[arg-type]
 
         # For user_id=1 default, allow without login (backwards compatibility)
         # This supports existing single-user local installations
@@ -101,6 +101,6 @@ def get_user_info() -> dict | None:
 
     try:
         with open(CREDENTIALS_FILE) as f:
-            return json.load(f)
+            return json.load(f)  # type: ignore[no-any-return]
     except (OSError, json.JSONDecodeError):
         return None

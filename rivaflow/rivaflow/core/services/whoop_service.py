@@ -192,7 +192,7 @@ class WhoopService:
                 encrypt_token(new_refresh),
                 new_expires,
             )
-            return new_access
+            return new_access  # type: ignore[no-any-return]
 
         return access_token
 

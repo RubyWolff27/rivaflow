@@ -60,13 +60,13 @@ class CSRFMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next) -> Response:
         # Safe methods and exempt paths skip validation.
         if request.method in _SAFE_METHODS or _is_exempt(request.url.path):
-            return await call_next(request)
+            return await call_next(request)  # type: ignore[no-any-return]
 
         # Bearer token auth (mobile/API clients) is not vulnerable to CSRF —
         # an attacker cannot forge the Authorization header cross-origin.
         auth_header = request.headers.get("authorization", "")
         if auth_header.startswith("Bearer "):
-            return await call_next(request)
+            return await call_next(request)  # type: ignore[no-any-return]
 
         # Read the cookie value and the header value.
         cookie_token = request.cookies.get("csrf_token")
@@ -100,4 +100,4 @@ class CSRFMiddleware(BaseHTTPMiddleware):
                 },
             )
 
-        return await call_next(request)
+        return await call_next(request)  # type: ignore[no-any-return]

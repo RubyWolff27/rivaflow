@@ -84,7 +84,7 @@ class WhoopConnectionRepository(BaseRepository):
                     user_id,
                 ),
             )
-            return cursor.rowcount > 0
+            return bool(cursor.rowcount > 0)
 
     @staticmethod
     def update_last_synced(user_id: int) -> bool:
@@ -100,7 +100,7 @@ class WhoopConnectionRepository(BaseRepository):
                     """),
                 (_now_iso(), _now_iso(), user_id),
             )
-            return cursor.rowcount > 0
+            return bool(cursor.rowcount > 0)
 
     @staticmethod
     def upsert(
@@ -135,7 +135,7 @@ class WhoopConnectionRepository(BaseRepository):
                             """),
                         (whoop_user_id, scopes, _now_iso(), user_id),
                     )
-            return existing["id"]
+            return int(existing["id"])
         return WhoopConnectionRepository.create(
             user_id,
             access_token_encrypted,
@@ -154,7 +154,7 @@ class WhoopConnectionRepository(BaseRepository):
                 convert_query("DELETE FROM whoop_connections WHERE user_id = ?"),
                 (user_id,),
             )
-            return cursor.rowcount > 0
+            return bool(cursor.rowcount > 0)
 
     @staticmethod
     def update_auto_create(user_id: int, enabled: bool) -> bool:
@@ -170,7 +170,7 @@ class WhoopConnectionRepository(BaseRepository):
                     """),
                 (enabled, _now_iso(), user_id),
             )
-            return cursor.rowcount > 0
+            return bool(cursor.rowcount > 0)
 
     @staticmethod
     def update_auto_fill_readiness(user_id: int, enabled: bool) -> bool:
@@ -186,4 +186,4 @@ class WhoopConnectionRepository(BaseRepository):
                     """),
                 (enabled, _now_iso(), user_id),
             )
-            return cursor.rowcount > 0
+            return bool(cursor.rowcount > 0)

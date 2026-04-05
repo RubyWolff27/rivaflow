@@ -82,11 +82,11 @@ class FeedbackRepository(BaseRepository):
                 params.append(category)
 
             query += " ORDER BY created_at DESC LIMIT ? OFFSET ?"
-            params.extend([limit, offset])
+            params.extend([limit, offset])  # type: ignore[list-item]
 
             cursor.execute(convert_query(query), params)
             rows = cursor.fetchall()
-            return [FeedbackRepository._row_to_dict(row) for row in rows]
+            return [FeedbackRepository._row_to_dict(row) for row in rows]  # type: ignore[misc]
 
     @staticmethod
     def list_by_user(user_id: int, limit: int = 50) -> list[dict[str, Any]]:
@@ -103,7 +103,7 @@ class FeedbackRepository(BaseRepository):
                 (user_id, limit),
             )
             rows = cursor.fetchall()
-            return [FeedbackRepository._row_to_dict(row) for row in rows]
+            return [FeedbackRepository._row_to_dict(row) for row in rows]  # type: ignore[misc]
 
     @staticmethod
     def update_status(
@@ -134,7 +134,7 @@ class FeedbackRepository(BaseRepository):
                     (status, admin_notes, datetime.now(), feedback_id),
                 )
 
-            return cursor.rowcount > 0
+            return bool(cursor.rowcount > 0)
 
     @staticmethod
     def get_stats() -> dict[str, Any]:

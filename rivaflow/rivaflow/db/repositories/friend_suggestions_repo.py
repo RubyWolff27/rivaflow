@@ -94,7 +94,7 @@ class FriendSuggestionsRepository(BaseRepository):
                 """),
                 (datetime.now().isoformat(), user_id, suggested_user_id),
             )
-            return cursor.rowcount > 0
+            return bool(cursor.rowcount > 0)
 
     @staticmethod
     def clear_expired_suggestions(user_id: int) -> int:
@@ -108,7 +108,7 @@ class FriendSuggestionsRepository(BaseRepository):
                 """),
                 (user_id, datetime.now().isoformat()),
             )
-            return cursor.rowcount
+            return int(cursor.rowcount)
 
     @staticmethod
     def clear_all_suggestions(user_id: int) -> int:
@@ -119,7 +119,7 @@ class FriendSuggestionsRepository(BaseRepository):
                 convert_query("DELETE FROM friend_suggestions WHERE user_id = ?"),
                 (user_id,),
             )
-            return cursor.rowcount
+            return int(cursor.rowcount)
 
     @staticmethod
     def suggestion_exists(user_id: int, suggested_user_id: int) -> bool:
@@ -136,7 +136,7 @@ class FriendSuggestionsRepository(BaseRepository):
             )
             row = cursor.fetchone()
             count = row["count"]
-            return count > 0
+            return bool(count > 0)
 
     @staticmethod
     def _row_to_dict(row) -> dict[str, Any]:

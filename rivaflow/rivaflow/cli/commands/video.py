@@ -53,7 +53,7 @@ def add(
     video = service.get_video(user_id, video_id)
     prompts.print_success(f"Video added (ID: {video_id})")
     console.print()
-    console.print(service.format_video_summary(video))
+    console.print(service.format_video_summary(video))  # type: ignore[arg-type]
 
 
 @app.command()
@@ -116,7 +116,7 @@ def search(
 ):
     """Search videos by title or URL."""
     service = VideoService()
-    videos = service.search_videos(query)
+    videos = service.search_videos(query)  # type: ignore[arg-type,call-arg]
 
     if not videos:
         console.print(f"[yellow]No videos found matching '{query}'[/yellow]")
@@ -138,7 +138,7 @@ def delete(
     service = VideoService()
 
     # Get video to show what will be deleted
-    video = service.get_video(video_id)
+    video = service.get_video(video_id)  # type: ignore[call-arg]
     if not video:
         prompts.print_error(f"Video ID {video_id} not found")
         raise typer.Exit(1)
@@ -153,5 +153,5 @@ def delete(
         return
 
     # Delete
-    service.delete_video(video_id)
+    service.delete_video(video_id)  # type: ignore[call-arg]
     prompts.print_success(f"Video {video_id} deleted")

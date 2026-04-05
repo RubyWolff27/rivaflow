@@ -64,7 +64,7 @@ class EmailService:
             self.enabled = True
             logger.info("Email service configured with SMTP")
         else:
-            self.method = None
+            self.method = None  # type: ignore[assignment]
             self.enabled = False
             logger.warning(
                 "Email service not configured. Set SENDGRID_API_KEY "
@@ -205,7 +205,7 @@ class EmailService:
             # Connect to SMTP server and send
             with smtplib.SMTP(self.smtp_host, self.smtp_port, timeout=10) as server:
                 server.starttls()
-                server.login(self.smtp_user, self.smtp_password)
+                server.login(self.smtp_user, self.smtp_password)  # type: ignore[arg-type]
                 server.send_message(msg)
 
             logger.info("Email sent successfully to %s via SMTP", to_email)

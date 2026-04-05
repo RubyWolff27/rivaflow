@@ -25,7 +25,7 @@ class VideoService:
         technique_id = None
         if technique_name:
             technique = self.technique_repo.get_or_create(technique_name)
-            technique_id = technique["id"]
+            technique_id = technique["id"]  # type: ignore[index]
 
         return self.video_repo.create(
             url=url,

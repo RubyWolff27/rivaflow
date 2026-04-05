@@ -186,7 +186,7 @@ class GamePlanNodeRepository(BaseRepository):
                 ),
                 (node_id, plan_id),
             )
-            return cursor.rowcount > 0
+            return bool(cursor.rowcount > 0)
 
     @staticmethod
     def set_focus_nodes(plan_id: int, node_ids: list[int]) -> None:

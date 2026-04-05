@@ -205,7 +205,7 @@ class SocialConnectionRepository(BaseRepository):
                 (connection_id, requester_id),
             )
 
-            return cursor.rowcount > 0
+            return bool(cursor.rowcount > 0)
 
     @staticmethod
     def unfriend(user_id: int, friend_user_id: int) -> bool:
@@ -232,7 +232,7 @@ class SocialConnectionRepository(BaseRepository):
                 (user_id, friend_user_id, friend_user_id, user_id),
             )
 
-            return cursor.rowcount > 0
+            return bool(cursor.rowcount > 0)
 
     @staticmethod
     def get_friend_ids(user_id: int) -> list[int]:
@@ -449,7 +449,7 @@ class SocialConnectionRepository(BaseRepository):
                 (blocker_id, blocked_id),
             )
 
-            return cursor.rowcount > 0
+            return bool(cursor.rowcount > 0)
 
     @staticmethod
     def get_blocked_users(blocker_id: int) -> list[dict[str, Any]]:

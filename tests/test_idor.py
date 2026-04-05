@@ -57,7 +57,7 @@ def _ensure_profile(user):
                 convert_query(
                     "INSERT INTO profile "
                     "(user_id, first_name, last_name) "
-                    "VALUES (?, ?, ?)"
+                    "VALUES (%s, %s, %s)"
                 ),
                 (
                     user["id"],
@@ -562,7 +562,7 @@ class TestVideosIDOR:
                 cursor,
                 """
                 INSERT INTO movements_glossary (name, category, description)
-                VALUES (?, ?, ?)
+                VALUES (%s, %s, %s)
                 """,
                 ("Test Armbar", "submission", "A test armbar movement"),
             )

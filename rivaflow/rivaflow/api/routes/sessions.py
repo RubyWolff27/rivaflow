@@ -103,7 +103,7 @@ def _trigger_post_session_hooks(
 
             roll_repo = SessionRollRepository()
             friend_repo = FriendRepository()
-            rolls = roll_repo.list_by_session(user_id, session_id)
+            rolls = roll_repo.list_by_session(user_id, session_id)  # type: ignore[attr-defined]
             friend_user_ids = SocialConnectionRepository.get_friend_ids(user_id)
 
             for roll in rolls:

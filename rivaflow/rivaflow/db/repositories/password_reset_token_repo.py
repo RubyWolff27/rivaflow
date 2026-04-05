@@ -154,7 +154,7 @@ class PasswordResetTokenRepository(BaseRepository):
                 """),
                 (token_hash,),
             )
-            return cursor.rowcount > 0
+            return bool(cursor.rowcount > 0)
 
     @staticmethod
     def get_user_id_from_token(token: str) -> int | None:
@@ -196,7 +196,7 @@ class PasswordResetTokenRepository(BaseRepository):
                 """),
                 (user_id,),
             )
-            return cursor.rowcount
+            return int(cursor.rowcount)
 
     @staticmethod
     def cleanup_expired_tokens(days_old: int = 7) -> int:
@@ -220,7 +220,7 @@ class PasswordResetTokenRepository(BaseRepository):
                 """),
                 (cutoff.isoformat(),),
             )
-            return cursor.rowcount
+            return int(cursor.rowcount)
 
     @staticmethod
     def count_recent_requests(user_id: int, hours: int = 1) -> int:
@@ -251,4 +251,4 @@ class PasswordResetTokenRepository(BaseRepository):
             row = cursor.fetchone()
             if not row:
                 return 0
-            return row["count"]
+            return int(row["count"])

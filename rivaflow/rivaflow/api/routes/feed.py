@@ -34,7 +34,7 @@ def get_activity_feed(
         limit=limit,
         offset=offset,
         cursor=cursor,
-        days_back=days_back,
+        days_back=days_back,  # type: ignore[arg-type]
         enrich_social=enrich_social,
     )
 
@@ -63,5 +63,5 @@ def get_friends_feed(
         limit=limit,
         offset=offset,
         cursor=cursor,
-        days_back=days_back,
+        days_back=days_back,  # type: ignore[arg-type]
     )

@@ -115,7 +115,7 @@ def get_week_summary(user_id: int) -> dict:
 
 
 @app.callback(invoke_without_command=True)
-def dashboard(ctx: typer.Context = None):
+def dashboard(ctx: typer.Context = None):  # type: ignore[assignment]
     """
     Display today's dashboard with quick actions.
     This is the DEFAULT command when user types just 'rivaflow'.
@@ -220,10 +220,10 @@ def dashboard(ctx: typer.Context = None):
     # Today's status
     if has_checked_in:
         status_icon = "✅"
-        if today_checkin["checkin_type"] == "session":
+        if today_checkin["checkin_type"] == "session":  # type: ignore[index]
             status_msg = "Checked in (Training session logged)"
-        elif today_checkin["checkin_type"] == "rest":
-            rest_type = today_checkin.get("rest_type", "recovery")
+        elif today_checkin["checkin_type"] == "rest":  # type: ignore[index]
+            rest_type = today_checkin.get("rest_type", "recovery")  # type: ignore[union-attr]
             status_msg = f"Checked in (Rest day - {rest_type})"
         else:
             status_msg = "Checked in (Readiness only)"
@@ -253,11 +253,11 @@ def dashboard(ctx: typer.Context = None):
         console.print()
 
     # Show insight if checked in today
-    if has_checked_in and today_checkin.get("insight_shown"):
+    if has_checked_in and today_checkin.get("insight_shown"):  # type: ignore[union-attr]
         import json
 
         try:
-            insight = json.loads(today_checkin["insight_shown"])
+            insight = json.loads(today_checkin["insight_shown"])  # type: ignore[index]
             console.print(
                 f"  [bold]{insight.get('icon', '💡')} {insight.get('title', 'INSIGHT').upper()}:[/bold]"
             )

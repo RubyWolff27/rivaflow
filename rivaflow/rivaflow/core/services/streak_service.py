@@ -47,7 +47,7 @@ class StreakService:
         new_checkin_streak = self.streak_repo.update_streak(
             user_id, "checkin", checkin_date
         )
-        result["checkin_streak"] = new_checkin_streak
+        result["checkin_streak"] = new_checkin_streak  # type: ignore[assignment]
 
         if new_checkin_streak["current_streak"] > old_checkin_streak["current_streak"]:
             result["streak_extended"] = True
@@ -67,7 +67,7 @@ class StreakService:
             new_training_streak = self.streak_repo.update_streak(
                 user_id, "training", checkin_date
             )
-            result["training_streak"] = new_training_streak
+            result["training_streak"] = new_training_streak  # type: ignore[assignment]
 
             if (
                 new_training_streak["current_streak"]
@@ -130,7 +130,7 @@ class StreakService:
         }
 
         streaks["any_at_risk"] = (
-            self.streak_repo.is_streak_at_risk(user_id, "checkin")
+            self.streak_repo.is_streak_at_risk(user_id, "checkin")  # type: ignore[assignment]
             or self.streak_repo.is_streak_at_risk(user_id, "training")
             or self.streak_repo.is_streak_at_risk(user_id, "readiness")
         )

@@ -77,4 +77,4 @@ class GamePlanEdgeRepository(BaseRepository):
                 ),
                 (edge_id, plan_id),
             )
-            return cursor.rowcount > 0
+            return bool(cursor.rowcount > 0)

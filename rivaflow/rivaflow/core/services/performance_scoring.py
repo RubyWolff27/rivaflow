@@ -71,7 +71,7 @@ def calculate_daily_timeseries(
 ) -> dict[str, list[float]]:
     """Calculate daily aggregated time series data for sparklines."""
     # Create a dict for each day in the range
-    daily_data = defaultdict(
+    daily_data = defaultdict(  # type: ignore[var-annotated]
         lambda: {
             "sessions": 0,
             "total_intensity": 0,
@@ -117,10 +117,10 @@ def calculate_daily_timeseries(
         current_day += timedelta(days=1)
 
     return {
-        "sessions": sessions_series,
+        "sessions": sessions_series,  # type: ignore[dict-item]
         "intensity": intensity_series,
-        "rolls": rolls_series,
-        "submissions": submissions_series,
+        "rolls": rolls_series,  # type: ignore[dict-item]
+        "submissions": submissions_series,  # type: ignore[dict-item]
     }
 
 
@@ -138,7 +138,7 @@ def calculate_partner_session_distribution(
     rolls_by_session = roll_repo.get_by_session_ids(user_id, session_ids)
 
     # Count sessions per partner
-    partner_session_count = defaultdict(int)
+    partner_session_count = defaultdict(int)  # type: ignore[var-annotated]
     partner_names = {}
 
     # Build name->id lookup from friends for matching simple partners
@@ -246,7 +246,7 @@ def get_session_date(
     sd = session["session_date"]
     if isinstance(sd, str):
         return date.fromisoformat(sd)
-    return sd
+    return sd  # type: ignore[no-any-return]
 
 
 def compute_performance_overview(
@@ -270,7 +270,7 @@ def compute_performance_overview(
     )
 
     # Submission success over time (monthly)
-    monthly_stats = defaultdict(lambda: {"for": 0, "against": 0, "ratio": 0})
+    monthly_stats = defaultdict(lambda: {"for": 0, "against": 0, "ratio": 0})  # type: ignore[var-annotated]
     for session in sessions:
         month_key = session["session_date"].strftime("%Y-%m")
         monthly_stats[month_key]["for"] += session["submissions_for"]
@@ -281,11 +281,11 @@ def compute_performance_overview(
         for_count = monthly_stats[month]["for"]
         against_count = monthly_stats[month]["against"]
         if against_count > 0:
-            monthly_stats[month]["ratio"] = round(for_count / against_count, 2)
+            monthly_stats[month]["ratio"] = round(for_count / against_count, 2)  # type: ignore[assignment]
         elif for_count > 0:
-            monthly_stats[month]["ratio"] = float(for_count)
+            monthly_stats[month]["ratio"] = float(for_count)  # type: ignore[assignment]
         else:
-            monthly_stats[month]["ratio"] = 0.0
+            monthly_stats[month]["ratio"] = 0.0  # type: ignore[assignment]
 
     # Training volume calendar (daily)
     volume_calendar = []
@@ -301,8 +301,8 @@ def compute_performance_overview(
         )
 
     # Top submissions (requires roll data with movement IDs)
-    top_subs_for = Counter()
-    top_subs_against = Counter()
+    top_subs_for = Counter()  # type: ignore[var-annotated]
+    top_subs_against = Counter()  # type: ignore[var-annotated]
 
     # Get detailed rolls in bulk to avoid N+1 queries
     session_ids = [session["id"] for session in sessions]
@@ -477,7 +477,7 @@ def compute_partner_analytics(
                 continue  # already counted via session_rolls
             if name_lower in session_partners_json.get(s["id"], set()):
                 simple_count += 1
-                sd = s.get("session_date")
+                sd = s.get("session_date")  # type: ignore[assignment]
                 if sd:
                     if isinstance(sd, str):
                         sd = date.fromisoformat(sd)

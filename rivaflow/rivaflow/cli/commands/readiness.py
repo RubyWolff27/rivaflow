@@ -106,27 +106,27 @@ def readiness(
             "Any hotspots? (injury/soreness location, optional)"
         )
         if not hotspot_note:
-            hotspot_note = None
+            hotspot_note = None  # type: ignore[assignment]
 
         # Save readiness
         service.log_readiness(
             user_id=user_id,
             check_date=target_date,
-            sleep=sleep,
-            stress=stress,
-            soreness=soreness,
-            energy=energy,
+            sleep=sleep,  # type: ignore[arg-type]
+            stress=stress,  # type: ignore[arg-type]
+            soreness=soreness,  # type: ignore[arg-type]
+            energy=energy,  # type: ignore[arg-type]
             hotspot_note=hotspot_note,
         )
 
         # Display summary
         readiness_entry = service.get_readiness(user_id, target_date)
         prompts.console.print()
-        prompts.console.print(service.format_readiness_summary(readiness_entry))
+        prompts.console.print(service.format_readiness_summary(readiness_entry))  # type: ignore[arg-type]
 
         # Engagement features (v0.2) - only for today's check-ins
         if target_date == date.today():
-            _add_engagement_features_readiness(user_id, readiness_entry["id"])
+            _add_engagement_features_readiness(user_id, readiness_entry["id"])  # type: ignore[index]
     except Exception as e:
         handle_error(e, context="logging readiness check-in")
 
@@ -201,7 +201,7 @@ def _add_engagement_features_readiness(user_id: int, readiness_id: int):
 
     engine = SuggestionEngine()
     try:
-        result = engine.get_suggestion()
+        result = engine.get_suggestion()  # type: ignore[call-arg]
         prompts.console.print("  [bold]TODAY'S RECOMMENDATION:[/bold]")
         prompts.console.print(f"  [cyan]{result['suggestion']}[/cyan]")
         prompts.console.print()

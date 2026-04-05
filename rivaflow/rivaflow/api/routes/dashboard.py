@@ -106,7 +106,7 @@ def _get_dashboard_summary_cached(
     latest_readiness = readiness_service.get_latest_readiness(user_id)
 
     # Get class type distribution
-    class_type_distribution = {}
+    class_type_distribution = {}  # type: ignore[var-annotated]
     for session in recent_sessions:
         class_type = session.get("class_type", "unknown")
         class_type_distribution[class_type] = (
@@ -268,7 +268,7 @@ def get_week_summary(
     total_rolls = sum(s.get("rolls", 0) for s in sessions)
 
     # Class type breakdown
-    class_types = {}
+    class_types = {}  # type: ignore[var-annotated]
     for session in sessions:
         ct = session.get("class_type", "unknown")
         class_types[ct] = class_types.get(ct, 0) + 1

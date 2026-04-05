@@ -276,7 +276,7 @@ def compute_class_type_effectiveness(
             }
         )
 
-    effectiveness.sort(key=lambda x: x["sessions"], reverse=True)  # type: ignore[return-value]
+    effectiveness.sort(key=lambda x: x["sessions"], reverse=True)  # type: ignore[arg-type,return-value]
     return {"class_types": effectiveness}
 
 
@@ -352,7 +352,7 @@ def compute_instructor_analytics(
         total_subs_against = sum(s["submissions_against"] for s in instructor_sessions)
 
         # Analyze techniques taught
-        techniques_taught = Counter()
+        techniques_taught = Counter()  # type: ignore[var-annotated]
         for session in instructor_sessions:
             if session.get("techniques"):
                 techniques_taught.update(session["techniques"])

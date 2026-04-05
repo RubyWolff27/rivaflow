@@ -13,10 +13,10 @@ try:
     REDIS_AVAILABLE = True
 except ImportError:
     REDIS_AVAILABLE = False
-    redis = None
-    RedisError = Exception
-    ConnectionError = Exception
-    TimeoutError = Exception
+    redis = None  # type: ignore[assignment]
+    RedisError = Exception  # type: ignore[assignment,misc]
+    ConnectionError = Exception  # type: ignore[assignment,misc]
+    TimeoutError = Exception  # type: ignore[assignment,misc]
 
 logger = logging.getLogger(__name__)
 
@@ -61,7 +61,7 @@ class RedisClient:
                 max_connections=10,
             )
             # Test connection
-            self._client.ping()
+            self._client.ping()  # type: ignore[attr-defined]
             logger.info("Redis client connected to %s", self.redis_url)
         except (RedisError, ConnectionError, Exception) as e:
             logger.warning(

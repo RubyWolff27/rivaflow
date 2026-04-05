@@ -101,9 +101,9 @@ def execute_insert(cursor, query: str, params: tuple) -> int:
     # Handle both dict-like and tuple-like results
     try:
         if hasattr(result, "keys"):
-            return result["id"]
+            return int(result["id"])
         else:
-            return result[0]
+            return int(result[0])
     except (KeyError, IndexError, TypeError) as e:
         logger.error("Failed to extract ID from result: %s, error: %s", result, e)
         raise ValueError(f"Could not extract ID from INSERT result: {result}")
@@ -436,7 +436,7 @@ def get_cursor(conn: "psycopg2.extensions.connection"):
     return conn.cursor()
 
 
-def get_last_insert_id(cursor, table_name: str = None) -> int:
+def get_last_insert_id(cursor, table_name: str = None) -> int:  # type: ignore[assignment]
     """
     Get the last inserted ID by querying the PostgreSQL sequence.
 
@@ -454,7 +454,7 @@ def get_last_insert_id(cursor, table_name: str = None) -> int:
             "SELECT currval(pg_get_serial_sequence(%s, 'id'))",
             (table_name,),
         )
-        return cursor.fetchone()[0]
+        return int(cursor.fetchone()[0])
     else:
         raise ValueError("table_name is required for PostgreSQL")
 

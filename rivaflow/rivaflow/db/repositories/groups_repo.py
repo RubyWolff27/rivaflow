@@ -136,7 +136,7 @@ class GroupsRepository(BaseRepository):
                 ),
                 (group_id, user_id),
             )
-            return cursor.rowcount > 0
+            return bool(cursor.rowcount > 0)
 
     @staticmethod
     def get_members(group_id: int) -> list[dict]:
@@ -211,7 +211,7 @@ class GroupsRepository(BaseRepository):
             params.append(group_id)
             query = f"UPDATE groups SET {', '.join(updates)}" " WHERE id = ?"
             cursor.execute(convert_query(query), params)
-            return cursor.rowcount > 0
+            return bool(cursor.rowcount > 0)
 
     @staticmethod
     def delete(group_id: int, user_id: int) -> bool:
@@ -226,7 +226,7 @@ class GroupsRepository(BaseRepository):
                 convert_query("DELETE FROM groups WHERE id = ?"),
                 (group_id,),
             )
-            return cursor.rowcount > 0
+            return bool(cursor.rowcount > 0)
 
     @staticmethod
     def get_member_count(group_id: int) -> int:

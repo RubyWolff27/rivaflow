@@ -40,8 +40,8 @@ def show_milestone_celebration(milestone: dict, user_id: int):
     milestone_service = MilestoneService()
     totals = milestone_service.get_current_totals(user_id)
     current = totals.get(milestone["milestone_type"], 0)
-    next_ms = milestone_service.milestone_repo.get_next_milestone(
-        user_id, milestone["milestone_type"], current
+    next_ms = milestone_service.milestone_repo.get_next_milestone(  # type: ignore[call-arg]
+        user_id, milestone["milestone_type"], current  # type: ignore[arg-type]
     )
 
     if next_ms:

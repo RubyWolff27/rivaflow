@@ -51,7 +51,7 @@ class GoalsService:
 
         # Resolve timezone: param > profile > UTC
         if not tz:
-            profile_tz = self.profile_repo.get(user_id).get("timezone")
+            profile_tz = self.profile_repo.get(user_id).get("timezone")  # type: ignore[union-attr]
             if profile_tz:
                 tz = profile_tz
 
@@ -62,12 +62,12 @@ class GoalsService:
         # Get profile targets
         profile = self.profile_repo.get(user_id)
         targets = {
-            "sessions": profile.get("weekly_sessions_target", 3),
-            "hours": profile.get("weekly_hours_target", 4.5),
-            "rolls": profile.get("weekly_rolls_target", 15),
-            "bjj_sessions": profile.get("weekly_bjj_sessions_target", 3),
-            "sc_sessions": profile.get("weekly_sc_sessions_target", 1),
-            "mobility_sessions": profile.get("weekly_mobility_sessions_target", 0),
+            "sessions": profile.get("weekly_sessions_target", 3),  # type: ignore[union-attr]
+            "hours": profile.get("weekly_hours_target", 4.5),  # type: ignore[union-attr]
+            "rolls": profile.get("weekly_rolls_target", 15),  # type: ignore[union-attr]
+            "bjj_sessions": profile.get("weekly_bjj_sessions_target", 3),  # type: ignore[union-attr]
+            "sc_sessions": profile.get("weekly_sc_sessions_target", 1),  # type: ignore[union-attr]
+            "mobility_sessions": profile.get("weekly_mobility_sessions_target", 0),  # type: ignore[union-attr]
         }
 
         # Get actual progress from sessions this week
@@ -308,7 +308,7 @@ class GoalsService:
         if weekly_sessions_target is not None:
             updates["weekly_sessions_target"] = weekly_sessions_target
         if weekly_hours_target is not None:
-            updates["weekly_hours_target"] = weekly_hours_target
+            updates["weekly_hours_target"] = weekly_hours_target  # type: ignore[assignment]
         if weekly_rolls_target is not None:
             updates["weekly_rolls_target"] = weekly_rolls_target
         if weekly_bjj_sessions_target is not None:
@@ -319,7 +319,7 @@ class GoalsService:
             updates["weekly_mobility_sessions_target"] = weekly_mobility_sessions_target
 
         if not updates:
-            return profile
+            return profile  # type: ignore[return-value]
 
         # Update profile — whitelist validation BEFORE building query
         valid_goal_fields = {
@@ -336,7 +336,7 @@ class GoalsService:
 
         ProfileRepository.update_goal_fields(user_id, updates)
 
-        return self.profile_repo.get(user_id)
+        return self.profile_repo.get(user_id)  # type: ignore[return-value]
 
     def get_goals_summary(self, user_id: int, tz: str | None = None) -> dict:
         """Get comprehensive goals and streaks overview.

@@ -19,7 +19,7 @@ def prompt_text(
         # Show autocomplete hints if available
         console.print(f"[dim]Recent: {', '.join(autocomplete[:5])}[/dim]")
 
-    return Prompt.ask(message, default=default, choices=choices)
+    return Prompt.ask(message, default=default, choices=choices)  # type: ignore[arg-type]
 
 
 def prompt_int(
@@ -28,7 +28,7 @@ def prompt_int(
     """Prompt for integer input."""
     while True:
         value = IntPrompt.ask(message, default=default)
-        if min_val <= value <= max_val:
+        if min_val <= value <= max_val:  # type: ignore[operator]
             return value
         console.print(f"[red]Value must be between {min_val} and {max_val}[/red]")
 
@@ -58,7 +58,7 @@ def prompt_choice(message: str, choices: list[str], default: str | None = None) 
     for i, choice in enumerate(choices, 1):
         console.print(f"  {i}. {choice}")
 
-    return Prompt.ask(message, choices=choices, default=default)
+    return Prompt.ask(message, choices=choices, default=default)  # type: ignore[arg-type]
 
 
 def confirm(message: str, default: bool = False) -> bool:

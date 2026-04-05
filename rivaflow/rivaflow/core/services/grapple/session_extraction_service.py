@@ -91,4 +91,4 @@ async def extract_session_from_text(text: str, user_id: int) -> dict:
 
     parsed["_llm_tokens"] = result.get("total_tokens", 0)
     parsed["_llm_cost"] = result.get("cost_usd", 0.0)
-    return parsed
+    return parsed  # type: ignore[no-any-return]

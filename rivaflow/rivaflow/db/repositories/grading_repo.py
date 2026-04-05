@@ -162,7 +162,7 @@ class GradingRepository(BaseRepository):
                 convert_query("DELETE FROM gradings WHERE id = ? AND user_id = ?"),
                 (grading_id, user_id),
             )
-            return cursor.rowcount > 0
+            return bool(cursor.rowcount > 0)
 
     @staticmethod
     def _row_to_dict(row) -> dict:

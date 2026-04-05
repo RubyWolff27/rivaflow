@@ -104,7 +104,7 @@ class ActivityPhotoRepository(BaseRepository):
                 ),
                 (photo_id, user_id),
             )
-            return cursor.rowcount > 0
+            return bool(cursor.rowcount > 0)
 
     @staticmethod
     def delete_by_activity(user_id: int, activity_type: str, activity_id: int) -> None:
@@ -131,7 +131,7 @@ class ActivityPhotoRepository(BaseRepository):
                 """),
                 (caption, photo_id, user_id),
             )
-            return cursor.rowcount > 0
+            return bool(cursor.rowcount > 0)
 
     @staticmethod
     def batch_get_by_activities(
@@ -188,4 +188,4 @@ class ActivityPhotoRepository(BaseRepository):
                 (user_id, activity_type, activity_id),
             )
             row = cursor.fetchone()
-            return row["count"]
+            return int(row["count"])

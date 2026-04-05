@@ -49,7 +49,7 @@ class StreakAnalyticsService:
         )
 
         # Weekly volume
-        weekly_stats = defaultdict(lambda: {"sessions": 0, "hours": 0, "rolls": 0})
+        weekly_stats = defaultdict(lambda: {"sessions": 0, "hours": 0, "rolls": 0})  # type: ignore[var-annotated]
         for session in sessions:
             week_key = session["session_date"].strftime("%Y-W%U")
             weekly_stats[week_key]["sessions"] += 1

@@ -164,7 +164,7 @@ class FriendSuggestionsService:
 
         # Load profiles for both users (cached per generation run)
         if not hasattr(self, "_profile_cache"):
-            self._profile_cache: dict[int, dict[str, Any] | None] = {}
+            self._profile_cache: dict[int, dict[str, Any] | None] = {}  # type: ignore[no-redef]
 
         if user_id not in self._profile_cache:
             self._profile_cache[user_id] = ProfileRepository.get(user_id)

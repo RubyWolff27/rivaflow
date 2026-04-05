@@ -55,8 +55,8 @@ def hash_password(password: str) -> str:
     if len(password_bytes) > 72:
         # Truncate to 72 bytes and decode, removing any partial characters
         truncated = password_bytes[:72].decode("utf-8", errors="ignore")
-        return pwd_context.hash(truncated)
-    return pwd_context.hash(password)
+        return pwd_context.hash(truncated)  # type: ignore[no-any-return]
+    return pwd_context.hash(password)  # type: ignore[no-any-return]
 
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
@@ -69,8 +69,8 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
     password_bytes = plain_password.encode("utf-8")
     if len(password_bytes) > 72:
         truncated = password_bytes[:72].decode("utf-8", errors="ignore")
-        return pwd_context.verify(truncated, hashed_password)
-    return pwd_context.verify(plain_password, hashed_password)
+        return bool(pwd_context.verify(truncated, hashed_password))
+    return bool(pwd_context.verify(plain_password, hashed_password))
 
 
 def create_access_token(data: dict, expires_delta: timedelta | None = None) -> str:
@@ -125,7 +125,7 @@ def decode_access_token(token: str) -> dict | None:
             issuer=_JWT_ISSUER,
             audience=_JWT_AUDIENCE,
         )
-        return payload
+        return payload  # type: ignore[no-any-return]
     except PyJWTError:
         return None
 

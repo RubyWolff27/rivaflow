@@ -219,7 +219,7 @@ class WhoopAnalyticsEngine:
         }
         gym_summary = {g: round(statistics.mean(vals), 3) for g, vals in by_gym.items()}
 
-        best_ct = max(ct_summary, key=ct_summary.get) if ct_summary else "N/A"
+        best_ct = max(ct_summary, key=ct_summary.get) if ct_summary else "N/A"  # type: ignore[arg-type]
         insight = (
             f"Overall strain efficiency: {overall} subs/strain."
             f" Most efficient class type: {best_ct}."
@@ -552,7 +552,7 @@ class WhoopAnalyticsEngine:
             )
 
         avg_values = [w["avg_rhr"] for w in weekly_avgs]
-        slope = _linear_slope(avg_values)
+        slope = _linear_slope(avg_values)  # type: ignore[arg-type]
 
         if slope < -0.3:
             trend = "improving"
@@ -794,7 +794,7 @@ class WhoopAnalyticsEngine:
                     statistics.mean(s["duration"] for s in sess_list),
                     0,
                 ),
-                "sub_rate": (
+                "sub_rate": (  # type: ignore[dict-item]
                     round(total_for / total_against, 2)
                     if total_against > 0
                     else float(total_for)

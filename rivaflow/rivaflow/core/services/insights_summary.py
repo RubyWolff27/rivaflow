@@ -273,7 +273,7 @@ def compute_recovery_insights(
     for entry in rest_analysis:
         if entry["sessions"] >= 2 and entry["avg_sub_rate"] > best_rate:
             best_rate = entry["avg_sub_rate"]
-            optimal = entry["rest_days"]
+            optimal = entry["rest_days"]  # type: ignore[assignment]
 
     insight = ""
     if abs(sleep_correlation) >= 0.3:

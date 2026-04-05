@@ -304,7 +304,7 @@ class GrappleStatsRepository(BaseRepository):
             cursor.close()
 
             if row:
-                return row["session_id"]
+                return row["session_id"]  # type: ignore[no-any-return]
             return None
 
     # ---- Feedback ----

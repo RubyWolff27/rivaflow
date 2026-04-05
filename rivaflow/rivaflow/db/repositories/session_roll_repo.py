@@ -117,7 +117,7 @@ class SessionRollRepository(BaseRepository):
             rows = cursor.fetchall()
 
             # Group rolls by session_id
-            rolls_by_session = {}
+            rolls_by_session = {}  # type: ignore[var-annotated]
             for row in rows:
                 roll_dict = SessionRollRepository._row_to_dict(row)
                 session_id = roll_dict["session_id"]
@@ -275,14 +275,14 @@ class SessionRollRepository(BaseRepository):
                     elif field == "submissions_against":
                         params.append(json.dumps(value) if value else None)
                     else:
-                        params.append(value)
+                        params.append(value)  # type: ignore[arg-type]
                     updates.append(f"{field} = ?")
 
             if not updates:
                 # No updates provided, just return current record
                 return SessionRollRepository.get_by_id(roll_id)
 
-            params.append(roll_id)
+            params.append(roll_id)  # type: ignore[arg-type]
             query = f"UPDATE session_rolls SET {', '.join(updates)} WHERE id = ?"
             cursor.execute(convert_query(query), params)
 
@@ -299,7 +299,7 @@ class SessionRollRepository(BaseRepository):
             cursor.execute(
                 convert_query("DELETE FROM session_rolls WHERE id = ?"), (roll_id,)
             )
-            return cursor.rowcount > 0
+            return bool(cursor.rowcount > 0)
 
     @staticmethod
     def delete_by_session(session_id: int) -> int:
@@ -310,7 +310,7 @@ class SessionRollRepository(BaseRepository):
                 convert_query("DELETE FROM session_rolls WHERE session_id = ?"),
                 (session_id,),
             )
-            return cursor.rowcount
+            return int(cursor.rowcount)
 
     @staticmethod
     def get_tagged_in_rolls(user_id: int, start_date: str, end_date: str) -> list[dict]:

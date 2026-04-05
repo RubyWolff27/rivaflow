@@ -263,7 +263,7 @@ class FeedService:
 
             session_date = redacted_session.get("session_date")
             if hasattr(session_date, "isoformat"):
-                session_date = session_date.isoformat()
+                session_date = session_date.isoformat()  # type: ignore[union-attr]
 
             # Build summary based on what's available after redaction
             summary_parts = []
@@ -345,7 +345,7 @@ class FeedService:
 
         # Add sessions where this user was tagged as a roll partner
         tagged_rolls = SessionRollRepository.get_tagged_in_rolls(
-            user_id, start_date, end_date
+            user_id, start_date, end_date  # type: ignore[arg-type]
         )
         # Group by session to avoid duplicates (multiple rolls in same session)
         tagged_sessions: dict[int, dict] = {}

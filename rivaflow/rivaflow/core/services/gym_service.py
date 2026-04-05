@@ -59,7 +59,7 @@ class GymService:
         cache_key = CacheKeys.gym_by_id(gym_id)
         cached = self.cache.get(cache_key)
         if cached is not None:
-            return cached
+            return cached  # type: ignore[no-any-return]
 
         # Fetch from database
         gym = self.repo.get_by_id(gym_id)
@@ -80,7 +80,7 @@ class GymService:
         )
         cached = self.cache.get(cache_key)
         if cached is not None:
-            return cached
+            return cached  # type: ignore[no-any-return]
 
         # Fetch from database
         gyms = self.repo.list_all(verified_only=verified_only)
@@ -96,7 +96,7 @@ class GymService:
         cache_key = CacheKeys.gym_search(query, verified_only=verified_only)
         cached = self.cache.get(cache_key)
         if cached is not None:
-            return cached
+            return cached  # type: ignore[no-any-return]
 
         # Fetch from database
         gyms = self.repo.search(query, verified_only=verified_only)
@@ -149,7 +149,7 @@ class GymService:
         cache_key = f"gym:timetable:{gym_id}"
         cached = self.cache.get(cache_key)
         if cached is not None:
-            return cached
+            return cached  # type: ignore[no-any-return]
 
         repo = GymClassRepository()
         classes = repo.get_by_gym(gym_id)
@@ -170,7 +170,7 @@ class GymService:
         cache_key = f"gym:timetable:{gym_id}:day:{day_of_week}"
         cached = self.cache.get(cache_key)
         if cached is not None:
-            return cached
+            return cached  # type: ignore[no-any-return]
 
         repo = GymClassRepository()
         classes = repo.get_by_gym_and_day(gym_id, day_of_week)

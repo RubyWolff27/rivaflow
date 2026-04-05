@@ -86,7 +86,7 @@ class WhoopRecoveryCacheRepository(BaseRepository):
                         row_id,
                     ),
                 )
-                return row_id
+                return int(row_id)
             else:
                 return execute_insert(
                     cursor,
@@ -170,7 +170,7 @@ class WhoopRecoveryCacheRepository(BaseRepository):
                 convert_query("DELETE FROM whoop_recovery_cache WHERE user_id = ?"),
                 (user_id,),
             )
-            return cursor.rowcount
+            return int(cursor.rowcount)
 
     @staticmethod
     def exists_by_cycle_id(user_id: int, whoop_cycle_id: str) -> bool:

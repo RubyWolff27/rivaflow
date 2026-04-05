@@ -173,7 +173,7 @@ class FriendRepository(BaseRepository):
 
             # Add updated_at timestamp
             updates.append("updated_at = CURRENT_TIMESTAMP")
-            params.extend([friend_id, user_id])
+            params.extend([friend_id, user_id])  # type: ignore[list-item]
 
             query = (
                 f"UPDATE friends SET {', '.join(updates)} WHERE id = ? AND user_id = ?"
@@ -194,7 +194,7 @@ class FriendRepository(BaseRepository):
                 convert_query("DELETE FROM friends WHERE id = ? AND user_id = ?"),
                 (friend_id, user_id),
             )
-            return cursor.rowcount > 0
+            return bool(cursor.rowcount > 0)
 
     @staticmethod
     def _row_to_dict(row) -> dict:

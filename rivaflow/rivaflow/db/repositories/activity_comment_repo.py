@@ -174,7 +174,7 @@ class ActivityCommentRepository(BaseRepository):
                 """),
                 (comment_id, user_id),
             )
-            return cursor.rowcount > 0
+            return bool(cursor.rowcount > 0)
 
     @staticmethod
     def delete_admin(comment_id: int) -> bool:
@@ -193,7 +193,7 @@ class ActivityCommentRepository(BaseRepository):
                 convert_query("DELETE FROM activity_comments WHERE id = ?"),
                 (comment_id,),
             )
-            return cursor.rowcount > 0
+            return bool(cursor.rowcount > 0)
 
     @staticmethod
     def get_comment_count(activity_type: str, activity_id: int) -> int:
@@ -220,7 +220,7 @@ class ActivityCommentRepository(BaseRepository):
             row = cursor.fetchone()
             if not row:
                 return 0
-            return row["count"]
+            return int(row["count"])
 
     @staticmethod
     def get_by_user(user_id: int, limit: int = 50, offset: int = 0) -> list[dict]:
@@ -247,7 +247,7 @@ class ActivityCommentRepository(BaseRepository):
                 (user_id, limit, offset),
             )
             rows = cursor.fetchall()
-            return [ActivityCommentRepository._row_to_dict(row) for row in rows]
+            return [ActivityCommentRepository._row_to_dict(row) for row in rows]  # type: ignore[misc]
 
     @staticmethod
     def admin_list_comments(limit: int = 100, offset: int = 0) -> dict:

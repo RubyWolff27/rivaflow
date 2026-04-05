@@ -62,7 +62,7 @@ class ActivityLikeRepository(BaseRepository):
                 """),
                 (user_id, activity_type, activity_id),
             )
-            return cursor.rowcount > 0
+            return bool(cursor.rowcount > 0)
 
     @staticmethod
     def get_like_count(activity_type: str, activity_id: int) -> int:
@@ -89,7 +89,7 @@ class ActivityLikeRepository(BaseRepository):
             row = cursor.fetchone()
             if not row:
                 return 0
-            return row["count"]
+            return int(row["count"])
 
     @staticmethod
     def has_user_liked(user_id: int, activity_type: str, activity_id: int) -> bool:
@@ -175,4 +175,4 @@ class ActivityLikeRepository(BaseRepository):
                 (user_id, limit, offset),
             )
             rows = cursor.fetchall()
-            return [ActivityLikeRepository._row_to_dict(row) for row in rows]
+            return [ActivityLikeRepository._row_to_dict(row) for row in rows]  # type: ignore[misc]

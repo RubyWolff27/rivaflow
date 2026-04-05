@@ -46,12 +46,12 @@ def health_check():
         from rivaflow.core.services.email_service import EmailService
 
         _email = EmailService()
-        health_status["email"] = {
+        health_status["email"] = {  # type: ignore[assignment]
             "enabled": _email.enabled,
             "method": _email.method or "none",
         }
     except Exception:
-        health_status["email"] = {"enabled": False, "method": "error"}
+        health_status["email"] = {"enabled": False, "method": "error"}  # type: ignore[assignment]
 
     # Check database connectivity
     try:

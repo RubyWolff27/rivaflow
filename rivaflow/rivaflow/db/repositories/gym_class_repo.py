@@ -122,7 +122,7 @@ class GymClassRepository(BaseRepository):
                 convert_query("DELETE FROM gym_classes WHERE id = ?"),
                 (class_id,),
             )
-            return cursor.rowcount > 0
+            return bool(cursor.rowcount > 0)
 
     @staticmethod
     def bulk_replace(gym_id: int, classes: list[dict]) -> list[int]:
