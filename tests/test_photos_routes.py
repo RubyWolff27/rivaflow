@@ -67,7 +67,7 @@ class TestUploadPhoto:
     """Tests for POST /api/v1/photos/upload."""
 
     def test_upload_requires_auth(self, client, temp_db):
-        """Unauthenticated upload returns 401."""
+        """Unauthenticated upload returns 403."""
         resp = client.post(
             "/api/v1/photos/upload",
             data={
@@ -77,7 +77,7 @@ class TestUploadPhoto:
             },
             files={"file": ("test.png", b"fake", "image/png")},
         )
-        assert resp.status_code == 401
+        assert resp.status_code == 403
 
     def test_upload_invalid_activity_type(self, authenticated_client, test_user):
         """Invalid activity type returns 400."""
@@ -184,9 +184,9 @@ class TestDeletePhoto:
     """Tests for DELETE /api/v1/photos/{photo_id}."""
 
     def test_delete_requires_auth(self, client, temp_db):
-        """Unauthenticated delete returns 401."""
+        """Unauthenticated delete returns 403."""
         resp = client.delete("/api/v1/photos/1")
-        assert resp.status_code == 401
+        assert resp.status_code == 403
 
     def test_delete_nonexistent_photo(self, authenticated_client, test_user):
         """Deleting a photo that doesn't exist returns 404."""

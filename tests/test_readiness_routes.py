@@ -50,7 +50,7 @@ class TestLogReadiness:
                 "energy": 3,
             },
         )
-        assert response.status_code == 401
+        assert response.status_code == 403
 
 
 class TestGetReadiness:

@@ -92,7 +92,7 @@ class TestCreateCustomMovement:
             "/api/v1/glossary/",
             json={"name": "Test Move", "category": "submission"},
         )
-        assert response.status_code == 401
+        assert response.status_code == 403
 
     def test_create_returns_movement(self, authenticated_client, test_user):
         """Test creating a custom movement returns created data."""

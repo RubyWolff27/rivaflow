@@ -42,12 +42,12 @@ class TestChatEndpoint:
     """Tests for POST /api/v1/chat/."""
 
     def test_chat_requires_auth(self, chat_client, temp_db):
-        """Unauthenticated request returns 401."""
+        """Unauthenticated state-changing request returns 403 (CSRF middleware fires before auth)."""
         resp = chat_client.post(
             "/api/v1/chat/",
             json={"messages": [{"role": "user", "content": "What is a kimura?"}]},
         )
-        assert resp.status_code == 401
+        assert resp.status_code == 403
 
     def test_chat_returns_503_when_disabled(self, authed_chat_client, test_user):
         """Returns 503 when CHAT_ENABLED is false."""

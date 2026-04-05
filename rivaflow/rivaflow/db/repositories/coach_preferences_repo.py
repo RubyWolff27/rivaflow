@@ -10,16 +10,30 @@ JSON_FIELDS = ("focus_areas", "injuries", "motivations")
 # Whitelist of valid column names to prevent SQL injection via dynamic keys.
 _VALID_COLUMNS = frozenset(
     {
+        # Core profile
+        "belt_level",
+        "competition_ruleset",
         "training_mode",
-        "current_belt",
-        "experience_years",
-        "competition_focus",
+        "primary_position",
+        "coaching_style",
+        # Competition context
+        "comp_date",
+        "comp_name",
+        "comp_division",
+        "comp_weight_class",
+        # Experience + goals
         "focus_areas",
+        "weaknesses",
         "injuries",
         "motivations",
-        "preferred_style",
-        "gi_preference",
+        "training_start_date",
+        "years_training",
+        "competition_experience",
+        "available_days_per_week",
         "additional_context",
+        # Gi / no-gi preference
+        "gi_nogi_preference",
+        "gi_bias_pct",
     }
 )
 

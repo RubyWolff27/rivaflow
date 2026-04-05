@@ -9,26 +9,26 @@ class TestLikeAuth:
     """Authentication tests for like endpoints."""
 
     def test_like_requires_auth(self, client, temp_db):
-        """Unauthenticated POST /like returns 401."""
+        """Unauthenticated POST /like returns 403."""
         response = client.post(
             "/api/v1/social/like",
             json={"activity_type": "session", "activity_id": 1},
         )
-        assert response.status_code == 401
+        assert response.status_code == 403
 
     def test_unlike_requires_auth(self, client, temp_db):
-        """Unauthenticated DELETE /like returns 401."""
+        """Unauthenticated DELETE /like returns 403."""
         response = client.request(
             "DELETE",
             "/api/v1/social/like",
             json={"activity_type": "session", "activity_id": 1},
         )
-        assert response.status_code == 401
+        assert response.status_code == 403
 
     def test_get_likes_requires_auth(self, client, temp_db):
-        """Unauthenticated GET /likes/{type}/{id} returns 401."""
+        """Unauthenticated GET /likes/{type}/{id} returns 403."""
         response = client.get("/api/v1/social/likes/session/1")
-        assert response.status_code == 401
+        assert response.status_code == 403
 
 
 class TestLikeActivity:

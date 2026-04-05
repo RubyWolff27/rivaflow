@@ -42,7 +42,7 @@ class TestCreateTechnique:
             "/api/v1/techniques/",
             json={"name": "Armbar", "category": "submission"},
         )
-        assert response.status_code == 401
+        assert response.status_code == 403
 
     def test_create_returns_technique(self, authenticated_client, test_user):
         """Test creating a technique returns created data."""

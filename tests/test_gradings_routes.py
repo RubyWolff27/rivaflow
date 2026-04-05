@@ -27,7 +27,7 @@ class TestCreateGrading:
     """Tests for POST /api/v1/gradings/."""
 
     def test_create_requires_auth(self, client, temp_db):
-        """Unauthenticated create returns 401."""
+        """Unauthenticated create returns 403."""
         response = client.post(
             "/api/v1/gradings/",
             json={
@@ -35,7 +35,7 @@ class TestCreateGrading:
                 "date_graded": "2025-06-15",
             },
         )
-        assert response.status_code == 401
+        assert response.status_code == 403
 
     def test_create_grading(self, authenticated_client, test_user):
         """Create a belt grading."""
@@ -101,12 +101,12 @@ class TestUpdateGrading:
     """Tests for PUT /api/v1/gradings/{grading_id}."""
 
     def test_update_requires_auth(self, client, temp_db):
-        """Unauthenticated update returns 401."""
+        """Unauthenticated update returns 403."""
         response = client.put(
             "/api/v1/gradings/1",
             json={"grade": "purple"},
         )
-        assert response.status_code == 401
+        assert response.status_code == 403
 
     def test_update_grading(self, authenticated_client, test_user):
         """Update a grading's grade and notes."""
@@ -137,9 +137,9 @@ class TestDeleteGrading:
     """Tests for DELETE /api/v1/gradings/{grading_id}."""
 
     def test_delete_requires_auth(self, client, temp_db):
-        """Unauthenticated delete returns 401."""
+        """Unauthenticated delete returns 403."""
         response = client.delete("/api/v1/gradings/1")
-        assert response.status_code == 401
+        assert response.status_code == 403
 
     def test_delete_grading(self, authenticated_client, test_user):
         """Delete a grading returns 204."""

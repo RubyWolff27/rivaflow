@@ -1,76 +1,31 @@
--- PostgreSQL version (auto-generated from sibling .sql file)
--- Translations applied: AUTOINCREMENT→BIGSERIAL, *_id INTEGER→BIGINT,
--- datetime('now')→CURRENT_TIMESTAMP, BOOLEAN 0/1→FALSE/TRUE,
--- PRAGMA/BEGIN/COMMIT removed, CREATE INDEX→IF NOT EXISTS.
--- Regenerate: bun /tmp/translate_sqlite_to_pg.py (see note in header)
-
 -- ============================================================
--- MIGRATION 034: Fix movements_glossary custom movements
--- Change custom movements to be per-user
--- Seeded movements remain global, custom movements are user-scoped
--- Like Strava: system activities are global, custom activities per-user
+-- MIGRATION 034: Fix movements_glossary custom movements (PostgreSQL)
 -- ============================================================
-
--- For SQLite: Need to recreate the table since it doesn't support DROP CONSTRAINT
+-- SQLite version uses table-recreation (CREATE _new → INSERT SELECT → DROP → RENAME)
+-- because SQLite can't DROP CONSTRAINT. Postgres can, so we use native
+-- ALTER TABLE ADD COLUMN which is much simpler and more reliable.
+--
+-- 2026-04-05 Sage: replaced auto-translated table-recreation (which was
+-- failing silently under SAVEPOINT isolation, leaving user_id absent) with
+-- this native ALTER TABLE approach. Root cause of admin_list_techniques
+-- 500 errors: column "user_id" does not exist.
+-- ============================================================
 
 -- Add user_id column for custom movements (NULL for seeded movements)
--- Create new movements_glossary table with all original columns plus user_id
-CREATE TABLE IF NOT EXISTS movements_glossary_new (
-    id BIGSERIAL PRIMARY KEY,
-    name TEXT NOT NULL,
-    category TEXT NOT NULL CHECK(category IN (
-        'position', 'submission', 'sweep', 'pass', 'takedown',
-        'escape', 'movement', 'concept', 'defense'
-    )),
-    subcategory TEXT,
-    points INTEGER DEFAULT 0,
-    description TEXT,
-    aliases TEXT,
-    gi_applicable INTEGER DEFAULT 1,
-    nogi_applicable INTEGER DEFAULT 1,
-    ibjjf_legal_white INTEGER DEFAULT 1,
-    ibjjf_legal_blue INTEGER DEFAULT 1,
-    ibjjf_legal_purple INTEGER DEFAULT 1,
-    ibjjf_legal_brown INTEGER DEFAULT 1,
-    ibjjf_legal_black INTEGER DEFAULT 1,
-    custom INTEGER DEFAULT 0,
-    gi_video_url TEXT,
-    nogi_video_url TEXT,
-    user_id BIGINT REFERENCES users(id) ON DELETE CASCADE,  -- NEW: NULL for seeded, user_id for custom
-    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
+ALTER TABLE movements_glossary
+    ADD COLUMN IF NOT EXISTS user_id BIGINT REFERENCES users(id) ON DELETE CASCADE;
 
-    -- Seeded movements: globally unique by name
-    -- Custom movements: unique per user by name
-    UNIQUE(name, custom, user_id)
-);
+-- Drop the old name-only uniqueness (migration 007 created UNIQUE on name).
+-- Try both common auto-generated constraint names — Postgres uses
+-- <table>_<column>_key by default.
+ALTER TABLE movements_glossary DROP CONSTRAINT IF EXISTS movements_glossary_name_key;
+DROP INDEX IF EXISTS idx_movements_glossary_name_unique;
 
--- Copy existing data (all columns from old table, NULL for new user_id column)
-INSERT INTO movements_glossary_new (
-    id, name, category, subcategory, points, description, aliases,
-    gi_applicable, nogi_applicable,
-    ibjjf_legal_white, ibjjf_legal_blue, ibjjf_legal_purple,
-    ibjjf_legal_brown, ibjjf_legal_black,
-    custom, gi_video_url, nogi_video_url,
-    user_id, created_at
-)
-SELECT
-    id, name, category, subcategory, points, description, aliases,
-    gi_applicable, nogi_applicable,
-    ibjjf_legal_white, ibjjf_legal_blue, ibjjf_legal_purple,
-    ibjjf_legal_brown, ibjjf_legal_black,
-    custom, gi_video_url, nogi_video_url,
-    NULL as user_id,  -- NEW column: NULL for all existing (seeded) movements
-    created_at
-FROM movements_glossary;
+-- New uniqueness: (name, custom, user_id). COALESCE(user_id, 0) ensures NULLs
+-- don't create infinite "unique" rows. Seeded movements (user_id=NULL→0) stay
+-- globally unique by name; custom movements (user_id=N) unique per user.
+CREATE UNIQUE INDEX IF NOT EXISTS idx_movements_glossary_name_custom_user
+    ON movements_glossary (name, custom, COALESCE(user_id, 0));
 
--- Drop old table
-DROP TABLE IF EXISTS movements_glossary;
-
--- Rename new table
-ALTER TABLE movements_glossary_new RENAME TO movements_glossary;
-
--- Recreate indices
-CREATE INDEX IF NOT EXISTS idx_movements_glossary_category ON movements_glossary(category);
-CREATE INDEX IF NOT EXISTS idx_movements_glossary_name ON movements_glossary(name);
-CREATE INDEX IF NOT EXISTS idx_movements_glossary_custom ON movements_glossary(custom);
+-- Index for user-scoped lookups
 CREATE INDEX IF NOT EXISTS idx_movements_glossary_user_id ON movements_glossary(user_id);

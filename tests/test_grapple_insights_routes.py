@@ -51,46 +51,46 @@ class TestGrappleInsightsAuth:
     """Auth and tier-gating tests for grapple insight endpoints."""
 
     def test_extract_session_unauthenticated(self, client, temp_db):
-        """POST /extract-session without auth returns 401."""
+        """POST /extract-session without auth returns 403."""
         resp = client.post(
             "/api/v1/grapple/extract-session",
             json={"text": "Rolled 3 rounds today"},
         )
-        assert resp.status_code == 401
+        assert resp.status_code == 403
 
     def test_save_extracted_session_unauthenticated(self, client, temp_db):
-        """POST /save-extracted-session without auth returns 401."""
+        """POST /save-extracted-session without auth returns 403."""
         resp = client.post(
             "/api/v1/grapple/save-extracted-session",
             json={"session_date": "2025-01-20"},
         )
-        assert resp.status_code == 401
+        assert resp.status_code == 403
 
     def test_list_insights_unauthenticated(self, client, temp_db):
-        """GET /insights without auth returns 401."""
+        """GET /insights without auth returns 403."""
         resp = client.get("/api/v1/grapple/insights")
-        assert resp.status_code == 401
+        assert resp.status_code == 403
 
     def test_generate_insight_unauthenticated(self, client, temp_db):
-        """POST /insights/generate without auth returns 401."""
+        """POST /insights/generate without auth returns 403."""
         resp = client.post(
             "/api/v1/grapple/insights/generate",
             json={"insight_type": "weekly"},
         )
-        assert resp.status_code == 401
+        assert resp.status_code == 403
 
     def test_insight_chat_unauthenticated(self, client, temp_db):
-        """POST /insights/1/chat without auth returns 401."""
+        """POST /insights/1/chat without auth returns 403."""
         resp = client.post("/api/v1/grapple/insights/1/chat")
-        assert resp.status_code == 401
+        assert resp.status_code == 403
 
     def test_technique_qa_unauthenticated(self, client, temp_db):
-        """POST /technique-qa without auth returns 401."""
+        """POST /technique-qa without auth returns 403."""
         resp = client.post(
             "/api/v1/grapple/technique-qa",
             json={"question": "What is a kimura?"},
         )
-        assert resp.status_code == 401
+        assert resp.status_code == 403
 
     def test_extract_session_free_user_denied(self, client, test_user, auth_headers):
         """Free-tier user gets 403 on extract-session."""

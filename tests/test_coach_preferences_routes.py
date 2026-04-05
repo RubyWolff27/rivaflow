@@ -41,12 +41,12 @@ class TestUpdateCoachPreferences:
     """Tests for PUT /api/v1/coach-preferences/."""
 
     def test_update_requires_auth(self, client, temp_db):
-        """Unauthenticated request returns 401."""
+        """Unauthenticated state-changing request returns 403 (CSRF middleware fires before auth)."""
         resp = client.put(
             "/api/v1/coach-preferences/",
             json={"belt_level": "blue"},
         )
-        assert resp.status_code == 401
+        assert resp.status_code == 403
 
     def test_update_belt_level(self, authenticated_client, test_user):
         """Can update belt level."""

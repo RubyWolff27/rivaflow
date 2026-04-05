@@ -74,7 +74,7 @@ class TestWhoopDisconnect:
     def test_disconnect_requires_auth(self, client, temp_db):
         """Test WHOOP disconnect requires authentication."""
         response = client.delete("/api/v1/integrations/whoop")
-        assert response.status_code == 401
+        assert response.status_code == 403
 
 
 class TestWhoopSync:
@@ -118,7 +118,7 @@ class TestWhoopSync:
     def test_sync_requires_auth(self, client, temp_db):
         """Test WHOOP sync requires authentication."""
         response = client.post("/api/v1/integrations/whoop/sync")
-        assert response.status_code == 401
+        assert response.status_code == 403
 
 
 class TestWhoopFeatureFlag:
@@ -162,4 +162,4 @@ class TestWhoopAutoCreate:
             "/api/v1/integrations/whoop/auto-create-sessions",
             json={"enabled": True},
         )
-        assert response.status_code == 401
+        assert response.status_code == 403

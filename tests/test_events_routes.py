@@ -7,7 +7,7 @@ class TestCreateEvent:
     """Tests for POST /api/v1/events/."""
 
     def test_create_requires_auth(self, client, temp_db):
-        """Unauthenticated request returns 401."""
+        """Unauthenticated state-changing request returns 403 (CSRF middleware fires before auth)."""
         resp = client.post(
             "/api/v1/events/",
             json={
@@ -15,7 +15,7 @@ class TestCreateEvent:
                 "event_date": "2025-06-15",
             },
         )
-        assert resp.status_code == 401
+        assert resp.status_code == 403
 
     def test_create_event_success(self, authenticated_client, test_user):
         """Creates an event and returns 201 with event data."""
@@ -141,12 +141,12 @@ class TestUpdateEvent:
     """Tests for PUT /api/v1/events/{event_id}."""
 
     def test_update_requires_auth(self, client, temp_db):
-        """Unauthenticated request returns 401."""
+        """Unauthenticated state-changing request returns 403 (CSRF middleware fires before auth)."""
         resp = client.put(
             "/api/v1/events/1",
             json={"name": "Updated"},
         )
-        assert resp.status_code == 401
+        assert resp.status_code == 403
 
     def test_update_nonexistent_returns_404(self, authenticated_client, test_user):
         """Returns 404 when updating non-existent event."""
@@ -178,9 +178,9 @@ class TestDeleteEvent:
     """Tests for DELETE /api/v1/events/{event_id}."""
 
     def test_delete_requires_auth(self, client, temp_db):
-        """Unauthenticated request returns 401."""
+        """Unauthenticated state-changing request returns 403 (CSRF middleware fires before auth)."""
         resp = client.delete("/api/v1/events/1")
-        assert resp.status_code == 401
+        assert resp.status_code == 403
 
     def test_delete_nonexistent_returns_404(self, authenticated_client, test_user):
         """Returns 404 when deleting non-existent event."""

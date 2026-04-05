@@ -310,12 +310,12 @@ class TestUpdateGoalTargets:
         assert resp.status_code == 200
 
     def test_update_targets_requires_auth(self, client, temp_db):
-        """Unauthenticated request returns 401."""
+        """Unauthenticated state-changing request returns 403 (CSRF middleware fires before auth)."""
         resp = client.put(
             "/api/v1/goals/targets",
             json={"weekly_sessions_target": 5},
         )
-        assert resp.status_code == 401
+        assert resp.status_code == 403
 
     def test_update_targets_persists(self, authenticated_client, test_user):
         """Updated targets reflected in current-week progress."""

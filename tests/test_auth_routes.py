@@ -115,7 +115,7 @@ class TestLogout:
     def test_logout_requires_auth(self, client):
         """Test logout requires authentication."""
         response = client.post("/api/v1/auth/logout")
-        assert response.status_code == 401
+        assert response.status_code == 403
 
 
 class TestForgotPassword:

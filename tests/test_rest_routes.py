@@ -7,12 +7,12 @@ class TestLogRestDay:
     """Tests for POST /api/v1/rest/."""
 
     def test_log_requires_auth(self, client, temp_db):
-        """Unauthenticated log returns 401."""
+        """Unauthenticated log returns 403."""
         response = client.post(
             "/api/v1/rest/",
             json={"rest_type": "full"},
         )
-        assert response.status_code == 401
+        assert response.status_code == 403
 
     def test_log_rest_day(self, authenticated_client, test_user):
         """Log a rest day with type and note."""
@@ -114,9 +114,9 @@ class TestDeleteRestDay:
     """Tests for DELETE /api/v1/rest/{checkin_id}."""
 
     def test_delete_requires_auth(self, client, temp_db):
-        """Unauthenticated delete returns 401."""
+        """Unauthenticated delete returns 403."""
         response = client.delete("/api/v1/rest/1")
-        assert response.status_code == 401
+        assert response.status_code == 403
 
     def test_delete_nonexistent_returns_404(self, authenticated_client, test_user):
         """Delete non-existent rest day returns 404."""

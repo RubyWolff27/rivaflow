@@ -38,37 +38,37 @@ class TestConnectionAuth:
     """All connection endpoints require authentication."""
 
     def test_send_friend_request_requires_auth(self, client, test_user2):
-        """Unauthenticated POST /friend-requests/{id} returns 401."""
+        """Unauthenticated POST /friend-requests/{id} returns 403."""
         response = client.post(
             f"/api/v1/social/friend-requests/{test_user2['id']}",
             json={},
         )
-        assert response.status_code == 401
+        assert response.status_code == 403
 
     def test_get_received_requests_requires_auth(self, client, temp_db):
-        """Unauthenticated GET /friend-requests/received returns 401."""
+        """Unauthenticated GET /friend-requests/received returns 403."""
         response = client.get("/api/v1/social/friend-requests/received")
-        assert response.status_code == 401
+        assert response.status_code == 403
 
     def test_get_sent_requests_requires_auth(self, client, temp_db):
-        """Unauthenticated GET /friend-requests/sent returns 401."""
+        """Unauthenticated GET /friend-requests/sent returns 403."""
         response = client.get("/api/v1/social/friend-requests/sent")
-        assert response.status_code == 401
+        assert response.status_code == 403
 
     def test_get_friends_requires_auth(self, client, temp_db):
-        """Unauthenticated GET /friends returns 401."""
+        """Unauthenticated GET /friends returns 403."""
         response = client.get("/api/v1/social/friends")
-        assert response.status_code == 401
+        assert response.status_code == 403
 
     def test_friendship_status_requires_auth(self, client, test_user2):
-        """Unauthenticated GET /friends/{id}/status returns 401."""
+        """Unauthenticated GET /friends/{id}/status returns 403."""
         response = client.get(f"/api/v1/social/friends/{test_user2['id']}/status")
-        assert response.status_code == 401
+        assert response.status_code == 403
 
     def test_friend_suggestions_requires_auth(self, client, temp_db):
-        """Unauthenticated GET /friend-suggestions returns 401."""
+        """Unauthenticated GET /friend-suggestions returns 403."""
         response = client.get("/api/v1/social/friend-suggestions")
-        assert response.status_code == 401
+        assert response.status_code == 403
 
 
 # ── Friend Requests ──────────────────────────────────────────────

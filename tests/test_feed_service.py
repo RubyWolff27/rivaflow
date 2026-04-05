@@ -125,10 +125,10 @@ class TestGetFriendsFeed:
     """Tests for get_friends_feed."""
 
     @patch("rivaflow.core.services.feed_service.UserRepository")
-    @patch("rivaflow.core.services.feed_service.UserRelationshipRepository")
+    @patch("rivaflow.core.services.feed_service.SocialConnectionRepository")
     def test_empty_when_no_following(self, MockRelRepo, MockUserRepo):
         """Should return empty feed when user follows nobody."""
-        MockRelRepo.get_following_user_ids.return_value = []
+        MockRelRepo.get_friend_ids.return_value = []
 
         result = FeedService.get_friends_feed(user_id=1)
 
@@ -139,7 +139,7 @@ class TestGetFriendsFeed:
     @patch("rivaflow.core.services.feed_service.FeedRepository")
     @patch("rivaflow.core.services.feed_service.paginate_with_cursor")
     @patch("rivaflow.core.services.feed_service.UserRepository")
-    @patch("rivaflow.core.services.feed_service.UserRelationshipRepository")
+    @patch("rivaflow.core.services.feed_service.SocialConnectionRepository")
     def test_filters_private_users(
         self,
         MockRelRepo,
@@ -149,7 +149,7 @@ class TestGetFriendsFeed:
         mock_enrich,
     ):
         """Should filter out users with private activity visibility."""
-        MockRelRepo.get_following_user_ids.return_value = [2, 3]
+        MockRelRepo.get_friend_ids.return_value = [2, 3]
         MockUserRepo.get_activity_visibility_bulk.return_value = {
             2: "friends",
             3: "private",
@@ -167,10 +167,10 @@ class TestGetFriendsFeed:
         assert call_args[0][0] == [2]
 
     @patch("rivaflow.core.services.feed_service.UserRepository")
-    @patch("rivaflow.core.services.feed_service.UserRelationshipRepository")
+    @patch("rivaflow.core.services.feed_service.SocialConnectionRepository")
     def test_empty_when_all_users_private(self, MockRelRepo, MockUserRepo):
         """Should return empty when all followed users are private."""
-        MockRelRepo.get_following_user_ids.return_value = [2]
+        MockRelRepo.get_friend_ids.return_value = [2]
         MockUserRepo.get_activity_visibility_bulk.return_value = {
             2: "private",
         }

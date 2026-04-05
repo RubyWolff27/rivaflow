@@ -13,7 +13,7 @@ class TestTranscribeAudio:
             "/api/v1/transcribe/",
             files={"file": ("audio.webm", b"fake-audio", "audio/webm")},
         )
-        assert response.status_code == 401
+        assert response.status_code == 403
 
     def test_transcribe_no_api_key(self, authenticated_client, test_user):
         """Test transcription returns 503 when OpenAI key not configured."""

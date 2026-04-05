@@ -58,7 +58,7 @@ class TestDeleteVideo:
     def test_delete_requires_auth(self, client, temp_db):
         """Test delete video requires auth."""
         response = client.delete("/api/v1/videos/1")
-        assert response.status_code == 401
+        assert response.status_code == 403
 
 
 class TestCreateVideo:
@@ -73,7 +73,7 @@ class TestCreateVideo:
                 "movement_id": 1,
             },
         )
-        assert response.status_code == 401
+        assert response.status_code == 403
 
     def test_create_without_movement_id_fails(self, authenticated_client, test_user):
         """Test creating a video without movement_id fails."""

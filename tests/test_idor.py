@@ -408,7 +408,7 @@ class TestTechniquesIDOR:
             "/api/v1/techniques/",
             json={"name": "Secret Move", "category": "submission"},
         )
-        assert response.status_code == 401
+        assert response.status_code == 403
 
     def test_stale_techniques_isolation(
         self,

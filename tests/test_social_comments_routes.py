@@ -9,7 +9,7 @@ class TestCommentAuth:
     """Authentication tests for comment endpoints."""
 
     def test_create_comment_requires_auth(self, client, temp_db):
-        """Unauthenticated POST /comment returns 401."""
+        """Unauthenticated POST /comment returns 403."""
         response = client.post(
             "/api/v1/social/comment",
             json={
@@ -18,25 +18,25 @@ class TestCommentAuth:
                 "comment_text": "Hello",
             },
         )
-        assert response.status_code == 401
+        assert response.status_code == 403
 
     def test_update_comment_requires_auth(self, client, temp_db):
-        """Unauthenticated PUT /comment/{id} returns 401."""
+        """Unauthenticated PUT /comment/{id} returns 403."""
         response = client.put(
             "/api/v1/social/comment/1",
             json={"comment_text": "Updated"},
         )
-        assert response.status_code == 401
+        assert response.status_code == 403
 
     def test_delete_comment_requires_auth(self, client, temp_db):
-        """Unauthenticated DELETE /comment/{id} returns 401."""
+        """Unauthenticated DELETE /comment/{id} returns 403."""
         response = client.delete("/api/v1/social/comment/1")
-        assert response.status_code == 401
+        assert response.status_code == 403
 
     def test_get_comments_requires_auth(self, client, temp_db):
-        """Unauthenticated GET /comments/{type}/{id} returns 401."""
+        """Unauthenticated GET /comments/{type}/{id} returns 403."""
         response = client.get("/api/v1/social/comments/session/1")
-        assert response.status_code == 401
+        assert response.status_code == 403
 
 
 class TestCreateComment:

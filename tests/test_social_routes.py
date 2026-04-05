@@ -64,7 +64,7 @@ class TestFollowUnfollow:
     def test_follow_requires_auth(self, client, test_user2):
         """Test that following requires authentication."""
         response = client.post(f"/api/v1/social/follow/{test_user2['id']}")
-        assert response.status_code == 401
+        assert response.status_code == 403
 
 
 class TestLikes:

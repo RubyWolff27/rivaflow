@@ -5,7 +5,7 @@ class TestSubmitFeedback:
     """Tests for POST /api/v1/feedback/."""
 
     def test_submit_requires_auth(self, client, temp_db):
-        """Unauthenticated request returns 401."""
+        """Unauthenticated state-changing request returns 403 (CSRF middleware fires before auth)."""
         resp = client.post(
             "/api/v1/feedback/",
             json={
@@ -13,7 +13,7 @@ class TestSubmitFeedback:
                 "message": "Something is broken in the app.",
             },
         )
-        assert resp.status_code == 401
+        assert resp.status_code == 403
 
     def test_submit_bug_report(self, authenticated_client, test_user):
         """Can submit a bug report."""

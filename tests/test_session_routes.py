@@ -43,7 +43,7 @@ class TestCreateSession:
                 "intensity": 3,
             },
         )
-        assert response.status_code == 401
+        assert response.status_code == 403
 
 
 class TestListSessions:
