@@ -4,7 +4,7 @@ import { Link } from 'react-router-dom';
  * Landing — public marketing page for logged-out visitors.
  *
  * Positioning (2026-04-05):
- *   - Hobbyist BJJ athletes (blue/purple belts learning their game)
+ *   - Serious BJJ athletes (blue/purple belts learning their game)
  *   - Free forever for the core loop (log sessions + readiness + health)
  *   - Future paid tier for deep insights + Grapple AI coach
  *   - Early adopters grandfathered free until aggressive marketing begins
@@ -258,7 +258,7 @@ export default function Landing() {
             className="text-3xl md:text-4xl font-black mb-6"
             style={{ color: 'var(--text)' }}
           >
-            Made for hobbyists who take it seriously
+            Made for the athletes who take this seriously
           </h2>
           <p
             className="text-base md:text-lg leading-relaxed mb-4"
@@ -268,8 +268,8 @@ export default function Landing() {
             getting better, and wish you had a way to actually SEE your
             progress — RivaFlow is for you. Not for pros, not for coaches
             tracking whole teams, not for people who just want a workout
-            counter. Built for the middle: serious hobbyists who love
-            this sport and want to improve faster.
+            counter. Built for the blue-to-purple belts who show up, roll
+            hard, and want to improve faster.
           </p>
           <p
             className="text-base md:text-lg leading-relaxed"
