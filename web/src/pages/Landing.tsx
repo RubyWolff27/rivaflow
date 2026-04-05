@@ -26,20 +26,19 @@ export default function Landing() {
         style={{ borderColor: 'var(--border)' }}
       >
         <div className="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <div
-              className="w-8 h-8 rounded-lg flex items-center justify-center text-white font-black text-lg"
-              style={{ backgroundColor: 'var(--accent)' }}
-            >
-              R
-            </div>
+          <Link to="/" className="flex items-center gap-2 hover:opacity-80 transition-opacity">
+            <img
+              src="/logo.webp"
+              alt="RivaFlow"
+              className="w-9 h-9 rounded-lg"
+            />
             <span
               className="text-xl font-black tracking-tight"
               style={{ color: 'var(--text)' }}
             >
               RIVAFLOW
             </span>
-          </div>
+          </Link>
           <nav className="flex items-center gap-3">
             <Link
               to="/login"
@@ -356,12 +355,11 @@ export default function Landing() {
         <div className="max-w-6xl mx-auto px-6">
           <div className="flex flex-col md:flex-row items-center justify-between gap-4">
             <div className="flex items-center gap-2">
-              <div
-                className="w-6 h-6 rounded-md flex items-center justify-center text-white font-black text-xs"
-                style={{ backgroundColor: 'var(--accent)' }}
-              >
-                R
-              </div>
+              <img
+                src="/logo.webp"
+                alt="RivaFlow"
+                className="w-7 h-7 rounded-md"
+              />
               <span
                 className="text-sm font-bold tracking-tight"
                 style={{ color: 'var(--text)' }}
