@@ -324,12 +324,20 @@ def auto_create_sessions_for_workouts(self: WhoopService, user_id: int) -> list[
     )
     created_ids = []
 
+    # Whether the user has an explicit BJJ preference in their profile
+    # (used to override WHOOP's sport_id mapping for BJJ workouts — see below)
+    profile_has_training_preference = bool(
+        profile and profile.get("primary_training_type")
+    )
+
     for workout in unlinked:
         try:
-            # Only auto-create BJJ workouts; non-BJJ are available via import page
+            # Capture-everything model: auto-create ALL Whoop workouts as draft
+            # sessions with needs_review=True. User classifies/refines on review.
+            # Previously this was BJJ-only; switched 2026-04-05 so non-BJJ
+            # workouts (running, strength, cardio) also flow into the session
+            # list rather than living in a separate import page.
             sport_id = workout.get("sport_id")
-            if sport_id is not None and sport_id not in BJJ_SPORT_IDS:
-                continue
 
             start_str = str(workout.get("start_time", ""))
             end_str = str(workout.get("end_time", ""))
@@ -359,9 +367,25 @@ def auto_create_sessions_for_workouts(self: WhoopService, user_id: int) -> list[
             if strain is not None:
                 strain = round(strain, 1)
 
-            # Use sport_id mapping for class_type, fall back to profile default
+            # class_type precedence (changed 2026-04-05):
+            #   1. If user has an explicit `primary_training_type` in profile
+            #      AND this is a BJJ workout, use the profile preference. The
+            #      user explicitly told us "I train gi" (or "no-gi") — respect
+            #      that over WHOOP's sport_id mapping, which can't distinguish
+            #      between BJJ variants the user actually did.
+            #   2. Otherwise use WHOOP's sport_id → class_type mapping
+            #      (running → cardio, lifting → s&c, etc).
+            #   3. Otherwise fall back to the profile default ("no-gi" if unset).
+            #
+            # All sessions are still created with needs_review=True, so the user
+            # can correct any mis-classification on the session review UI.
             mapped_type = map_sport_to_class_type(sport_id, workout.get("sport_name"))
-            class_type = mapped_type or default_class_type
+            is_bjj_workout = sport_id is not None and sport_id in BJJ_SPORT_IDS
+
+            if is_bjj_workout and profile_has_training_preference:
+                class_type = default_class_type  # profile wins for BJJ
+            else:
+                class_type = mapped_type or default_class_type
 
             session_id = self.session_repo.create(
                 user_id=user_id,
