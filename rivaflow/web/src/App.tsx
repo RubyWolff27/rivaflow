@@ -55,6 +55,8 @@ const Login = lazy(() => import('./pages/Login'));
 const Register = lazy(() => import('./pages/Register'));
 const ForgotPassword = lazy(() => import('./pages/ForgotPassword'));
 const ResetPassword = lazy(() => import('./pages/ResetPassword'));
+// 2026-04-05 — public landing page for logged-out visitors, auth-aware at /
+const RootRoute = lazy(() => import('./components/RootRoute'));
 const NotFound = lazy(() => import('./pages/NotFound'));
 const PartnerStats = lazy(() => import('./pages/PartnerStats'));
 const Leaderboards = lazy(() => import('./pages/Leaderboards'));
@@ -77,6 +79,12 @@ function App() {
           <ToastProvider>
             <Suspense fallback={<PageSkeleton />}>
             <Routes>
+              {/* Public routes (unauthenticated entry points) */}
+              {/* "/" is auth-aware: logged-out → Landing marketing page,
+                  logged-in → Dashboard. Added 2026-04-05 to fix the
+                  zero-conversion-ceiling issue (cold visitors previously
+                  got bounced straight to /login with no context). */}
+              <Route path="/" element={<RootRoute />} />
               <Route path="/login" element={<Login />} />
               <Route path="/register" element={<Register />} />
               <Route path="/waitlist" element={<Navigate to="/register" replace />} />
