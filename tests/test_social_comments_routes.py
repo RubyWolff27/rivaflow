@@ -34,9 +34,9 @@ class TestCommentAuth:
         assert response.status_code == 403
 
     def test_get_comments_requires_auth(self, client, temp_db):
-        """Unauthenticated GET /comments/{type}/{id} returns 403."""
+        """Unauthenticated GET /comments/{type}/{id} returns 401 (CSRF doesn't apply to safe methods)."""
         response = client.get("/api/v1/social/comments/session/1")
-        assert response.status_code == 403
+        assert response.status_code == 401
 
 
 class TestCreateComment:
