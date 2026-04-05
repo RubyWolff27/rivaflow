@@ -56,10 +56,12 @@ describe('BottomNav', () => {
 
   it('renders 5 bottom nav items', () => {
     renderBottomNav()
-    // Bottom nav was simplified March 2026: Home, Sessions, Log (accent), Progress, You.
-    // Social features (Feed, Friends, Groups) are hidden from nav — routes still work direct.
+    // Bottom nav (2026-04-05): Home, Feed, Log (accent), Progress, You.
+    // Feed was un-hidden per CEO Q2 ratification; replaces the previous
+    // Sessions slot (sessions still accessible via Home widgets + /sessions
+    // URL + the You sheet). Commit c889ba3 "un-hide Feed".
     expect(screen.getByText('Home')).toBeInTheDocument()
-    expect(screen.getByText('Sessions')).toBeInTheDocument()
+    expect(screen.getByText('Feed')).toBeInTheDocument()
     expect(screen.getByText('Progress')).toBeInTheDocument()
     expect(screen.getByText('You')).toBeInTheDocument()
     expect(screen.getByLabelText('Quick Log')).toBeInTheDocument()
