@@ -264,12 +264,13 @@ export default function Landing() {
             className="text-base md:text-lg leading-relaxed mb-4"
             style={{ color: 'var(--muted)' }}
           >
-            If you train 2–5 times a week at your local gym, care about
-            getting better, and wish you had a way to actually SEE your
-            progress — RivaFlow is for you. Not for pros, not for coaches
-            tracking whole teams, not for people who just want a workout
-            counter. Built for the blue-to-purple belts who show up, roll
-            hard, and want to improve faster.
+            White belts logging their first ever class. Blue belts building
+            their game. Purple belts sharpening it. Brown and black belts
+            protecting what they've built. If you show up, roll, and care
+            about seeing the data behind your progress — RivaFlow is for
+            you. Not for pros with full-time coaches managing teams, not
+            for people who just want a step counter. For athletes who are
+            serious about logging and data.
           </p>
           <p
             className="text-base md:text-lg leading-relaxed"
