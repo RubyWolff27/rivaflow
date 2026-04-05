@@ -148,11 +148,21 @@ class TestJWTTokenSecurity:
         assert payload is None
 
     def test_tampered_token_rejected(self):
-        """Test tampered tokens are rejected."""
+        """Test tampered tokens are rejected.
+
+        Tamper the PAYLOAD segment (between the dots), not the signature.
+        The signature is base64url-encoded and its final character's tail
+        bits can sometimes be changed without affecting the decoded binary
+        (base64url tail-bit quirk), which makes signature-tip tampering
+        flaky. Tampering the payload guarantees the signature won't match.
+        """
         token = create_access_token(data={"sub": "test@example.com"})
 
-        # Tamper with token by changing a character
-        tampered_token = token[:-1] + ("X" if token[-1] != "X" else "Y")
+        # JWT format: header.payload.signature — tamper the payload
+        parts = token.split(".")
+        assert len(parts) == 3, f"Expected JWT 3-part format, got {len(parts)} parts"
+        tampered_payload = parts[1][:-1] + ("X" if parts[1][-1] != "X" else "Y")
+        tampered_token = f"{parts[0]}.{tampered_payload}.{parts[2]}"
 
         payload = decode_access_token(tampered_token)
         assert payload is None
