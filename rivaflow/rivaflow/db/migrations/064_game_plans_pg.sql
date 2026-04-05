@@ -14,7 +14,7 @@ CREATE TABLE IF NOT EXISTS game_plans (
     archetype TEXT NOT NULL DEFAULT 'guard_player',
     style TEXT DEFAULT 'balanced',
     title TEXT,
-    is_active BOOLEAN NOT NULL DEFAULT 1,
+    is_active BOOLEAN NOT NULL DEFAULT TRUE,
     created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
@@ -32,7 +32,7 @@ CREATE TABLE IF NOT EXISTS game_plan_nodes (
     glossary_id BIGINT,
     confidence INTEGER NOT NULL DEFAULT 1,
     priority TEXT NOT NULL DEFAULT 'normal',
-    is_focus BOOLEAN NOT NULL DEFAULT 0,
+    is_focus BOOLEAN NOT NULL DEFAULT FALSE,
     attempts INTEGER NOT NULL DEFAULT 0,
     successes INTEGER NOT NULL DEFAULT 0,
     last_used_date TEXT,
