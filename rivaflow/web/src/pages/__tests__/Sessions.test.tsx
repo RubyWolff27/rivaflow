@@ -259,9 +259,9 @@ describe('Sessions', () => {
       expect(screen.getByText('Alliance BJJ')).toBeInTheDocument()
     })
 
-    // Find the type filter select
-    const typeFilter = screen.getByDisplayValue('All Types')
-    fireEvent.change(typeFilter, { target: { value: 'no-gi' } })
+    // Click the No-Gi filter button (filter UI refactored from <select> to button group)
+    const noGiButton = screen.getByRole('button', { name: 'No-Gi' })
+    fireEvent.click(noGiButton)
 
     await waitFor(() => {
       expect(screen.getByText('Alliance BJJ')).toBeInTheDocument()

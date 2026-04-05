@@ -194,7 +194,10 @@ class SessionTechniqueRepository(BaseRepository):
                 """),
                 (user_id,),
             )
-            return {dict(row)["movement_id"]: dict(row)["train_count"] for row in cursor.fetchall()}
+            return {
+                dict(row)["movement_id"]: dict(row)["train_count"]
+                for row in cursor.fetchall()
+            }
 
     @staticmethod
     def batch_get_by_session_ids(session_ids: list[int]) -> dict:

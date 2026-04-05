@@ -606,7 +606,9 @@ def recalculate_session_score(
 @route_error_handler("backfill_scores", detail="Failed to backfill scores")
 def backfill_scores(
     request: Request,
-    force: bool = Query(False, description="Force rescore all sessions, not just unscored"),
+    force: bool = Query(
+        False, description="Force rescore all sessions, not just unscored"
+    ),
     current_user: dict = Depends(get_current_user),
 ):
     """Score all unscored sessions for the current user. Use force=true to rescore all."""

@@ -165,7 +165,14 @@ class SessionCreate(BaseModel):
             return None
         return v
 
-    @field_validator("partners", "attendees", "intensity_tags", "class_tags", "techniques", mode="before")
+    @field_validator(
+        "partners",
+        "attendees",
+        "intensity_tags",
+        "class_tags",
+        "techniques",
+        mode="before",
+    )
     @classmethod
     def empty_list_to_none(cls, v):
         """Convert empty lists to None for optional list fields."""

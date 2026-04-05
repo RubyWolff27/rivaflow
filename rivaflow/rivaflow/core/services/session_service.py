@@ -5,13 +5,13 @@ from datetime import date
 from typing import Any
 
 from rivaflow.core.constants import SPARRING_CLASS_TYPES
+from rivaflow.core.services.streak_service import StreakService
 from rivaflow.core.utils.cache import get_cache
 from rivaflow.db.repositories import (
     SessionRepository,
     SessionRollRepository,
 )
 from rivaflow.db.repositories.checkin_repo import CheckinRepository
-from rivaflow.core.services.streak_service import StreakService
 from rivaflow.db.repositories.friend_repo import FriendRepository
 from rivaflow.db.repositories.glossary_repo import GlossaryRepository
 from rivaflow.db.repositories.session_technique_repo import SessionTechniqueRepository

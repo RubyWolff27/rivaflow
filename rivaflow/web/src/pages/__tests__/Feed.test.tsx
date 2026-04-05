@@ -44,6 +44,16 @@ vi.mock('../../api/client', () => ({
   sessionsApi: {
     update: vi.fn(() => Promise.resolve({ data: {} })),
   },
+  gradingsApi: {
+    list: vi.fn(() => Promise.resolve({ data: { items: [] } })),
+    get: vi.fn(() => Promise.resolve({ data: { items: [] } })),
+    listForFeed: vi.fn(() => Promise.resolve({ data: { items: [] } })),
+  },
+  notificationsApi: {
+    list: vi.fn(() => Promise.resolve({ data: { items: [] } })),
+    getMilestones: vi.fn(() => Promise.resolve({ data: { items: [] } })),
+    list_unread: vi.fn(() => Promise.resolve({ data: { items: [], unread_count: 0 } })),
+  },
 }))
 
 vi.mock('../../contexts/ToastContext', () => ({

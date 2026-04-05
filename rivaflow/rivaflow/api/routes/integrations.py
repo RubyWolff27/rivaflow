@@ -288,7 +288,6 @@ def readiness_auto_fill(
         )
 
 
-
 @router.get("/whoop/session/{session_id}/context")
 @route_error_handler("whoop_session_context", detail="Failed to get session context")
 def get_session_context(
@@ -491,9 +490,7 @@ def get_session_context(
                 else None
             ),
             "class_type": class_type,
-            "avg_hr": (
-                round(sum(hr_vals) / len(hr_vals)) if hr_vals else None
-            ),
+            "avg_hr": (round(sum(hr_vals) / len(hr_vals)) if hr_vals else None),
             "session_count": len(all_sessions),
         }
     except Exception:
@@ -504,7 +501,6 @@ def get_session_context(
         "workout": workout_data,
         "user_averages": user_averages,
     }
-
 
 
 @router.get("/whoop/zones/batch")
@@ -554,7 +550,7 @@ def get_zones_batch(
                 recovery_by_date[cycle_date] = rec.get("recovery_score")
     # Map session_id → session_date for recovery lookup
     sid_to_date: dict[int, str] = {}
-    for s in (sessions_for_recovery or []):
+    for s in sessions_for_recovery or []:
         sid_to_date[s["id"]] = str(s.get("session_date", ""))[:10]
 
     result: dict[str, dict | None] = {}

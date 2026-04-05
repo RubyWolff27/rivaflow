@@ -157,9 +157,7 @@ class AuditLogRepository(BaseRepository):
         with get_connection() as conn:
             cursor = conn.cursor()
 
-            cutoff = (utcnow() - timedelta(days=days)).isoformat(
-                timespec="seconds"
-            )
+            cutoff = (utcnow() - timedelta(days=days)).isoformat(timespec="seconds")
 
             query = """
                 SELECT

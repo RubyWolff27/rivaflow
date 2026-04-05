@@ -536,7 +536,9 @@ def compute_partner_analytics(
                 "sub_ratio": ratio,
                 "subs_per_roll_for": stats.get("subs_per_roll", 0),
                 "subs_per_roll_against": stats.get("taps_per_roll", 0),
-                "last_rolled_date": last_rolled_date.isoformat() if last_rolled_date else None,
+                "last_rolled_date": (
+                    last_rolled_date.isoformat() if last_rolled_date else None
+                ),
             }
         )
 

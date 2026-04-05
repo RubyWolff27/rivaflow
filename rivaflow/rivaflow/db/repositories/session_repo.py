@@ -3,7 +3,7 @@
 import json
 from datetime import date, datetime
 
-
+from rivaflow.core.settings import settings
 from rivaflow.db.database import convert_query, execute_insert, get_connection
 from rivaflow.db.repositories.base_repository import BaseRepository
 
@@ -247,7 +247,13 @@ class SessionRepository(BaseRepository):
             }
 
             # List fields that can be explicitly cleared with []
-            clearable_list_fields = {"partners", "attendees", "intensity_tags", "class_tags", "techniques"}
+            clearable_list_fields = {
+                "partners",
+                "attendees",
+                "intensity_tags",
+                "class_tags",
+                "techniques",
+            }
 
             # Build update query dynamically from provided kwargs
             updates = []
@@ -1116,44 +1122,32 @@ class SessionRepository(BaseRepository):
     def _row_to_dict(row) -> dict:
         """Convert a database row to a dictionary."""
         data = dict(row)
-        # Parse JSON fields - ensure arrays are never null
-        if data.get("partners"):
-            data["partners"] = json.loads(data["partners"])
-        else:
-            data["partners"] = []
 
-        if data.get("attendees"):
-            data["attendees"] = json.loads(data["attendees"])
-        else:
-            data["attendees"] = []
+        # Parse JSON array fields — ensure arrays are never null
+        for field in (
+            "partners",
+            "attendees",
+            "intensity_tags",
+            "class_tags",
+            "techniques",
+        ):
+            data[field] = json.loads(data[field]) if data.get(field) else []
 
-        if data.get("intensity_tags"):
-            data["intensity_tags"] = json.loads(data["intensity_tags"])
-        else:
-            data["intensity_tags"] = []
+        # Parse date/datetime fields (handle both string and native types)
+        for field, parser in (
+            ("session_date", date.fromisoformat),
+            ("created_at", datetime.fromisoformat),
+            ("updated_at", datetime.fromisoformat),
+        ):
+            value = data.get(field)
+            if isinstance(value, str):
+                data[field] = parser(value)
 
-        if data.get("class_tags"):
-            data["class_tags"] = json.loads(data["class_tags"])
-        else:
-            data["class_tags"] = []
-
-        if data.get("techniques"):
-            data["techniques"] = json.loads(data["techniques"])
-        else:
-            data["techniques"] = []
-        # Parse dates (handle both string and datetime/date types)
-        if data.get("session_date"):
-            if isinstance(data["session_date"], str):
-                data["session_date"] = date.fromisoformat(data["session_date"])
-        if data.get("created_at"):
-            if isinstance(data["created_at"], str):
-                data["created_at"] = datetime.fromisoformat(data["created_at"])
-        if data.get("updated_at"):
-            if isinstance(data["updated_at"], str):
-                data["updated_at"] = datetime.fromisoformat(data["updated_at"])
         # Convert needs_review to bool (SQLite stores as INTEGER)
         data["needs_review"] = bool(data.get("needs_review", 0))
+
         # Parse score_breakdown JSON
         if data.get("score_breakdown"):
             data["score_breakdown"] = json.loads(data["score_breakdown"])
+
         return data

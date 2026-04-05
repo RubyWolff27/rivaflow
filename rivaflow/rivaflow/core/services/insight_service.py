@@ -4,7 +4,6 @@ import random
 from datetime import date, timedelta
 
 from rivaflow.core.services.milestone_service import MilestoneService
-
 from rivaflow.db.repositories.session_repo import SessionRepository
 from rivaflow.db.repositories.streak_repo import StreakRepository
 

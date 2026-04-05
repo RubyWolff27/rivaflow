@@ -15,7 +15,6 @@ from rivaflow.core.services.readiness_service import ReadinessService
 from rivaflow.core.services.session_service import SessionService
 from rivaflow.core.services.streak_service import StreakService
 from rivaflow.core.utils.cache import cached
-
 from rivaflow.db.database import convert_query, get_connection
 
 logger = logging.getLogger(__name__)
@@ -44,7 +43,14 @@ def _calculate_daily_streak(user_id: int) -> int:
     from datetime import date as dt_date
 
     session_dates = sorted(
-        [dict(r)["d"] if isinstance(dict(r)["d"], dt_date) else dt_date.fromisoformat(str(dict(r)["d"])[:10]) for r in rows],
+        [
+            (
+                dict(r)["d"]
+                if isinstance(dict(r)["d"], dt_date)
+                else dt_date.fromisoformat(str(dict(r)["d"])[:10])
+            )
+            for r in rows
+        ],
         reverse=True,
     )
 

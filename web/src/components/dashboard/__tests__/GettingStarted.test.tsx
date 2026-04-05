@@ -167,7 +167,7 @@ describe('GettingStarted', () => {
     expect(mockNavigate).toHaveBeenCalledWith('/log')
   })
 
-  it('clicking on goals step navigates to /profile', async () => {
+  it('clicking on goals step navigates to /goals', async () => {
     mockGetOnboardingStatus.mockResolvedValueOnce({
       data: {
         steps: [
@@ -186,7 +186,8 @@ describe('GettingStarted', () => {
     })
 
     fireEvent.click(screen.getByText('Set weekly goals'))
-    expect(mockNavigate).toHaveBeenCalledWith('/profile')
+    // GettingStarted was refactored: goals step now routes to /goals (was /profile)
+    expect(mockNavigate).toHaveBeenCalledWith('/goals')
   })
 
   it('completed steps are disabled and do not navigate', async () => {

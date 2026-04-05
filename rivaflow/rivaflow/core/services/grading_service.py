@@ -1,6 +1,6 @@
 """Service layer for grading/belt progression operations."""
 
-from rivaflow.db.repositories import GradingRepository, ProfileRepository, SessionRepository
+from rivaflow.db.repositories import GradingRepository, ProfileRepository
 
 
 class GradingService:
@@ -92,7 +92,6 @@ class GradingService:
         Returns:
             Dict with total_sessions, total_hours, total_rolls, class_types breakdown
         """
-        from datetime import date
 
         from rivaflow.db.database import convert_query, get_connection
 
@@ -121,7 +120,9 @@ class GradingService:
             }
 
         current_date = str(current_grading["date_graded"])
-        start_date = str(previous_grading["date_graded"]) if previous_grading else "2000-01-01"
+        start_date = (
+            str(previous_grading["date_graded"]) if previous_grading else "2000-01-01"
+        )
 
         # Query sessions between the two dates
         with get_connection() as conn:

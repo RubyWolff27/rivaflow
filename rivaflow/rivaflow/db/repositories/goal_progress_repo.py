@@ -47,6 +47,7 @@ class GoalProgressRepository(BaseRepository):
                 (user_id, limit),
             )
             return [self._row_to_dict(row) for row in cursor.fetchall() if row is not None]  # type: ignore[misc]
+
     def create(
         self,
         user_id: int,
