@@ -1,13 +1,15 @@
 import { useState, useRef, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { Home, Activity, Plus, BarChart3, User, LogOut, X } from 'lucide-react';
+import { Home, Users, Plus, BarChart3, User, LogOut, X } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 
 interface NavSectionItem {
   name: string;
   href: string;
   icon: React.ComponentType<{ className?: string }>;
-  badge?: number;
+  // badge: number = unread count (error-coloured pill)
+  // badge: string = promo label like "NEW" (accent-coloured pill)
+  badge?: number | string;
 }
 
 interface NavSection {
@@ -45,10 +47,13 @@ export default function BottomNav({ moreNavSections, onQuickLog }: BottomNavProp
     navigate('/login');
   };
 
-  // 5 bottom items: Home, Sessions, Log(accent, centered), Progress, You
+  // 5 bottom items: Home, Feed, Log(accent, centered), Progress, You.
+  // 2026-04-05 — Feed un-hidden per CEO Q2 ratification ("un-hide feed").
+  // Replaces the previous Sessions slot (sessions remain accessible via
+  // Home dashboard widgets + /sessions URL + the You sheet).
   const bottomItems = [
     { name: 'Home', href: '/', icon: Home },
-    { name: 'Sessions', href: '/sessions', icon: Activity },
+    { name: 'Feed', href: '/feed', icon: Users },
     { name: 'Log', href: '#quicklog', icon: Plus, isAccent: true },
     { name: 'Progress', href: '/reports', icon: BarChart3 },
     { name: 'You', href: '#you', icon: User },
@@ -105,7 +110,11 @@ export default function BottomNav({ moreNavSections, onQuickLog }: BottomNavProp
                 {section.items.map((item) => {
                   const isActive = location.pathname === item.href;
                   const Icon = item.icon;
-                  const hasBadge = item.badge != null && item.badge > 0;
+                  // Badge can be a number (unread count) or a string ("NEW"
+                  // promo badge, added 2026-04-05 for Grapple AI + Glossary).
+                  const badge = (item as { badge?: number | string }).badge;
+                  const numericBadge = typeof badge === 'number' && badge > 0;
+                  const stringBadge = typeof badge === 'string' && badge.length > 0;
                   return (
                     <Link
                       key={item.name}
@@ -117,12 +126,20 @@ export default function BottomNav({ moreNavSections, onQuickLog }: BottomNavProp
                     >
                       <Icon className="w-5 h-5" />
                       {item.name}
-                      {hasBadge && (
+                      {numericBadge && (
                         <span
                           className="ml-auto flex items-center justify-center min-w-[20px] h-[20px] px-1.5 text-[10px] font-bold rounded-full"
                           style={{ backgroundColor: 'var(--error)', color: '#FFFFFF' }}
                         >
-                          {item.badge! > 99 ? '99+' : item.badge}
+                          {(badge as number) > 99 ? '99+' : badge}
+                        </span>
+                      )}
+                      {stringBadge && (
+                        <span
+                          className="ml-auto flex items-center justify-center px-2 h-[20px] text-[10px] font-bold rounded-full"
+                          style={{ backgroundColor: 'var(--accent)', color: '#FFFFFF' }}
+                        >
+                          {badge}
                         </span>
                       )}
                     </Link>

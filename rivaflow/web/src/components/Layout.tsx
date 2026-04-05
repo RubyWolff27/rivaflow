@@ -25,15 +25,32 @@ const Layout = memo(function Layout({ children }: { children: React.ReactNode })
     { name: 'Progress', href: '/reports', icon: BarChart3 },
   ];
 
-  // Secondary sections — shown in sidebar collapsibles and "You" sheet on mobile
-  const moreNavSections = [
+  // Secondary sections — shown in sidebar collapsibles and "You" sheet on mobile.
+  // 2026-04-05 — Grapple AI + Glossary reordered to the top and marked NEW per
+  // CEO Q3 ratification ("un-hide Grapple AI and Glossary"). These are the
+  // differentiators for the hobbyist audience — every BJJ athlete wants an AI
+  // coach + a technique library, so they should be the first things a user
+  // sees when they open the menu.
+  //
+  // NavSection item shape matches BottomNav.NavSectionItem: badge is
+  // number (unread count) or string ("NEW" promo). Explicit type cast
+  // below because inferred object literal types are too narrow.
+  type NavSectionItem = {
+    name: string;
+    href: string;
+    icon: React.ComponentType<{ className?: string }>;
+    badge?: number | string;
+  };
+
+  const moreNavSections: { label: string; items: NavSectionItem[] }[] = [
     {
       label: 'Training',
       items: [
+        { name: 'Grapple AI', href: '/grapple', icon: Sparkles, badge: 'NEW' },
+        { name: 'Glossary', href: '/glossary', icon: Target, badge: 'NEW' },
+        { name: 'Sessions', href: '/sessions', icon: Activity },
         { name: 'Goals', href: '/goals', icon: Trophy },
-        { name: 'Grapple AI', href: '/grapple', icon: Sparkles },
         { name: 'Readiness', href: '/readiness', icon: Activity },
-        { name: 'Glossary', href: '/glossary', icon: Target },
         { name: 'Import', href: '/import', icon: Download },
       ],
     },

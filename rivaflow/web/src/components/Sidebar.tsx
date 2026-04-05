@@ -4,9 +4,17 @@ import { Plus, User, LogOut, ChevronLeft, ChevronRight, ChevronDown } from 'luci
 import { useAuth } from '../contexts/AuthContext';
 import { logger } from '../utils/logger';
 
+interface NavSectionItem {
+  name: string;
+  href: string;
+  icon: React.ComponentType<{ className?: string }>;
+  // number = unread count (error pill) · string = promo label like "NEW" (accent pill)
+  badge?: number | string;
+}
+
 interface NavSection {
   label: string;
-  items: { name: string; href: string; icon: React.ComponentType<{ className?: string }>; badge?: number }[];
+  items: NavSectionItem[];
 }
 
 interface SidebarProps {
@@ -111,7 +119,9 @@ export default function Sidebar({ navigation, moreNavSections, onQuickLog }: Sid
           const isActive = location.pathname === item.href ||
             (item.href === '/reports' && location.pathname === '/progress');
           const Icon = item.icon;
-          const hasBadge = item.badge != null && item.badge > 0;
+          const badge = (item as { badge?: number | string }).badge;
+          const numericBadge = typeof badge === 'number' && badge > 0;
+          const stringBadge = typeof badge === 'string' && badge.length > 0;
           return (
             <Link
               key={item.name}
@@ -125,7 +135,7 @@ export default function Sidebar({ navigation, moreNavSections, onQuickLog }: Sid
             >
               <Icon className="w-5 h-5 shrink-0" />
               {!collapsed && item.name}
-              {hasBadge && (
+              {numericBadge && (
                 <span
                   className="flex items-center justify-center min-w-[18px] h-[18px] px-1 text-[10px] font-bold rounded-full"
                   style={{
@@ -137,7 +147,15 @@ export default function Sidebar({ navigation, moreNavSections, onQuickLog }: Sid
                     marginLeft: collapsed ? 0 : 'auto',
                   }}
                 >
-                  {item.badge! > 99 ? '99+' : item.badge}
+                  {(badge as number) > 99 ? '99+' : badge}
+                </span>
+              )}
+              {stringBadge && !collapsed && (
+                <span
+                  className="flex items-center justify-center px-2 h-[18px] text-[10px] font-bold rounded-full ml-auto"
+                  style={{ backgroundColor: 'var(--accent)', color: '#FFFFFF' }}
+                >
+                  {badge}
                 </span>
               )}
             </Link>
@@ -172,7 +190,9 @@ export default function Sidebar({ navigation, moreNavSections, onQuickLog }: Sid
               {(collapsed || isExpanded || hasActiveItem) && section.items.map((item) => {
                 const isActive = location.pathname === item.href;
                 const Icon = item.icon;
-                const hasBadge = item.badge != null && item.badge > 0;
+                const badge = item.badge;
+                const numericBadge = typeof badge === 'number' && badge > 0;
+                const stringBadge = typeof badge === 'string' && badge.length > 0;
                 // When collapsed section has active item but section not expanded, only show active item
                 if (!collapsed && !isExpanded && !isActive) return null;
                 return (
@@ -188,7 +208,7 @@ export default function Sidebar({ navigation, moreNavSections, onQuickLog }: Sid
                   >
                     <Icon className="w-4 h-4 shrink-0" />
                     {!collapsed && item.name}
-                    {hasBadge && (
+                    {numericBadge && (
                       <span
                         className="flex items-center justify-center min-w-[18px] h-[18px] px-1 text-[10px] font-bold rounded-full"
                         style={{
@@ -200,7 +220,15 @@ export default function Sidebar({ navigation, moreNavSections, onQuickLog }: Sid
                           marginLeft: collapsed ? 0 : 'auto',
                         }}
                       >
-                        {item.badge! > 99 ? '99+' : item.badge}
+                        {(badge as number) > 99 ? '99+' : badge}
+                      </span>
+                    )}
+                    {stringBadge && !collapsed && (
+                      <span
+                        className="flex items-center justify-center px-2 h-[18px] text-[10px] font-bold rounded-full ml-auto"
+                        style={{ backgroundColor: 'var(--accent)', color: '#FFFFFF' }}
+                      >
+                        {badge}
                       </span>
                     )}
                   </Link>
