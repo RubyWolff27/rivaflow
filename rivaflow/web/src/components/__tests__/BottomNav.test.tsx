@@ -56,8 +56,10 @@ describe('BottomNav', () => {
 
   it('renders 5 bottom nav items', () => {
     renderBottomNav()
+    // Bottom nav was simplified March 2026: Home, Sessions, Log (accent), Progress, You.
+    // Social features (Feed, Friends, Groups) are hidden from nav — routes still work direct.
     expect(screen.getByText('Home')).toBeInTheDocument()
-    expect(screen.getByText('Feed')).toBeInTheDocument()
+    expect(screen.getByText('Sessions')).toBeInTheDocument()
     expect(screen.getByText('Progress')).toBeInTheDocument()
     expect(screen.getByText('You')).toBeInTheDocument()
     expect(screen.getByLabelText('Quick Log')).toBeInTheDocument()

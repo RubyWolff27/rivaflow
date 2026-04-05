@@ -55,8 +55,11 @@ else
 fi
 
 echo ""
-echo "==> Initializing database..."
-python -c "from rivaflow.db.database import init_db; init_db()"
+echo "==> Skipping database initialization during build"
+echo "    DB init runs at app startup (start.sh → migrate.py) when DATABASE_URL"
+echo "    is reachable. Render's build container has no network access to the"
+echo "    managed Postgres — this used to fail with:"
+echo "      psycopg2.OperationalError: could not translate host name ..."
 
 echo ""
 echo "========================================================================"
