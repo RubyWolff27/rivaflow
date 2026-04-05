@@ -2,9 +2,10 @@
 
 import json
 import logging
-from datetime import datetime, timedelta
+from datetime import timedelta
 from typing import Any
 
+from rivaflow.core.time_utils import utcnow
 from rivaflow.db.database import convert_query, execute_insert, get_connection
 from rivaflow.db.repositories.base_repository import BaseRepository
 
@@ -156,7 +157,7 @@ class AuditLogRepository(BaseRepository):
         with get_connection() as conn:
             cursor = conn.cursor()
 
-            cutoff = (datetime.utcnow() - timedelta(days=days)).isoformat(
+            cutoff = (utcnow() - timedelta(days=days)).isoformat(
                 timespec="seconds"
             )
 
