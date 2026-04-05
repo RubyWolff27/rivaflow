@@ -377,16 +377,20 @@ class TestGetUserStats:
             "created_at": "2024-01-01",
         }
         MockSessionRepo.return_value.list_by_user.return_value = [
+            # Field names match the actual DB schema + code (duration_mins, rolls)
+            # — test was written with stale plural names that never existed in the
+            # canonical schema (001_initial_schema.sql uses duration_mins INTEGER
+            # and rolls INTEGER). Fixed 2026-04-05.
             {
                 "id": 1,
-                "duration_minutes": 60,
-                "roll_count": 5,
+                "duration_mins": 60,
+                "rolls": 5,
                 "session_date": "2020-01-01T00:00:00",
             },
             {
                 "id": 2,
-                "duration_minutes": 90,
-                "roll_count": 8,
+                "duration_mins": 90,
+                "rolls": 8,
                 "session_date": "2020-01-02T00:00:00",
             },
         ]
