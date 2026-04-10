@@ -55,7 +55,7 @@ CREATE INDEX idx_sessions_user_id ON sessions(user_id);
 
 **PostgreSQL Pool Settings:**
 ```python
-# /Users/rubertwolff/scratch/rivaflow/rivaflow/db/database.py:111-114
+# rivaflow/db/database.py:111-114
 _connection_pool = psycopg2.pool.SimpleConnectionPool(
     minconn=1,    # Keep 1 connection alive
     maxconn=20,   # Allow up to 20 concurrent connections
@@ -91,7 +91,7 @@ def get_connection():
 
 #### ✅ GOOD: Feed Service (Batch Loading)
 ```python
-# /Users/rubertwolff/scratch/rivaflow/rivaflow/core/services/feed_service.py:247-389
+# rivaflow/core/services/feed_service.py:247-389
 def _batch_load_friend_activities(user_ids, start_date, end_date):
     """Batch load activities from multiple users in optimized queries."""
     placeholders = ",".join("?" * len(user_ids))
@@ -114,7 +114,7 @@ def _batch_load_friend_activities(user_ids, start_date, end_date):
 
 #### 🔴 CRITICAL: Performance Analytics (N+1 Glossary Lookups)
 ```python
-# /Users/rubertwolff/scratch/rivaflow/rivaflow/core/services/performance_analytics.py:98-117
+# rivaflow/core/services/performance_analytics.py:98-117
 # PROBLEM: Loop fetches movement names one at a time
 top_subs_for_list = []
 for movement_id, count in top_subs_for.most_common(5):
@@ -131,7 +131,7 @@ for movement_id, count in top_subs_for.most_common(5):
 
 **Impact:**
 - Up to **10 extra queries** per analytics call
-- Documented in `/Users/rubertwolff/scratch/rivaflow/TODO_PERFORMANCE.md:24-34`
+- Documented in `TODO_PERFORMANCE.md:24-34`
 - Low priority (only affects top 5 submissions display)
 
 **Recommended Fix:**
@@ -152,7 +152,7 @@ def get_by_ids(self, ids: List[int]) -> Dict[int, dict]:
 
 **Current Implementation (Sequential):**
 ```python
-# /Users/rubertwolff/scratch/rivaflow/rivaflow/api/routes/dashboard.py:38-58
+# rivaflow/api/routes/dashboard.py:38-58
 performance = analytics.get_performance_overview(user_id, start_date, end_date)
 session_streak = streak_service.get_streak(user_id, "session")
 checkin_streak = streak_service.get_streak(user_id, "checkin")
@@ -184,7 +184,7 @@ performance, session_streak, checkin_streak, recent_sessions, ... = await asynci
 
 #### Analytics Endpoints ✅ GOOD
 ```python
-# /Users/rubertwolff/scratch/rivaflow/rivaflow/api/routes/analytics.py:19-35
+# rivaflow/api/routes/analytics.py:19-35
 @cached(ttl_seconds=600, key_prefix="analytics_performance")
 def _get_performance_overview_cached(user_id, start_date, end_date, types):
     """Cache TTL: 10 minutes"""
@@ -202,7 +202,7 @@ def _get_performance_overview_cached(user_id, start_date, end_date, types):
 
 #### In-Memory Cache Implementation
 ```python
-# /Users/rubertwolff/scratch/rivaflow/rivaflow/core/utils/cache.py
+# rivaflow/core/utils/cache.py
 class SimpleCache:
     def __init__(self):
         self._cache: dict[str, CacheEntry] = {}
@@ -268,7 +268,7 @@ def get_stats(self) -> dict:
 ```
 Total dist size: 7.9MB (includes 6.96MB logo.png)
 JavaScript bundle size: ~950KB total
-Main bundle: 246KB (/Users/rubertwolff/scratch/web/dist/assets/index-C-WuUPLt.js)
+Main bundle: 246KB (web/dist/assets/index-C-WuUPLt.js)
 CSS bundle: 43KB
 ```
 
@@ -301,7 +301,7 @@ Feed-TNKU4gy-.js      18KB  ✅ OK
 
 **Current State:**
 ```typescript
-// /Users/rubertwolff/scratch/web/package.json
+// web/package.json
 {
   "dependencies": {
     "react": "^18.2.0",
@@ -418,7 +418,7 @@ const handleSessionClick = useCallback((id) => {
 
 #### Batch Session Loading
 ```python
-# /Users/rubertwolff/scratch/rivaflow/rivaflow/db/repositories/session_roll_repo.py:81-119
+# rivaflow/db/repositories/session_roll_repo.py:81-119
 def get_by_session_ids(user_id, session_ids):
     """Get all rolls for multiple sessions in bulk (avoids N+1 queries)."""
     placeholders = ", ".join(["?"] * len(session_ids))
@@ -432,7 +432,7 @@ def get_by_session_ids(user_id, session_ids):
 
 #### Aggregation Efficiency
 ```python
-# /Users/rubertwolff/scratch/rivaflow/rivaflow/db/repositories/session_repo.py:262-290
+# rivaflow/db/repositories/session_repo.py:262-290
 def get_user_stats(user_id):
     """Get aggregate stats efficiently (no unbounded query)."""
     cursor.execute("""
@@ -452,7 +452,7 @@ def get_user_stats(user_id):
 
 #### Missing Pagination Support
 ```python
-# /Users/rubertwolff/scratch/rivaflow/rivaflow/db/repositories/session_repo.py:240-259
+# rivaflow/db/repositories/session_repo.py:240-259
 def list_by_user(user_id: int, limit: int = None):
     """Get all sessions for a user."""
     if limit:
@@ -521,7 +521,7 @@ paginated = repo.list_by_user(user_id, limit=50, offset=100)
 slowapi==0.1.9
 redis==5.2.1
 
-# /Users/rubertwolff/scratch/rivaflow/rivaflow/api/routes/feed.py:14-18
+# rivaflow/api/routes/feed.py:14-18
 from slowapi import Limiter
 from slowapi.util import get_remote_address
 
@@ -663,7 +663,7 @@ Current test: 10,000 sessions = 432KB database
 
 **Performance Tests:**
 ```
-/Users/rubertwolff/scratch/rivaflow/tests/performance/test_database_performance.py
+tests/performance/test_database_performance.py
 
 TestDatabasePerformance (8 tests):
   ✅ test_list_sessions_performance - 0.056s for 10K sessions
@@ -713,7 +713,7 @@ async def add_timing_header(request: Request, call_next):
 ### 🔴 CRITICAL (Fix Before Beta)
 
 #### 1. Add Pagination Offset to list_by_user()
-**Location:** `/Users/rubertwolff/scratch/rivaflow/rivaflow/db/repositories/session_repo.py:240`
+**Location:** `rivaflow/db/repositories/session_repo.py:240`
 **Impact:** Prevents efficient list navigation
 **Effort:** 1 hour
 **Fix:**
@@ -729,7 +729,7 @@ def list_by_user(user_id: int, limit: int = 50, offset: int = 0):
 ```
 
 #### 2. Optimize Logo Image
-**Location:** `/Users/rubertwolff/scratch/web/dist/logo.png`
+**Location:** `web/dist/logo.png`
 **Impact:** 6.96MB wasted bandwidth
 **Effort:** 30 minutes
 **Fix:**
@@ -750,13 +750,13 @@ convert logo.png -resize 512x512 -quality 85 logo.webp
 ### 🟠 HIGH (Post-Launch Optimization)
 
 #### 1. Dashboard Async Parallelization
-**Location:** `/Users/rubertwolff/scratch/rivaflow/rivaflow/api/routes/dashboard.py:38`
+**Location:** `rivaflow/api/routes/dashboard.py:38`
 **Impact:** 3x faster dashboard load (800ms → 300ms)
 **Effort:** 8 hours (requires async refactor)
 **Documented:** `TODO_PERFORMANCE.md:3-22`
 
 #### 2. Fix N+1 Glossary Lookups
-**Location:** `/Users/rubertwolff/scratch/rivaflow/rivaflow/core/services/performance_analytics.py:98`
+**Location:** `rivaflow/core/services/performance_analytics.py:98`
 **Impact:** 10 extra queries per analytics call
 **Effort:** 2 hours
 **Documented:** `TODO_PERFORMANCE.md:24-34`
@@ -772,7 +772,7 @@ convert logo.png -resize 512x512 -quality 85 logo.webp
 ### 🟡 MEDIUM (Production Scale)
 
 #### 1. Increase Connection Pool
-**Location:** `/Users/rubertwolff/scratch/rivaflow/rivaflow/db/database.py:111`
+**Location:** `rivaflow/db/database.py:111`
 **Impact:** Support 200+ concurrent users
 **Effort:** 5 minutes
 **Fix:**

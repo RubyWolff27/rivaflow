@@ -8,7 +8,7 @@
 #
 # History: the root-level build.sh was lost during a refactor and
 # the Render dashboard was still configured to call it. Restored
-# 2026-04-05 (Ruby Wolff + Sage) as part of Sprint cleanup session.
+# 2026-04-05 as part of a cleanup session.
 #
 # The inner script at rivaflow/build.sh handles:
 #   - pip install for the Python backend package

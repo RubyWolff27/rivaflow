@@ -2,7 +2,7 @@
 
 **Date:** 2026-02-11
 **Scope:** Full codebase security audit (OWASP-oriented)
-**Repo root:** `/Users/rubertwolff/scratch/`
+**Repo root:** ``
 **Reviewer:** Pre-production security audit
 
 ---
@@ -26,8 +26,8 @@ RivaFlow demonstrates a generally security-conscious architecture with many best
 **Severity:** HIGH
 **CVSS:** 7.1 (High) -- AV:N/AC:L/PR:N/UI:R/S:U/C:H/I:L/A:N
 **Files:**
-- `/Users/rubertwolff/scratch/web/src/contexts/AuthContext.tsx` lines 66-67, 94-95
-- `/Users/rubertwolff/scratch/web/src/api/client.ts` line 28
+- `web/src/contexts/AuthContext.tsx` lines 66-67, 94-95
+- `web/src/api/client.ts` line 28
 
 **Description:** Access tokens and refresh tokens are stored in `localStorage`, which is accessible to any JavaScript running on the page. If an XSS vulnerability is found (even in a third-party dependency), an attacker can exfiltrate both tokens and gain full account access.
 
@@ -46,7 +46,7 @@ localStorage.setItem('refresh_token', response.data.refresh_token);
 
 **Severity:** MEDIUM
 **CVSS:** 5.3 -- AV:N/AC:H/PR:N/S:U/C:L/I:L/A:N
-**File:** `/Users/rubertwolff/scratch/rivaflow/rivaflow/api/routes/integrations.py` lines 66-97
+**File:** `rivaflow/api/routes/integrations.py` lines 66-97
 
 **Description:** The WHOOP OAuth callback endpoint (`/api/v1/integrations/whoop/callback`) is not JWT-protected. Authentication relies solely on the `state` parameter (a CSRF token). The state token is single-use and time-limited (10 minutes), which is standard OAuth practice. However, the redirect URL at line 83 directly interpolates the `error` parameter from WHOOP into the redirect URL without sanitization.
 
@@ -66,9 +66,9 @@ return RedirectResponse(f"{frontend_url}/profile?whoop=error&reason={error}")
 
 **Severity:** MEDIUM
 **CVSS:** 5.3 -- AV:N/AC:L/PR:L/S:U/C:L/I:N/A:N
-**File:** `/Users/rubertwolff/scratch/rivaflow/rivaflow/api/routes/integrations.py` lines 439-479
+**File:** `rivaflow/api/routes/integrations.py` lines 439-479
 
-**Description:** The `/whoop/zones/batch` endpoint accepts a comma-separated list of session IDs and queries `WhoopWorkoutCacheRepository.get_by_session_id(sid)` for each. The `get_by_session_id()` method at `/Users/rubertwolff/scratch/rivaflow/rivaflow/db/repositories/whoop_workout_cache_repo.py` line 165 does NOT filter by `user_id` -- it queries `WHERE session_id = ?` only.
+**Description:** The `/whoop/zones/batch` endpoint accepts a comma-separated list of session IDs and queries `WhoopWorkoutCacheRepository.get_by_session_id(sid)` for each. The `get_by_session_id()` method at `rivaflow/db/repositories/whoop_workout_cache_repo.py` line 165 does NOT filter by `user_id` -- it queries `WHERE session_id = ?` only.
 
 **Evidence:**
 ```python
@@ -88,7 +88,7 @@ cursor.execute(
 ### 1.4 User Data Object Stored in localStorage (LOW)
 
 **Severity:** LOW
-**File:** `/Users/rubertwolff/scratch/web/src/contexts/AuthContext.tsx` line 44, 68
+**File:** `web/src/contexts/AuthContext.tsx` line 44, 68
 
 **Description:** The full user object (including `email`, `is_admin`, `subscription_tier`) is stored in `localStorage` at line 44 and 68. While this is primarily a convenience cache (the user is re-fetched from the API on mount), it exposes PII to any JavaScript on the page.
 
@@ -99,7 +99,7 @@ cursor.execute(
 ### 1.5 Access Token Expiry Duration (LOW)
 
 **Severity:** LOW
-**File:** `/Users/rubertwolff/scratch/rivaflow/rivaflow/core/settings.py` line 73
+**File:** `rivaflow/core/settings.py` line 73
 
 **Description:** Default access token expiry is 30 minutes, and refresh token expiry is 30 days. While 30 minutes is acceptable, the 30-day refresh token combined with localStorage storage creates a wide window for token theft.
 
@@ -113,8 +113,8 @@ cursor.execute(
 
 **Severity:** LOW (properly mitigated)
 **Files:**
-- `/Users/rubertwolff/scratch/rivaflow/rivaflow/db/repositories/grading_repo.py` lines 52-62
-- `/Users/rubertwolff/scratch/rivaflow/rivaflow/db/repositories/friend_repo.py` lines 75-83
+- `rivaflow/db/repositories/grading_repo.py` lines 52-62
+- `rivaflow/db/repositories/friend_repo.py` lines 75-83
 
 **Description:** Several repositories use f-string interpolation for ORDER BY clauses. However, all instances are properly guarded by whitelist validation before interpolation.
 
@@ -133,9 +133,9 @@ if order_by not in GRADING_SORT_OPTIONS:
 
 **Severity:** LOW (properly mitigated)
 **Files:**
-- `/Users/rubertwolff/scratch/rivaflow/rivaflow/api/routes/admin.py` lines 634-666
-- `/Users/rubertwolff/scratch/rivaflow/rivaflow/db/repositories/profile_repo.py` line 213
-- `/Users/rubertwolff/scratch/rivaflow/rivaflow/db/repositories/session_repo.py` line 244
+- `rivaflow/api/routes/admin.py` lines 634-666
+- `rivaflow/db/repositories/profile_repo.py` line 213
+- `rivaflow/db/repositories/session_repo.py` line 244
 
 **Description:** Multiple repositories dynamically build UPDATE SET clauses using f-strings. However, field names are drawn from hardcoded whitelists (Python dicts or sets), not user input. All VALUES are parameterized with `?` placeholders.
 
@@ -162,7 +162,7 @@ for field, value in field_values.items():
 ### 2.4 No Command Injection (LOW -- Good)
 
 **Severity:** Informational
-**File:** `/Users/rubertwolff/scratch/rivaflow/verify_no_ai_deps.py` line 24
+**File:** `verify_no_ai_deps.py` line 24
 
 **Description:** Only one `subprocess.run` call exists in the entire codebase, in a build verification script (not production code). No `os.system`, `os.popen`, or shell=True patterns were found.
 
@@ -175,9 +175,9 @@ for field, value in field_values.items():
 **Severity:** HIGH
 **CVSS:** 5.3 -- AV:N/AC:L/PR:N/S:U/C:L/I:N/A:N
 **Files:**
-- `/Users/rubertwolff/scratch/rivaflow/rivaflow/api/routes/analytics.py` (16+ occurrences, e.g., lines 110, 139, 228, 259, 275)
-- `/Users/rubertwolff/scratch/rivaflow/rivaflow/api/routes/grapple.py` lines 170-172, 233-234, 246, 258, 276
-- `/Users/rubertwolff/scratch/rivaflow/rivaflow/api/routes/admin.py` line 388
+- `rivaflow/api/routes/analytics.py` (16+ occurrences, e.g., lines 110, 139, 228, 259, 275)
+- `rivaflow/api/routes/grapple.py` lines 170-172, 233-234, 246, 258, 276
+- `rivaflow/api/routes/admin.py` line 388
 
 **Description:** Numerous route handlers return exception type names and messages directly in HTTP error responses, regardless of environment. While the global `generic_exception_handler` properly hides details in production, many routes catch exceptions and return `detail=f"...error: {type(e).__name__}: {str(e)}"` BEFORE the global handler sees them.
 
@@ -202,7 +202,7 @@ detail=f"Failed to create chat session: {type(e).__name__}: {e}"
 ### 3.2 Admin Gym Merge Leaks Exception Details (MEDIUM)
 
 **Severity:** MEDIUM
-**File:** `/Users/rubertwolff/scratch/rivaflow/rivaflow/api/routes/admin.py` line 388
+**File:** `rivaflow/api/routes/admin.py` line 388
 
 **Description:** The gym merge error handler passes `str(e)` directly to the client.
 
@@ -218,7 +218,7 @@ raise ValidationError(f"Failed to merge gyms: {str(e)}")
 
 **Severity:** MEDIUM
 **Files:**
-- `/Users/rubertwolff/scratch/rivaflow/rivaflow/api/routes/social.py` lines 90, 200-220, 283-340, 317-340
+- `rivaflow/api/routes/social.py` lines 90, 200-220, 283-340, 317-340
 - Various routes without rate limiting
 
 **Description:** Rate limiting is applied inconsistently:
@@ -237,7 +237,7 @@ While these are lower-risk endpoints, an attacker could abuse unrate-limited DEL
 ### 3.4 Grapple Rate Limiter Fails Open (MEDIUM)
 
 **Severity:** MEDIUM
-**File:** `/Users/rubertwolff/scratch/rivaflow/rivaflow/api/routes/grapple.py` lines 190-193
+**File:** `rivaflow/api/routes/grapple.py` lines 190-193
 
 **Description:** When the Grapple rate limiter fails (e.g., Redis/database error), it fails open -- allowing the request through:
 
@@ -256,7 +256,7 @@ except (ConnectionError, OSError) as e:
 ### 3.5 Weak Password Requirements (MEDIUM)
 
 **Severity:** MEDIUM
-**File:** `/Users/rubertwolff/scratch/rivaflow/rivaflow/core/services/auth_service.py` line 77
+**File:** `rivaflow/core/services/auth_service.py` line 77
 
 **Description:** Password validation only checks `len(password) < 8`. There are no requirements for:
 - Uppercase/lowercase mix
@@ -273,7 +273,7 @@ except (ConnectionError, OSError) as e:
 ### 4.1 Password Hashing (GOOD)
 
 **Severity:** Informational
-**File:** `/Users/rubertwolff/scratch/rivaflow/rivaflow/core/auth.py` lines 12, 33-45
+**File:** `rivaflow/core/auth.py` lines 12, 33-45
 
 **Description:** Passwords are hashed with bcrypt via `passlib.context.CryptContext`. The 72-byte bcrypt limit is properly handled with truncation. This is industry-standard.
 
@@ -282,7 +282,7 @@ except (ConnectionError, OSError) as e:
 ### 4.2 WHOOP OAuth Token Encryption (GOOD)
 
 **Severity:** Informational
-**File:** `/Users/rubertwolff/scratch/rivaflow/rivaflow/core/utils/encryption.py`
+**File:** `rivaflow/core/utils/encryption.py`
 
 **Description:** WHOOP OAuth tokens are encrypted at rest using Fernet (AES-128-CBC with HMAC-SHA256). The encryption key is loaded from `WHOOP_ENCRYPTION_KEY` environment variable. Proper error handling for missing keys and decryption failures.
 
@@ -292,8 +292,8 @@ except (ConnectionError, OSError) as e:
 
 **Severity:** MEDIUM
 **Files:**
-- `/Users/rubertwolff/scratch/rivaflow/rivaflow/core/services/grapple/context_builder.py`
-- `/Users/rubertwolff/scratch/rivaflow/rivaflow/api/routes/transcribe.py` lines 100-106, 131-143
+- `rivaflow/core/services/grapple/context_builder.py`
+- `rivaflow/api/routes/transcribe.py` lines 100-106, 131-143
 
 **Description:** The Grapple AI Coach sends user training data (session history, readiness scores, gradings, profile info) to external LLM providers (Groq, Together AI). The transcription endpoint sends audio files to OpenAI's Whisper API and text to GPT-4o-mini. While this is core functionality, users should be informed about:
 - What data is shared with which providers
@@ -307,7 +307,7 @@ except (ConnectionError, OSError) as e:
 ### 4.4 Sentry PII Configuration (GOOD)
 
 **Severity:** Informational
-**File:** `/Users/rubertwolff/scratch/rivaflow/rivaflow/api/main.py` line 89
+**File:** `rivaflow/api/main.py` line 89
 
 **Description:** Sentry is configured with `send_default_pii=False`, which prevents automatic PII collection. This is correct.
 
@@ -318,7 +318,7 @@ except (ConnectionError, OSError) as e:
 ### 5.1 Content Security Policy (GOOD, with Note)
 
 **Severity:** Informational
-**File:** `/Users/rubertwolff/scratch/rivaflow/rivaflow/api/middleware/security_headers.py` lines 49-59
+**File:** `rivaflow/api/middleware/security_headers.py` lines 49-59
 
 **Description:** The CSP policy is restrictive (`default-src 'self'`, `script-src 'self'`, `frame-ancestors 'none'`). However, `style-src 'self' 'unsafe-inline'` allows inline styles, and `img-src 'self' data: https:` allows loading images from any HTTPS origin.
 
@@ -330,8 +330,8 @@ except (ConnectionError, OSError) as e:
 
 **Severity:** MEDIUM
 **Files:**
-- `/Users/rubertwolff/scratch/rivaflow/rivaflow/api/middleware/security_headers.py`
-- `/Users/rubertwolff/scratch/render.yaml` lines 63-69
+- `rivaflow/api/middleware/security_headers.py`
+- `render.yaml` lines 63-69
 
 **Description:** The CSP headers are set by the backend SecurityHeadersMiddleware. However, the frontend is deployed as a separate Render static site (`rivaflow-web`), which only has `X-Frame-Options` and `X-Content-Type-Options` headers configured in `render.yaml`. The CSP, HSTS, Referrer-Policy, and Permissions-Policy headers are **missing** from the static frontend site.
 
@@ -360,7 +360,7 @@ headers:
 ### 6.1 Production SECRET_KEY Enforcement (GOOD)
 
 **Severity:** Informational
-**File:** `/Users/rubertwolff/scratch/rivaflow/rivaflow/core/auth.py` lines 19-26
+**File:** `rivaflow/core/auth.py` lines 19-26
 
 **Description:** The application raises a `RuntimeError` at startup if a weak SECRET_KEY is detected in production (less than 32 characters or starts with "dev-"). This is an excellent safeguard.
 
@@ -377,7 +377,7 @@ headers:
 ### 6.3 .gitignore Coverage (GOOD, with Note)
 
 **Severity:** LOW
-**File:** `/Users/rubertwolff/scratch/.gitignore`
+**File:** `.gitignore`
 
 **Description:** The `.gitignore` properly excludes `.env`, `*.db`, `uploads/`, and `rivaflow_export_*.json`. However, `backend.log` is present in the repo root. While `*.log` is in `.gitignore`, this file may have been committed before the rule was added.
 
@@ -388,7 +388,7 @@ headers:
 ### 6.4 Database Export Files in Repo Root (LOW)
 
 **Severity:** LOW
-**File:** `/Users/rubertwolff/scratch/` (root directory)
+**File:** `` (root directory)
 
 **Description:** Three `rivaflow_export_*.json` files exist in the repo root. While `.gitignore` excludes them from git, their presence on the development machine may contain user PII (training sessions, personal data). These should be stored in a secure, non-root location.
 
@@ -397,7 +397,7 @@ headers:
 ### 6.5 Render Database IP Allow List Empty (LOW)
 
 **Severity:** LOW
-**File:** `/Users/rubertwolff/scratch/render.yaml` line 83
+**File:** `render.yaml` line 83
 
 **Description:** `ipAllowList: []` means the PostgreSQL database accepts connections from any IP (relying solely on username/password authentication). While Render provides network-level protection, an explicit IP allowlist adds defense-in-depth.
 
@@ -415,7 +415,7 @@ Already documented in Section 1.3.
 
 ### 7.2 WHOOP Session Context -- Session Ownership Verified (GOOD)
 
-**File:** `/Users/rubertwolff/scratch/rivaflow/rivaflow/api/routes/integrations.py` line 282
+**File:** `rivaflow/api/routes/integrations.py` line 282
 
 **Description:** `SessionRepository.get_by_id(user_id, session_id)` includes `user_id` in the query. Properly protected.
 
@@ -424,7 +424,7 @@ Already documented in Section 1.3.
 ### 7.3 Social Likes/Comments -- Activity Ownership Not Verified for Reads (LOW)
 
 **Severity:** LOW
-**File:** `/Users/rubertwolff/scratch/rivaflow/rivaflow/api/routes/social.py` lines 223-243, 343-363
+**File:** `rivaflow/api/routes/social.py` lines 223-243, 343-363
 
 **Description:** The `get_activity_likes` and `get_activity_comments` endpoints accept `activity_type` and `activity_id` but do not verify that the requesting user has permission to view that activity. Any authenticated user can retrieve likes/comments for any activity ID.
 
@@ -451,7 +451,7 @@ Already documented in Section 1.3.
 ### 8.1 CORS Configuration (GOOD)
 
 **Severity:** Informational
-**File:** `/Users/rubertwolff/scratch/rivaflow/rivaflow/api/main.py` lines 126-158
+**File:** `rivaflow/api/main.py` lines 126-158
 
 **Description:** CORS is properly configured:
 - Production uses `ALLOWED_ORIGINS` environment variable (comma-separated whitelist)
@@ -466,7 +466,7 @@ Already documented in Section 1.3.
 
 ### 9.1 jose Library (Informational)
 
-**File:** `/Users/rubertwolff/scratch/rivaflow/rivaflow/core/auth.py` line 7
+**File:** `rivaflow/core/auth.py` line 7
 
 **Description:** The `python-jose` library is used for JWT operations. It is a well-maintained library but has had occasional CVEs. Ensure it is regularly updated.
 
@@ -476,7 +476,7 @@ Already documented in Section 1.3.
 
 ### 9.2 API Documentation Disabled in Production (GOOD)
 
-**File:** `/Users/rubertwolff/scratch/rivaflow/rivaflow/api/main.py` lines 102-104
+**File:** `rivaflow/api/main.py` lines 102-104
 
 **Description:** Swagger/ReDoc documentation and OpenAPI schema are properly disabled in production:
 ```python
@@ -493,7 +493,7 @@ _openapi_url = None if settings.IS_PRODUCTION else "/openapi.json"
 
 **Severity:** HIGH
 **CVSS:** 7.5 -- AV:N/AC:L/PR:N/S:U/C:N/I:H/A:N
-**File:** `/Users/rubertwolff/scratch/rivaflow/rivaflow/api/routes/webhooks.py` lines 73-82
+**File:** `rivaflow/api/routes/webhooks.py` lines 73-82
 
 **Description:** The WHOOP webhook endpoint skips signature verification entirely when `WHOOP_CLIENT_SECRET` is not set:
 
@@ -514,8 +514,8 @@ else:
 
 **Severity:** LOW
 **Files:**
-- `/Users/rubertwolff/scratch/rivaflow/rivaflow/api/main.py` lines 283-319
-- `/Users/rubertwolff/scratch/rivaflow/rivaflow/api/routes/health.py`
+- `rivaflow/api/main.py` lines 283-319
+- `rivaflow/api/routes/health.py`
 
 **Description:** The health check endpoint at `/health` returns database connectivity status including error type names (`type(e).__name__`). While health endpoints are commonly exposed, the error details help fingerprint the database technology.
 
@@ -526,7 +526,7 @@ else:
 ### 10.3 convert_query() Function Safety (GOOD, with Caveat)
 
 **Severity:** Informational
-**File:** `/Users/rubertwolff/scratch/rivaflow/rivaflow/db/database.py` lines 25-38
+**File:** `rivaflow/db/database.py` lines 25-38
 
 **Description:** The `convert_query()` function performs a simple `?` to `%s` replacement for PostgreSQL. This is safe because:
 1. All `?` placeholders are parameterized (values are never interpolated into the query string)
@@ -539,7 +539,7 @@ else:
 ### 10.4 Broadcast Email -- No Confirmation Step (LOW)
 
 **Severity:** LOW
-**File:** `/Users/rubertwolff/scratch/rivaflow/rivaflow/api/routes/admin.py` lines 1080-1128
+**File:** `rivaflow/api/routes/admin.py` lines 1080-1128
 
 **Description:** The admin broadcast email endpoint sends to ALL active users immediately in a background thread with no confirmation step, preview, or undo capability. A misclick or crafted request could send an unintended email to all users.
 

@@ -27,7 +27,7 @@
 **Verification:**
 ```bash
 $ ls -la .gitignore
--rw-r--r-- 1 rubertwolff staff 603 Feb 1 20:00 .gitignore
+-rw-r--r-- 1 user staff 603 Feb 1 20:00 .gitignore
 ```
 - ✅ Protects `.env` files
 - ✅ Excludes `*.db` files
@@ -235,7 +235,7 @@ rivaflow = "rivaflow.cli.app:app"
 
 ### Immediate (5 minutes)
 1. ⚠️ **Format `tests/conftest.py` with black**
-   - File: `/Users/rubertwolff/scratch/tests/conftest.py`
+   - File: `tests/conftest.py`
    - Command: `black tests/conftest.py`
    - Then commit and push
 

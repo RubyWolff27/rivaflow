@@ -140,9 +140,9 @@ Total: 199 tests, 54% failure rate
 4. Add build.sh test execution before deployment
 
 **Files to Create:**
-- `/Users/rubertwolff/scratch/rivaflow/.github/workflows/test.yml`
-- `/Users/rubertwolff/scratch/rivaflow/.github/workflows/security.yml`
-- `/Users/rubertwolff/scratch/rivaflow/.github/workflows/deploy.yml`
+- `.github/workflows/test.yml`
+- `.github/workflows/security.yml`
+- `.github/workflows/deploy.yml`
 
 **Estimated Effort:** 8-12 hours
 
@@ -190,7 +190,7 @@ def get_all_feedback(current_user: dict = Depends(get_current_user)):
 ```
 
 **Files to Fix:**
-- `/Users/rubertwolff/scratch/rivaflow/rivaflow/api/routes/admin.py:145-180`
+- `rivaflow/api/routes/admin.py:145-180`
 
 **Estimated Effort:** 2 hours
 
@@ -238,8 +238,8 @@ def list_by_user(user_id: int, limit: int = 50, offset: int = 0):
 ```
 
 **Files to Fix:**
-- `/Users/rubertwolff/scratch/rivaflow/rivaflow/db/repositories/session_repo.py:240`
-- `/Users/rubertwolff/scratch/rivaflow/rivaflow/api/routes/dashboard.py:157`
+- `rivaflow/db/repositories/session_repo.py:240`
+- `rivaflow/api/routes/dashboard.py:157`
 - All list endpoints (15 routes)
 
 **Estimated Effort:** 6 hours
@@ -279,8 +279,8 @@ def list_by_user(user_id: int, limit: int = 50, offset: int = 0):
 4. Add rollback testing to CI/CD
 
 **Files to Create:**
-- `/Users/rubertwolff/scratch/rivaflow/scripts/backup_before_deploy.sh`
-- `/Users/rubertwolff/scratch/rivaflow/rivaflow/db/migrations/down/`
+- `scripts/backup_before_deploy.sh`
+- `rivaflow/db/migrations/down/`
 
 **Estimated Effort:** 6 hours
 
@@ -341,8 +341,8 @@ class ErrorBoundary extends React.Component {
 ```
 
 **Files to Create:**
-- `/Users/rubertwolff/scratch/web/src/components/ErrorBoundary.tsx`
-- `/Users/rubertwolff/scratch/web/src/components/ErrorFallback.tsx`
+- `web/src/components/ErrorBoundary.tsx`
+- `web/src/components/ErrorFallback.tsx`
 
 **Estimated Effort:** 3 hours
 
@@ -393,8 +393,8 @@ build: {
 ```
 
 **Files to Fix:**
-- `/Users/rubertwolff/scratch/web/public/logo.png`
-- `/Users/rubertwolff/scratch/web/vite.config.ts`
+- `web/public/logo.png`
+- `web/vite.config.ts`
 
 **Estimated Effort:** 2 hours
 
@@ -959,7 +959,7 @@ jobs:
 ### Fix 2: Fix Admin Authorization (2 hours)
 
 **Files to Modify:**
-- `/Users/rubertwolff/scratch/rivaflow/rivaflow/api/routes/admin.py`
+- `rivaflow/api/routes/admin.py`
 
 **Changes Required:**
 ```python
@@ -1004,8 +1004,8 @@ async def get_feedback_by_id(
 ### Fix 3: Add Pagination (6 hours)
 
 **Files to Modify:**
-- `/Users/rubertwolff/scratch/rivaflow/rivaflow/db/repositories/session_repo.py`
-- `/Users/rubertwolff/scratch/rivaflow/rivaflow/api/routes/sessions.py`
+- `rivaflow/db/repositories/session_repo.py`
+- `rivaflow/api/routes/sessions.py`
 - Plus 13 more list endpoints
 
 **Repository Layer Fix:**
@@ -1098,7 +1098,7 @@ async def list_sessions(
 
 **Commands:**
 ```bash
-cd /Users/rubertwolff/scratch/rivaflow
+cd .
 
 # Update python-jose to fix CVE-2024-23342
 pip install --upgrade 'python-jose[cryptography]>=3.3.0'
@@ -1313,7 +1313,7 @@ function App() {
 
 **Step 1: Optimize Logo (30 minutes)**
 ```bash
-cd /Users/rubertwolff/scratch/web/public
+cd web/public
 
 # Install imagemagick if needed
 brew install imagemagick
@@ -2247,43 +2247,43 @@ Root cause: NO CI/CD PIPELINE
 
 ```
 Backend:
-/Users/rubertwolff/scratch/rivaflow/rivaflow/api/routes/admin.py
+rivaflow/api/routes/admin.py
   Lines 145-180: Add @require_admin decorators
 
-/Users/rubertwolff/scratch/rivaflow/rivaflow/db/repositories/session_repo.py
+rivaflow/db/repositories/session_repo.py
   Line 240: Add pagination parameters
 
-/Users/rubertwolff/scratch/rivaflow/requirements.txt
+requirements.txt
   Update python-jose version
 
-/Users/rubertwolff/scratch/rivaflow/build.sh
+build.sh
   Line 28: Add pytest execution
 
-/Users/rubertwolff/scratch/rivaflow/rivaflow/api/main.py
+rivaflow/api/main.py
   Add Sentry initialization
 
 Frontend:
-/Users/rubertwolff/scratch/web/public/logo.png
+web/public/logo.png
   Replace with optimized logo.webp
 
-/Users/rubertwolff/scratch/web/vite.config.ts
+web/vite.config.ts
   Add code splitting configuration
 
-/Users/rubertwolff/scratch/web/src/App.tsx
+web/src/App.tsx
   Wrap in ErrorBoundary
 
-/Users/rubertwolff/scratch/web/src/components/ErrorBoundary.tsx
+web/src/components/ErrorBoundary.tsx
   Create new component
 
 CI/CD:
-/Users/rubertwolff/scratch/rivaflow/.github/workflows/test.yml
+.github/workflows/test.yml
   Create GitHub Actions workflow
 
-/Users/rubertwolff/scratch/rivaflow/.github/workflows/security.yml
+.github/workflows/security.yml
   Create security scanning workflow
 
 DevOps:
-/Users/rubertwolff/scratch/rivaflow/scripts/backup_before_deploy.sh
+scripts/backup_before_deploy.sh
   Create backup script
 ```
 

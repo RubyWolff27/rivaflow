@@ -59,7 +59,7 @@ RivaFlow is a **well-architected, security-conscious** BJJ training tracker with
 
 ### Evidence
 ```bash
-$ ls -la /Users/rubertwolff/scratch/rivaflow/.gitignore
+$ ls -la .gitignore
 ls: .gitignore: No such file or directory
 
 $ find . -name "*.pyc" | wc -l
@@ -492,7 +492,7 @@ sed -i '' 's/yourusername/RubyWolff27/g' README.md CONTRIBUTING.md
 **Agent:** 10 (Build & Package)
 **Issue:** Backend at v0.2.0, frontend at v0.1.0
 
-**Fix:** Update `/Users/rubertwolff/scratch/web/package.json`
+**Fix:** Update `web/package.json`
 ```json
 {
   "version": "0.2.0"

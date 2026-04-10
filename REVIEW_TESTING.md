@@ -1,7 +1,7 @@
 # RivaFlow Testing Coverage & Gap Analysis
 
 **Date:** 2026-02-11
-**Repo root:** `/Users/rubertwolff/scratch/`
+**Repo root:** ``
 **CI test path:** `tests/` (collected by CI)
 **Frontend test path:** `rivaflow/web/src/pages/__tests__/`
 

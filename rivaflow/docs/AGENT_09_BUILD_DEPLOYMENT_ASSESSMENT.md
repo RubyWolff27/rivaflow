@@ -993,7 +993,7 @@ git push origin v0.2.0
 
 ## APPENDIX A: BUILD SCRIPT ANALYSIS
 
-**File:** `/Users/rubertwolff/scratch/rivaflow/build.sh`
+**File:** `build.sh`
 
 **Lines:** 42
 **Quality:** Excellent (90/100)

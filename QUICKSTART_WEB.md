@@ -14,7 +14,7 @@ A complete, modern web application for tracking your BJJ/grappling training:
 ### 1. Install Dependencies
 
 ```bash
-cd /Users/rubertwolff/scratch
+cd .
 
 # Install Python API dependencies
 pip install -e .

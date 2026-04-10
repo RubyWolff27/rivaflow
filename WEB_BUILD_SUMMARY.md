@@ -41,7 +41,7 @@ You now have a **complete full-stack web application** built on top of your soli
 ### Quick Start
 
 ```bash
-cd /Users/rubertwolff/scratch
+cd .
 
 # One command to start everything:
 ./start-web.sh

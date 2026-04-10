@@ -157,7 +157,7 @@ Complete social network features for BJJ community building - friend discovery, 
 **Description:** Highlight streak milestones (5-day, 10-day, month, 100-day) with badges/notifications
 
 #### Technique Focus Planning
-**Status:** Plan exists in `/Users/rubertwolff/.claude/plans/virtual-swinging-metcalfe.md`
+**Status:** Plan exists in internal planning notes (`virtual-swinging-metcalfe`)
 **Effort:** 6 hours
 **Description:** Restructure session logging to track "Technique of the Day" with detailed notes and media URLs
 

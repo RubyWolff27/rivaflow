@@ -9,7 +9,7 @@
 ## CRITICAL Priority
 
 ### C-1. Session Delete Has Cross-Connection Transaction Bug
-**File:** `/Users/rubertwolff/scratch/rivaflow/rivaflow/db/repositories/session_repo.py`, lines 432-450
+**File:** `rivaflow/db/repositories/session_repo.py`, lines 432-450
 
 The `delete()` method opens its **own** `get_connection()` context, but calls `SessionRollRepository.delete_by_session()` and `SessionTechniqueRepository.delete_by_session()` which each open their **own** `get_connection()` contexts internally. This means the child record deletions and the parent session deletion happen in **separate database transactions**. If the session DELETE fails, the roll and technique records are already committed and gone -- orphan deletions with no rollback.
 
@@ -29,7 +29,7 @@ def delete(user_id: int, session_id: int) -> bool:
 ---
 
 ### C-2. Notification Repository Uses `RETURNING` Without `convert_query()` Handling
-**File:** `/Users/rubertwolff/scratch/rivaflow/rivaflow/db/repositories/notification_repo.py`, line 37-41
+**File:** `rivaflow/db/repositories/notification_repo.py`, line 37-41
 
 The `create()` method uses `RETURNING` in the SQL directly with `convert_query()`. However, `convert_query()` only replaces `?` with `%s` for PostgreSQL. The `RETURNING` clause is PostgreSQL-only and will fail on SQLite. Unlike `execute_insert()` which handles this portability, the notification repo hardcodes `RETURNING`.
 
@@ -46,7 +46,7 @@ query = convert_query("""
 ---
 
 ### C-3. Auth Service Registration Has Non-Atomic Multi-Transaction Writes
-**File:** `/Users/rubertwolff/scratch/rivaflow/rivaflow/core/services/auth_service.py`, lines 95-176
+**File:** `rivaflow/core/services/auth_service.py`, lines 95-176
 
 User registration performs user creation, profile creation, and streak initialization each in **separate** `get_connection()` blocks (separate transactions). The manual cleanup on failure (`DELETE FROM users WHERE id = ?`) runs in yet another separate transaction. If the application crashes mid-registration, partial data will persist. Worse, the manual cleanup `DELETE FROM users` bypasses CASCADE constraints in SQLite (SQLite requires `PRAGMA foreign_keys = ON` which isn't set).
 
@@ -56,7 +56,7 @@ User registration performs user creation, profile creation, and streak initializ
 ---
 
 ### C-4. User Email Exposed to LLM in Chat Context
-**File:** `/Users/rubertwolff/scratch/rivaflow/rivaflow/api/routes/chat.py`, lines 79-82
+**File:** `rivaflow/api/routes/chat.py`, lines 79-82
 
 The `build_user_context()` function sends the user's full email address to the Ollama LLM:
 
@@ -75,7 +75,7 @@ context_parts = [
 ## HIGH Priority
 
 ### H-1. Duplicate `except ValueError` Clauses in Auth Routes
-**File:** `/Users/rubertwolff/scratch/rivaflow/rivaflow/api/routes/auth.py`, lines 129-139
+**File:** `rivaflow/api/routes/auth.py`, lines 129-139
 
 The `register()` function has overlapping exception handlers:
 
@@ -111,7 +111,7 @@ The second `ValueError` catch on line 134 is dead code because line 129 already 
 ---
 
 ### H-3. `social.py` User Search Loads ALL Users Into Memory
-**File:** `/Users/rubertwolff/scratch/rivaflow/rivaflow/api/routes/social.py`, lines 386-412
+**File:** `rivaflow/api/routes/social.py`, lines 386-412
 
 The `search_users()` endpoint calls `UserRepository.list_all()` to fetch every active user, then filters in Python:
 
@@ -140,7 +140,7 @@ More importantly, `checkin_repo.py` line 188 calls `conn.commit()` inside `updat
 ---
 
 ### H-5. Dashboard Exception Handlers Swallow Real Errors as `ValidationError` (400)
-**File:** `/Users/rubertwolff/scratch/rivaflow/rivaflow/api/routes/dashboard.py`, lines 139-140, 184-185, 255-256
+**File:** `rivaflow/api/routes/dashboard.py`, lines 139-140, 184-185, 255-256
 
 ```python
 except Exception as e:
@@ -155,7 +155,7 @@ All three dashboard endpoints catch `Exception` and re-raise as `ValidationError
 ---
 
 ### H-6. Analytics Routes Leak Internal Error Details to Clients
-**File:** `/Users/rubertwolff/scratch/rivaflow/rivaflow/api/routes/analytics.py`, many endpoints
+**File:** `rivaflow/api/routes/analytics.py`, many endpoints
 
 Every analytics endpoint catches errors and returns the error message directly:
 
@@ -173,7 +173,7 @@ This pattern appears in ~20 endpoints in the analytics module. The `str(e)` can 
 ---
 
 ### H-7. `GoalsService()` Instantiated But Never Used
-**File:** `/Users/rubertwolff/scratch/rivaflow/rivaflow/api/routes/dashboard.py`, line 222
+**File:** `rivaflow/api/routes/dashboard.py`, line 222
 
 ```python
 GoalsService()  # Instantiated but not assigned or used
@@ -187,7 +187,7 @@ GoalsService()  # Instantiated but not assigned or used
 ## MEDIUM Priority
 
 ### M-1. Missing Migration Numbers Create Confusion
-**File:** `/Users/rubertwolff/scratch/rivaflow/rivaflow/db/database.py`, lines 428-505
+**File:** `rivaflow/db/database.py`, lines 428-505
 
 The migration list in `_apply_migrations()` is missing numbers: 033, 046, 055, 056, 057, 068, 069, 070, 074. Some of these exist as files on disk (e.g., `046_social_features_comprehensive_pg.sql`, `055_add_missing_indexes.sql`, `068_migrate_techniques_to_glossary.sql`). They have corresponding `_pg.sql` variants on disk but are not in the hardcoded migration list.
 
@@ -209,7 +209,7 @@ All `_row_to_dict` methods have type hints `row: sqlite3.Row` even though they a
 ---
 
 ### M-3. `convert_query()` Naively Replaces ALL `?` Characters
-**File:** `/Users/rubertwolff/scratch/rivaflow/rivaflow/db/database.py`, lines 35-38
+**File:** `rivaflow/db/database.py`, lines 35-38
 
 ```python
 def convert_query(query: str) -> str:
@@ -226,7 +226,7 @@ This replaces `?` inside string literals too. A query like `WHERE name LIKE '?%'
 ---
 
 ### M-4. N+1 Query Pattern in WHOOP Zones Batch Endpoint
-**File:** `/Users/rubertwolff/scratch/rivaflow/rivaflow/api/routes/integrations.py`, lines 452-477
+**File:** `rivaflow/api/routes/integrations.py`, lines 452-477
 
 The `get_zones_batch()` endpoint issues one `WhoopWorkoutCacheRepository.get_by_session_id()` query per session ID, up to 50:
 
@@ -241,7 +241,7 @@ for sid in ids:
 ---
 
 ### M-5. N+1 Query Pattern in WHOOP Weekly Zones
-**File:** `/Users/rubertwolff/scratch/rivaflow/rivaflow/api/routes/integrations.py`, lines 517-530
+**File:** `rivaflow/api/routes/integrations.py`, lines 517-530
 
 Similar to M-4, iterates over sessions and queries workouts one at a time:
 
@@ -256,7 +256,7 @@ for s in sessions:
 ---
 
 ### M-6. `get_session_with_details()` Has N+1 for Social Data
-**File:** `/Users/rubertwolff/scratch/rivaflow/rivaflow/core/services/session_service.py`, lines 384-419
+**File:** `rivaflow/core/services/session_service.py`, lines 384-419
 
 This method loads likes, comments, like count, comment count, and has_liked in 5 separate queries for each session.
 
@@ -266,7 +266,7 @@ This method loads likes, comments, like count, comment count, and has_liked in 5
 ---
 
 ### M-7. Social Followers/Following Pagination Done In-Memory
-**File:** `/Users/rubertwolff/scratch/rivaflow/rivaflow/api/routes/social.py`, lines 124-147
+**File:** `rivaflow/api/routes/social.py`, lines 124-147
 
 Both `get_followers()` and `get_following()` fetch ALL results, then slice in Python:
 
@@ -282,7 +282,7 @@ followers = all_followers[offset : offset + limit]
 ---
 
 ### M-8. `get_last_n_sessions_by_type()` Return Type Annotation Is Wrong
-**File:** `/Users/rubertwolff/scratch/rivaflow/rivaflow/db/repositories/session_repo.py`, line 411
+**File:** `rivaflow/db/repositories/session_repo.py`, line 411
 
 ```python
 def get_last_n_sessions_by_type(user_id: int, n: int = 5) -> dict[str, list[str]]:
@@ -296,7 +296,7 @@ The method actually returns `list[str]` (a flat list of class type strings), not
 ---
 
 ### M-9. Grapple Chat Exposes Internal Error Messages to Clients
-**File:** `/Users/rubertwolff/scratch/rivaflow/rivaflow/api/routes/grapple.py`, lines 233-234, 246-248, 257-259
+**File:** `rivaflow/api/routes/grapple.py`, lines 233-234, 246-248, 257-259
 
 ```python
 detail=f"Failed to create chat session: {type(e).__name__}: {e}",
@@ -310,7 +310,7 @@ detail=f"Failed to build context: {type(e).__name__}: {e}",
 ---
 
 ### M-10. `admin.py` Route Directly Writes SQL Instead of Using Repository
-**File:** `/Users/rubertwolff/scratch/rivaflow/rivaflow/api/routes/admin.py`, many locations (lines 398-467, 494-548, 559-615, etc.)
+**File:** `rivaflow/api/routes/admin.py`, many locations (lines 398-467, 494-548, 559-615, etc.)
 
 The admin routes bypass the repository layer and write raw SQL queries directly against `get_connection()`. This violates the routes -> services -> repos separation of concerns.
 
@@ -320,7 +320,7 @@ The admin routes bypass the repository layer and write raw SQL queries directly 
 ---
 
 ### M-11. `admin.py` Uses Deprecated `gym_data.dict()` Instead of `model_dump()`
-**File:** `/Users/rubertwolff/scratch/rivaflow/rivaflow/api/routes/admin.py`, line 195
+**File:** `rivaflow/api/routes/admin.py`, line 195
 
 ```python
 update_data = {k: v for k, v in gym_data.dict().items() if v is not None}
@@ -334,7 +334,7 @@ Pydantic v2 deprecated `.dict()` in favor of `.model_dump()`.
 ---
 
 ### M-12. Profile GET Returns Hardcoded `id: 1` for Missing Profile
-**File:** `/Users/rubertwolff/scratch/rivaflow/rivaflow/api/routes/profile.py`, lines 127-139
+**File:** `rivaflow/api/routes/profile.py`, lines 127-139
 
 ```python
 if not profile:
@@ -352,25 +352,25 @@ if not profile:
 ## LOW Priority
 
 ### L-1. Unused `import threading` and `import time` in admin.py
-**File:** `/Users/rubertwolff/scratch/rivaflow/rivaflow/api/routes/admin.py`, lines 4-5
+**File:** `rivaflow/api/routes/admin.py`, lines 4-5
 
 `threading` and `time` are imported at module level but `time` is only used inside `_send_broadcast_background()` and `threading` is used only for `threading.Thread`. These are fine technically but could be lazy imports.
 
 ---
 
 ### L-2. Unused Imports in Various Files
-**File:** `/Users/rubertwolff/scratch/rivaflow/rivaflow/db/repositories/glossary_repo.py`, line 5
+**File:** `rivaflow/db/repositories/glossary_repo.py`, line 5
 
 `timedelta` and `date` are imported from `datetime` but `date` and `timedelta` are only used in `get_stale()`. Minor.
 
-**File:** `/Users/rubertwolff/scratch/rivaflow/rivaflow/api/routes/sessions.py`, lines 4, 14
+**File:** `rivaflow/api/routes/sessions.py`, lines 4, 14
 
 `asyncio` is imported at module level but only used in one background task helper. `Response` is imported but only used once.
 
 ---
 
 ### L-3. `_reset_postgresql_sequences` Catches Too-Broad OS Errors
-**File:** `/Users/rubertwolff/scratch/rivaflow/rivaflow/db/database.py`, lines 308-312
+**File:** `rivaflow/db/database.py`, lines 308-312
 
 ```python
 except (OSError, ConnectionError) as e:
@@ -387,7 +387,7 @@ except (OSError, ConnectionError) as e:
 ---
 
 ### L-4. `readiness.py` Weight Endpoint Uses `dict` Instead of Pydantic Model
-**File:** `/Users/rubertwolff/scratch/rivaflow/rivaflow/api/routes/readiness.py`, line 124
+**File:** `rivaflow/api/routes/readiness.py`, line 124
 
 ```python
 def log_weight_only(request: Request, data: dict, ...):
@@ -401,7 +401,7 @@ All other endpoints use Pydantic models for request validation. Using raw `dict`
 ---
 
 ### L-5. `chat.py` Uses `total_sessions` Before It May Be Defined
-**File:** `/Users/rubertwolff/scratch/rivaflow/rivaflow/api/routes/chat.py`, lines 84-86
+**File:** `rivaflow/api/routes/chat.py`, lines 84-86
 
 ```python
 if total_sessions > 0:
@@ -446,7 +446,7 @@ While the slowapi limiter is initialized in these modules, not all endpoints use
 ---
 
 ### L-8. `admin.py` Broadcast Uses `is_active = ?` with `(1,)` Instead of `(True,)`
-**File:** `/Users/rubertwolff/scratch/rivaflow/rivaflow/api/routes/admin.py`, line 1094
+**File:** `rivaflow/api/routes/admin.py`, line 1094
 
 ```python
 cursor.execute(convert_query("... WHERE is_active = ?"), (1,))
@@ -460,7 +460,7 @@ PostgreSQL with `boolean` column type expects `True`/`False`, not `1`/`0`. This 
 ---
 
 ### L-9. Glossary `list_all()` Hardcodes `gi_applicable = 1` Instead of Using Boolean
-**File:** `/Users/rubertwolff/scratch/rivaflow/rivaflow/db/repositories/glossary_repo.py`, lines 37-40
+**File:** `rivaflow/db/repositories/glossary_repo.py`, lines 37-40
 
 ```python
 if gi_only:

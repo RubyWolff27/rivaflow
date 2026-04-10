@@ -8,7 +8,7 @@
 
 ## Pre-Flight Checklist
 - [ ] Ensure on `main` branch, clean working tree
-- [ ] Run existing tests to confirm green baseline: `cd /Users/rubertwolff/scratch && pytest tests/ -x -q`
+- [ ] Run existing tests to confirm green baseline: `cd . && pytest tests/ -x -q`
 - [ ] Run frontend build to confirm clean: `cd rivaflow/web && npm run build`
 
 ---
@@ -316,7 +316,7 @@
 ## Final Sync & Verification
 
 ### After all waves:
-1. Run full backend test suite: `cd /Users/rubertwolff/scratch && pytest tests/ rivaflow/tests/ -x -q`
+1. Run full backend test suite: `cd . && pytest tests/ rivaflow/tests/ -x -q`
 2. Run lint: `black rivaflow/ tests/` then `ruff check rivaflow/ tests/ --ignore=C901,N802,N818,UP042,F823`
 3. Run frontend build: `cd rivaflow/web && npm run build && npx vitest run`
 4. Sync web/: `rsync -av --delete rivaflow/web/src/ web/src/ && rsync -av rivaflow/web/index.html web/index.html && rsync -av rivaflow/web/package.json web/package.json`

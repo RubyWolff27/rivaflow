@@ -1,7 +1,7 @@
 # RivaFlow Frontend Code Review
 
 **Date**: 2026-02-11
-**Scope**: `/Users/rubertwolff/scratch/rivaflow/web/src/`
+**Scope**: `web/src/`
 **Reviewer**: Claude (automated review)
 
 ---
@@ -10,7 +10,7 @@
 
 ### C-1. Token Refresh Race Condition (API Client)
 
-**File**: `/Users/rubertwolff/scratch/rivaflow/web/src/api/client.ts` (lines 66-101)
+**File**: `web/src/api/client.ts` (lines 66-101)
 
 The 401 response interceptor lacks concurrency protection. When multiple API calls fail with 401 simultaneously (common on page load), each triggers its own `authApi.refresh()` call. The second refresh attempt will typically fail because the first one already consumed the refresh token, causing an unnecessary logout.
 
@@ -34,12 +34,12 @@ refreshPromise = null;
 ### C-2. `useState<any>` Across Analytics / Reports (26 instances)
 
 **Files and lines**:
-- `/Users/rubertwolff/scratch/rivaflow/web/src/pages/Reports.tsx` lines 31-39 (9 instances: `performanceData`, `partnersData`, `techniquesData`, `calendarData`, `durationData`, `timeOfDayData`, `gymData`, `classTypeData`, `beltDistData`)
-- `/Users/rubertwolff/scratch/rivaflow/web/src/components/analytics/InsightsTab.tsx` lines 18-24 (7 instances: `summary`, `trainingLoad`, `readinessCorr`, `techniqueEff`, `sessionQuality`, `riskData`, `recoveryData`)
-- `/Users/rubertwolff/scratch/rivaflow/web/src/components/analytics/WhoopAnalyticsTab.tsx` lines 17-21 (5 instances: `perfCorr`, `efficiency`, `cardio`, `sleepDebt`, `readinessModel`)
-- `/Users/rubertwolff/scratch/rivaflow/web/src/components/analytics/ReadinessTab.tsx` lines 20-21 (2 instances: `data`, `whoopData`)
-- `/Users/rubertwolff/scratch/rivaflow/web/src/components/analytics/PartnerProgressionChart.tsx` line 17 (1 instance)
-- `/Users/rubertwolff/scratch/rivaflow/web/src/pages/UserProfile.tsx` lines 12-13 (2 instances: `profile`, `stats`)
+- `web/src/pages/Reports.tsx` lines 31-39 (9 instances: `performanceData`, `partnersData`, `techniquesData`, `calendarData`, `durationData`, `timeOfDayData`, `gymData`, `classTypeData`, `beltDistData`)
+- `web/src/components/analytics/InsightsTab.tsx` lines 18-24 (7 instances: `summary`, `trainingLoad`, `readinessCorr`, `techniqueEff`, `sessionQuality`, `riskData`, `recoveryData`)
+- `web/src/components/analytics/WhoopAnalyticsTab.tsx` lines 17-21 (5 instances: `perfCorr`, `efficiency`, `cardio`, `sleepDebt`, `readinessModel`)
+- `web/src/components/analytics/ReadinessTab.tsx` lines 20-21 (2 instances: `data`, `whoopData`)
+- `web/src/components/analytics/PartnerProgressionChart.tsx` line 17 (1 instance)
+- `web/src/pages/UserProfile.tsx` lines 12-13 (2 instances: `profile`, `stats`)
 
 **Impact**: Eliminates all type safety for the analytics data pipeline. Bugs in data shape changes from the API will not be caught at compile time. Any developer touching these components has zero IDE assistance for data properties.
 
@@ -70,7 +70,7 @@ Multiple pages use fixed `grid-cols-3`, `grid-cols-4`, or `grid-cols-5` without 
 | `WhoopMatchModal.tsx` | 88 | `grid-cols-3` | Match stats |
 | `AdminGrapple.tsx` | 297 | `grid-cols-3` | Grapple conversation stats |
 
-All paths relative to: `/Users/rubertwolff/scratch/rivaflow/web/src/pages/` or `.../components/`
+All paths relative to: `web/src/pages/` or `.../components/`
 
 **Impact**: On phones (320-375px width), grid cells become too narrow for text content, causing truncation or overflow. Belt selector buttons in MyGame become untappable at ~52px width. Number formatting in stat grids wraps awkwardly.
 
@@ -137,7 +137,7 @@ Three page components far exceed reasonable size:
 
 ### H-4. FeedbackModal Type Mismatch Bug
 
-**File**: `/Users/rubertwolff/scratch/rivaflow/web/src/components/FeedbackModal.tsx` line 53
+**File**: `web/src/components/FeedbackModal.tsx` line 53
 
 The `FeedbackType` union is defined as `'bug' | 'feature' | 'improvement' | 'question' | 'other'` (line 11), but the type selector uses `'general'` which is not in the union:
 
@@ -153,7 +153,7 @@ The `as FeedbackType` cast silently forces an invalid value. If the backend expe
 
 ### H-5. Techniques Page Table Not Mobile-Friendly
 
-**File**: `/Users/rubertwolff/scratch/rivaflow/web/src/pages/Techniques.tsx` (lines ~108-123)
+**File**: `web/src/pages/Techniques.tsx` (lines ~108-123)
 
 Uses a standard HTML `<table>` for technique listings. While `overflow-x-auto` is applied, horizontal scrolling on tables is a poor mobile UX, especially with multiple columns. Column headers may not be visible when scrolled.
 
@@ -165,7 +165,7 @@ Uses a standard HTML `<table>` for technique listings. While `overflow-x-auto` i
 
 ### H-6. Reports Date Range Controls Overflow on Mobile
 
-**File**: `/Users/rubertwolff/scratch/rivaflow/web/src/pages/Reports.tsx` (line ~413)
+**File**: `web/src/pages/Reports.tsx` (line ~413)
 
 Date range selector uses `flex items-center gap-4` without `flex-wrap`. On narrow screens, the date inputs, separator text, and action buttons will overflow the container horizontally.
 
@@ -177,7 +177,7 @@ Date range selector uses `flex items-center gap-4` without `flex-wrap`. On narro
 
 ### H-7. Reports Tabs Horizontal Overflow
 
-**File**: `/Users/rubertwolff/scratch/rivaflow/web/src/pages/Reports.tsx` (line ~347)
+**File**: `web/src/pages/Reports.tsx` (line ~347)
 
 Tab navigation uses `flex gap-1` without horizontal scroll or wrapping. With 5+ tabs, labels will be truncated or overflow on mobile.
 
@@ -187,7 +187,7 @@ Tab navigation uses `flex gap-1` without horizontal scroll or wrapping. With 5+ 
 
 ### H-8. Grapple Chat Fixed Height Issue
 
-**File**: `/Users/rubertwolff/scratch/rivaflow/web/src/pages/Grapple.tsx` (line ~762)
+**File**: `web/src/pages/Grapple.tsx` (line ~762)
 
 Chat container uses `h-[calc(100vh-8rem)]`. On mobile with dynamic browser chrome (URL bar showing/hiding), `100vh` is unreliable and can cause the input field to be hidden behind the keyboard or browser chrome.
 
@@ -200,8 +200,8 @@ Chat container uses `h-[calc(100vh-8rem)]`. On mobile with dynamic browser chrom
 ### M-1. Auth API Base URL Inconsistency
 
 **Files**:
-- `/Users/rubertwolff/scratch/rivaflow/web/src/api/client.ts` line 16: `baseURL = '/api/v1'`
-- `/Users/rubertwolff/scratch/rivaflow/web/src/api/auth.ts`: `baseURL = '/api'`
+- `web/src/api/client.ts` line 16: `baseURL = '/api/v1'`
+- `web/src/api/auth.ts`: `baseURL = '/api'`
 
 The main API client uses `/api/v1` while the auth client uses `/api`. While this may be intentional (auth routes might not be versioned), it creates confusion and makes it harder to update base URLs consistently.
 
@@ -211,7 +211,7 @@ The main API client uses `/api/v1` while the auth client uses `/api`. While this
 
 ### M-2. Toast setTimeout Without Cleanup
 
-**File**: `/Users/rubertwolff/scratch/rivaflow/web/src/contexts/ToastContext.tsx` (lines 33-37)
+**File**: `web/src/contexts/ToastContext.tsx` (lines 33-37)
 
 ```typescript
 setTimeout(() => {
@@ -229,7 +229,7 @@ The `setTimeout` inside `showToast` has no cleanup mechanism. If the `ToastProvi
 
 ### M-3. Toast.tsx Missing setTimeout Cleanup
 
-**File**: `/Users/rubertwolff/scratch/rivaflow/web/src/components/Toast.tsx` (lines 14-17, 21)
+**File**: `web/src/components/Toast.tsx` (lines 14-17, 21)
 
 Two `setTimeout` calls without cleanup:
 1. Line 16: `setTimeout(() => setIsVisible(true), 10)` -- animation trigger without cleanup
@@ -241,7 +241,7 @@ Two `setTimeout` calls without cleanup:
 
 ### M-4. Sessions Page Loads All Records at Once
 
-**File**: `/Users/rubertwolff/scratch/rivaflow/web/src/pages/Sessions.tsx` (line ~25)
+**File**: `web/src/pages/Sessions.tsx` (line ~25)
 
 The sessions list fetches with `limit=1000`, loading all sessions at once regardless of how many the user has.
 
@@ -253,7 +253,7 @@ The sessions list fetches with `limit=1000`, loading all sessions at once regard
 
 ### M-5. Profile.tsx Duplicate Data Loading Logic
 
-**File**: `/Users/rubertwolff/scratch/rivaflow/web/src/pages/Profile.tsx` (lines ~77-146 and ~182-223)
+**File**: `web/src/pages/Profile.tsx` (lines ~77-146 and ~182-223)
 
 The `loadData()` function (defined around line 182) duplicates the logic already in the `useEffect` (lines 77-146). Both fetch profile, goals, weight, etc. This means the fetching logic exists in two places that can drift out of sync.
 
@@ -263,7 +263,7 @@ The `loadData()` function (defined around line 182) duplicates the logic already
 
 ### M-6. Sessions.tsx Missing useEffect Dependency
 
-**File**: `/Users/rubertwolff/scratch/rivaflow/web/src/pages/Sessions.tsx` (line ~52)
+**File**: `web/src/pages/Sessions.tsx` (line ~52)
 
 `filterAndSortSessions` is called inside a useEffect but is defined outside it. If `filterAndSortSessions` references state or props, it should be in the dependency array (or wrapped in `useCallback`). Currently the effect only runs on `[]` (mount), which may cause stale closures.
 
@@ -273,7 +273,7 @@ The `loadData()` function (defined around line 182) duplicates the logic already
 
 ### M-7. Grapple.tsx Missing `toast` in useEffect Dependencies
 
-**File**: `/Users/rubertwolff/scratch/rivaflow/web/src/pages/Grapple.tsx` (line ~603)
+**File**: `web/src/pages/Grapple.tsx` (line ~603)
 
 A useEffect references `toast` (from `useToast()`) but does not include it in the dependency array. While `toast` is likely stable (from `useCallback`), the omission violates React's exhaustive-deps rule.
 
@@ -283,7 +283,7 @@ A useEffect references `toast` (from `useToast()`) but does not include it in th
 
 ### M-8. ErrorBoundary Uses Non-CSS-Variable Class Names
 
-**File**: `/Users/rubertwolff/scratch/rivaflow/web/src/components/ErrorBoundary.tsx` (lines 68, 72, 75, 82, 91, 114)
+**File**: `web/src/components/ErrorBoundary.tsx` (lines 68, 72, 75, 82, 91, 114)
 
 Uses Tailwind-style class names like `bg-surface`, `text-text`, `text-muted`, `border-border` which assume Tailwind has been configured to map these to CSS variables. The rest of the codebase uses inline styles with `style={{ color: 'var(--muted)' }}`.
 
@@ -319,7 +319,7 @@ Only 1 instance of `tabIndex` found across the entire app (Layout.tsx line 154 f
 
 ### M-11. PhotoGallery.tsx -- photosApi.updateCaption Uses FormData Unnecessarily
 
-**File**: `/Users/rubertwolff/scratch/rivaflow/web/src/api/client.ts` (the `photosApi.updateCaption` method)
+**File**: `web/src/api/client.ts` (the `photosApi.updateCaption` method)
 
 Uses FormData for a simple string caption update when a JSON body would be simpler and more consistent with the rest of the API.
 
@@ -331,7 +331,7 @@ Uses FormData for a simple string caption update when a JSON body would be simpl
 
 ### L-1. Inline Function Callback Type Annotations in Reports.tsx
 
-**File**: `/Users/rubertwolff/scratch/rivaflow/web/src/pages/Reports.tsx`
+**File**: `web/src/pages/Reports.tsx`
 
 Numerous inline callbacks use `: any` type annotations:
 - `(s: any)` for sessions
@@ -347,7 +347,7 @@ This is a consequence of C-2 (`useState<any>`) -- once the state is `any`, all d
 
 ### L-2. FeedItem Type Has `data: any`
 
-**File**: `/Users/rubertwolff/scratch/rivaflow/web/src/types/index.ts` (line ~420)
+**File**: `web/src/types/index.ts` (line ~420)
 
 The `FeedItem` type declares `data: any` for the polymorphic data payload. Since feed items can contain different shapes (session, readiness, achievement, etc.), this is somewhat understandable but could be improved with a discriminated union.
 
@@ -363,7 +363,7 @@ type FeedItem =
 
 ### L-3. Toast Container Position on Mobile
 
-**File**: `/Users/rubertwolff/scratch/rivaflow/web/src/contexts/ToastContext.tsx` (line 66)
+**File**: `web/src/contexts/ToastContext.tsx` (line 66)
 
 Toast container is fixed at `bottom-4 right-4` which may overlap with the mobile bottom navigation bar (BottomNav). The main content area already accounts for this with `pb-24 md:pb-8`, but the toast container does not adjust.
 
@@ -393,7 +393,7 @@ The codebase relies on browser default focus indicators. With the dark theme and
 
 ### L-6. AdminWaitlist.tsx setTimeout Properly Cleaned Up
 
-**File**: `/Users/rubertwolff/scratch/rivaflow/web/src/pages/AdminWaitlist.tsx` (lines 110-112)
+**File**: `web/src/pages/AdminWaitlist.tsx` (lines 110-112)
 
 This is a positive finding: the debounce setTimeout in AdminWaitlist properly uses a cleanup pattern with `cancelled` flag. This is the correct pattern that should be followed elsewhere.
 
@@ -401,7 +401,7 @@ This is a positive finding: the debounce setTimeout in AdminWaitlist properly us
 
 ### L-7. Lucide Icon Imports Could Be Tree-Shaken Better
 
-**File**: `/Users/rubertwolff/scratch/rivaflow/web/src/components/Layout.tsx` (line 3)
+**File**: `web/src/components/Layout.tsx` (line 3)
 
 Imports 15 icons from `lucide-react` in a single import statement. While Vite's tree-shaking should handle this, individual imports from `lucide-react/dist/esm/icons/home` would guarantee minimal bundle inclusion.
 

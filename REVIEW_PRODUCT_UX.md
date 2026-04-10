@@ -1,7 +1,7 @@
 # RivaFlow Frontend -- Product & UX Review
 
 **Date:** 2026-02-11
-**Scope:** `/Users/rubertwolff/scratch/rivaflow/web/src/`
+**Scope:** `web/src/`
 **Reviewer:** Claude Opus 4.6 (automated code review)
 
 ---

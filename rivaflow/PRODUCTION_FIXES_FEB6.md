@@ -184,7 +184,7 @@ interface PaginatedResponse<T> {
 **Root Cause Discovery:**
 ```
 Directory Structure (WRONG):
-/Users/rubertwolff/scratch/
+
 ├── rivaflow/          ← Git repo root
 │   ├── rivaflow/      ← Python code
 │   └── (no web/)      ← MISSING!
