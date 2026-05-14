@@ -18,7 +18,7 @@ export default function Landing() {
   return (
     <div
       className="min-h-screen"
-      style={{ backgroundColor: 'var(--background)', color: 'var(--text)' }}
+      style={{ backgroundColor: 'var(--bg)', color: 'var(--text)' }}
     >
       {/* ─── Top nav ──────────────────────────────────────── */}
       <header
@@ -140,7 +140,7 @@ export default function Landing() {
             <div
               className="p-6 rounded-2xl border"
               style={{
-                backgroundColor: 'var(--background)',
+                backgroundColor: 'var(--bg)',
                 borderColor: 'var(--border)',
               }}
             >
@@ -168,7 +168,7 @@ export default function Landing() {
             <div
               className="p-6 rounded-2xl border"
               style={{
-                backgroundColor: 'var(--background)',
+                backgroundColor: 'var(--bg)',
                 borderColor: 'var(--border)',
               }}
             >
@@ -196,7 +196,7 @@ export default function Landing() {
             <div
               className="p-6 rounded-2xl border"
               style={{
-                backgroundColor: 'var(--background)',
+                backgroundColor: 'var(--bg)',
                 borderColor: 'var(--border)',
               }}
             >
@@ -224,7 +224,7 @@ export default function Landing() {
             <div
               className="p-6 rounded-2xl border"
               style={{
-                backgroundColor: 'var(--background)',
+                backgroundColor: 'var(--bg)',
                 borderColor: 'var(--border)',
               }}
             >

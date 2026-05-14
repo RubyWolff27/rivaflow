@@ -139,15 +139,25 @@ class UserService:
             follower_user_id=user_id, following_user_id=requesting_user_id
         )
 
-        # Build public profile
+        # Privacy gate (2026-05-14): full PII (last_name, default_gym, location,
+        # state, bio) only visible to the user themselves OR to connected users
+        # (mutual follow / follower in either direction). This prevents the
+        # sequential-ID PII harvest pattern where an attacker iterates user
+        # IDs and dumps the member directory. Names + belts + avatars remain
+        # publicly discoverable so the search → follow → profile flow still
+        # works.
+        is_self = user_id == requesting_user_id
+        is_connected = is_following or is_followed_by
+        can_see_full_profile = is_self or is_connected
+
         public_profile = {
             "id": user["id"],
             "first_name": user.get("first_name"),
-            "last_name": user.get("last_name"),
+            "last_name": user.get("last_name") if can_see_full_profile else None,
             # Only show email to the user themselves, not to others
-            "email": user.get("email") if user_id == requesting_user_id else None,
+            "email": user.get("email") if is_self else None,
             "avatar_url": user.get("avatar_url"),
-            "created_at": user.get("created_at"),
+            "created_at": user.get("created_at") if can_see_full_profile else None,
             "follower_count": follower_count,
             "following_count": following_count,
             "is_following": is_following,
@@ -158,11 +168,13 @@ class UserService:
         if profile:
             public_profile.update(
                 {
+                    # Belt rank is publicly discoverable (it's training context, not PII).
                     "current_grade": profile.get("current_grade"),
-                    "default_gym": profile.get("default_gym"),
-                    "location": profile.get("location"),
-                    "state": profile.get("state"),
-                    "bio": profile.get("bio"),  # Will add this field later if needed
+                    # Gym, location, state, and bio are restricted to connected users.
+                    "default_gym": profile.get("default_gym") if can_see_full_profile else None,
+                    "location": profile.get("location") if can_see_full_profile else None,
+                    "state": profile.get("state") if can_see_full_profile else None,
+                    "bio": profile.get("bio") if can_see_full_profile else None,
                 }
             )
 

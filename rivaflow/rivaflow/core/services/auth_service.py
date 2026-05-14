@@ -19,6 +19,12 @@ from rivaflow.db.repositories.user_repo import UserRepository
 
 logger = logging.getLogger(__name__)
 
+# Pre-generated valid bcrypt hash used to equalize login response timing for
+# non-existent emails (see AuthService.login). Will never match any plausible
+# user password — generated once with a random secret, kept module-level so
+# the cost of the dummy verify is identical to a real one.
+_DUMMY_BCRYPT_HASH = "$2b$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/LewdBPj/RBhU3aBuG"
+
 
 class AuthService:
     """Business logic for authentication."""
@@ -201,6 +207,12 @@ class AuthService:
         # Get user by email (include password for verification)
         user = self.user_repo.get_by_email(email, include_password=True)
         if not user:
+            # Timing-equalization (2026-05-14): bcrypt verification is the
+            # dominant cost in a successful login (~500ms). Without this
+            # dummy verify, non-existent emails return in ~30ms vs ~700ms
+            # for real-account-wrong-password, letting an attacker
+            # enumerate registered emails via response latency.
+            verify_password(password, _DUMMY_BCRYPT_HASH)
             raise AuthenticationError(
                 message="Invalid email or password",
                 action="Double-check your email and password. If you forgot your password, click 'Forgot Password' to reset it.",
