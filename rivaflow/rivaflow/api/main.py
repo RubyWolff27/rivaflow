@@ -214,27 +214,14 @@ app.add_exception_handler(RivaFlowException, rivaflow_exception_handler)  # type
 app.add_exception_handler(RequestValidationError, validation_exception_handler)  # type: ignore[arg-type]
 app.add_exception_handler(Exception, generic_exception_handler)
 
-# CORS configuration - use settings.CORS_ORIGINS
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=settings.CORS_ORIGINS,
-    allow_credentials=True,
-    allow_methods=[
-        "GET",
-        "POST",
-        "PUT",
-        "DELETE",
-        "OPTIONS",
-    ],  # Restrict to necessary methods
-    allow_headers=["Content-Type", "Authorization", "X-CSRF-Token"],
-    expose_headers=[
-        "X-RateLimit-Limit",
-        "X-RateLimit-Remaining",
-        "X-RateLimit-Reset",
-        "Retry-After",
-    ],
-    max_age=3600,  # Cache preflight requests for 1 hour
-)
+# Middleware stack (Starlette adds in REVERSE — last add = OUTERMOST wrapper).
+# 2026-05-14: CORSMiddleware moved to be added LAST so it wraps every other
+# middleware's response. Previously CORSMiddleware was first/innermost, which
+# meant CSRFMiddleware's 403 short-circuit responses went out WITHOUT
+# Access-Control-Allow-Origin headers — browsers (especially mobile WebKit)
+# reported these as "CORS block" errors on the public landing page during
+# the unauthenticated /auth/refresh bootstrap call, leaving auth pages
+# rendering a stuck loading skeleton on iPhone.
 
 # Add CSRF protection (double-submit cookie pattern)
 app.add_middleware(CSRFMiddleware)
@@ -256,6 +243,30 @@ app.add_middleware(RequestLoggingMiddleware)
 
 # Add request body size limit (10MB)
 app.add_middleware(RequestSizeLimitMiddleware)
+
+# CORS configuration — MUST be added LAST so it wraps all other middlewares.
+# CORS headers are then applied to every response, including 4xx/5xx
+# short-circuits from CSRF / rate-limit / etc.
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=settings.CORS_ORIGINS,
+    allow_credentials=True,
+    allow_methods=[
+        "GET",
+        "POST",
+        "PUT",
+        "DELETE",
+        "OPTIONS",
+    ],  # Restrict to necessary methods
+    allow_headers=["Content-Type", "Authorization", "X-CSRF-Token"],
+    expose_headers=[
+        "X-RateLimit-Limit",
+        "X-RateLimit-Remaining",
+        "X-RateLimit-Reset",
+        "Retry-After",
+    ],
+    max_age=3600,  # Cache preflight requests for 1 hour
+)
 
 
 # Register health check routes (no prefix for easy access by load balancers)

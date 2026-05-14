@@ -57,6 +57,9 @@ const ForgotPassword = lazy(() => import('./pages/ForgotPassword'));
 const ResetPassword = lazy(() => import('./pages/ResetPassword'));
 // 2026-04-05 — public landing page for logged-out visitors, auth-aware at /
 const RootRoute = lazy(() => import('./components/RootRoute'));
+// 2026-05-14 — auth-aware wrapper for doc pages that must be publicly accessible
+// (Privacy / Terms — App Store compliance + trust).
+const PublicDocLayout = lazy(() => import('./components/PublicDocLayout'));
 const NotFound = lazy(() => import('./pages/NotFound'));
 const PartnerStats = lazy(() => import('./pages/PartnerStats'));
 const Leaderboards = lazy(() => import('./pages/Leaderboards'));
@@ -90,6 +93,29 @@ function App() {
               <Route path="/waitlist" element={<Navigate to="/register" replace />} />
               <Route path="/forgot-password" element={<ForgotPassword />} />
               <Route path="/reset-password" element={<ResetPassword />} />
+              {/* Publicly accessible doc pages (App Store compliance + trust).
+                  PublicDocLayout renders with full Layout when logged in, or
+                  with thin marketing nav when logged out. Added 2026-05-14. */}
+              <Route
+                path="/privacy"
+                element={
+                  <PublicDocLayout>
+                    <Suspense fallback={<PageSkeleton />}>
+                      <Privacy />
+                    </Suspense>
+                  </PublicDocLayout>
+                }
+              />
+              <Route
+                path="/terms"
+                element={
+                  <PublicDocLayout>
+                    <Suspense fallback={<PageSkeleton />}>
+                      <Terms />
+                    </Suspense>
+                  </PublicDocLayout>
+                }
+              />
               <Route
                 path="/*"
                 element={
@@ -141,8 +167,12 @@ function App() {
                           <Route path="/fight-dynamics" element={<FightDynamics />} />
                           <Route path="/contact" element={<ContactUs />} />
                           <Route path="/faq" element={<FAQ />} />
-                          <Route path="/terms" element={<Terms />} />
-                          <Route path="/privacy" element={<Privacy />} />
+                          {/* /privacy and /terms moved to public routes
+                              outside this PrivateRoute on 2026-05-14
+                              (App Store compliance — must be publicly
+                              accessible). Authenticated users hitting
+                              those paths still get the full Layout via
+                              PublicDocLayout's auth-aware rendering. */}
                           <Route path="*" element={<NotFound />} />
                         </Routes>
                       </Suspense>
