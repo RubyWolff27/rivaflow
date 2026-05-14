@@ -50,6 +50,13 @@ WHOOP_SPORT_MAPPING: dict[int, str] = {
 # Sport IDs we consider "BJJ" for auto-create (existing behaviour)
 BJJ_SPORT_IDS = {76, 84, 87, 98}
 
+# Class types that AUTO-CREATE as Sessions when imported from WHOOP.
+# Cardio, mobility, and unclassifiable workouts stay in the WHOOP cache and
+# remain available via the manual import flow (get_importable_workouts).
+# Narrowed from "all class_types" on 2026-05-14 after live feedback: commute
+# walks were polluting the BJJ-focused Sessions feed.
+AUTO_CREATE_ALLOWLIST: set[str] = {"gi", "no-gi", "s&c"}
+
 # Keywords in WHOOP sport_name → fallback class_type (for unmapped sport IDs)
 _NAME_KEYWORDS: list[tuple[str, str]] = [
     ("yoga", "mobility"),
@@ -367,25 +374,49 @@ def auto_create_sessions_for_workouts(self: WhoopService, user_id: int) -> list[
             if strain is not None:
                 strain = round(strain, 1)
 
-            # class_type precedence (changed 2026-04-05):
+            # class_type precedence + auto-create allowlist (2026-05-14):
             #   1. If user has an explicit `primary_training_type` in profile
             #      AND this is a BJJ workout, use the profile preference. The
             #      user explicitly told us "I train gi" (or "no-gi") — respect
-            #      that over WHOOP's sport_id mapping, which can't distinguish
-            #      between BJJ variants the user actually did.
-            #   2. Otherwise use WHOOP's sport_id → class_type mapping
-            #      (running → cardio, lifting → s&c, etc).
-            #   3. Otherwise fall back to the profile default ("no-gi" if unset).
+            #      that over WHOOP's sport_id mapping.
+            #   2. Otherwise use WHOOP's sport_id → class_type mapping with
+            #      STRICT lookup (no "unknown → s&c" fallback) so cardio,
+            #      mobility, and unclassifiable workouts produce a class_type
+            #      we can then test against the allowlist.
+            #   3. If the resulting class_type is not in AUTO_CREATE_ALLOWLIST,
+            #      SKIP the workout. It stays in the WHOOP cache and remains
+            #      available via the manual import flow (get_importable_workouts).
             #
-            # All sessions are still created with needs_review=True, so the user
-            # can correct any mis-classification on the session review UI.
-            mapped_type = map_sport_to_class_type(sport_id, workout.get("sport_name"))
+            # This reverts the 2026-04-05 capture-everything model after live
+            # feedback (2026-05-14) that walks and other cardio were polluting
+            # the BJJ Sessions feed.
+            sport_name = workout.get("sport_name")
+            mapped_type: str | None = None
+            if sport_id is not None:
+                mapped_type = WHOOP_SPORT_MAPPING.get(sport_id)
+            if mapped_type is None and sport_name:
+                name_lower = sport_name.lower()
+                for keyword, ctype in _NAME_KEYWORDS:
+                    if keyword in name_lower:
+                        mapped_type = ctype
+                        break
+
             is_bjj_workout = sport_id is not None and sport_id in BJJ_SPORT_IDS
 
             if is_bjj_workout and profile_has_training_preference:
                 class_type = default_class_type  # profile wins for BJJ
+            elif mapped_type in AUTO_CREATE_ALLOWLIST:
+                class_type = mapped_type
             else:
-                class_type = mapped_type or default_class_type
+                logger.info(
+                    "Auto-create skip: workout=%s sport_id=%s sport=%s "
+                    "mapped=%s not in allowlist",
+                    workout.get("id"),
+                    sport_id,
+                    sport_name,
+                    mapped_type or "unknown",
+                )
+                continue
 
             session_id = self.session_repo.create(
                 user_id=user_id,

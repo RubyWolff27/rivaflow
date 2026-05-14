@@ -95,27 +95,106 @@ class TestAutoCreateFromBjjWorkout:
         assert session["duration_mins"] == 90
         assert session["class_time"] == "10:00"
 
-    def test_creates_from_any_sport(self, temp_db):
-        """All workout types create sessions (user classifies on review)."""
+    def test_creates_from_sc_workout(self, temp_db):
+        """S&C workouts (sport_id mapped to 's&c') auto-create as sessions."""
         from rivaflow.core.services.whoop_service import WhoopService
 
         user = _create_test_user(temp_db)
         uid = user["id"]
         _create_whoop_connection(uid, auto_create=True)
 
-        # Create a running workout (sport_id=0)
+        # sport_id=48 → "s&c" in WHOOP_SPORT_MAPPING
         WhoopWorkoutCacheRepository.upsert(
             user_id=uid,
-            whoop_workout_id="running1",
+            whoop_workout_id="sc1",
             start_time="2025-06-01T07:00:00",
             end_time="2025-06-01T08:00:00",
-            sport_id=0,
-            sport_name="Running",
+            sport_id=48,
+            sport_name="Functional Fitness",
         )
 
         service = WhoopService()
         created = service.auto_create_sessions_for_workouts(uid)
         assert len(created) == 1
+
+        session = SessionRepository.get_by_id(uid, created[0])
+        assert session["class_type"] == "s&c"
+
+    def test_skips_cardio_workout(self, temp_db):
+        """Cardio workouts (walking, running, cycling) are NOT auto-created.
+
+        Regression guard for 2026-04-05 capture-everything bug: walks were
+        polluting the BJJ-focused Sessions feed. Cardio now stays in cache
+        only — user can manually import via the importable_workouts flow.
+        """
+        from rivaflow.core.services.whoop_service import WhoopService
+
+        user = _create_test_user(temp_db)
+        uid = user["id"]
+        _create_whoop_connection(uid, auto_create=True)
+
+        # sport_id=82 → "cardio" (Walking)
+        WhoopWorkoutCacheRepository.upsert(
+            user_id=uid,
+            whoop_workout_id="walk1",
+            start_time="2025-06-01T07:00:00",
+            end_time="2025-06-01T07:30:00",
+            sport_id=82,
+            sport_name="Walking",
+        )
+
+        service = WhoopService()
+        created = service.auto_create_sessions_for_workouts(uid)
+        assert len(created) == 0  # walking should be skipped
+
+    def test_skips_mobility_workout(self, temp_db):
+        """Mobility workouts (yoga, stretching, pilates) are NOT auto-created."""
+        from rivaflow.core.services.whoop_service import WhoopService
+
+        user = _create_test_user(temp_db)
+        uid = user["id"]
+        _create_whoop_connection(uid, auto_create=True)
+
+        # sport_id=41 → "mobility" (Yoga)
+        WhoopWorkoutCacheRepository.upsert(
+            user_id=uid,
+            whoop_workout_id="yoga1",
+            start_time="2025-06-01T07:00:00",
+            end_time="2025-06-01T08:00:00",
+            sport_id=41,
+            sport_name="Yoga",
+        )
+
+        service = WhoopService()
+        created = service.auto_create_sessions_for_workouts(uid)
+        assert len(created) == 0
+
+    def test_skips_unclassifiable_workout(self, temp_db):
+        """Workouts with unknown sport_id and no name keyword match are skipped.
+
+        Guards against the edge case where the old fallback would default an
+        unclassifiable workout to the user's primary_training_type (BJJ),
+        silently mis-tagging it as a BJJ session.
+        """
+        from rivaflow.core.services.whoop_service import WhoopService
+
+        user = _create_test_user(temp_db)
+        uid = user["id"]
+        _create_whoop_connection(uid, auto_create=True)
+
+        # sport_id=9999 (not in WHOOP_SPORT_MAPPING) + sport_name with no keyword match
+        WhoopWorkoutCacheRepository.upsert(
+            user_id=uid,
+            whoop_workout_id="unknown1",
+            start_time="2025-06-01T07:00:00",
+            end_time="2025-06-01T08:00:00",
+            sport_id=9999,
+            sport_name="Mystery Activity",
+        )
+
+        service = WhoopService()
+        created = service.auto_create_sessions_for_workouts(uid)
+        assert len(created) == 0
 
     def test_skips_already_linked(self, temp_db):
         """Workouts already linked to a session are skipped."""

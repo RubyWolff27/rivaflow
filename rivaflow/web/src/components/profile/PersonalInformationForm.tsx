@@ -337,49 +337,70 @@ export default function PersonalInformationForm({
         </div>
 
         {/* Current Coach/Instructor */}
+        {/* 2026-05-14: switched from dropdown-only to free-text-primary +
+            quick-pick-secondary, after user feedback that a new gym with no
+            head_coach populated in the DB left users with no path to set
+            their coach. Free text is the source of truth in the schema;
+            the dropdown is just a convenience for users whose gym IS set up. */}
         <div>
           <label className="label" htmlFor="profile-instructor">Current Coach / Instructor</label>
-          <select
+          <input
+            type="text"
             id="profile-instructor"
             className="input"
-            value={formData.current_instructor_id ?? ''}
-            onChange={(e) => {
-              const value = e.target.value;
-              if (value === 'gym_head_coach') {
-                // Using gym head coach (no ID, just name)
-                onChange({
-                  ...formData,
-                  current_instructor_id: null,
-                  current_professor: gymHeadCoach ?? '',
-                });
-              } else {
-                const instructorId = value ? parseInt(value) : null;
-                const instructor = instructors.find(i => i.id === instructorId);
-                onChange({
-                  ...formData,
-                  current_instructor_id: instructorId,
-                  current_professor: instructor?.name ?? '',
-                });
-              }
-            }}
-          >
-            <option value="">Select a coach...</option>
-            {gymHeadCoach && (
-              <option value="gym_head_coach">
-                {gymHeadCoach} (Head Coach at {formData.default_gym})
-              </option>
-            )}
-            {instructors.map((instructor) => (
-              <option key={instructor.id} value={instructor.id}>
-                {instructor.name ?? 'Unknown'}
-                {instructor.belt_rank && ` - ${instructor.belt_rank.charAt(0).toUpperCase() + instructor.belt_rank.slice(1)}`}
-              </option>
-            ))}
-          </select>
+            value={formData.current_professor}
+            onChange={(e) => onChange({
+              ...formData,
+              current_professor: e.target.value,
+              current_instructor_id: null,
+            })}
+            placeholder="Type your coach's name"
+            autoComplete="off"
+          />
+          {(gymHeadCoach || instructors.length > 0) && (
+            <select
+              id="profile-instructor-quickpick"
+              className="input mt-2"
+              value=""
+              onChange={(e) => {
+                const value = e.target.value;
+                if (!value) return;
+                if (value === 'gym_head_coach') {
+                  onChange({
+                    ...formData,
+                    current_instructor_id: null,
+                    current_professor: gymHeadCoach ?? '',
+                  });
+                } else {
+                  const instructorId = parseInt(value);
+                  const instructor = instructors.find(i => i.id === instructorId);
+                  onChange({
+                    ...formData,
+                    current_instructor_id: instructorId,
+                    current_professor: instructor?.name ?? '',
+                  });
+                }
+                e.target.value = '';
+              }}
+            >
+              <option value="">Quick pick from gym / friends…</option>
+              {gymHeadCoach && (
+                <option value="gym_head_coach">
+                  {gymHeadCoach} (Head Coach at {formData.default_gym})
+                </option>
+              )}
+              {instructors.map((instructor) => (
+                <option key={instructor.id} value={instructor.id}>
+                  {instructor.name ?? 'Unknown'}
+                  {instructor.belt_rank && ` - ${instructor.belt_rank.charAt(0).toUpperCase() + instructor.belt_rank.slice(1)}`}
+                </option>
+              ))}
+            </select>
+          )}
           <p className="text-sm text-[var(--muted)] mt-1">
-            {gymHeadCoach
-              ? `Head coach from your selected gym is available, or add other instructors in Friends.`
-              : 'This will auto-populate when logging sessions. Add instructors in Friends first.'}
+            Type your coach&apos;s name. {(gymHeadCoach || instructors.length > 0)
+              ? 'Or use the quick-pick below to grab a name from your gym or friends list.'
+              : 'You can add instructors in Friends later for one-tap selection.'}
           </p>
         </div>
 
