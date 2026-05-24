@@ -74,7 +74,9 @@ def health_check():
 
 @router.get("/health/detailed", tags=["monitoring"], include_in_schema=False)
 @route_error_handler("detailed_health_check", detail="Detailed health check failed")
-def detailed_health_check(x_admin_token: str | None = Header(default=None, alias="X-Admin-Token")):
+def detailed_health_check(
+    x_admin_token: str | None = Header(default=None, alias="X-Admin-Token")
+):
     """
     Auth-gated detailed health — version, commit, email config, DB state.
 
