@@ -3,7 +3,8 @@
 # Run `pip-audit` periodically to check for vulnerabilities
 
 # Core framework
-fastapi==0.128.4
+fastapi==0.135.4  # Bumped from 0.128.4 to allow starlette>=1.0.1 (CVE PYSEC-2026-161). Range now starlette>=0.46.0.
+starlette==1.0.1  # CVE PYSEC-2026-161 fix (was 0.52.1 transitively from fastapi 0.128.4)
 uvicorn[standard]==0.40.0
 gunicorn==23.0.0
 typer==0.21.1

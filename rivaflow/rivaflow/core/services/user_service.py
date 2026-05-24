@@ -171,8 +171,12 @@ class UserService:
                     # Belt rank is publicly discoverable (it's training context, not PII).
                     "current_grade": profile.get("current_grade"),
                     # Gym, location, state, and bio are restricted to connected users.
-                    "default_gym": profile.get("default_gym") if can_see_full_profile else None,
-                    "location": profile.get("location") if can_see_full_profile else None,
+                    "default_gym": (
+                        profile.get("default_gym") if can_see_full_profile else None
+                    ),
+                    "location": (
+                        profile.get("location") if can_see_full_profile else None
+                    ),
                     "state": profile.get("state") if can_see_full_profile else None,
                     "bio": profile.get("bio") if can_see_full_profile else None,
                 }
