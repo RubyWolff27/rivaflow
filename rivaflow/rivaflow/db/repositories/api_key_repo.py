@@ -74,14 +74,12 @@ class ApiKeyRepository(BaseRepository):
             )
 
             cursor.execute(
-                convert_query(
-                    """
+                convert_query("""
                     SELECT id, user_id, name, key_prefix, created_at,
                            last_used_at, revoked_at
                     FROM api_keys
                     WHERE id = ?
-                    """
-                ),
+                    """),
                 (api_key_id,),
             )
             row = cursor.fetchone()
