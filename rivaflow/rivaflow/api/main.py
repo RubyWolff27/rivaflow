@@ -39,6 +39,7 @@ from rivaflow.api.routes import (
     admin_gyms,
     admin_users,
     analytics,
+    api_keys,
     auth,
     checkins,
     coach_preferences,
@@ -290,6 +291,7 @@ app.include_router(glossary.router, prefix="/api/v1/glossary", tags=["glossary"]
 app.include_router(friends.router, prefix="/api/v1/friends", tags=["friends"])
 app.include_router(groups.router, prefix="/api/v1/groups", tags=["groups"])
 app.include_router(users.router, prefix="/api/v1/users", tags=["users"])
+app.include_router(api_keys.router, prefix="/api/v1/users/me", tags=["api-keys"])
 app.include_router(analytics.router, prefix="/api/v1/analytics", tags=["analytics"])
 app.include_router(goals.router, prefix="/api/v1/goals", tags=["goals"])
 app.include_router(

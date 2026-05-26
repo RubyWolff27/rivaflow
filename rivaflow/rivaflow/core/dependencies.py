@@ -9,6 +9,10 @@ from jwt.exceptions import PyJWTError
 from rivaflow.core.auth import decode_access_token
 from rivaflow.core.exceptions import AuthenticationError, ForbiddenError
 from rivaflow.core.utils.cache import get_cache
+from rivaflow.db.repositories.api_key_repo import (
+    KEY_PREFIX_LITERAL,
+    ApiKeyRepository,
+)
 from rivaflow.db.repositories.user_repo import UserRepository
 
 logger = logging.getLogger(__name__)
@@ -16,32 +20,98 @@ logger = logging.getLogger(__name__)
 # User cache TTL — short enough that permission changes propagate quickly
 _USER_CACHE_TTL = 60  # seconds
 
-# HTTP Bearer token security scheme
+# HTTP Bearer token security scheme — accepts either a JWT (existing) OR an
+# API key (`rf_pk_...`). Both arrive in `Authorization: Bearer <value>`; we
+# discriminate by the key prefix below.
 security = HTTPBearer()
+
+
+def _load_user_with_cache(user_id: int) -> dict:
+    """Resolve a user id → user dict, cached for _USER_CACHE_TTL seconds.
+
+    Shared by both the JWT path and the API key path so subsequent requests
+    within the cache window don't re-hit the database.
+    """
+    cache = get_cache()
+    cache_key = f"user:{user_id}"
+    from rivaflow.core.utils.cache import _MISSING
+
+    cached_user = cache.get(cache_key)
+    if cached_user is not _MISSING:
+        return cached_user  # type: ignore[no-any-return]
+
+    user_repo = UserRepository()
+    user = user_repo.get_by_id(user_id)
+
+    if user is None:
+        raise AuthenticationError(message="User not found")
+
+    if not user.get("is_active"):
+        raise AuthenticationError(message="User account is inactive")
+
+    # Strip sensitive fields before caching/returning.
+    user.pop("hashed_password", None)
+
+    cache.set(cache_key, user, _USER_CACHE_TTL)
+    return user
 
 
 async def get_current_user(
     credentials: HTTPAuthorizationCredentials = Depends(security),
 ) -> dict:
     """
-    Dependency to extract and validate JWT token from Authorization header.
+    Dependency that authenticates either a JWT or an API key from
+    `Authorization: Bearer <token>`.
 
-    Uses a short-lived in-memory cache to avoid hitting the database
-    on every single authenticated request.
+    Discrimination:
+        - Token starts with `rf_pk_` → look up `api_keys` by SHA-256 hash,
+          confirm not revoked, bump `last_used_at`, return owning user.
+        - Otherwise → decode as a short-lived access JWT and load the user.
+
+    Uses a short-lived in-memory cache (post-resolution) so the database is
+    not hit on every authenticated request.
 
     Args:
-        credentials: HTTP Authorization credentials (Bearer token)
+        credentials: HTTP Authorization credentials (Bearer token).
 
     Returns:
         User dictionary with id, email, first_name, last_name, etc.
 
     Raises:
-        AuthenticationError: If token is invalid, expired, or user not found
+        AuthenticationError: If the credential is invalid, expired, revoked,
+        or the user is missing/inactive.
     """
     token = credentials.credentials
 
+    # ── API key path ────────────────────────────────────────────────────────
+    if token.startswith(KEY_PREFIX_LITERAL):
+        try:
+            key_hash = ApiKeyRepository.hash_key(token)
+            api_key = ApiKeyRepository.get_active_by_hash(key_hash)
+            if api_key is None:
+                raise AuthenticationError(message="Invalid or revoked API key")
+
+            user = _load_user_with_cache(api_key["user_id"])
+
+            # Best-effort last-used bump — never fatal to the auth path.
+            try:
+                ApiKeyRepository.update_last_used(api_key["id"])
+            except Exception as bump_err:  # pragma: no cover — non-critical
+                logger.warning(
+                    "update_last_used failed for api_key id=%s: %s",
+                    api_key["id"],
+                    bump_err,
+                )
+
+            return user
+        except AuthenticationError:
+            raise
+        except (ValueError, KeyError, TypeError) as e:
+            logger.error("API key authentication error: %s", e)
+            raise AuthenticationError(message="Authentication failed")
+
+    # ── JWT path (existing behaviour) ───────────────────────────────────────
     try:
-        # Decode JWT token
         payload = decode_access_token(token)
         if payload is None:
             raise AuthenticationError(message="Could not validate credentials")
@@ -51,40 +121,13 @@ async def get_current_user(
         if user_id is None:
             raise AuthenticationError(message="Invalid authentication credentials")
 
-        # Check cache first
-        cache = get_cache()
-        cache_key = f"user:{user_id}"
-        from rivaflow.core.utils.cache import _MISSING
-
-        cached_user = cache.get(cache_key)
-        if cached_user is not _MISSING:
-            return cached_user  # type: ignore[no-any-return]
-
-        # Cache miss — fetch from database
-        user_repo = UserRepository()
-        user = user_repo.get_by_id(user_id)
-
-        if user is None:
-            raise AuthenticationError(message="User not found")
-
-        # Check if user is active
-        if not user.get("is_active"):
-            raise AuthenticationError(message="User account is inactive")
-
-        # Remove sensitive fields
-        user.pop("hashed_password", None)
-
-        # Cache the user for subsequent requests
-        cache.set(cache_key, user, _USER_CACHE_TTL)
-
-        return user
+        return _load_user_with_cache(user_id)
 
     except PyJWTError:
         raise AuthenticationError(message="Could not validate credentials")
     except AuthenticationError:
         raise
     except (ValueError, KeyError, TypeError) as e:
-        # Log unexpected errors and return generic 401
         logger.error("Authentication error: %s", e)
         raise AuthenticationError(message="Authentication failed")
 
