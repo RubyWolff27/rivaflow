@@ -46,7 +46,7 @@ class ApiKeyRepository(BaseRepository):
         user_id: int,
         name: str,
         raw_key: str,
-    ) -> dict:
+    ) -> dict | None:
         """Create a new API key row.
 
         Args:
@@ -57,7 +57,8 @@ class ApiKeyRepository(BaseRepository):
 
         Returns:
             Created row as dict (without the raw key — caller is responsible
-            for returning the raw key to the user exactly once).
+            for returning the raw key to the user exactly once), or None if
+            the post-insert SELECT mysteriously returns no row.
         """
         key_hash = ApiKeyRepository.hash_key(raw_key)
         key_prefix = ApiKeyRepository.display_prefix(raw_key)
@@ -73,12 +74,14 @@ class ApiKeyRepository(BaseRepository):
             )
 
             cursor.execute(
-                convert_query("""
+                convert_query(
+                    """
                     SELECT id, user_id, name, key_prefix, created_at,
                            last_used_at, revoked_at
                     FROM api_keys
                     WHERE id = ?
-                    """),
+                    """
+                ),
                 (api_key_id,),
             )
             row = cursor.fetchone()
