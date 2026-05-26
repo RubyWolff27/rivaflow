@@ -358,3 +358,34 @@ class Video(VideoCreate):
 
     id: int
     created_at: datetime
+
+
+# ─── API Keys (PR feat/api-keys) ─────────────────────────────────────────────
+
+
+class ApiKeyCreate(BaseModel):
+    """Input for creating a new API key."""
+
+    name: str = Field(
+        ..., min_length=1, max_length=120, description="Human label, e.g. 'Sage MCP'"
+    )
+
+
+class ApiKeyMetadata(BaseModel):
+    """API key as returned in list/lookup responses — never includes the raw secret."""
+
+    id: int
+    name: str
+    key_prefix: str  # e.g. "rf_pk_a1b2c3"
+    created_at: datetime
+    last_used_at: datetime | None = None
+    revoked_at: datetime | None = None
+
+
+class ApiKeyCreatedResponse(ApiKeyMetadata):
+    """Response payload returned ONCE at creation time — contains the raw key."""
+
+    raw_key: str = Field(
+        ...,
+        description="The actual API key value. Store it now — it will never be shown again.",
+    )
