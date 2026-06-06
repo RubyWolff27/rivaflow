@@ -1,0 +1,28 @@
+# Production API image — corrected for the NESTED package layout
+# (repo's own Dockerfile copied rivaflow/ flat; actual package is rivaflow/rivaflow/)
+FROM python:3.11-slim
+
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends libpq-dev build-essential curl && \
+    rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+
+# Deps first (layer caching). requirements lives at project-dir root: rivaflow/requirements.txt
+COPY rivaflow/requirements.txt /app/requirements.txt
+RUN pip install --no-cache-dir -r /app/requirements.txt
+
+# Copy the NESTED package so `rivaflow.api.main:app` and `rivaflow/db/migrate.py` resolve from /app
+COPY rivaflow/rivaflow/ /app/rivaflow/
+COPY start.sh /app/start.sh
+
+RUN adduser --disabled-password --gecos '' appuser && chown -R appuser /app
+USER appuser
+
+ENV PORT=8000
+EXPOSE 8000
+
+HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
+    CMD curl -fsS http://localhost:8000/health || exit 1
+
+CMD ["bash", "start.sh"]

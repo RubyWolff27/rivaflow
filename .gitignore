@@ -73,3 +73,10 @@ backups/
 
 # Data export files
 rivaflow_export_*.json
+
+# Local audit / browser-automation session artifacts (never commit)
+rivaflow-audit-*/
+rivaflow-postdeploy-*/
+.playwright-cli/
+playwright-report/
+test-results/
