@@ -1,6 +1,8 @@
 #!/bin/bash
 # RivaFlow DB backup -> restic on Cloudflare R2 (offsite). Run via cron.
 set -euo pipefail
+# Alert on any failure (Telegram via notify.sh; no-op if unconfigured)
+trap 'rc=$?; bash "$(dirname "$0")/notify.sh" "BACKUP FAILED (line $LINENO, rc=$rc)"' ERR
 cd /opt/rivaflow
 set -a; . ./.env.prod; set +a            # S3_* creds
 . ./.backup.env                          # RESTIC_PASSWORD

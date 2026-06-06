@@ -80,3 +80,11 @@ rivaflow-postdeploy-*/
 .playwright-cli/
 playwright-report/
 test-results/
+
+# VPS-only runtime secrets (never commit)
+.notify.env
+.env.prod
+.tunnel.env
+.backup.env
+.renderdb.conn
+*.token

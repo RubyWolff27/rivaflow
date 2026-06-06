@@ -16,7 +16,9 @@ git reset --hard origin/main 2>/dev/null || { log "reset failed"; exit 1; }
 if ! ( sudo -n docker compose -f docker-compose.prod.yml build && \
        sudo -n docker compose -f docker-compose.prod.yml up -d ); then
   log "build/up FAILED -> rollback to $PREV"
-  git reset --hard "$PREV"; sudo -n docker compose -f docker-compose.prod.yml up -d --build; exit 1
+  git reset --hard "$PREV"; sudo -n docker compose -f docker-compose.prod.yml up -d --build
+  bash "$(dirname "$0")/notify.sh" "DEPLOY FAILED (build/up) for ${REMOTE:0:8} — rolled back to ${PREV:0:8}"
+  exit 1
 fi
 
 ok=0
@@ -26,7 +28,9 @@ for i in $(seq 1 24); do
 done
 if [ "$ok" != 1 ]; then
   log "health check FAILED -> rollback to $PREV"
-  git reset --hard "$PREV"; sudo -n docker compose -f docker-compose.prod.yml up -d --build; exit 1
+  git reset --hard "$PREV"; sudo -n docker compose -f docker-compose.prod.yml up -d --build
+  bash "$(dirname "$0")/notify.sh" "DEPLOY health-check FAILED for ${REMOTE:0:8} — rolled back to ${PREV:0:8}"
+  exit 1
 fi
 
 log "deploy OK -> $REMOTE"
