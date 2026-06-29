@@ -282,6 +282,33 @@ class SessionUpdate(BaseModel):
     defenses_successful: int | None = Field(default=None, ge=0)
     needs_review: bool | None = None
 
+    @field_validator(
+        "class_time", "gym_name", "location", "notes", "instructor_name", mode="before"
+    )
+    @classmethod
+    def empty_str_to_none(cls, v):
+        """Convert empty strings to None for optional string fields."""
+        if v == "":
+            return None
+        return v
+
+    @model_validator(mode="after")
+    def validate_fight_dynamics(self):
+        """Validate that successful counts do not exceed attempted counts."""
+        if (
+            self.attacks_successful is not None
+            and self.attacks_attempted is not None
+            and self.attacks_successful > self.attacks_attempted
+        ):
+            raise ValueError("attacks_successful cannot exceed attacks_attempted")
+        if (
+            self.defenses_successful is not None
+            and self.defenses_attempted is not None
+            and self.defenses_successful > self.defenses_attempted
+        ):
+            raise ValueError("defenses_successful cannot exceed defenses_attempted")
+        return self
+
 
 # ─── Garmin daily metrics (one row per user per day; drives Health-tab trends) ──
 
@@ -319,33 +346,6 @@ class GarminDailyIngest(BaseModel):
     """Batch upsert payload from the Mac Garmin push job."""
 
     metrics: list[GarminDailyMetric]
-
-    @field_validator(
-        "class_time", "gym_name", "location", "notes", "instructor_name", mode="before"
-    )
-    @classmethod
-    def empty_str_to_none(cls, v):
-        """Convert empty strings to None for optional string fields."""
-        if v == "":
-            return None
-        return v
-
-    @model_validator(mode="after")
-    def validate_fight_dynamics(self):
-        """Validate that successful counts do not exceed attempted counts."""
-        if (
-            self.attacks_successful is not None
-            and self.attacks_attempted is not None
-            and self.attacks_successful > self.attacks_attempted
-        ):
-            raise ValueError("attacks_successful cannot exceed attacks_attempted")
-        if (
-            self.defenses_successful is not None
-            and self.defenses_attempted is not None
-            and self.defenses_successful > self.defenses_attempted
-        ):
-            raise ValueError("defenses_successful cannot exceed defenses_attempted")
-        return self
 
 
 class Session(SessionCreate):
