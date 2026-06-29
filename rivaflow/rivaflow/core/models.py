@@ -142,6 +142,22 @@ class SessionCreate(BaseModel):
     whoop_max_hr: int | None = Field(
         default=None, ge=0, le=250, description="Maximum heart rate during session"
     )
+    # Garmin per-session biometrics (matched from the Garmin activity)
+    garmin_activity_type: str | None = Field(default=None, description="Garmin activity type")
+    garmin_activity_name: str | None = Field(default=None, description="Garmin activity name")
+    garmin_avg_hr: int | None = Field(default=None, ge=0, le=250)
+    garmin_max_hr: int | None = Field(default=None, ge=0, le=250)
+    garmin_calories: int | None = Field(default=None, ge=0)
+    garmin_duration_min: float | None = Field(default=None, ge=0)
+    garmin_aerobic_te: float | None = Field(default=None, ge=0, le=5)
+    garmin_anaerobic_te: float | None = Field(default=None, ge=0, le=5)
+    garmin_te_label: str | None = Field(default=None, description="Garmin training-effect label")
+    garmin_training_load: float | None = Field(default=None, ge=0)
+    garmin_hr_z1_sec: float | None = Field(default=None, ge=0)
+    garmin_hr_z2_sec: float | None = Field(default=None, ge=0)
+    garmin_hr_z3_sec: float | None = Field(default=None, ge=0)
+    garmin_hr_z4_sec: float | None = Field(default=None, ge=0)
+    garmin_hr_z5_sec: float | None = Field(default=None, ge=0)
     attacks_attempted: int = Field(
         default=0, ge=0, description="Number of attacks attempted during session"
     )
@@ -245,11 +261,64 @@ class SessionUpdate(BaseModel):
     whoop_calories: int | None = Field(default=None, ge=0)
     whoop_avg_hr: int | None = Field(default=None, ge=0, le=250)
     whoop_max_hr: int | None = Field(default=None, ge=0, le=250)
+    garmin_activity_type: str | None = None
+    garmin_activity_name: str | None = None
+    garmin_avg_hr: int | None = Field(default=None, ge=0, le=250)
+    garmin_max_hr: int | None = Field(default=None, ge=0, le=250)
+    garmin_calories: int | None = Field(default=None, ge=0)
+    garmin_duration_min: float | None = Field(default=None, ge=0)
+    garmin_aerobic_te: float | None = Field(default=None, ge=0, le=5)
+    garmin_anaerobic_te: float | None = Field(default=None, ge=0, le=5)
+    garmin_te_label: str | None = None
+    garmin_training_load: float | None = Field(default=None, ge=0)
+    garmin_hr_z1_sec: float | None = Field(default=None, ge=0)
+    garmin_hr_z2_sec: float | None = Field(default=None, ge=0)
+    garmin_hr_z3_sec: float | None = Field(default=None, ge=0)
+    garmin_hr_z4_sec: float | None = Field(default=None, ge=0)
+    garmin_hr_z5_sec: float | None = Field(default=None, ge=0)
     attacks_attempted: int | None = Field(default=None, ge=0)
     attacks_successful: int | None = Field(default=None, ge=0)
     defenses_attempted: int | None = Field(default=None, ge=0)
     defenses_successful: int | None = Field(default=None, ge=0)
     needs_review: bool | None = None
+
+
+# ─── Garmin daily metrics (one row per user per day; drives Health-tab trends) ──
+
+
+class GarminDailyMetric(BaseModel):
+    """A single day of Garmin key metrics."""
+
+    metric_date: str = Field(..., description="YYYY-MM-DD")
+    rhr: float | None = None
+    hrv_ms: float | None = None
+    hrv_status: str | None = None
+    body_battery_high: int | None = None
+    body_battery_low: int | None = None
+    stress_avg: int | None = None
+    max_stress: int | None = None
+    sleep_hours: float | None = None
+    sleep_score: float | None = None
+    sleep_deep_hours: float | None = None
+    sleep_rem_hours: float | None = None
+    sleep_light_hours: float | None = None
+    sleep_awake_hours: float | None = None
+    steps: int | None = None
+    respiration_rate: float | None = None
+    spo2_pct: float | None = None
+    training_readiness_score: int | None = None
+    training_readiness_level: str | None = None
+    training_status: str | None = None
+    vo2max: float | None = None
+    active_calories: float | None = None
+    intensity_min_moderate: int | None = None
+    intensity_min_vigorous: int | None = None
+
+
+class GarminDailyIngest(BaseModel):
+    """Batch upsert payload from the Mac Garmin push job."""
+
+    metrics: list[GarminDailyMetric]
 
     @field_validator(
         "class_time", "gym_name", "location", "notes", "instructor_name", mode="before"

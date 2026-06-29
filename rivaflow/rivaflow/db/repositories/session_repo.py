@@ -16,6 +16,10 @@ _SESSION_COLS = (
     "visibility_level, audience_scope, share_fields, published_at, "
     "instructor_id, instructor_name, "
     "whoop_strain, whoop_calories, whoop_avg_hr, whoop_max_hr, "
+    "garmin_activity_type, garmin_activity_name, garmin_avg_hr, garmin_max_hr, "
+    "garmin_calories, garmin_duration_min, garmin_aerobic_te, garmin_anaerobic_te, "
+    "garmin_te_label, garmin_training_load, "
+    "garmin_hr_z1_sec, garmin_hr_z2_sec, garmin_hr_z3_sec, garmin_hr_z4_sec, garmin_hr_z5_sec, "
     "attacks_attempted, attacks_successful, "
     "defenses_attempted, defenses_successful, "
     "source, needs_review, "
@@ -284,6 +288,21 @@ class SessionRepository(BaseRepository):
                 "whoop_calories",
                 "whoop_avg_hr",
                 "whoop_max_hr",
+                "garmin_activity_type",
+                "garmin_activity_name",
+                "garmin_avg_hr",
+                "garmin_max_hr",
+                "garmin_calories",
+                "garmin_duration_min",
+                "garmin_aerobic_te",
+                "garmin_anaerobic_te",
+                "garmin_te_label",
+                "garmin_training_load",
+                "garmin_hr_z1_sec",
+                "garmin_hr_z2_sec",
+                "garmin_hr_z3_sec",
+                "garmin_hr_z4_sec",
+                "garmin_hr_z5_sec",
                 "attacks_attempted",
                 "attacks_successful",
                 "defenses_attempted",
