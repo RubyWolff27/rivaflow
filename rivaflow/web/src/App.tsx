@@ -16,6 +16,7 @@ const Sessions = lazy(() => import('./pages/Sessions'));
 const Feed = lazy(() => import('./pages/Feed'));
 const SessionDetail = lazy(() => import('./pages/SessionDetail'));
 const Reports = lazy(() => import('./pages/Reports'));
+const Health = lazy(() => import('./pages/Health'));
 const Readiness = lazy(() => import('./pages/Readiness'));
 const ReadinessDetail = lazy(() => import('./pages/ReadinessDetail'));
 const EditReadiness = lazy(() => import('./pages/EditReadiness'));
@@ -132,6 +133,7 @@ function App() {
                           <Route path="/chat" element={<Chat />} />
                           <Route path="/reports" element={<Reports />} />
                           <Route path="/progress" element={<Reports />} />
+                          <Route path="/health" element={<Health />} />
                           <Route path="/readiness" element={<Readiness />} />
                           <Route path="/readiness/:date" element={<ReadinessDetail />} />
                           <Route path="/readiness/edit/:date" element={<EditReadiness />} />

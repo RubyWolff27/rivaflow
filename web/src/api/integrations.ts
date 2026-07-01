@@ -1,5 +1,14 @@
 import { api } from './_client';
-import type { WhoopConnectionStatus, WhoopWorkoutMatch, WhoopRecovery, WhoopScopeCheck, WhoopReadinessAutoFill, WhoopSessionContext } from '../types';
+import type { WhoopConnectionStatus, WhoopWorkoutMatch, WhoopRecovery, WhoopScopeCheck, WhoopReadinessAutoFill, WhoopSessionContext, GarminDailyMetric } from '../types';
+
+// Garmin metrics API — daily key metrics power the Health tab; per-session
+// Garmin biometrics ride on the session object (no dedicated endpoint).
+export const garminApi = {
+  dailyMetrics: (days = 30) =>
+    api.get<GarminDailyMetric[]>(`/garmin/daily?days=${days}`),
+  summary: () =>
+    api.get<{ latest: GarminDailyMetric | null }>('/garmin/summary'),
+};
 
 // Transcription API (Whisper)
 export const transcribeApi = {

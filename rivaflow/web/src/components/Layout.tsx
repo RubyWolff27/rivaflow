@@ -1,6 +1,6 @@
 import { useState, useRef, memo } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { Home, BarChart3, Activity, Shield, Sparkles, Target, Calendar, Download, Trophy } from 'lucide-react';
+import { Home, BarChart3, Activity, Shield, Sparkles, Target, Calendar, Download, Trophy, HeartPulse } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import QuickLog from './QuickLog';
 import Sidebar from './Sidebar';
@@ -23,6 +23,7 @@ const Layout = memo(function Layout({ children }: { children: React.ReactNode })
     { name: 'Home', href: '/', icon: Home },
     { name: 'Sessions', href: '/sessions', icon: Calendar },
     { name: 'Progress', href: '/reports', icon: BarChart3 },
+    { name: 'Health', href: '/health', icon: HeartPulse },
   ];
 
   // Secondary sections — shown in sidebar collapsibles and "You" sheet on mobile.
@@ -49,6 +50,7 @@ const Layout = memo(function Layout({ children }: { children: React.ReactNode })
         { name: 'Grapple AI', href: '/grapple', icon: Sparkles, badge: 'NEW' },
         { name: 'Glossary', href: '/glossary', icon: Target, badge: 'NEW' },
         { name: 'Sessions', href: '/sessions', icon: Activity },
+        { name: 'Health', href: '/health', icon: HeartPulse },
         { name: 'Goals', href: '/goals', icon: Trophy },
         { name: 'Readiness', href: '/readiness', icon: Activity },
         { name: 'Import', href: '/import', icon: Download },

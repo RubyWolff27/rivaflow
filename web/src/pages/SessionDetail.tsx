@@ -8,6 +8,7 @@ import { ArrowLeft, Calendar, Clock, Zap, Users, MapPin, User, Book, Edit2, Acti
 import PhotoGallery from '../components/PhotoGallery';
 import PhotoUpload from '../components/PhotoUpload';
 import SessionInsights from '../components/SessionInsights';
+import GarminPanel from '../components/GarminPanel';
 import SessionScoreCard from '../components/sessions/SessionScoreCard';
 import { useToast } from '../contexts/ToastContext';
 import { CardSkeleton } from '../components/ui';
@@ -743,6 +744,9 @@ export default function SessionDetail() {
           )}
         </div>
       )}
+
+      {/* ── Garmin biometrics (HR zones, training effect) ── */}
+      <GarminPanel session={session} />
 
       {/* ── ISC-15: Achievement Badges below Biometrics ── */}
       <SessionInsights sessionId={session.id} />

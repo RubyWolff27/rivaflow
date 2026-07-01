@@ -34,6 +34,21 @@ export interface Session {
   whoop_calories?: number;
   whoop_avg_hr?: number;
   whoop_max_hr?: number;
+  garmin_activity_type?: string | null;
+  garmin_activity_name?: string | null;
+  garmin_avg_hr?: number | null;
+  garmin_max_hr?: number | null;
+  garmin_calories?: number | null;
+  garmin_duration_min?: number | null;
+  garmin_aerobic_te?: number | null;
+  garmin_anaerobic_te?: number | null;
+  garmin_te_label?: string | null;
+  garmin_training_load?: number | null;
+  garmin_hr_z1_sec?: number | null;
+  garmin_hr_z2_sec?: number | null;
+  garmin_hr_z3_sec?: number | null;
+  garmin_hr_z4_sec?: number | null;
+  garmin_hr_z5_sec?: number | null;
   session_score?: number;
   score_breakdown?: SessionScoreBreakdown;
   score_version?: number;
@@ -795,4 +810,32 @@ export interface GymClass {
   class_type: string | null;
   level: string | null;
   is_active: number;
+}
+
+// Garmin daily key metrics (one row per day) — powers the Health tab charts.
+export interface GarminDailyMetric {
+  metric_date: string;
+  rhr?: number | null;
+  hrv_ms?: number | null;
+  hrv_status?: string | null;
+  body_battery_high?: number | null;
+  body_battery_low?: number | null;
+  stress_avg?: number | null;
+  max_stress?: number | null;
+  sleep_hours?: number | null;
+  sleep_score?: number | null;
+  sleep_deep_hours?: number | null;
+  sleep_rem_hours?: number | null;
+  sleep_light_hours?: number | null;
+  sleep_awake_hours?: number | null;
+  steps?: number | null;
+  respiration_rate?: number | null;
+  spo2_pct?: number | null;
+  training_readiness_score?: number | null;
+  training_readiness_level?: string | null;
+  training_status?: string | null;
+  vo2max?: number | null;
+  active_calories?: number | null;
+  intensity_min_moderate?: number | null;
+  intensity_min_vigorous?: number | null;
 }

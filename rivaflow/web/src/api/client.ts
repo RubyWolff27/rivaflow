@@ -5,7 +5,7 @@ export { analyticsApi, grappleApi } from './analytics';
 export { socialApi, feedApi, checkinsApi, streaksApi } from './social';
 export { profileApi, gradingsApi, friendsApi, usersApi } from './users';
 export { adminApi } from './admin';
-export { whoopApi, transcribeApi, chatApi } from './integrations';
+export { whoopApi, transcribeApi, chatApi, garminApi } from './integrations';
 export { goalsApi, trainingGoalsApi, eventsApi, weightLogsApi, milestonesApi } from './goals';
 export { glossaryApi, videosApi, coachPreferencesApi } from './content';
 export { groupsApi, gymsApi, photosApi } from './community';
