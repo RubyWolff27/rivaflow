@@ -8,6 +8,8 @@ HRV only, and BJJ session analytics use HR (not HRV) because motion corrupts bea
 
 from __future__ import annotations
 
+from collections import defaultdict
+from math import sqrt
 from statistics import mean, pstdev
 
 from rivaflow.db.repositories.whoop_repo import WhoopRepository
@@ -15,6 +17,29 @@ from rivaflow.db.repositories.whoop_repo import WhoopRepository
 # Ruby's profile-tuned constants
 MAX_HR = 190                      # HR-zone ceiling (44yo; refine from measured max later)
 READINESS_MIN_BASELINE_DAYS = 5   # cold-start guard before a score is meaningful
+
+
+def daily_resting_rmssd(user_id: int, days: int = 21) -> list[dict]:
+    """Per-day resting HRV (RMSSD, ms) derived from the whoop_rr intervals already flowing — so
+    readiness works without a separate HRV feed. 'Resting' = RR in a plausible band (HR ~40-90 bpm →
+    667-1500 ms); successive-difference outliers (>400 ms, i.e. motion/ectopy) are dropped. Needs
+    >=20 resting intervals/day. RMSSD = sqrt(mean of squared successive RR differences)."""
+    rr = WhoopRepository.rr_range(user_id, days)
+    by_day: dict[str, list[int]] = defaultdict(list)
+    for r in rr:
+        rr_ms, ts = r.get("rr_ms"), r.get("ts")
+        if rr_ms and ts and 667 <= rr_ms <= 1500:
+            by_day[str(ts)[:10]].append(rr_ms)
+    out: list[dict] = []
+    for day in sorted(by_day):
+        vals = by_day[day]
+        if len(vals) < 20:
+            continue
+        diffs = [vals[i + 1] - vals[i] for i in range(len(vals) - 1) if abs(vals[i + 1] - vals[i]) < 400]
+        if len(diffs) < 10:
+            continue
+        out.append({"day": day, "rmssd": round(sqrt(sum(d * d for d in diffs) / len(diffs)), 1)})
+    return out
 
 
 def compute_readiness(user_id: int, today_is_sabbath: bool = False) -> dict:
@@ -27,17 +52,18 @@ def compute_readiness(user_id: int, today_is_sabbath: bool = False) -> dict:
         return {"state": "Rest", "headline": "Sabbath — rest is prescribed. No score today.",
                 "driver": "sabbath", "score": None}
 
-    hrv = WhoopRepository.hrv_range(user_id, days=14, at_rest_only=True)
-    vals = [h["rmssd"] for h in hrv if h.get("rmssd") is not None]
+    # Derive daily resting RMSSD from the RR intervals already flowing (no separate HRV feed needed).
+    daily = daily_resting_rmssd(user_id, days=21)
+    vals = [d["rmssd"] for d in daily]
     if len(vals) < READINESS_MIN_BASELINE_DAYS:
         return {"state": "Building",
                 "headline": f"Building your HRV baseline ({len(vals)}/{READINESS_MIN_BASELINE_DAYS} days).",
                 "driver": "cold_start", "score": None, "samples": len(vals)}
 
-    baseline = vals[-7:] if len(vals) >= 7 else vals
-    b_mean = mean(baseline)
-    b_sd = pstdev(baseline) or 1.0
     today = vals[-1]
+    prior = vals[-8:-1] if len(vals) >= 8 else vals[:-1]   # baseline = the days BEFORE today
+    b_mean = mean(prior)
+    b_sd = pstdev(prior) or 1.0
     z = (today - b_mean) / b_sd
 
     if z >= 0.5:
@@ -53,7 +79,7 @@ def compute_readiness(user_id: int, today_is_sabbath: bool = False) -> dict:
         "state": state, "headline": head, "driver": "hrv_vs_baseline",
         "score": max(0, min(100, round(50 + z * 20))),
         "today_rmssd": round(today, 1), "baseline_rmssd": round(b_mean, 1),
-        "z": round(z, 2), "baseline_days": len(baseline),
+        "z": round(z, 2), "baseline_days": len(prior), "source": "rr_derived",
     }
 
 

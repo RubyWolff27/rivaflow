@@ -147,8 +147,10 @@ def hrv_series(
     days: int = Query(30, ge=1, le=365),
     current_user: dict = Depends(get_current_user),
 ) -> list[dict]:
-    """At-rest HRV (RMSSD) series over the last `days` — the recovery signal."""
-    return WhoopRepository.hrv_range(current_user["id"], days)
+    """Daily resting HRV (RMSSD), derived from RR intervals — the recovery signal."""
+    from rivaflow.core.whoop_analytics import daily_resting_rmssd
+
+    return daily_resting_rmssd(current_user["id"], days)
 
 
 @router.get("/readiness")

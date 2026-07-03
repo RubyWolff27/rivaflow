@@ -159,6 +159,17 @@ class WhoopRepository:
         )
 
     @staticmethod
+    def rr_range(user_id: int, days: int = 14) -> list[dict]:
+        """RR intervals over the last `days`, time-ordered — the raw truth for deriving HRV (RMSSD)."""
+        cutoff = (datetime.now(UTC) - timedelta(days=days)).isoformat()
+        return BaseRepository._fetchall(
+            convert_query(
+                "SELECT ts, rr_ms FROM whoop_rr WHERE user_id = ? AND ts >= ? ORDER BY ts ASC"
+            ),
+            (user_id, cutoff),
+        )
+
+    @staticmethod
     def latest_capture(user_id: int) -> dict | None:
         """Most recent ingest heartbeat (capture-health)."""
         return BaseRepository._fetchone(
