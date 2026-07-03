@@ -42,6 +42,7 @@ from rivaflow.api.routes import (
     api_keys,
     auth,
     garmin,
+    whoop,
     checkins,
     coach_preferences,
     dashboard,
@@ -295,6 +296,7 @@ app.include_router(users.router, prefix="/api/v1/users", tags=["users"])
 app.include_router(api_keys.router, prefix="/api/v1/users/me", tags=["api-keys"])
 app.include_router(analytics.router, prefix="/api/v1/analytics", tags=["analytics"])
 app.include_router(garmin.router, prefix="/api/v1", tags=["garmin"])
+app.include_router(whoop.router, prefix="/api/v1", tags=["whoop"])
 app.include_router(goals.router, prefix="/api/v1/goals", tags=["goals"])
 app.include_router(
     training_goals.router,
