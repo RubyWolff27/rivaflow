@@ -114,8 +114,8 @@ def ingest(payload: WhoopIngest, current_user: dict = Depends(get_current_user))
 @route_error_handler("whoop_capture_health", detail="Failed to fetch WHOOP capture health")
 def capture_health(current_user: dict = Depends(get_current_user)) -> dict:
     """Last-seen heartbeat + recent ingest volume for gap detection."""
-    from rivaflow.db.repositories.base_repository import BaseRepository
     from rivaflow.db.database import convert_query
+    from rivaflow.db.repositories.base_repository import BaseRepository
 
     latest = BaseRepository._fetchone(
         convert_query(
