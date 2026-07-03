@@ -13,7 +13,8 @@ See docs DATA-PLATFORM-BUILD-PLAN.md in the goose-whoop5 repo.
 from __future__ import annotations
 
 import logging
-from datetime import date
+from datetime import date, datetime
+from zoneinfo import ZoneInfo
 
 from fastapi import APIRouter, Depends, Query
 from fastapi.responses import HTMLResponse
@@ -230,6 +231,14 @@ def view(key: str) -> HTMLResponse:
     return HTMLResponse(_render_whoop_view(s))
 
 
+def _local_hm(iso_str: str) -> str:
+    """UTC ISO timestamp → Melbourne HH:MM for display."""
+    try:
+        return datetime.fromisoformat(iso_str).astimezone(ZoneInfo("Australia/Melbourne")).strftime("%H:%M")
+    except (ValueError, TypeError):
+        return str(iso_str)[11:16]
+
+
 def _render_whoop_view(s: dict) -> str:
     r = s.get("readiness") or {}
     hrv = s.get("hrv_today") or {}
@@ -243,7 +252,7 @@ def _render_whoop_view(s: dict) -> str:
     hrv_val = f"{hrv.get('rmssd')}" if hrv.get("rmssd") is not None else "—"
     rhr_val = f"{rhr.get('resting_hr')}" if rhr.get("resting_hr") is not None else "—"
     sleep_val = f"{sleep.get('duration_hours')}" if sleep.get("available") else "—"
-    sleep_sub = (f"{sleep.get('sleep_start','')[11:16]}–{sleep.get('sleep_end','')[11:16]} · avg {sleep.get('avg_sleeping_hr')} bpm"
+    sleep_sub = (f"{_local_hm(sleep.get('sleep_start',''))}–{_local_hm(sleep.get('sleep_end',''))} · avg {sleep.get('avg_sleeping_hr')} bpm"
                  if sleep.get("available") else (sleep.get("reason") or "no data"))
     trend = s.get("hrv_trend") or []
     trend_pts = " · ".join(f"{p['day'][5:]}: {p['rmssd']}" for p in trend[-7:]) or "building…"
