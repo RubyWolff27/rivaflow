@@ -13,8 +13,9 @@ See docs DATA-PLATFORM-BUILD-PLAN.md in the goose-whoop5 repo.
 from __future__ import annotations
 
 import logging
+from datetime import date
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Query
 from pydantic import BaseModel, Field
 
 from rivaflow.core.dependencies import get_current_user
@@ -125,3 +126,49 @@ def capture_health(current_user: dict = Depends(get_current_user)) -> dict:
         (current_user["id"],),
     )
     return {"latest": latest}
+
+
+# ── Read + analytics (Phase 2 / shared access: RivaFlow UI, health dashboard, LLM/MCP) ──
+
+
+@router.get("/hr")
+@route_error_handler("whoop_hr", detail="Failed to fetch WHOOP heart rate")
+def hr_series(
+    hours: int = Query(6, ge=1, le=168),
+    current_user: dict = Depends(get_current_user),
+) -> list[dict]:
+    """Recent HR series (last `hours`)."""
+    return WhoopRepository.recent_hr(current_user["id"], hours)
+
+
+@router.get("/hrv")
+@route_error_handler("whoop_hrv", detail="Failed to fetch WHOOP HRV")
+def hrv_series(
+    days: int = Query(30, ge=1, le=365),
+    current_user: dict = Depends(get_current_user),
+) -> list[dict]:
+    """At-rest HRV (RMSSD) series over the last `days` — the recovery signal."""
+    return WhoopRepository.hrv_range(current_user["id"], days)
+
+
+@router.get("/readiness")
+@route_error_handler("whoop_readiness", detail="Failed to compute readiness")
+def readiness(current_user: dict = Depends(get_current_user)) -> dict:
+    """Ruby Readiness Score — at-rest HRV vs rolling baseline. Sabbath-silent (Sunday rest)."""
+    from rivaflow.core.whoop_analytics import compute_readiness
+
+    is_sabbath = date.today().weekday() == 6  # Sunday = Ruby's rest day (adjust if Saturday-Sabbath)
+    return compute_readiness(current_user["id"], today_is_sabbath=is_sabbath)
+
+
+@router.get("/session-analytics")
+@route_error_handler("whoop_session_analytics", detail="Failed to compute BJJ session analytics")
+def session_analytics(
+    start: str,
+    end: str,
+    current_user: dict = Depends(get_current_user),
+) -> dict:
+    """BJJ roll analytics for a [start, end] window: HR zones, avg/max, best between-round recovery."""
+    from rivaflow.core.whoop_analytics import bjj_session_analytics
+
+    return bjj_session_analytics(current_user["id"], start, end)
