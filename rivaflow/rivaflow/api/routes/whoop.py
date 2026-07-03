@@ -174,3 +174,35 @@ def session_analytics(
     from rivaflow.core.whoop_analytics import bjj_session_analytics
 
     return bjj_session_analytics(current_user["id"], start, end)
+
+
+@router.get("/sleep")
+@route_error_handler("whoop_sleep", detail="Failed to compute sleep")
+def sleep(current_user: dict = Depends(get_current_user)) -> dict:
+    """Last night's sleep (HR-based duration + timing) — server-side, no client compute."""
+    from rivaflow.core.whoop_analytics import nightly_sleep
+
+    return nightly_sleep(current_user["id"])
+
+
+@router.get("/resting-hr")
+@route_error_handler("whoop_resting_hr", detail="Failed to compute resting HR")
+def resting_hr(
+    days: int = Query(14, ge=1, le=90),
+    current_user: dict = Depends(get_current_user),
+) -> list[dict]:
+    """Daily resting HR (5th-percentile of each day's HR)."""
+    from rivaflow.core.whoop_analytics import daily_resting_hr
+
+    return daily_resting_hr(current_user["id"], days)
+
+
+@router.get("/summary")
+@route_error_handler("whoop_summary", detail="Failed to build WHOOP summary")
+def summary(current_user: dict = Depends(get_current_user)) -> dict:
+    """One-call rollup for a thin display client: readiness + HRV + resting HR + last night's sleep.
+    The whole point of the server-side architecture — the phone/dashboard fetches this and just renders it."""
+    from rivaflow.core.whoop_analytics import whoop_summary
+
+    is_sabbath = date.today().weekday() == 6
+    return whoop_summary(current_user["id"], today_is_sabbath=is_sabbath)

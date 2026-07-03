@@ -9,6 +9,7 @@ HRV only, and BJJ session analytics use HR (not HRV) because motion corrupts bea
 from __future__ import annotations
 
 from collections import defaultdict
+from datetime import datetime
 from math import sqrt
 from statistics import mean, pstdev
 
@@ -17,6 +18,88 @@ from rivaflow.db.repositories.whoop_repo import WhoopRepository
 # Ruby's profile-tuned constants
 MAX_HR = 190                      # HR-zone ceiling (44yo; refine from measured max later)
 READINESS_MIN_BASELINE_DAYS = 5   # cold-start guard before a score is meaningful
+
+
+def _parse_ts(ts: str) -> datetime:
+    """Parse a stored ISO timestamp (handles trailing Z)."""
+    return datetime.fromisoformat(str(ts).replace("Z", "+00:00"))
+
+
+def daily_resting_hr(user_id: int, days: int = 14) -> list[dict]:
+    """Per-day resting HR ≈ the 5th-percentile of the day's HR — a robust resting proxy from whoop_hr
+    (the true minimum is noisy). Needs >=60 samples/day. Falls out of the HR stream we already capture,
+    so no extra plumbing."""
+    hr = WhoopRepository.recent_hr(user_id, hours=days * 24)
+    by_day: dict[str, list[int]] = defaultdict(list)
+    for h in hr:
+        bpm, ts = h.get("bpm"), h.get("ts")
+        if bpm and ts:
+            by_day[str(ts)[:10]].append(int(bpm))
+    out: list[dict] = []
+    for day in sorted(by_day):
+        vals = sorted(by_day[day])
+        if len(vals) < 60:
+            continue
+        idx = max(0, int(len(vals) * 0.05))
+        out.append({"day": day, "resting_hr": vals[idx], "min_hr": vals[0], "samples": len(vals)})
+    return out
+
+
+def nightly_sleep(user_id: int, lookback_hours: int = 18) -> dict:
+    """Estimate last night's sleep from the overnight HR pattern. HR drops and stays low during sleep,
+    so the main sleep window ≈ the longest contiguous run of low HR in the last ~lookback_hours. This is
+    an honest HR-based sleep DURATION + timing — NOT WHOOP-style sleep staging (which needs a proprietary
+    model). 'Low' = within ~8 bpm of the window minimum. Samples are ~1/s, so run-length ≈ seconds."""
+    hr = WhoopRepository.recent_hr(user_id, hours=lookback_hours)
+    samples = [(str(h["ts"]), int(h["bpm"])) for h in hr if h.get("bpm") and h.get("ts")]
+    if len(samples) < 120:
+        return {"available": False, "reason": "Not enough overnight HR captured for a sleep estimate yet."}
+
+    bpms = [b for _, b in samples]
+    threshold = min(bpms) + 8
+    best_len, best_s, best_e = 0, 0, 0
+    cur_start, cur_len = None, 0
+    for i, b in enumerate(bpms):
+        if b <= threshold:
+            if cur_start is None:
+                cur_start = i
+            cur_len += 1
+            if cur_len > best_len:
+                best_len, best_s, best_e = cur_len, cur_start, i
+        else:
+            cur_start, cur_len = None, 0
+
+    if best_len < 120:
+        return {"available": False, "reason": "No sustained low-HR sleep window detected in the last night."}
+
+    start_ts, end_ts = samples[best_s][0], samples[best_e][0]
+    duration_hours = (_parse_ts(end_ts) - _parse_ts(start_ts)).total_seconds() / 3600
+    sleep_bpms = bpms[best_s:best_e + 1]
+    return {
+        "available": True,
+        "sleep_start": start_ts,
+        "sleep_end": end_ts,
+        "duration_hours": round(duration_hours, 1),
+        "avg_sleeping_hr": round(mean(sleep_bpms)),
+        "min_hr": min(sleep_bpms),
+        "source": "hr_low_window",
+        "method": "HR-based sleep duration/timing (not WHOOP staging).",
+    }
+
+
+def whoop_summary(user_id: int, today_is_sabbath: bool = False) -> dict:
+    """One-call rollup for a thin display client: readiness + HRV (today+trend) + resting HR (today+trend)
+    + last night's sleep. The phone/dashboard fetches THIS and just renders it — no client-side compute."""
+    hrv = daily_resting_rmssd(user_id, days=14)
+    rhr = daily_resting_hr(user_id, days=14)
+    return {
+        "readiness": compute_readiness(user_id, today_is_sabbath=today_is_sabbath),
+        "hrv_today": hrv[-1] if hrv else None,
+        "hrv_trend": hrv,
+        "resting_hr_today": rhr[-1] if rhr else None,
+        "resting_hr_trend": rhr,
+        "sleep": nightly_sleep(user_id),
+    }
 
 
 def daily_resting_rmssd(user_id: int, days: int = 21) -> list[dict]:
