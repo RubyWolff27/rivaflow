@@ -45,44 +45,69 @@ def daily_resting_hr(user_id: int, days: int = 14) -> list[dict]:
     return out
 
 
-def nightly_sleep(user_id: int, lookback_hours: int = 18) -> dict:
-    """Estimate last night's sleep from the overnight HR pattern. HR drops and stays low during sleep,
-    so the main sleep window ≈ the longest contiguous run of low HR in the last ~lookback_hours. This is
-    an honest HR-based sleep DURATION + timing — NOT WHOOP-style sleep staging (which needs a proprietary
-    model). 'Low' = within ~8 bpm of the window minimum. Samples are ~1/s, so run-length ≈ seconds."""
+def _longest_low_block(order: list[int], med: dict, threshold: int, max_bridge: int) -> tuple:
+    """Longest run of 'asleep' buckets (median <= threshold), bridging up to max_bridge awake buckets.
+    Returns (start_idx, end_idx, span) or (None, None, 0)."""
+    best_s = best_e = None
+    best_span = 0
+    cur_s = cur_e = None
+    gap = 0
+    for i in order:
+        if med[i] <= threshold:
+            cur_s = i if cur_s is None else cur_s
+            cur_e = i
+            gap = 0
+        elif cur_s is not None:
+            gap += 1
+            if gap > max_bridge:
+                if cur_e - cur_s > best_span:
+                    best_span, best_s, best_e = cur_e - cur_s, cur_s, cur_e
+                cur_s = cur_e = None
+                gap = 0
+    if cur_s is not None and cur_e - cur_s > best_span:
+        best_span, best_s, best_e = cur_e - cur_s, cur_s, cur_e
+    return best_s, best_e, best_span
+
+
+def nightly_sleep(user_id: int, lookback_hours: int = 20) -> dict:
+    """Estimate last night's sleep from the overnight HR pattern. HR drops and stays low during sleep.
+    Robust to real fluctuation + gaps: bins HR into 5-min buckets (median), flags a bucket 'asleep' when
+    its median is within ~12 bpm of the night's lowest bucket, then finds the longest sleep block —
+    bridging brief wakes (up to ~15 min of higher HR) so a single toss-and-turn doesn't split the night.
+    Honest HR-based sleep DURATION + timing, NOT WHOOP-style staging (which needs a proprietary model)."""
     hr = WhoopRepository.recent_hr(user_id, hours=lookback_hours)
-    samples = [(str(h["ts"]), int(h["bpm"])) for h in hr if h.get("bpm") and h.get("ts")]
-    if len(samples) < 120:
+    pts = [(_parse_ts(str(h["ts"])), int(h["bpm"])) for h in hr if h.get("bpm") and h.get("ts")]
+    if len(pts) < 120:
         return {"available": False, "reason": "Not enough overnight HR captured for a sleep estimate yet."}
+    pts.sort(key=lambda p: p[0])
 
-    bpms = [b for _, b in samples]
-    threshold = min(bpms) + 8
-    best_len, best_s, best_e = 0, 0, 0
-    cur_start, cur_len = None, 0
-    for i, b in enumerate(bpms):
-        if b <= threshold:
-            if cur_start is None:
-                cur_start = i
-            cur_len += 1
-            if cur_len > best_len:
-                best_len, best_s, best_e = cur_len, cur_start, i
-        else:
-            cur_start, cur_len = None, 0
+    t0 = pts[0][0]
+    bucket_bpms: dict[int, list[int]] = defaultdict(list)
+    bucket_time: dict[int, datetime] = {}
+    for t, b in pts:
+        idx = int((t - t0).total_seconds() // 300)   # 5-minute bucket
+        bucket_bpms[idx].append(b)
+        bucket_time.setdefault(idx, t)
+    order = sorted(bucket_bpms)
+    med = {i: sorted(bucket_bpms[i])[len(bucket_bpms[i]) // 2] for i in order}
 
-    if best_len < 120:
-        return {"available": False, "reason": "No sustained low-HR sleep window detected in the last night."}
+    threshold = min(med.values()) + 12               # "asleep" band above the night's quietest bucket
+    best_s, best_e, best_span = _longest_low_block(order, med, threshold, max_bridge=3)
 
-    start_ts, end_ts = samples[best_s][0], samples[best_e][0]
-    duration_hours = (_parse_ts(end_ts) - _parse_ts(start_ts)).total_seconds() / 3600
-    sleep_bpms = bpms[best_s:best_e + 1]
+    if best_s is None or best_span < 6:              # < ~30 min → not a real sleep block
+        return {"available": False, "reason": "No sustained overnight low-HR sleep window detected."}
+
+    start_t, end_t = bucket_time[best_s], bucket_time[best_e]
+    duration_hours = (end_t - start_t).total_seconds() / 3600
+    sleep_bpms = [b for i in order if best_s <= i <= best_e for b in bucket_bpms[i]]
     return {
         "available": True,
-        "sleep_start": start_ts,
-        "sleep_end": end_ts,
+        "sleep_start": start_t.isoformat(),
+        "sleep_end": end_t.isoformat(),
         "duration_hours": round(duration_hours, 1),
         "avg_sleeping_hr": round(mean(sleep_bpms)),
         "min_hr": min(sleep_bpms),
-        "source": "hr_low_window",
+        "source": "hr_bucketed_window",
         "method": "HR-based sleep duration/timing (not WHOOP staging).",
     }
 
