@@ -12,6 +12,7 @@ from collections import defaultdict
 from datetime import datetime
 from math import sqrt
 from statistics import mean, pstdev
+from zoneinfo import ZoneInfo
 
 from rivaflow.db.repositories.whoop_repo import WhoopRepository
 
@@ -19,10 +20,26 @@ from rivaflow.db.repositories.whoop_repo import WhoopRepository
 MAX_HR = 190                      # HR-zone ceiling (44yo; refine from measured max later)
 READINESS_MIN_BASELINE_DAYS = 5   # cold-start guard before a score is meaningful
 
+# Ruby is Melbourne-based. All day-bucketing + display use his local day, not UTC (which would split the
+# day at ~10am and skew daily HRV/resting-HR). TODO(travel): switch to the device-reported tz per-ingest.
+LOCAL_TZ = ZoneInfo("Australia/Melbourne")
+
 
 def _parse_ts(ts: str) -> datetime:
-    """Parse a stored ISO timestamp (handles trailing Z)."""
-    return datetime.fromisoformat(str(ts).replace("Z", "+00:00"))
+    """Parse a stored ISO timestamp (handles trailing Z), returning a tz-aware datetime."""
+    dt = datetime.fromisoformat(str(ts).replace("Z", "+00:00"))
+    return dt if dt.tzinfo else dt.replace(tzinfo=ZoneInfo("UTC"))
+
+
+def _local_day(ts) -> str:
+    """UTC timestamp → Ruby's LOCAL (Melbourne) calendar day 'YYYY-MM-DD' — so a day is his day."""
+    try:
+        dt = ts if isinstance(ts, datetime) else _parse_ts(str(ts))
+        if dt.tzinfo is None:
+            dt = dt.replace(tzinfo=ZoneInfo("UTC"))
+        return dt.astimezone(LOCAL_TZ).date().isoformat()
+    except (ValueError, TypeError):
+        return str(ts)[:10]
 
 
 def daily_resting_hr(user_id: int, days: int = 14) -> list[dict]:
@@ -34,7 +51,7 @@ def daily_resting_hr(user_id: int, days: int = 14) -> list[dict]:
     for h in hr:
         bpm, ts = h.get("bpm"), h.get("ts")
         if bpm and ts:
-            by_day[str(ts)[:10]].append(int(bpm))
+            by_day[_local_day(ts)].append(int(bpm))
     out: list[dict] = []
     for day in sorted(by_day):
         vals = sorted(by_day[day])
@@ -137,7 +154,7 @@ def daily_resting_rmssd(user_id: int, days: int = 21) -> list[dict]:
     for r in rr:
         rr_ms, ts = r.get("rr_ms"), r.get("ts")
         if rr_ms and ts and 667 <= rr_ms <= 1500:
-            by_day[str(ts)[:10]].append(rr_ms)
+            by_day[_local_day(ts)].append(rr_ms)
     out: list[dict] = []
     for day in sorted(by_day):
         vals = by_day[day]

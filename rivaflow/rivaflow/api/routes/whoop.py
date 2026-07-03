@@ -13,7 +13,7 @@ See docs DATA-PLATFORM-BUILD-PLAN.md in the goose-whoop5 repo.
 from __future__ import annotations
 
 import logging
-from datetime import date, datetime
+from datetime import datetime
 from zoneinfo import ZoneInfo
 
 from fastapi import APIRouter, Depends, Query
@@ -161,7 +161,7 @@ def readiness(current_user: dict = Depends(get_current_user)) -> dict:
     """Ruby Readiness Score — at-rest HRV vs rolling baseline. Sabbath-silent (Sunday rest)."""
     from rivaflow.core.whoop_analytics import compute_readiness
 
-    is_sabbath = date.today().weekday() == 6  # Sunday = Ruby's rest day (adjust if Saturday-Sabbath)
+    is_sabbath = datetime.now(ZoneInfo("Australia/Melbourne")).weekday() == 6  # Sunday = Ruby's rest day (adjust if Saturday-Sabbath)
     return compute_readiness(current_user["id"], today_is_sabbath=is_sabbath)
 
 
@@ -206,7 +206,7 @@ def summary(current_user: dict = Depends(get_current_user)) -> dict:
     The whole point of the server-side architecture — the phone/dashboard fetches this and just renders it."""
     from rivaflow.core.whoop_analytics import whoop_summary
 
-    is_sabbath = date.today().weekday() == 6
+    is_sabbath = datetime.now(ZoneInfo("Australia/Melbourne")).weekday() == 6
     return whoop_summary(current_user["id"], today_is_sabbath=is_sabbath)
 
 
@@ -226,7 +226,7 @@ def view(key: str) -> HTMLResponse:
         return HTMLResponse("<h1 style='font-family:system-ui;color:#eee;background:#111'>Unauthorized</h1>",
                             status_code=401)
 
-    is_sabbath = date.today().weekday() == 6
+    is_sabbath = datetime.now(ZoneInfo("Australia/Melbourne")).weekday() == 6
     s = whoop_summary(api_key["user_id"], today_is_sabbath=is_sabbath)
     return HTMLResponse(_render_whoop_view(s))
 
