@@ -16,6 +16,7 @@ import logging
 from datetime import date
 
 from fastapi import APIRouter, Depends, Query
+from fastapi.responses import HTMLResponse
 from pydantic import BaseModel, Field
 
 from rivaflow.core.dependencies import get_current_user
@@ -206,3 +207,90 @@ def summary(current_user: dict = Depends(get_current_user)) -> dict:
 
     is_sabbath = date.today().weekday() == 6
     return whoop_summary(current_user["id"], today_is_sabbath=is_sabbath)
+
+
+@router.get("/view", response_class=HTMLResponse)
+def view(key: str) -> HTMLResponse:
+    """Server-rendered thin-display dashboard — the phone/browser opens a URL and the VPS renders the
+    metrics into HTML. Zero client compute. Personal tool: auth via the owner's own api-key query param."""
+    from rivaflow.core.whoop_analytics import whoop_summary
+    from rivaflow.db.repositories.api_key_repo import ApiKeyRepository
+
+    api_key = (
+        ApiKeyRepository.get_active_by_hash(ApiKeyRepository.hash_key(key))
+        if key.startswith("rf_pk_")
+        else None
+    )
+    if not api_key:
+        return HTMLResponse("<h1 style='font-family:system-ui;color:#eee;background:#111'>Unauthorized</h1>",
+                            status_code=401)
+
+    is_sabbath = date.today().weekday() == 6
+    s = whoop_summary(api_key["user_id"], today_is_sabbath=is_sabbath)
+    return HTMLResponse(_render_whoop_view(s))
+
+
+def _render_whoop_view(s: dict) -> str:
+    r = s.get("readiness") or {}
+    hrv = s.get("hrv_today") or {}
+    rhr = s.get("resting_hr_today") or {}
+    sleep = s.get("sleep") or {}
+    state_colors = {"Prime": "#34d399", "Balanced": "#60a5fa", "Strained": "#fbbf24",
+                    "Rundown": "#f87171", "Building": "#94a3b8", "Rest": "#a78bfa"}
+    accent = state_colors.get(r.get("state", "Building"), "#94a3b8")
+    score = r.get("score")
+    hero_val = f"{score}" if score is not None else (r.get("state") or "—")
+    hrv_val = f"{hrv.get('rmssd')}" if hrv.get("rmssd") is not None else "—"
+    rhr_val = f"{rhr.get('resting_hr')}" if rhr.get("resting_hr") is not None else "—"
+    sleep_val = f"{sleep.get('duration_hours')}" if sleep.get("available") else "—"
+    sleep_sub = (f"{sleep.get('sleep_start','')[11:16]}–{sleep.get('sleep_end','')[11:16]} · avg {sleep.get('avg_sleeping_hr')} bpm"
+                 if sleep.get("available") else (sleep.get("reason") or "no data"))
+    trend = s.get("hrv_trend") or []
+    trend_pts = " · ".join(f"{p['day'][5:]}: {p['rmssd']}" for p in trend[-7:]) or "building…"
+    return _WHOOP_VIEW_TEMPLATE.format(
+        accent=accent, state=r.get("state", "—"), headline=r.get("headline", ""),
+        hero_val=hero_val, hrv_val=hrv_val, rhr_val=rhr_val, sleep_val=sleep_val,
+        sleep_sub=sleep_sub, rhr_sub=f"min {rhr.get('min_hr','—')} · {rhr.get('samples',0)} samples",
+        trend_pts=trend_pts,
+    )
+
+
+_WHOOP_VIEW_TEMPLATE = """<!doctype html><html><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta http-equiv="refresh" content="120"><title>WHOOP · RivaFlow</title>
+<style>
+  *{{box-sizing:border-box;margin:0}}
+  body{{font-family:-apple-system,system-ui,sans-serif;background:#0a0a0c;color:#e8e8ea;
+       padding:20px;max-width:640px;margin:0 auto;-webkit-font-smoothing:antialiased}}
+  h1{{font-size:13px;text-transform:uppercase;letter-spacing:.12em;color:#71717a;font-weight:600;margin-bottom:16px}}
+  .hero{{background:linear-gradient(160deg,{accent}22,#141418);border:1px solid {accent}44;
+        border-radius:20px;padding:24px;margin-bottom:14px}}
+  .hero .state{{color:{accent};font-weight:800;font-size:17px}}
+  .hero .num{{font-size:64px;font-weight:800;line-height:1;margin:6px 0;font-variant-numeric:tabular-nums}}
+  .hero .head{{color:#a1a1aa;font-size:14px;margin-top:8px}}
+  .grid{{display:grid;grid-template-columns:1fr 1fr;gap:12px}}
+  .card{{background:#141418;border:1px solid #26262b;border-radius:16px;padding:18px}}
+  .card .lbl{{font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:#71717a;font-weight:600}}
+  .card .v{{font-size:34px;font-weight:800;margin-top:6px;font-variant-numeric:tabular-nums}}
+  .card .u{{font-size:15px;color:#71717a;font-weight:600}}
+  .card .sub{{font-size:12px;color:#8a8a92;margin-top:6px}}
+  .trend{{background:#141418;border:1px solid #26262b;border-radius:16px;padding:16px;margin-top:12px}}
+  .trend .lbl{{font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:#71717a;font-weight:600;margin-bottom:8px}}
+  .trend .pts{{font-size:13px;color:#c4c4c8;font-variant-numeric:tabular-nums;line-height:1.7}}
+  .foot{{color:#52525b;font-size:11px;text-align:center;margin-top:18px}}
+</style></head><body>
+  <h1>Recovery · RivaFlow</h1>
+  <div class="hero">
+    <div class="state">{state}</div>
+    <div class="num">{hero_val}</div>
+    <div class="head">{headline}</div>
+  </div>
+  <div class="grid">
+    <div class="card"><div class="lbl">HRV</div><div class="v">{hrv_val}<span class="u"> ms</span></div><div class="sub">resting RMSSD, today</div></div>
+    <div class="card"><div class="lbl">Resting HR</div><div class="v">{rhr_val}<span class="u"> bpm</span></div><div class="sub">{rhr_sub}</div></div>
+    <div class="card"><div class="lbl">Sleep</div><div class="v">{sleep_val}<span class="u"> h</span></div><div class="sub">{sleep_sub}</div></div>
+    <div class="card"><div class="lbl">Source</div><div class="v" style="font-size:22px">Server</div><div class="sub">computed on VPS · phone is display-only</div></div>
+  </div>
+  <div class="trend"><div class="lbl">HRV · last 7 days</div><div class="pts">{trend_pts}</div></div>
+  <div class="foot">RivaFlow · self-hosted · auto-refreshes every 2 min</div>
+</body></html>"""
