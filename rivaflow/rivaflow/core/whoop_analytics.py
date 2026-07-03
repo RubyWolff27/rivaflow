@@ -10,7 +10,7 @@ from __future__ import annotations
 
 from collections import defaultdict
 from datetime import datetime
-from math import sqrt
+from math import log1p, sqrt
 from statistics import mean, pstdev
 from zoneinfo import ZoneInfo
 
@@ -130,17 +130,28 @@ def nightly_sleep(user_id: int, lookback_hours: int = 20) -> dict:
 
 
 def whoop_summary(user_id: int, today_is_sabbath: bool = False) -> dict:
-    """One-call rollup for a thin display client: readiness + HRV (today+trend) + resting HR (today+trend)
-    + last night's sleep. The phone/dashboard fetches THIS and just renders it — no client-side compute."""
+    """One-call rollup for a thin display client: everything the VPS computes, so the phone/dashboard
+    fetches THIS and just renders it — no client-side compute. Readiness, HRV, resting HR, sleep (+quality),
+    respiratory rate, cardio load/strain, and stress — benchmarked against WHOOP/Oura/Hume, all from the
+    HR+RR we already capture."""
     hrv = daily_resting_rmssd(user_id, days=14)
     rhr = daily_resting_hr(user_id, days=14)
+    cardio = daily_cardio_load(user_id, days=7)
+    sleep = nightly_sleep(user_id)
+    if sleep.get("available"):
+        # Simple quality score vs Ruby's >9h sleep-need (DNA): duration is the dominant driver.
+        sleep["quality_score"] = max(0, min(100, round((sleep["duration_hours"] / 9.0) * 100)))
     return {
         "readiness": compute_readiness(user_id, today_is_sabbath=today_is_sabbath),
         "hrv_today": hrv[-1] if hrv else None,
         "hrv_trend": hrv,
         "resting_hr_today": rhr[-1] if rhr else None,
         "resting_hr_trend": rhr,
-        "sleep": nightly_sleep(user_id),
+        "sleep": sleep,
+        "respiratory_rate": respiratory_rate(user_id),
+        "cardio_load_today": cardio[-1] if cardio else None,
+        "cardio_load_trend": cardio,
+        "stress": today_stress(user_id),
     }
 
 
@@ -253,3 +264,61 @@ def bjj_session_analytics(user_id: int, start_iso: str, end_iso: str) -> dict:
         "best_60s_hr_recovery": best_recovery,
         "samples": len(bpms),
     }
+
+
+def respiratory_rate(user_id: int, days: int = 1) -> dict:
+    """Respiratory rate from RR-interval oscillation (respiratory sinus arrhythmia): the heart speeds up
+    on inhale and slows on exhale, so the resting RR series oscillates at the breathing frequency. We
+    detrend the resting RR tachogram (subtract a centred moving average) and count breathing cycles.
+    Oura/WHOOP surface this — and it IS computable from the RR we already capture, no extra sensor."""
+    rr = WhoopRepository.rr_range(user_id, days)
+    vals = [int(r["rr_ms"]) for r in rr if r.get("rr_ms") and 667 <= r["rr_ms"] <= 1500]
+    if len(vals) < 120:
+        return {"available": False, "reason": "Not enough resting RR intervals for a respiratory estimate."}
+
+    window = 10
+    osc = []
+    for i in range(len(vals)):
+        lo, hi = max(0, i - window // 2), min(len(vals), i + window // 2 + 1)
+        osc.append(vals[i] - sum(vals[lo:hi]) / (hi - lo))
+    breaths = sum(1 for i in range(1, len(osc)) if osc[i - 1] < 0 <= osc[i])   # one up-crossing per breath
+    minutes = sum(vals) / 60000.0
+    if minutes < 2 or breaths < 4:
+        return {"available": False, "reason": "Insufficient signal for a respiratory estimate."}
+    rpm = breaths / minutes
+    if not (6 <= rpm <= 30):
+        return {"available": False, "reason": "Respiratory estimate out of plausible range."}
+    return {"available": True, "respiratory_rate": round(rpm, 1), "breaths": breaths,
+            "minutes": round(minutes, 1), "source": "rr_rsa"}
+
+
+def daily_cardio_load(user_id: int, days: int = 7) -> list[dict]:
+    """Daily cardio load / strain from HR-zone-weighted minutes (Banister-TRIMP style), hard zones
+    weighted exponentially, compressed to a ~0–21 scale (WHOOP-strain feel). From the HR we capture."""
+    hr = WhoopRepository.recent_hr(user_id, hours=days * 24)
+    zone_weight = {1: 1, 2: 2, 3: 4, 4: 8, 5: 16}
+    by_day: dict[str, float] = defaultdict(float)
+    for h in hr:
+        bpm, ts = h.get("bpm"), h.get("ts")
+        if bpm and ts:
+            by_day[_local_day(ts)] += zone_weight[hr_zone(int(bpm))] / 60.0   # ~1 sample/s → per-minute
+    out = []
+    for day in sorted(by_day):
+        raw = by_day[day]
+        out.append({"day": day, "cardio_load": round(min(21.0, 6.0 * log1p(raw / 20.0)), 1),
+                    "raw_trimp": round(raw, 1)})
+    return out
+
+
+def today_stress(user_id: int) -> dict:
+    """Light stress proxy: how elevated recent HR sits within the HR reserve above resting (0–100).
+    WHOOP/Hume blend HRV+HR; this HR-elevation version is honest and always-available."""
+    recent = WhoopRepository.recent_hr(user_id, hours=1)
+    bpms = [int(h["bpm"]) for h in recent if h.get("bpm")]
+    rhr_list = daily_resting_hr(user_id, days=3)
+    if not bpms or not rhr_list:
+        return {"available": False, "reason": "Not enough recent HR for a stress estimate."}
+    rest = rhr_list[-1]["resting_hr"]
+    cur = mean(bpms[-60:]) if len(bpms) >= 60 else mean(bpms)
+    stress = max(0, min(100, round((cur - rest) / max(1, MAX_HR - rest) * 100)))
+    return {"available": True, "stress": stress, "current_hr": round(cur), "resting_hr": rest}

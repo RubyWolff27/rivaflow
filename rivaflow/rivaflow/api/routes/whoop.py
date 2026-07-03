@@ -199,6 +199,36 @@ def resting_hr(
     return daily_resting_hr(current_user["id"], days)
 
 
+@router.get("/respiratory")
+@route_error_handler("whoop_respiratory", detail="Failed to compute respiratory rate")
+def respiratory(current_user: dict = Depends(get_current_user)) -> dict:
+    """Respiratory rate from RR-interval oscillation (RSA)."""
+    from rivaflow.core.whoop_analytics import respiratory_rate
+
+    return respiratory_rate(current_user["id"])
+
+
+@router.get("/cardio-load")
+@route_error_handler("whoop_cardio_load", detail="Failed to compute cardio load")
+def cardio_load(
+    days: int = Query(7, ge=1, le=90),
+    current_user: dict = Depends(get_current_user),
+) -> list[dict]:
+    """Daily cardio load / strain (HR-zone TRIMP, ~0-21 scale)."""
+    from rivaflow.core.whoop_analytics import daily_cardio_load
+
+    return daily_cardio_load(current_user["id"], days)
+
+
+@router.get("/stress")
+@route_error_handler("whoop_stress", detail="Failed to compute stress")
+def stress(current_user: dict = Depends(get_current_user)) -> dict:
+    """Current stress proxy (HR elevation within reserve, 0-100)."""
+    from rivaflow.core.whoop_analytics import today_stress
+
+    return today_stress(current_user["id"])
+
+
 @router.get("/summary")
 @route_error_handler("whoop_summary", detail="Failed to build WHOOP summary")
 def summary(current_user: dict = Depends(get_current_user)) -> dict:
@@ -252,15 +282,23 @@ def _render_whoop_view(s: dict) -> str:
     hrv_val = f"{hrv.get('rmssd')}" if hrv.get("rmssd") is not None else "—"
     rhr_val = f"{rhr.get('resting_hr')}" if rhr.get("resting_hr") is not None else "—"
     sleep_val = f"{sleep.get('duration_hours')}" if sleep.get("available") else "—"
-    sleep_sub = (f"{_local_hm(sleep.get('sleep_start',''))}–{_local_hm(sleep.get('sleep_end',''))} · avg {sleep.get('avg_sleeping_hr')} bpm"
+    sleep_q = sleep.get("quality_score")
+    sleep_sub = (f"{_local_hm(sleep.get('sleep_start',''))}–{_local_hm(sleep.get('sleep_end',''))}"
+                 + (f" · quality {sleep_q}" if sleep_q is not None else "")
                  if sleep.get("available") else (sleep.get("reason") or "no data"))
+    resp = s.get("respiratory_rate") or {}
+    resp_val = f"{resp.get('respiratory_rate')}" if resp.get("available") else "—"
+    cardio = s.get("cardio_load_today") or {}
+    cardio_val = f"{cardio.get('cardio_load')}" if cardio.get("cardio_load") is not None else "—"
+    stress = s.get("stress") or {}
+    stress_val = f"{stress.get('stress')}" if stress.get("available") else "—"
     trend = s.get("hrv_trend") or []
     trend_pts = " · ".join(f"{p['day'][5:]}: {p['rmssd']}" for p in trend[-7:]) or "building…"
     return _WHOOP_VIEW_TEMPLATE.format(
         accent=accent, state=r.get("state", "—"), headline=r.get("headline", ""),
         hero_val=hero_val, hrv_val=hrv_val, rhr_val=rhr_val, sleep_val=sleep_val,
         sleep_sub=sleep_sub, rhr_sub=f"min {rhr.get('min_hr','—')} · {rhr.get('samples',0)} samples",
-        trend_pts=trend_pts,
+        resp_val=resp_val, cardio_val=cardio_val, stress_val=stress_val, trend_pts=trend_pts,
     )
 
 
@@ -298,7 +336,9 @@ _WHOOP_VIEW_TEMPLATE = """<!doctype html><html><head><meta charset="utf-8">
     <div class="card"><div class="lbl">HRV</div><div class="v">{hrv_val}<span class="u"> ms</span></div><div class="sub">resting RMSSD, today</div></div>
     <div class="card"><div class="lbl">Resting HR</div><div class="v">{rhr_val}<span class="u"> bpm</span></div><div class="sub">{rhr_sub}</div></div>
     <div class="card"><div class="lbl">Sleep</div><div class="v">{sleep_val}<span class="u"> h</span></div><div class="sub">{sleep_sub}</div></div>
-    <div class="card"><div class="lbl">Source</div><div class="v" style="font-size:22px">Server</div><div class="sub">computed on VPS · phone is display-only</div></div>
+    <div class="card"><div class="lbl">Respiratory</div><div class="v">{resp_val}<span class="u"> rpm</span></div><div class="sub">from RR oscillation (RSA)</div></div>
+    <div class="card"><div class="lbl">Cardio Load</div><div class="v">{cardio_val}<span class="u"> /21</span></div><div class="sub">HR-zone strain, today</div></div>
+    <div class="card"><div class="lbl">Stress</div><div class="v">{stress_val}<span class="u"> /100</span></div><div class="sub">HR elevation vs resting</div></div>
   </div>
   <div class="trend"><div class="lbl">HRV · last 7 days</div><div class="pts">{trend_pts}</div></div>
   <div class="foot">RivaFlow · self-hosted · auto-refreshes every 2 min</div>
