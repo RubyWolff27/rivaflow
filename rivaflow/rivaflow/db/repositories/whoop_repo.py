@@ -10,8 +10,10 @@ from __future__ import annotations
 
 import hashlib
 import logging
+from datetime import UTC, datetime, timedelta
 
 from rivaflow.db.database import convert_query, get_connection
+from rivaflow.db.repositories.base_repository import BaseRepository
 
 logger = logging.getLogger(__name__)
 
@@ -119,3 +121,50 @@ class WhoopRepository:
                 counts.get("rr", 0), counts.get("hrv", 0), counts.get("battery", 0),
                 counts.get("rejected", 0), span_start, span_end,
             ))
+
+    # ── Read side (shared: RivaFlow UI, health dashboard, LLM/MCP all consume these) ──
+
+    @staticmethod
+    def hr_range(user_id: int, start_iso: str, end_iso: str) -> list[dict]:
+        """HR samples within [start, end], ascending — for session zones + charts."""
+        return BaseRepository._fetchall(
+            convert_query(
+                "SELECT ts, bpm FROM whoop_hr WHERE user_id = ? AND ts >= ? AND ts <= ? ORDER BY ts ASC"
+            ),
+            (user_id, start_iso, end_iso),
+        )
+
+    @staticmethod
+    def hrv_range(user_id: int, days: int = 30, at_rest_only: bool = True) -> list[dict]:
+        """HRV (RMSSD) samples over the last `days`, ascending — drives the readiness baseline.
+        Wrist-PPG HRV is only trustworthy at rest, so at_rest_only filters the noise by default."""
+        cutoff = (datetime.now(UTC) - timedelta(days=days)).isoformat()
+        rest = "AND at_rest = ? " if at_rest_only else ""
+        params = (user_id, True, cutoff) if at_rest_only else (user_id, cutoff)
+        return BaseRepository._fetchall(
+            convert_query(
+                "SELECT ts, rmssd FROM whoop_hrv WHERE user_id = ? AND rmssd IS NOT NULL "
+                f"{rest}AND ts >= ? ORDER BY ts ASC"
+            ),
+            params,
+        )
+
+    @staticmethod
+    def recent_hr(user_id: int, hours: int = 6) -> list[dict]:
+        """Recent HR series (last `hours`) — for the live/health dashboard."""
+        cutoff = (datetime.now(UTC) - timedelta(hours=hours)).isoformat()
+        return BaseRepository._fetchall(
+            convert_query("SELECT ts, bpm FROM whoop_hr WHERE user_id = ? AND ts >= ? ORDER BY ts ASC"),
+            (user_id, cutoff),
+        )
+
+    @staticmethod
+    def latest_capture(user_id: int) -> dict | None:
+        """Most recent ingest heartbeat (capture-health)."""
+        return BaseRepository._fetchone(
+            convert_query(
+                "SELECT ingested_at, device, kind, raw_frames, hr, rr, span_start, span_end "
+                "FROM whoop_ingest_log WHERE user_id = ? ORDER BY ingested_at DESC LIMIT 1"
+            ),
+            (user_id,),
+        )
