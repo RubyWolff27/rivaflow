@@ -10,10 +10,11 @@ from __future__ import annotations
 
 from collections import defaultdict
 from datetime import datetime
-from math import log1p, sqrt
+from math import log1p
 from statistics import mean, pstdev
 from zoneinfo import ZoneInfo
 
+from rivaflow.core.rr_quality import assess_rr, ln_rmssd, rmssd
 from rivaflow.db.repositories.whoop_repo import WhoopRepository
 
 # Ruby's profile-tuned constants
@@ -156,25 +157,31 @@ def whoop_summary(user_id: int, today_is_sabbath: bool = False) -> dict:
 
 
 def daily_resting_rmssd(user_id: int, days: int = 21) -> list[dict]:
-    """Per-day resting HRV (RMSSD, ms) derived from the whoop_rr intervals already flowing — so
-    readiness works without a separate HRV feed. 'Resting' = RR in a plausible band (HR ~40-90 bpm →
-    667-1500 ms); successive-difference outliers (>400 ms, i.e. motion/ectopy) are dropped. Needs
-    >=20 resting intervals/day. RMSSD = sqrt(mean of squared successive RR differences)."""
+    """Per-day resting HRV (RMSSD, ms) derived from the whoop_rr intervals already flowing — so readiness
+    works without a separate HRV feed. Every day's series passes through the B0 QC gate (rr_quality):
+    a widened bradycardia band (36-133 bpm) + Malik-style relative (>20%) artifact filter + ectopy
+    interpolation, replacing the old fixed 667-1500 ms band and absolute <400 ms drop. Each value carries
+    its artifact-% and only days within the artifact budget are emitted."""
     rr = WhoopRepository.rr_range(user_id, days)
     by_day: dict[str, list[int]] = defaultdict(list)
     for r in rr:
         rr_ms, ts = r.get("rr_ms"), r.get("ts")
-        if rr_ms and ts and 667 <= rr_ms <= 1500:
-            by_day[_local_day(ts)].append(rr_ms)
+        if rr_ms and ts:
+            by_day[_local_day(ts)].append(int(rr_ms))
     out: list[dict] = []
     for day in sorted(by_day):
-        vals = by_day[day]
-        if len(vals) < 20:
+        q = assess_rr(by_day[day])
+        if not q.usable:
             continue
-        diffs = [vals[i + 1] - vals[i] for i in range(len(vals) - 1) if abs(vals[i + 1] - vals[i]) < 400]
-        if len(diffs) < 10:
+        value = rmssd(q.cleaned)
+        if value is None:
             continue
-        out.append({"day": day, "rmssd": round(sqrt(sum(d * d for d in diffs) / len(diffs)), 1)})
+        out.append({
+            "day": day,
+            "rmssd": round(value, 1),
+            "ln_rmssd": round(ln_rmssd(q.cleaned), 3),
+            "quality": q.as_meta(),
+        })
     return out
 
 
