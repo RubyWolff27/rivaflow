@@ -19,6 +19,7 @@ def _r(value, median, mad):
 
 # --- baseline primitives --------------------------------------------------
 
+
 def test_mad_and_robust_baseline():
     vals = [10, 10, 10, 10, 12]
     b = robust_baseline(vals)
@@ -40,21 +41,30 @@ def test_robust_z_direction():
 
 # --- tier logic + safety properties ---------------------------------------
 
+
 def test_all_in_range_is_green_with_caveat():
-    r = evaluate_prevention({
-        "rhr": _r(50, 50, 2), "lnrmssd": _r(log(50), log(50), 0.1), "resp_rate": _r(14, 14, 1),
-    })
+    r = evaluate_prevention(
+        {
+            "rhr": _r(50, 50, 2),
+            "lnrmssd": _r(log(50), log(50), 0.1),
+            "resp_rate": _r(14, 14, 1),
+        }
+    )
     assert r["tier"] == "green"
     assert r["caveat"] == GREEN_CAVEAT
     assert r["fires_on_sabbath"] is False
 
 
 def test_two_families_elevated_is_amber():
-    r = evaluate_prevention({
-        "rhr": _r(55, 50, 2),                       # nocturnal_hr family, worse_z ~1.7
-        "lnrmssd": _r(log(50) - 1.7 * 0.1 * 1.4826, log(50), 0.1),  # vagal family suppressed
-        "resp_rate": _r(14, 14, 1),
-    })
+    r = evaluate_prevention(
+        {
+            "rhr": _r(55, 50, 2),  # nocturnal_hr family, worse_z ~1.7
+            "lnrmssd": _r(
+                log(50) - 1.7 * 0.1 * 1.4826, log(50), 0.1
+            ),  # vagal family suppressed
+            "resp_rate": _r(14, 14, 1),
+        }
+    )
     assert r["tier"] == "amber"
     assert r["channel"] == "safety"
     assert r["fires_on_sabbath"] is True
@@ -63,28 +73,36 @@ def test_two_families_elevated_is_amber():
 
 def test_respiratory_alone_cannot_fire():
     """Resp-rate is one family and the least-validated signal — it must NEVER raise a tier alone."""
-    r = evaluate_prevention({
-        "rhr": _r(50, 50, 2), "lnrmssd": _r(log(50), log(50), 0.1),
-        "resp_rate": _r(20, 14, 1),                 # strongly elevated, but single family
-    })
+    r = evaluate_prevention(
+        {
+            "rhr": _r(50, 50, 2),
+            "lnrmssd": _r(log(50), log(50), 0.1),
+            "resp_rate": _r(20, 14, 1),  # strongly elevated, but single family
+        }
+    )
     assert r["tier"] == "green"
 
 
 def test_correlated_same_family_cannot_self_corroborate():
     """RHR and sleeping-HR are ONE family — both elevated is a single perturbation, not co-occurrence."""
-    r = evaluate_prevention({
-        "rhr": _r(56, 50, 2), "sleeping_hr": _r(60, 54, 2),   # both nocturnal_hr, both flagged
-        "lnrmssd": _r(log(50), log(50), 0.1),
-    })
+    r = evaluate_prevention(
+        {
+            "rhr": _r(56, 50, 2),
+            "sleeping_hr": _r(60, 54, 2),  # both nocturnal_hr, both flagged
+            "lnrmssd": _r(log(50), log(50), 0.1),
+        }
+    )
     assert r["flagged_families"] == ["nocturnal_hr"]
     assert r["tier"] == "green"
 
 
 def test_two_strong_families_is_red():
-    r = evaluate_prevention({
-        "rhr": _r(58, 50, 2),                        # worse_z ~2.7
-        "lnrmssd": _r(log(50) - 2.5 * 0.1 * 1.4826, log(50), 0.1),
-    })
+    r = evaluate_prevention(
+        {
+            "rhr": _r(58, 50, 2),  # worse_z ~2.7
+            "lnrmssd": _r(log(50) - 2.5 * 0.1 * 1.4826, log(50), 0.1),
+        }
+    )
     assert r["tier"] == "red"
     assert r["channel"] == "safety"
     assert r["diagnostic"] is False
@@ -92,15 +110,21 @@ def test_two_strong_families_is_red():
 
 def test_sabbath_does_not_silence_safety():
     """Amber/red are the safety channel — they fire even on the Sabbath."""
-    r = evaluate_prevention({
-        "rhr": _r(55, 50, 2), "lnrmssd": _r(log(50) - 1.7 * 0.1 * 1.4826, log(50), 0.1),
-    }, today_is_sabbath=True)
+    r = evaluate_prevention(
+        {
+            "rhr": _r(55, 50, 2),
+            "lnrmssd": _r(log(50) - 1.7 * 0.1 * 1.4826, log(50), 0.1),
+        },
+        today_is_sabbath=True,
+    )
     assert r["tier"] == "amber"
     assert r["fires_on_sabbath"] is True
 
 
 def test_drivers_sorted_and_never_diagnostic():
-    r = evaluate_prevention({"rhr": _r(55, 50, 2), "lnrmssd": _r(log(50), log(50), 0.1)})
+    r = evaluate_prevention(
+        {"rhr": _r(55, 50, 2), "lnrmssd": _r(log(50), log(50), 0.1)}
+    )
     zs = [d["worse_z"] for d in r["drivers"]]
     assert zs == sorted(zs, reverse=True)
     assert r["diagnostic"] is False

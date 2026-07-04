@@ -26,9 +26,9 @@ VLF_BAND = (0.0033, 0.04)
 LF_BAND = (0.04, 0.15)
 HF_BAND = (0.15, 0.40)
 
-MIN_WINDOW_SEC = 300.0   # ≥5 min — below this, spectral HRV is not validly interpretable
-MIN_BEATS = 150          # and enough beats to resolve the bands
-FREQ_STEP = 0.002        # spectral grid resolution (Hz)
+MIN_WINDOW_SEC = 300.0  # ≥5 min — below this, spectral HRV is not validly interpretable
+MIN_BEATS = 150  # and enough beats to resolve the bands
+FREQ_STEP = 0.002  # spectral grid resolution (Hz)
 
 
 def sdnn(intervals: list[float]) -> float | None:
@@ -42,14 +42,17 @@ def sdnn(intervals: list[float]) -> float | None:
 
 @dataclass
 class Poincare:
-    sd1: float   # short-term variability ≡ RMSSD/√2 (visualisation, not independent of RMSSD)
-    sd2: float   # long-term variability (maps to SDNN)
+    sd1: float  # short-term variability ≡ RMSSD/√2 (visualisation, not independent of RMSSD)
+    sd2: float  # long-term variability (maps to SDNN)
     ratio: float  # SD2/SD1 — the genuinely additive non-linear signal
 
     def as_dict(self) -> dict:
-        return {"sd1": round(self.sd1, 1), "sd2": round(self.sd2, 1),
-                "sd2_sd1_ratio": round(self.ratio, 2),
-                "note": "SD1 ≡ RMSSD/√2 (visualisation); SD2/SD1 is the additive non-linear signal."}
+        return {
+            "sd1": round(self.sd1, 1),
+            "sd2": round(self.sd2, 1),
+            "sd2_sd1_ratio": round(self.ratio, 2),
+            "note": "SD1 ≡ RMSSD/√2 (visualisation); SD2/SD1 is the additive non-linear signal.",
+        }
 
 
 def poincare(intervals: list[float]) -> Poincare | None:
@@ -94,24 +97,33 @@ class SpectralHRV:
     lf: float
     hf: float
     total_power: float
-    lf_hf: float          # DESCRIPTIVE ratio — NOT sympatho-vagal balance
-    lf_nu: float          # LF in normalised units: LF/(LF+HF)*100
+    lf_hf: float  # DESCRIPTIVE ratio — NOT sympatho-vagal balance
+    lf_nu: float  # LF in normalised units: LF/(LF+HF)*100
     hf_nu: float
     window_sec: float
     beats: int
 
     def as_dict(self) -> dict:
         return {
-            "vlf": round(self.vlf, 1), "lf": round(self.lf, 1), "hf": round(self.hf, 1),
+            "vlf": round(self.vlf, 1),
+            "lf": round(self.lf, 1),
+            "hf": round(self.hf, 1),
             "total_power": round(self.total_power, 1),
-            "lf_hf": round(self.lf_hf, 2), "lf_nu": round(self.lf_nu, 1), "hf_nu": round(self.hf_nu, 1),
-            "window_sec": round(self.window_sec), "beats": self.beats,
-            "note": ("LF:HF is a descriptive ratio, NOT a sympatho-vagal balance measure. "
-                     "HF ≈ vagal/respiratory; LF is mixed baroreflex/autonomic."),
+            "lf_hf": round(self.lf_hf, 2),
+            "lf_nu": round(self.lf_nu, 1),
+            "hf_nu": round(self.hf_nu, 1),
+            "window_sec": round(self.window_sec),
+            "beats": self.beats,
+            "note": (
+                "LF:HF is a descriptive ratio, NOT a sympatho-vagal balance measure. "
+                "HF ≈ vagal/respiratory; LF is mixed baroreflex/autonomic."
+            ),
         }
 
 
-def dfa_alpha1(intervals: list[float], min_box: int = 4, max_box: int = 16) -> dict | None:
+def dfa_alpha1(
+    intervals: list[float], min_box: int = 4, max_box: int = 16
+) -> dict | None:
     """B18 — DFA α1 (short-term detrended fluctuation scaling exponent), research-grade and artifact-fragile
     (WHOOP_FUTURE_STATE_PLAN.md B18). α1 ≈ 0.75 ↔ aerobic threshold (VT1); ≈ 0.5 ↔ anaerobic (VT2). REQUIRES
     near-ECG-grade RR — the caller must gate on artifact-% (suppress above ~3%) and treat it as experimental.
@@ -120,7 +132,7 @@ def dfa_alpha1(intervals: list[float], min_box: int = 4, max_box: int = 16) -> d
     if n < max_box * 4:
         return None
     mean_rr = sum(intervals) / n
-    y = []                                   # integrated (cumulative-sum) profile
+    y = []  # integrated (cumulative-sum) profile
     acc = 0.0
     for x in intervals:
         acc += x - mean_rr
@@ -131,7 +143,7 @@ def dfa_alpha1(intervals: list[float], min_box: int = 4, max_box: int = 16) -> d
     while box <= max_box:
         fluct = []
         for start in range(0, n - box + 1, box):
-            seg = y[start:start + box]
+            seg = y[start : start + box]
             # linear detrend of the box
             xs = list(range(box))
             mx = (box - 1) / 2.0
@@ -140,11 +152,15 @@ def dfa_alpha1(intervals: list[float], min_box: int = 4, max_box: int = 16) -> d
             sxy = sum((xi - mx) * (si - my) for xi, si in zip(xs, seg))
             slope = sxy / sxx if sxx else 0.0
             intercept = my - slope * mx
-            fluct.append(sum((si - (slope * xi + intercept)) ** 2 for xi, si in zip(xs, seg)) / box)
+            fluct.append(
+                sum((si - (slope * xi + intercept)) ** 2 for xi, si in zip(xs, seg))
+                / box
+            )
         if fluct:
             f_n = (sum(fluct) / len(fluct)) ** 0.5
             if f_n > 0:
                 from math import log as _log
+
                 logs.append((_log(box), _log(f_n)))
         box += 1
     if len(logs) < 3:
@@ -161,8 +177,12 @@ def dfa_alpha1(intervals: list[float], min_box: int = 4, max_box: int = 16) -> d
         zone = "threshold (VT1–VT2)"
     else:
         zone = "hard (≥VT2)"
-    return {"alpha1": round(alpha1, 3), "zone": zone, "beats": n,
-            "note": "Experimental; α1≈0.75↔VT1, ≈0.5↔VT2. Only trust with low artifact (<~3%) RR."}
+    return {
+        "alpha1": round(alpha1, 3),
+        "zone": zone,
+        "beats": n,
+        "note": "Experimental; α1≈0.75↔VT1, ≈0.5↔VT2. Only trust with low artifact (<~3%) RR.",
+    }
 
 
 def frequency_domain(intervals: list[float]) -> SpectralHRV | None:
@@ -180,7 +200,7 @@ def frequency_domain(intervals: list[float]) -> SpectralHRV | None:
         return None
 
     mean_rr = sum(intervals) / len(intervals)
-    values = [x - mean_rr for x in intervals]   # detrend (remove DC)
+    values = [x - mean_rr for x in intervals]  # detrend (remove DC)
 
     def band_power(lo: float, hi: float) -> float:
         f = lo
@@ -198,5 +218,14 @@ def frequency_domain(intervals: list[float]) -> SpectralHRV | None:
     denom = lf + hf
     lf_nu = 100.0 * lf / denom if denom > 0 else 0.0
     hf_nu = 100.0 * hf / denom if denom > 0 else 0.0
-    return SpectralHRV(vlf=vlf, lf=lf, hf=hf, total_power=total, lf_hf=lf_hf,
-                       lf_nu=lf_nu, hf_nu=hf_nu, window_sec=times[-1], beats=len(intervals))
+    return SpectralHRV(
+        vlf=vlf,
+        lf=lf,
+        hf=hf,
+        total_power=total,
+        lf_hf=lf_hf,
+        lf_nu=lf_nu,
+        hf_nu=hf_nu,
+        window_sec=times[-1],
+        beats=len(intervals),
+    )

@@ -12,33 +12,44 @@ Depends on B1: the 0–21 strain scale is only meaningful once HR zones use the 
 from __future__ import annotations
 
 STRAIN_CAP = 21.0
-DEFAULT_CHRONIC = 10.0   # neutral base when there's no load history yet (mid of the 0–21 scale)
+DEFAULT_CHRONIC = (
+    10.0  # neutral base when there's no load history yet (mid of the 0–21 scale)
+)
 
 # Readiness state → fraction of the chronic (usual) daily load to prescribe. <1.0 = an explicit cap.
 STATE_MULTIPLIER = {
-    "Prime": 1.15,       # recovered — a little above usual is safe
-    "Balanced": 1.0,     # train as planned
-    "Strained": 0.6,     # ease off — technical work
-    "Rundown": 0.4,      # recovery day
+    "Prime": 1.15,  # recovered — a little above usual is safe
+    "Balanced": 1.0,  # train as planned
+    "Strained": 0.6,  # ease off — technical work
+    "Rundown": 0.4,  # recovery day
 }
 
 # States that don't get a target at all.
 NO_TARGET_STATES = {"Rest", "Building", None}
 
 
-def prescribe_strain(state: str | None, chronic_load: float | None, acute_load: float | None = None) -> dict:
+def prescribe_strain(
+    state: str | None, chronic_load: float | None, acute_load: float | None = None
+) -> dict:
     """Prescribe today's strain target from readiness `state` and the athlete's `chronic_load` (usual daily
     strain). `acute_load` = today's strain so far, if known, to report headroom. Returns available=False for
     Rest/Building/unknown states."""
     if state in NO_TARGET_STATES:
-        reason = ("Sabbath — rest is prescribed." if state == "Rest"
-                  else "Building your baseline — no strain target yet.")
+        reason = (
+            "Sabbath — rest is prescribed."
+            if state == "Rest"
+            else "Building your baseline — no strain target yet."
+        )
         return {"available": False, "state": state, "reason": reason}
 
-    assert state is not None   # narrowed by the NO_TARGET_STATES guard above
+    assert state is not None  # narrowed by the NO_TARGET_STATES guard above
     mult = STATE_MULTIPLIER.get(state)
     if mult is None:
-        return {"available": False, "state": state, "reason": f"No strain policy for state '{state}'."}
+        return {
+            "available": False,
+            "state": state,
+            "reason": f"No strain policy for state '{state}'.",
+        }
 
     base = chronic_load if (chronic_load and chronic_load > 0) else DEFAULT_CHRONIC
     target = round(min(STRAIN_CAP, base * mult), 1)
@@ -65,6 +76,7 @@ def prescribe_strain(state: str | None, chronic_load: float | None, acute_load: 
         out["acute_load"] = round(acute_load, 1)
         out["remaining"] = round(max(0.0, target - acute_load), 1)
         if acute_load >= target:
-            out["headline"] = (f"You've hit today's target ({target}) — "
-                               + ("recover now." if capped else "more only if you feel good."))
+            out["headline"] = f"You've hit today's target ({target}) — " + (
+                "recover now." if capped else "more only if you feel good."
+            )
     return out

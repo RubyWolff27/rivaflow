@@ -9,7 +9,7 @@ from __future__ import annotations
 from math import atan2, cos, pi, sin
 from statistics import mean
 
-OMEGA = 2 * pi / 24.0   # one cycle per 24h
+OMEGA = 2 * pi / 24.0  # one cycle per 24h
 
 
 def cosinor(hours: list[float], values: list[float]) -> dict:
@@ -17,7 +17,10 @@ def cosinor(hours: list[float], values: list[float]) -> dict:
     (hour of peak). Needs points spread across the day."""
     n = len(hours)
     if n < 8 or len(values) != n:
-        return {"available": False, "reason": "Need ≥8 time-stamped points across the day."}
+        return {
+            "available": False,
+            "reason": "Need ≥8 time-stamped points across the day.",
+        }
     # Regress y = M + b·cos(ωt) + c·sin(ωt) via normal equations (closed form).
     cs = [cos(OMEGA * h) for h in hours]
     sn = [sin(OMEGA * h) for h in hours]
@@ -32,12 +35,20 @@ def cosinor(hours: list[float], values: list[float]) -> dict:
     ssy = sum((s - m_s) * (y - m_y) for s, y in zip(sn, values))
     det = scc * sss - scs * scs
     if det == 0:
-        return {"available": False, "reason": "Time points too clustered to fit a rhythm."}
+        return {
+            "available": False,
+            "reason": "Time points too clustered to fit a rhythm.",
+        }
     b = (scy * sss - ssy * scs) / det
     c = (ssy * scc - scy * scs) / det
     mesor = m_y - b * m_c - c * m_s
     amplitude = (b * b + c * c) ** 0.5
     acrophase_hour = (atan2(c, b) / OMEGA) % 24.0
-    return {"available": True, "mesor": round(mesor, 1), "amplitude": round(amplitude, 1),
-            "acrophase_hour": round(acrophase_hour, 1), "n": n,
-            "headline": f"Daily HR rhythm peaks around {round(acrophase_hour, 1)}h, amplitude {round(amplitude, 1)} bpm."}
+    return {
+        "available": True,
+        "mesor": round(mesor, 1),
+        "amplitude": round(amplitude, 1),
+        "acrophase_hour": round(acrophase_hour, 1),
+        "n": n,
+        "headline": f"Daily HR rhythm peaks around {round(acrophase_hour, 1)}h, amplitude {round(amplitude, 1)} bpm.",
+    }

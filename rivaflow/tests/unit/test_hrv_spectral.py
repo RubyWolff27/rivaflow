@@ -14,7 +14,9 @@ from rivaflow.core.hrv_spectral import (
 )
 
 
-def _modulated_rr(freq_hz: float, n: int = 400, base: float = 1000.0, amp: float = 40.0) -> list[float]:
+def _modulated_rr(
+    freq_hz: float, n: int = 400, base: float = 1000.0, amp: float = 40.0
+) -> list[float]:
     """RR series (~1 beat/s) oscillating at freq_hz — a synthetic respiratory/baroreflex signal."""
     return [base + amp * sin(2 * pi * freq_hz * i) for i in range(n)]
 
@@ -36,8 +38,8 @@ def test_lf_modulation_shows_lf_dominant():
 
 def test_short_window_returns_none():
     """Below 5 min / 150 beats, spectral HRV is not computed."""
-    assert frequency_domain(_modulated_rr(0.25, n=100)) is None      # too few beats
-    assert frequency_domain([250.0] * 200) is None                   # 200 beats * 0.25s = 50s < 5min
+    assert frequency_domain(_modulated_rr(0.25, n=100)) is None  # too few beats
+    assert frequency_domain([250.0] * 200) is None  # 200 beats * 0.25s = 50s < 5min
 
 
 def test_lf_hf_note_is_not_sympatho_vagal():

@@ -48,20 +48,25 @@ def zscore(values: list[float], window: int = 7) -> dict | None:
     if not values or len(values) < MIN_BASELINE_DAYS + 1:
         return None
     today = values[-1]
-    prior = values[-(window + 1):-1]
+    prior = values[-(window + 1) : -1]
     if len(prior) < MIN_BASELINE_DAYS:
         prior = values[:-1]
     b_mean = mean(prior)
     b_sd = pstdev(prior) or 1.0
-    return {"z": (today - b_mean) / b_sd, "baseline_mean": b_mean, "baseline_sd": b_sd, "n": len(prior)}
+    return {
+        "z": (today - b_mean) / b_sd,
+        "baseline_mean": b_mean,
+        "baseline_sd": b_sd,
+        "n": len(prior),
+    }
 
 
 @dataclass
 class Contributor:
     signal: str
     label: str
-    z: float                 # raw z on the metric
-    weight: float            # renormalised weight actually applied
+    z: float  # raw z on the metric
+    weight: float  # renormalised weight actually applied
     ready_contribution: float  # signed, recovery-oriented contribution to the composite
 
     def as_dict(self) -> dict:
@@ -71,13 +76,20 @@ class Contributor:
             "z": round(self.z, 2),
             "weight": round(self.weight, 3),
             "effect": round(self.ready_contribution, 3),
-            "direction": "supports recovery" if self.ready_contribution >= 0 else "drags recovery",
+            "direction": (
+                "supports recovery"
+                if self.ready_contribution >= 0
+                else "drags recovery"
+            ),
         }
 
 
-def blend_readiness(signal_z: dict[str, float | None], today_is_sabbath: bool = False) -> dict:
+def blend_readiness(
+    signal_z: dict[str, float | None], today_is_sabbath: bool = False
+) -> dict:
     """Fuse per-signal z-scores into one readiness verdict. `signal_z` maps signal name → raw z (or None if
-    that signal has no baseline yet). HRV is required; the rest renormalise around what's available."""
+    that signal has no baseline yet). HRV is required; the rest renormalise around what's available.
+    """
     if today_is_sabbath:
         return {
             "state": "Rest",
@@ -115,7 +127,10 @@ def blend_readiness(signal_z: dict[str, float | None], today_is_sabbath: bool = 
     elif composite >= -0.5:
         state, head = "Balanced", "In your normal range — train as planned."
     elif composite >= -1.5:
-        state, head = "Strained", "Below baseline — technical/skills over hard rolls today."
+        state, head = (
+            "Strained",
+            "Below baseline — technical/skills over hard rolls today.",
+        )
     else:
         state, head = "Rundown", "Well below baseline — prioritise recovery."
 

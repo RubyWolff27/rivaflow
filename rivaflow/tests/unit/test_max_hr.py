@@ -13,6 +13,7 @@ def test_tanaka_for_ruby():
 
 # --- sustained_max: the artifact guard ------------------------------------
 
+
 def test_single_spike_does_not_set_max():
     """A lone 200 bpm sample among 120s must NOT raise the sustained max — the core artifact rejection."""
     hr = [120] * 60
@@ -32,8 +33,9 @@ def test_sustained_max_none_when_too_short():
 
 # --- calibrate: observed vs Tanaka ----------------------------------------
 
+
 def test_observed_above_tanaka_is_used():
-    hr = [120] * 30 + [186] * 15 + [120] * 30   # sustained 186 > Tanaka 177
+    hr = [120] * 30 + [186] * 15 + [120] * 30  # sustained 186 > Tanaka 177
     r = calibrate_max_hr(hr, age=44)
     assert r["source"] == "observed_sustained"
     assert r["max_hr"] == 186
@@ -62,7 +64,7 @@ def test_no_data_uses_tanaka_no_floor():
 
 def test_impossible_readings_are_rejected_before_calibrating():
     """A 260 bpm spike is out of range and filtered; the real sustained level (120) drives the floor."""
-    hr = [120] * 40 + [260] * 20        # 260 > HR_CEILING, dropped
+    hr = [120] * 40 + [260] * 20  # 260 > HR_CEILING, dropped
     r = calibrate_max_hr(hr, age=44)
     assert r["observed_sustained"] == 120
     assert r["source"] == "tanaka_default"

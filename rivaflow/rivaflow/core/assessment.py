@@ -12,7 +12,7 @@ from statistics import mean
 METRIC_SENSE = {
     "lnrmssd": ("HRV (lnRMSSD)", True),
     "rhr": ("Resting HR", False),
-    "cardio_load": ("Training load", True),   # neutral-ish, framed as trend
+    "cardio_load": ("Training load", True),  # neutral-ish, framed as trend
     "sleep_hours": ("Sleep duration", True),
 }
 
@@ -38,9 +38,16 @@ def period_assessment(label: str, series: dict[str, list[float]]) -> dict:
         else:
             rising = delta > 0
             trend = "rising" if rising else "falling"
-            good = (rising == up_good)
-        lines.append({"metric": key, "label": name, "trend": trend, "delta": round(delta, 2),
-                      "improving": good})
+            good = rising == up_good
+        lines.append(
+            {
+                "metric": key,
+                "label": name,
+                "trend": trend,
+                "delta": round(delta, 2),
+                "improving": good,
+            }
+        )
     improving = [line["label"] for line in lines if line["improving"] is True]
     declining = [line["label"] for line in lines if line["improving"] is False]
     if not lines:
@@ -51,6 +58,14 @@ def period_assessment(label: str, series: dict[str, list[float]]) -> dict:
             parts.append("improving: " + ", ".join(improving))
         if declining:
             parts.append("watch: " + ", ".join(declining))
-        headline = f"Your {label}: " + ("; ".join(parts) if parts else "steady across the board.")
-    return {"available": bool(lines), "period": label, "lines": lines,
-            "improving": improving, "declining": declining, "headline": headline}
+        headline = f"Your {label}: " + (
+            "; ".join(parts) if parts else "steady across the board."
+        )
+    return {
+        "available": bool(lines),
+        "period": label,
+        "lines": lines,
+        "improving": improving,
+        "declining": declining,
+        "headline": headline,
+    }

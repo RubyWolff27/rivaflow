@@ -1,4 +1,5 @@
 """B19 Weekly/Monthly assessment — pure, no DB."""
+
 from __future__ import annotations
 
 from rivaflow.core.assessment import period_assessment
@@ -20,5 +21,7 @@ def test_empty_series_unavailable():
 
 
 def test_headline_mentions_period():
-    r = period_assessment("month", {"lnrmssd": [3.8, 3.9, 4.2, 4.3], "rhr": [55, 54, 51, 50]})
+    r = period_assessment(
+        "month", {"lnrmssd": [3.8, 3.9, 4.2, 4.3], "rhr": [55, 54, 51, 50]}
+    )
     assert "month" in r["headline"]

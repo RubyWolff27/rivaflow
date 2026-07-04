@@ -3,8 +3,10 @@
 --
 -- A user can mint named API keys with the same authorization scope as their
 -- own user account ("simple, user-equivalent keys" — Sage MCP integration spec).
--- Keys are stored as SHA-256 hashes; raw values are revealed exactly once at
+-- Keys are stored as SHA-256 hashes. Raw values are revealed exactly once at
 -- creation and never persisted in plaintext.
+-- (Keep these comments free of the semicolon character, which the migration
+--  runner treats as a statement separator even inside a comment.)
 CREATE TABLE IF NOT EXISTS api_keys (
     id SERIAL PRIMARY KEY,
     user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,

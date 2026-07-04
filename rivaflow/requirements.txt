@@ -4,22 +4,22 @@
 
 # Core framework
 fastapi==0.135.4  # Bumped from 0.128.4 to allow starlette>=1.0.1 (CVE PYSEC-2026-161). Range now starlette>=0.46.0.
-starlette==1.0.1  # CVE PYSEC-2026-161 fix (was 0.52.1 transitively from fastapi 0.128.4)
+starlette==1.3.1  # CVE-2026-48817/48818, PYSEC-2026-248/249 (also PYSEC-2026-161)
 uvicorn[standard]==0.40.0
 gunicorn==23.0.0
 typer==0.21.1
 rich==13.9.4
 pydantic==2.12.5
-pydantic-settings==2.12.0
+pydantic-settings==2.14.2  # GHSA-4xgf-cpjx-pc3j
 
 # Authentication & security
 PyJWT[crypto]==2.13.0  # bumped from 2.12.0 — patches PYSEC-2026-175..179
 passlib[bcrypt]==1.7.4
 bcrypt==4.3.0
-cryptography==46.0.7  # CVE-2026-39892 fix (was 46.0.6 for CVE-2026-34073, was 46.0.5 for CVE-2026-26007)
+cryptography==48.0.1  # GHSA-537c-gmf6-5ccf (also CVE-2026-39892)
 
 # HTTP & API
-python-multipart==0.0.27  # CVE-2026-40347 + CVE-2026-42561 fix (was 0.0.22 for CVE-2026-24486)
+python-multipart==0.0.31  # CVE-2026-53538/53539/53540
 httpx==0.28.1
 
 # Database

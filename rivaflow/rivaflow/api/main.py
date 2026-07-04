@@ -41,8 +41,6 @@ from rivaflow.api.routes import (
     analytics,
     api_keys,
     auth,
-    garmin,
-    whoop,
     checkins,
     coach_preferences,
     dashboard,
@@ -51,6 +49,7 @@ from rivaflow.api.routes import (
     feedback,
     friends,
     game_plans,
+    garmin,
     glossary,
     goals,
     gradings,
@@ -82,6 +81,7 @@ from rivaflow.api.routes import (
     videos,
     waitlist,
     webhooks,
+    whoop,
 )
 from rivaflow.core.exceptions import RivaFlowException
 from rivaflow.core.settings import settings

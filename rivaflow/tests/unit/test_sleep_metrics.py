@@ -14,13 +14,13 @@ def test_no_debt_when_meeting_need():
 
 
 def test_debt_accrues_on_short_nights():
-    r = sleep_debt([7.0, 7.0, 8.0])          # short vs 9h need
+    r = sleep_debt([7.0, 7.0, 8.0])  # short vs 9h need
     assert r["debt_hours"] == pytest.approx((9 - 7) + (9 - 7) + (9 - 8))
     assert r["need_hours"] == NEED_HOURS
 
 
 def test_debt_window_limits_lookback():
-    durations = [5.0] * 20                    # only last 7 counted
+    durations = [5.0] * 20  # only last 7 counted
     r = sleep_debt(durations, window=7)
     assert r["nights"] == 7
     assert r["debt_hours"] == pytest.approx(7 * (9 - 5))
