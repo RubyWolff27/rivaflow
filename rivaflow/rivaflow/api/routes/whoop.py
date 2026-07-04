@@ -212,6 +212,61 @@ def prevention_endpoint(current_user: dict = Depends(get_current_user)) -> dict:
     return prevention_watch(current_user["id"])
 
 
+@router.get("/longevity")
+@route_error_handler("whoop_longevity", detail="Failed to compute longevity metrics")
+def longevity_endpoint(current_user: dict = Depends(get_current_user)) -> dict:
+    """B14 + B15 — passive VO2max (banded) + cardio-age proxy (web; proxy, not clinical)."""
+    from rivaflow.core.whoop_analytics import longevity_metrics
+
+    return longevity_metrics(current_user["id"])
+
+
+@router.get("/resilience")
+@route_error_handler("whoop_resilience", detail="Failed to compute resilience")
+def resilience_endpoint(current_user: dict = Depends(get_current_user)) -> dict:
+    """B16 — resilience (14d bounce-back) + 31d cumulative stress."""
+    from rivaflow.core.whoop_analytics import resilience_metrics
+
+    return resilience_metrics(current_user["id"])
+
+
+@router.get("/circadian")
+@route_error_handler("whoop_circadian", detail="Failed to compute circadian rhythm")
+def circadian_endpoint(current_user: dict = Depends(get_current_user)) -> dict:
+    """B17 — cosinor circadian rhythm of time-of-day HR."""
+    from rivaflow.core.whoop_analytics import circadian_rhythm
+
+    return circadian_rhythm(current_user["id"])
+
+
+@router.get("/dfa")
+@route_error_handler("whoop_dfa", detail="Failed to compute DFA alpha1")
+def dfa_endpoint(current_user: dict = Depends(get_current_user)) -> dict:
+    """B18 — DFA α1 (experimental, artifact-gated)."""
+    from rivaflow.core.whoop_analytics import dfa_analysis
+
+    return dfa_analysis(current_user["id"])
+
+
+@router.get("/realtime-stress")
+@route_error_handler("whoop_realtime_stress", detail="Failed to compute realtime stress")
+def realtime_stress_endpoint(current_user: dict = Depends(get_current_user)) -> dict:
+    """B13 — HRV-based real-time stress (experimental; at-rest only)."""
+    from rivaflow.core.whoop_analytics import realtime_stress
+
+    return realtime_stress(current_user["id"])
+
+
+@router.get("/assessment")
+@route_error_handler("whoop_assessment", detail="Failed to compute assessment")
+def assessment_endpoint(period: str = "week", current_user: dict = Depends(get_current_user)) -> dict:
+    """B19 — weekly/monthly assessment narrative. ?period=week|month."""
+    from rivaflow.core.whoop_analytics import period_assessment_for
+
+    days = 30 if period == "month" else 7
+    return period_assessment_for(current_user["id"], period, days)
+
+
 @router.get("/hrv-lab")
 @route_error_handler("whoop_hrv_lab", detail="Failed to compute HRV lab")
 def hrv_lab_endpoint(current_user: dict = Depends(get_current_user)) -> dict:

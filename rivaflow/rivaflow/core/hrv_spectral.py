@@ -111,6 +111,60 @@ class SpectralHRV:
         }
 
 
+def dfa_alpha1(intervals: list[float], min_box: int = 4, max_box: int = 16) -> dict | None:
+    """B18 — DFA α1 (short-term detrended fluctuation scaling exponent), research-grade and artifact-fragile
+    (WHOOP_FUTURE_STATE_PLAN.md B18). α1 ≈ 0.75 ↔ aerobic threshold (VT1); ≈ 0.5 ↔ anaerobic (VT2). REQUIRES
+    near-ECG-grade RR — the caller must gate on artifact-% (suppress above ~3%) and treat it as experimental.
+    Returns None with too few beats."""
+    n = len(intervals)
+    if n < max_box * 4:
+        return None
+    mean_rr = sum(intervals) / n
+    y = []                                   # integrated (cumulative-sum) profile
+    acc = 0.0
+    for x in intervals:
+        acc += x - mean_rr
+        y.append(acc)
+
+    logs: list[tuple[float, float]] = []
+    box = min_box
+    while box <= max_box:
+        fluct = []
+        for start in range(0, n - box + 1, box):
+            seg = y[start:start + box]
+            # linear detrend of the box
+            xs = list(range(box))
+            mx = (box - 1) / 2.0
+            my = sum(seg) / box
+            sxx = sum((xi - mx) ** 2 for xi in xs)
+            sxy = sum((xi - mx) * (si - my) for xi, si in zip(xs, seg))
+            slope = sxy / sxx if sxx else 0.0
+            intercept = my - slope * mx
+            fluct.append(sum((si - (slope * xi + intercept)) ** 2 for xi, si in zip(xs, seg)) / box)
+        if fluct:
+            f_n = (sum(fluct) / len(fluct)) ** 0.5
+            if f_n > 0:
+                from math import log as _log
+                logs.append((_log(box), _log(f_n)))
+        box += 1
+    if len(logs) < 3:
+        return None
+    # slope of log F(n) vs log n = alpha1
+    mlx = sum(p[0] for p in logs) / len(logs)
+    mly = sum(p[1] for p in logs) / len(logs)
+    sxx = sum((p[0] - mlx) ** 2 for p in logs)
+    sxy = sum((p[0] - mlx) * (p[1] - mly) for p in logs)
+    alpha1 = sxy / sxx if sxx else 0.0
+    if alpha1 >= 0.75:
+        zone = "aerobic (≤VT1)"
+    elif alpha1 >= 0.5:
+        zone = "threshold (VT1–VT2)"
+    else:
+        zone = "hard (≥VT2)"
+    return {"alpha1": round(alpha1, 3), "zone": zone, "beats": n,
+            "note": "Experimental; α1≈0.75↔VT1, ≈0.5↔VT2. Only trust with low artifact (<~3%) RR."}
+
+
 def frequency_domain(intervals: list[float]) -> SpectralHRV | None:
     """Lomb-Scargle frequency-domain HRV over a single contiguous RR segment. Returns None unless the window
     is ≥5 min and ≥150 beats (short-window spectra are not validly interpretable)."""

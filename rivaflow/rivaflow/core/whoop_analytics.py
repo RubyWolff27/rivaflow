@@ -11,15 +11,19 @@ from __future__ import annotations
 from collections import defaultdict
 from datetime import datetime
 from math import log1p
-from statistics import mean
+from statistics import mean, pstdev
 from zoneinfo import ZoneInfo
 
+from rivaflow.core.assessment import period_assessment
 from rivaflow.core.behaviour import behaviour_effect
+from rivaflow.core.circadian import cosinor
 from rivaflow.core.coverage import assess_coverage, coverage_in_days
-from rivaflow.core.hrv_spectral import MIN_BEATS, frequency_domain, poincare
+from rivaflow.core.hrv_spectral import MIN_BEATS, dfa_alpha1, frequency_domain, poincare
+from rivaflow.core.longevity import cardio_age_proxy, passive_vo2max
 from rivaflow.core.max_hr import calibrate_max_hr
 from rivaflow.core.prevention import evaluate_prevention, robust_baseline
 from rivaflow.core.readiness import blend_readiness, zscore
+from rivaflow.core.resilience import cumulative_stress, resilience
 from rivaflow.core.rr_quality import assess_rr, clean_segments, ln_rmssd, rmssd
 from rivaflow.core.sleep_metrics import sleep_debt, sleep_regularity
 from rivaflow.core.strain_target import prescribe_strain
@@ -277,6 +281,92 @@ def recovery_cost_coupling(user_id: int, days: int = 28) -> dict:
     load = [c["cardio_load"] for c in daily_cardio_load(user_id, days=days)]
     lnr = [d["ln_rmssd"] for d in daily_resting_rmssd(user_id, days=days)]
     return recovery_cost(load, lnr)
+
+
+def longevity_metrics(user_id: int) -> dict:
+    """B14 + B15 — passive VO2max (banded) + cardio-age PROXY, from calibrated max-HR and nocturnal RHR."""
+    mx = user_max_hr(user_id)["max_hr"]
+    rhr = daily_resting_hr(user_id, days=14)
+    if not rhr:
+        return {"available": False, "reason": "Need resting-HR history first."}
+    rest = min(r["resting_hr"] for r in rhr)          # best nocturnal resting HR
+    vo2 = passive_vo2max(mx, rest)
+    cv = cardio_age_proxy(vo2["vo2max_estimate"], RUBY_AGE) if vo2.get("available") else {"available": False}
+    return {"vo2max": vo2, "cardio_age": cv}
+
+
+def resilience_metrics(user_id: int, days: int = 45) -> dict:
+    """B16 — resilience (14d bounce-back) + 31d cumulative stress. Strained day = lnRMSSD z < −0.5 vs baseline."""
+    daily = daily_resting_rmssd(user_id, days=days)
+    lnr = [d["ln_rmssd"] for d in daily]
+    if len(lnr) < 14:
+        return {"available": False, "reason": "Need ~2+ weeks of lnRMSSD for resilience."}
+    recent, baseline = lnr[-14:], lnr[:-14] or lnr
+    b_mean = mean(baseline)
+    b_sd = pstdev(baseline) or 1.0
+    flags = [(v - b_mean) / b_sd < -0.5 for v in lnr]   # strained days
+    return {
+        "resilience": resilience(recent, baseline),
+        "cumulative_stress": cumulative_stress(flags),
+    }
+
+
+def circadian_rhythm(user_id: int, days: int = 3) -> dict:
+    """B17 — cosinor of time-of-day HR over recent days (mesor/amplitude/acrophase + implied nocturnal dip)."""
+    hr = WhoopRepository.recent_hr(user_id, hours=days * 24)
+    hours, vals = [], []
+    for h in hr:
+        if h.get("bpm") and h.get("ts"):
+            dt = _parse_ts(str(h["ts"])).astimezone(LOCAL_TZ)
+            hours.append(dt.hour + dt.minute / 60.0)
+            vals.append(int(h["bpm"]))
+    return cosinor(hours, vals)
+
+
+def dfa_analysis(user_id: int, days: int = 2) -> dict:
+    """B18 — DFA α1 on the longest clean resting segment. Experimental; suppressed above ~3% artifact."""
+    rr = [int(r["rr_ms"]) for r in WhoopRepository.rr_range(user_id, days) if r.get("rr_ms")]
+    resting = [v for v in rr if 667 <= v <= 1500]
+    segments = clean_segments(resting, min_len=64)
+    if not segments:
+        return {"available": False, "reason": "No clean segment long enough for DFA yet."}
+    seg = max(segments, key=len)
+    q = assess_rr(seg)
+    if q.artifact_pct > 3.0:
+        return {"available": False, "reason": f"Artifact {q.artifact_pct:.1f}% > 3% — DFA α1 not trustworthy.",
+                "quality": q.as_meta()}
+    a = dfa_alpha1([float(v) for v in seg])
+    if a is None:
+        return {"available": False, "reason": "Segment too short for DFA α1."}
+    return {"available": True, **a, "quality": q.as_meta()}
+
+
+def realtime_stress(user_id: int) -> dict:
+    """B13 — HRV-based real-time stress (upgrade of the HR-elevation proxy): blends HR-reserve elevation with
+    recent lnRMSSD suppression vs baseline. Research/caveated — no motion gate, so restricted to low-motion."""
+    hr_stress = today_stress(user_id)
+    if not hr_stress.get("available"):
+        return {"available": False, "reason": hr_stress.get("reason")}
+    daily = daily_resting_rmssd(user_id, days=21)
+    lnr = [d["ln_rmssd"] for d in daily]
+    hrv_z = zscore(lnr)
+    # suppression (negative z) adds stress; scale to 0–100 and blend 50/50 with HR-elevation.
+    supp = max(0.0, -hrv_z["z"]) * 20 if hrv_z else 0.0
+    blended = round(0.5 * hr_stress["stress"] + 0.5 * min(100, supp))
+    return {"available": True, "stress": blended, "hr_component": hr_stress["stress"],
+            "hrv_suppression": round(supp, 1),
+            "note": "HR+HRV blend; no motion gate — trust only when at rest. Experimental."}
+
+
+def period_assessment_for(user_id: int, label: str, days: int) -> dict:
+    """B19 — weekly/monthly narrative from the metric trends over `days`."""
+    series = {
+        "lnrmssd": [d["ln_rmssd"] for d in daily_resting_rmssd(user_id, days=days)],
+        "rhr": [float(d["resting_hr"]) for d in daily_resting_hr(user_id, days=days)],
+        "cardio_load": [c["cardio_load"] for c in daily_cardio_load(user_id, days=days)],
+        "sleep_hours": [h["duration_hours"] for h in nightly_sleep_history(user_id, nights=min(days, 14))],
+    }
+    return period_assessment(label, series)
 
 
 def hrv_lab(user_id: int, days: int = 2) -> dict:
