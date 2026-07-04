@@ -36,6 +36,7 @@ from rivaflow.core.rr_quality import assess_rr, clean_segments, ln_rmssd, rmssd
 from rivaflow.core.sleep_metrics import sleep_debt, sleep_regularity
 from rivaflow.core.strain_target import prescribe_strain
 from rivaflow.core.training_load import acwr, heart_rate_recovery, recovery_cost
+from rivaflow.core.whoop_cockpit import render_cockpit_page, render_recovery_load
 from rivaflow.core.whoop_digest import compile_digest
 from rivaflow.db.repositories.whoop_repo import WhoopRepository
 
@@ -449,6 +450,21 @@ def deliver_digest(user_id: int) -> dict:
 def prevention_log(user_id: int, limit: int = 60) -> list[dict]:
     """P2/P3.4 — the fired-alert timeline (the prevention log the cockpit renders)."""
     return WhoopRepository.recent_alerts(user_id, limit=limit)
+
+
+def cockpit_page(user_id: int) -> str:
+    """P3 — server-rendered web deep-dive cockpit HTML. All series are computed here; the page only renders.
+    P3.1 ships the Recovery & Load panel; later sub-phases append more panels."""
+    now = datetime.now(LOCAL_TZ)
+    is_sabbath = now.weekday() == 6
+    mx = user_max_hr(user_id)["max_hr"]
+    readiness = compute_readiness(user_id, today_is_sabbath=is_sabbath)
+    strain = strain_target(user_id, today_is_sabbath=is_sabbath)
+    acwr_data = training_acwr(user_id)
+    cardio = daily_cardio_load(user_id, days=28, max_hr=mx)
+    rec_cost = recovery_cost_coupling(user_id)
+    panels = render_recovery_load(readiness, strain, acwr_data, cardio, rec_cost)
+    return render_cockpit_page(panels)
 
 
 def behaviour_correlation(
