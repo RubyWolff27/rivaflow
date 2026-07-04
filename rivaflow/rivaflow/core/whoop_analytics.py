@@ -14,6 +14,7 @@ from math import log1p
 from statistics import mean
 from zoneinfo import ZoneInfo
 
+from rivaflow.core.coverage import assess_coverage, coverage_in_days
 from rivaflow.core.readiness import blend_readiness, zscore
 from rivaflow.core.rr_quality import assess_rr, ln_rmssd, rmssd
 from rivaflow.db.repositories.whoop_repo import WhoopRepository
@@ -154,23 +155,42 @@ def whoop_summary(user_id: int, today_is_sabbath: bool = False) -> dict:
         "cardio_load_today": cardio[-1] if cardio else None,
         "cardio_load_trend": cardio,
         "stress": today_stress(user_id),
+        "coverage": capture_coverage(user_id, days=21),
     }
+
+
+def _rr_by_day(user_id: int, days: int) -> dict[str, list[int]]:
+    """All whoop_rr intervals bucketed by Ruby's local day (any band — band filtering happens downstream)."""
+    by_day: dict[str, list[int]] = defaultdict(list)
+    for r in WhoopRepository.rr_range(user_id, days):
+        rr_ms, ts = r.get("rr_ms"), r.get("ts")
+        if rr_ms and ts:
+            by_day[_local_day(ts)].append(int(rr_ms))
+    return by_day
+
+
+def _hr_count_by_day(user_id: int, days: int) -> dict[str, int]:
+    """HR sample count per local day — the HR-coverage side of the B3 guard (contrast against RR minutes)."""
+    counts: dict[str, int] = defaultdict(int)
+    for h in WhoopRepository.recent_hr(user_id, hours=days * 24):
+        if h.get("bpm") and h.get("ts"):
+            counts[_local_day(h["ts"])] += 1
+    return counts
 
 
 def daily_resting_rmssd(user_id: int, days: int = 21) -> list[dict]:
     """Per-day resting HRV (RMSSD, ms) derived from the whoop_rr intervals already flowing — so readiness
-    works without a separate HRV feed. Every day's series passes through the B0 QC gate (rr_quality):
-    a widened bradycardia band (36-133 bpm) + Malik-style relative (>20%) artifact filter + ectopy
-    interpolation, replacing the old fixed 667-1500 ms band and absolute <400 ms drop. Each value carries
-    its artifact-% and only days within the artifact budget are emitted."""
-    rr = WhoopRepository.rr_range(user_id, days)
-    by_day: dict[str, list[int]] = defaultdict(list)
-    for r in rr:
-        rr_ms, ts = r.get("rr_ms"), r.get("ts")
-        if rr_ms and ts:
-            by_day[_local_day(ts)].append(int(rr_ms))
+    works without a separate HRV feed. Each day passes TWO gates before it can anchor a baseline: the B3
+    coverage guard (enough usable, contiguous RR — excludes RR-starved charging nights the HR view masks)
+    and the B0 QC gate (widened bradycardia band + Malik relative filter + ectopy interpolation). Each value
+    carries its artifact-% and RR-minutes; under-covered or over-artifact days are dropped."""
+    by_day = _rr_by_day(user_id, days)
+    hr_counts = _hr_count_by_day(user_id, days)
     out: list[dict] = []
     for day in sorted(by_day):
+        cov = assess_coverage(by_day[day], hr_counts.get(day, 0))
+        if not cov.sufficient:
+            continue
         q = assess_rr(by_day[day])
         if not q.usable:
             continue
@@ -182,6 +202,7 @@ def daily_resting_rmssd(user_id: int, days: int = 21) -> list[dict]:
             "rmssd": round(value, 1),
             "ln_rmssd": round(ln_rmssd(q.cleaned), 3),
             "quality": q.as_meta(),
+            "coverage": cov.as_dict(),
         })
     return out
 
@@ -290,18 +311,6 @@ def _resp_rpm(vals: list[int]) -> float | None:
     return rpm if 6 <= rpm <= 30 else None
 
 
-def _resting_rr_by_day(user_id: int, days: int) -> dict[str, list[int]]:
-    """Resting-band RR intervals bucketed by Ruby's local day, artifact-cleaned via the B0 gate. 'Resting'
-    keeps the tighter 667–1500 ms band the RSA method needs (active-HR beats carry no clean respiratory RSA)."""
-    rr = WhoopRepository.rr_range(user_id, days)
-    by_day: dict[str, list[int]] = defaultdict(list)
-    for r in rr:
-        rr_ms, ts = r.get("rr_ms"), r.get("ts")
-        if rr_ms and ts and 667 <= rr_ms <= 1500:
-            by_day[_local_day(ts)].append(int(rr_ms))
-    return by_day
-
-
 def respiratory_rate(user_id: int, days: int = 1) -> dict:
     """Today's respiratory rate from the resting RR tachogram (RSA). Oura/WHOOP surface this and it IS
     computable from the RR we already capture, no extra sensor — but see the needs-validation caveat in _resp_rpm."""
@@ -317,14 +326,34 @@ def respiratory_rate(user_id: int, days: int = 1) -> dict:
 
 def daily_respiratory_rate(user_id: int, days: int = 21) -> list[dict]:
     """Per-day resting respiratory rate — the baseline series the B2 readiness blend needs for its
-    (down-weighted) resp-rate signal. Days without enough clean resting RR are skipped."""
+    (down-weighted) resp-rate signal. Gated by the B3 coverage guard (same as HRV) so RR-starved nights are
+    excluded; the estimate itself uses the tighter 667–1500 ms resting band the RSA method needs."""
+    by_day = _rr_by_day(user_id, days)
+    hr_counts = _hr_count_by_day(user_id, days)
     out: list[dict] = []
-    for day, vals in sorted(_resting_rr_by_day(user_id, days).items()):
-        clean = assess_rr(vals).cleaned
+    for day in sorted(by_day):
+        if not assess_coverage(by_day[day], hr_counts.get(day, 0)).sufficient:
+            continue
+        resting = [v for v in by_day[day] if 667 <= v <= 1500]
+        clean = assess_rr(resting).cleaned
         rpm = _resp_rpm([int(v) for v in clean])
         if rpm is not None:
             out.append({"day": day, "respiratory_rate": round(rpm, 1)})
     return out
+
+
+def capture_coverage(user_id: int, days: int = 21) -> dict:
+    """B3 surface — per-day RR/HR coverage + a coverage-in-days summary for the Data-integrity panel. This is
+    the number that governs whether time-baseline builds can trust their baseline. RR is measured separately
+    from HR precisely so a charging-away night (HR backfilled, RR missing) shows up as a gap, not false health."""
+    by_day = _rr_by_day(user_id, days)
+    hr_counts = _hr_count_by_day(user_id, days)
+    all_days = sorted(set(by_day) | set(hr_counts))
+    reports = [assess_coverage(by_day.get(day, []), hr_counts.get(day, 0)) for day in all_days]
+    return {
+        "summary": coverage_in_days(reports),
+        "days": [{"day": day, **rep.as_dict()} for day, rep in zip(all_days, reports)],
+    }
 
 
 def daily_cardio_load(user_id: int, days: int = 7) -> list[dict]:
