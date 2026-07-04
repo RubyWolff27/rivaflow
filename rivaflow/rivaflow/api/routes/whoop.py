@@ -374,6 +374,37 @@ def prevention_validate_endpoint(
     return prevention_validation_live(current_user["id"])
 
 
+@router.get("/digest")
+@route_error_handler("whoop_digest", detail="Failed to compile digest")
+def digest_endpoint(current_user: dict = Depends(get_current_user)) -> dict:
+    """P2 — once-daily digest preview (readiness + strain + prevention, tier→channel routed). Sabbath-aware."""
+    from rivaflow.core.whoop_analytics import morning_digest
+
+    is_sabbath = datetime.now(ZoneInfo("Australia/Melbourne")).weekday() == 6
+    return morning_digest(current_user["id"], today_is_sabbath=is_sabbath)
+
+
+@router.post("/digest/deliver")
+@route_error_handler("whoop_digest_deliver", detail="Failed to deliver digest")
+def deliver_digest_endpoint(current_user: dict = Depends(get_current_user)) -> dict:
+    """P2 — deliver today's digest: applies the cooldown and records any safety alert that fires. Called
+    once each morning by the briefing cron (idempotent per day/key)."""
+    from rivaflow.core.whoop_analytics import deliver_digest
+
+    return deliver_digest(current_user["id"])
+
+
+@router.get("/prevention-log")
+@route_error_handler("whoop_prevention_log", detail="Failed to fetch prevention log")
+def prevention_log_endpoint(
+    current_user: dict = Depends(get_current_user),
+) -> list[dict]:
+    """P2/P3.4 — timeline of fired safety alerts (the prevention log)."""
+    from rivaflow.core.whoop_analytics import prevention_log
+
+    return prevention_log(current_user["id"])
+
+
 @router.get("/behaviour")
 @route_error_handler(
     "whoop_behaviour", detail="Failed to compute behaviour correlation"

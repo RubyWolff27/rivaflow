@@ -36,6 +36,7 @@ from rivaflow.core.rr_quality import assess_rr, clean_segments, ln_rmssd, rmssd
 from rivaflow.core.sleep_metrics import sleep_debt, sleep_regularity
 from rivaflow.core.strain_target import prescribe_strain
 from rivaflow.core.training_load import acwr, heart_rate_recovery, recovery_cost
+from rivaflow.core.whoop_digest import compile_digest
 from rivaflow.db.repositories.whoop_repo import WhoopRepository
 
 # Ruby's profile-tuned constants
@@ -397,6 +398,57 @@ def behaviour_for_tag(user_id: int, tag: str, days: int = 60) -> dict:
     return behaviour_correlation(
         user_id, tag, WhoopRepository.tagged_days(user_id, tag), days=days
     )
+
+
+def morning_digest(user_id: int, today_is_sabbath: bool = False) -> dict:
+    """P2 — once-daily digest PREVIEW: readiness + strain + prevention tier, tier→channel routed (amber/red
+    = safety, fires Sunday; readiness/strain = performance nudges, Sabbath-silenced). No side effects.
+    """
+    readiness = compute_readiness(user_id, today_is_sabbath=today_is_sabbath)
+    strain = strain_target(user_id, today_is_sabbath=today_is_sabbath)
+    prevention = prevention_watch(user_id)
+    return compile_digest(
+        readiness, strain, prevention, today_is_sabbath=today_is_sabbath
+    )
+
+
+def deliver_digest(user_id: int) -> dict:
+    """P2 — compute today's digest with the cooldown applied and RECORD any safety alert that fires (the
+    delivery record + cooldown state, idempotent per (day, key)). Called once each morning by the external
+    briefing cron. Anti-anxiety: one digest per day, no live-refresh flags."""
+    now = datetime.now(LOCAL_TZ)
+    today = now.date()
+    is_sabbath = now.weekday() == 6  # Sunday = Ruby's rest day
+    readiness = compute_readiness(user_id, today_is_sabbath=is_sabbath)
+    strain = strain_target(user_id, today_is_sabbath=is_sabbath)
+    prevention = prevention_watch(user_id)
+    last_alerts = WhoopRepository.last_alert_days(user_id)
+    digest = compile_digest(
+        readiness,
+        strain,
+        prevention,
+        today_is_sabbath=is_sabbath,
+        today=today,
+        last_alerts=last_alerts,
+    )
+    alert = digest.get("safety_alert")
+    if alert:
+        WhoopRepository.record_alert(
+            user_id,
+            today.isoformat(),
+            alert["key"],
+            alert["tier"],
+            alert.get("headline"),
+        )
+        digest["delivered"] = True
+    else:
+        digest["delivered"] = False
+    return digest
+
+
+def prevention_log(user_id: int, limit: int = 60) -> list[dict]:
+    """P2/P3.4 — the fired-alert timeline (the prevention log the cockpit renders)."""
+    return WhoopRepository.recent_alerts(user_id, limit=limit)
 
 
 def behaviour_correlation(

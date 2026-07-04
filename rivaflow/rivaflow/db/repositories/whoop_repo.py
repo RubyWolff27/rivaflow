@@ -268,3 +268,41 @@ class WhoopRepository:
             (user_id, tag),
         )
         return {str(r["day"])[:10] for r in rows}
+
+    # ── Prevention alerts (P2 — delivery log + cooldown state) ───────────
+
+    @staticmethod
+    def record_alert(
+        user_id: int, day: str, alert_key: str, tier: str, headline: str | None
+    ) -> int:
+        """Idempotently record that a safety alert fired for a (day, key). Doubles as the cooldown state."""
+        return WhoopRepository._insert_ignore(
+            "INSERT INTO whoop_alerts (user_id, day, alert_key, tier, headline) "
+            "VALUES (?, ?, ?, ?, ?) ON CONFLICT (user_id, day, alert_key) DO NOTHING",
+            [(user_id, day, alert_key, tier, headline)],
+        )
+
+    @staticmethod
+    def last_alert_days(user_id: int) -> dict[str, str]:
+        """Most-recent fire day per alert_key — the cooldown map the digest consumes ({key: 'YYYY-MM-DD'})."""
+        rows = BaseRepository._fetchall(
+            convert_query(
+                "SELECT alert_key, MAX(day) AS last_day FROM whoop_alerts "
+                "WHERE user_id = ? GROUP BY alert_key"
+            ),
+            (user_id,),
+        )
+        return {
+            r["alert_key"]: str(r["last_day"])[:10] for r in rows if r.get("last_day")
+        }
+
+    @staticmethod
+    def recent_alerts(user_id: int, limit: int = 60) -> list[dict]:
+        """Recent fired alerts (newest first) — the prevention-log timeline (P3.4)."""
+        return BaseRepository._fetchall(
+            convert_query(
+                "SELECT day, alert_key, tier, headline, created_at FROM whoop_alerts "
+                "WHERE user_id = ? ORDER BY day DESC, created_at DESC LIMIT ?"
+            ),
+            (user_id, limit),
+        )
