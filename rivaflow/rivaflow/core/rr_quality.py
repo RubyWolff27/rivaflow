@@ -21,16 +21,19 @@ what makes the readiness / prevention signals trustworthy. lnRMSSD and the basel
 
 from __future__ import annotations
 
+from collections.abc import Sequence
 from dataclasses import dataclass, field
 from math import log, sqrt
 
 # --- Quality-gate constants (WHOOP_CURRENT_STATE.md §3 limitations + WHOOP_FUTURE_STATE_PLAN.md B0) ---
-RR_MIN_MS = 450                 # 133 bpm — upper HR bound of a plausible resting/nocturnal beat
-RR_MAX_MS = 1667                # ~36 bpm — widened for nocturnal bradycardia (was 1500 ms / 40 bpm, too tight)
-MALIK_REL_THRESHOLD = 0.20      # flag RR differing >20% from the preceding valid interval (relative, not absolute)
-MAX_ARTIFACT_FRACTION = 0.30    # a series with >30% flagged intervals is not trustworthy for HRV
-MIN_CLEAN_INTERVALS = 20        # minimum corrected intervals for a valid HRV window
-MIN_CLEAN_SEGMENT = 30          # minimum contiguous clean run to count as a usable segment
+RR_MIN_MS = 450  # 133 bpm — upper HR bound of a plausible resting/nocturnal beat
+RR_MAX_MS = 1667  # ~36 bpm — widened for nocturnal bradycardia (was 1500 ms / 40 bpm, too tight)
+MALIK_REL_THRESHOLD = 0.20  # flag RR differing >20% from the preceding valid interval (relative, not absolute)
+MAX_ARTIFACT_FRACTION = (
+    0.30  # a series with >30% flagged intervals is not trustworthy for HRV
+)
+MIN_CLEAN_INTERVALS = 20  # minimum corrected intervals for a valid HRV window
+MIN_CLEAN_SEGMENT = 30  # minimum contiguous clean run to count as a usable segment
 
 
 @dataclass
@@ -38,12 +41,16 @@ class RRQuality:
     """Result of the QC gate over one RR series. `cleaned` is the artifact-corrected series that downstream
     metrics consume; `artifact_pct` travels with every value they emit."""
 
-    cleaned: list[float] = field(default_factory=list)   # band-valid + interpolated intervals (ms)
-    artifact_pct: float = 100.0                           # % of raw intervals flagged (band + relative)
+    cleaned: list[float] = field(
+        default_factory=list
+    )  # band-valid + interpolated intervals (ms)
+    artifact_pct: float = 100.0  # % of raw intervals flagged (band + relative)
     n_raw: int = 0
     n_flagged: int = 0
-    corrected_idx: list[int] = field(default_factory=list)  # indices in `cleaned` replaced by interpolation
-    usable: bool = False                                  # enough clean data AND artifact_pct within budget
+    corrected_idx: list[int] = field(
+        default_factory=list
+    )  # indices in `cleaned` replaced by interpolation
+    usable: bool = False  # enough clean data AND artifact_pct within budget
 
     def as_meta(self) -> dict:
         """Compact provenance dict to attach to any metric computed from this series."""
@@ -55,14 +62,17 @@ class RRQuality:
         }
 
 
-def assess_rr(intervals: list[int | float]) -> RRQuality:
+def assess_rr(intervals: Sequence[float]) -> RRQuality:
     """Characterise and clean an RR series: physiological-band + Malik relative filtering, then linear
     interpolation of isolated flagged beats. Returns the corrected series, the artifact fraction, and a
-    usability verdict. Deterministic and side-effect free — safe to call anywhere upstream of an HRV metric."""
+    usability verdict. Deterministic and side-effect free — safe to call anywhere upstream of an HRV metric.
+    """
     raw = [float(x) for x in intervals if x is not None]
     n_raw = len(raw)
     if n_raw == 0:
-        return RRQuality(cleaned=[], artifact_pct=100.0, n_raw=0, n_flagged=0, usable=False)
+        return RRQuality(
+            cleaned=[], artifact_pct=100.0, n_raw=0, n_flagged=0, usable=False
+        )
 
     # Pass 1 — band filter, then Malik relative filter against the last accepted interval.
     # flagged[i] is True when raw[i] is out-of-band or a >20% jump from the last valid beat.
@@ -72,7 +82,10 @@ def assess_rr(intervals: list[int | float]) -> RRQuality:
         if not (RR_MIN_MS <= rr <= RR_MAX_MS):
             flagged[i] = True
             continue
-        if last_valid is not None and abs(rr - last_valid) / last_valid > MALIK_REL_THRESHOLD:
+        if (
+            last_valid is not None
+            and abs(rr - last_valid) / last_valid > MALIK_REL_THRESHOLD
+        ):
             flagged[i] = True
             continue
         last_valid = rr
@@ -106,7 +119,10 @@ def assess_rr(intervals: list[int | float]) -> RRQuality:
         # else: edge/long-dropout flagged run — drop it (segment boundary)
         i = j
 
-    usable = len(cleaned) >= MIN_CLEAN_INTERVALS and artifact_pct <= MAX_ARTIFACT_FRACTION * 100.0
+    usable = (
+        len(cleaned) >= MIN_CLEAN_INTERVALS
+        and artifact_pct <= MAX_ARTIFACT_FRACTION * 100.0
+    )
     return RRQuality(
         cleaned=cleaned,
         artifact_pct=artifact_pct,
@@ -117,17 +133,23 @@ def assess_rr(intervals: list[int | float]) -> RRQuality:
     )
 
 
-def clean_segments(intervals: list[int | float], min_len: int = MIN_CLEAN_SEGMENT) -> list[list[float]]:
+def clean_segments(
+    intervals: Sequence[float], min_len: int = MIN_CLEAN_SEGMENT
+) -> list[list[float]]:
     """Split an RR series into contiguous in-band, low-jump segments of at least `min_len` intervals —
     the windows a frequency-domain or non-linear metric (B4) may run on. Unlike `assess_rr` this does NOT
-    interpolate; it returns only genuinely contiguous clean runs so no fabricated beat enters a spectral window."""
+    interpolate; it returns only genuinely contiguous clean runs so no fabricated beat enters a spectral window.
+    """
     raw = [float(x) for x in intervals if x is not None]
     segments: list[list[float]] = []
     cur: list[float] = []
     last_valid: float | None = None
     for rr in raw:
         in_band = RR_MIN_MS <= rr <= RR_MAX_MS
-        small_jump = last_valid is None or abs(rr - last_valid) / last_valid <= MALIK_REL_THRESHOLD
+        small_jump = (
+            last_valid is None
+            or abs(rr - last_valid) / last_valid <= MALIK_REL_THRESHOLD
+        )
         if in_band and small_jump:
             cur.append(rr)
             last_valid = rr
@@ -141,9 +163,10 @@ def clean_segments(intervals: list[int | float], min_len: int = MIN_CLEAN_SEGMEN
     return segments
 
 
-def rmssd(intervals: list[int | float]) -> float | None:
+def rmssd(intervals: Sequence[float]) -> float | None:
     """RMSSD (ms) = sqrt(mean of squared successive differences). Expects an already-cleaned series
-    (call `assess_rr` first). Returns None if there are too few intervals to form a difference set."""
+    (call `assess_rr` first). Returns None if there are too few intervals to form a difference set.
+    """
     vals = [float(x) for x in intervals if x is not None]
     if len(vals) < 2:
         return None
@@ -151,9 +174,10 @@ def rmssd(intervals: list[int | float]) -> float | None:
     return sqrt(sum(d * d for d in diffs) / len(diffs))
 
 
-def ln_rmssd(intervals: list[int | float]) -> float | None:
+def ln_rmssd(intervals: Sequence[float]) -> float | None:
     """lnRMSSD — the log-transformed RMSSD that B2's baseline z-scores run on (RMSSD is right-skewed, so
-    Gaussian stats belong on the log scale; Plews/Buchheit). Returns None if RMSSD is undefined or <=0."""
+    Gaussian stats belong on the log scale; Plews/Buchheit). Returns None if RMSSD is undefined or <=0.
+    """
     r = rmssd(intervals)
     if r is None or r <= 0:
         return None

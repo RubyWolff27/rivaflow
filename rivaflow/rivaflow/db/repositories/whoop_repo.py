@@ -54,8 +54,16 @@ class WhoopRepository:
                 continue
             sha = hashlib.sha256(hex_.encode("ascii")).hexdigest()
             rows.append(
-                (user_id, f["ts"], sha, f.get("session_id"), f["char_uuid"],
-                 f.get("packet_type"), f.get("seq"), hex_)
+                (
+                    user_id,
+                    f["ts"],
+                    sha,
+                    f.get("session_id"),
+                    f["char_uuid"],
+                    f.get("packet_type"),
+                    f.get("seq"),
+                    hex_,
+                )
             )
         received = WhoopRepository._insert_ignore(
             "INSERT INTO whoop_raw_frames "
@@ -65,7 +73,11 @@ class WhoopRepository:
             rows,
         )
         if rejected:
-            logger.warning("whoop raw ingest — user_id=%s rejected=%s non-hex frames", user_id, rejected)
+            logger.warning(
+                "whoop raw ingest — user_id=%s rejected=%s non-hex frames",
+                user_id,
+                rejected,
+            )
         return {"received": received, "rejected": rejected}
 
     @staticmethod
@@ -89,7 +101,14 @@ class WhoopRepository:
     @staticmethod
     def ingest_hrv(user_id: int, samples: list[dict]) -> int:
         rows = [
-            (user_id, s["ts"], s.get("rmssd"), s.get("rr_count"), s.get("window_s"), s.get("at_rest"))
+            (
+                user_id,
+                s["ts"],
+                s.get("rmssd"),
+                s.get("rr_count"),
+                s.get("window_s"),
+                s.get("at_rest"),
+            )
             for s in samples
         ]
         return WhoopRepository._insert_ignore(
@@ -108,19 +127,36 @@ class WhoopRepository:
         )
 
     @staticmethod
-    def log_ingest(user_id: int, device: str | None, kind: str | None, counts: dict,
-                   span_start: str | None, span_end: str | None) -> None:
+    def log_ingest(
+        user_id: int,
+        device: str | None,
+        kind: str | None,
+        counts: dict,
+        span_start: str | None,
+        span_end: str | None,
+    ) -> None:
         query = convert_query(
             "INSERT INTO whoop_ingest_log "
             "(user_id, device, kind, raw_frames, hr, rr, hrv, battery, deduped, span_start, span_end) "
             "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
         )
         with get_connection() as conn:
-            conn.cursor().execute(query, (
-                user_id, device, kind, counts.get("raw", 0), counts.get("hr", 0),
-                counts.get("rr", 0), counts.get("hrv", 0), counts.get("battery", 0),
-                counts.get("rejected", 0), span_start, span_end,
-            ))
+            conn.cursor().execute(
+                query,
+                (
+                    user_id,
+                    device,
+                    kind,
+                    counts.get("raw", 0),
+                    counts.get("hr", 0),
+                    counts.get("rr", 0),
+                    counts.get("hrv", 0),
+                    counts.get("battery", 0),
+                    counts.get("rejected", 0),
+                    span_start,
+                    span_end,
+                ),
+            )
 
     # ── Read side (shared: RivaFlow UI, health dashboard, LLM/MCP all consume these) ──
 
@@ -135,9 +171,12 @@ class WhoopRepository:
         )
 
     @staticmethod
-    def hrv_range(user_id: int, days: int = 30, at_rest_only: bool = True) -> list[dict]:
+    def hrv_range(
+        user_id: int, days: int = 30, at_rest_only: bool = True
+    ) -> list[dict]:
         """HRV (RMSSD) samples over the last `days`, ascending — drives the readiness baseline.
-        Wrist-PPG HRV is only trustworthy at rest, so at_rest_only filters the noise by default."""
+        Wrist-PPG HRV is only trustworthy at rest, so at_rest_only filters the noise by default.
+        """
         cutoff = (datetime.now(UTC) - timedelta(days=days)).isoformat()
         rest = "AND at_rest = ? " if at_rest_only else ""
         params = (user_id, True, cutoff) if at_rest_only else (user_id, cutoff)
@@ -154,7 +193,9 @@ class WhoopRepository:
         """Recent HR series (last `hours`) — for the live/health dashboard."""
         cutoff = (datetime.now(UTC) - timedelta(hours=hours)).isoformat()
         return BaseRepository._fetchall(
-            convert_query("SELECT ts, bpm FROM whoop_hr WHERE user_id = ? AND ts >= ? ORDER BY ts ASC"),
+            convert_query(
+                "SELECT ts, bpm FROM whoop_hr WHERE user_id = ? AND ts >= ? ORDER BY ts ASC"
+            ),
             (user_id, cutoff),
         )
 

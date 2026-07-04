@@ -34,13 +34,19 @@ def _magnitude(d: float) -> str:
     return "large"
 
 
-def behaviour_effect(tag: str, metric: str, yes_values: list[float], no_values: list[float]) -> dict:
+def behaviour_effect(
+    tag: str, metric: str, yes_values: list[float], no_values: list[float]
+) -> dict:
     """Effect of a tagged behaviour on a metric: yes-nights vs no-nights means + Cohen's d. Positive delta
     means the behaviour is associated with a HIGHER metric value."""
     d = cohens_d(yes_values, no_values)
     if d is None:
-        return {"available": False, "tag": tag, "metric": metric,
-                "reason": "Need ≥2 nights each with and without the tag (and some spread)."}
+        return {
+            "available": False,
+            "tag": tag,
+            "metric": metric,
+            "reason": "Need ≥2 nights each with and without the tag (and some spread).",
+        }
     ym, nm = mean(yes_values), mean(no_values)
     delta = ym - nm
     mag = _magnitude(d)

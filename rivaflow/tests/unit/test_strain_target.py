@@ -51,7 +51,7 @@ def test_no_history_uses_default_base():
 
 
 def test_target_is_capped_at_21():
-    r = prescribe_strain("Prime", chronic_load=20.0)   # 20 * 1.15 = 23 → capped
+    r = prescribe_strain("Prime", chronic_load=20.0)  # 20 * 1.15 = 23 → capped
     assert r["target_load"] == STRAIN_CAP
     assert r["band"][1] == STRAIN_CAP
 
@@ -63,7 +63,9 @@ def test_acute_below_target_reports_headroom():
 
 
 def test_acute_at_or_above_target_flips_headline():
-    r = prescribe_strain("Strained", chronic_load=10.0, acute_load=8.0)   # target 6, already 8
+    r = prescribe_strain(
+        "Strained", chronic_load=10.0, acute_load=8.0
+    )  # target 6, already 8
     assert r["remaining"] == pytest.approx(0.0)
     assert "hit today's target" in r["headline"]
-    assert "recover now" in r["headline"]   # capped state → recover
+    assert "recover now" in r["headline"]  # capped state → recover

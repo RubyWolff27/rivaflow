@@ -80,8 +80,10 @@ class WhoopIngest(BaseModel):
 def _span(payload: WhoopIngest) -> tuple[str | None, str | None]:
     """Min/max ts across everything in the batch (for the capture-health heartbeat)."""
     ts = (
-        [f.ts for f in payload.raw_frames] + [s.ts for s in payload.hr]
-        + [s.ts for s in payload.rr] + [s.ts for s in payload.hrv]
+        [f.ts for f in payload.raw_frames]
+        + [s.ts for s in payload.hr]
+        + [s.ts for s in payload.rr]
+        + [s.ts for s in payload.hrv]
         + [s.ts for s in payload.battery]
     )
     return (min(ts), max(ts)) if ts else (None, None)
@@ -89,32 +91,54 @@ def _span(payload: WhoopIngest) -> tuple[str | None, str | None]:
 
 @router.post("/ingest")
 @route_error_handler("whoop_ingest", detail="Failed to ingest WHOOP data")
-def ingest(payload: WhoopIngest, current_user: dict = Depends(get_current_user)) -> dict:
+def ingest(
+    payload: WhoopIngest, current_user: dict = Depends(get_current_user)
+) -> dict:
     """Idempotent raw-first ingest for the authenticated user."""
     user_id: int = current_user["id"]
 
-    raw = WhoopRepository.ingest_raw_frames(user_id, [f.model_dump() for f in payload.raw_frames])
+    raw = WhoopRepository.ingest_raw_frames(
+        user_id, [f.model_dump() for f in payload.raw_frames]
+    )
     hr = WhoopRepository.ingest_hr(user_id, [s.model_dump() for s in payload.hr])
     rr = WhoopRepository.ingest_rr(user_id, [s.model_dump() for s in payload.rr])
     hrv = WhoopRepository.ingest_hrv(user_id, [s.model_dump() for s in payload.hrv])
-    battery = WhoopRepository.ingest_battery(user_id, [s.model_dump() for s in payload.battery])
+    battery = WhoopRepository.ingest_battery(
+        user_id, [s.model_dump() for s in payload.battery]
+    )
 
     counts = {
-        "raw": raw["received"], "rejected": raw["rejected"],
-        "hr": hr, "rr": rr, "hrv": hrv, "battery": battery,
+        "raw": raw["received"],
+        "rejected": raw["rejected"],
+        "hr": hr,
+        "rr": rr,
+        "hrv": hrv,
+        "battery": battery,
     }
     span_start, span_end = _span(payload)
-    WhoopRepository.log_ingest(user_id, payload.device, payload.kind, counts, span_start, span_end)
+    WhoopRepository.log_ingest(
+        user_id, payload.device, payload.kind, counts, span_start, span_end
+    )
 
     logger.info(
         "WHOOP ingest — user_id=%s device=%s kind=%s raw=%s rejected=%s hr=%s rr=%s hrv=%s batt=%s",
-        user_id, payload.device, payload.kind, raw["received"], raw["rejected"], hr, rr, hrv, battery,
+        user_id,
+        payload.device,
+        payload.kind,
+        raw["received"],
+        raw["rejected"],
+        hr,
+        rr,
+        hrv,
+        battery,
     )
     return {"accepted": counts, "span": {"start": span_start, "end": span_end}}
 
 
 @router.get("/capture-health")
-@route_error_handler("whoop_capture_health", detail="Failed to fetch WHOOP capture health")
+@route_error_handler(
+    "whoop_capture_health", detail="Failed to fetch WHOOP capture health"
+)
 def capture_health(current_user: dict = Depends(get_current_user)) -> dict:
     """Last-seen heartbeat + recent ingest volume for gap detection."""
     from rivaflow.db.database import convert_query
@@ -161,7 +185,9 @@ def readiness(current_user: dict = Depends(get_current_user)) -> dict:
     """Ruby Readiness Score — at-rest HRV vs rolling baseline. Sabbath-silent (Sunday rest)."""
     from rivaflow.core.whoop_analytics import compute_readiness
 
-    is_sabbath = datetime.now(ZoneInfo("Australia/Melbourne")).weekday() == 6  # Sunday = Ruby's rest day (adjust if Saturday-Sabbath)
+    is_sabbath = (
+        datetime.now(ZoneInfo("Australia/Melbourne")).weekday() == 6
+    )  # Sunday = Ruby's rest day (adjust if Saturday-Sabbath)
     return compute_readiness(current_user["id"], today_is_sabbath=is_sabbath)
 
 
@@ -171,7 +197,9 @@ def strain_target_endpoint(current_user: dict = Depends(get_current_user)) -> di
     """B5 — today's prescribed strain target (0–21) from readiness, capped when Strained. Sabbath-silent."""
     from rivaflow.core.whoop_analytics import strain_target
 
-    is_sabbath = datetime.now(ZoneInfo("Australia/Melbourne")).weekday() == 6  # Sunday = Ruby's rest day
+    is_sabbath = (
+        datetime.now(ZoneInfo("Australia/Melbourne")).weekday() == 6
+    )  # Sunday = Ruby's rest day
     return strain_target(current_user["id"], today_is_sabbath=is_sabbath)
 
 
@@ -203,7 +231,9 @@ def recovery_cost_endpoint(current_user: dict = Depends(get_current_user)) -> di
 
 
 @router.get("/prevention")
-@route_error_handler("whoop_prevention", detail="Failed to compute baseline-deviation watch")
+@route_error_handler(
+    "whoop_prevention", detail="Failed to compute baseline-deviation watch"
+)
 def prevention_endpoint(current_user: dict = Depends(get_current_user)) -> dict:
     """B6 — Baseline-Deviation Watch: multi-signal deviation from personal baseline. Safety channel (fires
     Sunday). Detects deviation, never disease — not a medical device."""
@@ -249,7 +279,9 @@ def dfa_endpoint(current_user: dict = Depends(get_current_user)) -> dict:
 
 
 @router.get("/realtime-stress")
-@route_error_handler("whoop_realtime_stress", detail="Failed to compute realtime stress")
+@route_error_handler(
+    "whoop_realtime_stress", detail="Failed to compute realtime stress"
+)
 def realtime_stress_endpoint(current_user: dict = Depends(get_current_user)) -> dict:
     """B13 — HRV-based real-time stress (experimental; at-rest only)."""
     from rivaflow.core.whoop_analytics import realtime_stress
@@ -259,7 +291,9 @@ def realtime_stress_endpoint(current_user: dict = Depends(get_current_user)) -> 
 
 @router.get("/assessment")
 @route_error_handler("whoop_assessment", detail="Failed to compute assessment")
-def assessment_endpoint(period: str = "week", current_user: dict = Depends(get_current_user)) -> dict:
+def assessment_endpoint(
+    period: str = "week", current_user: dict = Depends(get_current_user)
+) -> dict:
     """B19 — weekly/monthly assessment narrative. ?period=week|month."""
     from rivaflow.core.whoop_analytics import period_assessment_for
 
@@ -277,7 +311,9 @@ def hrv_lab_endpoint(current_user: dict = Depends(get_current_user)) -> dict:
 
 
 @router.get("/session-analytics")
-@route_error_handler("whoop_session_analytics", detail="Failed to compute BJJ session analytics")
+@route_error_handler(
+    "whoop_session_analytics", detail="Failed to compute BJJ session analytics"
+)
 def session_analytics(
     start: str,
     end: str,
@@ -344,7 +380,8 @@ def stress(current_user: dict = Depends(get_current_user)) -> dict:
 @route_error_handler("whoop_summary", detail="Failed to build WHOOP summary")
 def summary(current_user: dict = Depends(get_current_user)) -> dict:
     """One-call rollup for a thin display client: readiness + HRV + resting HR + last night's sleep.
-    The whole point of the server-side architecture — the phone/dashboard fetches this and just renders it."""
+    The whole point of the server-side architecture — the phone/dashboard fetches this and just renders it.
+    """
     from rivaflow.core.whoop_analytics import whoop_summary
 
     is_sabbath = datetime.now(ZoneInfo("Australia/Melbourne")).weekday() == 6
@@ -354,7 +391,8 @@ def summary(current_user: dict = Depends(get_current_user)) -> dict:
 @router.get("/view", response_class=HTMLResponse)
 def view(key: str) -> HTMLResponse:
     """Server-rendered thin-display dashboard — the phone/browser opens a URL and the VPS renders the
-    metrics into HTML. Zero client compute. Personal tool: auth via the owner's own api-key query param."""
+    metrics into HTML. Zero client compute. Personal tool: auth via the owner's own api-key query param.
+    """
     from rivaflow.core.whoop_analytics import whoop_summary
     from rivaflow.db.repositories.api_key_repo import ApiKeyRepository
 
@@ -364,8 +402,10 @@ def view(key: str) -> HTMLResponse:
         else None
     )
     if not api_key:
-        return HTMLResponse("<h1 style='font-family:system-ui;color:#eee;background:#111'>Unauthorized</h1>",
-                            status_code=401)
+        return HTMLResponse(
+            "<h1 style='font-family:system-ui;color:#eee;background:#111'>Unauthorized</h1>",
+            status_code=401,
+        )
 
     is_sabbath = datetime.now(ZoneInfo("Australia/Melbourne")).weekday() == 6
     s = whoop_summary(api_key["user_id"], today_is_sabbath=is_sabbath)
@@ -375,7 +415,11 @@ def view(key: str) -> HTMLResponse:
 def _local_hm(iso_str: str) -> str:
     """UTC ISO timestamp → Melbourne HH:MM for display."""
     try:
-        return datetime.fromisoformat(iso_str).astimezone(ZoneInfo("Australia/Melbourne")).strftime("%H:%M")
+        return (
+            datetime.fromisoformat(iso_str)
+            .astimezone(ZoneInfo("Australia/Melbourne"))
+            .strftime("%H:%M")
+        )
     except (ValueError, TypeError):
         return str(iso_str)[11:16]
 
@@ -385,8 +429,14 @@ def _render_whoop_view(s: dict) -> str:
     hrv = s.get("hrv_today") or {}
     rhr = s.get("resting_hr_today") or {}
     sleep = s.get("sleep") or {}
-    state_colors = {"Prime": "#34d399", "Balanced": "#60a5fa", "Strained": "#fbbf24",
-                    "Rundown": "#f87171", "Building": "#94a3b8", "Rest": "#a78bfa"}
+    state_colors = {
+        "Prime": "#34d399",
+        "Balanced": "#60a5fa",
+        "Strained": "#fbbf24",
+        "Rundown": "#f87171",
+        "Building": "#94a3b8",
+        "Rest": "#a78bfa",
+    }
     accent = state_colors.get(r.get("state", "Building"), "#94a3b8")
     score = r.get("score")
     hero_val = f"{score}" if score is not None else (r.get("state") or "—")
@@ -394,22 +444,38 @@ def _render_whoop_view(s: dict) -> str:
     rhr_val = f"{rhr.get('resting_hr')}" if rhr.get("resting_hr") is not None else "—"
     sleep_val = f"{sleep.get('duration_hours')}" if sleep.get("available") else "—"
     sleep_q = sleep.get("quality_score")
-    sleep_sub = (f"{_local_hm(sleep.get('sleep_start',''))}–{_local_hm(sleep.get('sleep_end',''))}"
-                 + (f" · quality {sleep_q}" if sleep_q is not None else "")
-                 if sleep.get("available") else (sleep.get("reason") or "no data"))
+    sleep_sub = (
+        f"{_local_hm(sleep.get('sleep_start',''))}–{_local_hm(sleep.get('sleep_end',''))}"
+        + (f" · quality {sleep_q}" if sleep_q is not None else "")
+        if sleep.get("available")
+        else (sleep.get("reason") or "no data")
+    )
     resp = s.get("respiratory_rate") or {}
     resp_val = f"{resp.get('respiratory_rate')}" if resp.get("available") else "—"
     cardio = s.get("cardio_load_today") or {}
-    cardio_val = f"{cardio.get('cardio_load')}" if cardio.get("cardio_load") is not None else "—"
+    cardio_val = (
+        f"{cardio.get('cardio_load')}" if cardio.get("cardio_load") is not None else "—"
+    )
     stress = s.get("stress") or {}
     stress_val = f"{stress.get('stress')}" if stress.get("available") else "—"
     trend = s.get("hrv_trend") or []
-    trend_pts = " · ".join(f"{p['day'][5:]}: {p['rmssd']}" for p in trend[-7:]) or "building…"
+    trend_pts = (
+        " · ".join(f"{p['day'][5:]}: {p['rmssd']}" for p in trend[-7:]) or "building…"
+    )
     return _WHOOP_VIEW_TEMPLATE.format(
-        accent=accent, state=r.get("state", "—"), headline=r.get("headline", ""),
-        hero_val=hero_val, hrv_val=hrv_val, rhr_val=rhr_val, sleep_val=sleep_val,
-        sleep_sub=sleep_sub, rhr_sub=f"min {rhr.get('min_hr','—')} · {rhr.get('samples',0)} samples",
-        resp_val=resp_val, cardio_val=cardio_val, stress_val=stress_val, trend_pts=trend_pts,
+        accent=accent,
+        state=r.get("state", "—"),
+        headline=r.get("headline", ""),
+        hero_val=hero_val,
+        hrv_val=hrv_val,
+        rhr_val=rhr_val,
+        sleep_val=sleep_val,
+        sleep_sub=sleep_sub,
+        rhr_sub=f"min {rhr.get('min_hr','—')} · {rhr.get('samples',0)} samples",
+        resp_val=resp_val,
+        cardio_val=cardio_val,
+        stress_val=stress_val,
+        trend_pts=trend_pts,
     )
 
 

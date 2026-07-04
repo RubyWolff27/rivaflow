@@ -22,12 +22,29 @@ _DAILY_COLS = (
 
 # Upsertable metric fields (everything except the keys).
 _UPSERT_FIELDS = [
-    "rhr", "hrv_ms", "hrv_status", "body_battery_high", "body_battery_low",
-    "stress_avg", "max_stress", "sleep_hours", "sleep_score", "sleep_deep_hours",
-    "sleep_rem_hours", "sleep_light_hours", "sleep_awake_hours", "steps",
-    "respiration_rate", "spo2_pct", "training_readiness_score",
-    "training_readiness_level", "training_status", "vo2max", "active_calories",
-    "intensity_min_moderate", "intensity_min_vigorous",
+    "rhr",
+    "hrv_ms",
+    "hrv_status",
+    "body_battery_high",
+    "body_battery_low",
+    "stress_avg",
+    "max_stress",
+    "sleep_hours",
+    "sleep_score",
+    "sleep_deep_hours",
+    "sleep_rem_hours",
+    "sleep_light_hours",
+    "sleep_awake_hours",
+    "steps",
+    "respiration_rate",
+    "spo2_pct",
+    "training_readiness_score",
+    "training_readiness_level",
+    "training_status",
+    "vo2max",
+    "active_calories",
+    "intensity_min_moderate",
+    "intensity_min_vigorous",
 ]
 
 

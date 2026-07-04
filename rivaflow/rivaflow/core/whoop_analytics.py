@@ -31,18 +31,26 @@ from rivaflow.core.training_load import acwr, heart_rate_recovery, recovery_cost
 from rivaflow.db.repositories.whoop_repo import WhoopRepository
 
 # Ruby's profile-tuned constants
-RUBY_AGE = 44                     # TODO(profile): derive from DOB 1982-05-27 once wired to the profile repo
-MAX_HR = 190                      # FALLBACK ONLY — real ceiling comes from user_max_hr() (B1). Kept so
-                                  # hr_zone() has a default; a ~30yo value, ~13 bpm above Ruby's ~177.
-READINESS_MIN_BASELINE_DAYS = 5   # cold-start guard before a score is meaningful
+RUBY_AGE = (
+    44  # TODO(profile): derive from DOB 1982-05-27 once wired to the profile repo
+)
+MAX_HR = 190  # FALLBACK ONLY — real ceiling comes from user_max_hr() (B1). Kept so
+# hr_zone() has a default; a ~30yo value, ~13 bpm above Ruby's ~177.
+READINESS_MIN_BASELINE_DAYS = 5  # cold-start guard before a score is meaningful
 
 
 def user_max_hr(user_id: int, days: int = 90) -> dict:
     """B1 — Ruby's calibrated max-HR from recent HR: artifact-rejected sustained plateau, Tanaka sanity band,
     sub-maximal floor flag, uncertainty band. Everything zone/strain/stress derived should use this, not the
-    MAX_HR fallback. Falls back to the age-predicted value when there isn't enough near-max effort captured."""
-    hr = [int(h["bpm"]) for h in WhoopRepository.recent_hr(user_id, hours=days * 24) if h.get("bpm")]
+    MAX_HR fallback. Falls back to the age-predicted value when there isn't enough near-max effort captured.
+    """
+    hr = [
+        int(h["bpm"])
+        for h in WhoopRepository.recent_hr(user_id, hours=days * 24)
+        if h.get("bpm")
+    ]
     return calibrate_max_hr(hr, RUBY_AGE)
+
 
 # Ruby is Melbourne-based. All day-bucketing + display use his local day, not UTC (which would split the
 # day at ~10am and skew daily HRV/resting-HR). TODO(travel): switch to the device-reported tz per-ingest.
@@ -82,53 +90,73 @@ def daily_resting_hr(user_id: int, days: int = 14) -> list[dict]:
         if len(vals) < 60:
             continue
         idx = max(0, int(len(vals) * 0.05))
-        out.append({"day": day, "resting_hr": vals[idx], "min_hr": vals[0], "samples": len(vals)})
+        out.append(
+            {
+                "day": day,
+                "resting_hr": vals[idx],
+                "min_hr": vals[0],
+                "samples": len(vals),
+            }
+        )
     return out
 
 
-def _longest_low_block(order: list[int], med: dict, threshold: int, max_bridge: int) -> tuple:
+def _longest_low_block(
+    order: list[int], med: dict, threshold: int, max_bridge: int
+) -> tuple:
     """Longest run of 'asleep' buckets (median <= threshold), bridging up to max_bridge awake buckets.
     Returns (start_idx, end_idx, span) or (None, None, 0)."""
-    best_s = best_e = None
+    best_s: int | None = None
+    best_e: int | None = None
     best_span = 0
-    cur_s = cur_e = None
+    cur_s: int | None = None
+    cur_e: int | None = None
     gap = 0
     for i in order:
         if med[i] <= threshold:
             cur_s = i if cur_s is None else cur_s
             cur_e = i
             gap = 0
-        elif cur_s is not None:
+        elif cur_s is not None and cur_e is not None:
             gap += 1
             if gap > max_bridge:
                 if cur_e - cur_s > best_span:
                     best_span, best_s, best_e = cur_e - cur_s, cur_s, cur_e
                 cur_s = cur_e = None
                 gap = 0
-    if cur_s is not None and cur_e - cur_s > best_span:
+    if cur_s is not None and cur_e is not None and cur_e - cur_s > best_span:
         best_span, best_s, best_e = cur_e - cur_s, cur_s, cur_e
     return best_s, best_e, best_span
 
 
 def _sleep_from_points(pts: list[tuple[datetime, int]]) -> dict:
     """Extract one sleep window from (ts, bpm) points: 5-min-bucket medians, longest low-HR block with
-    wake-bridging. Shared by last-night and multi-night history. HR-based duration/timing, NOT staging."""
+    wake-bridging. Shared by last-night and multi-night history. HR-based duration/timing, NOT staging.
+    """
     if len(pts) < 120:
-        return {"available": False, "reason": "Not enough overnight HR captured for a sleep estimate yet."}
+        return {
+            "available": False,
+            "reason": "Not enough overnight HR captured for a sleep estimate yet.",
+        }
     pts.sort(key=lambda p: p[0])
     t0 = pts[0][0]
     bucket_bpms: dict[int, list[int]] = defaultdict(list)
     bucket_time: dict[int, datetime] = {}
     for t, b in pts:
-        idx = int((t - t0).total_seconds() // 300)   # 5-minute bucket
+        idx = int((t - t0).total_seconds() // 300)  # 5-minute bucket
         bucket_bpms[idx].append(b)
         bucket_time.setdefault(idx, t)
     order = sorted(bucket_bpms)
     med = {i: sorted(bucket_bpms[i])[len(bucket_bpms[i]) // 2] for i in order}
-    threshold = min(med.values()) + 12               # "asleep" band above the night's quietest bucket
+    threshold = (
+        min(med.values()) + 12
+    )  # "asleep" band above the night's quietest bucket
     best_s, best_e, best_span = _longest_low_block(order, med, threshold, max_bridge=3)
-    if best_s is None or best_span < 6:              # < ~30 min → not a real sleep block
-        return {"available": False, "reason": "No sustained overnight low-HR sleep window detected."}
+    if best_s is None or best_span < 6:  # < ~30 min → not a real sleep block
+        return {
+            "available": False,
+            "reason": "No sustained overnight low-HR sleep window detected.",
+        }
     start_t, end_t = bucket_time[best_s], bucket_time[best_e]
     duration_hours = (end_t - start_t).total_seconds() / 3600
     sleep_bpms = [b for i in order if best_s <= i <= best_e for b in bucket_bpms[i]]
@@ -147,7 +175,11 @@ def _sleep_from_points(pts: list[tuple[datetime, int]]) -> dict:
 def nightly_sleep(user_id: int, lookback_hours: int = 20) -> dict:
     """Estimate last night's sleep from the overnight HR pattern (see _sleep_from_points)."""
     hr = WhoopRepository.recent_hr(user_id, hours=lookback_hours)
-    pts = [(_parse_ts(str(h["ts"])), int(h["bpm"])) for h in hr if h.get("bpm") and h.get("ts")]
+    pts = [
+        (_parse_ts(str(h["ts"])), int(h["bpm"]))
+        for h in hr
+        if h.get("bpm") and h.get("ts")
+    ]
     return _sleep_from_points(pts)
 
 
@@ -155,14 +187,19 @@ def nightly_sleep_history(user_id: int, nights: int = 7) -> list[dict]:
     """Per-night sleep for the last `nights` nights (each 18:00→12:00 local), for B9 debt + B10 regularity.
     Reuses the single-night extractor over per-night HR windows."""
     from datetime import timedelta
+
     now = datetime.now(LOCAL_TZ)
     out: list[dict] = []
     for back in range(nights, 0, -1):
         day = (now - timedelta(days=back)).date()
         start = datetime.combine(day, datetime.min.time(), LOCAL_TZ).replace(hour=18)
-        end = start + timedelta(hours=18)   # 18:00 → next 12:00
+        end = start + timedelta(hours=18)  # 18:00 → next 12:00
         hr = WhoopRepository.hr_range(user_id, start.isoformat(), end.isoformat())
-        pts = [(_parse_ts(str(h["ts"])), int(h["bpm"])) for h in hr if h.get("bpm") and h.get("ts")]
+        pts = [
+            (_parse_ts(str(h["ts"])), int(h["bpm"]))
+            for h in hr
+            if h.get("bpm") and h.get("ts")
+        ]
         s = _sleep_from_points(pts)
         if s.get("available"):
             out.append(s)
@@ -174,7 +211,9 @@ def whoop_summary(user_id: int, today_is_sabbath: bool = False) -> dict:
     fetches THIS and just renders it — no client-side compute. Readiness, HRV, resting HR, sleep (+quality),
     respiratory rate, cardio load/strain, and stress — benchmarked against WHOOP/Oura/Hume, all from the
     HR+RR we already capture."""
-    max_hr = user_max_hr(user_id)                 # B1 — compute once, thread into every HR-zone consumer
+    max_hr = user_max_hr(
+        user_id
+    )  # B1 — compute once, thread into every HR-zone consumer
     readiness = compute_readiness(user_id, today_is_sabbath=today_is_sabbath)
     hrv = daily_resting_rmssd(user_id, days=14)
     rhr = daily_resting_hr(user_id, days=14)
@@ -182,10 +221,15 @@ def whoop_summary(user_id: int, today_is_sabbath: bool = False) -> dict:
     sleep = nightly_sleep(user_id)
     if sleep.get("available"):
         # Simple quality score vs Ruby's >9h sleep-need (DNA): duration is the dominant driver.
-        sleep["quality_score"] = max(0, min(100, round((sleep["duration_hours"] / 9.0) * 100)))
+        sleep["quality_score"] = max(
+            0, min(100, round((sleep["duration_hours"] / 9.0) * 100))
+        )
     acute = cardio[-1]["cardio_load"] if cardio else None
     strain = prescribe_strain(readiness.get("state"), _chronic_load(cardio), acute)
-    load_series = [c["cardio_load"] for c in daily_cardio_load(user_id, days=28, max_hr=max_hr["max_hr"])]
+    load_series = [
+        c["cardio_load"]
+        for c in daily_cardio_load(user_id, days=28, max_hr=max_hr["max_hr"])
+    ]
     return {
         "readiness": readiness,
         "strain_target": strain,
@@ -206,14 +250,16 @@ def whoop_summary(user_id: int, today_is_sabbath: bool = False) -> dict:
 
 def _chronic_load(cardio: list[dict]) -> float | None:
     """Chronic (usual) daily strain = mean of recent daily cardio-load, EXCLUDING today (the day in progress
-    shouldn't lower its own target). Needs a few days to be meaningful; None otherwise."""
+    shouldn't lower its own target). Needs a few days to be meaningful; None otherwise.
+    """
     prior = [c["cardio_load"] for c in cardio[:-1]] if len(cardio) > 1 else []
     return round(mean(prior), 1) if len(prior) >= 3 else None
 
 
 def strain_target(user_id: int, today_is_sabbath: bool = False) -> dict:
     """B5 — standalone strain-target endpoint: today's readiness → prescribed daily 0–21 load, capped when
-    Strained. (whoop_summary computes this inline from shared data; this is the direct-call path for /whoop.)"""
+    Strained. (whoop_summary computes this inline from shared data; this is the direct-call path for /whoop.)
+    """
     readiness = compute_readiness(user_id, today_is_sabbath=today_is_sabbath)
     cardio = daily_cardio_load(user_id, days=14)
     acute = cardio[-1]["cardio_load"] if cardio else None
@@ -234,7 +280,8 @@ def _signal_reading(series: list[float]) -> dict | None:
 def prevention_watch(user_id: int, days: int = 21) -> dict:
     """B6 — Baseline-Deviation Watch. Builds robust per-signal baselines from the coverage-gated daily series
     and evaluates co-occurrence across signal families. Fires on the safety channel (incl. Sunday). The four
-    signals (no cardiac rhythm): RHR + sleeping-HR (nocturnal-HR family), lnRMSSD (vagal), resp-rate (respiratory)."""
+    signals (no cardiac rhythm): RHR + sleeping-HR (nocturnal-HR family), lnRMSSD (vagal), resp-rate (respiratory).
+    """
     rhr = [d["resting_hr"] for d in daily_resting_hr(user_id, days=days)]
     lnr = [d["ln_rmssd"] for d in daily_resting_rmssd(user_id, days=days)]
     resp = [d["respiratory_rate"] for d in daily_respiratory_rate(user_id, days=days)]
@@ -247,7 +294,9 @@ def prevention_watch(user_id: int, days: int = 21) -> dict:
     return evaluate_prevention(readings)
 
 
-def behaviour_correlation(user_id: int, tag: str, tagged_days: set[str], days: int = 60) -> dict:
+def behaviour_correlation(
+    user_id: int, tag: str, tagged_days: set[str], days: int = 60
+) -> dict:
     """B11 — split the daily lnRMSSD series by whether each day carries `tag`, then report the effect size.
     `tagged_days` = set of 'YYYY-MM-DD' the behaviour occurred (from the journal/tagging path, still to be
     plumbed). Metric is lnRMSSD (readiness's led signal)."""
@@ -261,8 +310,11 @@ def sleep_analysis(user_id: int, nights: int = 7) -> dict:
     """B9 + B10 — sleep need/debt (vs Ruby's >9h DNA need) + bedtime regularity, from the per-night history."""
     history = nightly_sleep_history(user_id, nights=nights)
     durations = [h["duration_hours"] for h in history]
-    onsets = [_parse_ts(h["sleep_start"]).astimezone(LOCAL_TZ).hour
-              + _parse_ts(h["sleep_start"]).astimezone(LOCAL_TZ).minute / 60.0 for h in history]
+    onsets = [
+        _parse_ts(h["sleep_start"]).astimezone(LOCAL_TZ).hour
+        + _parse_ts(h["sleep_start"]).astimezone(LOCAL_TZ).minute / 60.0
+        for h in history
+    ]
     return {
         "nights_analysed": len(history),
         "debt": sleep_debt(durations),
@@ -289,9 +341,13 @@ def longevity_metrics(user_id: int) -> dict:
     rhr = daily_resting_hr(user_id, days=14)
     if not rhr:
         return {"available": False, "reason": "Need resting-HR history first."}
-    rest = min(r["resting_hr"] for r in rhr)          # best nocturnal resting HR
+    rest = min(r["resting_hr"] for r in rhr)  # best nocturnal resting HR
     vo2 = passive_vo2max(mx, rest)
-    cv = cardio_age_proxy(vo2["vo2max_estimate"], RUBY_AGE) if vo2.get("available") else {"available": False}
+    cv = (
+        cardio_age_proxy(vo2["vo2max_estimate"], RUBY_AGE)
+        if vo2.get("available")
+        else {"available": False}
+    )
     return {"vo2max": vo2, "cardio_age": cv}
 
 
@@ -300,11 +356,14 @@ def resilience_metrics(user_id: int, days: int = 45) -> dict:
     daily = daily_resting_rmssd(user_id, days=days)
     lnr = [d["ln_rmssd"] for d in daily]
     if len(lnr) < 14:
-        return {"available": False, "reason": "Need ~2+ weeks of lnRMSSD for resilience."}
+        return {
+            "available": False,
+            "reason": "Need ~2+ weeks of lnRMSSD for resilience.",
+        }
     recent, baseline = lnr[-14:], lnr[:-14] or lnr
     b_mean = mean(baseline)
     b_sd = pstdev(baseline) or 1.0
-    flags = [(v - b_mean) / b_sd < -0.5 for v in lnr]   # strained days
+    flags = [(v - b_mean) / b_sd < -0.5 for v in lnr]  # strained days
     return {
         "resilience": resilience(recent, baseline),
         "cumulative_stress": cumulative_stress(flags),
@@ -325,16 +384,26 @@ def circadian_rhythm(user_id: int, days: int = 3) -> dict:
 
 def dfa_analysis(user_id: int, days: int = 2) -> dict:
     """B18 — DFA α1 on the longest clean resting segment. Experimental; suppressed above ~3% artifact."""
-    rr = [int(r["rr_ms"]) for r in WhoopRepository.rr_range(user_id, days) if r.get("rr_ms")]
+    rr = [
+        int(r["rr_ms"])
+        for r in WhoopRepository.rr_range(user_id, days)
+        if r.get("rr_ms")
+    ]
     resting: list[float] = [float(v) for v in rr if 667 <= v <= 1500]
     segments = clean_segments(resting, min_len=64)
     if not segments:
-        return {"available": False, "reason": "No clean segment long enough for DFA yet."}
+        return {
+            "available": False,
+            "reason": "No clean segment long enough for DFA yet.",
+        }
     seg = max(segments, key=len)
     q = assess_rr(seg)
     if q.artifact_pct > 3.0:
-        return {"available": False, "reason": f"Artifact {q.artifact_pct:.1f}% > 3% — DFA α1 not trustworthy.",
-                "quality": q.as_meta()}
+        return {
+            "available": False,
+            "reason": f"Artifact {q.artifact_pct:.1f}% > 3% — DFA α1 not trustworthy.",
+            "quality": q.as_meta(),
+        }
     a = dfa_alpha1([float(v) for v in seg])
     if a is None:
         return {"available": False, "reason": "Segment too short for DFA α1."}
@@ -343,7 +412,8 @@ def dfa_analysis(user_id: int, days: int = 2) -> dict:
 
 def realtime_stress(user_id: int) -> dict:
     """B13 — HRV-based real-time stress (upgrade of the HR-elevation proxy): blends HR-reserve elevation with
-    recent lnRMSSD suppression vs baseline. Research/caveated — no motion gate, so restricted to low-motion."""
+    recent lnRMSSD suppression vs baseline. Research/caveated — no motion gate, so restricted to low-motion.
+    """
     hr_stress = today_stress(user_id)
     if not hr_stress.get("available"):
         return {"available": False, "reason": hr_stress.get("reason")}
@@ -353,9 +423,13 @@ def realtime_stress(user_id: int) -> dict:
     # suppression (negative z) adds stress; scale to 0–100 and blend 50/50 with HR-elevation.
     supp = max(0.0, -hrv_z["z"]) * 20 if hrv_z else 0.0
     blended = round(0.5 * hr_stress["stress"] + 0.5 * min(100, supp))
-    return {"available": True, "stress": blended, "hr_component": hr_stress["stress"],
-            "hrv_suppression": round(supp, 1),
-            "note": "HR+HRV blend; no motion gate — trust only when at rest. Experimental."}
+    return {
+        "available": True,
+        "stress": blended,
+        "hr_component": hr_stress["stress"],
+        "hrv_suppression": round(supp, 1),
+        "note": "HR+HRV blend; no motion gate — trust only when at rest. Experimental.",
+    }
 
 
 def period_assessment_for(user_id: int, label: str, days: int) -> dict:
@@ -363,8 +437,13 @@ def period_assessment_for(user_id: int, label: str, days: int) -> dict:
     series = {
         "lnrmssd": [d["ln_rmssd"] for d in daily_resting_rmssd(user_id, days=days)],
         "rhr": [float(d["resting_hr"]) for d in daily_resting_hr(user_id, days=days)],
-        "cardio_load": [c["cardio_load"] for c in daily_cardio_load(user_id, days=days)],
-        "sleep_hours": [h["duration_hours"] for h in nightly_sleep_history(user_id, nights=min(days, 14))],
+        "cardio_load": [
+            c["cardio_load"] for c in daily_cardio_load(user_id, days=days)
+        ],
+        "sleep_hours": [
+            h["duration_hours"]
+            for h in nightly_sleep_history(user_id, nights=min(days, 14))
+        ],
     }
     return period_assessment(label, series)
 
@@ -372,17 +451,28 @@ def period_assessment_for(user_id: int, label: str, days: int) -> dict:
 def hrv_lab(user_id: int, days: int = 2) -> dict:
     """B4 — frequency-domain + non-linear HRV (web deep-dive 'HRV Lab'). Picks the longest clean, contiguous
     resting-RR segment from recent nights and runs Lomb-Scargle spectral + Poincaré on it — only if it clears
-    the ≥5-min / ≥150-beat bar. Artifact-% travels with the result (HF band carries beat-detection jitter)."""
-    rr = [int(r["rr_ms"]) for r in WhoopRepository.rr_range(user_id, days) if r.get("rr_ms")]
+    the ≥5-min / ≥150-beat bar. Artifact-% travels with the result (HF band carries beat-detection jitter).
+    """
+    rr = [
+        int(r["rr_ms"])
+        for r in WhoopRepository.rr_range(user_id, days)
+        if r.get("rr_ms")
+    ]
     resting = [v for v in rr if 667 <= v <= 1500]
     segments = clean_segments(resting, min_len=MIN_BEATS)
     if not segments:
-        return {"available": False, "reason": "No contiguous resting RR segment of ≥150 beats yet."}
-    seg = max(segments, key=sum)                       # longest by total time
+        return {
+            "available": False,
+            "reason": "No contiguous resting RR segment of ≥150 beats yet.",
+        }
+    seg = max(segments, key=sum)  # longest by total time
     fseg = [float(v) for v in seg]
     fd = frequency_domain(fseg)
     if fd is None:
-        return {"available": False, "reason": "Longest clean segment is under the 5-min stationary window."}
+        return {
+            "available": False,
+            "reason": "Longest clean segment is under the 5-min stationary window.",
+        }
     pc = poincare(fseg)
     return {
         "available": True,
@@ -416,7 +506,8 @@ def daily_resting_rmssd(user_id: int, days: int = 21) -> list[dict]:
     works without a separate HRV feed. Each day passes TWO gates before it can anchor a baseline: the B3
     coverage guard (enough usable, contiguous RR — excludes RR-starved charging nights the HR view masks)
     and the B0 QC gate (widened bradycardia band + Malik relative filter + ectopy interpolation). Each value
-    carries its artifact-% and RR-minutes; under-covered or over-artifact days are dropped."""
+    carries its artifact-% and RR-minutes; under-covered or over-artifact days are dropped.
+    """
     by_day = _rr_by_day(user_id, days)
     hr_counts = _hr_count_by_day(user_id, days)
     out: list[dict] = []
@@ -428,15 +519,18 @@ def daily_resting_rmssd(user_id: int, days: int = 21) -> list[dict]:
         if not q.usable:
             continue
         value = rmssd(q.cleaned)
-        if value is None:
+        ln_value = ln_rmssd(q.cleaned)
+        if value is None or ln_value is None:
             continue
-        out.append({
-            "day": day,
-            "rmssd": round(value, 1),
-            "ln_rmssd": round(ln_rmssd(q.cleaned), 3),
-            "quality": q.as_meta(),
-            "coverage": cov.as_dict(),
-        })
+        out.append(
+            {
+                "day": day,
+                "rmssd": round(value, 1),
+                "ln_rmssd": round(ln_value, 3),
+                "quality": q.as_meta(),
+                "coverage": cov.as_dict(),
+            }
+        )
     return out
 
 
@@ -445,14 +539,17 @@ def compute_readiness(user_id: int, today_is_sabbath: bool = False) -> dict:
     resting HR, sleep-vs-need, respiratory rate), each scored on the user's OWN rolling baseline. The fusion
     math + the 'green ≠ healthy' caveat live in rivaflow.core.readiness (pure, unit-tested); this function only
     gathers the series. Sabbath-silent; cold-start returns 'Building' until HRV has a baseline. Conservative
-    bands for a masters, NSAID-sensitive, low-endurance athlete — 'Strained' pushes toward technical work."""
+    bands for a masters, NSAID-sensitive, low-endurance athlete — 'Strained' pushes toward technical work.
+    """
     if today_is_sabbath:
         return blend_readiness({}, today_is_sabbath=True)
 
     # Each series is oldest→newest; the QC gate (B0) already sits inside the HRV/resp helpers.
     ln_series = [d["ln_rmssd"] for d in daily_resting_rmssd(user_id, days=21)]
     rhr_series = [d["resting_hr"] for d in daily_resting_hr(user_id, days=21)]
-    resp_series = [d["respiratory_rate"] for d in daily_respiratory_rate(user_id, days=21)]
+    resp_series = [
+        d["respiratory_rate"] for d in daily_respiratory_rate(user_id, days=21)
+    ]
 
     hrv_z = zscore(ln_series)
     rhr_z = zscore(rhr_series)
@@ -464,15 +561,20 @@ def compute_readiness(user_id: int, today_is_sabbath: bool = False) -> dict:
     if sleep.get("available"):
         sleep_z = max(-3.0, min(2.0, (sleep["duration_hours"] - 9.0) / 1.5))
 
-    result = blend_readiness({
-        "hrv": hrv_z["z"] if hrv_z else None,
-        "rhr": rhr_z["z"] if rhr_z else None,
-        "resp": resp_z["z"] if resp_z else None,
-        "sleep": sleep_z,
-    })
-    if hrv_z:   # surface the led signal's provenance for the deep-dive
+    result = blend_readiness(
+        {
+            "hrv": hrv_z["z"] if hrv_z else None,
+            "rhr": rhr_z["z"] if rhr_z else None,
+            "resp": resp_z["z"] if resp_z else None,
+            "sleep": sleep_z,
+        }
+    )
+    if hrv_z:  # surface the led signal's provenance for the deep-dive
         result["today_ln_rmssd"] = round(ln_series[-1], 3)
-        result["hrv_baseline"] = {"ln_mean": round(hrv_z["baseline_mean"], 3), "days": hrv_z["n"]}
+        result["hrv_baseline"] = {
+            "ln_mean": round(hrv_z["baseline_mean"], 3),
+            "days": hrv_z["n"],
+        }
     result["source"] = "rr_derived"
     return result
 
@@ -491,7 +593,9 @@ def hr_zone(bpm: int, max_hr: int = MAX_HR) -> int:
     return 5
 
 
-def bjj_session_analytics(user_id: int, start_iso: str, end_iso: str, max_hr: int | None = None) -> dict:
+def bjj_session_analytics(
+    user_id: int, start_iso: str, end_iso: str, max_hr: int | None = None
+) -> dict:
     """Per-session HR analytics for a BJJ window: time-in-zone, avg/max, and best between-round HR
     recovery (a hard fitness marker that improves as you progress). HR only — HRV is invalid in motion.
     Fields mirror RivaFlow's garmin_* session columns so WHOOP sessions sit beside Garmin. Zones use the
@@ -500,18 +604,20 @@ def bjj_session_analytics(user_id: int, start_iso: str, end_iso: str, max_hr: in
     hr = WhoopRepository.hr_range(user_id, start_iso, end_iso)
     bpms = [h["bpm"] for h in hr if h.get("bpm")]
     if not bpms:
-        return {"available": False,
-                "reason": "No HR captured in this window — reboot the strap before the next session."}
+        return {
+            "available": False,
+            "reason": "No HR captured in this window — reboot the strap before the next session.",
+        }
 
     mx = max_hr or user_max_hr(user_id)["max_hr"]
     zone_secs = {z: 0 for z in range(1, 6)}
     for b in bpms:
-        zone_secs[hr_zone(b, mx)] += 1   # standard-HR stream is ~1 sample/sec
+        zone_secs[hr_zone(b, mx)] += 1  # standard-HR stream is ~1 sample/sec
 
     # Best 60s HR drop after a peak — approximates between-round recovery.
     best_recovery = 0
     for i in range(len(bpms)):
-        window = bpms[i:i + 60]
+        window = bpms[i : i + 60]
         if len(window) >= 30:
             best_recovery = max(best_recovery, window[0] - min(window))
 
@@ -522,7 +628,7 @@ def bjj_session_analytics(user_id: int, start_iso: str, end_iso: str, max_hr: in
         "duration_sec": len(bpms),
         "hr_zone_secs": zone_secs,
         "best_60s_hr_recovery": best_recovery,
-        "protocol_hrr": heart_rate_recovery(bpms),   # B8 — peak → +60s within-person HRR
+        "protocol_hrr": heart_rate_recovery(bpms),  # B8 — peak → +60s within-person HRR
         "samples": len(bpms),
     }
 
@@ -531,7 +637,8 @@ def _resp_rpm(vals: list[int]) -> float | None:
     """Breaths/min from a resting RR series via respiratory sinus arrhythmia: the heart speeds up on inhale
     and slows on exhale, so the resting tachogram oscillates at the breathing frequency. Detrend (subtract a
     centred moving average) and count up-crossings. Returns None if the signal is too short/implausible.
-    ⚠️ Crude RSA estimate (needs-validation; a band-pass upgrade is future work) — down-weighted in readiness."""
+    ⚠️ Crude RSA estimate (needs-validation; a band-pass upgrade is future work) — down-weighted in readiness.
+    """
     if len(vals) < 120:
         return None
     window = 10
@@ -539,7 +646,9 @@ def _resp_rpm(vals: list[int]) -> float | None:
     for i in range(len(vals)):
         lo, hi = max(0, i - window // 2), min(len(vals), i + window // 2 + 1)
         osc.append(vals[i] - sum(vals[lo:hi]) / (hi - lo))
-    breaths = sum(1 for i in range(1, len(osc)) if osc[i - 1] < 0 <= osc[i])   # one up-crossing per breath
+    breaths = sum(
+        1 for i in range(1, len(osc)) if osc[i - 1] < 0 <= osc[i]
+    )  # one up-crossing per breath
     minutes = sum(vals) / 60000.0
     if minutes < 2 or breaths < 4:
         return None
@@ -549,21 +658,30 @@ def _resp_rpm(vals: list[int]) -> float | None:
 
 def respiratory_rate(user_id: int, days: int = 1) -> dict:
     """Today's respiratory rate from the resting RR tachogram (RSA). Oura/WHOOP surface this and it IS
-    computable from the RR we already capture, no extra sensor — but see the needs-validation caveat in _resp_rpm."""
+    computable from the RR we already capture, no extra sensor — but see the needs-validation caveat in _resp_rpm.
+    """
     rr = WhoopRepository.rr_range(user_id, days)
     vals = [int(r["rr_ms"]) for r in rr if r.get("rr_ms") and 667 <= r["rr_ms"] <= 1500]
     clean = assess_rr(vals).cleaned
     rpm = _resp_rpm([int(v) for v in clean])
     if rpm is None:
-        return {"available": False, "reason": "Not enough clean resting RR for a respiratory estimate."}
-    return {"available": True, "respiratory_rate": round(rpm, 1),
-            "minutes": round(sum(clean) / 60000.0, 1), "source": "rr_rsa"}
+        return {
+            "available": False,
+            "reason": "Not enough clean resting RR for a respiratory estimate.",
+        }
+    return {
+        "available": True,
+        "respiratory_rate": round(rpm, 1),
+        "minutes": round(sum(clean) / 60000.0, 1),
+        "source": "rr_rsa",
+    }
 
 
 def daily_respiratory_rate(user_id: int, days: int = 21) -> list[dict]:
     """Per-day resting respiratory rate — the baseline series the B2 readiness blend needs for its
     (down-weighted) resp-rate signal. Gated by the B3 coverage guard (same as HRV) so RR-starved nights are
-    excluded; the estimate itself uses the tighter 667–1500 ms resting band the RSA method needs."""
+    excluded; the estimate itself uses the tighter 667–1500 ms resting band the RSA method needs.
+    """
     by_day = _rr_by_day(user_id, days)
     hr_counts = _hr_count_by_day(user_id, days)
     out: list[dict] = []
@@ -581,18 +699,23 @@ def daily_respiratory_rate(user_id: int, days: int = 21) -> list[dict]:
 def capture_coverage(user_id: int, days: int = 21) -> dict:
     """B3 surface — per-day RR/HR coverage + a coverage-in-days summary for the Data-integrity panel. This is
     the number that governs whether time-baseline builds can trust their baseline. RR is measured separately
-    from HR precisely so a charging-away night (HR backfilled, RR missing) shows up as a gap, not false health."""
+    from HR precisely so a charging-away night (HR backfilled, RR missing) shows up as a gap, not false health.
+    """
     by_day = _rr_by_day(user_id, days)
     hr_counts = _hr_count_by_day(user_id, days)
     all_days = sorted(set(by_day) | set(hr_counts))
-    reports = [assess_coverage(by_day.get(day, []), hr_counts.get(day, 0)) for day in all_days]
+    reports = [
+        assess_coverage(by_day.get(day, []), hr_counts.get(day, 0)) for day in all_days
+    ]
     return {
         "summary": coverage_in_days(reports),
         "days": [{"day": day, **rep.as_dict()} for day, rep in zip(all_days, reports)],
     }
 
 
-def daily_cardio_load(user_id: int, days: int = 7, max_hr: int | None = None) -> list[dict]:
+def daily_cardio_load(
+    user_id: int, days: int = 7, max_hr: int | None = None
+) -> list[dict]:
     """Daily cardio load / strain from HR-zone-weighted minutes (Banister-TRIMP style), hard zones
     weighted exponentially, compressed to a ~0–21 scale (WHOOP-strain feel). Zones use the B1-calibrated
     max-HR (not the 190 fallback), so the strain scale is correct for Ruby."""
@@ -603,12 +726,19 @@ def daily_cardio_load(user_id: int, days: int = 7, max_hr: int | None = None) ->
     for h in hr:
         bpm, ts = h.get("bpm"), h.get("ts")
         if bpm and ts:
-            by_day[_local_day(ts)] += zone_weight[hr_zone(int(bpm), mx)] / 60.0   # ~1 sample/s → per-minute
+            by_day[_local_day(ts)] += (
+                zone_weight[hr_zone(int(bpm), mx)] / 60.0
+            )  # ~1 sample/s → per-minute
     out = []
     for day in sorted(by_day):
         raw = by_day[day]
-        out.append({"day": day, "cardio_load": round(min(21.0, 6.0 * log1p(raw / 20.0)), 1),
-                    "raw_trimp": round(raw, 1)})
+        out.append(
+            {
+                "day": day,
+                "cardio_load": round(min(21.0, 6.0 * log1p(raw / 20.0)), 1),
+                "raw_trimp": round(raw, 1),
+            }
+        )
     return out
 
 
@@ -620,9 +750,17 @@ def today_stress(user_id: int, max_hr: int | None = None) -> dict:
     bpms = [int(h["bpm"]) for h in recent if h.get("bpm")]
     rhr_list = daily_resting_hr(user_id, days=3)
     if not bpms or not rhr_list:
-        return {"available": False, "reason": "Not enough recent HR for a stress estimate."}
+        return {
+            "available": False,
+            "reason": "Not enough recent HR for a stress estimate.",
+        }
     mx = max_hr or user_max_hr(user_id)["max_hr"]
     rest = rhr_list[-1]["resting_hr"]
     cur = mean(bpms[-60:]) if len(bpms) >= 60 else mean(bpms)
     stress = max(0, min(100, round((cur - rest) / max(1, mx - rest) * 100)))
-    return {"available": True, "stress": stress, "current_hr": round(cur), "resting_hr": rest}
+    return {
+        "available": True,
+        "stress": stress,
+        "current_hr": round(cur),
+        "resting_hr": rest,
+    }

@@ -149,4 +149,4 @@ class ApiKeyRepository(BaseRepository):
                     """),
                 (api_key_id, user_id),
             )
-            return cursor.rowcount > 0
+            return bool(cursor.rowcount and cursor.rowcount > 0)

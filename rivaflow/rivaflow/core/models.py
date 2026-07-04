@@ -143,15 +143,21 @@ class SessionCreate(BaseModel):
         default=None, ge=0, le=250, description="Maximum heart rate during session"
     )
     # Garmin per-session biometrics (matched from the Garmin activity)
-    garmin_activity_type: str | None = Field(default=None, description="Garmin activity type")
-    garmin_activity_name: str | None = Field(default=None, description="Garmin activity name")
+    garmin_activity_type: str | None = Field(
+        default=None, description="Garmin activity type"
+    )
+    garmin_activity_name: str | None = Field(
+        default=None, description="Garmin activity name"
+    )
     garmin_avg_hr: int | None = Field(default=None, ge=0, le=250)
     garmin_max_hr: int | None = Field(default=None, ge=0, le=250)
     garmin_calories: int | None = Field(default=None, ge=0)
     garmin_duration_min: float | None = Field(default=None, ge=0)
     garmin_aerobic_te: float | None = Field(default=None, ge=0, le=5)
     garmin_anaerobic_te: float | None = Field(default=None, ge=0, le=5)
-    garmin_te_label: str | None = Field(default=None, description="Garmin training-effect label")
+    garmin_te_label: str | None = Field(
+        default=None, description="Garmin training-effect label"
+    )
     garmin_training_load: float | None = Field(default=None, ge=0)
     garmin_hr_z1_sec: float | None = Field(default=None, ge=0)
     garmin_hr_z2_sec: float | None = Field(default=None, ge=0)

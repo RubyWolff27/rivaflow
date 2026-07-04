@@ -20,7 +20,9 @@ from rivaflow.core.rr_quality import (
 
 def test_clean_series_no_artifacts():
     """A steady physiological series passes untouched at 0% artifact and is usable."""
-    series = [900 + (i % 5) for i in range(60)]  # small physiological jitter, all in-band, all <20% jumps
+    series = [
+        900 + (i % 5) for i in range(60)
+    ]  # small physiological jitter, all in-band, all <20% jumps
     q = assess_rr(series)
     assert q.n_flagged == 0
     assert q.artifact_pct == 0.0
@@ -32,7 +34,9 @@ def test_clean_series_no_artifacts():
 def test_bradycardia_beats_are_kept():
     """A trained athlete's slow nocturnal beats (RR up to ~1600 ms / ~37 bpm) must survive — the old
     1500 ms ceiling clipped them and biased RMSSD downward."""
-    series = [1550 + (i % 3) for i in range(40)]  # ~38-39 bpm, above the old 1500 ms cap, inside the new band
+    series = [
+        1550 + (i % 3) for i in range(40)
+    ]  # ~38-39 bpm, above the old 1500 ms cap, inside the new band
     q = assess_rr(series)
     assert RR_MIN_MS <= 1550 <= RR_MAX_MS
     assert q.n_flagged == 0
@@ -41,12 +45,17 @@ def test_bradycardia_beats_are_kept():
 
 def test_relative_filter_catches_ectopic_the_absolute_filter_missed():
     """A single ectopic beat jumps ~300 ms — under the old absolute 400 ms drop it slipped through and
-    inflated RMSSD. The Malik relative (>20%) filter flags it and interpolation repairs it."""
+    inflated RMSSD. The Malik relative (>20%) filter flags it and interpolation repairs it.
+    """
     series = [800] * 30
-    series[15] = 1150  # +350 ms = +43% jump; passes |diff|<400 but fails the 20% relative test
+    series[15] = (
+        1150  # +350 ms = +43% jump; passes |diff|<400 but fails the 20% relative test
+    )
     q = assess_rr(series)
     assert q.n_flagged == 1
-    assert 15 in q.corrected_idx or any(abs(v - 800) < 1 for v in [q.cleaned[i] for i in q.corrected_idx])
+    assert 15 in q.corrected_idx or any(
+        abs(v - 800) < 1 for v in [q.cleaned[i] for i in q.corrected_idx]
+    )
     # interpolated between two 800s → back to 800, so RMSSD collapses to ~0
     assert rmssd(q.cleaned) == pytest.approx(0.0, abs=1e-6)
 
@@ -56,7 +65,9 @@ def test_out_of_band_flagged_as_artifact():
     series = [850] * 20 + [200] + [850] * 20  # 200 ms = 300 bpm, impossible
     q = assess_rr(series)
     assert q.n_flagged == 1
-    assert q.cleaned[20] == pytest.approx(850, abs=1e-6)  # interpolated back to neighbours
+    assert q.cleaned[20] == pytest.approx(
+        850, abs=1e-6
+    )  # interpolated back to neighbours
 
 
 def test_artifact_pct_and_usability_gate():
@@ -74,7 +85,9 @@ def test_edge_flagged_run_is_dropped_not_fabricated():
     series = [300, 300] + [850] * 40  # leading artifacts, no prior valid beat
     q = assess_rr(series)
     assert q.n_flagged == 2
-    assert len(q.cleaned) == 40  # the two leading artifacts are dropped, not interpolated
+    assert (
+        len(q.cleaned) == 40
+    )  # the two leading artifacts are dropped, not interpolated
     assert q.corrected_idx == []
 
 
@@ -104,8 +117,8 @@ def test_rmssd_none_on_too_few():
 
 def test_relative_threshold_boundary():
     """A jump of exactly the threshold is kept; just over it is flagged."""
-    at = 800 * (1 + MALIK_REL_THRESHOLD)          # exactly +20% → kept
-    over = 800 * (1 + MALIK_REL_THRESHOLD) + 5    # just over → flagged
+    at = 800 * (1 + MALIK_REL_THRESHOLD)  # exactly +20% → kept
+    over = 800 * (1 + MALIK_REL_THRESHOLD) + 5  # just over → flagged
     assert assess_rr([800, at, 800]).n_flagged == 0
     assert assess_rr([800, over, 800]).n_flagged == 1
 

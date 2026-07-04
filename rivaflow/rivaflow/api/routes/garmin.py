@@ -26,7 +26,9 @@ router = APIRouter(prefix="/garmin", tags=["garmin"])
 
 
 @router.post("/daily")
-@route_error_handler("garmin_daily_ingest", detail="Failed to ingest Garmin daily metrics")
+@route_error_handler(
+    "garmin_daily_ingest", detail="Failed to ingest Garmin daily metrics"
+)
 def ingest_daily(
     payload: GarminDailyIngest,
     current_user: dict = Depends(get_current_user),

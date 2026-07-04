@@ -16,7 +16,7 @@ def test_vo2max_is_banded_not_a_point():
 
 def test_vo2max_rejects_bad_inputs():
     assert passive_vo2max(0, 50)["available"] is False
-    assert passive_vo2max(150, 160)["available"] is False   # max below rest
+    assert passive_vo2max(150, 160)["available"] is False  # max below rest
 
 
 def test_cardio_age_proxy_is_flagged_proxy():
@@ -33,5 +33,5 @@ def test_fitter_reads_younger():
 
 
 def test_cardio_age_clamped():
-    r = cardio_age_proxy(vo2max=90, age=44)   # very fit → clamped at 18
+    r = cardio_age_proxy(vo2max=90, age=44)  # very fit → clamped at 18
     assert r["cardio_age_proxy"] >= 18

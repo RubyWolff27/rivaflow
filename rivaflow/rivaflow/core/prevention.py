@@ -21,7 +21,7 @@ from statistics import median
 
 AMBER_Z = 1.5
 RED_Z = 2.0
-MAD_SCALE = 1.4826   # scales MAD to a normal-consistent SD estimate
+MAD_SCALE = 1.4826  # scales MAD to a normal-consistent SD estimate
 
 # Which family each signal belongs to (co-occurrence counts families, not signals).
 SIGNAL_FAMILY = {
@@ -31,16 +31,25 @@ SIGNAL_FAMILY = {
     "resp_rate": "respiratory",
 }
 # Direction in which the signal indicates strain/worsening.
-WORSE_WHEN = {"rhr": "high", "sleeping_hr": "high", "lnrmssd": "low", "resp_rate": "high"}
+WORSE_WHEN = {
+    "rhr": "high",
+    "sleeping_hr": "high",
+    "lnrmssd": "low",
+    "resp_rate": "high",
+}
 
 GREEN_CAVEAT = (
     "No deviation in the signals I can measure (HR, HRV, breathing) — I'm blind to temperature and blood "
     "oxygen, so trust your symptoms over a green light."
 )
-AMBER_COPY = ("Your autonomics are working harder than your baseline — could be illness, training, alcohol, "
-              "heat, or poor sleep. Ease today and watch.")
-RED_COPY = ("Strong multi-signal deviation from your baseline — rest and recover. This is not a diagnosis; "
-            "if you feel unwell, see a clinician.")
+AMBER_COPY = (
+    "Your autonomics are working harder than your baseline — could be illness, training, alcohol, "
+    "heat, or poor sleep. Ease today and watch."
+)
+RED_COPY = (
+    "Strong multi-signal deviation from your baseline — rest and recover. This is not a diagnosis; "
+    "if you feel unwell, see a clinician."
+)
 
 
 def mad(values: list[float], med: float | None = None) -> float:
@@ -68,12 +77,17 @@ def robust_z(value: float, median_: float, mad_: float, worse_when: str) -> floa
     return z if worse_when == "high" else -z
 
 
-def evaluate_prevention(readings: dict[str, dict], today_is_sabbath: bool = False) -> dict:
+def evaluate_prevention(
+    readings: dict[str, dict], today_is_sabbath: bool = False
+) -> dict:
     """Fuse per-signal readings into a tier. `readings` maps signal name → {value, median, mad}; include only
     signals that have a baseline. Deterministic and DB-free. Sabbath does NOT silence this — it is the safety
     channel."""
     if "lnrmssd" not in readings and len(readings) < 2:
-        return {"available": False, "reason": "Building baselines — need more covered days."}
+        return {
+            "available": False,
+            "reason": "Building baselines — need more covered days.",
+        }
 
     family_worse: dict[str, float] = {}
     drivers: list[dict] = []
@@ -83,8 +97,14 @@ def evaluate_prevention(readings: dict[str, dict], today_is_sabbath: bool = Fals
         wz = robust_z(r["value"], r["median"], r["mad"], WORSE_WHEN[name])
         fam = SIGNAL_FAMILY[name]
         family_worse[fam] = max(family_worse.get(fam, float("-inf")), wz)
-        drivers.append({"signal": name, "family": fam, "worse_z": round(wz, 2),
-                        "flagged": wz >= AMBER_Z})
+        drivers.append(
+            {
+                "signal": name,
+                "family": fam,
+                "worse_z": round(wz, 2),
+                "flagged": wz >= AMBER_Z,
+            }
+        )
 
     flagged_families = [f for f, z in family_worse.items() if z >= AMBER_Z]
     strong_families = [f for f, z in family_worse.items() if z >= RED_Z]
@@ -96,13 +116,19 @@ def evaluate_prevention(readings: dict[str, dict], today_is_sabbath: bool = Fals
     elif len(flagged_families) >= 2:
         tier, channel, headline, caveat = "amber", "safety", AMBER_COPY, None
     else:
-        tier, channel, headline, caveat = "green", "neutral", "In range across the signals I can measure.", GREEN_CAVEAT
+        tier, channel, headline, caveat = (
+            "green",
+            "neutral",
+            "In range across the signals I can measure.",
+            GREEN_CAVEAT,
+        )
 
     return {
         "available": True,
         "tier": tier,
         "channel": channel,
-        "fires_on_sabbath": channel == "safety",   # amber/red are safety → fire Sunday; green is neutral
+        "fires_on_sabbath": channel
+        == "safety",  # amber/red are safety → fire Sunday; green is neutral
         "headline": headline,
         "caveat": caveat,
         "flagged_families": flagged_families,
