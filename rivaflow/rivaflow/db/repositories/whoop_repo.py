@@ -220,3 +220,51 @@ class WhoopRepository:
             ),
             (user_id,),
         )
+
+    # ── Journal tags (P1 — Capture & Labels) ─────────────────────────────
+    # A tag marks that something happened on a local day (alcohol, late-training, ill, poor-sleep,
+    # travel, sabbath-rest). Feeds B11 behaviour correlation + the B6 validation gate ("ill" = onset).
+
+    @staticmethod
+    def add_tag(user_id: int, day: str, tag: str) -> int:
+        """Idempotent add of one (day, tag) for a user."""
+        return WhoopRepository._insert_ignore(
+            "INSERT INTO whoop_tags (user_id, day, tag) VALUES (?, ?, ?) "
+            "ON CONFLICT (user_id, day, tag) DO NOTHING",
+            [(user_id, day, tag)],
+        )
+
+    @staticmethod
+    def list_tags(
+        user_id: int, start: str | None = None, end: str | None = None
+    ) -> list[dict]:
+        """Tags for a user, optionally bounded to [start, end] local days (newest first)."""
+        query = "SELECT day, tag, created_at FROM whoop_tags WHERE user_id = ?"
+        params: list = [user_id]
+        if start:
+            query += " AND day >= ?"
+            params.append(start)
+        if end:
+            query += " AND day <= ?"
+            params.append(end)
+        query += " ORDER BY day DESC, tag"
+        return BaseRepository._fetchall(convert_query(query), tuple(params))
+
+    @staticmethod
+    def remove_tag(user_id: int, day: str, tag: str) -> None:
+        """Delete one (day, tag) for a user."""
+        BaseRepository._execute(
+            convert_query(
+                "DELETE FROM whoop_tags WHERE user_id = ? AND day = ? AND tag = ?"
+            ),
+            (user_id, day, tag),
+        )
+
+    @staticmethod
+    def tagged_days(user_id: int, tag: str) -> set[str]:
+        """The set of 'YYYY-MM-DD' local days carrying `tag` — the shape analytics consume."""
+        rows = BaseRepository._fetchall(
+            convert_query("SELECT day FROM whoop_tags WHERE user_id = ? AND tag = ?"),
+            (user_id, tag),
+        )
+        return {str(r["day"])[:10] for r in rows}

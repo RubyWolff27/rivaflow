@@ -380,6 +380,25 @@ def prevention_validation(
     }
 
 
+def illness_dates(user_id: int) -> set[str]:
+    """The user's 'ill' journal tags — the illness-onset labels the B6 validation gate scores against (P1)."""
+    return WhoopRepository.tagged_days(user_id, "ill")
+
+
+def prevention_validation_live(user_id: int, days: int = 45) -> dict:
+    """B6 validation using the real 'ill' tags from the journal (P1). With nothing tagged yet the gate
+    reports that honestly (no onsets → fails → engine stays watch-only)."""
+    return prevention_validation(user_id, illness_dates(user_id), days=days)
+
+
+def behaviour_for_tag(user_id: int, tag: str, days: int = 60) -> dict:
+    """B11 — behaviour correlation using the real journal tags (P1): tagged nights vs untagged nights on
+    lnRMSSD, now that the tagging path exists to feed WhoopRepository.tagged_days."""
+    return behaviour_correlation(
+        user_id, tag, WhoopRepository.tagged_days(user_id, tag), days=days
+    )
+
+
 def behaviour_correlation(
     user_id: int, tag: str, tagged_days: set[str], days: int = 60
 ) -> dict:

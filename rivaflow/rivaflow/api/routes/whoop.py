@@ -154,6 +154,44 @@ def capture_health(current_user: dict = Depends(get_current_user)) -> dict:
     return {"latest": latest}
 
 
+class TagCreate(BaseModel):
+    """A journal tag for one local day (P1 — Capture & Labels)."""
+
+    day: str = Field(..., description="Local day 'YYYY-MM-DD'")
+    tag: str = Field(..., min_length=1, max_length=64)
+
+
+@router.post("/tag")
+@route_error_handler("whoop_add_tag", detail="Failed to add tag")
+def add_tag_endpoint(
+    req: TagCreate, current_user: dict = Depends(get_current_user)
+) -> dict:
+    """Tag a local day (alcohol, late-training, ill, poor-sleep, travel, sabbath-rest…). Idempotent.
+    Feeds B11 behaviour correlation and the B6 validation gate (an 'ill' tag is an illness-onset label).
+    """
+    WhoopRepository.add_tag(current_user["id"], req.day, req.tag)
+    return {"added": {"day": req.day, "tag": req.tag}}
+
+
+@router.get("/tags")
+@route_error_handler("whoop_list_tags", detail="Failed to list tags")
+def list_tags_endpoint(
+    start: str = "", end: str = "", current_user: dict = Depends(get_current_user)
+) -> list[dict]:
+    """List the user's tags, optionally bounded to [start, end] local days."""
+    return WhoopRepository.list_tags(current_user["id"], start or None, end or None)
+
+
+@router.delete("/tag")
+@route_error_handler("whoop_remove_tag", detail="Failed to remove tag")
+def remove_tag_endpoint(
+    day: str, tag: str, current_user: dict = Depends(get_current_user)
+) -> dict:
+    """Remove one (day, tag)."""
+    WhoopRepository.remove_tag(current_user["id"], day, tag)
+    return {"removed": {"day": day, "tag": tag}}
+
+
 # ── Read + analytics (Phase 2 / shared access: RivaFlow UI, health dashboard, LLM/MCP) ──
 
 
@@ -324,10 +362,29 @@ def prevention_validate_endpoint(
     """B6 validation & tuning gate — backtest the engine against retrospectively-tagged illness onsets and
     score it vs the acceptance target. ?onsets=YYYY-MM-DD,YYYY-MM-DD (from the journal/tagging path).
     """
-    from rivaflow.core.whoop_analytics import prevention_validation
+    from rivaflow.core.whoop_analytics import (
+        prevention_validation,
+        prevention_validation_live,
+    )
 
     dates = {d.strip() for d in onsets.split(",") if d.strip()}
-    return prevention_validation(current_user["id"], dates)
+    if dates:
+        return prevention_validation(current_user["id"], dates)
+    # No explicit onsets → use the real 'ill' journal tags (P1).
+    return prevention_validation_live(current_user["id"])
+
+
+@router.get("/behaviour")
+@route_error_handler(
+    "whoop_behaviour", detail="Failed to compute behaviour correlation"
+)
+def behaviour_endpoint(
+    tag: str, current_user: dict = Depends(get_current_user)
+) -> dict:
+    """B11 — effect of a tagged behaviour on lnRMSSD (tagged nights vs untagged), from the journal tags."""
+    from rivaflow.core.whoop_analytics import behaviour_for_tag
+
+    return behaviour_for_tag(current_user["id"], tag)
 
 
 @router.get("/hrv-lab")
