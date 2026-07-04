@@ -15,13 +15,24 @@ from statistics import mean
 from zoneinfo import ZoneInfo
 
 from rivaflow.core.coverage import assess_coverage, coverage_in_days
+from rivaflow.core.max_hr import calibrate_max_hr
 from rivaflow.core.readiness import blend_readiness, zscore
 from rivaflow.core.rr_quality import assess_rr, ln_rmssd, rmssd
 from rivaflow.db.repositories.whoop_repo import WhoopRepository
 
 # Ruby's profile-tuned constants
-MAX_HR = 190                      # HR-zone ceiling (44yo; refine from measured max later)
+RUBY_AGE = 44                     # TODO(profile): derive from DOB 1982-05-27 once wired to the profile repo
+MAX_HR = 190                      # FALLBACK ONLY — real ceiling comes from user_max_hr() (B1). Kept so
+                                  # hr_zone() has a default; a ~30yo value, ~13 bpm above Ruby's ~177.
 READINESS_MIN_BASELINE_DAYS = 5   # cold-start guard before a score is meaningful
+
+
+def user_max_hr(user_id: int, days: int = 90) -> dict:
+    """B1 — Ruby's calibrated max-HR from recent HR: artifact-rejected sustained plateau, Tanaka sanity band,
+    sub-maximal floor flag, uncertainty band. Everything zone/strain/stress derived should use this, not the
+    MAX_HR fallback. Falls back to the age-predicted value when there isn't enough near-max effort captured."""
+    hr = [int(h["bpm"]) for h in WhoopRepository.recent_hr(user_id, hours=days * 24) if h.get("bpm")]
+    return calibrate_max_hr(hr, RUBY_AGE)
 
 # Ruby is Melbourne-based. All day-bucketing + display use his local day, not UTC (which would split the
 # day at ~10am and skew daily HRV/resting-HR). TODO(travel): switch to the device-reported tz per-ingest.
@@ -137,9 +148,10 @@ def whoop_summary(user_id: int, today_is_sabbath: bool = False) -> dict:
     fetches THIS and just renders it — no client-side compute. Readiness, HRV, resting HR, sleep (+quality),
     respiratory rate, cardio load/strain, and stress — benchmarked against WHOOP/Oura/Hume, all from the
     HR+RR we already capture."""
+    max_hr = user_max_hr(user_id)                 # B1 — compute once, thread into every HR-zone consumer
     hrv = daily_resting_rmssd(user_id, days=14)
     rhr = daily_resting_hr(user_id, days=14)
-    cardio = daily_cardio_load(user_id, days=7)
+    cardio = daily_cardio_load(user_id, days=7, max_hr=max_hr["max_hr"])
     sleep = nightly_sleep(user_id)
     if sleep.get("available"):
         # Simple quality score vs Ruby's >9h sleep-need (DNA): duration is the dominant driver.
@@ -154,8 +166,9 @@ def whoop_summary(user_id: int, today_is_sabbath: bool = False) -> dict:
         "respiratory_rate": respiratory_rate(user_id),
         "cardio_load_today": cardio[-1] if cardio else None,
         "cardio_load_trend": cardio,
-        "stress": today_stress(user_id),
+        "stress": today_stress(user_id, max_hr=max_hr["max_hr"]),
         "coverage": capture_coverage(user_id, days=21),
+        "max_hr": max_hr,
     }
 
 
@@ -258,10 +271,11 @@ def hr_zone(bpm: int, max_hr: int = MAX_HR) -> int:
     return 5
 
 
-def bjj_session_analytics(user_id: int, start_iso: str, end_iso: str) -> dict:
+def bjj_session_analytics(user_id: int, start_iso: str, end_iso: str, max_hr: int | None = None) -> dict:
     """Per-session HR analytics for a BJJ window: time-in-zone, avg/max, and best between-round HR
     recovery (a hard fitness marker that improves as you progress). HR only — HRV is invalid in motion.
-    Fields mirror RivaFlow's garmin_* session columns so WHOOP sessions sit beside Garmin.
+    Fields mirror RivaFlow's garmin_* session columns so WHOOP sessions sit beside Garmin. Zones use the
+    B1-calibrated max-HR (not the 190 fallback).
     """
     hr = WhoopRepository.hr_range(user_id, start_iso, end_iso)
     bpms = [h["bpm"] for h in hr if h.get("bpm")]
@@ -269,9 +283,10 @@ def bjj_session_analytics(user_id: int, start_iso: str, end_iso: str) -> dict:
         return {"available": False,
                 "reason": "No HR captured in this window — reboot the strap before the next session."}
 
+    mx = max_hr or user_max_hr(user_id)["max_hr"]
     zone_secs = {z: 0 for z in range(1, 6)}
     for b in bpms:
-        zone_secs[hr_zone(b)] += 1   # standard-HR stream is ~1 sample/sec
+        zone_secs[hr_zone(b, mx)] += 1   # standard-HR stream is ~1 sample/sec
 
     # Best 60s HR drop after a peak — approximates between-round recovery.
     best_recovery = 0
@@ -356,16 +371,18 @@ def capture_coverage(user_id: int, days: int = 21) -> dict:
     }
 
 
-def daily_cardio_load(user_id: int, days: int = 7) -> list[dict]:
+def daily_cardio_load(user_id: int, days: int = 7, max_hr: int | None = None) -> list[dict]:
     """Daily cardio load / strain from HR-zone-weighted minutes (Banister-TRIMP style), hard zones
-    weighted exponentially, compressed to a ~0–21 scale (WHOOP-strain feel). From the HR we capture."""
+    weighted exponentially, compressed to a ~0–21 scale (WHOOP-strain feel). Zones use the B1-calibrated
+    max-HR (not the 190 fallback), so the strain scale is correct for Ruby."""
     hr = WhoopRepository.recent_hr(user_id, hours=days * 24)
+    mx = max_hr or user_max_hr(user_id)["max_hr"]
     zone_weight = {1: 1, 2: 2, 3: 4, 4: 8, 5: 16}
     by_day: dict[str, float] = defaultdict(float)
     for h in hr:
         bpm, ts = h.get("bpm"), h.get("ts")
         if bpm and ts:
-            by_day[_local_day(ts)] += zone_weight[hr_zone(int(bpm))] / 60.0   # ~1 sample/s → per-minute
+            by_day[_local_day(ts)] += zone_weight[hr_zone(int(bpm), mx)] / 60.0   # ~1 sample/s → per-minute
     out = []
     for day in sorted(by_day):
         raw = by_day[day]
@@ -374,15 +391,17 @@ def daily_cardio_load(user_id: int, days: int = 7) -> list[dict]:
     return out
 
 
-def today_stress(user_id: int) -> dict:
+def today_stress(user_id: int, max_hr: int | None = None) -> dict:
     """Light stress proxy: how elevated recent HR sits within the HR reserve above resting (0–100).
-    WHOOP/Hume blend HRV+HR; this HR-elevation version is honest and always-available."""
+    WHOOP/Hume blend HRV+HR; this HR-elevation version is honest and always-available. Reserve uses the
+    B1-calibrated max-HR (not the 190 fallback)."""
     recent = WhoopRepository.recent_hr(user_id, hours=1)
     bpms = [int(h["bpm"]) for h in recent if h.get("bpm")]
     rhr_list = daily_resting_hr(user_id, days=3)
     if not bpms or not rhr_list:
         return {"available": False, "reason": "Not enough recent HR for a stress estimate."}
+    mx = max_hr or user_max_hr(user_id)["max_hr"]
     rest = rhr_list[-1]["resting_hr"]
     cur = mean(bpms[-60:]) if len(bpms) >= 60 else mean(bpms)
-    stress = max(0, min(100, round((cur - rest) / max(1, MAX_HR - rest) * 100)))
+    stress = max(0, min(100, round((cur - rest) / max(1, mx - rest) * 100)))
     return {"available": True, "stress": stress, "current_hr": round(cur), "resting_hr": rest}
