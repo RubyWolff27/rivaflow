@@ -36,7 +36,16 @@ from rivaflow.core.rr_quality import assess_rr, clean_segments, ln_rmssd, rmssd
 from rivaflow.core.sleep_metrics import sleep_debt, sleep_regularity
 from rivaflow.core.strain_target import prescribe_strain
 from rivaflow.core.training_load import acwr, heart_rate_recovery, recovery_cost
-from rivaflow.core.whoop_cockpit import render_cockpit_page, render_recovery_load
+from rivaflow.core.whoop_cockpit import (
+    render_behaviour,
+    render_cockpit_page,
+    render_data_integrity,
+    render_hrv_lab,
+    render_prevention_log,
+    render_recovery_load,
+    render_sleep,
+    render_trends,
+)
 from rivaflow.core.whoop_digest import compile_digest
 from rivaflow.db.repositories.whoop_repo import WhoopRepository
 
@@ -463,7 +472,31 @@ def cockpit_page(user_id: int) -> str:
     acwr_data = training_acwr(user_id)
     cardio = daily_cardio_load(user_id, days=28, max_hr=mx)
     rec_cost = recovery_cost_coupling(user_id)
-    panels = render_recovery_load(readiness, strain, acwr_data, cardio, rec_cost)
+
+    # Behaviour effects for each distinct tag the user has journalled (P3.4).
+    tags = sorted({t["tag"] for t in WhoopRepository.list_tags(user_id)})
+    effects = [behaviour_for_tag(user_id, t) for t in tags]
+
+    panels = "".join(
+        [
+            render_recovery_load(
+                readiness, strain, acwr_data, cardio, rec_cost
+            ),  # P3.1
+            render_hrv_lab(hrv_lab(user_id), dfa_analysis(user_id)),  # P3.2
+            render_data_integrity(capture_coverage(user_id)),  # P3.2
+            render_sleep(sleep_analysis(user_id)),  # P3.3
+            render_trends(  # P3.3
+                longevity_metrics(user_id),
+                resilience_metrics(user_id),
+                circadian_rhythm(user_id),
+                period_assessment_for(user_id, "week", 7),
+            ),
+            render_prevention_log(  # P3.4
+                prevention_log(user_id), prevention_watch(user_id)
+            ),
+            render_behaviour(effects),  # P3.4
+        ]
+    )
     return render_cockpit_page(panels)
 
 
