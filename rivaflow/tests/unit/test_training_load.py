@@ -6,7 +6,6 @@ import pytest
 
 from rivaflow.core.training_load import acwr, heart_rate_recovery, recovery_cost
 
-
 # --- B7 ACWR --------------------------------------------------------------
 
 def test_acwr_needs_chronic_window():

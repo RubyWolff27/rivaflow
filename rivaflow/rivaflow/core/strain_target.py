@@ -35,6 +35,7 @@ def prescribe_strain(state: str | None, chronic_load: float | None, acute_load: 
                   else "Building your baseline — no strain target yet.")
         return {"available": False, "state": state, "reason": reason}
 
+    assert state is not None   # narrowed by the NO_TARGET_STATES guard above
     mult = STATE_MULTIPLIER.get(state)
     if mult is None:
         return {"available": False, "state": state, "reason": f"No strain policy for state '{state}'."}

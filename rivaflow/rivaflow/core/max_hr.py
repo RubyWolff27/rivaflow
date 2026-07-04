@@ -65,7 +65,7 @@ def calibrate_max_hr(hr_samples: list[int], age: float, plateau_sec: int = DEFAU
     if observed is not None and observed >= tanaka:
         estimate = float(observed)
         source, floor = "observed_sustained", False
-        band = (observed - OBSERVED_BAND, observed + OBSERVED_BAND)
+        band = (float(observed - OBSERVED_BAND), float(observed + OBSERVED_BAND))
         note = "Observed sustained max at/above age-predicted — using the measured value."
     else:
         estimate = tanaka

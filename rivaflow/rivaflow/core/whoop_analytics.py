@@ -319,14 +319,14 @@ def circadian_rhythm(user_id: int, days: int = 3) -> dict:
         if h.get("bpm") and h.get("ts"):
             dt = _parse_ts(str(h["ts"])).astimezone(LOCAL_TZ)
             hours.append(dt.hour + dt.minute / 60.0)
-            vals.append(int(h["bpm"]))
+            vals.append(float(h["bpm"]))
     return cosinor(hours, vals)
 
 
 def dfa_analysis(user_id: int, days: int = 2) -> dict:
     """B18 — DFA α1 on the longest clean resting segment. Experimental; suppressed above ~3% artifact."""
     rr = [int(r["rr_ms"]) for r in WhoopRepository.rr_range(user_id, days) if r.get("rr_ms")]
-    resting = [v for v in rr if 667 <= v <= 1500]
+    resting: list[float] = [float(v) for v in rr if 667 <= v <= 1500]
     segments = clean_segments(resting, min_len=64)
     if not segments:
         return {"available": False, "reason": "No clean segment long enough for DFA yet."}

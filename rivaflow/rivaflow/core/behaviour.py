@@ -20,7 +20,7 @@ def cohens_d(a: list[float], b: list[float]) -> float | None:
     pooled = (((na - 1) * va + (nb - 1) * vb) / (na + nb - 2)) ** 0.5
     if pooled == 0:
         return None
-    return (mean(a) - mean(b)) / pooled
+    return float((mean(a) - mean(b)) / pooled)
 
 
 def _magnitude(d: float) -> str:
