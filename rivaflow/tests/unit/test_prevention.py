@@ -5,16 +5,20 @@ from __future__ import annotations
 from math import log
 
 from rivaflow.core.prevention import (
+    CUSUM_H,
     GREEN_CAVEAT,
+    cusum_positive,
     evaluate_prevention,
     mad,
     robust_baseline,
     robust_z,
+    slow_drift,
+    validate_engine,
 )
 
 
-def _r(value, median, mad):
-    return {"value": value, "median": median, "mad": mad}
+def _r(value, median, mad, **extra):
+    return {"value": value, "median": median, "mad": mad, **extra}
 
 
 # --- baseline primitives --------------------------------------------------
@@ -129,3 +133,131 @@ def test_drivers_sorted_and_never_diagnostic():
     assert zs == sorted(zs, reverse=True)
     assert r["diagnostic"] is False
     assert "not disease" in r["note"]
+
+
+# --- CUSUM (sustained drift) ---------------------------------------------
+
+
+def test_cusum_accumulates_sustained_drift():
+    # sustained +1.0 worse-z each day (above slack 0.5) accumulates and breaches
+    s = cusum_positive([1.0] * 10)
+    assert s >= CUSUM_H
+
+
+def test_cusum_ignores_small_noise():
+    # deviations under the slack never accumulate
+    assert cusum_positive([0.3, -0.2, 0.4, 0.1, -0.3]) == 0.0
+
+
+def test_cusum_breach_needs_second_family_for_amber():
+    """A CUSUM breach in ONE family still can't fire alone (≥2 families rule)."""
+    r = evaluate_prevention(
+        {
+            "rhr": _r(50, 50, 2, cusum=10.0),  # nocturnal_hr family: CUSUM breached
+            "lnrmssd": _r(log(50), log(50), 0.1),  # vagal: in range
+        }
+    )
+    assert r["tier"] == "green"
+
+
+def test_cusum_breach_two_families_is_amber():
+    r = evaluate_prevention(
+        {
+            "rhr": _r(50, 50, 2, cusum=10.0),  # nocturnal_hr breach
+            "lnrmssd": _r(log(50), log(50), 0.1, cusum=10.0),  # vagal breach
+        }
+    )
+    assert r["tier"] == "amber"
+    assert set(r["flagged_families"]) == {"nocturnal_hr", "vagal"}
+
+
+def test_cusum_does_not_escalate_to_red():
+    """CUSUM/drift escalate only to amber; red stays acute-z only."""
+    r = evaluate_prevention(
+        {
+            "rhr": _r(50, 50, 2, cusum=99.0),
+            "lnrmssd": _r(log(50), log(50), 0.1, cusum=99.0),
+        }
+    )
+    assert r["tier"] == "amber"
+
+
+# --- slow-drift guard -----------------------------------------------------
+
+
+def test_slow_drift_flags_worsening_rhr():
+    # short median well above the long reference (rising RHR = worse)
+    assert slow_drift(58, 50, 2, "high") is True
+
+
+def test_slow_drift_ignores_improvement():
+    assert slow_drift(46, 50, 2, "high") is False
+
+
+def test_slow_drift_direction_for_lnrmssd():
+    # falling lnRMSSD (low) is worse → drift True
+    assert slow_drift(3.6, 3.9, 0.1, "low") is True
+
+
+def test_drift_flag_contributes_to_family():
+    r = evaluate_prevention(
+        {
+            "rhr": _r(50, 50, 2, drift=True),
+            "lnrmssd": _r(log(50), log(50), 0.1, drift=True),
+        }
+    )
+    assert r["tier"] == "amber"
+
+
+# --- fourth signal (sleeping_hr) ------------------------------------------
+
+
+def test_sleeping_hr_shares_nocturnal_family():
+    """RHR + sleeping-HR are one family; both flagged is still a single perturbation → green."""
+    r = evaluate_prevention(
+        {
+            "rhr": _r(56, 50, 2),
+            "sleeping_hr": _r(60, 54, 2),
+            "lnrmssd": _r(log(50), log(50), 0.1),
+        }
+    )
+    assert r["flagged_families"] == ["nocturnal_hr"]
+    assert r["tier"] == "green"
+
+
+# --- validation / tuning gate --------------------------------------------
+
+
+def _tl(days_tiers):
+    return [{"day": d, "tier": t} for d, t in days_tiers]
+
+
+def test_validate_engine_pass():
+    # amber the day before each of 2 onsets, no false ambers
+    timeline = _tl(
+        [
+            ("2026-06-01", "green"),
+            ("2026-06-02", "amber"),
+            ("2026-06-03", "green"),
+            ("2026-06-09", "amber"),
+            ("2026-06-10", "green"),
+        ]
+        + [(f"2026-06-{d:02d}", "green") for d in range(11, 25)]
+    )
+    r = validate_engine(timeline, {"2026-06-03", "2026-06-10"})
+    assert r["onsets_detected"] == 2
+    assert r["false_ambers"] == 0
+    assert r["passes"] is True
+
+
+def test_validate_engine_fails_on_false_ambers():
+    # many ambers unrelated to any onset → high false rate → fail
+    timeline = _tl([(f"2026-06-{d:02d}", "amber") for d in range(1, 8)])
+    r = validate_engine(timeline, {"2026-06-20"})
+    assert r["passes"] is False
+    assert r["false_ambers_per_week"] > 1.0
+
+
+def test_validate_engine_needs_onsets():
+    r = validate_engine(_tl([("2026-06-01", "green")]), set())
+    assert r["passes"] is False

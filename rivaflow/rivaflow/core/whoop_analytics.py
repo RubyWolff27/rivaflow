@@ -11,7 +11,7 @@ from __future__ import annotations
 from collections import defaultdict
 from datetime import datetime
 from math import log1p
-from statistics import mean, pstdev
+from statistics import mean, median, pstdev
 from zoneinfo import ZoneInfo
 
 from rivaflow.core.assessment import period_assessment
@@ -21,7 +21,15 @@ from rivaflow.core.coverage import assess_coverage, coverage_in_days
 from rivaflow.core.hrv_spectral import MIN_BEATS, dfa_alpha1, frequency_domain, poincare
 from rivaflow.core.longevity import cardio_age_proxy, passive_vo2max
 from rivaflow.core.max_hr import calibrate_max_hr
-from rivaflow.core.prevention import evaluate_prevention, robust_baseline
+from rivaflow.core.prevention import (
+    WORSE_WHEN,
+    cusum_positive,
+    evaluate_prevention,
+    robust_baseline,
+    robust_z,
+    slow_drift,
+    validate_engine,
+)
 from rivaflow.core.readiness import blend_readiness, zscore
 from rivaflow.core.resilience import cumulative_stress, resilience
 from rivaflow.core.rr_quality import assess_rr, clean_segments, ln_rmssd, rmssd
@@ -266,32 +274,110 @@ def strain_target(user_id: int, today_is_sabbath: bool = False) -> dict:
     return prescribe_strain(readiness.get("state"), _chronic_load(cardio), acute)
 
 
-def _signal_reading(series: list[float]) -> dict | None:
-    """Today's value + a robust (median/MAD) baseline from the PRIOR days — the shape the prevention engine
-    consumes. Returns None until there's a baseline."""
-    if len(series) < 6:
+def _signal_reading(name: str, series: list[float]) -> dict | None:
+    """Today's value + robust (median/MAD) baseline from PRIOR days, PLUS the CUSUM accumulator (sustained
+    drift) and the slow-drift flag (short vs long baseline) the engine consumes. Returns None until there's a
+    baseline. `name` selects the worsening direction."""
+    if len(series) < 8:
         return None
+    worse_when = WORSE_WHEN.get(name, "high")
     base = robust_baseline(series[:-1])
     if base is None:
         return None
-    return {"value": series[-1], "median": base["median"], "mad": base["mad"]}
+    # CUSUM over the recent window: accumulate each day's worse-z vs the prior baseline.
+    wz_series = [
+        robust_z(v, base["median"], base["mad"], worse_when) for v in series[-14:]
+    ]
+    cusum = cusum_positive(wz_series)
+    # Slow-drift: recent 7-day median vs a longer stable reference median.
+    short = series[-7:]
+    long_ref = series[:-7] or series
+    long_base = robust_baseline(long_ref)
+    drift = (
+        slow_drift(median(short), long_base["median"], long_base["mad"], worse_when)
+        if long_base and len(short) >= 3
+        else False
+    )
+    return {
+        "value": series[-1],
+        "median": base["median"],
+        "mad": base["mad"],
+        "cusum": cusum,
+        "drift": drift,
+    }
+
+
+def _prevention_series(user_id: int, days: int) -> dict[str, dict[str, float]]:
+    """Per-signal {day → value} maps for the four prevention signals (no cardiac rhythm)."""
+    return {
+        "rhr": {
+            d["day"]: float(d["resting_hr"])
+            for d in daily_resting_hr(user_id, days=days)
+        },
+        "lnrmssd": {
+            d["day"]: float(d["ln_rmssd"])
+            for d in daily_resting_rmssd(user_id, days=days)
+        },
+        "resp_rate": {
+            d["day"]: float(d["respiratory_rate"])
+            for d in daily_respiratory_rate(user_id, days=days)
+        },
+        "sleeping_hr": {
+            _local_day(h["sleep_start"]): float(h["avg_sleeping_hr"])
+            for h in nightly_sleep_history(user_id, nights=days)
+        },
+    }
 
 
 def prevention_watch(user_id: int, days: int = 21) -> dict:
-    """B6 — Baseline-Deviation Watch. Builds robust per-signal baselines from the coverage-gated daily series
-    and evaluates co-occurrence across signal families. Fires on the safety channel (incl. Sunday). The four
-    signals (no cardiac rhythm): RHR + sleeping-HR (nocturnal-HR family), lnRMSSD (vagal), resp-rate (respiratory).
+    """B6 — Baseline-Deviation Watch. Robust per-signal baselines + CUSUM (sustained drift) + slow-drift guard,
+    evaluated for co-occurrence across signal families. Fires on the safety channel (incl. Sunday). FOUR signals,
+    no cardiac rhythm: RHR + nocturnal sleeping-HR (nocturnal-HR family), lnRMSSD (vagal), resp-rate (respiratory).
     """
-    rhr = [d["resting_hr"] for d in daily_resting_hr(user_id, days=days)]
-    lnr = [d["ln_rmssd"] for d in daily_resting_rmssd(user_id, days=days)]
-    resp = [d["respiratory_rate"] for d in daily_respiratory_rate(user_id, days=days)]
-
+    series = _prevention_series(user_id, days)
     readings: dict[str, dict] = {}
-    for name, series in (("rhr", rhr), ("lnrmssd", lnr), ("resp_rate", resp)):
-        r = _signal_reading([float(x) for x in series])
+    for name, day_map in series.items():
+        vals = [day_map[d] for d in sorted(day_map)]
+        r = _signal_reading(name, vals)
         if r is not None:
             readings[name] = r
     return evaluate_prevention(readings)
+
+
+def prevention_backtest(user_id: int, days: int = 45) -> list[dict]:
+    """Per-day tier timeline: for each recent day, evaluate the engine using only data up to that day. Feeds
+    the B6 validation gate."""
+    series = _prevention_series(user_id, days)
+    all_days = sorted({d for m in series.values() for d in m})
+    timeline: list[dict] = []
+    for i, day in enumerate(all_days):
+        if i < 8:  # need baseline history before a verdict is meaningful
+            continue
+        window = all_days[: i + 1]
+        readings: dict[str, dict] = {}
+        for name, day_map in series.items():
+            vals = [day_map[d] for d in window if d in day_map]
+            r = _signal_reading(name, vals)
+            if r is not None:
+                readings[name] = r
+        ev = evaluate_prevention(readings)
+        if ev.get("available"):
+            timeline.append({"day": day, "tier": ev["tier"]})
+    return timeline
+
+
+def prevention_validation(
+    user_id: int, illness_dates: set[str], days: int = 45
+) -> dict:
+    """B6 validation & tuning gate — backtest the engine over history and score it against the acceptance
+    target (catch ≥2 tagged illness onsets, <1 false amber/week). `illness_dates` = 'YYYY-MM-DD' the user
+    retrospectively felt ill. This is the gate the engine must pass before it is armed in a channel.
+    """
+    timeline = prevention_backtest(user_id, days=days)
+    return {
+        "timeline_days": len(timeline),
+        "validation": validate_engine(timeline, set(illness_dates)),
+    }
 
 
 def behaviour_correlation(
