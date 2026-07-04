@@ -69,6 +69,135 @@ def svg_bars(
     return f'<svg width="{w}" height="{h}" viewBox="0 0 {w} {h}">{rects}</svg>'
 
 
+def svg_progress_ring(
+    have: float, need: float, label: str = "", size: int = 64, accent: str = "#60a5fa"
+) -> str:
+    """A donut 'building baseline' ring for panels that need N days of history — shown INSTEAD of an
+    empty/needs-more-days card so cold-start panels still feel alive."""
+    need = max(need, 1e-9)
+    pct = max(0.0, min(1.0, have / need))
+    r = size / 2 - 6
+    circ = 2 * 3.14159265 * r
+    dash = circ * pct
+    cx = cy = size / 2
+    return (
+        f'<svg width="{size}" height="{size}" viewBox="0 0 {size} {size}" role="img" '
+        f'aria-label="{esc(label)} progress {have} of {need} days">'
+        f'<circle cx="{cx}" cy="{cy}" r="{r}" fill="none" stroke="#1e293b" stroke-width="6"/>'
+        f'<circle cx="{cx}" cy="{cy}" r="{r}" fill="none" stroke="{accent}" stroke-width="6" '
+        f'stroke-linecap="round" stroke-dasharray="{dash:.1f} {circ:.1f}" '
+        f'transform="rotate(-90 {cx} {cy})"/>'
+        f'<text x="{cx}" y="{cy + 4}" text-anchor="middle" font-size="12" fill="#e2e8f0">'
+        f"{int(min(have, need))}/{int(need)}</text></svg>"
+    )
+
+
+def progress_or_text(
+    available: bool, progress: dict | None, fallback: str, label: str = "building"
+) -> str:
+    """Shared cold-start pattern: a longitudinal panel either has enough days (renders normally, caller's
+    job) or shows a progress ring toward the threshold instead of bare 'needs more days' text."""
+    if available or not progress:
+        return fallback
+    have, need = progress.get("have", 0), progress.get("need", 1)
+    return (
+        '<div class="ring-row">'
+        f"{svg_progress_ring(have, need, label)}"
+        f'<div class="sub">{esc(label)} baseline — {int(have)} of {int(need)} days</div>'
+        "</div>"
+    )
+
+
+def svg_area_line(
+    times: list[float],
+    values: list[float | None],
+    w: int = 560,
+    h: int = 110,
+    stroke: str = "#60a5fa",
+    fill: str = "rgba(96,165,250,0.18)",
+    bands: list[tuple[float, float, str]] | None = None,
+) -> str:
+    """A filled area line for dense intraday series (HR ribbon, overnight HRV, sleep HR, respiratory,
+    stress). `bands` are (lo, hi, color) horizontal zone bands drawn behind the line, in data units."""
+    pts = [(t, v) for t, v in zip(times, values) if v is not None]
+    if len(pts) < 2:
+        return f'<svg width="{w}" height="{h}" role="img" aria-label="no data"></svg>'
+    xs = [p[0] for p in pts]
+    ys = [p[1] for p in pts]
+    x_lo, x_hi = min(xs), max(xs)
+    y_lo, y_hi = min(ys), max(ys)
+    if bands:
+        y_lo = min([y_lo, *(b[0] for b in bands)])
+        y_hi = max([y_hi, *(b[1] for b in bands)])
+    x_rng = (x_hi - x_lo) or 1.0
+    y_rng = (y_hi - y_lo) or 1.0
+    pad = 4
+
+    def px(x: float) -> float:
+        return (x - x_lo) / x_rng * w
+
+    def py(y: float) -> float:
+        return h - pad - (y - y_lo) / y_rng * (h - 2 * pad)
+
+    band_rects = "".join(
+        f'<rect x="0" y="{py(hi):.1f}" width="{w}" height="{max(0.0, py(lo) - py(hi)):.1f}" '
+        f'fill="{color}" opacity="0.25"/>'
+        for lo, hi, color in (bands or [])
+    )
+    coords = " ".join(f"{px(t):.1f},{py(v):.1f}" for t, v in pts)
+    area = (
+        f"{px(pts[0][0]):.1f},{py(y_lo):.1f} {coords} {px(pts[-1][0]):.1f},{py(y_lo):.1f}"
+    )
+    return (
+        f'<svg width="{w}" height="{h}" viewBox="0 0 {w} {h}" preserveAspectRatio="none">'
+        f"{band_rects}"
+        f'<polygon points="{area}" fill="{fill}"/>'
+        f'<polyline fill="none" stroke="{stroke}" stroke-width="2" points="{coords}"/>'
+        f'<text x="2" y="10" font-size="9" fill="#64748b">{esc(round(y_hi))}</text>'
+        f'<text x="2" y="{h - 2}" font-size="9" fill="#64748b">{esc(round(y_lo))}</text>'
+        "</svg>"
+    )
+
+
+def svg_poincare(
+    pairs: list[tuple[float, float]],
+    sd1: float,
+    sd2: float,
+    w: int = 220,
+    h: int = 220,
+) -> str:
+    """Poincaré scatter (RR[n] vs RR[n+1]) with the SD1/SD2 ellipse along/across the identity line."""
+    if len(pairs) < 3:
+        return f'<svg width="{w}" height="{h}" role="img" aria-label="no data"></svg>'
+    xs = [p[0] for p in pairs]
+    ys = [p[1] for p in pairs]
+    lo, hi = min(xs + ys), max(xs + ys)
+    rng = (hi - lo) or 1.0
+    pad = 12
+    scale = (min(w, h) - 2 * pad) / rng
+
+    def sx(x: float) -> float:
+        return pad + (x - lo) * scale
+
+    def sy(y: float) -> float:
+        return h - pad - (y - lo) * scale
+
+    mean_rr = sum(xs) / len(xs)
+    dots = "".join(
+        f'<circle cx="{sx(x):.1f}" cy="{sy(y):.1f}" r="1.6" fill="#60a5fa" opacity="0.55"/>'
+        for x, y in pairs[:600]
+    )
+    cx, cy = sx(mean_rr), sy(mean_rr)
+    return (
+        f'<svg width="{w}" height="{h}" viewBox="0 0 {w} {h}">'
+        f'<line x1="{pad}" y1="{h - pad}" x2="{w - pad}" y2="{pad}" stroke="#334155" stroke-dasharray="3 3"/>'
+        f"{dots}"
+        f'<ellipse cx="{cx:.1f}" cy="{cy:.1f}" rx="{sd2 * scale:.1f}" ry="{sd1 * scale:.1f}" '
+        f'transform="rotate(-45 {cx:.1f} {cy:.1f})" fill="none" stroke="#34d399" stroke-width="1.5"/>'
+        "</svg>"
+    )
+
+
 def svg_acwr_ribbon(ratio: float, w: int = 240, h: int = 22) -> str:
     """ACWR gauge 0–2 with the Gabbett sweet-spot (0.8–1.3) shaded green and the danger zone (>1.5) red."""
 
@@ -100,6 +229,8 @@ def render_recovery_load(
     acwr: dict,
     cardio_trend: list[dict],
     recovery_cost: dict,
+    *,
+    acwr_progress: dict | None = None,
 ) -> str:
     """P3.1 — the Recovery & Load panel."""
     accent = _ACCENT.get(readiness.get("state", "Building"), "#94a3b8")
@@ -141,7 +272,11 @@ def render_recovery_load(
     )
 
     loads = [c.get("cardio_load") for c in cardio_trend]
-    ribbon = svg_acwr_ribbon(acwr["ratio"]) if acwr.get("available") else ""
+    ribbon = (
+        svg_acwr_ribbon(acwr["ratio"])
+        if acwr.get("available")
+        else progress_or_text(False, acwr_progress, "", "ACWR (28d)")
+    )
     rc = (
         f'<div class="sub">{esc(recovery_cost.get("headline", ""))}</div>'
         if recovery_cost.get("available")
@@ -175,6 +310,13 @@ def render_cockpit_page(panels_html: str) -> str:
         ".caveat{background:#422006;border:1px solid #a16207;border-radius:8px;padding:8px;font-size:12px;margin:8px 0}"
         ".chips{margin:8px 0}.chip{display:inline-block;background:#1e293b;border-radius:12px;padding:2px 8px;font-size:11px;margin:2px}"
         ".chart{margin-top:10px}.foot{color:#475569;font-size:11px;margin-top:8px}"
+        ".ring-row{display:flex;align-items:center;gap:10px;margin:6px 0}"
+        ".dual{display:grid;grid-template-columns:1fr 1fr;gap:14px;align-items:start}"
+        ".zbars{display:flex;gap:4px;align-items:flex-end;height:36px;margin-top:6px}"
+        ".zbars .zb{flex:1;border-radius:2px 2px 0 0}"
+        ".session-card{border-top:1px solid #1f2937;padding-top:10px;margin-top:10px}"
+        ".session-card:first-of-type{border-top:none;padding-top:0;margin-top:0}"
+        "@media (max-width:640px){.dual{grid-template-columns:1fr}}"
         "</style></head><body><h1>WHOOP Cockpit · analyst deep-dive</h1>"
         f"{panels_html}"
         "<div class='foot'>RivaFlow · self-hosted · renders server-computed series · auto-refresh 2 min</div>"
@@ -182,10 +324,15 @@ def render_cockpit_page(panels_html: str) -> str:
     )
 
 
-def render_hrv_lab(hrv_lab: dict, dfa: dict) -> str:
+def render_hrv_lab(hrv_lab: dict, dfa: dict, *, progress: dict | None = None) -> str:
     """P3.2 — HRV Lab: frequency-domain (LF:HF descriptive) + Poincaré + DFA-α1 (experimental)."""
     if not hrv_lab.get("available"):
-        body = f'<div class="sub">{esc(hrv_lab.get("reason", "no clean 5-min window yet"))}</div>'
+        body = progress_or_text(
+            False,
+            progress,
+            f'<div class="sub">{esc(hrv_lab.get("reason", "no clean 5-min window yet"))}</div>',
+            "HRV Lab",
+        )
     else:
         fd = hrv_lab.get("frequency_domain", {})
         pc = hrv_lab.get("poincare", {})
@@ -237,7 +384,7 @@ def render_data_integrity(coverage: dict) -> str:
     )
 
 
-def render_sleep(sleep: dict) -> str:
+def render_sleep(sleep: dict, *, debt_progress: dict | None = None) -> str:
     """P3.3 — Sleep: need/debt vs the >9h need + bedtime regularity."""
     debt = sleep.get("debt", {})
     reg = sleep.get("regularity", {})
@@ -260,11 +407,19 @@ def render_sleep(sleep: dict) -> str:
             ),
         ]
     )
-    return f'<section class="panel"><h2>Sleep</h2><div class="stats">{stats}</div></section>'
+    ring = progress_or_text(bool(debt.get("available")), debt_progress, "", "Sleep debt (14n)")
+    return (
+        f'<section class="panel"><h2>Sleep</h2><div class="stats">{stats}</div>{ring}</section>'
+    )
 
 
 def render_trends(
-    longevity: dict, resilience: dict, circadian: dict, assessment: dict
+    longevity: dict,
+    resilience: dict,
+    circadian: dict,
+    assessment: dict,
+    *,
+    resilience_progress: dict | None = None,
 ) -> str:
     """P3.3 — Trends & Longevity: VO2max (banded), CV-age proxy (caveated), resilience, circadian, assessment."""
     vo2 = longevity.get("vo2max", {})
@@ -307,10 +462,13 @@ def render_trends(
         if assessment.get("available")
         else ""
     )
+    ring = progress_or_text(
+        bool(res.get("available")), resilience_progress, "", "Resilience (14d)"
+    )
     return (
         f'<section class="panel"><h2>Trends &amp; Longevity</h2><div class="stats">{stats}</div>'
         f'<div class="caveat">Cardio age is a PROXY vs VO₂max norms — a gentle trend, not a health verdict.</div>'
-        f"{narr}</section>"
+        f"{narr}{ring}</section>"
     )
 
 
@@ -356,3 +514,165 @@ def render_behaviour(effects: list[dict]) -> str:
         or '<div class="sub">not enough tagged vs untagged nights yet</div>'
     )
     return f'<section class="panel"><h2>Behaviour correlations</h2>{rows}</section>'
+
+
+_HR_ZONE_BANDS = [
+    (0.60, 0.70, "#60a5fa"),
+    (0.70, 0.80, "#34d399"),
+    (0.80, 0.90, "#fbbf24"),
+    (0.90, 1.00, "#f87171"),
+]
+
+
+def render_hr_ribbon(series: dict) -> str:
+    """P3.5 — Today's full-day HR ribbon with HR-zone bands shaded behind it."""
+    if not series.get("available"):
+        body = f'<div class="sub">{esc(series.get("reason", "no HR captured today yet"))}</div>'
+    else:
+        mx = series.get("max_hr", 190)
+        bands = [(lo * mx, hi * mx, color) for lo, hi, color in _HR_ZONE_BANDS]
+        chart = svg_area_line(
+            series["times"], series["values"], bands=bands, stroke="#e2e8f0"
+        )
+        body = (
+            f'<div class="stats">{stat("Avg HR", str(series.get("avg_hr", "—")), "today")}'
+            f'{stat("Peak HR", str(series.get("max_bpm", "—")), f"of {mx} max")}</div>'
+            f'<div class="chart"><div class="lbl">HR · zone-shaded (Z1–Z5)</div>{chart}</div>'
+        )
+    return f'<section class="panel"><h2>Today · HR ribbon</h2>{body}</section>'
+
+
+def render_rr_hrv_detail(detail: dict) -> str:
+    """P3.5 — MUST-HAVE HRV-nerd view: RR tachogram + Poincaré scatter with the SD1/SD2 ellipse."""
+    if not detail.get("available"):
+        body = f'<div class="sub">{esc(detail.get("reason", "not enough clean RR yet"))}</div>'
+    else:
+        tacho = svg_area_line(
+            detail["times"], detail["rr_values"], stroke="#a78bfa", fill="rgba(167,139,250,0.15)"
+        )
+        scatter = svg_poincare(detail["pairs"], detail["sd1"], detail["sd2"])
+        stats = "".join(
+            [
+                stat("SD1", f'{detail["sd1"]:.0f}ms', "short-term (≈RMSSD/√2)"),
+                stat("SD2", f'{detail["sd2"]:.0f}ms', "long-term variability"),
+                stat("Mean HR", f'{detail.get("mean_hr", "—")}', "over window"),
+            ]
+        )
+        body = (
+            f'<div class="stats">{stats}</div>'
+            '<div class="dual">'
+            f'<div class="chart"><div class="lbl">RR tachogram</div>{tacho}</div>'
+            f'<div class="chart"><div class="lbl">Poincaré (RR[n] vs RR[n+1])</div>{scatter}</div>'
+            "</div>"
+        )
+    return f'<section class="panel"><h2>RR &amp; HRV detail</h2>{body}</section>'
+
+
+def render_overnight_hrv(curve: dict) -> str:
+    """P3.5 — lnRMSSD in 5-min buckets across the detected sleep window."""
+    if not curve.get("available"):
+        body = f'<div class="sub">{esc(curve.get("reason", "no overnight window detected yet"))}</div>'
+    else:
+        chart = svg_area_line(
+            curve["times"], curve["values"], stroke="#34d399", fill="rgba(52,211,153,0.18)"
+        )
+        body = f'<div class="chart"><div class="lbl">lnRMSSD · overnight (5-min buckets)</div>{chart}</div>'
+    return f'<section class="panel"><h2>Overnight HRV curve</h2>{body}</section>'
+
+
+def render_sleep_hr_dip(curve: dict) -> str:
+    """P3.5 — HR across the detected sleep window, showing the nocturnal dip vs waking baseline."""
+    if not curve.get("available"):
+        body = f'<div class="sub">{esc(curve.get("reason", "no overnight sleep window detected yet"))}</div>'
+    else:
+        chart = svg_area_line(
+            curve["times"], curve["values"], stroke="#818cf8", fill="rgba(129,140,248,0.15)"
+        )
+        stats = "".join(
+            [
+                stat("Sleep onset", str(curve.get("onset", "—"))),
+                stat("Sleep offset", str(curve.get("offset", "—"))),
+                stat("Nocturnal dip", f'{curve.get("dip_pct", "—")}%', "vs waking HR"),
+            ]
+        )
+        body = (
+            f'<div class="stats">{stats}</div>'
+            f'<div class="chart"><div class="lbl">HR across sleep window</div>{chart}</div>'
+        )
+    return f'<section class="panel"><h2>Sleep HR &amp; nocturnal dip</h2>{body}</section>'
+
+
+def render_respiratory(trace: dict) -> str:
+    """P3.5 — Respiratory rate (breaths/min) across rest windows through the day."""
+    if not trace.get("available"):
+        body = f'<div class="sub">{esc(trace.get("reason", "not enough clean resting RR yet"))}</div>'
+    else:
+        chart = svg_area_line(
+            trace["times"], trace["values"], stroke="#f472b6", fill="rgba(244,114,182,0.15)"
+        )
+        body = f'<div class="chart"><div class="lbl">Breaths/min · resting windows</div>{chart}</div>'
+    return f'<section class="panel"><h2>Respiratory trace</h2>{body}</section>'
+
+
+def render_stress_ribbon(ribbon: dict) -> str:
+    """P3.5 — HRV-vs-baseline stress across the day as a colored band."""
+    if not ribbon.get("available"):
+        body = f'<div class="sub">{esc(ribbon.get("reason", "not enough HR history for a baseline yet"))}</div>'
+    else:
+        bands = [(0, 34, "#34d399"), (34, 67, "#fbbf24"), (67, 100, "#f87171")]
+        chart = svg_area_line(
+            ribbon["times"], ribbon["values"], bands=bands, stroke="#e2e8f0"
+        )
+        body = f'<div class="chart"><div class="lbl">Stress vs baseline (0–100)</div>{chart}</div>'
+    return f'<section class="panel"><h2>Stress ribbon</h2>{body}</section>'
+
+
+def _zone_bar_html(zone_secs: dict) -> str:
+    total = sum(zone_secs.values()) or 1
+    colors = {1: "#60a5fa", 2: "#34d399", 3: "#a3e635", 4: "#fbbf24", 5: "#f87171"}
+    bars = "".join(
+        f'<div class="zb" style="height:{max(4, zone_secs.get(z, 0) / total * 36):.0f}px;'
+        f'background:{colors[z]}" title="Z{z}: {zone_secs.get(z, 0)}s"></div>'
+        for z in range(1, 6)
+    )
+    return f'<div class="zbars">{bars}</div>'
+
+
+def _session_card_html(s: dict) -> str:
+    a = s.get("analytics", {})
+    if not a.get("available"):
+        return (
+            '<div class="session-card">'
+            f'<div class="sub">{esc(s.get("label", "Session"))} · {esc(s.get("day", ""))} — '
+            f'{esc(a.get("reason", "no HR captured"))}</div></div>'
+        )
+    curve = svg_area_line(
+        a.get("times", []), a.get("values", []), w=420, h=70, stroke="#60a5fa"
+    )
+    drift = a.get("hrr")
+    drift_html = (
+        f'<span class="chip">HRR: {esc(drift)} bpm/60s</span>' if drift is not None else ""
+    )
+    peak_sub = f'peak {a.get("max_hr", "—")}'
+    duration_min = a.get("duration_sec", 0) // 60
+    stats_html = (
+        stat("Session", str(s.get("label", "Session")), str(s.get("day", "")))
+        + stat("Avg HR", str(a.get("avg_hr", "—")), peak_sub)
+        + stat("Duration", f"{duration_min}min", "")
+    )
+    return (
+        '<div class="session-card">'
+        f'<div class="stats">{stats_html}</div>'
+        f'<div class="dual"><div class="chart"><div class="lbl">HR curve</div>{curve}</div>'
+        f'<div class="chart"><div class="lbl">Time in zones</div>{_zone_bar_html(a.get("hr_zone_secs", {}))}'
+        f"{drift_html}</div></div></div>"
+    )
+
+
+def render_session_deepdives(sessions: list[dict]) -> str:
+    """P3.5 — MUST-HAVE: per-session (BJJ + CrossFit) HR curve, time-in-zones, and HR-drift/decoupling."""
+    if not sessions:
+        body = '<div class="sub">No recent sessions with WHOOP HR coverage yet.</div>'
+    else:
+        body = "".join(_session_card_html(s) for s in sessions[:5])
+    return f'<section class="panel"><h2>Session deep-dives</h2>{body}</section>'
