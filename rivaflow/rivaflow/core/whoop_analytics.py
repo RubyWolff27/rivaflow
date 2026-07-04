@@ -14,6 +14,7 @@ from math import log1p
 from statistics import mean
 from zoneinfo import ZoneInfo
 
+from rivaflow.core.behaviour import behaviour_effect
 from rivaflow.core.coverage import assess_coverage, coverage_in_days
 from rivaflow.core.hrv_spectral import MIN_BEATS, frequency_domain, poincare
 from rivaflow.core.max_hr import calibrate_max_hr
@@ -240,6 +241,16 @@ def prevention_watch(user_id: int, days: int = 21) -> dict:
         if r is not None:
             readings[name] = r
     return evaluate_prevention(readings)
+
+
+def behaviour_correlation(user_id: int, tag: str, tagged_days: set[str], days: int = 60) -> dict:
+    """B11 — split the daily lnRMSSD series by whether each day carries `tag`, then report the effect size.
+    `tagged_days` = set of 'YYYY-MM-DD' the behaviour occurred (from the journal/tagging path, still to be
+    plumbed). Metric is lnRMSSD (readiness's led signal)."""
+    daily = daily_resting_rmssd(user_id, days=days)
+    yes = [d["ln_rmssd"] for d in daily if d["day"] in tagged_days]
+    no = [d["ln_rmssd"] for d in daily if d["day"] not in tagged_days]
+    return behaviour_effect(tag, "lnRMSSD", yes, no)
 
 
 def sleep_analysis(user_id: int, nights: int = 7) -> dict:
