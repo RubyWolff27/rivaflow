@@ -301,6 +301,35 @@ def assessment_endpoint(
     return period_assessment_for(current_user["id"], period, days)
 
 
+@router.get("/prevention-backtest")
+@route_error_handler(
+    "whoop_prevention_backtest", detail="Failed to backtest prevention engine"
+)
+def prevention_backtest_endpoint(
+    current_user: dict = Depends(get_current_user),
+) -> dict:
+    """B6 — per-day tier timeline over recent history (feeds the validation gate)."""
+    from rivaflow.core.whoop_analytics import prevention_backtest
+
+    return {"timeline": prevention_backtest(current_user["id"])}
+
+
+@router.get("/prevention-validate")
+@route_error_handler(
+    "whoop_prevention_validate", detail="Failed to validate prevention engine"
+)
+def prevention_validate_endpoint(
+    onsets: str = "", current_user: dict = Depends(get_current_user)
+) -> dict:
+    """B6 validation & tuning gate — backtest the engine against retrospectively-tagged illness onsets and
+    score it vs the acceptance target. ?onsets=YYYY-MM-DD,YYYY-MM-DD (from the journal/tagging path).
+    """
+    from rivaflow.core.whoop_analytics import prevention_validation
+
+    dates = {d.strip() for d in onsets.split(",") if d.strip()}
+    return prevention_validation(current_user["id"], dates)
+
+
 @router.get("/hrv-lab")
 @route_error_handler("whoop_hrv_lab", detail="Failed to compute HRV lab")
 def hrv_lab_endpoint(current_user: dict = Depends(get_current_user)) -> dict:
