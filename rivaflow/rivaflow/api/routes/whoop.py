@@ -165,6 +165,16 @@ def readiness(current_user: dict = Depends(get_current_user)) -> dict:
     return compute_readiness(current_user["id"], today_is_sabbath=is_sabbath)
 
 
+@router.get("/strain-target")
+@route_error_handler("whoop_strain_target", detail="Failed to compute strain target")
+def strain_target_endpoint(current_user: dict = Depends(get_current_user)) -> dict:
+    """B5 — today's prescribed strain target (0–21) from readiness, capped when Strained. Sabbath-silent."""
+    from rivaflow.core.whoop_analytics import strain_target
+
+    is_sabbath = datetime.now(ZoneInfo("Australia/Melbourne")).weekday() == 6  # Sunday = Ruby's rest day
+    return strain_target(current_user["id"], today_is_sabbath=is_sabbath)
+
+
 @router.get("/session-analytics")
 @route_error_handler("whoop_session_analytics", detail="Failed to compute BJJ session analytics")
 def session_analytics(

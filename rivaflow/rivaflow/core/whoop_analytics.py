@@ -18,6 +18,7 @@ from rivaflow.core.coverage import assess_coverage, coverage_in_days
 from rivaflow.core.max_hr import calibrate_max_hr
 from rivaflow.core.readiness import blend_readiness, zscore
 from rivaflow.core.rr_quality import assess_rr, ln_rmssd, rmssd
+from rivaflow.core.strain_target import prescribe_strain
 from rivaflow.db.repositories.whoop_repo import WhoopRepository
 
 # Ruby's profile-tuned constants
@@ -149,15 +150,19 @@ def whoop_summary(user_id: int, today_is_sabbath: bool = False) -> dict:
     respiratory rate, cardio load/strain, and stress — benchmarked against WHOOP/Oura/Hume, all from the
     HR+RR we already capture."""
     max_hr = user_max_hr(user_id)                 # B1 — compute once, thread into every HR-zone consumer
+    readiness = compute_readiness(user_id, today_is_sabbath=today_is_sabbath)
     hrv = daily_resting_rmssd(user_id, days=14)
     rhr = daily_resting_hr(user_id, days=14)
-    cardio = daily_cardio_load(user_id, days=7, max_hr=max_hr["max_hr"])
+    cardio = daily_cardio_load(user_id, days=14, max_hr=max_hr["max_hr"])
     sleep = nightly_sleep(user_id)
     if sleep.get("available"):
         # Simple quality score vs Ruby's >9h sleep-need (DNA): duration is the dominant driver.
         sleep["quality_score"] = max(0, min(100, round((sleep["duration_hours"] / 9.0) * 100)))
+    acute = cardio[-1]["cardio_load"] if cardio else None
+    strain = prescribe_strain(readiness.get("state"), _chronic_load(cardio), acute)
     return {
-        "readiness": compute_readiness(user_id, today_is_sabbath=today_is_sabbath),
+        "readiness": readiness,
+        "strain_target": strain,
         "hrv_today": hrv[-1] if hrv else None,
         "hrv_trend": hrv,
         "resting_hr_today": rhr[-1] if rhr else None,
@@ -170,6 +175,22 @@ def whoop_summary(user_id: int, today_is_sabbath: bool = False) -> dict:
         "coverage": capture_coverage(user_id, days=21),
         "max_hr": max_hr,
     }
+
+
+def _chronic_load(cardio: list[dict]) -> float | None:
+    """Chronic (usual) daily strain = mean of recent daily cardio-load, EXCLUDING today (the day in progress
+    shouldn't lower its own target). Needs a few days to be meaningful; None otherwise."""
+    prior = [c["cardio_load"] for c in cardio[:-1]] if len(cardio) > 1 else []
+    return round(mean(prior), 1) if len(prior) >= 3 else None
+
+
+def strain_target(user_id: int, today_is_sabbath: bool = False) -> dict:
+    """B5 — standalone strain-target endpoint: today's readiness → prescribed daily 0–21 load, capped when
+    Strained. (whoop_summary computes this inline from shared data; this is the direct-call path for /whoop.)"""
+    readiness = compute_readiness(user_id, today_is_sabbath=today_is_sabbath)
+    cardio = daily_cardio_load(user_id, days=14)
+    acute = cardio[-1]["cardio_load"] if cardio else None
+    return prescribe_strain(readiness.get("state"), _chronic_load(cardio), acute)
 
 
 def _rr_by_day(user_id: int, days: int) -> dict[str, list[int]]:
