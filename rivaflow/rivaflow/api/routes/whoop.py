@@ -505,6 +505,25 @@ def summary(current_user: dict = Depends(get_current_user)) -> dict:
     return whoop_summary(current_user["id"], today_is_sabbath=is_sabbath)
 
 
+@router.get("/cockpit", response_class=HTMLResponse)
+def cockpit(key: str) -> HTMLResponse:
+    """P3 — server-rendered web deep-dive cockpit (analyst panels). Zero client compute; key-auth like /view."""
+    from rivaflow.core.whoop_analytics import cockpit_page
+    from rivaflow.db.repositories.api_key_repo import ApiKeyRepository
+
+    api_key = (
+        ApiKeyRepository.get_active_by_hash(ApiKeyRepository.hash_key(key))
+        if key.startswith("rf_pk_")
+        else None
+    )
+    if not api_key:
+        return HTMLResponse(
+            "<h1 style='font-family:system-ui;color:#eee;background:#111'>Unauthorized</h1>",
+            status_code=401,
+        )
+    return HTMLResponse(cockpit_page(api_key["user_id"]))
+
+
 @router.get("/view", response_class=HTMLResponse)
 def view(key: str) -> HTMLResponse:
     """Server-rendered thin-display dashboard — the phone/browser opens a URL and the VPS renders the
