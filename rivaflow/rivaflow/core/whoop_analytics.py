@@ -264,6 +264,9 @@ def whoop_summary(user_id: int, today_is_sabbath: bool = False) -> dict:
         "stress": today_stress(user_id, max_hr=max_hr["max_hr"]),
         "coverage": capture_coverage(user_id, days=21),
         "max_hr": max_hr,
+        "prevention": prevention_watch(
+            user_id
+        ),  # P4a — powers the slim-app safety banner (amber/red)
     }
 
 
