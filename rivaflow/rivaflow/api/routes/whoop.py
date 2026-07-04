@@ -165,6 +165,117 @@ def readiness(current_user: dict = Depends(get_current_user)) -> dict:
     return compute_readiness(current_user["id"], today_is_sabbath=is_sabbath)
 
 
+@router.get("/strain-target")
+@route_error_handler("whoop_strain_target", detail="Failed to compute strain target")
+def strain_target_endpoint(current_user: dict = Depends(get_current_user)) -> dict:
+    """B5 — today's prescribed strain target (0–21) from readiness, capped when Strained. Sabbath-silent."""
+    from rivaflow.core.whoop_analytics import strain_target
+
+    is_sabbath = datetime.now(ZoneInfo("Australia/Melbourne")).weekday() == 6  # Sunday = Ruby's rest day
+    return strain_target(current_user["id"], today_is_sabbath=is_sabbath)
+
+
+@router.get("/sleep-analysis")
+@route_error_handler("whoop_sleep_analysis", detail="Failed to compute sleep analysis")
+def sleep_analysis_endpoint(current_user: dict = Depends(get_current_user)) -> dict:
+    """B9 + B10 — sleep need/debt vs the >9h need + bedtime regularity."""
+    from rivaflow.core.whoop_analytics import sleep_analysis
+
+    return sleep_analysis(current_user["id"])
+
+
+@router.get("/acwr")
+@route_error_handler("whoop_acwr", detail="Failed to compute ACWR")
+def acwr_endpoint(current_user: dict = Depends(get_current_user)) -> dict:
+    """B7 — acute:chronic workload ratio (Gabbett injury-risk window)."""
+    from rivaflow.core.whoop_analytics import training_acwr
+
+    return training_acwr(current_user["id"])
+
+
+@router.get("/recovery-cost")
+@route_error_handler("whoop_recovery_cost", detail="Failed to compute recovery cost")
+def recovery_cost_endpoint(current_user: dict = Depends(get_current_user)) -> dict:
+    """B12 — prior-day load → next-day HRV coupling (personal recovery cost per dose)."""
+    from rivaflow.core.whoop_analytics import recovery_cost_coupling
+
+    return recovery_cost_coupling(current_user["id"])
+
+
+@router.get("/prevention")
+@route_error_handler("whoop_prevention", detail="Failed to compute baseline-deviation watch")
+def prevention_endpoint(current_user: dict = Depends(get_current_user)) -> dict:
+    """B6 — Baseline-Deviation Watch: multi-signal deviation from personal baseline. Safety channel (fires
+    Sunday). Detects deviation, never disease — not a medical device."""
+    from rivaflow.core.whoop_analytics import prevention_watch
+
+    return prevention_watch(current_user["id"])
+
+
+@router.get("/longevity")
+@route_error_handler("whoop_longevity", detail="Failed to compute longevity metrics")
+def longevity_endpoint(current_user: dict = Depends(get_current_user)) -> dict:
+    """B14 + B15 — passive VO2max (banded) + cardio-age proxy (web; proxy, not clinical)."""
+    from rivaflow.core.whoop_analytics import longevity_metrics
+
+    return longevity_metrics(current_user["id"])
+
+
+@router.get("/resilience")
+@route_error_handler("whoop_resilience", detail="Failed to compute resilience")
+def resilience_endpoint(current_user: dict = Depends(get_current_user)) -> dict:
+    """B16 — resilience (14d bounce-back) + 31d cumulative stress."""
+    from rivaflow.core.whoop_analytics import resilience_metrics
+
+    return resilience_metrics(current_user["id"])
+
+
+@router.get("/circadian")
+@route_error_handler("whoop_circadian", detail="Failed to compute circadian rhythm")
+def circadian_endpoint(current_user: dict = Depends(get_current_user)) -> dict:
+    """B17 — cosinor circadian rhythm of time-of-day HR."""
+    from rivaflow.core.whoop_analytics import circadian_rhythm
+
+    return circadian_rhythm(current_user["id"])
+
+
+@router.get("/dfa")
+@route_error_handler("whoop_dfa", detail="Failed to compute DFA alpha1")
+def dfa_endpoint(current_user: dict = Depends(get_current_user)) -> dict:
+    """B18 — DFA α1 (experimental, artifact-gated)."""
+    from rivaflow.core.whoop_analytics import dfa_analysis
+
+    return dfa_analysis(current_user["id"])
+
+
+@router.get("/realtime-stress")
+@route_error_handler("whoop_realtime_stress", detail="Failed to compute realtime stress")
+def realtime_stress_endpoint(current_user: dict = Depends(get_current_user)) -> dict:
+    """B13 — HRV-based real-time stress (experimental; at-rest only)."""
+    from rivaflow.core.whoop_analytics import realtime_stress
+
+    return realtime_stress(current_user["id"])
+
+
+@router.get("/assessment")
+@route_error_handler("whoop_assessment", detail="Failed to compute assessment")
+def assessment_endpoint(period: str = "week", current_user: dict = Depends(get_current_user)) -> dict:
+    """B19 — weekly/monthly assessment narrative. ?period=week|month."""
+    from rivaflow.core.whoop_analytics import period_assessment_for
+
+    days = 30 if period == "month" else 7
+    return period_assessment_for(current_user["id"], period, days)
+
+
+@router.get("/hrv-lab")
+@route_error_handler("whoop_hrv_lab", detail="Failed to compute HRV lab")
+def hrv_lab_endpoint(current_user: dict = Depends(get_current_user)) -> dict:
+    """B4 — frequency-domain (Lomb-Scargle LF/HF) + Poincaré HRV over the longest clean ≥5-min resting window."""
+    from rivaflow.core.whoop_analytics import hrv_lab
+
+    return hrv_lab(current_user["id"])
+
+
 @router.get("/session-analytics")
 @route_error_handler("whoop_session_analytics", detail="Failed to compute BJJ session analytics")
 def session_analytics(

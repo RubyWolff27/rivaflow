@@ -1,8 +1,25 @@
-# WHOOP-Alternative — Brand Research & References (2026-07-04)
+# WHOOP-Alternative — Brand Research & References (2026-07-04 · Fable second-pass review)
 
 > Deep research on the major health/fitness trackers, gathered by a 5-agent research council to inform our
 > self-hosted build. **Every source URL is preserved for cross-checking with a secondary council.**
 > Scope lens: we compute from **heart rate + RR-intervals only** (SpO₂/temp/steps/staging are locked — see CURRENT_STATE).
+>
+> **Source count:** WHOOP 30 · Oura 29 · Ultrahuman 21 · Fitbit 34 · Apple 33 = **147 raw URLs / 146 unique**
+> (one Ultrahuman study is served on two paths — see that block). The companion docs cite this as "146 sources."
+>
+> **Integrity conventions (apply when reading every figure below):**
+> - **Attribution:** treat any bare accuracy figure (e.g. "76% fever detection", "~98% AFib agreement", "MAE 2.4 bpm",
+>   "VO₂max ±3.3–3.7") as **vendor-claimed unless a study/PMC id is named**. Vendor marketing ≠ independent validation.
+> - **As-of dating:** these numbers churn with firmware/algorithm revisions; read them as *as of 2026-07-04*, not durable fact.
+> - **Respiratory-rate reproducibility is ONE question, not a per-brand fact.** RSA/EDR-derived respiratory rate from the
+>   RR series is *reproducible in principle for all five brands*, but accuracy depends on RR sampling resolution and is
+>   best overnight at rest — so Apple's "PARTIALLY reproducible" is the honest framing for all of them. This is why the
+>   future plan does **not** headline-weight resp-rate until it is validated (see WHOOP_FUTURE_STATE_PLAN.md).
+> - **AFib "reproducible in principle from RR" ≠ trustworthy from OUR data.** Several brand blocks below note AFib is
+>   reproducible in principle from beat-to-beat RR. True — but competitor AFib detection gates on the **raw-PPG waveform
+>   quality** (locked R22 for us); on WHOOP's unqualified optical PPI we cannot separate true irregularity from
+>   beat-detection artifact. So for RivaFlow the screen is **decode-gated, not merely experimental** — see
+>   WHOOP_FUTURE_STATE_PLAN.md B20 and the red-team section.
 
 ## WHOOP (WHOOP 5.0 / WHOOP MG, WHOOP Life & Peak/One memberships)
 **Signature / why it's valuable:** The strain-vs-recovery balance loop is WHOOP's signature: a single morning Recovery Score (HRV-led) is converted into a prescriptive daily Strain Target, so the device doesn't just report numbers - it tells you how hard to go today and how much to sleep tonight to stay in balance. Critically for a HR+RR-only build, the two most valuable pillars (the HRV-driven Recovery/readiness score and the HR-zone Strain load, plus RR-derived respiratory-rate illness early-warning and the personal-baseline anomaly engine) are all reproducible from heart rate and beat-to-beat RR-intervals alone - SpO2, skin temp, ECG and blood pressure are additive refinements, not the core.
@@ -111,7 +128,7 @@
 
 ---
 
-## Oura Ring (Gen 3 / Ring 4 / Ring 5) — smart ring; the benchmark for trends, temperature and pre-symptomatic illness detection
+## Oura Ring (Gen 3 / Ring 4 / Ring 5 *if released — unconfirmed as of 2026-07-04*) — smart ring; the benchmark for trends, temperature and pre-symptomatic illness detection
 **Signature / why it's valuable:** Oura's signature value is TREND-OVER-TIME baselining that converts biometrics into two things nobody else nails as cleanly: (1) a single, trustworthy morning Readiness verdict that tells you what to do today, and (2) Symptom Radar — genuine pre-symptomatic illness detection (~2 days early) built primarily on overnight temperature deviation fused with resting HR, HRV and breathing rate. The temperature signal is its illness-prediction moat; the readiness/HRV/stress/resilience layer is highly reproducible from your HR+RR data, but the temperature-driven early-warning edge will need a temp input to fully match.
 
 **Metrics surfaced:**
@@ -289,7 +306,7 @@
 - https://cyborg.ultrahuman.com/press-releases/ultrahuman-announces-its-app-store-powerplugs-with-the-worlds-first-afib-detection-technology-on-a-smart-ring
 - https://ultrahuman.com/blog/sleep-algorithm-2-0-explained-personalized-sleep-scoring/
 - https://science.ultrahuman.com/studies/sleep-heart-rate-sensing
-- https://ultrahuman.com/science/studies/sleep-heart-rate-sensing
+  <!-- (duplicate path https://ultrahuman.com/science/studies/sleep-heart-rate-sensing removed — same study; this is why 147 raw URLs = 146 unique) -->
 - https://www.ultrahuman.com/blog/hrv-and-stress-explained-how-your-body-signals-overload/
 - https://www.ultrahuman.com/blog/5-ways-to-train-better-using-hrv-metric/
 - https://www.ultrahuman.com/blog/how-the-timing-of-stress-can-protect-your-health-and-stay-productive/
