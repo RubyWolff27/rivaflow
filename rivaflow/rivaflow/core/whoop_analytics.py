@@ -11,9 +11,10 @@ from __future__ import annotations
 from collections import defaultdict
 from datetime import datetime
 from math import log1p
-from statistics import mean, pstdev
+from statistics import mean
 from zoneinfo import ZoneInfo
 
+from rivaflow.core.readiness import blend_readiness, zscore
 from rivaflow.core.rr_quality import assess_rr, ln_rmssd, rmssd
 from rivaflow.db.repositories.whoop_repo import WhoopRepository
 
@@ -186,44 +187,40 @@ def daily_resting_rmssd(user_id: int, days: int = 21) -> list[dict]:
 
 
 def compute_readiness(user_id: int, today_is_sabbath: bool = False) -> dict:
-    """Readiness from at-rest HRV vs the user's rolling 7-day baseline (Plews/Buchheit style).
-
-    Sabbath-silent: on a rest day it blesses the rest instead of scoring. Conservative bands for a
-    masters, NSAID-sensitive, low-endurance athlete — 'Strained' pushes toward technical work, not hard rolls.
-    """
+    """B2 — Multi-input Readiness. An lnRMSSD-led blend of four deviation-from-baseline signals (HRV, nocturnal
+    resting HR, sleep-vs-need, respiratory rate), each scored on the user's OWN rolling baseline. The fusion
+    math + the 'green ≠ healthy' caveat live in rivaflow.core.readiness (pure, unit-tested); this function only
+    gathers the series. Sabbath-silent; cold-start returns 'Building' until HRV has a baseline. Conservative
+    bands for a masters, NSAID-sensitive, low-endurance athlete — 'Strained' pushes toward technical work."""
     if today_is_sabbath:
-        return {"state": "Rest", "headline": "Sabbath — rest is prescribed. No score today.",
-                "driver": "sabbath", "score": None}
+        return blend_readiness({}, today_is_sabbath=True)
 
-    # Derive daily resting RMSSD from the RR intervals already flowing (no separate HRV feed needed).
-    daily = daily_resting_rmssd(user_id, days=21)
-    vals = [d["rmssd"] for d in daily]
-    if len(vals) < READINESS_MIN_BASELINE_DAYS:
-        return {"state": "Building",
-                "headline": f"Building your HRV baseline ({len(vals)}/{READINESS_MIN_BASELINE_DAYS} days).",
-                "driver": "cold_start", "score": None, "samples": len(vals)}
+    # Each series is oldest→newest; the QC gate (B0) already sits inside the HRV/resp helpers.
+    ln_series = [d["ln_rmssd"] for d in daily_resting_rmssd(user_id, days=21)]
+    rhr_series = [d["resting_hr"] for d in daily_resting_hr(user_id, days=21)]
+    resp_series = [d["respiratory_rate"] for d in daily_respiratory_rate(user_id, days=21)]
 
-    today = vals[-1]
-    prior = vals[-8:-1] if len(vals) >= 8 else vals[:-1]   # baseline = the days BEFORE today
-    b_mean = mean(prior)
-    b_sd = pstdev(prior) or 1.0
-    z = (today - b_mean) / b_sd
+    hrv_z = zscore(ln_series)
+    rhr_z = zscore(rhr_series)
+    resp_z = zscore(resp_series)
 
-    if z >= 0.5:
-        state, head = "Prime", "HRV above baseline — green light to train hard."
-    elif z >= -0.5:
-        state, head = "Balanced", "HRV in your normal range — train as planned."
-    elif z >= -1.5:
-        state, head = "Strained", "HRV below baseline — technical/skills over hard rolls today."
-    else:
-        state, head = "Rundown", "HRV well below baseline — prioritise recovery."
+    # Sleep is a down-weighted proxy vs the >9h DNA need (a personal sleep-need/debt baseline is B9).
+    sleep = nightly_sleep(user_id)
+    sleep_z = None
+    if sleep.get("available"):
+        sleep_z = max(-3.0, min(2.0, (sleep["duration_hours"] - 9.0) / 1.5))
 
-    return {
-        "state": state, "headline": head, "driver": "hrv_vs_baseline",
-        "score": max(0, min(100, round(50 + z * 20))),
-        "today_rmssd": round(today, 1), "baseline_rmssd": round(b_mean, 1),
-        "z": round(z, 2), "baseline_days": len(prior), "source": "rr_derived",
-    }
+    result = blend_readiness({
+        "hrv": hrv_z["z"] if hrv_z else None,
+        "rhr": rhr_z["z"] if rhr_z else None,
+        "resp": resp_z["z"] if resp_z else None,
+        "sleep": sleep_z,
+    })
+    if hrv_z:   # surface the led signal's provenance for the deep-dive
+        result["today_ln_rmssd"] = round(ln_series[-1], 3)
+        result["hrv_baseline"] = {"ln_mean": round(hrv_z["baseline_mean"], 3), "days": hrv_z["n"]}
+    result["source"] = "rr_derived"
+    return result
 
 
 def hr_zone(bpm: int, max_hr: int = MAX_HR) -> int:
@@ -273,16 +270,13 @@ def bjj_session_analytics(user_id: int, start_iso: str, end_iso: str) -> dict:
     }
 
 
-def respiratory_rate(user_id: int, days: int = 1) -> dict:
-    """Respiratory rate from RR-interval oscillation (respiratory sinus arrhythmia): the heart speeds up
-    on inhale and slows on exhale, so the resting RR series oscillates at the breathing frequency. We
-    detrend the resting RR tachogram (subtract a centred moving average) and count breathing cycles.
-    Oura/WHOOP surface this — and it IS computable from the RR we already capture, no extra sensor."""
-    rr = WhoopRepository.rr_range(user_id, days)
-    vals = [int(r["rr_ms"]) for r in rr if r.get("rr_ms") and 667 <= r["rr_ms"] <= 1500]
+def _resp_rpm(vals: list[int]) -> float | None:
+    """Breaths/min from a resting RR series via respiratory sinus arrhythmia: the heart speeds up on inhale
+    and slows on exhale, so the resting tachogram oscillates at the breathing frequency. Detrend (subtract a
+    centred moving average) and count up-crossings. Returns None if the signal is too short/implausible.
+    ⚠️ Crude RSA estimate (needs-validation; a band-pass upgrade is future work) — down-weighted in readiness."""
     if len(vals) < 120:
-        return {"available": False, "reason": "Not enough resting RR intervals for a respiratory estimate."}
-
+        return None
     window = 10
     osc = []
     for i in range(len(vals)):
@@ -291,12 +285,46 @@ def respiratory_rate(user_id: int, days: int = 1) -> dict:
     breaths = sum(1 for i in range(1, len(osc)) if osc[i - 1] < 0 <= osc[i])   # one up-crossing per breath
     minutes = sum(vals) / 60000.0
     if minutes < 2 or breaths < 4:
-        return {"available": False, "reason": "Insufficient signal for a respiratory estimate."}
+        return None
     rpm = breaths / minutes
-    if not (6 <= rpm <= 30):
-        return {"available": False, "reason": "Respiratory estimate out of plausible range."}
-    return {"available": True, "respiratory_rate": round(rpm, 1), "breaths": breaths,
-            "minutes": round(minutes, 1), "source": "rr_rsa"}
+    return rpm if 6 <= rpm <= 30 else None
+
+
+def _resting_rr_by_day(user_id: int, days: int) -> dict[str, list[int]]:
+    """Resting-band RR intervals bucketed by Ruby's local day, artifact-cleaned via the B0 gate. 'Resting'
+    keeps the tighter 667–1500 ms band the RSA method needs (active-HR beats carry no clean respiratory RSA)."""
+    rr = WhoopRepository.rr_range(user_id, days)
+    by_day: dict[str, list[int]] = defaultdict(list)
+    for r in rr:
+        rr_ms, ts = r.get("rr_ms"), r.get("ts")
+        if rr_ms and ts and 667 <= rr_ms <= 1500:
+            by_day[_local_day(ts)].append(int(rr_ms))
+    return by_day
+
+
+def respiratory_rate(user_id: int, days: int = 1) -> dict:
+    """Today's respiratory rate from the resting RR tachogram (RSA). Oura/WHOOP surface this and it IS
+    computable from the RR we already capture, no extra sensor — but see the needs-validation caveat in _resp_rpm."""
+    rr = WhoopRepository.rr_range(user_id, days)
+    vals = [int(r["rr_ms"]) for r in rr if r.get("rr_ms") and 667 <= r["rr_ms"] <= 1500]
+    clean = assess_rr(vals).cleaned
+    rpm = _resp_rpm([int(v) for v in clean])
+    if rpm is None:
+        return {"available": False, "reason": "Not enough clean resting RR for a respiratory estimate."}
+    return {"available": True, "respiratory_rate": round(rpm, 1),
+            "minutes": round(sum(clean) / 60000.0, 1), "source": "rr_rsa"}
+
+
+def daily_respiratory_rate(user_id: int, days: int = 21) -> list[dict]:
+    """Per-day resting respiratory rate — the baseline series the B2 readiness blend needs for its
+    (down-weighted) resp-rate signal. Days without enough clean resting RR are skipped."""
+    out: list[dict] = []
+    for day, vals in sorted(_resting_rr_by_day(user_id, days).items()):
+        clean = assess_rr(vals).cleaned
+        rpm = _resp_rpm([int(v) for v in clean])
+        if rpm is not None:
+            out.append({"day": day, "respiratory_rate": round(rpm, 1)})
+    return out
 
 
 def daily_cardio_load(user_id: int, days: int = 7) -> list[dict]:
