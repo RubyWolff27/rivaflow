@@ -16,7 +16,7 @@ import logging
 from datetime import datetime
 from zoneinfo import ZoneInfo
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Cookie, Depends, Query
 from fastapi.responses import HTMLResponse
 from pydantic import BaseModel, Field
 
@@ -27,6 +27,43 @@ from rivaflow.db.repositories.whoop_repo import WhoopRepository
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/whoop", tags=["whoop"])
+
+# Root-mounted (no /api/v1 prefix) for a short, bookmarkable cockpit URL.
+short_router = APIRouter(tags=["whoop"])
+
+
+@short_router.get("/cockpit", response_class=HTMLResponse)
+def cockpit_short(key: str = "", rf_key: str = Cookie(default="")) -> HTMLResponse:
+    """Short bookmarkable cockpit: `https://api.rivaflow.app/cockpit`. Pass ?key=YOUR_KEY once and it's
+    stored in a cookie, so you can bookmark the bare URL afterwards. Same key-auth as /api/v1/whoop/cockpit.
+    """
+    from rivaflow.core.whoop_analytics import cockpit_page
+    from rivaflow.db.repositories.api_key_repo import ApiKeyRepository
+
+    k = key or rf_key
+    api_key = (
+        ApiKeyRepository.get_active_by_hash(ApiKeyRepository.hash_key(k))
+        if k.startswith("rf_pk_")
+        else None
+    )
+    if not api_key:
+        return HTMLResponse(
+            "<body style='font-family:system-ui;background:#0b1120;color:#e2e8f0;padding:24px'>"
+            "<h2>WHOOP Cockpit</h2><p>Add <code>?key=YOUR_KEY</code> to this URL once "
+            "(your rf_pk_… api key), then bookmark the bare page.</p></body>",
+            status_code=401,
+        )
+    resp = HTMLResponse(cockpit_page(api_key["user_id"]))
+    if key:  # first visit carried the key → remember it so revisits can be keyless
+        resp.set_cookie(
+            "rf_key",
+            key,
+            httponly=True,
+            secure=True,
+            samesite="lax",
+            max_age=60 * 60 * 24 * 365,
+        )
+    return resp
 
 
 class RawFrame(BaseModel):
