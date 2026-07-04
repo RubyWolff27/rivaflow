@@ -21,6 +21,7 @@ from rivaflow.core.prevention import evaluate_prevention, robust_baseline
 from rivaflow.core.readiness import blend_readiness, zscore
 from rivaflow.core.rr_quality import assess_rr, clean_segments, ln_rmssd, rmssd
 from rivaflow.core.strain_target import prescribe_strain
+from rivaflow.core.training_load import acwr, heart_rate_recovery, recovery_cost
 from rivaflow.db.repositories.whoop_repo import WhoopRepository
 
 # Ruby's profile-tuned constants
@@ -162,9 +163,11 @@ def whoop_summary(user_id: int, today_is_sabbath: bool = False) -> dict:
         sleep["quality_score"] = max(0, min(100, round((sleep["duration_hours"] / 9.0) * 100)))
     acute = cardio[-1]["cardio_load"] if cardio else None
     strain = prescribe_strain(readiness.get("state"), _chronic_load(cardio), acute)
+    load_series = [c["cardio_load"] for c in daily_cardio_load(user_id, days=28, max_hr=max_hr["max_hr"])]
     return {
         "readiness": readiness,
         "strain_target": strain,
+        "acwr": acwr(load_series),
         "hrv_today": hrv[-1] if hrv else None,
         "hrv_trend": hrv,
         "resting_hr_today": rhr[-1] if rhr else None,
@@ -220,6 +223,19 @@ def prevention_watch(user_id: int, days: int = 21) -> dict:
         if r is not None:
             readings[name] = r
     return evaluate_prevention(readings)
+
+
+def training_acwr(user_id: int, days: int = 28) -> dict:
+    """B7 — acute:chronic workload ratio from the daily cardio-load history."""
+    load = [c["cardio_load"] for c in daily_cardio_load(user_id, days=days)]
+    return acwr(load)
+
+
+def recovery_cost_coupling(user_id: int, days: int = 28) -> dict:
+    """B12 — prior-day load → next-day lnRMSSD coupling (his personal recovery cost per dose)."""
+    load = [c["cardio_load"] for c in daily_cardio_load(user_id, days=days)]
+    lnr = [d["ln_rmssd"] for d in daily_resting_rmssd(user_id, days=days)]
+    return recovery_cost(load, lnr)
 
 
 def hrv_lab(user_id: int, days: int = 2) -> dict:
@@ -375,6 +391,7 @@ def bjj_session_analytics(user_id: int, start_iso: str, end_iso: str, max_hr: in
         "duration_sec": len(bpms),
         "hr_zone_secs": zone_secs,
         "best_60s_hr_recovery": best_recovery,
+        "protocol_hrr": heart_rate_recovery(bpms),   # B8 — peak → +60s within-person HRR
         "samples": len(bpms),
     }
 

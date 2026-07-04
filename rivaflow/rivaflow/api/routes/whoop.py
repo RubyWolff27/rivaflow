@@ -175,6 +175,24 @@ def strain_target_endpoint(current_user: dict = Depends(get_current_user)) -> di
     return strain_target(current_user["id"], today_is_sabbath=is_sabbath)
 
 
+@router.get("/acwr")
+@route_error_handler("whoop_acwr", detail="Failed to compute ACWR")
+def acwr_endpoint(current_user: dict = Depends(get_current_user)) -> dict:
+    """B7 — acute:chronic workload ratio (Gabbett injury-risk window)."""
+    from rivaflow.core.whoop_analytics import training_acwr
+
+    return training_acwr(current_user["id"])
+
+
+@router.get("/recovery-cost")
+@route_error_handler("whoop_recovery_cost", detail="Failed to compute recovery cost")
+def recovery_cost_endpoint(current_user: dict = Depends(get_current_user)) -> dict:
+    """B12 — prior-day load → next-day HRV coupling (personal recovery cost per dose)."""
+    from rivaflow.core.whoop_analytics import recovery_cost_coupling
+
+    return recovery_cost_coupling(current_user["id"])
+
+
 @router.get("/prevention")
 @route_error_handler("whoop_prevention", detail="Failed to compute baseline-deviation watch")
 def prevention_endpoint(current_user: dict = Depends(get_current_user)) -> dict:
