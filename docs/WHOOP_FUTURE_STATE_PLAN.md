@@ -30,6 +30,11 @@ below (performance nudges silent Sunday; illness/safety flags always fire).
 5. **Longevity & Trend Intelligence** — cardiovascular-age *proxy* (web-only, caveated), resilience/cumulative-stress, frequency & non-linear HRV, **circadian/chronotype** rhythm, weekly/monthly assessments (web deep-dive).
 6. **Honest n-of-1 Science** — robust personal baselines, frequency-domain + Poincaré HRV unlocked (quality-gated), behaviour-correlation engine, faith-first surfacing.
 
+> **✅ STATUS (2026-07-04): the entire matrix below is BUILT, tested (CI green), and on `main`** —
+> 16 core modules, 35 `/whoop` endpoints, plus the delivery layer, web cockpit, and iOS slim app.
+> Only **B20 (AFib)** is deferred (decode-gated). See `WHOOP_CURRENT_STATE.md §3b` for the shipped map;
+> the remaining tail is B6 threshold *tuning* on real tags. Phasing lived in `WHOOP_REMAINING_BUILD_PLAN.md`.
+
 ## Traceability matrix (the single spine — every build appears once)
 Feasibility legend: `now` = codeable + data available · `Nd` = needs N days of coverage · `~Nses` = needs ~N tagged sessions · `research` = experimental · `decode-gated` = blocked on locked R22/K21.
 Surface: **slim** (always-visible phone) / **web** (deep-dive) / **both**.
