@@ -175,6 +175,16 @@ def strain_target_endpoint(current_user: dict = Depends(get_current_user)) -> di
     return strain_target(current_user["id"], today_is_sabbath=is_sabbath)
 
 
+@router.get("/prevention")
+@route_error_handler("whoop_prevention", detail="Failed to compute baseline-deviation watch")
+def prevention_endpoint(current_user: dict = Depends(get_current_user)) -> dict:
+    """B6 — Baseline-Deviation Watch: multi-signal deviation from personal baseline. Safety channel (fires
+    Sunday). Detects deviation, never disease — not a medical device."""
+    from rivaflow.core.whoop_analytics import prevention_watch
+
+    return prevention_watch(current_user["id"])
+
+
 @router.get("/hrv-lab")
 @route_error_handler("whoop_hrv_lab", detail="Failed to compute HRV lab")
 def hrv_lab_endpoint(current_user: dict = Depends(get_current_user)) -> dict:

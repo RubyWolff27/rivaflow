@@ -17,6 +17,7 @@ from zoneinfo import ZoneInfo
 from rivaflow.core.coverage import assess_coverage, coverage_in_days
 from rivaflow.core.hrv_spectral import MIN_BEATS, frequency_domain, poincare
 from rivaflow.core.max_hr import calibrate_max_hr
+from rivaflow.core.prevention import evaluate_prevention, robust_baseline
 from rivaflow.core.readiness import blend_readiness, zscore
 from rivaflow.core.rr_quality import assess_rr, clean_segments, ln_rmssd, rmssd
 from rivaflow.core.strain_target import prescribe_strain
@@ -192,6 +193,33 @@ def strain_target(user_id: int, today_is_sabbath: bool = False) -> dict:
     cardio = daily_cardio_load(user_id, days=14)
     acute = cardio[-1]["cardio_load"] if cardio else None
     return prescribe_strain(readiness.get("state"), _chronic_load(cardio), acute)
+
+
+def _signal_reading(series: list[float]) -> dict | None:
+    """Today's value + a robust (median/MAD) baseline from the PRIOR days — the shape the prevention engine
+    consumes. Returns None until there's a baseline."""
+    if len(series) < 6:
+        return None
+    base = robust_baseline(series[:-1])
+    if base is None:
+        return None
+    return {"value": series[-1], "median": base["median"], "mad": base["mad"]}
+
+
+def prevention_watch(user_id: int, days: int = 21) -> dict:
+    """B6 — Baseline-Deviation Watch. Builds robust per-signal baselines from the coverage-gated daily series
+    and evaluates co-occurrence across signal families. Fires on the safety channel (incl. Sunday). The four
+    signals (no cardiac rhythm): RHR + sleeping-HR (nocturnal-HR family), lnRMSSD (vagal), resp-rate (respiratory)."""
+    rhr = [d["resting_hr"] for d in daily_resting_hr(user_id, days=days)]
+    lnr = [d["ln_rmssd"] for d in daily_resting_rmssd(user_id, days=days)]
+    resp = [d["respiratory_rate"] for d in daily_respiratory_rate(user_id, days=days)]
+
+    readings: dict[str, dict] = {}
+    for name, series in (("rhr", rhr), ("lnrmssd", lnr), ("resp_rate", resp)):
+        r = _signal_reading([float(x) for x in series])
+        if r is not None:
+            readings[name] = r
+    return evaluate_prevention(readings)
 
 
 def hrv_lab(user_id: int, days: int = 2) -> dict:
