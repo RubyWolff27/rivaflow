@@ -533,7 +533,10 @@ def rr_hrv_detail(user_id: int, days: int = 1) -> dict:
     vals = [float(v) for _, v in pts]
     pc = poincare(vals)
     if pc is None:
-        return {"available": False, "reason": "Segment too short for Poincaré geometry."}
+        return {
+            "available": False,
+            "reason": "Segment too short for Poincaré geometry.",
+        }
     xs, ys = _downsample_xy(times, vals)
     pairs = list(zip(vals[:-1], vals[1:]))
     stride = max(1, len(pairs) // 500)
@@ -552,7 +555,10 @@ def overnight_hrv_curve(user_id: int) -> dict:
     """P3.5 — lnRMSSD in 5-min buckets across the last detected sleep window (reuses nightly_sleep)."""
     night = nightly_sleep(user_id)
     if not night.get("available"):
-        return {"available": False, "reason": night.get("reason", "no sleep window detected yet")}
+        return {
+            "available": False,
+            "reason": night.get("reason", "no sleep window detected yet"),
+        }
     start, end = _parse_ts(night["sleep_start"]), _parse_ts(night["sleep_end"])
     rr = WhoopRepository.rr_range(user_id, days=2)
     pts = [
@@ -563,7 +569,10 @@ def overnight_hrv_curve(user_id: int) -> dict:
         and start <= _parse_ts(str(r["ts"])) <= end
     ]
     if len(pts) < 40:
-        return {"available": False, "reason": "Not enough clean overnight RR for an HRV curve."}
+        return {
+            "available": False,
+            "reason": "Not enough clean overnight RR for an HRV curve.",
+        }
     pts.sort(key=lambda p: p[0])
     buckets: dict[int, list[int]] = defaultdict(list)
     for t, v in pts:
@@ -585,11 +594,16 @@ def sleep_hr_dip(user_id: int) -> dict:
     """P3.5 — HR across the detected sleep window with onset/offset + the nocturnal dip vs waking baseline."""
     night = nightly_sleep(user_id)
     if not night.get("available"):
-        return {"available": False, "reason": night.get("reason", "no sleep window detected yet")}
+        return {
+            "available": False,
+            "reason": night.get("reason", "no sleep window detected yet"),
+        }
     start, end = _parse_ts(night["sleep_start"]), _parse_ts(night["sleep_end"])
     hr = WhoopRepository.hr_range(user_id, start.isoformat(), end.isoformat())
     pts = [
-        (_parse_ts(str(h["ts"])), int(h["bpm"])) for h in hr if h.get("bpm") and h.get("ts")
+        (_parse_ts(str(h["ts"])), int(h["bpm"]))
+        for h in hr
+        if h.get("bpm") and h.get("ts")
     ]
     if len(pts) < 30:
         return {"available": False, "reason": "Not enough HR across the sleep window."}
@@ -600,7 +614,9 @@ def sleep_hr_dip(user_id: int) -> dict:
     waking = daily_resting_hr(user_id, days=7)
     waking_avg = mean(r["resting_hr"] for r in waking) if waking else None
     dip_pct = (
-        round((1 - night["avg_sleeping_hr"] / waking_avg) * 100, 1) if waking_avg else "—"
+        round((1 - night["avg_sleeping_hr"] / waking_avg) * 100, 1)
+        if waking_avg
+        else "—"
     )
     return {
         "available": True,
@@ -621,7 +637,10 @@ def respiratory_trace(user_id: int, days: int = 1) -> dict:
         if r.get("rr_ms") and 667 <= r["rr_ms"] <= 1500
     ]
     if len(pts) < 200:
-        return {"available": False, "reason": "Not enough clean resting RR for a respiratory trace."}
+        return {
+            "available": False,
+            "reason": "Not enough clean resting RR for a respiratory trace.",
+        }
     pts.sort(key=lambda p: p[0])
     t0 = pts[0][0]
     buckets: dict[int, list[int]] = defaultdict(list)
@@ -635,7 +654,10 @@ def respiratory_trace(user_id: int, days: int = 1) -> dict:
             times.append(idx * 10 / 60.0)
             values.append(rpm)
     if len(values) < 3:
-        return {"available": False, "reason": "Too few clean resting windows for a trace."}
+        return {
+            "available": False,
+            "reason": "Too few clean resting windows for a trace.",
+        }
     return {"available": True, "times": times, "values": values}
 
 
@@ -646,7 +668,10 @@ def stress_ribbon_series(user_id: int) -> dict:
     hr = WhoopRepository.hr_range(user_id, start.isoformat(), now.isoformat())
     rhr_list = daily_resting_hr(user_id, days=3)
     if not hr or not rhr_list:
-        return {"available": False, "reason": "Not enough HR/baseline history for a stress ribbon."}
+        return {
+            "available": False,
+            "reason": "Not enough HR/baseline history for a stress ribbon.",
+        }
     mx = user_max_hr(user_id)["max_hr"]
     rest = rhr_list[-1]["resting_hr"]
     by_hour: dict[int, list[int]] = defaultdict(list)
@@ -662,7 +687,10 @@ def stress_ribbon_series(user_id: int) -> dict:
         times.append(float(hour))
         values.append(float(stress))
     if len(values) < 2:
-        return {"available": False, "reason": "Need more hours of HR today for a ribbon."}
+        return {
+            "available": False,
+            "reason": "Need more hours of HR today for a ribbon.",
+        }
     return {"available": True, "times": times, "values": values}
 
 
@@ -694,7 +722,8 @@ def _session_label(s: dict) -> str:
 
 def session_deepdives(user_id: int, limit: int = 5) -> list[dict]:
     """P3.5 — MUST-HAVE: per-session HR analytics (BJJ + CrossFit) for the deep-dive cards — reuses
-    bjj_session_analytics's zone/HRR compute over each recent session's class-time window."""
+    bjj_session_analytics's zone/HRR compute over each recent session's class-time window.
+    """
     mx = user_max_hr(user_id)["max_hr"]
     out: list[dict] = []
     for s in SessionRepository.get_recent(user_id, limit=limit):
@@ -702,7 +731,9 @@ def session_deepdives(user_id: int, limit: int = 5) -> list[dict]:
         if window is None:
             continue
         start, end = window
-        a = bjj_session_analytics(user_id, start.isoformat(), end.isoformat(), max_hr=mx)
+        a = bjj_session_analytics(
+            user_id, start.isoformat(), end.isoformat(), max_hr=mx
+        )
         if a.get("available"):
             hr = WhoopRepository.hr_range(user_id, start.isoformat(), end.isoformat())
             pts = sorted(
@@ -716,7 +747,11 @@ def session_deepdives(user_id: int, limit: int = 5) -> list[dict]:
             hrr = a.get("protocol_hrr") or {}
             a["hrr"] = hrr.get("hrr_bpm") if hrr.get("available") else None
         out.append(
-            {"label": _session_label(s), "day": str(s.get("session_date", "")), "analytics": a}
+            {
+                "label": _session_label(s),
+                "day": str(s.get("session_date", "")),
+                "analytics": a,
+            }
         )
     return out
 
@@ -728,7 +763,10 @@ def _history_progress(user_id: int) -> dict:
     return {
         "hrv": {"have": coverage["summary"].get("days_sufficient", 0), "need": 5},
         "acwr": {"have": len(daily_cardio_load(user_id, days=28)), "need": 28},
-        "sleep_debt": {"have": len(nightly_sleep_history(user_id, nights=14)), "need": 14},
+        "sleep_debt": {
+            "have": len(nightly_sleep_history(user_id, nights=14)),
+            "need": 14,
+        },
         "resilience": {
             "have": min(len(daily_resting_rmssd(user_id, days=45)), 14),
             "need": 14,
@@ -738,7 +776,8 @@ def _history_progress(user_id: int) -> dict:
 
 def cockpit_page(user_id: int) -> str:
     """P3 — server-rendered web deep-dive cockpit HTML. All series are computed here; the page only renders.
-    P3.1 shipped Recovery & Load; P3.2-3.4 followed; P3.5 adds the intraday/session deep-dive panels."""
+    P3.1 shipped Recovery & Load; P3.2-3.4 followed; P3.5 adds the intraday/session deep-dive panels.
+    """
     now = datetime.now(LOCAL_TZ)
     is_sabbath = now.weekday() == 6
     mx = user_max_hr(user_id)["max_hr"]
@@ -756,17 +795,26 @@ def cockpit_page(user_id: int) -> str:
     panels = "".join(
         [
             render_recovery_load(
-                readiness, strain, acwr_data, cardio, rec_cost, acwr_progress=progress["acwr"]
+                readiness,
+                strain,
+                acwr_data,
+                cardio,
+                rec_cost,
+                acwr_progress=progress["acwr"],
             ),  # P3.1
             render_hr_ribbon(today_hr_ribbon(user_id)),  # P3.5
             render_rr_hrv_detail(rr_hrv_detail(user_id)),  # P3.5 MUST-HAVE
-            render_hrv_lab(hrv_lab(user_id), dfa_analysis(user_id), progress=progress["hrv"]),  # P3.2
+            render_hrv_lab(
+                hrv_lab(user_id), dfa_analysis(user_id), progress=progress["hrv"]
+            ),  # P3.2
             render_overnight_hrv(overnight_hrv_curve(user_id)),  # P3.5
             render_data_integrity(capture_coverage(user_id)),  # P3.2
             render_sleep_hr_dip(sleep_hr_dip(user_id)),  # P3.5
             render_respiratory(respiratory_trace(user_id)),  # P3.5
             render_stress_ribbon(stress_ribbon_series(user_id)),  # P3.5
-            render_sleep(sleep_analysis(user_id), debt_progress=progress["sleep_debt"]),  # P3.3
+            render_sleep(
+                sleep_analysis(user_id), debt_progress=progress["sleep_debt"]
+            ),  # P3.3
             render_trends(  # P3.3
                 longevity_metrics(user_id),
                 resilience_metrics(user_id),

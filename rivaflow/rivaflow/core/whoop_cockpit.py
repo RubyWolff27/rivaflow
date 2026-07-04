@@ -96,7 +96,8 @@ def progress_or_text(
     available: bool, progress: dict | None, fallback: str, label: str = "building"
 ) -> str:
     """Shared cold-start pattern: a longitudinal panel either has enough days (renders normally, caller's
-    job) or shows a progress ring toward the threshold instead of bare 'needs more days' text."""
+    job) or shows a progress ring toward the threshold instead of bare 'needs more days' text.
+    """
     if available or not progress:
         return fallback
     have, need = progress.get("have", 0), progress.get("need", 1)
@@ -118,7 +119,8 @@ def svg_area_line(
     bands: list[tuple[float, float, str]] | None = None,
 ) -> str:
     """A filled area line for dense intraday series (HR ribbon, overnight HRV, sleep HR, respiratory,
-    stress). `bands` are (lo, hi, color) horizontal zone bands drawn behind the line, in data units."""
+    stress). `bands` are (lo, hi, color) horizontal zone bands drawn behind the line, in data units.
+    """
     pts = [(t, v) for t, v in zip(times, values) if v is not None]
     if len(pts) < 2:
         return f'<svg width="{w}" height="{h}" role="img" aria-label="no data"></svg>'
@@ -145,9 +147,7 @@ def svg_area_line(
         for lo, hi, color in (bands or [])
     )
     coords = " ".join(f"{px(t):.1f},{py(v):.1f}" for t, v in pts)
-    area = (
-        f"{px(pts[0][0]):.1f},{py(y_lo):.1f} {coords} {px(pts[-1][0]):.1f},{py(y_lo):.1f}"
-    )
+    area = f"{px(pts[0][0]):.1f},{py(y_lo):.1f} {coords} {px(pts[-1][0]):.1f},{py(y_lo):.1f}"
     return (
         f'<svg width="{w}" height="{h}" viewBox="0 0 {w} {h}" preserveAspectRatio="none">'
         f"{band_rects}"
@@ -407,10 +407,10 @@ def render_sleep(sleep: dict, *, debt_progress: dict | None = None) -> str:
             ),
         ]
     )
-    ring = progress_or_text(bool(debt.get("available")), debt_progress, "", "Sleep debt (14n)")
-    return (
-        f'<section class="panel"><h2>Sleep</h2><div class="stats">{stats}</div>{ring}</section>'
+    ring = progress_or_text(
+        bool(debt.get("available")), debt_progress, "", "Sleep debt (14n)"
     )
+    return f'<section class="panel"><h2>Sleep</h2><div class="stats">{stats}</div>{ring}</section>'
 
 
 def render_trends(
@@ -548,7 +548,10 @@ def render_rr_hrv_detail(detail: dict) -> str:
         body = f'<div class="sub">{esc(detail.get("reason", "not enough clean RR yet"))}</div>'
     else:
         tacho = svg_area_line(
-            detail["times"], detail["rr_values"], stroke="#a78bfa", fill="rgba(167,139,250,0.15)"
+            detail["times"],
+            detail["rr_values"],
+            stroke="#a78bfa",
+            fill="rgba(167,139,250,0.15)",
         )
         scatter = svg_poincare(detail["pairs"], detail["sd1"], detail["sd2"])
         stats = "".join(
@@ -574,7 +577,10 @@ def render_overnight_hrv(curve: dict) -> str:
         body = f'<div class="sub">{esc(curve.get("reason", "no overnight window detected yet"))}</div>'
     else:
         chart = svg_area_line(
-            curve["times"], curve["values"], stroke="#34d399", fill="rgba(52,211,153,0.18)"
+            curve["times"],
+            curve["values"],
+            stroke="#34d399",
+            fill="rgba(52,211,153,0.18)",
         )
         body = f'<div class="chart"><div class="lbl">lnRMSSD · overnight (5-min buckets)</div>{chart}</div>'
     return f'<section class="panel"><h2>Overnight HRV curve</h2>{body}</section>'
@@ -586,7 +592,10 @@ def render_sleep_hr_dip(curve: dict) -> str:
         body = f'<div class="sub">{esc(curve.get("reason", "no overnight sleep window detected yet"))}</div>'
     else:
         chart = svg_area_line(
-            curve["times"], curve["values"], stroke="#818cf8", fill="rgba(129,140,248,0.15)"
+            curve["times"],
+            curve["values"],
+            stroke="#818cf8",
+            fill="rgba(129,140,248,0.15)",
         )
         stats = "".join(
             [
@@ -599,7 +608,9 @@ def render_sleep_hr_dip(curve: dict) -> str:
             f'<div class="stats">{stats}</div>'
             f'<div class="chart"><div class="lbl">HR across sleep window</div>{chart}</div>'
         )
-    return f'<section class="panel"><h2>Sleep HR &amp; nocturnal dip</h2>{body}</section>'
+    return (
+        f'<section class="panel"><h2>Sleep HR &amp; nocturnal dip</h2>{body}</section>'
+    )
 
 
 def render_respiratory(trace: dict) -> str:
@@ -608,7 +619,10 @@ def render_respiratory(trace: dict) -> str:
         body = f'<div class="sub">{esc(trace.get("reason", "not enough clean resting RR yet"))}</div>'
     else:
         chart = svg_area_line(
-            trace["times"], trace["values"], stroke="#f472b6", fill="rgba(244,114,182,0.15)"
+            trace["times"],
+            trace["values"],
+            stroke="#f472b6",
+            fill="rgba(244,114,182,0.15)",
         )
         body = f'<div class="chart"><div class="lbl">Breaths/min · resting windows</div>{chart}</div>'
     return f'<section class="panel"><h2>Respiratory trace</h2>{body}</section>'
@@ -651,7 +665,9 @@ def _session_card_html(s: dict) -> str:
     )
     drift = a.get("hrr")
     drift_html = (
-        f'<span class="chip">HRR: {esc(drift)} bpm/60s</span>' if drift is not None else ""
+        f'<span class="chip">HRR: {esc(drift)} bpm/60s</span>'
+        if drift is not None
+        else ""
     )
     peak_sub = f'peak {a.get("max_hr", "—")}'
     duration_min = a.get("duration_sec", 0) // 60

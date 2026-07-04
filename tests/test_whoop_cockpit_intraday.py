@@ -98,7 +98,13 @@ class TestPanelRendersEmptyState:
         from rivaflow.core.whoop_cockpit import render_session_deepdives
 
         out = render_session_deepdives(
-            [{"label": "BJJ (gi)", "day": "2026-07-01", "analytics": {"available": False, "reason": "no HR"}}]
+            [
+                {
+                    "label": "BJJ (gi)",
+                    "day": "2026-07-01",
+                    "analytics": {"available": False, "reason": "no HR"},
+                }
+            ]
         )
         assert "BJJ (gi)" in out
 
