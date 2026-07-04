@@ -20,6 +20,7 @@ from rivaflow.core.max_hr import calibrate_max_hr
 from rivaflow.core.prevention import evaluate_prevention, robust_baseline
 from rivaflow.core.readiness import blend_readiness, zscore
 from rivaflow.core.rr_quality import assess_rr, clean_segments, ln_rmssd, rmssd
+from rivaflow.core.sleep_metrics import sleep_debt, sleep_regularity
 from rivaflow.core.strain_target import prescribe_strain
 from rivaflow.core.training_load import acwr, heart_rate_recovery, recovery_cost
 from rivaflow.db.repositories.whoop_repo import WhoopRepository
@@ -104,18 +105,12 @@ def _longest_low_block(order: list[int], med: dict, threshold: int, max_bridge: 
     return best_s, best_e, best_span
 
 
-def nightly_sleep(user_id: int, lookback_hours: int = 20) -> dict:
-    """Estimate last night's sleep from the overnight HR pattern. HR drops and stays low during sleep.
-    Robust to real fluctuation + gaps: bins HR into 5-min buckets (median), flags a bucket 'asleep' when
-    its median is within ~12 bpm of the night's lowest bucket, then finds the longest sleep block —
-    bridging brief wakes (up to ~15 min of higher HR) so a single toss-and-turn doesn't split the night.
-    Honest HR-based sleep DURATION + timing, NOT WHOOP-style staging (which needs a proprietary model)."""
-    hr = WhoopRepository.recent_hr(user_id, hours=lookback_hours)
-    pts = [(_parse_ts(str(h["ts"])), int(h["bpm"])) for h in hr if h.get("bpm") and h.get("ts")]
+def _sleep_from_points(pts: list[tuple[datetime, int]]) -> dict:
+    """Extract one sleep window from (ts, bpm) points: 5-min-bucket medians, longest low-HR block with
+    wake-bridging. Shared by last-night and multi-night history. HR-based duration/timing, NOT staging."""
     if len(pts) < 120:
         return {"available": False, "reason": "Not enough overnight HR captured for a sleep estimate yet."}
     pts.sort(key=lambda p: p[0])
-
     t0 = pts[0][0]
     bucket_bpms: dict[int, list[int]] = defaultdict(list)
     bucket_time: dict[int, datetime] = {}
@@ -125,13 +120,10 @@ def nightly_sleep(user_id: int, lookback_hours: int = 20) -> dict:
         bucket_time.setdefault(idx, t)
     order = sorted(bucket_bpms)
     med = {i: sorted(bucket_bpms[i])[len(bucket_bpms[i]) // 2] for i in order}
-
     threshold = min(med.values()) + 12               # "asleep" band above the night's quietest bucket
     best_s, best_e, best_span = _longest_low_block(order, med, threshold, max_bridge=3)
-
     if best_s is None or best_span < 6:              # < ~30 min → not a real sleep block
         return {"available": False, "reason": "No sustained overnight low-HR sleep window detected."}
-
     start_t, end_t = bucket_time[best_s], bucket_time[best_e]
     duration_hours = (end_t - start_t).total_seconds() / 3600
     sleep_bpms = [b for i in order if best_s <= i <= best_e for b in bucket_bpms[i]]
@@ -145,6 +137,31 @@ def nightly_sleep(user_id: int, lookback_hours: int = 20) -> dict:
         "source": "hr_bucketed_window",
         "method": "HR-based sleep duration/timing (not WHOOP staging).",
     }
+
+
+def nightly_sleep(user_id: int, lookback_hours: int = 20) -> dict:
+    """Estimate last night's sleep from the overnight HR pattern (see _sleep_from_points)."""
+    hr = WhoopRepository.recent_hr(user_id, hours=lookback_hours)
+    pts = [(_parse_ts(str(h["ts"])), int(h["bpm"])) for h in hr if h.get("bpm") and h.get("ts")]
+    return _sleep_from_points(pts)
+
+
+def nightly_sleep_history(user_id: int, nights: int = 7) -> list[dict]:
+    """Per-night sleep for the last `nights` nights (each 18:00→12:00 local), for B9 debt + B10 regularity.
+    Reuses the single-night extractor over per-night HR windows."""
+    from datetime import timedelta
+    now = datetime.now(LOCAL_TZ)
+    out: list[dict] = []
+    for back in range(nights, 0, -1):
+        day = (now - timedelta(days=back)).date()
+        start = datetime.combine(day, datetime.min.time(), LOCAL_TZ).replace(hour=18)
+        end = start + timedelta(hours=18)   # 18:00 → next 12:00
+        hr = WhoopRepository.hr_range(user_id, start.isoformat(), end.isoformat())
+        pts = [(_parse_ts(str(h["ts"])), int(h["bpm"])) for h in hr if h.get("bpm") and h.get("ts")]
+        s = _sleep_from_points(pts)
+        if s.get("available"):
+            out.append(s)
+    return out
 
 
 def whoop_summary(user_id: int, today_is_sabbath: bool = False) -> dict:
@@ -223,6 +240,19 @@ def prevention_watch(user_id: int, days: int = 21) -> dict:
         if r is not None:
             readings[name] = r
     return evaluate_prevention(readings)
+
+
+def sleep_analysis(user_id: int, nights: int = 7) -> dict:
+    """B9 + B10 — sleep need/debt (vs Ruby's >9h DNA need) + bedtime regularity, from the per-night history."""
+    history = nightly_sleep_history(user_id, nights=nights)
+    durations = [h["duration_hours"] for h in history]
+    onsets = [_parse_ts(h["sleep_start"]).astimezone(LOCAL_TZ).hour
+              + _parse_ts(h["sleep_start"]).astimezone(LOCAL_TZ).minute / 60.0 for h in history]
+    return {
+        "nights_analysed": len(history),
+        "debt": sleep_debt(durations),
+        "regularity": sleep_regularity(onsets),
+    }
 
 
 def training_acwr(user_id: int, days: int = 28) -> dict:

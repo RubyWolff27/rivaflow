@@ -175,6 +175,15 @@ def strain_target_endpoint(current_user: dict = Depends(get_current_user)) -> di
     return strain_target(current_user["id"], today_is_sabbath=is_sabbath)
 
 
+@router.get("/sleep-analysis")
+@route_error_handler("whoop_sleep_analysis", detail="Failed to compute sleep analysis")
+def sleep_analysis_endpoint(current_user: dict = Depends(get_current_user)) -> dict:
+    """B9 + B10 — sleep need/debt vs the >9h need + bedtime regularity."""
+    from rivaflow.core.whoop_analytics import sleep_analysis
+
+    return sleep_analysis(current_user["id"])
+
+
 @router.get("/acwr")
 @route_error_handler("whoop_acwr", detail="Failed to compute ACWR")
 def acwr_endpoint(current_user: dict = Depends(get_current_user)) -> dict:
