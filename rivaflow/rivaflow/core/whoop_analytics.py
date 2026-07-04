@@ -15,9 +15,10 @@ from statistics import mean
 from zoneinfo import ZoneInfo
 
 from rivaflow.core.coverage import assess_coverage, coverage_in_days
+from rivaflow.core.hrv_spectral import MIN_BEATS, frequency_domain, poincare
 from rivaflow.core.max_hr import calibrate_max_hr
 from rivaflow.core.readiness import blend_readiness, zscore
-from rivaflow.core.rr_quality import assess_rr, ln_rmssd, rmssd
+from rivaflow.core.rr_quality import assess_rr, clean_segments, ln_rmssd, rmssd
 from rivaflow.core.strain_target import prescribe_strain
 from rivaflow.db.repositories.whoop_repo import WhoopRepository
 
@@ -191,6 +192,29 @@ def strain_target(user_id: int, today_is_sabbath: bool = False) -> dict:
     cardio = daily_cardio_load(user_id, days=14)
     acute = cardio[-1]["cardio_load"] if cardio else None
     return prescribe_strain(readiness.get("state"), _chronic_load(cardio), acute)
+
+
+def hrv_lab(user_id: int, days: int = 2) -> dict:
+    """B4 — frequency-domain + non-linear HRV (web deep-dive 'HRV Lab'). Picks the longest clean, contiguous
+    resting-RR segment from recent nights and runs Lomb-Scargle spectral + Poincaré on it — only if it clears
+    the ≥5-min / ≥150-beat bar. Artifact-% travels with the result (HF band carries beat-detection jitter)."""
+    rr = [int(r["rr_ms"]) for r in WhoopRepository.rr_range(user_id, days) if r.get("rr_ms")]
+    resting = [v for v in rr if 667 <= v <= 1500]
+    segments = clean_segments(resting, min_len=MIN_BEATS)
+    if not segments:
+        return {"available": False, "reason": "No contiguous resting RR segment of ≥150 beats yet."}
+    seg = max(segments, key=sum)                       # longest by total time
+    fseg = [float(v) for v in seg]
+    fd = frequency_domain(fseg)
+    if fd is None:
+        return {"available": False, "reason": "Longest clean segment is under the 5-min stationary window."}
+    pc = poincare(fseg)
+    return {
+        "available": True,
+        "frequency_domain": fd.as_dict(),
+        "poincare": pc.as_dict() if pc else None,
+        "quality": assess_rr(seg).as_meta(),
+    }
 
 
 def _rr_by_day(user_id: int, days: int) -> dict[str, list[int]]:

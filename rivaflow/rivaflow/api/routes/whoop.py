@@ -175,6 +175,15 @@ def strain_target_endpoint(current_user: dict = Depends(get_current_user)) -> di
     return strain_target(current_user["id"], today_is_sabbath=is_sabbath)
 
 
+@router.get("/hrv-lab")
+@route_error_handler("whoop_hrv_lab", detail="Failed to compute HRV lab")
+def hrv_lab_endpoint(current_user: dict = Depends(get_current_user)) -> dict:
+    """B4 — frequency-domain (Lomb-Scargle LF/HF) + Poincaré HRV over the longest clean ≥5-min resting window."""
+    from rivaflow.core.whoop_analytics import hrv_lab
+
+    return hrv_lab(current_user["id"])
+
+
 @router.get("/session-analytics")
 @route_error_handler("whoop_session_analytics", detail="Failed to compute BJJ session analytics")
 def session_analytics(
