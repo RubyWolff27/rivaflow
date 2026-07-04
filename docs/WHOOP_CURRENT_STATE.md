@@ -84,6 +84,36 @@ All bucketed + displayed in **Australia/Melbourne** local time.
 - **No independent signal-QC gate exists yet** — the only defence is the diff-drop above. A QC/characterisation
   build is the true first step of the roadmap.
 
+## 3b. SHIPPED roadmap — B0–B19 (2026-07-04, the reproducible core)
+The full `WHOOP_FUTURE_STATE_PLAN.md` roadmap is **built, tested (CI green), and on `main`** — 16 pure
+core modules + 35 `/whoop` endpoints. All compute server-side; the phone and web only render.
+
+| Build | Module | Endpoint(s) |
+|---|---|---|
+| B0 signal-QC gate | `core/rr_quality.py` | (upstream of every metric) |
+| B1 Max-HR calibration | `core/max_hr.py` | `/summary.max_hr` |
+| B2 Multi-input Readiness | `core/readiness.py` | `/readiness` |
+| B3 RR-coverage guard | `core/coverage.py` | `/summary.coverage` |
+| B4 HRV Lab (freq + Poincaré) | `core/hrv_spectral.py` | `/hrv-lab`, `/dfa` |
+| B5 Strain Target | `core/strain_target.py` | `/strain-target` |
+| B6 Baseline-Deviation Watch | `core/prevention.py` | `/prevention`, `/prevention-backtest`, `/prevention-validate`, `/prevention-log` |
+| B7 ACWR · B8 HRR · B12 recovery-cost | `core/training_load.py` | `/acwr`, `/recovery-cost` |
+| B9 Sleep debt · B10 Regularity | `core/sleep_metrics.py` | `/sleep-analysis` |
+| B11 Behaviour correlation | `core/behaviour.py` | `/behaviour`, `/tag`, `/tags` |
+| B13 Realtime stress | (analytics) | `/realtime-stress` |
+| B14 VO₂max · B15 CV-age proxy | `core/longevity.py` | `/longevity` |
+| B16 Resilience | `core/resilience.py` | `/resilience` |
+| B17 Circadian | `core/circadian.py` | `/circadian` |
+| B18 DFA-α1 | `core/hrv_spectral.py` | `/dfa` |
+| B19 Assessment | `core/assessment.py` | `/assessment` |
+| **Delivery** (digest + cooldown) | `core/whoop_digest.py` | `/digest`, `/digest/deliver` |
+| **Web cockpit** (7 panels) | `core/whoop_cockpit.py` | `/cockpit` |
+| **Slim app** (iOS) | `goose-whoop5` SlimHomeView | renders `/summary` |
+
+**Deferred by design:** B20 AFib (decode-gated on the locked R22 raw-PPG SQI) · R22/K21 decode (locked).
+**Runtime tail:** B6 threshold *tuning* awaits real `ill` journal tags; VPS deploy lights up the phone banner.
+Acceptance harness: `tests/test_whoop_acceptance.py` asserts each build's contract + safety invariants in CI.
+
 ## 4. What our data COULD support (see the roadmap — this is a pointer, not a parallel list)
 All of the following — **except the decode-gated AFib screen noted below** — are reproducible from the **HR + RR we
 already bank**; each is scoped, prioritised, tagged for feasibility/surface, and given acceptance criteria in
