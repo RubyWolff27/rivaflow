@@ -1463,20 +1463,36 @@ def daily_cardio_load(
     hr = WhoopRepository.recent_hr(user_id, hours=days * 24)
     mx = max_hr or user_max_hr(user_id)["max_hr"]
     zone_weight = {1: 1, 2: 2, 3: 4, 4: 8, 5: 16}
+    # Time-weighted TRIMP: weight each sample by the ACTUAL seconds since the previous one. WHOOP capture
+    # density varies (much denser during active/workout capture), so the old fixed "1 sample/s → /60"
+    # assumption over-counted busy periods and saturated the scale at 21 every day. Gaps >10s (strap
+    # off-wrist / charging) are clamped to add no load.
+    rows = sorted(
+        (
+            (_parse_ts(h["ts"]), int(h["bpm"]))
+            for h in hr
+            if h.get("bpm") and h.get("ts")
+        ),
+        key=lambda r: r[0],
+    )
     by_day: dict[str, float] = defaultdict(float)
-    for h in hr:
-        bpm, ts = h.get("bpm"), h.get("ts")
-        if bpm and ts:
-            by_day[_local_day(ts)] += (
-                zone_weight[hr_zone(int(bpm), mx)] / 60.0
-            )  # ~1 sample/s → per-minute
+    prev_ts: datetime | None = None
+    for ts, bpm in rows:
+        if prev_ts is not None:
+            dt = (ts - prev_ts).total_seconds()
+            if 0 < dt <= 10:
+                by_day[_local_day(ts)] += zone_weight[hr_zone(bpm, mx)] * (dt / 60.0)
+        prev_ts = ts
     out = []
     for day in sorted(by_day):
         raw = by_day[day]
         out.append(
             {
                 "day": day,
-                "cardio_load": round(min(21.0, 6.0 * log1p(raw / 20.0)), 1),
+                # Compression recalibrated for all-day continuous wear (was saturating at 21 daily):
+                # a light day ~8, a hard session ~16, only a genuinely maximal day approaches 21.
+                # Tuned on early data — will refine as more days accrue.
+                "cardio_load": round(min(21.0, 16.0 * log1p(raw / 600.0)), 1),
                 "raw_trimp": round(raw, 1),
             }
         )
