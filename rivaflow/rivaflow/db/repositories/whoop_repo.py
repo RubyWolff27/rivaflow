@@ -306,3 +306,26 @@ class WhoopRepository:
             ),
             (user_id, limit),
         )
+
+    # ── Cockpit snapshot (pre-computed page — scheduled render, instant serve) ──
+
+    @staticmethod
+    def get_cockpit_snapshot(user_id: int) -> dict | None:
+        """The stored pre-computed cockpit page for a user ({html, rendered_at}) or None if never built."""
+        return BaseRepository._fetchone(
+            convert_query(
+                "SELECT html, rendered_at FROM whoop_cockpit_snapshot WHERE user_id = ?"
+            ),
+            (user_id,),
+        )
+
+    @staticmethod
+    def upsert_cockpit_snapshot(user_id: int, html: str) -> None:
+        """Store (or replace) a user's pre-computed cockpit HTML, stamping rendered_at to now."""
+        BaseRepository._execute(
+            convert_query(
+                "INSERT INTO whoop_cockpit_snapshot (user_id, html) VALUES (?, ?) "
+                "ON CONFLICT (user_id) DO UPDATE SET html = EXCLUDED.html, rendered_at = NOW()"
+            ),
+            (user_id, html),
+        )
