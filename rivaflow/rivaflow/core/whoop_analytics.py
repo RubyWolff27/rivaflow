@@ -8,6 +8,7 @@ HRV only, and BJJ session analytics use HR (not HRV) because motion corrupts bea
 
 from __future__ import annotations
 
+import time
 from collections import defaultdict
 from datetime import datetime, timedelta
 from math import log1p
@@ -286,11 +287,15 @@ def _chronic_load(cardio: list[dict]) -> float | None:
     return round(mean(prior), 1) if len(prior) >= 3 else None
 
 
-def strain_target(user_id: int, today_is_sabbath: bool = False) -> dict:
+def strain_target(
+    user_id: int, today_is_sabbath: bool = False, readiness: dict | None = None
+) -> dict:
     """B5 — standalone strain-target endpoint: today's readiness → prescribed daily 0–21 load, capped when
     Strained. (whoop_summary computes this inline from shared data; this is the direct-call path for /whoop.)
+    Pass an already-computed `readiness` to avoid recomputing it (the cockpit does this — it's ~3.6s of work).
     """
-    readiness = compute_readiness(user_id, today_is_sabbath=today_is_sabbath)
+    if readiness is None:
+        readiness = compute_readiness(user_id, today_is_sabbath=today_is_sabbath)
     cardio = daily_cardio_load(user_id, days=14)
     acute = cardio[-1]["cardio_load"] if cardio else None
     return prescribe_strain(readiness.get("state"), _chronic_load(cardio), acute)
@@ -774,7 +779,27 @@ def _history_progress(user_id: int) -> dict:
     }
 
 
+# Rendering the full cockpit runs ~15 multi-day analytics (~30s cold). The page auto-refreshes every 120s
+# and the underlying data only updates ~every 2.5min, so a short-TTL cache keeps every refresh/revisit
+# instant while a fresh session pays a single cold render. Keyed per user; process-local.
+_COCKPIT_CACHE: dict[int, tuple[float, str]] = {}
+_COCKPIT_TTL_S = 150.0
+
+
 def cockpit_page(user_id: int) -> str:
+    """Cached entry point for the deep-dive cockpit — serves a recent render (≤150s) instantly and only
+    rebuilds when the cache is cold or stale. See `_build_cockpit_page` for the actual render.
+    """
+    hit = _COCKPIT_CACHE.get(user_id)
+    nowt = time.monotonic()
+    if hit is not None and nowt - hit[0] < _COCKPIT_TTL_S:
+        return hit[1]
+    html = _build_cockpit_page(user_id)
+    _COCKPIT_CACHE[user_id] = (nowt, html)
+    return html
+
+
+def _build_cockpit_page(user_id: int) -> str:
     """P3 — server-rendered web deep-dive cockpit HTML. All series are computed here; the page only renders.
     P3.1 shipped Recovery & Load; P3.2-3.4 followed; P3.5 adds the intraday/session deep-dive panels.
     """
@@ -782,7 +807,7 @@ def cockpit_page(user_id: int) -> str:
     is_sabbath = now.weekday() == 6
     mx = user_max_hr(user_id)["max_hr"]
     readiness = compute_readiness(user_id, today_is_sabbath=is_sabbath)
-    strain = strain_target(user_id, today_is_sabbath=is_sabbath)
+    strain = strain_target(user_id, today_is_sabbath=is_sabbath, readiness=readiness)
     acwr_data = training_acwr(user_id)
     cardio = daily_cardio_load(user_id, days=28, max_hr=mx)
     rec_cost = recovery_cost_coupling(user_id)
