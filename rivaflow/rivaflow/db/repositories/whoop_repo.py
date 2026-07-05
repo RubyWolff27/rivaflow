@@ -12,7 +12,7 @@ import hashlib
 import logging
 from datetime import UTC, datetime, timedelta
 
-from rivaflow.db.database import convert_query, get_connection
+from rivaflow.db.database import convert_query, execute_insert, get_connection
 from rivaflow.db.repositories.base_repository import BaseRepository
 
 logger = logging.getLogger(__name__)
@@ -268,6 +268,45 @@ class WhoopRepository:
             (user_id, tag),
         )
         return {str(r["day"])[:10] for r in rows}
+
+    # ── Timestamped workout sessions (real start/end window so HR can attach) ──
+
+    @staticmethod
+    def create_whoop_session(
+        user_id: int,
+        activity: str,
+        started_at: str,
+        ended_at: str | None = None,
+        source: str = "app",
+    ) -> int:
+        """Log a timestamped workout session and return its id. `started_at`/`ended_at` are ISO8601."""
+        with get_connection() as conn:
+            cursor = conn.cursor()
+            return execute_insert(
+                cursor,
+                "INSERT INTO whoop_sessions (user_id, activity, started_at, ended_at, source) "
+                "VALUES (?, ?, ?, ?, ?)",
+                (user_id, activity, started_at, ended_at, source),
+            )
+
+    @staticmethod
+    def end_whoop_session(session_id: int, ended_at: str) -> None:
+        """Close an open session by stamping its `ended_at` (ISO8601)."""
+        BaseRepository._execute(
+            convert_query("UPDATE whoop_sessions SET ended_at = ? WHERE id = ?"),
+            (ended_at, session_id),
+        )
+
+    @staticmethod
+    def list_whoop_sessions(user_id: int, limit: int = 10) -> list[dict]:
+        """A user's logged workout sessions, most recent first."""
+        return BaseRepository._fetchall(
+            convert_query(
+                "SELECT id, activity, started_at, ended_at, source, created_at "
+                "FROM whoop_sessions WHERE user_id = ? ORDER BY started_at DESC LIMIT ?"
+            ),
+            (user_id, limit),
+        )
 
     # ── Prevention alerts (P2 — delivery log + cooldown state) ───────────
 
