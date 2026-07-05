@@ -322,7 +322,7 @@ def render_cockpit_page(panels_html: str, rendered_at: str = "") -> str:
         "@media (max-width:640px){.dual{grid-template-columns:1fr}}"
         "</style></head><body><h1>WHOOP Cockpit · analyst deep-dive</h1>"
         f"{panels_html}"
-        f"<div class='foot'>RivaFlow · self-hosted · {stamp}recomputes every 4h</div>"
+        f"<div class='foot'>RivaFlow · self-hosted · {stamp}recomputes 6am · 9am · 6pm · 9pm</div>"
         "</body></html>"
     )
 
