@@ -10,6 +10,11 @@ class TestCockpitRender:
         html = cockpit_page(test_user["id"])
         assert html.startswith("<!doctype html>")
         assert "WHOOP Cockpit" in html
+        # Tier-1 story band + workouts drill-down + the collapsed Tier-2 lab wrapper.
+        assert 'class="panel hero"' in html
+        assert '<div class="narrative">' in html
+        assert "<h2>Workouts</h2>" in html
+        assert 'class="lab"' in html and "Show the full lab" in html
         for panel in (
             "Recovery &amp; Load",  # P3.1
             "Today · HR ribbon",  # P3.5

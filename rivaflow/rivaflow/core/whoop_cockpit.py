@@ -10,6 +10,7 @@ Sub-phased by panel group; P3.1 ships Recovery & Load. Every dynamic string is H
 from __future__ import annotations
 
 import html
+from math import log1p
 
 _ACCENT = {
     "Prime": "#34d399",
@@ -319,8 +320,32 @@ def render_cockpit_page(panels_html: str, rendered_at: str = "") -> str:
         ".zbars .zb{flex:1;border-radius:2px 2px 0 0}"
         ".session-card{border-top:1px solid #1f2937;padding-top:10px;margin-top:10px}"
         ".session-card:first-of-type{border-top:none;padding-top:0;margin-top:0}"
+        # Tier-1 story layer
+        ".panel.hero{border-color:#334155}"
+        ".verdict{font-size:34px;font-weight:700;line-height:1.1;margin:2px 0}"
+        ".verdict-sub{font-size:15px;color:#cbd5e1;margin:2px 0 4px}"
+        ".narrative{font-size:15px;line-height:1.5;background:#0f172a;border-left:3px solid #60a5fa;"
+        "padding:10px 12px;border-radius:6px;margin:12px 0}"
+        ".cards3{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;margin-top:12px}"
+        ".card{background:#0f172a;border:1px solid #1f2937;border-radius:10px;padding:12px}"
+        ".card .ico{font-size:11px;color:#94a3b8;text-transform:uppercase;letter-spacing:.05em}"
+        ".card .big{font-size:22px;font-weight:600;margin:3px 0}"
+        ".takeaway{font-size:12.5px;color:#93c5fd;font-style:italic;margin:-2px 0 10px}"
+        ".badge{display:inline-block;border-radius:6px;padding:1px 7px;font-size:11px;font-weight:600}"
+        ".badge.hard{background:#7f1d1d;color:#fecaca}"
+        ".badge.mod{background:#78350f;color:#fed7aa}"
+        ".badge.easy{background:#064e3b;color:#a7f3d0}"
+        "details.card summary,details.workout-row summary,details.lab>summary{cursor:pointer;list-style:none}"
+        "summary::-webkit-details-marker{display:none}"
+        "details.workout-row{border-top:1px solid #1f2937;padding:6px 0}"
+        "details.workout-row:first-of-type{border-top:none}"
+        "details.workout-row>summary{padding:6px 0;font-size:14px}"
+        "details.lab{margin-top:4px}"
+        "details.lab>summary{font-size:14px;color:#94a3b8;font-weight:600;padding:12px;background:#111827;"
+        "border:1px solid #1f2937;border-radius:12px;letter-spacing:.03em}"
+        "details.lab[open]>summary{margin-bottom:12px}"
         "@media (max-width:640px){.dual{grid-template-columns:1fr}}"
-        "</style></head><body><h1>WHOOP Cockpit · analyst deep-dive</h1>"
+        "</style></head><body><h1>WHOOP Cockpit · your day, then the lab</h1>"
         f"{panels_html}"
         f"<div class='foot'>RivaFlow · self-hosted · {stamp}recomputes 6am · 9am · 6pm · 9pm</div>"
         "</body></html>"
@@ -699,3 +724,201 @@ def render_session_deepdives(sessions: list[dict]) -> str:
     else:
         body = "".join(_session_card_html(s) for s in sessions[:5])
     return f'<section class="panel"><h2>Session deep-dives</h2>{body}</section>'
+
+
+# ── P6 "Story over Lab" — a glanceable Tier-1 band on top of the technical Lab ──
+
+
+def session_load_hardness(analytics: dict) -> tuple[float, str]:
+    """Compressed 0–21 cardio-load + a HARD/MODERATE/EASY label from a session's zone-seconds (same TRIMP
+    weighting daily_cardio_load uses). Lives here (not analytics) so both the renderer and narrative can
+    reuse it without an import cycle. Returns (0.0, 'EASY') on empty/missing zone data.
+    """
+    zone_secs = analytics.get("hr_zone_secs", {}) or {}
+    weights = {1: 1, 2: 2, 3: 4, 4: 8, 5: 16}
+    raw = sum(weights.get(int(z), 0) * (secs / 60.0) for z, secs in zone_secs.items())
+    load = round(min(21.0, 6.0 * log1p(raw / 20.0)), 1)
+    if load >= 12:
+        return load, "HARD"
+    if load >= 6:
+        return load, "MODERATE"
+    return load, "EASY"
+
+
+def _hardness_badge(hardness: str) -> str:
+    cls = {"HARD": "hard", "MODERATE": "mod", "EASY": "easy"}.get(hardness, "easy")
+    return f'<span class="badge {cls}">{esc(hardness)}</span>'
+
+
+def takeaway(text: str) -> str:
+    """A one-line plain-English takeaway strip — the glance altitude that sits above each Lab panel's chart."""
+    return f'<div class="takeaway">{esc(text)}</div>' if text else ""
+
+
+def inject_takeaway(panel_html: str, text: str) -> str:
+    """Slot a plain-English takeaway line right under a panel's heading, without touching the 15 renderers."""
+    if not text:
+        return panel_html
+    marker = "</h2>"
+    idx = panel_html.find(marker)
+    if idx == -1:
+        return panel_html
+    cut = idx + len(marker)
+    return panel_html[:cut] + takeaway(text) + panel_html[cut:]
+
+
+def render_lab_section(panels_html: str) -> str:
+    """Tier-2 — collapse the full 15-panel technical Lab behind one tap, so Tier-1 is the default view."""
+    return (
+        '<details class="lab"><summary>🔬 Show the full lab — 15 technical panels ▾</summary>'
+        f"{panels_html}</details>"
+    )
+
+
+def _hero_html(readiness: dict) -> str:
+    state = str(readiness.get("state", "Building"))
+    accent = _ACCENT.get(state, "#94a3b8")
+    headline = esc(readiness.get("headline", ""))
+    caveat = readiness.get("caveat")
+    caveat_html = f'<div class="caveat">⚠️ {esc(caveat)}</div>' if caveat else ""
+    return (
+        f'<div class="ico">Today\'s readiness</div>'
+        f'<div class="verdict" style="color:{accent}">{esc(state)}</div>'
+        f'<div class="verdict-sub">{headline}</div>'
+        f"{caveat_html}"
+    )
+
+
+def _sleep_card(night: dict, dip: dict, need_hours: float) -> str:
+    if not night.get("available"):
+        return (
+            '<div class="card"><div class="ico">🌙 Last night</div>'
+            '<div class="big">—</div><div class="sub">building — no sleep window detected yet</div></div>'
+        )
+    dur = night.get("duration_hours")
+    onset = dip.get("onset", "—") if dip.get("available") else "—"
+    offset = dip.get("offset", "—") if dip.get("available") else "—"
+    dip_pct = dip.get("dip_pct", "—") if dip.get("available") else "—"
+    short = round(need_hours - dur, 1) if isinstance(dur, (int, float)) else None
+    if short is not None and short >= 0.5:
+        vs_need = f"{short}h under your {need_hours:g}h need"
+    elif short is not None:
+        vs_need = f"on your {need_hours:g}h need"
+    else:
+        vs_need = ""
+    return (
+        '<div class="card"><div class="ico">🌙 Last night</div>'
+        f'<div class="big">{esc(dur)}h</div>'
+        f'<div class="sub">{esc(onset)} → {esc(offset)}</div>'
+        f'<div class="sub">{esc(vs_need)}</div>'
+        f'<div class="sub">nocturnal dip {esc(dip_pct)}%</div></div>'
+    )
+
+
+def _workout_card(last_workout: dict | None) -> str:
+    if not last_workout:
+        return (
+            '<div class="card"><div class="ico">🏋️ Last workout</div>'
+            '<div class="big">—</div><div class="sub">no recent session captured</div></div>'
+        )
+    label = str(last_workout.get("label", "Session"))
+    day = str(last_workout.get("day", ""))
+    a = last_workout.get("analytics", {})
+    if not a.get("available"):
+        return (
+            '<div class="card"><div class="ico">🏋️ Last workout</div>'
+            f'<div class="big">{esc(label)}</div>'
+            f'<div class="sub">{esc(day)} — {esc(a.get("reason", "no HR captured"))}</div></div>'
+        )
+    load, hardness = session_load_hardness(a)
+    dur_min = a.get("duration_sec", 0) // 60
+    return (
+        '<details class="card"><summary>'
+        '<div class="ico">🏋️ Last workout · tap for deep dive</div>'
+        f'<div class="big">{esc(label)} {_hardness_badge(hardness)}</div>'
+        f'<div class="sub">{esc(day)} · {dur_min}min · load {esc(load)}/21</div>'
+        f'<div class="sub">avg {esc(a.get("avg_hr", "—"))} · peak {esc(a.get("max_hr", "—"))} bpm</div>'
+        f"</summary>{_session_card_html(last_workout)}</details>"
+    )
+
+
+def _guidance_card(strain: dict, readiness: dict, is_sabbath: bool) -> str:
+    if is_sabbath:
+        return (
+            '<div class="card"><div class="ico">⚡️ Today</div>'
+            '<div class="big">Rest</div><div class="sub">Sabbath — rest is prescribed</div></div>'
+        )
+    if not strain.get("available"):
+        return (
+            '<div class="card"><div class="ico">⚡️ Today</div>'
+            '<div class="big">—</div>'
+            f'<div class="sub">{esc(strain.get("reason", "building your baseline"))}</div></div>'
+        )
+    call = {
+        "Prime": "Green light — you can push",
+        "Balanced": "Train as planned",
+        "Strained": "Ease off — technical over hard",
+        "Rundown": "Recovery day — keep it light",
+    }.get(str(readiness.get("state", "")), "Train as planned")
+    return (
+        '<div class="card"><div class="ico">⚡️ Today\'s guidance</div>'
+        f'<div class="big">{esc(strain.get("target_load", "—"))}/21</div>'
+        f'<div class="sub">{esc(call)}</div>'
+        f'<div class="sub">usual {esc(strain.get("chronic_load", "—"))}</div></div>'
+    )
+
+
+def render_today_story(
+    readiness: dict,
+    narrative: str,
+    night: dict,
+    dip: dict,
+    need_hours: float,
+    last_workout: dict | None,
+    strain: dict,
+    is_sabbath: bool,
+) -> str:
+    """Tier-1 — the glanceable 'Today' band: hero verdict + one honest data-story + three essential cards
+    (last night's sleep, last workout, today's guidance). The plain-language layer over the technical Lab.
+    """
+    cards = (
+        _sleep_card(night, dip, need_hours)
+        + _workout_card(last_workout)
+        + _guidance_card(strain, readiness, is_sabbath)
+    )
+    return (
+        '<section class="panel hero">'
+        f"{_hero_html(readiness)}"
+        f'<div class="narrative">{esc(narrative)}</div>'
+        f'<div class="cards3">{cards}</div>'
+        "</section>"
+    )
+
+
+def _workout_row(s: dict) -> str:
+    label = str(s.get("label", "Session"))
+    day = str(s.get("day", ""))
+    a = s.get("analytics", {})
+    if not a.get("available"):
+        return (
+            '<details class="workout-row"><summary>'
+            f"{esc(day)} · {esc(label)} — {esc(a.get('reason', 'no HR captured'))}"
+            f"</summary>{_session_card_html(s)}</details>"
+        )
+    load, hardness = session_load_hardness(a)
+    dur_min = a.get("duration_sec", 0) // 60
+    return (
+        '<details class="workout-row"><summary>'
+        f"{esc(day)} · {esc(label)} · {dur_min}min · load {esc(load)}/21 {_hardness_badge(hardness)}"
+        f"</summary>{_session_card_html(s)}</details>"
+    )
+
+
+def render_workouts_list(sessions: list[dict]) -> str:
+    """Ruby's 'drill into previous workouts' ask — the last ~10 sessions, each a tap-to-expand <details> row
+    that opens its full deep-dive inline. Pure HTML disclosure, no JS."""
+    if not sessions:
+        body = '<div class="sub">No recent sessions with WHOOP HR coverage yet.</div>'
+    else:
+        body = "".join(_workout_row(s) for s in sessions[:10])
+    return f'<section class="panel"><h2>Workouts</h2>{body}</section>'

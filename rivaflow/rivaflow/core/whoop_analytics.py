@@ -37,11 +37,13 @@ from rivaflow.core.sleep_metrics import sleep_debt, sleep_regularity
 from rivaflow.core.strain_target import prescribe_strain
 from rivaflow.core.training_load import acwr, heart_rate_recovery, recovery_cost
 from rivaflow.core.whoop_cockpit import (
+    inject_takeaway,
     render_behaviour,
     render_cockpit_page,
     render_data_integrity,
     render_hr_ribbon,
     render_hrv_lab,
+    render_lab_section,
     render_overnight_hrv,
     render_prevention_log,
     render_recovery_load,
@@ -51,7 +53,10 @@ from rivaflow.core.whoop_cockpit import (
     render_sleep,
     render_sleep_hr_dip,
     render_stress_ribbon,
+    render_today_story,
     render_trends,
+    render_workouts_list,
+    session_load_hardness,
 )
 from rivaflow.core.whoop_digest import compile_digest
 from rivaflow.db.repositories.session_repo import SessionRepository
@@ -781,6 +786,84 @@ def _history_progress(user_id: int) -> dict:
     }
 
 
+def _sleep_clause(night: dict) -> str:
+    """Sleep fragment for the narrative — only flags a meaningful shortfall vs the 9h need, else silent."""
+    if not night.get("available"):
+        return ""
+    dur = night.get("duration_hours")
+    if not isinstance(dur, (int, float)):
+        return ""
+    short = round(9.0 - dur, 1)
+    if short >= 1.0:
+        return f"you slept {short}h under your 9h need"
+    return ""
+
+
+def _workout_clause(last_workout: dict | None) -> str:
+    """Workout fragment — only surfaced when the most recent captured session was genuinely hard."""
+    if not last_workout:
+        return ""
+    a = last_workout.get("analytics", {})
+    if not a.get("available"):
+        return ""
+    _, hardness = session_load_hardness(a)
+    if hardness == "HARD":
+        return f"you're coming off a hard {str(last_workout.get('label', 'session')).lower()}"
+    return ""
+
+
+def daily_narrative(
+    user_id: int,
+    *,
+    readiness: dict | None = None,
+    night: dict | None = None,
+    last_workout: dict | None = None,
+) -> str:
+    """Compose ONE honest 1–2 sentence data-story from already-computed signals (readiness state + last-night
+    sleep-vs-need + last workout hardness). Rule-based, no overclaiming; the performance nudge is silenced on
+    the Sabbath. Safe on thin data — returns a clean 'building' line rather than inventing a story. Accepts
+    pre-computed inputs so the cockpit doesn't recompute readiness, and stays standalone-callable for tests.
+    """
+    is_sabbath = datetime.now(LOCAL_TZ).weekday() == 6
+    if readiness is None:
+        readiness = compute_readiness(user_id, today_is_sabbath=is_sabbath)
+    if night is None:
+        night = nightly_sleep(user_id)
+    state = str(readiness.get("state", "Building"))
+    sleep_clause = _sleep_clause(night)
+
+    if is_sabbath:
+        rest = "Sabbath — rest is prescribed today."
+        return (
+            f"{rest} {sleep_clause[0].upper() + sleep_clause[1:]}."
+            if sleep_clause
+            else rest
+        )
+
+    if state in ("Building", "Rest"):
+        return (
+            "Still building your HRV baseline — a few more nights of resting data and your "
+            "readiness story starts here."
+        )
+
+    lead = {
+        "Prime": "HRV's above your baseline",
+        "Balanced": "HRV's steady",
+        "Strained": "HRV's sitting below your baseline",
+        "Rundown": "HRV's well below your baseline",
+    }.get(state, "HRV's steady")
+    guidance = {
+        "Prime": "green light to push today",
+        "Balanced": "train as planned",
+        "Strained": "ease into today — technical over hard rolls",
+        "Rundown": "prioritise recovery today",
+    }.get(state, "train as planned")
+
+    mid = [b for b in (_workout_clause(last_workout), sleep_clause) if b]
+    body = f"{lead}, but {' and '.join(mid)}" if mid else lead
+    return f"{body} — {guidance}."
+
+
 def cockpit_page(user_id: int) -> str:
     """Hot path for the deep-dive cockpit — serves the pre-computed snapshot the scheduler stores (one
     instant SELECT). Rendering runs ~15 multi-day analytics (~40s cold), which black-screens the browser
@@ -795,62 +878,151 @@ def cockpit_page(user_id: int) -> str:
     return html
 
 
-def _build_cockpit_page(user_id: int) -> str:
-    """P3 — server-rendered web deep-dive cockpit HTML. All series are computed here; the page only renders.
-    P3.1 shipped Recovery & Load; P3.2-3.4 followed; P3.5 adds the intraday/session deep-dive panels.
-    """
-    now = datetime.now(LOCAL_TZ)
-    is_sabbath = now.weekday() == 6
-    mx = user_max_hr(user_id)["max_hr"]
-    readiness = compute_readiness(user_id, today_is_sabbath=is_sabbath)
-    strain = strain_target(user_id, today_is_sabbath=is_sabbath, readiness=readiness)
-    acwr_data = training_acwr(user_id)
-    cardio = daily_cardio_load(user_id, days=28, max_hr=mx)
-    rec_cost = recovery_cost_coupling(user_id)
-    progress = _history_progress(user_id)
+def _coverage_takeaway(coverage: dict) -> str:
+    pct = coverage.get("summary", {}).get("rr_coverage_pct", "—")
+    good = isinstance(pct, (int, float)) and pct >= 80
+    return f"RR coverage {pct}% — {'full night captured' if good else 'partial capture so far'}"
 
-    # Behaviour effects for each distinct tag the user has journalled (P3.4).
-    tags = sorted({t["tag"] for t in WhoopRepository.list_tags(user_id)})
-    effects = [behaviour_for_tag(user_id, t) for t in tags]
 
-    panels = "".join(
-        [
+def _dip_takeaway(dip: dict) -> str:
+    if not dip.get("available"):
+        return "Your overnight heart-rate dip — a bigger drop means deeper recovery."
+    return f"Your HR dipped {dip.get('dip_pct', '—')}% overnight — a bigger dip means deeper recovery."
+
+
+def _sleep_takeaway(sleep_analysis_data: dict) -> str:
+    debt = sleep_analysis_data.get("debt", {})
+    if debt.get("available"):
+        return str(debt.get("headline", "Your sleep debt vs your 9h need."))
+    return "Your sleep vs your 9h need — building over the next few nights."
+
+
+def _lab_panels(user_id: int, *, ctx: dict) -> str:
+    """Render the 15 technical Lab panels, each with a plain-English takeaway slotted under its heading."""
+    progress = ctx["progress"]
+    panels: list[tuple[str, str]] = [
+        (
             render_recovery_load(
-                readiness,
-                strain,
-                acwr_data,
-                cardio,
-                rec_cost,
+                ctx["readiness"],
+                ctx["strain"],
+                ctx["acwr"],
+                ctx["cardio"],
+                ctx["rec_cost"],
                 acwr_progress=progress["acwr"],
-            ),  # P3.1
-            render_hr_ribbon(today_hr_ribbon(user_id)),  # P3.5
-            render_rr_hrv_detail(rr_hrv_detail(user_id)),  # P3.5 MUST-HAVE
+            ),
+            f"Readiness is {ctx['readiness'].get('state', '—')} — your training-go from HRV, resting HR, "
+            "sleep and breathing.",
+        ),
+        (
+            render_hr_ribbon(today_hr_ribbon(user_id)),
+            "Your heart rate through the day, shaded by training zone.",
+        ),
+        (
+            render_rr_hrv_detail(rr_hrv_detail(user_id)),
+            "Your beat-to-beat intervals — the raw signal every HRV number is built from.",
+        ),
+        (
             render_hrv_lab(
                 hrv_lab(user_id), dfa_analysis(user_id), progress=progress["hrv"]
-            ),  # P3.2
-            render_overnight_hrv(overnight_hrv_curve(user_id)),  # P3.5
-            render_data_integrity(capture_coverage(user_id)),  # P3.2
-            render_sleep_hr_dip(sleep_hr_dip(user_id)),  # P3.5
-            render_respiratory(respiratory_trace(user_id)),  # P3.5
-            render_stress_ribbon(stress_ribbon_series(user_id)),  # P3.5
-            render_sleep(
-                sleep_analysis(user_id), debt_progress=progress["sleep_debt"]
-            ),  # P3.3
-            render_trends(  # P3.3
+            ),
+            "Frequency-domain and non-linear HRV — higher variability usually means more recovered.",
+        ),
+        (
+            render_overnight_hrv(overnight_hrv_curve(user_id)),
+            "How your HRV moved through the night — it should climb as you settle.",
+        ),
+        (render_data_integrity(ctx["coverage"]), _coverage_takeaway(ctx["coverage"])),
+        (render_sleep_hr_dip(ctx["dip"]), _dip_takeaway(ctx["dip"])),
+        (
+            render_respiratory(respiratory_trace(user_id)),
+            "Your breathing rate at rest — steady is good, a spike can flag stress or illness.",
+        ),
+        (
+            render_stress_ribbon(stress_ribbon_series(user_id)),
+            "How elevated your heart sat above resting through the day.",
+        ),
+        (
+            render_sleep(ctx["sleep_analysis"], debt_progress=progress["sleep_debt"]),
+            _sleep_takeaway(ctx["sleep_analysis"]),
+        ),
+        (
+            render_trends(
                 longevity_metrics(user_id),
                 resilience_metrics(user_id),
                 circadian_rhythm(user_id),
                 period_assessment_for(user_id, "week", 7),
                 resilience_progress=progress["resilience"],
             ),
-            render_session_deepdives(session_deepdives(user_id)),  # P3.5 MUST-HAVE
-            render_prevention_log(  # P3.4
-                prevention_log(user_id), prevention_watch(user_id)
-            ),
-            render_behaviour(effects),  # P3.4
-        ]
+            "Longer-horizon markers — VO₂max, cardio-age proxy, resilience. Trends, not verdicts.",
+        ),
+        (
+            render_session_deepdives(ctx["sessions"]),
+            "Your recent sessions beat by beat — zones, drift, and between-round recovery.",
+        ),
+        (
+            render_prevention_log(prevention_log(user_id), prevention_watch(user_id)),
+            "A personal safety net — flags when a signal drifts from your own baseline. Never diagnoses.",
+        ),
+        (
+            render_behaviour(ctx["effects"]),
+            "How your tagged habits (alcohol, late training…) actually move your HRV.",
+        ),
+    ]
+    return "".join(inject_takeaway(html_, text) for html_, text in panels)
+
+
+def _build_cockpit_page(user_id: int) -> str:
+    """P3/P6 — server-rendered cockpit HTML. Tier-1 'Today' story band (hero + narrative + three cards) and
+    a Workouts drill-down sit on top of the collapsed Tier-2 Lab (the 15 technical panels, each with a plain
+    -English takeaway). All series compute here; the page only renders. Graceful on thin data throughout.
+    """
+    now = datetime.now(LOCAL_TZ)
+    is_sabbath = now.weekday() == 6
+    mx = user_max_hr(user_id)["max_hr"]
+    readiness = compute_readiness(user_id, today_is_sabbath=is_sabbath)
+    strain = strain_target(user_id, today_is_sabbath=is_sabbath, readiness=readiness)
+    night = nightly_sleep(user_id)
+    dip = sleep_hr_dip(user_id)
+    sleep_a = sleep_analysis(user_id)
+    sessions = session_deepdives(user_id, limit=10)
+    tags = sorted({t["tag"] for t in WhoopRepository.list_tags(user_id)})
+
+    ctx = {
+        "readiness": readiness,
+        "strain": strain,
+        "acwr": training_acwr(user_id),
+        "cardio": daily_cardio_load(user_id, days=28, max_hr=mx),
+        "rec_cost": recovery_cost_coupling(user_id),
+        "progress": _history_progress(user_id),
+        "coverage": capture_coverage(user_id),
+        "dip": dip,
+        "sleep_analysis": sleep_a,
+        "sessions": sessions,
+        "effects": [behaviour_for_tag(user_id, t) for t in tags],
+    }
+
+    need_hours = sleep_a.get("debt", {}).get("need_hours", 9)
+    narrative = daily_narrative(
+        user_id,
+        readiness=readiness,
+        night=night,
+        last_workout=sessions[0] if sessions else None,
     )
-    return render_cockpit_page(panels, rendered_at=now.strftime("%H:%M"))
+    story = render_today_story(
+        readiness,
+        narrative,
+        night,
+        dip,
+        need_hours,
+        sessions[0] if sessions else None,
+        strain,
+        is_sabbath,
+    )
+    workouts = render_workouts_list(sessions)
+    lab = render_lab_section(_lab_panels(user_id, ctx=ctx))
+    return render_cockpit_page(
+        story + workouts + lab, rendered_at=now.strftime("%H:%M")
+    )
 
 
 def behaviour_correlation(
