@@ -8,7 +8,6 @@ HRV only, and BJJ session analytics use HR (not HRV) because motion corrupts bea
 
 from __future__ import annotations
 
-import time
 from collections import defaultdict
 from datetime import datetime, timedelta
 from math import log1p
@@ -588,8 +587,11 @@ def overnight_hrv_curve(user_id: int) -> dict:
         vals = buckets[idx]
         if len(vals) < 5:
             continue
+        lnr = ln_rmssd([float(v) for v in vals])
+        if lnr is None:
+            continue
         times.append(idx * 5 / 60.0)
-        values.append(round(ln_rmssd([float(v) for v in vals]), 3))
+        values.append(round(lnr, 3))
     if len(values) < 3:
         return {"available": False, "reason": "Too few clean 5-min buckets overnight."}
     return {"available": True, "times": times, "values": values}
@@ -779,23 +781,17 @@ def _history_progress(user_id: int) -> dict:
     }
 
 
-# Rendering the full cockpit runs ~15 multi-day analytics (~30s cold). The page auto-refreshes every 120s
-# and the underlying data only updates ~every 2.5min, so a short-TTL cache keeps every refresh/revisit
-# instant while a fresh session pays a single cold render. Keyed per user; process-local.
-_COCKPIT_CACHE: dict[int, tuple[float, str]] = {}
-_COCKPIT_TTL_S = 150.0
-
-
 def cockpit_page(user_id: int) -> str:
-    """Cached entry point for the deep-dive cockpit — serves a recent render (≤150s) instantly and only
-    rebuilds when the cache is cold or stale. See `_build_cockpit_page` for the actual render.
+    """Hot path for the deep-dive cockpit — serves the pre-computed snapshot the scheduler stores (one
+    instant SELECT). Rendering runs ~15 multi-day analytics (~40s cold), which black-screens the browser
+    on-demand, so `_cockpit_snapshot_job` recomputes every 4h and this only reads. On a cold first-ever
+    hit (no snapshot yet) it renders once, stores it, and returns it. See `_build_cockpit_page`.
     """
-    hit = _COCKPIT_CACHE.get(user_id)
-    nowt = time.monotonic()
-    if hit is not None and nowt - hit[0] < _COCKPIT_TTL_S:
-        return hit[1]
+    snap = WhoopRepository.get_cockpit_snapshot(user_id)
+    if snap is not None:
+        return str(snap["html"])
     html = _build_cockpit_page(user_id)
-    _COCKPIT_CACHE[user_id] = (nowt, html)
+    WhoopRepository.upsert_cockpit_snapshot(user_id, html)
     return html
 
 
@@ -854,7 +850,7 @@ def _build_cockpit_page(user_id: int) -> str:
             render_behaviour(effects),  # P3.4
         ]
     )
-    return render_cockpit_page(panels)
+    return render_cockpit_page(panels, rendered_at=now.strftime("%H:%M"))
 
 
 def behaviour_correlation(

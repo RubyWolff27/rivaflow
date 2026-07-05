@@ -295,12 +295,15 @@ def render_recovery_load(
     )
 
 
-def render_cockpit_page(panels_html: str) -> str:
-    """Full server-rendered cockpit page (dark, self-contained, auto-refresh)."""
+def render_cockpit_page(panels_html: str, rendered_at: str = "") -> str:
+    """Full server-rendered cockpit page (dark, self-contained). Serves a pre-computed snapshot, so the
+    footer shows when it was rendered and the tab re-fetches every 10 min to pick up the next snapshot.
+    """
+    stamp = f"as of {rendered_at} · " if rendered_at else ""
     return (
         "<!doctype html><html><head><meta charset='utf-8'>"
         "<meta name='viewport' content='width=device-width, initial-scale=1'>"
-        "<meta http-equiv='refresh' content='120'><title>WHOOP Cockpit</title><style>"
+        "<meta http-equiv='refresh' content='600'><title>WHOOP Cockpit</title><style>"
         "body{font-family:system-ui,-apple-system,sans-serif;background:#0b1120;color:#e2e8f0;margin:0;padding:16px}"
         "h1{font-size:18px;margin:0 0 12px}h2{font-size:14px;color:#94a3b8;margin:0 0 10px;text-transform:uppercase;letter-spacing:.05em}"
         ".panel{background:#111827;border:1px solid #1f2937;border-radius:12px;padding:16px;margin-bottom:14px}"
@@ -319,7 +322,7 @@ def render_cockpit_page(panels_html: str) -> str:
         "@media (max-width:640px){.dual{grid-template-columns:1fr}}"
         "</style></head><body><h1>WHOOP Cockpit · analyst deep-dive</h1>"
         f"{panels_html}"
-        "<div class='foot'>RivaFlow · self-hosted · renders server-computed series · auto-refresh 2 min</div>"
+        f"<div class='foot'>RivaFlow · self-hosted · {stamp}recomputes 6am · 9am · 6pm · 9pm</div>"
         "</body></html>"
     )
 
@@ -633,7 +636,11 @@ def render_stress_ribbon(ribbon: dict) -> str:
     if not ribbon.get("available"):
         body = f'<div class="sub">{esc(ribbon.get("reason", "not enough HR history for a baseline yet"))}</div>'
     else:
-        bands = [(0, 34, "#34d399"), (34, 67, "#fbbf24"), (67, 100, "#f87171")]
+        bands: list[tuple[float, float, str]] = [
+            (0.0, 34.0, "#34d399"),
+            (34.0, 67.0, "#fbbf24"),
+            (67.0, 100.0, "#f87171"),
+        ]
         chart = svg_area_line(
             ribbon["times"], ribbon["values"], bands=bands, stroke="#e2e8f0"
         )
