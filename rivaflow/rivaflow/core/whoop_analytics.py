@@ -59,7 +59,6 @@ from rivaflow.core.whoop_cockpit import (
     session_load_hardness,
 )
 from rivaflow.core.whoop_digest import compile_digest
-from rivaflow.db.repositories.session_repo import SessionRepository
 from rivaflow.db.repositories.whoop_repo import WhoopRepository
 
 # Ruby's profile-tuned constants
@@ -706,62 +705,73 @@ def stress_ribbon_series(user_id: int) -> dict:
     return {"available": True, "times": times, "values": values}
 
 
-def _session_window(s: dict) -> tuple[datetime, datetime] | None:
-    """Best-effort session start/end from `sessions` row fields, for windowing the WHOOP HR query."""
-    day = s.get("session_date")
-    if not day:
+# A logged session with fewer in-window HR samples than this is still listed, but marked 'no HR coverage'.
+_SESSION_MIN_HR_SAMPLES = 30
+# When a session was never closed (no ended_at), assume this window so recent HR can still attach.
+_SESSION_OPEN_MINUTES = 90
+
+
+def _whoop_session_window(row: dict) -> tuple[datetime, datetime] | None:
+    """(start, end) for a logged whoop_sessions row — end falls back to start + 90min while still open."""
+    started = row.get("started_at")
+    if not started:
         return None
-    day_str = day.isoformat() if hasattr(day, "isoformat") else str(day)[:10]
-    time_str = str(s.get("class_time") or "18:00")[:5]
     try:
-        start = datetime.fromisoformat(f"{day_str}T{time_str}").replace(tzinfo=LOCAL_TZ)
-    except ValueError:
+        start = _parse_ts(str(started))
+    except (ValueError, TypeError):
         return None
-    duration = int(s.get("duration_mins") or 60)
-    return start, start + timedelta(minutes=duration)
+    ended = row.get("ended_at")
+    if ended:
+        try:
+            return start, _parse_ts(str(ended))
+        except (ValueError, TypeError):
+            pass
+    return start, start + timedelta(minutes=_SESSION_OPEN_MINUTES)
 
 
-def _session_label(s: dict) -> str:
-    """Human label for a session card: CrossFit (via Garmin activity type) or BJJ gi/no-gi, else generic."""
-    garmin_type = (s.get("garmin_activity_type") or "").lower()
-    class_type = (s.get("class_type") or "").lower()
-    if "crossfit" in garmin_type or "cross" in garmin_type:
-        return "CrossFit"
-    if class_type in {"gi", "nogi", "no-gi", "open-mat", "openmat"}:
-        return f"BJJ ({class_type})"
-    return (s.get("garmin_activity_type") or s.get("class_type") or "Session").title()
+def _attach_session_hr(
+    user_id: int, start: datetime, end: datetime, analytics: dict
+) -> dict:
+    """Attach the downsampled in-window HR curve + protocol-HRR to a session's analytics (in place)."""
+    hr = WhoopRepository.hr_range(user_id, start.isoformat(), end.isoformat())
+    pts = sorted(
+        ((_parse_ts(str(h["ts"])), int(h["bpm"])) for h in hr if h.get("bpm")),
+        key=lambda p: p[0],
+    )
+    times = [(t - start).total_seconds() / 60.0 for t, _ in pts]
+    vals = [float(b) for _, b in pts]
+    xs, ys = _downsample_xy(times, vals, max_points=200)
+    analytics["times"], analytics["values"] = xs, ys
+    hrr = analytics.get("protocol_hrr") or {}
+    analytics["hrr"] = hrr.get("hrr_bpm") if hrr.get("available") else None
+    return analytics
 
 
 def session_deepdives(user_id: int, limit: int = 5) -> list[dict]:
-    """P3.5 — MUST-HAVE: per-session HR analytics (BJJ + CrossFit) for the deep-dive cards — reuses
-    bjj_session_analytics's zone/HRR compute over each recent session's class-time window.
+    """P3.5 — per-session HR analytics for the Workouts list + the Tier-1 last-workout card. Sources
+    timestamped workouts from whoop_sessions and attaches in-window WHOOP HR (curve, zones via the
+    B1-calibrated max-HR, avg/peak, HRR). A session with too little in-window HR is still listed, but
+    marked 'no HR coverage'. Returns [] when there are no logged sessions. Shape per item is stable:
+    {"label": str, "day": "YYYY-MM-DD", "analytics": {...}} — consumed by render_workouts_list and the card.
     """
     mx = user_max_hr(user_id)["max_hr"]
     out: list[dict] = []
-    for s in SessionRepository.get_recent(user_id, limit=limit):
-        window = _session_window(s)
+    for row in WhoopRepository.list_whoop_sessions(user_id, limit=limit):
+        window = _whoop_session_window(row)
         if window is None:
             continue
         start, end = window
         a = bjj_session_analytics(
             user_id, start.isoformat(), end.isoformat(), max_hr=mx
         )
-        if a.get("available"):
-            hr = WhoopRepository.hr_range(user_id, start.isoformat(), end.isoformat())
-            pts = sorted(
-                ((_parse_ts(str(h["ts"])), int(h["bpm"])) for h in hr if h.get("bpm")),
-                key=lambda p: p[0],
-            )
-            times = [(t - start).total_seconds() / 60.0 for t, _ in pts]
-            vals = [float(b) for _, b in pts]
-            xs, ys = _downsample_xy(times, vals, max_points=200)
-            a["times"], a["values"] = xs, ys
-            hrr = a.get("protocol_hrr") or {}
-            a["hrr"] = hrr.get("hrr_bpm") if hrr.get("available") else None
+        if a.get("available") and a.get("samples", 0) >= _SESSION_MIN_HR_SAMPLES:
+            a = _attach_session_hr(user_id, start, end, a)
+        else:
+            a = {"available": False, "reason": "no HR coverage"}
         out.append(
             {
-                "label": _session_label(s),
-                "day": str(s.get("session_date", "")),
+                "label": str(row.get("activity", "Session")),
+                "day": _local_day(start),
                 "analytics": a,
             }
         )

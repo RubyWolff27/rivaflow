@@ -229,6 +229,47 @@ def remove_tag_endpoint(
     return {"removed": {"day": day, "tag": tag}}
 
 
+class WhoopSessionCreate(BaseModel):
+    """A timestamped workout session — a real start/end window so per-second HR can attach."""
+
+    activity: str = Field(..., min_length=1, max_length=64)
+    started_at: str = Field(..., description="ISO8601 start timestamp")
+    ended_at: str | None = Field(
+        None, description="ISO8601 end timestamp (optional if still open)"
+    )
+
+
+class WhoopSessionEnd(BaseModel):
+    """Close an open workout session."""
+
+    ended_at: str = Field(..., description="ISO8601 end timestamp")
+
+
+@router.post("/session")
+@route_error_handler("whoop_create_session", detail="Failed to create session")
+def create_session_endpoint(
+    req: WhoopSessionCreate, current_user: dict = Depends(get_current_user)
+) -> dict:
+    """Log a timestamped workout session. The window lets the cockpit attach in-window WHOOP HR and
+    compute the deep-dive (curve, zones, load, hardness)."""
+    session_id = WhoopRepository.create_whoop_session(
+        current_user["id"], req.activity, req.started_at, req.ended_at
+    )
+    return {"id": session_id}
+
+
+@router.patch("/session/{session_id}/end")
+@route_error_handler("whoop_end_session", detail="Failed to end session")
+def end_session_endpoint(
+    session_id: int,
+    req: WhoopSessionEnd,
+    current_user: dict = Depends(get_current_user),
+) -> dict:
+    """Close an open workout session by stamping its end time."""
+    WhoopRepository.end_whoop_session(session_id, req.ended_at)
+    return {"ended": {"id": session_id, "ended_at": req.ended_at}}
+
+
 # ── Read + analytics (Phase 2 / shared access: RivaFlow UI, health dashboard, LLM/MCP) ──
 
 
