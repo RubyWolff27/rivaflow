@@ -88,3 +88,4 @@ test-results/
 .backup.env
 .renderdb.conn
 *.token
+scratch_cockpit_preview.py

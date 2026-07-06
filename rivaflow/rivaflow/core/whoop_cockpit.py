@@ -67,7 +67,7 @@ def svg_bars(
         f'height="{(v / hi) * (h - 2):.1f}" fill="{fill}"/>'
         for i, v in enumerate(vals)
     )
-    return f'<svg width="{w}" height="{h}" viewBox="0 0 {w} {h}">{rects}</svg>'
+    return f'<svg width="100%" height="{h}" viewBox="0 0 {w} {h}" preserveAspectRatio="none">{rects}</svg>'
 
 
 def svg_progress_ring(
@@ -110,21 +110,94 @@ def progress_or_text(
     )
 
 
+def _fmt_x(value: float, xkind: str) -> str:
+    """Format an x-value as an axis label by unit convention:
+    'clock'      → value is minutes-since-midnight        → HH:MM (wall-clock)
+    'clock_h'    → value is hours-since-midnight           → HH:MM (wall-clock, e.g. daily HR ribbon)
+    'clock_hour' → value is hour-of-day (0–23)            → HH:00 (e.g. stress ribbon)
+    'elapsed_h'  → value is hours since window start      → H:MM (e.g. overnight HRV / sleep)
+    'elapsed_m'  → value is minutes since start           → H:MM (e.g. a workout / RR tachogram)
+    """
+    if xkind == "clock":
+        m = int(round(value)) % (24 * 60)
+        return f"{m // 60:02d}:{m % 60:02d}"
+    if xkind == "clock_h":
+        m = int(round(value * 60)) % (24 * 60)
+        return f"{m // 60:02d}:{m % 60:02d}"
+    if xkind == "clock_hour":
+        return f"{int(round(value)) % 24:02d}:00"
+    hours = value if xkind == "elapsed_h" else value / 60.0
+    hh = int(hours)
+    mm = int(round((hours - hh) * 60))
+    if mm == 60:
+        hh, mm = hh + 1, 0
+    return f"{hh}:{mm:02d}"
+
+
+def _auto_xticks(
+    x_lo: float, x_hi: float, xkind: str, n: int = 5
+) -> list[tuple[float, str]]:
+    """Evenly spaced axis ticks labelled per the xkind unit convention (see _fmt_x)."""
+    if x_hi <= x_lo:
+        return []
+    return [
+        (
+            x_lo + (x_hi - x_lo) * i / (n - 1),
+            _fmt_x(x_lo + (x_hi - x_lo) * i / (n - 1), xkind),
+        )
+        for i in range(n)
+    ]
+
+
+def _segments(
+    pts: list[tuple[float, float]], max_gap: float | None
+) -> list[list[tuple[float, float]]]:
+    """Split a series into contiguous segments, breaking wherever the x-gap exceeds max_gap so a data
+    dropout renders as an honest BREAK in the line instead of a straight bridge across missing time.
+    """
+    if max_gap is None or len(pts) < 2:
+        return [pts]
+    segs: list[list[tuple[float, float]]] = [[pts[0]]]
+    for prev, cur in zip(pts, pts[1:]):
+        if cur[0] - prev[0] > max_gap:
+            segs.append([cur])
+        else:
+            segs[-1].append(cur)
+    return segs
+
+
 def svg_area_line(
     times: list[float],
     values: list[float | None],
-    w: int = 560,
-    h: int = 110,
+    w: int = 900,
+    h: int = 120,
     stroke: str = "#60a5fa",
     fill: str = "rgba(96,165,250,0.18)",
     bands: list[tuple[float, float, str]] | None = None,
+    *,
+    max_gap: float | None = None,
+    xkind: str | None = None,
+    series_id: str | None = None,
+    responsive: bool = True,
 ) -> str:
     """A filled area line for dense intraday series (HR ribbon, overnight HRV, sleep HR, respiratory,
     stress). `bands` are (lo, hi, color) horizontal zone bands drawn behind the line, in data units.
+
+    Renders full-width (responsive) so charts fill their panel. Breaks the line across time gaps
+    (`max_gap`, same units as `times`) rather than bridging them. Draws x-axis time ticks when `xkind`
+    is set ('clock'=minutes-since-midnight, 'elapsed'=seconds). When `series_id` is given, embeds the raw
+    series so the page's scrub script can show a value/time tooltip on hover.
     """
-    pts = [(t, v) for t, v in zip(times, values) if v is not None]
+    pts = [(float(t), float(v)) for t, v in zip(times, values) if v is not None]
+    ax = 34  # left gutter for y labels
+    ab = 16  # bottom gutter for x ticks
+    size_attr = (
+        f'width="100%" viewBox="0 0 {w} {h}" preserveAspectRatio="none"'
+        if responsive
+        else f'width="{w}" height="{h}" viewBox="0 0 {w} {h}" preserveAspectRatio="none"'
+    )
     if len(pts) < 2:
-        return f'<svg width="{w}" height="{h}" role="img" aria-label="no data"></svg>'
+        return f'<svg {size_attr} role="img" aria-label="no data"></svg>'
     xs = [p[0] for p in pts]
     ys = [p[1] for p in pts]
     x_lo, x_hi = min(xs), max(xs)
@@ -132,32 +205,105 @@ def svg_area_line(
     if bands:
         y_lo = min([y_lo, *(b[0] for b in bands)])
         y_hi = max([y_hi, *(b[1] for b in bands)])
-    x_rng = (x_hi - x_lo) or 1.0
-    y_rng = (y_hi - y_lo) or 1.0
     pad = 4
-
-    def px(x: float) -> float:
-        return (x - x_lo) / x_rng * w
-
-    def py(y: float) -> float:
-        return h - pad - (y - y_lo) / y_rng * (h - 2 * pad)
-
+    plot_w = w - ax
+    plot_h = h - ab
+    geom = _LineGeom(x_lo, x_hi, y_lo, y_hi, ax, plot_w, plot_h, pad)
     band_rects = "".join(
-        f'<rect x="0" y="{py(hi):.1f}" width="{w}" height="{max(0.0, py(lo) - py(hi)):.1f}" '
-        f'fill="{color}" opacity="0.25"/>'
+        f'<rect x="{ax}" y="{geom.py(hi):.1f}" width="{plot_w}" '
+        f'height="{max(0.0, geom.py(lo) - geom.py(hi)):.1f}" fill="{color}" opacity="0.25"/>'
         for lo, hi, color in (bands or [])
     )
-    coords = " ".join(f"{px(t):.1f},{py(v):.1f}" for t, v in pts)
-    area = f"{px(pts[0][0]):.1f},{py(y_lo):.1f} {coords} {px(pts[-1][0]):.1f},{py(y_lo):.1f}"
+    grid = _line_grid(geom, w)
+    xaxis = _line_xaxis(geom, xkind, plot_h, h) if xkind else ""
+    paths = _line_paths(_segments(pts, max_gap), geom, plot_h, pad, stroke, fill)
+    data_attr, scrub = _scrub_layer(series_id, pts, geom, plot_h, pad, w, xkind, stroke)
     return (
-        f'<svg width="{w}" height="{h}" viewBox="0 0 {w} {h}" preserveAspectRatio="none">'
-        f"{band_rects}"
-        f'<polygon points="{area}" fill="{fill}"/>'
-        f'<polyline fill="none" stroke="{stroke}" stroke-width="2" points="{coords}"/>'
-        f'<text x="2" y="10" font-size="9" fill="#64748b">{esc(round(y_hi))}</text>'
-        f'<text x="2" y="{h - 2}" font-size="9" fill="#64748b">{esc(round(y_lo))}</text>'
+        f"<svg {size_attr}{data_attr} role='img'>"
+        f"{band_rects}{grid}{xaxis}{paths}{scrub}"
         "</svg>"
     )
+
+
+class _LineGeom:
+    """Data→pixel mapping for a line chart's plot area (shared by grid/axis/paths/scrub builders)."""
+
+    def __init__(self, x_lo, x_hi, y_lo, y_hi, ax, plot_w, plot_h, pad):
+        self.x_lo, self.x_hi, self.y_lo, self.y_hi = x_lo, x_hi, y_lo, y_hi
+        self.ax, self.plot_w, self.plot_h, self.pad = ax, plot_w, plot_h, pad
+        self._xr = (x_hi - x_lo) or 1.0
+        self._yr = (y_hi - y_lo) or 1.0
+
+    def px(self, x: float) -> float:
+        return self.ax + (x - self.x_lo) / self._xr * self.plot_w
+
+    def py(self, y: float) -> float:
+        return (
+            self.plot_h
+            - self.pad
+            - (y - self.y_lo) / self._yr * (self.plot_h - 2 * self.pad)
+        )
+
+
+def _line_grid(g: _LineGeom, w: int) -> str:
+    out = ""
+    for gy in (g.y_lo, (g.y_lo + g.y_hi) / 2, g.y_hi):
+        yy = g.py(gy)
+        out += (
+            f'<line x1="{g.ax}" y1="{yy:.1f}" x2="{w}" y2="{yy:.1f}" stroke="#1e293b" stroke-width="1"/>'
+            f'<text x="{g.ax - 4}" y="{yy + 3:.1f}" font-size="9" fill="#64748b" text-anchor="end">'
+            f"{esc(round(gy))}</text>"
+        )
+    return out
+
+
+def _line_xaxis(g: _LineGeom, xkind: str, plot_h: float, h: int) -> str:
+    out = ""
+    for tv, lbl in _auto_xticks(g.x_lo, g.x_hi, xkind):
+        xx = g.px(tv)
+        out += (
+            f'<line x1="{xx:.1f}" y1="{plot_h}" x2="{xx:.1f}" y2="{plot_h - 3}" stroke="#334155"/>'
+            f'<text x="{xx:.1f}" y="{h - 4}" font-size="9" fill="#64748b" text-anchor="middle">'
+            f"{esc(lbl)}</text>"
+        )
+    return out
+
+
+def _line_paths(
+    segs, g: _LineGeom, plot_h: float, pad: int, stroke: str, fill: str
+) -> str:
+    out = ""
+    for seg in segs:
+        if len(seg) < 2:
+            if seg:
+                out += f'<circle cx="{g.px(seg[0][0]):.1f}" cy="{g.py(seg[0][1]):.1f}" r="1.6" fill="{stroke}"/>'
+            continue
+        coords = " ".join(f"{g.px(t):.1f},{g.py(v):.1f}" for t, v in seg)
+        area = f"{g.px(seg[0][0]):.1f},{plot_h - pad:.1f} {coords} {g.px(seg[-1][0]):.1f},{plot_h - pad:.1f}"
+        out += (
+            f'<polygon points="{area}" fill="{fill}"/>'
+            f'<polyline fill="none" stroke="{stroke}" stroke-width="2" points="{coords}"/>'
+        )
+    return out
+
+
+def _scrub_layer(
+    series_id, pts, g: _LineGeom, plot_h, pad, w, xkind, stroke
+) -> tuple[str, str]:
+    if not series_id:
+        return "", ""
+    series_json = ",".join(f"[{t:.2f},{v:.1f}]" for t, v in pts)
+    data_attr = (
+        f' class="scrub" data-series="[{series_json}]" data-xlo="{g.x_lo:.2f}" data-xhi="{g.x_hi:.2f}"'
+        f' data-ylo="{g.y_lo:.2f}" data-yhi="{g.y_hi:.2f}" data-ax="{g.ax}" data-pw="{g.plot_w:.0f}"'
+        f' data-ph="{plot_h}" data-pad="{pad}" data-w="{w}" data-xkind="{xkind or "elapsed_m"}"'
+    )
+    scrub = (
+        f'<line class="scrub-line" x1="0" y1="0" x2="0" y2="{plot_h}" stroke="{stroke}" '
+        f'stroke-width="1" opacity="0" pointer-events="none"/>'
+        f'<circle class="scrub-dot" r="3" fill="{stroke}" opacity="0" pointer-events="none"/>'
+    )
+    return data_attr, scrub
 
 
 def svg_poincare(
@@ -305,7 +451,7 @@ def render_cockpit_page(panels_html: str, rendered_at: str = "") -> str:
         "<!doctype html><html><head><meta charset='utf-8'>"
         "<meta name='viewport' content='width=device-width, initial-scale=1'>"
         "<meta http-equiv='refresh' content='600'><title>WHOOP Cockpit</title><style>"
-        "body{font-family:system-ui,-apple-system,sans-serif;background:#0b1120;color:#e2e8f0;margin:0;padding:16px}"
+        "body{font-family:system-ui,-apple-system,sans-serif;background:#0b1120;color:#e2e8f0;margin:0 auto;padding:16px;max-width:1180px}"
         "h1{font-size:18px;margin:0 0 12px}h2{font-size:14px;color:#94a3b8;margin:0 0 10px;text-transform:uppercase;letter-spacing:.05em}"
         ".panel{background:#111827;border:1px solid #1f2937;border-radius:12px;padding:16px;margin-bottom:14px}"
         ".stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;margin-bottom:10px}"
@@ -313,13 +459,23 @@ def render_cockpit_page(panels_html: str, rendered_at: str = "") -> str:
         ".stat .v{font-size:22px;font-weight:600;margin:2px 0}.sub{font-size:12px;color:#94a3b8}"
         ".caveat{background:#422006;border:1px solid #a16207;border-radius:8px;padding:8px;font-size:12px;margin:8px 0}"
         ".chips{margin:8px 0}.chip{display:inline-block;background:#1e293b;border-radius:12px;padding:2px 8px;font-size:11px;margin:2px}"
-        ".chart{margin-top:10px}.foot{color:#475569;font-size:11px;margin-top:8px}"
+        ".chart{margin-top:12px;position:relative}.foot{color:#475569;font-size:11px;margin-top:8px}"
+        ".chart svg{display:block;width:100%;height:auto}"
         ".ring-row{display:flex;align-items:center;gap:10px;margin:6px 0}"
         ".dual{display:grid;grid-template-columns:1fr 1fr;gap:14px;align-items:start}"
-        ".zbars{display:flex;gap:4px;align-items:flex-end;height:36px;margin-top:6px}"
-        ".zbars .zb{flex:1;border-radius:2px 2px 0 0}"
+        # Strava-style horizontal time-in-zone distribution
+        ".zbar{display:flex;height:16px;border-radius:8px;overflow:hidden;background:#0f172a;margin-top:6px}"
+        ".zbar .zseg{height:100%}"
+        ".zlegend{display:flex;flex-wrap:wrap;gap:14px;margin-top:8px;font-size:12px;color:#cbd5e1}"
+        ".zleg{display:flex;align-items:center;gap:5px}"
+        ".zleg .zdot{width:9px;height:9px;border-radius:2px;display:inline-block}"
         ".session-card{border-top:1px solid #1f2937;padding-top:10px;margin-top:10px}"
         ".session-card:first-of-type{border-top:none;padding-top:0;margin-top:0}"
+        # scrub tooltip
+        ".scrub-tip{position:fixed;pointer-events:none;background:#0b1120;border:1px solid #334155;"
+        "border-radius:6px;padding:4px 8px;font-size:12px;color:#e2e8f0;z-index:50;opacity:0;"
+        "transform:translate(-50%,-130%);white-space:nowrap;box-shadow:0 2px 8px rgba(0,0,0,.4)}"
+        ".scrub-tip b{color:#fff}.scrub svg{cursor:crosshair}"
         # Tier-1 story layer
         ".panel.hero{border-color:#334155}"
         ".verdict{font-size:34px;font-weight:700;line-height:1.1;margin:2px 0}"
@@ -327,7 +483,12 @@ def render_cockpit_page(panels_html: str, rendered_at: str = "") -> str:
         ".narrative{font-size:15px;line-height:1.5;background:#0f172a;border-left:3px solid #60a5fa;"
         "padding:10px 12px;border-radius:6px;margin:12px 0}"
         ".cards3{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;margin-top:12px}"
+        # an opened workout card breaks out to span the full row so its deep-dive isn't clipped in a 1/3 cell
+        ".cards3 details.card[open]{grid-column:1/-1}"
+        ".cards3 details.card[open] .big{font-size:18px}"
         ".card{background:#0f172a;border:1px solid #1f2937;border-radius:10px;padding:12px}"
+        ".trend{font-size:15px;font-weight:600;margin-left:8px}"
+        ".trend.up{color:#34d399}.trend.down{color:#f87171}.trend.flat{color:#94a3b8}"
         ".card .ico{font-size:11px;color:#94a3b8;text-transform:uppercase;letter-spacing:.05em}"
         ".card .big{font-size:22px;font-weight:600;margin:3px 0}"
         ".takeaway{font-size:12.5px;color:#93c5fd;font-style:italic;margin:-2px 0 10px}"
@@ -344,12 +505,62 @@ def render_cockpit_page(panels_html: str, rendered_at: str = "") -> str:
         "details.lab>summary{font-size:14px;color:#94a3b8;font-weight:600;padding:12px;background:#111827;"
         "border:1px solid #1f2937;border-radius:12px;letter-spacing:.03em}"
         "details.lab[open]>summary{margin-bottom:12px}"
-        "@media (max-width:640px){.dual{grid-template-columns:1fr}}"
+        # Tier-3 tap-to-expand trend sparklines behind the verdict
+        "details.trends{margin-top:10px}details.trends>summary{cursor:pointer;color:#93c5fd;font-size:13px}"
+        ".sparkrow{display:flex;align-items:center;gap:12px;margin:8px 0}"
+        ".sparklbl{width:120px;font-size:12px;color:#94a3b8}.sparksvg{flex:1;max-width:220px}"
+        ".sparksvg svg{width:100%;height:28px;display:block}"
+        "@media (max-width:640px){.dual{grid-template-columns:1fr}.sparklbl{width:90px}}"
         "</style></head><body><h1>WHOOP Cockpit · your day, then the lab</h1>"
         f"{panels_html}"
         f"<div class='foot'>RivaFlow · self-hosted · {stamp}recomputes 6am · 9am · 6pm · 9pm</div>"
+        f"{_SCRUB_SCRIPT}"
         "</body></html>"
     )
+
+
+# Tier-2 — inline, dependency-free scrub interaction. Any <svg class="scrub"> carries its raw series and
+# viewBox mapping as data-* attributes; on pointer move we find the nearest sample, snap a vertical line +
+# dot to it, and float a value/time tooltip. No CDN, no framework — works offline in the snapshot.
+_SCRUB_SCRIPT = """<div class="scrub-tip" id="scrubtip"></div><script>
+(function(){
+ var tip=document.getElementById('scrubtip');
+ function fmtx(v,k){
+  function p(n){return (n<10?'0':'')+n;}
+  if(k==='clock'){var m=Math.round(v)%1440;return p(m/60|0)+':'+p(m%60);}
+  if(k==='clock_h'){var m2=Math.round(v*60)%1440;return p(m2/60|0)+':'+p(m2%60);}
+  if(k==='clock_hour'){return p(Math.round(v)%24)+':00';}
+  var h=(k==='elapsed_h')?v:v/60,hh=h|0,mm=Math.round((h-hh)*60);if(mm===60){hh++;mm=0;}
+  return hh+':'+p(mm);
+ }
+ document.querySelectorAll('svg.scrub').forEach(function(svg){
+  var s;try{s=JSON.parse(svg.getAttribute('data-series'));}catch(e){return;}
+  if(!s||s.length<2)return;
+  var xlo=+svg.dataset.xlo,xhi=+svg.dataset.xhi,ylo=+svg.dataset.ylo,yhi=+svg.dataset.yhi;
+  var ax=+svg.dataset.ax,pw=+svg.dataset.pw,ph=+svg.dataset.ph,pad=+svg.dataset.pad,W=+svg.dataset.w;
+  var k=svg.dataset.xkind;
+  var line=svg.querySelector('.scrub-line'),dot=svg.querySelector('.scrub-dot');
+  function px(t){return ax+(t-xlo)/((xhi-xlo)||1)*pw;}
+  function py(val){return ph-pad-(val-ylo)/((yhi-ylo)||1)*(ph-2*pad);}
+  function move(ev){
+   var r=svg.getBoundingClientRect(),cx=(ev.touches?ev.touches[0].clientX:ev.clientX);
+   var vbx=(cx-r.left)/r.width*W;                       // client px -> viewBox x
+   var t=xlo+Math.min(1,Math.max(0,(vbx-ax)/(pw||1)))*(xhi-xlo);
+   var best=s[0],bd=1e18;for(var i=0;i<s.length;i++){var d=Math.abs(s[i][0]-t);if(d<bd){bd=d;best=s[i];}}
+   var sx=px(best[0]),sy=py(best[1]),vbh=(svg.viewBox.baseVal.height||ph);
+   line.setAttribute('x1',sx);line.setAttribute('x2',sx);line.setAttribute('opacity','0.7');
+   dot.setAttribute('cx',sx);dot.setAttribute('cy',sy);dot.setAttribute('opacity','1');
+   tip.innerHTML='<b>'+Math.round(best[1])+'</b> · '+fmtx(best[0],k);
+   tip.style.left=(r.left+sx/W*r.width)+'px';
+   tip.style.top=(r.top+sy/vbh*r.height)+'px';
+   tip.style.opacity='1';
+  }
+  function out(){line.setAttribute('opacity','0');dot.setAttribute('opacity','0');tip.style.opacity='0';}
+  svg.addEventListener('mousemove',move);svg.addEventListener('touchmove',move);
+  svg.addEventListener('mouseleave',out);svg.addEventListener('touchend',out);
+ });
+})();
+</script>"""
 
 
 def render_hrv_lab(hrv_lab: dict, dfa: dict, *, progress: dict | None = None) -> str:
@@ -560,7 +771,13 @@ def render_hr_ribbon(series: dict) -> str:
         mx = series.get("max_hr", 190)
         bands = [(lo * mx, hi * mx, color) for lo, hi, color in _HR_ZONE_BANDS]
         chart = svg_area_line(
-            series["times"], series["values"], bands=bands, stroke="#e2e8f0"
+            series["times"],
+            series["values"],
+            bands=bands,
+            stroke="#e2e8f0",
+            max_gap=0.34,
+            xkind="clock_h",
+            series_id="hr-ribbon",
         )
         body = (
             f'<div class="stats">{stat("Avg HR", str(series.get("avg_hr", "—")), "today")}'
@@ -580,6 +797,9 @@ def render_rr_hrv_detail(detail: dict) -> str:
             detail["rr_values"],
             stroke="#a78bfa",
             fill="rgba(167,139,250,0.15)",
+            max_gap=3.0,
+            xkind="elapsed_m",
+            series_id="rr-tacho",
         )
         scatter = svg_poincare(detail["pairs"], detail["sd1"], detail["sd2"])
         stats = "".join(
@@ -609,6 +829,9 @@ def render_overnight_hrv(curve: dict) -> str:
             curve["values"],
             stroke="#34d399",
             fill="rgba(52,211,153,0.18)",
+            max_gap=0.34,
+            xkind="elapsed_h",
+            series_id="overnight-hrv",
         )
         body = f'<div class="chart"><div class="lbl">lnRMSSD · overnight (5-min buckets)</div>{chart}</div>'
     return f'<section class="panel"><h2>Overnight HRV curve</h2>{body}</section>'
@@ -624,6 +847,9 @@ def render_sleep_hr_dip(curve: dict) -> str:
             curve["values"],
             stroke="#818cf8",
             fill="rgba(129,140,248,0.15)",
+            max_gap=0.34,
+            xkind="elapsed_h",
+            series_id="sleep-hr",
         )
         stats = "".join(
             [
@@ -651,6 +877,9 @@ def render_respiratory(trace: dict) -> str:
             trace["values"],
             stroke="#f472b6",
             fill="rgba(244,114,182,0.15)",
+            max_gap=0.5,
+            xkind="elapsed_h",
+            series_id="respiratory",
         )
         body = f'<div class="chart"><div class="lbl">Breaths/min · resting windows</div>{chart}</div>'
     return f'<section class="panel"><h2>Respiratory trace</h2>{body}</section>'
@@ -667,24 +896,51 @@ def render_stress_ribbon(ribbon: dict) -> str:
             (67.0, 100.0, "#f87171"),
         ]
         chart = svg_area_line(
-            ribbon["times"], ribbon["values"], bands=bands, stroke="#e2e8f0"
+            ribbon["times"],
+            ribbon["values"],
+            bands=bands,
+            stroke="#e2e8f0",
+            max_gap=1.5,
+            xkind="clock_hour",
+            series_id="stress",
         )
         body = f'<div class="chart"><div class="lbl">Stress vs baseline (0–100)</div>{chart}</div>'
     return f'<section class="panel"><h2>Stress ribbon</h2>{body}</section>'
 
 
+_ZONE_META = {
+    1: ("#60a5fa", "Z1"),
+    2: ("#34d399", "Z2"),
+    3: ("#a3e635", "Z3"),
+    4: ("#fbbf24", "Z4"),
+    5: ("#f87171", "Z5"),
+}
+
+
 def _zone_bar_html(zone_secs: dict) -> str:
+    """Strava/Garmin-style horizontal time-in-zone distribution: one full-width stacked bar (segments
+    proportional to seconds in each zone) plus a legend row with per-zone minutes and percentage.
+    """
     total = sum(zone_secs.values()) or 1
-    colors = {1: "#60a5fa", 2: "#34d399", 3: "#a3e635", 4: "#fbbf24", 5: "#f87171"}
-    bars = "".join(
-        f'<div class="zb" style="height:{max(4, zone_secs.get(z, 0) / total * 36):.0f}px;'
-        f'background:{colors[z]}" title="Z{z}: {zone_secs.get(z, 0)}s"></div>'
-        for z in range(1, 6)
-    )
-    return f'<div class="zbars">{bars}</div>'
+    segs = ""
+    legend = ""
+    for z in range(1, 6):
+        color, name = _ZONE_META[z]
+        secs = zone_secs.get(z, 0)
+        pct = secs / total * 100
+        if pct > 0:
+            segs += (
+                f'<div class="zseg" style="width:{pct:.1f}%;background:{color}" '
+                f'title="{name}: {secs // 60}m {secs % 60}s ({pct:.0f}%)"></div>'
+            )
+        legend += (
+            f'<div class="zleg"><span class="zdot" style="background:{color}"></span>'
+            f'{name} <b>{secs // 60}m</b> <span class="sub">{pct:.0f}%</span></div>'
+        )
+    return f'<div class="zbar">{segs}</div><div class="zlegend">{legend}</div>'
 
 
-def _session_card_html(s: dict) -> str:
+def _session_card_html(s: dict, idx: int = 0) -> str:
     a = s.get("analytics", {})
     if not a.get("available"):
         return (
@@ -692,28 +948,32 @@ def _session_card_html(s: dict) -> str:
             f'<div class="sub">{esc(s.get("label", "Session"))} · {esc(s.get("day", ""))} — '
             f'{esc(a.get("reason", "no HR captured"))}</div></div>'
         )
+    load, hardness = session_load_hardness(a)
     curve = svg_area_line(
-        a.get("times", []), a.get("values", []), w=420, h=70, stroke="#60a5fa"
+        a.get("times", []),
+        a.get("values", []),
+        h=150,
+        stroke="#f87171",
+        fill="rgba(248,113,113,0.16)",
+        max_gap=2.0,
+        xkind="elapsed_m",
+        series_id=f"session-{idx}",
     )
     drift = a.get("hrr")
-    drift_html = (
-        f'<span class="chip">HRR: {esc(drift)} bpm/60s</span>'
-        if drift is not None
-        else ""
-    )
-    peak_sub = f'peak {a.get("max_hr", "—")}'
+    drift_sub = f"{drift} bpm recovery in 60s" if drift is not None else "recovery n/a"
     duration_min = a.get("duration_sec", 0) // 60
     stats_html = (
-        stat("Session", str(s.get("label", "Session")), str(s.get("day", "")))
-        + stat("Avg HR", str(a.get("avg_hr", "—")), peak_sub)
-        + stat("Duration", f"{duration_min}min", "")
+        stat("Duration", f"{duration_min}min", str(s.get("day", "")))
+        + stat("Avg HR", str(a.get("avg_hr", "—")), f'peak {a.get("max_hr", "—")}')
+        + stat("Load", f"{load}/21", hardness)
+        + stat("HR recovery", f'{drift if drift is not None else "—"}', drift_sub)
     )
     return (
         '<div class="session-card">'
         f'<div class="stats">{stats_html}</div>'
-        f'<div class="dual"><div class="chart"><div class="lbl">HR curve</div>{curve}</div>'
-        f'<div class="chart"><div class="lbl">Time in zones</div>{_zone_bar_html(a.get("hr_zone_secs", {}))}'
-        f"{drift_html}</div></div></div>"
+        f'<div class="chart"><div class="lbl">Heart rate · elapsed</div>{curve}</div>'
+        f'<div class="chart"><div class="lbl">Time in zones</div>{_zone_bar_html(a.get("hr_zone_secs", {}))}</div>'
+        "</div>"
     )
 
 
@@ -722,7 +982,7 @@ def render_session_deepdives(sessions: list[dict]) -> str:
     if not sessions:
         body = '<div class="sub">No recent sessions with WHOOP HR coverage yet.</div>'
     else:
-        body = "".join(_session_card_html(s) for s in sessions[:5])
+        body = "".join(_session_card_html(s, idx=i) for i, s in enumerate(sessions[:5]))
     return f'<section class="panel"><h2>Session deep-dives</h2>{body}</section>'
 
 
@@ -775,17 +1035,74 @@ def render_lab_section(panels_html: str) -> str:
     )
 
 
-def _hero_html(readiness: dict) -> str:
+def _trend_arrow(readiness: dict) -> str:
+    """A ▲/▼/→ arrow next to the verdict, driven by the HRV contributor's direction (already in the
+    readiness dict — no extra query). Up HRV is good (green), down is worse (red)."""
+    for c in readiness.get("contributors") or []:
+        sig = str(c.get("signal", "") or c.get("label", "")).lower()
+        if "hrv" in sig or "rmssd" in sig:
+            d = str(c.get("direction", "")).lower()
+            if any(k in d for k in ("up", "rising", "▲", "↑", "higher")):
+                return '<span class="trend up" title="HRV trending up">▲</span>'
+            if any(k in d for k in ("down", "falling", "▼", "↓", "lower")):
+                return '<span class="trend down" title="HRV trending down">▼</span>'
+            return '<span class="trend flat" title="HRV steady">→</span>'
+    return ""
+
+
+def _spark_row(
+    label: str,
+    values: list[float],
+    unit: str = "",
+    stroke: str = "#60a5fa",
+    lower_is_better: bool = False,
+) -> str:
+    vals = [v for v in values if v is not None]
+    if len(vals) < 2:
+        return ""
+    delta = vals[-1] - vals[0]
+    arrow = "▲" if delta > 0 else ("▼" if delta < 0 else "→")
+    # colour by GOODNESS, not raw direction: a falling resting HR is good (green), not alarming (red)
+    good = (delta < 0) if lower_is_better else (delta > 0)
+    cls = "flat" if delta == 0 else ("up" if good else "down")
+    return (
+        '<div class="sparkrow">'
+        f'<span class="sparklbl">{esc(label)}</span>'
+        f'<span class="sparksvg">{svg_sparkline(values, w=200, h=28, stroke=stroke)}</span>'
+        f'<span class="trend {cls}">{arrow} {esc(round(vals[-1], 1))}{esc(unit)}</span>'
+        "</div>"
+    )
+
+
+def _hero_html(readiness: dict, trends: dict | None = None) -> str:
     state = str(readiness.get("state", "Building"))
     accent = _ACCENT.get(state, "#94a3b8")
     headline = esc(readiness.get("headline", ""))
     caveat = readiness.get("caveat")
     caveat_html = f'<div class="caveat">⚠️ {esc(caveat)}</div>' if caveat else ""
+    # Tier-3 — tap to reveal the last-14 history behind today's verdict (data already computed; no new query)
+    trends = trends or {}
+    rows = (
+        _spark_row("HRV (lnRMSSD)", trends.get("hrv", []), stroke="#34d399")
+        + _spark_row(
+            "Resting HR",
+            trends.get("rhr", []),
+            " bpm",
+            stroke="#f472b6",
+            lower_is_better=True,
+        )
+        + _spark_row("Sleep", trends.get("sleep", []), " h", stroke="#818cf8")
+    )
+    history = (
+        f'<details class="trends"><summary>▸ 14-day trend</summary>{rows}</details>'
+        if rows
+        else ""
+    )
     return (
         f'<div class="ico">Today\'s readiness</div>'
-        f'<div class="verdict" style="color:{accent}">{esc(state)}</div>'
+        f'<div class="verdict" style="color:{accent}">{esc(state)}{_trend_arrow(readiness)}</div>'
         f'<div class="verdict-sub">{headline}</div>'
-        f"{caveat_html}"
+        f"{caveat_html}{history}"
     )
 
 
@@ -838,7 +1155,7 @@ def _workout_card(last_workout: dict | None) -> str:
         f'<div class="big">{esc(label)} {_hardness_badge(hardness)}</div>'
         f'<div class="sub">{esc(day)} · {dur_min}min · load {esc(load)}/21</div>'
         f'<div class="sub">avg {esc(a.get("avg_hr", "—"))} · peak {esc(a.get("max_hr", "—"))} bpm</div>'
-        f"</summary>{_session_card_html(last_workout)}</details>"
+        f"</summary>{_session_card_html(last_workout, idx=900)}</details>"
     )
 
 
@@ -877,9 +1194,11 @@ def render_today_story(
     last_workout: dict | None,
     strain: dict,
     is_sabbath: bool,
+    trends: dict | None = None,
 ) -> str:
     """Tier-1 — the glanceable 'Today' band: hero verdict + one honest data-story + three essential cards
     (last night's sleep, last workout, today's guidance). The plain-language layer over the technical Lab.
+    `trends` (optional) drives the hero's tap-to-expand 14-day history sparklines.
     """
     cards = (
         _sleep_card(night, dip, need_hours)
@@ -888,14 +1207,14 @@ def render_today_story(
     )
     return (
         '<section class="panel hero">'
-        f"{_hero_html(readiness)}"
+        f"{_hero_html(readiness, trends)}"
         f'<div class="narrative">{esc(narrative)}</div>'
         f'<div class="cards3">{cards}</div>'
         "</section>"
     )
 
 
-def _workout_row(s: dict) -> str:
+def _workout_row(s: dict, idx: int = 0) -> str:
     label = str(s.get("label", "Session"))
     day = str(s.get("day", ""))
     a = s.get("analytics", {})
@@ -903,22 +1222,25 @@ def _workout_row(s: dict) -> str:
         return (
             '<details class="workout-row"><summary>'
             f"{esc(day)} · {esc(label)} — {esc(a.get('reason', 'no HR captured'))}"
-            f"</summary>{_session_card_html(s)}</details>"
+            f"</summary>{_session_card_html(s, idx=idx)}</details>"
         )
     load, hardness = session_load_hardness(a)
     dur_min = a.get("duration_sec", 0) // 60
     return (
         '<details class="workout-row"><summary>'
         f"{esc(day)} · {esc(label)} · {dur_min}min · load {esc(load)}/21 {_hardness_badge(hardness)}"
-        f"</summary>{_session_card_html(s)}</details>"
+        f"</summary>{_session_card_html(s, idx=idx)}</details>"
     )
 
 
 def render_workouts_list(sessions: list[dict]) -> str:
     """Ruby's 'drill into previous workouts' ask — the last ~10 sessions, each a tap-to-expand <details> row
-    that opens its full deep-dive inline. Pure HTML disclosure, no JS."""
+    that opens its full deep-dive inline. Pure HTML disclosure; charts scrub via the page script.
+    """
     if not sessions:
         body = '<div class="sub">No recent sessions with WHOOP HR coverage yet.</div>'
     else:
-        body = "".join(_workout_row(s) for s in sessions[:10])
+        body = "".join(
+            _workout_row(s, idx=100 + i) for i, s in enumerate(sessions[:10])
+        )
     return f'<section class="panel"><h2>Workouts</h2>{body}</section>'
