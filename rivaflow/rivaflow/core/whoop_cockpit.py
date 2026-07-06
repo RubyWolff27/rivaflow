@@ -1108,6 +1108,18 @@ def _hero_html(readiness: dict, trends: dict | None = None) -> str:
 
 def _sleep_card(night: dict, dip: dict, need_hours: float) -> str:
     if not night.get("available"):
+        # Distinguish "the strap didn't record" (honest, actionable) from cold-start "building".
+        if night.get("capture_dropout"):
+            msg = esc(
+                night.get(
+                    "reason", "No overnight data — the strap didn't record last night."
+                )
+            )
+            return (
+                '<div class="card"><div class="ico">🌙 Last night</div>'
+                '<div class="big">No data</div>'
+                f'<div class="sub">⚠️ {msg}</div></div>'
+            )
         return (
             '<div class="card"><div class="ico">🌙 Last night</div>'
             '<div class="big">—</div><div class="sub">building — no sleep window detected yet</div></div>'

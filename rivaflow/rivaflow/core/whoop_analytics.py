@@ -262,7 +262,33 @@ def nightly_sleep(user_id: int, lookback_hours: int = 24) -> dict:
         for h in hr
         if h.get("bpm") and h.get("ts")
     ]
-    return _sleep_from_points(pts)
+    # Honest guard for a night the strap never recorded: if the core night hours (00:00–05:00 local)
+    # have almost no data, there is no sleep to detect — a short quiet block after the strap wakes in the
+    # morning is a capture artifact, not last night's sleep. Say so instead of inventing a number.
+    core = [
+        t for t, _ in pts if 0 <= t.astimezone(LOCAL_TZ).hour < 5
+    ]  # local small-hours samples
+    if (
+        len(core) < 60
+    ):  # < ~1–2 min of the deepest-night window captured → strap was silent
+        return {
+            "available": False,
+            "capture_dropout": True,
+            "reason": "No overnight data — the strap stopped recording last night (likely dropped out).",
+        }
+    res = _sleep_from_points(pts)
+    if res.get("available"):
+        onset = _parse_ts(res["sleep_start"]).astimezone(LOCAL_TZ)
+        # a genuine sleep onset is evening/late-night; a short block onsetting in the morning/day is a
+        # post-wake artifact, not the night — reject it rather than label it "last night's sleep"
+        plausible_onset = onset.hour >= 19 or onset.hour < 4
+        if not plausible_onset and res.get("duration_hours", 0) < 4:
+            return {
+                "available": False,
+                "capture_dropout": True,
+                "reason": "No overnight sleep window captured last night (the strap only recorded after you woke).",
+            }
+    return res
 
 
 def nightly_sleep_history(user_id: int, nights: int = 7) -> list[dict]:
