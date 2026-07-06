@@ -132,51 +132,74 @@ def daily_resting_hr(user_id: int, days: int = 14) -> list[dict]:
     return out
 
 
-def _longest_low_block(
-    order: list[int], med: dict, threshold: int, max_bridge: int
-) -> tuple:
-    """Longest run of 'asleep' buckets (median <= threshold), bridging up to max_bridge awake buckets.
-    Gap-aware: a discontinuity in the bucket indices (missing buckets = a data dropout, e.g. strap
-    charging) is a HARD break, never bridged — otherwise an evening low block and a morning low block
-    separated by hours of no data merge into one impossibly-long 'window'. Returns (start, end, span).
+def _best_sleep_window(
+    med: dict[int, int],
+    threshold: int,
+    *,
+    wake_break: int = 6,
+    max_span: int = 150,
+    min_low: int = 6,
+) -> tuple[int, int, int] | None:
+    """Pick the sleep window as the run capturing the MOST asleep (low-HR) time.
+
+    The key distinction the old detector lacked: a missing bucket (strap went silent — a data GAP) is
+    *uncaptured sleep*, not wakefulness, so it is bridged and keeps the window open. A sustained run of
+    present HIGH-HR buckets (> wake_break ≈ 30 min) is a real awakening and splits the window. Windows
+    longer than max_span (~12.5 h) are implausible for one night and rejected — so neither the fabricated
+    14 h bridge nor a spurious 50-min morning block can win over a genuine, if fragmented, night.
+
+    `med` maps present 5-min bucket index → median bpm (missing indices are simply absent). Returns
+    (start_idx, end_idx, low_count) where both ends are asleep buckets, or None.
     """
-    best_s: int | None = None
-    best_e: int | None = None
-    best_span = 0
-    cur_s: int | None = None
-    cur_e: int | None = None
-    gap = 0
-    prev: int | None = None
+    if not med:
+        return None
+    best: tuple[int, int, int] | None = None
+    for s, e, lc in _collect_sleep_windows(med, threshold, wake_break, min_low):
+        if (e - s) > max_span:  # implausibly long for a single night → reject
+            continue
+        if best is None or lc > best[2] or (lc == best[2] and s < best[0]):
+            best = (s, e, lc)
+    return best
 
-    def _close() -> None:
-        nonlocal best_span, best_s, best_e
-        if cur_s is not None and cur_e is not None and cur_e - cur_s > best_span:
-            best_span, best_s, best_e = cur_e - cur_s, cur_s, cur_e
 
-    for i in order:
-        if prev is not None and i - prev > max_bridge + 1:
-            # data gap wider than we'd ever bridge → the run cannot continue across it
-            _close()
-            cur_s = cur_e = None
-            gap = 0
-        if med[i] <= threshold:
-            cur_s = i if cur_s is None else cur_s
-            cur_e = i
-            gap = 0
-        elif cur_s is not None and cur_e is not None:
-            gap += 1
-            if gap > max_bridge:
-                _close()
-                cur_s = cur_e = None
-                gap = 0
-        prev = i
-    _close()
-    return best_s, best_e, best_span
+def _collect_sleep_windows(
+    med: dict[int, int], threshold: int, wake_break: int, min_low: int
+) -> list[tuple[int, int, int]]:
+    """Walk the bucket range and cut it into candidate sleep windows: asleep buckets extend the current
+    window, missing buckets bridge it (data gap ≠ wake), and a sustained run of >wake_break awake buckets
+    closes it. Returns (start_idx, end_idx, low_count) per window with ≥min_low asleep buckets.
+    """
+    idx_lo, idx_hi = min(med), max(med)
+    windows: list[tuple[int, int, int]] = []
+    state = {"start": None, "end": None, "low": 0, "high_run": 0}
+
+    def _flush() -> None:
+        if state["start"] is not None and state["low"] >= min_low:
+            windows.append((state["start"], state["end"], state["low"]))
+
+    for i in range(idx_lo, idx_hi + 1):
+        bpm = med.get(i)
+        if bpm is None:  # data gap → bridge (uncaptured sleep, not an awakening)
+            state["high_run"] = 0
+        elif bpm <= threshold:  # asleep
+            if state["start"] is None:
+                state["start"] = i
+            state["end"] = i
+            state["low"] += 1
+            state["high_run"] = 0
+        else:  # awake (present, elevated HR)
+            state["high_run"] += 1
+            if state["high_run"] > wake_break and state["start"] is not None:
+                _flush()
+                state.update(start=None, end=None, low=0, high_run=0)
+    _flush()
+    return windows
 
 
 def _sleep_from_points(pts: list[tuple[datetime, int]]) -> dict:
-    """Extract one sleep window from (ts, bpm) points: 5-min-bucket medians, longest low-HR block with
-    wake-bridging. Shared by last-night and multi-night history. HR-based duration/timing, NOT staging.
+    """Extract one sleep window from (ts, bpm) points: 5-min-bucket medians, then the window that captures
+    the most asleep time (bridging capture gaps, breaking on sustained wake — see _best_sleep_window).
+    Shared by last-night and multi-night history. HR-based timing/coverage, NOT WHOOP staging.
     """
     if len(pts) < 120:
         return {
@@ -196,29 +219,43 @@ def _sleep_from_points(pts: list[tuple[datetime, int]]) -> dict:
     threshold = (
         min(med.values()) + 12
     )  # "asleep" band above the night's quietest bucket
-    best_s, best_e, best_span = _longest_low_block(order, med, threshold, max_bridge=3)
-    if best_s is None or best_span < 6:  # < ~30 min → not a real sleep block
+    win = _best_sleep_window(med, threshold)
+    if win is None:
         return {
             "available": False,
             "reason": "No sustained overnight low-HR sleep window detected.",
         }
-    start_t, end_t = bucket_time[best_s], bucket_time[best_e]
+    s_idx, e_idx, low_count = win
+    start_t, end_t = bucket_time[s_idx], bucket_time[e_idx]
     duration_hours = (end_t - start_t).total_seconds() / 3600
-    sleep_bpms = [b for i in order if best_s <= i <= best_e for b in bucket_bpms[i]]
+    span_buckets = e_idx - s_idx + 1
+    coverage_pct = round(100 * low_count / span_buckets) if span_buckets else 0
+    fragmented = coverage_pct < 60
+    # average only over ASLEEP buckets in the window, not the awake/high ones bridged inside it
+    sleep_bpms = [
+        b
+        for i in order
+        if s_idx <= i <= e_idx and med[i] <= threshold
+        for b in bucket_bpms[i]
+    ]
     return {
         "available": True,
         "sleep_start": start_t.isoformat(),
         "sleep_end": end_t.isoformat(),
         "duration_hours": round(duration_hours, 1),
-        "avg_sleeping_hr": round(mean(sleep_bpms)),
-        "min_hr": min(sleep_bpms),
+        "avg_sleeping_hr": round(mean(sleep_bpms)) if sleep_bpms else None,
+        "min_hr": min(sleep_bpms) if sleep_bpms else None,
+        "coverage_pct": coverage_pct,
+        "fragmented": fragmented,
         "source": "hr_bucketed_window",
-        "method": "HR-based sleep duration/timing (not WHOOP staging).",
+        "method": "HR-based sleep window (bridges capture gaps, breaks on sustained wake; not staging).",
     }
 
 
-def nightly_sleep(user_id: int, lookback_hours: int = 20) -> dict:
-    """Estimate last night's sleep from the overnight HR pattern (see _sleep_from_points)."""
+def nightly_sleep(user_id: int, lookback_hours: int = 24) -> dict:
+    """Estimate last night's sleep from the overnight HR pattern (see _sleep_from_points). 24h lookback so
+    a ~9pm onset checked the next evening isn't clipped; the window picker still isolates the one night.
+    """
     hr = WhoopRepository.recent_hr(user_id, hours=lookback_hours)
     pts = [
         (_parse_ts(str(h["ts"])), int(h["bpm"]))

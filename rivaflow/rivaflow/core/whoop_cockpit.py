@@ -1123,11 +1123,20 @@ def _sleep_card(night: dict, dip: dict, need_hours: float) -> str:
         vs_need = f"on your {need_hours:g}h need"
     else:
         vs_need = ""
+    # When capture was gappy, say so and label the number as time-in-bed rather than false-precise sleep —
+    # a fragmented night is a coverage problem, not 0.8h of sleep.
+    label = "in bed" if night.get("fragmented") else "sleep"
+    frag = (
+        f'<div class="sub">⚠️ restless · only {esc(night.get("coverage_pct", "—"))}% signal captured</div>'
+        if night.get("fragmented")
+        else ""
+    )
     return (
         '<div class="card"><div class="ico">🌙 Last night</div>'
-        f'<div class="big">{esc(dur)}h</div>'
+        f'<div class="big">{esc(dur)}h <span class="sub">{label}</span></div>'
         f'<div class="sub">{esc(onset)} → {esc(offset)}</div>'
         f'<div class="sub">{esc(vs_need)}</div>'
+        f"{frag}"
         f'<div class="sub">nocturnal dip {esc(dip_pct)}%</div></div>'
     )
 
