@@ -136,14 +136,28 @@ def _longest_low_block(
     order: list[int], med: dict, threshold: int, max_bridge: int
 ) -> tuple:
     """Longest run of 'asleep' buckets (median <= threshold), bridging up to max_bridge awake buckets.
-    Returns (start_idx, end_idx, span) or (None, None, 0)."""
+    Gap-aware: a discontinuity in the bucket indices (missing buckets = a data dropout, e.g. strap
+    charging) is a HARD break, never bridged — otherwise an evening low block and a morning low block
+    separated by hours of no data merge into one impossibly-long 'window'. Returns (start, end, span)."""
     best_s: int | None = None
     best_e: int | None = None
     best_span = 0
     cur_s: int | None = None
     cur_e: int | None = None
     gap = 0
+    prev: int | None = None
+
+    def _close() -> None:
+        nonlocal best_span, best_s, best_e
+        if cur_s is not None and cur_e is not None and cur_e - cur_s > best_span:
+            best_span, best_s, best_e = cur_e - cur_s, cur_s, cur_e
+
     for i in order:
+        if prev is not None and i - prev > max_bridge + 1:
+            # data gap wider than we'd ever bridge → the run cannot continue across it
+            _close()
+            cur_s = cur_e = None
+            gap = 0
         if med[i] <= threshold:
             cur_s = i if cur_s is None else cur_s
             cur_e = i
@@ -151,12 +165,11 @@ def _longest_low_block(
         elif cur_s is not None and cur_e is not None:
             gap += 1
             if gap > max_bridge:
-                if cur_e - cur_s > best_span:
-                    best_span, best_s, best_e = cur_e - cur_s, cur_s, cur_e
+                _close()
                 cur_s = cur_e = None
                 gap = 0
-    if cur_s is not None and cur_e is not None and cur_e - cur_s > best_span:
-        best_span, best_s, best_e = cur_e - cur_s, cur_s, cur_e
+        prev = i
+    _close()
     return best_s, best_e, best_span
 
 
@@ -1018,6 +1031,14 @@ def _build_cockpit_page(user_id: int) -> str:
         night=night,
         last_workout=sessions[0] if sessions else None,
     )
+    # Tier-3 — 14-day history behind the verdict (hero tap-to-expand sparklines)
+    trends = {
+        "hrv": [d["ln_rmssd"] for d in daily_resting_rmssd(user_id, days=14)],
+        "rhr": [d["resting_hr"] for d in daily_resting_hr(user_id, days=14)],
+        "sleep": [
+            d.get("duration_hours") for d in nightly_sleep_history(user_id, nights=14)
+        ],
+    }
     story = render_today_story(
         readiness,
         narrative,
@@ -1027,6 +1048,7 @@ def _build_cockpit_page(user_id: int) -> str:
         sessions[0] if sessions else None,
         strain,
         is_sabbath,
+        trends=trends,
     )
     workouts = render_workouts_list(sessions)
     lab = render_lab_section(_lab_panels(user_id, ctx=ctx))
