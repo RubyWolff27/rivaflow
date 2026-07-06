@@ -134,19 +134,27 @@ def _fmt_x(value: float, xkind: str) -> str:
     return f"{hh}:{mm:02d}"
 
 
-def _auto_xticks(x_lo: float, x_hi: float, xkind: str, n: int = 5) -> list[tuple[float, str]]:
+def _auto_xticks(
+    x_lo: float, x_hi: float, xkind: str, n: int = 5
+) -> list[tuple[float, str]]:
     """Evenly spaced axis ticks labelled per the xkind unit convention (see _fmt_x)."""
     if x_hi <= x_lo:
         return []
     return [
-        (x_lo + (x_hi - x_lo) * i / (n - 1), _fmt_x(x_lo + (x_hi - x_lo) * i / (n - 1), xkind))
+        (
+            x_lo + (x_hi - x_lo) * i / (n - 1),
+            _fmt_x(x_lo + (x_hi - x_lo) * i / (n - 1), xkind),
+        )
         for i in range(n)
     ]
 
 
-def _segments(pts: list[tuple[float, float]], max_gap: float | None) -> list[list[tuple[float, float]]]:
+def _segments(
+    pts: list[tuple[float, float]], max_gap: float | None
+) -> list[list[tuple[float, float]]]:
     """Split a series into contiguous segments, breaking wherever the x-gap exceeds max_gap so a data
-    dropout renders as an honest BREAK in the line instead of a straight bridge across missing time."""
+    dropout renders as an honest BREAK in the line instead of a straight bridge across missing time.
+    """
     if max_gap is None or len(pts) < 2:
         return [pts]
     segs: list[list[tuple[float, float]]] = [[pts[0]]]
@@ -230,7 +238,11 @@ class _LineGeom:
         return self.ax + (x - self.x_lo) / self._xr * self.plot_w
 
     def py(self, y: float) -> float:
-        return self.plot_h - self.pad - (y - self.y_lo) / self._yr * (self.plot_h - 2 * self.pad)
+        return (
+            self.plot_h
+            - self.pad
+            - (y - self.y_lo) / self._yr * (self.plot_h - 2 * self.pad)
+        )
 
 
 def _line_grid(g: _LineGeom, w: int) -> str:
@@ -257,7 +269,9 @@ def _line_xaxis(g: _LineGeom, xkind: str, plot_h: float, h: int) -> str:
     return out
 
 
-def _line_paths(segs, g: _LineGeom, plot_h: float, pad: int, stroke: str, fill: str) -> str:
+def _line_paths(
+    segs, g: _LineGeom, plot_h: float, pad: int, stroke: str, fill: str
+) -> str:
     out = ""
     for seg in segs:
         if len(seg) < 2:
@@ -273,7 +287,9 @@ def _line_paths(segs, g: _LineGeom, plot_h: float, pad: int, stroke: str, fill: 
     return out
 
 
-def _scrub_layer(series_id, pts, g: _LineGeom, plot_h, pad, w, xkind, stroke) -> tuple[str, str]:
+def _scrub_layer(
+    series_id, pts, g: _LineGeom, plot_h, pad, w, xkind, stroke
+) -> tuple[str, str]:
     if not series_id:
         return "", ""
     series_json = ",".join(f"[{t:.2f},{v:.1f}]" for t, v in pts)
@@ -755,8 +771,13 @@ def render_hr_ribbon(series: dict) -> str:
         mx = series.get("max_hr", 190)
         bands = [(lo * mx, hi * mx, color) for lo, hi, color in _HR_ZONE_BANDS]
         chart = svg_area_line(
-            series["times"], series["values"], bands=bands, stroke="#e2e8f0",
-            max_gap=0.34, xkind="clock_h", series_id="hr-ribbon",
+            series["times"],
+            series["values"],
+            bands=bands,
+            stroke="#e2e8f0",
+            max_gap=0.34,
+            xkind="clock_h",
+            series_id="hr-ribbon",
         )
         body = (
             f'<div class="stats">{stat("Avg HR", str(series.get("avg_hr", "—")), "today")}'
@@ -776,7 +797,9 @@ def render_rr_hrv_detail(detail: dict) -> str:
             detail["rr_values"],
             stroke="#a78bfa",
             fill="rgba(167,139,250,0.15)",
-            max_gap=3.0, xkind="elapsed_m", series_id="rr-tacho",
+            max_gap=3.0,
+            xkind="elapsed_m",
+            series_id="rr-tacho",
         )
         scatter = svg_poincare(detail["pairs"], detail["sd1"], detail["sd2"])
         stats = "".join(
@@ -806,7 +829,9 @@ def render_overnight_hrv(curve: dict) -> str:
             curve["values"],
             stroke="#34d399",
             fill="rgba(52,211,153,0.18)",
-            max_gap=0.34, xkind="elapsed_h", series_id="overnight-hrv",
+            max_gap=0.34,
+            xkind="elapsed_h",
+            series_id="overnight-hrv",
         )
         body = f'<div class="chart"><div class="lbl">lnRMSSD · overnight (5-min buckets)</div>{chart}</div>'
     return f'<section class="panel"><h2>Overnight HRV curve</h2>{body}</section>'
@@ -822,7 +847,9 @@ def render_sleep_hr_dip(curve: dict) -> str:
             curve["values"],
             stroke="#818cf8",
             fill="rgba(129,140,248,0.15)",
-            max_gap=0.34, xkind="elapsed_h", series_id="sleep-hr",
+            max_gap=0.34,
+            xkind="elapsed_h",
+            series_id="sleep-hr",
         )
         stats = "".join(
             [
@@ -850,7 +877,9 @@ def render_respiratory(trace: dict) -> str:
             trace["values"],
             stroke="#f472b6",
             fill="rgba(244,114,182,0.15)",
-            max_gap=0.5, xkind="elapsed_h", series_id="respiratory",
+            max_gap=0.5,
+            xkind="elapsed_h",
+            series_id="respiratory",
         )
         body = f'<div class="chart"><div class="lbl">Breaths/min · resting windows</div>{chart}</div>'
     return f'<section class="panel"><h2>Respiratory trace</h2>{body}</section>'
@@ -867,8 +896,13 @@ def render_stress_ribbon(ribbon: dict) -> str:
             (67.0, 100.0, "#f87171"),
         ]
         chart = svg_area_line(
-            ribbon["times"], ribbon["values"], bands=bands, stroke="#e2e8f0",
-            max_gap=1.5, xkind="clock_hour", series_id="stress",
+            ribbon["times"],
+            ribbon["values"],
+            bands=bands,
+            stroke="#e2e8f0",
+            max_gap=1.5,
+            xkind="clock_hour",
+            series_id="stress",
         )
         body = f'<div class="chart"><div class="lbl">Stress vs baseline (0–100)</div>{chart}</div>'
     return f'<section class="panel"><h2>Stress ribbon</h2>{body}</section>'
@@ -885,7 +919,8 @@ _ZONE_META = {
 
 def _zone_bar_html(zone_secs: dict) -> str:
     """Strava/Garmin-style horizontal time-in-zone distribution: one full-width stacked bar (segments
-    proportional to seconds in each zone) plus a legend row with per-zone minutes and percentage."""
+    proportional to seconds in each zone) plus a legend row with per-zone minutes and percentage.
+    """
     total = sum(zone_secs.values()) or 1
     segs = ""
     legend = ""
@@ -915,8 +950,13 @@ def _session_card_html(s: dict, idx: int = 0) -> str:
         )
     load, hardness = session_load_hardness(a)
     curve = svg_area_line(
-        a.get("times", []), a.get("values", []), h=150, stroke="#f87171",
-        fill="rgba(248,113,113,0.16)", max_gap=2.0, xkind="elapsed_m",
+        a.get("times", []),
+        a.get("values", []),
+        h=150,
+        stroke="#f87171",
+        fill="rgba(248,113,113,0.16)",
+        max_gap=2.0,
+        xkind="elapsed_m",
         series_id=f"session-{idx}",
     )
     drift = a.get("hrr")
@@ -1011,7 +1051,10 @@ def _trend_arrow(readiness: dict) -> str:
 
 
 def _spark_row(
-    label: str, values: list[float], unit: str = "", stroke: str = "#60a5fa",
+    label: str,
+    values: list[float],
+    unit: str = "",
+    stroke: str = "#60a5fa",
     lower_is_better: bool = False,
 ) -> str:
     vals = [v for v in values if v is not None]
@@ -1041,11 +1084,19 @@ def _hero_html(readiness: dict, trends: dict | None = None) -> str:
     trends = trends or {}
     rows = (
         _spark_row("HRV (lnRMSSD)", trends.get("hrv", []), stroke="#34d399")
-        + _spark_row("Resting HR", trends.get("rhr", []), " bpm", stroke="#f472b6", lower_is_better=True)
+        + _spark_row(
+            "Resting HR",
+            trends.get("rhr", []),
+            " bpm",
+            stroke="#f472b6",
+            lower_is_better=True,
+        )
         + _spark_row("Sleep", trends.get("sleep", []), " h", stroke="#818cf8")
     )
     history = (
-        f'<details class="trends"><summary>▸ 14-day trend</summary>{rows}</details>' if rows else ""
+        f'<details class="trends"><summary>▸ 14-day trend</summary>{rows}</details>'
+        if rows
+        else ""
     )
     return (
         f'<div class="ico">Today\'s readiness</div>'
@@ -1184,9 +1235,12 @@ def _workout_row(s: dict, idx: int = 0) -> str:
 
 def render_workouts_list(sessions: list[dict]) -> str:
     """Ruby's 'drill into previous workouts' ask — the last ~10 sessions, each a tap-to-expand <details> row
-    that opens its full deep-dive inline. Pure HTML disclosure; charts scrub via the page script."""
+    that opens its full deep-dive inline. Pure HTML disclosure; charts scrub via the page script.
+    """
     if not sessions:
         body = '<div class="sub">No recent sessions with WHOOP HR coverage yet.</div>'
     else:
-        body = "".join(_workout_row(s, idx=100 + i) for i, s in enumerate(sessions[:10]))
+        body = "".join(
+            _workout_row(s, idx=100 + i) for i, s in enumerate(sessions[:10])
+        )
     return f'<section class="panel"><h2>Workouts</h2>{body}</section>'

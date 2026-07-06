@@ -138,7 +138,8 @@ def _longest_low_block(
     """Longest run of 'asleep' buckets (median <= threshold), bridging up to max_bridge awake buckets.
     Gap-aware: a discontinuity in the bucket indices (missing buckets = a data dropout, e.g. strap
     charging) is a HARD break, never bridged — otherwise an evening low block and a morning low block
-    separated by hours of no data merge into one impossibly-long 'window'. Returns (start, end, span)."""
+    separated by hours of no data merge into one impossibly-long 'window'. Returns (start, end, span).
+    """
     best_s: int | None = None
     best_e: int | None = None
     best_span = 0
