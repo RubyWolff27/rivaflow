@@ -970,6 +970,7 @@ def _session_card_html(s: dict, idx: int = 0) -> str:
     )
     return (
         '<div class="session-card">'
+        f'<div class="lbl">{esc(s.get("label", "Session"))}</div>'
         f'<div class="stats">{stats_html}</div>'
         f'<div class="chart"><div class="lbl">Heart rate · elapsed</div>{curve}</div>'
         f'<div class="chart"><div class="lbl">Time in zones</div>{_zone_bar_html(a.get("hr_zone_secs", {}))}</div>'

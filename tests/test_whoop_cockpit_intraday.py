@@ -116,7 +116,9 @@ class TestPanelRendersPopulatedState:
         out = render_hr_ribbon(
             {
                 "available": True,
-                "times": [0, 1, 2],
+                # dense samples (gaps < max_gap=0.34h) so the connected polyline
+                # renders; sparse points now honestly draw as dots (gap-honesty, #88)
+                "times": [0, 0.1, 0.2],
                 "values": [60, 90, 70],
                 "avg_hr": 73,
                 "max_bpm": 150,
@@ -163,7 +165,8 @@ class TestPanelRendersPopulatedState:
         ]
         out = render_session_deepdives(sessions)
         assert "BJJ (gi)" in out
-        assert "HRR: 22 bpm/60s" in out
+        # HRR renders as a stat card since the cockpit overhaul (#86)
+        assert "22 bpm recovery in 60s" in out
 
 
 class TestProgressWiring:

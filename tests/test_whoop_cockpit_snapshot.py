@@ -15,7 +15,9 @@ class TestCockpitSnapshot:
         html = _build_cockpit_page(test_user["id"])
         assert html.startswith("<!doctype html>")
         assert "WHOOP Cockpit" in html
-        assert "recomputes every 4h" in html  # freshness stamp footer
+        assert (
+            "recomputes 6am · 9am · 6pm · 9pm" in html
+        )  # freshness stamp footer (schedule per whoop_cockpit.py)
 
     def test_cockpit_page_serves_stored_snapshot(self, test_user):
         """When a snapshot exists, cockpit_page returns it verbatim — no live re-render."""
