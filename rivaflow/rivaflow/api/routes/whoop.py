@@ -13,6 +13,7 @@ See docs DATA-PLATFORM-BUILD-PLAN.md in the goose-whoop5 repo.
 from __future__ import annotations
 
 import logging
+import time
 from datetime import datetime
 from zoneinfo import ZoneInfo
 
@@ -571,16 +572,35 @@ def stress(current_user: dict = Depends(get_current_user)) -> dict:
     return today_stress(current_user["id"])
 
 
+# whoop_summary recomputes readiness/HRV/sleep/strain from the raw HR/RR tables on every call —
+# 26-35s at ~280k HR rows (2026-07-08 access logs), which times out the phone tiles and stacks a
+# fresh 30s recompute under every retry. New data only lands every ~2.5 min (uploader flush), so a
+# short-TTL in-process copy loses nothing a client could observe. Per-worker duplication is fine.
+_SUMMARY_CACHE: dict[tuple[int, bool], tuple[float, dict]] = {}
+_SUMMARY_TTL_S = 300.0
+
+
+def _cached_whoop_summary(user_id: int, today_is_sabbath: bool) -> dict:
+    from rivaflow.core.whoop_analytics import whoop_summary
+
+    key = (user_id, today_is_sabbath)
+    now = time.monotonic()
+    hit = _SUMMARY_CACHE.get(key)
+    if hit and hit[0] > now:
+        return hit[1]
+    result = whoop_summary(user_id, today_is_sabbath=today_is_sabbath)
+    _SUMMARY_CACHE[key] = (now + _SUMMARY_TTL_S, result)
+    return result
+
+
 @router.get("/summary")
 @route_error_handler("whoop_summary", detail="Failed to build WHOOP summary")
 def summary(current_user: dict = Depends(get_current_user)) -> dict:
     """One-call rollup for a thin display client: readiness + HRV + resting HR + last night's sleep.
     The whole point of the server-side architecture — the phone/dashboard fetches this and just renders it.
     """
-    from rivaflow.core.whoop_analytics import whoop_summary
-
     is_sabbath = datetime.now(ZoneInfo("Australia/Melbourne")).weekday() == 6
-    return whoop_summary(current_user["id"], today_is_sabbath=is_sabbath)
+    return _cached_whoop_summary(current_user["id"], today_is_sabbath=is_sabbath)
 
 
 @router.get("/cockpit", response_class=HTMLResponse)
@@ -607,7 +627,6 @@ def view(key: str) -> HTMLResponse:
     """Server-rendered thin-display dashboard — the phone/browser opens a URL and the VPS renders the
     metrics into HTML. Zero client compute. Personal tool: auth via the owner's own api-key query param.
     """
-    from rivaflow.core.whoop_analytics import whoop_summary
     from rivaflow.db.repositories.api_key_repo import ApiKeyRepository
 
     api_key = (
@@ -622,7 +641,7 @@ def view(key: str) -> HTMLResponse:
         )
 
     is_sabbath = datetime.now(ZoneInfo("Australia/Melbourne")).weekday() == 6
-    s = whoop_summary(api_key["user_id"], today_is_sabbath=is_sabbath)
+    s = _cached_whoop_summary(api_key["user_id"], today_is_sabbath=is_sabbath)
     return HTMLResponse(_render_whoop_view(s))
 
 
