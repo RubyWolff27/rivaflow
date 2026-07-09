@@ -66,8 +66,7 @@ def test_hrv_decline_factor_max(mock_series):
     assert result["factors"]["hrv_decline"]["max"] == 15
 
 
-@patch("rivaflow.db.repositories.whoop_connection_repo" ".WhoopConnectionRepository")
-def test_hrv_decline_no_whoop(mock_conn):
+def test_hrv_decline_no_whoop():
     """No WHOOP data → hrv_decline and recovery_decline both 0."""
     from rivaflow.core.services.insights_analytics import (
         InsightsAnalyticsService,
@@ -82,8 +81,6 @@ def test_hrv_decline_no_whoop(mock_conn):
     svc.session_repo.get_by_date_range.return_value = [
         _make_session(i) for i in range(10)
     ]
-
-    mock_conn.get_by_user_id.return_value = None
 
     svc.get_training_load_management = MagicMock(
         return_value={"current_acwr": 1.0, "current_zone": "sweet_spot"}
@@ -129,8 +126,7 @@ def test_recovery_decline_consecutive_red(mock_series):
     assert result["factors"]["recovery_decline"]["score"] == 15
 
 
-@patch("rivaflow.db.repositories.whoop_connection_repo" ".WhoopConnectionRepository")
-def test_six_factors_returned(mock_conn):
+def test_six_factors_returned():
     """Verify 6 factor keys are present in response."""
     from rivaflow.core.services.insights_analytics import (
         InsightsAnalyticsService,
@@ -141,8 +137,6 @@ def test_six_factors_returned(mock_conn):
     svc.readiness_repo.get_by_date_range.return_value = []
     svc.session_repo = MagicMock()
     svc.session_repo.get_by_date_range.return_value = []
-
-    mock_conn.get_by_user_id.return_value = None
 
     svc.get_training_load_management = MagicMock(
         return_value={"current_acwr": 1.0, "current_zone": "sweet_spot"}
@@ -160,8 +154,7 @@ def test_six_factors_returned(mock_conn):
     assert set(result["factors"].keys()) == expected_keys
 
 
-@patch("rivaflow.db.repositories.whoop_connection_repo" ".WhoopConnectionRepository")
-def test_all_factors_sum_to_100(mock_conn):
+def test_all_factors_sum_to_100():
     """Max scores across all 6 factors total 100."""
     from rivaflow.core.services.insights_analytics import (
         InsightsAnalyticsService,
@@ -172,8 +165,6 @@ def test_all_factors_sum_to_100(mock_conn):
     svc.readiness_repo.get_by_date_range.return_value = []
     svc.session_repo = MagicMock()
     svc.session_repo.get_by_date_range.return_value = []
-
-    mock_conn.get_by_user_id.return_value = None
 
     svc.get_training_load_management = MagicMock(
         return_value={"current_acwr": 1.0, "current_zone": "sweet_spot"}

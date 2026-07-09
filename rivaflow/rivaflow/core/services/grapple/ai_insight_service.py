@@ -177,13 +177,9 @@ async def generate_post_session_insight(user_id: int, session_id: int) -> dict |
         pass
 
     # Enrich with WHOOP recovery for the session date (raw-derived).
-    # recovery_score is a today rollup, so it enriches a same-day session; the
-    # legacy workout-cache (frozen archive) still carries strain for old sessions.
+    # recovery_score is a today rollup, so it enriches a same-day session.
     try:
         from rivaflow.core.services import whoop_biometrics
-        from rivaflow.db.repositories.whoop_workout_cache_repo import (
-            WhoopWorkoutCacheRepository,
-        )
 
         s_date = str(session.get("session_date", ""))[:10]
         if s_date:
@@ -196,9 +192,6 @@ async def generate_post_session_insight(user_id: int, session_id: int) -> dict |
                     context += f"WHOOP Recovery: {rs:.0f}%"
                     if hv is not None:
                         context += f", HRV: {hv:.0f}ms"
-                    wo = WhoopWorkoutCacheRepository.get_by_session_id(session_id)
-                    if wo and wo.get("strain") is not None:
-                        context += f", Session Strain: {wo['strain']}"
                     context += ". "
     except Exception:
         pass
