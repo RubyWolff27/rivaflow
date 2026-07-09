@@ -33,9 +33,12 @@ def _ensure_critical_columns(conn):
         ("profile", "timezone", "TEXT DEFAULT 'UTC'"),
         ("users", "failed_login_attempts", "INTEGER DEFAULT 0"),
         ("users", "locked_until", "TIMESTAMP"),
+        # Auth-critical: the API-key scope gate reads this on every request.
+        # Guarantee it exists even if migration 114 is skipped or fails.
+        ("api_keys", "scopes", "TEXT NOT NULL DEFAULT 'full'"),
     ]
     # Whitelist of allowed table/column names to prevent SQL injection
-    allowed_tables = {"profile", "sessions", "users"}
+    allowed_tables = {"profile", "sessions", "users", "api_keys"}
     allowed_columns = {
         "timezone",
         "session_score",
@@ -43,6 +46,7 @@ def _ensure_critical_columns(conn):
         "score_version",
         "failed_login_attempts",
         "locked_until",
+        "scopes",
     }
 
     cursor = conn.cursor()

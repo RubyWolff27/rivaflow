@@ -444,6 +444,14 @@ class ApiKeyCreate(BaseModel):
     name: str = Field(
         ..., min_length=1, max_length=120, description="Human label, e.g. 'Sage MCP'"
     )
+    read_only: bool = Field(
+        default=False,
+        description=(
+            "Mint a read-only 'rf_vk_' view key (scope='read') for dashboard "
+            "URLs. Rejected on every write/admin route. Default False = full "
+            "user-equivalent 'rf_pk_' key."
+        ),
+    )
 
 
 class ApiKeyMetadata(BaseModel):

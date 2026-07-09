@@ -11,6 +11,7 @@ from rivaflow.core.error_handling import route_error_handler
 from rivaflow.core.exceptions import (
     AuthenticationError,
     ExternalServiceError,
+    NotFoundError,
     ValidationError,
 )
 from rivaflow.core.services.whoop_service import WhoopService
@@ -64,7 +65,15 @@ async def whoop_webhook(request: Request):
     This endpoint is NOT JWT-protected — WHOOP calls it directly.
     Authentication is via HMAC signature verification using the
     Client Secret as the signing key.
+
+    Gated on ENABLE_WHOOP_INTEGRATION (default false): the WHOOP-cloud
+    subscription is cancelled, so by default this dead-era endpoint 404s and
+    presents no unauthenticated attack surface. Enable the flag only if a live
+    WHOOP OAuth connection is ever restored.
     """
+    if not settings.ENABLE_WHOOP_INTEGRATION:
+        raise NotFoundError(message="WHOOP integration is disabled")
+
     # Read raw body for signature verification
     body = await request.body()
 

@@ -10,7 +10,8 @@ from rivaflow.core.auth import decode_access_token
 from rivaflow.core.exceptions import AuthenticationError, ForbiddenError
 from rivaflow.core.utils.cache import get_cache
 from rivaflow.db.repositories.api_key_repo import (
-    KEY_PREFIX_LITERAL,
+    API_KEY_PREFIXES,
+    SCOPE_READ,
     ApiKeyRepository,
 )
 from rivaflow.db.repositories.user_repo import UserRepository
@@ -56,6 +57,39 @@ def _load_user_with_cache(user_id: int) -> dict:
     return user
 
 
+def _authenticate_api_key(token: str) -> dict:
+    """Resolve an `rf_pk_`/`rf_vk_` API key to its owning user.
+
+    Returns a COPY of the cached user annotated with `_auth_scope` (the key's
+    scope) — copied because the user cache is shared across requests and
+    mutating it would leak one key's scope onto another request.
+    """
+    try:
+        key_hash = ApiKeyRepository.hash_key(token)
+        api_key = ApiKeyRepository.get_active_by_hash(key_hash)
+        if api_key is None:
+            raise AuthenticationError(message="Invalid or revoked API key")
+
+        user = dict(_load_user_with_cache(api_key["user_id"]))
+        user["_auth_scope"] = api_key.get("scopes") or "full"
+
+        # Best-effort last-used bump — never fatal to the auth path.
+        try:
+            ApiKeyRepository.update_last_used(api_key["id"])
+        except Exception as bump_err:  # pragma: no cover — non-critical
+            logger.warning(
+                "update_last_used failed for api_key id=%s: %s",
+                api_key["id"],
+                bump_err,
+            )
+        return user
+    except AuthenticationError:
+        raise
+    except (ValueError, KeyError, TypeError) as e:
+        logger.error("API key authentication error: %s", e)
+        raise AuthenticationError(message="Authentication failed")
+
+
 async def get_current_user(
     credentials: HTTPAuthorizationCredentials = Depends(security),
 ) -> dict:
@@ -84,31 +118,8 @@ async def get_current_user(
     token = credentials.credentials
 
     # ── API key path ────────────────────────────────────────────────────────
-    if token.startswith(KEY_PREFIX_LITERAL):
-        try:
-            key_hash = ApiKeyRepository.hash_key(token)
-            api_key = ApiKeyRepository.get_active_by_hash(key_hash)
-            if api_key is None:
-                raise AuthenticationError(message="Invalid or revoked API key")
-
-            user = _load_user_with_cache(api_key["user_id"])
-
-            # Best-effort last-used bump — never fatal to the auth path.
-            try:
-                ApiKeyRepository.update_last_used(api_key["id"])
-            except Exception as bump_err:  # pragma: no cover — non-critical
-                logger.warning(
-                    "update_last_used failed for api_key id=%s: %s",
-                    api_key["id"],
-                    bump_err,
-                )
-
-            return user
-        except AuthenticationError:
-            raise
-        except (ValueError, KeyError, TypeError) as e:
-            logger.error("API key authentication error: %s", e)
-            raise AuthenticationError(message="Authentication failed")
+    if token.startswith(API_KEY_PREFIXES):
+        return _authenticate_api_key(token)
 
     # ── JWT path (existing behaviour) ───────────────────────────────────────
     try:
@@ -130,6 +141,20 @@ async def get_current_user(
     except (ValueError, KeyError, TypeError) as e:
         logger.error("Authentication error: %s", e)
         raise AuthenticationError(message="Authentication failed")
+
+
+def require_write_scope(current_user: dict = Depends(get_current_user)) -> dict:
+    """Dependency for mutating routes: reject read-only API keys.
+
+    A read-scoped `rf_vk_` key (minted for the bookmarkable cockpit URL) can
+    read every endpoint but must never write. JWT sessions and full `rf_pk_`
+    keys carry no read restriction and pass through unchanged.
+    """
+    if current_user.get("_auth_scope") == SCOPE_READ:
+        raise ForbiddenError(
+            message="This API key is read-only and cannot perform writes"
+        )
+    return current_user
 
 
 def get_admin_user(current_user: dict = Depends(get_current_user)) -> dict:

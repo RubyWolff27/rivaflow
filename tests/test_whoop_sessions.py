@@ -48,7 +48,12 @@ class TestWhoopSessionRepo:
         sid = WhoopRepository.create_whoop_session(uid, "CrossFit", _iso(_BASE))
         assert WhoopRepository.list_whoop_sessions(uid)[0]["ended_at"] is None
 
-        WhoopRepository.end_whoop_session(sid, _iso(_BASE + timedelta(minutes=45)))
+        assert (
+            WhoopRepository.end_whoop_session(
+                sid, _iso(_BASE + timedelta(minutes=45)), uid
+            )
+            is True
+        )
         assert WhoopRepository.list_whoop_sessions(uid)[0]["ended_at"] is not None
 
     def test_list_is_most_recent_first(self, test_user):
