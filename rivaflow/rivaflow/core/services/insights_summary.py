@@ -93,49 +93,38 @@ def compute_overtraining_risk(
     recovery_decline_risk = 0
 
     try:
-        from rivaflow.db.repositories.whoop_connection_repo import (
-            WhoopConnectionRepository,
-        )
-        from rivaflow.db.repositories.whoop_recovery_cache_repo import (
-            WhoopRecoveryCacheRepository,
-        )
+        from rivaflow.core.services import whoop_biometrics
 
-        conn = WhoopConnectionRepository.get_by_user_id(user_id)
-        if conn and conn.get("is_active"):
-            end_dt = end.isoformat() + "T23:59:59"
-            start_dt = start_14d.isoformat()
-            recs = WhoopRecoveryCacheRepository.get_by_date_range(
-                user_id, start_dt, end_dt
-            )
+        recs = whoop_biometrics.recovery_series(user_id, days=14)
 
-            # HRV decline: slope over 14-day HRV values
-            hrv_values = [r["hrv_ms"] for r in recs if r.get("hrv_ms") is not None]
-            if len(hrv_values) >= 3:
-                hrv_slope = _linear_slope(hrv_values)
-                if hrv_slope < -1.0:
-                    hrv_risk = 15
-                elif hrv_slope < -0.5:
-                    hrv_risk = 10
-                elif hrv_slope < 0:
-                    hrv_risk = 3
+        # HRV decline: slope over 14-day HRV values
+        hrv_values = [r["hrv_ms"] for r in recs if r.get("hrv_ms") is not None]
+        if len(hrv_values) >= 3:
+            hrv_slope = _linear_slope(hrv_values)
+            if hrv_slope < -1.0:
+                hrv_risk = 15
+            elif hrv_slope < -0.5:
+                hrv_risk = 10
+            elif hrv_slope < 0:
+                hrv_risk = 3
 
-            # Recovery decline: consecutive days with recovery < 34%
-            consecutive_red = 0
-            max_consecutive = 0
-            for r in recs:
-                rs = r.get("recovery_score")
-                if rs is not None and rs < 34:
-                    consecutive_red += 1
-                    max_consecutive = max(max_consecutive, consecutive_red)
-                else:
-                    consecutive_red = 0
+        # Recovery decline: consecutive days with recovery < 34%
+        consecutive_red = 0
+        max_consecutive = 0
+        for r in recs:
+            rs = r.get("recovery_score")
+            if rs is not None and rs < 34:
+                consecutive_red += 1
+                max_consecutive = max(max_consecutive, consecutive_red)
+            else:
+                consecutive_red = 0
 
-            if max_consecutive >= 3:
-                recovery_decline_risk = 15
-            elif max_consecutive >= 2:
-                recovery_decline_risk = 10
-            elif max_consecutive >= 1:
-                recovery_decline_risk = 5
+        if max_consecutive >= 3:
+            recovery_decline_risk = 15
+        elif max_consecutive >= 2:
+            recovery_decline_risk = 10
+        elif max_consecutive >= 1:
+            recovery_decline_risk = 5
     except Exception:
         pass
 
