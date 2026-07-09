@@ -436,12 +436,3 @@ def get_fight_dynamics_service():
     )
 
     return FightDynamicsService()
-
-
-def get_whoop_analytics_engine():
-    """Provide a WhoopAnalyticsEngine instance."""
-    from rivaflow.core.services.whoop_analytics_engine import (
-        WhoopAnalyticsEngine,
-    )
-
-    return WhoopAnalyticsEngine()
