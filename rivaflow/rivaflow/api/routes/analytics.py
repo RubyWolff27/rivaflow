@@ -8,9 +8,9 @@ from rivaflow.api.rate_limit import limiter
 from rivaflow.core.dependencies import get_analytics_service, get_current_user
 from rivaflow.core.error_handling import route_error_handler
 from rivaflow.core.exceptions import NotFoundError, ValidationError
+from rivaflow.core.services import whoop_dashboard_analytics
 from rivaflow.core.services.analytics_service import AnalyticsService
 from rivaflow.core.services.fight_dynamics_service import FightDynamicsService
-from rivaflow.core.services.whoop_analytics_engine import WhoopAnalyticsEngine
 from rivaflow.core.utils.cache import cached
 
 
@@ -878,26 +878,17 @@ def get_fight_dynamics_insights(
 
 @cached(ttl_seconds=600, key_prefix="whoop_perf_corr")
 def _get_whoop_performance_correlation_cached(user_id: int, days: int = 90):
-    wa = WhoopAnalyticsEngine()
-    return {
-        "recovery_correlation": wa.get_recovery_performance_correlation(user_id, days),
-        "hrv_predictor": wa.get_hrv_performance_predictor(user_id, days),
-    }
+    return whoop_dashboard_analytics.performance_correlation(user_id, days)
 
 
 @cached(ttl_seconds=600, key_prefix="whoop_efficiency")
 def _get_whoop_efficiency_cached(user_id: int, days: int = 90):
-    wa = WhoopAnalyticsEngine()
-    return {
-        "strain_efficiency": wa.get_strain_efficiency(user_id, days),
-        "sleep_analysis": wa.get_sleep_performance_analysis(user_id, days),
-    }
+    return whoop_dashboard_analytics.efficiency(user_id, days)
 
 
 @cached(ttl_seconds=600, key_prefix="whoop_cardiovascular")
 def _get_whoop_cardiovascular_cached(user_id: int, days: int = 90):
-    wa = WhoopAnalyticsEngine()
-    return wa.get_cardiovascular_drift(user_id, days)
+    return whoop_dashboard_analytics.cardiovascular_drift(user_id, days)
 
 
 @router.get("/whoop/performance-correlation")
@@ -953,14 +944,12 @@ def get_whoop_cardiovascular(
 
 @cached(ttl_seconds=600, key_prefix="whoop_sleep_debt")
 def _get_whoop_sleep_debt_cached(user_id: int, days: int = 90):
-    wa = WhoopAnalyticsEngine()
-    return wa.get_sleep_debt_tracker(user_id, days)
+    return whoop_dashboard_analytics.sleep_debt_tracker(user_id, days)
 
 
 @cached(ttl_seconds=600, key_prefix="whoop_readiness_model")
 def _get_whoop_readiness_model_cached(user_id: int, days: int = 90):
-    wa = WhoopAnalyticsEngine()
-    return wa.get_recovery_readiness_model(user_id, days)
+    return whoop_dashboard_analytics.readiness_model(user_id, days)
 
 
 @router.get("/whoop/sleep-debt")
