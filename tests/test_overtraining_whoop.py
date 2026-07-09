@@ -34,11 +34,8 @@ def _make_recovery(day_offset=0, recovery_score=72, hrv_ms=45):
     }
 
 
-@patch(
-    "rivaflow.db.repositories.whoop_recovery_cache_repo" ".WhoopRecoveryCacheRepository"
-)
-@patch("rivaflow.db.repositories.whoop_connection_repo" ".WhoopConnectionRepository")
-def test_hrv_decline_factor_max(mock_conn, mock_rec):
+@patch("rivaflow.core.services.whoop_biometrics.recovery_series")
+def test_hrv_decline_factor_max(mock_series):
     """Declining HRV over 14 days yields max 15 points."""
     from rivaflow.core.services.insights_analytics import (
         InsightsAnalyticsService,
@@ -54,12 +51,10 @@ def test_hrv_decline_factor_max(mock_conn, mock_rec):
         _make_session(i) for i in range(10)
     ]
 
-    mock_conn.get_by_user_id.return_value = {"is_active": True}
     # HRV steeply declining: 60, 57, 54, ... (slope ~ -2.1)
-    declining_hrv = [
+    mock_series.return_value = [
         _make_recovery(day_offset=13 - i, hrv_ms=60 - i * 3) for i in range(14)
     ]
-    mock_rec.get_by_date_range.return_value = declining_hrv
 
     # Mock training load to avoid DB calls
     svc.get_training_load_management = MagicMock(
@@ -99,11 +94,8 @@ def test_hrv_decline_no_whoop(mock_conn):
     assert result["factors"]["recovery_decline"]["score"] == 0
 
 
-@patch(
-    "rivaflow.db.repositories.whoop_recovery_cache_repo" ".WhoopRecoveryCacheRepository"
-)
-@patch("rivaflow.db.repositories.whoop_connection_repo" ".WhoopConnectionRepository")
-def test_recovery_decline_consecutive_red(mock_conn, mock_rec):
+@patch("rivaflow.core.services.whoop_biometrics.recovery_series")
+def test_recovery_decline_consecutive_red(mock_series):
     """3+ consecutive red recovery days → 15 points."""
     from rivaflow.core.services.insights_analytics import (
         InsightsAnalyticsService,
@@ -119,9 +111,8 @@ def test_recovery_decline_consecutive_red(mock_conn, mock_rec):
         _make_session(i) for i in range(10)
     ]
 
-    mock_conn.get_by_user_id.return_value = {"is_active": True}
     # 3 consecutive red days (<34%), rest normal
-    recs = [
+    mock_series.return_value = [
         _make_recovery(day_offset=13 - i, recovery_score=70, hrv_ms=50)
         for i in range(11)
     ] + [
@@ -129,7 +120,6 @@ def test_recovery_decline_consecutive_red(mock_conn, mock_rec):
         _make_recovery(day_offset=1, recovery_score=20, hrv_ms=50),
         _make_recovery(day_offset=0, recovery_score=30, hrv_ms=50),
     ]
-    mock_rec.get_by_date_range.return_value = recs
 
     svc.get_training_load_management = MagicMock(
         return_value={"current_acwr": 1.0, "current_zone": "sweet_spot"}

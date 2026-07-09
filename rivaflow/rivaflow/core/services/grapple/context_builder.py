@@ -933,23 +933,10 @@ Athlete competes under NAGA (North American Grappling Association) rules:
         return "\n".join(parts)
 
     def _build_whoop_context(self) -> str:
-        """Build WHOOP recovery context if user has an active connection."""
-        from rivaflow.db.repositories.whoop_connection_repo import (
-            WhoopConnectionRepository,
-        )
-        from rivaflow.db.repositories.whoop_recovery_cache_repo import (
-            WhoopRecoveryCacheRepository,
-        )
+        """Build WHOOP recovery context from the raw-derived biometrics seam."""
+        from rivaflow.core.services import whoop_biometrics
 
-        conn = WhoopConnectionRepository.get_by_user_id(self.user_id)
-        if not conn or not conn.get("is_active"):
-            return ""
-
-        end_dt = date.today().isoformat() + "T23:59:59"
-        start_dt = (date.today() - timedelta(days=7)).isoformat()
-        records = WhoopRecoveryCacheRepository.get_by_date_range(
-            self.user_id, start_dt, end_dt
-        )
+        records = whoop_biometrics.recovery_series(self.user_id, days=7)
         if not records:
             return ""
 

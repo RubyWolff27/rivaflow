@@ -1,7 +1,14 @@
-"""Tests for WHOOP recovery context in Grapple AI Coach."""
+"""Tests for WHOOP recovery context in the Grapple AI Coach.
+
+Wave 1b: the coach reads recovery from the raw-derived `whoop_biometrics` seam
+(not the retired WHOOP-cloud cache), so these mock `recovery_series`. The
+records `_make_recovery` produces match that seam's output shape.
+"""
 
 from datetime import date, timedelta
 from unittest.mock import MagicMock, patch
+
+_SERIES = "rivaflow.core.services.whoop_biometrics.recovery_series"
 
 
 def _make_recovery(
@@ -9,16 +16,17 @@ def _make_recovery(
     recovery_score=72,
     hrv_ms=45,
     resting_hr=52,
-    spo2=97,
+    spo2=None,
     sleep_performance=85,
     sleep_duration_ms=25_920_000,
-    rem_sleep_ms=5_961_600,
-    slow_wave_ms=4_924_800,
-    sleep_debt_ms=2_520_000,
+    rem_sleep_ms=None,
+    slow_wave_ms=None,
+    sleep_debt_ms=None,
 ):
-    """Create a fake recovery cache record."""
+    """A recovery record in the whoop_biometrics.recovery_series shape."""
     d = date.today() - timedelta(days=day_offset)
     return {
+        "date": d.isoformat(),
         "recovery_score": recovery_score,
         "hrv_ms": hrv_ms,
         "resting_hr": resting_hr,
@@ -28,23 +36,17 @@ def _make_recovery(
         "rem_sleep_ms": rem_sleep_ms,
         "slow_wave_ms": slow_wave_ms,
         "sleep_debt_ms": sleep_debt_ms,
-        "cycle_start": d.isoformat(),
     }
 
 
-@patch(
-    "rivaflow.db.repositories.whoop_recovery_cache_repo" ".WhoopRecoveryCacheRepository"
-)
-@patch("rivaflow.db.repositories.whoop_connection_repo" ".WhoopConnectionRepository")
-def test_whoop_context_with_data(mock_conn_repo, mock_rec_repo):
-    """WHOOP section appears when user has active connection + data."""
+@patch(_SERIES)
+def test_whoop_context_with_data(mock_series):
+    """WHOOP section appears when the seam returns recent recovery data."""
     from rivaflow.core.services.grapple.context_builder import (
         GrappleContextBuilder,
     )
 
-    mock_conn_repo.get_by_user_id.return_value = {"is_active": True}
-    records = [_make_recovery(day_offset=i) for i in range(6, -1, -1)]
-    mock_rec_repo.get_by_date_range.return_value = records
+    mock_series.return_value = [_make_recovery(day_offset=i) for i in range(6, -1, -1)]
 
     builder = GrappleContextBuilder.__new__(GrappleContextBuilder)
     builder.user_id = 1
@@ -58,14 +60,14 @@ def test_whoop_context_with_data(mock_conn_repo, mock_rec_repo):
     assert "7-Day Avg Recovery:" in result
 
 
-@patch("rivaflow.db.repositories.whoop_connection_repo" ".WhoopConnectionRepository")
-def test_whoop_context_no_connection(mock_conn_repo):
-    """No crash and empty string when user has no WHOOP connection."""
+@patch(_SERIES)
+def test_whoop_context_no_data(mock_series):
+    """No crash and empty string when the seam has no data yet."""
     from rivaflow.core.services.grapple.context_builder import (
         GrappleContextBuilder,
     )
 
-    mock_conn_repo.get_by_user_id.return_value = None
+    mock_series.return_value = []
 
     builder = GrappleContextBuilder.__new__(GrappleContextBuilder)
     builder.user_id = 1
@@ -74,30 +76,22 @@ def test_whoop_context_no_connection(mock_conn_repo):
     assert result == ""
 
 
-@patch(
-    "rivaflow.db.repositories.whoop_recovery_cache_repo" ".WhoopRecoveryCacheRepository"
-)
-@patch("rivaflow.db.repositories.whoop_connection_repo" ".WhoopConnectionRepository")
-def test_whoop_context_partial_data(mock_conn_repo, mock_rec_repo):
+@patch(_SERIES)
+def test_whoop_context_partial_data(mock_series):
     """Handles records with some null fields gracefully."""
     from rivaflow.core.services.grapple.context_builder import (
         GrappleContextBuilder,
     )
 
-    mock_conn_repo.get_by_user_id.return_value = {"is_active": True}
-    records = [
+    mock_series.return_value = [
         _make_recovery(
             day_offset=0,
             hrv_ms=None,
             spo2=None,
             sleep_performance=None,
             sleep_duration_ms=None,
-            rem_sleep_ms=None,
-            slow_wave_ms=None,
-            sleep_debt_ms=None,
         )
     ]
-    mock_rec_repo.get_by_date_range.return_value = records
 
     builder = GrappleContextBuilder.__new__(GrappleContextBuilder)
     builder.user_id = 1
@@ -113,14 +107,7 @@ def test_whoop_context_partial_data(mock_conn_repo, mock_rec_repo):
     "rivaflow.db.repositories.whoop_workout_cache_repo"
     ".WhoopWorkoutCacheRepository.get_by_session_id"
 )
-@patch(
-    "rivaflow.db.repositories.whoop_recovery_cache_repo"
-    ".WhoopRecoveryCacheRepository.get_by_date_range"
-)
-@patch(
-    "rivaflow.db.repositories.whoop_connection_repo"
-    ".WhoopConnectionRepository.get_by_user_id"
-)
+@patch(_SERIES)
 @patch("rivaflow.core.services.grapple.ai_insight_service.GrappleLLMClient")
 @patch("rivaflow.core.services.grapple.ai_insight_service.InsightsAnalyticsService")
 @patch("rivaflow.core.services.grapple.ai_insight_service.SessionRepository")
@@ -128,11 +115,10 @@ def test_insight_includes_whoop_recovery(
     mock_sess_repo,
     mock_insights,
     mock_llm,
-    mock_conn_get,
-    mock_rec_range,
+    mock_series,
     mock_wo_get,
 ):
-    """Post-session insight prompt includes WHOOP recovery data."""
+    """Post-session insight prompt reads WHOOP recovery from the seam."""
     import asyncio
 
     from rivaflow.core.services.grapple.ai_insight_service import (
@@ -165,8 +151,9 @@ def test_insight_includes_whoop_recovery(
     }
     mock_insights.return_value = mock_insights_inst
 
-    mock_conn_get.return_value = {"is_active": True}
-    mock_rec_range.return_value = [{"recovery_score": 80, "hrv_ms": 50}]
+    mock_series.return_value = [
+        _make_recovery(day_offset=0, recovery_score=80, hrv_ms=50)
+    ]
     mock_wo_get.return_value = {"strain": 14.2}
 
     mock_llm_inst = MagicMock()
@@ -181,14 +168,10 @@ def test_insight_includes_whoop_recovery(
     mock_llm_inst.chat = _fake_chat
     mock_llm.return_value = mock_llm_inst
 
-    # Run the async function synchronously
-    # May fail due to AIInsightRepository not being mocked,
-    # but the WHOOP enrichment should not raise
     try:
         asyncio.get_event_loop().run_until_complete(generate_post_session_insight(1, 1))
     except Exception:
         pass
 
-    # Verify WHOOP repos were called
-    mock_conn_get.assert_called_once_with(1)
-    mock_rec_range.assert_called_once()
+    # The insight path read recovery from the raw-derived seam.
+    mock_series.assert_called()

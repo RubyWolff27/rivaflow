@@ -135,55 +135,42 @@ class SuggestionEngine:
         except Exception:
             logger.debug("Gym timetable enrichment skipped", exc_info=True)
 
-        # Enrich readiness with WHOOP recovery data if available
+        # Enrich readiness with WHOOP recovery data (raw-derived) if available
         try:
-            from rivaflow.db.repositories.whoop_connection_repo import (
-                WhoopConnectionRepository,
-            )
-            from rivaflow.db.repositories.whoop_recovery_cache_repo import (
-                WhoopRecoveryCacheRepository,
-            )
+            from rivaflow.core.services import whoop_biometrics
 
-            conn_repo = WhoopConnectionRepository()
-            whoop_conn = conn_repo.get_by_user_id(user_id)
-            if whoop_conn and whoop_conn.get("is_active"):
-                recovery_repo = WhoopRecoveryCacheRepository()
-                latest_rec = recovery_repo.get_latest(user_id)
-                if latest_rec and readiness:
-                    readiness["whoop_recovery_score"] = latest_rec.get("recovery_score")
-                    readiness["hrv_ms"] = latest_rec.get("hrv_ms")
+            recent = whoop_biometrics.recovery_series(user_id, days=7)
+            latest_rec = recent[-1] if recent else None
+            if latest_rec and readiness:
+                readiness["whoop_recovery_score"] = latest_rec.get("recovery_score")
+                readiness["hrv_ms"] = latest_rec.get("hrv_ms")
 
-                # Calculate HRV drop percentage
-                if latest_rec and latest_rec.get("hrv_ms"):
-                    week_ago = (date.today() - timedelta(days=7)).isoformat()
-                    today_str = date.today().isoformat() + "T23:59:59"
-                    recent = recovery_repo.get_by_date_range(
-                        user_id, week_ago, today_str
-                    )
-                    hrv_values = [
-                        r["hrv_ms"] for r in recent if r.get("hrv_ms") is not None
-                    ]
-                    if len(hrv_values) >= 2:
-                        avg_hrv = statistics.mean(hrv_values)
-                        if avg_hrv > 0:
-                            drop_pct = round(
-                                ((avg_hrv - latest_rec["hrv_ms"]) / avg_hrv) * 100,
-                                1,
-                            )
-                            if drop_pct > 0:
-                                session_context["hrv_drop_pct"] = drop_pct
-
-                    # Compute sustained HRV slope for 5+ day rule
-                    if len(hrv_values) >= 5:
-                        session_context["hrv_slope_5d"] = round(
-                            _linear_slope(hrv_values), 4
+            # Calculate HRV drop percentage
+            if latest_rec and latest_rec.get("hrv_ms"):
+                hrv_values = [
+                    r["hrv_ms"] for r in recent if r.get("hrv_ms") is not None
+                ]
+                if len(hrv_values) >= 2:
+                    avg_hrv = statistics.mean(hrv_values)
+                    if avg_hrv > 0:
+                        drop_pct = round(
+                            ((avg_hrv - latest_rec["hrv_ms"]) / avg_hrv) * 100,
+                            1,
                         )
+                        if drop_pct > 0:
+                            session_context["hrv_drop_pct"] = drop_pct
 
-                # Sleep debt from latest recovery record
-                if latest_rec and latest_rec.get("sleep_debt_ms") is not None:
-                    session_context["sleep_debt_min"] = round(
-                        latest_rec["sleep_debt_ms"] / 60_000
+                # Compute sustained HRV slope for 5+ day rule
+                if len(hrv_values) >= 5:
+                    session_context["hrv_slope_5d"] = round(
+                        _linear_slope(hrv_values), 4
                     )
+
+            # Sleep debt from latest recovery record
+            if latest_rec and latest_rec.get("sleep_debt_ms") is not None:
+                session_context["sleep_debt_min"] = round(
+                    latest_rec["sleep_debt_ms"] / 60_000
+                )
         except Exception:
             logger.debug("WHOOP context enrichment skipped", exc_info=True)
 
