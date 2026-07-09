@@ -299,13 +299,6 @@ def get_photo_service():
     return PhotoService()
 
 
-def get_whoop_service():
-    """Provide a WhoopService instance."""
-    from rivaflow.core.services.whoop_service import WhoopService
-
-    return WhoopService()
-
-
 def get_notification_service():
     """Provide a NotificationService instance."""
     from rivaflow.core.services.notification_service import NotificationService
