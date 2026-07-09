@@ -14,21 +14,35 @@ import secrets
 from rivaflow.db.database import convert_query, execute_insert, get_connection
 from rivaflow.db.repositories.base_repository import BaseRepository
 
-# Public-facing prefix for all RivaFlow API keys: "rf_pk_" + 32 hex chars.
-# `rf` = RivaFlow, `pk` = "personal key" (room to add e.g. `rf_sk_` for service
-# keys later without colliding).
+# Public-facing prefix for full (user-equivalent) RivaFlow API keys:
+# "rf_pk_" + 32 hex chars. `rf` = RivaFlow, `pk` = "personal key".
 KEY_PREFIX_LITERAL = "rf_pk_"
+# Read-only display keys used for the bookmarkable cockpit/dashboard URLs.
+# Same lookup path, but scoped 'read' so they are rejected on every write and
+# admin route — a leaked view URL cannot forge ingest or delete data.
+VIEW_KEY_PREFIX_LITERAL = "rf_vk_"
+# Every prefix the auth path treats as an API key (vs a JWT).
+API_KEY_PREFIXES = (KEY_PREFIX_LITERAL, VIEW_KEY_PREFIX_LITERAL)
 KEY_BODY_LENGTH = 32  # hex characters after the prefix
-KEY_DISPLAY_PREFIX_LENGTH = len(KEY_PREFIX_LITERAL) + 6  # "rf_pk_" + first 6 of body
+KEY_DISPLAY_PREFIX_LENGTH = len(KEY_PREFIX_LITERAL) + 6  # prefix + first 6 of body
+
+# Scope values persisted in api_keys.scopes.
+SCOPE_FULL = "full"  # user-equivalent: read + write + admin (default, legacy)
+SCOPE_READ = "read"  # dashboards only: every mutating/admin route rejects it
 
 
 class ApiKeyRepository(BaseRepository):
     """Data access layer for the api_keys table."""
 
     @staticmethod
-    def generate_raw_key() -> str:
-        """Generate a fresh API key — returned only once at creation time."""
-        return KEY_PREFIX_LITERAL + secrets.token_hex(KEY_BODY_LENGTH // 2)
+    def generate_raw_key(*, read_only: bool = False) -> str:
+        """Generate a fresh API key — returned only once at creation time.
+
+        `read_only=True` mints an `rf_vk_` view key (paired with scopes='read'
+        at create time); otherwise a full `rf_pk_` key.
+        """
+        prefix = VIEW_KEY_PREFIX_LITERAL if read_only else KEY_PREFIX_LITERAL
+        return prefix + secrets.token_hex(KEY_BODY_LENGTH // 2)
 
     @staticmethod
     def hash_key(raw_key: str) -> str:
@@ -46,6 +60,7 @@ class ApiKeyRepository(BaseRepository):
         user_id: int,
         name: str,
         raw_key: str,
+        scopes: str = SCOPE_FULL,
     ) -> dict | None:
         """Create a new API key row.
 
@@ -54,6 +69,8 @@ class ApiKeyRepository(BaseRepository):
             name: Human label (e.g. "Sage MCP", "iOS app").
             raw_key: Already-generated raw key (caller hashes via
                 `ApiKeyRepository.hash_key` and we store only the hash).
+            scopes: 'full' (user-equivalent, default) or 'read' (dashboards
+                only — rejected on every write/admin route).
 
         Returns:
             Created row as dict (without the raw key — caller is responsible
@@ -67,15 +84,15 @@ class ApiKeyRepository(BaseRepository):
             api_key_id = execute_insert(
                 cursor,
                 """
-                INSERT INTO api_keys (user_id, name, key_hash, key_prefix)
-                VALUES (?, ?, ?, ?)
+                INSERT INTO api_keys (user_id, name, key_hash, key_prefix, scopes)
+                VALUES (?, ?, ?, ?, ?)
                 """,
-                (user_id, name, key_hash, key_prefix),
+                (user_id, name, key_hash, key_prefix, scopes),
             )
 
             cursor.execute(
                 convert_query("""
-                    SELECT id, user_id, name, key_prefix, created_at,
+                    SELECT id, user_id, name, key_prefix, scopes, created_at,
                            last_used_at, revoked_at
                     FROM api_keys
                     WHERE id = ?
@@ -111,7 +128,7 @@ class ApiKeyRepository(BaseRepository):
         """
         return BaseRepository._fetchone(
             """
-            SELECT id, user_id, name, key_prefix, created_at,
+            SELECT id, user_id, name, key_prefix, scopes, created_at,
                    last_used_at, revoked_at
             FROM api_keys
             WHERE key_hash = ? AND revoked_at IS NULL

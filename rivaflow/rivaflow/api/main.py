@@ -334,6 +334,10 @@ app.include_router(dashboard.router, prefix="/api/v1", tags=["dashboard"])
 app.include_router(transcribe.router, prefix="/api/v1", tags=["transcribe"])
 app.include_router(events.router, prefix="/api/v1/events", tags=["events"])
 app.include_router(integrations.router, prefix="/api/v1", tags=["integrations"])
+# The only route here is the WHOOP-cloud webhook — a JWT-less POST from the
+# cancelled-subscription era. The handler self-gates on ENABLE_WHOOP_INTEGRATION
+# (default false → 404), so it presents no attack surface by default, matching
+# how integrations.py gates the rest of the WHOOP-cloud OAuth routes.
 app.include_router(webhooks.router, prefix="/api/v1", tags=["webhooks"])
 app.include_router(waitlist.router, prefix="/api/v1/waitlist", tags=["waitlist"])
 app.include_router(

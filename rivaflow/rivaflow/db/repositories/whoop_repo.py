@@ -290,12 +290,20 @@ class WhoopRepository:
             )
 
     @staticmethod
-    def end_whoop_session(session_id: int, ended_at: str) -> None:
-        """Close an open session by stamping its `ended_at` (ISO8601)."""
-        BaseRepository._execute(
-            convert_query("UPDATE whoop_sessions SET ended_at = ? WHERE id = ?"),
-            (ended_at, session_id),
+    def end_whoop_session(session_id: int, ended_at: str, user_id: int) -> bool:
+        """Close an open session by stamping its `ended_at` (ISO8601).
+
+        Scoped to the owning `user_id` so a key holder cannot close another
+        user's session by guessing its id (cross-user IDOR). Returns True iff a
+        row was updated, letting the route 404 on a missing/foreign session.
+        """
+        cursor = BaseRepository._execute(
+            convert_query(
+                "UPDATE whoop_sessions SET ended_at = ? WHERE id = ? AND user_id = ?"
+            ),
+            (ended_at, session_id, user_id),
         )
+        return bool(cursor.rowcount and cursor.rowcount > 0)
 
     @staticmethod
     def list_whoop_sessions(user_id: int, limit: int = 10) -> list[dict]:

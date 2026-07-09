@@ -17,12 +17,14 @@ import time
 from datetime import datetime
 from zoneinfo import ZoneInfo
 
-from fastapi import APIRouter, Cookie, Depends, Query
+from fastapi import APIRouter, Cookie, Depends, Query, Request
 from fastapi.responses import HTMLResponse
 from pydantic import BaseModel, Field
 
-from rivaflow.core.dependencies import get_current_user
+from rivaflow.api.rate_limit import limiter
+from rivaflow.core.dependencies import get_current_user, require_write_scope
 from rivaflow.core.error_handling import route_error_handler
+from rivaflow.core.exceptions import NotFoundError
 from rivaflow.db.repositories.whoop_repo import WhoopRepository
 
 logger = logging.getLogger(__name__)
@@ -32,6 +34,27 @@ router = APIRouter(prefix="/whoop", tags=["whoop"])
 # Root-mounted (no /api/v1 prefix) for a short, bookmarkable cockpit URL.
 short_router = APIRouter(tags=["whoop"])
 
+_UNAUTH_HTML = (
+    "<h1 style='font-family:system-ui;color:#eee;background:#111'>Unauthorized</h1>"
+)
+
+
+def _resolve_dashboard_key(raw: str) -> dict | None:
+    """Resolve a dashboard URL/cookie key to its api_keys row, or None.
+
+    Accepts either a full `rf_pk_` key or a read-only `rf_vk_` view key — the
+    dashboards are read-only, so a leaked view URL cannot forge writes (the
+    write routes reject a 'read'-scoped key via require_write_scope).
+    """
+    from rivaflow.db.repositories.api_key_repo import (
+        API_KEY_PREFIXES,
+        ApiKeyRepository,
+    )
+
+    if not raw or not raw.startswith(API_KEY_PREFIXES):
+        return None
+    return ApiKeyRepository.get_active_by_hash(ApiKeyRepository.hash_key(raw))
+
 
 @short_router.get("/cockpit", response_class=HTMLResponse)
 def cockpit_short(key: str = "", rf_key: str = Cookie(default="")) -> HTMLResponse:
@@ -39,19 +62,14 @@ def cockpit_short(key: str = "", rf_key: str = Cookie(default="")) -> HTMLRespon
     stored in a cookie, so you can bookmark the bare URL afterwards. Same key-auth as /api/v1/whoop/cockpit.
     """
     from rivaflow.core.whoop_analytics import cockpit_page
-    from rivaflow.db.repositories.api_key_repo import ApiKeyRepository
 
     k = key or rf_key
-    api_key = (
-        ApiKeyRepository.get_active_by_hash(ApiKeyRepository.hash_key(k))
-        if k.startswith("rf_pk_")
-        else None
-    )
+    api_key = _resolve_dashboard_key(k)
     if not api_key:
         return HTMLResponse(
             "<body style='font-family:system-ui;background:#0b1120;color:#e2e8f0;padding:24px'>"
             "<h2>WHOOP Cockpit</h2><p>Add <code>?key=YOUR_KEY</code> to this URL once "
-            "(your rf_pk_… api key), then bookmark the bare page.</p></body>",
+            "(your rf_vk_… view key), then bookmark the bare page.</p></body>",
             status_code=401,
         )
     resp = HTMLResponse(cockpit_page(api_key["user_id"]))
@@ -128,11 +146,19 @@ def _span(payload: WhoopIngest) -> tuple[str | None, str | None]:
 
 
 @router.post("/ingest")
+@limiter.limit("120/minute")
 @route_error_handler("whoop_ingest", detail="Failed to ingest WHOOP data")
 def ingest(
-    payload: WhoopIngest, current_user: dict = Depends(get_current_user)
+    request: Request,
+    payload: WhoopIngest,
+    current_user: dict = Depends(require_write_scope),
 ) -> dict:
-    """Idempotent raw-first ingest for the authenticated user."""
+    """Idempotent raw-first ingest for the authenticated user.
+
+    Rate limit (120/min) is a flood backstop for a leaked key — generous
+    enough for the phone's chained backlog-drain bursts, tight enough to stop
+    unbounded raw-frame pollution.
+    """
     user_id: int = current_user["id"]
 
     raw = WhoopRepository.ingest_raw_frames(
@@ -202,7 +228,7 @@ class TagCreate(BaseModel):
 @router.post("/tag")
 @route_error_handler("whoop_add_tag", detail="Failed to add tag")
 def add_tag_endpoint(
-    req: TagCreate, current_user: dict = Depends(get_current_user)
+    req: TagCreate, current_user: dict = Depends(require_write_scope)
 ) -> dict:
     """Tag a local day (alcohol, late-training, ill, poor-sleep, travel, sabbath-rest…). Idempotent.
     Feeds B11 behaviour correlation and the B6 validation gate (an 'ill' tag is an illness-onset label).
@@ -223,7 +249,7 @@ def list_tags_endpoint(
 @router.delete("/tag")
 @route_error_handler("whoop_remove_tag", detail="Failed to remove tag")
 def remove_tag_endpoint(
-    day: str, tag: str, current_user: dict = Depends(get_current_user)
+    day: str, tag: str, current_user: dict = Depends(require_write_scope)
 ) -> dict:
     """Remove one (day, tag)."""
     WhoopRepository.remove_tag(current_user["id"], day, tag)
@@ -247,9 +273,12 @@ class WhoopSessionEnd(BaseModel):
 
 
 @router.post("/session")
+@limiter.limit("30/minute")
 @route_error_handler("whoop_create_session", detail="Failed to create session")
 def create_session_endpoint(
-    req: WhoopSessionCreate, current_user: dict = Depends(get_current_user)
+    request: Request,
+    req: WhoopSessionCreate,
+    current_user: dict = Depends(require_write_scope),
 ) -> dict:
     """Log a timestamped workout session. The window lets the cockpit attach in-window WHOOP HR and
     compute the deep-dive (curve, zones, load, hardness)."""
@@ -260,14 +289,18 @@ def create_session_endpoint(
 
 
 @router.patch("/session/{session_id}/end")
+@limiter.limit("30/minute")
 @route_error_handler("whoop_end_session", detail="Failed to end session")
 def end_session_endpoint(
+    request: Request,
     session_id: int,
     req: WhoopSessionEnd,
-    current_user: dict = Depends(get_current_user),
+    current_user: dict = Depends(require_write_scope),
 ) -> dict:
     """Close an open workout session by stamping its end time."""
-    WhoopRepository.end_whoop_session(session_id, req.ended_at)
+    ok = WhoopRepository.end_whoop_session(session_id, req.ended_at, current_user["id"])
+    if not ok:
+        raise NotFoundError(f"WHOOP session {session_id} not found")
     return {"ended": {"id": session_id, "ended_at": req.ended_at}}
 
 
@@ -465,7 +498,7 @@ def digest_endpoint(current_user: dict = Depends(get_current_user)) -> dict:
 
 @router.post("/digest/deliver")
 @route_error_handler("whoop_digest_deliver", detail="Failed to deliver digest")
-def deliver_digest_endpoint(current_user: dict = Depends(get_current_user)) -> dict:
+def deliver_digest_endpoint(current_user: dict = Depends(require_write_scope)) -> dict:
     """P2 — deliver today's digest: applies the cooldown and records any safety alert that fires. Called
     once each morning by the briefing cron (idempotent per day/key)."""
     from rivaflow.core.whoop_analytics import deliver_digest
@@ -607,18 +640,10 @@ def summary(current_user: dict = Depends(get_current_user)) -> dict:
 def cockpit(key: str) -> HTMLResponse:
     """P3 — server-rendered web deep-dive cockpit (analyst panels). Zero client compute; key-auth like /view."""
     from rivaflow.core.whoop_analytics import cockpit_page
-    from rivaflow.db.repositories.api_key_repo import ApiKeyRepository
 
-    api_key = (
-        ApiKeyRepository.get_active_by_hash(ApiKeyRepository.hash_key(key))
-        if key.startswith("rf_pk_")
-        else None
-    )
+    api_key = _resolve_dashboard_key(key)
     if not api_key:
-        return HTMLResponse(
-            "<h1 style='font-family:system-ui;color:#eee;background:#111'>Unauthorized</h1>",
-            status_code=401,
-        )
+        return HTMLResponse(_UNAUTH_HTML, status_code=401)
     return HTMLResponse(cockpit_page(api_key["user_id"]))
 
 
@@ -627,18 +652,9 @@ def view(key: str) -> HTMLResponse:
     """Server-rendered thin-display dashboard — the phone/browser opens a URL and the VPS renders the
     metrics into HTML. Zero client compute. Personal tool: auth via the owner's own api-key query param.
     """
-    from rivaflow.db.repositories.api_key_repo import ApiKeyRepository
-
-    api_key = (
-        ApiKeyRepository.get_active_by_hash(ApiKeyRepository.hash_key(key))
-        if key.startswith("rf_pk_")
-        else None
-    )
+    api_key = _resolve_dashboard_key(key)
     if not api_key:
-        return HTMLResponse(
-            "<h1 style='font-family:system-ui;color:#eee;background:#111'>Unauthorized</h1>",
-            status_code=401,
-        )
+        return HTMLResponse(_UNAUTH_HTML, status_code=401)
 
     is_sabbath = datetime.now(ZoneInfo("Australia/Melbourne")).weekday() == 6
     s = _cached_whoop_summary(api_key["user_id"], today_is_sabbath=is_sabbath)

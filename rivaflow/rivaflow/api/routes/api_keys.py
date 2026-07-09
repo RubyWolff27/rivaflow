@@ -10,14 +10,18 @@ import logging
 
 from fastapi import APIRouter, Depends, HTTPException, status
 
-from rivaflow.core.dependencies import get_current_user
+from rivaflow.core.dependencies import get_current_user, require_write_scope
 from rivaflow.core.error_handling import route_error_handler
 from rivaflow.core.models import (
     ApiKeyCreate,
     ApiKeyCreatedResponse,
     ApiKeyMetadata,
 )
-from rivaflow.db.repositories.api_key_repo import ApiKeyRepository
+from rivaflow.db.repositories.api_key_repo import (
+    SCOPE_FULL,
+    SCOPE_READ,
+    ApiKeyRepository,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -49,7 +53,7 @@ def list_api_keys(current_user: dict = Depends(get_current_user)) -> list[dict]:
 @route_error_handler("create_api_key", detail="Failed to create API key")
 def create_api_key(
     req: ApiKeyCreate,
-    current_user: dict = Depends(get_current_user),
+    current_user: dict = Depends(require_write_scope),
 ) -> dict:
     """Generate a new API key.
 
@@ -61,11 +65,19 @@ def create_api_key(
 
         Authorization: Bearer rf_pk_<the-key>
 
-    Keys carry the same authorization as the issuing user.
+    `read_only=true` mints an `rf_vk_` view key (scope='read') for the
+    bookmarkable dashboard URLs — it can read every endpoint but is rejected on
+    every write/admin route. A full key carries the same authorization as the
+    issuing user.
     """
     user_id: int = current_user["id"]
-    raw_key = ApiKeyRepository.generate_raw_key()
-    row = ApiKeyRepository.create(user_id=user_id, name=req.name, raw_key=raw_key)
+    raw_key = ApiKeyRepository.generate_raw_key(read_only=req.read_only)
+    row = ApiKeyRepository.create(
+        user_id=user_id,
+        name=req.name,
+        raw_key=raw_key,
+        scopes=SCOPE_READ if req.read_only else SCOPE_FULL,
+    )
     if not row:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -88,7 +100,7 @@ def create_api_key(
 @route_error_handler("revoke_api_key", detail="Failed to revoke API key")
 def revoke_api_key(
     api_key_id: int,
-    current_user: dict = Depends(get_current_user),
+    current_user: dict = Depends(require_write_scope),
 ) -> None:
     """Revoke an API key.
 
