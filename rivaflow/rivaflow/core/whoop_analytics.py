@@ -59,32 +59,32 @@ from rivaflow.core.whoop_cockpit import (
     session_load_hardness,
 )
 from rivaflow.core.whoop_digest import compile_digest
+from rivaflow.core.whoop_profile import get_whoop_profile, is_rest_day
 from rivaflow.db.repositories.whoop_repo import WhoopRepository
 
-# Ruby's profile-tuned constants
-RUBY_AGE = (
-    44  # TODO(profile): derive from DOB 1982-05-27 once wired to the profile repo
-)
 MAX_HR = 190  # FALLBACK ONLY — real ceiling comes from user_max_hr() (B1). Kept so
 # hr_zone() has a default; a ~30yo value, ~13 bpm above Ruby's ~177.
 READINESS_MIN_BASELINE_DAYS = 5  # cold-start guard before a score is meaningful
 
 
 def user_max_hr(user_id: int, days: int = 90) -> dict:
-    """B1 — Ruby's calibrated max-HR from recent HR: artifact-rejected sustained plateau, Tanaka sanity band,
+    """B1 — calibrated max-HR from recent HR: artifact-rejected sustained plateau, Tanaka sanity band,
     sub-maximal floor flag, uncertainty band. Everything zone/strain/stress derived should use this, not the
     MAX_HR fallback. Falls back to the age-predicted value when there isn't enough near-max effort captured.
+    Age comes from the WhoopProfile seam (date_of_birth, or Ruby's preserved DOB fallback).
     """
     hr = [
         int(h["bpm"])
         for h in WhoopRepository.recent_hr(user_id, hours=days * 24)
         if h.get("bpm")
     ]
-    return calibrate_max_hr(hr, RUBY_AGE)
+    profile = get_whoop_profile(user_id)
+    return calibrate_max_hr(hr, profile.age)
 
 
-# Ruby is Melbourne-based. All day-bucketing + display use his local day, not UTC (which would split the
-# day at ~10am and skew daily HRV/resting-HR). TODO(travel): switch to the device-reported tz per-ingest.
+# Melbourne is the module-level default so behaviour with an empty/missing profile is
+# identical to before the WhoopProfile seam (Wave 3.6) — day-bucketing + display now
+# resolve tz per-user via get_whoop_profile() instead of this hardcoded constant.
 LOCAL_TZ = ZoneInfo("Australia/Melbourne")
 
 
@@ -94,13 +94,14 @@ def _parse_ts(ts: str) -> datetime:
     return dt if dt.tzinfo else dt.replace(tzinfo=ZoneInfo("UTC"))
 
 
-def _local_day(ts) -> str:
-    """UTC timestamp → Ruby's LOCAL (Melbourne) calendar day 'YYYY-MM-DD' — so a day is his day."""
+def _local_day(ts, tz: ZoneInfo = LOCAL_TZ) -> str:
+    """UTC timestamp → the user's LOCAL calendar day 'YYYY-MM-DD' (default Melbourne) — so a day is
+    their day, not UTC's."""
     try:
         dt = ts if isinstance(ts, datetime) else _parse_ts(str(ts))
         if dt.tzinfo is None:
             dt = dt.replace(tzinfo=ZoneInfo("UTC"))
-        return dt.astimezone(LOCAL_TZ).date().isoformat()
+        return dt.astimezone(tz).date().isoformat()
     except (ValueError, TypeError):
         return str(ts)[:10]
 
@@ -110,11 +111,12 @@ def daily_resting_hr(user_id: int, days: int = 14) -> list[dict]:
     (the true minimum is noisy). Needs >=60 samples/day. Falls out of the HR stream we already capture,
     so no extra plumbing."""
     hr = WhoopRepository.recent_hr(user_id, hours=days * 24)
+    tz = get_whoop_profile(user_id).tz
     by_day: dict[str, list[int]] = defaultdict(list)
     for h in hr:
         bpm, ts = h.get("bpm"), h.get("ts")
         if bpm and ts:
-            by_day[_local_day(ts)].append(int(bpm))
+            by_day[_local_day(ts, tz)].append(int(bpm))
     out: list[dict] = []
     for day in sorted(by_day):
         vals = sorted(by_day[day])
@@ -257,6 +259,7 @@ def nightly_sleep(user_id: int, lookback_hours: int = 24) -> dict:
     a ~9pm onset checked the next evening isn't clipped; the window picker still isolates the one night.
     """
     hr = WhoopRepository.recent_hr(user_id, hours=lookback_hours)
+    tz = get_whoop_profile(user_id).tz
     pts = [
         (_parse_ts(str(h["ts"])), int(h["bpm"]))
         for h in hr
@@ -266,7 +269,7 @@ def nightly_sleep(user_id: int, lookback_hours: int = 24) -> dict:
     # have almost no data, there is no sleep to detect — a short quiet block after the strap wakes in the
     # morning is a capture artifact, not last night's sleep. Say so instead of inventing a number.
     core = [
-        t for t, _ in pts if 0 <= t.astimezone(LOCAL_TZ).hour < 5
+        t for t, _ in pts if 0 <= t.astimezone(tz).hour < 5
     ]  # local small-hours samples
     if (
         len(core) < 60
@@ -278,7 +281,7 @@ def nightly_sleep(user_id: int, lookback_hours: int = 24) -> dict:
         }
     res = _sleep_from_points(pts)
     if res.get("available"):
-        onset = _parse_ts(res["sleep_start"]).astimezone(LOCAL_TZ)
+        onset = _parse_ts(res["sleep_start"]).astimezone(tz)
         # a genuine sleep onset is evening/late-night; a short block onsetting in the morning/day is a
         # post-wake artifact, not the night — reject it rather than label it "last night's sleep"
         plausible_onset = onset.hour >= 19 or onset.hour < 4
@@ -296,11 +299,12 @@ def nightly_sleep_history(user_id: int, nights: int = 7) -> list[dict]:
     Reuses the single-night extractor over per-night HR windows."""
     from datetime import timedelta
 
-    now = datetime.now(LOCAL_TZ)
+    tz = get_whoop_profile(user_id).tz
+    now = datetime.now(tz)
     out: list[dict] = []
     for back in range(nights, 0, -1):
         day = (now - timedelta(days=back)).date()
-        start = datetime.combine(day, datetime.min.time(), LOCAL_TZ).replace(hour=18)
+        start = datetime.combine(day, datetime.min.time(), tz).replace(hour=18)
         end = start + timedelta(hours=18)  # 18:00 → next 12:00
         hr = WhoopRepository.hr_range(user_id, start.isoformat(), end.isoformat())
         pts = [
@@ -416,6 +420,7 @@ def _signal_reading(name: str, series: list[float]) -> dict | None:
 
 def _prevention_series(user_id: int, days: int) -> dict[str, dict[str, float]]:
     """Per-signal {day → value} maps for the four prevention signals (no cardiac rhythm)."""
+    tz = get_whoop_profile(user_id).tz
     return {
         "rhr": {
             d["day"]: float(d["resting_hr"])
@@ -430,7 +435,7 @@ def _prevention_series(user_id: int, days: int) -> dict[str, dict[str, float]]:
             for d in daily_respiratory_rate(user_id, days=days)
         },
         "sleeping_hr": {
-            _local_day(h["sleep_start"]): float(h["avg_sleeping_hr"])
+            _local_day(h["sleep_start"], tz): float(h["avg_sleeping_hr"])
             for h in nightly_sleep_history(user_id, nights=days)
         },
     }
@@ -522,9 +527,10 @@ def deliver_digest(user_id: int) -> dict:
     """P2 — compute today's digest with the cooldown applied and RECORD any safety alert that fires (the
     delivery record + cooldown state, idempotent per (day, key)). Called once each morning by the external
     briefing cron. Anti-anxiety: one digest per day, no live-refresh flags."""
-    now = datetime.now(LOCAL_TZ)
+    profile = get_whoop_profile(user_id)
+    now = datetime.now(profile.tz)
     today = now.date()
-    is_sabbath = now.weekday() == 6  # Sunday = Ruby's rest day
+    is_sabbath = is_rest_day(profile, now)
     readiness = compute_readiness(user_id, today_is_sabbath=is_sabbath)
     strain = strain_target(user_id, today_is_sabbath=is_sabbath)
     prevention = prevention_watch(user_id)
@@ -579,11 +585,12 @@ def _downsample_xy(
 
 def today_hr_ribbon(user_id: int) -> dict:
     """P3.5 — today's full local-day HR (downsampled) + zone edges, for the intraday HR-ribbon panel."""
-    now = datetime.now(LOCAL_TZ)
-    start = datetime.combine(now.date(), datetime.min.time(), LOCAL_TZ)
+    tz = get_whoop_profile(user_id).tz
+    now = datetime.now(tz)
+    start = datetime.combine(now.date(), datetime.min.time(), tz)
     hr = WhoopRepository.hr_range(user_id, start.isoformat(), now.isoformat())
     pts = [
-        (_parse_ts(str(h["ts"])).astimezone(LOCAL_TZ), int(h["bpm"]))
+        (_parse_ts(str(h["ts"])).astimezone(tz), int(h["bpm"]))
         for h in hr
         if h.get("bpm") and h.get("ts")
     ]
@@ -706,12 +713,13 @@ def sleep_hr_dip(user_id: int) -> dict:
         if waking_avg
         else "—"
     )
+    tz = get_whoop_profile(user_id).tz
     return {
         "available": True,
         "times": xs,
         "values": ys,
-        "onset": start.astimezone(LOCAL_TZ).strftime("%H:%M"),
-        "offset": end.astimezone(LOCAL_TZ).strftime("%H:%M"),
+        "onset": start.astimezone(tz).strftime("%H:%M"),
+        "offset": end.astimezone(tz).strftime("%H:%M"),
         "dip_pct": dip_pct,
     }
 
@@ -751,8 +759,9 @@ def respiratory_trace(user_id: int, days: int = 1) -> dict:
 
 def stress_ribbon_series(user_id: int) -> dict:
     """P3.5 — hourly stress-vs-baseline across today, from HR-reserve elevation over resting baseline."""
-    now = datetime.now(LOCAL_TZ)
-    start = datetime.combine(now.date(), datetime.min.time(), LOCAL_TZ)
+    tz = get_whoop_profile(user_id).tz
+    now = datetime.now(tz)
+    start = datetime.combine(now.date(), datetime.min.time(), tz)
     hr = WhoopRepository.hr_range(user_id, start.isoformat(), now.isoformat())
     rhr_list = daily_resting_hr(user_id, days=3)
     if not hr or not rhr_list:
@@ -765,7 +774,7 @@ def stress_ribbon_series(user_id: int) -> dict:
     by_hour: dict[int, list[int]] = defaultdict(list)
     for h in hr:
         if h.get("bpm") and h.get("ts"):
-            dt = _parse_ts(str(h["ts"])).astimezone(LOCAL_TZ)
+            dt = _parse_ts(str(h["ts"])).astimezone(tz)
             by_hour[dt.hour].append(int(h["bpm"]))
     times: list[float] = []
     values: list[float] = []
@@ -832,6 +841,7 @@ def session_deepdives(user_id: int, limit: int = 5) -> list[dict]:
     {"label": str, "day": "YYYY-MM-DD", "analytics": {...}} — consumed by render_workouts_list and the card.
     """
     mx = user_max_hr(user_id)["max_hr"]
+    tz = get_whoop_profile(user_id).tz
     out: list[dict] = []
     for row in WhoopRepository.list_whoop_sessions(user_id, limit=limit):
         window = _whoop_session_window(row)
@@ -848,7 +858,7 @@ def session_deepdives(user_id: int, limit: int = 5) -> list[dict]:
         out.append(
             {
                 "label": str(row.get("activity", "Session")),
-                "day": _local_day(start),
+                "day": _local_day(start, tz),
                 "analytics": a,
             }
         )
@@ -911,7 +921,8 @@ def daily_narrative(
     the Sabbath. Safe on thin data — returns a clean 'building' line rather than inventing a story. Accepts
     pre-computed inputs so the cockpit doesn't recompute readiness, and stays standalone-callable for tests.
     """
-    is_sabbath = datetime.now(LOCAL_TZ).weekday() == 6
+    profile = get_whoop_profile(user_id)
+    is_sabbath = is_rest_day(profile, datetime.now(profile.tz))
     if readiness is None:
         readiness = compute_readiness(user_id, today_is_sabbath=is_sabbath)
     if night is None:
@@ -1084,8 +1095,9 @@ def _build_cockpit_page(user_id: int) -> str:
     a Workouts drill-down sit on top of the collapsed Tier-2 Lab (the 15 technical panels, each with a plain
     -English takeaway). All series compute here; the page only renders. Graceful on thin data throughout.
     """
-    now = datetime.now(LOCAL_TZ)
-    is_sabbath = now.weekday() == 6
+    profile = get_whoop_profile(user_id)
+    now = datetime.now(profile.tz)
+    is_sabbath = is_rest_day(profile, now)
     mx = user_max_hr(user_id)["max_hr"]
     readiness = compute_readiness(user_id, today_is_sabbath=is_sabbath)
     strain = strain_target(user_id, today_is_sabbath=is_sabbath, readiness=readiness)
@@ -1178,10 +1190,11 @@ def behaviour_correlation(
 def sleep_analysis(user_id: int, nights: int = 7) -> dict:
     """B9 + B10 — sleep need/debt (vs Ruby's >9h DNA need) + bedtime regularity, from the per-night history."""
     history = nightly_sleep_history(user_id, nights=nights)
+    tz = get_whoop_profile(user_id).tz
     durations = [h["duration_hours"] for h in history]
     onsets = [
-        _parse_ts(h["sleep_start"]).astimezone(LOCAL_TZ).hour
-        + _parse_ts(h["sleep_start"]).astimezone(LOCAL_TZ).minute / 60.0
+        _parse_ts(h["sleep_start"]).astimezone(tz).hour
+        + _parse_ts(h["sleep_start"]).astimezone(tz).minute / 60.0
         for h in history
     ]
     return {
@@ -1212,8 +1225,9 @@ def longevity_metrics(user_id: int) -> dict:
         return {"available": False, "reason": "Need resting-HR history first."}
     rest = min(r["resting_hr"] for r in rhr)  # best nocturnal resting HR
     vo2 = passive_vo2max(mx, rest)
+    age = get_whoop_profile(user_id).age
     cv = (
-        cardio_age_proxy(vo2["vo2max_estimate"], RUBY_AGE)
+        cardio_age_proxy(vo2["vo2max_estimate"], age)
         if vo2.get("available")
         else {"available": False}
     )
@@ -1242,10 +1256,11 @@ def resilience_metrics(user_id: int, days: int = 45) -> dict:
 def circadian_rhythm(user_id: int, days: int = 3) -> dict:
     """B17 — cosinor of time-of-day HR over recent days (mesor/amplitude/acrophase + implied nocturnal dip)."""
     hr = WhoopRepository.recent_hr(user_id, hours=days * 24)
+    tz = get_whoop_profile(user_id).tz
     hours, vals = [], []
     for h in hr:
         if h.get("bpm") and h.get("ts"):
-            dt = _parse_ts(str(h["ts"])).astimezone(LOCAL_TZ)
+            dt = _parse_ts(str(h["ts"])).astimezone(tz)
             hours.append(dt.hour + dt.minute / 60.0)
             vals.append(float(h["bpm"]))
     return cosinor(hours, vals)
@@ -1352,21 +1367,24 @@ def hrv_lab(user_id: int, days: int = 2) -> dict:
 
 
 def _rr_by_day(user_id: int, days: int) -> dict[str, list[int]]:
-    """All whoop_rr intervals bucketed by Ruby's local day (any band — band filtering happens downstream)."""
+    """All whoop_rr intervals bucketed by the user's local day (any band — band filtering happens
+    downstream)."""
+    tz = get_whoop_profile(user_id).tz
     by_day: dict[str, list[int]] = defaultdict(list)
     for r in WhoopRepository.rr_range(user_id, days):
         rr_ms, ts = r.get("rr_ms"), r.get("ts")
         if rr_ms and ts:
-            by_day[_local_day(ts)].append(int(rr_ms))
+            by_day[_local_day(ts, tz)].append(int(rr_ms))
     return by_day
 
 
 def _hr_count_by_day(user_id: int, days: int) -> dict[str, int]:
     """HR sample count per local day — the HR-coverage side of the B3 guard (contrast against RR minutes)."""
+    tz = get_whoop_profile(user_id).tz
     counts: dict[str, int] = defaultdict(int)
     for h in WhoopRepository.recent_hr(user_id, hours=days * 24):
         if h.get("bpm") and h.get("ts"):
-            counts[_local_day(h["ts"])] += 1
+            counts[_local_day(h["ts"], tz)] += 1
     return counts
 
 

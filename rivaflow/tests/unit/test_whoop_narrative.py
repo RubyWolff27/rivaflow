@@ -59,7 +59,7 @@ def test_llm_disabled_returns_rule_based(monkeypatch):
 def test_llm_enabled_uses_honest_output(monkeypatch):
     monkeypatch.setenv("WHOOP_NARRATIVE_LLM", "1")
     _stub_rule_based(monkeypatch)
-    monkeypatch.setattr(wn, "_is_sabbath", lambda: False)
+    monkeypatch.setattr(wn, "_is_sabbath", lambda uid: False)
     story = "Your resting HR has crept up three days running while HRV held — ease into technical work."
     _stub_client(monkeypatch, content=story)
     assert (
@@ -74,7 +74,7 @@ def test_llm_enabled_uses_honest_output(monkeypatch):
 def test_diagnosis_output_falls_back(monkeypatch):
     monkeypatch.setenv("WHOOP_NARRATIVE_LLM", "1")
     sentinel = _stub_rule_based(monkeypatch)
-    monkeypatch.setattr(wn, "_is_sabbath", lambda: False)
+    monkeypatch.setattr(wn, "_is_sabbath", lambda uid: False)
     _stub_client(
         monkeypatch, content="Your numbers suggest you have the flu — rest up."
     )
@@ -87,7 +87,7 @@ def test_diagnosis_output_falls_back(monkeypatch):
 def test_false_health_allclear_falls_back(monkeypatch):
     monkeypatch.setenv("WHOOP_NARRATIVE_LLM", "1")
     sentinel = _stub_rule_based(monkeypatch)
-    monkeypatch.setattr(wn, "_is_sabbath", lambda: False)
+    monkeypatch.setattr(wn, "_is_sabbath", lambda uid: False)
     _stub_client(
         monkeypatch, content="Everything's green — you're healthy, push hard today."
     )
@@ -103,7 +103,7 @@ def test_false_health_allclear_falls_back(monkeypatch):
 def test_client_exception_falls_back(monkeypatch):
     monkeypatch.setenv("WHOOP_NARRATIVE_LLM", "1")
     sentinel = _stub_rule_based(monkeypatch)
-    monkeypatch.setattr(wn, "_is_sabbath", lambda: False)
+    monkeypatch.setattr(wn, "_is_sabbath", lambda uid: False)
     _stub_client(monkeypatch, raises=RuntimeError("all providers down"))
     assert (
         wn.compose_narrative(1, readiness=READY, night=NIGHT, cross_signals=CROSS)
@@ -114,7 +114,7 @@ def test_client_exception_falls_back(monkeypatch):
 def test_empty_output_falls_back(monkeypatch):
     monkeypatch.setenv("WHOOP_NARRATIVE_LLM", "1")
     sentinel = _stub_rule_based(monkeypatch)
-    monkeypatch.setattr(wn, "_is_sabbath", lambda: False)
+    monkeypatch.setattr(wn, "_is_sabbath", lambda uid: False)
     _stub_client(monkeypatch, content="   ")
     assert (
         wn.compose_narrative(1, readiness=READY, night=NIGHT, cross_signals=CROSS)
@@ -128,7 +128,7 @@ def test_empty_output_falls_back(monkeypatch):
 def test_sabbath_always_rule_based(monkeypatch):
     monkeypatch.setenv("WHOOP_NARRATIVE_LLM", "1")
     sentinel = _stub_rule_based(monkeypatch)
-    monkeypatch.setattr(wn, "_is_sabbath", lambda: True)
+    monkeypatch.setattr(wn, "_is_sabbath", lambda uid: True)
     _stub_client(
         monkeypatch, raises=AssertionError("model must not be called on the Sabbath")
     )

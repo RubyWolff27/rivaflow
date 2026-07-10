@@ -126,11 +126,37 @@ class WhoopIngest(BaseModel):
     device: str | None = None
     kind: str | None = "realtime"  # 'realtime' | 'historical_drain'
     batch_id: str | None = None
+    device_tz: str | None = None  # IANA tz the phone last reported (e.g. travel)
     raw_frames: list[RawFrame] = Field(default_factory=list)
     hr: list[HrSample] = Field(default_factory=list)
     rr: list[RrSample] = Field(default_factory=list)
     hrv: list[HrvSample] = Field(default_factory=list)
     battery: list[BatterySample] = Field(default_factory=list)
+
+
+def _persist_device_tz(user_id: int, device_tz: str | None) -> None:
+    """Validate + persist the phone-reported device tz on the profile (WhoopProfile
+    seam, Wave 3.6) — one UPDATE per genuine change, not per ingest batch. An
+    invalid/unknown IANA name is logged and ignored; the ingest still returns 200.
+    """
+    if not device_tz:
+        return
+    try:
+        ZoneInfo(device_tz)
+    except Exception:
+        logger.info("Ignoring invalid device_tz=%r for user %s", device_tz, user_id)
+        return
+
+    from rivaflow.db.repositories.base_repository import BaseRepository
+
+    row = BaseRepository._fetchone(
+        "SELECT device_tz FROM profile WHERE user_id = ?", (user_id,)
+    )
+    if row is None or row.get("device_tz") == device_tz:
+        return  # no profile row yet, or already up to date — skip the write
+    BaseRepository._execute(
+        "UPDATE profile SET device_tz = ? WHERE user_id = ?", (device_tz, user_id)
+    )
 
 
 def _span(payload: WhoopIngest) -> tuple[str | None, str | None]:
@@ -160,6 +186,8 @@ def ingest(
     unbounded raw-frame pollution.
     """
     user_id: int = current_user["id"]
+
+    _persist_device_tz(user_id, payload.device_tz)
 
     raw = WhoopRepository.ingest_raw_frames(
         user_id, [f.model_dump() for f in payload.raw_frames]
