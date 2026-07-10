@@ -1711,11 +1711,17 @@ def _rest_hr_lookup(rest_by_day: dict[str, float]):
 
 def _day_cardio(
     samples: list[tuple[datetime, int]], max_hr: float, rest_hr: float
-) -> dict:
+) -> dict | None:
     """One day's Banister cardio load (see rivaflow.core.cardio_load, the one place this math lives) from
     that day's ordered (ts, bpm) samples, compressed to a ~0-21 scale (WHOOP-strain feel). Shared by
-    daily_cardio_load's rollup-backed series and the whoop_daily_agg per-day compute (Wave 3.4).
+    daily_cardio_load's rollup-backed series and the whoop_daily_agg per-day compute (Wave 3.4). A day with
+    no captured HR samples returns None (mirrors _day_resting_hr's None-on-insufficient-data contract) — a
+    day with zero data is simply absent from the series, not a phantom cardio_load=0.0 entry. This matters
+    most for TODAY, which compute_day always evaluates live (unlike historical days, never gated on a
+    current_count==0 check) — a fresh user with no HR ever captured must not show up as "1 day of history".
     """
+    if not samples:
+        return None
     raw = banister_trimp(samples, max_hr, rest_hr)
     return {
         "cardio_load": scale_to_21(raw),

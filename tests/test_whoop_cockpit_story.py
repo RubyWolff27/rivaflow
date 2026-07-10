@@ -7,14 +7,23 @@ from __future__ import annotations
 
 
 class TestStoryHelpers:
-    def test_session_load_hardness_labels(self):
-        from rivaflow.core.whoop_cockpit import session_load_hardness
+    def test_classify_hardness_labels(self):
+        """Zone-weight load math now lives in one place (rivaflow.core.cardio_load, Wave 3.2) — the
+        renderer no longer derives its own hardness label from hr_zone_secs. classify_hardness() takes a
+        raw Banister TRIMP load + cutoffs (hardness_cutoffs([]) is the <8-samples fallback band).
+        """
+        from rivaflow.core.cardio_load import classify_hardness, hardness_cutoffs
 
-        assert session_load_hardness({"hr_zone_secs": {4: 1800, 5: 900}})[1] == "HARD"
-        assert session_load_hardness({})[1] == "EASY"
-        load, label = session_load_hardness({"hr_zone_secs": {1: 600, 2: 300}})
-        assert label in ("EASY", "MODERATE")
-        assert isinstance(load, float)
+        cutoffs = hardness_cutoffs(
+            []
+        )  # fallback cutoffs (fewer than 8 recent sessions)
+        assert (
+            classify_hardness(300.0, cutoffs) == "HARD"
+        )  # heavy session, well above HARD_CUTOFF
+        assert classify_hardness(0.0, cutoffs) == "EASY"  # no load at all
+        assert (
+            classify_hardness(100.0, cutoffs) == "MODERATE"
+        )  # between the two cutoffs
 
     def test_inject_takeaway_slots_under_heading(self):
         from rivaflow.core.whoop_cockpit import inject_takeaway
@@ -66,6 +75,12 @@ class TestTodayStory:
                 "times": [0, 1, 2],
                 "values": [140, 160, 150],
                 "hrr": 20,
+                # Load/hardness are computed once in whoop_analytics.session_deepdives (Wave 3.2) and
+                # carried in the analytics dict — the renderer only displays them now, it doesn't
+                # re-derive from hr_zone_secs.
+                "raw_load": 242.6,
+                "load": 15.9,
+                "hardness": "HARD",
             },
         }
         strain = {"available": True, "target_load": 9.0, "chronic_load": 11.0}
@@ -144,6 +159,9 @@ class TestWorkoutsList:
                     "times": [0, 1, 2],
                     "values": [140, 160, 150],
                     "hrr": 20,
+                    "raw_load": 242.6,
+                    "load": 15.9,
+                    "hardness": "HARD",
                 },
             },
             {
@@ -178,6 +196,9 @@ class TestNarrative:
                     "analytics": {
                         "available": True,
                         "hr_zone_secs": {4: 1800, 5: 1200},
+                        "raw_load": 242.6,
+                        "load": 15.9,
+                        "hardness": "HARD",
                     },
                 },
             )
