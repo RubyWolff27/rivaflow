@@ -29,6 +29,19 @@ def _is_hex(s: str) -> bool:
         return False
 
 
+# Suggested first-class tags surfaced in the tag-vocabulary endpoint — mirrors the
+# examples add_tag_endpoint's docstring lists (routes/whoop.py) so the "Tag Today"
+# picker always offers them even before the user has ever applied one.
+BUILTIN_TAGS: tuple[str, ...] = (
+    "alcohol",
+    "late-training",
+    "ill",
+    "poor-sleep",
+    "travel",
+    "sabbath-rest",
+)
+
+
 class WhoopRepository:
     """Idempotent, user-scoped ingest for the whoop_* stream tables."""
 
@@ -344,6 +357,27 @@ class WhoopRepository:
             (user_id, tag),
         )
         return {str(r["day"])[:10] for r in rows}
+
+    @staticmethod
+    def distinct_tags(user_id: int) -> list[str]:
+        """The sorted, deduped set of tag strings this user has ever applied — feeds the
+        tag-vocabulary endpoint (B4) alongside the built-in suggestions."""
+        rows = BaseRepository._fetchall(
+            convert_query(
+                "SELECT DISTINCT tag FROM whoop_tags WHERE user_id = ? ORDER BY tag"
+            ),
+            (user_id,),
+        )
+        return [str(r["tag"]) for r in rows]
+
+    @staticmethod
+    def tag_vocabulary(user_id: int) -> list[str]:
+        """BUILTIN_TAGS (in their canonical order) + any distinct tag this user has
+        actually applied that isn't already a built-in — so a one-off custom tag is
+        offered again next time, and the picker never starts empty."""
+        used = WhoopRepository.distinct_tags(user_id)
+        extras = [t for t in used if t not in BUILTIN_TAGS]
+        return list(BUILTIN_TAGS) + extras
 
     # ── Timestamped workout sessions (real start/end window so HR can attach) ──
 

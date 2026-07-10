@@ -25,7 +25,7 @@ def test_build_cockpit_snapshot_returns_html_and_metrics_json(monkeypatch):
     html, metrics_json, version = whoop_analytics.build_cockpit_snapshot(1)
 
     assert html == "<html>ok</html>"
-    assert version == whoop_analytics.COCKPIT_DERIVER_VERSION == "whoop-summary-v1"
+    assert version == whoop_analytics.COCKPIT_DERIVER_VERSION == "whoop-summary-v2"
     # metrics_json is a valid JSON string carrying the structured summary contract
     parsed = json.loads(metrics_json)
     assert parsed["readiness"]["score"] == 87

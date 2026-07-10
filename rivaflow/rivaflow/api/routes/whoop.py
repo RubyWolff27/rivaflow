@@ -276,6 +276,21 @@ def list_tags_endpoint(
     return WhoopRepository.list_tags(current_user["id"], start or None, end or None)
 
 
+@router.get("/tags/vocabulary")
+@route_error_handler("whoop_tag_vocabulary", detail="Failed to load tag vocabulary")
+def tag_vocabulary_endpoint(current_user: dict = Depends(get_current_user)) -> dict:
+    """The tag VOCABULARY for the "Tag Today" picker (B4/Wave 2.4) — built-in
+    suggestions (see db.repositories.whoop_repo.BUILTIN_TAGS) plus any tag this
+    user has actually applied before, so a custom tag is offered again next time.
+
+    Deliberately NOT `/tags` — that path already serves the per-day tag HISTORY
+    (`list_tags_endpoint` above); this is the picker's OPTIONS list, a distinct
+    concept that would collide with (and shadow) the existing route at the same
+    path if it reused it.
+    """
+    return {"tags": WhoopRepository.tag_vocabulary(current_user["id"])}
+
+
 @router.delete("/tag")
 @route_error_handler("whoop_remove_tag", detail="Failed to remove tag")
 def remove_tag_endpoint(
