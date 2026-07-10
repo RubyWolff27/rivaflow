@@ -951,6 +951,25 @@ def daily_narrative(
     return f"{body} — {guidance}."
 
 
+# Version of the structured metrics contract stored beside the cockpit HTML.
+# Bump when whoop_summary's shape changes so a stored snapshot is attributable.
+COCKPIT_DERIVER_VERSION = "whoop-summary-v1"
+
+
+def build_cockpit_snapshot(user_id: int) -> tuple[str, str, str]:
+    """Compute a full cockpit snapshot: (html, metrics_json, deriver_version).
+
+    metrics_json is the whoop_summary JSON contract — the structured data the
+    HTML was rendered from — so the phone and a future model layer can read it
+    instantly instead of re-running the ~40s recompute.
+    """
+    import json
+
+    html = _build_cockpit_page(user_id)
+    metrics = whoop_summary(user_id)
+    return html, json.dumps(metrics, default=str), COCKPIT_DERIVER_VERSION
+
+
 def cockpit_page(user_id: int) -> str:
     """Hot path for the deep-dive cockpit — serves the pre-computed snapshot the scheduler stores (one
     instant SELECT). Rendering runs ~15 multi-day analytics (~40s cold), which black-screens the browser
@@ -960,8 +979,10 @@ def cockpit_page(user_id: int) -> str:
     snap = WhoopRepository.get_cockpit_snapshot(user_id)
     if snap is not None:
         return str(snap["html"])
-    html = _build_cockpit_page(user_id)
-    WhoopRepository.upsert_cockpit_snapshot(user_id, html)
+    html, metrics_json, deriver_version = build_cockpit_snapshot(user_id)
+    WhoopRepository.upsert_cockpit_snapshot(
+        user_id, html, metrics_json, deriver_version
+    )
     return html
 
 

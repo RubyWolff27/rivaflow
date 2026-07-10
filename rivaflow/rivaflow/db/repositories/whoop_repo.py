@@ -367,12 +367,37 @@ class WhoopRepository:
         )
 
     @staticmethod
-    def upsert_cockpit_snapshot(user_id: int, html: str) -> None:
-        """Store (or replace) a user's pre-computed cockpit HTML, stamping rendered_at to now."""
+    def get_cockpit_metrics(user_id: int) -> dict | None:
+        """The structured metrics JSON contract behind the snapshot, or None.
+
+        Returns {metrics_json (str), deriver_version, rendered_at}; consumers
+        json.loads the metrics_json. This is the data the cockpit rendered from,
+        readable instantly without the ~40s recompute.
+        """
+        return BaseRepository._fetchone(
+            convert_query(
+                "SELECT metrics_json, deriver_version, rendered_at "
+                "FROM whoop_cockpit_snapshot WHERE user_id = ?"
+            ),
+            (user_id,),
+        )
+
+    @staticmethod
+    def upsert_cockpit_snapshot(
+        user_id: int,
+        html: str,
+        metrics_json: str | None = None,
+        deriver_version: str | None = None,
+    ) -> None:
+        """Store (or replace) a user's pre-computed cockpit HTML + structured
+        metrics JSON, stamping rendered_at to now."""
         BaseRepository._execute(
             convert_query(
-                "INSERT INTO whoop_cockpit_snapshot (user_id, html) VALUES (?, ?) "
-                "ON CONFLICT (user_id) DO UPDATE SET html = EXCLUDED.html, rendered_at = NOW()"
+                "INSERT INTO whoop_cockpit_snapshot "
+                "(user_id, html, metrics_json, deriver_version) VALUES (?, ?, ?, ?) "
+                "ON CONFLICT (user_id) DO UPDATE SET html = EXCLUDED.html, "
+                "metrics_json = EXCLUDED.metrics_json, "
+                "deriver_version = EXCLUDED.deriver_version, rendered_at = NOW()"
             ),
-            (user_id, html),
+            (user_id, html, metrics_json, deriver_version),
         )
