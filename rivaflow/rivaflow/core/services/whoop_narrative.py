@@ -72,7 +72,12 @@ _MAX_NARRATIVE_CHARS = 400
 
 
 def _llm_enabled() -> bool:
-    return os.getenv("WHOOP_NARRATIVE_LLM", "").strip().lower() in ("1", "true", "yes", "on")
+    return os.getenv("WHOOP_NARRATIVE_LLM", "").strip().lower() in (
+        "1",
+        "true",
+        "yes",
+        "on",
+    )
 
 
 def _is_sabbath() -> bool:
@@ -101,7 +106,11 @@ def _build_cross_signal_brief(
 
     parts = [
         f"Readiness: {readiness.get('state')} (score {readiness.get('score')}).",
-        f"lnRMSSD last {len(hrv)}d: {[round(v, 2) for v in hrv]}" if hrv else "HRV baseline still building.",
+        (
+            f"lnRMSSD last {len(hrv)}d: {[round(v, 2) for v in hrv]}"
+            if hrv
+            else "HRV baseline still building."
+        ),
         f"Resting HR last {len(rhr)}d: {rhr}" if rhr else "Resting-HR trend building.",
     ]
     if night.get("available") and night.get("duration_hours") is not None:
@@ -169,7 +178,9 @@ def compose_narrative(
             "WHOOP narrative LLM output failed honesty check for user %s; using rule-based",
             user_id,
         )
-    except Exception:  # noqa: BLE001 — any adapter failure must degrade, never break the cockpit
+    except (
+        Exception
+    ):  # noqa: BLE001 — any adapter failure must degrade, never break the cockpit
         logger.warning(
             "WHOOP narrative LLM adapter failed for user %s; using rule-based",
             user_id,

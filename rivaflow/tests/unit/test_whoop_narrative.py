@@ -25,9 +25,7 @@ RULE_SENTINEL = "RULE_BASED_NARRATIVE_LINE"
 
 
 def _stub_rule_based(monkeypatch, sentinel=RULE_SENTINEL):
-    monkeypatch.setattr(
-        wn.whoop_analytics, "daily_narrative", lambda *a, **k: sentinel
-    )
+    monkeypatch.setattr(wn.whoop_analytics, "daily_narrative", lambda *a, **k: sentinel)
     return sentinel
 
 
@@ -64,7 +62,10 @@ def test_llm_enabled_uses_honest_output(monkeypatch):
     monkeypatch.setattr(wn, "_is_sabbath", lambda: False)
     story = "Your resting HR has crept up three days running while HRV held — ease into technical work."
     _stub_client(monkeypatch, content=story)
-    assert wn.compose_narrative(1, readiness=READY, night=NIGHT, cross_signals=CROSS) == story
+    assert (
+        wn.compose_narrative(1, readiness=READY, night=NIGHT, cross_signals=CROSS)
+        == story
+    )
 
 
 # ── ISC-B4: honesty post-checks reject over-claiming output → fallback ───────
@@ -74,16 +75,26 @@ def test_diagnosis_output_falls_back(monkeypatch):
     monkeypatch.setenv("WHOOP_NARRATIVE_LLM", "1")
     sentinel = _stub_rule_based(monkeypatch)
     monkeypatch.setattr(wn, "_is_sabbath", lambda: False)
-    _stub_client(monkeypatch, content="Your numbers suggest you have the flu — rest up.")
-    assert wn.compose_narrative(1, readiness=READY, night=NIGHT, cross_signals=CROSS) == sentinel
+    _stub_client(
+        monkeypatch, content="Your numbers suggest you have the flu — rest up."
+    )
+    assert (
+        wn.compose_narrative(1, readiness=READY, night=NIGHT, cross_signals=CROSS)
+        == sentinel
+    )
 
 
 def test_false_health_allclear_falls_back(monkeypatch):
     monkeypatch.setenv("WHOOP_NARRATIVE_LLM", "1")
     sentinel = _stub_rule_based(monkeypatch)
     monkeypatch.setattr(wn, "_is_sabbath", lambda: False)
-    _stub_client(monkeypatch, content="Everything's green — you're healthy, push hard today.")
-    assert wn.compose_narrative(1, readiness=READY, night=NIGHT, cross_signals=CROSS) == sentinel
+    _stub_client(
+        monkeypatch, content="Everything's green — you're healthy, push hard today."
+    )
+    assert (
+        wn.compose_narrative(1, readiness=READY, night=NIGHT, cross_signals=CROSS)
+        == sentinel
+    )
 
 
 # ── ISC-B6: any adapter failure → rule-based, never raises ───────────────────
@@ -94,7 +105,10 @@ def test_client_exception_falls_back(monkeypatch):
     sentinel = _stub_rule_based(monkeypatch)
     monkeypatch.setattr(wn, "_is_sabbath", lambda: False)
     _stub_client(monkeypatch, raises=RuntimeError("all providers down"))
-    assert wn.compose_narrative(1, readiness=READY, night=NIGHT, cross_signals=CROSS) == sentinel
+    assert (
+        wn.compose_narrative(1, readiness=READY, night=NIGHT, cross_signals=CROSS)
+        == sentinel
+    )
 
 
 def test_empty_output_falls_back(monkeypatch):
@@ -102,7 +116,10 @@ def test_empty_output_falls_back(monkeypatch):
     sentinel = _stub_rule_based(monkeypatch)
     monkeypatch.setattr(wn, "_is_sabbath", lambda: False)
     _stub_client(monkeypatch, content="   ")
-    assert wn.compose_narrative(1, readiness=READY, night=NIGHT, cross_signals=CROSS) == sentinel
+    assert (
+        wn.compose_narrative(1, readiness=READY, night=NIGHT, cross_signals=CROSS)
+        == sentinel
+    )
 
 
 # ── Sabbath rule: LLM on but Sunday → prescriptive rest line, model untouched ─
@@ -112,8 +129,13 @@ def test_sabbath_always_rule_based(monkeypatch):
     monkeypatch.setenv("WHOOP_NARRATIVE_LLM", "1")
     sentinel = _stub_rule_based(monkeypatch)
     monkeypatch.setattr(wn, "_is_sabbath", lambda: True)
-    _stub_client(monkeypatch, raises=AssertionError("model must not be called on the Sabbath"))
-    assert wn.compose_narrative(1, readiness=READY, night=NIGHT, cross_signals=CROSS) == sentinel
+    _stub_client(
+        monkeypatch, raises=AssertionError("model must not be called on the Sabbath")
+    )
+    assert (
+        wn.compose_narrative(1, readiness=READY, night=NIGHT, cross_signals=CROSS)
+        == sentinel
+    )
 
 
 # ── pure helpers ─────────────────────────────────────────────────────────────

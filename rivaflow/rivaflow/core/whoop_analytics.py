@@ -1095,11 +1095,14 @@ def _build_cockpit_page(user_id: int) -> str:
     sessions = session_deepdives(user_id, limit=10)
     tags = sorted({t["tag"] for t in WhoopRepository.list_tags(user_id)})
 
+    cardio_series = daily_cardio_load(user_id, days=28, max_hr=mx)
+    acwr_data = training_acwr(user_id)
+    prevention = prevention_watch(user_id)
     ctx = {
         "readiness": readiness,
         "strain": strain,
-        "acwr": training_acwr(user_id),
-        "cardio": daily_cardio_load(user_id, days=28, max_hr=mx),
+        "acwr": acwr_data,
+        "cardio": cardio_series,
         "rec_cost": recovery_cost_coupling(user_id),
         "progress": _history_progress(user_id),
         "coverage": capture_coverage(user_id),
@@ -1107,7 +1110,7 @@ def _build_cockpit_page(user_id: int) -> str:
         "sleep_analysis": sleep_a,
         "sessions": sessions,
         "effects": [behaviour_for_tag(user_id, t) for t in tags],
-        "prevention": prevention_watch(user_id),
+        "prevention": prevention,
     }
 
     need_hours = sleep_a.get("debt", {}).get("need_hours", 9)
@@ -1126,7 +1129,6 @@ def _build_cockpit_page(user_id: int) -> str:
     # falls straight back to this rule-based line. See services/whoop_narrative.py.
     from rivaflow.core.services.whoop_narrative import compose_narrative
 
-    acwr_ctx = ctx["acwr"]
     narrative = compose_narrative(
         user_id,
         readiness=readiness,
@@ -1135,12 +1137,12 @@ def _build_cockpit_page(user_id: int) -> str:
         cross_signals={
             "hrv_ln_trend": trends["hrv"],
             "rhr_trend": trends["rhr"],
-            "acwr": acwr_ctx.get("ratio") if isinstance(acwr_ctx, dict) else None,
-            "cardio_today": ctx["cardio"][-1]["cardio_load"] if ctx["cardio"] else None,
-            "strain_target": strain.get("target_load")
-            if isinstance(strain, dict)
-            else None,
-            "prevention": ctx["prevention"],
+            "acwr": acwr_data.get("ratio"),
+            "cardio_today": (
+                cardio_series[-1]["cardio_load"] if cardio_series else None
+            ),
+            "strain_target": strain.get("target_load"),
+            "prevention": prevention,
         },
     )
     story = render_today_story(

@@ -90,9 +90,7 @@ def build_coach_context(user_id: int, *, today_is_sabbath: bool = False) -> str:
     hrv_trend = s.get("hrv_trend") or []
     rhr_trend = s.get("resting_hr_trend") or []
     hrv_pts = " → ".join(str(p.get("rmssd")) for p in hrv_trend[-7:]) or "building"
-    rhr_pts = (
-        " → ".join(str(p.get("resting_hr")) for p in rhr_trend[-7:]) or "building"
-    )
+    rhr_pts = " → ".join(str(p.get("resting_hr")) for p in rhr_trend[-7:]) or "building"
 
     sleep_line = (
         f"{_fmt(sleep.get('duration_hours'), 'h')} "
@@ -126,10 +124,13 @@ def build_coach_context(user_id: int, *, today_is_sabbath: bool = False) -> str:
         )
 
     if today_is_sabbath:
-        lines.append("Today is the Sabbath (Sunday) — his rest day; rest is prescribed.")
+        lines.append(
+            "Today is the Sabbath (Sunday) — his rest day; rest is prescribed."
+        )
 
-    return "TODAY'S BIOMETRIC CONTEXT (self-hosted WHOOP, all from HR+RR):\n" + "\n".join(
-        f"- {ln}" for ln in lines
+    return (
+        "TODAY'S BIOMETRIC CONTEXT (self-hosted WHOOP, all from HR+RR):\n"
+        + "\n".join(f"- {ln}" for ln in lines)
     )
 
 
@@ -141,7 +142,11 @@ def _sanitize_history(history: list[dict] | None) -> list[dict[str, str]]:
     for turn in history:
         role = turn.get("role")
         content = turn.get("content")
-        if role in ("user", "assistant") and isinstance(content, str) and content.strip():
+        if (
+            role in ("user", "assistant")
+            and isinstance(content, str)
+            and content.strip()
+        ):
             clean.append({"role": role, "content": content})
     return clean[-_MAX_HISTORY_TURNS:]
 
