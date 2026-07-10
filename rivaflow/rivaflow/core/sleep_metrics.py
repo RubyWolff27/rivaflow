@@ -56,9 +56,9 @@ def sleep_debt(
             need + min(2.0, last_short), 1
         ),  # repay a little, capped
         "headline": (
-            f"{round(debt, 1)}h sleep debt over {len(recent)} nights vs your {need}h need."
+            f"{round(debt, 1)}h sleep debt over {len(recent)} nights vs your {need:g}h need."
             if debt > 0.5
-            else f"On top of your {need}h need — no meaningful debt."
+            else f"On top of your {need:g}h need — no meaningful debt."
         ),
     }
 

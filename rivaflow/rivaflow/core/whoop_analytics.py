@@ -999,7 +999,9 @@ def _sleep_clause(night: dict, sleep_need_h: float = 9.0) -> str:
         return ""
     short = round(sleep_need_h - dur, 1)
     if short >= 1.0:
-        return f"you slept {short}h under your {sleep_need_h}h need"
+        # {:g} renders 9.0 as "9" — keeps the pre-profile wording byte-identical for
+        # whole-hour needs ("your 9h need") while 8.5 still reads "8.5h".
+        return f"you slept {short}h under your {sleep_need_h:g}h need"
     return ""
 
 
