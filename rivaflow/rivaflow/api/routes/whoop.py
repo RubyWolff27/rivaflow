@@ -630,24 +630,28 @@ def stress(current_user: dict = Depends(get_current_user)) -> dict:
     return today_stress(current_user["id"])
 
 
-# whoop_summary recomputes readiness/HRV/sleep/strain from the raw HR/RR tables on every call —
-# 26-35s at ~280k HR rows (2026-07-08 access logs), which times out the phone tiles and stacks a
-# fresh 30s recompute under every retry. New data only lands every ~2.5 min (uploader flush), so a
-# short-TTL in-process copy loses nothing a client could observe. Per-worker duplication is fine.
-_SUMMARY_CACHE: dict[tuple[int, bool], tuple[float, dict]] = {}
-_SUMMARY_TTL_S = 300.0
+# whoop_summary used to recompute readiness/HRV/sleep/strain from the raw HR/RR tables on every call —
+# 26-35s at ~280k HR rows (2026-07-08 access logs), which timed out the phone tiles and stacked a fresh
+# 30s recompute under every retry. Wave 3.4 (whoop_daily_agg) fixed the root cause: historical days are
+# rolled up once and served from a per-day cache, so only today is genuinely computed live. The TTL
+# band-aid that papered over the slow path is gone; this just measures + logs so a regression is loud.
+_SUMMARY_SLOW_MS = 2000
 
 
-def _cached_whoop_summary(user_id: int, today_is_sabbath: bool) -> dict:
+def _timed_whoop_summary(user_id: int, today_is_sabbath: bool) -> dict:
     from rivaflow.core.whoop_analytics import whoop_summary
 
-    key = (user_id, today_is_sabbath)
-    now = time.monotonic()
-    hit = _SUMMARY_CACHE.get(key)
-    if hit and hit[0] > now:
-        return hit[1]
+    started = time.monotonic()
     result = whoop_summary(user_id, today_is_sabbath=today_is_sabbath)
-    _SUMMARY_CACHE[key] = (now + _SUMMARY_TTL_S, result)
+    elapsed_ms = round((time.monotonic() - started) * 1000)
+    logger.info("whoop_summary rendered in %dms for user %s", elapsed_ms, user_id)
+    if elapsed_ms > _SUMMARY_SLOW_MS:
+        logger.warning(
+            "whoop_summary rendered in %dms for user %s — over the %dms budget",
+            elapsed_ms,
+            user_id,
+            _SUMMARY_SLOW_MS,
+        )
     return result
 
 
@@ -658,7 +662,7 @@ def summary(current_user: dict = Depends(get_current_user)) -> dict:
     The whole point of the server-side architecture — the phone/dashboard fetches this and just renders it.
     """
     is_sabbath = today_is_rest_day(current_user["id"])
-    return _cached_whoop_summary(current_user["id"], today_is_sabbath=is_sabbath)
+    return _timed_whoop_summary(current_user["id"], today_is_sabbath=is_sabbath)
 
 
 class CoachTurn(BaseModel):
@@ -755,7 +759,7 @@ def view(key: str) -> HTMLResponse:
         return HTMLResponse(_UNAUTH_HTML, status_code=401)
 
     is_sabbath = today_is_rest_day(api_key["user_id"])
-    s = _cached_whoop_summary(api_key["user_id"], today_is_sabbath=is_sabbath)
+    s = _timed_whoop_summary(api_key["user_id"], today_is_sabbath=is_sabbath)
     return HTMLResponse(_render_whoop_view(s))
 
 

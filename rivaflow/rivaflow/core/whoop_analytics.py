@@ -9,7 +9,7 @@ HRV only, and BJJ session analytics use HR (not HRV) because motion corrupts bea
 from __future__ import annotations
 
 from collections import defaultdict
-from datetime import datetime, timedelta
+from datetime import date, datetime, timedelta
 from statistics import mean, median, pstdev
 from zoneinfo import ZoneInfo
 
@@ -126,32 +126,30 @@ def _local_day(ts, tz: ZoneInfo = LOCAL_TZ) -> str:
         return str(ts)[:10]
 
 
-def daily_resting_hr(user_id: int, days: int = 14) -> list[dict]:
+def _day_resting_hr(bpms: list[int]) -> dict | None:
+    """One day's resting HR ≈ the 5th-percentile of that day's raw bpm samples — a robust resting proxy
+    (the true minimum is noisy). Needs >=60 samples/day, else None. Shared by daily_resting_hr's
+    rollup-backed series and the whoop_daily_agg per-day compute (Wave 3.4) — the ONE place this math
+    lives."""
+    if len(bpms) < 60:
+        return None
+    vals = sorted(bpms)
+    idx = max(0, int(len(vals) * 0.05))
+    return {"resting_hr": vals[idx], "min_hr": vals[0], "samples": len(vals)}
+
+
+def daily_resting_hr(
+    user_id: int, days: int = 14, max_hr: float | None = None
+) -> list[dict]:
     """Per-day resting HR ≈ the 5th-percentile of the day's HR — a robust resting proxy from whoop_hr
-    (the true minimum is noisy). Needs >=60 samples/day. Falls out of the HR stream we already capture,
-    so no extra plumbing."""
-    hr = WhoopRepository.recent_hr(user_id, hours=days * 24)
-    tz = get_whoop_profile(user_id).tz
-    by_day: dict[str, list[int]] = defaultdict(list)
-    for h in hr:
-        bpm, ts = h.get("bpm"), h.get("ts")
-        if bpm and ts:
-            by_day[_local_day(ts, tz)].append(int(bpm))
-    out: list[dict] = []
-    for day in sorted(by_day):
-        vals = sorted(by_day[day])
-        if len(vals) < 60:
-            continue
-        idx = max(0, int(len(vals) * 0.05))
-        out.append(
-            {
-                "day": day,
-                "resting_hr": vals[idx],
-                "min_hr": vals[0],
-                "samples": len(vals),
-            }
-        )
-    return out
+    (the true minimum is noisy). Needs >=60 samples/day. Served from the whoop_daily_agg rollup (Wave 3.4)
+    — historical days are computed once and cached; only today is computed live. `max_hr` is optional and
+    only feeds the rollup's incidental cardio sub-metric when a fresh day is computed alongside this call
+    (see services/whoop_daily_agg.py); it does not affect the resting-HR values returned here.
+    """
+    from rivaflow.core.services.whoop_daily_agg import get_range
+
+    return get_range(user_id, days, "resting_hr", max_hr=max_hr)
 
 
 def _best_sleep_window(
@@ -314,28 +312,33 @@ def nightly_sleep(user_id: int, lookback_hours: int = 24) -> dict:
     return res
 
 
-def nightly_sleep_history(user_id: int, nights: int = 7) -> list[dict]:
-    """Per-night sleep for the last `nights` nights (each 18:00→12:00 local), for B9 debt + B10 regularity.
-    Reuses the single-night extractor over per-night HR windows."""
-    from datetime import timedelta
+def _day_sleep(user_id: int, day: date, tz: ZoneInfo) -> dict | None:
+    """One night's sleep — the night starting 18:00 on local calendar `day`, ending 12:00 the next day —
+    from the HR-bucketed window detector (_sleep_from_points). None when no sleep window is detected.
+    Shared by nightly_sleep_history's rollup-backed series and the whoop_daily_agg per-day compute
+    (Wave 3.4) — the ONE place this math lives."""
+    start = datetime.combine(day, datetime.min.time(), tz).replace(hour=18)
+    end = start + timedelta(hours=18)  # 18:00 → next 12:00
+    hr = WhoopRepository.hr_range(user_id, start.isoformat(), end.isoformat())
+    pts = [
+        (_parse_ts(str(h["ts"])), int(h["bpm"]))
+        for h in hr
+        if h.get("bpm") and h.get("ts")
+    ]
+    s = _sleep_from_points(pts)
+    return s if s.get("available") else None
 
-    tz = get_whoop_profile(user_id).tz
-    now = datetime.now(tz)
-    out: list[dict] = []
-    for back in range(nights, 0, -1):
-        day = (now - timedelta(days=back)).date()
-        start = datetime.combine(day, datetime.min.time(), tz).replace(hour=18)
-        end = start + timedelta(hours=18)  # 18:00 → next 12:00
-        hr = WhoopRepository.hr_range(user_id, start.isoformat(), end.isoformat())
-        pts = [
-            (_parse_ts(str(h["ts"])), int(h["bpm"]))
-            for h in hr
-            if h.get("bpm") and h.get("ts")
-        ]
-        s = _sleep_from_points(pts)
-        if s.get("available"):
-            out.append(s)
-    return out
+
+def nightly_sleep_history(
+    user_id: int, nights: int = 7, max_hr: float | None = None
+) -> list[dict]:
+    """Per-night sleep for the last `nights` nights (each 18:00→12:00 local), for B9 debt + B10 regularity.
+    Served from the whoop_daily_agg rollup (Wave 3.4) — historical nights are computed once and cached;
+    the most recent (still-accruing) night is always computed live. `max_hr` is optional — see
+    daily_resting_hr's docstring."""
+    from rivaflow.core.services.whoop_daily_agg import get_range
+
+    return get_range(user_id, nights, "sleep", max_hr=max_hr)
 
 
 def whoop_summary(user_id: int, today_is_sabbath: bool = False) -> dict:
@@ -345,11 +348,13 @@ def whoop_summary(user_id: int, today_is_sabbath: bool = False) -> dict:
     HR+RR we already capture."""
     max_hr = user_max_hr(
         user_id
-    )  # B1 — compute once, thread into every HR-zone consumer
+    )  # B1 — compute once, thread into every HR-zone consumer (and into whoop_daily_agg's
+    # incidental cardio sub-metric for any day rmssd/resting_hr freshly roll up here — Wave 3.4)
+    mx = max_hr["max_hr"]
     readiness = compute_readiness(user_id, today_is_sabbath=today_is_sabbath)
-    hrv = daily_resting_rmssd(user_id, days=14)
-    rhr = daily_resting_hr(user_id, days=14)
-    cardio = daily_cardio_load(user_id, days=14, max_hr=max_hr["max_hr"])
+    hrv = daily_resting_rmssd(user_id, days=14, max_hr=mx)
+    rhr = daily_resting_hr(user_id, days=14, max_hr=mx)
+    cardio = daily_cardio_load(user_id, days=14, max_hr=mx)
     sleep = nightly_sleep(user_id)
     if sleep.get("available"):
         # Simple quality score vs Ruby's >9h sleep-need (DNA): duration is the dominant driver.
@@ -359,8 +364,7 @@ def whoop_summary(user_id: int, today_is_sabbath: bool = False) -> dict:
     acute = cardio[-1]["cardio_load"] if cardio else None
     strain = prescribe_strain(readiness.get("state"), _chronic_load(cardio), acute)
     load_series = [
-        c["cardio_load"]
-        for c in daily_cardio_load(user_id, days=28, max_hr=max_hr["max_hr"])
+        c["cardio_load"] for c in daily_cardio_load(user_id, days=28, max_hr=mx)
     ]
     return {
         "readiness": readiness,
@@ -1466,37 +1470,43 @@ def _hr_count_by_day(user_id: int, days: int) -> dict[str, int]:
     return counts
 
 
-def daily_resting_rmssd(user_id: int, days: int = 21) -> list[dict]:
+def _day_rmssd(rr_vals: list[int], hr_count: int) -> dict | None:
+    """One day's resting HRV (RMSSD/lnRMSSD) from that day's RR intervals + HR sample count. Two gates
+    before it can anchor a baseline: the B3 coverage guard (enough usable, contiguous RR — excludes
+    RR-starved charging nights the HR view masks) and the B0 QC gate (widened bradycardia band + Malik
+    relative filter + ectopy interpolation). None when either gate fails. Shared by daily_resting_rmssd's
+    rollup-backed series and the whoop_daily_agg per-day compute (Wave 3.4) — the ONE place this math
+    lives."""
+    cov = assess_coverage(rr_vals, hr_count)
+    if not cov.sufficient:
+        return None
+    q = assess_rr(rr_vals)
+    if not q.usable:
+        return None
+    value = rmssd(q.cleaned)
+    ln_value = ln_rmssd(q.cleaned)
+    if value is None or ln_value is None:
+        return None
+    return {
+        "rmssd": round(value, 1),
+        "ln_rmssd": round(ln_value, 3),
+        "quality": q.as_meta(),
+        "coverage": cov.as_dict(),
+    }
+
+
+def daily_resting_rmssd(
+    user_id: int, days: int = 21, max_hr: float | None = None
+) -> list[dict]:
     """Per-day resting HRV (RMSSD, ms) derived from the whoop_rr intervals already flowing — so readiness
-    works without a separate HRV feed. Each day passes TWO gates before it can anchor a baseline: the B3
-    coverage guard (enough usable, contiguous RR — excludes RR-starved charging nights the HR view masks)
-    and the B0 QC gate (widened bradycardia band + Malik relative filter + ectopy interpolation). Each value
-    carries its artifact-% and RR-minutes; under-covered or over-artifact days are dropped.
+    works without a separate HRV feed. Each value carries its artifact-% and RR-minutes; under-covered or
+    over-artifact days are dropped (see _day_rmssd). Served from the whoop_daily_agg rollup (Wave 3.4) —
+    historical days are computed once and cached; only today is computed live. `max_hr` is optional — see
+    daily_resting_hr's docstring.
     """
-    by_day = _rr_by_day(user_id, days)
-    hr_counts = _hr_count_by_day(user_id, days)
-    out: list[dict] = []
-    for day in sorted(by_day):
-        cov = assess_coverage(by_day[day], hr_counts.get(day, 0))
-        if not cov.sufficient:
-            continue
-        q = assess_rr(by_day[day])
-        if not q.usable:
-            continue
-        value = rmssd(q.cleaned)
-        ln_value = ln_rmssd(q.cleaned)
-        if value is None or ln_value is None:
-            continue
-        out.append(
-            {
-                "day": day,
-                "rmssd": round(value, 1),
-                "ln_rmssd": round(ln_value, 3),
-                "quality": q.as_meta(),
-                "coverage": cov.as_dict(),
-            }
-        )
-    return out
+    from rivaflow.core.services.whoop_daily_agg import get_range
+
+    return get_range(user_id, days, "rmssd", max_hr=max_hr)
 
 
 def compute_readiness(user_id: int, today_is_sabbath: bool = False) -> dict:
@@ -1699,38 +1709,32 @@ def _rest_hr_lookup(rest_by_day: dict[str, float]):
     return resolve
 
 
+def _day_cardio(
+    samples: list[tuple[datetime, int]], max_hr: float, rest_hr: float
+) -> dict:
+    """One day's Banister cardio load (see rivaflow.core.cardio_load, the one place this math lives) from
+    that day's ordered (ts, bpm) samples, compressed to a ~0-21 scale (WHOOP-strain feel). Shared by
+    daily_cardio_load's rollup-backed series and the whoop_daily_agg per-day compute (Wave 3.4).
+    """
+    raw = banister_trimp(samples, max_hr, rest_hr)
+    return {
+        "cardio_load": scale_to_21(raw),
+        "raw_trimp": round(raw, 1),
+        "load_version": LOAD_VERSION,
+    }
+
+
 def daily_cardio_load(
     user_id: int, days: int = 7, max_hr: int | None = None
 ) -> list[dict]:
-    """Daily cardio load / strain — Banister TRIMP (see rivaflow.core.cardio_load, the one place this math
-    lives), compressed to a ~0–21 scale (WHOOP-strain feel). Zones use the B1-calibrated max-HR (not the
-    190 fallback). rest_hr per day comes from daily_resting_hr over the same window (see _rest_hr_lookup)
-    — the 5th-percentile-of-day-HR proxy we already compute, so no extra plumbing."""
-    hr = WhoopRepository.recent_hr(user_id, hours=days * 24)
-    mx = max_hr or user_max_hr(user_id)["max_hr"]
-    tz = get_whoop_profile(user_id).tz
-    by_day: dict[str, list[tuple[datetime, int]]] = defaultdict(list)
-    for h in hr:
-        bpm, ts = h.get("bpm"), h.get("ts")
-        if bpm and ts:
-            by_day[_local_day(ts, tz)].append((_parse_ts(ts), int(bpm)))
+    """Daily cardio load / strain — Banister TRIMP, compressed to a ~0-21 scale. Zones use the
+    B1-calibrated max-HR (not the 190 fallback) unless a caller-supplied `max_hr` is given. rest_hr per day
+    is that day's own resting-HR reading (see _day_cardio / _day_resting_hr). Served from the
+    whoop_daily_agg rollup (Wave 3.4) — historical days are computed once and cached; only today is
+    computed live."""
+    from rivaflow.core.services.whoop_daily_agg import get_range
 
-    resolve_rest_hr = _rest_hr_lookup(
-        {d["day"]: float(d["resting_hr"]) for d in daily_resting_hr(user_id, days=days)}
-    )
-    out = []
-    for day in sorted(by_day):
-        samples = sorted(by_day[day], key=lambda p: p[0])
-        raw = banister_trimp(samples, mx, resolve_rest_hr(day))
-        out.append(
-            {
-                "day": day,
-                "cardio_load": scale_to_21(raw),
-                "raw_trimp": round(raw, 1),
-                "load_version": LOAD_VERSION,
-            }
-        )
-    return out
+    return get_range(user_id, days, "cardio", max_hr=max_hr)
 
 
 def today_stress(user_id: int, max_hr: int | None = None) -> dict:

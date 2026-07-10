@@ -198,9 +198,13 @@ def test_classify_hardness_matches_fallback_hard_fixture():
 
 
 def test_daily_cardio_load_carries_load_version(monkeypatch):
+    # Wave 3.4: daily_cardio_load now reads via the whoop_daily_agg rollup service, which fetches a
+    # bounded per-day window through hr_range/rr_range_between rather than recent_hr — with days=1 the
+    # only day requested is "today", so compute_day() runs directly (no rollup-store round trip to mock).
     rows = [{"ts": t.isoformat(), "bpm": bpm} for t, bpm in _rest_day_samples()]
+    monkeypatch.setattr(WhoopRepository, "hr_range", staticmethod(lambda *a, **k: rows))
     monkeypatch.setattr(
-        WhoopRepository, "recent_hr", staticmethod(lambda *a, **k: rows)
+        WhoopRepository, "rr_range_between", staticmethod(lambda *a, **k: [])
     )
     out = whoop_analytics.daily_cardio_load(1, days=1, max_hr=180)
     assert out, "expected at least one day of cardio load"
