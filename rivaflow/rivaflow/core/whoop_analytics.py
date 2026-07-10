@@ -72,6 +72,7 @@ from rivaflow.core.whoop_cockpit import (
 )
 from rivaflow.core.whoop_digest import compile_digest
 from rivaflow.core.whoop_profile import get_whoop_profile, is_rest_day
+from rivaflow.core.whoop_tiles import _compose_hero, _compose_tiles
 from rivaflow.db.repositories.whoop_repo import WhoopRepository
 
 MAX_HR = 190  # FALLBACK ONLY — real ceiling comes from user_max_hr() (B1). Kept so
@@ -388,7 +389,7 @@ def whoop_summary(user_id: int, today_is_sabbath: bool = False) -> dict:
     load_series = [
         c["cardio_load"] for c in daily_cardio_load(user_id, days=28, max_hr=mx)
     ]
-    return {
+    result = {
         "readiness": readiness,
         "strain_target": strain,
         "acwr": acwr(load_series),
@@ -407,6 +408,12 @@ def whoop_summary(user_id: int, today_is_sabbath: bool = False) -> dict:
             user_id
         ),  # P4a — powers the slim-app safety banner (amber/red)
     }
+    # Wave 2.4 (B4/B3) — server-composed tiles + hero, additive: a new field above reaches
+    # the phone as a tile/hero input with zero app changes, since these are derived FROM
+    # the dict just built (no new DB reads). See core/whoop_tiles.py.
+    result["tiles"] = _compose_tiles(result)
+    result["hero"] = _compose_hero(result)
+    return result
 
 
 def _chronic_load(cardio: list[dict]) -> float | None:
@@ -1072,7 +1079,8 @@ def daily_narrative(
 
 # Version of the structured metrics contract stored beside the cockpit HTML.
 # Bump when whoop_summary's shape changes so a stored snapshot is attributable.
-COCKPIT_DERIVER_VERSION = "whoop-summary-v1"
+# v2 (Wave 2.4/B4/B3) — added the additive `tiles` + `hero` keys.
+COCKPIT_DERIVER_VERSION = "whoop-summary-v2"
 
 
 def build_cockpit_snapshot(user_id: int) -> tuple[str, str, str]:
