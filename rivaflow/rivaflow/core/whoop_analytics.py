@@ -13,6 +13,7 @@ from datetime import date, datetime, timedelta
 from statistics import mean, median, pstdev
 from zoneinfo import ZoneInfo
 
+from rivaflow.core import respiratory_spectral
 from rivaflow.core.assessment import period_assessment
 from rivaflow.core.behaviour import behaviour_effect
 from rivaflow.core.cardio_load import (
@@ -40,7 +41,12 @@ from rivaflow.core.prevention import (
 from rivaflow.core.readiness import blend_readiness, zscore
 from rivaflow.core.resilience import cumulative_stress, resilience
 from rivaflow.core.rr_quality import assess_rr, clean_segments, ln_rmssd, rmssd
-from rivaflow.core.sleep_metrics import sleep_debt, sleep_regularity
+from rivaflow.core.sleep_metrics import sleep_debt, sleep_quality, sleep_regularity
+from rivaflow.core.sleep_window import (
+    FLOOR_VERSION,
+    bucket_hr,
+    personal_threshold_for_user,
+)
 from rivaflow.core.strain_target import prescribe_strain
 from rivaflow.core.training_load import acwr, heart_rate_recovery, recovery_cost
 from rivaflow.core.whoop_cockpit import (
@@ -154,7 +160,7 @@ def daily_resting_hr(
 
 def _best_sleep_window(
     med: dict[int, int],
-    threshold: int,
+    threshold: float,
     *,
     wake_break: int = 6,
     max_span: int = 150,
@@ -183,7 +189,7 @@ def _best_sleep_window(
 
 
 def _collect_sleep_windows(
-    med: dict[int, int], threshold: int, wake_break: int, min_low: int
+    med: dict[int, int], threshold: float, wake_break: int, min_low: int
 ) -> list[tuple[int, int, int]]:
     """Walk the bucket range and cut it into candidate sleep windows: asleep buckets extend the current
     window, missing buckets bridge it (data gap ≠ wake), and a sustained run of >wake_break awake buckets
@@ -216,28 +222,31 @@ def _collect_sleep_windows(
     return windows
 
 
-def _sleep_from_points(pts: list[tuple[datetime, int]]) -> dict:
+def _sleep_from_points(
+    pts: list[tuple[datetime, int]],
+    threshold_offset: float = 12.0,
+    detector_version: str = FLOOR_VERSION,
+) -> dict:
     """Extract one sleep window from (ts, bpm) points: 5-min-bucket medians, then the window that captures
     the most asleep time (bridging capture gaps, breaking on sustained wake — see _best_sleep_window).
     Shared by last-night and multi-night history. HR-based timing/coverage, NOT WHOOP staging.
+
+    `threshold_offset` is the "asleep" band width above the night's quietest bucket — either the fixed
+    floor (12bpm, the pre-Wave-3.1 default) or a personalised value learned from the user's own nights (see
+    core/sleep_window.py). Callers with a user_id in scope resolve it via
+    sleep_window.personal_threshold_for_user and thread it through; this function itself stays pure/testable
+    with no DB access. `detector_version` is threaded straight into the output for provenance (feeds
+    whoop_daily_agg's staleness check).
     """
     if len(pts) < 120:
         return {
             "available": False,
             "reason": "Not enough overnight HR captured for a sleep estimate yet.",
         }
-    pts.sort(key=lambda p: p[0])
-    t0 = pts[0][0]
-    bucket_bpms: dict[int, list[int]] = defaultdict(list)
-    bucket_time: dict[int, datetime] = {}
-    for t, b in pts:
-        idx = int((t - t0).total_seconds() // 300)  # 5-minute bucket
-        bucket_bpms[idx].append(b)
-        bucket_time.setdefault(idx, t)
-    order = sorted(bucket_bpms)
-    med = {i: sorted(bucket_bpms[i])[len(bucket_bpms[i]) // 2] for i in order}
+    med, bucket_time, bucket_bpms = bucket_hr(pts)
+    order = sorted(med)
     threshold = (
-        min(med.values()) + 12
+        min(med.values()) + threshold_offset
     )  # "asleep" band above the night's quietest bucket
     win = _best_sleep_window(med, threshold)
     if win is None:
@@ -269,6 +278,7 @@ def _sleep_from_points(pts: list[tuple[datetime, int]]) -> dict:
         "fragmented": fragmented,
         "source": "hr_bucketed_window",
         "method": "HR-based sleep window (bridges capture gaps, breaks on sustained wake; not staging).",
+        "detector_version": detector_version,
     }
 
 
@@ -297,7 +307,8 @@ def nightly_sleep(user_id: int, lookback_hours: int = 24) -> dict:
             "capture_dropout": True,
             "reason": "No overnight data — the strap stopped recording last night (likely dropped out).",
         }
-    res = _sleep_from_points(pts)
+    offset, version = personal_threshold_for_user(user_id)
+    res = _sleep_from_points(pts, offset, version)
     if res.get("available"):
         onset = _parse_ts(res["sleep_start"]).astimezone(tz)
         # a genuine sleep onset is evening/late-night; a short block onsetting in the morning/day is a
@@ -325,7 +336,8 @@ def _day_sleep(user_id: int, day: date, tz: ZoneInfo) -> dict | None:
         for h in hr
         if h.get("bpm") and h.get("ts")
     ]
-    s = _sleep_from_points(pts)
+    offset, version = personal_threshold_for_user(user_id)
+    s = _sleep_from_points(pts, offset, version)
     return s if s.get("available") else None
 
 
@@ -346,6 +358,7 @@ def whoop_summary(user_id: int, today_is_sabbath: bool = False) -> dict:
     fetches THIS and just renders it — no client-side compute. Readiness, HRV, resting HR, sleep (+quality),
     respiratory rate, cardio load/strain, and stress — benchmarked against WHOOP/Oura/Hume, all from the
     HR+RR we already capture."""
+    profile = get_whoop_profile(user_id)
     max_hr = user_max_hr(
         user_id
     )  # B1 — compute once, thread into every HR-zone consumer (and into whoop_daily_agg's
@@ -357,10 +370,19 @@ def whoop_summary(user_id: int, today_is_sabbath: bool = False) -> dict:
     cardio = daily_cardio_load(user_id, days=14, max_hr=mx)
     sleep = nightly_sleep(user_id)
     if sleep.get("available"):
-        # Simple quality score vs Ruby's >9h sleep-need (DNA): duration is the dominant driver.
-        sleep["quality_score"] = max(
-            0, min(100, round((sleep["duration_hours"] / 9.0) * 100))
+        # Wave 3.5 — composed quality vs the user's own sleep need (profile.sleep_need_h, not a hardcoded
+        # 9.0): duration-vs-need (dominant) blended with coverage/fragmentation + onset-timing regularity.
+        recent_nights = nightly_sleep_history(user_id, nights=7)
+        onset_hours = _onset_hours_from_history(recent_nights, profile.tz)
+        quality = sleep_quality(
+            sleep["duration_hours"],
+            profile.sleep_need_h,
+            coverage_pct=sleep.get("coverage_pct"),
+            fragmented=bool(sleep.get("fragmented")),
+            onset_hours=onset_hours,
         )
+        sleep["quality_score"] = quality["score"]
+        sleep["quality_version"] = quality["quality_version"]
     acute = cardio[-1]["cardio_load"] if cardio else None
     strain = prescribe_strain(readiness.get("state"), _chronic_load(cardio), acute)
     load_series = [
@@ -966,16 +988,20 @@ def _history_progress(user_id: int) -> dict:
     }
 
 
-def _sleep_clause(night: dict) -> str:
-    """Sleep fragment for the narrative — only flags a meaningful shortfall vs the 9h need, else silent."""
+def _sleep_clause(night: dict, sleep_need_h: float = 9.0) -> str:
+    """Sleep fragment for the narrative — only flags a meaningful shortfall vs the user's own sleep need
+    (profile.sleep_need_h), else silent. Defaults to the preserved 9.0h literal for standalone callers.
+    """
     if not night.get("available"):
         return ""
     dur = night.get("duration_hours")
     if not isinstance(dur, (int, float)):
         return ""
-    short = round(9.0 - dur, 1)
+    short = round(sleep_need_h - dur, 1)
     if short >= 1.0:
-        return f"you slept {short}h under your 9h need"
+        # {:g} renders 9.0 as "9" — keeps the pre-profile wording byte-identical for
+        # whole-hour needs ("your 9h need") while 8.5 still reads "8.5h".
+        return f"you slept {short}h under your {sleep_need_h:g}h need"
     return ""
 
 
@@ -1010,7 +1036,7 @@ def daily_narrative(
     if night is None:
         night = nightly_sleep(user_id)
     state = str(readiness.get("state", "Building"))
-    sleep_clause = _sleep_clause(night)
+    sleep_clause = _sleep_clause(night, profile.sleep_need_h)
 
     if is_sabbath:
         rest = "Sabbath — rest is prescribed today."
@@ -1269,16 +1295,24 @@ def behaviour_correlation(
     return behaviour_effect(tag, "lnRMSSD", yes, no)
 
 
+def _onset_hours_from_history(history: list[dict], tz: ZoneInfo) -> list[float]:
+    """Per-night sleep-onset time, in fractional local hours, from a nightly_sleep_history-shaped list —
+    the shared input for B10 regularity (sleep_analysis) and the Wave 3.5 quality-composition regularity
+    component (sleep_metrics.sleep_quality), so onset-extraction logic lives in exactly one place.
+    """
+    return [
+        _parse_ts(h["sleep_start"]).astimezone(tz).hour
+        + _parse_ts(h["sleep_start"]).astimezone(tz).minute / 60.0
+        for h in history
+    ]
+
+
 def sleep_analysis(user_id: int, nights: int = 7) -> dict:
     """B9 + B10 — sleep need/debt (vs Ruby's >9h DNA need) + bedtime regularity, from the per-night history."""
     history = nightly_sleep_history(user_id, nights=nights)
     tz = get_whoop_profile(user_id).tz
     durations = [h["duration_hours"] for h in history]
-    onsets = [
-        _parse_ts(h["sleep_start"]).astimezone(tz).hour
-        + _parse_ts(h["sleep_start"]).astimezone(tz).minute / 60.0
-        for h in history
-    ]
+    onsets = _onset_hours_from_history(history, tz)
     return {
         "nights_analysed": len(history),
         "debt": sleep_debt(durations),
@@ -1530,11 +1564,15 @@ def compute_readiness(user_id: int, today_is_sabbath: bool = False) -> dict:
     rhr_z = zscore(rhr_series)
     resp_z = zscore(resp_series)
 
-    # Sleep is a down-weighted proxy vs the >9h DNA need (a personal sleep-need/debt baseline is B9).
+    # Sleep is a down-weighted proxy vs the user's own sleep need (profile.sleep_need_h — Wave 3.6/3.5;
+    # was a hardcoded 9.0). Same z-scale shape, just personalised.
+    profile = get_whoop_profile(user_id)
     sleep = nightly_sleep(user_id)
     sleep_z = None
     if sleep.get("available"):
-        sleep_z = max(-3.0, min(2.0, (sleep["duration_hours"] - 9.0) / 1.5))
+        sleep_z = max(
+            -3.0, min(2.0, (sleep["duration_hours"] - profile.sleep_need_h) / 1.5)
+        )
 
     result = blend_readiness(
         {
@@ -1631,9 +1669,25 @@ def _resp_rpm(vals: list[int]) -> float | None:
     return rpm if 6 <= rpm <= 30 else None
 
 
+def _spectral_resp_rpm(vals: list[int]) -> float | None:
+    """Wave 3.5 — band-pass RSA respiratory-rate estimate: the longest contiguous QC-clean RR segment
+    (rr_quality.clean_segments — never fabricates continuity across a real dropout) fed to the DFT
+    band-pass estimator (core/respiratory_spectral.py). None when no segment is long enough to resolve a
+    frequency (see respiratory_spectral.MIN_WINDOW_SEC)."""
+    segments = clean_segments(vals)
+    if not segments:
+        return None
+    longest = max(segments, key=len)
+    est = respiratory_spectral.estimate_respiratory_rate(longest)
+    return est.rpm if est is not None else None
+
+
 def respiratory_rate(user_id: int, days: int = 1) -> dict:
     """Today's respiratory rate from the resting RR tachogram (RSA). Oura/WHOOP surface this and it IS
-    computable from the RR we already capture, no extra sensor — but see the needs-validation caveat in _resp_rpm.
+    computable from the RR we already capture, no extra sensor. Wave 3.5 adds a spectral band-pass estimate
+    (see core/respiratory_spectral.py) that's reported ONLY when it agrees with the original up-crossing
+    count within respiratory_spectral.AGREEMENT_TOLERANCE_RPM; otherwise (or when the spectral estimate is
+    unavailable) this falls back unchanged to the counting method — see _resp_rpm's needs-validation caveat.
     """
     rr = WhoopRepository.rr_range(user_id, days)
     vals = [int(r["rr_ms"]) for r in rr if r.get("rr_ms") and 667 <= r["rr_ms"] <= 1500]
@@ -1644,11 +1698,23 @@ def respiratory_rate(user_id: int, days: int = 1) -> dict:
             "available": False,
             "reason": "Not enough clean resting RR for a respiratory estimate.",
         }
+    spectral_rpm = _spectral_resp_rpm(vals)
+    if spectral_rpm is not None and (
+        abs(spectral_rpm - rpm) <= respiratory_spectral.AGREEMENT_TOLERANCE_RPM
+    ):
+        return {
+            "available": True,
+            "respiratory_rate": round(spectral_rpm, 1),
+            "minutes": round(sum(clean) / 60000.0, 1),
+            "source": "rr_rsa_bandpass",
+            "resp_version": respiratory_spectral.VERSION,
+        }
     return {
         "available": True,
         "respiratory_rate": round(rpm, 1),
         "minutes": round(sum(clean) / 60000.0, 1),
         "source": "rr_rsa",
+        "resp_version": "resp-count-v0",
     }
 
 
@@ -1743,10 +1809,62 @@ def daily_cardio_load(
     return get_range(user_id, days, "cardio", max_hr=max_hr)
 
 
+_STRESS_HR_WEIGHT = (
+    0.6  # weight on the HR-elevation side of the blend when RR is available
+)
+_STRESS_HRV_WEIGHT = 0.4  # weight on the HRV-depression side
+_STRESS_RR_WINDOW_MIN = (
+    20  # short-window length (of the possible 15-30min) for the HRV side
+)
+_STRESS_BASELINE_DAYS = (
+    7  # overall resting-RMSSD baseline window — see _stress_hrv_component's docstring
+)
+
+
+def _stress_hrv_component(user_id: int) -> float | None:
+    """HRV-depression side of the stress blend (Wave 3.5): the last _STRESS_RR_WINDOW_MIN minutes of
+    resting-band RR, QC-gated (assess_rr — same usability bar as every other RR-derived metric), RMSSD
+    compared against an OVERALL resting-RMSSD baseline — the mean of the last _STRESS_BASELINE_DAYS days'
+    daily resting RMSSD (daily_resting_rmssd, the same series readiness's HRV signal already baselines on).
+    This is the honest cheap choice over a same-time-of-day baseline: it reuses an already-computed,
+    already-QC-gated series with no extra query, at the cost of not correcting for circadian HRV rhythm —
+    acceptable at a 20min short-window resolution where circadian drift is a second-order effect.
+
+    Returns a 0-100 depression score (0 = short-window RMSSD at/above baseline, i.e. no HRV-side stress;
+    100 = fully collapsed vs baseline) or None when the short window or the baseline series is unusable.
+    """
+    end = datetime.now(ZoneInfo("UTC"))
+    start = end - timedelta(minutes=_STRESS_RR_WINDOW_MIN)
+    rr_rows = WhoopRepository.rr_range_between(
+        user_id, start.isoformat(), end.isoformat()
+    )
+    vals = [
+        int(r["rr_ms"]) for r in rr_rows if r.get("rr_ms") and 667 <= r["rr_ms"] <= 1500
+    ]
+    q = assess_rr(vals)
+    if not q.usable:
+        return None
+    short_rmssd = rmssd(q.cleaned)
+    if short_rmssd is None or short_rmssd <= 0:
+        return None
+
+    baseline_days = daily_resting_rmssd(user_id, days=_STRESS_BASELINE_DAYS)
+    if not baseline_days:
+        return None
+    baseline = float(mean(float(d["rmssd"]) for d in baseline_days))
+    if baseline <= 0:
+        return None
+
+    depression = round((baseline - short_rmssd) / baseline * 100)
+    return float(max(0.0, min(100.0, depression)))
+
+
 def today_stress(user_id: int, max_hr: int | None = None) -> dict:
-    """Light stress proxy: how elevated recent HR sits within the HR reserve above resting (0–100).
-    WHOOP/Hume blend HRV+HR; this HR-elevation version is honest and always-available. Reserve uses the
-    B1-calibrated max-HR (not the 190 fallback)."""
+    """Stress proxy (0-100). Base signal: how elevated recent HR sits within the HR reserve above resting
+    (HR-elevation, honest and always-available — WHOOP/Hume-style). Wave 3.5 blends in an HRV-depression
+    side (see _stress_hrv_component) whenever a usable short RR window is available, weighted
+    _STRESS_HR_WEIGHT/_STRESS_HRV_WEIGHT; when RR is missing or unusable, the HR-only path is UNCHANGED.
+    Reserve uses the B1-calibrated max-HR (not the 190 fallback)."""
     recent = WhoopRepository.recent_hr(user_id, hours=1)
     bpms = [int(h["bpm"]) for h in recent if h.get("bpm")]
     rhr_list = daily_resting_hr(user_id, days=3)
@@ -1758,10 +1876,26 @@ def today_stress(user_id: int, max_hr: int | None = None) -> dict:
     mx = max_hr or user_max_hr(user_id)["max_hr"]
     rest = rhr_list[-1]["resting_hr"]
     cur = mean(bpms[-60:]) if len(bpms) >= 60 else mean(bpms)
-    stress = max(0, min(100, round((cur - rest) / max(1, mx - rest) * 100)))
+    hr_elevation = max(0, min(100, round((cur - rest) / max(1, mx - rest) * 100)))
+
+    hrv_depression = _stress_hrv_component(user_id)
+    if hrv_depression is not None:
+        blended = round(
+            _STRESS_HR_WEIGHT * hr_elevation + _STRESS_HRV_WEIGHT * hrv_depression
+        )
+        return {
+            "available": True,
+            "stress": max(0, min(100, blended)),
+            "current_hr": round(cur),
+            "resting_hr": rest,
+            "stress_version": "stress-hrv-hr-v1",
+            "inputs": ["hr", "rr"],
+        }
     return {
         "available": True,
-        "stress": stress,
+        "stress": hr_elevation,
         "current_hr": round(cur),
         "resting_hr": rest,
+        "stress_version": "stress-hr-v0",
+        "inputs": ["hr"],
     }

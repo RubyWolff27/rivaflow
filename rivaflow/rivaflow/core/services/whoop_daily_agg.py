@@ -31,7 +31,9 @@ logger = logging.getLogger(__name__)
 # Bumps whenever compute_day's math changes — directly, or transitively via cardio_load.LOAD_VERSION (a
 # load-math upgrade must invalidate every stored cardio rollup too). A version mismatch on a stored row
 # forces a recompute, same idea as whoop_cockpit's deriver_version (see whoop_analytics.build_cockpit_snapshot).
-DERIVER_VERSION = f"daily-agg-v1+{LOAD_VERSION}"
+# v2 (Wave 3.1): _day_sleep now threads a personalised sleep-window threshold (core/sleep_window.py)
+# instead of the fixed +12bpm band — a stored day's sleep metric depends on it, so bump invalidates it.
+DERIVER_VERSION = f"daily-agg-v2+{LOAD_VERSION}"
 
 # Cold-start / off-wrist fallback rest-HR for a day whose own resting-HR reading isn't available — mirrors
 # whoop_analytics._DEFAULT_REST_HR. compute_day is deliberately day-isolated (a persisted rollup can't
