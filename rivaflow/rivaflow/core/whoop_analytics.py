@@ -41,6 +41,11 @@ from rivaflow.core.readiness import blend_readiness, zscore
 from rivaflow.core.resilience import cumulative_stress, resilience
 from rivaflow.core.rr_quality import assess_rr, clean_segments, ln_rmssd, rmssd
 from rivaflow.core.sleep_metrics import sleep_debt, sleep_regularity
+from rivaflow.core.sleep_window import (
+    FLOOR_VERSION,
+    bucket_hr,
+    personal_threshold_for_user,
+)
 from rivaflow.core.strain_target import prescribe_strain
 from rivaflow.core.training_load import acwr, heart_rate_recovery, recovery_cost
 from rivaflow.core.whoop_cockpit import (
@@ -154,7 +159,7 @@ def daily_resting_hr(
 
 def _best_sleep_window(
     med: dict[int, int],
-    threshold: int,
+    threshold: float,
     *,
     wake_break: int = 6,
     max_span: int = 150,
@@ -183,7 +188,7 @@ def _best_sleep_window(
 
 
 def _collect_sleep_windows(
-    med: dict[int, int], threshold: int, wake_break: int, min_low: int
+    med: dict[int, int], threshold: float, wake_break: int, min_low: int
 ) -> list[tuple[int, int, int]]:
     """Walk the bucket range and cut it into candidate sleep windows: asleep buckets extend the current
     window, missing buckets bridge it (data gap ≠ wake), and a sustained run of >wake_break awake buckets
@@ -216,28 +221,31 @@ def _collect_sleep_windows(
     return windows
 
 
-def _sleep_from_points(pts: list[tuple[datetime, int]]) -> dict:
+def _sleep_from_points(
+    pts: list[tuple[datetime, int]],
+    threshold_offset: float = 12.0,
+    detector_version: str = FLOOR_VERSION,
+) -> dict:
     """Extract one sleep window from (ts, bpm) points: 5-min-bucket medians, then the window that captures
     the most asleep time (bridging capture gaps, breaking on sustained wake — see _best_sleep_window).
     Shared by last-night and multi-night history. HR-based timing/coverage, NOT WHOOP staging.
+
+    `threshold_offset` is the "asleep" band width above the night's quietest bucket — either the fixed
+    floor (12bpm, the pre-Wave-3.1 default) or a personalised value learned from the user's own nights (see
+    core/sleep_window.py). Callers with a user_id in scope resolve it via
+    sleep_window.personal_threshold_for_user and thread it through; this function itself stays pure/testable
+    with no DB access. `detector_version` is threaded straight into the output for provenance (feeds
+    whoop_daily_agg's staleness check).
     """
     if len(pts) < 120:
         return {
             "available": False,
             "reason": "Not enough overnight HR captured for a sleep estimate yet.",
         }
-    pts.sort(key=lambda p: p[0])
-    t0 = pts[0][0]
-    bucket_bpms: dict[int, list[int]] = defaultdict(list)
-    bucket_time: dict[int, datetime] = {}
-    for t, b in pts:
-        idx = int((t - t0).total_seconds() // 300)  # 5-minute bucket
-        bucket_bpms[idx].append(b)
-        bucket_time.setdefault(idx, t)
-    order = sorted(bucket_bpms)
-    med = {i: sorted(bucket_bpms[i])[len(bucket_bpms[i]) // 2] for i in order}
+    med, bucket_time, bucket_bpms = bucket_hr(pts)
+    order = sorted(med)
     threshold = (
-        min(med.values()) + 12
+        min(med.values()) + threshold_offset
     )  # "asleep" band above the night's quietest bucket
     win = _best_sleep_window(med, threshold)
     if win is None:
@@ -269,6 +277,7 @@ def _sleep_from_points(pts: list[tuple[datetime, int]]) -> dict:
         "fragmented": fragmented,
         "source": "hr_bucketed_window",
         "method": "HR-based sleep window (bridges capture gaps, breaks on sustained wake; not staging).",
+        "detector_version": detector_version,
     }
 
 
@@ -297,7 +306,8 @@ def nightly_sleep(user_id: int, lookback_hours: int = 24) -> dict:
             "capture_dropout": True,
             "reason": "No overnight data — the strap stopped recording last night (likely dropped out).",
         }
-    res = _sleep_from_points(pts)
+    offset, version = personal_threshold_for_user(user_id)
+    res = _sleep_from_points(pts, offset, version)
     if res.get("available"):
         onset = _parse_ts(res["sleep_start"]).astimezone(tz)
         # a genuine sleep onset is evening/late-night; a short block onsetting in the morning/day is a
@@ -325,7 +335,8 @@ def _day_sleep(user_id: int, day: date, tz: ZoneInfo) -> dict | None:
         for h in hr
         if h.get("bpm") and h.get("ts")
     ]
-    s = _sleep_from_points(pts)
+    offset, version = personal_threshold_for_user(user_id)
+    s = _sleep_from_points(pts, offset, version)
     return s if s.get("available") else None
 
 
