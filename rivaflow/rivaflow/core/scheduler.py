@@ -457,6 +457,10 @@ def start_scheduler() -> None:
 
     # 06/09/18/21 Melbourne-local (wake / post-morning-training / evening / post-evening-training) —
     # pre-compute the WHOOP cockpit snapshot. Explicit tz so these are Ruby's local hours, not UTC.
+    # misfire_grace_time: the build takes 1-2min and a deploy can restart the app around a tick —
+    # without a generous grace, apscheduler logs "missed" and SKIPS the run (observed 2026-07-10:
+    # double-restart deploy left the snapshot 8h stale until the next tick, so /summary fell back
+    # to the ~45s live path for every phone refresh).
     _scheduler.add_job(
         _cockpit_snapshot_job,
         "cron",
@@ -465,6 +469,8 @@ def start_scheduler() -> None:
         timezone=_MELBOURNE_TZ,
         id="cockpit_snapshot",
         replace_existing=True,
+        misfire_grace_time=600,
+        coalesce=True,
     )
 
     # Warm the snapshot shortly after startup so a fresh deploy serves instantly without waiting for a tick.
@@ -474,6 +480,7 @@ def start_scheduler() -> None:
         run_date=utcnow() + timedelta(seconds=30),
         id="cockpit_snapshot_warmup",
         replace_existing=True,
+        misfire_grace_time=600,
     )
 
     _scheduler.start()
