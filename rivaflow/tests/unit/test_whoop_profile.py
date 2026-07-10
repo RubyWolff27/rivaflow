@@ -42,7 +42,7 @@ def test_missing_row_resolves_full_defaults(monkeypatch):
     profile = wp.get_whoop_profile(1)
     assert profile.tz == MELBOURNE
     assert profile.age == wp._default_age()
-    assert profile.sleep_need_h == 8.0
+    assert profile.sleep_need_h == 9.0
     assert profile.rest_weekday == 6
     assert profile.max_hr_override is None
 
@@ -51,7 +51,7 @@ def test_empty_row_dict_resolves_full_defaults():
     profile = wp._row_to_profile(1, {})
     assert profile.tz == MELBOURNE
     assert profile.age == wp._default_age()
-    assert profile.sleep_need_h == 8.0
+    assert profile.sleep_need_h == 9.0
     assert profile.rest_weekday == 6
     assert profile.max_hr_override is None
 

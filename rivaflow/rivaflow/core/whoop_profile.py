@@ -23,7 +23,10 @@ logger = logging.getLogger(__name__)
 # (1982-05-27), so behaviour with an empty/missing profile row is identical.
 _DEFAULT_DOB = "1982-05-27"
 _DEFAULT_TZ_NAME = "Australia/Melbourne"
-_DEFAULT_SLEEP_NEED_H = 8.0
+# Matches the sleep-need literals still hardcoded directly in whoop_analytics (quality-score /9.0,
+# the "Xh under your 9h need" clause, readiness's sleep_z) — Ruby's >9h DNA sleep need. Not yet wired to
+# those literals (that's batch 2); this default just avoids a silent 8.0/9.0 mismatch once it is.
+_DEFAULT_SLEEP_NEED_H = 9.0
 _DEFAULT_REST_WEEKDAY = 6  # Sunday
 
 _CACHE_TTL_SEC = 60
