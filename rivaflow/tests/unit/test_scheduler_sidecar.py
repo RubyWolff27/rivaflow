@@ -15,8 +15,9 @@ and rivaflow/rivaflow/api/main.py for the gate call sites.
 
 from __future__ import annotations
 
+import asyncio
+import os
 import signal
-import threading
 from contextlib import contextmanager
 from pathlib import Path
 
@@ -149,6 +150,17 @@ def test_wait_for_db_failure_retries_then_gives_up(monkeypatch):
 
 # ---------------------------------------------------------------------------
 # 2b. rivaflow.scheduler_main — run loop (start → block → stop)
+#
+# Regression context (2026-07): the sidecar crash-looped in prod with
+# `RuntimeError: no running event loop` from apscheduler/schedulers/asyncio.py
+# — AsyncIOScheduler.start() binds to whatever loop is running when it's
+# called, and a bare synchronous _run() has no loop at all. The fix moved
+# everything from start_scheduler() onward into asyncio.run(_amain()).
+# test_run_hosts_start_scheduler_inside_a_running_event_loop below pins that
+# contract directly by having the stubbed start_scheduler() call
+# asyncio.get_running_loop() itself — verified to fail against the prior
+# synchronous implementation (see PR description / commit message for the
+# before/after repro).
 # ---------------------------------------------------------------------------
 
 
@@ -164,41 +176,81 @@ def test_run_exits_without_starting_scheduler_when_db_unreachable(monkeypatch):
 
     assert exit_code == 1
     assert called == []
+    # No event loop should even be spun up when the DB never comes up.
 
 
-def test_run_starts_then_stops_scheduler_in_order(monkeypatch):
+def test_run_hosts_start_scheduler_inside_a_running_event_loop(monkeypatch):
+    """start_scheduler() must observe a running asyncio loop (AsyncIOScheduler.start()
+    binds to it) — this is exactly the contract the sync-_run() bug violated."""
     import rivaflow.scheduler_main as sched_main
 
     monkeypatch.setattr(sched_main, "_wait_for_db", lambda: True)
     order: list[str] = []
-    monkeypatch.setattr(sched_main, "start_scheduler", lambda: order.append("start"))
+
+    def _fake_start_scheduler() -> None:
+        asyncio.get_running_loop()  # raises RuntimeError outside asyncio.run()
+        order.append("start")
+
+    monkeypatch.setattr(sched_main, "start_scheduler", _fake_start_scheduler)
     monkeypatch.setattr(sched_main, "stop_scheduler", lambda: order.append("stop"))
-    # Don't touch the real process signal handlers from inside a test run.
-    monkeypatch.setattr(sched_main, "_install_signal_handlers", lambda _event: None)
 
-    stop_event = threading.Event()
-    stop_event.set()  # already set — event.wait() returns immediately, no real blocking
+    def _fast_stop(loop: asyncio.AbstractEventLoop, stop_event: asyncio.Event) -> None:
+        # Simulate a shutdown signal arriving shortly after startup, without
+        # touching the real process signal handlers from inside a test run.
+        loop.call_later(0.01, stop_event.set)
 
-    exit_code = sched_main._run(stop_event=stop_event)
+    monkeypatch.setattr(sched_main, "_install_signal_handlers", _fast_stop)
+
+    exit_code = sched_main._run()
 
     assert order == ["start", "stop"]
     assert exit_code == 0
 
 
-def test_signal_handler_sets_stop_event():
-    """SIGTERM (or SIGINT) delivered to the sidecar must flip the stop event, not exit abruptly."""
+def test_amain_starts_then_stops_scheduler_in_order(monkeypatch):
+    """Drive _amain directly with a pre-built stop_event set shortly after start."""
     import rivaflow.scheduler_main as sched_main
 
-    event = threading.Event()
+    order: list[str] = []
+    monkeypatch.setattr(sched_main, "start_scheduler", lambda: order.append("start"))
+    monkeypatch.setattr(sched_main, "stop_scheduler", lambda: order.append("stop"))
+    monkeypatch.setattr(
+        sched_main, "_install_signal_handlers", lambda _loop, _event: None
+    )
+
+    async def _drive() -> int:
+        event = asyncio.Event()
+        asyncio.get_running_loop().call_later(0.01, event.set)
+        return await sched_main._amain(stop_event=event)
+
+    exit_code = asyncio.run(_drive())
+
+    assert order == ["start", "stop"]
+    assert exit_code == 0
+
+
+def test_install_signal_handlers_sets_event_on_real_sigterm():
+    """SIGTERM (or SIGINT) delivered to the sidecar must flip the asyncio stop event."""
+    import rivaflow.scheduler_main as sched_main
+
     original_sigterm = signal.getsignal(signal.SIGTERM)
     original_sigint = signal.getsignal(signal.SIGINT)
-    try:
-        sched_main._install_signal_handlers(event)
-        handler = signal.getsignal(signal.SIGTERM)
 
-        assert not event.is_set()
-        handler(signal.SIGTERM, None)
-        assert event.is_set()
+    async def _probe() -> None:
+        loop = asyncio.get_running_loop()
+        event = asyncio.Event()
+        sched_main._install_signal_handlers(loop, event)
+        try:
+            assert not event.is_set()
+            os.kill(os.getpid(), signal.SIGTERM)
+            await asyncio.wait_for(event.wait(), timeout=2)
+            assert event.is_set()
+        finally:
+            loop.remove_signal_handler(signal.SIGTERM)
+            loop.remove_signal_handler(signal.SIGINT)
+
+    try:
+        asyncio.run(_probe())
     finally:
         signal.signal(signal.SIGTERM, original_sigterm)
         signal.signal(signal.SIGINT, original_sigint)
