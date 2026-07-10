@@ -89,31 +89,9 @@ _VERSION_FILE = Path(__file__).parent.parent / "VERSION"
 _APP_VERSION = _VERSION_FILE.read_text().strip() if _VERSION_FILE.exists() else "0.5.0"
 
 # Configure logging — JSON in production, plain text elsewhere
-if settings.IS_PRODUCTION:
-    try:
-        from pythonjsonlogger.json import JsonFormatter
+from rivaflow.core.logging_config import configure_logging  # noqa: E402
 
-        _handler = logging.StreamHandler()
-        _handler.setFormatter(
-            JsonFormatter(
-                fmt="%(asctime)s %(name)s %(levelname)s %(message)s",
-                datefmt="%Y-%m-%dT%H:%M:%S",
-            )
-        )
-        logging.root.handlers = [_handler]
-        logging.root.setLevel(logging.INFO)
-    except ImportError:
-        logging.basicConfig(
-            level=logging.INFO,
-            format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
-            datefmt="%Y-%m-%d %H:%M:%S",
-        )
-else:
-    logging.basicConfig(
-        level=logging.INFO,
-        format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
-        datefmt="%Y-%m-%d %H:%M:%S",
-    )
+configure_logging()
 
 # Initialize Sentry error tracking (only if SDK installed and DSN configured)
 _sentry_dsn = os.getenv("SENTRY_DSN")
@@ -174,9 +152,7 @@ async def _lifespan(_app: FastAPI):
 
     if not settings.IS_TEST:
         try:
-            from rivaflow.core.scheduler import start_scheduler
-
-            start_scheduler()
+            _start_scheduler_if_enabled()
         except Exception as e:
             logging.warning(f"Background scheduler failed to start: {e}")
 
@@ -188,11 +164,39 @@ async def _lifespan(_app: FastAPI):
     close_connection_pool()
 
     try:
-        from rivaflow.core.scheduler import stop_scheduler
-
-        stop_scheduler()
+        _stop_scheduler_if_enabled()
     except Exception:
         pass
+
+
+def _start_scheduler_if_enabled() -> None:
+    """Start the in-process scheduler unless a dedicated sidecar owns it.
+
+    Gated by RIVAFLOW_RUN_SCHEDULER (via settings.RUN_SCHEDULER). Unset or
+    "1" preserves today's single-process behavior (dev/sqlite). "0" is set
+    on the prod api service now that docker-compose.prod.yml runs a
+    dedicated `scheduler` sidecar (see rivaflow.scheduler_main) — starting
+    it here too would double-fire every job.
+    """
+    if not settings.RUN_SCHEDULER:
+        logging.info(
+            "Scheduler disabled — running in sidecar (RIVAFLOW_RUN_SCHEDULER=0)"
+        )
+        return
+
+    from rivaflow.core.scheduler import start_scheduler
+
+    start_scheduler()
+
+
+def _stop_scheduler_if_enabled() -> None:
+    """Mirror of _start_scheduler_if_enabled for shutdown."""
+    if not settings.RUN_SCHEDULER:
+        return
+
+    from rivaflow.core.scheduler import stop_scheduler
+
+    stop_scheduler()
 
 
 app = FastAPI(

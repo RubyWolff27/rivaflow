@@ -31,12 +31,42 @@ services:
       PORT: "8000"
       ENV: production
       DATABASE_URL: postgresql://rivaflow:${DB_PASSWORD}@db:5432/rivaflow
+      # the `scheduler` service below owns APScheduler now — starting it here
+      # too would double-fire every job (one scheduler per gunicorn worker).
+      RIVAFLOW_RUN_SCHEDULER: "0"
     depends_on:
       db:
         condition: service_healthy
     ports:
       - "127.0.0.1:8000:8000"   # internal only; tunnel reaches this
     restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 768m
+
+  # Dedicated APScheduler process. Previously the scheduler ran inside both
+  # gunicorn api workers; the cockpit-snapshot job (~128s) exceeds gunicorn's
+  # --timeout 120 and got SIGABRT'd mid-build, silently losing every
+  # 06/09/18/21 snapshot and killing live requests on that worker. This
+  # service is the same image as api, just running rivaflow.scheduler_main
+  # instead of start.sh — no migrations, no HTTP server, one process.
+  scheduler:
+    build:
+      context: .
+      dockerfile: deploy/Dockerfile.api
+    env_file:
+      - .env.prod
+    environment:
+      ENV: production
+      DATABASE_URL: postgresql://rivaflow:${DB_PASSWORD}@db:5432/rivaflow
+    command: python -m rivaflow.scheduler_main
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      disable: true
     deploy:
       resources:
         limits:

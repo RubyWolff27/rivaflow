@@ -30,6 +30,11 @@ class Settings:
         self.WAITLIST_ENABLED: bool = (
             os.getenv("WAITLIST_ENABLED", "false").lower() == "true"
         )
+        # Unset or "1" (dev/sqlite default): the API process starts its own
+        # in-process scheduler, unchanged. "0" (prod): a dedicated scheduler
+        # sidecar owns the jobs and the API skips start_scheduler() —
+        # see rivaflow.scheduler_main.
+        self.RUN_SCHEDULER: bool = os.getenv("RIVAFLOW_RUN_SCHEDULER", "1") != "0"
 
         # ======================================================================
         # SECURITY
