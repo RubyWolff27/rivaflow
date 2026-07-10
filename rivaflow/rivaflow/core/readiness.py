@@ -40,6 +40,57 @@ GREEN_CAVEAT = (
     "I'm blind to temperature and blood oxygen, so trust your symptoms over a green light."
 )
 
+# ── Readiness scoring model — the swappable seam ──────────────────────────────
+# The weights, band cutoffs and score version are bundled into one versioned
+# model rather than frozen as bare constants welded into blend_readiness().
+# The default is the hand-tuned heuristic; a fitted/learned blend can replace it
+# at runtime via set_readiness_model() with NO change to the fusion core, and
+# every verdict carries `score_version` so a stored score is attributable to the
+# model that produced it (and re-derivable when the model changes).
+
+# (composite_z >= threshold, state, headline), highest threshold first; anything
+# below the last band falls to `rundown`.
+_HEURISTIC_BANDS: tuple[tuple[float, str, str], ...] = (
+    (0.5, "Prime", "Above your baseline — green light to train hard."),
+    (-0.5, "Balanced", "In your normal range — train as planned."),
+    (-1.5, "Strained", "Below baseline — technical/skills over hard rolls today."),
+)
+_RUNDOWN_BAND: tuple[str, str] = (
+    "Rundown",
+    "Well below baseline — prioritise recovery.",
+)
+
+
+@dataclass(frozen=True)
+class ReadinessModel:
+    """A swappable readiness scoring model: signal weights, band cutoffs and a
+    version stamp. Defaults to the HRV-led heuristic; ``set_readiness_model`` is
+    the seam a learned/refit blend plugs into without touching the fusion core.
+    """
+
+    weights: dict[str, float]
+    bands: tuple[tuple[float, str, str], ...] = _HEURISTIC_BANDS
+    rundown: tuple[str, str] = _RUNDOWN_BAND
+    version: str = "heuristic-v1"
+
+
+_DEFAULT_MODEL = ReadinessModel(weights=dict(WEIGHTS))
+_active_model = _DEFAULT_MODEL
+
+
+def get_readiness_model() -> ReadinessModel:
+    """The model ``blend_readiness`` currently scores with."""
+    return _active_model
+
+
+def set_readiness_model(model: ReadinessModel | None) -> None:
+    """Swap the active scoring model (``None`` restores the default heuristic).
+
+    The seam for a fitted/learned readiness blend — no edit to the fusion core.
+    """
+    global _active_model
+    _active_model = model or _DEFAULT_MODEL
+
 
 def zscore(values: list[float], window: int = 7) -> dict | None:
     """z-score of the latest value vs the personal baseline formed by the PRIOR `window` days.
@@ -110,29 +161,28 @@ def blend_readiness(
             "caveat": None,
         }
 
+    # The active scoring model (default heuristic; swappable for a fitted blend).
+    model = get_readiness_model()
+
     # Renormalise weights over the signals we actually have.
-    available = {k: v for k, v in signal_z.items() if v is not None and k in WEIGHTS}
-    wsum = sum(WEIGHTS[k] for k in available)
+    available = {
+        k: v for k, v in signal_z.items() if v is not None and k in model.weights
+    }
+    wsum = sum(model.weights[k] for k in available)
     contributors: list[Contributor] = []
     composite = 0.0
     for name, z in available.items():
-        w = WEIGHTS[name] / wsum
+        w = model.weights[name] / wsum
         contribution = w * z * DIRECTION[name]
         composite += contribution
         contributors.append(Contributor(name, LABELS[name], z, w, contribution))
 
     # Bands on the recovery-oriented composite z (higher = more recovered).
-    if composite >= 0.5:
-        state, head = "Prime", "Above your baseline — green light to train hard."
-    elif composite >= -0.5:
-        state, head = "Balanced", "In your normal range — train as planned."
-    elif composite >= -1.5:
-        state, head = (
-            "Strained",
-            "Below baseline — technical/skills over hard rolls today.",
-        )
-    else:
-        state, head = "Rundown", "Well below baseline — prioritise recovery."
+    state, head = model.rundown
+    for threshold, band_state, band_head in model.bands:
+        if composite >= threshold:
+            state, head = band_state, band_head
+            break
 
     contributors.sort(key=lambda c: abs(c.ready_contribution), reverse=True)
     caveat = GREEN_CAVEAT if state in ("Prime", "Balanced") else None
@@ -141,6 +191,7 @@ def blend_readiness(
         "state": state,
         "headline": head,
         "driver": "multi_input_lnrmssd_led",
+        "score_version": model.version,
         "score": max(0, min(100, round(50 + composite * 20))),
         "composite_z": round(composite, 2),
         "contributors": [c.as_dict() for c in contributors],
