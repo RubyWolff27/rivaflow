@@ -27,7 +27,7 @@ from datetime import datetime
 from typing import Any
 
 from rivaflow.core import whoop_analytics
-from rivaflow.core.whoop_analytics import LOCAL_TZ
+from rivaflow.core.whoop_profile import get_whoop_profile, is_rest_day
 
 logger = logging.getLogger(__name__)
 
@@ -80,10 +80,11 @@ def _llm_enabled() -> bool:
     )
 
 
-def _is_sabbath() -> bool:
-    """Sunday is Ruby's rest day — the Sabbath narrative is prescriptive rest and
-    must never be reframed by the model."""
-    return datetime.now(LOCAL_TZ).weekday() == 6
+def _is_sabbath(user_id: int) -> bool:
+    """The user's configured rest day (default Sunday) — the Sabbath narrative is
+    prescriptive rest and must never be reframed by the model."""
+    profile = get_whoop_profile(user_id)
+    return is_rest_day(profile, datetime.now(profile.tz))
 
 
 def _passes_honesty_checks(text: str) -> bool:
@@ -155,7 +156,7 @@ def compose_narrative(
         return rule_based
 
     # The Sabbath line is prescriptive rest — never let the model reframe it.
-    if _is_sabbath():
+    if _is_sabbath(user_id):
         return rule_based
 
     try:

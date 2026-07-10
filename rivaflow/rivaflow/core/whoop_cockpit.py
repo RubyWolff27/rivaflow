@@ -10,7 +10,6 @@ Sub-phased by panel group; P3.1 ships Recovery & Load. Every dynamic string is H
 from __future__ import annotations
 
 import html
-from math import log1p
 
 _ACCENT = {
     "Prime": "#34d399",
@@ -948,7 +947,7 @@ def _session_card_html(s: dict, idx: int = 0) -> str:
             f'<div class="sub">{esc(s.get("label", "Session"))} · {esc(s.get("day", ""))} — '
             f'{esc(a.get("reason", "no HR captured"))}</div></div>'
         )
-    load, hardness = session_load_hardness(a)
+    load, hardness = a.get("load", 0.0), a.get("hardness", "EASY")
     curve = svg_area_line(
         a.get("times", []),
         a.get("values", []),
@@ -988,22 +987,6 @@ def render_session_deepdives(sessions: list[dict]) -> str:
 
 
 # ── P6 "Story over Lab" — a glanceable Tier-1 band on top of the technical Lab ──
-
-
-def session_load_hardness(analytics: dict) -> tuple[float, str]:
-    """Compressed 0–21 cardio-load + a HARD/MODERATE/EASY label from a session's zone-seconds (same TRIMP
-    weighting daily_cardio_load uses). Lives here (not analytics) so both the renderer and narrative can
-    reuse it without an import cycle. Returns (0.0, 'EASY') on empty/missing zone data.
-    """
-    zone_secs = analytics.get("hr_zone_secs", {}) or {}
-    weights = {1: 1, 2: 2, 3: 4, 4: 8, 5: 16}
-    raw = sum(weights.get(int(z), 0) * (secs / 60.0) for z, secs in zone_secs.items())
-    load = round(min(21.0, 6.0 * log1p(raw / 20.0)), 1)
-    if load >= 12:
-        return load, "HARD"
-    if load >= 6:
-        return load, "MODERATE"
-    return load, "EASY"
 
 
 def _hardness_badge(hardness: str) -> str:
@@ -1169,7 +1152,7 @@ def _workout_card(last_workout: dict | None) -> str:
             f'<div class="big">{esc(label)}</div>'
             f'<div class="sub">{esc(day)} — {esc(a.get("reason", "no HR captured"))}</div></div>'
         )
-    load, hardness = session_load_hardness(a)
+    load, hardness = a.get("load", 0.0), a.get("hardness", "EASY")
     dur_min = a.get("duration_sec", 0) // 60
     return (
         '<details class="card"><summary>'
@@ -1246,7 +1229,7 @@ def _workout_row(s: dict, idx: int = 0) -> str:
             f"{esc(day)} · {esc(label)} — {esc(a.get('reason', 'no HR captured'))}"
             f"</summary>{_session_card_html(s, idx=idx)}</details>"
         )
-    load, hardness = session_load_hardness(a)
+    load, hardness = a.get("load", 0.0), a.get("hardness", "EASY")
     dur_min = a.get("duration_sec", 0) // 60
     return (
         '<details class="workout-row"><summary>'

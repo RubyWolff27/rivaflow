@@ -211,6 +211,82 @@ class WhoopRepository:
         )
 
     @staticmethod
+    def rr_range_between(user_id: int, start_iso: str, end_iso: str) -> list[dict]:
+        """RR intervals within [start, end] (inclusive), ascending — the bounded-window counterpart to
+        hr_range, for computing one specific historical day's rollup (whoop_daily_agg, Wave 3.4) where
+        rr_range's 'last N days from now' doesn't line up with an arbitrary past local day.
+        """
+        return BaseRepository._fetchall(
+            convert_query(
+                "SELECT ts, rr_ms FROM whoop_rr WHERE user_id = ? AND ts >= ? AND ts <= ? ORDER BY ts ASC"
+            ),
+            (user_id, start_iso, end_iso),
+        )
+
+    @staticmethod
+    def hr_count_range(user_id: int, start_iso: str, end_iso: str) -> int:
+        """COUNT(*) of whoop_hr rows in [start, end] — an index range-scan count, no row materialization.
+        Half of the whoop_daily_agg staleness check (see rr_count_range): a stored rollup whose CURRENT raw
+        count no longer matches the count it was computed from has had rows land late (the phone's offline
+        spool / a historical drain) and must be recomputed."""
+        row = BaseRepository._fetchone(
+            convert_query(
+                "SELECT COUNT(*) AS n FROM whoop_hr WHERE user_id = ? AND ts >= ? AND ts <= ?"
+            ),
+            (user_id, start_iso, end_iso),
+        )
+        return int(row["n"]) if row else 0
+
+    @staticmethod
+    def rr_count_range(user_id: int, start_iso: str, end_iso: str) -> int:
+        """COUNT(*) of whoop_rr rows in [start, end] — see hr_count_range."""
+        row = BaseRepository._fetchone(
+            convert_query(
+                "SELECT COUNT(*) AS n FROM whoop_rr WHERE user_id = ? AND ts >= ? AND ts <= ?"
+            ),
+            (user_id, start_iso, end_iso),
+        )
+        return int(row["n"]) if row else 0
+
+    # ── Daily aggregate rollups (whoop_daily_agg — Wave 3.4, append-only per-day compute cache) ──
+
+    @staticmethod
+    def get_daily_agg(user_id: int, day: str) -> dict | None:
+        """The stored rollup for one user/day, or None if this day has never been computed."""
+        return BaseRepository._fetchone(
+            convert_query(
+                "SELECT metrics_json, deriver_version, sample_count, complete, updated_at "
+                "FROM whoop_daily_agg WHERE user_id = ? AND day = ?"
+            ),
+            (user_id, day),
+        )
+
+    @staticmethod
+    def upsert_daily_agg(
+        user_id: int,
+        day: str,
+        metrics_json: str,
+        deriver_version: str,
+        sample_count: int,
+        complete: bool,
+    ) -> None:
+        """Insert or replace one day's rollup. A day is only ever REPLACED by a fresher computation of the
+        SAME day (deriver-version bump, or late-arriving raw data changing its sample_count) — never
+        deleted, so the table stays append-only in spirit."""
+        BaseRepository._execute(
+            convert_query(
+                "INSERT INTO whoop_daily_agg "
+                "(user_id, day, metrics_json, deriver_version, sample_count, complete, updated_at) "
+                "VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP) "
+                "ON CONFLICT (user_id, day) DO UPDATE SET "
+                "metrics_json = EXCLUDED.metrics_json, deriver_version = EXCLUDED.deriver_version, "
+                "sample_count = EXCLUDED.sample_count, complete = EXCLUDED.complete, "
+                "updated_at = CURRENT_TIMESTAMP"
+            ),
+            (user_id, day, metrics_json, deriver_version, sample_count, complete),
+        )
+
+    @staticmethod
     def latest_capture(user_id: int) -> dict | None:
         """Most recent ingest heartbeat (capture-health)."""
         return BaseRepository._fetchone(

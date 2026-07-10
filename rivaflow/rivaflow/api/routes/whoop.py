@@ -25,6 +25,7 @@ from rivaflow.api.rate_limit import limiter
 from rivaflow.core.dependencies import get_current_user, require_write_scope
 from rivaflow.core.error_handling import route_error_handler
 from rivaflow.core.exceptions import NotFoundError
+from rivaflow.core.whoop_profile import today_is_rest_day
 from rivaflow.db.repositories.whoop_repo import WhoopRepository
 
 logger = logging.getLogger(__name__)
@@ -126,11 +127,37 @@ class WhoopIngest(BaseModel):
     device: str | None = None
     kind: str | None = "realtime"  # 'realtime' | 'historical_drain'
     batch_id: str | None = None
+    device_tz: str | None = None  # IANA tz the phone last reported (e.g. travel)
     raw_frames: list[RawFrame] = Field(default_factory=list)
     hr: list[HrSample] = Field(default_factory=list)
     rr: list[RrSample] = Field(default_factory=list)
     hrv: list[HrvSample] = Field(default_factory=list)
     battery: list[BatterySample] = Field(default_factory=list)
+
+
+def _persist_device_tz(user_id: int, device_tz: str | None) -> None:
+    """Validate + persist the phone-reported device tz on the profile (WhoopProfile
+    seam, Wave 3.6) — one UPDATE per genuine change, not per ingest batch. An
+    invalid/unknown IANA name is logged and ignored; the ingest still returns 200.
+    """
+    if not device_tz:
+        return
+    try:
+        ZoneInfo(device_tz)
+    except Exception:
+        logger.info("Ignoring invalid device_tz=%r for user %s", device_tz, user_id)
+        return
+
+    from rivaflow.db.repositories.base_repository import BaseRepository
+
+    row = BaseRepository._fetchone(
+        "SELECT device_tz FROM profile WHERE user_id = ?", (user_id,)
+    )
+    if row is None or row.get("device_tz") == device_tz:
+        return  # no profile row yet, or already up to date — skip the write
+    BaseRepository._execute(
+        "UPDATE profile SET device_tz = ? WHERE user_id = ?", (device_tz, user_id)
+    )
 
 
 def _span(payload: WhoopIngest) -> tuple[str | None, str | None]:
@@ -160,6 +187,8 @@ def ingest(
     unbounded raw-frame pollution.
     """
     user_id: int = current_user["id"]
+
+    _persist_device_tz(user_id, payload.device_tz)
 
     raw = WhoopRepository.ingest_raw_frames(
         user_id, [f.model_dump() for f in payload.raw_frames]
@@ -335,9 +364,7 @@ def readiness(current_user: dict = Depends(get_current_user)) -> dict:
     """Ruby Readiness Score — at-rest HRV vs rolling baseline. Sabbath-silent (Sunday rest)."""
     from rivaflow.core.whoop_analytics import compute_readiness
 
-    is_sabbath = (
-        datetime.now(ZoneInfo("Australia/Melbourne")).weekday() == 6
-    )  # Sunday = Ruby's rest day (adjust if Saturday-Sabbath)
+    is_sabbath = today_is_rest_day(current_user["id"])
     return compute_readiness(current_user["id"], today_is_sabbath=is_sabbath)
 
 
@@ -347,9 +374,7 @@ def strain_target_endpoint(current_user: dict = Depends(get_current_user)) -> di
     """B5 — today's prescribed strain target (0–21) from readiness, capped when Strained. Sabbath-silent."""
     from rivaflow.core.whoop_analytics import strain_target
 
-    is_sabbath = (
-        datetime.now(ZoneInfo("Australia/Melbourne")).weekday() == 6
-    )  # Sunday = Ruby's rest day
+    is_sabbath = today_is_rest_day(current_user["id"])
     return strain_target(current_user["id"], today_is_sabbath=is_sabbath)
 
 
@@ -492,7 +517,7 @@ def digest_endpoint(current_user: dict = Depends(get_current_user)) -> dict:
     """P2 — once-daily digest preview (readiness + strain + prevention, tier→channel routed). Sabbath-aware."""
     from rivaflow.core.whoop_analytics import morning_digest
 
-    is_sabbath = datetime.now(ZoneInfo("Australia/Melbourne")).weekday() == 6
+    is_sabbath = today_is_rest_day(current_user["id"])
     return morning_digest(current_user["id"], today_is_sabbath=is_sabbath)
 
 
@@ -605,24 +630,28 @@ def stress(current_user: dict = Depends(get_current_user)) -> dict:
     return today_stress(current_user["id"])
 
 
-# whoop_summary recomputes readiness/HRV/sleep/strain from the raw HR/RR tables on every call —
-# 26-35s at ~280k HR rows (2026-07-08 access logs), which times out the phone tiles and stacks a
-# fresh 30s recompute under every retry. New data only lands every ~2.5 min (uploader flush), so a
-# short-TTL in-process copy loses nothing a client could observe. Per-worker duplication is fine.
-_SUMMARY_CACHE: dict[tuple[int, bool], tuple[float, dict]] = {}
-_SUMMARY_TTL_S = 300.0
+# whoop_summary used to recompute readiness/HRV/sleep/strain from the raw HR/RR tables on every call —
+# 26-35s at ~280k HR rows (2026-07-08 access logs), which timed out the phone tiles and stacked a fresh
+# 30s recompute under every retry. Wave 3.4 (whoop_daily_agg) fixed the root cause: historical days are
+# rolled up once and served from a per-day cache, so only today is genuinely computed live. The TTL
+# band-aid that papered over the slow path is gone; this just measures + logs so a regression is loud.
+_SUMMARY_SLOW_MS = 2000
 
 
-def _cached_whoop_summary(user_id: int, today_is_sabbath: bool) -> dict:
+def _timed_whoop_summary(user_id: int, today_is_sabbath: bool) -> dict:
     from rivaflow.core.whoop_analytics import whoop_summary
 
-    key = (user_id, today_is_sabbath)
-    now = time.monotonic()
-    hit = _SUMMARY_CACHE.get(key)
-    if hit and hit[0] > now:
-        return hit[1]
+    started = time.monotonic()
     result = whoop_summary(user_id, today_is_sabbath=today_is_sabbath)
-    _SUMMARY_CACHE[key] = (now + _SUMMARY_TTL_S, result)
+    elapsed_ms = round((time.monotonic() - started) * 1000)
+    logger.info("whoop_summary rendered in %dms for user %s", elapsed_ms, user_id)
+    if elapsed_ms > _SUMMARY_SLOW_MS:
+        logger.warning(
+            "whoop_summary rendered in %dms for user %s — over the %dms budget",
+            elapsed_ms,
+            user_id,
+            _SUMMARY_SLOW_MS,
+        )
     return result
 
 
@@ -632,8 +661,8 @@ def summary(current_user: dict = Depends(get_current_user)) -> dict:
     """One-call rollup for a thin display client: readiness + HRV + resting HR + last night's sleep.
     The whole point of the server-side architecture — the phone/dashboard fetches this and just renders it.
     """
-    is_sabbath = datetime.now(ZoneInfo("Australia/Melbourne")).weekday() == 6
-    return _cached_whoop_summary(current_user["id"], today_is_sabbath=is_sabbath)
+    is_sabbath = today_is_rest_day(current_user["id"])
+    return _timed_whoop_summary(current_user["id"], today_is_sabbath=is_sabbath)
 
 
 class CoachTurn(BaseModel):
@@ -664,7 +693,7 @@ async def coach(
     """
     from rivaflow.core.services import whoop_coach
 
-    is_sabbath = datetime.now(ZoneInfo("Australia/Melbourne")).weekday() == 6
+    is_sabbath = today_is_rest_day(current_user["id"])
     try:
         return await whoop_coach.answer(
             current_user["id"],
@@ -729,8 +758,8 @@ def view(key: str) -> HTMLResponse:
     if not api_key:
         return HTMLResponse(_UNAUTH_HTML, status_code=401)
 
-    is_sabbath = datetime.now(ZoneInfo("Australia/Melbourne")).weekday() == 6
-    s = _cached_whoop_summary(api_key["user_id"], today_is_sabbath=is_sabbath)
+    is_sabbath = today_is_rest_day(api_key["user_id"])
+    s = _timed_whoop_summary(api_key["user_id"], today_is_sabbath=is_sabbath)
     return HTMLResponse(_render_whoop_view(s))
 
 
