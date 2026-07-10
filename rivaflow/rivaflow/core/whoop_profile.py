@@ -12,7 +12,7 @@ from __future__ import annotations
 import logging
 import time
 from dataclasses import dataclass
-from datetime import date
+from datetime import date, datetime
 from zoneinfo import ZoneInfo
 
 from rivaflow.db.repositories.base_repository import BaseRepository
@@ -139,7 +139,15 @@ def get_whoop_profile(user_id: int) -> WhoopProfile:
     return profile
 
 
-def is_rest_day(profile: WhoopProfile, now) -> bool:
+def is_rest_day(profile: WhoopProfile, now: datetime) -> bool:
     """True when `now` (any tz-aware datetime) falls on the profile's rest weekday,
     evaluated in the profile's own tz."""
     return now.astimezone(profile.tz).weekday() == profile.rest_weekday
+
+
+def today_is_rest_day(user_id: int) -> bool:
+    """Route-level convenience: fetch the profile and evaluate 'now' against it in one
+    call — every /whoop route that needs today's Sabbath/rest-day flag has a user_id
+    (current_user or api_key) in scope but no reason to hold a WhoopProfile itself."""
+    profile = get_whoop_profile(user_id)
+    return is_rest_day(profile, datetime.now(profile.tz))

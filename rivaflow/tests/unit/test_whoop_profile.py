@@ -140,6 +140,34 @@ def test_is_rest_day_evaluates_in_profile_tz():
     assert wp.is_rest_day(profile, almost_midnight_utc) is True
 
 
+# ── today_is_rest_day (route-level convenience) ───────────────────────────────
+
+
+def _fixed_now(fixed: datetime):
+    class _FixedDatetime(datetime):
+        @classmethod
+        def now(cls, tz=None):
+            return fixed if tz is None else fixed.astimezone(tz)
+
+    return _FixedDatetime
+
+
+def test_today_is_rest_day_true_on_configured_rest_day(monkeypatch):
+    profile = wp._row_to_profile(1, {})  # default rest_weekday=6 (Sunday)
+    monkeypatch.setattr(wp, "get_whoop_profile", lambda uid: profile)
+    sunday = datetime(2026, 7, 12, 9, 0, tzinfo=MELBOURNE)  # 12 Jul 2026 is a Sunday
+    monkeypatch.setattr(wp, "datetime", _fixed_now(sunday))
+    assert wp.today_is_rest_day(1) is True
+
+
+def test_today_is_rest_day_false_on_non_rest_day(monkeypatch):
+    profile = wp._row_to_profile(1, {})
+    monkeypatch.setattr(wp, "get_whoop_profile", lambda uid: profile)
+    monday = datetime(2026, 7, 13, 9, 0, tzinfo=MELBOURNE)
+    monkeypatch.setattr(wp, "datetime", _fixed_now(monday))
+    assert wp.today_is_rest_day(1) is False
+
+
 # ── cache behaviour ────────────────────────────────────────────────────────────
 
 
