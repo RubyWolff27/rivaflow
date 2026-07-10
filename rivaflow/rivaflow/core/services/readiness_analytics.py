@@ -9,9 +9,6 @@ from rivaflow.db.repositories import (
     ReadinessRepository,
     SessionRepository,
 )
-from rivaflow.db.repositories.whoop_recovery_cache_repo import (
-    WhoopRecoveryCacheRepository,
-)
 
 
 class ReadinessAnalyticsService:
@@ -20,7 +17,6 @@ class ReadinessAnalyticsService:
     def __init__(self):
         self.session_repo = SessionRepository()
         self.readiness_repo = ReadinessRepository()
-        self.recovery_cache_repo = WhoopRecoveryCacheRepository()
 
     def get_readiness_trends(
         self,
@@ -403,10 +399,21 @@ class ReadinessAnalyticsService:
                         }
                     )
 
-        # ---- Phase 2 recovery trends from whoop_recovery_cache ----
-        recovery_records = self.recovery_cache_repo.get_by_date_range(
-            user_id, start_date.isoformat(), end_date.isoformat() + "T23:59:59"
-        )
+        # ---- Recovery trends from the raw-derived biometrics seam ----
+        # (replaces the cancelled-subscription whoop_recovery_cache). HRV + RHR
+        # trends are real per-day values; recovery_score is a today rollup so it
+        # populates the latest day; sleep-staging fields are absent (locked), so
+        # sleep_breakdown below skips them. Newest-first to match the old cache
+        # order the downstream loops assume.
+        from rivaflow.core.services import whoop_biometrics
+
+        _span_days = max(1, (end_date - start_date).days + 1)
+        recovery_records = [
+            {**r, "cycle_start": r.get("date", "")}
+            for r in reversed(
+                whoop_biometrics.recovery_series(user_id, days=_span_days)
+            )
+        ]
 
         # HRV trend (daily values + 7-day moving average)
         hrv_trend = []
@@ -451,15 +458,11 @@ class ReadinessAnalyticsService:
                 }
             )
 
-        # Strain vs recovery (join workout cache + recovery cache by date)
-        from rivaflow.db.repositories.whoop_workout_cache_repo import (
-            WhoopWorkoutCacheRepository,
-        )
-
-        workout_cache = WhoopWorkoutCacheRepository()
-        cached_workouts = workout_cache.get_by_user_and_time_range(
-            user_id, start_date.isoformat(), end_date.isoformat() + "T23:59:59"
-        )
+        # Strain vs recovery + per-workout zone distribution came from the
+        # cancelled-subscription workout cache (WHOOP cloud). No raw-derived
+        # equivalent yet (needs a sessions<->whoop_sessions strain link), so
+        # these panels are honest-empty until that link exists.
+        cached_workouts: list[dict] = []
         rec_by_date = {}
         for rec in recovery_records:
             d = rec["cycle_start"][:10]

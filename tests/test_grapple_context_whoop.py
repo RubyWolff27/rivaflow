@@ -103,10 +103,6 @@ def test_whoop_context_partial_data(mock_series):
     assert "7-Day HRV Trend" not in result
 
 
-@patch(
-    "rivaflow.db.repositories.whoop_workout_cache_repo"
-    ".WhoopWorkoutCacheRepository.get_by_session_id"
-)
 @patch(_SERIES)
 @patch("rivaflow.core.services.grapple.ai_insight_service.GrappleLLMClient")
 @patch("rivaflow.core.services.grapple.ai_insight_service.InsightsAnalyticsService")
@@ -116,7 +112,6 @@ def test_insight_includes_whoop_recovery(
     mock_insights,
     mock_llm,
     mock_series,
-    mock_wo_get,
 ):
     """Post-session insight prompt reads WHOOP recovery from the seam."""
     import asyncio
@@ -154,7 +149,6 @@ def test_insight_includes_whoop_recovery(
     mock_series.return_value = [
         _make_recovery(day_offset=0, recovery_score=80, hrv_ms=50)
     ]
-    mock_wo_get.return_value = {"strain": 14.2}
 
     mock_llm_inst = MagicMock()
 
