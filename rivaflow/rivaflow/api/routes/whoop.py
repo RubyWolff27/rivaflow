@@ -636,6 +636,27 @@ def summary(current_user: dict = Depends(get_current_user)) -> dict:
     return _cached_whoop_summary(current_user["id"], today_is_sabbath=is_sabbath)
 
 
+@router.get("/cockpit-metrics")
+@route_error_handler("whoop_cockpit_metrics", detail="Failed to read cockpit metrics")
+def cockpit_metrics(current_user: dict = Depends(get_current_user)) -> dict:
+    """The structured metrics JSON behind the cockpit snapshot — the same data
+    the deep-dive HTML was rendered from, served instantly (one SELECT) instead
+    of the ~40s recompute. The stable contract for the phone and a future model
+    narrator layer. Returns {metrics, deriver_version, rendered_at} or nulls
+    until the first snapshot exists.
+    """
+    import json
+
+    row = WhoopRepository.get_cockpit_metrics(current_user["id"])
+    if not row or not row.get("metrics_json"):
+        return {"metrics": None, "deriver_version": None, "rendered_at": None}
+    return {
+        "metrics": json.loads(row["metrics_json"]),
+        "deriver_version": row.get("deriver_version"),
+        "rendered_at": str(row.get("rendered_at")),
+    }
+
+
 @router.get("/cockpit", response_class=HTMLResponse)
 def cockpit(key: str) -> HTMLResponse:
     """P3 — server-rendered web deep-dive cockpit (analyst panels). Zero client compute; key-auth like /view."""

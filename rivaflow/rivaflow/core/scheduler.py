@@ -331,7 +331,7 @@ async def _cockpit_snapshot_job() -> None:
     if not _try_advisory_lock("cockpit_snapshot"):
         return
     try:
-        from rivaflow.core.whoop_analytics import _build_cockpit_page
+        from rivaflow.core.whoop_analytics import build_cockpit_snapshot
         from rivaflow.db.database import convert_query, get_connection
         from rivaflow.db.repositories.whoop_repo import WhoopRepository
 
@@ -350,8 +350,10 @@ async def _cockpit_snapshot_job() -> None:
 
         for uid in user_ids:
             try:
-                html = _build_cockpit_page(uid)
-                WhoopRepository.upsert_cockpit_snapshot(uid, html)
+                html, metrics_json, deriver_version = build_cockpit_snapshot(uid)
+                WhoopRepository.upsert_cockpit_snapshot(
+                    uid, html, metrics_json, deriver_version
+                )
             except Exception:
                 logger.warning(
                     "Cockpit snapshot failed for user %d", uid, exc_info=True
