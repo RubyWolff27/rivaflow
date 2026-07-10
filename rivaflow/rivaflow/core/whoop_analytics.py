@@ -1068,7 +1068,7 @@ def _lab_panels(user_id: int, *, ctx: dict) -> str:
             "Your recent sessions beat by beat — zones, drift, and between-round recovery.",
         ),
         (
-            render_prevention_log(prevention_log(user_id), prevention_watch(user_id)),
+            render_prevention_log(prevention_log(user_id), ctx["prevention"]),
             "A personal safety net — flags when a signal drifts from your own baseline. Never diagnoses.",
         ),
         (
@@ -1107,15 +1107,10 @@ def _build_cockpit_page(user_id: int) -> str:
         "sleep_analysis": sleep_a,
         "sessions": sessions,
         "effects": [behaviour_for_tag(user_id, t) for t in tags],
+        "prevention": prevention_watch(user_id),
     }
 
     need_hours = sleep_a.get("debt", {}).get("need_hours", 9)
-    narrative = daily_narrative(
-        user_id,
-        readiness=readiness,
-        night=night,
-        last_workout=sessions[0] if sessions else None,
-    )
     # Tier-3 — 14-day history behind the verdict (hero tap-to-expand sparklines)
     trends = {
         "hrv": [d["ln_rmssd"] for d in daily_resting_rmssd(user_id, days=14)],
@@ -1124,6 +1119,30 @@ def _build_cockpit_page(user_id: int) -> str:
             d.get("duration_hours") for d in nightly_sleep_history(user_id, nights=14)
         ],
     }
+
+    # Wave 2.3 — narrative behind a provider seam. Rule-based by default (byte-for-byte
+    # the same line as before); the optional LLM adapter composes from the cross-signals
+    # below (which the rule template bank cannot combine) and honesty-post-checks, else
+    # falls straight back to this rule-based line. See services/whoop_narrative.py.
+    from rivaflow.core.services.whoop_narrative import compose_narrative
+
+    acwr_ctx = ctx["acwr"]
+    narrative = compose_narrative(
+        user_id,
+        readiness=readiness,
+        night=night,
+        last_workout=sessions[0] if sessions else None,
+        cross_signals={
+            "hrv_ln_trend": trends["hrv"],
+            "rhr_trend": trends["rhr"],
+            "acwr": acwr_ctx.get("ratio") if isinstance(acwr_ctx, dict) else None,
+            "cardio_today": ctx["cardio"][-1]["cardio_load"] if ctx["cardio"] else None,
+            "strain_target": strain.get("target_load")
+            if isinstance(strain, dict)
+            else None,
+            "prevention": ctx["prevention"],
+        },
+    )
     story = render_today_story(
         readiness,
         narrative,
