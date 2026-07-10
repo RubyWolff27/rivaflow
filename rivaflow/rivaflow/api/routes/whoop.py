@@ -636,6 +636,58 @@ def summary(current_user: dict = Depends(get_current_user)) -> dict:
     return _cached_whoop_summary(current_user["id"], today_is_sabbath=is_sabbath)
 
 
+class CoachTurn(BaseModel):
+    """One turn of the recovery/readiness coach chat (Wave 2.1)."""
+
+    message: str = Field(..., min_length=1, max_length=2000)
+    history: list[dict] = Field(
+        default_factory=list,
+        description="Trailing conversation as [{role:'user'|'assistant', content:str}, …]",
+    )
+
+
+@router.post("/coach")
+@limiter.limit("30/minute")
+@route_error_handler("whoop_coach", detail="Failed to get coach response")
+async def coach(
+    request: Request,
+    req: CoachTurn,
+    current_user: dict = Depends(require_write_scope),
+) -> dict:
+    """WHOOP recovery & readiness coach — server-side and provider-agnostic (Wave 2.1).
+
+    Reasons over the SAME `whoop_summary` the phone renders (so answers cite the
+    numbers Ruby sees) and generates via `GrappleLLMClient` — provider + model are
+    a server config row, so swapping the model is an env edit, no app rebuild.
+    Write-scoped: a paid outbound LLM call is a side-effect, so a read-only view
+    key cannot invoke it. Rate-limited as an LLM-budget backstop.
+    """
+    from rivaflow.core.services import whoop_coach
+
+    is_sabbath = datetime.now(ZoneInfo("Australia/Melbourne")).weekday() == 6
+    try:
+        return await whoop_coach.answer(
+            current_user["id"],
+            req.message,
+            history=req.history,
+            today_is_sabbath=is_sabbath,
+        )
+    except RuntimeError as exc:
+        # No LLM provider configured, or every provider failed — degrade gracefully
+        # rather than 500, so the phone shows a message instead of a broken chat.
+        logger.warning("Coach unavailable for user %s: %s", current_user["id"], exc)
+        return {
+            "reply": (
+                "I can't reach the coaching model right now — your numbers are still "
+                "live on your dashboard. Try again in a moment."
+            ),
+            "provider": None,
+            "model": None,
+            "tokens": None,
+            "unavailable": True,
+        }
+
+
 @router.get("/cockpit-metrics")
 @route_error_handler("whoop_cockpit_metrics", detail="Failed to read cockpit metrics")
 def cockpit_metrics(current_user: dict = Depends(get_current_user)) -> dict:

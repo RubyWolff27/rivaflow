@@ -134,6 +134,139 @@ class GrappleLLMClient:
         )
         raise RuntimeError(f"All LLM providers failed: {last_error}")
 
+    def chat_sync(
+        self,
+        messages: list[dict[str, str]],
+        user_id: int,
+        temperature: float = 0.7,
+        max_tokens: int = 1024,
+    ) -> dict[str, Any]:
+        """Blocking sibling of `chat` for callers already outside the request path.
+
+        The cockpit snapshot builder is sync and runs inside an async cron job
+        (already blocking on ~40s of analytics), so it cannot `await` and must
+        not spin an event loop. This keeps the SAME provider-agnostic priority
+        and config as `chat`, over `httpx.Client`.
+        """
+        if not self.providers:
+            raise RuntimeError("No LLM providers configured")
+
+        last_error = None
+        for provider in self.providers:
+            try:
+                if provider == "groq":
+                    return self._call_openai_compatible_sync(
+                        "groq",
+                        self.GROQ_API_URL,
+                        self.groq_api_key,
+                        messages,
+                        temperature,
+                        max_tokens,
+                    )
+                if provider == "together":
+                    return self._call_openai_compatible_sync(
+                        "together",
+                        self.TOGETHER_API_URL,
+                        self.together_api_key,
+                        messages,
+                        temperature,
+                        max_tokens,
+                    )
+                if provider == "ollama":
+                    return self._call_ollama_sync(messages, temperature, max_tokens)
+            except (
+                ConnectionError,
+                OSError,
+                TimeoutError,
+                RuntimeError,
+                httpx.HTTPStatusError,
+            ) as e:
+                logger.warning(
+                    f"Provider {provider} (sync) failed: {type(e).__name__}: {str(e)}"
+                )
+                last_error = e
+                continue
+
+        raise RuntimeError(f"All LLM providers failed (sync): {last_error}")
+
+    def _call_openai_compatible_sync(
+        self,
+        provider: str,
+        url: str,
+        api_key: str | None,
+        messages: list[dict[str, str]],
+        temperature: float,
+        max_tokens: int,
+    ) -> dict[str, Any]:
+        """Groq and Together both speak the OpenAI chat-completions shape."""
+        model = self.MODELS[provider]["name"]
+        with httpx.Client(timeout=30.0) as client:
+            response = client.post(
+                url,
+                headers={
+                    "Authorization": f"Bearer {api_key}",
+                    "Content-Type": "application/json",
+                },
+                json={
+                    "model": model,
+                    "messages": messages,
+                    "temperature": temperature,
+                    "max_tokens": max_tokens,
+                },
+            )
+            response.raise_for_status()
+            data = response.json()
+
+        content = data["choices"][0]["message"]["content"]
+        usage = data.get("usage", {})
+        input_tokens = usage.get("prompt_tokens", 0)
+        output_tokens = usage.get("completion_tokens", 0)
+        return {
+            "content": content,
+            "provider": provider,
+            "model": model,
+            "input_tokens": input_tokens,
+            "output_tokens": output_tokens,
+            "total_tokens": input_tokens + output_tokens,
+            "cost_usd": self._calculate_cost(provider, input_tokens, output_tokens),
+        }
+
+    def _call_ollama_sync(
+        self,
+        messages: list[dict[str, str]],
+        temperature: float,
+        max_tokens: int,
+    ) -> dict[str, Any]:
+        model = self.MODELS["ollama"]["name"]
+        with httpx.Client(timeout=60.0) as client:
+            response = client.post(
+                f"{self.ollama_url}/api/chat",
+                json={
+                    "model": model,
+                    "messages": messages,
+                    "stream": False,
+                    "options": {
+                        "temperature": temperature,
+                        "num_predict": max_tokens,
+                    },
+                },
+            )
+            response.raise_for_status()
+            data = response.json()
+
+        content = data["message"]["content"]
+        input_tokens = int(sum(len(m["content"].split()) * 1.3 for m in messages))
+        output_tokens = int(len(content.split()) * 1.3)
+        return {
+            "content": content,
+            "provider": "ollama",
+            "model": model,
+            "input_tokens": input_tokens,
+            "output_tokens": output_tokens,
+            "total_tokens": input_tokens + output_tokens,
+            "cost_usd": 0.0,
+        }
+
     async def _call_groq(
         self,
         messages: list[dict[str, str]],
