@@ -31,7 +31,19 @@ _LOCK_IDS = {
     "coach_settings_reminder": 900004,
     "token_cleanup": 900005,
     "cockpit_snapshot": 900006,
+    "prevention_escalation": 900007,
 }
+
+# Prevention tiers as a monotonic safety scale so the escalation guard can ask "did it get WORSE?" —
+# green/none (0) < amber (1) < red (2). An unavailable/missing tier (building baselines) reads as 0.
+_PREVENTION_TIER_RANK = {"green": 0, "amber": 1, "red": 2}
+
+
+def _prevention_rank(prevention: dict | None) -> int:
+    """Rank a prevention_watch()/snapshot prevention dict on the safety scale (green/none=0, amber=1, red=2)."""
+    if not prevention or not prevention.get("available"):
+        return 0
+    return _PREVENTION_TIER_RANK.get(prevention.get("tier", "green"), 0)
 
 
 def _try_advisory_lock(job_name: str) -> bool:
@@ -364,6 +376,86 @@ async def _cockpit_snapshot_job() -> None:
         _release_advisory_lock("cockpit_snapshot")
 
 
+async def _prevention_escalation_job() -> None:
+    """Hourly SAFETY guard against a stale snapshot hiding a fresh alert.
+
+    The cockpit/summary snapshot only rebuilds 4x/day (6/9/18/21 Melbourne), so a midday tier escalation
+    (green→amber, amber→red) could sit hidden under a ≤4h-old snapshot for hours — exactly the illness/injury
+    warning a user most needs to see promptly. Each hour we cheaply re-run the co-occurrence prevention engine
+    (whoop_analytics.prevention_watch — seconds, a few day-windowed reads, NOT the ~40s full cockpit recompute)
+    for every recently-active WHOOP user and compare it to the tier baked into their stored snapshot's
+    metrics_json. Only an ESCALATION rebuilds+stores a fresh snapshot immediately (reusing the exact
+    build+store the 4x/day job uses), so the banner reaches the user without waiting for the next tick.
+
+    De-escalation (red→amber/green, amber→green) is DELIBERATELY NOT fast-pathed: a safety ALARM should raise
+    on the first corroborated reading, but 'all clear' must not flip on a single hourly sample — a lone reading
+    can dip back into range transiently. Clearing therefore waits for the normal 4x/day cadence to corroborate,
+    so the banner can't flicker off prematurely and under-warn. Unchanged tiers are likewise left to the cadence.
+    """
+    if not _try_advisory_lock("prevention_escalation"):
+        return
+    try:
+        import json
+
+        from rivaflow.core.whoop_analytics import (
+            build_cockpit_snapshot,
+            prevention_watch,
+        )
+        from rivaflow.db.database import convert_query, get_connection
+        from rivaflow.db.repositories.whoop_repo import WhoopRepository
+
+        # Same active-user population the cockpit snapshot job rebuilds: any WHOOP HR captured in the last ~72h.
+        cutoff = (utcnow() - timedelta(hours=72)).isoformat()
+        with get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                convert_query("SELECT DISTINCT user_id FROM whoop_hr WHERE ts >= ?"),
+                (cutoff,),
+            )
+            rows = cursor.fetchall()
+
+        user_ids = [r["user_id"] if hasattr(r, "keys") else r[0] for r in rows]
+        logger.debug(
+            "Prevention escalation: checking %d active WHOOP users", len(user_ids)
+        )
+
+        rebuilt = 0
+        for uid in user_ids:
+            try:
+                stored = WhoopRepository.get_cockpit_metrics(uid)
+                if not stored or not stored.get("metrics_json"):
+                    # No snapshot yet — the 4x/day cadence job (+ its startup warmup) builds the first one;
+                    # there's no stale snapshot to escalate against, so skip rather than build a second path.
+                    continue
+                stored_prevention = json.loads(stored["metrics_json"]).get("prevention")
+                current = prevention_watch(uid)
+                if _prevention_rank(current) > _prevention_rank(stored_prevention):
+                    # Escalated since the snapshot was built — rebuild+store NOW (reuses the cadence job's
+                    # build+store) so the amber/red banner surfaces immediately instead of up to 4h late.
+                    html, metrics_json, deriver_version = build_cockpit_snapshot(uid)
+                    WhoopRepository.upsert_cockpit_snapshot(
+                        uid, html, metrics_json, deriver_version
+                    )
+                    rebuilt += 1
+                    logger.info(
+                        "Prevention escalation: rebuilt snapshot for user %d (tier %s → %s)",
+                        uid,
+                        (stored_prevention or {}).get("tier", "none"),
+                        (current or {}).get("tier", "none"),
+                    )
+            except Exception:
+                logger.warning(
+                    "Prevention escalation check failed for user %d", uid, exc_info=True
+                )
+
+        if rebuilt:
+            logger.info("Prevention escalation: rebuilt %d snapshots", rebuilt)
+    except Exception:
+        logger.error("Prevention escalation job failed", exc_info=True)
+    finally:
+        _release_advisory_lock("prevention_escalation")
+
+
 async def _token_cleanup_job() -> None:
     """Delete expired refresh tokens and password reset tokens (daily 03:00 UTC)."""
     if not _try_advisory_lock("token_cleanup"):
@@ -468,6 +560,21 @@ def start_scheduler() -> None:
         minute=0,
         timezone=_MELBOURNE_TZ,
         id="cockpit_snapshot",
+        replace_existing=True,
+        misfire_grace_time=600,
+        coalesce=True,
+    )
+
+    # Hourly at :30 — safety guard that re-runs the cheap prevention engine and immediately rebuilds a
+    # user's snapshot if their tier has ESCALATED since it was built (so an amber/red alert can't sit hidden
+    # under the ≤4h-stale snapshot). Staggered to :30 so it never collides with the on-the-hour cockpit
+    # snapshot rebuilds at 6/9/18/21. Same generous misfire grace as the snapshot job — a deploy restart
+    # around a tick shouldn't make apscheduler skip a safety check.
+    _scheduler.add_job(
+        _prevention_escalation_job,
+        "cron",
+        minute=30,
+        id="prevention_escalation",
         replace_existing=True,
         misfire_grace_time=600,
         coalesce=True,

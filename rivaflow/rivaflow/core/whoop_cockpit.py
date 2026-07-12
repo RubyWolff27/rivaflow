@@ -11,6 +11,15 @@ from __future__ import annotations
 
 import html
 
+from rivaflow.core.whoop_tiles import _compose_hero
+
+# Prevention severity (from whoop_tiles._compose_hero) → the cockpit's hex accent. This is presentation
+# only: the amber/red OVERRIDE RULE itself lives in exactly one place, whoop_tiles._compose_hero (the same
+# function the phone's hero rides on), so the web cockpit and the phone can never disagree on WHETHER
+# prevention overrides — this table just paints the verdict we're handed. Hexes match render_prevention_log's
+# tier palette (amber #fbbf24 / red #f87171) so the banner agrees with the Lab's prevention panel.
+_PREVENTION_ACCENT = {"caution": "#fbbf24", "alert": "#f87171"}
+
 _ACCENT = {
     "Prime": "#34d399",
     "Balanced": "#60a5fa",
@@ -477,6 +486,14 @@ def render_cockpit_page(panels_html: str, rendered_at: str = "") -> str:
         ".scrub-tip b{color:#fff}.scrub svg{cursor:crosshair}"
         # Tier-1 story layer
         ".panel.hero{border-color:#334155}"
+        # Safety-channel banner — surfaces an amber/red prevention override ABOVE the readiness verdict so a
+        # web-cockpit user can't miss a strong-signal illness/injury warning (see _prevention_banner). Caution
+        # = amber warning styling (mirrors .caveat), alert = red. No banner on green/neutral.
+        ".prevention-banner{border-radius:8px;padding:10px 12px;margin:0 0 12px;font-size:13px;line-height:1.45}"
+        ".prevention-banner.caution{background:#422006;border:1px solid #a16207}"
+        ".prevention-banner.alert{background:#450a0a;border:1px solid #b91c1c}"
+        ".prevention-banner .pb-label{font-weight:700;text-transform:uppercase;letter-spacing:.04em;font-size:12px}"
+        ".prevention-banner .pb-msg{color:#e2e8f0}"
         ".verdict{font-size:34px;font-weight:700;line-height:1.1;margin:2px 0}"
         ".verdict-sub{font-size:15px;color:#cbd5e1;margin:2px 0 4px}"
         ".narrative{font-size:15px;line-height:1.5;background:#0f172a;border-left:3px solid #60a5fa;"
@@ -1058,9 +1075,62 @@ def _spark_row(
     )
 
 
-def _hero_html(readiness: dict, trends: dict | None = None) -> str:
+def _hero_override(readiness: dict, prevention: dict | None) -> dict:
+    """The single source of the prevention→hero override: delegates to whoop_tiles._compose_hero — the exact
+    same function the phone's server-driven hero rides on — so the web cockpit applies an IDENTICAL
+    severity/colour/headline override rule. Returns _compose_hero's {state, state_color, headline, severity}.
+    We hand it a minimal summary shape ({readiness, prevention}) since those are the only keys it reads.
+    """
+    return _compose_hero({"readiness": readiness, "prevention": prevention or {}})
+
+
+def _prevention_fired(prevention: dict | None) -> bool:
+    """Whether prevention ITSELF fired amber/red — the exact one-line gate whoop_tiles._compose_hero uses
+    (`tier in ("amber", "red")`) before it overrides anything. Checked directly rather than inferred from
+    `hero["severity"]` because _compose_hero's "never downgrade" rule creates two edge cases where severity
+    alone is ambiguous: a readiness-only Rundown day (severity='alert' from readiness ALONE, no prevention
+    signal) must NOT show a safety banner; a Rundown day where prevention ALSO fires amber must show one even
+    though colour/severity don't visibly move (only the headline swaps — see whoop_tiles.py's 'safety
+    headline still wins even when it doesn't need to escalate colour/severity')."""
+    prevention = prevention or {}
+    tier = prevention.get("tier") if prevention.get("available") else None
+    return tier in ("amber", "red")
+
+
+def _prevention_banner(hero: dict, fired: bool) -> str:
+    """Prominent safety banner rendered ABOVE the readiness verdict only when prevention ITSELF fired (see
+    _prevention_fired) — never merely because readiness's own severity happens to already read 'alert'.
+    The message is `hero["headline"]` — which _compose_hero has already replaced with prevention's OWN copy
+    on a fire, so this is the identical text the phone surfaces (no fresh copy). No fire → no banner.
+    """
+    if not fired:
+        return ""
+    severity = hero[
+        "severity"
+    ]  # guaranteed "caution" or "alert" whenever fired is True
+    color = _PREVENTION_ACCENT[severity]
+    label = "⚠️ Ease &amp; watch" if severity == "caution" else "🛑 Rest &amp; recover"
+    return (
+        f'<div class="prevention-banner {severity}">'
+        f'<span class="pb-label" style="color:{color}">{label}</span> '
+        f'<span class="pb-msg">{esc(hero.get("headline", ""))}</span>'
+        "</div>"
+    )
+
+
+def _hero_html(
+    readiness: dict, trends: dict | None = None, prevention: dict | None = None
+) -> str:
+    hero = _hero_override(readiness, prevention)
+    fired = _prevention_fired(prevention)
     state = str(readiness.get("state", "Building"))
-    accent = _ACCENT.get(state, "#94a3b8")
+    # When prevention fires (amber/red) the verdict accent shifts to the prevention colour — the same
+    # severity→colour mapping _compose_hero applied; otherwise the readiness accent is unchanged (no visual
+    # change when prevention is green/neutral/unavailable, byte-identical to before).
+    accent = (
+        _PREVENTION_ACCENT[hero["severity"]] if fired else _ACCENT.get(state, "#94a3b8")
+    )
+    banner = _prevention_banner(hero, fired)
     headline = esc(readiness.get("headline", ""))
     caveat = readiness.get("caveat")
     caveat_html = f'<div class="caveat">⚠️ {esc(caveat)}</div>' if caveat else ""
@@ -1083,6 +1153,7 @@ def _hero_html(readiness: dict, trends: dict | None = None) -> str:
         else ""
     )
     return (
+        f"{banner}"
         f'<div class="ico">Today\'s readiness</div>'
         f'<div class="verdict" style="color:{accent}">{esc(state)}{_trend_arrow(readiness)}</div>'
         f'<div class="verdict-sub">{headline}</div>'
@@ -1200,19 +1271,29 @@ def render_today_story(
     strain: dict,
     is_sabbath: bool,
     trends: dict | None = None,
+    prevention: dict | None = None,
 ) -> str:
     """Tier-1 — the glanceable 'Today' band: hero verdict + one honest data-story + three essential cards
     (last night's sleep, last workout, today's guidance). The plain-language layer over the technical Lab.
     `trends` (optional) drives the hero's tap-to-expand 14-day history sparklines.
+
+    `prevention` (optional) is the safety channel: when it fires amber/red the hero shows a prominent banner
+    and its accent border shifts to the prevention colour, on EVERY day including the Sabbath (the safety
+    channel is never rest-day-silenced). On the Sabbath the 'rest is prescribed' guidance card STAYS — the
+    banner appears ADDITIONALLY, not as a replacement. Green/neutral prevention → no visual change.
     """
+    hero = _hero_override(readiness, prevention)
+    fired = _prevention_fired(prevention)
+    section_accent = _PREVENTION_ACCENT[hero["severity"]] if fired else None
+    section_style = f' style="border-color:{section_accent}"' if section_accent else ""
     cards = (
         _sleep_card(night, dip, need_hours)
         + _workout_card(last_workout)
         + _guidance_card(strain, readiness, is_sabbath)
     )
     return (
-        '<section class="panel hero">'
-        f"{_hero_html(readiness, trends)}"
+        f'<section class="panel hero"{section_style}>'
+        f"{_hero_html(readiness, trends, prevention)}"
         f'<div class="narrative">{esc(narrative)}</div>'
         f'<div class="cards3">{cards}</div>'
         "</section>"

@@ -1283,6 +1283,7 @@ def _build_cockpit_page(user_id: int) -> str:
         strain,
         is_sabbath,
         trends=trends,
+        prevention=prevention,  # safety channel — surfaces the amber/red banner in Tier-1, incl. Sabbath
     )
     workouts = render_workouts_list(sessions)
     lab = render_lab_section(_lab_panels(user_id, ctx=ctx))
