@@ -7,6 +7,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **Strava integration** — restores per-session biometrics after the Mac-side Garmin
+  push job (`RivaFlowGarminPush`) stopped producing data on 2026-06-30. Any tracker
+  that auto-uploads to Strava (Wahoo, Coros, Suunto, Garmin) now reaches RivaFlow via a
+  server-side pull, so capture no longer depends on a machine on your desk.
+  - OAuth 2.0 connect flow with single-use CSRF state and Fernet-encrypted tokens
+  - `POST /integrations/strava/sync` for recent activity, and
+    `POST /integrations/strava/backfill` for an explicit date range — the path for
+    repairing a historical gap. Both are idempotent and safe to re-run.
+  - Activity→session mapping with BJJ-aware name heuristics (no-gi, open mat, comp,
+    wrestling, judo, drilling); generic grappling defers to the user's most-used class
+    type. Auto-created sessions carry `source='strava'` and `needs_review=true`.
+  - Heart rate and calories come from Strava's per-activity detail endpoint, which the
+    activity list does not carry. The detail fan-out is budgeted against Strava's rate
+    limit and reports when it truncates rather than silently returning partial data.
+  - Dedicated `strava_*` session columns and a Strava panel on session detail — kept
+    separate from `garmin_*`/`whoop_*` so the data is not misattributed in the UI.
+  - Connect / sync / backfill / disconnect card in Profile → Connected Devices, with a
+    warning when the connection lacks the private-activity scope.
+  - Setup guide in `docs/STRAVA_INTEGRATION.md`.
+  - Migrations `118_strava_integration`, `119_strava_session_biometrics`.
+
+### Changed
+- Token encryption now reads `TOKEN_ENCRYPTION_KEY`, falling back to
+  `WHOOP_ENCRYPTION_KEY` so existing deployments keep working unchanged.
+
 ### Coming Soon
 - Mobile app (iOS/Android)
 - Competition tracking and comp prep tools

@@ -6,10 +6,14 @@ from cryptography.fernet import Fernet, InvalidToken
 
 
 def _get_fernet() -> Fernet:
-    key = os.getenv("WHOOP_ENCRYPTION_KEY")
+    # TOKEN_ENCRYPTION_KEY is the provider-neutral name (Strava and anything
+    # added later). WHOOP_ENCRYPTION_KEY stays as a fallback so existing
+    # deployments keep decrypting tokens encrypted under the old variable —
+    # both names must hold the SAME key for that to work.
+    key = os.getenv("TOKEN_ENCRYPTION_KEY") or os.getenv("WHOOP_ENCRYPTION_KEY")
     if not key:
         raise ValueError(
-            "WHOOP_ENCRYPTION_KEY is required for token encryption. "
+            "TOKEN_ENCRYPTION_KEY is required for token encryption. "
             "Generate one with: python -c "
             '"from cryptography.fernet import Fernet; '
             'print(Fernet.generate_key().decode())"'

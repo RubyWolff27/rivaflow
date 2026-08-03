@@ -110,6 +110,25 @@ class Settings:
             f"{self.API_BASE_URL}/api/v1/integrations/whoop/callback",
         )
         self.WHOOP_ENCRYPTION_KEY: str | None = os.getenv("WHOOP_ENCRYPTION_KEY")
+        # Strava — the device-capture path after the Garmin push job retired.
+        # Any tracker that auto-uploads to Strava (Wahoo, Coros, Suunto) arrives here.
+        self.ENABLE_STRAVA_INTEGRATION: bool = (
+            os.getenv("ENABLE_STRAVA_INTEGRATION", "true").lower() == "true"
+        )
+        self.STRAVA_CLIENT_ID: str | None = os.getenv("STRAVA_CLIENT_ID")
+        self.STRAVA_CLIENT_SECRET: str | None = os.getenv("STRAVA_CLIENT_SECRET")
+        self.STRAVA_REDIRECT_URI: str = os.getenv(
+            "STRAVA_REDIRECT_URI",
+            f"{self.API_BASE_URL}/api/v1/integrations/strava/callback",
+        )
+        # Where the callback bounces the browser once the connection is stored.
+        self.STRAVA_CONNECT_REDIRECT: str = os.getenv(
+            "STRAVA_CONNECT_REDIRECT", f"{self.APP_BASE_URL}/profile"
+        )
+        # Provider-neutral token encryption key (falls back to WHOOP_ENCRYPTION_KEY).
+        self.TOKEN_ENCRYPTION_KEY: str | None = os.getenv(
+            "TOKEN_ENCRYPTION_KEY"
+        ) or os.getenv("WHOOP_ENCRYPTION_KEY")
         self.ENABLE_SOCIAL_FEATURES: bool = (
             os.getenv("ENABLE_SOCIAL_FEATURES", "true").lower() == "true"
         )

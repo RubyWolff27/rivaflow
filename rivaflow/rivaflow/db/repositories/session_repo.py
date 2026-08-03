@@ -20,6 +20,9 @@ _SESSION_COLS = (
     "garmin_calories, garmin_duration_min, garmin_aerobic_te, garmin_anaerobic_te, "
     "garmin_te_label, garmin_training_load, "
     "garmin_hr_z1_sec, garmin_hr_z2_sec, garmin_hr_z3_sec, garmin_hr_z4_sec, garmin_hr_z5_sec, "
+    "strava_activity_id, strava_activity_name, strava_activity_type, "
+    "strava_avg_hr, strava_max_hr, strava_calories, strava_duration_min, "
+    "strava_suffer_score, strava_distance_m, "
     "attacks_attempted, attacks_successful, "
     "defenses_attempted, defenses_successful, "
     "source, needs_review, "
@@ -303,6 +306,15 @@ class SessionRepository(BaseRepository):
                 "garmin_hr_z3_sec",
                 "garmin_hr_z4_sec",
                 "garmin_hr_z5_sec",
+                "strava_activity_id",
+                "strava_activity_name",
+                "strava_activity_type",
+                "strava_avg_hr",
+                "strava_max_hr",
+                "strava_calories",
+                "strava_duration_min",
+                "strava_suffer_score",
+                "strava_distance_m",
                 "attacks_attempted",
                 "attacks_successful",
                 "defenses_attempted",

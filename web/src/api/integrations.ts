@@ -1,5 +1,34 @@
 import { api } from './_client';
-import type { WhoopConnectionStatus, WhoopWorkoutMatch, WhoopRecovery, WhoopScopeCheck, WhoopReadinessAutoFill, WhoopSessionContext, GarminDailyMetric } from '../types';
+import type { WhoopConnectionStatus, WhoopWorkoutMatch, WhoopRecovery, WhoopScopeCheck, WhoopReadinessAutoFill, WhoopSessionContext, GarminDailyMetric, StravaConnectionStatus, StravaActivity, StravaSyncResult } from '../types';
+
+// Strava Integration API — the replacement for the retired Mac-side Garmin push
+// job. Wahoo (and any other tracker that auto-uploads to Strava) lands here.
+export const stravaApi = {
+  getStatus: () =>
+    api.get<StravaConnectionStatus>('/integrations/strava/status'),
+  getAuthorizeUrl: () =>
+    api.get<{ authorization_url: string }>('/integrations/strava/authorize'),
+  sync: (days = 30) =>
+    api.post<StravaSyncResult>(`/integrations/strava/sync?days=${days}`),
+  // Explicit date range — this is the path that repairs a historical gap.
+  // Generous timeout: a month-long backfill does a detail fetch per activity.
+  backfill: (startDate: string, endDate: string, autoCreate?: boolean) =>
+    api.post<StravaSyncResult>('/integrations/strava/backfill', {
+      start_date: startDate,
+      end_date: endDate,
+      auto_create: autoCreate,
+    }, { timeout: 180000 }),
+  getImportable: () =>
+    api.get<{ activities: StravaActivity[]; count: number }>('/integrations/strava/importable'),
+  importActivity: (activityCacheId: number) =>
+    api.post<{ session_id: number }>('/integrations/strava/import', { activity_cache_id: activityCacheId }),
+  dismissActivity: (activityCacheId: number, dismissed = true) =>
+    api.post<{ dismissed: boolean }>('/integrations/strava/dismiss', { activity_cache_id: activityCacheId, dismissed }),
+  setAutoCreate: (enabled: boolean) =>
+    api.post<{ auto_create_sessions: boolean }>('/integrations/strava/auto-create-sessions', { enabled }),
+  disconnect: () =>
+    api.delete<{ disconnected: boolean }>('/integrations/strava'),
+};
 
 // Garmin metrics API — daily key metrics power the Health tab; per-session
 // Garmin biometrics ride on the session object (no dedicated endpoint).

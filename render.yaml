@@ -49,6 +49,20 @@ services:
         sync: false
       - key: S3_PUBLIC_URL
         sync: false
+      # Strava — device capture path (see docs/STRAVA_INTEGRATION.md)
+      - key: ENABLE_STRAVA_INTEGRATION
+        value: "true"
+      - key: STRAVA_CLIENT_ID
+        sync: false
+      - key: STRAVA_CLIENT_SECRET
+        sync: false
+      - key: STRAVA_REDIRECT_URI
+        value: https://api.rivaflow.app/api/v1/integrations/strava/callback
+      - key: STRAVA_CONNECT_REDIRECT
+        value: https://rivaflow.app/profile
+      # Fernet key encrypting stored OAuth tokens at rest
+      - key: TOKEN_ENCRYPTION_KEY
+        sync: false
     autoDeploy: false
 
   # React frontend static site

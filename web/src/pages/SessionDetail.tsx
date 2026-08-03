@@ -9,6 +9,7 @@ import PhotoGallery from '../components/PhotoGallery';
 import PhotoUpload from '../components/PhotoUpload';
 import SessionInsights from '../components/SessionInsights';
 import GarminPanel from '../components/GarminPanel';
+import StravaPanel from '../components/StravaPanel';
 import SessionScoreCard from '../components/sessions/SessionScoreCard';
 import { useToast } from '../contexts/ToastContext';
 import { CardSkeleton } from '../components/ui';
@@ -747,6 +748,9 @@ export default function SessionDetail() {
 
       {/* ── Garmin biometrics (HR zones, training effect) ── */}
       <GarminPanel session={session} />
+
+      {/* ── Strava biometrics (HR, calories, relative effort) ── */}
+      <StravaPanel session={session} />
 
       {/* ── ISC-15: Achievement Badges below Biometrics ── */}
       <SessionInsights sessionId={session.id} />

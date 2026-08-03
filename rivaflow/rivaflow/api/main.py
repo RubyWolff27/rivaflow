@@ -71,6 +71,7 @@ from rivaflow.api.routes import (
     social_comments,
     social_connections,
     social_likes,
+    strava,
     streaks,
     suggestions,
     techniques,
@@ -338,6 +339,10 @@ app.include_router(events.router, prefix="/api/v1/events", tags=["events"])
 # WHOOP-cloud OAuth integration + webhook routers retired 2026-07-09 (Wave 1):
 # the subscription is cancelled and capture is now BLE→/whoop/ingest. See the
 # self-hosted routes in routes/whoop.py.
+# Strava is the device-capture path that replaced the Mac-side Garmin push job
+# (dead since the Garmin was lost, 2026-06-30). Wahoo auto-uploads to Strava.
+if settings.ENABLE_STRAVA_INTEGRATION:
+    app.include_router(strava.router, prefix="/api/v1", tags=["strava"])
 app.include_router(waitlist.router, prefix="/api/v1/waitlist", tags=["waitlist"])
 app.include_router(
     waitlist.admin_router, prefix="/api/v1/admin/waitlist", tags=["admin-waitlist"]

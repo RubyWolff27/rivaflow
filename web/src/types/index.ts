@@ -49,10 +49,19 @@ export interface Session {
   garmin_hr_z3_sec?: number | null;
   garmin_hr_z4_sec?: number | null;
   garmin_hr_z5_sec?: number | null;
+  strava_activity_id?: string | null;
+  strava_activity_name?: string | null;
+  strava_activity_type?: string | null;
+  strava_avg_hr?: number | null;
+  strava_max_hr?: number | null;
+  strava_calories?: number | null;
+  strava_duration_min?: number | null;
+  strava_suffer_score?: number | null;
+  strava_distance_m?: number | null;
   session_score?: number;
   score_breakdown?: SessionScoreBreakdown;
   score_version?: number;
-  source?: 'manual' | 'whoop';
+  source?: 'manual' | 'whoop' | 'strava';
   needs_review?: boolean;
   created_at: string;
 }
@@ -663,6 +672,55 @@ export interface AIInsight {
   data?: Record<string, unknown>;
   is_read: boolean;
   created_at: string;
+}
+
+// Strava Integration — the device-capture path after the Garmin push job retired.
+// Any tracker that auto-uploads to Strava (Wahoo, Coros, Suunto) arrives through here.
+export interface StravaConnectionStatus {
+  connected: boolean;
+  configured: boolean;
+  athlete_id?: string | null;
+  last_synced_at?: string | null;
+  auto_create_sessions: boolean;
+  cached_activities: number;
+  scopes?: string | null;
+  /** False means private activities are invisible — the user must reconnect. */
+  has_private_scope: boolean;
+}
+
+export interface StravaActivity {
+  id: number;
+  strava_activity_id: string;
+  name?: string | null;
+  activity_type?: string | null;
+  sport_type?: string | null;
+  start_time: string;
+  start_time_local?: string | null;
+  elapsed_time_sec?: number | null;
+  moving_time_sec?: number | null;
+  distance_m?: number | null;
+  avg_heart_rate?: number | null;
+  max_heart_rate?: number | null;
+  calories?: number | null;
+  suffer_score?: number | null;
+  session_id?: number | null;
+  dismissed?: boolean;
+  suggested_class_type: string;
+  suggested_intensity: number;
+  importable: boolean;
+}
+
+export interface StravaSyncResult {
+  fetched: number;
+  created: number;
+  updated: number;
+  skipped: number;
+  detail_calls: number;
+  sessions_created: number;
+  range_start: string;
+  range_end: string;
+  detail_budget_exhausted?: boolean;
+  warning?: string;
 }
 
 // WHOOP Integration

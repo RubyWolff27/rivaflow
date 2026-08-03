@@ -282,6 +282,15 @@ class SessionUpdate(BaseModel):
     garmin_hr_z3_sec: float | None = Field(default=None, ge=0)
     garmin_hr_z4_sec: float | None = Field(default=None, ge=0)
     garmin_hr_z5_sec: float | None = Field(default=None, ge=0)
+    strava_activity_id: str | None = None
+    strava_activity_name: str | None = None
+    strava_activity_type: str | None = None
+    strava_avg_hr: int | None = Field(default=None, ge=0, le=250)
+    strava_max_hr: int | None = Field(default=None, ge=0, le=250)
+    strava_calories: int | None = Field(default=None, ge=0)
+    strava_duration_min: float | None = Field(default=None, ge=0)
+    strava_suffer_score: float | None = Field(default=None, ge=0)
+    strava_distance_m: float | None = Field(default=None, ge=0)
     attacks_attempted: int | None = Field(default=None, ge=0)
     attacks_successful: int | None = Field(default=None, ge=0)
     defenses_attempted: int | None = Field(default=None, ge=0)

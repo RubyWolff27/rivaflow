@@ -115,6 +115,15 @@ class SessionResponse(BaseModel):
     garmin_hr_z3_sec: float | None = None
     garmin_hr_z4_sec: float | None = None
     garmin_hr_z5_sec: float | None = None
+    strava_activity_id: str | None = None
+    strava_activity_name: str | None = None
+    strava_activity_type: str | None = None
+    strava_avg_hr: int | None = None
+    strava_max_hr: int | None = None
+    strava_calories: int | None = None
+    strava_duration_min: float | None = None
+    strava_suffer_score: float | None = None
+    strava_distance_m: float | None = None
     attacks_attempted: int | None = None
     attacks_successful: int | None = None
     defenses_attempted: int | None = None

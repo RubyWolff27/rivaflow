@@ -7,6 +7,7 @@ import ConfirmDialog from '../components/ConfirmDialog';
 import PersonalInformationForm from '../components/profile/PersonalInformationForm';
 import WeeklyGoalsForm from '../components/profile/WeeklyGoalsForm';
 import ConnectedDevicesSection from '../components/profile/ConnectedDevicesSection';
+import StravaConnectionCard from '../components/profile/StravaConnectionCard';
 import BeltProgressionCard from '../components/profile/BeltProgressionCard';
 import ProfileHeader from '../components/profile/ProfileHeader';
 import ProfileStats from '../components/profile/ProfileStats';
@@ -175,6 +176,8 @@ export default function Profile() {
           onDisconnect={handleWhoopDisconnect}
         />
       )}
+      {/* Strava owns its own state, so it renders regardless of WHOOP status. */}
+      <StravaConnectionCard />
       <ProfileSettings />
       </CollapsibleSection>
 
