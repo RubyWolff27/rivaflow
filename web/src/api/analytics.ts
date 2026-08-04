@@ -22,6 +22,8 @@ export const analyticsApi = {
     api.get('/analytics/fight-dynamics/heatmap', { params }),
   fightDynamicsInsights: () =>
     api.get('/analytics/fight-dynamics/insights'),
+  gameDistribution: (params?: { window?: 'all' | '12w' | '8w' }) =>
+    api.get('/analytics/game-distribution', { params }),
 
   // Phase 1: Enhanced analytics
   durationTrends: (params?: { start_date?: string; end_date?: string; types?: string[] }) =>

@@ -11,11 +11,11 @@ into focused services:
 from datetime import date
 from typing import Any
 
+from rivaflow.core.services.game_distribution import GameDistributionService
 from rivaflow.core.services.insights_analytics import InsightsAnalyticsService
 from rivaflow.core.services.performance_analytics import PerformanceAnalyticsService
 from rivaflow.core.services.readiness_analytics import ReadinessAnalyticsService
 from rivaflow.core.services.streak_analytics import StreakAnalyticsService
-from rivaflow.core.services.game_distribution import GameDistributionService
 from rivaflow.core.services.technique_analytics import TechniqueAnalyticsService
 
 

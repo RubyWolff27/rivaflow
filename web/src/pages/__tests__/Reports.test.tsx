@@ -43,6 +43,19 @@ vi.mock('../../api/client', () => ({
         },
       })
     ),
+    gameDistribution: vi.fn(() =>
+      Promise.resolve({
+        data: {
+          window: { mode: 'all' },
+          axes: [],
+          gaps: { sessions_in_window: 0, sessions_with_techniques: 0, load_unattributed_pct: 0 },
+          totals: { mat_hours: 0, touches: 0, distinct_movements: 0 },
+        },
+      })
+    ),
+    milestones: vi.fn(() =>
+      Promise.resolve({ data: { rolling_totals: { lifetime: { hours: 158.3 } } } })
+    ),
     durationTrends: vi.fn(() => Promise.resolve({ data: {} })),
     timeOfDayPatterns: vi.fn(() => Promise.resolve({ data: {} })),
     gymComparison: vi.fn(() => Promise.resolve({ data: {} })),
@@ -141,10 +154,11 @@ describe('Reports', () => {
 
   it('renders tab navigation', async () => {
     renderReports()
+    // Scoped to role=tab: the page body also mentions partners and techniques.
     await waitFor(() => {
-      expect(screen.getByText(/performance/i)).toBeInTheDocument()
-      expect(screen.getByText(/partners/i)).toBeInTheDocument()
-      expect(screen.getByText(/techniques/i)).toBeInTheDocument()
+      expect(screen.getByRole('tab', { name: /performance/i })).toBeInTheDocument()
+      expect(screen.getByRole('tab', { name: /partners/i })).toBeInTheDocument()
+      expect(screen.getByRole('tab', { name: /techniques/i })).toBeInTheDocument()
     })
   })
 
@@ -167,8 +181,9 @@ describe('Reports', () => {
 
   it('shows overview stats when data loaded', async () => {
     renderReports()
+    // Scoped to the metric tile: "12" also appears in the radar's window select.
     await waitFor(() => {
-      expect(screen.getByText(/12/)).toBeInTheDocument()
+      expect(screen.getByTestId('metric-sessions')).toHaveTextContent('12')
     })
   })
 })

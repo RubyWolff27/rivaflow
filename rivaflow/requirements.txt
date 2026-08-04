@@ -16,7 +16,7 @@ pydantic-settings==2.14.2  # GHSA-4xgf-cpjx-pc3j
 PyJWT[crypto]==2.13.0  # bumped from 2.12.0 — patches PYSEC-2026-175..179
 passlib[bcrypt]==1.7.4
 bcrypt==4.3.0
-cryptography==48.0.1  # GHSA-537c-gmf6-5ccf (also CVE-2026-39892)
+cryptography==50.0.0  # PYSEC-2026-3552/3/4 clear at 50.0.0
 
 # HTTP & API
 python-multipart==0.0.31  # CVE-2026-53538/53539/53540

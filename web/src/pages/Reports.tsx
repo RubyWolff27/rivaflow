@@ -4,7 +4,7 @@ import { useSearchParams, Link } from 'react-router-dom';
 import { usePageTitle } from '../hooks/usePageTitle';
 import { analyticsApi, sessionsApi, whoopApi } from '../api/client';
 import { logger } from '../utils/logger';
-import { TrendingUp, Users, Activity, Target, Brain, Swords, Heart } from 'lucide-react';
+import { TrendingUp, Users, Activity, Target, Brain, Swords, Heart, ChevronRight } from 'lucide-react';
 import { Card } from '../components/ui';
 import { ActivityTypeFilter } from '../components/ActivityTypeFilter';
 import { useFeatureAccess } from '../hooks/useTier';
@@ -15,6 +15,8 @@ import WhoopAnalyticsTab from '../components/analytics/WhoopAnalyticsTab';
 import OverviewTab from '../components/analytics/OverviewTab';
 import PartnersTab from '../components/analytics/PartnersTab';
 import TechniquesTab from '../components/analytics/TechniquesTab';
+import GameRadar from '../components/analytics/GameRadar';
+import LifetimeJourneyBar from '../components/analytics/LifetimeJourneyBar';
 import ErrorBoundary from '../components/ErrorBoundary';
 import type {
   PerformanceOverview,
@@ -323,6 +325,35 @@ export default function Reports() {
       </Card>
 
       {/* Tab Content */}
+      {activeTab === 'overview' && (
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+          <div className="lg:col-span-2">
+            <ErrorBoundary compact>
+              <GameRadar />
+            </ErrorBoundary>
+          </div>
+          <div className="space-y-4">
+            <ErrorBoundary compact>
+              <LifetimeJourneyBar />
+            </ErrorBoundary>
+            <Card>
+              <Link to="/friends" className="flex items-center justify-between gap-3 group">
+                <div>
+                  <h2 className="text-sm font-semibold mb-1" style={{ color: 'var(--text)' }}>
+                    Training Partners
+                  </h2>
+                  <p className="text-xs" style={{ color: 'var(--muted)' }}>
+                    Open a partner to see your head-to-head record, roll count and
+                    submission split with them.
+                  </p>
+                </div>
+                <ChevronRight className="w-5 h-5 flex-shrink-0" style={{ color: 'var(--accent)' }} />
+              </Link>
+            </Card>
+          </div>
+        </div>
+      )}
+
       {activeTab === 'overview' && (
         <ErrorBoundary compact>
           <OverviewTab
