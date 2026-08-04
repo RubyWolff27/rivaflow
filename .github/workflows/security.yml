@@ -44,7 +44,12 @@ jobs:
 
     - name: Scan npm dependencies
       working-directory: ./web
-      run: npm audit --audit-level=high
+      # GHSA-qwww-vcr4-c8h2 allowlisted 2026-08-05: RSC-mode-only CSRF ("only
+      # affects... unstable RSC APIs"); this app is a plain BrowserRouter SPA.
+      # Every 7.x react-router is inside one of the two advisory ranges; the
+      # clean fix is react-router 8.3+ (needs React >=19.2.7) — tracked as the
+      # router-8 migration. Remove this allowlist when that lands.
+      run: npx audit-ci@^7 --high --allowlist GHSA-qwww-vcr4-c8h2
 
   secret-scan:
     name: Secret Detection

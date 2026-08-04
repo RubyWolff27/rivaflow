@@ -52,7 +52,9 @@ class GameDistributionService:
         self.technique_repo = SessionTechniqueRepository()
         self.roll_repo = SessionRollRepository()
 
-    def get_game_distribution(self, user_id: int, window: str = "all") -> dict[str, Any]:
+    def get_game_distribution(
+        self, user_id: int, window: str = "all"
+    ) -> dict[str, Any]:
         end = date.today()
         weeks = WINDOW_WEEKS.get(window)
         if weeks:
@@ -94,7 +96,9 @@ class GameDistributionService:
                     },
                     "frequency": {
                         "value": freq,
-                        "per_10h": round(freq / mat_hours * 10, 1) if mat_hours else 0.0,
+                        "per_10h": (
+                            round(freq / mat_hours * 10, 1) if mat_hours else 0.0
+                        ),
                         "prev": prev["frequency"][key] if prev else None,
                         "axis_max": axis_max["frequency"],
                     },
@@ -217,9 +221,7 @@ class GameDistributionService:
 
 def _session_movement_ids(techs: list[dict], rolls: list[dict]) -> list[int]:
     """All movement ids a session touched: logged techniques + roll subs-for."""
-    mids = [
-        mid for tech in techs if isinstance(mid := tech.get("movement_id"), int)
-    ]
+    mids = [mid for tech in techs if isinstance(mid := tech.get("movement_id"), int)]
     for roll in rolls:
         mids.extend(_parse_movement_ids(roll.get("submissions_for")))
     return mids
@@ -233,6 +235,8 @@ def _parse_movement_ids(raw: Any) -> list[int]:
         return [int(x) for x in raw if isinstance(x, (int, str)) and str(x).isdigit()]
     try:
         parsed = json.loads(raw)
-        return [int(x) for x in parsed if isinstance(x, (int, str)) and str(x).isdigit()]
+        return [
+            int(x) for x in parsed if isinstance(x, (int, str)) and str(x).isdigit()
+        ]
     except (ValueError, TypeError):
         return []

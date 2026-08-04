@@ -108,7 +108,9 @@ class AnalyticsService:
     # TECHNIQUE ANALYTICS - Delegate to TechniqueAnalyticsService
     # ============================================================================
 
-    def get_game_distribution(self, user_id: int, window: str = "all") -> dict[str, Any]:
+    def get_game_distribution(
+        self, user_id: int, window: str = "all"
+    ) -> dict[str, Any]:
         """Game Distribution radar: 6 glossary-category axes x coverage/frequency/load."""
         return self.game.get_game_distribution(user_id=user_id, window=window)
 

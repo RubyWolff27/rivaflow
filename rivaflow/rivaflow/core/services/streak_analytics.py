@@ -291,9 +291,11 @@ class StreakAnalyticsService:
 
         first_session_date = (
             min(
-                s["session_date"]
-                if isinstance(s["session_date"], date)
-                else date.fromisoformat(str(s["session_date"]))
+                (
+                    s["session_date"]
+                    if isinstance(s["session_date"], date)
+                    else date.fromisoformat(str(s["session_date"]))
+                )
                 for s in all_sessions
             ).isoformat()
             if all_sessions
