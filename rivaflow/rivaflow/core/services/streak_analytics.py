@@ -289,9 +289,21 @@ class StreakAnalyticsService:
             "rolls": sum(s["rolls"] for s in year_sessions),
         }
 
+        first_session_date = (
+            min(
+                s["session_date"]
+                if isinstance(s["session_date"], date)
+                else date.fromisoformat(str(s["session_date"]))
+                for s in all_sessions
+            ).isoformat()
+            if all_sessions
+            else None
+        )
+
         return {
             "belt_progression": belt_progression,
             "personal_records": personal_records,
+            "first_session_date": first_session_date,
             "rolling_totals": {
                 "lifetime": {
                     "sessions": total_sessions,

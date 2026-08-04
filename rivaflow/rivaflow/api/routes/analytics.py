@@ -306,6 +306,24 @@ def get_whoop_analytics(
     )
 
 
+@cached(ttl_seconds=600, key_prefix="analytics_game_distribution")
+def _get_game_distribution_cached(user_id: int, window: str = "all"):
+    service = AnalyticsService()
+    return service.get_game_distribution(user_id=user_id, window=window)
+
+
+@router.get("/game-distribution")
+@limiter.limit("60/minute")
+@route_error_handler("game distribution analytics")
+def get_game_distribution(
+    request: Request,
+    window: str = Query("all", pattern="^(all|12w|8w)$"),
+    current_user: dict = Depends(get_current_user),
+):
+    """Game Distribution radar: 6 glossary-category axes x coverage/frequency/load. Cached 10 min."""
+    return _get_game_distribution_cached(user_id=current_user["id"], window=window)
+
+
 @router.get("/techniques/breakdown")
 @limiter.limit("60/minute")
 @route_error_handler("technique analytics")

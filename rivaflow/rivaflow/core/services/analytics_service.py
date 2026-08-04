@@ -15,6 +15,7 @@ from rivaflow.core.services.insights_analytics import InsightsAnalyticsService
 from rivaflow.core.services.performance_analytics import PerformanceAnalyticsService
 from rivaflow.core.services.readiness_analytics import ReadinessAnalyticsService
 from rivaflow.core.services.streak_analytics import StreakAnalyticsService
+from rivaflow.core.services.game_distribution import GameDistributionService
 from rivaflow.core.services.technique_analytics import TechniqueAnalyticsService
 
 
@@ -31,6 +32,7 @@ class AnalyticsService:
         self.technique = TechniqueAnalyticsService()
         self.streak = StreakAnalyticsService()
         self.insights = InsightsAnalyticsService()
+        self.game = GameDistributionService()
 
     # ============================================================================
     # PERFORMANCE ANALYTICS - Delegate to PerformanceAnalyticsService
@@ -105,6 +107,10 @@ class AnalyticsService:
     # ============================================================================
     # TECHNIQUE ANALYTICS - Delegate to TechniqueAnalyticsService
     # ============================================================================
+
+    def get_game_distribution(self, user_id: int, window: str = "all") -> dict[str, Any]:
+        """Game Distribution radar: 6 glossary-category axes x coverage/frequency/load."""
+        return self.game.get_game_distribution(user_id=user_id, window=window)
 
     def get_technique_analytics(
         self,
