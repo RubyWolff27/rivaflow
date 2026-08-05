@@ -8,6 +8,7 @@ from rivaflow.db.repositories.audit_log_repo import AuditLogRepository
 from rivaflow.db.repositories.base_repository import BaseRepository
 from rivaflow.db.repositories.checkin_repo import CheckinRepository
 from rivaflow.db.repositories.coach_preferences_repo import CoachPreferencesRepository
+from rivaflow.db.repositories.curriculum_repo import CurriculumRepository
 from rivaflow.db.repositories.feed_repo import FeedRepository
 from rivaflow.db.repositories.feedback_repo import FeedbackRepository
 from rivaflow.db.repositories.friend_repo import FriendRepository
@@ -45,6 +46,7 @@ __all__ = [
     "AuditLogRepository",
     "CheckinRepository",
     "CoachPreferencesRepository",
+    "CurriculumRepository",
     "FeedRepository",
     "FeedbackRepository",
     "FriendRepository",

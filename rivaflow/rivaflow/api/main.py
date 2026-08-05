@@ -43,6 +43,7 @@ from rivaflow.api.routes import (
     auth,
     checkins,
     coach_preferences,
+    curriculum,
     dashboard,
     events,
     feed,
@@ -297,6 +298,7 @@ app.include_router(groups.router, prefix="/api/v1/groups", tags=["groups"])
 app.include_router(users.router, prefix="/api/v1/users", tags=["users"])
 app.include_router(api_keys.router, prefix="/api/v1/users/me", tags=["api-keys"])
 app.include_router(analytics.router, prefix="/api/v1/analytics", tags=["analytics"])
+app.include_router(curriculum.router, prefix="/api/v1/curriculum", tags=["curriculum"])
 app.include_router(garmin.router, prefix="/api/v1", tags=["garmin"])
 app.include_router(whoop.router, prefix="/api/v1", tags=["whoop"])
 app.include_router(whoop.short_router, tags=["whoop"])  # short bookmarkable /cockpit

@@ -1,0 +1,566 @@
+{
+  "_status": "DRAFT — authored by Sage, NOT confirmed by Ruby or any coach",
+  "_belt": "purple",
+  "_authored": "2026-08-05",
+  "_grounding": [
+    "Proven live submissions from RivaFlow prod logs: ninja choke x3, armbar x2, bow-and-arrow, arm triangle, triangle, clock choke, RNC",
+    "Drilled material: De La Riva series (pulls, sweeps, kiss of the dragon, DLR->triangle), X-guard sweep, single-leg-X / outside ashi, inside ashi (saddle), cross to 50/50, footlock->kneebar, straight footlock, arm drags, knee slice, ankle pick, seated guard pulls",
+    "2026-07-15 purple-system report: A-game = top-game pressure smasher (knee cut / body lock -> pin -> arm triangle / kimura); B-game = half-guard knee-shield wrestle-up feeding back into A-game",
+    "AJJ BLUE syllabus base: double/single leg, arm drag -> rear clinch, osoto gari, body fold, sprawl -> guillotine / front headlock, punch block series, bridge and roll, elbow-knee escape, hip escapes"
+  ],
+  "_tension_convention": "Slots carrying a tension note have TWO defensible answers — his logged De La Riva / leg-entanglement game versus the report's pressure-pass archetype. Both are represented in the slate on purpose. The choice is Ruby's to confirm.",
+  "slots": [
+    {
+      "requirement_key": "td-strikes", "slot_index": 1, "game_tag": "a-game",
+      "seq_entry": "Jab-cross feint, level change on the reaction",
+      "seq_position": "Double leg to the mat, immediate hip-to-hip pin",
+      "seq_finish": "Arm triangle from side control"
+    },
+    {
+      "requirement_key": "td-strikes", "slot_index": 2, "game_tag": "a-game",
+      "seq_entry": "Push kick parry, high-crotch single leg",
+      "seq_position": "Run the pipe, land in combat base, knee slice",
+      "seq_finish": "Kimura from top half"
+    },
+    {
+      "requirement_key": "td-strikes", "slot_index": 3, "game_tag": "syllabus-only",
+      "seq_entry": "Low outside kick, collar tie, arm drag",
+      "seq_position": "Rear clinch, mat return to back control",
+      "seq_finish": "Rear naked choke"
+    },
+    {
+      "requirement_key": "td-strikes", "slot_index": 4, "game_tag": "a-game",
+      "seq_entry": "Overhand feint into underhook body lock",
+      "seq_position": "Outside trip, chest-to-chest pin",
+      "seq_finish": "Bow-and-arrow choke"
+    },
+    {
+      "requirement_key": "td-strikes", "slot_index": 5, "game_tag": "syllabus-only",
+      "seq_entry": "Thai clinch to break the striking line, knee to the body",
+      "seq_position": "Osoto gari, knee ride, they turn away",
+      "seq_finish": "Clock choke"
+    },
+
+    {
+      "requirement_key": "td-defend-strikes", "slot_index": 1, "game_tag": "syllabus-only",
+      "seq_entry": "Shell against the haymaker, duck under",
+      "seq_position": "Rear clinch, mat return to back control",
+      "seq_finish": "Rear naked choke"
+    },
+    {
+      "requirement_key": "td-defend-strikes", "slot_index": 2, "game_tag": "a-game",
+      "seq_entry": "Bridge the gap on the jab, level change",
+      "seq_position": "Double leg, stack pass to side control",
+      "seq_finish": "Arm triangle"
+    },
+    {
+      "requirement_key": "td-defend-strikes", "slot_index": 3, "game_tag": "syllabus-only",
+      "seq_entry": "Slip the cross, arm drag on the extended arm",
+      "seq_position": "Standing back take, drag down to seatbelt",
+      "seq_finish": "Bow-and-arrow choke"
+    },
+    {
+      "requirement_key": "td-defend-strikes", "slot_index": 4, "game_tag": "a-game",
+      "seq_entry": "Cover the uppercut, underhook into body lock",
+      "seq_position": "Foot sweep, knee slice pass to mount",
+      "seq_finish": "Mounted armbar"
+    },
+    {
+      "requirement_key": "td-defend-strikes", "slot_index": 5, "game_tag": "b-game",
+      "seq_entry": "Catch the push kick, single leg on the caught side",
+      "seq_position": "Dump to the mat, they turtle into a front headlock",
+      "seq_finish": "Ninja choke (arm-in guillotine)"
+    },
+
+    {
+      "requirement_key": "td-grappling", "slot_index": 1, "game_tag": "a-game",
+      "seq_entry": "Collar-and-elbow, ankle pick off the reaction",
+      "seq_position": "Knee slice pass to side control",
+      "seq_finish": "Arm triangle"
+    },
+    {
+      "requirement_key": "td-grappling", "slot_index": 2, "game_tag": "syllabus-only",
+      "seq_entry": "Russian tie into arm drag",
+      "seq_position": "Rear body lock, mat return to back control",
+      "seq_finish": "Rear naked choke"
+    },
+    {
+      "requirement_key": "td-grappling", "slot_index": 3, "game_tag": "b-game",
+      "seq_entry": "Sprawl on their shot, snap to front headlock",
+      "seq_position": "Front headlock series, hips in to kill the wrestle-up",
+      "seq_finish": "Ninja choke (arm-in guillotine)"
+    },
+    {
+      "requirement_key": "td-grappling", "slot_index": 4, "game_tag": "syllabus-only",
+      "seq_entry": "Snap down off the collar tie, go-behind",
+      "seq_position": "Back control with seatbelt",
+      "seq_finish": "Bow-and-arrow choke"
+    },
+    {
+      "requirement_key": "td-grappling", "slot_index": 5, "game_tag": "a-game",
+      "seq_entry": "Underhook into body fold takedown",
+      "seq_position": "Hip-to-hip half guard pin, isolate the far arm",
+      "seq_finish": "Kimura",
+      "tension_note": "His logged default from standing is a seated guard pull into De La Riva, not a takedown. Kept a wrestling answer here because the report weights the stand-up block EARLY (injury-risk block, never crammed) — but if AJJ accepts a pull as a takedown sequence, swap this for pull -> DLR sweep -> knee slice. Ruby's call."
+    },
+
+    {
+      "requirement_key": "guard-subs", "slot_index": 1, "game_tag": "syllabus-only",
+      "seq_entry": "Closed guard, collar-and-sleeve, break the posture",
+      "seq_position": "Hip out to the angle, leg over the head",
+      "seq_finish": "Armbar"
+    },
+    {
+      "requirement_key": "guard-subs", "slot_index": 2, "game_tag": "syllabus-only",
+      "seq_entry": "Closed guard, overhook and shoulder pressure",
+      "seq_position": "Open the guard on the far arm, shoot the leg over",
+      "seq_finish": "Triangle"
+    },
+    {
+      "requirement_key": "guard-subs", "slot_index": 3, "game_tag": "b-game",
+      "seq_entry": "Closed guard, they posture up and reach",
+      "seq_position": "High elbow, arm-in front headlock, hip to the arm side",
+      "seq_finish": "Ninja choke (arm-in guillotine)"
+    },
+    {
+      "requirement_key": "guard-subs", "slot_index": 4, "game_tag": "syllabus-only",
+      "seq_entry": "Closed guard, hip bump threat to force the post",
+      "seq_position": "Grab the posting wrist, figure-four, sit up",
+      "seq_finish": "Kimura"
+    },
+    {
+      "requirement_key": "guard-subs", "slot_index": 5, "game_tag": "b-game",
+      "seq_entry": "Half guard, knee shield, deep underhook",
+      "seq_position": "Wrestle up to the dogfight, they whizzer",
+      "seq_finish": "Far-side kimura"
+    },
+    {
+      "requirement_key": "guard-subs", "slot_index": 6, "game_tag": "b-game",
+      "seq_entry": "Half guard, knee shield, underhook and elevate",
+      "seq_position": "Wrestle up, they duck under into a front headlock exchange",
+      "seq_finish": "Ninja choke (arm-in guillotine)"
+    },
+    {
+      "requirement_key": "guard-subs", "slot_index": 7, "game_tag": "b-game",
+      "seq_entry": "De La Riva hook, collar drag off-balance",
+      "seq_position": "They post the far arm, shoot the leg over",
+      "seq_finish": "Triangle",
+      "tension_note": "DLR->triangle is drilled and logged, but the report's B-game is knee-shield half guard, not DLR. Both survive in this slate deliberately. If Ruby wants one open-guard identity, this is where DLR either earns its place or gets cut."
+    },
+    {
+      "requirement_key": "guard-subs", "slot_index": 8, "game_tag": "b-game",
+      "seq_entry": "De La Riva, transition to single-leg-X",
+      "seq_position": "Outside ashi garami, control the far hip",
+      "seq_finish": "Straight footlock",
+      "tension_note": "Leg entanglements are drilled but do not appear in his live-submission log at all. Included because the syllabus says 'of choice' — but four leg-attack slots (guard-subs 8/9/10 plus this one's family) is a large bet on unproven material."
+    },
+    {
+      "requirement_key": "guard-subs", "slot_index": 9, "game_tag": "b-game",
+      "seq_entry": "Seated guard, shin-to-shin into inside ashi (saddle)",
+      "seq_position": "Break the hip line, isolate the near leg",
+      "seq_finish": "Kneebar",
+      "tension_note": "Gi-legality and grading-appropriateness at AJJ unverified. Confirm with the coach before drilling this as a graded slot."
+    },
+    {
+      "requirement_key": "guard-subs", "slot_index": 10, "game_tag": "b-game",
+      "seq_entry": "Cross entry from seated guard into 50/50",
+      "seq_position": "Control the far lapel, break the leg free",
+      "seq_finish": "Straight ankle lock",
+      "tension_note": "Drilled (cross to 50/50) but never logged live. Candidate to drop if the slate needs pruning toward the pressure A-game."
+    },
+
+    {
+      "requirement_key": "guard-sweeps", "slot_index": 1, "game_tag": "a-game",
+      "seq_entry": "Closed guard, collar-and-sleeve, knee across the belt line",
+      "seq_position": "Scissor sweep to mount",
+      "seq_finish": "Mounted arm triangle"
+    },
+    {
+      "requirement_key": "guard-sweeps", "slot_index": 2, "game_tag": "syllabus-only",
+      "seq_entry": "Closed guard, hip bump to force the post",
+      "seq_position": "Hip bump sweep to mount",
+      "seq_finish": "Cross-collar choke"
+    },
+    {
+      "requirement_key": "guard-sweeps", "slot_index": 3, "game_tag": "syllabus-only",
+      "seq_entry": "Closed guard, sleeve and armpit grip, swim the leg",
+      "seq_position": "Flower (pendulum) sweep to mount",
+      "seq_finish": "Armbar"
+    },
+    {
+      "requirement_key": "guard-sweeps", "slot_index": 4, "game_tag": "a-game",
+      "seq_entry": "Butterfly guard, underhook and same-side sleeve",
+      "seq_position": "Hook sweep to top half, knee slice pass",
+      "seq_finish": "Arm triangle"
+    },
+    {
+      "requirement_key": "guard-sweeps", "slot_index": 5, "game_tag": "b-game",
+      "seq_entry": "Seated guard pull into De La Riva",
+      "seq_position": "Basic DLR back-step sweep to the top, knee slice",
+      "seq_finish": "Clock choke",
+      "tension_note": "This is the sequence his log actually shows him drilling most. Sits opposite the report's pressure archetype only in how he ARRIVES on top — the finish is A-game either way."
+    },
+    {
+      "requirement_key": "guard-sweeps", "slot_index": 6, "game_tag": "b-game",
+      "seq_entry": "De La Riva, kiss of the dragon entry",
+      "seq_position": "Invert under, take the back with seatbelt",
+      "seq_finish": "Bow-and-arrow choke",
+      "tension_note": "Inversion at 44 with low endurance is exactly what the report's tempo-control principle warns against. Drilled, but the body-cost question is real."
+    },
+    {
+      "requirement_key": "guard-sweeps", "slot_index": 7, "game_tag": "b-game",
+      "seq_entry": "X-guard entry from single-leg-X",
+      "seq_position": "Technical stand-up sweep, land in combat base, knee slice",
+      "seq_finish": "Arm triangle",
+      "tension_note": "X-guard sweep is drilled. Retained because it terminates in the A-game pin, unlike the pure leg-attack slots."
+    },
+    {
+      "requirement_key": "guard-sweeps", "slot_index": 8, "game_tag": "b-game",
+      "seq_entry": "Single-leg-X, ankle pick on the far leg",
+      "seq_position": "Come up to the top, body lock pass",
+      "seq_finish": "Kimura"
+    },
+    {
+      "requirement_key": "guard-sweeps", "slot_index": 9, "game_tag": "b-game",
+      "seq_entry": "Half guard, knee shield, deep underhook",
+      "seq_position": "Wrestle up to a double leg finish, hip-to-hip pin",
+      "seq_finish": "Arm triangle"
+    },
+    {
+      "requirement_key": "guard-sweeps", "slot_index": 10, "game_tag": "b-game",
+      "seq_entry": "Half guard, underhook and hook the far leg (old school)",
+      "seq_position": "Old-school sweep to top half, knee slice to mount",
+      "seq_finish": "Mounted armbar"
+    },
+
+    {
+      "requirement_key": "guard-defences", "slot_index": 1, "game_tag": "syllabus-only",
+      "seq_entry": "Armbar defence: stack and hitchhiker the elbow free",
+      "seq_position": "Recover posture on top, re-establish combat base",
+      "seq_finish": "Knee slice pass to side control"
+    },
+    {
+      "requirement_key": "guard-defences", "slot_index": 2, "game_tag": "a-game",
+      "seq_entry": "Triangle defence: posture, hip switch, hide the near arm",
+      "seq_position": "Stack pass over the top to side control",
+      "seq_finish": "Kimura"
+    },
+    {
+      "requirement_key": "guard-defences", "slot_index": 3, "game_tag": "a-game",
+      "seq_entry": "Guillotine defence from inside their guard: shoulder to jaw, arm across",
+      "seq_position": "Von flue position, drive the shoulder",
+      "seq_finish": "Von flue choke"
+    },
+    {
+      "requirement_key": "guard-defences", "slot_index": 4, "game_tag": "b-game",
+      "seq_entry": "Kimura defence from guard bottom: hide the wrist, roll to turtle",
+      "seq_position": "Wrestle up, they meet me in a front headlock",
+      "seq_finish": "Ninja choke (arm-in guillotine)"
+    },
+    {
+      "requirement_key": "guard-defences", "slot_index": 5, "game_tag": "syllabus-only",
+      "seq_entry": "Cross-collar choke defence from inside guard: hand fight the top grip",
+      "seq_position": "Posture up, stack, open the legs",
+      "seq_finish": "Pass to side control"
+    },
+
+    {
+      "requirement_key": "side-subs", "slot_index": 1, "game_tag": "a-game",
+      "seq_entry": "Side control, chest-to-chest, they frame and push",
+      "seq_position": "Feed the arm across the neck, walk to the far side",
+      "seq_finish": "Arm triangle"
+    },
+    {
+      "requirement_key": "side-subs", "slot_index": 2, "game_tag": "syllabus-only",
+      "seq_entry": "Kesa-gatame, head-and-arm control",
+      "seq_position": "Isolate the trapped arm, figure-four",
+      "seq_finish": "Kimura"
+    },
+    {
+      "requirement_key": "side-subs", "slot_index": 3, "game_tag": "a-game",
+      "seq_entry": "Knee ride, cross-collar grip deep",
+      "seq_position": "Second grip on the far lapel, drop the elbow",
+      "seq_finish": "Paper cutter choke"
+    },
+    {
+      "requirement_key": "side-subs", "slot_index": 4, "game_tag": "syllabus-only",
+      "seq_entry": "North-south, control the near arm at the elbow",
+      "seq_position": "Step over the head, figure-four the wrist",
+      "seq_finish": "Kimura"
+    },
+    {
+      "requirement_key": "side-subs", "slot_index": 5, "game_tag": "a-game",
+      "seq_entry": "Knee ride, they push the knee away",
+      "seq_position": "Spin to the far-side arm, sit back",
+      "seq_finish": "Far-side armbar"
+    },
+
+    {
+      "requirement_key": "side-passes", "slot_index": 1, "game_tag": "a-game",
+      "seq_entry": "Combat base inside their open guard, cross grip the collar",
+      "seq_position": "Knee slice pass, crossface and underhook to side control",
+      "seq_finish": "Arm triangle"
+    },
+    {
+      "requirement_key": "side-passes", "slot_index": 2, "game_tag": "a-game",
+      "seq_entry": "Standing body lock over the legs",
+      "seq_position": "Walk to the mat, hips heavy, chest-to-chest pin",
+      "seq_finish": "Arm triangle"
+    },
+    {
+      "requirement_key": "side-passes", "slot_index": 3, "game_tag": "a-game",
+      "seq_entry": "Over-under from half guard",
+      "seq_position": "Shoulder pressure to the jaw, clear the leg to side control",
+      "seq_finish": "Kimura"
+    },
+    {
+      "requirement_key": "side-passes", "slot_index": 4, "game_tag": "a-game",
+      "seq_entry": "Double under, stack the hips over the shoulders",
+      "seq_position": "Drop the hips to side control, secure the far lapel",
+      "seq_finish": "Paper cutter choke"
+    },
+    {
+      "requirement_key": "side-passes", "slot_index": 5, "game_tag": "a-game",
+      "seq_entry": "Torreando, both pant grips, shuffle the legs across",
+      "seq_position": "Knee ride, they turn in",
+      "seq_finish": "Far-side armbar"
+    },
+    {
+      "requirement_key": "side-passes", "slot_index": 6, "game_tag": "a-game",
+      "seq_entry": "Top half guard, long step around the knee shield",
+      "seq_position": "Hip-to-hip smash pass to side control",
+      "seq_finish": "Kimura"
+    },
+    {
+      "requirement_key": "side-passes", "slot_index": 7, "game_tag": "a-game",
+      "seq_entry": "Leg drag from standing over their open guard",
+      "seq_position": "Hip against the dragged leg, chest to chest",
+      "seq_finish": "Arm triangle"
+    },
+    {
+      "requirement_key": "side-passes", "slot_index": 8, "game_tag": "a-game",
+      "seq_entry": "Headquarters position against their De La Riva hook",
+      "seq_position": "Kill the hook, knee cut through to side control, they turn away",
+      "seq_finish": "Clock choke",
+      "tension_note": "This is the mirror of his own game — passing what he plays. Worth keeping precisely for that, but it is the slot most likely to duplicate side-passes 1 in practice."
+    },
+    {
+      "requirement_key": "side-passes", "slot_index": 9, "game_tag": "syllabus-only",
+      "seq_entry": "Standing closed guard break (blue-belt base)",
+      "seq_position": "Open the legs, knee through to side control",
+      "seq_finish": "Americana"
+    },
+    {
+      "requirement_key": "side-passes", "slot_index": 10, "game_tag": "a-game",
+      "seq_entry": "X-pass, weave the near leg across",
+      "seq_position": "Knee cut off the weave to north-south",
+      "seq_finish": "North-south kimura"
+    },
+
+    {
+      "requirement_key": "side-escapes", "slot_index": 1, "game_tag": "syllabus-only",
+      "seq_entry": "Frames on the crossface and hip",
+      "seq_position": "Shrimp, insert the knee",
+      "seq_finish": "Guard recovery to knee shield half guard"
+    },
+    {
+      "requirement_key": "side-escapes", "slot_index": 2, "game_tag": "b-game",
+      "seq_entry": "Underhook the far arm, escape to my knees",
+      "seq_position": "Wrestle up, they front-headlock me",
+      "seq_finish": "Ninja choke (arm-in guillotine) on the reversal"
+    },
+    {
+      "requirement_key": "side-escapes", "slot_index": 3, "game_tag": "syllabus-only",
+      "seq_entry": "Bridge into them to create the gap",
+      "seq_position": "Ghost the hips out to the back side",
+      "seq_finish": "Come up to top turtle / back control"
+    },
+    {
+      "requirement_key": "side-escapes", "slot_index": 4, "game_tag": "syllabus-only",
+      "seq_entry": "Kesa-gatame escape: shoulder pull on the trapped arm",
+      "seq_position": "Reverse the hips out from under",
+      "seq_finish": "Armbar off the reversal"
+    },
+    {
+      "requirement_key": "side-escapes", "slot_index": 5, "game_tag": "syllabus-only",
+      "seq_entry": "North-south bottom, pillow the head, frame on the hips",
+      "seq_position": "Reversal to the top",
+      "seq_finish": "Knee slice pass to side control"
+    },
+
+    {
+      "requirement_key": "mount-subs", "slot_index": 1, "game_tag": "a-game",
+      "seq_entry": "Mount, ride the hips, they bridge and turn in",
+      "seq_position": "S-mount, feed the arm across, step over the head",
+      "seq_finish": "Mounted arm triangle"
+    },
+    {
+      "requirement_key": "mount-subs", "slot_index": 2, "game_tag": "syllabus-only",
+      "seq_entry": "Mount, first deep collar grip",
+      "seq_position": "Second grip, elbows in, drop the chest",
+      "seq_finish": "Cross-collar choke"
+    },
+    {
+      "requirement_key": "mount-subs", "slot_index": 3, "game_tag": "syllabus-only",
+      "seq_entry": "Mount, they push the chest away",
+      "seq_position": "Trap the pushing arm, swing the leg over",
+      "seq_finish": "Armbar"
+    },
+    {
+      "requirement_key": "mount-subs", "slot_index": 4, "game_tag": "syllabus-only",
+      "seq_entry": "Mount, they turn to the side to escape",
+      "seq_position": "Half-nelson on the near arm, collar grip",
+      "seq_finish": "Half-nelson choke"
+    },
+    {
+      "requirement_key": "mount-subs", "slot_index": 5, "game_tag": "a-game",
+      "seq_entry": "Mount, grapevine the legs to kill the bridge",
+      "seq_position": "Trap the near wrist to the mat, figure-four",
+      "seq_finish": "Kimura"
+    },
+
+    {
+      "requirement_key": "mount-transitions", "slot_index": 1, "game_tag": "a-game",
+      "seq_entry": "Knee ride on the far hip",
+      "seq_position": "Step over to mount as they turn in",
+      "seq_finish": "Mounted arm triangle"
+    },
+    {
+      "requirement_key": "mount-transitions", "slot_index": 2, "game_tag": "a-game",
+      "seq_entry": "Side control, hip switch to face the legs",
+      "seq_position": "Step-over mount, chest heavy",
+      "seq_finish": "Cross-collar choke"
+    },
+    {
+      "requirement_key": "mount-transitions", "slot_index": 3, "game_tag": "a-game",
+      "seq_entry": "Top half guard, knee slice through the knee shield",
+      "seq_position": "Clear the leg straight to mount",
+      "seq_finish": "Kimura"
+    },
+    {
+      "requirement_key": "mount-transitions", "slot_index": 4, "game_tag": "syllabus-only",
+      "seq_entry": "Back control, they slide down and out of the seatbelt",
+      "seq_position": "Ride the escape into re-mount",
+      "seq_finish": "Armbar"
+    },
+    {
+      "requirement_key": "mount-transitions", "slot_index": 5, "game_tag": "a-game",
+      "seq_entry": "Torreando pass into knee ride",
+      "seq_position": "Knee ride to mount as they frame",
+      "seq_finish": "Half-nelson choke"
+    },
+
+    {
+      "requirement_key": "mount-escapes", "slot_index": 1, "game_tag": "syllabus-only",
+      "seq_entry": "Trap the arm and same-side foot",
+      "seq_position": "Bridge over the trapped shoulder",
+      "seq_finish": "Bridge and roll to top guard"
+    },
+    {
+      "requirement_key": "mount-escapes", "slot_index": 2, "game_tag": "b-game",
+      "seq_entry": "Frame on the hip, elbow inside the knee",
+      "seq_position": "Elbow-knee escape, shrimp out",
+      "seq_finish": "Recover half guard with knee shield"
+    },
+    {
+      "requirement_key": "mount-escapes", "slot_index": 3, "game_tag": "b-game",
+      "seq_entry": "They grapevine the legs",
+      "seq_position": "Heel drag one leg free, hip escape",
+      "seq_finish": "Recover half guard with knee shield"
+    },
+
+    {
+      "requirement_key": "back-subs", "slot_index": 1, "game_tag": "a-game",
+      "seq_entry": "Back control, seatbelt with both hooks",
+      "seq_position": "Chin strap, feed the choking arm under",
+      "seq_finish": "Rear naked choke"
+    },
+    {
+      "requirement_key": "back-subs", "slot_index": 2, "game_tag": "a-game",
+      "seq_entry": "Back control, deep collar grip over the shoulder",
+      "seq_position": "Trap the far arm with the leg, rotate perpendicular",
+      "seq_finish": "Bow-and-arrow choke"
+    },
+    {
+      "requirement_key": "back-subs", "slot_index": 3, "game_tag": "a-game",
+      "seq_entry": "Top turtle, collar grip across the back of the neck",
+      "seq_position": "Walk around the head, sprawl the weight on",
+      "seq_finish": "Clock choke"
+    },
+    {
+      "requirement_key": "back-subs", "slot_index": 4, "game_tag": "syllabus-only",
+      "seq_entry": "Back control, both lapels fed across",
+      "seq_position": "Cross the wrists, expand the elbows",
+      "seq_finish": "Double lapel choke"
+    },
+    {
+      "requirement_key": "back-subs", "slot_index": 5, "game_tag": "syllabus-only",
+      "seq_entry": "Back control, they defend the neck two-on-one",
+      "seq_position": "Isolate the defending arm, swing the leg over the head",
+      "seq_finish": "Armbar from the back"
+    },
+
+    {
+      "requirement_key": "back-transitions", "slot_index": 1, "game_tag": "a-game",
+      "seq_entry": "They turtle from my front headlock",
+      "seq_position": "Seatbelt, near hook in, roll them over the shoulder",
+      "seq_finish": "Rear naked choke"
+    },
+    {
+      "requirement_key": "back-transitions", "slot_index": 2, "game_tag": "a-game",
+      "seq_entry": "Mount, they turn away to escape",
+      "seq_position": "Gift wrap the far arm, ride to back control",
+      "seq_finish": "Bow-and-arrow choke"
+    },
+    {
+      "requirement_key": "back-transitions", "slot_index": 3, "game_tag": "syllabus-only",
+      "seq_entry": "Closed guard, arm drag across the body",
+      "seq_position": "Climb to the back, both hooks",
+      "seq_finish": "Rear naked choke"
+    },
+    {
+      "requirement_key": "back-transitions", "slot_index": 4, "game_tag": "b-game",
+      "seq_entry": "De La Riva, kiss of the dragon",
+      "seq_position": "Come up behind them into back control",
+      "seq_finish": "Bow-and-arrow choke",
+      "tension_note": "Duplicates guard-sweeps 6 by design — the syllabus counts it in two blocks, but if Ruby wants 90 DISTINCT sequences one of the two should change."
+    },
+    {
+      "requirement_key": "back-transitions", "slot_index": 5, "game_tag": "a-game",
+      "seq_entry": "Knee ride, they turn away to their knees",
+      "seq_position": "Follow to top turtle, seatbelt and hook",
+      "seq_finish": "Clock choke"
+    },
+
+    {
+      "requirement_key": "back-escapes", "slot_index": 1, "game_tag": "syllabus-only",
+      "seq_entry": "Seatbelt on, fall to the trapped-arm side",
+      "seq_position": "Hip out and slide down the body",
+      "seq_finish": "Escape to top half guard"
+    },
+    {
+      "requirement_key": "back-escapes", "slot_index": 2, "game_tag": "syllabus-only",
+      "seq_entry": "Double-under grip on their back control",
+      "seq_position": "Clear the hooks, slide to the mat",
+      "seq_finish": "Escape to guard"
+    },
+    {
+      "requirement_key": "back-escapes", "slot_index": 3, "game_tag": "syllabus-only",
+      "seq_entry": "Double-over grip on their back control",
+      "seq_position": "Peel the top hook, turn into them",
+      "seq_finish": "Escape to top half guard"
+    },
+    {
+      "requirement_key": "back-escapes", "slot_index": 4, "game_tag": "syllabus-only",
+      "seq_entry": "Face-down and sprawled out under their back control",
+      "seq_position": "Walk the hips out from under, deny the hooks",
+      "seq_finish": "Escape to turtle and stand"
+    },
+    {
+      "requirement_key": "back-escapes", "slot_index": 5, "game_tag": "syllabus-only",
+      "seq_entry": "Choke defence: two-on-one on the choking arm (Rickson/Relson)",
+      "seq_position": "Peel the hand, pin it to the chest, hip out",
+      "seq_finish": "Escape to top half guard"
+    }
+  ]
+}

@@ -201,6 +201,13 @@ def get_analytics_service():
     return AnalyticsService()
 
 
+def get_curriculum_service():
+    """Provide a CurriculumService instance."""
+    from rivaflow.core.services.curriculum_service import CurriculumService
+
+    return CurriculumService()
+
+
 def get_goals_service():
     """Provide a GoalsService instance."""
     from rivaflow.core.services.goals_service import GoalsService
