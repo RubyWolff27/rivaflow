@@ -7,7 +7,6 @@ import ACWRChart from './ACWRChart';
 import CorrelationScatter from './CorrelationScatter';
 import TechniqueQuadrant from './TechniqueQuadrant';
 import QualityTrend from './QualityTrend';
-import RiskGauge from './RiskGauge';
 
 interface InsightsTabProps {
   dateRange: { start: string; end: string };
@@ -16,8 +15,6 @@ interface InsightsTabProps {
 interface InsightsSummary {
   acwr?: number;
   acwr_zone?: string;
-  risk_score?: number;
-  risk_level?: string;
   game_breadth?: number;
   avg_session_quality?: number;
   top_insight?: string;
@@ -91,19 +88,6 @@ interface SessionQualityData {
   [key: string]: unknown;
 }
 
-interface InsightFactor {
-  score: number;
-  max: number;
-}
-
-interface RiskData {
-  risk_score?: number;
-  level?: string;
-  factors?: Record<string, InsightFactor>;
-  recommendations?: string[];
-  [key: string]: unknown;
-}
-
 interface RecoveryRestEntry {
   rest_days: number;
   avg_sub_rate: number;
@@ -138,7 +122,6 @@ export default function InsightsTab({ dateRange }: InsightsTabProps) {
   const [readinessCorr, setReadinessCorr] = useState<ReadinessCorrData | null>(null);
   const [techniqueEff, setTechniqueEff] = useState<TechniqueEffData | null>(null);
   const [sessionQuality, setSessionQuality] = useState<SessionQualityData | null>(null);
-  const [riskData, setRiskData] = useState<RiskData | null>(null);
   const [recoveryData, setRecoveryData] = useState<RecoveryData | null>(null);
   const [checkinTrends, setCheckinTrends] = useState<CheckinTrendsData | null>(null);
 
@@ -153,13 +136,12 @@ export default function InsightsTab({ dateRange }: InsightsTabProps) {
           ? { start_date: dateRange.start, end_date: dateRange.end }
           : undefined;
 
-        const [summaryRes, loadRes, corrRes, techRes, qualRes, riskRes, recRes, checkinRes] = await Promise.all([
+        const [summaryRes, loadRes, corrRes, techRes, qualRes, recRes, checkinRes] = await Promise.all([
           analyticsApi.insightsSummary().catch(() => ({ data: null })),
           analyticsApi.trainingLoad().catch(() => ({ data: null })),
           analyticsApi.readinessCorrelation(params).catch(() => ({ data: null })),
           analyticsApi.techniqueEffectiveness(params).catch(() => ({ data: null })),
           analyticsApi.sessionQuality(params).catch(() => ({ data: null })),
-          analyticsApi.overtTrainingRisk().catch(() => ({ data: null })),
           analyticsApi.recoveryInsights().catch(() => ({ data: null })),
           analyticsApi.checkinTrends({ days: 30 }).catch(() => ({ data: null })),
         ]);
@@ -170,7 +152,6 @@ export default function InsightsTab({ dateRange }: InsightsTabProps) {
           setReadinessCorr(corrRes.data);
           setTechniqueEff(techRes.data);
           setSessionQuality(qualRes.data);
-          setRiskData(riskRes.data);
           setRecoveryData(recRes.data);
           setCheckinTrends(checkinRes.data);
         }
@@ -212,7 +193,7 @@ export default function InsightsTab({ dateRange }: InsightsTabProps) {
     );
   }
 
-  if (!summary && !trainingLoad && !riskData) {
+  if (!summary && !trainingLoad && !recoveryData) {
     return (
       <Card>
         <EmptyState
@@ -233,31 +214,17 @@ export default function InsightsTab({ dateRange }: InsightsTabProps) {
     undertrained: '#3B82F6',
   };
 
-  const riskColors: Record<string, string> = {
-    green: '#22C55E',
-    yellow: '#EAB308',
-    red: '#EF4444',
-  };
-
   return (
     <div className="space-y-6">
       {/* Summary Tiles */}
       {summary && (
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
           <div className="p-4 rounded-[14px]" style={{ backgroundColor: 'var(--surfaceElev)', border: '1px solid var(--border)' }}>
             <p className="text-xs font-medium uppercase tracking-wide mb-1" style={{ color: 'var(--muted)' }}>ACWR</p>
             <p className="text-2xl font-bold" style={{ color: (summary.acwr_zone && zoneColors[summary.acwr_zone]) || 'var(--text)' }}>
               {summary.acwr}
             </p>
             <p className="text-xs capitalize mt-1" style={{ color: 'var(--muted)' }}>{summary.acwr_zone?.replace('_', ' ')}</p>
-          </div>
-
-          <div className="p-4 rounded-[14px]" style={{ backgroundColor: 'var(--surfaceElev)', border: '1px solid var(--border)' }}>
-            <p className="text-xs font-medium uppercase tracking-wide mb-1" style={{ color: 'var(--muted)' }}>Risk</p>
-            <p className="text-2xl font-bold" style={{ color: (summary.risk_level && riskColors[summary.risk_level]) || 'var(--text)' }}>
-              {summary.risk_score}
-            </p>
-            <p className="text-xs capitalize mt-1" style={{ color: 'var(--muted)' }}>{summary.risk_level}</p>
           </div>
 
           <div className="p-4 rounded-[14px]" style={{ backgroundColor: 'var(--surfaceElev)', border: '1px solid var(--border)' }}>
@@ -401,21 +368,9 @@ export default function InsightsTab({ dateRange }: InsightsTabProps) {
         </Card>
       )}
 
-      {/* Two-column: Risk + Recovery */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {/* Overtraining Risk */}
-        {riskData && (
-          <Card>
-            <h3 className="text-lg font-semibold mb-3" style={{ color: 'var(--text)' }}>Overtraining Risk</h3>
-            <RiskGauge
-              riskScore={riskData.risk_score!}
-              level={riskData.level!}
-              factors={riskData.factors!}
-              recommendations={riskData.recommendations!}
-            />
-          </Card>
-        )}
-
+      {/* Recovery (Overtraining Risk gauge removed 2026-08-06 — sign-inverted factors +
+          WHOOP-dead inputs made it structurally unable to signal risk; rebuild on Air HRV in v2) */}
+      <div className="grid grid-cols-1 gap-4">
         {/* Recovery Insights */}
         {recoveryData && (
           <Card>
