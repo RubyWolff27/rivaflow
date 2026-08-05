@@ -11,3 +11,4 @@ export { glossaryApi, videosApi, coachPreferencesApi } from './content';
 export { groupsApi, gymsApi, photosApi } from './community';
 export { dashboardApi, notificationsApi, restApi } from './dashboard';
 export { feedbackApi, waitlistApi, gamePlansApi } from './platform';
+export { curriculumApi } from './curriculum';

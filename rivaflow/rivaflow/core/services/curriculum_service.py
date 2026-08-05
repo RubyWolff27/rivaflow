@@ -235,6 +235,8 @@ def compute_slot_state(
         "weak_evidence": weak_evidence,
         "signoff_verdict": verdict,
         "signoff_count": len(signoffs),
+        "signoff_coach_name": signoff.get("coach_name") if signoff else None,
+        "signoff_at": signoff.get("created_at") if signoff else None,
     }
 
 
@@ -568,6 +570,8 @@ class CurriculumService:
             "staleness_days": slot["staleness_days"],
             "weak_evidence": slot["weak_evidence"],
             "signoff_verdict": slot["signoff_verdict"],
+            "signoff_coach_name": slot.get("signoff_coach_name"),
+            "signoff_at": slot.get("signoff_at"),
             "blocker_note": slot.get("blocker_note"),
             "tension_note": slot.get("tension_note"),
         }

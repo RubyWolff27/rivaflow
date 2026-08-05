@@ -50,6 +50,7 @@ const Terms = lazy(() => import('./pages/Terms'));
 const Privacy = lazy(() => import('./pages/Privacy'));
 const Groups = lazy(() => import('./pages/Groups'));
 const MyGame = lazy(() => import('./pages/MyGame'));
+const Curriculum = lazy(() => import('./pages/Curriculum'));
 const MonthlyGoals = lazy(() => import('./pages/MonthlyGoals'));
 const CoachSettings = lazy(() => import('./pages/CoachSettings'));
 const Login = lazy(() => import('./pages/Login'));
@@ -150,6 +151,7 @@ function App() {
                           <Route path="/grapple" element={<Grapple />} />
                           <Route path="/coach-settings" element={<CoachSettings />} />
                           <Route path="/my-game" element={<MyGame />} />
+                          <Route path="/curriculum" element={<Curriculum />} />
                           <Route path="/goals" element={<MonthlyGoals />} />
                           <Route path="/admin" element={<AdminRoute><AdminDashboard /></AdminRoute>} />
                           <Route path="/admin/users" element={<AdminRoute><AdminUsers /></AdminRoute>} />

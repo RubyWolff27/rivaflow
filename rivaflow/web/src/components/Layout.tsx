@@ -1,6 +1,6 @@
 import { useState, useRef, memo } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { Home, BarChart3, Activity, Shield, Sparkles, Target, Calendar, Download, Trophy, HeartPulse } from 'lucide-react';
+import { Home, BarChart3, Activity, Award, Shield, Sparkles, Target, Calendar, Download, Trophy, HeartPulse } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import QuickLog from './QuickLog';
 import Sidebar from './Sidebar';
@@ -50,6 +50,7 @@ const Layout = memo(function Layout({ children }: { children: React.ReactNode })
         { name: 'Grapple AI', href: '/grapple', icon: Sparkles, badge: 'NEW' },
         { name: 'Glossary', href: '/glossary', icon: Target, badge: 'NEW' },
         { name: 'Sessions', href: '/sessions', icon: Activity },
+        { name: 'Purple Belt', href: '/curriculum', icon: Award },
         { name: 'Health', href: '/health', icon: HeartPulse },
         { name: 'Goals', href: '/goals', icon: Trophy },
         { name: 'Readiness', href: '/readiness', icon: Activity },
