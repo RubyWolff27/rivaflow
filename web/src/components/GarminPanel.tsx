@@ -38,7 +38,7 @@ export default function GarminPanel({ session }: { session: Session }) {
       <div className="flex items-center gap-2 mb-3">
         <Heart className="w-4 h-4" style={{ color: 'var(--accent)' }} />
         <span className="font-semibold text-sm">
-          Garmin{session.garmin_activity_name ? ` — ${session.garmin_activity_name}` : ''}
+          Biometrics — Google Health · Fitbit Air
         </span>
       </div>
 
