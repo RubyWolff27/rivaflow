@@ -13,7 +13,6 @@ import math
 from datetime import datetime, timedelta
 
 import rivaflow.core.cardio_load as cl
-from rivaflow.core import whoop_analytics
 from rivaflow.core.cardio_load import (
     banister_trimp,
     classify_hardness,
@@ -21,7 +20,6 @@ from rivaflow.core.cardio_load import (
     scale_to_21,
     session_load,
 )
-from rivaflow.db.repositories.whoop_repo import WhoopRepository
 
 MAX_HR = 180.0
 REST_HR = 55.0
@@ -193,22 +191,3 @@ def test_classify_hardness_matches_fallback_hard_fixture():
     cutoffs = hardness_cutoffs([])  # <8 -> fallback
     assert classify_hardness(raw, cutoffs) == "HARD"
 
-
-# ── load_version threaded through daily_cardio_load ──────────────────────────────
-
-
-def test_daily_cardio_load_carries_load_version(monkeypatch):
-    # Wave 3.4: daily_cardio_load now reads via the whoop_daily_agg rollup service, which fetches a
-    # bounded per-day window through hr_range/rr_range_between rather than recent_hr — with days=1 the
-    # only day requested is "today", so compute_day() runs directly (no rollup-store round trip to mock).
-    rows = [{"ts": t.isoformat(), "bpm": bpm} for t, bpm in _rest_day_samples()]
-    monkeypatch.setattr(WhoopRepository, "hr_range", staticmethod(lambda *a, **k: rows))
-    monkeypatch.setattr(
-        WhoopRepository, "rr_range_between", staticmethod(lambda *a, **k: [])
-    )
-    out = whoop_analytics.daily_cardio_load(1, days=1, max_hr=180)
-    assert out, "expected at least one day of cardio load"
-    for day in out:
-        assert day["load_version"] == cl.LOAD_VERSION
-        assert "cardio_load" in day
-        assert "raw_trimp" in day

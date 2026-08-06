@@ -1,20 +1,15 @@
 """Wave 3.1 — personalised sleep-window threshold (pure; no DB, no network).
 
-Two things are pinned here: `sleep_window.personal_threshold_offset` (the pure Otsu-based learner —
-synthetic bimodal/unimodal nights, thin-coverage nights, too-few-nights, and clamping) and
-`whoop_analytics._sleep_from_points` (that the FLOOR default path is byte-identical to the pre-Wave-3.1
-fixed +12bpm behaviour, and that both paths now carry a detector_version).
+Pins `sleep_window.personal_threshold_offset` (the pure Otsu-based learner — synthetic
+bimodal/unimodal nights, thin-coverage nights, too-few-nights, and clamping). The
+`_sleep_from_points` reference tests left with whoop_analytics in v2 Wave 1c.
 """
 
 from __future__ import annotations
 
 import random
-from collections import defaultdict
-from datetime import datetime, timedelta
-from statistics import mean
 
 import rivaflow.core.sleep_window as sw
-from rivaflow.core import whoop_analytics
 
 # ── Synthetic per-night bucket-median fixtures ──────────────────────────────────
 
@@ -137,120 +132,3 @@ def test_personal_threshold_offset_accepts_callable_source():
     offset_list, version_list = sw.personal_threshold_offset(nights)
     offset_callable, version_callable = sw.personal_threshold_offset(lambda: nights)
     assert (offset_list, version_list) == (offset_callable, version_callable)
-
-
-# ── (e)/(f) _sleep_from_points: FLOOR path is byte-identical to pre-Wave-3.1 ────
-
-
-def _synthetic_night_points(seed: int = 1) -> list[tuple[datetime, int]]:
-    """~12h of 1-min-sampled HR: 2h evening-awake ~70bpm, 8h asleep ~50bpm, 2h morning-awake ~70bpm — a
-    clean single sleep window for _best_sleep_window to pick out."""
-    rng = random.Random(seed)
-    start = datetime(2026, 1, 1, 22, 0, 0)
-    pts: list[tuple[datetime, int]] = []
-    t = start
-    for _ in range(120):
-        pts.append((t, round(rng.gauss(70, 3))))
-        t += timedelta(minutes=1)
-    for _ in range(480):
-        pts.append((t, round(rng.gauss(50, 3))))
-        t += timedelta(minutes=1)
-    for _ in range(120):
-        pts.append((t, round(rng.gauss(70, 3))))
-        t += timedelta(minutes=1)
-    return pts
-
-
-def _reference_sleep_from_points(pts: list[tuple[datetime, int]]) -> dict:
-    """Pinned, independently-written copy of the pre-Wave-3.1 `_sleep_from_points` body (fixed +12bpm
-    threshold, inline bucketing) — an independent reference to catch any behavioural drift introduced by
-    factoring the bucketing into sleep_window.bucket_hr and threading a personalised threshold through.
-    """
-    if len(pts) < 120:
-        return {
-            "available": False,
-            "reason": "Not enough overnight HR captured for a sleep estimate yet.",
-        }
-    pts = sorted(pts, key=lambda p: p[0])
-    t0 = pts[0][0]
-    bucket_bpms: dict[int, list[int]] = defaultdict(list)
-    bucket_time: dict[int, datetime] = {}
-    for t, b in pts:
-        idx = int((t - t0).total_seconds() // 300)
-        bucket_bpms[idx].append(b)
-        bucket_time.setdefault(idx, t)
-    order = sorted(bucket_bpms)
-    med = {i: sorted(bucket_bpms[i])[len(bucket_bpms[i]) // 2] for i in order}
-    threshold = min(med.values()) + 12
-    win = whoop_analytics._best_sleep_window(med, threshold)
-    if win is None:
-        return {
-            "available": False,
-            "reason": "No sustained overnight low-HR sleep window detected.",
-        }
-    s_idx, e_idx, low_count = win
-    start_t, end_t = bucket_time[s_idx], bucket_time[e_idx]
-    duration_hours = (end_t - start_t).total_seconds() / 3600
-    span_buckets = e_idx - s_idx + 1
-    coverage_pct = round(100 * low_count / span_buckets) if span_buckets else 0
-    fragmented = coverage_pct < 60
-    sleep_bpms = [
-        b
-        for i in order
-        if s_idx <= i <= e_idx and med[i] <= threshold
-        for b in bucket_bpms[i]
-    ]
-    return {
-        "available": True,
-        "sleep_start": start_t.isoformat(),
-        "sleep_end": end_t.isoformat(),
-        "duration_hours": round(duration_hours, 1),
-        "avg_sleeping_hr": round(mean(sleep_bpms)) if sleep_bpms else None,
-        "min_hr": min(sleep_bpms) if sleep_bpms else None,
-        "coverage_pct": coverage_pct,
-        "fragmented": fragmented,
-        "source": "hr_bucketed_window",
-        "method": "HR-based sleep window (bridges capture gaps, breaks on sustained wake; not staging).",
-    }
-
-
-def test_sleep_from_points_floor_default_matches_pre_wave31_reference():
-    pts = _synthetic_night_points()
-    got = whoop_analytics._sleep_from_points(list(pts))
-    expected = _reference_sleep_from_points(list(pts))
-    got_without_version = {k: v for k, v in got.items() if k != "detector_version"}
-    assert got["available"] is True  # sanity: fixture actually detects a window
-    assert got_without_version == expected
-
-
-def test_sleep_from_points_short_circuit_matches_reference():
-    pts = _synthetic_night_points()[
-        :100
-    ]  # < 120 points -> the early "not enough HR" branch
-    got = whoop_analytics._sleep_from_points(list(pts))
-    expected = _reference_sleep_from_points(list(pts))
-    assert got == expected  # no detector_version on the unavailable short-circuit
-
-
-def test_sleep_from_points_floor_path_carries_floor_detector_version():
-    pts = _synthetic_night_points()
-    got = whoop_analytics._sleep_from_points(list(pts))
-    assert got["detector_version"] == sw.FLOOR_VERSION
-
-
-def test_sleep_from_points_learned_path_carries_learned_detector_version():
-    pts = _synthetic_night_points()
-    got = whoop_analytics._sleep_from_points(
-        list(pts), threshold_offset=15.0, detector_version=sw.LEARNED_VERSION
-    )
-    assert got["available"] is True
-    assert got["detector_version"] == sw.LEARNED_VERSION
-
-
-def test_sleep_from_points_different_offset_changes_shape_not_keys():
-    pts = _synthetic_night_points()
-    floor = whoop_analytics._sleep_from_points(list(pts))
-    learned = whoop_analytics._sleep_from_points(
-        list(pts), threshold_offset=15.0, detector_version=sw.LEARNED_VERSION
-    )
-    assert set(floor) == set(learned)  # additive-only: same output shape on both paths

@@ -16,13 +16,6 @@ broken — until a follow-up enriches them.
 
 from __future__ import annotations
 
-import statistics
-from collections import defaultdict
-from datetime import date
-
-from rivaflow.core import whoop_analytics
-from rivaflow.core.services.insights_math import _linear_slope
-
 # Shown on panels that are intentionally not yet derived from raw data.
 _PENDING_RECOVERY = (
     "Recovery-based correlation needs per-day recovery scoring — "
@@ -34,68 +27,20 @@ _PENDING_STRAIN = (
 )
 
 
-def _iso_week(day_str: str) -> str | None:
-    try:
-        return date.fromisoformat(day_str[:10]).strftime("%Y-W%U")
-    except (ValueError, TypeError):
-        return None
-
-
 def cardiovascular_drift(user_id: int, days: int = 90) -> dict:
-    """Weekly average resting-HR trend, derived from the raw HR stream.
+    """Weekly resting-HR trend — empty since the raw BLE feed retired (Wave 1c).
 
-    Matches the WhoopAnalyticsEngine.get_cardiovascular_drift contract so the
-    dashboard's RHR-trend panel renders unchanged.
+    Keeps the WhoopAnalyticsEngine.get_cardiovascular_drift contract so the
+    dashboard panel hides itself, exactly like the other pending panels. Wave 2
+    repoints this to the Fitbit Air / Google Health resting-HR series.
     """
-    rows = whoop_analytics.daily_resting_hr(user_id, days=days)
-
-    weekly: dict[str, list[float]] = defaultdict(list)
-    for r in rows:
-        rhr = r.get("resting_hr")
-        wk = _iso_week(str(r.get("day", "")))
-        if rhr is None or wk is None:
-            continue
-        weekly[wk].append(float(rhr))
-
-    if len(weekly) < 2:
-        current = rows[-1].get("resting_hr") if rows else None
-        return {
-            "weekly_rhr": [],
-            "slope": 0.0,
-            "trend": "insufficient_data",
-            "current_rhr": current,
-            "baseline_rhr": current,
-            "insight": "Need 2+ weeks of resting-HR data for a trend.",
-        }
-
-    weekly_avgs = [
-        {
-            "week": wk,
-            "avg_rhr": round(statistics.mean(weekly[wk]), 1),
-            "data_points": len(weekly[wk]),
-        }
-        for wk in sorted(weekly)
-    ]
-    slope = _linear_slope([w["avg_rhr"] for w in weekly_avgs])
-    trend = "improving" if slope < -0.3 else "rising" if slope > 0.3 else "stable"
-    current_rhr = weekly_avgs[-1]["avg_rhr"]
-    baseline_rhr = weekly_avgs[0]["avg_rhr"]
-    labels = {
-        "improving": "declining (improving fitness)",
-        "rising": "rising (possible fatigue)",
-        "stable": "stable",
-    }
-    insight = (
-        f"RHR trend: {labels[trend]}. Current: {current_rhr} bpm, "
-        f"baseline: {baseline_rhr} bpm (slope: {slope:+.2f} bpm/week)."
-    )
     return {
-        "weekly_rhr": weekly_avgs,
-        "slope": slope,
-        "trend": trend,
-        "current_rhr": current_rhr,
-        "baseline_rhr": baseline_rhr,
-        "insight": insight,
+        "weekly_rhr": [],
+        "slope": 0.0,
+        "trend": "insufficient_data",
+        "current_rhr": None,
+        "baseline_rhr": None,
+        "insight": "Resting-HR trend is being rebuilt on Fitbit Air data.",
     }
 
 
