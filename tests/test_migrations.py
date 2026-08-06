@@ -126,6 +126,27 @@ class TestMigrationCorrectness:
                 )
                 conn.commit()
 
+    def test_sessions_has_external_ref(self, temp_db):
+        """Sessions should have the external_ref idempotency column (migration 119)."""
+        with get_connection() as conn:
+            cursor = conn.cursor()
+            if DB_TYPE == "sqlite":
+                cursor.execute("PRAGMA table_info(sessions)")
+                columns = {
+                    row[1] if isinstance(row, tuple) else row["name"]
+                    for row in cursor.fetchall()
+                }
+            else:
+                cursor.execute(
+                    "SELECT column_name FROM information_schema.columns "
+                    "WHERE table_name='sessions'"
+                )
+                columns = {
+                    row[0] if isinstance(row, tuple) else row["column_name"]
+                    for row in cursor.fetchall()
+                }
+            assert "external_ref" in columns, "Column 'sessions.external_ref' missing"
+
     def test_users_has_lockout_columns(self, temp_db):
         """Users table should have login lockout columns from migration 093."""
         with get_connection() as conn:
