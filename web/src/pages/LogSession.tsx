@@ -17,7 +17,6 @@ import CompactReadiness from '../components/sessions/CompactReadiness';
 import TechniqueTracker from '../components/sessions/TechniqueTracker';
 import RollTracker from '../components/sessions/RollTracker';
 import ClassTimePicker from '../components/sessions/ClassTimePicker';
-import FightDynamicsPanel from '../components/sessions/FightDynamicsPanel';
 import TagPartnersModal from '../components/sessions/TagPartnersModal';
 import FriendAutocomplete from '../components/sessions/FriendAutocomplete';
 import { useSessionForm, mergePartners, mapSocialFriends } from '../hooks/useSessionForm';
@@ -203,7 +202,6 @@ export default function LogSession() {
         class_tags: classTags.length > 0 ? classTags : undefined,
         visibility_level: 'summary',
         ...form.buildWhoopPayload(),
-        ...form.buildFightDynamicsPayload(),
       };
 
       if (form.sessionData.instructor_id) {
@@ -661,18 +659,6 @@ export default function LogSession() {
               topPartners={form.topPartners}
               selectedPartnerIds={form.selectedPartnerIds}
               onTogglePartner={form.handleTogglePartner}
-            />
-          )}
-
-          {/* Fight Dynamics */}
-          {form.isSparringType && (
-            <FightDynamicsPanel
-              data={form.fightDynamics}
-              expanded={form.showFightDynamics}
-              onToggle={() => form.setShowFightDynamics(prev => !prev)}
-              onIncrement={form.handleFightDynamicsIncrement}
-              onDecrement={form.handleFightDynamicsDecrement}
-              onChange={form.handleFightDynamicsChange}
             />
           )}
 

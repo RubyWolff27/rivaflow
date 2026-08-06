@@ -28,13 +28,6 @@ export interface SessionFormData {
   whoop_max_hr: string;
 }
 
-export interface FightDynamicsData {
-  attacks_attempted: number;
-  attacks_successful: number;
-  defenses_attempted: number;
-  defenses_successful: number;
-}
-
 export interface UseSessionFormOptions {
   initialData?: Partial<SessionFormData>;
   initialRolls?: RollEntry[];
@@ -110,19 +103,7 @@ export interface UseSessionFormReturn {
     value: string
   ) => void;
 
-  // Fight dynamics
-  fightDynamics: FightDynamicsData;
-  setFightDynamics: React.Dispatch<React.SetStateAction<FightDynamicsData>>;
-  handleFightDynamicsIncrement: (field: keyof FightDynamicsData) => void;
-  handleFightDynamicsDecrement: (field: keyof FightDynamicsData) => void;
-  handleFightDynamicsChange: (
-    field: keyof FightDynamicsData,
-    value: number
-  ) => void;
-
   // UI toggles
-  showFightDynamics: boolean;
-  setShowFightDynamics: React.Dispatch<React.SetStateAction<boolean>>;
   showMoreDetails: boolean;
   setShowMoreDetails: React.Dispatch<React.SetStateAction<boolean>>;
   showCustomDuration: boolean;
@@ -194,12 +175,6 @@ export interface UseSessionFormReturn {
     whoop_avg_hr?: number;
     whoop_max_hr?: number;
   };
-  buildFightDynamicsPayload: () => {
-    attacks_attempted?: number;
-    attacks_successful?: number;
-    defenses_attempted?: number;
-    defenses_successful?: number;
-  };
 }
 
 // ── Default values ───────────────────────────────────────────────────
@@ -225,13 +200,6 @@ const DEFAULT_SESSION_DATA: SessionFormData = {
   whoop_calories: '',
   whoop_avg_hr: '',
   whoop_max_hr: '',
-};
-
-const DEFAULT_FIGHT_DYNAMICS: FightDynamicsData = {
-  attacks_attempted: 0,
-  attacks_successful: 0,
-  defenses_attempted: 0,
-  defenses_successful: 0,
 };
 
 // ── Helpers ──────────────────────────────────────────────────────────
@@ -376,12 +344,7 @@ export function useSessionForm(
     Record<number, string>
   >({});
 
-  // ── Fight dynamics ─────────────────────────────────────────────────
-  const [fightDynamics, setFightDynamics] =
-    useState<FightDynamicsData>(DEFAULT_FIGHT_DYNAMICS);
-
   // ── UI toggles ─────────────────────────────────────────────────────
-  const [showFightDynamics, setShowFightDynamics] = useState(false);
   const [showMoreDetails, setShowMoreDetails] = useState(false);
   const [showCustomDuration, setShowCustomDuration] = useState(false);
 
@@ -574,57 +537,6 @@ export function useSessionForm(
     []
   );
 
-  // ── Fight dynamics handlers ────────────────────────────────────────
-
-  const handleFightDynamicsIncrement = useCallback(
-    (field: keyof FightDynamicsData) => {
-      setFightDynamics((fd) => {
-        if (field === 'attacks_successful')
-          return {
-            ...fd,
-            [field]: Math.min(fd.attacks_attempted, fd[field] + 1),
-          };
-        if (field === 'defenses_successful')
-          return {
-            ...fd,
-            [field]: Math.min(fd.defenses_attempted, fd[field] + 1),
-          };
-        return { ...fd, [field]: fd[field] + 1 };
-      });
-    },
-    []
-  );
-
-  const handleFightDynamicsDecrement = useCallback(
-    (field: keyof FightDynamicsData) => {
-      setFightDynamics((fd) => ({
-        ...fd,
-        [field]: Math.max(0, fd[field] - 1),
-      }));
-    },
-    []
-  );
-
-  const handleFightDynamicsChange = useCallback(
-    (field: keyof FightDynamicsData, value: number) => {
-      setFightDynamics((fd) => {
-        const clamped = Math.max(0, value);
-        if (field === 'attacks_successful')
-          return {
-            ...fd,
-            [field]: Math.min(fd.attacks_attempted, clamped),
-          };
-        if (field === 'defenses_successful')
-          return {
-            ...fd,
-            [field]: Math.min(fd.defenses_attempted, clamped),
-          };
-        return { ...fd, [field]: clamped };
-      });
-    },
-    []
-  );
-
   // ── Partner management ─────────────────────────────────────────────
 
   const topPartners = useMemo(
@@ -771,26 +683,6 @@ export function useSessionForm(
     sessionData.whoop_max_hr,
   ]);
 
-  const buildFightDynamicsPayload = useCallback(() => {
-    if (
-      fightDynamics.attacks_attempted === 0 &&
-      fightDynamics.defenses_attempted === 0
-    )
-      return {};
-    return {
-      attacks_attempted: fightDynamics.attacks_attempted,
-      attacks_successful: Math.min(
-        fightDynamics.attacks_successful,
-        fightDynamics.attacks_attempted
-      ),
-      defenses_attempted: fightDynamics.defenses_attempted,
-      defenses_successful: Math.min(
-        fightDynamics.defenses_successful,
-        fightDynamics.defenses_attempted
-      ),
-    };
-  }, [fightDynamics]);
-
   // ── Return ─────────────────────────────────────────────────────────
 
   return {
@@ -832,16 +724,7 @@ export function useSessionForm(
     handleRemoveMediaUrl,
     handleMediaUrlChange,
 
-    // Fight dynamics
-    fightDynamics,
-    setFightDynamics,
-    handleFightDynamicsIncrement,
-    handleFightDynamicsDecrement,
-    handleFightDynamicsChange,
-
     // UI toggles
-    showFightDynamics,
-    setShowFightDynamics,
     showMoreDetails,
     setShowMoreDetails,
     showCustomDuration,
@@ -875,6 +758,5 @@ export function useSessionForm(
     buildRollsPayload,
     buildTechniquesPayload,
     buildWhoopPayload,
-    buildFightDynamicsPayload,
   };
 }

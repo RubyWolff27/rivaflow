@@ -18,10 +18,6 @@ export const analyticsApi = {
   milestones: () => api.get('/analytics/milestones'),
   instructorInsights: (params?: { start_date?: string; end_date?: string; types?: string[] }) =>
     api.get('/analytics/instructors/insights', { params }),
-  fightDynamicsHeatmap: (params?: { view?: string; weeks?: number; months?: number }) =>
-    api.get('/analytics/fight-dynamics/heatmap', { params }),
-  fightDynamicsInsights: () =>
-    api.get('/analytics/fight-dynamics/insights'),
   gameDistribution: (params?: { window?: 'all' | '12w' | '8w' }) =>
     api.get('/analytics/game-distribution', { params }),
 

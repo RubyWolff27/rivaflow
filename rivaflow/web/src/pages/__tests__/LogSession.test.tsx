@@ -127,10 +127,6 @@ vi.mock('../../components/sessions/ClassTimePicker', () => ({
   default: () => <div data-testid="class-time-picker" />,
 }))
 
-vi.mock('../../components/sessions/FightDynamicsPanel', () => ({
-  default: () => <div data-testid="fight-dynamics" />,
-}))
-
 import LogSession from '../LogSession'
 
 function renderLogSession() {
