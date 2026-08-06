@@ -63,6 +63,7 @@ class SessionRepository(BaseRepository):
         defenses_successful: int = 0,
         source: str = "manual",
         needs_review: bool = False,
+        external_ref: str | None = None,
     ) -> int:
         """Create a new session and return its ID."""
         with get_connection() as conn:
@@ -79,8 +80,8 @@ class SessionRepository(BaseRepository):
                     whoop_strain, whoop_calories, whoop_avg_hr, whoop_max_hr,
                     attacks_attempted, attacks_successful,
                     defenses_attempted, defenses_successful,
-                    source, needs_review
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    source, needs_review, external_ref
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
                     user_id,
@@ -113,8 +114,30 @@ class SessionRepository(BaseRepository):
                     defenses_successful,
                     source,
                     bool(needs_review),
+                    external_ref,
                 ),
             )
+
+    @staticmethod
+    def get_by_external_ref(user_id: int, external_ref: str) -> dict | None:
+        """Look up a session by its upstream idempotency key.
+
+        Returns the matching row (id + core columns) or None. Used by the
+        create path to make ingest idempotent: re-posting the same
+        external_ref returns the existing session instead of duplicating it.
+        """
+        with get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                convert_query(
+                    f"SELECT {_SESSION_COLS} FROM sessions"
+                    " WHERE user_id = ? AND external_ref = ?"
+                    " LIMIT 1"
+                ),
+                (user_id, external_ref),
+            )
+            row = cursor.fetchone()
+            return SessionRepository._row_to_dict(row) if row else None
 
     @staticmethod
     def get_by_id(user_id: int, session_id: int) -> dict | None:

@@ -32,6 +32,50 @@ def test_create_session(temp_db, test_user):
         assert session["rolls"] == 5
 
 
+def test_create_session_is_idempotent_on_external_ref(temp_db, test_user):
+    """Re-posting the same external_ref returns the existing session, not a dupe."""
+    with patch("rivaflow.config.DB_PATH", temp_db):
+        service = SessionService()
+
+        first_id = service.create_session(
+            user_id=test_user["id"],
+            session_date=date(2025, 2, 1),
+            class_type="gi",
+            gym_name="Test Gym",
+            duration_mins=60,
+            intensity=4,
+            external_ref="gh-point-abc123",
+        )
+        assert first_id > 0
+
+        # Same upstream record id again → same session, no duplicate created.
+        second_id = service.create_session(
+            user_id=test_user["id"],
+            session_date=date(2025, 2, 1),
+            class_type="gi",
+            gym_name="Test Gym",
+            duration_mins=90,  # different payload must NOT matter
+            intensity=5,
+            external_ref="gh-point-abc123",
+        )
+        assert second_id == first_id
+
+        # A null external_ref (manual log) is never deduplicated.
+        manual_a = service.create_session(
+            user_id=test_user["id"],
+            session_date=date(2025, 2, 2),
+            class_type="gi",
+            gym_name="Test Gym",
+        )
+        manual_b = service.create_session(
+            user_id=test_user["id"],
+            session_date=date(2025, 2, 2),
+            class_type="gi",
+            gym_name="Test Gym",
+        )
+        assert manual_a != manual_b
+
+
 def test_create_session_with_techniques(temp_db, test_user):
     """Test creating a session with techniques creates glossary + session_techniques."""
     with patch("rivaflow.config.DB_PATH", temp_db):

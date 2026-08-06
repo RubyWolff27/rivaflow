@@ -220,6 +220,7 @@ def create_session(
         attacks_successful=session.attacks_successful,
         defenses_attempted=session.defenses_attempted,
         defenses_successful=session.defenses_successful,
+        external_ref=session.external_ref,
     )
     created_session = service.get_session(
         user_id=current_user["id"], session_id=session_id

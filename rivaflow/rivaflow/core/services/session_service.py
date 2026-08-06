@@ -77,12 +77,25 @@ class SessionService:
         attacks_successful: int = 0,
         defenses_attempted: int = 0,
         defenses_successful: int = 0,
+        external_ref: str | None = None,
     ) -> int:
         """
         Create a new training session and update technique tracking.
         Supports both simple mode (aggregate counts) and detailed mode (individual rolls).
         Returns session ID.
+
+        Idempotent when ``external_ref`` is supplied: re-posting the same upstream
+        record id returns the existing session's ID rather than creating a duplicate.
         """
+        # Idempotent ingest: if this upstream record was already imported, return
+        # the existing session and skip all the create side effects (rolls,
+        # techniques, streak, scoring). Manual logs pass external_ref=None and are
+        # never deduplicated.
+        if external_ref is not None:
+            existing = self.session_repo.get_by_external_ref(user_id, external_ref)
+            if existing is not None:
+                return existing["id"]
+
         # Create session
         session_id = self.session_repo.create(
             user_id=user_id,
@@ -113,6 +126,7 @@ class SessionService:
             attacks_successful=attacks_successful,
             defenses_attempted=defenses_attempted,
             defenses_successful=defenses_successful,
+            external_ref=external_ref,
         )
 
         self._create_rolls(user_id, session_id, session_rolls, partners)

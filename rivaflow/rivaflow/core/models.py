@@ -176,6 +176,16 @@ class SessionCreate(BaseModel):
     defenses_successful: int = Field(
         default=0, ge=0, description="Number of successful defenses during session"
     )
+    external_ref: str | None = Field(
+        default=None,
+        max_length=255,
+        description=(
+            "Upstream source record id (e.g. a Google Health point id) for "
+            "idempotent ingest. Re-posting the same external_ref returns the "
+            "existing session instead of creating a duplicate. Leave null for "
+            "manually-logged sessions."
+        ),
+    )
 
     @field_validator(
         "class_time", "location", "notes", "instructor_name", mode="before"
