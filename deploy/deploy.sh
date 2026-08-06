@@ -6,6 +6,14 @@ set -uo pipefail
 cd /opt/rivaflow || exit 1
 log(){ echo "$(date -u +%FT%TZ) $*"; }
 
+# Single-flight guard. Without this, a slow build can overlap the next 3-minute
+# cron tick: one run's `git reset --hard` advances HEAD while another run's
+# build/up is still finishing, so the container is left running the OLD image on
+# the NEW SHA — and every later run then skips because LOCAL==REMOTE. flock -n
+# makes a second concurrent run exit immediately instead of racing.
+exec 9>/opt/rivaflow/.deploy.lock
+flock -n 9 || { log "another deploy already running — skipping this tick"; exit 0; }
+
 git fetch --quiet origin main 2>/dev/null || { log "git fetch failed"; exit 1; }
 LOCAL=$(git rev-parse HEAD); REMOTE=$(git rev-parse origin/main)
 [ "$LOCAL" = "$REMOTE" ] && exit 0   # nothing new
