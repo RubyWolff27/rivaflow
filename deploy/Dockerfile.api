@@ -25,4 +25,12 @@ EXPOSE 8000
 HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
     CMD curl -fsS http://localhost:8000/health || exit 1
 
+# Build-time git SHA baked into the image so deploy.sh can ask the RUNNING
+# container what code it actually IS, and assert it matches origin/main. This is
+# the signal that closes the silent-stale-container class (a killed deploy leaving
+# an old image on an advanced git HEAD). Kept last so a SHA change only rebuilds
+# this final tiny layer, never deps or the code copy.
+ARG GIT_SHA=unknown
+ENV GIT_SHA=$GIT_SHA
+
 CMD ["bash", "start.sh"]

@@ -27,7 +27,9 @@ from rivaflow.db.database import get_connection
 
 logger = logging.getLogger(__name__)
 
-_GIT_SHA = os.getenv("RENDER_GIT_COMMIT", "unknown")
+# GIT_SHA is baked into the image at build time (deploy/Dockerfile.api); the legacy
+# RENDER_GIT_COMMIT is a dead Render var on the VPS, kept only as a fallback.
+_GIT_SHA = os.getenv("GIT_SHA") or os.getenv("RENDER_GIT_COMMIT", "unknown")
 _VERSION_FILE = Path(__file__).parent.parent.parent / "VERSION"
 _APP_VERSION = _VERSION_FILE.read_text().strip() if _VERSION_FILE.exists() else "0.5.0"
 
