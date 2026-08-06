@@ -42,9 +42,6 @@ vi.mock('../../api/client', () => ({
   grappleApi: {
     getInsights: vi.fn(() => Promise.resolve({ data: [] })),
   },
-  gamePlansApi: {
-    getCurrent: vi.fn(() => Promise.resolve({ data: null })),
-  },
   weightLogsApi: {
     getLatest: vi.fn(() => Promise.resolve({ data: null })),
     create: vi.fn(),

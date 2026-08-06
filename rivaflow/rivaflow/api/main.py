@@ -49,7 +49,6 @@ from rivaflow.api.routes import (
     feed,
     feedback,
     friends,
-    game_plans,
     garmin,
     glossary,
     goals,
@@ -324,7 +323,9 @@ app.include_router(social_connections.router, prefix="/api/v1/social", tags=["so
 app.include_router(grapple.router, prefix="/api/v1", tags=["grapple"])
 app.include_router(grapple_insights.router, prefix="/api/v1/grapple", tags=["grapple"])
 app.include_router(grapple_usage.router, prefix="/api/v1/grapple", tags=["grapple"])
-app.include_router(game_plans.router, prefix="/api/v1", tags=["game-plans"])
+# game_plans router frozen 2026-08-07 (v2 Wave 1, council verdict): UI-orphaned since
+# the MyGame page was cut in Wave 1.2. Modules, repos and DB tables kept — the game-system
+# concept returns via the curriculum module's slate work if/when it earns its way back.
 app.include_router(notifications.router, prefix="/api/v1", tags=["notifications"])
 app.include_router(admin.router, prefix="/api/v1", tags=["admin"])
 app.include_router(admin_gyms.router, prefix="/api/v1/admin", tags=["admin"])

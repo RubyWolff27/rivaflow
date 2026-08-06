@@ -10,5 +10,5 @@ export { goalsApi, trainingGoalsApi, eventsApi, weightLogsApi, milestonesApi } f
 export { glossaryApi, videosApi, coachPreferencesApi } from './content';
 export { groupsApi, gymsApi, photosApi } from './community';
 export { dashboardApi, notificationsApi, restApi } from './dashboard';
-export { feedbackApi, waitlistApi, gamePlansApi } from './platform';
+export { feedbackApi, waitlistApi } from './platform';
 export { curriculumApi } from './curriculum';

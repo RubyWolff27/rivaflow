@@ -18,7 +18,6 @@ from rivaflow.db.repositories import (
     ReadinessRepository,
     SessionRepository,
 )
-from rivaflow.db.repositories.game_plan_repo import GamePlanRepository
 from rivaflow.db.repositories.glossary_repo import GlossaryRepository
 
 
@@ -320,78 +319,6 @@ class TestCheckinsIDOR:
         # User1 should have zero filled slots
         for day in data.get("checkins", []):
             assert day.get("slots_filled", 0) == 0
-
-
-# ============================================================================
-# Game Plan IDOR Tests
-# ============================================================================
-
-
-class TestGamePlanIDOR:
-    """User1 must not access User2's game plans."""
-
-    def _create_user2_plan(self, user2_id):
-        """Create a game plan for user2."""
-        return GamePlanRepository.create(
-            user_id=user2_id,
-            belt_level="blue",
-            archetype="guard_player",
-            title="User2 Secret Plan",
-        )
-
-    def test_get_plan_idor(self, authenticated_client, test_user, test_user2):
-        """User1 cannot GET User2's game plan by ID."""
-        plan_id = self._create_user2_plan(test_user2["id"])
-        response = authenticated_client.get(f"/api/v1/game-plans/{plan_id}")
-        assert response.status_code in (
-            403,
-            404,
-        ), f"Expected 403/404, got {response.status_code}"
-
-    def test_update_plan_idor(self, authenticated_client, test_user, test_user2):
-        """User1 cannot PATCH User2's game plan."""
-        plan_id = self._create_user2_plan(test_user2["id"])
-        response = authenticated_client.patch(
-            f"/api/v1/game-plans/{plan_id}",
-            json={"title": "HACKED by User1"},
-        )
-        assert response.status_code in (
-            403,
-            404,
-        ), f"Expected 403/404, got {response.status_code}"
-
-    def test_delete_plan_idor(self, authenticated_client, test_user, test_user2):
-        """User1 cannot DELETE User2's game plan."""
-        plan_id = self._create_user2_plan(test_user2["id"])
-        response = authenticated_client.delete(f"/api/v1/game-plans/{plan_id}")
-        assert response.status_code in (
-            403,
-            404,
-        ), f"Expected 403/404, got {response.status_code}"
-
-    def test_add_node_idor(self, authenticated_client, test_user, test_user2):
-        """User1 cannot add nodes to User2's game plan."""
-        plan_id = self._create_user2_plan(test_user2["id"])
-        response = authenticated_client.post(
-            f"/api/v1/game-plans/{plan_id}/nodes",
-            json={"name": "Injected Node"},
-        )
-        assert response.status_code in (
-            403,
-            404,
-        ), f"Expected 403/404, got {response.status_code}"
-
-    def test_list_plans_isolation(self, authenticated_client, test_user, test_user2):
-        """User1's plan list must not include User2's plans."""
-        self._create_user2_plan(test_user2["id"])
-        response = authenticated_client.get("/api/v1/game-plans/")
-        assert response.status_code == 200
-        data = response.json()
-        # User1 has no plan, so should get plan=None
-        if isinstance(data, dict) and "plan" in data:
-            assert data["plan"] is None
-        elif isinstance(data, dict) and "id" in data:
-            assert data.get("user_id", test_user["id"]) == test_user["id"]
 
 
 # ============================================================================
