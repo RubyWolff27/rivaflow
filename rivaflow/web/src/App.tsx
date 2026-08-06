@@ -43,13 +43,11 @@ const AdminFeedback = lazy(() => import('./pages/AdminFeedback'));
 const AdminWaitlist = lazy(() => import('./pages/AdminWaitlist'));
 const AdminEmail = lazy(() => import('./pages/AdminEmail'));
 const Events = lazy(() => import('./pages/Events'));
-const FightDynamics = lazy(() => import('./pages/FightDynamics'));
 const ContactUs = lazy(() => import('./pages/ContactUs'));
 const FAQ = lazy(() => import('./pages/FAQ'));
 const Terms = lazy(() => import('./pages/Terms'));
 const Privacy = lazy(() => import('./pages/Privacy'));
 const Groups = lazy(() => import('./pages/Groups'));
-const MyGame = lazy(() => import('./pages/MyGame'));
 const Curriculum = lazy(() => import('./pages/Curriculum'));
 const MonthlyGoals = lazy(() => import('./pages/MonthlyGoals'));
 const CoachSettings = lazy(() => import('./pages/CoachSettings'));
@@ -66,7 +64,6 @@ const NotFound = lazy(() => import('./pages/NotFound'));
 const PartnerStats = lazy(() => import('./pages/PartnerStats'));
 const Leaderboards = lazy(() => import('./pages/Leaderboards'));
 const Achievements = lazy(() => import('./pages/Achievements'));
-const WhoopImport = lazy(() => import('./pages/WhoopImport'));
 
 function App() {
   useEffect(() => {
@@ -150,7 +147,6 @@ function App() {
                           <Route path="/users/:userId" element={<UserProfile />} />
                           <Route path="/grapple" element={<Grapple />} />
                           <Route path="/coach-settings" element={<CoachSettings />} />
-                          <Route path="/my-game" element={<MyGame />} />
                           <Route path="/curriculum" element={<Curriculum />} />
                           <Route path="/goals" element={<MonthlyGoals />} />
                           <Route path="/admin" element={<AdminRoute><AdminDashboard /></AdminRoute>} />
@@ -166,9 +162,7 @@ function App() {
                           <Route path="/partner/:partnerId" element={<PartnerStats />} />
                           <Route path="/leaderboards" element={<Leaderboards />} />
                           <Route path="/achievements" element={<Achievements />} />
-                          <Route path="/import" element={<WhoopImport />} />
                           <Route path="/events" element={<Events />} />
-                          <Route path="/fight-dynamics" element={<FightDynamics />} />
                           <Route path="/contact" element={<ContactUs />} />
                           <Route path="/faq" element={<FAQ />} />
                           {/* /privacy and /terms moved to public routes

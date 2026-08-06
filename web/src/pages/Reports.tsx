@@ -4,14 +4,13 @@ import { useSearchParams, Link } from 'react-router-dom';
 import { usePageTitle } from '../hooks/usePageTitle';
 import { analyticsApi, sessionsApi, whoopApi } from '../api/client';
 import { logger } from '../utils/logger';
-import { TrendingUp, Users, Activity, Target, Brain, Swords, Heart, ChevronRight } from 'lucide-react';
+import { TrendingUp, Users, Activity, Target, Brain, ChevronRight } from 'lucide-react';
 import { Card } from '../components/ui';
 import { ActivityTypeFilter } from '../components/ActivityTypeFilter';
 import { useFeatureAccess } from '../hooks/useTier';
 import { PremiumBadge, UpgradePrompt } from '../components/UpgradePrompt';
 import ReadinessTab from '../components/analytics/ReadinessTab';
 import InsightsTab from '../components/analytics/InsightsTab';
-import WhoopAnalyticsTab from '../components/analytics/WhoopAnalyticsTab';
 import OverviewTab from '../components/analytics/OverviewTab';
 import PartnersTab from '../components/analytics/PartnersTab';
 import TechniquesTab from '../components/analytics/TechniquesTab';
@@ -181,7 +180,6 @@ export default function Reports() {
     { id: 'readiness', name: 'Readiness', icon: Activity },
     { id: 'techniques', name: 'Techniques', icon: Target, bjjOnly: true },
     { id: 'insights', name: 'Insights', icon: Brain, bjjOnly: true },
-    { id: 'whoop', name: 'WHOOP', icon: Heart },
   ];
 
   // Filter tabs based on activity selection
@@ -203,14 +201,6 @@ export default function Reports() {
       <div className="flex items-center justify-between flex-wrap gap-3">
         <h1 className="text-2xl font-semibold text-[var(--text)]">Progress</h1>
         <div className="flex items-center gap-2 flex-wrap">
-          <Link
-            to="/fight-dynamics"
-            className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors hover:opacity-80"
-            style={{ backgroundColor: 'var(--surfaceElev)', border: '1px solid var(--border)', color: 'var(--accent)' }}
-          >
-            <Swords className="w-4 h-4" />
-            Fight Dynamics
-          </Link>
           {hasAdvancedAnalytics ? (
             <ActivityTypeFilter selectedTypes={selectedTypes} onChange={setSelectedTypes} />
           ) : (
@@ -406,10 +396,6 @@ export default function Reports() {
 
       {activeTab === 'insights' && (
         <InsightsTab dateRange={dateRange} />
-      )}
-
-      {activeTab === 'whoop' && (
-        <WhoopAnalyticsTab />
       )}
     </div>
   );
