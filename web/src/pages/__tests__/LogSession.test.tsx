@@ -71,10 +71,6 @@ vi.mock('../../hooks/useSpeechRecognition', () => ({
   }),
 }))
 
-vi.mock('../../components/WhoopMatchModal', () => ({
-  default: () => null,
-}))
-
 vi.mock('../../components/GymSelector', () => ({
   default: ({ value }: { value: string }) => (
     <input data-testid="gym-selector" defaultValue={value} />
@@ -129,10 +125,6 @@ vi.mock('../../components/sessions/RollTracker', () => ({
 
 vi.mock('../../components/sessions/ClassTimePicker', () => ({
   default: () => <div data-testid="class-time-picker" />,
-}))
-
-vi.mock('../../components/sessions/WhoopIntegrationPanel', () => ({
-  default: () => <div data-testid="whoop-panel" />,
 }))
 
 vi.mock('../../components/sessions/FightDynamicsPanel', () => ({

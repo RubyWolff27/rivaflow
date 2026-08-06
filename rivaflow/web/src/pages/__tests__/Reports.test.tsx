@@ -101,10 +101,6 @@ vi.mock('../../components/analytics/InsightsTab', () => ({
   default: () => <div data-testid="insights-tab" />,
 }))
 
-vi.mock('../../components/analytics/WhoopAnalyticsTab', () => ({
-  default: () => <div data-testid="whoop-tab" />,
-}))
-
 vi.mock('../../components/MiniZoneBar', () => ({
   default: () => <div data-testid="mini-zone-bar" />,
 }))

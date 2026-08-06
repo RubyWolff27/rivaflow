@@ -1,9 +1,7 @@
 import { useState, useMemo, useCallback } from 'react';
-import type { Friend, Movement, MediaUrl, WhoopWorkoutMatch } from '../types';
+import type { Friend, Movement, MediaUrl } from '../types';
 import type { RollEntry, TechniqueEntry } from '../components/sessions/sessionTypes';
 import { GYM_TYPES, SPARRING_TYPES, NON_BJJ_TYPES } from '../components/sessions/sessionTypes';
-import { whoopApi, getErrorMessage } from '../api/client';
-import { useToast } from '../contexts/ToastContext';
 
 // ── Types ────────────────────────────────────────────────────────────
 
@@ -37,20 +35,11 @@ export interface FightDynamicsData {
   defenses_successful: number;
 }
 
-export interface WhoopSyncParams {
-  session_date?: string;
-  class_time?: string;
-  duration_mins?: number;
-  session_id?: number;
-}
-
 export interface UseSessionFormOptions {
   initialData?: Partial<SessionFormData>;
   initialRolls?: RollEntry[];
   initialTechniques?: TechniqueEntry[];
   initialDetailedMode?: boolean;
-  /** Custom params builder for WHOOP sync (edit mode passes session_id) */
-  whoopSyncParams?: () => WhoopSyncParams;
 }
 
 export type SessionFormErrors = Partial<Record<keyof SessionFormData, string>>;
@@ -131,24 +120,7 @@ export interface UseSessionFormReturn {
     value: number
   ) => void;
 
-  // WHOOP integration
-  whoopConnected: boolean;
-  setWhoopConnected: React.Dispatch<React.SetStateAction<boolean>>;
-  whoopSyncing: boolean;
-  whoopSynced: boolean;
-  setWhoopSynced: React.Dispatch<React.SetStateAction<boolean>>;
-  whoopMatches: WhoopWorkoutMatch[];
-  showWhoopModal: boolean;
-  setShowWhoopModal: React.Dispatch<React.SetStateAction<boolean>>;
-  whoopManualMode: boolean;
-  setWhoopManualMode: React.Dispatch<React.SetStateAction<boolean>>;
-  handleWhoopSync: () => Promise<void>;
-  handleWhoopMatchSelect: (workoutCacheId: number) => void;
-  handleWhoopClear: () => void;
-
   // UI toggles
-  showWhoop: boolean;
-  setShowWhoop: React.Dispatch<React.SetStateAction<boolean>>;
   showFightDynamics: boolean;
   setShowFightDynamics: React.Dispatch<React.SetStateAction<boolean>>;
   showMoreDetails: boolean;
@@ -325,9 +297,7 @@ export function useSessionForm(
     initialRolls,
     initialTechniques,
     initialDetailedMode,
-    whoopSyncParams,
   } = options;
-  const toast = useToast();
 
   // ── Session form data ──────────────────────────────────────────────
   const [sessionData, setSessionData] = useState<SessionFormData>({
@@ -410,16 +380,7 @@ export function useSessionForm(
   const [fightDynamics, setFightDynamics] =
     useState<FightDynamicsData>(DEFAULT_FIGHT_DYNAMICS);
 
-  // ── WHOOP integration ──────────────────────────────────────────────
-  const [whoopConnected, setWhoopConnected] = useState(false);
-  const [whoopSyncing, setWhoopSyncing] = useState(false);
-  const [whoopSynced, setWhoopSynced] = useState(false);
-  const [whoopMatches, setWhoopMatches] = useState<WhoopWorkoutMatch[]>([]);
-  const [showWhoopModal, setShowWhoopModal] = useState(false);
-  const [whoopManualMode, setWhoopManualMode] = useState(false);
-
   // ── UI toggles ─────────────────────────────────────────────────────
-  const [showWhoop, setShowWhoop] = useState(false);
   const [showFightDynamics, setShowFightDynamics] = useState(false);
   const [showMoreDetails, setShowMoreDetails] = useState(false);
   const [showCustomDuration, setShowCustomDuration] = useState(false);
@@ -664,85 +625,6 @@ export function useSessionForm(
     []
   );
 
-  // ── WHOOP handlers ─────────────────────────────────────────────────
-
-  const handleWhoopSync = useCallback(async () => {
-    const params = whoopSyncParams
-      ? whoopSyncParams()
-      : {
-          session_date: sessionData.session_date,
-          class_time: sessionData.class_time,
-          duration_mins: sessionData.duration_mins,
-        };
-
-    // Must have either session_id or (session_date + class_time)
-    if (!params.session_id && (!params.session_date || !params.class_time))
-      return;
-
-    setWhoopSyncing(true);
-    try {
-      const res = await whoopApi.getWorkouts(params);
-      const matches = res.data.workouts || [];
-      if (matches.length === 0) {
-        toast.warning('No matching WHOOP workouts found');
-      } else if (matches.length === 1 && matches[0].overlap_pct >= 90) {
-        const w = matches[0];
-        setSessionData((prev) => ({
-          ...prev,
-          whoop_strain: w.strain?.toString() || '',
-          whoop_calories: w.calories?.toString() || '',
-          whoop_avg_hr: w.avg_heart_rate?.toString() || '',
-          whoop_max_hr: w.max_heart_rate?.toString() || '',
-        }));
-        setWhoopSynced(true);
-        toast.success('WHOOP data synced automatically');
-      } else {
-        setWhoopMatches(matches);
-        setShowWhoopModal(true);
-      }
-    } catch (error: unknown) {
-      toast.error(getErrorMessage(error));
-    } finally {
-      setWhoopSyncing(false);
-    }
-  }, [
-    whoopSyncParams,
-    sessionData.session_date,
-    sessionData.class_time,
-    sessionData.duration_mins,
-    toast,
-  ]);
-
-  const handleWhoopMatchSelect = useCallback(
-    (workoutCacheId: number) => {
-      const workout = whoopMatches.find((w) => w.id === workoutCacheId);
-      if (workout) {
-        setSessionData((prev) => ({
-          ...prev,
-          whoop_strain: workout.strain?.toString() || '',
-          whoop_calories: workout.calories?.toString() || '',
-          whoop_avg_hr: workout.avg_heart_rate?.toString() || '',
-          whoop_max_hr: workout.max_heart_rate?.toString() || '',
-        }));
-        setWhoopSynced(true);
-        setShowWhoopModal(false);
-        toast.success('WHOOP data applied');
-      }
-    },
-    [whoopMatches, toast]
-  );
-
-  const handleWhoopClear = useCallback(() => {
-    setSessionData((prev) => ({
-      ...prev,
-      whoop_strain: '',
-      whoop_calories: '',
-      whoop_avg_hr: '',
-      whoop_max_hr: '',
-    }));
-    setWhoopSynced(false);
-  }, []);
-
   // ── Partner management ─────────────────────────────────────────────
 
   const topPartners = useMemo(
@@ -957,24 +839,7 @@ export function useSessionForm(
     handleFightDynamicsDecrement,
     handleFightDynamicsChange,
 
-    // WHOOP integration
-    whoopConnected,
-    setWhoopConnected,
-    whoopSyncing,
-    whoopSynced,
-    setWhoopSynced,
-    whoopMatches,
-    showWhoopModal,
-    setShowWhoopModal,
-    whoopManualMode,
-    setWhoopManualMode,
-    handleWhoopSync,
-    handleWhoopMatchSelect,
-    handleWhoopClear,
-
     // UI toggles
-    showWhoop,
-    setShowWhoop,
     showFightDynamics,
     setShowFightDynamics,
     showMoreDetails,

@@ -3,12 +3,11 @@ import { getLocalDateString } from '../utils/date';
 import { HH_MM_RE } from '../utils/validation';
 import { useNavigate } from 'react-router-dom';
 import { usePageTitle } from '../hooks/usePageTitle';
-import { sessionsApi, readinessApi, profileApi, friendsApi, socialApi, glossaryApi, restApi, whoopApi } from '../api/client';
+import { sessionsApi, readinessApi, profileApi, friendsApi, socialApi, glossaryApi, restApi } from '../api/client';
 import { logger } from '../utils/logger';
 import type { Readiness, Movement } from '../types';
 import type { SessionFormData } from '../hooks/useSessionForm';
 import { CheckCircle, Mic, MicOff, ChevronDown, ChevronUp, Users2 } from 'lucide-react';
-import WhoopMatchModal from '../components/WhoopMatchModal';
 import GymSelector from '../components/GymSelector';
 import { ClassTypeChips, IntensityChips } from '../components/ui';
 import { useToast } from '../contexts/ToastContext';
@@ -18,7 +17,6 @@ import CompactReadiness from '../components/sessions/CompactReadiness';
 import TechniqueTracker from '../components/sessions/TechniqueTracker';
 import RollTracker from '../components/sessions/RollTracker';
 import ClassTimePicker from '../components/sessions/ClassTimePicker';
-import WhoopIntegrationPanel from '../components/sessions/WhoopIntegrationPanel';
 import FightDynamicsPanel from '../components/sessions/FightDynamicsPanel';
 import TagPartnersModal from '../components/sessions/TagPartnersModal';
 import FriendAutocomplete from '../components/sessions/FriendAutocomplete';
@@ -147,15 +145,6 @@ export default function LogSession() {
         } catch (err) {
           logger.debug('No readiness logged today', err);
         }
-
-        try {
-          const whoopRes = await whoopApi.getStatus();
-          if (!controller.signal.aborted && whoopRes.data?.connected) {
-            form.setWhoopConnected(true);
-          }
-        } catch (err) {
-          logger.debug('WHOOP feature flag off or not available', err);
-        }
       } catch (error) {
         if (!controller.signal.aborted) {
           logger.error('Error loading data:', error);
@@ -165,7 +154,7 @@ export default function LogSession() {
     };
     doLoad();
     return () => { controller.abort(); };
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- mount-only: loads profile defaults, readiness, WHOOP status
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- mount-only: loads profile defaults and readiness
   }, [toast]);
 
   const handleSkipReadiness = useCallback(() => {
@@ -675,27 +664,6 @@ export default function LogSession() {
             />
           )}
 
-          {/* WHOOP Integration */}
-          <WhoopIntegrationPanel
-            whoopConnected={form.whoopConnected}
-            whoopSyncing={form.whoopSyncing}
-            whoopSynced={form.whoopSynced}
-            whoopManualMode={form.whoopManualMode}
-            showWhoop={form.showWhoop}
-            classTime={form.sessionData.class_time}
-            whoopData={{
-              whoop_strain: form.sessionData.whoop_strain,
-              whoop_calories: form.sessionData.whoop_calories,
-              whoop_avg_hr: form.sessionData.whoop_avg_hr,
-              whoop_max_hr: form.sessionData.whoop_max_hr,
-            }}
-            onWhoopDataChange={(field, value) => form.setSessionData(prev => ({ ...prev, [field]: value }))}
-            onSync={form.handleWhoopSync}
-            onClear={form.handleWhoopClear}
-            onToggleManualMode={(manual) => { form.setWhoopManualMode(manual); if (manual) form.setShowWhoop(true); }}
-            onToggleShow={() => form.setShowWhoop(prev => !prev)}
-          />
-
           {/* Fight Dynamics */}
           {form.isSparringType && (
             <FightDynamicsPanel
@@ -719,15 +687,6 @@ export default function LogSession() {
           </div>
         </form>
       )}
-
-      {/* WHOOP Match Modal */}
-      <WhoopMatchModal
-        isOpen={form.showWhoopModal}
-        onClose={() => form.setShowWhoopModal(false)}
-        matches={form.whoopMatches}
-        onSelect={form.handleWhoopMatchSelect}
-        onManual={() => { form.setShowWhoopModal(false); form.setWhoopManualMode(true); form.setShowWhoop(true); }}
-      />
 
       {/* Rest Day Form */}
       {activityType === 'rest' && (

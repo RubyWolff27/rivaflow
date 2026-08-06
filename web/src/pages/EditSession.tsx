@@ -1,13 +1,11 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { usePageTitle } from '../hooks/usePageTitle';
-import { sessionsApi, friendsApi, socialApi, glossaryApi, whoopApi } from '../api/client';
+import { sessionsApi, friendsApi, socialApi, glossaryApi } from '../api/client';
 import { logger } from '../utils/logger';
 import { HH_MM_RE } from '../utils/validation';
 import type { Friend, Movement, Session, SessionRoll, SessionTechnique } from '../types';
 import { CheckCircle, ArrowLeft, Save, Loader, Trash2, Camera, Users2 } from 'lucide-react';
-import WhoopMatchModal from '../components/WhoopMatchModal';
-import WhoopIntegrationPanel from '../components/sessions/WhoopIntegrationPanel';
 import TechniqueTracker from '../components/sessions/TechniqueTracker';
 import RollTracker from '../components/sessions/RollTracker';
 import ClassTimePicker from '../components/sessions/ClassTimePicker';
@@ -59,13 +57,8 @@ export default function EditSession() {
   const [hasAttendees, setHasAttendees] = useState(false);
   const [hasTechniques, setHasTechniques] = useState(false);
   const [hasRolls, setHasRolls] = useState(false);
-  const [hasWhoop, setHasWhoop] = useState(false);
 
-  const form = useSessionForm({
-    whoopSyncParams: useCallback(() => ({
-      session_id: parseInt(id!),
-    }), [id]),
-  });
+  const form = useSessionForm();
 
   const { clearDraft } = useDraftSaving(`edit-session-${id}`, form.sessionData, form.setSessionData);
 
@@ -137,7 +130,6 @@ export default function EditSession() {
         setHasNotes(!!sessionData.notes);
         setHasInstructor(!!instructorName || !!sessionData.location);
         setHasLocation(!!sessionData.location);
-        setHasWhoop(!!(sessionData.whoop_strain || sessionData.whoop_calories || sessionData.whoop_avg_hr || sessionData.whoop_max_hr));
 
         // Load intensity style tags (1=Technical, 2=Flow) from intensity_tags
         if (sessionData.intensity_tags && Array.isArray(sessionData.intensity_tags)) {
@@ -157,19 +149,6 @@ export default function EditSession() {
         if (sessionData.attendees && Array.isArray(sessionData.attendees)) {
           setAttendees(sessionData.attendees);
           setHasAttendees(sessionData.attendees.length > 0);
-        }
-
-        // Check WHOOP connection status
-        try {
-          const whoopRes = await whoopApi.getStatus();
-          if (!controller.signal.aborted) {
-            form.setWhoopConnected(whoopRes.data.connected);
-            if (sessionData.whoop_strain || sessionData.whoop_calories || sessionData.whoop_avg_hr || sessionData.whoop_max_hr) {
-              form.setWhoopSynced(true);
-            }
-          }
-        } catch (err) {
-          logger.debug('WHOOP not available, keep manual mode', err);
         }
 
         // Load detailed_rolls if present
@@ -572,29 +551,6 @@ export default function EditSession() {
           </AccordionSection>
         )}
 
-        {/* WHOOP Integration */}
-        <AccordionSection title="WHOOP Biometrics" defaultOpen={hasWhoop}>
-          <WhoopIntegrationPanel
-            whoopConnected={form.whoopConnected}
-            whoopSyncing={form.whoopSyncing}
-            whoopSynced={form.whoopSynced}
-            whoopManualMode={form.whoopManualMode}
-            showWhoop={true}
-            classTime={form.sessionData.class_time}
-            whoopData={{
-              whoop_strain: form.sessionData.whoop_strain,
-              whoop_calories: form.sessionData.whoop_calories,
-              whoop_avg_hr: form.sessionData.whoop_avg_hr,
-              whoop_max_hr: form.sessionData.whoop_max_hr,
-            }}
-            onWhoopDataChange={(field, value) => form.setSessionData(prev => ({ ...prev, [field]: value }))}
-            onSync={form.handleWhoopSync}
-            onClear={form.handleWhoopClear}
-            onToggleManualMode={(manual) => form.setWhoopManualMode(manual)}
-            onToggleShow={() => {}}
-          />
-        </AccordionSection>
-
         {/* Photos — always open in edit mode */}
         <AccordionSection title="Photos" icon={<Camera className="w-4 h-4" />} defaultOpen={true}>
           <div className="space-y-4">
@@ -645,14 +601,6 @@ export default function EditSession() {
           </button>
         </div>
       </form>
-
-      <WhoopMatchModal
-        isOpen={form.showWhoopModal}
-        onClose={() => form.setShowWhoopModal(false)}
-        matches={form.whoopMatches}
-        onSelect={form.handleWhoopMatchSelect}
-        onManual={() => { form.setShowWhoopModal(false); form.setWhoopManualMode(true); }}
-      />
 
       <ConfirmDialog
         isOpen={showDeleteConfirm}

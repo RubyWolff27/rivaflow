@@ -1,11 +1,10 @@
 import { useState, useEffect } from 'react';
 import { getLocalDateString } from '../utils/date';
-import { profileApi, gradingsApi, friendsApi, adminApi, gymsApi, whoopApi, getErrorMessage } from '../api/client';
+import { profileApi, gradingsApi, friendsApi, adminApi, gymsApi, getErrorMessage } from '../api/client';
 import { logger } from '../utils/logger';
 import { validateImageFile } from '../utils/validation';
 import { compressImage } from '../utils/imageCompression';
-import { formatCount } from '../utils/text';
-import type { Profile, Grading, Friend, WhoopConnectionStatus } from '../types';
+import type { Profile, Grading, Friend } from '../types';
 import { useToast } from '../contexts/ToastContext';
 
 function mapProfileToFormData(data?: Profile | null) {
@@ -81,39 +80,8 @@ export function useProfileData() {
   const [gradingPhotoPreview, setGradingPhotoPreview] = useState<string | null>(null);
   const [gymHeadCoach, setGymHeadCoach] = useState<string | null>(null);
 
-  // WHOOP integration state
-  const [whoopStatus, setWhoopStatus] = useState<WhoopConnectionStatus | null>(null);
-  const [whoopLoading, setWhoopLoading] = useState(false);
-  const [whoopSyncing, setWhoopSyncing] = useState(false);
-  const [showDisconnectConfirm, setShowDisconnectConfirm] = useState(false);
-  const [whoopNeedsReauth, setWhoopNeedsReauth] = useState(false);
-
   useEffect(() => {
-    let cancelled = false;
-    const doLoad = async () => {
-      await loadData();
-      if (cancelled) return;
-      // Load WHOOP status (best-effort, don't fail the page)
-      try {
-        const whoopRes = await whoopApi.getStatus();
-        if (cancelled) return;
-        setWhoopStatus(whoopRes.data);
-        if (whoopRes.data?.connected) {
-          try {
-            const scopeRes = await whoopApi.checkScopes();
-            if (!cancelled && scopeRes.data?.needs_reauth) {
-              setWhoopNeedsReauth(true);
-            }
-          } catch (err) {
-            logger.debug('Scope check not available', err);
-          }
-        }
-      } catch (err) {
-        logger.debug('WHOOP feature flag off or not available', err);
-      }
-    };
-    doLoad();
-    return () => { cancelled = true; };
+    loadData();
   }, []);
 
   // Fetch gym head coach when gym is selected
@@ -484,87 +452,6 @@ export function useProfileData() {
     }
   };
 
-  // Handle WHOOP OAuth redirect params
-  useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const whoopParam = params.get('whoop');
-    if (whoopParam === 'connected') {
-      toast.success('WHOOP connected successfully!');
-      // Refresh status
-      whoopApi.getStatus().then(r => setWhoopStatus(r.data)).catch(err => logger.debug('WHOOP status refresh failed', err));
-      // Clean URL
-      window.history.replaceState({}, '', '/profile');
-    } else if (whoopParam === 'error') {
-      const reason = params.get('reason') || 'unknown';
-      toast.error(`WHOOP connection failed: ${reason}`);
-      window.history.replaceState({}, '', '/profile');
-    }
-  }, []);
-
-  const handleWhoopConnect = async () => {
-    setWhoopLoading(true);
-    try {
-      const res = await whoopApi.getAuthorizeUrl();
-      window.open(res.data.authorization_url, '_blank');
-    } catch (error: unknown) {
-      toast.error(getErrorMessage(error));
-    } finally {
-      setWhoopLoading(false);
-    }
-  };
-
-  const handleWhoopSync = async () => {
-    setWhoopSyncing(true);
-    try {
-      const res = await whoopApi.sync();
-      const { total_fetched, auto_sessions_created } = res.data;
-      const msg = auto_sessions_created
-        ? `Synced ${formatCount(total_fetched, 'workout')} — ${formatCount(auto_sessions_created, 'session')} auto-created`
-        : `Synced ${formatCount(total_fetched, 'workout')} from WHOOP`;
-      toast.success(msg);
-      const statusRes = await whoopApi.getStatus();
-      setWhoopStatus(statusRes.data);
-    } catch (error: unknown) {
-      toast.error(getErrorMessage(error));
-    } finally {
-      setWhoopSyncing(false);
-    }
-  };
-
-  const handleWhoopDisconnect = async () => {
-    try {
-      await whoopApi.disconnect();
-      setWhoopStatus({ connected: false });
-      toast.success('WHOOP disconnected');
-    } catch (error: unknown) {
-      toast.error(getErrorMessage(error));
-    } finally {
-      setShowDisconnectConfirm(false);
-    }
-  };
-
-  const handleSetAutoCreate = async (value: boolean) => {
-    if (!whoopStatus) return;
-    try {
-      await whoopApi.setAutoCreate(value);
-      setWhoopStatus({ ...whoopStatus, auto_create_sessions: value });
-      toast.success(value ? 'Auto-create enabled' : 'Auto-create disabled');
-    } catch (err) {
-      toast.error(getErrorMessage(err));
-    }
-  };
-
-  const handleSetAutoFillReadiness = async (value: boolean) => {
-    if (!whoopStatus) return;
-    try {
-      await whoopApi.setAutoFillReadiness(value);
-      setWhoopStatus({ ...whoopStatus, auto_fill_readiness: value });
-      toast.success(value ? 'Auto-fill enabled' : 'Auto-fill disabled');
-    } catch (err) {
-      toast.error(getErrorMessage(err));
-    }
-  };
-
   const handleCreateGym = async (gymName: string) => {
     try {
       // Submit custom gym for verification
@@ -605,11 +492,6 @@ export function useProfileData() {
     uploadingGradingPhoto,
     gradingPhotoPreview,
     gymHeadCoach,
-    whoopStatus,
-    whoopLoading,
-    whoopSyncing,
-    showDisconnectConfirm,
-    whoopNeedsReauth,
 
     // Setters
     setFormData,
@@ -618,7 +500,6 @@ export function useProfileData() {
     setGymVerificationPending,
     setGradingToDelete,
     setShowAddGrading,
-    setShowDisconnectConfirm,
 
     // Handlers
     handlePhotoUpload,
@@ -633,11 +514,6 @@ export function useProfileData() {
     handleUpdateGrading,
     handleCancelEdit,
     handleDeleteGrading,
-    handleWhoopConnect,
-    handleWhoopSync,
-    handleWhoopDisconnect,
-    handleSetAutoCreate,
-    handleSetAutoFillReadiness,
     handleCreateGym,
   };
 }

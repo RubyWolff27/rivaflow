@@ -6,7 +6,6 @@ import { CardSkeleton } from '../components/ui';
 import ConfirmDialog from '../components/ConfirmDialog';
 import PersonalInformationForm from '../components/profile/PersonalInformationForm';
 import WeeklyGoalsForm from '../components/profile/WeeklyGoalsForm';
-import ConnectedDevicesSection from '../components/profile/ConnectedDevicesSection';
 import BeltProgressionCard from '../components/profile/BeltProgressionCard';
 import ProfileHeader from '../components/profile/ProfileHeader';
 import ProfileStats from '../components/profile/ProfileStats';
@@ -52,18 +51,12 @@ export default function Profile() {
     uploadingGradingPhoto,
     gradingPhotoPreview,
     gymHeadCoach,
-    whoopStatus,
-    whoopLoading,
-    whoopSyncing,
-    showDisconnectConfirm,
-    whoopNeedsReauth,
     setFormData,
     setGradingForm,
     setIsCustomGym,
     setGymVerificationPending,
     setGradingToDelete,
     setShowAddGrading,
-    setShowDisconnectConfirm,
     handlePhotoUpload,
     handleDeletePhoto,
     handleGradingPhotoUpload,
@@ -76,11 +69,6 @@ export default function Profile() {
     handleUpdateGrading,
     handleCancelEdit,
     handleDeleteGrading,
-    handleWhoopConnect,
-    handleWhoopSync,
-    handleWhoopDisconnect,
-    handleSetAutoCreate,
-    handleSetAutoFillReadiness,
     handleCreateGym,
   } = useProfileData();
 
@@ -159,22 +147,7 @@ export default function Profile() {
       </form>
       </CollapsibleSection>
 
-      <CollapsibleSection title="Connected Devices">
-      {whoopStatus !== null && (
-        <ConnectedDevicesSection
-          whoopStatus={whoopStatus}
-          whoopLoading={whoopLoading}
-          whoopSyncing={whoopSyncing}
-          whoopNeedsReauth={whoopNeedsReauth}
-          onConnect={handleWhoopConnect}
-          onSync={handleWhoopSync}
-          onSetAutoCreate={handleSetAutoCreate}
-          onSetAutoFillReadiness={handleSetAutoFillReadiness}
-          showDisconnectConfirm={showDisconnectConfirm}
-          onShowDisconnectConfirm={setShowDisconnectConfirm}
-          onDisconnect={handleWhoopDisconnect}
-        />
-      )}
+      <CollapsibleSection title="Settings">
       <ProfileSettings />
       </CollapsibleSection>
 
@@ -212,17 +185,6 @@ export default function Profile() {
         title="Delete Grading"
         message="Are you sure you want to delete this grading? This action cannot be undone."
         confirmText="Delete"
-        cancelText="Cancel"
-        variant="danger"
-      />
-
-      <ConfirmDialog
-        isOpen={showDisconnectConfirm}
-        onClose={() => setShowDisconnectConfirm(false)}
-        onConfirm={handleWhoopDisconnect}
-        title="Disconnect WHOOP"
-        message="This will remove your WHOOP connection and clear all synced workout data from your sessions. You can reconnect at any time."
-        confirmText="Disconnect"
         cancelText="Cancel"
         variant="danger"
       />

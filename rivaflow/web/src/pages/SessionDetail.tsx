@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { usePageTitle } from '../hooks/usePageTitle';
-import { sessionsApi, whoopApi } from '../api/client';
+import { sessionsApi } from '../api/client';
 import { logger } from '../utils/logger';
-import type { Session, WhoopSessionContext } from '../types';
+import type { Session } from '../types';
 import { ArrowLeft, Calendar, Clock, Zap, Users, MapPin, User, Book, Edit2, Activity, Target, Camera, Plus, Heart } from 'lucide-react';
 import PhotoGallery from '../components/PhotoGallery';
 import PhotoUpload from '../components/PhotoUpload';
@@ -16,7 +16,7 @@ import { formatClassType } from '../constants/activity';
 import { NON_BJJ_TYPES } from '../components/sessions/sessionTypes';
 
 /** Generate a human-readable story sentence for the session. */
-function buildSessionStory(session: Session, whoopCtx: WhoopSessionContext | null): string {
+function buildSessionStory(session: Session): string {
   const duration = session.duration_mins ?? 0;
   const classType = formatClassType(session.class_type);
   const gym = session.gym_name ?? 'training';
@@ -29,36 +29,13 @@ function buildSessionStory(session: Session, whoopCtx: WhoopSessionContext | nul
     story += ` with ${rolls} roll${rolls !== 1 ? 's' : ''}`;
   }
 
-  // Add WHOOP context when available
+  // Session strain (historical data stored on the session)
   const strain = session.whoop_strain;
-  const recovery = whoopCtx?.recovery?.score;
-
-  if (strain != null && recovery != null) {
-    const recoveryLabel = recovery >= 67 ? 'green' : recovery >= 34 ? 'yellow' : 'red';
-    story += `. Strain ${Number(strain).toFixed(1)} on ${recoveryLabel} recovery`;
-  } else if (strain != null) {
+  if (strain != null) {
     story += `. Strain ${Number(strain).toFixed(1)}`;
   }
 
-  // ISC-26: WHOOP contextual comparison
-  const avgStrain = whoopCtx?.user_averages?.avg_strain_class_type;
-  if (strain != null && avgStrain != null && avgStrain > 0) {
-    const diff = ((strain - avgStrain) / avgStrain) * 100;
-    const classType = formatClassType(whoopCtx?.user_averages?.class_type ?? '');
-    if (Math.abs(diff) >= 5) {
-      const direction = diff > 0 ? 'higher' : 'lower';
-      story += ` — ${Math.abs(Math.round(diff))}% ${direction} than your ${classType} average`;
-    }
-  }
-
   return story + '.';
-}
-
-/** Recovery dot color based on WHOOP recovery score. */
-function recoveryDotColor(score: number): string {
-  if (score >= 67) return '#10B981';
-  if (score >= 34) return '#F59E0B';
-  return '#EF4444';
 }
 
 export default function SessionDetail() {
@@ -68,8 +45,6 @@ export default function SessionDetail() {
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
   const [photoCount, setPhotoCount] = useState(0);
-  const [whoopCtx, setWhoopCtx] = useState<WhoopSessionContext | null>(null);
-  const [whoopLoading, setWhoopLoading] = useState(true);
   const [recalculating, setRecalculating] = useState(false);
   const [showAllRolls, setShowAllRolls] = useState(false);
   const toast = useToast();
@@ -93,20 +68,7 @@ export default function SessionDetail() {
       }
     };
 
-    const doLoadWhoopCtx = async () => {
-      setWhoopLoading(true);
-      try {
-        const res = await whoopApi.sessionContext(parseInt(id ?? '0'));
-        if (!cancelled) setWhoopCtx(res.data ?? null);
-      } catch (err) {
-        logger.debug('WHOOP context not available', err);
-      } finally {
-        if (!cancelled) setWhoopLoading(false);
-      }
-    };
-
     doLoad();
-    doLoadWhoopCtx();
     return () => { cancelled = true; };
   }, [id]);
 
@@ -165,21 +127,6 @@ export default function SessionDetail() {
   });
 
   const hasWhoop = session.whoop_strain || session.whoop_calories || session.whoop_avg_hr || session.whoop_max_hr;
-  const hasRecovery = whoopCtx?.recovery;
-  const hasZones = (() => {
-    const zones = whoopCtx?.workout?.zone_durations;
-    if (!zones) return false;
-    const zoneKeys = ['zone_one_milli', 'zone_two_milli', 'zone_three_milli', 'zone_four_milli', 'zone_five_milli'];
-    return zoneKeys.reduce((sum, k) => sum + (zones[k] || 0), 0) > 0;
-  })();
-
-  const zoneConfig = [
-    { key: 'zone_one_milli', label: 'Zone 1 (Recovery)', color: '#93C5FD' },
-    { key: 'zone_two_milli', label: 'Zone 2 (Light)', color: '#34D399' },
-    { key: 'zone_three_milli', label: 'Zone 3 (Moderate)', color: '#FBBF24' },
-    { key: 'zone_four_milli', label: 'Zone 4 (Hard)', color: '#F97316' },
-    { key: 'zone_five_milli', label: 'Zone 5 (Max)', color: '#EF4444' },
-  ];
 
   return (
     <div className="max-w-3xl mx-auto space-y-6">
@@ -234,32 +181,19 @@ export default function SessionDetail() {
             )}
           </div>
 
-          {/* Strain pill + Recovery dot — top right */}
+          {/* Strain pill — top right (historical data on the session) */}
           <div className="flex items-center gap-2 flex-shrink-0">
-            {whoopLoading ? (
-              <div className="h-8 w-20 rounded-full animate-pulse" style={{ backgroundColor: 'var(--surfaceElev)' }} />
-            ) : (
-              <>
-                {session.whoop_strain != null && (
-                  <span
-                    className="px-3 py-1 rounded-full text-sm font-bold flex items-center gap-1"
-                    style={{
-                      backgroundColor: session.whoop_strain <= 7 ? '#10B98120' : session.whoop_strain <= 14 ? '#F59E0B20' : '#EF444420',
-                      color: session.whoop_strain <= 7 ? '#10B981' : session.whoop_strain <= 14 ? '#F59E0B' : '#EF4444',
-                    }}
-                  >
-                    <Zap className="w-3.5 h-3.5" />
-                    {Number(session.whoop_strain).toFixed(1)}
-                  </span>
-                )}
-                {whoopCtx?.recovery?.score != null && (
-                  <span
-                    className="w-3 h-3 rounded-full flex-shrink-0"
-                    style={{ backgroundColor: recoveryDotColor(whoopCtx.recovery.score) }}
-                    title={`Recovery: ${Math.round(whoopCtx.recovery.score)}%`}
-                  />
-                )}
-              </>
+            {session.whoop_strain != null && (
+              <span
+                className="px-3 py-1 rounded-full text-sm font-bold flex items-center gap-1"
+                style={{
+                  backgroundColor: session.whoop_strain <= 7 ? '#10B98120' : session.whoop_strain <= 14 ? '#F59E0B20' : '#EF444420',
+                  color: session.whoop_strain <= 7 ? '#10B981' : session.whoop_strain <= 14 ? '#F59E0B' : '#EF4444',
+                }}
+              >
+                <Zap className="w-3.5 h-3.5" />
+                {Number(session.whoop_strain).toFixed(1)}
+              </span>
             )}
           </div>
         </div>
@@ -308,7 +242,7 @@ export default function SessionDetail() {
 
       {/* ── ISC-4,5: Session Story Sentence ── */}
       <p className="text-sm px-1" style={{ color: 'var(--muted)' }}>
-        {buildSessionStory(session, whoopCtx)}
+        {buildSessionStory(session)}
       </p>
 
       {/* ── ISC-6: Performance Score at position 3 ── */}
@@ -552,76 +486,15 @@ export default function SessionDetail() {
         );
       })()}
 
-      {/* ── ISC-10,11,12,13,14: Merged Biometrics Card ── */}
-      {(hasRecovery || hasWhoop || hasZones) && (
+      {/* ── Session Biometrics Card (historical data on the session) ── */}
+      {hasWhoop && (
         <div className="card">
           <div className="flex items-center gap-2 mb-4">
             <Heart className="w-5 h-5" style={{ color: '#8B5CF6' }} />
             <h2 className="font-semibold text-lg">Biometrics</h2>
           </div>
 
-          {/* ISC-11: Going In — recovery, HRV, sleep */}
-          {hasRecovery && (
-            <div className="mb-6">
-              <p className="text-xs font-medium uppercase tracking-wide mb-3" style={{ color: 'var(--muted)' }}>Going In</p>
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-4">
-                {whoopCtx!.recovery!.score != null && (
-                  <div className="text-center p-3 rounded-lg" style={{ backgroundColor: 'var(--surfaceElev)' }}>
-                    <p className="text-xs text-[var(--muted)] mb-1">Recovery</p>
-                    <p className="text-2xl font-bold" style={{
-                      color: recoveryDotColor(whoopCtx!.recovery!.score!)
-                    }}>
-                      {Math.round(whoopCtx!.recovery!.score!)}%
-                    </p>
-                  </div>
-                )}
-                {whoopCtx!.recovery!.hrv_ms != null && (
-                  <div className="text-center p-3 rounded-lg" style={{ backgroundColor: 'var(--surfaceElev)' }}>
-                    <p className="text-xs text-[var(--muted)] mb-1">HRV</p>
-                    <p className="text-2xl font-bold">{Math.round(whoopCtx!.recovery!.hrv_ms!)} <span className="text-xs font-normal">ms</span></p>
-                  </div>
-                )}
-                {whoopCtx!.recovery!.sleep_performance != null && (
-                  <div className="text-center p-3 rounded-lg" style={{ backgroundColor: 'var(--surfaceElev)' }}>
-                    <p className="text-xs text-[var(--muted)] mb-1">Sleep</p>
-                    <p className="text-2xl font-bold">{Math.round(whoopCtx!.recovery!.sleep_performance!)}%</p>
-                  </div>
-                )}
-                {whoopCtx!.recovery!.sleep_duration_hours != null && (
-                  <div className="text-center p-3 rounded-lg" style={{ backgroundColor: 'var(--surfaceElev)' }}>
-                    <p className="text-xs text-[var(--muted)] mb-1">Sleep</p>
-                    <p className="text-2xl font-bold">{whoopCtx!.recovery!.sleep_duration_hours} <span className="text-xs font-normal">hrs</span></p>
-                  </div>
-                )}
-              </div>
-              {/* Sleep composition bar */}
-              {(whoopCtx!.recovery!.rem_pct != null || whoopCtx!.recovery!.sws_pct != null) && (
-                <div>
-                  <p className="text-xs font-medium uppercase tracking-wide mb-2" style={{ color: 'var(--muted)' }}>Sleep Composition</p>
-                  <div className="flex rounded-full overflow-hidden h-3">
-                    {whoopCtx!.recovery!.rem_pct != null && (
-                      <div style={{ width: `${whoopCtx!.recovery!.rem_pct}%`, backgroundColor: '#8B5CF6' }} title={`REM ${whoopCtx!.recovery!.rem_pct.toFixed(0)}%`} />
-                    )}
-                    {whoopCtx!.recovery!.sws_pct != null && (
-                      <div style={{ width: `${whoopCtx!.recovery!.sws_pct}%`, backgroundColor: '#3B82F6' }} title={`Deep ${whoopCtx!.recovery!.sws_pct.toFixed(0)}%`} />
-                    )}
-                    <div style={{ flex: 1, backgroundColor: '#60A5FA' }} title="Light" />
-                  </div>
-                  <div className="flex gap-4 mt-1 text-xs" style={{ color: 'var(--muted)' }}>
-                    {whoopCtx!.recovery!.rem_pct != null && (
-                      <span className="flex items-center gap-1"><span className="inline-block w-2 h-2 rounded-full" style={{ backgroundColor: '#8B5CF6' }} /> REM {whoopCtx!.recovery!.rem_pct.toFixed(0)}%</span>
-                    )}
-                    {whoopCtx!.recovery!.sws_pct != null && (
-                      <span className="flex items-center gap-1"><span className="inline-block w-2 h-2 rounded-full" style={{ backgroundColor: '#3B82F6' }} /> Deep {whoopCtx!.recovery!.sws_pct.toFixed(0)}%</span>
-                    )}
-                    <span className="flex items-center gap-1"><span className="inline-block w-2 h-2 rounded-full" style={{ backgroundColor: '#60A5FA' }} /> Light</span>
-                  </div>
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* ISC-12: During Session — strain, HR, calories */}
+          {/* During Session — strain, HR, calories */}
           {hasWhoop && (
             <div className="mb-6">
               <p className="text-xs font-medium uppercase tracking-wide mb-3" style={{ color: 'var(--muted)' }}>During Session</p>
@@ -679,67 +552,6 @@ export default function SessionDetail() {
                 )}
               </div>
 
-              {/* ISC-27: Strain vs user average */}
-              {session.whoop_strain != null && whoopCtx?.user_averages?.avg_strain != null && (
-                <p className="text-xs mt-3" style={{ color: 'var(--muted)' }}>
-                  Your average strain is {whoopCtx.user_averages.avg_strain.toFixed(1)}
-                  {whoopCtx.user_averages.avg_strain_class_type != null && (
-                    <> ({whoopCtx.user_averages.avg_strain_class_type.toFixed(1)} for {formatClassType(whoopCtx.user_averages.class_type)})</>
-                  )}
-                </p>
-              )}
-            </div>
-          )}
-
-          {/* ISC-13: HR Zone Distribution inside Biometrics card */}
-          {hasZones && (() => {
-            const zones = whoopCtx!.workout!.zone_durations!;
-            const totalMs = zoneConfig.reduce((sum, z) => sum + (zones[z.key] || 0), 0);
-            return (
-              <div className="mb-4">
-                <p className="text-xs font-medium uppercase tracking-wide mb-3" style={{ color: 'var(--muted)' }}>HR Zone Distribution</p>
-                <div className="flex rounded-full overflow-hidden h-4 mb-3">
-                  {zoneConfig.map(z => {
-                    const ms = zones[z.key] || 0;
-                    const pct = (ms / totalMs) * 100;
-                    if (pct < 1) return null;
-                    return <div key={z.key} style={{ width: `${pct}%`, backgroundColor: z.color }} title={`${z.label}: ${Math.round(ms / 60000)} min`} />;
-                  })}
-                </div>
-                <div className="space-y-2">
-                  {zoneConfig.map(z => {
-                    const ms = zones[z.key] || 0;
-                    if (ms <= 0) return null;
-                    const mins = Math.round(ms / 60000);
-                    const pct = ((ms / totalMs) * 100).toFixed(0);
-                    return (
-                      <div key={z.key} className="flex items-center justify-between text-sm">
-                        <div className="flex items-center gap-2">
-                          <span className="inline-block w-3 h-3 rounded-sm" style={{ backgroundColor: z.color }} />
-                          <span style={{ color: 'var(--text)' }}>{z.label}</span>
-                        </div>
-                        <span style={{ color: 'var(--muted)' }}>{mins} min ({pct}%)</span>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            );
-          })()}
-
-          {/* ISC-14: Percent recorded inside Biometrics card */}
-          {whoopCtx?.workout?.percent_recorded != null && (
-            <div className="flex items-center gap-2 text-xs text-[var(--muted)]">
-              <div className="flex-1 h-1.5 rounded-full overflow-hidden" style={{ backgroundColor: 'var(--surfaceElev)' }}>
-                <div
-                  className="h-full rounded-full"
-                  style={{
-                    width: `${Math.min(100, whoopCtx.workout.percent_recorded)}%`,
-                    backgroundColor: whoopCtx.workout.percent_recorded >= 90 ? '#10B981' : whoopCtx.workout.percent_recorded >= 70 ? '#F59E0B' : '#EF4444',
-                  }}
-                />
-              </div>
-              <span>{Math.round(whoopCtx.workout.percent_recorded)}% recorded</span>
             </div>
           )}
         </div>

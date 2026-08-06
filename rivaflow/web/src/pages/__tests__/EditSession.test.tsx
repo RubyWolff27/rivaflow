@@ -100,14 +100,6 @@ vi.mock("../../hooks/usePageTitle", () => ({
   usePageTitle: vi.fn(),
 }));
 
-vi.mock("../../components/WhoopMatchModal", () => ({
-  default: () => <div data-testid="whoop-match-modal" />,
-}));
-
-vi.mock("../../components/sessions/WhoopIntegrationPanel", () => ({
-  default: () => <div data-testid="whoop-panel" />,
-}));
-
 vi.mock("../../components/PhotoGallery", () => ({
   default: () => <div data-testid="photo-gallery" />,
 }));
