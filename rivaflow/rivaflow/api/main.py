@@ -80,7 +80,6 @@ from rivaflow.api.routes import (
     users,
     videos,
     waitlist,
-    whoop,
 )
 from rivaflow.core.exceptions import RivaFlowException
 from rivaflow.core.settings import settings
@@ -300,8 +299,8 @@ app.include_router(api_keys.router, prefix="/api/v1/users/me", tags=["api-keys"]
 app.include_router(analytics.router, prefix="/api/v1/analytics", tags=["analytics"])
 app.include_router(curriculum.router, prefix="/api/v1/curriculum", tags=["curriculum"])
 app.include_router(garmin.router, prefix="/api/v1", tags=["garmin"])
-app.include_router(whoop.router, prefix="/api/v1", tags=["whoop"])
-app.include_router(whoop.short_router, tags=["whoop"])  # short bookmarkable /cockpit
+# WHOOP self-hosted router unmounted 2026-08-07 (v2 Wave 1c freeze): band is cold
+# standby since the Fitbit Air switch — /whoop/* and /cockpit surfaces retired.
 app.include_router(goals.router, prefix="/api/v1/goals", tags=["goals"])
 app.include_router(
     training_goals.router,
@@ -337,9 +336,9 @@ app.include_router(feedback.router, prefix="/api/v1", tags=["feedback"])
 app.include_router(dashboard.router, prefix="/api/v1", tags=["dashboard"])
 app.include_router(transcribe.router, prefix="/api/v1", tags=["transcribe"])
 app.include_router(events.router, prefix="/api/v1/events", tags=["events"])
-# WHOOP-cloud OAuth integration + webhook routers retired 2026-07-09 (Wave 1):
-# the subscription is cancelled and capture is now BLE→/whoop/ingest. See the
-# self-hosted routes in routes/whoop.py.
+# WHOOP-cloud OAuth integration + webhook routers retired 2026-07-09 (Wave 1);
+# the self-hosted BLE routers followed 2026-08-07 (v2 Wave 1c) — biometrics now
+# arrive via the Fitbit Air → Google Health producer on the garmin_* fields.
 app.include_router(waitlist.router, prefix="/api/v1/waitlist", tags=["waitlist"])
 app.include_router(
     waitlist.admin_router, prefix="/api/v1/admin/waitlist", tags=["admin-waitlist"]
