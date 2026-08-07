@@ -41,6 +41,10 @@ const METRICS: { key: MetricKey; label: string }[] = [
   { key: 'load', label: 'Load' },
 ];
 
+// Honest-radar rule: the Load axis is hidden until enough of the training load is
+// technique-attributed to mean something (council SS-F12 — threshold ~40%).
+const LOAD_MIN_ATTRIBUTED_PCT = 40;
+
 const WINDOWS: { key: WindowKey; label: string }[] = [
   { key: 'all', label: 'All time' },
   { key: '12w', label: '12 weeks' },
@@ -117,24 +121,40 @@ export default function GameRadar() {
     return () => { cancelled = true; };
   }, [windowMode]);
 
+  const loadUnattr = data?.gaps?.load_unattributed_pct;
+  const loadAvailable =
+    typeof loadUnattr === 'number' &&
+    Number.isFinite(loadUnattr) &&
+    100 - loadUnattr >= LOAD_MIN_ATTRIBUTED_PCT;
+  const activeMetric: MetricKey = metric === 'load' && !loadAvailable ? 'coverage' : metric;
+
   const controls = (
     <div className="flex flex-wrap items-center gap-2">
       <div className="flex rounded-lg overflow-hidden" style={{ border: '1px solid var(--border)' }} role="group" aria-label="Metric">
-        {METRICS.map((m) => (
+        {METRICS.map((m) => {
+          const disabled = m.key === 'load' && !loadAvailable;
+          return (
           <button
             key={m.key}
             type="button"
             onClick={() => setMetric(m.key)}
-            aria-pressed={metric === m.key}
+            aria-pressed={activeMetric === m.key}
+            disabled={disabled}
+            title={disabled
+              ? `Load hidden until at least ${LOAD_MIN_ATTRIBUTED_PCT}% of training load is technique-attributed`
+              : undefined}
             className="px-3 py-1.5 text-xs font-medium transition-colors"
             style={{
-              backgroundColor: metric === m.key ? 'var(--accent)' : 'var(--surface)',
-              color: metric === m.key ? '#FFFFFF' : 'var(--muted)',
+              backgroundColor: activeMetric === m.key ? 'var(--accent)' : 'var(--surface)',
+              color: activeMetric === m.key ? '#FFFFFF' : 'var(--muted)',
+              opacity: disabled ? 0.4 : 1,
+              cursor: disabled ? 'not-allowed' : 'pointer',
             }}
           >
             {m.label}
           </button>
-        ))}
+          );
+        })}
       </div>
       <select
         value={windowMode}
@@ -214,7 +234,7 @@ export default function GameRadar() {
   }
 
   const rows = axes.map((axis, i) => {
-    const m = (axis?.[metric] ?? {}) as AxisMetric;
+    const m = (axis?.[activeMetric] ?? {}) as AxisMetric;
     const value = num(m.value);
     const axisMax = num(m.axis_max);
     const prev = typeof m.prev === 'number' && Number.isFinite(m.prev) ? m.prev : null;
@@ -250,15 +270,15 @@ export default function GameRadar() {
 
   const tooltipFor = (row: (typeof rows)[number]): string => {
     if (!row.hasData) return `${row.label}: no data yet`;
-    const base = `${row.label}: ${formatValue(row.value, metric)}`;
-    if (metric === 'frequency' && row.per10h !== null) return `${base} · ×${row.per10h} per 10 mat-hrs`;
-    if (metric === 'load') return `${base} TRIMP-share`;
+    const base = `${row.label}: ${formatValue(row.value, activeMetric)}`;
+    if (activeMetric === 'frequency' && row.per10h !== null) return `${base} · ×${row.per10h} per 10 mat-hrs`;
+    if (activeMetric === 'load') return `${base} TRIMP-share`;
     return base;
   };
 
   const gapNote = (() => {
     const base = `Computed from ${sessionsWithTechniques} sessions with logged techniques (of ${sessionsInWindow} in window)`;
-    if (metric !== 'load') return base;
+    if (activeMetric !== 'load') return base;
     const pct = num(gaps.load_unattributed_pct);
     return `${base} · ${pct}% of training load unattributed — log techniques on HR-tracked sessions`;
   })();
@@ -338,7 +358,7 @@ export default function GameRadar() {
             fontWeight={600}
             fill="var(--text)"
           >
-            {formatValue(row.value, metric)}
+            {formatValue(row.value, activeMetric)}
           </text>
         ))}
 

@@ -152,4 +152,43 @@ describe('GameRadar', () => {
 
     expect(screen.getByText('Previous')).toBeInTheDocument()
   })
+
+  it('disables the Load toggle while attribution is below 40%', async () => {
+    mockGameDistribution.mockResolvedValueOnce({ data: POPULATED }) // 87.2% unattributed
+    renderRadar()
+
+    await waitFor(() => {
+      expect(screen.getByText('Takedowns')).toBeInTheDocument()
+    })
+
+    const loadBtn = screen.getByRole('button', { name: 'Load' })
+    expect(loadBtn).toBeDisabled()
+    expect(loadBtn).toHaveAttribute('title', expect.stringContaining('40%'))
+  })
+
+  it('enables the Load toggle once attribution reaches 40%', async () => {
+    mockGameDistribution.mockResolvedValueOnce({
+      data: { ...POPULATED, gaps: { ...POPULATED.gaps, load_unattributed_pct: 55 } },
+    })
+    renderRadar()
+
+    await waitFor(() => {
+      expect(screen.getByText('Takedowns')).toBeInTheDocument()
+    })
+
+    expect(screen.getByRole('button', { name: 'Load' })).toBeEnabled()
+  })
+
+  it('disables the Load toggle when there is no TRIMP at all (null pct)', async () => {
+    mockGameDistribution.mockResolvedValueOnce({
+      data: { ...POPULATED, gaps: { ...POPULATED.gaps, load_unattributed_pct: null } },
+    })
+    renderRadar()
+
+    await waitFor(() => {
+      expect(screen.getByText('Takedowns')).toBeInTheDocument()
+    })
+
+    expect(screen.getByRole('button', { name: 'Load' })).toBeDisabled()
+  })
 })

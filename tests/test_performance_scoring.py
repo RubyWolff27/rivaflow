@@ -1,13 +1,14 @@
 """Unit tests for performance_scoring — core calculations and partner analytics."""
 
 from datetime import date
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
 
 from rivaflow.core.services.performance_scoring import (
     calculate_daily_timeseries,
     calculate_performance_by_belt,
     calculate_period_summary,
     compute_head_to_head,
+    compute_partner_relationship,
     get_session_date,
 )
 
@@ -281,6 +282,153 @@ class TestComputeHeadToHead:
 
         result = compute_head_to_head(
             mock_roll_repo, mock_friend_repo, user_id=1, partner1_id=2, partner2_id=999
+        )
+
+        assert result == {}
+
+
+class TestComputePartnerRelationship:
+    """Tests for compute_partner_relationship — the PartnerStats page contract (MA-F8)."""
+
+    @staticmethod
+    def _repos(rolls, sessions, partner=None):
+        session_repo = MagicMock()
+        roll_repo = MagicMock()
+        friend_repo = MagicMock()
+        friend_repo.get_by_id.return_value = partner or {
+            "name": "Alice",
+            "belt_rank": "blue",
+        }
+        roll_repo.get_by_partner_id.return_value = rolls
+        roll_repo.list_by_partner_name.return_value = []
+        session_repo.get_by_ids.return_value = sessions
+        return session_repo, roll_repo, friend_repo
+
+    def test_returns_frontend_contract_fields(self):
+        """Should serve every field PartnerStats.tsx renders (was Invalid Date/NaN)."""
+        rolls = [
+            {
+                "id": 1,
+                "session_id": 10,
+                "duration_mins": 6,
+                "submissions_for": [3, 3, 7],
+                "submissions_against": [5],
+            },
+            {
+                "id": 2,
+                "session_id": 10,
+                "duration_mins": 5,
+                "submissions_for": [3],
+                "submissions_against": [],
+            },
+            {
+                "id": 3,
+                "session_id": 20,
+                "duration_mins": 6,
+                "submissions_for": [7],
+                "submissions_against": [],
+            },
+        ]
+        sessions = [
+            {"id": 10, "session_date": date(2026, 1, 1)},
+            {"id": 20, "session_date": date(2026, 1, 31)},
+        ]
+        session_repo, roll_repo, friend_repo = self._repos(rolls, sessions)
+
+        with patch(
+            "rivaflow.core.services.performance_scoring.GlossaryRepository"
+        ) as mock_glossary:
+            mock_glossary.return_value.list_all.return_value = [
+                {"id": 3, "name": "Armbar"},
+                {"id": 7, "name": "Triangle"},
+            ]
+            result = compute_partner_relationship(
+                session_repo, roll_repo, friend_repo, user_id=1, partner_id=2
+            )
+
+        assert result["total_rolls"] == 3
+        assert result["total_sessions_together"] == 2
+        assert result["first_roll_date"] == "2026-01-01"
+        assert result["last_roll_date"] == "2026-01-31"
+        assert result["days_known"] == 30
+        assert result["avg_rolls_per_session"] == 1.5
+        assert result["submissions_for"] == 5
+        assert result["submissions_against"] == 1
+        assert result["favorite_techniques_against"] == ["Armbar", "Triangle"]
+        assert result["most_common_positions"] == []
+        # Legacy keys preserved
+        assert result["first_rolled"] == "2026-01-01"
+        assert result["last_rolled"] == "2026-01-31"
+
+    def test_total_minutes_uses_duration_mins(self):
+        """duration_mins is the real column — the old code read duration_seconds (always 0)."""
+        rolls = [
+            {"id": 1, "session_id": 10, "duration_mins": 6, "submissions_for": []},
+            {"id": 2, "session_id": 10, "duration_mins": 5, "submissions_for": []},
+        ]
+        sessions = [{"id": 10, "session_date": date(2026, 1, 1)}]
+        session_repo, roll_repo, friend_repo = self._repos(rolls, sessions)
+
+        result = compute_partner_relationship(
+            session_repo, roll_repo, friend_repo, user_id=1, partner_id=2
+        )
+
+        assert result["total_minutes"] == 11
+
+    def test_session_dates_fetched_in_one_bulk_call(self):
+        """N+1 removed — one get_by_ids call, never per-roll get_by_id."""
+        rolls = [
+            {"id": i, "session_id": 10 + i, "duration_mins": 5, "submissions_for": []}
+            for i in range(5)
+        ]
+        sessions = [
+            {"id": 10 + i, "session_date": date(2026, 1, 1 + i)} for i in range(5)
+        ]
+        session_repo, roll_repo, friend_repo = self._repos(rolls, sessions)
+
+        compute_partner_relationship(
+            session_repo, roll_repo, friend_repo, user_id=1, partner_id=2
+        )
+
+        assert session_repo.get_by_ids.call_count == 1
+        session_repo.get_by_id.assert_not_called()
+
+    def test_zero_rolls_returns_full_contract(self):
+        """A partner with no rolls yet must not produce Invalid Date / NaN on the page."""
+        session_repo, roll_repo, friend_repo = self._repos([], [])
+
+        result = compute_partner_relationship(
+            session_repo, roll_repo, friend_repo, user_id=1, partner_id=2
+        )
+
+        assert result["total_rolls"] == 0
+        assert result["total_sessions_together"] == 0
+        assert result["first_roll_date"] is None
+        assert result["last_roll_date"] is None
+        assert result["days_known"] == 0
+        assert result["avg_rolls_per_session"] == 0
+        assert result["favorite_techniques_against"] == []
+        assert result["most_common_positions"] == []
+
+    def test_sqlite_string_dates_coerced(self):
+        """session_date arrives as ISO string under SQLite — must not crash isoformat."""
+        rolls = [{"id": 1, "session_id": 10, "duration_mins": 5, "submissions_for": []}]
+        sessions = [{"id": 10, "session_date": "2026-01-15"}]
+        session_repo, roll_repo, friend_repo = self._repos(rolls, sessions)
+
+        result = compute_partner_relationship(
+            session_repo, roll_repo, friend_repo, user_id=1, partner_id=2
+        )
+
+        assert result["first_roll_date"] == "2026-01-15"
+
+    def test_partner_not_found_returns_empty(self):
+        """Unknown partner still yields {} for the route's 404."""
+        session_repo, roll_repo, friend_repo = self._repos([], [], partner=None)
+        friend_repo.get_by_id.return_value = None
+
+        result = compute_partner_relationship(
+            session_repo, roll_repo, friend_repo, user_id=1, partner_id=999
         )
 
         assert result == {}

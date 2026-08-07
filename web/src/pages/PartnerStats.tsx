@@ -11,8 +11,8 @@ interface PartnerRelationship {
   partner_name: string;
   total_rolls: number;
   total_sessions_together: number;
-  first_roll_date: string;
-  last_roll_date: string;
+  first_roll_date: string | null;
+  last_roll_date: string | null;
   submissions_for: number;
   submissions_against: number;
   days_known: number;
@@ -79,7 +79,10 @@ export default function PartnerStats() {
     ? Math.round((data.submissions_against / data.total_rolls) * 100)
     : 0;
 
-  const monthsKnown = Math.max(1, Math.round(data.days_known / 30));
+  const monthsKnown = Math.max(1, Math.round((data.days_known ?? 0) / 30));
+
+  const fmtDate = (value: string | null | undefined, opts: Intl.DateTimeFormatOptions) =>
+    value ? new Date(value).toLocaleDateString('en-US', opts) : '—';
 
   return (
     <div className="space-y-6">
@@ -138,8 +141,8 @@ export default function PartnerStats() {
         <StatCard
           icon={<Calendar className="w-4 h-4" />}
           label="First Roll"
-          value={new Date(data.first_roll_date).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}
-          sub={`${data.days_known} days ago`}
+          value={fmtDate(data.first_roll_date, { month: 'short', year: 'numeric' })}
+          sub={`${data.days_known ?? 0} days ago`}
         />
         <StatCard
           icon={<TrendingUp className="w-4 h-4" />}
@@ -182,12 +185,12 @@ export default function PartnerStats() {
         <div className="flex items-center justify-between text-xs" style={{ color: 'var(--muted)' }}>
           <div>
             <p className="font-medium" style={{ color: 'var(--text)' }}>First trained</p>
-            <p>{new Date(data.first_roll_date).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}</p>
+            <p>{fmtDate(data.first_roll_date, { month: 'long', day: 'numeric', year: 'numeric' })}</p>
           </div>
           <div className="flex-1 mx-4 h-px" style={{ backgroundColor: 'var(--border)' }} />
           <div className="text-right">
             <p className="font-medium" style={{ color: 'var(--text)' }}>Last trained</p>
-            <p>{new Date(data.last_roll_date).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}</p>
+            <p>{fmtDate(data.last_roll_date, { month: 'long', day: 'numeric', year: 'numeric' })}</p>
           </div>
         </div>
       </div>

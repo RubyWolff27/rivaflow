@@ -689,34 +689,83 @@ def compute_partner_relationship(
             "last_rolled": None,
             "submissions_for": 0,
             "submissions_against": 0,
+            "total_sessions_together": 0,
+            "first_roll_date": None,
+            "last_roll_date": None,
+            "days_known": 0,
+            "avg_rolls_per_session": 0,
+            "favorite_techniques_against": [],
+            "most_common_positions": [],
         }
 
-    # Get session dates for each roll
+    # One bulk query for session dates (was get_by_id per roll)
+    session_ids = {roll["session_id"] for roll in all_rolls}
+    date_by_session = {
+        s["id"]: _coerce_date(s["session_date"])
+        for s in session_repo.get_by_ids(user_id, list(session_ids))
+    }
+
     session_dates = []
     total_minutes = 0
     subs_for = 0
     subs_against = 0
+    sub_movement_counts: Counter = Counter()
     for roll in all_rolls:
-        sid = roll["session_id"]
-        session = session_repo.get_by_id(user_id, sid)
-        if session:
-            session_dates.append(session["session_date"])
-            total_minutes += roll.get("duration_seconds", 0) / 60
+        session_date = date_by_session.get(roll["session_id"])
+        if session_date:
+            session_dates.append(session_date)
+            total_minutes += roll.get("duration_mins") or 0
+        for mid in roll.get("submissions_for") or []:
+            if isinstance(mid, int):
+                sub_movement_counts[mid] += 1
         subs_for += len(roll.get("submissions_for") or [])
         subs_against += len(roll.get("submissions_against") or [])
 
+    favorite_techniques = []
+    if sub_movement_counts:
+        glossary = {m["id"]: m for m in GlossaryRepository().list_all()}
+        favorite_techniques = [
+            glossary[mid]["name"]
+            for mid, _ in sub_movement_counts.most_common(5)
+            if mid in glossary
+        ]
+
     session_dates.sort()
+    first_date = session_dates[0] if session_dates else None
+    last_date = session_dates[-1] if session_dates else None
+    sessions_together = len(date_by_session)
     return {
         "partner_id": partner_id,
         "partner_name": partner["name"],
         "belt_rank": partner.get("belt_rank"),
         "total_rolls": len(all_rolls),
         "total_minutes": round(total_minutes),
-        "first_rolled": session_dates[0].isoformat() if session_dates else None,
-        "last_rolled": session_dates[-1].isoformat() if session_dates else None,
+        "first_rolled": first_date.isoformat() if first_date else None,
+        "last_rolled": last_date.isoformat() if last_date else None,
         "submissions_for": subs_for,
         "submissions_against": subs_against,
+        "total_sessions_together": sessions_together,
+        "first_roll_date": first_date.isoformat() if first_date else None,
+        "last_roll_date": last_date.isoformat() if last_date else None,
+        "days_known": (last_date - first_date).days if first_date and last_date else 0,
+        "avg_rolls_per_session": (
+            round(len(all_rolls) / sessions_together, 1) if sessions_together else 0
+        ),
+        "favorite_techniques_against": favorite_techniques,
+        "most_common_positions": [],
     }
+
+
+def _coerce_date(value: Any) -> date | None:
+    """session_date arrives as date (Postgres) or ISO string (SQLite)."""
+    if isinstance(value, date):
+        return value
+    if isinstance(value, str):
+        try:
+            return date.fromisoformat(value[:10])
+        except ValueError:
+            return None
+    return None
 
 
 def compute_head_to_head(
