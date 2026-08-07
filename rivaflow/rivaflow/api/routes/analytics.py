@@ -284,6 +284,23 @@ def get_readiness_trends(
     )
 
 
+@router.get("/physiology")
+@limiter.limit("60/minute")
+@route_error_handler("physiology")
+def get_physiology(
+    request: Request,
+    current_user: dict = Depends(get_current_user),
+):
+    """Readiness verdict, strain target, ACWR and sleep debt from live Air data (F13).
+
+    Composes the B-series pure cores over garmin_daily + session TRIMP; every block
+    carries its own honest availability gate (Building / unavailable-with-reason).
+    """
+    from rivaflow.core.services.physiology_service import PhysiologyService
+
+    return PhysiologyService().get_physiology(user_id=current_user["id"])
+
+
 @router.get("/whoop/analytics")
 @limiter.limit("60/minute")
 @route_error_handler("whoop analytics")

@@ -117,3 +117,22 @@ class TestMilestones:
         """Test milestones returns 200."""
         response = authenticated_client.get("/api/v1/analytics/milestones")
         assert response.status_code == 200
+
+
+class TestPhysiology:
+    """Physiology endpoint (F13) tests."""
+
+    def test_physiology_requires_auth(self, client, temp_db):
+        response = client.get("/api/v1/analytics/physiology")
+        assert response.status_code == 401
+
+    def test_physiology_returns_composed_payload(self, authenticated_client, test_user):
+        response = authenticated_client.get("/api/v1/analytics/physiology")
+        assert response.status_code == 200
+        body = response.json()
+        for block in ("readiness", "strain_target", "acwr", "sleep_debt"):
+            assert block in body
+        # Empty test DB → every block honestly gated, nothing fabricated.
+        assert body["readiness"]["state"] in ("Building", "Rest")
+        assert body["acwr"]["available"] is False
+        assert body["sleep_debt"]["available"] is False
