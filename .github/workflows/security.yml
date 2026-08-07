@@ -64,7 +64,11 @@ jobs:
     - name: Run TruffleHog
       uses: trufflesecurity/trufflehog@v3.88.0
       with:
-        extra_args: --only-verified
+        # Lob excluded: its verifier false-200s arbitrary 35-char identifiers —
+        # a test function name in bff215e "verified" as a live Lob key, and that
+        # string is in history forever, so weekly full-history scans would stay
+        # red. No Lob (print/mail API) usage exists in this project.
+        extra_args: --only-verified --exclude-detectors=lob
 
   codeql:
     name: CodeQL Security Analysis
