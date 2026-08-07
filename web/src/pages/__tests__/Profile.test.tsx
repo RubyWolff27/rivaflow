@@ -42,15 +42,6 @@ vi.mock('../../api/client', () => ({
   adminApi: {
     createGym: vi.fn(),
   },
-  whoopApi: {
-    getStatus: vi.fn(() => Promise.resolve({ data: null })),
-    checkScopes: vi.fn(() => Promise.resolve({ data: { needs_reauth: false } })),
-    getAuthorizeUrl: vi.fn(),
-    sync: vi.fn(),
-    disconnect: vi.fn(),
-    setAutoCreate: vi.fn(),
-    setAutoFillReadiness: vi.fn(),
-  },
   getErrorMessage: vi.fn((e: unknown) => String(e)),
 }))
 

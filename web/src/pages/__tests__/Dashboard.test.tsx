@@ -13,10 +13,6 @@ vi.mock('../../api/client', () => ({
   readinessApi: {
     getByDate: vi.fn(() => Promise.resolve({ data: null })),
   },
-  whoopApi: {
-    getLatestRecovery: vi.fn(() => Promise.resolve({ data: null })),
-    sync: vi.fn(() => Promise.resolve({ data: {} })),
-  },
   checkinsApi: {
     getToday: vi.fn(() => Promise.resolve({ data: { checked_in: false, morning: null, midday: null, evening: null } })),
     getYesterday: vi.fn(() => Promise.resolve({ data: null })),
@@ -92,7 +88,6 @@ import {
   profileApi,
   suggestionsApi,
   readinessApi,
-  whoopApi,
   checkinsApi,
   sessionsApi,
   goalsApi,
@@ -153,7 +148,6 @@ describe('Dashboard - loaded state details', () => {
     vi.mocked(profileApi.update).mockImplementation(() => Promise.resolve({ data: {} }) as any)
     vi.mocked(suggestionsApi.getToday).mockImplementation(() => Promise.resolve({ data: null }) as any)
     vi.mocked(readinessApi.getByDate).mockImplementation(() => Promise.resolve({ data: null }) as any)
-    vi.mocked(whoopApi.getLatestRecovery).mockImplementation(() => Promise.resolve({ data: null }) as any)
     vi.mocked(checkinsApi.getToday).mockImplementation(() => Promise.resolve({ data: { checked_in: false, morning: null, midday: null, evening: null } }) as any)
     vi.mocked(checkinsApi.getYesterday).mockImplementation(() => Promise.resolve({ data: null }) as any)
     vi.mocked(sessionsApi.getByRange).mockImplementation(() => Promise.resolve({ data: [] }) as any)

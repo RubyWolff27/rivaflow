@@ -31,9 +31,6 @@ vi.mock('../../api/client', () => ({
   suggestionsApi: {
     getToday: vi.fn(() => Promise.resolve({ data: null })),
   },
-  whoopApi: {
-    getReadinessAutoFill: vi.fn(() => Promise.resolve({ data: { auto_fill: null } })),
-  },
 }))
 
 vi.mock('../../contexts/ToastContext', () => createMockToast())

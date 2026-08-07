@@ -67,14 +67,6 @@ vi.mock("../../api/client", () => ({
   glossaryApi: {
     list: vi.fn(() => Promise.resolve({ data: [] })),
   },
-  whoopApi: {
-    getStatus: vi.fn(() =>
-      Promise.resolve({ data: { connected: false } })
-    ),
-    getWorkouts: vi.fn(() =>
-      Promise.resolve({ data: { workouts: [], count: 0 } })
-    ),
-  },
   getErrorMessage: vi.fn((e: unknown) => String(e)),
 }));
 

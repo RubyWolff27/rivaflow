@@ -64,9 +64,6 @@ vi.mock('../../api/client', () => ({
   sessionsApi: {
     list: vi.fn(() => Promise.resolve({ data: [] })),
   },
-  whoopApi: {
-    getZonesBatch: vi.fn(() => Promise.resolve({ data: { zones: {} } })),
-  },
 }))
 
 vi.mock('../../hooks/useTier', () => ({

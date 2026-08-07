@@ -52,11 +52,6 @@ vi.mock("../../api/client", () => ({
       })
     ),
   },
-  whoopApi: {
-    sessionContext: vi.fn(() =>
-      Promise.resolve({ data: null })
-    ),
-  },
 }));
 
 vi.mock("../../contexts/ToastContext", () => ({

@@ -72,7 +72,6 @@ export default function Dashboard() {
           <TrainingSnapshot
             readinessScore={data.readinessScore}
             streakCount={data.streaks?.checkin.current_streak ?? 0}
-            whoopRecovery={data.whoopRecovery?.recovery_score ?? null}
           />
 
           {/* Right: Main dashboard content */}
@@ -80,11 +79,8 @@ export default function Dashboard() {
             {/* Hero readiness score */}
             <HeroScore
               readinessScore={data.readinessScore}
-              whoopRecovery={data.whoopRecovery}
               hasCheckedIn={data.hasCheckedIn}
               suggestion={data.suggestion}
-              whoopSyncing={data.whoopSyncing}
-              onSyncWhoop={data.syncWhoop}
               weeklyGoals={data.weeklyGoals}
               streaks={data.streaks}
             />

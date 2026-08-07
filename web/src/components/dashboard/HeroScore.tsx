@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Activity, RefreshCw, Flame, Info } from 'lucide-react';
+import { Activity, Flame, Info } from 'lucide-react';
 import { Card, PrimaryButton } from '../ui';
 import type { WeeklyGoalProgress, StreakStatus } from '../../types';
 
@@ -17,27 +17,16 @@ interface SuggestionData {
   readiness?: { composite_score?: number };
 }
 
-interface WhoopRecovery {
-  recovery_score: number | null;
-  hrv_ms: number | null;
-  resting_hr: number | null;
-}
-
 interface HeroScoreProps {
   readinessScore: number | null;
-  whoopRecovery: WhoopRecovery | null;
   hasCheckedIn: boolean;
   suggestion: SuggestionData | null;
-  whoopSyncing: boolean;
-  onSyncWhoop: () => void;
   weeklyGoals: WeeklyGoalProgress | null;
   streaks: StreakStatus | null;
 }
 
 const READINESS_HIGH_THRESHOLD = 16;
 const READINESS_MODERATE_THRESHOLD = 12;
-const WHOOP_RECOVERY_HIGH = 67;
-const WHOOP_RECOVERY_MODERATE = 34;
 
 const RULE_LABELS: Record<string, string> = {
   high_stress_low_energy: 'Stress / Low Energy',
@@ -121,11 +110,8 @@ function ScoreGauge({
 
 export default function HeroScore({
   readinessScore,
-  whoopRecovery,
   hasCheckedIn,
   suggestion,
-  whoopSyncing,
-  onSyncWhoop,
   weeklyGoals,
   streaks,
 }: HeroScoreProps) {
@@ -139,27 +125,15 @@ export default function HeroScore({
   let labelBg: string;
   let labelColor: string;
 
-  if (!hasCheckedIn && !whoopRecovery) {
+  if (!hasCheckedIn) {
     label = 'Check In';
     labelBg = 'var(--surfaceElev)';
     labelColor = 'var(--accent)';
-  } else if (
-    score >= READINESS_HIGH_THRESHOLD ||
-    (whoopRecovery &&
-      whoopRecovery.recovery_score !== null &&
-      whoopRecovery.recovery_score >= WHOOP_RECOVERY_HIGH &&
-      !hasCheckedIn)
-  ) {
+  } else if (score >= READINESS_HIGH_THRESHOLD) {
     label = 'Train Hard';
     labelBg = 'var(--success-bg)';
     labelColor = 'var(--success)';
-  } else if (
-    score >= READINESS_MODERATE_THRESHOLD ||
-    (whoopRecovery &&
-      whoopRecovery.recovery_score !== null &&
-      whoopRecovery.recovery_score >= WHOOP_RECOVERY_MODERATE &&
-      !hasCheckedIn)
-  ) {
+  } else if (score >= READINESS_MODERATE_THRESHOLD) {
     label = 'Light Session';
     labelBg = 'var(--warning-bg)';
     labelColor = 'var(--warning)';
@@ -169,7 +143,7 @@ export default function HeroScore({
     labelColor = 'var(--danger)';
   }
 
-  // Center gauge: readiness or WHOOP or pulsing
+  // Center gauge: readiness or pulsing check-in prompt
   let centerValue: number | null = null;
   let centerMax = 20;
   let centerLabel = 'Check In';
@@ -186,62 +160,25 @@ export default function HeroScore({
         : readinessScore >= READINESS_MODERATE_THRESHOLD
           ? '#F59E0B'
           : '#EF4444';
-  } else if (whoopRecovery && whoopRecovery.recovery_score != null) {
-    centerValue = whoopRecovery.recovery_score;
-    centerMax = 100;
-    centerLabel = `${Math.round(whoopRecovery.recovery_score)}%`;
-    centerColor =
-      whoopRecovery.recovery_score >= WHOOP_RECOVERY_HIGH
-        ? '#10B981'
-        : whoopRecovery.recovery_score >= WHOOP_RECOVERY_MODERATE
-          ? '#F59E0B'
-          : '#EF4444';
   } else {
     centerPulsing = true;
   }
 
-  // Left gauge: WHOOP recovery (if readiness is center) or Streak (no WHOOP)
-  const hasWhoop = whoopRecovery && whoopRecovery.recovery_score != null;
+  // Left gauge: check-in streak
   const streakCount = streaks?.checkin.current_streak ?? 0;
-
-  // Show WHOOP as left ring only when readiness is the center gauge
-  const showWhoopRing = hasWhoop && hasCheckedIn && readinessScore != null;
-
-  let leftValue: number;
-  let leftMax: number;
-  let leftColor: string;
-  let leftLabel: string;
-  let leftSublabel: string;
-  let leftIcon: React.ReactNode | null = null;
-
-  if (showWhoopRing) {
-    const rs = whoopRecovery!.recovery_score!;
-    leftValue = rs;
-    leftMax = 100;
-    leftColor =
-      rs >= WHOOP_RECOVERY_HIGH
-        ? '#10B981'
-        : rs >= WHOOP_RECOVERY_MODERATE
-          ? '#F59E0B'
-          : '#EF4444';
-    leftLabel = `${Math.round(rs)}%`;
-    leftSublabel = 'WHOOP';
-  } else {
-    // Streak ring
-    leftValue = streakCount;
-    leftMax = Math.max(streakCount, 1);
-    leftColor = streakCount > 0 ? 'var(--accent)' : 'var(--border)';
-    leftLabel = '';
-    leftSublabel = 'Streak';
-    leftIcon = (
-      <div className="flex items-center gap-0.5">
-        <Flame className="w-3 h-3" style={{ color: 'var(--accent)' }} />
-        <span className="text-xs font-bold" style={{ color: 'var(--text)' }}>
-          {streakCount}
-        </span>
-      </div>
-    );
-  }
+  const leftValue = streakCount;
+  const leftMax = Math.max(streakCount, 1);
+  const leftColor = streakCount > 0 ? 'var(--accent)' : 'var(--border)';
+  const leftLabel = '';
+  const leftSublabel = 'Streak';
+  const leftIcon: React.ReactNode = (
+    <div className="flex items-center gap-0.5">
+      <Flame className="w-3 h-3" style={{ color: 'var(--accent)' }} />
+      <span className="text-xs font-bold" style={{ color: 'var(--text)' }}>
+        {streakCount}
+      </span>
+    </div>
+  );
 
   // Right gauge: BJJ sessions (fall back to total sessions)
   const bjjActual = weeklyGoals?.actual?.bjj_sessions ?? 0;
@@ -349,7 +286,7 @@ export default function HeroScore({
           <p className="text-sm font-medium mt-1.5 line-clamp-2 mx-auto max-w-md" style={{ color: 'var(--text)' }}>
             {sanitizeSuggestion(suggestion.suggestion)}
           </p>
-        ) : !hasCheckedIn && !whoopRecovery ? (
+        ) : !hasCheckedIn ? (
           <p className="text-sm mt-1.5" style={{ color: 'var(--muted)' }}>
             Check in for personalized training guidance
           </p>
@@ -359,10 +296,10 @@ export default function HeroScore({
           </p>
         )}
 
-        {/* Triggered rule chips + WHOOP sync — same row */}
-        {(suggestion?.triggered_rules?.length || hasWhoop) && (
+        {/* Triggered rule chips */}
+        {suggestion?.triggered_rules?.length ? (
           <div className="flex flex-wrap justify-center items-center gap-1.5 mt-2">
-            {suggestion?.triggered_rules?.slice(0, 3).map((rule, i) => (
+            {suggestion.triggered_rules.slice(0, 3).map((rule, i) => (
               <button
                 key={i}
                 className="text-xs px-2 py-0.5 rounded-full transition-colors"
@@ -376,25 +313,8 @@ export default function HeroScore({
                 {RULE_LABELS[rule.name] || rule.name.replace(/_/g, ' ')}
               </button>
             ))}
-            {hasWhoop && (
-              <button
-                onClick={onSyncWhoop}
-                disabled={whoopSyncing}
-                className="inline-flex items-center gap-1 text-xs min-h-[44px] px-3 py-2 rounded-full hover:opacity-80"
-                style={{ color: 'var(--muted)', backgroundColor: 'var(--surfaceElev)', border: '1px solid var(--border)' }}
-                title="Sync WHOOP"
-              >
-                <RefreshCw className={`w-3 h-3 ${whoopSyncing ? 'animate-spin' : ''}`} />
-                {whoopRecovery?.hrv_ms != null && (
-                  <span>HRV {Math.round(whoopRecovery.hrv_ms)}</span>
-                )}
-                {whoopRecovery?.resting_hr != null && (
-                  <span className="hidden sm:inline">RHR {Math.round(whoopRecovery.resting_hr)}</span>
-                )}
-              </button>
-            )}
           </div>
-        )}
+        ) : null}
 
         {/* Expanded rule recommendation */}
         {expandedRule && suggestion?.triggered_rules?.find(r => r.name === expandedRule) && (
@@ -405,7 +325,7 @@ export default function HeroScore({
       </div>
 
       {/* Not checked in prompt */}
-      {!hasCheckedIn && !whoopRecovery && (
+      {!hasCheckedIn && (
         <button
           onClick={() => navigate('/readiness')}
           className="w-full mt-3 py-2.5 rounded-lg text-sm font-semibold transition-colors"

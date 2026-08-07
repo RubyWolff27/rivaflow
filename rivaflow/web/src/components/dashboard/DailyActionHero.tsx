@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { Plus, Activity, Sparkles, Heart, Waves, RefreshCw } from 'lucide-react';
+import { Plus, Activity, Sparkles } from 'lucide-react';
 import { getLocalDateString } from '../../utils/date';
 import { logger } from '../../utils/logger';
-import { suggestionsApi, readinessApi, whoopApi, checkinsApi, sessionsApi, goalsApi, gymsApi, profileApi } from '../../api/client';
+import { suggestionsApi, readinessApi, checkinsApi, sessionsApi, goalsApi, gymsApi, profileApi } from '../../api/client';
 import { Card, PrimaryButton, CardSkeleton } from '../ui';
 import SmartPlanBanner from './SmartPlanBanner';
 import MorningPrompt from './MorningPrompt';
@@ -56,10 +56,6 @@ const sanitizeSuggestion = (text: string) =>
 const READINESS_HIGH_THRESHOLD = 16;
 const READINESS_MODERATE_THRESHOLD = 12;
 
-/** WHOOP recovery score thresholds (0-100 percentage) */
-const WHOOP_RECOVERY_HIGH = 67;
-const WHOOP_RECOVERY_MODERATE = 34;
-
 export default function DailyActionHero() {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
@@ -69,12 +65,6 @@ export default function DailyActionHero() {
   const [hasCheckedIn, setHasCheckedIn] = useState(false);
   const [dayCheckins, setDayCheckins] = useState<DayCheckins | null>(null);
   const [todayPlan, setTodayPlan] = useState<string | undefined>(undefined);
-  const [whoopRecovery, setWhoopRecovery] = useState<{
-    recovery_score: number | null;
-    hrv_ms: number | null;
-    resting_hr: number | null;
-  } | null>(null);
-  const [whoopSyncing, setWhoopSyncing] = useState(false);
   const [todaySessions, setTodaySessions] = useState<Session[]>([]);
   const [todaysClasses, setTodaysClasses] = useState<GymClass[]>([]);
   const [weeklyGoals, setWeeklyGoals] = useState<WeeklyGoalProgress | null>(null);
@@ -94,7 +84,6 @@ export default function DailyActionHero() {
       const results = await Promise.allSettled([
         suggestionsApi.getToday(),
         readinessApi.getByDate(today),
-        whoopApi.getLatestRecovery(),
         checkinsApi.getToday(),
         checkinsApi.getYesterday(),
         sessionsApi.getByRange(today, today),
@@ -121,19 +110,15 @@ export default function DailyActionHero() {
         setHasCheckedIn(true);
       }
 
-      if (results[2].status === 'fulfilled' && results[2].value.data?.recovery_score != null) {
-        setWhoopRecovery(results[2].value.data);
-      }
-
-      if (results[3].status === 'fulfilled' && results[3].value.data) {
-        setDayCheckins(results[3].value.data);
-        if (results[3].value.data.checked_in) {
+      if (results[2].status === 'fulfilled' && results[2].value.data) {
+        setDayCheckins(results[2].value.data);
+        if (results[2].value.data.checked_in) {
           setHasCheckedIn(true);
         }
       }
 
-      if (results[4].status === 'fulfilled' && results[4].value.data) {
-        const y = results[4].value.data;
+      if (results[3].status === 'fulfilled' && results[3].value.data) {
+        const y = results[3].value.data;
         const intention = y.evening?.tomorrow_intention
           || y.midday?.tomorrow_intention
           || y.morning?.tomorrow_intention;
@@ -142,19 +127,19 @@ export default function DailyActionHero() {
         }
       }
 
-      if (results[5].status === 'fulfilled' && results[5].value.data) {
-        const sessions = results[5].value.data;
+      if (results[4].status === 'fulfilled' && results[4].value.data) {
+        const sessions = results[4].value.data;
         if (Array.isArray(sessions)) {
           setTodaySessions(sessions);
         }
       }
 
-      if (results[6].status === 'fulfilled' && results[6].value.data) {
-        setWeeklyGoals(results[6].value.data);
+      if (results[5].status === 'fulfilled' && results[5].value.data) {
+        setWeeklyGoals(results[5].value.data);
       }
 
-      if (results[7].status === 'fulfilled' && results[7].value.data) {
-        const classData = results[7].value.data;
+      if (results[6].status === 'fulfilled' && results[6].value.data) {
+        const classData = results[6].value.data;
         if (classData.classes && Array.isArray(classData.classes)) {
           setTodaysClasses(classData.classes);
         }
@@ -174,17 +159,17 @@ export default function DailyActionHero() {
   let labelColor: string;
   let iconBg: string;
 
-  if (!hasCheckedIn && !whoopRecovery) {
+  if (!hasCheckedIn) {
     label = 'Check In';
     labelBg = 'var(--surfaceElev)';
     labelColor = 'var(--accent)';
     iconBg = 'var(--surfaceElev)';
-  } else if (score >= READINESS_HIGH_THRESHOLD || (whoopRecovery && whoopRecovery.recovery_score !== null && whoopRecovery.recovery_score >= WHOOP_RECOVERY_HIGH && !hasCheckedIn)) {
+  } else if (score >= READINESS_HIGH_THRESHOLD) {
     label = 'Train Hard';
     labelBg = 'var(--success-bg)';
     labelColor = 'var(--success)';
     iconBg = 'var(--success-bg)';
-  } else if (score >= READINESS_MODERATE_THRESHOLD || (whoopRecovery && whoopRecovery.recovery_score !== null && whoopRecovery.recovery_score >= WHOOP_RECOVERY_MODERATE && !hasCheckedIn)) {
+  } else if (score >= READINESS_MODERATE_THRESHOLD) {
     label = 'Light Session';
     labelBg = 'var(--warning-bg)';
     labelColor = 'var(--warning)';
@@ -196,19 +181,13 @@ export default function DailyActionHero() {
     iconBg = 'var(--danger-bg)';
   }
 
-  const whoopColor = whoopRecovery?.recovery_score != null
-    ? whoopRecovery.recovery_score >= WHOOP_RECOVERY_HIGH ? '#10B981'
-      : whoopRecovery.recovery_score >= WHOOP_RECOVERY_MODERATE ? '#F59E0B'
-      : '#EF4444'
-    : undefined;
-
   const readinessColor = readinessScore != null
     ? readinessScore >= READINESS_HIGH_THRESHOLD ? '#10B981'
       : readinessScore >= READINESS_MODERATE_THRESHOLD ? '#F59E0B'
       : '#EF4444'
     : undefined;
 
-  const statsBorderColor = readinessColor || whoopColor || 'var(--border)';
+  const statsBorderColor = readinessColor || 'var(--border)';
 
   const hasMorning = dayCheckins?.morning != null;
   const hasMidday = dayCheckins?.midday != null;
@@ -240,7 +219,7 @@ export default function DailyActionHero() {
         />
       )}
 
-      {!hasCheckedIn && !whoopRecovery ? (
+      {!hasCheckedIn ? (
         <div className="mb-4">
           <div className="flex items-center gap-3 mb-2">
             <div
@@ -317,7 +296,7 @@ export default function DailyActionHero() {
         </div>
       )}
 
-      {(hasCheckedIn || whoopRecovery) && (
+      {hasCheckedIn && (
         <Link to="/readiness">
           <div
             className="flex items-center gap-3 p-3 rounded-lg transition-colors hover:opacity-90"
@@ -335,64 +314,6 @@ export default function DailyActionHero() {
               </div>
             )}
 
-            {hasCheckedIn && readinessScore != null && whoopRecovery && (
-              <div className="w-px h-8" style={{ backgroundColor: 'var(--border)' }} />
-            )}
-
-            {whoopRecovery && whoopRecovery.recovery_score != null && (
-              <div className="flex items-center gap-2 flex-1 min-w-0">
-                <div className="w-5 h-5 rounded-full bg-black flex items-center justify-center shrink-0">
-                  <span className="text-white font-bold text-[10px]">W</span>
-                </div>
-                <div>
-                  <p className="text-xs font-medium" style={{ color: 'var(--muted)' }}>Recovery</p>
-                  <p className="text-lg font-bold leading-tight" style={{ color: whoopColor }}>
-                    {Math.round(whoopRecovery.recovery_score)}%
-                  </p>
-                </div>
-              </div>
-            )}
-
-            {whoopRecovery && (
-              <div className="hidden sm:flex items-center gap-3 text-xs" style={{ color: 'var(--muted)' }}>
-                {whoopRecovery.hrv_ms != null && (
-                  <div className="text-center">
-                    <Waves className="w-3 h-3 mx-auto mb-0.5" style={{ color: 'var(--accent)' }} />
-                    <p className="font-semibold" style={{ color: 'var(--text)' }}>{Math.round(whoopRecovery.hrv_ms)}</p>
-                    <p>HRV</p>
-                  </div>
-                )}
-                {whoopRecovery.resting_hr != null && (
-                  <div className="text-center">
-                    <Heart className="w-3 h-3 mx-auto mb-0.5" style={{ color: 'var(--accent)' }} />
-                    <p className="font-semibold" style={{ color: 'var(--text)' }}>{Math.round(whoopRecovery.resting_hr)}</p>
-                    <p>RHR</p>
-                  </div>
-                )}
-              </div>
-            )}
-
-            {whoopRecovery && (
-              <button
-                onClick={async (e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  setWhoopSyncing(true);
-                  try {
-                    await whoopApi.sync();
-                    const res = await whoopApi.getLatestRecovery();
-                    if (res.data?.recovery_score != null) setWhoopRecovery(res.data);
-                  } catch (err) { logger.debug('WHOOP sync best-effort failed', err); }
-                  setWhoopSyncing(false);
-                }}
-                disabled={whoopSyncing}
-                className="p-1.5 rounded-md hover:opacity-80 shrink-0"
-                style={{ color: 'var(--muted)' }}
-                title="Sync WHOOP"
-              >
-                <RefreshCw className={`w-3.5 h-3.5 ${whoopSyncing ? 'animate-spin' : ''}`} />
-              </button>
-            )}
           </div>
         </Link>
       )}

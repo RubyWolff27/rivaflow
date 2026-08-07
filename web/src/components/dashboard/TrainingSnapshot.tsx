@@ -8,7 +8,6 @@ import { ACTIVITY_COLORS, ACTIVITY_LABELS } from '../../constants/activity';
 interface TrainingSnapshotProps {
   readinessScore: number | null;
   streakCount: number;
-  whoopRecovery: number | null;
 }
 
 function getReadinessColor(score: number | null): string {
@@ -243,7 +242,7 @@ function ActivityTypeIcons({ volumes }: { volumes: ClassTypeVolume[] }) {
 }
 
 /* ── Readiness Insight (like Strava's Relative Effort) ── */
-function ReadinessInsight({ score, whoopRecovery }: { score: number | null; whoopRecovery: number | null }) {
+function ReadinessInsight({ score }: { score: number | null }) {
   const color = getReadinessColor(score);
   const label = getReadinessLabel(score);
 
@@ -280,11 +279,6 @@ function ReadinessInsight({ score, whoopRecovery }: { score: number | null; whoo
 
         <div className="min-w-0 flex-1">
           <p className="text-sm font-bold" style={{ color }}>{label}</p>
-          {whoopRecovery != null && (
-            <p className="text-xs mt-0.5" style={{ color: 'var(--muted)' }}>
-              WHOOP {whoopRecovery}% recovery
-            </p>
-          )}
           <p className="text-[11px] mt-1" style={{ color: 'var(--muted)' }}>
             {score != null && score >= 16
               ? 'Your body is ready for a hard training session.'
@@ -327,7 +321,7 @@ function AccordionSection({ title, children, defaultOpen = false }: { title: str
 }
 
 /* ── Main Component ── */
-export default function TrainingSnapshot({ readinessScore, streakCount, whoopRecovery }: TrainingSnapshotProps) {
+export default function TrainingSnapshot({ readinessScore, streakCount }: TrainingSnapshotProps) {
   const { loading, weekDays, volumes, totalSessions, totalHours, totalRolls, lastSession, profile } = useTrainingSnapshot();
 
   if (loading) {
@@ -386,7 +380,7 @@ export default function TrainingSnapshot({ readinessScore, streakCount, whoopRec
 
       {/* Readiness insight */}
       <div className="py-4" style={{ borderTop: '1px solid var(--border)' }}>
-        <ReadinessInsight score={readinessScore} whoopRecovery={whoopRecovery} />
+        <ReadinessInsight score={readinessScore} />
       </div>
     </div>
   );
@@ -428,7 +422,7 @@ export default function TrainingSnapshot({ readinessScore, streakCount, whoopRec
           </AccordionSection>
         )}
         <AccordionSection title="Readiness">
-          <ReadinessInsight score={readinessScore} whoopRecovery={whoopRecovery} />
+          <ReadinessInsight score={readinessScore} />
         </AccordionSection>
         <div className="py-2">
           <TrainingLogLink />

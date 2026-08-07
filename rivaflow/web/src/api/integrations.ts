@@ -1,5 +1,5 @@
 import { api } from './_client';
-import type { WhoopConnectionStatus, WhoopWorkoutMatch, WhoopRecovery, WhoopScopeCheck, WhoopReadinessAutoFill, WhoopSessionContext, GarminDailyMetric } from '../types';
+import type { GarminDailyMetric } from '../types';
 
 // Garmin metrics API — daily key metrics power the Health tab; per-session
 // Garmin biometrics ride on the session object (no dedicated endpoint).
@@ -17,46 +17,6 @@ export const transcribeApi = {
       headers: { 'Content-Type': 'multipart/form-data' },
       timeout: 60000,
     }),
-};
-
-// WHOOP Integration API
-export const whoopApi = {
-  getStatus: () =>
-    api.get<WhoopConnectionStatus>('/integrations/whoop/status'),
-  getAuthorizeUrl: () =>
-    api.get<{ authorization_url: string }>('/integrations/whoop/authorize'),
-  sync: (days = 14) =>
-    api.post<{ total_fetched: number; created: number; updated: number; auto_sessions_created: number; zones_backfilled: number }>(`/integrations/whoop/sync?days=${days}`),
-  getWorkouts: (params?: { session_id?: number; session_date?: string; class_time?: string; duration_mins?: number }) =>
-    api.get<{ workouts: WhoopWorkoutMatch[]; count: number }>('/integrations/whoop/workouts', { params }),
-  matchWorkout: (data: { session_id: number; workout_cache_id: number }) =>
-    api.post('/integrations/whoop/match', data),
-  disconnect: () =>
-    api.delete<{ disconnected: boolean }>('/integrations/whoop'),
-  syncRecovery: () =>
-    api.post<{ total_fetched: number; created: number; updated: number }>('/integrations/whoop/sync-recovery'),
-  getLatestRecovery: () =>
-    api.get<WhoopRecovery>('/integrations/whoop/recovery/latest'),
-  checkScopes: () =>
-    api.get<WhoopScopeCheck>('/integrations/whoop/scope-check'),
-  getReadinessAutoFill: (date: string) =>
-    api.get<{ auto_fill: WhoopReadinessAutoFill | null }>('/integrations/whoop/readiness/auto-fill', { params: { date } }),
-  sessionContext: (sessionId: number) =>
-    api.get<WhoopSessionContext>(`/integrations/whoop/session/${sessionId}/context`),
-  setAutoCreate: (enabled: boolean) =>
-    api.post('/integrations/whoop/auto-create-sessions', { enabled }),
-  setAutoFillReadiness: (enabled: boolean) =>
-    api.post('/integrations/whoop/auto-fill-readiness', { enabled }),
-  getImportable: () =>
-    api.get<{ workouts: (WhoopWorkoutMatch & { suggested_class_type: string })[]; count: number }>('/integrations/whoop/importable'),
-  importWorkout: (workoutCacheId: number) =>
-    api.post<{ session_id: number }>('/integrations/whoop/import', { workout_cache_id: workoutCacheId }),
-  dismissWorkout: (workoutCacheId: number) =>
-    api.post<{ dismissed: boolean }>('/integrations/whoop/dismiss', { workout_cache_id: workoutCacheId }),
-  getZonesBatch: (sessionIds: number[]) =>
-    api.get<{ zones: Record<string, { zone_durations: Record<string, number> | null; strain: number | null; calories: number | null; score_state: string | null } | null> }>('/integrations/whoop/zones/batch', { params: { session_ids: sessionIds.join(',') } }),
-  getZonesWeekly: (weekOffset = 0, tz?: string) =>
-    api.get<{ totals: Record<string, number>; session_count: number; week_start: string; week_end: string }>('/integrations/whoop/zones/weekly', { params: { week_offset: weekOffset, tz } }),
 };
 
 // Chat API (general chat, separate from Grapple)

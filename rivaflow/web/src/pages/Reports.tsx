@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { getLocalDateString } from '../utils/date';
 import { useSearchParams, Link } from 'react-router-dom';
 import { usePageTitle } from '../hooks/usePageTitle';
-import { analyticsApi, sessionsApi, whoopApi } from '../api/client';
+import { analyticsApi, sessionsApi } from '../api/client';
 import { logger } from '../utils/logger';
 import { TrendingUp, Users, Activity, Target, Brain, ChevronRight } from 'lucide-react';
 import { Card } from '../components/ui';
@@ -105,28 +105,38 @@ export default function Reports() {
               setGymData(gymRes.data ?? null);
               setClassTypeData(ctRes.data ?? null);
             }
-            // Fetch zone trends for sessions in this range
+            // Zone trends from the sessions' own Air zone data (no extra endpoint)
             try {
               const sessRes = await sessionsApi.list(50);
               const rangeSessions = (sessRes.data || []).filter((s) =>
                 s.session_date >= params.start_date && s.session_date <= params.end_date
               );
-              const ids = rangeSessions.map((s) => s.id);
-              if (ids.length > 0) {
-                const zRes = await whoopApi.getZonesBatch(ids);
-                if (!cancelled && zRes.data?.zones) {
-                  const trends: Array<{ session_id: number; date: string; zones: Record<string, number> }> = [];
-                  for (const s of rangeSessions) {
-                    const zd = zRes.data.zones[String(s.id)];
-                    if (zd?.zone_durations) {
-                      trends.push({ session_id: s.id, date: s.session_date, zones: zd.zone_durations });
-                    }
+              if (!cancelled) {
+                const trends: Array<{ session_id: number; date: string; zones: Record<string, number> }> = [];
+                for (const s of rangeSessions) {
+                  const secs = [
+                    s.garmin_hr_z1_sec, s.garmin_hr_z2_sec, s.garmin_hr_z3_sec,
+                    s.garmin_hr_z4_sec, s.garmin_hr_z5_sec,
+                  ];
+                  const total = secs.reduce((sum: number, v) => sum + (v ?? 0), 0);
+                  if (total > 0) {
+                    trends.push({
+                      session_id: s.id,
+                      date: s.session_date,
+                      zones: {
+                        zone_one_milli: (secs[0] ?? 0) * 1000,
+                        zone_two_milli: (secs[1] ?? 0) * 1000,
+                        zone_three_milli: (secs[2] ?? 0) * 1000,
+                        zone_four_milli: (secs[3] ?? 0) * 1000,
+                        zone_five_milli: (secs[4] ?? 0) * 1000,
+                      },
+                    });
                   }
-                  trends.sort((a, b) => a.date.localeCompare(b.date));
-                  setZoneTrendsData(trends.length > 0 ? trends : null);
                 }
+                trends.sort((a, b) => a.date.localeCompare(b.date));
+                setZoneTrendsData(trends.length > 0 ? trends : null);
               }
-            } catch (err) { logger.debug('WHOOP not connected', err); }
+            } catch (err) { logger.debug('Zone trends derivation failed', err); }
           } else if (activeTab === 'partners') {
             const [partnersRes, beltRes] = await Promise.all([
               analyticsApi.partnerStats(params),

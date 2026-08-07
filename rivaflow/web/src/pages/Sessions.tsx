@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { usePageTitle } from '../hooks/usePageTitle';
 import { Link } from 'react-router-dom';
-import { sessionsApi, whoopApi } from '../api/client';
+import { sessionsApi } from '../api/client';
 import { logger } from '../utils/logger';
 import type { Session } from '../types';
 import { Calendar, MapPin, Clock, Activity, Target, Search, Zap } from 'lucide-react';
@@ -13,9 +13,27 @@ import { formatClassType, ACTIVITY_COLORS } from '../constants/activity';
 import { pluralize } from '../utils/text';
 import { GYM_TYPES, SPARRING_TYPES } from '../components/sessions/sessionTypes';
 
-type ZoneData = { zone_durations: Record<string, number> | null; strain: number | null; calories: number | null; score_state: string | null; recovery_score?: number | null };
-
 const SESSIONS_PER_PAGE = 20;
+
+/** HR zone seconds from the session's Air data, shaped for MiniZoneBar's milli keys. */
+function garminZones(session: Session): Record<string, number> | null {
+  const secs = [
+    session.garmin_hr_z1_sec,
+    session.garmin_hr_z2_sec,
+    session.garmin_hr_z3_sec,
+    session.garmin_hr_z4_sec,
+    session.garmin_hr_z5_sec,
+  ];
+  const total = secs.reduce((sum: number, v) => sum + (v ?? 0), 0);
+  if (total <= 0) return null;
+  return {
+    zone_one_milli: (secs[0] ?? 0) * 1000,
+    zone_two_milli: (secs[1] ?? 0) * 1000,
+    zone_three_milli: (secs[2] ?? 0) * 1000,
+    zone_four_milli: (secs[3] ?? 0) * 1000,
+    zone_five_milli: (secs[4] ?? 0) * 1000,
+  };
+}
 
 /** One-line session story for list cards. */
 function sessionStoryPreview(session: Session): string {
@@ -36,7 +54,6 @@ export default function Sessions() {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterType, setFilterType] = useState<string>('all');
   const [sortBy, setSortBy] = useState<'date' | 'duration' | 'intensity'>('date');
-  const [zoneMap, setZoneMap] = useState<Record<string, ZoneData | null>>({});
   const [visibleCount, setVisibleCount] = useState(SESSIONS_PER_PAGE);
 
   useEffect(() => {
@@ -46,18 +63,7 @@ export default function Sessions() {
       try {
         const response = await sessionsApi.list(200);
         if (!controller.signal.aborted) {
-          const loaded = response.data ?? [];
-          setSessions(loaded);
-          // Fetch zone data for first 50 sessions
-          const ids = loaded.slice(0, 50).map(s => s.id);
-          if (ids.length > 0) {
-            try {
-              const zRes = await whoopApi.getZonesBatch(ids);
-              if (!controller.signal.aborted && zRes.data?.zones) {
-                setZoneMap(zRes.data.zones);
-              }
-            } catch (err) { logger.debug('WHOOP not connected', err); }
-          }
+          setSessions(response.data ?? []);
         }
       } catch (error) {
         if (!controller.signal.aborted) {
@@ -400,31 +406,19 @@ export default function Sessions() {
                   </div>
                 )}
 
-                {/* ISC-18,19: Strain + Recovery indicators */}
-                {(session.whoop_strain != null || zoneMap[String(session.id)]?.recovery_score != null) && (
+                {/* Strain badge (legacy WHOOP-era sessions carry real strain data) */}
+                {session.whoop_strain != null && (
                   <div className="flex items-center gap-3 pt-2 border-t border-[var(--border)]">
-                    {session.whoop_strain != null && (
-                      <span
-                        className="px-2 py-0.5 rounded-full text-xs font-bold flex items-center gap-1"
-                        style={{
-                          backgroundColor: session.whoop_strain <= 7 ? '#10B98120' : session.whoop_strain <= 14 ? '#F59E0B20' : '#EF444420',
-                          color: session.whoop_strain <= 7 ? '#10B981' : session.whoop_strain <= 14 ? '#F59E0B' : '#EF4444',
-                        }}
-                      >
-                        <Zap className="w-3 h-3" />
-                        {Number(session.whoop_strain).toFixed(1)}
-                      </span>
-                    )}
-                    {zoneMap[String(session.id)]?.recovery_score != null && (() => {
-                      const score = zoneMap[String(session.id)]!.recovery_score!;
-                      const color = score >= 67 ? '#10B981' : score >= 34 ? '#F59E0B' : '#EF4444';
-                      return (
-                        <span className="flex items-center gap-1 text-xs">
-                          <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: color }} />
-                          <span style={{ color }}>{Math.round(score)}%</span>
-                        </span>
-                      );
-                    })()}
+                    <span
+                      className="px-2 py-0.5 rounded-full text-xs font-bold flex items-center gap-1"
+                      style={{
+                        backgroundColor: session.whoop_strain <= 7 ? '#10B98120' : session.whoop_strain <= 14 ? '#F59E0B20' : '#EF444420',
+                        color: session.whoop_strain <= 7 ? '#10B981' : session.whoop_strain <= 14 ? '#F59E0B' : '#EF4444',
+                      }}
+                    >
+                      <Zap className="w-3 h-3" />
+                      {Number(session.whoop_strain).toFixed(1)}
+                    </span>
                   </div>
                 )}
 
@@ -433,12 +427,15 @@ export default function Sessions() {
                   {sessionStoryPreview(session)}
                 </p>
 
-                {/* HR Zone Mini Bar */}
-                {zoneMap[String(session.id)]?.zone_durations && (
-                  <div className="pt-2 border-t border-[var(--border)]">
-                    <MiniZoneBar zones={zoneMap[String(session.id)]!.zone_durations!} />
-                  </div>
-                )}
+                {/* HR Zone Mini Bar — from the session's own Air zone data */}
+                {(() => {
+                  const zones = garminZones(session);
+                  return zones ? (
+                    <div className="pt-2 border-t border-[var(--border)]">
+                      <MiniZoneBar zones={zones} />
+                    </div>
+                  ) : null;
+                })()}
               </Link>
             ))}
           </div>

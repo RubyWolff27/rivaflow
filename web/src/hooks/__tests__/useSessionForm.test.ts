@@ -2,11 +2,6 @@ import { renderHook, act } from "@testing-library/react";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
 vi.mock("../../api/client", () => ({
-  whoopApi: {
-    getWorkouts: vi.fn(() =>
-      Promise.resolve({ data: { workouts: [], count: 0 } })
-    ),
-  },
   getErrorMessage: vi.fn((e: unknown) => String(e)),
 }));
 

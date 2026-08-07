@@ -42,11 +42,6 @@ vi.mock('../../api/client', () => ({
   restApi: {
     logRestDay: vi.fn(() => Promise.resolve({ data: {} })),
   },
-  whoopApi: {
-    getStatus: vi.fn(() => Promise.resolve({ data: { connected: false } })),
-    getWorkouts: vi.fn(() => Promise.resolve({ data: { workouts: [], count: 0 } })),
-    getZonesBatch: vi.fn(() => Promise.resolve({ data: { zones: {} } })),
-  },
   getErrorMessage: vi.fn((e: unknown) => String(e)),
 }))
 

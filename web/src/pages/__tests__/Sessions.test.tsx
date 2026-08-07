@@ -3,14 +3,10 @@ import { BrowserRouter } from 'react-router-dom'
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
 const mockList = vi.fn()
-const mockGetZonesBatch = vi.fn()
 
 vi.mock('../../api/client', () => ({
   sessionsApi: {
     list: (...args: unknown[]) => mockList(...args),
-  },
-  whoopApi: {
-    getZonesBatch: (...args: unknown[]) => mockGetZonesBatch(...args),
   },
 }))
 
@@ -90,7 +86,6 @@ function renderSessions() {
 describe('Sessions', () => {
   beforeEach(() => {
     vi.clearAllMocks()
-    mockGetZonesBatch.mockResolvedValue({ data: { zones: {} } })
   })
 
   it('shows loading skeletons while fetching', () => {
@@ -345,13 +340,26 @@ describe('Sessions', () => {
     })
   })
 
-  it('fetches zone data for sessions', async () => {
-    mockList.mockResolvedValueOnce({ data: sampleSessions })
+  it('renders HR zone bars from the session\'s own garmin zone fields, no network call', async () => {
+    mockList.mockResolvedValueOnce({
+      data: [{
+        ...sampleSessions[0],
+        garmin_hr_z1_sec: 600,
+        garmin_hr_z2_sec: 900,
+        garmin_hr_z3_sec: 1200,
+        garmin_hr_z4_sec: 300,
+        garmin_hr_z5_sec: 60,
+      }],
+    })
     renderSessions()
 
     await waitFor(() => {
-      expect(mockGetZonesBatch).toHaveBeenCalledWith([1, 2, 3])
+      expect(screen.getByText('Gracie Barra')).toBeInTheDocument()
     })
+
+    // MiniZoneBar (mocked) mounts only when the session carries zone seconds
+    const card = document.querySelector('a[href="/session/1"]')!
+    expect(card.querySelector('[data-testid="zone-bar"]')).toBeTruthy()
   })
 
   it('shows stat labels', async () => {
