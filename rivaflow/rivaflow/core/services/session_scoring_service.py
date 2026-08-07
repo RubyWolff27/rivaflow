@@ -113,13 +113,13 @@ class SessionScoringService:
     def _score_bjj(self, user_id: int, session: dict) -> dict:
         avgs = self._get_user_averages(user_id)
         readiness = self._get_readiness_for_date(user_id, session)
-        has_whoop = self._has_whoop_data(session)
+        has_biometric = self._has_biometric_data(session)
         has_readiness = readiness is not None
 
         available = dict(BJJ_WEIGHTS)
         if not has_readiness:
             del available["readiness_alignment"]
-        if not has_whoop:
+        if not has_biometric:
             del available["biometric_validation"]
 
         weights = self._redistribute_weights(available, 100)
@@ -146,7 +146,7 @@ class SessionScoringService:
             )
 
         # Biometric validation
-        if has_whoop:
+        if has_biometric:
             pillars["biometric_validation"] = self._calc_biometric(
                 session, avgs, weights["biometric_validation"]
             )
@@ -168,13 +168,13 @@ class SessionScoringService:
     def _score_competition(self, user_id: int, session: dict) -> dict:
         avgs = self._get_user_averages(user_id)
         readiness = self._get_readiness_for_date(user_id, session)
-        has_whoop = self._has_whoop_data(session)
+        has_biometric = self._has_biometric_data(session)
         has_readiness = readiness is not None
 
         available = dict(COMPETITION_WEIGHTS)
         if not has_readiness:
             del available["readiness_alignment"]
-        if not has_whoop:
+        if not has_biometric:
             del available["biometric_validation"]
 
         weights = self._redistribute_weights(available, 100)
@@ -191,7 +191,7 @@ class SessionScoringService:
             pillars["readiness_alignment"] = self._calc_readiness_alignment(
                 session, readiness, weights["readiness_alignment"]  # type: ignore[arg-type]
             )
-        if has_whoop:
+        if has_biometric:
             pillars["biometric_validation"] = self._calc_biometric(
                 session, avgs, weights["biometric_validation"]
             )
@@ -213,13 +213,13 @@ class SessionScoringService:
     def _score_supplementary(self, user_id: int, session: dict) -> dict:
         avgs = self._get_user_averages(user_id)
         readiness = self._get_readiness_for_date(user_id, session)
-        has_whoop = self._has_whoop_data(session)
+        has_biometric = self._has_biometric_data(session)
         has_readiness = readiness is not None
 
         available = dict(SUPPLEMENTARY_WEIGHTS)
         if not has_readiness:
             del available["readiness_alignment"]
-        if not has_whoop:
+        if not has_biometric:
             del available["biometric_validation"]
 
         weights = self._redistribute_weights(available, 100)
@@ -233,7 +233,7 @@ class SessionScoringService:
             pillars["readiness_alignment"] = self._calc_readiness_alignment(
                 session, readiness, weights["readiness_alignment"]  # type: ignore[arg-type]
             )
-        if has_whoop:
+        if has_biometric:
             pillars["biometric_validation"] = self._calc_biometric(
                 session, avgs, weights["biometric_validation"]
             )
@@ -365,9 +365,20 @@ class SessionScoringService:
         return {"score": score, "max": max_pts, "pct": round(alignment * 100)}
 
     def _calc_biometric(self, session: dict, avgs: dict, max_pts: float) -> dict:
-        """WHOOP strain + HR zones confirm real effort."""
-        strain = session.get("whoop_strain") or 0
-        avg_hr = session.get("whoop_avg_hr") or 0
+        """Measured load + HR confirm real effort. Live Fitbit-Air `garmin_*` first,
+        legacy `whoop_*` as fallback for band-era sessions.
+
+        The Air feed carries Edwards TRIMP (`garmin_training_load`), not a 0-21 strain,
+        so it's mapped through `scale_to_21` — the same TRIMP→"WHOOP-strain-feel 0-21 band"
+        the app already uses — to keep this pillar's downstream math unchanged."""
+        garmin_load = session.get("garmin_training_load")
+        if garmin_load:
+            from rivaflow.core.cardio_load import scale_to_21
+
+            strain = scale_to_21(garmin_load)
+        else:
+            strain = session.get("whoop_strain") or 0
+        avg_hr = session.get("garmin_avg_hr") or session.get("whoop_avg_hr") or 0
         intensity = session.get("intensity", 3)
 
         components = []
@@ -441,9 +452,15 @@ class SessionScoringService:
 
         return ReadinessRepository.get_readiness_with_composite(user_id, date_str)
 
-    def _has_whoop_data(self, session: dict) -> bool:
+    def _has_biometric_data(self, session: dict) -> bool:
+        """True if the session carries measured HR/load — live Fitbit-Air `garmin_*`
+        first, legacy `whoop_*` as fallback for sessions logged when the band was worn.
+        """
         return bool(
-            session.get("whoop_strain")
+            session.get("garmin_training_load")
+            or session.get("garmin_avg_hr")
+            or session.get("garmin_max_hr")
+            or session.get("whoop_strain")
             or session.get("whoop_avg_hr")
             or session.get("whoop_max_hr")
         )

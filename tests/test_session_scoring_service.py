@@ -441,12 +441,32 @@ def test_data_completeness_with_readiness(temp_db, test_user):
 
 
 # ------------------------------------------------------------------ #
-# Biometric validation (WHOOP data)
+# Biometric validation (live Fitbit-Air garmin_* + legacy whoop_* fallback)
 # ------------------------------------------------------------------ #
 
 
+def test_biometric_pillar_with_garmin_data(temp_db, test_user):
+    """Air-era sessions score the biometric pillar from garmin_* (not dead whoop_*).
+
+    Regression for v2 Wave 2 F5/F11: the pillar used to recognise only whoop_*, so
+    every Fitbit-Air session dropped it and leaned entirely on subjective pillars.
+    """
+    svc = SessionScoringService()
+    sid = _create_session(test_user["id"], intensity=4)
+    # garmin_* land via update (producer/GarminPanel path), not create.
+    SessionRepository.update(
+        test_user["id"], sid, garmin_training_load=128, garmin_avg_hr=140
+    )
+
+    result = svc.score_session(test_user["id"], sid)
+    pillar = result["pillars"].get("biometric_validation")
+    assert pillar is not None, "Air session must score the biometric pillar"
+    # Non-neutral: reflects the measured TRIMP via scale_to_21, not the 50% fallback.
+    assert pillar["pct"] != 50
+
+
 def test_biometric_pillar_with_whoop_data(temp_db, test_user):
-    """Biometric pillar appears when WHOOP strain data exists."""
+    """Legacy band-era sessions still score the pillar from historical whoop_*."""
     svc = SessionScoringService()
 
     sid = _create_session(
@@ -460,8 +480,8 @@ def test_biometric_pillar_with_whoop_data(temp_db, test_user):
     assert "biometric_validation" in result["pillars"]
 
 
-def test_biometric_pillar_absent_without_whoop(temp_db, test_user):
-    """Biometric pillar absent when no WHOOP data on session."""
+def test_biometric_pillar_absent_without_biometric(temp_db, test_user):
+    """Biometric pillar absent when the session has neither garmin_* nor whoop_* data."""
     svc = SessionScoringService()
     sid = _create_session(test_user["id"])
 
