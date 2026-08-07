@@ -46,7 +46,6 @@ from rivaflow.api.routes import (
     curriculum,
     dashboard,
     events,
-    feed,
     feedback,
     friends,
     garmin,
@@ -56,7 +55,6 @@ from rivaflow.api.routes import (
     grapple,
     grapple_insights,
     grapple_usage,
-    groups,
     gyms,
     health,
     milestones,
@@ -67,10 +65,6 @@ from rivaflow.api.routes import (
     reports,
     rest,
     sessions,
-    social,
-    social_comments,
-    social_connections,
-    social_likes,
     streaks,
     suggestions,
     techniques,
@@ -281,7 +275,6 @@ app.include_router(auth.router, prefix="/api/v1/auth", tags=["auth"])
 app.include_router(sessions.router, prefix="/api/v1/sessions", tags=["sessions"])
 app.include_router(readiness.router, prefix="/api/v1/readiness", tags=["readiness"])
 app.include_router(rest.router, prefix="/api/v1", tags=["rest"])
-app.include_router(feed.router, prefix="/api/v1", tags=["feed"])
 app.include_router(reports.router, prefix="/api/v1/reports", tags=["reports"])
 app.include_router(
     suggestions.router, prefix="/api/v1/suggestions", tags=["suggestions"]
@@ -291,8 +284,9 @@ app.include_router(videos.router, prefix="/api/v1/videos", tags=["videos"])
 app.include_router(profile.router, prefix="/api/v1/profile", tags=["profile"])
 app.include_router(gradings.router, prefix="/api/v1/gradings", tags=["gradings"])
 app.include_router(glossary.router, prefix="/api/v1/glossary", tags=["glossary"])
+# friends router KEPT — listPartners()/listInstructors() are core training metadata
+# used by the log flow (QuickLog/LogSession/EditSession), NOT social networking.
 app.include_router(friends.router, prefix="/api/v1/friends", tags=["friends"])
-app.include_router(groups.router, prefix="/api/v1/groups", tags=["groups"])
 app.include_router(users.router, prefix="/api/v1/users", tags=["users"])
 app.include_router(api_keys.router, prefix="/api/v1/users/me", tags=["api-keys"])
 app.include_router(analytics.router, prefix="/api/v1/analytics", tags=["analytics"])
@@ -315,10 +309,11 @@ app.include_router(checkins.router, prefix="/api/v1", tags=["checkins"])
 app.include_router(streaks.router, prefix="/api/v1", tags=["streaks"])
 app.include_router(milestones.router, prefix="/api/v1", tags=["milestones"])
 app.include_router(photos.router, prefix="/api/v1", tags=["photos"])
-app.include_router(social.router, prefix="/api/v1", tags=["social"])
-app.include_router(social_likes.router, prefix="/api/v1/social", tags=["social"])
-app.include_router(social_comments.router, prefix="/api/v1/social", tags=["social"])
-app.include_router(social_connections.router, prefix="/api/v1/social", tags=["social"])
+# Pure-social routers UNMOUNTED 2026-08-07 (v2 Wave 2, red-team RT-5): feed, groups,
+# social, social_likes, social_comments, social_connections — the multi-user surface
+# on a single-user public-repo instance. Modules + repos + DB kept; the log flow's
+# socialApi.getFriends() call is .catch()-guarded and degrades to empty. friends +
+# waitlist stay mounted (partners/instructors + the friends-later invite flow).
 # AI features (Grapple + Game Plans)
 app.include_router(grapple.router, prefix="/api/v1", tags=["grapple"])
 app.include_router(grapple_insights.router, prefix="/api/v1/grapple", tags=["grapple"])

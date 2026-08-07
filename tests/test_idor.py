@@ -358,39 +358,6 @@ class TestTechniquesIDOR:
 
 
 # ============================================================================
-# Feed IDOR Tests (activity feed isolation)
-# ============================================================================
-
-
-class TestFeedIDOR:
-    """User1's activity feed must not leak User2's private data."""
-
-    def test_activity_feed_isolation(self, authenticated_client, test_user, test_user2):
-        """User1's activity feed does not contain User2's sessions."""
-        repo = SessionRepository()
-        repo.create(
-            user_id=test_user2["id"],
-            session_date=date.today(),
-            class_type="no-gi",
-            gym_name="User2 Secret Gym",
-            location="Nowhere",
-            duration_mins=45,
-            intensity=3,
-            rolls=2,
-            submissions_for=0,
-            submissions_against=0,
-        )
-
-        response = authenticated_client.get("/api/v1/feed/activity")
-        assert response.status_code == 200
-        data = response.json()
-        items = data.get("items", [])
-        for item in items:
-            assert item.get("gym_name") != "User2 Secret Gym"
-            assert item.get("user_id", test_user["id"]) == test_user["id"]
-
-
-# ============================================================================
 # Photos IDOR Tests
 # ============================================================================
 
