@@ -320,8 +320,6 @@ async def _coach_settings_reminder_job() -> None:
         _release_advisory_lock("coach_settings_reminder")
 
 
-
-
 async def _token_cleanup_job() -> None:
     """Delete expired refresh tokens and password reset tokens (daily 03:00 UTC)."""
     if not _try_advisory_lock("token_cleanup"):

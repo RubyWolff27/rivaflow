@@ -190,4 +190,3 @@ def test_classify_hardness_matches_fallback_hard_fixture():
     raw = session_load(samples, MAX_HR, REST_HR)
     cutoffs = hardness_cutoffs([])  # <8 -> fallback
     assert classify_hardness(raw, cutoffs) == "HARD"
-
