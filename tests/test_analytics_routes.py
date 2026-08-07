@@ -126,7 +126,7 @@ class TestPhysiology:
         response = client.get("/api/v1/analytics/physiology")
         assert response.status_code == 401
 
-    def test_physiology_returns_composed_payload(self, authenticated_client, test_user):
+    def test_physiology_payload_shape(self, authenticated_client, test_user):
         response = authenticated_client.get("/api/v1/analytics/physiology")
         assert response.status_code == 200
         body = response.json()
