@@ -356,6 +356,7 @@ def _apply_migrations(
                 # Split on semicolons and execute separately
                 statements = [s.strip() for s in sql.split(";") if s.strip()]
                 stmt_failures = 0
+                hard_failures = 0  # non-optional failures (not CREATE EXTENSION)
                 for statement in statements:
                     if not statement:
                         continue
@@ -382,6 +383,13 @@ def _apply_migrations(
                         cursor.execute("RELEASE SAVEPOINT migration_stmt")
                     except Exception as e:
                         stmt_failures += 1
+                        # CREATE EXTENSION failures are tolerated (e.g. pgvector
+                        # not installed); any other failed statement is a "hard"
+                        # failure meaning the schema change did not take effect.
+                        if not clean_statement.upper().lstrip().startswith(
+                            "CREATE EXTENSION"
+                        ):
+                            hard_failures += 1
                         logger.warning(
                             f"Statement failed (rolling back): "
                             f"{clean_statement[:100]}... - {e}"
@@ -394,9 +402,22 @@ def _apply_migrations(
                             f"Migration {migration}: ALL {stmt_failures} "
                             f"statement(s) failed — aborting deployment"
                         )
+                    if hard_failures:
+                        # A non-optional statement failed → the schema change did
+                        # NOT fully take effect. Do NOT record this migration as
+                        # applied, so it retries on the next boot rather than
+                        # leaving a silent gap (root cause of the missing api_keys
+                        # table / issue #61). Persist whatever DID succeed.
+                        logger.error(
+                            f"Migration {migration}: {hard_failures} non-optional "
+                            f"statement(s) failed — NOT recording as applied; will "
+                            f"retry next boot"
+                        )
+                        conn.commit()
+                        continue
                     logger.warning(
                         f"Migration {migration}: {stmt_failures} of "
-                        f"{len(statements)} statement(s) failed (non-fatal)"
+                        f"{len(statements)} optional statement(s) failed (non-fatal)"
                     )
 
             # Record this migration as applied
