@@ -72,7 +72,7 @@ export default function SessionScoreCard({ score, breakdown, onRecalculate, reca
       {showInfo && (
         <div className="text-xs mb-4 p-3 rounded-lg space-y-1" style={{ backgroundColor: 'var(--surfaceElev)', color: 'var(--muted)' }}>
           <p><strong style={{ color: 'var(--text)' }}>Tiers:</strong> Peak (85+), Excellent (70–84), Strong (50–69), Solid (30–49), Light (&lt;30)</p>
-          <p><strong style={{ color: 'var(--text)' }}>Pillars:</strong> Effort (duration + intensity), Engagement (rolls + partners), Effectiveness (subs + techniques), Readiness Alignment, Biometric Validation (WHOOP), Consistency (streak bonus)</p>
+          <p><strong style={{ color: 'var(--text)' }}>Pillars:</strong> Effort (duration + intensity), Engagement (rolls + partners), Effectiveness (subs + techniques), Readiness Alignment, Biometric Validation (HR + training load), Consistency (streak bonus)</p>
         </div>
       )}
 
