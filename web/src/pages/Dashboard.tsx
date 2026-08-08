@@ -72,8 +72,12 @@ export default function Dashboard() {
           {/* Left: Training Snapshot sidebar */}
           <TrainingSnapshot />
 
-          {/* Right: Main dashboard content */}
-          <div className="space-y-4 sm:space-y-5">
+          {/* Right: Main dashboard content.
+              min-w-0 is load-bearing: a `1fr` track is `minmax(auto, 1fr)`, so
+              without it the column's min-content (the truncating curriculum
+              line) sizes the track and the whole grid overflows the shell —
+              silently clipped by the Layout's overflow-x-hidden. */}
+          <div className="min-w-0 space-y-4 sm:space-y-5">
             {/* Hero readiness score */}
             <HeroScore
               readinessScore={data.readinessScore}

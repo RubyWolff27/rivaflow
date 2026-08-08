@@ -84,11 +84,16 @@ const Layout = memo(function Layout({ children }: { children: React.ReactNode })
         />
 
         <div className="flex-1 min-w-0 flex flex-col">
-          {/* Main Content */}
+          {/* Main Content.
+              The shell's measure is 6xl (1152), not 4xl (896): Sessions,
+              MovementDetail, Friends and Glossary declare max-w-5xl/6xl/7xl of
+              their own and were being silently clamped by the old cap.
+              Reading-width pages still self-limit with max-w-2xl/3xl inside
+              this frame. */}
           <main
             id="main-content"
             ref={mainContentRef}
-            className="flex-1 max-w-4xl w-full mx-auto px-4 sm:px-6 py-8 pb-24 md:pb-8"
+            className="flex-1 max-w-6xl w-full mx-auto px-4 sm:px-6 py-8 pb-24 md:pb-8"
             tabIndex={-1}
           >
             <PageTransition>{children}</PageTransition>
