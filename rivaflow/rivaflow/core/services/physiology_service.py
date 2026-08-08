@@ -121,22 +121,10 @@ class PhysiologyService:
 
     def _daily_load_series(self, user_id: int, today: date) -> list[float]:
         """Calendar daily TRIMP from the first HR-tracked session: rest days are real zeros, not gaps."""
-        start = today - timedelta(days=LOAD_WINDOW_DAYS * 2)
-        sessions = self.session_repo.get_by_date_range(user_id, start, today)
-        by_day: dict[date, float] = {}
-        for s in sessions:
-            trimp = s.get("garmin_training_load")
-            if trimp is None:
-                continue
-            day = _as_date(s["session_date"])
-            by_day[day] = by_day.get(day, 0.0) + float(trimp)
-        if not by_day:
-            return []
-        first = min(by_day)
-        return [
-            by_day.get(first + timedelta(days=i), 0.0)
-            for i in range((today - first).days + 1)
-        ]
+        _, values = daily_trimp_series(
+            self.session_repo, user_id, today, lookback_days=LOAD_WINDOW_DAYS * 2
+        )
+        return values
 
     def _strain_inputs(
         self, daily_raw: list[float]
@@ -149,6 +137,32 @@ class PhysiologyService:
         chronic = sum(scale_to_21(raw) for raw in window) / len(window)
         acute = scale_to_21(daily_raw[-1])
         return chronic, acute
+
+
+def daily_trimp_series(
+    session_repo: SessionRepository,
+    user_id: int,
+    today: date,
+    lookback_days: int = LOAD_WINDOW_DAYS * 2,
+) -> tuple[list[str], list[float]]:
+    """(dates, values): calendar-daily summed garmin_training_load from the first
+    HR-tracked session in the lookback window; rest days are real zeros, not gaps.
+    The ONE load-currency series (spine: HR-derived TRIMP) — shared by the
+    physiology endpoint and the Insights ACWR (F14 dedup)."""
+    start = today - timedelta(days=lookback_days)
+    sessions = session_repo.get_by_date_range(user_id, start, today)
+    by_day: dict[date, float] = {}
+    for s in sessions:
+        trimp = s.get("garmin_training_load")
+        if trimp is None:
+            continue
+        day = _as_date(s["session_date"])
+        by_day[day] = by_day.get(day, 0.0) + float(trimp)
+    if not by_day:
+        return [], []
+    first = min(by_day)
+    days = [(first + timedelta(days=i)) for i in range((today - first).days + 1)]
+    return [d.isoformat() for d in days], [by_day.get(d, 0.0) for d in days]
 
 
 def _as_date(value: Any) -> date:

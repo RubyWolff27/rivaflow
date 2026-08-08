@@ -130,7 +130,9 @@ async def generate_post_session_insight(user_id: int, session_id: int) -> dict |
     try:
         insights_svc = InsightsAnalyticsService()
         load = insights_svc.get_training_load_management(user_id, days=90)
-        context += f"ACWR: {load['current_acwr']} ({load['current_zone']}). "
+        # Gated ACWR (F14) must not feed the model a fabricated 0.0.
+        if load.get("available", True):
+            context += f"ACWR: {load['current_acwr']} ({load['current_zone']}). "
         risk = insights_svc.get_overtraining_risk(user_id)
         context += f"Overtraining risk: {risk['risk_score']}/100 ({risk['level']}). "
         quality = insights_svc.get_session_quality_scores(user_id)

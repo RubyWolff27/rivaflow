@@ -119,55 +119,64 @@ def compute_training_load_management(
     user_id: int,
     days: int = 90,
 ) -> dict[str, Any]:
-    """EWMA acute (7d) vs chronic (28d) training load."""
+    """EWMA acute (7d) vs chronic (28d) ACWR over the daily TRIMP series (F14).
+
+    One load currency (HR-derived TRIMP via daily_trimp_series — shared with
+    /analytics/physiology) and training_load.py's availability gate + zone
+    thresholds. Under 28 days of load history the response is honestly gated:
+    empty series, available=False, and no training advice — the old
+    intensity*duration version told a no-data athlete to train more.
+    """
+    from rivaflow.core.services.physiology_service import daily_trimp_series
+    from rivaflow.core.training_load import (
+        ACWR_CAUTION_HI,
+        ACWR_SWEET_HI,
+        ACWR_UNDER,
+        acwr,
+    )
+
     end = date.today()
-    start = end - timedelta(days=days + 28)
+    dates, daily_values = daily_trimp_series(
+        session_repo, user_id, end, lookback_days=days + 28
+    )
 
-    sessions = session_repo.get_by_date_range(user_id, start, end)
-
-    # Daily load = sum(intensity * duration) per day
-    daily_load: dict[str, float] = defaultdict(float)
-    for s in sessions:
-        day_key = s["session_date"].isoformat()
-        intensity = s.get("intensity", 0) or 0
-        duration = s.get("duration_mins", 0) or 0
-        daily_load[day_key] += intensity * duration
-
-    # Build ordered daily series
-    current = start
-    daily_values = []
-    dates = []
-    while current <= end:
-        day_key = current.isoformat()
-        daily_values.append(daily_load.get(day_key, 0.0))
-        dates.append(day_key)
-        current += timedelta(days=1)
+    # training_load.acwr owns the availability gate (28d chronic window).
+    gate = acwr(daily_values)
+    if not gate["available"]:
+        return {
+            "available": False,
+            "acwr_series": [],
+            "current_acwr": 0.0,
+            "current_zone": None,
+            "insight": gate["reason"],
+        }
 
     acute = _ewma(daily_values, 7)
     chronic = _ewma(daily_values, 28)
 
-    # Build ACWR series (only for the requested days, not warmup)
+    def zone_for(ratio: float) -> str:
+        # training_load.py thresholds; legacy display keys kept for the frontend.
+        if ratio > ACWR_CAUTION_HI:
+            return "danger"
+        if ratio > ACWR_SWEET_HI:
+            return "caution"
+        if ratio >= ACWR_UNDER:
+            return "sweet_spot"
+        return "undertrained"
+
     warmup = 28
     acwr_series = []
     for i in range(warmup, len(daily_values)):
         c = chronic[i]
         a = acute[i]
-        acwr = round(a / c, 2) if c > 0 else 0.0
-        zone = "undertrained"
-        if acwr >= 1.5:
-            zone = "danger"
-        elif acwr >= 1.3:
-            zone = "caution"
-        elif acwr >= 0.8:
-            zone = "sweet_spot"
-
+        ratio = round(a / c, 2) if c > 0 else 0.0
         acwr_series.append(
             {
                 "date": dates[i],
                 "acute": a,
                 "chronic": c,
-                "acwr": acwr,
-                "zone": zone,
+                "acwr": ratio,
+                "zone": zone_for(ratio),
                 "daily_load": daily_values[i],
             }
         )
@@ -193,9 +202,10 @@ def compute_training_load_management(
     elif current_zone == "sweet_spot":
         insight += " Excellent training load balance."
     else:
-        insight += " Consider increasing training frequency or intensity."
+        insight += " Load below your chronic base — room to build."
 
     return {
+        "available": True,
         "acwr_series": acwr_series,
         "current_acwr": current_acwr,
         "current_zone": current_zone,

@@ -141,12 +141,18 @@ class TestInsightsServiceEdgeCases:
         assert result["data_points"] == 0
 
     def test_training_load_no_sessions(self, insights_service):
-        """Should return 0 ACWR for user with no sessions."""
+        """F14: a no-data athlete gets an honest gate, not 'undertrained — train more'."""
         result = insights_service.get_training_load_management(
             user_id=self.GHOST_USER, days=30
         )
+        assert result["available"] is False
+        assert result["acwr_series"] == []
         assert result["current_acwr"] == 0.0
-        assert result["current_zone"] == "undertrained"
+        assert result["current_zone"] is None
+        assert (
+            "train" not in result["insight"].lower()
+            or "chronic baseline" in result["insight"].lower()
+        )
 
     def test_technique_effectiveness_no_data(self, insights_service):
         """Should return empty list for user with no technique data."""

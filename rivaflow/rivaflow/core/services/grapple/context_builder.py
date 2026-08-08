@@ -860,10 +860,12 @@ Athlete competes under NAGA (North American Grappling Association) rules:
         # Training load (ACWR)
         try:
             load = self.insights.get_training_load_management(self.user_id, days=90)
-            parts.append(
-                f"Training Load: ACWR={load['current_acwr']} "
-                f"({load['current_zone']})"
-            )
+            # Gated ACWR (F14) must not feed the model a fabricated 0.0.
+            if load.get("available", True):
+                parts.append(
+                    f"Training Load: ACWR={load['current_acwr']} "
+                    f"({load['current_zone']})"
+                )
         except Exception:
             pass
 
