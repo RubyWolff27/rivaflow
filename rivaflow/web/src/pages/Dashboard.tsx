@@ -13,6 +13,7 @@ import QuickLinks from '../components/dashboard/QuickLinks';
 import GettingStarted from '../components/dashboard/GettingStarted';
 import TrainingSnapshot from '../components/dashboard/TrainingSnapshot';
 import LatestInsightWidget from '../components/dashboard/LatestInsightWidget';
+import CurriculumNextCard from '../components/dashboard/CurriculumNextCard';
 import ErrorBoundary from '../components/ErrorBoundary';
 
 export default function Dashboard() {
@@ -69,10 +70,7 @@ export default function Dashboard() {
         {/* 2-column layout: sidebar + main */}
         <div className="lg:grid lg:grid-cols-[320px_1fr] lg:gap-4 space-y-4 lg:space-y-0">
           {/* Left: Training Snapshot sidebar */}
-          <TrainingSnapshot
-            readinessScore={data.readinessScore}
-            streakCount={data.streaks?.checkin.current_streak ?? 0}
-          />
+          <TrainingSnapshot />
 
           {/* Right: Main dashboard content */}
           <div className="space-y-4 sm:space-y-5">
@@ -81,9 +79,11 @@ export default function Dashboard() {
               readinessScore={data.readinessScore}
               hasCheckedIn={data.hasCheckedIn}
               suggestion={data.suggestion}
-              weeklyGoals={data.weeklyGoals}
-              streaks={data.streaks}
+              physiology={data.physiology}
             />
+
+            {/* Purple-belt: next slot to work (DES Home item 4) */}
+            <CurriculumNextCard />
 
             {/* AI Training Insight — Strava "Holding Steady" style */}
             <LatestInsightWidget />

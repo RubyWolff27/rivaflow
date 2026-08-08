@@ -2,6 +2,7 @@ import { useEffect, useState, useCallback } from 'react';
 import { getLocalDateString } from '../utils/date';
 import { logger } from '../utils/logger';
 import {
+  analyticsApi,
   suggestionsApi,
   readinessApi,
   checkinsApi,
@@ -20,6 +21,22 @@ interface TriggeredRule {
   priority: number;
 }
 
+export interface PhysiologySnapshot {
+  readiness?: {
+    score?: number | null;
+    band?: string | null;
+    state?: string | null;
+    headline?: string | null;
+  };
+  strain_target?: { available?: boolean; target_load?: number; headline?: string };
+  sleep_debt?: {
+    available?: boolean;
+    debt_hours?: number;
+    tonight_recommended_hours?: number;
+  };
+  monotony?: { available?: boolean; flag?: boolean; headline?: string };
+}
+
 interface SuggestionData {
   suggestion: string;
   triggered_rules: TriggeredRule[];
@@ -27,6 +44,7 @@ interface SuggestionData {
 }
 
 export interface DashboardData {
+  physiology: PhysiologySnapshot | null;
   loading: boolean;
   streaks: StreakStatus | null;
   readinessScore: number | null;
@@ -46,6 +64,7 @@ export function useDashboardData(): DashboardData {
   const [streaks, setStreaks] = useState<StreakStatus | null>(null);
   const [readinessScore, setReadinessScore] = useState<number | null>(null);
   const [hasCheckedIn, setHasCheckedIn] = useState(false);
+  const [physiology, setPhysiology] = useState<PhysiologySnapshot | null>(null);
   const [suggestion, setSuggestion] = useState<SuggestionData | null>(null);
   const [dayCheckins, setDayCheckins] = useState<DayCheckins | null>(null);
   const [todayPlan, setTodayPlan] = useState<string | undefined>(undefined);
@@ -75,6 +94,7 @@ export function useDashboardData(): DashboardData {
               }))
             : { classes: [] as GymClass[], gymName: null };
         }),                                // 7
+        analyticsApi.physiology(),         // 8
       ]);
 
       if (controller.signal.aborted) return;
@@ -137,6 +157,11 @@ export function useDashboardData(): DashboardData {
         }
       }
 
+      // Canonical physiology (readiness verdict, sleep debt) — Spine-1 UI
+      if (results[8].status === 'fulfilled' && results[8].value?.data) {
+        setPhysiology(results[8].value.data);
+      }
+
       setLoading(false);
     };
     load();
@@ -155,6 +180,7 @@ export function useDashboardData(): DashboardData {
     loading,
     streaks,
     readinessScore,
+    physiology,
     hasCheckedIn,
     suggestion,
     dayCheckins,

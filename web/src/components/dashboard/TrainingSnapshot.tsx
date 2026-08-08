@@ -1,28 +1,10 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Flame, ChevronRight, ChevronDown, Activity, User, Dumbbell } from 'lucide-react';
+import { ChevronRight, ChevronDown, User, Dumbbell } from 'lucide-react';
 import { useTrainingSnapshot } from '../../hooks/useTrainingSnapshot';
-import type { WeekDay, ClassTypeVolume } from '../../hooks/useTrainingSnapshot';
+import type { ClassTypeVolume } from '../../hooks/useTrainingSnapshot';
 import { ACTIVITY_COLORS, ACTIVITY_LABELS } from '../../constants/activity';
 
-interface TrainingSnapshotProps {
-  readinessScore: number | null;
-  streakCount: number;
-}
-
-function getReadinessColor(score: number | null): string {
-  if (score == null) return 'var(--muted)';
-  if (score >= 16) return 'var(--success)';
-  if (score >= 12) return 'var(--warning)';
-  return 'var(--danger)';
-}
-
-function getReadinessLabel(score: number | null): string {
-  if (score == null) return 'No check-in';
-  if (score >= 16) return 'Train Hard';
-  if (score >= 12) return 'Light Session';
-  return 'Rest Day';
-}
 
 function formatRelativeDate(dateStr: string): string {
   const today = new Date();
@@ -129,77 +111,6 @@ function LatestActivity({ session }: { session: { id: number; class_type: string
   );
 }
 
-/* ── Streak Grid ── */
-function WeekStreakGrid({ weekDays, streakCount }: { weekDays: WeekDay[]; streakCount: number }) {
-  const today = new Date();
-  const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
-
-  return (
-    <div>
-      <div className="flex items-center justify-between mb-2.5">
-        <p className="text-[10px] font-medium uppercase tracking-wider" style={{ color: 'var(--muted)' }}>
-          Your Streak
-        </p>
-        {streakCount > 0 && (
-          <div className="flex items-center gap-1">
-            <Flame className="w-3.5 h-3.5" style={{ color: '#F59E0B' }} />
-            <span className="text-xs font-bold" style={{ color: '#F59E0B' }}>
-              {streakCount} {streakCount === 1 ? 'day' : 'days'}
-            </span>
-          </div>
-        )}
-      </div>
-      <div className="grid grid-cols-7 gap-0.5">
-        {/* Day labels */}
-        {weekDays.map((day, i) => {
-          const isToday = day.date === todayStr;
-          return (
-            <div key={`label-${i}`} className="text-center">
-              <span
-                className="text-[10px] font-semibold"
-                style={{ color: isToday ? 'var(--accent)' : 'var(--muted)' }}
-              >
-                {day.label}
-              </span>
-            </div>
-          );
-        })}
-        {/* Session dots */}
-        {weekDays.map((day) => {
-          const isToday = day.date === todayStr;
-          const hasSessions = day.sessions.length > 0;
-          return (
-            <div key={day.date} className="flex flex-col items-center gap-0.5 py-1 min-h-[28px]">
-              {hasSessions ? (
-                day.sessions.map((s, i) => (
-                  <div
-                    key={i}
-                    className="w-4 h-4 rounded-full flex items-center justify-center"
-                    style={{ backgroundColor: ACTIVITY_COLORS[s.class_type] || '#6B7280' }}
-                    title={`${ACTIVITY_LABELS[s.class_type] || s.class_type} — ${s.duration_mins}min`}
-                  >
-                    <span className="text-[8px] font-bold text-white">
-                      {Math.round(s.duration_mins / 60) || ''}
-                    </span>
-                  </div>
-                ))
-              ) : (
-                <div
-                  className="w-4 h-4 rounded-full"
-                  style={{
-                    border: `2px solid ${isToday ? 'var(--accent)' : 'var(--border)'}`,
-                    opacity: isToday ? 1 : 0.5,
-                  }}
-                />
-              )}
-            </div>
-          );
-        })}
-      </div>
-    </div>
-  );
-}
-
 /* ── Training Log Link (Strava-style row) ── */
 function TrainingLogLink() {
   return (
@@ -241,59 +152,6 @@ function ActivityTypeIcons({ volumes }: { volumes: ClassTypeVolume[] }) {
   );
 }
 
-/* ── Readiness Insight (like Strava's Relative Effort) ── */
-function ReadinessInsight({ score }: { score: number | null }) {
-  const color = getReadinessColor(score);
-  const label = getReadinessLabel(score);
-
-  return (
-    <div>
-      <div className="flex items-center gap-1.5 mb-2">
-        <Activity className="w-3.5 h-3.5" style={{ color: 'var(--accent)' }} />
-        <p className="text-[10px] font-medium uppercase tracking-wider" style={{ color: 'var(--muted)' }}>
-          Readiness
-        </p>
-      </div>
-
-      <div className="flex items-center gap-4">
-        {/* Readiness score ring */}
-        <div className="relative flex-shrink-0">
-          <svg width="52" height="52" viewBox="0 0 52 52">
-            <circle cx="26" cy="26" r="22" fill="none" stroke="var(--border)" strokeWidth="4" />
-            <circle
-              cx="26" cy="26" r="22"
-              fill="none"
-              stroke={color}
-              strokeWidth="4"
-              strokeLinecap="round"
-              strokeDasharray={`${((score || 0) / 20) * 138.2} 138.2`}
-              transform="rotate(-90 26 26)"
-            />
-          </svg>
-          <div className="absolute inset-0 flex items-center justify-center">
-            <span className="text-sm font-bold" style={{ color: 'var(--text)' }}>
-              {score != null ? score : '--'}
-            </span>
-          </div>
-        </div>
-
-        <div className="min-w-0 flex-1">
-          <p className="text-sm font-bold" style={{ color }}>{label}</p>
-          <p className="text-[11px] mt-1" style={{ color: 'var(--muted)' }}>
-            {score != null && score >= 16
-              ? 'Your body is ready for a hard training session.'
-              : score != null && score >= 12
-              ? 'Consider a lighter session or technique focus.'
-              : score != null
-              ? 'Rest or very light movement recommended.'
-              : 'Check in to see your readiness score.'}
-          </p>
-        </div>
-      </div>
-    </div>
-  );
-}
-
 /* ── Mobile Accordion ── */
 function AccordionSection({ title, children, defaultOpen = false }: { title: string; children: React.ReactNode; defaultOpen?: boolean }) {
   const [open, setOpen] = useState(defaultOpen);
@@ -321,8 +179,8 @@ function AccordionSection({ title, children, defaultOpen = false }: { title: str
 }
 
 /* ── Main Component ── */
-export default function TrainingSnapshot({ readinessScore, streakCount }: TrainingSnapshotProps) {
-  const { loading, weekDays, volumes, totalSessions, totalHours, totalRolls, lastSession, profile } = useTrainingSnapshot();
+export default function TrainingSnapshot() {
+  const { loading, volumes, totalSessions, totalHours, totalRolls, lastSession, profile } = useTrainingSnapshot();
 
   if (loading) {
     return (
@@ -361,11 +219,6 @@ export default function TrainingSnapshot({ readinessScore, streakCount }: Traini
         </div>
       )}
 
-      {/* Streak grid */}
-      <div className="py-4" style={{ borderTop: '1px solid var(--border)' }}>
-        <WeekStreakGrid weekDays={weekDays} streakCount={streakCount} />
-      </div>
-
       {/* Training Log link */}
       <div style={{ borderTop: '1px solid var(--border)' }}>
         <TrainingLogLink />
@@ -378,10 +231,6 @@ export default function TrainingSnapshot({ readinessScore, streakCount }: Traini
         </div>
       )}
 
-      {/* Readiness insight */}
-      <div className="py-4" style={{ borderTop: '1px solid var(--border)' }}>
-        <ReadinessInsight score={readinessScore} />
-      </div>
     </div>
   );
 
@@ -411,19 +260,13 @@ export default function TrainingSnapshot({ readinessScore, streakCount }: Traini
           </div>
         )}
         <AccordionSection title="This Week" defaultOpen>
-          <div className="space-y-4">
-            <WeekStreakGrid weekDays={weekDays} streakCount={streakCount} />
-            {volumes.length > 0 && <ActivityTypeIcons volumes={volumes} />}
-          </div>
+          {volumes.length > 0 ? <ActivityTypeIcons volumes={volumes} /> : null}
         </AccordionSection>
         {lastSession && (
           <AccordionSection title="Latest Activity">
             <LatestActivity session={lastSession} />
           </AccordionSection>
         )}
-        <AccordionSection title="Check-in">
-          <ReadinessInsight score={readinessScore} />
-        </AccordionSection>
         <div className="py-2">
           <TrainingLogLink />
         </div>

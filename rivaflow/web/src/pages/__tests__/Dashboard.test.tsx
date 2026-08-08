@@ -3,6 +3,12 @@ import { BrowserRouter } from 'react-router-dom'
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
 vi.mock('../../api/client', () => ({
+  analyticsApi: {
+    physiology: vi.fn(() => Promise.resolve({ data: null })),
+  },
+  curriculumApi: {
+    slots: vi.fn(() => Promise.resolve({ data: { slots: [] } })),
+  },
   profileApi: {
     get: vi.fn(() => Promise.resolve({ data: { timezone: 'UTC' } })),
     update: vi.fn(() => Promise.resolve({ data: {} })),
