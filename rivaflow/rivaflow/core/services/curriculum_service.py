@@ -372,11 +372,20 @@ class CurriculumService:
     ) -> dict[str, Any]:
         """Full slate with computed status per slot."""
         slate = self._slate(user_id, belt, today=today)
+        # Official 2024 syllabus examples per requirement — grading answer key,
+        # shown beside a slot when declaring (never auto-filled into the slate).
+        official_examples = {
+            r["key"]: r["official_examples"]
+            for b in self.load_syllabus()["blocks"]
+            for r in b.get("requirements", [])
+            if r.get("official_examples")
+        }
         return {
             "belt": belt,
             "slot_count": len(slate),
             "status_ladder": STATUS_LADDER,
             "slots": slate,
+            "official_examples": official_examples,
         }
 
     def get_summary(

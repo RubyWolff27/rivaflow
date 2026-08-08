@@ -63,11 +63,17 @@ export interface CurriculumSlot extends SlotState {
   declared: boolean;
 }
 
+export interface OfficialExample {
+  sequence: string;
+  ref?: string;
+}
+
 export interface SlotsResponse {
   belt: string;
   slot_count: number;
   status_ladder: SlotStatus[];
   slots: CurriculumSlot[];
+  official_examples?: Record<string, OfficialExample[]>;
 }
 
 export interface HardGate {

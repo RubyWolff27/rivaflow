@@ -44,19 +44,59 @@
           "key": "td-strikes",
           "label": "Takedown sequences using strikes → submission",
           "count": 5,
-          "of_choice": true
+          "of_choice": true,
+          "official_examples": [
+            {
+              "sequence": "Front clinch → body fold → mount → mounted triangle"
+            },
+            {
+              "sequence": "Front clinch → single leg → side smash pass → head and arm choke"
+            },
+            {
+              "sequence": "Front clinch → back clinch → foot sweep → ¾ mount half nelson"
+            },
+            {
+              "sequence": "Single leg takedown",
+              "ref": "Lachlan Giles"
+            }
+          ]
         },
         {
           "key": "td-defend-strikes",
           "label": "Takedown sequences defending strikes → submission",
           "count": 5,
-          "of_choice": true
+          "of_choice": true,
+          "official_examples": [
+            {
+              "sequence": "Shell defence → hip throw / Osoto gari → straight arm"
+            },
+            {
+              "sequence": "Shell defence → single leg → knee cut pass → far side armbar"
+            }
+          ]
         },
         {
           "key": "td-grappling",
           "label": "Takedown sequences grappling-only → submission",
           "count": 5,
-          "of_choice": true
+          "of_choice": true,
+          "official_examples": [
+            {
+              "sequence": "Tai otoshi → armbar / americana"
+            },
+            {
+              "sequence": "Harai → front headlock snap down → arm-in guillotine"
+            },
+            {
+              "sequence": "Duck under → back clinch → foot sweep → bow and arrow"
+            },
+            {
+              "sequence": "Single leg → leg drag → kimura"
+            },
+            {
+              "sequence": "Double leg → closed guard → standing guard break → knee cut → straight arm"
+            }
+          ]
         }
       ]
     },
@@ -68,19 +108,105 @@
           "key": "guard-subs",
           "label": "Submissions of choice",
           "count": 10,
-          "of_choice": true
+          "of_choice": true,
+          "official_examples": [
+            {
+              "sequence": "Butterfly guard → shoulder crunch → cutting armbar",
+              "ref": "Lachlan Giles"
+            },
+            {
+              "sequence": "Closed guard → triangle choke",
+              "ref": "Lachlan Giles"
+            },
+            {
+              "sequence": "Closed guard → omoplata"
+            },
+            {
+              "sequence": "Closed guard → armbar"
+            },
+            {
+              "sequence": "Closed guard → cross collar choke",
+              "ref": "Chewjitsu — 3 adjustments"
+            },
+            {
+              "sequence": "Closed guard → guillotine (hook lift)",
+              "ref": "Marcelo Garcia"
+            },
+            {
+              "sequence": "Closed guard → kimura",
+              "ref": "evolve-vacation.com closed-guard article"
+            },
+            {
+              "sequence": "Closed guard → head and arm choke"
+            },
+            {
+              "sequence": "Butterfly → Choi bar"
+            },
+            {
+              "sequence": "They stand in my closed guard → straight ankle lock"
+            }
+          ]
         },
         {
           "key": "guard-sweeps",
           "label": "Sweeps → submission",
           "count": 10,
-          "of_choice": true
+          "of_choice": true,
+          "official_examples": [
+            {
+              "sequence": "Half guard → kimura grip → roll them over → tarikoplata"
+            },
+            {
+              "sequence": "Half guard → kimura grip → roll them over → baratoplata"
+            },
+            {
+              "sequence": "Closed guard → sunflower sweep → head and arm choke"
+            },
+            {
+              "sequence": "Closed guard → scissor sweep → cross collar choke"
+            },
+            {
+              "sequence": "Half guard → deep half → side control → near side armbar"
+            },
+            {
+              "sequence": "Half guard → kimura grip → roll them over → kimura"
+            },
+            {
+              "sequence": "Closed guard → they stand → ashi sweep → straight ankle"
+            },
+            {
+              "sequence": "De La Riva → sit up sweep → half nelson"
+            },
+            {
+              "sequence": "Closed guard → scissor sweep → armbar"
+            },
+            {
+              "sequence": "Half guard → deep half → under-over → dog bar"
+            }
+          ]
         },
         {
           "key": "guard-defences",
           "label": "Submission defences and escapes",
           "count": 5,
-          "of_choice": true
+          "of_choice": true,
+          "official_examples": [
+            {
+              "sequence": "Armbar defence"
+            },
+            {
+              "sequence": "Guillotine defence"
+            },
+            {
+              "sequence": "Triangle defence"
+            },
+            {
+              "sequence": "Straight ankle defence"
+            },
+            {
+              "sequence": "Omoplata defence"
+            }
+          ]
         }
       ]
     },
@@ -92,19 +218,85 @@
           "key": "side-subs",
           "label": "Submissions of choice from variations",
           "count": 5,
-          "of_choice": true
+          "of_choice": true,
+          "official_examples": [
+            {
+              "sequence": "Americana"
+            },
+            {
+              "sequence": "Far side armbar"
+            },
+            {
+              "sequence": "Kimura"
+            },
+            {
+              "sequence": "Straight arm lock"
+            },
+            {
+              "sequence": "Reverse triangle choke"
+            }
+          ]
         },
         {
           "key": "side-passes",
           "label": "Guard passes → side-control submission",
           "count": 10,
-          "of_choice": true
+          "of_choice": true,
+          "official_examples": [
+            {
+              "sequence": "Basic leg-on-shoulder pass"
+            },
+            {
+              "sequence": "Double under pass"
+            },
+            {
+              "sequence": "Knee cut pass"
+            },
+            {
+              "sequence": "Torreando pass"
+            },
+            {
+              "sequence": "Smash pass"
+            },
+            {
+              "sequence": "Leg drag pass"
+            },
+            {
+              "sequence": "Tripod pass"
+            },
+            {
+              "sequence": "Weave pass → americana"
+            },
+            {
+              "sequence": "Back step pass"
+            },
+            {
+              "sequence": "Gator roll → kimura"
+            }
+          ]
         },
         {
           "key": "side-escapes",
           "label": "Escapes from bottom side control",
           "count": 5,
-          "of_choice": true
+          "of_choice": true,
+          "official_examples": [
+            {
+              "sequence": "Underhook escape → ghost escape"
+            },
+            {
+              "sequence": "Underhook escape → back take"
+            },
+            {
+              "sequence": "Guard recovery to closed guard"
+            },
+            {
+              "sequence": "Create kuzushi, trap arm → roll"
+            },
+            {
+              "sequence": "Stiff arm → technical get up"
+            }
+          ]
         }
       ]
     },
@@ -116,26 +308,79 @@
           "key": "mount-subs",
           "label": "Submissions of choice",
           "count": 5,
-          "of_choice": true
+          "of_choice": true,
+          "official_examples": [
+            {
+              "sequence": "Americana"
+            },
+            {
+              "sequence": "Armbar"
+            },
+            {
+              "sequence": "Ezekiel choke"
+            },
+            {
+              "sequence": "Arm triangle choke"
+            },
+            {
+              "sequence": "Cross collar choke"
+            }
+          ]
         },
         {
           "key": "mount-transitions",
           "label": "Transitions to mount with submission",
           "count": 5,
-          "of_choice": true
+          "of_choice": true,
+          "official_examples": [
+            {
+              "sequence": "Headquarters → smash pass → head and arm choke"
+            },
+            {
+              "sequence": "Top side control → knee on belly → mount → americana"
+            },
+            {
+              "sequence": "Tripod pass → mount → head and arm choke"
+            },
+            {
+              "sequence": "Half guard bottom → kimura sweep → quarter mount → half nelson / head and arm"
+            },
+            {
+              "sequence": "Scissor sweep → mount → americana"
+            }
+          ]
         },
         {
           "key": "mount-escapes",
           "label": "Escapes from bottom mount",
           "count": 3,
-          "of_choice": true
+          "of_choice": true,
+          "official_examples": [
+            {
+              "sequence": "Bridge and roll"
+            },
+            {
+              "sequence": "Hip escape to leg"
+            },
+            {
+              "sequence": "Elbow-knee escape"
+            }
+          ]
         },
         {
           "key": "mount-defences",
           "label": "Armbar and choke defences and escapes",
           "count": 2,
           "of_choice": false,
-          "cluster": true
+          "cluster": true,
+          "official_examples": [
+            {
+              "sequence": "Armbar: stack → pull arm out → pass"
+            },
+            {
+              "sequence": "Choke: trap the arm around the head → bridge and roll"
+            }
+          ]
         }
       ]
     },
@@ -147,26 +392,88 @@
           "key": "back-subs",
           "label": "Submissions of choice",
           "count": 5,
-          "of_choice": true
+          "of_choice": true,
+          "official_examples": [
+            {
+              "sequence": "Rear naked choke"
+            },
+            {
+              "sequence": "Armbar"
+            },
+            {
+              "sequence": "Half nelson choke"
+            },
+            {
+              "sequence": "Cross collar choke"
+            },
+            {
+              "sequence": "Bow and arrow choke"
+            }
+          ]
         },
         {
           "key": "back-transitions",
           "label": "Transitions to back control with submission",
           "count": 5,
-          "of_choice": true
+          "of_choice": true,
+          "official_examples": [
+            {
+              "sequence": "They squat → two-on-one grip, butterfly hooks → back take → RNC"
+            },
+            {
+              "sequence": "Half guard → rolling back take → half nelson"
+            },
+            {
+              "sequence": "Mount → head and arm → back take → RNC"
+            },
+            {
+              "sequence": "Side control → pin far arm, force the turn → back take → cross collar"
+            },
+            {
+              "sequence": "Turtle → gator roll → back control → bow and arrow"
+            }
+          ]
         },
         {
           "key": "back-escapes",
           "label": "Escapes",
           "count": 5,
-          "of_choice": true
+          "of_choice": true,
+          "official_examples": [
+            {
+              "sequence": "Back to ground"
+            },
+            {
+              "sequence": "Double over escape"
+            },
+            {
+              "sequence": "Double under escape"
+            },
+            {
+              "sequence": "Turn into closed guard top via two-on-one"
+            },
+            {
+              "sequence": "Belly down escape"
+            }
+          ]
         },
         {
           "key": "back-defences",
           "label": "Submission defences and escapes",
           "count": 3,
           "of_choice": false,
-          "cluster": true
+          "cluster": true,
+          "official_examples": [
+            {
+              "sequence": "RNC: grab top arm, hand fight → two-on-one → head to mat → twist into closed guard"
+            },
+            {
+              "sequence": "Armbar: collect legs, pop arm out downwards → over-under → side control"
+            },
+            {
+              "sequence": "Bow and arrow: pull down lapel → walk the legs away"
+            }
+          ]
         }
       ]
     }

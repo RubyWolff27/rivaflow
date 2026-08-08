@@ -8,11 +8,13 @@ import type {
   PartnerSize,
   SlotDeclaration,
 } from '../../types/curriculum';
+import type { OfficialExample } from '../../types/curriculum';
 import StatusChip from './StatusChip';
 import { STATUS_META, sequenceText } from './constants';
 
 interface SlotDetailSheetProps {
   slot: CurriculumSlot;
+  officialExamples?: OfficialExample[];
   onClose: () => void;
   onLogEvidence: (slotId: number, payload: EvidencePayload) => Promise<void>;
   onUpdateSlot: (slotId: number, payload: SlotDeclaration) => Promise<void>;
@@ -37,6 +39,7 @@ function Row({ label, value }: { label: string; value: string }) {
  */
 export default function SlotDetailSheet({
   slot,
+  officialExamples = [],
   onClose,
   onLogEvidence,
   onUpdateSlot,
@@ -218,6 +221,26 @@ export default function SlotDetailSheet({
               Save live evidence
             </button>
           </div>
+        )}
+
+        {/* Official 2024 syllabus examples — Luke's answer key for this
+            requirement. Reference only; declaring stays Ruby's call. */}
+        {officialExamples.length > 0 && (
+          <details className="rounded-xl p-3" style={{ backgroundColor: 'var(--surfaceElev)' }}>
+            <summary className="text-xs font-medium cursor-pointer" style={{ color: 'var(--muted)' }}>
+              Official syllabus examples ({officialExamples.length})
+            </summary>
+            <ul className="mt-2 space-y-1.5">
+              {officialExamples.map((ex, i) => (
+                <li key={i} className="text-xs" style={{ color: 'var(--text)' }}>
+                  {ex.sequence}
+                  {ex.ref && (
+                    <span className="ml-1.5" style={{ color: 'var(--muted)' }}>· {ex.ref}</span>
+                  )}
+                </li>
+              ))}
+            </ul>
+          </details>
         )}
 
         {editing && (

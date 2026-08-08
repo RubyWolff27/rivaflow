@@ -18,6 +18,7 @@ import SyllabusTree from '../components/curriculum/SyllabusTree';
 import CurriculumRadar from '../components/curriculum/CurriculumRadar';
 import CoachView from '../components/curriculum/CoachView';
 import SlotDetailSheet from '../components/curriculum/SlotDetailSheet';
+import type { OfficialExample } from '../types/curriculum';
 
 type TabKey = 'system' | 'syllabus' | 'radar' | 'coach';
 
@@ -36,6 +37,7 @@ export default function Curriculum() {
 
   const [activeTab, setActiveTab] = useState<TabKey>('system');
   const [slots, setSlots] = useState<CurriculumSlot[]>([]);
+  const [officialExamples, setOfficialExamples] = useState<Record<string, OfficialExample[]>>({});
   const [summary, setSummary] = useState<SummaryResponse | null>(null);
   const [exportData, setExportData] = useState<ExportResponse | null>(null);
   const [loading, setLoading] = useState(true);
@@ -52,6 +54,7 @@ export default function Curriculum() {
         curriculumApi.export(),
       ]);
       setSlots(slotsRes.data?.slots ?? []);
+      setOfficialExamples(slotsRes.data?.official_examples ?? {});
       setSummary(summaryRes.data ?? null);
       setExportData(exportRes.data ?? null);
     } catch (err) {
@@ -225,6 +228,7 @@ export default function Curriculum() {
       {openSlot && (
         <SlotDetailSheet
           slot={openSlot}
+          officialExamples={officialExamples[openSlot.requirement_key] ?? []}
           onClose={() => setOpenSlot(null)}
           onLogEvidence={logEvidence}
           onUpdateSlot={updateSlot}
