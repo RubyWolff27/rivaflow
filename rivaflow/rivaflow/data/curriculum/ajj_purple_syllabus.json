@@ -1,15 +1,32 @@
 {
-  "source": "AJJ-adult-belt-grading-system.pdf (2022) via reference_ajj_grading_system.md",
+  "source": "AJJ-adult-belt-grading-system.pdf (2022) + Purple Belt Syllabus_2024 (Luke Pepperell, official doc, validated 2026-08-08)",
   "belt": "purple",
   "education_standards": [
-    "Punctual, clean uniform", "Respect", "Attentive", "Self control",
+    "Punctual, clean uniform",
+    "Respect",
+    "Attentive",
+    "Self control",
     "Precision and control in technique",
     "Competition experience (JJ/MMA) OR verified Security/Police/Military"
   ],
   "hard_gates": [
-    {"key": "competition", "label": "Competition experience", "type": "date", "first_class": true},
-    {"key": "classes", "label": "50 classes since blue", "type": "count", "note": "my log — not the Academy's record"},
-    {"key": "stripes", "label": "4 stripes on blue", "type": "count"}
+    {
+      "key": "competition",
+      "label": "Competition experience",
+      "type": "date",
+      "first_class": true
+    },
+    {
+      "key": "classes",
+      "label": "50 classes since blue",
+      "type": "count",
+      "note": "my log — not the Academy's record"
+    },
+    {
+      "key": "stripes",
+      "label": "4 stripes on blue",
+      "type": "count"
+    }
   ],
   "objectives": [
     "Continuity and fluidity in transitions",
@@ -19,49 +36,148 @@
   ],
   "blocks": [
     {
-      "key": "standup", "label": "Stand up", "pace_weight": "early",
+      "key": "standup",
+      "label": "Stand up",
+      "pace_weight": "early",
       "requirements": [
-        {"key": "td-strikes", "label": "Takedown sequences using strikes → submission", "count": 5, "of_choice": true},
-        {"key": "td-defend-strikes", "label": "Takedown sequences defending strikes → submission", "count": 5, "of_choice": true},
-        {"key": "td-grappling", "label": "Takedown sequences grappling-only → submission", "count": 5, "of_choice": true}
+        {
+          "key": "td-strikes",
+          "label": "Takedown sequences using strikes → submission",
+          "count": 5,
+          "of_choice": true
+        },
+        {
+          "key": "td-defend-strikes",
+          "label": "Takedown sequences defending strikes → submission",
+          "count": 5,
+          "of_choice": true
+        },
+        {
+          "key": "td-grappling",
+          "label": "Takedown sequences grappling-only → submission",
+          "count": 5,
+          "of_choice": true
+        }
       ]
     },
     {
-      "key": "guard", "label": "Guard",
+      "key": "guard",
+      "label": "Guard",
       "requirements": [
-        {"key": "guard-subs", "label": "Submissions of choice", "count": 10, "of_choice": true},
-        {"key": "guard-sweeps", "label": "Sweeps → submission", "count": 10, "of_choice": true},
-        {"key": "guard-defences", "label": "Submission defences and escapes", "count": 5, "of_choice": true}
+        {
+          "key": "guard-subs",
+          "label": "Submissions of choice",
+          "count": 10,
+          "of_choice": true
+        },
+        {
+          "key": "guard-sweeps",
+          "label": "Sweeps → submission",
+          "count": 10,
+          "of_choice": true
+        },
+        {
+          "key": "guard-defences",
+          "label": "Submission defences and escapes",
+          "count": 5,
+          "of_choice": true
+        }
       ]
     },
     {
-      "key": "side", "label": "Side control",
+      "key": "side",
+      "label": "Side control",
       "requirements": [
-        {"key": "side-subs", "label": "Submissions of choice from variations", "count": 5, "of_choice": true},
-        {"key": "side-passes", "label": "Guard passes → side-control submission", "count": 10, "of_choice": true},
-        {"key": "side-escapes", "label": "Escapes from bottom side control", "count": 5, "of_choice": true}
+        {
+          "key": "side-subs",
+          "label": "Submissions of choice from variations",
+          "count": 5,
+          "of_choice": true
+        },
+        {
+          "key": "side-passes",
+          "label": "Guard passes → side-control submission",
+          "count": 10,
+          "of_choice": true
+        },
+        {
+          "key": "side-escapes",
+          "label": "Escapes from bottom side control",
+          "count": 5,
+          "of_choice": true
+        }
       ]
     },
     {
-      "key": "mount", "label": "Mount",
+      "key": "mount",
+      "label": "Mount",
       "requirements": [
-        {"key": "mount-subs", "label": "Submissions of choice", "count": 5, "of_choice": true},
-        {"key": "mount-transitions", "label": "Transitions to mount with submission", "count": 5, "of_choice": true},
-        {"key": "mount-escapes", "label": "Escapes from bottom mount", "count": 3, "of_choice": true},
-        {"key": "mount-defences", "label": "Armbar and choke defences and escapes", "count": null, "of_choice": false, "cluster": true}
+        {
+          "key": "mount-subs",
+          "label": "Submissions of choice",
+          "count": 5,
+          "of_choice": true
+        },
+        {
+          "key": "mount-transitions",
+          "label": "Transitions to mount with submission",
+          "count": 5,
+          "of_choice": true
+        },
+        {
+          "key": "mount-escapes",
+          "label": "Escapes from bottom mount",
+          "count": 3,
+          "of_choice": true
+        },
+        {
+          "key": "mount-defences",
+          "label": "Armbar and choke defences and escapes",
+          "count": 2,
+          "of_choice": false,
+          "cluster": true
+        }
       ]
     },
     {
-      "key": "back", "label": "Back",
+      "key": "back",
+      "label": "Back",
       "requirements": [
-        {"key": "back-subs", "label": "Submissions of choice", "count": 5, "of_choice": true},
-        {"key": "back-transitions", "label": "Transitions to back control with submission", "count": 5, "of_choice": true},
-        {"key": "back-escapes", "label": "Escapes", "count": 5, "of_choice": true},
-        {"key": "back-defences", "label": "Submission defences and escapes", "count": null, "of_choice": false, "cluster": true}
+        {
+          "key": "back-subs",
+          "label": "Submissions of choice",
+          "count": 5,
+          "of_choice": true
+        },
+        {
+          "key": "back-transitions",
+          "label": "Transitions to back control with submission",
+          "count": 5,
+          "of_choice": true
+        },
+        {
+          "key": "back-escapes",
+          "label": "Escapes",
+          "count": 5,
+          "of_choice": true
+        },
+        {
+          "key": "back-defences",
+          "label": "Submission defences and escapes",
+          "count": 3,
+          "of_choice": false,
+          "cluster": true
+        }
       ]
     }
   ],
-  "status_ladder": ["not-started", "drilled", "grooved", "live", "coach-verified"],
+  "status_ladder": [
+    "not-started",
+    "drilled",
+    "grooved",
+    "live",
+    "coach-verified"
+  ],
   "status_rules": {
     "drilled": "appears in ≥1 logged session (cooperative)",
     "grooved": "drilled across ≥3 distinct sessions spanning ≥3 weeks",
@@ -69,5 +185,9 @@
     "coach-verified": "coach sign-off only — never inferred",
     "integrity": "0-3 derived from logs, never hand-settable; staleness is visual, never a demotion"
   },
-  "game_tags": ["a-game", "b-game", "syllabus-only"]
+  "game_tags": [
+    "a-game",
+    "b-game",
+    "syllabus-only"
+  ]
 }
