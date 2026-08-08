@@ -342,7 +342,9 @@ def test_summary_reports_raw_counts_per_block():
 
 def test_seed_builds_the_full_syllabus_shape():
     rows = CurriculumService.build_seed_rows()
-    assert len(rows) == 90
+    # 93 per the official 2024 syllabus (mount-defences 2 + back-defences 3,
+    # validated against Luke Pepperell's doc on 2026-08-08)
+    assert len(rows) == 93
     of_choice = [r for r in rows if r["of_choice"]]
     assert len(of_choice) == 88
     # The two cluster requirements are single, non-of-choice slots.
