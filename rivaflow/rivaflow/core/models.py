@@ -186,6 +186,21 @@ class SessionCreate(BaseModel):
             "manually-logged sessions."
         ),
     )
+    source: str = Field(
+        default="manual",
+        pattern=r"^(manual|wahoo|import)$",
+        description=(
+            "Provenance of this session: 'manual' for user-logged, 'wahoo' for "
+            "the Air/Wahoo auto-ingest feeder, 'import' for bulk imports."
+        ),
+    )
+    needs_review: bool = Field(
+        default=False,
+        description=(
+            "True when an automated feeder created this session and a human "
+            "has not yet reviewed it. Cleared by the first user (JWT) edit."
+        ),
+    )
 
     @field_validator(
         "class_time", "location", "notes", "instructor_name", mode="before"

@@ -217,3 +217,68 @@ def test_format_session_summary(temp_db, test_user):
         assert "Test Gym" in summary
         assert "gi" in summary
         assert "Rolls: 5" in summary
+
+
+def test_create_session_persists_provenance(temp_db, test_user):
+    """F4: feeder-created sessions carry source + needs_review."""
+    with patch("rivaflow.config.DB_PATH", temp_db):
+        service = SessionService()
+
+        session_id = service.create_session(
+            user_id=test_user["id"],
+            session_date=date(2025, 1, 21),
+            class_type="gi",
+            gym_name="Test Gym",
+            source="wahoo",
+            needs_review=True,
+        )
+
+        session = service.get_session(user_id=test_user["id"], session_id=session_id)
+        assert session["source"] == "wahoo"
+        assert session["needs_review"] in (True, 1)
+
+
+def test_human_edit_clears_needs_review(temp_db, test_user):
+    """A JWT (human) edit marks the session reviewed — existing behavior."""
+    with patch("rivaflow.config.DB_PATH", temp_db):
+        service = SessionService()
+
+        session_id = service.create_session(
+            user_id=test_user["id"],
+            session_date=date(2025, 1, 22),
+            class_type="gi",
+            gym_name="Test Gym",
+            source="wahoo",
+            needs_review=True,
+        )
+        service.update_session(
+            user_id=test_user["id"], session_id=session_id, notes="reviewed it"
+        )
+
+        session = service.get_session(user_id=test_user["id"], session_id=session_id)
+        assert session["needs_review"] in (False, 0)
+
+
+def test_api_key_edit_preserves_needs_review(temp_db, test_user):
+    """F4: an automated (API-key) edit must not mark its own session reviewed."""
+    with patch("rivaflow.config.DB_PATH", temp_db):
+        service = SessionService()
+
+        session_id = service.create_session(
+            user_id=test_user["id"],
+            session_date=date(2025, 1, 23),
+            class_type="gi",
+            gym_name="Test Gym",
+            source="wahoo",
+            needs_review=True,
+        )
+        service.update_session(
+            user_id=test_user["id"],
+            session_id=session_id,
+            preserve_review=True,
+            garmin_avg_hr=150,
+        )
+
+        session = service.get_session(user_id=test_user["id"], session_id=session_id)
+        assert session["needs_review"] in (True, 1)
+        assert session["garmin_avg_hr"] == 150

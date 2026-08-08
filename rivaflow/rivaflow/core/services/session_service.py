@@ -77,6 +77,8 @@ class SessionService:
         attacks_successful: int = 0,
         defenses_attempted: int = 0,
         defenses_successful: int = 0,
+        source: str = "manual",
+        needs_review: bool = False,
         external_ref: str | None = None,
     ) -> int:
         """
@@ -126,6 +128,8 @@ class SessionService:
             attacks_successful=attacks_successful,
             defenses_attempted=defenses_attempted,
             defenses_successful=defenses_successful,
+            source=source,
+            needs_review=needs_review,
             external_ref=external_ref,
         )
 
@@ -172,6 +176,7 @@ class SessionService:
         session_id: int,
         session_rolls: list[dict] | None = None,
         session_techniques: list[dict] | None = None,
+        preserve_review: bool = False,
         **kwargs,
     ) -> dict | None:
         """
@@ -192,8 +197,10 @@ class SessionService:
         if not original:
             return None
 
-        # Any edit implies the user has reviewed the session
-        if kwargs.get("needs_review") is None:
+        # Any HUMAN edit implies the user has reviewed the session. Automated
+        # writers (API-key auth, e.g. the Wahoo biometrics attach) must not
+        # mark their own sessions reviewed — they pass preserve_review=True (F4).
+        if kwargs.get("needs_review") is None and not preserve_review:
             kwargs["needs_review"] = False
 
         # Update session (pass all kwargs to repo)

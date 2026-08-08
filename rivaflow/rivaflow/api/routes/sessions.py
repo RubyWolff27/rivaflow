@@ -220,6 +220,8 @@ def create_session(
         attacks_successful=session.attacks_successful,
         defenses_attempted=session.defenses_attempted,
         defenses_successful=session.defenses_successful,
+        source=session.source,
+        needs_review=session.needs_review,
         external_ref=session.external_ref,
     )
     created_session = service.get_session(
@@ -281,6 +283,8 @@ def update_session(
     updated = service.update_session(
         user_id=current_user["id"],
         session_id=session_id,
+        # API-key writers (feeders) must not mark sessions as human-reviewed (F4)
+        preserve_review="_auth_scope" in current_user,
         session_date=session.session_date,
         class_time=session.class_time,
         class_type=session.class_type.value if session.class_type else None,
