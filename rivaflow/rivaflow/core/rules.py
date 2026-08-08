@@ -113,8 +113,8 @@ RULES = [
             and r.get("whoop_recovery_score") is not None
             and r["whoop_recovery_score"] < 34
         ),
-        recommendation="WHOOP shows low recovery ({whoop_recovery}%). Consider a light session.",
-        explanation="WHOOP recovery score is {whoop_recovery}% — body needs rest",
+        recommendation="Readiness is low ({whoop_recovery}/100). Consider a light session.",
+        explanation="Readiness verdict is {whoop_recovery}/100 (red band) — body needs rest",
         priority=2,
     ),
     Rule(
@@ -290,6 +290,22 @@ RULES = [
             "Training on poor sleep increases injury risk and impairs learning."
         ),
         priority=2,
+    ),
+    Rule(
+        name="monotony_high",
+        condition=lambda r, s: (
+            s.get("monotony_7d") is not None and s["monotony_7d"] >= 2.0
+        ),
+        recommendation=(
+            "Your training load has been flat all week — alternate hard and "
+            "easy days rather than repeating the same effort."
+        ),
+        explanation=(
+            "Foster monotony is high: near-identical daily load. ACWR reads "
+            "fine, but flat weeks without hard/easy contrast are an "
+            "overtraining pattern for fixed-timetable athletes."
+        ),
+        priority=4,
     ),
 ]
 

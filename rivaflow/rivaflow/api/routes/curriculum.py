@@ -136,6 +136,25 @@ def update_slot(
     )
 
 
+@router.get("/sessions/{session_id}/evidence-candidates")
+@limiter.limit("60/minute")
+@route_error_handler("curriculum candidates", detail="Failed to derive candidates")
+def get_evidence_candidates(
+    request: Request,
+    session_id: int,
+    current_user: dict = Depends(get_current_user),
+    service: CurriculumService = Depends(get_curriculum_service),
+):
+    """One-tap evidence candidates for a logged session (MA-F1 bridge).
+
+    Candidates only — confirming still goes through POST /slots/{id}/evidence,
+    which remains the only way a status can move.
+    """
+    return service.derive_evidence_candidates(
+        user_id=current_user["id"], session_id=session_id
+    )
+
+
 @router.post("/slots/{slot_id}/evidence")
 @limiter.limit("60/minute")
 @route_error_handler("curriculum evidence", detail="Failed to log evidence")

@@ -135,44 +135,55 @@ class SuggestionEngine:
         except Exception:
             logger.debug("Gym timetable enrichment skipped", exc_info=True)
 
-        # Enrich readiness with WHOOP recovery data (raw-derived) if available
+        # Enrich with live Air biometrics (SS-F18; the WHOOP seam this used to
+        # read has been honest-empty since the excision, so the biometric rules
+        # could never fire). Same rule keys, honest sources.
         try:
-            from rivaflow.core.services import whoop_biometrics
+            from rivaflow.core.services.physiology_service import PhysiologyService
+            from rivaflow.db.repositories.garmin_daily_repo import (
+                GarminDailyRepository,
+            )
 
-            recent = whoop_biometrics.recovery_series(user_id, days=7)
-            latest_rec = recent[-1] if recent else None
-            if latest_rec and readiness:
-                readiness["whoop_recovery_score"] = latest_rec.get("recovery_score")
-                readiness["hrv_ms"] = latest_rec.get("hrv_ms")
+            physio = PhysiologyService().get_physiology(user_id)
 
-            # Calculate HRV drop percentage
-            if latest_rec and latest_rec.get("hrv_ms"):
-                hrv_values = [
-                    r["hrv_ms"] for r in recent if r.get("hrv_ms") is not None
-                ]
+            # Canonical readiness verdict feeds the low-recovery rule (the
+            # hub's red band starts at 34, matching the rule threshold).
+            r_verdict = physio.get("readiness", {})
+            if readiness and r_verdict.get("score") is not None:
+                readiness["whoop_recovery_score"] = r_verdict["score"]
+
+            # HRV drop/slope from the Air daily series.
+            daily = GarminDailyRepository.get_range(user_id, days=7)
+            hrv_values = [
+                float(d["hrv_ms"]) for d in daily if d.get("hrv_ms") is not None
+            ]
+            if hrv_values:
+                if readiness:
+                    readiness["hrv_ms"] = hrv_values[-1]
                 if len(hrv_values) >= 2:
                     avg_hrv = statistics.mean(hrv_values)
                     if avg_hrv > 0:
                         drop_pct = round(
-                            ((avg_hrv - latest_rec["hrv_ms"]) / avg_hrv) * 100,
-                            1,
+                            ((avg_hrv - hrv_values[-1]) / avg_hrv) * 100, 1
                         )
                         if drop_pct > 0:
                             session_context["hrv_drop_pct"] = drop_pct
-
-                # Compute sustained HRV slope for 5+ day rule
                 if len(hrv_values) >= 5:
                     session_context["hrv_slope_5d"] = round(
                         _linear_slope(hrv_values), 4
                     )
 
-            # Sleep debt from latest recovery record
-            if latest_rec and latest_rec.get("sleep_debt_ms") is not None:
-                session_context["sleep_debt_min"] = round(
-                    latest_rec["sleep_debt_ms"] / 60_000
-                )
+            # Sleep debt vs the 9h need enters the training decision (SS-F18).
+            debt = physio.get("sleep_debt", {})
+            if debt.get("available") and debt.get("debt_hours") is not None:
+                session_context["sleep_debt_min"] = round(debt["debt_hours"] * 60)
+
+            # Foster monotony: flat-load weeks ACWR can't see (SS-F17).
+            monotony = physio.get("monotony", {})
+            if monotony.get("available") and monotony.get("monotony") is not None:
+                session_context["monotony_7d"] = monotony["monotony"]
         except Exception:
-            logger.debug("WHOOP context enrichment skipped", exc_info=True)
+            logger.debug("Physiology enrichment skipped", exc_info=True)
 
         # Evaluate rules
         triggered_rules = []

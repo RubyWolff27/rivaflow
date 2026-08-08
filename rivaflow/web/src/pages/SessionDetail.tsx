@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { usePageTitle } from '../hooks/usePageTitle';
-import { sessionsApi } from '../api/client';
+import { sessionsApi, curriculumApi } from '../api/client';
 import { logger } from '../utils/logger';
 import type { Session } from '../types';
+import type { EvidenceCandidate } from '../types/curriculum';
 import { ArrowLeft, Calendar, Clock, Zap, Users, MapPin, User, Book, Edit2, Activity, Target, Camera, Plus, Heart } from 'lucide-react';
 import PhotoGallery from '../components/PhotoGallery';
 import PhotoUpload from '../components/PhotoUpload';
@@ -47,7 +48,36 @@ export default function SessionDetail() {
   const [photoCount, setPhotoCount] = useState(0);
   const [recalculating, setRecalculating] = useState(false);
   const [showAllRolls, setShowAllRolls] = useState(false);
+  const [evidenceCandidates, setEvidenceCandidates] = useState<EvidenceCandidate[]>([]);
+  const [confirmingSlot, setConfirmingSlot] = useState<number | null>(null);
   const toast = useToast();
+
+  const loadCandidates = async (sessionId: number) => {
+    try {
+      const res = await curriculumApi.evidenceCandidates(sessionId);
+      setEvidenceCandidates(res.data?.candidates ?? []);
+    } catch (err) {
+      logger.debug('Evidence candidates unavailable', err);
+    }
+  };
+
+  const confirmEvidence = async (candidate: EvidenceCandidate) => {
+    setConfirmingSlot(candidate.slot_id);
+    try {
+      await curriculumApi.addEvidence(candidate.slot_id, {
+        kind: candidate.kind,
+        session_id: candidate.session_id,
+        partner_ref: candidate.partner_ref ?? undefined,
+      });
+      toast.success(`${candidate.kind === 'live' ? 'Live' : 'Drilled'} evidence logged`);
+      setEvidenceCandidates((prev) => prev.filter((c) => c.slot_id !== candidate.slot_id));
+    } catch (err) {
+      logger.error('Failed to log evidence', err);
+      toast.error('Failed to log evidence');
+    } finally {
+      setConfirmingSlot(null);
+    }
+  };
 
   useEffect(() => {
     let cancelled = false;
@@ -56,7 +86,10 @@ export default function SessionDetail() {
       setLoading(true);
       try {
         const response = await sessionsApi.getWithRolls(parseInt(id ?? '0'));
-        if (!cancelled) setSession(response.data ?? null);
+        if (!cancelled) {
+          setSession(response.data ?? null);
+          if (response.data?.id) loadCandidates(response.data.id);
+        }
       } catch (error) {
         if (!cancelled) {
           logger.error('Error loading session:', error);
@@ -554,6 +587,47 @@ export default function SessionDetail() {
 
             </div>
           )}
+        </div>
+      )}
+
+      {/* ── Curriculum evidence bridge (MA-F1): one-tap confirms ── */}
+      {evidenceCandidates.length > 0 && (
+        <div className="card" style={{ borderLeft: '3px solid var(--accent)' }}>
+          <div className="flex items-center gap-2 mb-3">
+            <Book className="w-4 h-4" style={{ color: 'var(--accent)' }} />
+            <h3 className="text-sm font-semibold" style={{ color: 'var(--text)' }}>
+              Purple-belt evidence — this session matches {evidenceCandidates.length} slot
+              {evidenceCandidates.length !== 1 ? 's' : ''}
+            </h3>
+          </div>
+          <div className="space-y-2">
+            {evidenceCandidates.map((c) => (
+              <div
+                key={c.slot_id}
+                className="flex items-center justify-between gap-3 p-2.5 rounded-lg"
+                style={{ backgroundColor: 'var(--surfaceElev)' }}
+              >
+                <div className="min-w-0">
+                  <p className="text-sm font-medium truncate" style={{ color: 'var(--text)' }}>
+                    {c.sequence || c.label}
+                  </p>
+                  <p className="text-xs" style={{ color: 'var(--muted)' }}>
+                    {c.kind === 'live'
+                      ? `Live — ${c.matched_movement}${c.partner_ref ? ` on ${c.partner_ref}` : ''}`
+                      : `Drilled — ${c.matched_movement}`}
+                  </p>
+                </div>
+                <button
+                  onClick={() => confirmEvidence(c)}
+                  disabled={confirmingSlot === c.slot_id}
+                  className="px-3 py-1.5 rounded-lg text-xs font-semibold shrink-0"
+                  style={{ backgroundColor: 'var(--accent)', color: '#FFFFFF', opacity: confirmingSlot === c.slot_id ? 0.6 : 1 }}
+                >
+                  {confirmingSlot === c.slot_id ? 'Logging…' : `Log ${c.kind}`}
+                </button>
+              </div>
+            ))}
+          </div>
         </div>
       )}
 

@@ -249,3 +249,42 @@ class TestSpine1HubCanonical:
         assert result["readiness"]["state"] == "Rundown"
         assert result["strain_target"]["available"] is True
         assert result["strain_target"]["capped"] is True
+
+
+class TestFosterMonotony:
+    """SS-F17: flat-load weeks ACWR is blind to."""
+
+    def test_flat_week_flags_high_monotony(self):
+        svc = _service(_daily_rows(14), _sessions_with_load(30, trimp=150.0))
+        m = svc.get_physiology(user_id=4, today=TODAY)["monotony"]
+
+        assert m["available"] is True
+        assert m["monotony"] == 99.0  # zero variance = maximal monotony
+        assert m["flag"] is True
+
+    def test_varied_week_passes(self):
+        sessions = [
+            {
+                "session_date": (TODAY - timedelta(days=i)).isoformat(),
+                "garmin_training_load": load,
+            }
+            for i, load in enumerate([200.0, 0.0, 150.0, 0.0, 300.0, 0.0, 100.0] * 5)
+        ]
+        svc = _service(_daily_rows(14), sessions)
+        m = svc.get_physiology(user_id=4, today=TODAY)["monotony"]
+
+        assert m["available"] is True
+        assert m["monotony"] < 2.0
+        assert m["flag"] is False
+
+    def test_short_history_gated(self):
+        svc = _service(_daily_rows(14), _sessions_with_load(4))
+        m = svc.get_physiology(user_id=4, today=TODAY)["monotony"]
+
+        assert m["available"] is False
+
+    def test_no_load_at_all_gated(self):
+        svc = _service(_daily_rows(14), [])
+        m = svc.get_physiology(user_id=4, today=TODAY)["monotony"]
+
+        assert m["available"] is False

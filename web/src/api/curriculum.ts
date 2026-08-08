@@ -1,5 +1,6 @@
 import { api } from './_client';
 import type {
+  EvidenceCandidate,
   EvidencePayload,
   ExportResponse,
   HardGate,
@@ -27,6 +28,10 @@ export const curriculumApi = {
     api.put<CurriculumSlot>(`/curriculum/slots/${slotId}`, data),
   addEvidence: (slotId: number, data: EvidencePayload) =>
     api.post<SlotStateResponse>(`/curriculum/slots/${slotId}/evidence`, data),
+  evidenceCandidates: (sessionId: number) =>
+    api.get<{ session_id: number; candidates: EvidenceCandidate[] }>(
+      `/curriculum/sessions/${sessionId}/evidence-candidates`
+    ),
   addSignoff: (slotId: number, data: SignoffPayload) =>
     api.post<SlotStateResponse>(`/curriculum/slots/${slotId}/signoff`, data),
   updateMeta: (data: MetaPayload, belt = 'purple') =>

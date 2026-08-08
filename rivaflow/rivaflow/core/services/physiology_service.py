@@ -80,6 +80,7 @@ class PhysiologyService:
             "strain_target": strain,
             "acwr": acwr_result,
             "sleep_debt": debt,
+            "monotony": _foster_monotony(daily_raw),
         }
 
     def _readiness(
@@ -208,6 +209,42 @@ def _state_from_hub_score(score: int) -> str:
     if score >= 34:
         return "Strained"
     return "Rundown"
+
+
+def _foster_monotony(daily_raw: list[float]) -> dict[str, Any]:
+    """Foster training monotony + strain over the last 7 days (SS-F17).
+
+    Monotony = mean/SD of daily load; strain = weekly load x monotony. The
+    metric ACWR is blind to: the same moderate load every day sits at ACWR 1.0
+    forever while monotony climbs — the classic fixed-timetable overtraining
+    shape for a masters athlete. Monotony >= 2.0 is the standard warning band.
+    """
+    from statistics import mean, pstdev
+
+    if len(daily_raw) < 7:
+        return {
+            "available": False,
+            "reason": "Need 7 days of load history for monotony.",
+        }
+    week = daily_raw[-7:]
+    avg = mean(week)
+    if avg <= 0:
+        return {"available": False, "reason": "No load in the last 7 days."}
+    sd = pstdev(week)
+    monotony = round(avg / sd, 2) if sd > 0 else 99.0  # zero variance = maximal
+    weekly_load = round(sum(week), 1)
+    return {
+        "available": True,
+        "monotony": monotony,
+        "weekly_load": weekly_load,
+        "strain": round(weekly_load * monotony, 1),
+        "flag": monotony >= 2.0,
+        "headline": (
+            "Load is flat day-to-day — alternate hard and easy days."
+            if monotony >= 2.0
+            else "Good hard/easy contrast across the week."
+        ),
+    }
 
 
 def daily_trimp_series(

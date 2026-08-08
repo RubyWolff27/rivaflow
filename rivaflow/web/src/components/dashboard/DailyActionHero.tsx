@@ -33,7 +33,7 @@ const RULE_LABELS: Record<string, string> = {
   consecutive_nogi: 'Consecutive No-Gi',
   green_light: 'All Clear',
   stale_technique: 'Stale Technique',
-  whoop_low_recovery: 'WHOOP Low Recovery',
+  whoop_low_recovery: 'Low Readiness',
   whoop_hrv_drop: 'HRV Drop',
   whoop_hrv_sustained_decline: 'HRV Declining',
   whoop_green_recovery: 'Peak Recovery',
@@ -47,6 +47,7 @@ const RULE_LABELS: Record<string, string> = {
   deload_week: 'Deload Week',
   session_frequency_low: 'Long Break',
   sleep_debt_high: 'Sleep Debt',
+  monotony_high: 'Flat Load Week',
 };
 
 const sanitizeSuggestion = (text: string) =>

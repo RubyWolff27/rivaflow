@@ -657,6 +657,111 @@ class CurriculumService:
             **self.get_slot_state(user_id, slot_id),
         }
 
+    def derive_evidence_candidates(
+        self, user_id: int, session_id: int, belt: str = DEFAULT_BELT
+    ) -> dict[str, Any]:
+        """One-tap evidence candidates for a logged session (Wave 3, MA-F1).
+
+        Matches the session's techniques and roll submissions against the
+        slate's seq_finish names (folded, glossary-alias-aware — the seeded
+        slate carries sequence TEXT, not movement_ids). Technique work → a
+        'drilled' candidate; a roll submission → a 'live' candidate carrying
+        the roll's partner name as partner_ref (MA-F6). Candidates only —
+        evidence stays human-confirmed via POST /slots/{id}/evidence, and
+        slots already evidenced from THIS session are excluded (idempotent).
+        """
+        from rivaflow.core.services.grapple.session_extraction_service import (
+            _fold,
+        )
+        from rivaflow.db.repositories import GlossaryRepository
+        from rivaflow.db.repositories.session_roll_repo import (
+            SessionRollRepository,
+        )
+        from rivaflow.db.repositories.session_technique_repo import (
+            SessionTechniqueRepository,
+        )
+
+        # Session side: movement ids from logged techniques + roll submissions.
+        techniques = SessionTechniqueRepository.get_by_session_id(user_id, session_id)
+        rolls = SessionRollRepository.get_by_session_id(user_id, session_id)
+        drilled_ids = {
+            t["movement_id"] for t in techniques if t.get("movement_id") is not None
+        }
+        live_hits: dict[int, str | None] = {}  # movement_id -> partner name
+        for roll in rolls:
+            for mid in roll.get("submissions_for") or []:
+                if isinstance(mid, int) and mid not in live_hits:
+                    live_hits[mid] = roll.get("partner_name")
+        if not drilled_ids and not live_hits:
+            return {"session_id": session_id, "candidates": []}
+
+        # Folded name keys (name + aliases) for every session movement.
+        glossary = {m["id"]: m for m in GlossaryRepository.list_all()}
+
+        def keys_for(mid: int) -> set[str]:
+            m = glossary.get(mid)
+            if not m:
+                return set()
+            keys = {_fold(m["name"])}
+            raw = m.get("aliases")
+            if isinstance(raw, str):
+                try:
+                    raw = json.loads(raw)
+                except (ValueError, TypeError):
+                    raw = []
+            keys.update(_fold(str(a)) for a in raw or [])
+            return keys
+
+        drilled_keys = {k: mid for mid in drilled_ids for k in keys_for(mid)}
+        live_keys = {k: mid for mid in live_hits for k in keys_for(mid)}
+
+        # Slots already evidenced from this session (idempotent re-display).
+        evidenced_slots = {
+            e["slot_id"]
+            for e in self.repo.list_evidence(user_id, belt)
+            if e.get("session_id") == session_id
+        }
+
+        candidates = []
+        for slot in self.repo.list_slots(user_id, belt):
+            if slot["id"] in evidenced_slots:
+                continue
+            finish_key = _fold(slot.get("seq_finish") or "")
+            if not finish_key:
+                continue
+            matched_live = live_keys.get(finish_key)
+            matched_drilled = drilled_keys.get(finish_key)
+            if matched_live is not None:
+                kind, mid = "live", matched_live
+                partner = live_hits.get(mid)
+            elif matched_drilled is not None:
+                kind, mid = "drilled", matched_drilled
+                partner = None
+            else:
+                continue
+            candidates.append(
+                {
+                    "slot_id": slot["id"],
+                    "block": slot.get("block"),
+                    "label": slot.get("requirement_label") or slot.get("seq_finish"),
+                    "sequence": " → ".join(
+                        p
+                        for p in (
+                            slot.get("seq_entry"),
+                            slot.get("seq_position"),
+                            slot.get("seq_finish"),
+                        )
+                        if p
+                    ),
+                    "kind": kind,
+                    "matched_movement": glossary.get(mid, {}).get("name"),
+                    "partner_ref": partner,
+                    "session_id": session_id,
+                }
+            )
+
+        return {"session_id": session_id, "candidates": candidates}
+
     def get_slot_state(
         self, user_id: int, slot_id: int, belt: str = DEFAULT_BELT
     ) -> dict[str, Any]:

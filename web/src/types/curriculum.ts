@@ -168,6 +168,18 @@ export interface EvidencePayload {
   logged_at?: string | null;
 }
 
+/** MA-F1 bridge: a slot this session's techniques/submissions match. */
+export interface EvidenceCandidate {
+  slot_id: number;
+  block: string | null;
+  label: string | null;
+  sequence: string;
+  kind: 'drilled' | 'live';
+  matched_movement: string | null;
+  partner_ref: string | null;
+  session_id: number;
+}
+
 export interface SignoffPayload {
   verdict: SignoffVerdict;
   coach_name: string;
