@@ -20,6 +20,7 @@ _SESSION_COLS = (
     "garmin_calories, garmin_duration_min, garmin_aerobic_te, garmin_anaerobic_te, "
     "garmin_te_label, garmin_training_load, "
     "garmin_hr_z1_sec, garmin_hr_z2_sec, garmin_hr_z3_sec, garmin_hr_z4_sec, garmin_hr_z5_sec, "
+    "garmin_hr_series, "
     "attacks_attempted, attacks_successful, "
     "defenses_attempted, defenses_successful, "
     "source, needs_review, "
@@ -267,6 +268,9 @@ class SessionRepository(BaseRepository):
                 "techniques": lambda v: (
                     json.dumps(v) if v is not None else json.dumps([])
                 ),
+                "garmin_hr_series": lambda v: (
+                    json.dumps(v) if v is not None else None
+                ),
                 "needs_review": lambda v: bool(v),
                 "score_breakdown": lambda v: (
                     json.dumps(v) if isinstance(v, dict) else v
@@ -326,6 +330,7 @@ class SessionRepository(BaseRepository):
                 "garmin_hr_z3_sec",
                 "garmin_hr_z4_sec",
                 "garmin_hr_z5_sec",
+                "garmin_hr_series",
                 "attacks_attempted",
                 "attacks_successful",
                 "defenses_attempted",
@@ -1172,6 +1177,7 @@ class SessionRepository(BaseRepository):
             "intensity_tags",
             "class_tags",
             "techniques",
+            "garmin_hr_series",
         ):
             data[field] = json.loads(data[field]) if data.get(field) else []
 

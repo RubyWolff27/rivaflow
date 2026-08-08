@@ -49,6 +49,7 @@ export interface Session {
   garmin_hr_z3_sec?: number | null;
   garmin_hr_z4_sec?: number | null;
   garmin_hr_z5_sec?: number | null;
+  garmin_hr_series?: number[][] | null;
   session_score?: number;
   score_breakdown?: SessionScoreBreakdown;
   score_version?: number;

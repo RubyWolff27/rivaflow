@@ -1,6 +1,7 @@
 import { Heart } from 'lucide-react';
 import type { Session } from '../types';
 import GarminZoneBar from './analytics/GarminZoneBar';
+import HRSeriesChart from './analytics/HRSeriesChart';
 
 function Stat({ label, value, unit }: { label: string; value: string; unit?: string }) {
   return (
@@ -48,6 +49,12 @@ export default function GarminPanel({ session }: { session: Session }) {
         {session.garmin_calories != null && <Stat label="Calories" value={`${session.garmin_calories}`} />}
         {session.garmin_duration_min != null && <Stat label="Moving" value={`${Math.round(session.garmin_duration_min)}`} unit="min" />}
       </div>
+
+      {(session.garmin_hr_series?.length ?? 0) >= 2 && (
+        <div className="mb-3">
+          <HRSeriesChart series={session.garmin_hr_series!} avgHr={session.garmin_avg_hr} />
+        </div>
+      )}
 
       {zones.some((z) => z != null) && (
         <div className="mb-3">

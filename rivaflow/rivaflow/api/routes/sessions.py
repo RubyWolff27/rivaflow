@@ -327,6 +327,7 @@ def update_session(
         garmin_hr_z3_sec=session.garmin_hr_z3_sec,
         garmin_hr_z4_sec=session.garmin_hr_z4_sec,
         garmin_hr_z5_sec=session.garmin_hr_z5_sec,
+        garmin_hr_series=session.garmin_hr_series,
         attacks_attempted=session.attacks_attempted,
         attacks_successful=session.attacks_successful,
         defenses_attempted=session.defenses_attempted,

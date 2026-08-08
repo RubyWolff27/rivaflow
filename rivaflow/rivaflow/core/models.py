@@ -164,6 +164,14 @@ class SessionCreate(BaseModel):
     garmin_hr_z3_sec: float | None = Field(default=None, ge=0)
     garmin_hr_z4_sec: float | None = Field(default=None, ge=0)
     garmin_hr_z5_sec: float | None = Field(default=None, ge=0)
+    garmin_hr_series: list[list[int]] | None = Field(
+        default=None,
+        max_length=480,
+        description=(
+            "Downsampled per-session HR line: [offset_sec, bpm] pairs pushed by "
+            "the Air forward link (60s buckets)."
+        ),
+    )
     attacks_attempted: int = Field(
         default=0, ge=0, description="Number of attacks attempted during session"
     )
@@ -307,6 +315,14 @@ class SessionUpdate(BaseModel):
     garmin_hr_z3_sec: float | None = Field(default=None, ge=0)
     garmin_hr_z4_sec: float | None = Field(default=None, ge=0)
     garmin_hr_z5_sec: float | None = Field(default=None, ge=0)
+    garmin_hr_series: list[list[int]] | None = Field(
+        default=None,
+        max_length=480,
+        description=(
+            "Downsampled per-session HR line: [offset_sec, bpm] pairs pushed by "
+            "the Air forward link (60s buckets)."
+        ),
+    )
     attacks_attempted: int | None = Field(default=None, ge=0)
     attacks_successful: int | None = Field(default=None, ge=0)
     defenses_attempted: int | None = Field(default=None, ge=0)

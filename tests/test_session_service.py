@@ -282,3 +282,26 @@ def test_api_key_edit_preserves_needs_review(temp_db, test_user):
         session = service.get_session(user_id=test_user["id"], session_id=session_id)
         assert session["needs_review"] in (True, 1)
         assert session["garmin_avg_hr"] == 150
+
+
+def test_hr_series_roundtrip(temp_db, test_user):
+    """garmin_hr_series stores as JSON text and parses back to pairs (HR line graph)."""
+    with patch("rivaflow.config.DB_PATH", temp_db):
+        service = SessionService()
+
+        session_id = service.create_session(
+            user_id=test_user["id"],
+            session_date=date(2025, 1, 24),
+            class_type="gi",
+            gym_name="Test Gym",
+        )
+        series = [[0, 92], [60, 118], [120, 141], [180, 155]]
+        service.update_session(
+            user_id=test_user["id"],
+            session_id=session_id,
+            preserve_review=True,
+            garmin_hr_series=series,
+        )
+
+        session = service.get_session(user_id=test_user["id"], session_id=session_id)
+        assert session["garmin_hr_series"] == series

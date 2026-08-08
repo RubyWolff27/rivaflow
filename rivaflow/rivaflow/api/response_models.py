@@ -115,6 +115,7 @@ class SessionResponse(BaseModel):
     garmin_hr_z3_sec: float | None = None
     garmin_hr_z4_sec: float | None = None
     garmin_hr_z5_sec: float | None = None
+    garmin_hr_series: list[list[int]] | None = None
     attacks_attempted: int | None = None
     attacks_successful: int | None = None
     defenses_attempted: int | None = None
