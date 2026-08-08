@@ -15,6 +15,7 @@ class TestReportMetrics:
         # Mock sessions: 3 sessions with sf=5,3,2 (total 10) and sa=1,2,1 (total 4)
         sessions = [
             {
+                "class_type": "gi",
                 "duration_mins": 60,
                 "intensity": 4,
                 "rolls": 5,
@@ -23,6 +24,7 @@ class TestReportMetrics:
                 "partners": ["Alice"],
             },
             {
+                "class_type": "gi",
                 "duration_mins": 60,
                 "intensity": 4,
                 "rolls": 5,
@@ -31,6 +33,7 @@ class TestReportMetrics:
                 "partners": ["Bob"],
             },
             {
+                "class_type": "no-gi",
                 "duration_mins": 60,
                 "intensity": 5,
                 "rolls": 5,
@@ -287,3 +290,63 @@ class TestReportEmptyData:
         assert summary["subs_per_roll"] == 0.0
         assert summary["taps_per_roll"] == 0.0
         assert summary["sub_ratio"] == 0.0
+
+
+class TestClassVsSessionCount:
+    """`total_classes` is mat time; `total_sessions` is everything logged.
+
+    Regression guard for the conflation this split fixed: total_classes was
+    len(sessions), so s&c and cardio inflated a figure labelled "Total Classes"
+    and, downstream, deflated subs_per_class.
+    """
+
+    def _session(self, class_type: str, **over):
+        base = {
+            "class_type": class_type,
+            "duration_mins": 60,
+            "intensity": 4,
+            "rolls": 4,
+            "submissions_for": 2,
+            "submissions_against": 1,
+            "partners": ["Alice"],
+        }
+        base.update(over)
+        return base
+
+    def test_non_mat_sessions_are_not_classes(self):
+        service = ReportService()
+        sessions = [
+            self._session("gi"),
+            self._session("no-gi"),
+            self._session("s&c"),
+            self._session("cardio"),
+        ]
+
+        summary = service._calculate_summary(sessions)
+
+        assert summary["total_classes"] == 2, "s&c and cardio are not classes"
+        assert summary["total_sessions"] == 4, "but they are still sessions"
+
+    def test_open_mat_is_not_a_class(self):
+        """Ruby's call: the AJJ 50-class minimum counts taught classes."""
+        service = ReportService()
+        sessions = [self._session("gi"), self._session("open-mat")]
+
+        summary = service._calculate_summary(sessions)
+
+        assert summary["total_classes"] == 1
+        assert summary["total_sessions"] == 2
+
+    def test_subs_per_class_divides_by_mat_time_only(self):
+        """8 subs across 2 classes = 4.0 — the 2 s&c sessions must not dilute it."""
+        service = ReportService()
+        sessions = [
+            self._session("gi", submissions_for=5),
+            self._session("no-gi", submissions_for=3),
+            self._session("s&c", submissions_for=0),
+            self._session("s&c", submissions_for=0),
+        ]
+
+        summary = service._calculate_summary(sessions)
+
+        assert summary["subs_per_class"] == 4.0

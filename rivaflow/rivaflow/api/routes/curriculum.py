@@ -86,6 +86,9 @@ class MetaUpdate(BaseModel):
     competition_date: str | None = None
     competition_note: str | None = None
     classes_logged: int | None = None
+    # Baseline for the derived classes count. Null keeps the gate unset rather
+    # than counting pre-blue training.
+    blue_promoted_at: str | None = None
     stripes: int | None = None
     notes: str | None = None
 

@@ -37,6 +37,11 @@ from typing import Any
 
 from rivaflow.core.exceptions import NotFoundError, ValidationError
 from rivaflow.db.repositories.curriculum_repo import CurriculumRepository
+from rivaflow.db.repositories.session_repo import MAT_CLASS_TYPES, SessionRepository
+
+# AJJ requires a minimum of 50 classes between adult belts. This is the Academy's
+# rule, not a RivaFlow preference — see reference_ajj_grading_system.
+CLASSES_REQUIRED_FOR_PROMOTION = 50
 
 # ---------------------------------------------------------------------------
 # Status ladder constants — the whole integrity story lives in these five rules.
@@ -460,6 +465,50 @@ class CurriculumService:
             },
         }
 
+    def _classes_gate(self, user_id: int, meta: dict[str, Any]) -> dict[str, Any]:
+        """The classes gate — derived from the log, manual override still wins.
+
+        Derived is the default so the number can never go stale the way a typed
+        integer does. ``classes_logged`` survives as an override for when Ruby's
+        log and the Academy's record disagree, and ``source`` says which is on
+        screen rather than letting the UI imply the wrong one.
+
+        No baseline date means no count: an unanchored total would silently
+        include pre-blue training, so the gate stays null and the UI prompts.
+        """
+        baseline = _as_date(meta.get("blue_promoted_at"))
+        override = meta.get("classes_logged")
+
+        if override is not None:
+            value: int | None = override
+            source = "manual"
+        elif baseline is not None:
+            value = SessionRepository.count_classes(
+                user_id,
+                since_date=baseline.isoformat(),
+                class_types=MAT_CLASS_TYPES,
+            )
+            source = "derived"
+        else:
+            value = None
+            source = "unset"
+
+        return {
+            "key": "classes",
+            "label": "Classes since blue",
+            "type": "count",
+            "value": value,
+            "target": CLASSES_REQUIRED_FOR_PROMOTION,
+            "source": source,
+            "since": baseline.isoformat() if baseline else None,
+            "met": None if value is None else value >= CLASSES_REQUIRED_FOR_PROMOTION,
+            "note": (
+                "Counted from your logged sessions — not the Academy's official record"
+                if source == "derived"
+                else "my log — not the Academy's record"
+            ),
+        }
+
     def get_hard_gates(
         self, user_id: int, belt: str = DEFAULT_BELT
     ) -> list[dict[str, Any]]:
@@ -475,14 +524,7 @@ class CurriculumService:
                 "met": competition is not None,
                 "note": meta.get("competition_note"),
             },
-            {
-                "key": "classes",
-                "label": "Classes since blue",
-                "type": "count",
-                "value": meta.get("classes_logged"),
-                "met": None,
-                "note": "my log — not the Academy's record",
-            },
+            self._classes_gate(user_id, meta),
             {
                 "key": "stripes",
                 "label": "Stripes on blue",

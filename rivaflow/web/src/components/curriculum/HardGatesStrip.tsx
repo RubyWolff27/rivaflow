@@ -11,6 +11,9 @@ interface HardGatesStripProps {
 
 function gateValue(gate: HardGate): string {
   if (gate.value === null || gate.value === undefined || gate.value === '') return 'Not set';
+  // A count against a requirement reads as progress, not a bare number — the
+  // classes gate is only meaningful next to AJJ's 50.
+  if (gate.target) return `${gate.value} / ${gate.target}`;
   return String(gate.value);
 }
 
@@ -28,7 +31,8 @@ export default function HardGatesStrip({ gates, onSave, readOnly = false }: Hard
     const byKey = Object.fromEntries(gates.map((g) => [g.key, g.value]));
     setForm({
       competition_date: (byKey.competition as string) ?? '',
-      classes_logged: (byKey.classes as number) ?? null,
+      blue_promoted_at: gates.find((g) => g.key === 'classes')?.since ?? '',
+      classes_logged: null,
       stripes: (byKey.stripes as number) ?? null,
     });
     setEditing(true);
@@ -39,6 +43,7 @@ export default function HardGatesStrip({ gates, onSave, readOnly = false }: Hard
     try {
       await onSave({
         competition_date: form.competition_date || null,
+        blue_promoted_at: form.blue_promoted_at || null,
         classes_logged: form.classes_logged ?? null,
         stripes: form.stripes ?? null,
       });
@@ -77,7 +82,7 @@ export default function HardGatesStrip({ gates, onSave, readOnly = false }: Hard
       </div>
 
       {editing ? (
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <label className="text-xs" style={{ color: 'var(--muted)' }}>
             Competition date
             <input
@@ -88,10 +93,21 @@ export default function HardGatesStrip({ gates, onSave, readOnly = false }: Hard
             />
           </label>
           <label className="text-xs" style={{ color: 'var(--muted)' }}>
-            Classes since blue
+            Blue belt from
+            <input
+              type="date"
+              className="input mt-1 w-full text-sm"
+              value={(form.blue_promoted_at as string) ?? ''}
+              onChange={(e) => setForm((f) => ({ ...f, blue_promoted_at: e.target.value }))}
+            />
+            <span className="block mt-1 text-[10px]">Classes are counted from here</span>
+          </label>
+          <label className="text-xs" style={{ color: 'var(--muted)' }}>
+            Override class count
             <input
               type="number"
               min={0}
+              placeholder="auto"
               className="input mt-1 w-full text-sm"
               value={form.classes_logged ?? ''}
               onChange={(e) =>
@@ -118,7 +134,7 @@ export default function HardGatesStrip({ gates, onSave, readOnly = false }: Hard
               }
             />
           </label>
-          <div className="sm:col-span-3 flex gap-2">
+          <div className="sm:col-span-2 flex gap-2">
             <button type="button" className="btn-primary text-sm" onClick={submit} disabled={saving}>
               {saving ? 'Saving…' : 'Save gates'}
             </button>
@@ -151,6 +167,18 @@ export default function HardGatesStrip({ gates, onSave, readOnly = false }: Hard
               <div className="text-lg font-semibold" style={{ color: 'var(--text)' }}>
                 {gateValue(gate)}
               </div>
+              {/* A derived number must say it's derived — otherwise a typed
+                  override and a counted one look identical on screen. */}
+              {gate.source === 'manual' && (
+                <div className="text-[11px] mt-0.5" style={{ color: 'var(--muted)' }}>
+                  Manual override
+                </div>
+              )}
+              {gate.source === 'unset' && (
+                <div className="text-[11px] mt-0.5" style={{ color: 'var(--muted)' }}>
+                  Set your blue-belt date to start counting
+                </div>
+              )}
               {gate.note && (
                 <div className="text-[11px] mt-0.5" style={{ color: 'var(--muted)' }}>
                   {gate.note}

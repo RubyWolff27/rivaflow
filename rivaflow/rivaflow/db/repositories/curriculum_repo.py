@@ -211,6 +211,7 @@ class CurriculumRepository(BaseRepository):
             "competition_date",
             "competition_note",
             "classes_logged",
+            "blue_promoted_at",
             "stripes",
             "notes",
         )

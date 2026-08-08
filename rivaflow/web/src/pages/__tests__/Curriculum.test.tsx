@@ -123,7 +123,7 @@ const SUMMARY: SummaryResponse = {
   belt: 'purple',
   hard_gates: [
     { key: 'competition', label: 'Competition experience', type: 'date', value: null, met: false, note: null },
-    { key: 'classes', label: 'Classes since blue', type: 'count', value: 31, met: null, note: "my log — not the Academy's record" },
+    { key: 'classes', label: 'Classes since blue', type: 'count', value: 18, target: 50, source: 'derived', since: '2026-05-18', met: false, note: 'Counted from your logged sessions — not the Academy\u2019s official record' },
     { key: 'stripes', label: 'Stripes on blue', type: 'count', value: 3, met: null, note: "awarded at the instructor's discretion" },
   ],
   blocks: [
@@ -518,17 +518,22 @@ describe('Curriculum page', () => {
     renderPage()
 
     await waitFor(() => expect(screen.getAllByTestId('hard-gates-strip').length).toBeGreaterThan(0))
-    expect(screen.getByText("my log — not the Academy's record")).toBeInTheDocument()
+    // The derived count reads against AJJ's 50-class minimum, not as a bare number.
+    expect(screen.getByText('18 / 50')).toBeInTheDocument()
 
     fireEvent.click(screen.getByText('Edit'))
     await waitFor(() => expect(screen.getByLabelText(/Competition date/)).toBeInTheDocument())
     fireEvent.change(screen.getByLabelText(/Competition date/), { target: { value: '2026-09-12' } })
     fireEvent.click(screen.getByText('Save gates'))
 
+    // classes_logged stays null: opening Edit and saving must NOT freeze the
+    // derived count into a manual override. That was the old behaviour and it
+    // silently converted an auto-updating gate into a stale typed number.
     await waitFor(() =>
       expect(mockUpdateMeta).toHaveBeenCalledWith({
         competition_date: '2026-09-12',
-        classes_logged: 31,
+        blue_promoted_at: '2026-05-18',
+        classes_logged: null,
         stripes: 3,
       })
     )

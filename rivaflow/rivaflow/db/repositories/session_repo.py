@@ -1,11 +1,26 @@
 """Repository for session data access."""
 
 import json
+from collections.abc import Iterable
 from datetime import date, datetime
 
 from rivaflow.core.settings import settings
 from rivaflow.db.database import convert_query, execute_insert, get_connection
 from rivaflow.db.repositories.base_repository import BaseRepository
+
+# The single definition of a countable "class" — mat time under instruction.
+#
+# Every consumer that counts classes (the purple-belt hard gate, report summaries)
+# imports THIS. Before it existed the codebase carried two silently different
+# meanings: report_service counted len(sessions), which swept in s&c and cardio,
+# while cli/app.py printed the same figure under the label "Total Sessions".
+#
+# open-mat is deliberately absent: it is unsupervised rolling, and AJJ's 50-class
+# minimum between belts counts taught classes. Ruby's call, 2026-08-08 — err low,
+# so his count is never higher than the Academy's record.
+MAT_CLASS_TYPES: frozenset[str] = frozenset(
+    {"gi", "no-gi", "drilling", "competition", "wrestling", "judo"}
+)
 
 # Explicit column list for sessions table (avoids SELECT *)
 _SESSION_COLS = (
@@ -927,6 +942,38 @@ class SessionRepository(BaseRepository):
                 """),
                 (since_date, user_id),
             )
+            result = cursor.fetchone()
+            return result["count"] or 0
+
+    @staticmethod
+    def count_classes(
+        user_id: int,
+        since_date: str | None = None,
+        class_types: Iterable[str] | None = None,
+    ) -> int:
+        """Count logged classes, optionally from a date and restricted by type.
+
+        The one counting primitive for "how many classes" anywhere in the app.
+        Defaults to MAT_CLASS_TYPES so a caller that forgets to pass class_types
+        gets mat time, never a total inflated by s&c and cardio.
+
+        Computed on read by design: sessions are edited and deleted, so a stored
+        counter would need retroactive invalidation for no gain at this volume.
+        """
+        types = tuple(sorted(MAT_CLASS_TYPES if class_types is None else class_types))
+        if not types:
+            return 0
+
+        placeholders = ", ".join("?" for _ in types)
+        sql = f"SELECT COUNT(*) as count FROM sessions WHERE user_id = ? AND class_type IN ({placeholders})"  # noqa: E501
+        params: list[object] = [user_id, *types]
+        if since_date:
+            sql += " AND session_date >= ?"
+            params.append(since_date)
+
+        with get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(convert_query(sql), tuple(params))
             result = cursor.fetchone()
             return result["count"] or 0
 

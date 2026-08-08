@@ -6,6 +6,7 @@ from datetime import UTC, date, datetime, timedelta
 from zoneinfo import ZoneInfo
 
 from rivaflow.db.repositories import ReadinessRepository, SessionRepository
+from rivaflow.db.repositories.session_repo import MAT_CLASS_TYPES
 from rivaflow.db.repositories.session_roll_repo import SessionRollRepository
 
 
@@ -108,6 +109,7 @@ class ReportService:
         """Return empty summary for no data."""
         return {
             "total_classes": 0,
+            "total_sessions": 0,
             "total_hours": 0.0,
             "total_rolls": 0,
             "unique_partners": 0,
@@ -124,7 +126,14 @@ class ReportService:
         self, sessions: list[dict], rolls_by_session: dict | None = None
     ) -> dict:
         """Calculate aggregate statistics for sessions."""
-        total_classes = len(sessions)
+        # A class is mat time, not everything logged. This used to be
+        # len(sessions), which swept s&c and cardio into a figure labelled
+        # "Total Classes" — and cli/app.py printed the same number as "Total
+        # Sessions". One definition now, shared with the purple-belt gate.
+        total_sessions = len(sessions)
+        total_classes = sum(
+            1 for s in sessions if s.get("class_type") in MAT_CLASS_TYPES
+        )
         total_mins = sum(s["duration_mins"] for s in sessions)
         total_hours = round(total_mins / 60, 1)
         # Use roll entry count where available, fall back to session.rolls aggregate
@@ -138,7 +147,11 @@ class ReportService:
         )
         submissions_for = sum(s["submissions_for"] for s in sessions)
         submissions_against = sum(s["submissions_against"] for s in sessions)
-        avg_intensity = round(sum(s["intensity"] for s in sessions) / total_classes, 1)
+        avg_intensity = (
+            round(sum(s["intensity"] for s in sessions) / total_sessions, 1)
+            if total_sessions > 0
+            else 0.0
+        )
 
         # Collect unique partners
         partners_set = set()
@@ -168,6 +181,7 @@ class ReportService:
 
         return {
             "total_classes": total_classes,
+            "total_sessions": total_sessions,
             "total_hours": total_hours,
             "total_rolls": total_rolls,
             "unique_partners": unique_partners,

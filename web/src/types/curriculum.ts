@@ -83,6 +83,12 @@ export interface HardGate {
   value: string | number | null;
   met: boolean | null;
   note: string | null;
+  /** Present on count gates that carry a requirement (classes: AJJ's 50). */
+  target?: number | null;
+  /** Where `value` came from — 'derived' from the log, 'manual' override, or 'unset'. */
+  source?: 'derived' | 'manual' | 'unset';
+  /** Baseline date the derived count runs from. */
+  since?: string | null;
 }
 
 export interface BlockSummary {
@@ -197,6 +203,7 @@ export interface MetaPayload {
   competition_date?: string | null;
   competition_note?: string | null;
   classes_logged?: number | null;
+  blue_promoted_at?: string | null;
   stripes?: number | null;
   notes?: string | null;
 }

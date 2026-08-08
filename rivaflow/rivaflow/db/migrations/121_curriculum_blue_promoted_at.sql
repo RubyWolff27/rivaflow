@@ -1,0 +1,15 @@
+-- 121_curriculum_blue_promoted_at.sql
+-- Baseline date for the derived "classes since blue" hard gate (SQLite / local dev).
+-- See 121_curriculum_blue_promoted_at_pg.sql for the PostgreSQL (production) variant.
+--
+-- The gate counts logged classes from this date forward. It is stored rather
+-- than derived from the earliest session because the log opens 2025-11-14,
+-- which predates both the blue promotion and joining AJJ -- deriving it would
+-- overcount permanently with no way to correct it.
+--
+-- Null is meaningful: no date means the gate shows a prompt, never a number.
+--
+-- NOTE: keep every comment in this file free of statement terminators. The
+-- migration runner splits the file on the terminator character BEFORE it strips
+-- comment lines, so one inside a comment silently severs the next statement.
+ALTER TABLE curriculum_meta ADD COLUMN blue_promoted_at DATE;

@@ -675,7 +675,11 @@ export default function OverviewTab({
                 className="text-xs mt-1"
                 style={{ color: 'var(--muted)' }}
               >
-                {zoneTrendsData.length} sessions with WHOOP data
+                {/* Not WHOOP: these zones read sessions' garmin_hr_z1..z5_sec, which
+                    are fed by the Garmin HRM chest strap through Wahoo. Named
+                    explicitly at Ruby's call — if the strap or the app changes, this
+                    line changes with it. */}
+                {zoneTrendsData.length} sessions — Garmin HRM via Wahoo
               </p>
             </div>
             {expandedCards.zonesTrend ? (

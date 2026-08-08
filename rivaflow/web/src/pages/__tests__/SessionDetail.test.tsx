@@ -66,12 +66,16 @@ vi.mock("../../hooks/usePageTitle", () => ({
   usePageTitle: vi.fn(),
 }));
 
+// Must mirror every method on the real logger. A missing key doesn't fail a
+// test — it throws inside a catch block as an unhandled rejection, which
+// vitest exits 1 on while still reporting every test as passed.
 vi.mock("../../utils/logger", () => ({
   logger: {
     log: vi.fn(),
     warn: vi.fn(),
     error: vi.fn(),
     info: vi.fn(),
+    debug: vi.fn(),
   },
 }));
 
