@@ -100,6 +100,10 @@ def save_extracted_session(
     """Save a previously extracted session."""
     from datetime import date
 
+    from rivaflow.core.services.grapple.session_extraction_service import (
+        normalize_class_type,
+        resolve_movements,
+    )
     from rivaflow.core.services.session_service import SessionService
     from rivaflow.db.repositories.session_event_repo import (
         SessionEventRepository,
@@ -107,11 +111,26 @@ def save_extracted_session(
 
     user_id = current_user["id"]
 
+    # MA-F4: canonical enum (a voice "nogi" must not vanish from analytics) and
+    # glossary movement IDs (resolved techniques feed the radar + curriculum;
+    # unmatched names stay free strings — never guessed onto the wrong ID).
+    class_type = normalize_class_type(request.class_type)
+    technique_names = list(request.techniques)
+    for evt in request.events:
+        name = evt.get("technique_name")
+        if name and name not in technique_names:
+            technique_names.append(name)
+    resolved, unresolved = resolve_movements(technique_names)
+    session_techniques = [
+        {"movement_id": r["movement_id"], "technique_number": i + 1}
+        for i, r in enumerate(resolved)
+    ]
+
     session_service = SessionService()
     session_id = session_service.create_session(
         user_id=user_id,
         session_date=date.fromisoformat(request.session_date),
-        class_type=request.class_type,
+        class_type=class_type,
         gym_name=request.gym_name,
         duration_mins=request.duration_mins,
         intensity=request.intensity,
@@ -119,7 +138,8 @@ def save_extracted_session(
         submissions_for=request.submissions_for,
         submissions_against=request.submissions_against,
         partners=request.partners,
-        techniques=request.techniques,
+        techniques=unresolved or None,
+        session_techniques=session_techniques or None,
         notes=request.notes,
     )
 
@@ -144,6 +164,9 @@ def save_extracted_session(
     return {
         "session_id": session_id,
         "message": "Session saved successfully",
+        "class_type": class_type,
+        "movements_resolved": [r["name"] for r in resolved],
+        "techniques_unresolved": unresolved,
     }
 
 

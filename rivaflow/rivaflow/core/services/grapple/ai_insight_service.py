@@ -178,23 +178,16 @@ async def generate_post_session_insight(user_id: int, session_id: int) -> dict |
     except Exception:
         pass
 
-    # Enrich with WHOOP recovery for the session date (raw-derived).
-    # recovery_score is a today rollup, so it enriches a same-day session.
+    # Enrich with the canonical readiness verdict (Spine-1; the WHOOP seam
+    # this used to read has been honest-empty since the excision).
     try:
-        from rivaflow.core.services import whoop_biometrics
+        from rivaflow.core.services.physiology_service import PhysiologyService
 
-        s_date = str(session.get("session_date", ""))[:10]
-        if s_date:
-            recs = whoop_biometrics.recovery_series(user_id, days=30)
-            rec = next((r for r in recs if str(r.get("date", ""))[:10] == s_date), None)
-            if rec:
-                rs = rec.get("recovery_score")
-                hv = rec.get("hrv_ms")
-                if rs is not None:
-                    context += f"WHOOP Recovery: {rs:.0f}%"
-                    if hv is not None:
-                        context += f", HRV: {hv:.0f}ms"
-                    context += ". "
+        r = PhysiologyService().get_physiology(user_id).get("readiness", {})
+        if r.get("score") is not None:
+            context += (
+                f"Readiness: {r['score']}/100 ({r.get('band')}, {r.get('state')}). "
+            )
     except Exception:
         pass
 
@@ -281,34 +274,21 @@ async def generate_weekly_insight(
         )
         summary_lines.append(line)
 
-    # Enrich with WHOOP weekly averages (raw-derived)
+    # Weekly body-state line from the physiology composition (Spine-1).
     whoop_line = ""
     try:
-        from rivaflow.core.services import whoop_biometrics
+        from rivaflow.core.services.physiology_service import PhysiologyService
 
-        recs = whoop_biometrics.recovery_series(user_id, days=7)
-        if recs:
-            rec_vals = [
-                r["recovery_score"] for r in recs if r.get("recovery_score") is not None
-            ]
-            hrv_vals = [r["hrv_ms"] for r in recs if r.get("hrv_ms") is not None]
-            sleep_vals = [
-                r["sleep_performance"]
-                for r in recs
-                if r.get("sleep_performance") is not None
-            ]
-            parts = []
-            if rec_vals:
-                avg_r = sum(rec_vals) / len(rec_vals)
-                parts.append(f"avg recovery {avg_r:.0f}%")
-            if hrv_vals:
-                avg_h = sum(hrv_vals) / len(hrv_vals)
-                parts.append(f"avg HRV {avg_h:.0f}ms")
-            if sleep_vals:
-                avg_s = sum(sleep_vals) / len(sleep_vals)
-                parts.append(f"avg sleep {avg_s:.0f}%")
-            if parts:
-                whoop_line = "WHOOP Weekly: " + ", ".join(parts)
+        p = PhysiologyService().get_physiology(user_id)
+        bits = []
+        r = p.get("readiness", {})
+        if r.get("score") is not None:
+            bits.append(f"readiness {r['score']}/100 ({r.get('state')})")
+        debt = p.get("sleep_debt", {})
+        if debt.get("available") and debt.get("debt_hours") is not None:
+            bits.append(f"sleep debt {debt['debt_hours']}h")
+        if bits:
+            whoop_line = "Body state: " + ", ".join(bits) + ". "
     except Exception:
         pass
 
