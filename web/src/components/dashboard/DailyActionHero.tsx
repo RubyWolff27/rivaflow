@@ -274,7 +274,7 @@ export default function DailyActionHero() {
                 </p>
               ) : (
                 <p className="text-sm mt-1" style={{ color: 'var(--muted)' }}>
-                  Based on your readiness score of {score}/20
+                  Based on your check-in score of {score}/20
                 </p>
               )}
             </div>
@@ -306,7 +306,7 @@ export default function DailyActionHero() {
               <div className="flex items-center gap-2 flex-1 min-w-0">
                 <Activity className="w-4 h-4 shrink-0" style={{ color: readinessColor }} />
                 <div>
-                  <p className="text-xs font-medium" style={{ color: 'var(--muted)' }}>Readiness</p>
+                  <p className="text-xs font-medium" style={{ color: 'var(--muted)' }}>Check-in</p>
                   <p className="text-lg font-bold leading-tight" style={{ color: readinessColor }}>
                     {readinessScore}<span className="text-xs font-normal" style={{ color: 'var(--muted)' }}>/20</span>
                   </p>

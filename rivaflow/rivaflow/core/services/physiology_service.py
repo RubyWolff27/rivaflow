@@ -85,6 +85,12 @@ class PhysiologyService:
     def _readiness(
         self, rows: list[dict], today: date, is_sabbath: bool
     ) -> dict[str, Any]:
+        """ONE readiness number (Spine-1): the hub's verdict, mirrored into
+        garmin_daily.training_readiness_score, is canonical — bands green>=66 /
+        yellow 34-65 / red <34 per the hub's HealthDB. The local lnRMSSD blend is
+        demoted to `basis` (the WHY: per-signal contributors) and to the state
+        fallback when the hub score is absent or stale. No second composite
+        score leaves this API."""
         signal_z = {
             # HRV must enter as lnRMSSD — raw RMSSD is right-skewed (Plews/Buchheit).
             "hrv": self._signal_z(rows, "hrv_ms", today, transform=log),
@@ -92,9 +98,50 @@ class PhysiologyService:
             "sleep": self._signal_z(rows, "sleep_hours", today),
             "resp": self._signal_z(rows, "respiration_rate", today),
         }
-        verdict = blend_readiness(signal_z, today_is_sabbath=is_sabbath)
-        verdict["source"] = "garmin_daily (Fitbit Air via Google Health)"
-        return verdict
+        blend = blend_readiness(signal_z, today_is_sabbath=is_sabbath)
+
+        hub_score = self._hub_score(rows, today)
+        if is_sabbath or hub_score is None:
+            # Sabbath, or no fresh hub verdict: the blend path (Rest / Building /
+            # blend state) speaks alone — still no rival numbers on screen.
+            state = blend["state"]
+            score = None
+            band = None
+        else:
+            score = hub_score
+            band = "green" if score >= 66 else ("yellow" if score >= 34 else "red")
+            state = _state_from_hub_score(score)
+
+        return {
+            "score": score,
+            "band": band,
+            "state": state,
+            "headline": (
+                blend["headline"]
+                if is_sabbath or hub_score is None
+                else _HUB_STATE_HEADLINES[state]
+            ),
+            "source": "hub verdict via garmin_daily (Fitbit Air)",
+            "basis": {
+                "driver": blend.get("driver"),
+                "composite_z": blend.get("composite_z"),
+                "contributors": blend.get("contributors", []),
+                "signals_used": blend.get("signals_used", []),
+                "caveat": blend.get("caveat"),
+            },
+        }
+
+    @staticmethod
+    def _hub_score(rows: list[dict], today: date) -> int | None:
+        """Latest hub readiness score no older than STALE_SIGNAL_DAYS."""
+        for r in reversed(rows):
+            score = r.get("training_readiness_score")
+            if score is None:
+                continue
+            if (today - _as_date(r["metric_date"])).days > STALE_SIGNAL_DAYS:
+                return None
+            return int(score)
+        return None
 
     def _signal_z(
         self, rows: list[dict], field: str, today: date, transform=None
@@ -137,6 +184,30 @@ class PhysiologyService:
         chronic = sum(scale_to_21(raw) for raw in window) / len(window)
         acute = scale_to_21(daily_raw[-1])
         return chronic, acute
+
+
+_HUB_STATE_HEADLINES = {
+    "Prime": "Above your baseline — green light to train hard.",
+    "Balanced": "In your normal range — train as planned.",
+    "Strained": "Below baseline — technical/skills over hard rolls today.",
+    "Rundown": "Well below baseline — prioritise recovery.",
+}
+
+
+def _state_from_hub_score(score: int) -> str:
+    """Map the hub's 0-100 readiness onto the strain-prescription vocabulary.
+
+    66/34 are the hub's own band edges (HealthDB green/yellow/red); the 50
+    split inside yellow (Balanced vs Strained) is PROVISIONAL — calibrate
+    against Ruby's felt readiness once a few weeks of verdicts accumulate.
+    """
+    if score >= 66:
+        return "Prime"
+    if score >= 50:
+        return "Balanced"
+    if score >= 34:
+        return "Strained"
+    return "Rundown"
 
 
 def daily_trimp_series(

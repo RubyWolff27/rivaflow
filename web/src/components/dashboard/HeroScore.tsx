@@ -236,11 +236,11 @@ export default function HeroScore({
             </span>
           </ScoreGauge>
           <span className="flex items-center gap-1 text-[10px] font-medium" style={{ color: 'var(--muted)' }}>
-            Readiness
+            Check-in
             <button
               onClick={(e) => { e.stopPropagation(); setShowReadinessInfo(!showReadinessInfo); }}
               className="p-0.5 rounded-full hover:opacity-80"
-              aria-label="What is readiness?"
+              aria-label="What is the check-in score?"
             >
               <Info className="w-3 h-3" />
             </button>
@@ -269,7 +269,7 @@ export default function HeroScore({
       {/* Readiness info tooltip */}
       {showReadinessInfo && (
         <p className="text-xs text-center mt-2 px-4 py-2 rounded-lg" style={{ backgroundColor: 'var(--surfaceElev)', color: 'var(--muted)' }}>
-          Readiness (0–20) combines stress, energy, soreness, and sleep. Higher = train harder.
+          Check-in (0–20) is how you FEEL — stress, energy, soreness, sleep. The Readiness verdict on the Health tab is measured from your body (HRV, RHR, sleep).
         </p>
       )}
 
@@ -292,7 +292,7 @@ export default function HeroScore({
           </p>
         ) : (
           <p className="text-sm mt-1.5" style={{ color: 'var(--muted)' }}>
-            Based on your readiness score of {score}/20
+            Based on your check-in score of {score}/20
           </p>
         )}
 

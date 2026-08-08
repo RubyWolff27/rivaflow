@@ -59,7 +59,7 @@ class TestReadinessWiring:
             "Strained",
             "Rundown",
         }
-        assert result["readiness"]["source"].startswith("garmin_daily")
+        assert "garmin_daily" in result["readiness"]["source"]
 
     def test_no_hrv_baseline_is_building_not_a_number(self):
         svc = _service(_daily_rows(3), [])  # < MIN_BASELINE_DAYS+1
@@ -76,7 +76,9 @@ class TestReadinessWiring:
         result = svc.get_physiology(user_id=4, today=TODAY)
 
         hrv_contrib = next(
-            c for c in result["readiness"]["contributors"] if c["signal"] == "hrv"
+            c
+            for c in result["readiness"]["basis"]["contributors"]
+            if c["signal"] == "hrv"
         )
         # ln(80)-ln(40)=ln(2)≈0.693; the flat baseline makes sd fall back to 1.0,
         # so z should be ~0.69 — a linear implementation would put z on the raw
@@ -90,7 +92,7 @@ class TestReadinessWiring:
         svc = _service(rows, [])
         result = svc.get_physiology(user_id=4, today=TODAY)
 
-        signals = {c["signal"] for c in result["readiness"]["contributors"]}
+        signals = {c["signal"] for c in result["readiness"]["basis"]["contributors"]}
         assert "resp" not in signals
         assert "hrv" in signals
 
@@ -185,3 +187,65 @@ class TestSleepDebtWiring:
         result = svc.get_physiology(user_id=4, today=TODAY)
 
         assert result["sleep_debt"]["available"] is False
+
+
+class TestSpine1HubCanonical:
+    """Spine-1: the hub verdict is the ONE readiness number; the blend is basis."""
+
+    def _rows_with_hub(self, score, days=14):
+        rows = _daily_rows(days)
+        for r in rows:
+            r["training_readiness_score"] = score
+        return rows
+
+    def test_hub_score_is_canonical(self):
+        svc = _service(self._rows_with_hub(70), [])
+        r = svc.get_physiology(user_id=4, today=TODAY)["readiness"]
+
+        assert r["score"] == 70
+        assert r["band"] == "green"
+        assert r["state"] == "Prime"
+
+    def test_hub_band_mapping(self):
+        for score, band, state in [
+            (66, "green", "Prime"),
+            (55, "yellow", "Balanced"),
+            (48, "yellow", "Strained"),
+            (33, "red", "Rundown"),
+        ]:
+            svc = _service(self._rows_with_hub(score), [])
+            r = svc.get_physiology(user_id=4, today=TODAY)["readiness"]
+            assert (r["score"], r["band"], r["state"]) == (score, band, state)
+
+    def test_no_second_composite_score_in_response(self):
+        """The blend's 0-100 score must NOT appear — one number only (Spine-1)."""
+        svc = _service(self._rows_with_hub(70), [])
+        r = svc.get_physiology(user_id=4, today=TODAY)["readiness"]
+
+        assert "score" not in r["basis"]
+        assert set(r["basis"].keys()) == {
+            "driver",
+            "composite_z",
+            "contributors",
+            "signals_used",
+            "caveat",
+        }
+
+    def test_stale_hub_score_falls_back_to_blend(self):
+        rows = _daily_rows(14)
+        for r in rows[:-5]:
+            r["training_readiness_score"] = 70  # hub verdict went dark 5 days ago
+        svc = _service(rows, [])
+        r = svc.get_physiology(user_id=4, today=TODAY)["readiness"]
+
+        assert r["score"] is None
+        assert r["band"] is None
+        assert r["state"] in {"Prime", "Balanced", "Strained", "Rundown"}
+
+    def test_strain_prescription_follows_hub_state(self):
+        svc = _service(self._rows_with_hub(30), _sessions_with_load(30))
+        result = svc.get_physiology(user_id=4, today=TODAY)
+
+        assert result["readiness"]["state"] == "Rundown"
+        assert result["strain_target"]["available"] is True
+        assert result["strain_target"]["capped"] is True

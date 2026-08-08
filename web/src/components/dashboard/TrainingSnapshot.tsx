@@ -421,7 +421,7 @@ export default function TrainingSnapshot({ readinessScore, streakCount }: Traini
             <LatestActivity session={lastSession} />
           </AccordionSection>
         )}
-        <AccordionSection title="Readiness">
+        <AccordionSection title="Check-in">
           <ReadinessInsight score={readinessScore} />
         </AccordionSection>
         <div className="py-2">
