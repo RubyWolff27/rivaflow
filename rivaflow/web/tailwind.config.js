@@ -7,48 +7,6 @@ export default {
   theme: {
     extend: {
       colors: {
-        // Combat Red - Primary Brand Color (matches --accent: #FF4D2D)
-        combat: {
-          DEFAULT: '#FF4D2D',
-          50: '#FFF0ED',
-          100: '#FFE1DB',
-          200: '#FFC3B7',
-          300: '#FFA593',
-          400: '#FF7960',
-          500: '#FF4D2D',  // Primary — matches CSS --accent
-          600: '#E63F24',
-          700: '#B3301C',
-          800: '#802214',
-          900: '#4D140C',
-        },
-        // Energy Orange - Secondary Accent (Achievements)
-        energy: {
-          DEFAULT: '#FF6B35',
-          50: '#FFEDE7',
-          100: '#FFDCCF',
-          200: '#FFB99F',
-          300: '#FF966F',
-          400: '#FF733F',
-          500: '#FF6B35',  // Primary Energy Orange
-          600: '#E6501C',
-          700: '#B33D15',
-          800: '#80290E',
-          900: '#4D1607',
-        },
-        // Recovery Teal - Tertiary (Readiness/Recovery)
-        recovery: {
-          DEFAULT: '#00F5D4',
-          50: '#CCFFF7',
-          100: '#B3FFF3',
-          200: '#80FFEB',
-          300: '#4DFFE3',
-          400: '#1AFFDB',
-          500: '#00F5D4',  // Recovery Teal
-          600: '#00C2A8',
-          700: '#008F7C',
-          800: '#005C50',
-          900: '#002924',
-        },
         // Primary maps to Combat Red (matches --accent)
         primary: {
           50: '#FFF0ED',
@@ -110,5 +68,5 @@ export default {
     },
   },
   plugins: [],
-  darkMode: 'media',
+  darkMode: ['selector', '[data-theme="dark"]'],
 }

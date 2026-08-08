@@ -1,10 +1,19 @@
 import { useState, useEffect } from 'react';
-import { Settings, Eye, EyeOff } from 'lucide-react';
+import { Settings, Eye, EyeOff, Sun, Moon, Monitor } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { profileApi } from '../../api/client';
+import { getThemePref, setThemePref } from '../../utils/theme';
+import type { ThemePref } from '../../utils/theme';
 import { logger } from '../../utils/logger';
 
 export default function ProfileSettings() {
+  const [themePref, setThemePrefState] = useState<ThemePref>(getThemePref());
+
+  const changeTheme = (pref: ThemePref) => {
+    setThemePref(pref);
+    setThemePrefState(pref);
+  };
+
   const [partnerStatsPublic, setPartnerStatsPublic] = useState(true);
   const [saving, setSaving] = useState(false);
 
@@ -46,6 +55,37 @@ export default function ProfileSettings() {
 
   return (
     <div className="space-y-4">
+      {/* Appearance (DES-F6) */}
+      <div className="card">
+        <div className="flex items-center justify-between gap-3 flex-wrap">
+          <div>
+            <h2 className="text-lg font-semibold">Appearance</h2>
+            <p className="text-sm text-[var(--muted)]">Light, dark, or follow your device</p>
+          </div>
+          <div className="flex rounded-lg overflow-hidden" style={{ border: '1px solid var(--border)' }} role="group" aria-label="Theme">
+            {([
+              { key: 'light', label: 'Light', icon: Sun },
+              { key: 'dark', label: 'Dark', icon: Moon },
+              { key: 'system', label: 'Auto', icon: Monitor },
+            ] as const).map(({ key, label, icon: ThemeIcon }) => (
+              <button
+                key={key}
+                type="button"
+                onClick={() => changeTheme(key)}
+                aria-pressed={themePref === key}
+                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium transition-colors"
+                style={{
+                  backgroundColor: themePref === key ? 'var(--accent)' : 'var(--surface)',
+                  color: themePref === key ? '#FFFFFF' : 'var(--muted)',
+                }}
+              >
+                <ThemeIcon className="w-3.5 h-3.5" />
+                {label}
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
       <Link to="/coach-settings" className="card block hover:border-[var(--accent)] transition-colors">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">

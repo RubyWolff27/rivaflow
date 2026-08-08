@@ -54,9 +54,8 @@
     --accent-rgb: 255, 77, 45;
   }
 
-  @media (prefers-color-scheme: dark) {
-    :root {
-      /* Dark Mode Tokens */
+  [data-theme='dark'] {
+      /* Dark Mode Tokens (data-theme set pre-paint by index.html; toggle in Profile) */
       --bg: #0B0D12;
       --surface: #121622;
       --surfaceElev: #171C2A;
@@ -78,7 +77,6 @@
       --error: #EF4444;
       --error-bg: rgba(239, 68, 68, 0.1);
       --accent-rgb: 255, 77, 45;
-    }
   }
 
   /* Global focus-visible styles for accessibility */
