@@ -148,7 +148,10 @@ export default function RoadmapView({ roadmap }: { roadmap: Roadmap }) {
           canvas and the only thing that survives a phone screen. */}
       <nav
         className="flex items-center gap-1 flex-wrap text-xs sticky top-0 z-10 py-2"
-        style={{ backgroundColor: 'var(--bg, transparent)', color: 'var(--muted)' }}
+        /* Blur, not a solid --bg fill: .app-bg paints its texture through
+           ::before/::after, so an opaque band reads as a flat grey strip laid
+           over the page rather than part of it. */
+        style={{ backdropFilter: 'blur(8px)', color: 'var(--muted)' }}
         aria-label="Roadmap path"
       >
         {path.map((node, i) => (
