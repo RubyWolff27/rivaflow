@@ -4,10 +4,7 @@ import json
 import logging
 from datetime import date, datetime, timedelta
 
-from rivaflow.core.services.insights_analytics import (
-    InsightsAnalyticsService,
-    _linear_slope,
-)
+from rivaflow.core.services.insights_analytics import InsightsAnalyticsService
 from rivaflow.core.services.privacy_service import PrivacyService
 from rivaflow.core.time_utils import utcnow
 from rivaflow.db.repositories.checkin_repo import CheckinRepository
@@ -746,6 +743,17 @@ Athlete competes under NAGA (North American Grappling Association) rules:
                     if len(techniques) > 5:
                         techniques_str += f" (+{len(techniques) - 5} more)"
                     session_summary += f" | Techniques: {techniques_str}"
+                if session.get("trimp") is not None:
+                    hr_bits = f" | Load: TRIMP {round(float(session['trimp']))}"
+                    if session.get("avg_hr") is not None:
+                        hr_bits += f", avg HR {session['avg_hr']}"
+                    if session.get("max_hr") is not None:
+                        hr_bits += f", max {session['max_hr']}"
+                    session_summary += hr_bits
+                if session.get("partners"):
+                    session_summary += (
+                        f" | Partners: {', '.join(session['partners'][:4])}"
+                    )
                 if notes:
                     session_summary += f" | Notes: {notes[:200]}"
 
@@ -759,15 +767,27 @@ Athlete competes under NAGA (North American Grappling Association) rules:
             )
             if recent_readiness:
                 context_parts.append("")
-                context_parts.append("RECENT READINESS (last 7 days):")
+                context_parts.append(
+                    "RECENT CHECK-INS (last 7 days, subjective 1-5 scales; "
+                    "5 = best for energy/sleep, worst for soreness/stress):"
+                )
                 for r in recent_readiness:
-                    r_date = r.get("date", "Unknown")
-                    energy = r.get("energy_level", 0)
-                    soreness = r.get("soreness_level", 0)
-                    sleep = r.get("sleep_quality", 0)
-                    context_parts.append(
-                        f"- {r_date}: Energy {energy}/10, Soreness {soreness}/10, Sleep {sleep}/10"
-                    )
+                    # Real column names are check_date/energy/soreness/sleep/
+                    # stress on 1-5 (MA-F2: the old keys read nothing and
+                    # fabricated 'Energy 0/10' every day). Missing values are
+                    # omitted, never zeroed.
+                    r_date = r.get("check_date", "Unknown")
+                    fields = [
+                        ("Energy", r.get("energy")),
+                        ("Soreness", r.get("soreness")),
+                        ("Sleep", r.get("sleep")),
+                        ("Stress", r.get("stress")),
+                    ]
+                    bits = [f"{k} {v}/5" for k, v in fields if v is not None]
+                    if r.get("composite_score") is not None:
+                        bits.append(f"composite {r['composite_score']}/20")
+                    if bits:
+                        context_parts.append(f"- {r_date}: " + ", ".join(bits))
 
             # ── Daily check-in context ──
             try:
@@ -787,14 +807,23 @@ Athlete competes under NAGA (North American Grappling Association) rules:
             except Exception:
                 logger.debug("Deep analytics context unavailable", exc_info=True)
 
-            # ── WHOOP recovery context ──
+            # ── Body-state context (Air biometrics + canonical readiness) ──
             try:
-                whoop = self._build_whoop_context()
-                if whoop:
+                physio = self._build_physiology_context()
+                if physio:
                     context_parts.append("")
-                    context_parts.append(whoop)
+                    context_parts.append(physio)
             except Exception:
-                logger.debug("WHOOP context unavailable", exc_info=True)
+                logger.debug("Physiology context unavailable", exc_info=True)
+
+            # ── Purple-belt curriculum context ──
+            try:
+                curriculum = self._build_curriculum_context()
+                if curriculum:
+                    context_parts.append("")
+                    context_parts.append(curriculum)
+            except Exception:
+                logger.debug("Curriculum context unavailable", exc_info=True)
 
         else:
             context_parts.append("No training sessions logged yet.")
@@ -934,81 +963,70 @@ Athlete competes under NAGA (North American Grappling Association) rules:
 
         return "\n".join(parts)
 
-    def _build_whoop_context(self) -> str:
-        """Build WHOOP recovery context from the raw-derived biometrics seam."""
-        from rivaflow.core.services import whoop_biometrics
+    def _build_physiology_context(self) -> str:
+        """Body-state block: canonical readiness verdict + strain target + sleep
+        debt from /analytics/physiology's service (MA-F3 — replaces the retired
+        WHOOP block, which read an honest-empty seam and never spoke). ACWR is
+        deliberately absent here: the deep-analytics block already carries it."""
+        from rivaflow.core.services.physiology_service import PhysiologyService
 
-        records = whoop_biometrics.recovery_series(self.user_id, days=7)
-        if not records:
+        p = PhysiologyService().get_physiology(self.user_id)
+        parts = ["BODY STATE (Fitbit Air via the health hub):"]
+
+        r = p.get("readiness", {})
+        if r.get("score") is not None:
+            parts.append(
+                f"Readiness: {r['score']}/100 ({r.get('band')}) — {r.get('state')}. "
+                f"{r.get('headline', '')}".strip()
+            )
+        elif r.get("state"):
+            parts.append(
+                f"Readiness state: {r['state']}. {r.get('headline', '')}".strip()
+            )
+
+        st = p.get("strain_target", {})
+        if st.get("available"):
+            line = (
+                f"Today's strain target: {st.get('target_load')} "
+                f"(band {st.get('band')}, usual chronic {st.get('chronic_load')})."
+            )
+            if st.get("acute_load") is not None:
+                line += f" Load so far today: {st['acute_load']}."
+            parts.append(line)
+
+        debt = p.get("sleep_debt", {})
+        if debt.get("available") and debt.get("debt_hours") is not None:
+            parts.append(
+                f"Sleep debt: {debt['debt_hours']}h over {debt.get('nights')} nights "
+                f"vs the 9h need."
+            )
+
+        return "\n".join(parts) if len(parts) > 1 else ""
+
+    def _build_curriculum_context(self) -> str:
+        """Purple-belt curriculum snapshot (MA-F3): status ladder counts per
+        block — what the coach should steer drilling toward."""
+        from rivaflow.core.services.curriculum_service import CurriculumService
+
+        summary = CurriculumService().get_summary(self.user_id)
+        blocks = summary.get("blocks") or []
+        if not blocks:
             return ""
 
-        latest = records[-1]
-        parts = ["WHOOP RECOVERY DATA:"]
+        parts = ["PURPLE-BELT CURRICULUM (slot status by block):"]
+        for b in blocks:
+            counts = b.get("status_counts") or {}
+            populated = {k: v for k, v in counts.items() if v}
+            if not populated:
+                continue
+            counts_str = ", ".join(f"{k} {v}" for k, v in populated.items())
+            weak = b.get("weak_evidence") or 0
+            line = f"- {b.get('label') or b.get('block')}: {counts_str}"
+            if weak:
+                line += f" ({weak} weak-evidence)"
+            parts.append(line)
 
-        # Latest snapshot
-        rec_score = latest.get("recovery_score")
-        hrv = latest.get("hrv_ms")
-        rhr = latest.get("resting_hr")
-        spo2 = latest.get("spo2")
-        snap = "Latest Recovery:"
-        if rec_score is not None:
-            snap += f" {rec_score:.0f}%"
-        if hrv is not None:
-            snap += f" | HRV: {hrv:.0f}ms"
-        if rhr is not None:
-            snap += f" | RHR: {rhr:.0f}bpm"
-        if spo2 is not None:
-            snap += f" | SpO2: {spo2:.0f}%"
-        parts.append(snap)
-
-        # Sleep info
-        sleep_perf = latest.get("sleep_performance")
-        sleep_dur_ms = latest.get("sleep_duration_ms")
-        rem_ms = latest.get("rem_sleep_ms")
-        sws_ms = latest.get("slow_wave_ms")
-        if sleep_perf is not None or sleep_dur_ms is not None:
-            sleep_line = "Sleep:"
-            if sleep_perf is not None:
-                sleep_line += f" {sleep_perf:.0f}% performance"
-            if sleep_dur_ms is not None:
-                hrs = sleep_dur_ms / 3_600_000
-                sleep_line += f" ({hrs:.1f}h"
-                if rem_ms is not None and sleep_dur_ms > 0:
-                    sleep_line += f", {rem_ms / sleep_dur_ms * 100:.0f}% REM"
-                if sws_ms is not None and sleep_dur_ms > 0:
-                    sleep_line += f", {sws_ms / sleep_dur_ms * 100:.0f}% SWS"
-                sleep_line += ")"
-            parts.append(sleep_line)
-
-        # 7-day HRV trend
-        hrv_values = [r["hrv_ms"] for r in records if r.get("hrv_ms") is not None]
-        if len(hrv_values) >= 3:
-            slope = _linear_slope(hrv_values)
-            direction = "Declining" if slope < 0 else "Improving"
-            parts.append(f"7-Day HRV Trend: {direction} ({slope:+.1f} ms/day)")
-
-        # 7-day avg recovery & sleep debt
-        rec_values = [
-            r["recovery_score"] for r in records if r.get("recovery_score") is not None
-        ]
-        avg_rec = sum(rec_values) / len(rec_values) if rec_values else None
-        sleep_debt_ms = latest.get("sleep_debt_ms")
-        extras = ""
-        if avg_rec is not None:
-            extras += f"7-Day Avg Recovery: {avg_rec:.0f}%"
-        if sleep_debt_ms is not None:
-            debt_min = sleep_debt_ms / 60_000
-            if extras:
-                extras += f" | Sleep Debt: {debt_min:.0f} min"
-            else:
-                extras += f"Sleep Debt: {debt_min:.0f} min"
-        if extras:
-            parts.append(extras)
-
-        if len(parts) <= 1:
-            return ""
-
-        return "\n".join(parts)
+        return "\n".join(parts) if len(parts) > 1 else ""
 
     def _parse_date(self, date_str: str) -> datetime:
         """Parse date string to datetime."""

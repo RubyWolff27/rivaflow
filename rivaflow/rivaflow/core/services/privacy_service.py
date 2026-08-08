@@ -298,6 +298,23 @@ class PrivacyService:
         if "techniques" in session and session["techniques"]:
             redacted["techniques"] = session["techniques"]
 
+        # Air biometrics (MA-F3): the coach should see the measured load —
+        # redaction-from-yourself was a multi-user artifact costing quality.
+        biometric_mapping = {
+            "garmin_training_load": "trimp",
+            "garmin_avg_hr": "avg_hr",
+            "garmin_max_hr": "max_hr",
+        }
+        for src_field, dest_field in biometric_mapping.items():
+            if session.get(src_field) is not None:
+                redacted[dest_field] = session[src_field]
+
+        # Partner first names only (no surnames, no identifiers)
+        if session.get("partners"):
+            redacted["partners"] = [
+                str(p).split()[0] for p in session["partners"] if str(p).strip()
+            ]
+
         # Optional: Include notes if explicitly requested
         if include_notes and "notes" in session and session["notes"]:
             redacted["notes"] = session["notes"]
