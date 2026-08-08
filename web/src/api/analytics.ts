@@ -20,6 +20,7 @@ export const analyticsApi = {
     api.get('/analytics/instructors/insights', { params }),
   gameDistribution: (params?: { window?: 'all' | '12w' | '8w' }) =>
     api.get('/analytics/game-distribution', { params }),
+  physiology: () => api.get('/analytics/physiology'),
 
   // Phase 1: Enhanced analytics
   durationTrends: (params?: { start_date?: string; end_date?: string; types?: string[] }) =>
