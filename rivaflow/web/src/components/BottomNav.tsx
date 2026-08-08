@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { Home, Users, Plus, BarChart3, User, LogOut, X } from 'lucide-react';
+import { Calendar, Home, Plus, BarChart3, User, LogOut, X } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 
 interface NavSectionItem {
@@ -47,13 +47,14 @@ export default function BottomNav({ moreNavSections, onQuickLog }: BottomNavProp
     navigate('/login');
   };
 
-  // 5 bottom items: Home, Feed, Log(accent, centered), Progress, You.
-  // 2026-04-05 — Feed un-hidden per CEO Q2 ratification ("un-hide feed").
-  // Replaces the previous Sessions slot (sessions remain accessible via
-  // Home dashboard widgets + /sessions URL + the You sheet).
+  // 5 bottom items (DES-F4): the core loop. Feed is out — its backend is
+  // unmounted in single-user mode and the slot outranked Sessions. "You"
+  // stays (deviation from the report's Grapple slot, logged in the Wave 4
+  // ISA): it is mobile's only door to profile/settings/logout; Grapple is
+  // promoted on the desktop rail + the Home insight card instead.
   const bottomItems = [
     { name: 'Home', href: '/', icon: Home },
-    { name: 'Feed', href: '/feed', icon: Users },
+    { name: 'Sessions', href: '/sessions', icon: Calendar },
     { name: 'Log', href: '#quicklog', icon: Plus, isAccent: true },
     { name: 'Progress', href: '/reports', icon: BarChart3 },
     { name: 'You', href: '#you', icon: User },

@@ -1,6 +1,6 @@
 import { useState, useRef, memo } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { Home, BarChart3, Activity, Award, Shield, Sparkles, Target, Calendar, Trophy, HeartPulse } from 'lucide-react';
+import { Plus, Home, BarChart3, Award, Shield, Sparkles, Target, Calendar, Trophy, HeartPulse } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import QuickLog from './QuickLog';
 import Sidebar from './Sidebar';
@@ -18,24 +18,19 @@ const Layout = memo(function Layout({ children }: { children: React.ReactNode })
     mainContentRef.current?.focus();
   };
 
-  // Primary navigation — clean core loop for users
+  // Primary navigation (DES-F4): the core loop + the two differentiators,
+  // promoted per the v2 IA — no destination appears twice anywhere in nav.
   const navigation = [
     { name: 'Home', href: '/', icon: Home },
+    { name: 'Log', href: '/log', icon: Plus },
     { name: 'Sessions', href: '/sessions', icon: Calendar },
     { name: 'Progress', href: '/reports', icon: BarChart3 },
+    { name: 'Purple Belt', href: '/curriculum', icon: Award },
+    { name: 'Grapple AI', href: '/grapple', icon: Sparkles },
     { name: 'Health', href: '/health', icon: HeartPulse },
   ];
 
-  // Secondary sections — shown in sidebar collapsibles and "You" sheet on mobile.
-  // 2026-04-05 — Grapple AI + Glossary reordered to the top and marked NEW per
-  // CEO Q3 ratification ("un-hide Grapple AI and Glossary"). These are the
-  // differentiators for the hobbyist audience — every BJJ athlete wants an AI
-  // coach + a technique library, so they should be the first things a user
-  // sees when they open the menu.
-  //
-  // NavSection item shape matches BottomNav.NavSectionItem: badge is
-  // number (unread count) or string ("NEW" promo). Explicit type cast
-  // below because inferred object literal types are too narrow.
+  // Secondary sections — sidebar collapsibles and the mobile "You" sheet.
   type NavSectionItem = {
     name: string;
     href: string;
@@ -46,14 +41,12 @@ const Layout = memo(function Layout({ children }: { children: React.ReactNode })
   const moreNavSections: { label: string; items: NavSectionItem[] }[] = [
     {
       label: 'Training',
+      // Only what primary nav doesn't already carry (DES-F4 dedupe). The
+      // /readiness check-in lost its nav door on purpose: readiness lives on
+      // Home, details in Health; the check-in opens from the Home hero.
       items: [
-        { name: 'Grapple AI', href: '/grapple', icon: Sparkles, badge: 'NEW' },
-        { name: 'Glossary', href: '/glossary', icon: Target, badge: 'NEW' },
-        { name: 'Sessions', href: '/sessions', icon: Activity },
-        { name: 'Purple Belt', href: '/curriculum', icon: Award },
-        { name: 'Health', href: '/health', icon: HeartPulse },
+        { name: 'Glossary', href: '/glossary', icon: Target },
         { name: 'Goals', href: '/goals', icon: Trophy },
-        { name: 'Readiness', href: '/readiness', icon: Activity },
       ],
     },
     ...(user?.is_admin ? [{

@@ -25,7 +25,7 @@ import BottomNav from '../BottomNav'
 
 const navigation = [
   { name: 'Home', href: '/', icon: () => <span>H</span> },
-  { name: 'Feed', href: '/feed', icon: () => <span>F</span>, badge: 0 },
+  { name: 'Sessions', href: '/feed', icon: () => <span>F</span>, badge: 0 },
 ]
 
 const moreNavSections = [
@@ -61,7 +61,7 @@ describe('BottomNav', () => {
     // Sessions slot (sessions still accessible via Home widgets + /sessions
     // URL + the You sheet). Commit c889ba3 "un-hide Feed".
     expect(screen.getByText('Home')).toBeInTheDocument()
-    expect(screen.getByText('Feed')).toBeInTheDocument()
+    expect(screen.getByText('Sessions')).toBeInTheDocument()
     expect(screen.getByText('Progress')).toBeInTheDocument()
     expect(screen.getByText('You')).toBeInTheDocument()
     expect(screen.getByLabelText('Quick Log')).toBeInTheDocument()
