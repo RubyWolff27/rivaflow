@@ -126,10 +126,17 @@ export default function Sidebar({ navigation, moreNavSections, onQuickLog }: Sid
             <Link
               key={item.name}
               to={item.href}
-              className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors relative"
+              className={
+                isActive
+                  ? 'flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-semibold transition-colors relative'
+                  : 'flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors relative'
+              }
+              aria-current={isActive ? 'page' : undefined}
               style={{
                 color: isActive ? 'var(--accent)' : 'var(--muted)',
                 backgroundColor: isActive ? 'var(--surfaceElev)' : 'transparent',
+                // Non-color active affordance (DES-F8)
+                boxShadow: isActive ? 'inset 3px 0 0 0 var(--accent)' : undefined,
               }}
               title={collapsed ? item.name : undefined}
             >

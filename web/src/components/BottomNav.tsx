@@ -223,9 +223,18 @@ export default function BottomNav({ moreNavSections, onQuickLog }: BottomNavProp
                 to={item.href}
                 className="flex flex-col items-center justify-center gap-0.5 py-1 px-2 relative"
                 style={{ color: isActive ? 'var(--accent)' : 'var(--muted)' }}
+                aria-current={isActive ? 'page' : undefined}
               >
-                <Icon className="w-5 h-5" />
-                <span className="text-[10px] font-medium">{item.name}</span>
+                {/* Non-color active affordance (DES-F8): indicator bar + weight */}
+                {isActive && (
+                  <span
+                    aria-hidden
+                    className="absolute top-0 left-1/2 -translate-x-1/2 w-8 h-0.5 rounded-full"
+                    style={{ backgroundColor: 'var(--accent)' }}
+                  />
+                )}
+                <Icon className="w-5 h-5" strokeWidth={isActive ? 2.5 : 2} />
+                <span className={isActive ? 'text-[10px] font-bold' : 'text-[10px] font-medium'}>{item.name}</span>
               </Link>
             );
           })}

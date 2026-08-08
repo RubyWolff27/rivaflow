@@ -119,9 +119,9 @@ describe("EditSession", () => {
     vi.clearAllMocks();
   });
 
-  it("renders loading state initially", () => {
+  it("renders skeleton loading state initially", () => {
     renderEditSession();
-    expect(screen.getByText("Loading session...")).toBeInTheDocument();
+    expect(document.querySelector('.animate-pulse')).toBeTruthy();
   });
 
   it("renders the form after data loads", async () => {

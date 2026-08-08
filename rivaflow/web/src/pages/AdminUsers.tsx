@@ -285,14 +285,14 @@ export default function AdminUsers() {
                       {getTierDisplayName(user.subscription_tier)}
                     </span>
                     {user.is_beta_user && (
-                      <span className="px-2 py-0.5 text-xs rounded-full bg-primary-100 text-primary-800">
+                      <span className="px-2 py-0.5 text-xs rounded-full" style={{ backgroundColor: 'var(--surfaceElev)', color: 'var(--accent)' }}>
                         Beta
                       </span>
                     )}
                     {user.is_admin && (
                       <span
                         className="px-2 py-0.5 text-xs rounded-full"
-                        style={{ backgroundColor: 'var(--primary-bg)', color: 'var(--primary)' }}
+                        style={{ backgroundColor: 'var(--surfaceElev)', color: 'var(--accent)' }}
                       >
                         Admin
                       </span>
@@ -328,7 +328,7 @@ export default function AdminUsers() {
                     className="p-2 rounded-lg hover:bg-blue-500/10 transition-colors"
                     title="View details"
                   >
-                    <Eye className="w-4 h-4" style={{ color: 'var(--primary)' }} />
+                    <Eye className="w-4 h-4" style={{ color: 'var(--accent)' }} />
                   </button>
                   <button
                     onClick={() => {
@@ -340,7 +340,7 @@ export default function AdminUsers() {
                     title="Change tier"
                     aria-label={`Change tier for ${user.email}`}
                   >
-                    <Crown className="w-4 h-4" style={{ color: 'var(--primary)' }} />
+                    <Crown className="w-4 h-4" style={{ color: 'var(--accent)' }} />
                   </button>
                   <button
                     onClick={() => setConfirmAction({ type: 'toggleActive', userId: user.id, currentStatus: user.is_active })}
@@ -398,14 +398,14 @@ export default function AdminUsers() {
                     {getTierDisplayName(selectedUser.subscription_tier)}
                   </span>
                   {selectedUser.is_beta_user && (
-                    <span className="px-3 py-1 text-xs rounded-full bg-primary-100 text-primary-800">
+                    <span className="px-3 py-1 text-xs rounded-full" style={{ backgroundColor: 'var(--surfaceElev)', color: 'var(--accent)' }}>
                       Beta User
                     </span>
                   )}
                   {selectedUser.is_admin && (
                     <span
                       className="px-3 py-1 text-xs rounded-full"
-                      style={{ backgroundColor: 'var(--primary-bg)', color: 'var(--primary)' }}
+                      style={{ backgroundColor: 'var(--surfaceElev)', color: 'var(--accent)' }}
                     >
                       Admin
                     </span>

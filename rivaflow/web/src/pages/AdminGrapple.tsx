@@ -336,7 +336,7 @@ export default function AdminGrapple() {
                 <tr key={user.user_id}>
                   <td className="px-4 py-3 text-sm text-[var(--text)]">{user.email}</td>
                   <td className="px-4 py-3">
-                    <span className="inline-block px-2 py-1 text-xs font-medium rounded-full bg-primary-100 dark:bg-primary-900/20 text-primary-700 dark:text-primary-400 uppercase">
+                    <span className="inline-block px-2 py-1 text-xs font-medium rounded-full uppercase" style={{ backgroundColor: 'var(--surfaceElev)', color: 'var(--accent)' }}>
                       {user.subscription_tier}
                     </span>
                   </td>

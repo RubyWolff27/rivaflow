@@ -5,7 +5,7 @@ import { sessionsApi, friendsApi, socialApi, glossaryApi } from '../api/client';
 import { logger } from '../utils/logger';
 import { HH_MM_RE } from '../utils/validation';
 import type { Friend, Movement, Session, SessionRoll, SessionTechnique } from '../types';
-import { CheckCircle, ArrowLeft, Save, Loader, Trash2, Camera, Users2 } from 'lucide-react';
+import { CheckCircle, ArrowLeft, Save, Trash2, Camera, Users2 } from 'lucide-react';
 import TechniqueTracker from '../components/sessions/TechniqueTracker';
 import RollTracker from '../components/sessions/RollTracker';
 import ClassTimePicker from '../components/sessions/ClassTimePicker';
@@ -17,6 +17,7 @@ import PhotoGallery from '../components/PhotoGallery';
 import PhotoUpload from '../components/PhotoUpload';
 import ConfirmDialog from '../components/ConfirmDialog';
 import { useToast } from '../contexts/ToastContext';
+import { CardSkeleton } from '../components/ui';
 import { useSessionForm, mergePartners, mapSocialFriends } from '../hooks/useSessionForm';
 import { useDraftSaving } from '../hooks/useDraftSaving';
 
@@ -278,9 +279,9 @@ export default function EditSession() {
 
   if (loading) {
     return (
-      <div className="max-w-2xl mx-auto text-center py-12">
-        <Loader className="w-8 h-8 text-[var(--accent)] animate-spin mx-auto mb-4" />
-        <p className="text-[var(--muted)]">Loading session...</p>
+      <div className="max-w-2xl mx-auto space-y-4">
+        <CardSkeleton lines={6} />
+        <CardSkeleton lines={4} />
       </div>
     );
   }

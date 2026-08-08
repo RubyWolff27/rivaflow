@@ -31,7 +31,7 @@ export default function ProfileHeader({ tierInfo }: ProfileHeaderProps) {
               <h2 className="text-lg font-semibold">Subscription Tier</h2>
               <p className="text-2xl font-bold text-[var(--accent)]">{tierInfo.displayName}</p>
               {tierInfo.isBeta && (
-                <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-primary-100 text-primary-800 mt-1">
+                <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium mt-1" style={{ backgroundColor: 'var(--surfaceElev)', color: 'var(--accent)' }}>
                   Beta User
                 </span>
               )}

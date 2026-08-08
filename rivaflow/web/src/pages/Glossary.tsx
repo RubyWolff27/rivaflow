@@ -440,7 +440,7 @@ export default function Glossary() {
                 </span>
               )}
               {movement.custom && (
-                <span className="px-2 py-1 rounded text-xs font-medium bg-blue-100 text-blue-800">
+                <span className="px-2 py-1 rounded text-xs font-medium" style={{ backgroundColor: 'var(--surfaceElev)', color: 'var(--accent)' }}>
                   Custom
                 </span>
               )}

@@ -4,6 +4,7 @@ import { garminApi, analyticsApi } from '../api/client';
 import type { GarminDailyMetric } from '../types';
 import GarminTrendChart from '../components/analytics/GarminTrendChart';
 import { usePageTitle } from '../hooks/usePageTitle';
+import { CardSkeleton } from '../components/ui';
 import { HeartPulse, Moon, Activity, Zap, Footprints, Wind, Droplets, BedDouble } from 'lucide-react';
 
 interface SleepDebt {
@@ -77,7 +78,12 @@ export default function Health() {
     metrics.map((m) => ({ date: m.metric_date, value: (m[key] as number | null) ?? null }));
 
   if (loading) {
-    return <div className="p-4 text-sm" style={{ color: 'var(--muted)' }}>Loading Garmin metrics…</div>;
+    return (
+      <div className="max-w-3xl mx-auto p-4 space-y-4">
+        <CardSkeleton lines={3} />
+        <CardSkeleton lines={5} />
+      </div>
+    );
   }
 
   if (!metrics.length) {
@@ -85,7 +91,7 @@ export default function Health() {
       <div className="max-w-3xl mx-auto p-4">
         <h1 className="text-xl font-bold mb-2">Health</h1>
         <p className="text-sm" style={{ color: 'var(--muted)' }}>
-          No Garmin data yet — it appears here once your daily metrics sync.
+          No health data yet — it appears here once your watch syncs.
         </p>
       </div>
     );

@@ -41,9 +41,9 @@ describe('PrivateRoute', () => {
     vi.clearAllMocks()
   })
 
-  it('shows loading spinner when isLoading is true', () => {
+  it('shows the page skeleton when isLoading is true', () => {
     renderWithRoute({ isLoading: true, user: null })
-    expect(screen.getByText('Loading...')).toBeInTheDocument()
+    expect(document.querySelector('.animate-pulse')).toBeTruthy()
     expect(screen.queryByTestId('protected-content')).not.toBeInTheDocument()
     expect(screen.queryByTestId('login-page')).not.toBeInTheDocument()
   })
