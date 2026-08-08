@@ -47,6 +47,9 @@ class SaveExtractedSessionRequest(BaseModel):
     techniques: list[str] = []
     notes: str = ""
     events: list[dict] = []
+    class_time: str | None = None
+    class_tags: list[str] | None = None
+    intensity_tags: list[int] | None = None
 
 
 class GenerateInsightRequest(BaseModel):
@@ -138,6 +141,9 @@ def save_extracted_session(
         submissions_for=request.submissions_for,
         submissions_against=request.submissions_against,
         partners=request.partners,
+        class_time=request.class_time,
+        class_tags=request.class_tags,
+        intensity_tags=request.intensity_tags,
         techniques=unresolved or None,
         session_techniques=session_techniques or None,
         notes=request.notes,

@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { X, Mic, MicOff, CheckCircle } from 'lucide-react';
-import { sessionsApi, profileApi, restApi, friendsApi, socialApi } from '../api/client';
+import { sessionsApi, profileApi, restApi, friendsApi, socialApi, grappleApi, curriculumApi } from '../api/client';
 import { logger } from '../utils/logger';
 import { PrimaryButton, SecondaryButton, ClassTypeChips, IntensityChips } from './ui';
 import FriendAutocomplete from './sessions/FriendAutocomplete';
@@ -37,6 +37,9 @@ interface QuickLogProps {
 export default function QuickLog({ isOpen, onClose, onSuccess }: QuickLogProps) {
   const [loading, setLoading] = useState(false);
   const [savedSessionId, setSavedSessionId] = useState<number | null>(null);
+  const [savedMovements, setSavedMovements] = useState<string[]>([]);
+  const [savedCandidates, setSavedCandidates] = useState(0);
+  const [debriefing, setDebriefing] = useState(false);
   const navigate = useNavigate();
   const toast = useToast();
 
@@ -165,23 +168,71 @@ export default function QuickLog({ isOpen, onClose, onSuccess }: QuickLogProps) 
           return;
         }
 
-        const response = await sessionsApi.create({
-          gym_name: gym,
-          session_date: today,
-          duration_mins: duration,
-          intensity,
-          intensity_tags: styleTags.length > 0 ? styleTags : undefined,
-          class_type: classType,
-          class_tags: classTags.length > 0 ? classTags : undefined,
-          class_time: classTime && HH_MM_RE.test(classTime) ? classTime : undefined,
-          rolls: quickRolls,
-          partners: partnerNames.length > 0 ? partnerNames : undefined,
-          notes: notes || undefined,
-        });
+        // The 90-second debrief (DES-F7 / Spine-3): a spoken/typed debrief is
+        // parsed server-side into techniques + events + subs, resolved to
+        // glossary movement IDs, and saved in one pass. Your explicit chips
+        // (gym/type/time/duration/intensity) always win over the extraction.
+        // Extraction failure falls back to a plain save — the debrief text is
+        // never lost (it stays in notes either way).
+        let newSessionId: number | undefined;
+        let movementsResolved: string[] = [];
+        if (notes.trim()) {
+          setDebriefing(true);
+          try {
+            const ext = await grappleApi.extractSession(notes);
+            const d = ext.data ?? {};
+            const res = await grappleApi.saveExtractedSession({
+              session_date: today,
+              class_type: classType,
+              gym_name: gym,
+              duration_mins: duration,
+              intensity,
+              class_time: classTime && HH_MM_RE.test(classTime) ? classTime : undefined,
+              class_tags: classTags.length > 0 ? classTags : undefined,
+              intensity_tags: styleTags.length > 0 ? styleTags : undefined,
+              rolls: quickRolls || d.rolls || 0,
+              submissions_for: d.submissions_for ?? 0,
+              submissions_against: d.submissions_against ?? 0,
+              partners: partnerNames.length > 0 ? partnerNames : (d.partners ?? []),
+              techniques: d.techniques ?? [],
+              events: d.events ?? [],
+              notes,
+            });
+            newSessionId = res.data?.session_id;
+            movementsResolved = res.data?.movements_resolved ?? [];
+          } catch (err) {
+            logger.warn('Debrief extraction failed — plain save', err);
+          } finally {
+            setDebriefing(false);
+          }
+        }
+        if (!newSessionId) {
+          const response = await sessionsApi.create({
+            gym_name: gym,
+            session_date: today,
+            duration_mins: duration,
+            intensity,
+            intensity_tags: styleTags.length > 0 ? styleTags : undefined,
+            class_type: classType,
+            class_tags: classTags.length > 0 ? classTags : undefined,
+            class_time: classTime && HH_MM_RE.test(classTime) ? classTime : undefined,
+            rolls: quickRolls,
+            partners: partnerNames.length > 0 ? partnerNames : undefined,
+            notes: notes || undefined,
+          });
+          newSessionId = response.data?.id;
+        }
         toast.success('Session logged successfully');
-        triggerInsightRefresh(response.data?.id);
+        triggerInsightRefresh(newSessionId);
+        setSavedMovements(movementsResolved);
 
-        const newSessionId = response.data?.id;
+        // Bridge (MA-F1): does this session unlock purple-belt evidence?
+        if (newSessionId) {
+          try {
+            const cand = await curriculumApi.evidenceCandidates(newSessionId);
+            setSavedCandidates(cand.data?.candidates?.length ?? 0);
+          } catch { setSavedCandidates(0); }
+        }
         // Reset training form
         setDuration(90);
         setIntensity(3);
@@ -237,7 +288,7 @@ export default function QuickLog({ isOpen, onClose, onSuccess }: QuickLogProps) 
             {savedSessionId ? 'Session Logged!' : 'Quick Log'}
           </h2>
           <button
-            onClick={() => { setSavedSessionId(null); onClose(); }}
+            onClick={() => { setSavedSessionId(null); setSavedMovements([]); setSavedCandidates(0); onClose(); }}
             className="p-2 rounded-lg"
             style={{ color: 'var(--muted)' }}
             aria-label="Close quick log dialog"
@@ -250,12 +301,26 @@ export default function QuickLog({ isOpen, onClose, onSuccess }: QuickLogProps) 
         {savedSessionId && (
           <div className="text-center space-y-4 py-4">
             <CheckCircle className="w-12 h-12 mx-auto" style={{ color: '#22c55e' }} />
+            {savedMovements.length > 0 && (
+              <p className="text-sm" style={{ color: 'var(--text)' }}>
+                Logged from your debrief: {savedMovements.join(', ')}
+              </p>
+            )}
+            {savedCandidates > 0 && (
+              <button
+                onClick={() => { const id = savedSessionId; setSavedSessionId(null); onClose(); navigate(`/session/${id}`); }}
+                className="w-full py-3 rounded-lg font-semibold text-sm"
+                style={{ backgroundColor: 'var(--accent)', color: '#FFFFFF' }}
+              >
+                {savedCandidates} purple-belt match{savedCandidates !== 1 ? 'es' : ''} — review evidence
+              </button>
+            )}
             <p className="text-sm" style={{ color: 'var(--muted)' }}>
               Want to add roll details, techniques, or photos?
             </p>
             <div className="flex gap-3">
               <button
-                onClick={() => { setSavedSessionId(null); onClose(); }}
+                onClick={() => { setSavedSessionId(null); setSavedMovements([]); setSavedCandidates(0); onClose(); }}
                 className="flex-1 py-3 rounded-lg font-medium text-sm transition-all"
                 style={{ backgroundColor: 'var(--surfaceElev)', color: 'var(--text)', border: '1px solid var(--border)' }}
               >
@@ -382,7 +447,6 @@ export default function QuickLog({ isOpen, onClose, onSuccess }: QuickLogProps) 
                   onChange={(e) => setGym(e.target.value)}
                   className="input w-full"
                   placeholder="Enter gym name"
-                  autoFocus
                 />
               </div>
 
@@ -501,7 +565,7 @@ export default function QuickLog({ isOpen, onClose, onSuccess }: QuickLogProps) 
               {/* Notes */}
               <div>
                 <label className="block text-sm font-medium mb-2" style={{ color: 'var(--text)' }}>
-                  Notes <span className="font-normal" style={{ color: 'var(--muted)' }}>(optional)</span>
+                  Debrief <span className="font-normal" style={{ color: 'var(--muted)' }}>(speak or type — techniques, rolls, subs get logged for you)</span>
                 </label>
                 <div className="relative">
                   <textarea
@@ -509,7 +573,7 @@ export default function QuickLog({ isOpen, onClose, onSuccess }: QuickLogProps) 
                     onChange={(e) => setNotes(e.target.value)}
                     className="input w-full"
                     rows={3}
-                    placeholder="Session notes..."
+                    placeholder="e.g. Drilled armbar from closed guard, 4 rolls, tapped Tato with a triangle…"
                   />
                   {hasSpeechApi && (
                     <button
@@ -597,7 +661,7 @@ export default function QuickLog({ isOpen, onClose, onSuccess }: QuickLogProps) 
                 Cancel
               </SecondaryButton>
               <PrimaryButton onClick={handleQuickLog} disabled={loading} className="flex-1">
-                {loading ? 'Logging...' : activityType === 'rest' ? 'Log Rest Day' : 'Log Session'}
+                {debriefing ? 'Understanding your debrief…' : loading ? 'Logging...' : activityType === 'rest' ? 'Log Rest Day' : 'Log Session'}
               </PrimaryButton>
             </div>
 
