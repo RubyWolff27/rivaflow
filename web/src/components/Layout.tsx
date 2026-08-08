@@ -1,6 +1,6 @@
 import { useState, useRef, memo } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { Plus, Home, BarChart3, Award, Shield, Sparkles, Target, Calendar, Trophy, HeartPulse } from 'lucide-react';
+import { Plus, Home, BarChart3, Award, Shield, Sparkles, Target, Calendar, Trophy, HeartPulse, Map } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import QuickLog from './QuickLog';
 import Sidebar from './Sidebar';
@@ -45,6 +45,7 @@ const Layout = memo(function Layout({ children }: { children: React.ReactNode })
       // /readiness check-in lost its nav door on purpose: readiness lives on
       // Home, details in Health; the check-in opens from the Home hero.
       items: [
+        { name: 'Roadmaps', href: '/roadmaps', icon: Map },
         { name: 'Glossary', href: '/glossary', icon: Target },
         { name: 'Goals', href: '/goals', icon: Trophy },
       ],

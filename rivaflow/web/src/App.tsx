@@ -49,6 +49,7 @@ const Terms = lazy(() => import('./pages/Terms'));
 const Privacy = lazy(() => import('./pages/Privacy'));
 const Groups = lazy(() => import('./pages/Groups'));
 const Curriculum = lazy(() => import('./pages/Curriculum'));
+const Roadmaps = lazy(() => import('./pages/Roadmaps'));
 const MonthlyGoals = lazy(() => import('./pages/MonthlyGoals'));
 const CoachSettings = lazy(() => import('./pages/CoachSettings'));
 const Login = lazy(() => import('./pages/Login'));
@@ -148,6 +149,7 @@ function App() {
                           <Route path="/grapple" element={<Grapple />} />
                           <Route path="/coach-settings" element={<CoachSettings />} />
                           <Route path="/curriculum" element={<Curriculum />} />
+                          <Route path="/roadmaps" element={<Roadmaps />} />
                           <Route path="/goals" element={<MonthlyGoals />} />
                           <Route path="/admin" element={<AdminRoute><AdminDashboard /></AdminRoute>} />
                           <Route path="/admin/users" element={<AdminRoute><AdminUsers /></AdminRoute>} />
